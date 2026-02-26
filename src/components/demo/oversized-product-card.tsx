@@ -274,7 +274,7 @@ export function OversizedProductCard({
         <div className="flex items-center justify-between mt-auto pt-3 border-t">
           <div>
             <span className="text-2xl font-bold" style={{ color: primaryColor }}>
-              ${product.price.toFixed(2)}
+              ${(product.price ?? 0).toFixed(2)}
             </span>
           </div>
 

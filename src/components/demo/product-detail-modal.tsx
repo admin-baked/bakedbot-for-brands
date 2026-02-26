@@ -107,9 +107,9 @@ export function ProductDetailModal({
                </div>
                <div className="flex items-center gap-4 mt-2">
                  <span className="text-2xl font-bold" style={{ color: primaryColor }}>
-                    ${product.price.toFixed(2)}
+                    ${(product.price ?? 0).toFixed(2)}
                  </span>
-                 {product.price < 30 && (
+                 {(product.price ?? 0) < 30 && (
                    <Badge variant="outline" className="border-red-200 text-red-600 bg-red-50">
                      Great Deal
                    </Badge>
@@ -183,7 +183,7 @@ export function ProductDetailModal({
                     }}
                   >
                     <ShoppingCart className="h-4 w-4 mr-2" />
-                    Add to Cart - ${(product.price * quantity).toFixed(2)}
+                    Add to Cart - ${((product.price ?? 0) * quantity).toFixed(2)}
                   </Button>
                </div>
                

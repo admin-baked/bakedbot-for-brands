@@ -228,7 +228,7 @@ export function BrandCheckoutFlow({
                 <p className="text-sm text-muted-foreground">{item.category}</p>
                 <p className="text-sm">Qty: {item.quantity}</p>
               </div>
-              <p className="font-semibold">${(item.price * item.quantity).toFixed(2)}</p>
+              <p className="font-semibold">${((item.price ?? 0) * item.quantity).toFixed(2)}</p>
             </div>
           ))}
 
