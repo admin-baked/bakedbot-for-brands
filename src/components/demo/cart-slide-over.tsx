@@ -26,6 +26,7 @@ import { useCallback } from 'react';
 import type { Product } from '@/types/domain';
 import { ProductUpsellRow } from '@/components/upsell/product-upsell-row';
 import { fetchCartUpsells } from '@/server/actions/upsell';
+import { calculateCartTotals, safeUnitPrice } from '@/components/demo/cart-pricing';
 
 interface CartItem extends Product {
   quantity: number;
@@ -56,9 +57,7 @@ export function CartSlideOver({
   orgId,
   onAddUpsellToCart,
 }: CartSlideOverProps) {
-  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const tax = subtotal * 0.25; // Cannabis tax
-  const total = subtotal + tax;
+  const { subtotal, tax, total } = calculateCartTotals(items);
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
   const cartItemIds = items.map((item) => item.id);
@@ -164,7 +163,7 @@ export function CartSlideOver({
                         {/* Price & Remove */}
                         <div className="flex items-center gap-2">
                           <span className="font-semibold" style={{ color: primaryColor }}>
-                            ${((item.price ?? 0) * item.quantity).toFixed(2)}
+                            ${(safeUnitPrice(item.price) * item.quantity).toFixed(2)}
                           </span>
                           <Button
                             variant="ghost"

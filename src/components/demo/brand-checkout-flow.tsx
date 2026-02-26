@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Product } from '@/types/domain';
+import { calculateCartTotals, safeUnitPrice } from '@/components/demo/cart-pricing';
 
 interface CartItem extends Product {
   quantity: number;
@@ -92,9 +93,7 @@ export function BrandCheckoutFlow({
   const [emailOptIn, setEmailOptIn] = useState(true);
 
   // Calculate totals
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const tax = subtotal * 0.25; // Cannabis tax
-  const total = subtotal + tax;
+  const { subtotal, tax, total } = calculateCartTotals(cartItems);
 
   const handleSubmitOrder = async () => {
     setIsSubmitting(true);
@@ -228,7 +227,7 @@ export function BrandCheckoutFlow({
                 <p className="text-sm text-muted-foreground">{item.category}</p>
                 <p className="text-sm">Qty: {item.quantity}</p>
               </div>
-              <p className="font-semibold">${((item.price ?? 0) * item.quantity).toFixed(2)}</p>
+              <p className="font-semibold">${(safeUnitPrice(item.price) * item.quantity).toFixed(2)}</p>
             </div>
           ))}
 
