@@ -21,8 +21,8 @@ npm run check:types
 
 **Current Status:** 🟢 Passing (verified 2026-02-25)
 
-**Recent work (2026-02-25):** See `memory/MEMORY.md` for full log.
-Key completed: [Gmail OAuth connect intent + proactive task card] (`86cb942b`, `28d5fc96`)
+**Recent work (2026-02-26):** See `memory/MEMORY.md` for full log.
+Key completed: [Boardroom UX redesign + viewport fix] (`d5305add`, `0415d339`), [Deebo State Compliance Matrix NY/MA/CA/CO/IL] (`77f692ac`), [Inbox analytics_chart + analytics_briefing artifacts] (`c1e8a393`)
 
 ---
 
