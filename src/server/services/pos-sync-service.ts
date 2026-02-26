@@ -206,6 +206,27 @@ async function persistOrdersToFirestore(
 }
 
 /**
+ * Resolve the key used for per-customer spending aggregation.
+ * Prefers real email; falls back to customer ID for in-store orders.
+ */
+export function deriveCustomerSpendingKeyFromAlleavesOrder(ao: any): string | null {
+    const email = (
+        ao.customer?.email || ao.email || ao.customer_email || ''
+    ).toLowerCase().trim();
+
+    if (email && !email.includes('@alleaves.local')) {
+        return email;
+    }
+
+    const customerId = (ao.id_customer || ao.customer?.id)?.toString().trim();
+    if (customerId) {
+        return `cid_${customerId}`;
+    }
+
+    return null;
+}
+
+/**
  * Compute per-customer spending summaries from raw Alleaves orders and write them
  * to `tenants/{orgId}/customer_spending/{email}` so the customer list load can read
  * pre-computed totals instead of aggregating order docs at request time.
@@ -231,16 +252,7 @@ async function computeAndPersistSpending(
     }>();
 
     for (const ao of orders) {
-        // Same extraction logic as persistOrdersToFirestore()
-        const email = (
-            ao.customer?.email || ao.email || ao.customer_email || ''
-        ).toLowerCase().trim();
-        const hasValidEmail = email && email !== 'no-email@alleaves.local';
-
-        // Key by email when valid; fall back to 'cid_{id_customer}' for in-store orders
-        // that don't carry a customer email. This mirrors the lookup in getCustomersFromAlleaves.
-        const customerId = (ao.id_customer || ao.customer?.id)?.toString();
-        const key = hasValidEmail ? email : (customerId ? `cid_${customerId}` : null);
+        const key = deriveCustomerSpendingKeyFromAlleavesOrder(ao);
         if (!key) continue;
 
         const amount = parseFloat(ao.total || ao.amount || 0);
