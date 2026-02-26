@@ -11,6 +11,7 @@ import {
     buildIntegrationStatusSummary
 } from './agent-definitions';
 import { getOrgProfileWithFallback, buildEzalContextBlock } from '@/server/services/org-profile';
+import { getMarketBenchmarks, buildBenchmarkContextBlock } from '@/server/services/market-benchmarks';
 
 // --- Tool Definitions ---
 
@@ -46,8 +47,12 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
     logger.info('[Ezal] Initializing. Checking watchlist...');
 
     const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || '';
-    const orgProfile = await getOrgProfileWithFallback(orgId).catch(() => null);
+    const [orgProfile, benchmarks] = await Promise.all([
+        getOrgProfileWithFallback(orgId).catch(() => null),
+        getMarketBenchmarks(orgId).catch(() => null),
+    ]);
     const contextBlock = orgProfile ? buildEzalContextBlock(orgProfile) : '';
+    const benchmarkBlock = benchmarks ? buildBenchmarkContextBlock(benchmarks) : '';
 
     // Build dynamic context from agent-definitions (source of truth)
     const squadRoster = buildSquadRoster('ezal');
@@ -73,6 +78,8 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
       - Reports contain: market trends, top deals, competitor pricing strategies, pricing gaps, and recommendations
 
       When asked about competitors, pricing, or market trends, ALWAYS check the latest Drive report first.
+
+      ${benchmarkBlock}
 
       === AGENT SQUAD (For Collaboration) ===
       ${squadRoster}

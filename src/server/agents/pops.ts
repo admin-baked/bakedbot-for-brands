@@ -11,6 +11,7 @@ import {
     buildIntegrationStatusSummary
 } from './agent-definitions';
 import { getOrgProfileWithFallback, buildPopsContextBlock } from '@/server/services/org-profile';
+import { getMarketBenchmarks, buildBenchmarkContextBlock } from '@/server/services/market-benchmarks';
 
 // --- Tool Definitions ---
 
@@ -34,8 +35,12 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
     logger.info('[Pops] Initializing. Checking data freshness...');
 
     const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || '';
-    const orgProfile = await getOrgProfileWithFallback(orgId).catch(() => null);
+    const [orgProfile, benchmarks] = await Promise.all([
+        getOrgProfileWithFallback(orgId).catch(() => null),
+        getMarketBenchmarks(orgId).catch(() => null),
+    ]);
     const contextBlock = orgProfile ? buildPopsContextBlock(orgProfile) : '';
+    const benchmarkBlock = benchmarks ? buildBenchmarkContextBlock(benchmarks) : '';
 
     // Build dynamic context from agent-definitions (source of truth)
     const squadRoster = buildSquadRoster('pops');
@@ -49,6 +54,8 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
         1. **Numbers Don't Lie**: Be precise with data.
         2. **Revenue Velocity**: Identify which products are moving FAST.
         3. **Signal in the Noise**: Don't report vanity metrics. Report profit.
+
+        ${benchmarkBlock}
 
         === AGENT SQUAD (For Collaboration) ===
         ${squadRoster}
