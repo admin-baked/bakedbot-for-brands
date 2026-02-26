@@ -409,11 +409,27 @@ interface Step3DialogProps {
     dontWrite: string[];
   }) => void;
   initialData?: {
-    tone?: string[];
-    personality?: string[];
-    doWrite?: string[];
-    dontWrite?: string[];
+    tone?: string[] | string;
+    personality?: string[] | string;
+    doWrite?: string[] | string;
+    dontWrite?: string[] | string;
   };
+}
+
+function normalizeStringList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .filter((item): item is string => typeof item === 'string')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed ? [trimmed] : [];
+  }
+
+  return [];
 }
 
 export function Step3Dialog({ open, onOpenChange, onComplete, initialData }: Step3DialogProps) {
@@ -443,24 +459,29 @@ export function Step3Dialog({ open, onOpenChange, onComplete, initialData }: Ste
   // Auto-select extracted or smart-default tones/personality when dialog opens
   useEffect(() => {
     if (open && initialData) {
-      if (Array.isArray(initialData.tone) && initialData.tone.length > 0) {
+      const initialTones = normalizeStringList(initialData.tone);
+      const initialPersonality = normalizeStringList(initialData.personality);
+      const initialDoWrite = normalizeStringList(initialData.doWrite);
+      const initialDontWrite = normalizeStringList(initialData.dontWrite);
+
+      if (initialTones.length > 0) {
         // Match case-insensitively against our options list
         const matched = toneOptions.filter((opt) =>
-          (initialData.tone as string[]).some((t) => t.toLowerCase() === opt.toLowerCase())
+          initialTones.some((t) => t.toLowerCase() === opt.toLowerCase())
         );
         if (matched.length > 0) setSelectedTones(matched.slice(0, 3));
       }
-      if (Array.isArray(initialData.personality) && initialData.personality.length > 0) {
+      if (initialPersonality.length > 0) {
         const matched = personalityOptions.filter((opt) =>
-          (initialData.personality as string[]).some((p) => p.toLowerCase() === opt.toLowerCase())
+          initialPersonality.some((p) => p.toLowerCase() === opt.toLowerCase())
         );
         if (matched.length > 0) setSelectedPersonality(matched.slice(0, 4));
       }
-      if (initialData.doWrite && initialData.doWrite.length > 0) {
-        setDoWrite(initialData.doWrite.join('\n'));
+      if (initialDoWrite.length > 0) {
+        setDoWrite(initialDoWrite.join('\n'));
       }
-      if (initialData.dontWrite && initialData.dontWrite.length > 0) {
-        setDontWrite(initialData.dontWrite.join('\n'));
+      if (initialDontWrite.length > 0) {
+        setDontWrite(initialDontWrite.join('\n'));
       }
     }
   }, [open, initialData]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -487,10 +508,8 @@ export function Step3Dialog({ open, onOpenChange, onComplete, initialData }: Ste
     onOpenChange(false);
   };
 
-  const hasAutoFill = initialData && (
-    (Array.isArray(initialData.tone) && initialData.tone.length > 0) ||
-    (Array.isArray(initialData.personality) && initialData.personality.length > 0)
-  );
+  const hasAutoFill = normalizeStringList(initialData?.tone).length > 0
+    || normalizeStringList(initialData?.personality).length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

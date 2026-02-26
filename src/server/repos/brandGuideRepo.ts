@@ -75,19 +75,31 @@ export function makeBrandGuideRepo(firestore: Firestore): BrandGuideRepo {
    */
   function convertTimestamps(val: unknown): unknown {
     if (val === null || val === undefined) return val;
-    // Firestore Timestamp — convert to Date
+
     if (typeof val === 'object' && typeof (val as { toDate?: unknown }).toDate === 'function') {
       return (val as { toDate(): Date }).toDate();
     }
+
     if (val instanceof Date) return val;
     if (Array.isArray(val)) return val.map(convertTimestamps);
+
     if (typeof val === 'object') {
+      const proto = Object.getPrototypeOf(val);
+      if (proto !== Object.prototype && proto !== null) {
+        // Keep non-plain objects intact (e.g. Firestore special value types).
+        return val;
+      }
+
       const out: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
+        if (k === '__proto__' || k === 'constructor' || k === 'prototype') {
+          continue;
+        }
         out[k] = convertTimestamps(v);
       }
       return out;
     }
+
     return val;
   }
 
@@ -669,3 +681,4 @@ export function makeBrandGuideRepo(firestore: Firestore): BrandGuideRepo {
     search,
   };
 }
+
