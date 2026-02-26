@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-25)
 
 **Recent work (2026-02-25):** See `memory/MEMORY.md` for full log.
-Key completed: [Sentry build fix + SENTRY_DSN@1 enabled] (`40529ff1`), [PR #13 agent DevOps infra merged] (`f37f5825`)
+Key completed: [Big Worm Deep Research overhaul — Jina + Claude pipeline, inbox card, Drive save] (`81bdffb2`), [Jack CRM fix] (`a8df6587`)
 
 ---
 
