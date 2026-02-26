@@ -20,7 +20,7 @@ import {
 
 export interface JackTools extends Partial<AllSharedTools> {
     // CRM & Pipeline Tools
-    crmListUsers?(search?: string, lifecycleStage?: string, limit?: number): Promise<any>;
+    crmListUsers?(search?: string, lifecycleStage?: string, limit?: number, signedUpAfter?: string): Promise<any>;
     crmGetStats?(): Promise<any>;
     crmUpdateLifecycle?(userId: string, stage: string): Promise<any>;
 
@@ -160,11 +160,12 @@ export const jackAgent: AgentImplementation<AgentMemory, JackTools> = {
             const jackSpecificTools = [
                 {
                     name: "crmListUsers",
-                    description: "List users from CRM by search or lifecycle stage (prospect, contacted, demo_scheduled, trial, customer, vip, churned).",
+                    description: "List platform users from CRM. Users are returned newest-first. Use signedUpAfter to filter recent signups (e.g. pass an ISO date string for 'this week'). Use lifecycleStage to filter by funnel stage. Always call crmGetStats first for totals, then this to list individual users.",
                     schema: z.object({
-                        search: z.string().optional(),
+                        search: z.string().optional().describe("Search by email, name, or org name"),
                         lifecycleStage: z.enum(['prospect', 'contacted', 'demo_scheduled', 'trial', 'customer', 'vip', 'churned', 'winback']).optional(),
-                        limit: z.number().optional()
+                        limit: z.number().optional().describe("Max results (default 50)"),
+                        signedUpAfter: z.string().optional().describe("ISO date string — only return users who signed up on/after this date. Use for 'this week' or 'this month' queries (e.g. '2026-02-18')")
                     })
                 },
                 {

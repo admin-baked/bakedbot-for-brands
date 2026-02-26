@@ -61,6 +61,8 @@ export interface CRMFilters {
     search?: string;
     limit?: number;
     lifecycleStage?: CRMLifecycleStage;
+    /** Only return users who signed up on or after this date */
+    signupAfter?: Date;
 }
 
 // NOTE: LIFECYCLE_STAGE_CONFIG, CRMLifecycleStage, and CRMUser are in crm-types.ts
@@ -657,7 +659,7 @@ export async function getPlatformUsers(filters: CRMFilters = {}): Promise<CRMUse
                 // Treat higher tiers as VIP (simple heuristic); otherwise a standard customer.
                 const isVip = mrr >= 349 || String(subscription?.planId || '').toLowerCase().includes('empire');
                 lifecycleStage = isVip ? 'vip' : 'customer';
-            } else if (orgStatus === 'trialing' || trialTopSubs.length > 0 || resolvedOrgId || data.claimedAt) {
+            } else if (orgStatus === 'trialing' || trialTopSubs.length > 0 || data.claimedAt) {
                 lifecycleStage = 'trial';
             } else if (data.createdAt) {
                 lifecycleStage = 'prospect';
@@ -700,6 +702,12 @@ export async function getPlatformUsers(filters: CRMFilters = {}): Promise<CRMUse
         );
     }
 
+    // Filter by signup date (enables "who signed up this week?" queries)
+    if (filters.signupAfter) {
+        const cutoff = filters.signupAfter.getTime();
+        users = users.filter(u => u.signupAt.getTime() >= cutoff);
+    }
+
     // Sort by signupAt desc (Newest first)
     // Handle nulls by pushing them to the end or treating as old
     users.sort((a, b) => {
@@ -723,7 +731,6 @@ export async function getCRMUserStats(): Promise<{
 }> {
     await requireUser(['super_user']);
     const firestore = getAdminFirestore();
-    const snapshot = await firestore.collection('users').get();
 
     // Revenue source of truth: subscriptions collection (normalized to MRR)
     // Fallback: organizations/{orgId}/subscription/current (legacy billing)
@@ -818,6 +825,10 @@ export async function getCRMUserStats(): Promise<{
         totalMRR = 0;
     }
 
+    // Use getPlatformUsers() for lifecycle + active counts so stats always match
+    // the crmListUsers tool (same subscription-aware inference logic).
+    const allUsers = await getPlatformUsers();
+
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
@@ -833,24 +844,17 @@ export async function getCRMUserStats(): Promise<{
         winback: 0,
     };
 
-    snapshot.docs.forEach(doc => {
-        const data = doc.data();
-
-        // Count active users
-        const lastLogin = coerceDate(data.lastLoginAt) || coerceDate(data.lastLogin);
-        if (lastLogin && lastLogin >= sevenDaysAgo) {
+    for (const user of allUsers) {
+        if (user.lastLoginAt && new Date(user.lastLoginAt) >= sevenDaysAgo) {
             activeUsers++;
         }
-
-        // Count by lifecycle
-        const stage = normalizeLifecycleStage(data.lifecycleStage) || 'prospect';
-        if (byLifecycle[stage] !== undefined) {
-            byLifecycle[stage]++;
+        if (byLifecycle[user.lifecycleStage] !== undefined) {
+            byLifecycle[user.lifecycleStage]++;
         }
-    });
+    }
 
     return {
-        totalUsers: snapshot.size,
+        totalUsers: allUsers.length,
         activeUsers,
         totalMRR,
         byLifecycle,
