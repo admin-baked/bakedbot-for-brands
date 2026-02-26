@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-26 (P0 public menu null crash fix; brand guide completeness score bug fix; TS build errors resolved)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-26 (P0 price .toFixed() crash in demo menu components; P1 segments all-new fix via Alleaves userId matching)
 
 ---
 
