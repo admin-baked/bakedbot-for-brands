@@ -455,9 +455,16 @@ export async function getCustomers(params: GetCustomersParams | string = {}): Pr
             customerId = emailToIdMap.get(email!);
         }
         if (!customerId) {
-            const userId = order.userId;
-            if (userId && userId !== 'alleaves_customer') {
-                customerId = alleavesIdToCustomerIdMap.get(userId);
+            const isAlleavesOrder = order.source === 'alleaves';
+            const rawUserId = typeof order.userId === 'number'
+                ? order.userId.toString()
+                : (typeof order.userId === 'string' ? order.userId.trim() : '');
+
+            if (isAlleavesOrder && rawUserId && rawUserId !== 'alleaves_customer') {
+                const normalizedUserId = rawUserId.startsWith('alleaves_')
+                    ? rawUserId.slice('alleaves_'.length)
+                    : rawUserId;
+                customerId = alleavesIdToCustomerIdMap.get(normalizedUserId);
             }
         }
         // If the order has a placeholder email and no matching POS customer, skip it.
