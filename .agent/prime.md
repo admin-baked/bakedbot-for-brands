@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-25)
 
 **Recent work (2026-02-26):** See `memory/MEMORY.md` for full log.
-Key completed: [P0 public menu null crash + TS build fixes] (`cca52a6e`), [Brand guide completeness score on update] (`f5af57a7`)
+Key completed: [P0 price .toFixed() crash demo components] (`e7c0e76b`), [P1 segments all-new: Alleaves userId matching] (`99f205f0`)
 
 ---
 
