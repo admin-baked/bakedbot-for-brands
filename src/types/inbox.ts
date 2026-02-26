@@ -219,7 +219,10 @@ export type InboxArtifactType =
     // ---- Research Artifacts ----
     | 'research_report'   // Big Worm deep research task (live progress card + completed report)
     // ---- Integration Artifacts ----
-    | 'integration_request'; // Request to connect third-party service (OAuth, API key, etc.)
+    | 'integration_request' // Request to connect third-party service (OAuth, API key, etc.)
+    // ---- Analytics Artifacts ----
+    | 'analytics_chart'     // Recharts chart from agent analytics tool output
+    | 'analytics_briefing'; // Morning proactive briefing with metrics + news
 
 /**
  * Artifact approval status
@@ -241,6 +244,67 @@ export interface ResearchReportArtifactData {
     driveFileId?: string;
 }
 
+// =============================================================================
+// Analytics Artifact Types (Phase 5)
+// =============================================================================
+
+export interface ChartDataKey {
+    key: string;          // matches key in chartData objects
+    label: string;        // display label
+    color: string;        // hex color e.g., '#22c55e'
+    type?: 'line' | 'bar'; // for composed charts
+}
+
+export interface ChartBenchmark {
+    value: number;
+    label: string;        // e.g., "Industry avg 21.9%"
+    color: string;        // e.g., '#ef4444'
+}
+
+export type AnalyticsChartType =
+    | 'line' | 'bar' | 'horizontal_bar' | 'donut'
+    | 'heatmap' | 'stacked_bar' | 'composed';
+
+export interface AnalyticsChart {
+    title: string;
+    description?: string;
+    chartType: AnalyticsChartType;
+    chartData: Record<string, unknown>[];  // Recharts-compatible data array
+    dataKeys: ChartDataKey[];
+    xAxisKey?: string;                      // for line/bar charts
+    benchmark?: ChartBenchmark;
+    insight: string;                        // Agent-written 1-2 sentence insight
+    disclaimer?: string;                    // e.g., §280E disclaimer
+    toolSource: 'promotion_scorecard' | 'sku_profitability_view' | 'inventory_health_score' | 'vendor_scorecard' | 'morning_briefing' | 'orders_analytics' | 'custom';
+    generatedAt: string;                    // ISO string
+}
+
+export interface BriefingMetric {
+    title: string;
+    value: string;
+    trend: 'up' | 'down' | 'flat';
+    vsLabel: string;       // e.g., "vs. 12% market target"
+    status: 'good' | 'warning' | 'critical';
+    actionable?: string;   // Short action if warning/critical
+}
+
+export interface BriefingNewsItem {
+    headline: string;
+    source: string;
+    url?: string;
+    relevance: 'high' | 'medium';
+}
+
+export interface AnalyticsBriefing {
+    date: string;          // YYYY-MM-DD
+    dayOfWeek: string;     // e.g., 'Tuesday'
+    metrics: BriefingMetric[];
+    newsItems: BriefingNewsItem[];
+    urgencyLevel: 'critical' | 'warning' | 'info' | 'clean';
+    topAlert?: string;     // Most urgent single-line alert if any
+    marketContext: string; // e.g., "NY Limited License | Early Market"
+}
+
 /**
  * An artifact created through inbox conversation
  */
@@ -256,7 +320,7 @@ export interface InboxArtifact {
     status: InboxArtifactStatus;
 
     // The actual data (polymorphic based on type)
-    data: Carousel | BundleDeal | CreativeContent | QRCode | IntegrationRequest | ResearchReportArtifactData;
+    data: Carousel | BundleDeal | CreativeContent | QRCode | IntegrationRequest | ResearchReportArtifactData | AnalyticsChart | AnalyticsBriefing;
 
     // Agent rationale for the suggestion
     rationale?: string;
@@ -1161,7 +1225,9 @@ export const InboxArtifactTypeSchema = z.enum([
     // Company Operations Artifacts
     'standup_notes', 'sprint_plan', 'incident_report', 'postmortem', 'feature_spec', 'technical_design',
     'release_notes', 'onboarding_checklist', 'content_calendar', 'okr_document', 'meeting_notes',
-    'board_deck', 'budget_model', 'job_spec', 'research_brief', 'compliance_brief'
+    'board_deck', 'budget_model', 'job_spec', 'research_brief', 'compliance_brief',
+    // Analytics Artifacts
+    'analytics_chart', 'analytics_briefing',
 ]);
 
 export const InboxArtifactStatusSchema = z.enum([
