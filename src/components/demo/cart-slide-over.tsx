@@ -164,7 +164,7 @@ export function CartSlideOver({
                         {/* Price & Remove */}
                         <div className="flex items-center gap-2">
                           <span className="font-semibold" style={{ color: primaryColor }}>
-                            ${(item.price * item.quantity).toFixed(2)}
+                            ${((item.price ?? 0) * item.quantity).toFixed(2)}
                           </span>
                           <Button
                             variant="ghost"
