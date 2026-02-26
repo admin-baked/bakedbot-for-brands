@@ -27,11 +27,12 @@ import { z } from 'zod';
 export const crmListUsersTool = tool(
     {
         name: 'crm.listUsers',
-        description: 'List all platform users with lifecycle tracking. Returns user info including email, account type, lifecycle stage, plan, and MRR.',
+        description: 'List platform users with lifecycle tracking. Results are sorted newest-first. Use signedUpAfter (ISO date string) to filter for recent signups — e.g. pass the Monday date for "this week" queries.',
         inputSchema: z.object({
             search: z.string().optional().describe('Search by email, name, or organization'),
             lifecycleStage: z.enum(['prospect', 'contacted', 'demo_scheduled', 'trial', 'customer', 'vip', 'churned', 'winback']).optional().describe('Filter by lifecycle stage'),
-            limit: z.number().optional().describe('Maximum results to return (default 50)')
+            limit: z.number().optional().describe('Maximum results to return (default 50)'),
+            signedUpAfter: z.string().optional().describe('ISO date string — only return users who signed up on/after this date (e.g. "2026-02-18" for this week)')
         }),
         outputSchema: z.object({
             users: z.array(z.object({
@@ -52,11 +53,12 @@ export const crmListUsersTool = tool(
         const filters: CRMFilters = {
             limit: input.limit || 50,
             search: input.search,
-            lifecycleStage: input.lifecycleStage as CRMLifecycleStage | undefined
+            lifecycleStage: input.lifecycleStage as CRMLifecycleStage | undefined,
+            signupAfter: input.signedUpAfter ? new Date(input.signedUpAfter) : undefined
         };
-        
+
         const users = await getPlatformUsers(filters);
-        
+
         return {
             users: users.map(u => ({
                 id: u.id,
