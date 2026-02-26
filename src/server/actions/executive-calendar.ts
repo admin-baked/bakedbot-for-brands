@@ -6,7 +6,7 @@
  */
 
 import { getAdminFirestore } from '@/firebase/admin';
-import { Timestamp } from '@google-cloud/firestore';
+import { Timestamp } from 'firebase-admin/firestore';
 import { requireSuperUser } from '@/server/auth/auth';
 import { logger } from '@/lib/logger';
 import {
