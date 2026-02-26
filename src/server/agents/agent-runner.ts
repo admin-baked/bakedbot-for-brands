@@ -759,11 +759,7 @@ All agents are online and ready. Type an agent name or describe your task to get
                 await emitThought(jobId, 'Creating Task', 'Queueing research task for processing...');
 
                 // Create the research task
-                const result = await createResearchTaskAction(
-                    user?.uid || 'anonymous',
-                    userBrandId,
-                    userMessage
-                );
+                const result = await createResearchTaskAction(userMessage);
 
                 if (result.success && result.taskId) {
                     executedTools[executedTools.length - 1].status = 'success';
