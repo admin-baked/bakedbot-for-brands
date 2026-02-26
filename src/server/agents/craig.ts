@@ -15,6 +15,7 @@ import {
 } from './agent-definitions';
 import { loadAndBuildGoalDirective, loadActiveGoals, fetchMarginProductContext } from './goal-directive-builder';
 import { getOrgProfileWithFallback, buildCraigContextBlock } from '@/server/services/org-profile';
+import { getMarketBenchmarks, buildBenchmarkContextBlock } from '@/server/services/market-benchmarks';
 
 // --- Tool Definitions ---
 
@@ -54,11 +55,13 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
 
     // Load active goals for goal-driven directives
     const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id;
-    const [goalDirectives, orgProfile] = await Promise.all([
+    const [goalDirectives, orgProfile, benchmarks] = await Promise.all([
         orgId ? loadAndBuildGoalDirective(orgId) : Promise.resolve(''),
         orgId ? getOrgProfileWithFallback(orgId).catch(() => null) : Promise.resolve(null),
+        orgId ? getMarketBenchmarks(orgId).catch(() => null) : Promise.resolve(null),
     ]);
     const contextBlock = orgProfile ? buildCraigContextBlock(orgProfile) : '';
+    const benchmarkBlock = benchmarks ? buildBenchmarkContextBlock(benchmarks) : '';
 
     // Set System Instructions for Authenticity
     agentMemory.system_instructions = `
@@ -70,6 +73,8 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
         ${goalDirectives}
 
         ${contextBlock}
+
+        ${benchmarkBlock}
 
         === AGENT SQUAD (For Collaboration) ===
         ${squadRoster}

@@ -22,6 +22,7 @@ import {
 import { loadActiveGoals, buildGoalDirectives, fetchMarginProductContext } from './goal-directive-builder';
 import { getVendorBrandSummary } from '@/server/actions/vendor-brands';
 import { getOrgProfileWithFallback, buildSmokeyContextBlock } from '@/server/services/org-profile';
+import { getMarketBenchmarks, buildBenchmarkContextBlock } from '@/server/services/market-benchmarks';
 
 // --- Tool Definitions ---
 
@@ -81,13 +82,15 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
 
         // Load active goals for goal-driven directives
         const orgId = (brandMemory.brand_profile as { orgId?: string })?.orgId || brandId;
-        const [activeGoals, orgProfile, vendorBrands] = await Promise.all([
+        const [activeGoals, orgProfile, vendorBrands, benchmarks] = await Promise.all([
             loadActiveGoals(orgId),
             getOrgProfileWithFallback(orgId).catch(() => null),
             getVendorBrandSummary(orgId),
+            getMarketBenchmarks(orgId).catch(() => null),
         ]);
         const contextBlock = orgProfile ? buildSmokeyContextBlock(orgProfile) : '';
         const goalDirectives = buildGoalDirectives(activeGoals);
+        const benchmarkBlock = benchmarks ? buildBenchmarkContextBlock(benchmarks) : '';
 
         // If a margin goal is active, load per-product margin intelligence so Smokey
         // can prioritize high-margin products in upsell / recommendation flows.
@@ -117,6 +120,8 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
 
             ${contextBlock}
             ${vendorBrandsSection}
+
+            ${benchmarkBlock}
 
             === AGENT SQUAD (For Delegation) ===
             ${squadRoster}

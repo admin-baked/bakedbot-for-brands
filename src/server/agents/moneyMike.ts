@@ -19,6 +19,7 @@ import {
     buildIntegrationStatusSummary
 } from './agent-definitions';
 import { getOrgProfileWithFallback, buildMoneyMikeContextBlock } from '@/server/services/org-profile';
+import { getMarketBenchmarks, buildBenchmarkContextBlock } from '@/server/services/market-benchmarks';
 
 // ... (Existing Event Handling Code remains unchanged, we only replace the AgentImplementation part)
 
@@ -44,8 +45,12 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
     logger.info('[MoneyMike] Initializing. Reviewing margin floors...');
 
     const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || '';
-    const orgProfile = await getOrgProfileWithFallback(orgId).catch(() => null);
+    const [orgProfile, benchmarks] = await Promise.all([
+        getOrgProfileWithFallback(orgId).catch(() => null),
+        getMarketBenchmarks(orgId).catch(() => null),
+    ]);
     const contextBlock = orgProfile ? buildMoneyMikeContextBlock(orgProfile) : '';
+    const benchmarkBlock = benchmarks ? buildBenchmarkContextBlock(benchmarks) : '';
 
     // Build dynamic context from agent-definitions (source of truth)
     const squadRoster = buildSquadRoster('money_mike');
@@ -70,6 +75,8 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
         - **getProfitabilityMetrics**: Gross margin, benchmarks, category performance
         - **analyzePriceCompression**: GTI Rule analysis for price drop scenarios
         - **analyzeWorkingCapital**: Liquidity, runway, banking fees analysis
+
+        ${benchmarkBlock}
 
         === AGENT SQUAD (For Collaboration) ===
         ${squadRoster}
