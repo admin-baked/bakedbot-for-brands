@@ -1143,6 +1143,35 @@ All agents are online and ready. Type an agent name or describe your task to get
         if (lowerMessage.includes('gmail') || lowerMessage.includes('email') || lowerMessage.includes('inbox') || lowerMessage.includes('send message')) {
             // Avoid triggering if it's just "what is your email"
             if (!(lowerMessage.includes('YOUR email') || lowerMessage.includes('login'))) {
+                // Proactive setup: complex tasks mentioning email sending (e.g., "research leads and email them")
+                // Add a setup card without blocking the full task response.
+                const hasEmailSendingGoal = /send\s+.*\bemail\b|email\s+(them|leads|prospects|contacts|outreach)|invite.*\bemail\b|from\s+my\s+(gmail|email)\s+account/i.test(userMessage);
+                const isMultiStepTask = userMessage.trim().split(/\s+/).length > 20
+                    || /\b(research|find|analyze|identify|if\s+they|contact\s+us\s+form|leads?|prospects?|dispensar|brands?)\b/i.test(userMessage);
+                const skipGmailHandling = hasEmailSendingGoal && isMultiStepTask;
+
+                if (skipGmailHandling && user?.uid) {
+                    const _tid = extraOptions?.context?.threadId as string | undefined;
+                    const _oid = userBrandId;
+                    if (_tid && _oid) {
+                        void gmailAction({ action: 'list', query: 'is:unread' }, user)
+                            .then(async check => {
+                                if (!check.success && check.error?.toLowerCase().includes('not connected')) {
+                                    await requestIntegration({
+                                        userId: user!.uid,
+                                        orgId: _oid,
+                                        threadId: _tid,
+                                        provider: 'gmail',
+                                        reason: 'To send personalized emails directly from your account',
+                                        enablesAction: 'send_gmail',
+                                    }).catch(() => {});
+                                }
+                            }).catch(() => {});
+                    }
+                    // Fall through — let the LLM generate the full task response
+                }
+
+                if (!skipGmailHandling) {
                 await emitThought(jobId, 'Tool Detected', 'Gmail Integration triggered');
                 executedTools.push({ id: `gmail-${Date.now()}`, name: 'Gmail', status: 'running', result: 'Processing...' });
 
@@ -1223,6 +1252,7 @@ All agents are online and ready. Type an agent name or describe your task to get
                         toolCalls: executedTools
                     };
                 }
+                } // end: if (!skipGmailHandling)
             }
         }
 
