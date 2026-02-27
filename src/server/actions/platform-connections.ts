@@ -8,6 +8,7 @@
  */
 
 import { getAdminFirestore } from '@/firebase/admin';
+import { requireUser } from '@/server/auth/auth';
 import { logger } from '@/lib/logger';
 import {
   exchangeCodeForToken,
@@ -26,6 +27,40 @@ import type {
   PlatformConnectionStatusResponse,
   OAuthUrlResponse,
 } from '@/types/platform-integrations';
+
+function isSuperRole(role: unknown): boolean {
+  return role === 'super_user' || role === 'super_admin';
+}
+
+function getActorOrgId(user: unknown): string | null {
+  if (!user || typeof user !== 'object') return null;
+  const token = user as {
+    currentOrgId?: string;
+    orgId?: string;
+    brandId?: string;
+    tenantId?: string;
+    organizationId?: string;
+  };
+  return (
+    token.currentOrgId ||
+    token.orgId ||
+    token.brandId ||
+    token.tenantId ||
+    token.organizationId ||
+    null
+  );
+}
+
+async function assertTenantAccess(tenantId: string): Promise<void> {
+  const user = await requireUser();
+  const role = typeof user === 'object' && user ? (user as { role?: string }).role : null;
+  if (isSuperRole(role)) return;
+
+  const actorOrgId = getActorOrgId(user);
+  if (!actorOrgId || actorOrgId !== tenantId) {
+    throw new Error('Unauthorized');
+  }
+}
 
 /**
  * Simple encryption for access tokens
@@ -51,6 +86,8 @@ export async function getOAuthUrl(
   tenantId: string
 ): Promise<{ success: boolean; authUrl?: string; state?: string; error?: string }> {
   try {
+    await assertTenantAccess(tenantId);
+
     // Generate secure state
     const state = generateOAuthState();
 
@@ -91,6 +128,8 @@ export async function connectPlatform(
   const { platform, tenantId, authCode, state } = request;
 
   try {
+    await assertTenantAccess(tenantId);
+
     const db = getAdminFirestore();
 
     // Verify state parameter
@@ -170,6 +209,8 @@ export async function disconnectPlatform(
   const { platform, tenantId } = request;
 
   try {
+    await assertTenantAccess(tenantId);
+
     const db = getAdminFirestore();
 
     // Find existing connection
@@ -216,6 +257,8 @@ export async function getPlatformConnectionStatus(
   platform: IntegratedPlatform
 ): Promise<{ success: boolean; status?: PlatformConnectionStatusResponse; error?: string }> {
   try {
+    await assertTenantAccess(tenantId);
+
     const db = getAdminFirestore();
 
     // Find existing connection
@@ -280,6 +323,8 @@ export async function refreshPlatformToken(
   platform: IntegratedPlatform
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    await assertTenantAccess(tenantId);
+
     const db = getAdminFirestore();
 
     // Find existing connection
@@ -330,6 +375,13 @@ export async function refreshPlatformToken(
     };
   } catch (error) {
     logger.error('Failed to refresh token', { error, platform, tenantId });
+
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return {
+        success: false,
+        error: 'Unauthorized',
+      };
+    }
 
     // Update connection status to error
     const db = getAdminFirestore();
@@ -433,6 +485,8 @@ export async function getDecryptedAccessToken(
   platform: IntegratedPlatform
 ): Promise<{ success: boolean; accessToken?: string; error?: string }> {
   try {
+    await assertTenantAccess(tenantId);
+
     const db = getAdminFirestore();
 
     // Find existing connection
