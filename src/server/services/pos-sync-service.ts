@@ -209,12 +209,21 @@ async function persistOrdersToFirestore(
  * Resolve the key used for per-customer spending aggregation.
  * Prefers real email; falls back to customer ID for in-store orders.
  */
-export function deriveCustomerSpendingKeyFromAlleavesOrder(ao: any): string | null {
-    const email = (
-        ao.customer?.email || ao.email || ao.customer_email || ''
-    ).toLowerCase().trim();
+function normalizeEmail(value: unknown): string {
+    if (typeof value !== 'string') return '';
+    return value.trim().toLowerCase();
+}
 
-    if (email && !email.includes('@alleaves.local')) {
+function isAlleavesPlaceholderEmail(email: string): boolean {
+    const atIndex = email.lastIndexOf('@');
+    if (atIndex <= 0) return false;
+    return email.slice(atIndex + 1) === 'alleaves.local';
+}
+
+export function deriveCustomerSpendingKeyFromAlleavesOrder(ao: any): string | null {
+    const email = normalizeEmail(ao.customer?.email || ao.email || ao.customer_email || '');
+
+    if (email && !isAlleavesPlaceholderEmail(email)) {
         return email;
     }
 

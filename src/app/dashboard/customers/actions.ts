@@ -40,6 +40,18 @@ export interface GetCustomersParams {
     limit?: number;
 }
 
+function normalizeEmail(value: unknown): string | null {
+    if (typeof value !== 'string') return null;
+    const normalized = value.trim().toLowerCase();
+    return normalized.length > 0 ? normalized : null;
+}
+
+function isAlleavesPlaceholderEmail(email: string): boolean {
+    const atIndex = email.lastIndexOf('@');
+    if (atIndex <= 0) return false;
+    return email.slice(atIndex + 1) === 'alleaves.local';
+}
+
 // ==========================================
 // POS Integration Helpers
 // ==========================================
@@ -172,8 +184,8 @@ async function getCustomersFromAlleaves(orgId: string, firestore: FirebaseFirest
                 } else {
                     result.forEach((doc: any) => {
                         const order = doc.data();
-                        const email = order.customer?.email?.toLowerCase();
-                        if (!email) return;
+                        const email = normalizeEmail(order.customer?.email);
+                        if (!email || isAlleavesPlaceholderEmail(email)) return;
 
                         if (!customerSpending.has(email)) {
                             customerSpending.set(email, {
@@ -210,7 +222,7 @@ async function getCustomersFromAlleaves(orgId: string, firestore: FirebaseFirest
 
         // Transform Alleaves customers to CustomerProfile format
         const customers = alleavesCustomers.map((ac: any, index: number) => {
-            const email = ac.email?.toLowerCase() || `customer_${ac.id_customer || ac.id}@alleaves.local`;
+            const email = normalizeEmail(ac.email) || `customer_${ac.id_customer || ac.id}@alleaves.local`;
             const firstName = ac.name_first || '';
             const lastName = ac.name_last || '';
             const displayName = [firstName, lastName].filter(Boolean).join(' ') || ac.customer_name || email;
@@ -398,7 +410,9 @@ export async function getCustomers(params: GetCustomersParams | string = {}): Pr
     const crmCustomers = new Map<string, any>();
     crmSnap.forEach(doc => {
         const data = doc.data();
-        crmCustomers.set(data.email?.toLowerCase(), { id: doc.id, ...data });
+        const crmEmail = normalizeEmail(data.email);
+        if (!crmEmail) return;
+        crmCustomers.set(crmEmail, { id: doc.id, ...data });
     });
 
     // 3. Build customer profiles - start with POS customers if available
@@ -420,8 +434,8 @@ export async function getCustomers(params: GetCustomersParams | string = {}): Pr
 
             // Build secondary email lookup (for matching orders)
             // Skip synthetic placeholder emails (@alleaves.local) — they can't match real orders
-            const lowerEmail = customer.email.toLowerCase();
-            if (!lowerEmail.includes('@alleaves.local')) {
+            const lowerEmail = normalizeEmail(customer.email);
+            if (lowerEmail && !isAlleavesPlaceholderEmail(lowerEmail)) {
                 emailToIdMap.set(lowerEmail, customer.id);
             }
 
@@ -440,9 +454,9 @@ export async function getCustomers(params: GetCustomersParams | string = {}): Pr
 
     // 4. Merge/supplement with BakedBot orders
     orders.forEach(order => {
-        const email = order.customer?.email?.toLowerCase();
+        const email = normalizeEmail(order.customer?.email);
         // Placeholder emails from Alleaves in-store orders can't be used for matching
-        const isPlaceholderEmail = !email || email.includes('@alleaves.local');
+        const isPlaceholderEmail = !email || isAlleavesPlaceholderEmail(email);
 
         const orderDate = order.createdAt?.toDate?.() || new Date();
         const orderTotal = order.totals?.total || 0;
@@ -485,6 +499,8 @@ export async function getCustomers(params: GetCustomersParams | string = {}): Pr
                 existing.firstOrderDate = orderDate;
             }
         } else {
+            if (!email) return;
+
             // Check if customer exists in CRM collection
             const crmData = crmCustomers.get(email);
 

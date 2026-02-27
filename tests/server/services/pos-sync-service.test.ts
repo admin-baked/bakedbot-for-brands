@@ -64,6 +64,15 @@ describe('deriveCustomerSpendingKeyFromAlleavesOrder', () => {
     expect(key).toBe('cid_42');
   });
 
+  it('does not treat lookalike domains as placeholder emails', () => {
+    const key = deriveCustomerSpendingKeyFromAlleavesOrder({
+      email: 'customer_42@alleaves.local.com',
+      id_customer: '42',
+    });
+
+    expect(key).toBe('customer_42@alleaves.local.com');
+  });
+
   it('returns null when both email and customer id are missing', () => {
     const key = deriveCustomerSpendingKeyFromAlleavesOrder({});
     expect(key).toBeNull();
