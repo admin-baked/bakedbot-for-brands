@@ -30,8 +30,35 @@ import type { Playbook, PlaybookTrigger, PlaybookStep } from '@/types/playbook';
 
 const ALLOWED_ROLES: UserRole[] = ['dispensary_admin', 'brand_admin', 'super_user'];
 
-function getOrgId(user: { orgId?: string; brandId?: string; currentOrgId?: string; uid: string }): string {
-    return user.currentOrgId || user.orgId || user.brandId || user.uid;
+type CampaignInboxUser = {
+    uid: string;
+    role?: string;
+    orgId?: string;
+    brandId?: string;
+    currentOrgId?: string;
+};
+
+type ActorAccess = {
+    uid: string;
+    role?: string;
+    orgId: string | null;
+    isSuper: boolean;
+};
+
+function isSuperRole(role: unknown): boolean {
+    return role === 'super_user' || role === 'super_admin';
+}
+
+function getOrgId(user: CampaignInboxUser): string | null {
+    return user.currentOrgId || user.orgId || user.brandId || null;
+}
+
+function isValidDocId(id: string): boolean {
+    return !!id && !id.includes('/');
+}
+
+function isValidOrgId(orgId: string): boolean {
+    return !!orgId && !orgId.includes('/');
 }
 
 function isCronExpressionValid(cron: string): boolean {
@@ -47,16 +74,24 @@ function isCronExpressionValid(cron: string): boolean {
  * Read an outreach_draft artifact from Firestore.
  * Throws if not found, unauthorized, or wrong type.
  */
-async function loadOutreachArtifact(artifactId: string, orgId: string) {
+async function loadOutreachArtifact(artifactId: string, actor: ActorAccess) {
     const db = getAdminFirestore();
     const doc = await db.collection('inbox_artifacts').doc(artifactId).get();
     if (!doc.exists) throw new Error('Artifact not found');
 
     const data = doc.data()!;
-    if (data.orgId !== orgId) throw new Error('Unauthorized');
+    if (typeof data.orgId !== 'string' || !isValidOrgId(data.orgId)) {
+        throw new Error('Invalid artifact org context');
+    }
+    if (!actor.isSuper && data.orgId !== actor.orgId) throw new Error('Unauthorized');
     if (data.type !== 'outreach_draft') throw new Error('Not an outreach draft');
 
-    return { doc, data: data.data as OutreachDraftData, artifact: data };
+    return {
+        doc,
+        data: data.data as OutreachDraftData,
+        artifact: data,
+        artifactOrgId: data.orgId as string,
+    };
 }
 
 /**
@@ -64,15 +99,18 @@ async function loadOutreachArtifact(artifactId: string, orgId: string) {
  */
 async function patchArtifactData(
     artifactId: string,
-    orgId: string,
+    actor: ActorAccess,
     patch: Partial<OutreachDraftData>,
 ) {
+    if (!isValidDocId(artifactId)) return;
     const db = getAdminFirestore();
     const doc = await db.collection('inbox_artifacts').doc(artifactId).get();
     if (!doc.exists) return;
 
     const artifact = doc.data()!;
-    if (artifact.orgId !== orgId) return;
+    const artifactOrgId = typeof artifact.orgId === 'string' ? artifact.orgId : null;
+    if (!artifactOrgId || !isValidOrgId(artifactOrgId)) return;
+    if (!actor.isSuper && artifactOrgId !== actor.orgId) return;
 
     const existing = (artifact.data ?? {}) as OutreachDraftData;
     await db.collection('inbox_artifacts').doc(artifactId).update({
@@ -101,13 +139,31 @@ export async function sendCampaignFromInbox(params: {
     complianceSuggestions?: string[];
     error?: string;
 }> {
-    let actorOrgId: string | null = null;
+    let actor: ActorAccess | null = null;
+    let artifactOrgId: string | null = null;
     try {
-        const user = await requireUser(ALLOWED_ROLES);
-        const orgId = getOrgId(user);
-        actorOrgId = orgId;
+        if (!isValidDocId(params.artifactId)) {
+            return { success: false, error: 'Invalid artifact id.' };
+        }
 
-        const { data } = await loadOutreachArtifact(params.artifactId, orgId);
+        const user = await requireUser(ALLOWED_ROLES);
+        actor = {
+            uid: user.uid,
+            role: user.role,
+            orgId: getOrgId(user),
+            isSuper: isSuperRole(user.role),
+        };
+        if (!actor.isSuper && !actor.orgId) {
+            logger.warn('[CAMPAIGN_INBOX] Missing org context for sendCampaignFromInbox', {
+                actor: user.uid,
+                actorRole: user.role,
+            });
+            return { success: false, error: 'Missing organization context.' };
+        }
+
+        const { data, artifactOrgId: loadedOrgId } = await loadOutreachArtifact(params.artifactId, actor);
+        artifactOrgId = loadedOrgId;
+        const orgId = loadedOrgId;
 
         if (!data.body) {
             return { success: false, error: 'Draft has no body content.' };
@@ -127,7 +183,7 @@ export async function sendCampaignFromInbox(params: {
         const compliance = await deebo.checkContent('NY', data.channel, textToCheck);
 
         if (compliance.status === 'fail') {
-            await patchArtifactData(params.artifactId, orgId, {
+            await patchArtifactData(params.artifactId, actor, {
                 complianceStatus: 'failed',
                 complianceViolations: compliance.violations,
                 complianceSuggestions: compliance.suggestions,
@@ -141,7 +197,7 @@ export async function sendCampaignFromInbox(params: {
         }
 
         if (compliance.status === 'warning' && !params.overrideWarning) {
-            await patchArtifactData(params.artifactId, orgId, {
+            await patchArtifactData(params.artifactId, actor, {
                 complianceStatus: 'warning',
                 complianceViolations: compliance.violations,
                 complianceSuggestions: compliance.suggestions,
@@ -155,7 +211,7 @@ export async function sendCampaignFromInbox(params: {
         }
 
         // Mark checking → sending in artifact
-        await patchArtifactData(params.artifactId, orgId, {
+        await patchArtifactData(params.artifactId, actor, {
             complianceStatus: 'passed',
             sendStatus: 'sending',
         });
@@ -204,7 +260,7 @@ export async function sendCampaignFromInbox(params: {
 
         if (recipients.length === 0) {
             await campaignRef.update({ status: 'sent', completedAt: now });
-            await patchArtifactData(params.artifactId, orgId, {
+            await patchArtifactData(params.artifactId, actor, {
                 sendStatus: 'sent',
                 sentAt: now.toISOString(),
                 recipientCount: 0,
@@ -308,7 +364,7 @@ export async function sendCampaignFromInbox(params: {
         });
 
         // ── 8. Update artifact ──────────────────────────────────────────────
-        await patchArtifactData(params.artifactId, orgId, {
+        await patchArtifactData(params.artifactId, actor, {
             sendStatus: 'sent',
             sentAt: now.toISOString(),
             recipientCount: sentCount,
@@ -329,9 +385,9 @@ export async function sendCampaignFromInbox(params: {
             artifactId: params.artifactId,
         });
         // Best-effort: revert artifact send state
-        if (actorOrgId) {
+        if (actor && artifactOrgId) {
             try {
-                await patchArtifactData(params.artifactId, actorOrgId, { sendStatus: 'failed' });
+                await patchArtifactData(params.artifactId, actor, { sendStatus: 'failed' });
             } catch { /* ignore */ }
         }
         return { success: false, error: (error as Error).message };
@@ -355,10 +411,27 @@ export async function scheduleCampaignFromInbox(params: {
     error?: string;
 }> {
     try {
-        const user = await requireUser(ALLOWED_ROLES);
-        const orgId = getOrgId(user);
+        if (!isValidDocId(params.artifactId)) {
+            return { success: false, error: 'Invalid artifact id.' };
+        }
 
-        const { data } = await loadOutreachArtifact(params.artifactId, orgId);
+        const user = await requireUser(ALLOWED_ROLES);
+        const actor: ActorAccess = {
+            uid: user.uid,
+            role: user.role,
+            orgId: getOrgId(user),
+            isSuper: isSuperRole(user.role),
+        };
+        if (!actor.isSuper && !actor.orgId) {
+            logger.warn('[CAMPAIGN_INBOX] Missing org context for scheduleCampaignFromInbox', {
+                actor: user.uid,
+                actorRole: user.role,
+            });
+            return { success: false, error: 'Missing organization context.' };
+        }
+
+        const { data, artifactOrgId } = await loadOutreachArtifact(params.artifactId, actor);
+        const orgId = artifactOrgId;
 
         if (!data.body) {
             return { success: false, error: 'Draft has no body content.' };
@@ -383,7 +456,7 @@ export async function scheduleCampaignFromInbox(params: {
         const compliance = await deebo.checkContent('NY', data.channel, textToCheck);
 
         if (compliance.status === 'fail') {
-            await patchArtifactData(params.artifactId, orgId, {
+            await patchArtifactData(params.artifactId, actor, {
                 complianceStatus: 'failed',
                 complianceViolations: compliance.violations,
                 complianceSuggestions: compliance.suggestions,
@@ -397,7 +470,7 @@ export async function scheduleCampaignFromInbox(params: {
         }
 
         if (compliance.status === 'warning' && !params.overrideWarning) {
-            await patchArtifactData(params.artifactId, orgId, {
+            await patchArtifactData(params.artifactId, actor, {
                 complianceStatus: 'warning',
                 complianceViolations: compliance.violations,
                 complianceSuggestions: compliance.suggestions,
@@ -448,7 +521,7 @@ export async function scheduleCampaignFromInbox(params: {
         });
 
         // ── 3. Update artifact ───────────────────────────────────────────────
-        await patchArtifactData(params.artifactId, orgId, {
+        await patchArtifactData(params.artifactId, actor, {
             complianceStatus: 'passed',
             sendStatus: 'scheduled',
             scheduledAt: scheduledAt.toISOString(),
@@ -488,10 +561,27 @@ export async function convertOutreachToPlaybook(params: {
     error?: string;
 }> {
     try {
-        const user = await requireUser(ALLOWED_ROLES);
-        const orgId = getOrgId(user);
+        if (!isValidDocId(params.artifactId)) {
+            return { success: false, error: 'Invalid artifact id.' };
+        }
 
-        const { data } = await loadOutreachArtifact(params.artifactId, orgId);
+        const user = await requireUser(ALLOWED_ROLES);
+        const actor: ActorAccess = {
+            uid: user.uid,
+            role: user.role,
+            orgId: getOrgId(user),
+            isSuper: isSuperRole(user.role),
+        };
+        if (!actor.isSuper && !actor.orgId) {
+            logger.warn('[CAMPAIGN_INBOX] Missing org context for convertOutreachToPlaybook', {
+                actor: user.uid,
+                actorRole: user.role,
+            });
+            return { success: false, error: 'Missing organization context.' };
+        }
+
+        const { data, artifactOrgId } = await loadOutreachArtifact(params.artifactId, actor);
+        const orgId = artifactOrgId;
         const playbookName = params.playbookName.trim();
         if (!playbookName) {
             return { success: false, error: 'Playbook name is required.' };

@@ -111,6 +111,65 @@ describe('campaign-inbox actions', () => {
     expect(sendGenericEmail).not.toHaveBeenCalled();
   });
 
+  it('rejects invalid artifact ids before auth checks', async () => {
+    const scheduledAt = new Date(Date.now() + 60_000).toISOString();
+
+    const sendResult = await sendCampaignFromInbox({ artifactId: 'bad/id' });
+    const scheduleResult = await scheduleCampaignFromInbox({ artifactId: 'bad/id', scheduledAt });
+    const convertResult = await convertOutreachToPlaybook({
+      artifactId: 'bad/id',
+      playbookName: 'Weekly Followup',
+    });
+
+    expect(sendResult).toEqual({ success: false, error: 'Invalid artifact id.' });
+    expect(scheduleResult).toEqual({ success: false, error: 'Invalid artifact id.' });
+    expect(convertResult).toEqual({ success: false, error: 'Invalid artifact id.' });
+    expect(requireUser).not.toHaveBeenCalled();
+    expect(mockArtifactGet).not.toHaveBeenCalled();
+  });
+
+  it('requires org context for non-super users', async () => {
+    (requireUser as jest.Mock).mockResolvedValueOnce({
+      uid: 'user-1',
+      role: 'dispensary_admin',
+    });
+
+    const result = await sendCampaignFromInbox({ artifactId: 'art-missing-org' });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Missing organization context.',
+    });
+    expect(mockArtifactGet).not.toHaveBeenCalled();
+  });
+
+  it('allows super users without org context to access cross-org artifacts', async () => {
+    (requireUser as jest.Mock).mockResolvedValueOnce({
+      uid: 'super-1',
+      role: 'super_user',
+    });
+    mockArtifactGet.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        orgId: 'org-other',
+        type: 'outreach_draft',
+        data: {
+          channel: 'sms',
+          body: 'SMS body',
+          targetSegments: [],
+        },
+      }),
+    });
+
+    const result = await sendCampaignFromInbox({ artifactId: 'art-super' });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'SMS outreach drafts are not supported in inbox fast-path yet. Use the campaign wizard.',
+    });
+    expect(deebo.checkContent).not.toHaveBeenCalled();
+  });
+
   it('does not update artifacts from another org when authorization fails', async () => {
     mockArtifactGet.mockResolvedValue({
       exists: true,
