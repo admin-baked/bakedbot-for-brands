@@ -16,16 +16,31 @@ import { Artifact, ArtifactMetadata } from '@/types/artifact';
 const ARTIFACTS_COLLECTION = 'artifacts';
 const SHARED_ARTIFACTS_COLLECTION = 'shared_artifacts';
 
+function isSuperRole(role: unknown): boolean {
+    return role === 'super_user' || role === 'super_admin';
+}
+
 /**
  * Save an artifact to Firestore
  */
 export async function saveArtifact(artifact: Omit<Artifact, 'createdAt' | 'updatedAt'> | Partial<Artifact> & { title: string, content: string, type: string }) {
     const user = await requireUser();
+    const isSuperUser = isSuperRole((user as { role?: string }).role);
     const db = getAdminFirestore();
     
     const artifactRef = artifact.id 
         ? db.collection(ARTIFACTS_COLLECTION).doc(artifact.id)
         : db.collection(ARTIFACTS_COLLECTION).doc();
+
+    if (artifact.id) {
+        const existing = await artifactRef.get();
+        if (existing.exists) {
+            const ownerId = existing.data()?.ownerId as string | undefined;
+            if (ownerId && ownerId !== user.uid && !isSuperUser) {
+                throw new Error('Not authorized');
+            }
+        }
+    }
     
     const now = Timestamp.now();
     
@@ -55,6 +70,7 @@ export async function saveArtifact(artifact: Omit<Artifact, 'createdAt' | 'updat
  */
 export async function shareArtifact(artifactId: string, title: string, content: string, type: string, metadata?: ArtifactMetadata) {
     const user = await requireUser();
+    const isSuperUser = isSuperRole((user as { role?: string }).role);
     const db = getAdminFirestore();
     
     // Generate unique share ID
@@ -83,6 +99,17 @@ export async function shareArtifact(artifactId: string, title: string, content: 
         views: 0,
     };
     
+    if (artifactId) {
+        const artifactRef = db.collection(ARTIFACTS_COLLECTION).doc(artifactId);
+        const artifactDoc = await artifactRef.get();
+        if (artifactDoc.exists) {
+            const ownerId = artifactDoc.data()?.ownerId as string | undefined;
+            if (ownerId && ownerId !== user.uid && !isSuperUser) {
+                return { success: false, error: 'Not authorized' };
+            }
+        }
+    }
+
     await sharedArtifactRef.set(sharedData);
     
     // If we have the original artifact, update its metadata
