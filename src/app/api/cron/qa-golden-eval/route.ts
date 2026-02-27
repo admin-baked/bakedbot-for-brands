@@ -104,11 +104,20 @@ export async function GET(req: NextRequest) {
 // Extracts passed/failed counts and score from run-golden-eval.mjs stdout
 // ============================================================================
 
-function parseEvalOutput(
+function normalizeExitCode(exitCode: number | string): number {
+    if (typeof exitCode === 'number' && Number.isFinite(exitCode)) return exitCode;
+    if (typeof exitCode === 'string') {
+        const parsed = Number.parseInt(exitCode, 10);
+        if (Number.isFinite(parsed)) return parsed;
+    }
+    return -1;
+}
+
+export function parseEvalOutput(
     stdout: string,
     agent: QAGoldenSetEvalResult['agent'],
     tier: QAGoldenSetEvalResult['tier'],
-    exitCode = 0,
+    exitCode: number | string = 0,
 ): QAGoldenSetEvalResult {
     // run-golden-eval.mjs prints lines like:
     //   Passed: 21/23  Score: 91%  Threshold: 90%
@@ -117,9 +126,12 @@ function parseEvalOutput(
     const scoreMatch = stdout.match(/Score:\s*(\d+)%/i);
     const thresholdMatch = stdout.match(/Threshold:\s*(\d+)%/i);
 
+    const normalizedExitCode = normalizeExitCode(exitCode);
+    const fallbackFailed = normalizedExitCode === 0 ? 0 : 1;
+
     const passed = passedMatch ? parseInt(passedMatch[1], 10) : 0;
-    const total = passedMatch ? parseInt(passedMatch[2], 10) : 0;
-    const failed = total - passed;
+    const total = passedMatch ? parseInt(passedMatch[2], 10) : fallbackFailed;
+    const failed = passedMatch ? Math.max(total - passed, 0) : fallbackFailed;
     const score = scoreMatch ? parseInt(scoreMatch[1], 10) : (total > 0 ? Math.round((passed / total) * 100) : 0);
     const threshold = thresholdMatch ? parseInt(thresholdMatch[1], 10) : 90;
 
@@ -131,8 +143,9 @@ function parseEvalOutput(
         total,
         score,
         threshold,
-        complianceFailed: exitCode === 1,
-        belowThreshold: exitCode === 2,
+        complianceFailed: normalizedExitCode === 1,
+        // Any non-zero/unknown exit should fail closed, never as a silent pass.
+        belowThreshold: normalizedExitCode === 2 || (normalizedExitCode !== 0 && normalizedExitCode !== 1),
         stdout: stdout.slice(0, 3000),  // cap to avoid oversized payloads
         ranAt: new Date(),
     };
