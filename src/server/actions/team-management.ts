@@ -294,6 +294,12 @@ export async function getOrgsForUser(uid?: string) {
   try {
     const user = await requireUser();
     const userId = uid || user.uid;
+    const isSuperUser = user.role === 'super_user' || user.role === 'super_admin';
+
+    if (!isSuperUser && userId !== user.uid) {
+      throw new Error('Unauthorized');
+    }
+
     const { firestore } = await createServerClient();
 
     const userDoc = await firestore.collection('users').doc(userId).get();
