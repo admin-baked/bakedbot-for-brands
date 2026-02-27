@@ -22,12 +22,26 @@ type CampaignActionUser = {
     currentOrgId?: string;
 };
 
-function getOrgId(user: CampaignActionUser): string {
-    return user.orgId || user.brandId || user.currentOrgId || user.uid;
+function isSuperRole(role: unknown): boolean {
+    return role === 'super_user' || role === 'super_admin';
+}
+
+function getOrgId(user: CampaignActionUser): string | null {
+    return user.orgId || user.brandId || user.currentOrgId || null;
+}
+
+function isValidDocId(id: string): boolean {
+    return !!id && !id.includes('/');
+}
+
+function isValidOrgId(orgId: string): boolean {
+    return !!orgId && !orgId.includes('/');
 }
 
 function canAccessOrg(user: CampaignActionUser, targetOrgId: string): boolean {
-    return user.role === 'super_user' || getOrgId(user) === targetOrgId;
+    if (isSuperRole(user.role)) return true;
+    const actorOrgId = getOrgId(user);
+    return !!actorOrgId && actorOrgId === targetOrgId;
 }
 
 async function userCanAccessCampaign(
@@ -35,10 +49,11 @@ async function userCanAccessCampaign(
     campaignId: string,
     user: CampaignActionUser,
 ): Promise<boolean> {
+    if (!isValidDocId(campaignId)) return false;
     const snap = await firestore.collection('campaigns').doc(campaignId).get();
     if (!snap.exists) return false;
     const campaignOrgId = snap.data()?.orgId;
-    return typeof campaignOrgId === 'string' && canAccessOrg(user, campaignOrgId);
+    return typeof campaignOrgId === 'string' && isValidOrgId(campaignOrgId) && canAccessOrg(user, campaignOrgId);
 }
 
 // =============================================================================
@@ -63,6 +78,15 @@ export async function createCampaign(params: {
         const user = await requireUser(['dispensary', 'brand', 'super_user']);
         const userOrgId = getOrgId(user);
         const orgId = params.orgId || userOrgId;
+
+        if (!orgId || !isValidOrgId(orgId)) {
+            logger.warn('[CAMPAIGNS] Missing or invalid org context for campaign create', {
+                actor: user.uid,
+                actorRole: user.role,
+                requestedOrgId: params.orgId,
+            });
+            return null;
+        }
 
         if (!canAccessOrg(user, orgId)) {
             logger.warn('[CAMPAIGNS] Blocked cross-org create attempt', {
@@ -127,6 +151,7 @@ export async function updateCampaign(
     >>
 ): Promise<boolean> {
     try {
+        if (!isValidDocId(campaignId)) return false;
         const { firestore } = await createServerClient();
         const user = await requireUser(['dispensary', 'brand', 'super_user']);
 
@@ -166,6 +191,7 @@ export async function updateCampaign(
 
 export async function getCampaign(campaignId: string): Promise<Campaign | null> {
     try {
+        if (!isValidDocId(campaignId)) return null;
         const { firestore } = await createServerClient();
         const user = await requireUser(['dispensary', 'brand', 'super_user']);
         const doc = await firestore.collection('campaigns').doc(campaignId).get();
@@ -223,6 +249,15 @@ export async function getCampaigns(
         const user = await requireUser(['dispensary', 'brand', 'super_user']);
         const userOrgId = getOrgId(user);
         const orgId = orgIdParam || userOrgId;
+
+        if (!orgId || !isValidOrgId(orgId)) {
+            logger.warn('[CAMPAIGNS] Missing or invalid org context for getCampaigns', {
+                actor: user.uid,
+                actorRole: user.role,
+                requestedOrgId: orgIdParam,
+            });
+            return [];
+        }
 
         if (!canAccessOrg(user, orgId)) {
             logger.warn('[CAMPAIGNS] Blocked unauthorized getCampaigns query', {
@@ -329,6 +364,7 @@ export async function getCampaignStats(orgIdParam?: string): Promise<CampaignSta
 
 export async function submitForComplianceReview(campaignId: string): Promise<boolean> {
     try {
+        if (!isValidDocId(campaignId)) return false;
         const { firestore } = await createServerClient();
         const user = await requireUser(['dispensary', 'brand', 'super_user']);
 
@@ -378,6 +414,7 @@ export async function approveCampaign(
     approvedBy: string,
 ): Promise<boolean> {
     try {
+        if (!isValidDocId(campaignId)) return false;
         const { firestore } = await createServerClient();
         const user = await requireUser(['dispensary', 'brand', 'super_user']);
         const allowed = await userCanAccessCampaign(firestore, campaignId, user);
@@ -414,6 +451,7 @@ export async function scheduleCampaign(
     scheduledAt: Date,
 ): Promise<boolean> {
     try {
+        if (!isValidDocId(campaignId)) return false;
         const { firestore } = await createServerClient();
         const user = await requireUser(['dispensary', 'brand', 'super_user']);
         const allowed = await userCanAccessCampaign(firestore, campaignId, user);
@@ -448,6 +486,7 @@ export async function scheduleCampaign(
 
 export async function cancelCampaign(campaignId: string): Promise<boolean> {
     try {
+        if (!isValidDocId(campaignId)) return false;
         const { firestore } = await createServerClient();
         const user = await requireUser(['dispensary', 'brand', 'super_user']);
         const allowed = await userCanAccessCampaign(firestore, campaignId, user);
@@ -478,6 +517,7 @@ export async function cancelCampaign(campaignId: string): Promise<boolean> {
 
 export async function pauseCampaign(campaignId: string): Promise<boolean> {
     try {
+        if (!isValidDocId(campaignId)) return false;
         const { firestore } = await createServerClient();
         const user = await requireUser(['dispensary', 'brand', 'super_user']);
         const allowed = await userCanAccessCampaign(firestore, campaignId, user);
@@ -515,7 +555,19 @@ export async function updateCampaignPerformance(
     performance: Partial<CampaignPerformance>,
 ): Promise<boolean> {
     try {
+        if (!isValidDocId(campaignId)) return false;
         const { firestore } = await createServerClient();
+        const user = await requireUser(['dispensary', 'brand', 'super_user']);
+
+        const allowed = await userCanAccessCampaign(firestore, campaignId, user);
+        if (!allowed) {
+            logger.warn('[CAMPAIGNS] Blocked unauthorized performance update attempt', {
+                actor: user.uid,
+                actorRole: user.role,
+                campaignId,
+            });
+            return false;
+        }
 
         // Merge with existing performance
         const doc = await firestore.collection('campaigns').doc(campaignId).get();
