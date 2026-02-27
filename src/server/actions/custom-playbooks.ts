@@ -8,6 +8,22 @@ import type { UserRole } from '@/types/roles';
 
 const ALLOWED_ROLES: UserRole[] = ['dispensary_admin', 'brand_admin', 'super_user'];
 
+function resolveActorOrgId(user: Record<string, unknown>): string | null {
+    const currentOrgId =
+        typeof user.currentOrgId === 'string' ? user.currentOrgId : undefined;
+    const orgId = typeof user.orgId === 'string' ? user.orgId : undefined;
+    return currentOrgId ?? orgId ?? null;
+}
+
+function canAccessOrg(
+    user: Record<string, unknown>,
+    orgId: string,
+): boolean {
+    const role = typeof user.role === 'string' ? user.role : undefined;
+    if (role === 'super_user' || role === 'super_admin') return true;
+    return resolveActorOrgId(user) === orgId;
+}
+
 // ---------------------------------------------------------------------------
 // Query: List Custom Playbooks for an Org
 // ---------------------------------------------------------------------------
@@ -16,7 +32,10 @@ export async function listCustomPlaybooks(
     orgId: string,
 ): Promise<{ success: true; playbooks: Playbook[] } | { success: false; error: string }> {
     try {
-        await requireUser(ALLOWED_ROLES);
+        const user = await requireUser(ALLOWED_ROLES);
+        if (!canAccessOrg(user, orgId)) {
+            return { success: false, error: 'Not authorized' };
+        }
 
         const db = getAdminFirestore();
         const snap = await db
@@ -56,6 +75,9 @@ export async function createCustomPlaybook(
 ): Promise<{ success: true; playbookId: string } | { success: false; error: string }> {
     try {
         const user = await requireUser(ALLOWED_ROLES);
+        if (!canAccessOrg(user, orgId)) {
+            return { success: false, error: 'Not authorized' };
+        }
 
         const db = getAdminFirestore();
         const ref = db.collection('playbooks').doc();
@@ -113,6 +135,9 @@ export async function updateCustomPlaybook(
 ): Promise<{ success: true } | { success: false; error: string }> {
     try {
         const user = await requireUser(ALLOWED_ROLES);
+        if (!canAccessOrg(user, orgId)) {
+            return { success: false, error: 'Not authorized' };
+        }
 
         const db = getAdminFirestore();
         const ref = db.collection('playbooks').doc(playbookId);
@@ -155,6 +180,9 @@ export async function deleteCustomPlaybook(
 ): Promise<{ success: true } | { success: false; error: string }> {
     try {
         const user = await requireUser(ALLOWED_ROLES);
+        if (!canAccessOrg(user, orgId)) {
+            return { success: false, error: 'Not authorized' };
+        }
 
         const db = getAdminFirestore();
         const ref = db.collection('playbooks').doc(playbookId);
@@ -188,7 +216,10 @@ export async function toggleCustomPlaybookStatus(
     active: boolean,
 ): Promise<{ success: true } | { success: false; error: string }> {
     try {
-        await requireUser(ALLOWED_ROLES);
+        const user = await requireUser(ALLOWED_ROLES);
+        if (!canAccessOrg(user, orgId)) {
+            return { success: false, error: 'Not authorized' };
+        }
 
         const db = getAdminFirestore();
         const ref = db.collection('playbooks').doc(playbookId);
@@ -197,6 +228,7 @@ export async function toggleCustomPlaybookStatus(
         if (!snap.exists) return { success: false, error: 'Playbook not found' };
         const data = snap.data() as Playbook;
         if (data.orgId !== orgId) return { success: false, error: 'Not authorized' };
+        if (!data.isCustom) return { success: false, error: 'Cannot modify system playbooks' };
 
         const newStatus: PlaybookStatus = active ? 'active' : 'paused';
         await ref.update({ status: newStatus, updatedAt: new Date() });
