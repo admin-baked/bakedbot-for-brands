@@ -45,7 +45,12 @@ describe('Activity Server Actions', () => {
         };
 
         (createServerClient as jest.Mock).mockResolvedValue({ firestore: mockFirestore });
-        (requireUser as jest.Mock).mockResolvedValue({ uid: 'user1' });
+        (requireUser as jest.Mock).mockResolvedValue({
+            uid: 'user1',
+            role: 'dispensary_admin',
+            currentOrgId: 'org1',
+            orgId: 'org1',
+        });
     });
 
     describe('getRecentActivity', () => {
@@ -82,6 +87,11 @@ describe('Activity Server Actions', () => {
             const result = await getRecentActivity('org1');
 
             expect(result).toHaveLength(0);
+        });
+
+        it('rejects cross-org reads for non-super users', async () => {
+            await expect(getRecentActivity('org2')).rejects.toThrow('Unauthorized');
+            expect(createServerClient).not.toHaveBeenCalled();
         });
     });
 
@@ -125,12 +135,19 @@ describe('Activity Server Actions', () => {
             expect(mockDoc.collection).toHaveBeenCalledWith('activity_feed');
             expect(mockDoc.add).toHaveBeenCalledWith({
                 orgId: 'org1',
-                userId: 'u1',
+                userId: 'user1',
                 userName: 'Test User',
                 type: 'action_type',
                 description: 'description text',
                 createdAt: 'MOCK_TIMESTAMP'
             });
+        });
+
+        it('rejects cross-org writes for non-super users', async () => {
+            await expect(
+                logActivity('org2', 'u1', 'Test User', 'action_type', 'description text')
+            ).rejects.toThrow('Unauthorized');
+            expect(mockDoc.add).not.toHaveBeenCalled();
         });
     });
 });
