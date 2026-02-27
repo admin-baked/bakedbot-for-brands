@@ -119,6 +119,15 @@ export async function createInboxThread(input: {
         if (!user) {
             return { success: false, error: 'Unauthorized' };
         }
+        const isSuperUser = user.role === 'super_user' || user.role === 'super_admin';
+        const actorOrgId = user.currentOrgId || user.orgId || user.brandId || user.uid;
+        const requestedOrgId = input.brandId || input.dispensaryId;
+
+        if (!isSuperUser && requestedOrgId && requestedOrgId !== actorOrgId) {
+            return { success: false, error: 'Unauthorized org context' };
+        }
+
+        const threadOrgId = isSuperUser && requestedOrgId ? requestedOrgId : actorOrgId;
 
         // Validate input
         const validation = CreateInboxThreadSchema.safeParse(input);
@@ -132,7 +141,7 @@ export async function createInboxThread(input: {
 
         const thread: InboxThread = {
             id: threadId,
-            orgId: input.brandId || input.dispensaryId || user.uid,
+            orgId: threadOrgId,
             userId: user.uid,
             type: input.type,
             status: 'active',
@@ -152,8 +161,12 @@ export async function createInboxThread(input: {
 
         // Only add optional fields if they have values (Firestore rejects undefined)
         if (input.projectId) thread.projectId = input.projectId;
-        if (input.brandId) thread.brandId = input.brandId;
-        if (input.dispensaryId) thread.dispensaryId = input.dispensaryId;
+        if (input.brandId && (isSuperUser || input.brandId === threadOrgId)) {
+            thread.brandId = input.brandId;
+        }
+        if (input.dispensaryId && (isSuperUser || input.dispensaryId === threadOrgId)) {
+            thread.dispensaryId = input.dispensaryId;
+        }
         if (input.customerId) thread.customerId = input.customerId;
         if (input.customerEmail) thread.customerEmail = input.customerEmail;
         if (input.customerSegment) thread.customerSegment = input.customerSegment;

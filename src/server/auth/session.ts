@@ -15,6 +15,9 @@ export async function getServerSessionUser() {
             uid: token.uid,
             email: token.email || null,
             role: token.role || null,
+            orgId: (token as { orgId?: string }).orgId || null,
+            currentOrgId: (token as { currentOrgId?: string }).currentOrgId || null,
+            brandId: (token as { brandId?: string }).brandId || null,
         };
     } catch (error) {
         return null;
