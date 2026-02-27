@@ -49,6 +49,10 @@ export type QABugArea =
     | 'super_powers'
     | 'goals'
     | 'customer_segments'
+    | 'greenledger'
+    | 'booking_calendar'
+    | 'livekit_meetings'
+    | 'x402_payments'
     | 'other';
 
 // ============================================================================
@@ -207,8 +211,31 @@ export const QA_AREA_CONFIG: Record<QABugArea, { label: string; emoji: string }>
     super_powers:      { label: 'Super Powers',        emoji: '🦸' },
     goals:             { label: 'Goals',               emoji: '🎯' },
     customer_segments: { label: 'Customer Segments',   emoji: '👥' },
+    greenledger:       { label: 'GreenLedger',         emoji: '🌿' },
+    booking_calendar:  { label: 'Booking Calendar',    emoji: '📅' },
+    livekit_meetings:  { label: 'LiveKit Meetings',    emoji: '🎥' },
+    x402_payments:     { label: 'x402 Payments',       emoji: '💎' },
     other:             { label: 'Other',               emoji: '🐛' },
 };
+
+// ============================================================================
+// GOLDEN SET EVAL RESULTS
+// Returned by /api/cron/qa-golden-eval and Pinky's run_golden_set_eval tool
+// ============================================================================
+
+export interface QAGoldenSetEvalResult {
+    agent: 'smokey' | 'craig' | 'deebo';
+    tier: 'fast' | 'full';
+    passed: number;
+    failed: number;
+    total: number;
+    score: number;          // 0-100 percentage
+    threshold: number;      // 0-100 minimum passing threshold
+    complianceFailed: boolean;  // exit code 1 — blocks deployment
+    belowThreshold: boolean;    // exit code 2 — below quality threshold
+    stdout: string;
+    ranAt: Date;
+}
 
 export const QA_STATUS_CONFIG: Record<QABugStatus, { label: string; color: string }> = {
     open:        { label: 'Open',        color: 'bg-red-50 text-red-700' },
