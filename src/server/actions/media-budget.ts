@@ -5,16 +5,46 @@ import { requireUser } from '@/server/auth/auth';
 import { MediaBudget, MediaCostAlert } from '@/types/media-generation';
 import { logger } from '@/lib/logger';
 
+function isSuperRole(role: unknown): boolean {
+    return role === 'super_user' || role === 'super_admin';
+}
+
+function getActorOrgId(user: unknown): string | null {
+    if (!user || typeof user !== 'object') return null;
+    const token = user as {
+        currentOrgId?: string;
+        orgId?: string;
+        brandId?: string;
+        tenantId?: string;
+        organizationId?: string;
+    };
+    return (
+        token.currentOrgId ||
+        token.orgId ||
+        token.brandId ||
+        token.tenantId ||
+        token.organizationId ||
+        null
+    );
+}
+
+function assertTenantAccess(user: unknown, tenantId: string): void {
+    const role = typeof user === 'object' && user ? (user as { role?: string }).role : null;
+    if (isSuperRole(role)) {
+        return;
+    }
+    const actorOrgId = getActorOrgId(user);
+    if (!actorOrgId || actorOrgId !== tenantId) {
+        throw new Error('Unauthorized');
+    }
+}
+
 /**
  * Get media budget configuration for a tenant
  */
 export async function getMediaBudget(tenantId: string): Promise<MediaBudget | null> {
     const user = await requireUser();
-
-    // Verify access
-    if (user.brandId !== tenantId && user.role !== 'super_user') {
-        throw new Error('Unauthorized');
-    }
+    assertTenantAccess(user, tenantId);
 
     const db = getAdminFirestore();
     const doc = await db
@@ -40,11 +70,7 @@ export async function updateMediaBudget(
 ): Promise<{ success: boolean; error?: string }> {
     try {
         const user = await requireUser();
-
-        // Verify access
-        if (user.brandId !== tenantId && user.role !== 'super_user') {
-            throw new Error('Unauthorized');
-        }
+        assertTenantAccess(user, tenantId);
 
         const db = getAdminFirestore();
         const docRef = db
@@ -80,11 +106,7 @@ export async function updateMediaBudget(
  */
 export async function getMediaCostAlerts(tenantId: string): Promise<MediaCostAlert[]> {
     const user = await requireUser();
-
-    // Verify access
-    if (user.brandId !== tenantId && user.role !== 'super_user') {
-        throw new Error('Unauthorized');
-    }
+    assertTenantAccess(user, tenantId);
 
     const db = getAdminFirestore();
     const snapshot = await db
@@ -106,11 +128,7 @@ export async function createMediaCostAlert(
 ): Promise<{ success: boolean; alertId?: string; error?: string }> {
     try {
         const user = await requireUser();
-
-        // Verify access
-        if (user.brandId !== tenantId && user.role !== 'super_user') {
-            throw new Error('Unauthorized');
-        }
+        assertTenantAccess(user, tenantId);
 
         const db = getAdminFirestore();
         const docRef = db
@@ -149,11 +167,7 @@ export async function updateMediaCostAlert(
 ): Promise<{ success: boolean; error?: string }> {
     try {
         const user = await requireUser();
-
-        // Verify access
-        if (user.brandId !== tenantId && user.role !== 'super_user') {
-            throw new Error('Unauthorized');
-        }
+        assertTenantAccess(user, tenantId);
 
         const db = getAdminFirestore();
         await db
@@ -185,11 +199,7 @@ export async function deleteMediaCostAlert(
 ): Promise<{ success: boolean; error?: string }> {
     try {
         const user = await requireUser();
-
-        // Verify access
-        if (user.brandId !== tenantId && user.role !== 'super_user') {
-            throw new Error('Unauthorized');
-        }
+        assertTenantAccess(user, tenantId);
 
         const db = getAdminFirestore();
         await db
@@ -218,11 +228,7 @@ export async function getMediaBudgetStatus(tenantId: string): Promise<{
     monthly: { spent: number; limit?: number; remaining: number };
 }> {
     const user = await requireUser();
-
-    // Verify access
-    if (user.brandId !== tenantId && user.role !== 'super_user') {
-        throw new Error('Unauthorized');
-    }
+    assertTenantAccess(user, tenantId);
 
     const { checkMediaBudget } = await import('@/server/services/media-budget');
     const result = await checkMediaBudget(tenantId, 0); // Check with 0 cost to get current status
