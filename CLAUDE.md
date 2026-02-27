@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-26 (Booking 500 fix + avatar images for Martez/Jack/Smokey)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-26 (GreenLedger on-chain financing; morning-briefing Cloud Scheduler job created)
 
 ---
 

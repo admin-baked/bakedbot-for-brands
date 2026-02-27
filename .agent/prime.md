@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-26)
 
 **Recent work (2026-02-26):** See `memory/MEMORY.md` for full log.
-Key completed: [Booking 500 fix — Timestamp import] (`1675b1e6`), [Martez/Jack avatars + Smokey mascot] (`69a74ec3`)
+Key completed: [GreenLedger Advance — on-chain supply chain financing] (`02445715`), [morning-briefing Cloud Scheduler job created — 8 AM EST daily]
 
 ---
 
