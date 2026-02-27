@@ -17,6 +17,44 @@ import type { Driver, DriverStatus, VehicleType } from '@/types/delivery';
 import { requireUser } from '@/server/auth/auth';
 import { DISPENSARY_ADMIN_ROLES } from '@/types/roles';
 
+const DRIVER_ADMIN_ROLES = [...DISPENSARY_ADMIN_ROLES, 'super_user', 'super_admin'] as const;
+
+function isSuperRole(role: unknown): boolean {
+    return role === 'super_user' || role === 'super_admin';
+}
+
+function getActorOrgId(user: unknown): string | null {
+    if (!user || typeof user !== 'object') return null;
+    const token = user as {
+        currentOrgId?: string;
+        orgId?: string;
+        brandId?: string;
+        dispensaryId?: string;
+        tenantId?: string;
+        organizationId?: string;
+    };
+    return (
+        token.currentOrgId ||
+        token.orgId ||
+        token.brandId ||
+        token.dispensaryId ||
+        token.tenantId ||
+        token.organizationId ||
+        null
+    );
+}
+
+function assertOrgAccess(user: unknown, orgId: string): void {
+    const role = typeof user === 'object' && user ? (user as { role?: string }).role : null;
+    if (isSuperRole(role)) {
+        return;
+    }
+    const actorOrgId = getActorOrgId(user);
+    if (!actorOrgId || actorOrgId !== orgId) {
+        throw new Error('Unauthorized');
+    }
+}
+
 // Validation schemas
 const CreateDriverSchema = z.object({
     orgId: z.string().min(1),
@@ -52,7 +90,8 @@ export async function createDriver(input: CreateDriverInput) {
         const validated = CreateDriverSchema.parse(input);
 
         // Check permissions
-        const currentUser = await requireUser(DISPENSARY_ADMIN_ROLES);
+        const currentUser = await requireUser(DRIVER_ADMIN_ROLES as any);
+        assertOrgAccess(currentUser, validated.orgId);
 
         // Validate license expiry (must be future date)
         if (validated.licenseExpiry <= new Date()) {
@@ -123,7 +162,7 @@ export async function updateDriver(input: UpdateDriverInput) {
         const validated = UpdateDriverSchema.parse(input);
         const { id, ...updates } = validated;
 
-        const currentUser = await requireUser(DISPENSARY_ADMIN_ROLES);
+        const currentUser = await requireUser(DRIVER_ADMIN_ROLES as any);
         const { firestore } = await createServerClient();
 
         // Validate license expiry if provided
@@ -145,11 +184,22 @@ export async function updateDriver(input: UpdateDriverInput) {
             };
         }
 
+        const existingDriver = driverDoc.data() as Driver;
+        assertOrgAccess(currentUser, existingDriver.orgId);
+
         // Prepare update data
         const updateData: any = {
             ...updates,
             updatedAt: FieldValue.serverTimestamp(),
         };
+
+        // Prevent cross-org reassignment for non-super users.
+        if (updates.orgId && updates.orgId !== existingDriver.orgId && !isSuperRole(currentUser.role)) {
+            return {
+                success: false,
+                error: 'Unauthorized',
+            };
+        }
 
         // Convert Date to Timestamp if licenseExpiry is provided
         if (updates.licenseExpiry) {
@@ -187,8 +237,18 @@ export async function updateDriver(input: UpdateDriverInput) {
  */
 export async function deleteDriver(driverId: string) {
     try {
-        const currentUser = await requireUser(DISPENSARY_ADMIN_ROLES);
+        const currentUser = await requireUser(DRIVER_ADMIN_ROLES as any);
         const { firestore } = await createServerClient();
+
+        const driverDoc = await firestore.collection('drivers').doc(driverId).get();
+        if (!driverDoc.exists) {
+            return {
+                success: false,
+                error: 'Driver not found',
+            };
+        }
+        const driver = driverDoc.data() as Driver;
+        assertOrgAccess(currentUser, driver.orgId);
 
         // Check if driver has active deliveries
         const activeDeliveries = await firestore
@@ -229,7 +289,7 @@ export async function deleteDriver(driverId: string) {
  */
 export async function toggleDriverAvailability(driverId: string) {
     try {
-        const currentUser = await requireUser(DISPENSARY_ADMIN_ROLES);
+        const currentUser = await requireUser(DRIVER_ADMIN_ROLES as any);
         const { firestore } = await createServerClient();
 
         const driverRef = firestore.collection('drivers').doc(driverId);
@@ -243,6 +303,7 @@ export async function toggleDriverAvailability(driverId: string) {
         }
 
         const driver = driverDoc.data() as Driver;
+        assertOrgAccess(currentUser, driver.orgId);
         const newAvailability = !driver.isAvailable;
 
         await driverRef.update({
@@ -274,7 +335,8 @@ export async function toggleDriverAvailability(driverId: string) {
  */
 export async function getDrivers(orgId: string) {
     try {
-        await requireUser(DISPENSARY_ADMIN_ROLES);
+        const currentUser = await requireUser(DRIVER_ADMIN_ROLES as any);
+        assertOrgAccess(currentUser, orgId);
         const { firestore } = await createServerClient();
 
         const snapshot = await firestore
@@ -310,7 +372,8 @@ export async function getDrivers(orgId: string) {
  */
 export async function getAvailableDrivers(orgId: string) {
     try {
-        await requireUser(DISPENSARY_ADMIN_ROLES);
+        const currentUser = await requireUser(DRIVER_ADMIN_ROLES as any);
+        assertOrgAccess(currentUser, orgId);
         const { firestore } = await createServerClient();
 
         const snapshot = await firestore
