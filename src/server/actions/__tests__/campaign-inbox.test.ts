@@ -111,6 +111,27 @@ describe('campaign-inbox actions', () => {
     expect(sendGenericEmail).not.toHaveBeenCalled();
   });
 
+  it('does not update artifacts from another org when authorization fails', async () => {
+    mockArtifactGet.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        orgId: 'org-other',
+        type: 'outreach_draft',
+        data: {
+          channel: 'email',
+          body: 'Body',
+          targetSegments: [],
+        },
+      }),
+    });
+
+    const result = await sendCampaignFromInbox({ artifactId: 'art-unauthorized' });
+
+    expect(result).toEqual({ success: false, error: 'Unauthorized' });
+    expect(mockArtifactUpdate).not.toHaveBeenCalled();
+    expect(deebo.checkContent).not.toHaveBeenCalled();
+  });
+
   it('rejects sms fast-path scheduling', async () => {
     mockArtifactGet.mockResolvedValue({
       exists: true,

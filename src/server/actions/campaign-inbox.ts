@@ -62,12 +62,19 @@ async function loadOutreachArtifact(artifactId: string, orgId: string) {
 /**
  * Patch the artifact's data field in-place (merges into data sub-object).
  */
-async function patchArtifactData(artifactId: string, patch: Partial<OutreachDraftData>) {
+async function patchArtifactData(
+    artifactId: string,
+    orgId: string,
+    patch: Partial<OutreachDraftData>,
+) {
     const db = getAdminFirestore();
     const doc = await db.collection('inbox_artifacts').doc(artifactId).get();
     if (!doc.exists) return;
 
-    const existing = (doc.data()!.data ?? {}) as OutreachDraftData;
+    const artifact = doc.data()!;
+    if (artifact.orgId !== orgId) return;
+
+    const existing = (artifact.data ?? {}) as OutreachDraftData;
     await db.collection('inbox_artifacts').doc(artifactId).update({
         data: { ...existing, ...patch },
         updatedAt: new Date(),
@@ -94,9 +101,11 @@ export async function sendCampaignFromInbox(params: {
     complianceSuggestions?: string[];
     error?: string;
 }> {
+    let actorOrgId: string | null = null;
     try {
         const user = await requireUser(ALLOWED_ROLES);
         const orgId = getOrgId(user);
+        actorOrgId = orgId;
 
         const { data } = await loadOutreachArtifact(params.artifactId, orgId);
 
@@ -118,7 +127,7 @@ export async function sendCampaignFromInbox(params: {
         const compliance = await deebo.checkContent('NY', data.channel, textToCheck);
 
         if (compliance.status === 'fail') {
-            await patchArtifactData(params.artifactId, {
+            await patchArtifactData(params.artifactId, orgId, {
                 complianceStatus: 'failed',
                 complianceViolations: compliance.violations,
                 complianceSuggestions: compliance.suggestions,
@@ -132,7 +141,7 @@ export async function sendCampaignFromInbox(params: {
         }
 
         if (compliance.status === 'warning' && !params.overrideWarning) {
-            await patchArtifactData(params.artifactId, {
+            await patchArtifactData(params.artifactId, orgId, {
                 complianceStatus: 'warning',
                 complianceViolations: compliance.violations,
                 complianceSuggestions: compliance.suggestions,
@@ -146,7 +155,7 @@ export async function sendCampaignFromInbox(params: {
         }
 
         // Mark checking → sending in artifact
-        await patchArtifactData(params.artifactId, {
+        await patchArtifactData(params.artifactId, orgId, {
             complianceStatus: 'passed',
             sendStatus: 'sending',
         });
@@ -195,7 +204,7 @@ export async function sendCampaignFromInbox(params: {
 
         if (recipients.length === 0) {
             await campaignRef.update({ status: 'sent', completedAt: now });
-            await patchArtifactData(params.artifactId, {
+            await patchArtifactData(params.artifactId, orgId, {
                 sendStatus: 'sent',
                 sentAt: now.toISOString(),
                 recipientCount: 0,
@@ -299,7 +308,7 @@ export async function sendCampaignFromInbox(params: {
         });
 
         // ── 8. Update artifact ──────────────────────────────────────────────
-        await patchArtifactData(params.artifactId, {
+        await patchArtifactData(params.artifactId, orgId, {
             sendStatus: 'sent',
             sentAt: now.toISOString(),
             recipientCount: sentCount,
@@ -320,9 +329,11 @@ export async function sendCampaignFromInbox(params: {
             artifactId: params.artifactId,
         });
         // Best-effort: revert artifact send state
-        try {
-            await patchArtifactData(params.artifactId, { sendStatus: 'failed' });
-        } catch { /* ignore */ }
+        if (actorOrgId) {
+            try {
+                await patchArtifactData(params.artifactId, actorOrgId, { sendStatus: 'failed' });
+            } catch { /* ignore */ }
+        }
         return { success: false, error: (error as Error).message };
     }
 }
@@ -372,7 +383,7 @@ export async function scheduleCampaignFromInbox(params: {
         const compliance = await deebo.checkContent('NY', data.channel, textToCheck);
 
         if (compliance.status === 'fail') {
-            await patchArtifactData(params.artifactId, {
+            await patchArtifactData(params.artifactId, orgId, {
                 complianceStatus: 'failed',
                 complianceViolations: compliance.violations,
                 complianceSuggestions: compliance.suggestions,
@@ -386,7 +397,7 @@ export async function scheduleCampaignFromInbox(params: {
         }
 
         if (compliance.status === 'warning' && !params.overrideWarning) {
-            await patchArtifactData(params.artifactId, {
+            await patchArtifactData(params.artifactId, orgId, {
                 complianceStatus: 'warning',
                 complianceViolations: compliance.violations,
                 complianceSuggestions: compliance.suggestions,
@@ -437,7 +448,7 @@ export async function scheduleCampaignFromInbox(params: {
         });
 
         // ── 3. Update artifact ───────────────────────────────────────────────
-        await patchArtifactData(params.artifactId, {
+        await patchArtifactData(params.artifactId, orgId, {
             complianceStatus: 'passed',
             sendStatus: 'scheduled',
             scheduledAt: scheduledAt.toISOString(),
