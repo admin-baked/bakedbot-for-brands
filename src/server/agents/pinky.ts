@@ -635,7 +635,16 @@ async function pinkyToolExecutor(toolName: string, input: Record<string, unknown
             const cronSecret = process.env.CRON_SECRET;
 
             if (!cronSecret) {
-                return { success: false, error: 'CRON_SECRET not configured — cannot run golden set eval' };
+                return { success: false, error: 'CRON_SECRET not configured - cannot run golden set eval' };
+            }
+
+            const validAgents = new Set(['smokey', 'craig', 'deebo']);
+            const validTiers = new Set(['fast', 'full']);
+            if (!validAgents.has(agent)) {
+                return { success: false, error: `Invalid agent: ${agent}` };
+            }
+            if (!validTiers.has(tier)) {
+                return { success: false, error: `Invalid tier: ${tier}` };
             }
 
             try {
@@ -651,7 +660,28 @@ async function pinkyToolExecutor(toolName: string, input: Record<string, unknown
                     body: JSON.stringify({ agent, tier }),
                 });
 
+                if (!response.ok) {
+                    let detail = '';
+                    try {
+                        const errorBody = await response.json();
+                        if (errorBody?.error) detail = `: ${String(errorBody.error)}`;
+                    } catch {
+                        // ignore parse errors and return status-only message
+                    }
+                    return { success: false, error: `qa-golden-eval returned ${response.status}${detail}` };
+                }
+
                 const data = await response.json();
+                if (
+                    typeof data.score !== 'number'
+                    || typeof data.passed !== 'number'
+                    || typeof data.failed !== 'number'
+                    || typeof data.total !== 'number'
+                    || typeof data.threshold !== 'number'
+                ) {
+                    return { success: false, error: 'qa-golden-eval returned malformed payload' };
+                }
+
                 const complianceFailed = data.complianceFailed === true;
                 const belowThreshold = data.belowThreshold === true;
 
@@ -666,10 +696,10 @@ async function pinkyToolExecutor(toolName: string, input: Record<string, unknown
                     complianceFailed,
                     belowThreshold,
                     verdict: complianceFailed
-                        ? '🔴 COMPLIANCE FAILURE — critical test failed, block deployment'
+                        ? 'COMPLIANCE FAILURE: critical test failed, block deployment'
                         : belowThreshold
-                            ? `🟠 BELOW THRESHOLD — ${data.score}% < ${data.threshold}% minimum, investigate agent regression`
-                            : `✅ PASSING — ${data.score}% (${data.passed}/${data.total})`,
+                            ? `BELOW THRESHOLD: ${data.score}% < ${data.threshold}% minimum, investigate agent regression`
+                            : `PASSING: ${data.score}% (${data.passed}/${data.total})`,
                     stdout: data.stdout,
                 };
             } catch (error) {
@@ -825,3 +855,4 @@ export async function runPinky(request: PinkyRequest): Promise<PinkyResponse> {
 }
 
 export { pinkyToolExecutor };
+
