@@ -8,6 +8,29 @@ import type { CustomerSegment } from '@/types/customers';
 import type { UserRole } from '@/types/roles';
 
 const ALLOWED_ROLES: UserRole[] = ['dispensary_admin', 'brand_admin', 'super_user'];
+const VALID_GOALS = new Set<CampaignGoal>([
+    'drive_sales',
+    'winback',
+    'retention',
+    'loyalty',
+    'birthday',
+    'restock_alert',
+    'vip_appreciation',
+    'product_launch',
+    'event_promo',
+    'awareness',
+]);
+const VALID_CHANNELS = new Set<CampaignChannel>(['email', 'sms']);
+const VALID_SEGMENTS = new Set<CustomerSegment>([
+    'vip',
+    'loyal',
+    'frequent',
+    'high_value',
+    'new',
+    'slipping',
+    'at_risk',
+    'churned',
+]);
 
 export interface GeneratedCampaign {
     name: string;
@@ -19,6 +42,57 @@ export interface GeneratedCampaign {
     emailSubject: string;
     emailBody: string;
     smsBody: string;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null;
+}
+
+function getTrimmedString(value: unknown): string {
+    return typeof value === 'string' ? value.trim() : '';
+}
+
+function sanitizeGeneratedCampaign(value: unknown): GeneratedCampaign | null {
+    if (!isRecord(value)) return null;
+
+    const name = getTrimmedString(value.name);
+    const goal = getTrimmedString(value.goal) as CampaignGoal;
+    const emailBody = getTrimmedString(value.emailBody);
+    if (!name || !emailBody || !VALID_GOALS.has(goal)) {
+        return null;
+    }
+
+    const rawChannels = Array.isArray(value.channels) ? value.channels : [];
+    const channels = Array.from(
+        new Set(
+            rawChannels.filter(
+                (item): item is CampaignChannel =>
+                    typeof item === 'string' && VALID_CHANNELS.has(item as CampaignChannel),
+            ),
+        ),
+    );
+
+    const rawSegments = Array.isArray(value.targetSegments) ? value.targetSegments : [];
+    const targetSegments = Array.from(
+        new Set(
+            rawSegments.filter(
+                (item): item is CustomerSegment =>
+                    typeof item === 'string' && VALID_SEGMENTS.has(item as CustomerSegment),
+            ),
+        ),
+    ).slice(0, 3);
+
+    return {
+        name,
+        description: getTrimmedString(value.description),
+        goal,
+        channels: channels.length > 0 ? channels : ['email'],
+        targetSegments,
+        audienceType: targetSegments.length > 0 ? 'segment' : 'all',
+        emailSubject: getTrimmedString(value.emailSubject) || name,
+        emailBody,
+        smsBody: getTrimmedString(value.smsBody).slice(0, 160),
+    };
 }
 
 export async function generateCampaignFromNL(
@@ -72,7 +146,7 @@ If the user mentions specific segments (VIP, loyal, new, churned, at-risk), map 
             jsonStr = fenceMatch[1].trim();
         }
 
-        let parsed: GeneratedCampaign;
+        let parsed: unknown;
         try {
             parsed = JSON.parse(jsonStr);
         } catch {
@@ -80,28 +154,12 @@ If the user mentions specific segments (VIP, loyal, new, churned, at-risk), map 
             return { success: false, error: 'Failed to parse AI response. Please try again.' };
         }
 
-        // Validate required fields
-        if (!parsed.name || !parsed.goal || !parsed.emailBody) {
+        const sanitized = sanitizeGeneratedCampaign(parsed);
+        if (!sanitized) {
             return { success: false, error: 'AI response was incomplete. Please rephrase your description.' };
         }
 
-        // Ensure arrays
-        if (!Array.isArray(parsed.channels) || parsed.channels.length === 0) {
-            parsed.channels = ['email'];
-        }
-        if (!Array.isArray(parsed.targetSegments)) {
-            parsed.targetSegments = [];
-        }
-        if (!parsed.audienceType) {
-            parsed.audienceType = parsed.targetSegments.length > 0 ? 'segment' : 'all';
-        }
-
-        // Defaults for missing optional fields
-        parsed.description = parsed.description ?? '';
-        parsed.smsBody = parsed.smsBody ?? '';
-        parsed.emailSubject = parsed.emailSubject ?? parsed.name;
-
-        return { success: true, data: parsed };
+        return { success: true, data: sanitized };
     } catch (err) {
         logger.error(`[campaign-nlp] Error: ${String(err)}`);
         return { success: false, error: err instanceof Error ? err.message : 'An error occurred' };
