@@ -292,6 +292,24 @@ describe('Profitability Server Actions', () => {
 
       expect(result.success).toBe(true);
     });
+
+    it('should fail when organization context is missing', async () => {
+      const { requireUser } = require('@/server/auth/auth');
+      (requireUser as jest.Mock).mockResolvedValueOnce({
+        uid: 'test-user-123',
+        role: 'dispensary',
+      });
+
+      const result = await addExpense(
+        'Lab testing',
+        500,
+        new Date(),
+        'lab_testing'
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Missing organization context');
+    });
   });
 
   // ==========================================================================
@@ -351,6 +369,16 @@ describe('Profitability Server Actions', () => {
       expect(calculateNYTaxSummary).toHaveBeenCalled();
       expect(calculateWorkingCapital).toHaveBeenCalled();
       expect(calculateProfitabilityMetrics).toHaveBeenCalled();
+    });
+
+    it('should reject read actions when organization context is missing', async () => {
+      const { requireUser } = require('@/server/auth/auth');
+      (requireUser as jest.Mock).mockResolvedValueOnce({
+        uid: 'test-user-123',
+        role: 'dispensary',
+      });
+
+      await expect(getPriceCompressionAnalysis(50, 1000, 0.2)).rejects.toThrow('Missing organization context');
     });
   });
 
