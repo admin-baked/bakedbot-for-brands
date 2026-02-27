@@ -24,6 +24,22 @@ interface ActionResult<T> {
     error?: string;
 }
 
+type AnalyticsActor = {
+    uid: string;
+    role?: string;
+    orgId?: string;
+    currentOrgId?: string;
+    brandId?: string;
+};
+
+function getActorOrgId(user: AnalyticsActor): string | null {
+    return user.currentOrgId || user.orgId || user.brandId || null;
+}
+
+function isValidOrgId(orgId: string): boolean {
+    return !!orgId && !orgId.includes('/');
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Data interfaces (exported for component use)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -92,11 +108,15 @@ export interface MenuAnalyticsData {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function verifyOrgAccess(orgId: string): Promise<void> {
+    if (!isValidOrgId(orgId)) {
+        throw new Error('Forbidden: invalid org context');
+    }
+
     const user = await requireUser([
         'brand', 'brand_admin', 'dispensary', 'dispensary_admin', 'super_user',
     ]);
     if (user.role !== 'super_user') {
-        const userOrgId = (user as any).orgId || (user as any).currentOrgId || (user as any).brandId || user.uid;
+        const userOrgId = getActorOrgId(user as AnalyticsActor);
         if (userOrgId !== orgId) {
             throw new Error('Forbidden: org mismatch');
         }
