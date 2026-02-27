@@ -6,13 +6,21 @@ import { logger } from '@/lib/logger';
 import type { Playbook, PlaybookCategory, PlaybookTrigger, PlaybookStatus } from '@/types/playbook';
 import type { UserRole } from '@/types/roles';
 
-const ALLOWED_ROLES: UserRole[] = ['dispensary_admin', 'brand_admin', 'super_user'];
+const ALLOWED_ROLES: UserRole[] = ['dispensary_admin', 'brand_admin', 'super_user', 'super_admin'];
+
+function isSuperRole(role: unknown): boolean {
+    return role === 'super_user' || role === 'super_admin';
+}
 
 function resolveActorOrgId(user: Record<string, unknown>): string | null {
     const currentOrgId =
         typeof user.currentOrgId === 'string' ? user.currentOrgId : undefined;
     const orgId = typeof user.orgId === 'string' ? user.orgId : undefined;
-    return currentOrgId ?? orgId ?? null;
+    const brandId = typeof user.brandId === 'string' ? user.brandId : undefined;
+    const dispensaryId = typeof user.dispensaryId === 'string' ? user.dispensaryId : undefined;
+    const tenantId = typeof user.tenantId === 'string' ? user.tenantId : undefined;
+    const organizationId = typeof user.organizationId === 'string' ? user.organizationId : undefined;
+    return currentOrgId ?? orgId ?? brandId ?? dispensaryId ?? tenantId ?? organizationId ?? null;
 }
 
 function canAccessOrg(
@@ -20,7 +28,7 @@ function canAccessOrg(
     orgId: string,
 ): boolean {
     const role = typeof user.role === 'string' ? user.role : undefined;
-    if (role === 'super_user' || role === 'super_admin') return true;
+    if (isSuperRole(role)) return true;
     return resolveActorOrgId(user) === orgId;
 }
 
@@ -217,7 +225,7 @@ export async function updateCustomPlaybook(
         if (data.orgId !== orgId) return { success: false, error: 'Not authorized' };
         if (!data.isCustom) return { success: false, error: 'Cannot edit system playbooks' };
         // Only owner or super_user can edit
-        if (data.ownerId !== user.uid && user.role !== 'super_user') {
+        if (data.ownerId !== user.uid && !isSuperRole(user.role)) {
             return { success: false, error: 'Only the owner can edit this playbook' };
         }
 
@@ -271,7 +279,7 @@ export async function deleteCustomPlaybook(
         const data = snap.data() as Playbook;
         if (data.orgId !== orgId) return { success: false, error: 'Not authorized' };
         if (!data.isCustom) return { success: false, error: 'Cannot delete system playbooks' };
-        if (data.ownerId !== user.uid && user.role !== 'super_user') {
+        if (data.ownerId !== user.uid && !isSuperRole(user.role)) {
             return { success: false, error: 'Only the owner can delete this playbook' };
         }
 
@@ -308,7 +316,7 @@ export async function toggleCustomPlaybookStatus(
         const data = snap.data() as Playbook;
         if (data.orgId !== orgId) return { success: false, error: 'Not authorized' };
         if (!data.isCustom) return { success: false, error: 'Cannot modify system playbooks' };
-        if (data.ownerId !== user.uid && user.role !== 'super_user') {
+        if (data.ownerId !== user.uid && !isSuperRole(user.role)) {
             return { success: false, error: 'Only the owner can modify this playbook' };
         }
 
