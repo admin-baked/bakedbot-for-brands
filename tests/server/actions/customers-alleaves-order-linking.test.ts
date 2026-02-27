@@ -199,4 +199,118 @@ describe('getCustomers Alleaves order linking', () => {
     expect(target?.orderCount).toBe(1);
     expect(target?.totalSpent).toBe(100);
   });
+
+  it('treats @alleaves.local.com emails as real emails and links by normalized email', async () => {
+    (ALLeavesClient as jest.Mock).mockImplementationOnce(() => ({
+      getAllCustomersPaginated: jest.fn().mockResolvedValue([
+        {
+          id_customer: '42',
+          name_first: 'Jane',
+          name_last: 'Doe',
+          email: ' Customer_42@Alleaves.Local.com ',
+        },
+      ]),
+    }));
+
+    const spendingSnap = makeSnapshot([
+      {
+        id: 'customer_42@alleaves.local.com',
+        data: {
+          totalSpent: 0,
+          orderCount: 0,
+          lastOrderDate: { toDate: () => new Date(0) },
+          firstOrderDate: { toDate: () => new Date('2026-01-01T00:00:00.000Z') },
+        },
+      },
+    ]);
+
+    const locationsSnap = makeSnapshot([
+      {
+        id: 'location_1',
+        data: {
+          posConfig: {
+            provider: 'alleaves',
+            status: 'active',
+            apiKey: 'test-key',
+            storeId: 'store_1',
+            locationId: 'loc_test',
+          },
+        },
+      },
+    ]);
+
+    const ordersSnap = makeSnapshot([
+      {
+        id: 'order_web_real_email',
+        data: {
+          source: 'web',
+          userId: 'web_1',
+          customer: { email: 'customer_42@alleaves.local.com', name: 'Jane Doe' },
+          totals: { total: 125 },
+          createdAt: { toDate: () => new Date('2026-02-26T13:00:00.000Z') },
+        },
+      },
+    ]);
+
+    const emptySnap = makeSnapshot([]);
+
+    const firestore = {
+      collection: jest.fn((name: string) => {
+        if (name === 'locations') {
+          return {
+            where: jest.fn(() => ({
+              limit: jest.fn(() => ({
+                get: jest.fn().mockResolvedValue(locationsSnap),
+              })),
+            })),
+          };
+        }
+
+        if (name === 'tenants') {
+          return {
+            doc: jest.fn(() => ({
+              collection: jest.fn((subName: string) => {
+                if (subName === 'customer_spending') {
+                  return {
+                    limit: jest.fn(() => ({
+                      get: jest.fn().mockResolvedValue(spendingSnap),
+                    })),
+                  };
+                }
+
+                throw new Error(`Unexpected tenants sub-collection: ${subName}`);
+              }),
+            })),
+          };
+        }
+
+        if (name === 'orders') {
+          return {
+            where: jest.fn(() => ({
+              get: jest.fn().mockResolvedValue(ordersSnap),
+            })),
+          };
+        }
+
+        if (name === 'customers') {
+          return {
+            where: jest.fn(() => ({
+              get: jest.fn().mockResolvedValue(emptySnap),
+            })),
+          };
+        }
+
+        throw new Error(`Unexpected collection: ${name}`);
+      }),
+    };
+
+    (createServerClient as jest.Mock).mockResolvedValue({ firestore });
+
+    const result = await getCustomers({ orgId: 'org_test' });
+    const target = result.customers.find((c) => c.id === 'alleaves_42');
+
+    expect(target).toBeDefined();
+    expect(target?.orderCount).toBe(1);
+    expect(target?.totalSpent).toBe(125);
+  });
 });
