@@ -47,6 +47,22 @@ function getDb() {
     return getAdminFirestore();
 }
 
+function isSuperRole(role: unknown): boolean {
+    return role === 'super_user' || role === 'super_admin';
+}
+
+function getActorOrgId(user: {
+    currentOrgId?: string | null;
+    orgId?: string | null;
+    brandId?: string | null;
+}): string | null {
+    return user.currentOrgId ?? user.orgId ?? user.brandId ?? null;
+}
+
+function isValidOrgId(orgId: string): boolean {
+    return !!orgId && !orgId.includes('/');
+}
+
 /**
  * Convert Firestore timestamp to Date
  */
@@ -119,9 +135,15 @@ export async function createInboxThread(input: {
         if (!user) {
             return { success: false, error: 'Unauthorized' };
         }
-        const isSuperUser = user.role === 'super_user' || user.role === 'super_admin';
-        const actorOrgId = user.currentOrgId || user.orgId || user.brandId || user.uid;
+        const isSuperUser = isSuperRole(user.role);
+        const actorOrgId = getActorOrgId(user);
+        if (!actorOrgId || !isValidOrgId(actorOrgId)) {
+            return { success: false, error: 'Missing organization context' };
+        }
         const requestedOrgId = input.brandId || input.dispensaryId;
+        if (requestedOrgId && !isValidOrgId(requestedOrgId)) {
+            return { success: false, error: 'Invalid organization context' };
+        }
 
         if (!isSuperUser && requestedOrgId && requestedOrgId !== actorOrgId) {
             return { success: false, error: 'Unauthorized org context' };
