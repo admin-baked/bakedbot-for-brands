@@ -22,6 +22,7 @@ import {
     notifyBugFixed,
     notifyBugVerified
 } from '@/server/services/qa-notifications';
+import { callClaude } from '@/ai/claude';
 import type {
     QABug,
     QABugStatus,
@@ -464,5 +465,114 @@ export async function saveSmokeRunResult(summary: QASmokeRunSummary): Promise<vo
         });
     } catch (error) {
         logger.error('[QA] Failed to save smoke run result', { error: (error as Error).message });
+    }
+}
+
+// ============================================================================
+// AI TEST CASE GENERATION
+// ============================================================================
+
+export async function generateTestCasesFromSpec(input: {
+    featureName: string;
+    specContent: string;
+    area: QABugArea;
+    count?: number;
+}): Promise<{ success: boolean; testCases?: QATestCase[]; error?: string }> {
+    try {
+        const user = await requireUser(['super_user']);
+        const db = getAdminFirestore();
+
+        const count = input.count ?? 10;
+
+        const rawJson = await callClaude({
+            systemPrompt: `You are a QA engineer generating structured test cases from a feature spec.
+Return ONLY a valid JSON array (no markdown, no code block) with exactly ${count} test case objects.
+Each object must have these fields:
+- title: string (short descriptive test name)
+- steps: string (numbered steps, e.g. "1. Do X\\n2. Do Y\\n3. Check Z")
+- expected: string (what should happen)
+- priority: "critical" | "medium" | "low"`,
+            userMessage: `Feature: ${input.featureName}\nArea: ${input.area}\n\nSpec:\n${input.specContent}\n\nGenerate ${count} test cases covering happy paths, edge cases, and failure scenarios.`,
+            maxTokens: 4096,
+        });
+
+        let parsed: Array<{ title: string; steps: string; expected: string; priority: 'critical' | 'medium' | 'low' }>;
+        try {
+            // Strip any accidental markdown fences
+            const cleaned = rawJson.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+            parsed = JSON.parse(cleaned);
+        } catch {
+            return { success: false, error: 'Claude returned invalid JSON — try again with a shorter spec' };
+        }
+
+        const batch = db.batch();
+        const testCases: QATestCase[] = [];
+
+        parsed.forEach((tc, i) => {
+            const id = `${input.area}_${Date.now()}_${i}`;
+            const docRef = db.collection('qa_test_cases').doc(id);
+            const testCase: QATestCase = {
+                id,
+                area: input.featureName,
+                title: tc.title,
+                steps: tc.steps,
+                expected: tc.expected,
+                priority: tc.priority,
+                status: 'untested',
+                lastTestedBy: user.uid,
+            };
+            batch.set(docRef, testCase);
+            testCases.push(testCase);
+        });
+
+        await batch.commit();
+        logger.info('[QA] Test cases generated', { area: input.area, count: testCases.length });
+        return { success: true, testCases };
+    } catch (error) {
+        logger.error('[QA] Failed to generate test cases', { error: (error as Error).message });
+        return { success: false, error: (error as Error).message };
+    }
+}
+
+// ============================================================================
+// INBOX THREAD CONTENT READER
+// Used by Pinky to extract bug details from customer-reported inbox conversations
+// ============================================================================
+
+export async function getInboxThreadContent(threadId: string): Promise<{
+    success: boolean;
+    content?: string;
+    orgId?: string;
+    error?: string;
+}> {
+    try {
+        await requireUser(['super_user']);
+        const db = getAdminFirestore();
+
+        const snap = await db.collection('inbox_threads').doc(threadId).get();
+        if (!snap.exists) {
+            return { success: false, error: 'Thread not found' };
+        }
+
+        const data = snap.data() as {
+            orgId?: string;
+            messages?: Array<{ role?: string; type?: string; content?: string; text?: string }>;
+        };
+
+        const messages = data.messages ?? [];
+        const formatted = messages.map((m, i) => {
+            const role = m.role ?? m.type ?? `message_${i}`;
+            const content = m.content ?? m.text ?? '';
+            return `${role}: ${content}`;
+        }).join('\n\n');
+
+        return {
+            success: true,
+            content: formatted || '(no messages found)',
+            orgId: data.orgId,
+        };
+    } catch (error) {
+        logger.error('[QA] Failed to read inbox thread', { error: (error as Error).message, threadId });
+        return { success: false, error: (error as Error).message };
     }
 }
