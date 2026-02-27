@@ -298,11 +298,22 @@ export async function getBugs(filters: {
 
 export async function getBugById(bugId: string): Promise<QABug | null> {
     try {
-        await requireUser();
+        const user = await requireUser();
         const db = getAdminFirestore();
         const snap = await db.collection('qa_bugs').doc(bugId).get();
         if (!snap.exists) return null;
-        return { id: snap.id, ...snap.data() } as QABug;
+        const bug = { id: snap.id, ...snap.data() } as QABug;
+
+        if (user.role !== 'super_user') {
+            const viewerOrgId = user.currentOrgId || user.brandId || user.orgId || user.uid;
+            const isReporter = bug.reportedBy === user.uid;
+            const sameOrg = bug.affectedOrgId === viewerOrgId;
+            if (!sameOrg && !isReporter) {
+                return null;
+            }
+        }
+
+        return bug;
     } catch (error) {
         logger.error('[QA] Failed to fetch bug', { error: (error as Error).message, bugId });
         return null;

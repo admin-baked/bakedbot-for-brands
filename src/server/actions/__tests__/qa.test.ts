@@ -1,4 +1,4 @@
-import { generateTestCasesFromSpec } from '../qa';
+import { generateTestCasesFromSpec, getBugById } from '../qa';
 import { getAdminFirestore } from '@/firebase/admin';
 import { requireUser } from '@/server/auth/auth';
 import { callClaude } from '@/ai/claude';
@@ -172,5 +172,133 @@ describe('qa actions: generateTestCasesFromSpec', () => {
       error: 'featureName and specContent are required',
     });
     expect(callClaude).not.toHaveBeenCalled();
+  });
+});
+
+describe('qa actions: getBugById access control', () => {
+  const mockCollection = jest.fn();
+  const mockDoc = jest.fn();
+  const mockGet = jest.fn();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (getAdminFirestore as jest.Mock).mockReturnValue({
+      collection: mockCollection,
+    });
+    mockCollection.mockImplementation((name: string) => {
+      if (name === 'qa_bugs') {
+        return {
+          doc: mockDoc,
+        };
+      }
+      return { doc: jest.fn() };
+    });
+    mockDoc.mockImplementation(() => ({ get: mockGet }));
+  });
+
+  it('hides cross-org bugs from non-super users', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'user-1',
+      role: 'dispensary_admin',
+      currentOrgId: 'org-a',
+      orgId: 'org-a',
+      brandId: 'org-a',
+    });
+    mockGet.mockResolvedValue({
+      exists: true,
+      id: 'bug-1',
+      data: () => ({
+        affectedOrgId: 'org-b',
+        reportedBy: 'user-2',
+        status: 'open',
+      }),
+    });
+
+    const result = await getBugById('bug-1');
+
+    expect(result).toBeNull();
+  });
+
+  it('allows non-super users to view bugs affecting their org', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'user-1',
+      role: 'dispensary_admin',
+      currentOrgId: 'org-a',
+      orgId: 'org-a',
+      brandId: 'org-a',
+    });
+    mockGet.mockResolvedValue({
+      exists: true,
+      id: 'bug-2',
+      data: () => ({
+        affectedOrgId: 'org-a',
+        reportedBy: 'user-2',
+        status: 'open',
+      }),
+    });
+
+    const result = await getBugById('bug-2');
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: 'bug-2',
+        affectedOrgId: 'org-a',
+      }),
+    );
+  });
+
+  it('allows non-super users to view bugs they reported', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'user-1',
+      role: 'dispensary_admin',
+      currentOrgId: 'org-a',
+      orgId: 'org-a',
+      brandId: 'org-a',
+    });
+    mockGet.mockResolvedValue({
+      exists: true,
+      id: 'bug-3',
+      data: () => ({
+        affectedOrgId: 'org-z',
+        reportedBy: 'user-1',
+        status: 'open',
+      }),
+    });
+
+    const result = await getBugById('bug-3');
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: 'bug-3',
+        reportedBy: 'user-1',
+      }),
+    );
+  });
+
+  it('allows super users to view any bug', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'super-1',
+      role: 'super_user',
+      currentOrgId: 'org-a',
+      orgId: 'org-a',
+    });
+    mockGet.mockResolvedValue({
+      exists: true,
+      id: 'bug-4',
+      data: () => ({
+        affectedOrgId: 'org-z',
+        reportedBy: 'user-99',
+        status: 'open',
+      }),
+    });
+
+    const result = await getBugById('bug-4');
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: 'bug-4',
+        affectedOrgId: 'org-z',
+      }),
+    );
   });
 });
