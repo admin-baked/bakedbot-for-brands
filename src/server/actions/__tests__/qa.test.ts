@@ -301,6 +301,26 @@ describe('qa actions: getBugById access control', () => {
       }),
     );
   });
+
+  it('blocks non-super users without org context unless they are the reporter', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'user-1',
+      role: 'dispensary_admin',
+    });
+    mockGet.mockResolvedValue({
+      exists: true,
+      id: 'bug-5',
+      data: () => ({
+        affectedOrgId: 'org-z',
+        reportedBy: 'user-2',
+        status: 'open',
+      }),
+    });
+
+    const result = await getBugById('bug-5');
+
+    expect(result).toBeNull();
+  });
 });
 
 describe('qa actions: getQAReport scoping', () => {
@@ -362,6 +382,19 @@ describe('qa actions: getQAReport scoping', () => {
 
     expect(bugsWhere).toHaveBeenCalledWith('affectedOrgId', '==', 'org-b');
   });
+
+  it('returns an empty report for non-super users without org context', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'user-1',
+      role: 'dispensary_admin',
+    });
+
+    const result = await getQAReport();
+
+    expect(result.total).toBe(0);
+    expect(result.open).toBe(0);
+    expect(bugsWhere).not.toHaveBeenCalled();
+  });
 });
 
 describe('qa actions: getBugs scoping', () => {
@@ -416,6 +449,18 @@ describe('qa actions: getBugs scoping', () => {
     await getBugs({ orgId: 'org-b', limit: 5 });
 
     expect(query.where).toHaveBeenCalledWith('affectedOrgId', '==', 'org-b');
+  });
+
+  it('returns empty results for non-super users without org context', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'user-1',
+      role: 'dispensary_admin',
+    });
+
+    const result = await getBugs({ limit: 5 });
+
+    expect(result).toEqual([]);
+    expect(query.get).not.toHaveBeenCalled();
   });
 });
 
@@ -475,5 +520,18 @@ describe('qa actions: getRegressionHistory scoping', () => {
     expect(query.where).toHaveBeenCalledWith('area', '==', 'campaigns');
     expect(query.where).toHaveBeenCalledWith('status', 'in', ['verified', 'closed', 'fixed']);
     expect(query.where).not.toHaveBeenCalledWith('affectedOrgId', '==', 'org-a');
+  });
+
+  it('returns empty regression history for non-super users without org context', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'user-1',
+      role: 'dispensary_admin',
+    });
+
+    const result = await getRegressionHistory('campaigns');
+
+    expect(result).toEqual([]);
+    expect(query.where).not.toHaveBeenCalledWith('affectedOrgId', '==', expect.any(String));
+    expect(query.get).not.toHaveBeenCalled();
   });
 });

@@ -35,6 +35,40 @@ import type {
 } from '@/types/qa';
 import { QA_VALID_TRANSITIONS } from '@/types/qa';
 
+type QAActor = {
+    uid: string;
+    role?: string;
+    orgId?: string;
+    brandId?: string;
+    currentOrgId?: string;
+};
+
+function isSuperRole(role: unknown): boolean {
+    return role === 'super_user';
+}
+
+function getActorOrgId(user: QAActor): string | null {
+    return user.currentOrgId || user.brandId || user.orgId || null;
+}
+
+function isValidOrgId(orgId: string): boolean {
+    return !!orgId && !orgId.includes('/');
+}
+
+function getScopedOrgIdOrNull(user: QAActor, action: string): string | null {
+    const orgId = getActorOrgId(user);
+    if (!orgId || !isValidOrgId(orgId)) {
+        logger.warn('[QA] Missing or invalid org scope', {
+            action,
+            actor: user.uid,
+            actorRole: user.role,
+            orgId,
+        });
+        return null;
+    }
+    return orgId;
+}
+
 // ============================================================================
 // BUG CRUD
 // ============================================================================
@@ -254,10 +288,11 @@ export async function getBugs(filters: {
         let query = db.collection('qa_bugs') as FirebaseFirestore.Query;
 
         // Dispensary admins can only see bugs affecting their org
-        if (user.role !== 'super_user') {
-            const orgId = user.currentOrgId || user.brandId || user.orgId || user.uid;
+        if (!isSuperRole(user.role)) {
+            const orgId = getScopedOrgIdOrNull(user as QAActor, 'getBugs');
+            if (!orgId) return [];
             query = query.where('affectedOrgId', '==', orgId);
-        } else if (filters.orgId) {
+        } else if (filters.orgId && isValidOrgId(filters.orgId)) {
             query = query.where('affectedOrgId', '==', filters.orgId);
         }
 
@@ -304,10 +339,10 @@ export async function getBugById(bugId: string): Promise<QABug | null> {
         if (!snap.exists) return null;
         const bug = { id: snap.id, ...snap.data() } as QABug;
 
-        if (user.role !== 'super_user') {
-            const viewerOrgId = user.currentOrgId || user.brandId || user.orgId || user.uid;
+        if (!isSuperRole(user.role)) {
+            const viewerOrgId = getScopedOrgIdOrNull(user as QAActor, 'getBugById');
             const isReporter = bug.reportedBy === user.uid;
-            const sameOrg = bug.affectedOrgId === viewerOrgId;
+            const sameOrg = !!viewerOrgId && bug.affectedOrgId === viewerOrgId;
             if (!sameOrg && !isReporter) {
                 return null;
             }
@@ -325,9 +360,20 @@ export async function getQAReport(orgId?: string): Promise<QAReport> {
         const user = await requireUser();
         const db = getAdminFirestore();
 
-        const scopedOrgId = user.role === 'super_user'
-            ? orgId
-            : (user.currentOrgId || user.brandId || user.orgId || user.uid);
+        const scopedOrgId = isSuperRole(user.role)
+            ? (orgId && isValidOrgId(orgId) ? orgId : undefined)
+            : getScopedOrgIdOrNull(user as QAActor, 'getQAReport');
+
+        if (!isSuperRole(user.role) && !scopedOrgId) {
+            return {
+                total: 0, open: 0,
+                byPriority: { P0: 0, P1: 0, P2: 0, P3: 0 },
+                byStatus: { open: 0, triaged: 0, assigned: 0, in_progress: 0, fixed: 0, verified: 0, closed: 0, wont_fix: 0 },
+                byArea: {},
+                testCoverage: { total: 0, passing: 0, failing: 0, untested: 0, coveragePct: 0 },
+                generatedAt: new Date(),
+            };
+        }
 
         // Fetch all bugs (super user) or org-scoped
         let bugsQuery = db.collection('qa_bugs') as FirebaseFirestore.Query;
@@ -452,8 +498,9 @@ export async function getRegressionHistory(area: QABugArea): Promise<QABug[]> {
             .where('area', '==', area)
             .where('status', 'in', ['verified', 'closed', 'fixed']) as FirebaseFirestore.Query;
 
-        if (user.role !== 'super_user') {
-            const orgId = user.currentOrgId || user.brandId || user.orgId || user.uid;
+        if (!isSuperRole(user.role)) {
+            const orgId = getScopedOrgIdOrNull(user as QAActor, 'getRegressionHistory');
+            if (!orgId) return [];
             query = query.where('affectedOrgId', '==', orgId);
         }
 
