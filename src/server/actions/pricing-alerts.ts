@@ -15,7 +15,44 @@ import {
   type PricingAlert,
 } from '@/server/services/pricing-alerts';
 import { getAdminFirestore } from '@/firebase/admin';
+import { requireUser } from '@/server/auth/auth';
 import { logger } from '@/lib/logger';
+
+function isSuperRole(role: unknown): boolean {
+  return role === 'super_user' || role === 'super_admin';
+}
+
+function getActorOrgId(user: unknown): string | null {
+  if (!user || typeof user !== 'object') return null;
+  const token = user as {
+    currentOrgId?: string;
+    orgId?: string;
+    brandId?: string;
+    tenantId?: string;
+    organizationId?: string;
+  };
+  return (
+    token.currentOrgId ||
+    token.orgId ||
+    token.brandId ||
+    token.tenantId ||
+    token.organizationId ||
+    null
+  );
+}
+
+async function assertTenantAccess(tenantId: string): Promise<void> {
+  const user = await requireUser();
+  const role = typeof user === 'object' && user ? (user as { role?: string }).role : null;
+  if (isSuperRole(role)) {
+    return;
+  }
+
+  const actorOrgId = getActorOrgId(user);
+  if (!actorOrgId || actorOrgId !== tenantId) {
+    throw new Error('Unauthorized');
+  }
+}
 
 // ============================================================================
 // CONFIGURATION ACTIONS
@@ -28,6 +65,7 @@ export async function getPricingAlerts(
   tenantId: string
 ): Promise<{ success: boolean; data?: PricingAlertConfig; error?: string }> {
   try {
+    await assertTenantAccess(tenantId);
     const config = await getPricingAlertConfig(tenantId);
 
     if (!config) {
@@ -66,6 +104,7 @@ export async function updatePricingAlerts(
   config: PricingAlertConfig
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    await assertTenantAccess(config.tenantId);
     const success = await savePricingAlertConfig(config);
 
     if (!success) {
@@ -94,6 +133,7 @@ export async function getRecentPricingAlerts(
   limit: number = 50
 ): Promise<{ success: boolean; data?: PricingAlert[]; error?: string }> {
   try {
+    await assertTenantAccess(tenantId);
     const db = getAdminFirestore();
 
     const alertsSnap = await db
@@ -138,6 +178,7 @@ export async function getProductPriceHistory(
   error?: string;
 }> {
   try {
+    await assertTenantAccess(tenantId);
     const db = getAdminFirestore();
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
@@ -183,6 +224,7 @@ export async function triggerPriceCheck(
   error?: string;
 }> {
   try {
+    await assertTenantAccess(tenantId);
     // Get configuration
     const config = await getPricingAlertConfig(tenantId);
 
