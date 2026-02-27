@@ -2,6 +2,7 @@
 import { getPassportAction, updatePassportAction, savePassportAction } from '@/server/actions/passport';
 import { createServerClient } from '@/firebase/server-client';
 import { getAdminAuth } from '@/firebase/admin';
+import { requireUser } from '@/server/auth/auth';
 
 // Mock server-only to avoid errors in Jest
 jest.mock('server-only', () => ({}), { virtual: true });
@@ -14,6 +15,10 @@ jest.mock('@/firebase/server-client', () => ({
 jest.mock('@/firebase/admin', () => ({
     getAdminAuth: jest.fn(),
     getAdminFirestore: jest.fn()
+}));
+
+jest.mock('@/server/auth/auth', () => ({
+    requireUser: jest.fn(),
 }));
 
 jest.mock('next/navigation', () => ({
@@ -62,6 +67,7 @@ describe('Passport Actions', () => {
             auth: mockAuth
         });
         (getAdminAuth as jest.Mock).mockReturnValue(mockAuth);
+        (requireUser as jest.Mock).mockResolvedValue({ uid: 'user_123' });
     });
 
     describe('getPassportAction', () => {
