@@ -14,8 +14,31 @@ import type {
 } from '@/types/campaign';
 import type { InboxAgentPersona } from '@/types/inbox';
 
-function getOrgId(user: { orgId?: string; brandId?: string; currentOrgId?: string; uid: string }): string {
+type CampaignActionUser = {
+    uid: string;
+    role?: string;
+    orgId?: string;
+    brandId?: string;
+    currentOrgId?: string;
+};
+
+function getOrgId(user: CampaignActionUser): string {
     return user.orgId || user.brandId || user.currentOrgId || user.uid;
+}
+
+function canAccessOrg(user: CampaignActionUser, targetOrgId: string): boolean {
+    return user.role === 'super_user' || getOrgId(user) === targetOrgId;
+}
+
+async function userCanAccessCampaign(
+    firestore: FirebaseFirestore.Firestore,
+    campaignId: string,
+    user: CampaignActionUser,
+): Promise<boolean> {
+    const snap = await firestore.collection('campaigns').doc(campaignId).get();
+    if (!snap.exists) return false;
+    const campaignOrgId = snap.data()?.orgId;
+    return typeof campaignOrgId === 'string' && canAccessOrg(user, campaignOrgId);
 }
 
 // =============================================================================
@@ -38,7 +61,19 @@ export async function createCampaign(params: {
     try {
         const { firestore } = await createServerClient();
         const user = await requireUser(['dispensary', 'brand', 'super_user']);
-        const orgId = params.orgId || getOrgId(user);
+        const userOrgId = getOrgId(user);
+        const orgId = params.orgId || userOrgId;
+
+        if (!canAccessOrg(user, orgId)) {
+            logger.warn('[CAMPAIGNS] Blocked cross-org create attempt', {
+                actor: user.uid,
+                actorRole: user.role,
+                actorOrgId: userOrgId,
+                targetOrgId: orgId,
+            });
+            return null;
+        }
+
         const now = new Date();
 
         const campaignData = {
@@ -93,6 +128,17 @@ export async function updateCampaign(
 ): Promise<boolean> {
     try {
         const { firestore } = await createServerClient();
+        const user = await requireUser(['dispensary', 'brand', 'super_user']);
+
+        const allowed = await userCanAccessCampaign(firestore, campaignId, user);
+        if (!allowed) {
+            logger.warn('[CAMPAIGNS] Blocked unauthorized update attempt', {
+                actor: user.uid,
+                actorRole: user.role,
+                campaignId,
+            });
+            return false;
+        }
 
         await firestore.collection('campaigns').doc(campaignId).update({
             ...updates,
@@ -121,11 +167,21 @@ export async function updateCampaign(
 export async function getCampaign(campaignId: string): Promise<Campaign | null> {
     try {
         const { firestore } = await createServerClient();
+        const user = await requireUser(['dispensary', 'brand', 'super_user']);
         const doc = await firestore.collection('campaigns').doc(campaignId).get();
 
         if (!doc.exists) return null;
 
         const data = doc.data()!;
+        if (typeof data.orgId !== 'string' || !canAccessOrg(user, data.orgId)) {
+            logger.warn('[CAMPAIGNS] Blocked unauthorized getCampaign attempt', {
+                actor: user.uid,
+                actorRole: user.role,
+                campaignId,
+            });
+            return null;
+        }
+
         return {
             id: doc.id,
             ...data,
@@ -165,7 +221,18 @@ export async function getCampaigns(
     try {
         const { firestore } = await createServerClient();
         const user = await requireUser(['dispensary', 'brand', 'super_user']);
-        const orgId = orgIdParam || getOrgId(user);
+        const userOrgId = getOrgId(user);
+        const orgId = orgIdParam || userOrgId;
+
+        if (!canAccessOrg(user, orgId)) {
+            logger.warn('[CAMPAIGNS] Blocked unauthorized getCampaigns query', {
+                actor: user.uid,
+                actorRole: user.role,
+                actorOrgId: userOrgId,
+                requestedOrgId: orgId,
+            });
+            return [];
+        }
 
         let query: FirebaseFirestore.Query = firestore.collection('campaigns')
             .where('orgId', '==', orgId);
@@ -263,6 +330,17 @@ export async function getCampaignStats(orgIdParam?: string): Promise<CampaignSta
 export async function submitForComplianceReview(campaignId: string): Promise<boolean> {
     try {
         const { firestore } = await createServerClient();
+        const user = await requireUser(['dispensary', 'brand', 'super_user']);
+
+        const allowed = await userCanAccessCampaign(firestore, campaignId, user);
+        if (!allowed) {
+            logger.warn('[CAMPAIGNS] Blocked unauthorized compliance submit attempt', {
+                actor: user.uid,
+                actorRole: user.role,
+                campaignId,
+            });
+            return false;
+        }
 
         // Import compliance check dynamically to avoid circular deps
         const { runComplianceCheck } = await import('@/server/services/campaign-compliance');
@@ -301,6 +379,16 @@ export async function approveCampaign(
 ): Promise<boolean> {
     try {
         const { firestore } = await createServerClient();
+        const user = await requireUser(['dispensary', 'brand', 'super_user']);
+        const allowed = await userCanAccessCampaign(firestore, campaignId, user);
+        if (!allowed) {
+            logger.warn('[CAMPAIGNS] Blocked unauthorized approve attempt', {
+                actor: user.uid,
+                actorRole: user.role,
+                campaignId,
+            });
+            return false;
+        }
         const now = new Date();
 
         await firestore.collection('campaigns').doc(campaignId).update({
@@ -327,6 +415,16 @@ export async function scheduleCampaign(
 ): Promise<boolean> {
     try {
         const { firestore } = await createServerClient();
+        const user = await requireUser(['dispensary', 'brand', 'super_user']);
+        const allowed = await userCanAccessCampaign(firestore, campaignId, user);
+        if (!allowed) {
+            logger.warn('[CAMPAIGNS] Blocked unauthorized schedule attempt', {
+                actor: user.uid,
+                actorRole: user.role,
+                campaignId,
+            });
+            return false;
+        }
 
         await firestore.collection('campaigns').doc(campaignId).update({
             status: 'scheduled',
@@ -351,6 +449,16 @@ export async function scheduleCampaign(
 export async function cancelCampaign(campaignId: string): Promise<boolean> {
     try {
         const { firestore } = await createServerClient();
+        const user = await requireUser(['dispensary', 'brand', 'super_user']);
+        const allowed = await userCanAccessCampaign(firestore, campaignId, user);
+        if (!allowed) {
+            logger.warn('[CAMPAIGNS] Blocked unauthorized cancel attempt', {
+                actor: user.uid,
+                actorRole: user.role,
+                campaignId,
+            });
+            return false;
+        }
 
         await firestore.collection('campaigns').doc(campaignId).update({
             status: 'cancelled',
@@ -371,6 +479,16 @@ export async function cancelCampaign(campaignId: string): Promise<boolean> {
 export async function pauseCampaign(campaignId: string): Promise<boolean> {
     try {
         const { firestore } = await createServerClient();
+        const user = await requireUser(['dispensary', 'brand', 'super_user']);
+        const allowed = await userCanAccessCampaign(firestore, campaignId, user);
+        if (!allowed) {
+            logger.warn('[CAMPAIGNS] Blocked unauthorized pause attempt', {
+                actor: user.uid,
+                actorRole: user.role,
+                campaignId,
+            });
+            return false;
+        }
 
         await firestore.collection('campaigns').doc(campaignId).update({
             status: 'paused',

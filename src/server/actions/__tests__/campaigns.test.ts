@@ -17,6 +17,7 @@ import {
     cancelCampaign,
     pauseCampaign,
 } from '../campaigns';
+import { requireUser } from '@/server/auth/auth';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -76,7 +77,7 @@ describe('Campaign Server Actions', () => {
         ['collection', 'doc', 'where', 'orderBy', 'limit'].forEach(m => {
             mockFirestore[m]?.mockReturnValue(mockFirestore);
         });
-        mockFirestore.get.mockResolvedValue({ docs: [], exists: false });
+        mockFirestore.get.mockResolvedValue({ exists: true, data: () => ({ orgId: 'org-1' }), docs: [] });
         mockFirestore.add.mockResolvedValue({ id: 'new-campaign-id' });
         mockFirestore.update.mockResolvedValue(undefined);
     });
@@ -130,6 +131,42 @@ describe('Campaign Server Actions', () => {
 
             expect(result).toBeNull();
         });
+
+        it('blocks cross-org create for non-super users', async () => {
+            const result = await createCampaign({
+                orgId: 'org-2',
+                name: 'Cross Org Attempt',
+                goal: 'drive_sales',
+                channels: ['email'],
+            });
+
+            expect(result).toBeNull();
+            expect(mockFirestore.add).not.toHaveBeenCalled();
+        });
+
+        it('allows super_user to create for another org', async () => {
+            (requireUser as jest.Mock).mockResolvedValueOnce({
+                uid: 'super-1',
+                email: 'super@example.com',
+                role: 'super_user',
+                orgId: 'org-1',
+            });
+
+            const result = await createCampaign({
+                orgId: 'org-2',
+                name: 'Cross Org Allowed',
+                goal: 'drive_sales',
+                channels: ['email'],
+            });
+
+            expect(result).not.toBeNull();
+            expect(result!.orgId).toBe('org-2');
+            expect(mockFirestore.add).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    orgId: 'org-2',
+                })
+            );
+        });
     });
 
     // -----------------------------------------------------------------------
@@ -151,6 +188,20 @@ describe('Campaign Server Actions', () => {
                     status: 'approved',
                 })
             );
+        });
+
+        it('blocks update when campaign belongs to another org', async () => {
+            mockFirestore.get.mockResolvedValueOnce({
+                exists: true,
+                data: () => ({ orgId: 'org-2' }),
+            });
+
+            const result = await updateCampaign('camp-1', {
+                name: 'Should Not Update',
+            });
+
+            expect(result).toBe(false);
+            expect(mockFirestore.update).not.toHaveBeenCalled();
         });
     });
 
@@ -200,6 +251,27 @@ describe('Campaign Server Actions', () => {
             expect(result!.updatedAt).toEqual(fakeUpdated);
             expect(result!.scheduledAt).toEqual(fakeScheduled);
         });
+
+        it('returns null when campaign org is unauthorized', async () => {
+            mockFirestore.get.mockResolvedValueOnce({
+                exists: true,
+                id: 'camp-200',
+                data: () => ({
+                    orgId: 'org-2',
+                    name: 'Foreign Campaign',
+                    goal: 'drive_sales',
+                    status: 'draft',
+                    channels: ['email'],
+                    audience: { type: 'all', estimatedCount: 0 },
+                    content: {},
+                    createdAt: { toDate: () => new Date('2026-01-01T00:00:00Z') },
+                    updatedAt: { toDate: () => new Date('2026-01-01T00:00:00Z') },
+                }),
+            });
+
+            const result = await getCampaign('camp-200');
+            expect(result).toBeNull();
+        });
     });
 
     // -----------------------------------------------------------------------
@@ -233,6 +305,12 @@ describe('Campaign Server Actions', () => {
             expect(result).toHaveLength(1);
             expect(result[0].id).toBe('camp-a');
             expect(mockFirestore.where).toHaveBeenCalledWith('orgId', '==', 'org-1');
+        });
+
+        it('returns empty list for unauthorized org queries', async () => {
+            const result = await getCampaigns('org-2');
+            expect(result).toEqual([]);
+            expect(mockFirestore.where).not.toHaveBeenCalledWith('orgId', '==', 'org-2');
         });
     });
 
