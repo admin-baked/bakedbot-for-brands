@@ -69,6 +69,32 @@ describe('campaign-nlp action', () => {
     }
   });
 
+  it('normalizes mixed-case goal/channels/segments to prevent audience broadening', async () => {
+    (callClaude as jest.Mock).mockResolvedValue(
+      JSON.stringify({
+        name: 'Casing Test',
+        description: 'Normalize enums',
+        goal: 'WinBack',
+        channels: ['Email', 'TEXT', 'sms', 'push'],
+        targetSegments: ['VIP', 'At-Risk', 'High Value', 'unknown'],
+        audienceType: 'all',
+        emailSubject: 'Hello',
+        emailBody: 'Body',
+        smsBody: 'Short SMS',
+      }),
+    );
+
+    const result = await generateCampaignFromNL('Win back VIP customers');
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.goal).toBe('winback');
+      expect(result.data.channels).toEqual(['email', 'sms']);
+      expect(result.data.targetSegments).toEqual(['vip', 'at_risk', 'high_value']);
+      expect(result.data.audienceType).toBe('segment');
+    }
+  });
+
   it('rejects AI output when goal is invalid', async () => {
     (callClaude as jest.Mock).mockResolvedValue(
       JSON.stringify({
