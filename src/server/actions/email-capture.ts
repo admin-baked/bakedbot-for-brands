@@ -10,6 +10,7 @@
 
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
+import { requireUser } from '@/server/auth/auth';
 
 export interface CaptureEmailLeadRequest {
     email?: string;
@@ -45,6 +46,38 @@ export interface EmailLead {
     welcomeEmailSent?: boolean;
     welcomeSmsSent?: boolean;
     tags: string[];
+}
+
+function isSuperRole(role: unknown): boolean {
+    return role === 'super_user' || role === 'super_admin';
+}
+
+function getActorOrgId(user: unknown): string | null {
+    if (!user || typeof user !== 'object') return null;
+    const token = user as {
+        currentOrgId?: string;
+        orgId?: string;
+        brandId?: string;
+        dispensaryId?: string;
+        tenantId?: string;
+        organizationId?: string;
+    };
+    return (
+        token.currentOrgId ||
+        token.orgId ||
+        token.brandId ||
+        token.dispensaryId ||
+        token.tenantId ||
+        token.organizationId ||
+        null
+    );
+}
+
+function mapLeadDoc(doc: FirebaseFirestore.QueryDocumentSnapshot): EmailLead {
+    return {
+        id: doc.id,
+        ...doc.data(),
+    } as EmailLead;
 }
 
 /**
@@ -306,23 +339,63 @@ async function triggerWelcomeSms(
  */
 export async function getLeads(brandId?: string, dispensaryId?: string): Promise<EmailLead[]> {
     try {
+        const user = await requireUser();
+        const role = typeof user === 'object' && user ? (user as { role?: string }).role : null;
+        const isSuper = isSuperRole(role);
+        const actorOrgId = getActorOrgId(user);
+
+        // Non-super users can only query their own org scope.
+        if (!isSuper) {
+            if (!actorOrgId) {
+                return [];
+            }
+            if (brandId && brandId !== actorOrgId) {
+                return [];
+            }
+            if (dispensaryId && dispensaryId !== actorOrgId) {
+                return [];
+            }
+        }
+
         const db = getAdminFirestore();
-        let query = db.collection('email_leads').orderBy('capturedAt', 'desc');
+        const leadsById = new Map<string, EmailLead>();
+
+        const addQueryResults = async (field: 'brandId' | 'dispensaryId', value: string) => {
+            const snapshot = await db
+                .collection('email_leads')
+                .where(field, '==', value)
+                .orderBy('capturedAt', 'desc')
+                .limit(1000)
+                .get();
+            snapshot.docs.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
+                leadsById.set(doc.id, mapLeadDoc(doc));
+            });
+        };
+
+        if (isSuper && !brandId && !dispensaryId) {
+            const snapshot = await db
+                .collection('email_leads')
+                .orderBy('capturedAt', 'desc')
+                .limit(1000)
+                .get();
+            return snapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) => mapLeadDoc(doc));
+        }
 
         if (brandId) {
-            query = query.where('brandId', '==', brandId) as any;
+            await addQueryResults('brandId', brandId);
+        } else if (dispensaryId) {
+            await addQueryResults('dispensaryId', dispensaryId);
+        } else if (actorOrgId) {
+            // Default non-super scope: actor org only (for brand OR dispensary ownership).
+            await Promise.all([
+                addQueryResults('brandId', actorOrgId),
+                addQueryResults('dispensaryId', actorOrgId),
+            ]);
         }
 
-        if (dispensaryId) {
-            query = query.where('dispensaryId', '==', dispensaryId) as any;
-        }
-
-        const snapshot = await query.limit(1000).get();
-
-        return snapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) => ({
-            id: doc.id,
-            ...doc.data(),
-        } as EmailLead));
+        return Array.from(leadsById.values())
+            .sort((a, b) => b.capturedAt - a.capturedAt)
+            .slice(0, 1000);
     } catch (error: unknown) {
         const err = error as Error;
         logger.error('[EmailCapture] Failed to get leads', {
