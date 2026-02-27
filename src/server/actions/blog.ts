@@ -57,6 +57,99 @@ const updateBlogPostSchema = z.object({
     tags: z.array(z.string()).max(BLOG_DEFAULTS.MAX_TAGS).optional(),
 });
 
+type AuthenticatedUser = Awaited<ReturnType<typeof requireUser>>;
+
+function isSuperRole(role: unknown): boolean {
+    return role === 'super_user' || role === 'super_admin';
+}
+
+function getActorOrgId(user: AuthenticatedUser): string | null {
+    const claims = user as {
+        orgId?: string;
+        currentOrgId?: string;
+        brandId?: string;
+    };
+    return claims.orgId || claims.currentOrgId || claims.brandId || null;
+}
+
+function assertOrgAccess(user: AuthenticatedUser, orgId: string): void {
+    if (isSuperRole(user.role)) {
+        return;
+    }
+
+    const actorOrgId = getActorOrgId(user);
+    if (!actorOrgId || actorOrgId !== orgId) {
+        throw new Error('Unauthorized');
+    }
+}
+
+function isUnauthorizedError(error: unknown): boolean {
+    return error instanceof Error && error.message === 'Unauthorized';
+}
+
+async function getBlogPostDocById(firestore: any, postId: string) {
+    const postsQuery = await firestore
+        .collectionGroup('blog_posts')
+        .where('__name__', '==', postId)
+        .limit(1)
+        .get();
+
+    if (postsQuery.empty) {
+        throw new Error('Blog post not found');
+    }
+
+    return postsQuery.docs[0];
+}
+
+async function getBlogPostWithAccess(
+    firestore: any,
+    user: AuthenticatedUser,
+    postId: string
+): Promise<{ postDoc: any; post: BlogPost }> {
+    const postDoc = await getBlogPostDocById(firestore, postId);
+    const post = { id: postDoc.id, ...postDoc.data() } as BlogPost;
+    assertOrgAccess(user, post.orgId);
+    return { postDoc, post };
+}
+
+async function generateUniqueSlug(
+    title: string,
+    orgId: string,
+    firestore: any
+): Promise<string> {
+    // Create base slug
+    let slug = title
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s-]/g, '') // Remove special characters
+        .replace(/\s+/g, '-') // Replace spaces with hyphens
+        .replace(/-+/g, '-') // Remove duplicate hyphens
+        .substring(0, 60); // Limit length
+
+    // Check for uniqueness
+    let uniqueSlug = slug;
+    let counter = 1;
+
+    while (true) {
+        const existing = await firestore
+            .collection('tenants')
+            .doc(orgId)
+            .collection('blog_posts')
+            .where('slug', '==', uniqueSlug)
+            .limit(1)
+            .get();
+
+        if (existing.empty) {
+            break;
+        }
+
+        uniqueSlug = `${slug}-${counter}`;
+        counter++;
+    }
+
+    return uniqueSlug;
+}
+
 // ============================================================================
 // CRUD Operations
 // ============================================================================
@@ -70,11 +163,13 @@ export async function createBlogPost(input: CreateBlogPostInput): Promise<BlogPo
     try {
         // Validate input
         const validated = createBlogPostSchema.parse(input);
+        assertOrgAccess(user, validated.orgId);
 
         const { firestore } = await createServerClient();
 
         // Generate slug from title
-        const slug = await generateSlug(validated.title, validated.orgId);
+        const slug = await generateUniqueSlug(validated.title, validated.orgId, firestore)
+            .catch(() => `post-${Date.now()}`);
 
         // Create blog post document
         const now = Timestamp.now();
@@ -124,6 +219,9 @@ export async function createBlogPost(input: CreateBlogPostInput): Promise<BlogPo
 
         return { id: docRef.id, ...postData };
     } catch (error) {
+        if (isUnauthorizedError(error)) {
+            throw error;
+        }
         logger.error('[createBlogPost] Error creating blog post', { error, input });
         throw new Error('Failed to create blog post');
     }
@@ -143,20 +241,7 @@ export async function updateBlogPost(
         const validated = updateBlogPostSchema.parse(updates);
 
         const { firestore } = await createServerClient();
-
-        // Get existing post to determine collection path
-        const postsQuery = await firestore
-            .collectionGroup('blog_posts')
-            .where('__name__', '==', postId)
-            .limit(1)
-            .get();
-
-        if (postsQuery.empty) {
-            throw new Error('Blog post not found');
-        }
-
-        const postDoc = postsQuery.docs[0];
-        const existingPost = { id: postDoc.id, ...postDoc.data() } as BlogPost;
+        const { postDoc, post: existingPost } = await getBlogPostWithAccess(firestore, user, postId);
 
         // Create version snapshot
         const versionHistory = existingPost.versionHistory || [];
@@ -195,6 +280,9 @@ export async function updateBlogPost(
 
         return updatedPost as BlogPost;
     } catch (error) {
+        if (isUnauthorizedError(error)) {
+            throw error;
+        }
         logger.error('[updateBlogPost] Error updating blog post', { error, postId });
         throw new Error('Failed to update blog post');
     }
@@ -204,25 +292,18 @@ export async function updateBlogPost(
  * Delete a blog post
  */
 export async function deleteBlogPost(postId: string): Promise<void> {
-    await requireUser(['brand', 'dispensary', 'super_user']);
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
 
     try {
         const { firestore } = await createServerClient();
-
-        const postsQuery = await firestore
-            .collectionGroup('blog_posts')
-            .where('__name__', '==', postId)
-            .limit(1)
-            .get();
-
-        if (postsQuery.empty) {
-            throw new Error('Blog post not found');
-        }
-
-        await postsQuery.docs[0].ref.delete();
+        const { postDoc } = await getBlogPostWithAccess(firestore, user, postId);
+        await postDoc.ref.delete();
 
         logger.info('[deleteBlogPost] Deleted blog post', { postId });
     } catch (error) {
+        if (isUnauthorizedError(error)) {
+            throw error;
+        }
         logger.error('[deleteBlogPost] Error deleting blog post', { error, postId });
         throw new Error('Failed to delete blog post');
     }
@@ -261,6 +342,15 @@ export async function getBlogPosts(
     options: QueryOptions = {}
 ): Promise<BlogPost[]> {
     try {
+        const isPublishedOnlyFilter =
+            filters.status === 'published' ||
+            (Array.isArray(filters.status) && filters.status.every(status => status === 'published'));
+
+        if (!isPublishedOnlyFilter) {
+            const user = await requireUser(['brand', 'dispensary', 'super_user']);
+            assertOrgAccess(user, filters.orgId);
+        }
+
         const { firestore } = await createServerClient();
 
         let query = firestore
@@ -307,6 +397,9 @@ export async function getBlogPosts(
             ...doc.data()
         })) as BlogPost[];
     } catch (error) {
+        if (isUnauthorizedError(error)) {
+            throw error;
+        }
         logger.error('[getBlogPosts] Error fetching blog posts', { error, filters });
         return [];
     }
@@ -320,23 +413,11 @@ export async function getBlogPosts(
  * Publish a blog post immediately
  */
 export async function publishBlogPost(postId: string): Promise<BlogPost> {
-    await requireUser(['brand', 'dispensary', 'super_user']);
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
 
     try {
         const { firestore } = await createServerClient();
-
-        const postsQuery = await firestore
-            .collectionGroup('blog_posts')
-            .where('__name__', '==', postId)
-            .limit(1)
-            .get();
-
-        if (postsQuery.empty) {
-            throw new Error('Blog post not found');
-        }
-
-        const postDoc = postsQuery.docs[0];
-        const post = { id: postDoc.id, ...postDoc.data() } as BlogPost;
+        const { postDoc, post } = await getBlogPostWithAccess(firestore, user, postId);
 
         // Check if approved
         if (post.status !== 'approved' && post.status !== 'scheduled') {
@@ -353,6 +434,9 @@ export async function publishBlogPost(postId: string): Promise<BlogPost> {
 
         return { ...post, status: 'published', publishedAt: Timestamp.now() };
     } catch (error) {
+        if (isUnauthorizedError(error)) {
+            throw error;
+        }
         logger.error('[publishBlogPost] Error publishing blog post', { error, postId });
         throw new Error('Failed to publish blog post');
     }
@@ -362,23 +446,11 @@ export async function publishBlogPost(postId: string): Promise<BlogPost> {
  * Schedule a blog post for future publication
  */
 export async function scheduleBlogPost(postId: string, publishAt: Date): Promise<BlogPost> {
-    await requireUser(['brand', 'dispensary', 'super_user']);
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
 
     try {
         const { firestore } = await createServerClient();
-
-        const postsQuery = await firestore
-            .collectionGroup('blog_posts')
-            .where('__name__', '==', postId)
-            .limit(1)
-            .get();
-
-        if (postsQuery.empty) {
-            throw new Error('Blog post not found');
-        }
-
-        const postDoc = postsQuery.docs[0];
-        const post = { id: postDoc.id, ...postDoc.data() } as BlogPost;
+        const { postDoc, post } = await getBlogPostWithAccess(firestore, user, postId);
 
         await postDoc.ref.update({
             status: 'scheduled',
@@ -392,6 +464,9 @@ export async function scheduleBlogPost(postId: string, publishAt: Date): Promise
 
         return { ...post, status: 'scheduled', scheduledAt: Timestamp.fromDate(publishAt) };
     } catch (error) {
+        if (isUnauthorizedError(error)) {
+            throw error;
+        }
         logger.error('[scheduleBlogPost] Error scheduling blog post', { error, postId });
         throw new Error('Failed to schedule blog post');
     }
@@ -401,23 +476,11 @@ export async function scheduleBlogPost(postId: string, publishAt: Date): Promise
  * Unpublish a blog post (move to draft)
  */
 export async function unpublishBlogPost(postId: string): Promise<BlogPost> {
-    await requireUser(['brand', 'dispensary', 'super_user']);
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
 
     try {
         const { firestore } = await createServerClient();
-
-        const postsQuery = await firestore
-            .collectionGroup('blog_posts')
-            .where('__name__', '==', postId)
-            .limit(1)
-            .get();
-
-        if (postsQuery.empty) {
-            throw new Error('Blog post not found');
-        }
-
-        const postDoc = postsQuery.docs[0];
-        const post = { id: postDoc.id, ...postDoc.data() } as BlogPost;
+        const { postDoc, post } = await getBlogPostWithAccess(firestore, user, postId);
 
         await postDoc.ref.update({
             status: 'draft',
@@ -428,6 +491,9 @@ export async function unpublishBlogPost(postId: string): Promise<BlogPost> {
 
         return { ...post, status: 'draft', publishedAt: null };
     } catch (error) {
+        if (isUnauthorizedError(error)) {
+            throw error;
+        }
         logger.error('[unpublishBlogPost] Error unpublishing blog post', { error, postId });
         throw new Error('Failed to unpublish blog post');
     }
@@ -441,40 +507,16 @@ export async function unpublishBlogPost(postId: string): Promise<BlogPost> {
  * Generate a unique URL slug from title
  */
 export async function generateSlug(title: string, orgId: string): Promise<string> {
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
+
     try {
-        // Create base slug
-        let slug = title
-            .toLowerCase()
-            .trim()
-            .replace(/[^\w\s-]/g, '') // Remove special characters
-            .replace(/\s+/g, '-') // Replace spaces with hyphens
-            .replace(/-+/g, '-') // Remove duplicate hyphens
-            .substring(0, 60); // Limit length
-
-        // Check for uniqueness
         const { firestore } = await createServerClient();
-        let uniqueSlug = slug;
-        let counter = 1;
-
-        while (true) {
-            const existing = await firestore
-                .collection('tenants')
-                .doc(orgId)
-                .collection('blog_posts')
-                .where('slug', '==', uniqueSlug)
-                .limit(1)
-                .get();
-
-            if (existing.empty) {
-                break;
-            }
-
-            uniqueSlug = `${slug}-${counter}`;
-            counter++;
-        }
-
-        return uniqueSlug;
+        assertOrgAccess(user, orgId);
+        return generateUniqueSlug(title, orgId, firestore);
     } catch (error) {
+        if (isUnauthorizedError(error)) {
+            throw error;
+        }
         logger.error('[generateSlug] Error generating slug', { error, title });
         // Fallback to timestamp-based slug
         return `post-${Date.now()}`;
@@ -636,7 +678,10 @@ export async function incrementViewCount(postId: string): Promise<void> {
  * Get blog analytics for dashboard
  */
 export async function getBlogAnalytics(orgId: string): Promise<BlogAnalytics> {
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
+
     try {
+        assertOrgAccess(user, orgId);
         const { firestore } = await createServerClient();
 
         const allPosts = await firestore
@@ -687,6 +732,9 @@ export async function getBlogAnalytics(orgId: string): Promise<BlogAnalytics> {
             },
         };
     } catch (error) {
+        if (isUnauthorizedError(error)) {
+            throw error;
+        }
         logger.error('[getBlogAnalytics] Error fetching analytics', { error, orgId });
         throw new Error('Failed to fetch blog analytics');
     }
@@ -700,7 +748,10 @@ export async function getBlogAnalytics(orgId: string): Promise<BlogAnalytics> {
  * Get blog settings for an organization
  */
 export async function getBlogSettings(orgId: string): Promise<BlogSettings | null> {
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
+
     try {
+        assertOrgAccess(user, orgId);
         const { firestore } = await createServerClient();
 
         const doc = await firestore
@@ -716,6 +767,9 @@ export async function getBlogSettings(orgId: string): Promise<BlogSettings | nul
 
         return { orgId, ...doc.data() } as BlogSettings;
     } catch (error) {
+        if (isUnauthorizedError(error)) {
+            throw error;
+        }
         logger.error('[getBlogSettings] Error fetching blog settings', { error, orgId });
         return null;
     }
@@ -728,9 +782,10 @@ export async function updateBlogSettings(
     orgId: string,
     settings: Partial<BlogSettings>
 ): Promise<BlogSettings> {
-    await requireUser(['brand', 'dispensary', 'super_user']);
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
 
     try {
+        assertOrgAccess(user, orgId);
         const { firestore } = await createServerClient();
 
         await firestore
@@ -744,6 +799,9 @@ export async function updateBlogSettings(
 
         return { orgId, ...settings } as BlogSettings;
     } catch (error) {
+        if (isUnauthorizedError(error)) {
+            throw error;
+        }
         logger.error('[updateBlogSettings] Error updating blog settings', { error, orgId });
         throw new Error('Failed to update blog settings');
     }
@@ -760,6 +818,7 @@ export async function generateBlogDraft(input: BlogGeneratorInput): Promise<Blog
     const user = await requireUser(['brand', 'dispensary', 'super_user']);
 
     try {
+        assertOrgAccess(user, input.orgId);
         logger.info('[generateBlogDraft] Generating blog draft with AI', {
             orgId: input.orgId,
             category: input.category,
@@ -789,6 +848,9 @@ export async function generateBlogDraft(input: BlogGeneratorInput): Promise<Blog
 
         return blogPost;
     } catch (error) {
+        if (isUnauthorizedError(error)) {
+            throw error;
+        }
         logger.error('[generateBlogDraft] Error generating blog draft', { error, input });
         throw new Error('Failed to generate blog post. Please try again.');
     }
@@ -802,16 +864,12 @@ export async function generateBlogDraft(input: BlogGeneratorInput): Promise<Blog
  * Run compliance check on a blog post and update its compliance field
  */
 export async function runComplianceCheck(postId: string): Promise<BlogPost> {
-    await requireUser(['brand', 'dispensary', 'super_user']);
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
 
     try {
         const { firestore } = await createServerClient();
 
-        // Get the post
-        const post = await getBlogPost(postId);
-        if (!post) {
-            throw new Error('Blog post not found');
-        }
+        const { postDoc, post } = await getBlogPostWithAccess(firestore, user, postId);
 
         logger.info('[runComplianceCheck] Running compliance check', { postId, orgId: post.orgId });
 
@@ -843,9 +901,16 @@ export async function runComplianceCheck(postId: string): Promise<BlogPost> {
         });
 
         // Return updated post
-        const updatedPost = await getBlogPost(postId);
-        return updatedPost!;
+        const updatedDoc = await postDoc.ref.get();
+        if (!updatedDoc.exists) {
+            throw new Error('Blog post not found');
+        }
+
+        return { id: updatedDoc.id, ...updatedDoc.data() } as BlogPost;
     } catch (error) {
+        if (isUnauthorizedError(error)) {
+            throw error;
+        }
         logger.error('[runComplianceCheck] Error during compliance check', { error, postId });
         throw new Error('Failed to run compliance check');
     }
