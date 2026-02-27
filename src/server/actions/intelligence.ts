@@ -31,6 +31,30 @@ import { getAdminFirestore } from '@/firebase/admin';
 
 const getFirestore = getAdminFirestore;
 
+type IntelligenceActor = {
+    uid: string;
+    role?: string;
+    orgId?: string;
+    brandId?: string;
+    currentOrgId?: string;
+};
+
+function getActorOrgId(user: IntelligenceActor): string | null {
+    return user.currentOrgId || user.orgId || user.brandId || null;
+}
+
+function isValidOrgId(orgId: string): boolean {
+    return !!orgId && !orgId.includes('/');
+}
+
+function requireActorOrgId(user: IntelligenceActor, action: string): string {
+    const orgId = getActorOrgId(user);
+    if (!orgId || !isValidOrgId(orgId)) {
+        throw new Error(`Missing organization context for ${action}`);
+    }
+    return orgId;
+}
+
 // =============================================================================
 // COGNITIVE STATE ACTIONS (LiveHud Dashboard)
 // =============================================================================
@@ -42,7 +66,7 @@ export async function getAgentCognitiveState(
     agentId: string
 ): Promise<AgentCognitiveState | null> {
     const user = await requireUser(['super_user', 'brand', 'dispensary']);
-    const orgId = user.orgId || user.brandId || user.uid;
+    const orgId = requireActorOrgId(user as IntelligenceActor, 'getAgentCognitiveState');
 
     return cognitiveStateManager.getState(agentId, orgId);
 }
@@ -52,7 +76,7 @@ export async function getAgentCognitiveState(
  */
 export async function getAllAgentCognitiveStates(): Promise<AgentCognitiveState[]> {
     const user = await requireUser(['super_user']);
-    const orgId = user.orgId || user.brandId || user.uid;
+    const orgId = requireActorOrgId(user as IntelligenceActor, 'getAllAgentCognitiveStates');
 
     return cognitiveStateManager.getAllAgentStates(orgId);
 }
@@ -65,7 +89,7 @@ export async function setAgentPersonalityMode(
     mode: AgentPersonalityMode
 ): Promise<AgentCognitiveState> {
     const user = await requireUser(['super_user', 'brand', 'dispensary']);
-    const orgId = user.orgId || user.brandId || user.uid;
+    const orgId = requireActorOrgId(user as IntelligenceActor, 'setAgentPersonalityMode');
 
     return cognitiveStateManager.setPersonalityMode(agentId, orgId, mode);
 }
@@ -78,7 +102,7 @@ export async function updateAgentSliders(
     sliders: Partial<AgentBehaviorSliders>
 ): Promise<AgentCognitiveState> {
     const user = await requireUser(['super_user', 'brand', 'dispensary']);
-    const orgId = user.orgId || user.brandId || user.uid;
+    const orgId = requireActorOrgId(user as IntelligenceActor, 'updateAgentSliders');
 
     return cognitiveStateManager.updateSliders(agentId, orgId, sliders);
 }
@@ -91,7 +115,7 @@ export async function applySliderPreset(
     presetName: keyof typeof SLIDER_PRESETS
 ): Promise<AgentCognitiveState> {
     const user = await requireUser(['super_user', 'brand', 'dispensary']);
-    const orgId = user.orgId || user.brandId || user.uid;
+    const orgId = requireActorOrgId(user as IntelligenceActor, 'applySliderPreset');
 
     return cognitiveStateManager.applyPreset(agentId, orgId, presetName);
 }
@@ -113,7 +137,7 @@ export async function getSliderPresets(): Promise<typeof SLIDER_PRESETS> {
  */
 export async function getMemoryHealthMetrics(agentId: string): Promise<MemoryHealthMetrics> {
     const user = await requireUser(['super_user']);
-    const orgId = user.orgId || user.brandId || user.uid;
+    const orgId = requireActorOrgId(user as IntelligenceActor, 'getMemoryHealthMetrics');
 
     return memoryGardeningService.getHealthMetrics(agentId, orgId);
 }
@@ -123,7 +147,7 @@ export async function getMemoryHealthMetrics(agentId: string): Promise<MemoryHea
  */
 export async function runMemoryGardening(agentId: string): Promise<MemoryGardeningReport> {
     const user = await requireUser(['super_user']);
-    const orgId = user.orgId || user.brandId || user.uid;
+    const orgId = requireActorOrgId(user as IntelligenceActor, 'runMemoryGardening');
 
     return memoryGardeningService.gardenAgentMemory(agentId, orgId);
 }
@@ -135,7 +159,7 @@ export async function getMemoryGardeningReports(
     limit: number = 10
 ): Promise<MemoryGardeningReport[]> {
     const user = await requireUser(['super_user']);
-    const orgId = user.orgId || user.brandId || user.uid;
+    const orgId = requireActorOrgId(user as IntelligenceActor, 'getMemoryGardeningReports');
 
     const db = getFirestore();
     const snapshot = await db
@@ -165,7 +189,7 @@ export async function getMemoryGardeningReports(
  */
 export async function getUnresolvedConflicts(): Promise<MemoryConflict[]> {
     const user = await requireUser(['super_user']);
-    const orgId = user.orgId || user.brandId || user.uid;
+    const orgId = requireActorOrgId(user as IntelligenceActor, 'getUnresolvedConflicts');
 
     const db = getFirestore();
     const snapshot = await db
@@ -214,7 +238,7 @@ export async function resolveMemoryConflict(
  */
 export async function getCompletenessMetrics(agentId: string, days: number = 7) {
     const user = await requireUser(['super_user']);
-    const orgId = user.orgId || user.brandId || user.uid;
+    const orgId = requireActorOrgId(user as IntelligenceActor, 'getCompletenessMetrics');
 
     return completenessDoctrineService.getCompletenessMetrics(orgId, agentId, days);
 }
@@ -224,7 +248,7 @@ export async function getCompletenessMetrics(agentId: string, days: number = 7) 
  */
 export async function getCompletenessLogs(limit: number = 50) {
     const user = await requireUser(['super_user']);
-    const orgId = user.orgId || user.brandId || user.uid;
+    const orgId = requireActorOrgId(user as IntelligenceActor, 'getCompletenessLogs');
 
     const db = getFirestore();
     const snapshot = await db
@@ -249,7 +273,7 @@ export async function getCompletenessLogs(limit: number = 50) {
  */
 export async function getCursedInputIncidents(limit: number = 50) {
     const user = await requireUser(['super_user']);
-    const orgId = user.orgId || user.brandId || user.uid;
+    const orgId = requireActorOrgId(user as IntelligenceActor, 'getCursedInputIncidents');
 
     const db = getFirestore();
     const snapshot = await db
@@ -270,7 +294,7 @@ export async function getCursedInputIncidents(limit: number = 50) {
  */
 export async function getCursedInputStats(days: number = 30) {
     const user = await requireUser(['super_user']);
-    const orgId = user.orgId || user.brandId || user.uid;
+    const orgId = requireActorOrgId(user as IntelligenceActor, 'getCursedInputStats');
 
     const db = getFirestore();
     const cutoff = new Date();
@@ -312,7 +336,7 @@ export async function getCursedInputStats(days: number = 30) {
  */
 export async function getIntelligenceSystemMetrics() {
     const user = await requireUser(['super_user']);
-    const orgId = user.orgId || user.brandId || user.uid;
+    const orgId = requireActorOrgId(user as IntelligenceActor, 'getIntelligenceSystemMetrics');
 
     const db = getFirestore();
 
