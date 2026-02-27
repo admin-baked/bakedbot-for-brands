@@ -1,0 +1,117 @@
+import { getLeads } from '../email-capture';
+import { requireUser } from '@/server/auth/auth';
+import { getAdminFirestore } from '@/firebase/admin';
+
+jest.mock('@/server/auth/auth', () => ({
+  requireUser: jest.fn(),
+}));
+
+jest.mock('@/firebase/admin', () => ({
+  getAdminFirestore: jest.fn(),
+}));
+
+jest.mock('@/lib/logger', () => ({
+  logger: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
+
+describe('email-capture security', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('blocks non-super users from querying another orgs leads', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'user-1',
+      role: 'dispensary_admin',
+      currentOrgId: 'org-a',
+    });
+
+    const result = await getLeads('org-b');
+
+    expect(result).toEqual([]);
+    expect(getAdminFirestore).not.toHaveBeenCalled();
+  });
+
+  it('scopes default non-super lead query to actor org only', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'user-1',
+      role: 'dispensary_admin',
+      currentOrgId: 'org-a',
+    });
+
+    const queryForBrand = {
+      orderBy: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockReturnThis(),
+      get: jest.fn().mockResolvedValue({ docs: [] }),
+    };
+    const queryForDispensary = {
+      orderBy: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockReturnThis(),
+      get: jest.fn().mockResolvedValue({ docs: [] }),
+    };
+
+    const where = jest.fn()
+      .mockImplementationOnce((field: string, _op: string, value: string) => {
+        expect(field).toBe('brandId');
+        expect(value).toBe('org-a');
+        return queryForBrand;
+      })
+      .mockImplementationOnce((field: string, _op: string, value: string) => {
+        expect(field).toBe('dispensaryId');
+        expect(value).toBe('org-a');
+        return queryForDispensary;
+      });
+
+    (getAdminFirestore as jest.Mock).mockReturnValue({
+      collection: jest.fn().mockReturnValue({ where }),
+    });
+
+    const result = await getLeads();
+
+    expect(Array.isArray(result)).toBe(true);
+    expect(where).toHaveBeenCalledTimes(2);
+  });
+
+  it('allows super users to query all leads without filters', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'super-1',
+      role: 'super_user',
+      currentOrgId: 'org-a',
+    });
+
+    const get = jest.fn().mockResolvedValue({
+      docs: [
+        {
+          id: 'lead-1',
+          data: () => ({
+            email: 'a@example.com',
+            capturedAt: 100,
+            emailConsent: true,
+            smsConsent: false,
+            ageVerified: true,
+            source: 'menu',
+            tags: [],
+          }),
+        },
+      ],
+    });
+
+    const orderBy = jest.fn().mockReturnValue({
+      limit: jest.fn().mockReturnValue({ get }),
+    });
+
+    const collection = jest.fn().mockReturnValue({ orderBy });
+    (getAdminFirestore as jest.Mock).mockReturnValue({ collection });
+
+    const result = await getLeads();
+
+    expect(collection).toHaveBeenCalledWith('email_leads');
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('lead-1');
+  });
+});
