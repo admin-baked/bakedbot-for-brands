@@ -482,7 +482,16 @@ export async function generateTestCasesFromSpec(input: {
         const user = await requireUser(['super_user']);
         const db = getAdminFirestore();
 
-        const count = input.count ?? 10;
+        const featureName = input.featureName.trim();
+        const specContent = input.specContent.trim();
+        if (!featureName || !specContent) {
+            return { success: false, error: 'featureName and specContent are required' };
+        }
+
+        const requestedCount = Number.isFinite(input.count)
+            ? Math.floor(input.count as number)
+            : 10;
+        const count = Math.min(20, Math.max(1, requestedCount));
 
         const rawJson = await callClaude({
             systemPrompt: `You are a QA engineer generating structured test cases from a feature spec.
@@ -492,38 +501,65 @@ Each object must have these fields:
 - steps: string (numbered steps, e.g. "1. Do X\\n2. Do Y\\n3. Check Z")
 - expected: string (what should happen)
 - priority: "critical" | "medium" | "low"`,
-            userMessage: `Feature: ${input.featureName}\nArea: ${input.area}\n\nSpec:\n${input.specContent}\n\nGenerate ${count} test cases covering happy paths, edge cases, and failure scenarios.`,
+            userMessage: `Feature: ${featureName}\nArea: ${input.area}\n\nSpec:\n${specContent}\n\nGenerate ${count} test cases covering happy paths, edge cases, and failure scenarios.`,
             maxTokens: 4096,
         });
 
-        let parsed: Array<{ title: string; steps: string; expected: string; priority: 'critical' | 'medium' | 'low' }>;
+        let parsed: unknown;
         try {
             // Strip any accidental markdown fences
             const cleaned = rawJson.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
             parsed = JSON.parse(cleaned);
         } catch {
-            return { success: false, error: 'Claude returned invalid JSON — try again with a shorter spec' };
+            return { success: false, error: 'Claude returned invalid JSON - try again with a shorter spec' };
+        }
+
+        if (!Array.isArray(parsed)) {
+            return { success: false, error: 'Claude returned invalid payload - expected a JSON array' };
         }
 
         const batch = db.batch();
         const testCases: QATestCase[] = [];
+        const validPriorities = new Set<QATestCase['priority']>(['critical', 'medium', 'low']);
 
-        parsed.forEach((tc, i) => {
+        parsed.slice(0, count).forEach((candidate, i) => {
+            const tc = candidate as {
+                title?: unknown;
+                steps?: unknown;
+                expected?: unknown;
+                priority?: unknown;
+            };
+            const title = typeof tc.title === 'string' ? tc.title.trim() : '';
+            const steps = typeof tc.steps === 'string' ? tc.steps.trim() : '';
+            const expected = typeof tc.expected === 'string' ? tc.expected.trim() : '';
+            const priority =
+                typeof tc.priority === 'string' && validPriorities.has(tc.priority as QATestCase['priority'])
+                    ? (tc.priority as QATestCase['priority'])
+                    : null;
+
+            if (!title || !steps || !expected || !priority) {
+                return;
+            }
+
             const id = `${input.area}_${Date.now()}_${i}`;
             const docRef = db.collection('qa_test_cases').doc(id);
             const testCase: QATestCase = {
                 id,
-                area: input.featureName,
-                title: tc.title,
-                steps: tc.steps,
-                expected: tc.expected,
-                priority: tc.priority,
+                area: input.area,
+                title,
+                steps,
+                expected,
+                priority,
                 status: 'untested',
                 lastTestedBy: user.uid,
             };
             batch.set(docRef, testCase);
             testCases.push(testCase);
         });
+
+        if (testCases.length === 0) {
+            return { success: false, error: 'Claude returned no valid test cases' };
+        }
 
         await batch.commit();
         logger.info('[QA] Test cases generated', { area: input.area, count: testCases.length });
@@ -576,3 +612,4 @@ export async function getInboxThreadContent(threadId: string): Promise<{
         return { success: false, error: (error as Error).message };
     }
 }
+
