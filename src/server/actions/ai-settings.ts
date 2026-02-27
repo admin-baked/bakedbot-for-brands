@@ -19,6 +19,21 @@ import {
     DEFAULT_USER_AI_SETTINGS,
 } from '@/types/ai-settings';
 
+function isSuperRole(role: unknown): boolean {
+    return role === 'super_user' || role === 'super_admin';
+}
+
+function getActorOrgId(session: unknown): string | null {
+    if (!session || typeof session !== 'object') return null;
+    const token = session as {
+        uid?: string;
+        currentOrgId?: string;
+        orgId?: string;
+        brandId?: string;
+    };
+    return token.currentOrgId || token.orgId || token.brandId || token.uid || null;
+}
+
 // ============================================================================
 // TENANT AI SETTINGS
 // ============================================================================
@@ -28,6 +43,14 @@ import {
  */
 export async function getTenantAISettings(tenantId: string): Promise<TenantAISettings> {
     try {
+        const session = await requireUser();
+        const role = typeof session === 'object' && session ? (session as { role?: string }).role : null;
+        const isSuperUser = isSuperRole(role);
+        const actorOrgId = getActorOrgId(session);
+        if (!isSuperUser && actorOrgId && tenantId !== actorOrgId) {
+            throw new Error('Unauthorized');
+        }
+
         const db = getAdminFirestore();
         const doc = await db
             .collection('tenants')
@@ -70,6 +93,12 @@ export async function saveTenantAISettings(
 ): Promise<{ success: boolean; error?: string }> {
     try {
         const session = await requireUser();
+        const role = typeof session === 'object' && session ? (session as { role?: string }).role : null;
+        const isSuperUser = isSuperRole(role);
+        const actorOrgId = getActorOrgId(session);
+        if (!isSuperUser && actorOrgId && tenantId !== actorOrgId) {
+            return { success: false, error: 'Unauthorized' };
+        }
 
         // Validate settings
         const currentSettings = await getTenantAISettings(tenantId);
@@ -122,6 +151,13 @@ export async function saveTenantAISettings(
  */
 export async function getUserAISettings(userId: string): Promise<UserAISettings> {
     try {
+        const session = await requireUser();
+        const role = typeof session === 'object' && session ? (session as { role?: string }).role : null;
+        const isSuperUser = isSuperRole(role);
+        if (!isSuperUser && session.uid !== userId) {
+            throw new Error('Unauthorized');
+        }
+
         const db = getAdminFirestore();
         const doc = await db
             .collection('users')
@@ -219,9 +255,21 @@ export async function loadAISettingsForAgent(
     user: UserAISettings | null;
 }> {
     try {
+        const session = await requireUser();
+        const role = typeof session === 'object' && session ? (session as { role?: string }).role : null;
+        const isSuperUser = isSuperRole(role);
+        const actorOrgId = getActorOrgId(session);
+
+        const scopedTenantId = tenantId && (isSuperUser || !actorOrgId || tenantId === actorOrgId)
+            ? tenantId
+            : undefined;
+        const scopedUserId = userId && (isSuperUser || userId === session.uid)
+            ? userId
+            : undefined;
+
         const [tenant, user] = await Promise.all([
-            tenantId ? getTenantAISettings(tenantId) : Promise.resolve(null),
-            userId ? getUserAISettings(userId) : Promise.resolve(null),
+            scopedTenantId ? getTenantAISettings(scopedTenantId) : Promise.resolve(null),
+            scopedUserId ? getUserAISettings(scopedUserId) : Promise.resolve(null),
         ]);
 
         return { tenant, user };

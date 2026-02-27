@@ -46,6 +46,12 @@ jest.mock('@/lib/logger', () => ({
 describe('AI Settings Server Actions', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        mockRequireUser.mockResolvedValue({
+            uid: 'user-123',
+            role: 'super_user',
+            currentOrgId: 'tenant-123',
+            orgId: 'tenant-123',
+        });
 
         // Setup default mock chain
         mockDoc.mockReturnValue({
@@ -123,7 +129,12 @@ describe('AI Settings Server Actions', () => {
 
     describe('saveTenantAISettings', () => {
         beforeEach(() => {
-            mockRequireUser.mockResolvedValue({ uid: 'user-123' });
+            mockRequireUser.mockResolvedValue({
+                uid: 'user-123',
+                role: 'dispensary_admin',
+                currentOrgId: 'tenant-123',
+                orgId: 'tenant-123',
+            });
             mockGet.mockResolvedValue({ exists: false }); // No existing settings
         });
 
@@ -197,6 +208,16 @@ describe('AI Settings Server Actions', () => {
                 { merge: true }
             );
         });
+
+        it('rejects cross-tenant writes for non-super users', async () => {
+            const result = await saveTenantAISettings('tenant-other', {
+                customInstructions: 'Nope',
+            });
+
+            expect(result.success).toBe(false);
+            expect(result.error).toBe('Unauthorized');
+            expect(mockSet).not.toHaveBeenCalled();
+        });
     });
 
     describe('getUserAISettings', () => {
@@ -247,11 +268,30 @@ describe('AI Settings Server Actions', () => {
 
             expect(result).toEqual(DEFAULT_USER_AI_SETTINGS);
         });
+
+        it('returns defaults for unauthorized cross-user reads', async () => {
+            mockRequireUser.mockResolvedValue({
+                uid: 'user-123',
+                role: 'dispensary_admin',
+                currentOrgId: 'tenant-123',
+                orgId: 'tenant-123',
+            });
+
+            const result = await getUserAISettings('user-999');
+
+            expect(result).toEqual(DEFAULT_USER_AI_SETTINGS);
+            expect(mockCollection).not.toHaveBeenCalledWith('users');
+        });
     });
 
     describe('saveUserAISettings', () => {
         beforeEach(() => {
-            mockRequireUser.mockResolvedValue({ uid: 'user-123' });
+            mockRequireUser.mockResolvedValue({
+                uid: 'user-123',
+                role: 'dispensary_admin',
+                currentOrgId: 'tenant-123',
+                orgId: 'tenant-123',
+            });
             mockGet.mockResolvedValue({ exists: false });
         });
 
@@ -369,6 +409,20 @@ describe('AI Settings Server Actions', () => {
             expect(result.tenant).toEqual(DEFAULT_TENANT_AI_SETTINGS);
             expect(result.user).toEqual(DEFAULT_USER_AI_SETTINGS);
         });
+
+        it('returns null for unauthorized tenant/user targets for non-super users', async () => {
+            mockRequireUser.mockResolvedValue({
+                uid: 'user-123',
+                role: 'dispensary_admin',
+                currentOrgId: 'tenant-123',
+                orgId: 'tenant-123',
+            });
+
+            const result = await loadAISettingsForAgent('tenant-other', 'user-999');
+
+            expect(result.tenant).toBeNull();
+            expect(result.user).toBeNull();
+        });
     });
 
     describe('getMyAISettings', () => {
@@ -391,7 +445,12 @@ describe('AI Settings Server Actions', () => {
 
     describe('getMyTenantAISettings', () => {
         it('returns tenant settings for user with brandId', async () => {
-            mockRequireUser.mockResolvedValue({ uid: 'user-123' });
+            mockRequireUser.mockResolvedValue({
+                uid: 'user-123',
+                role: 'dispensary_admin',
+                currentOrgId: 'brand-456',
+                orgId: 'brand-456',
+            });
 
             // First call: get user document
             mockGet.mockResolvedValueOnce({
@@ -428,7 +487,12 @@ describe('AI Settings Server Actions', () => {
         });
 
         it('uses currentOrgId as fallback', async () => {
-            mockRequireUser.mockResolvedValue({ uid: 'user-123' });
+            mockRequireUser.mockResolvedValue({
+                uid: 'user-123',
+                role: 'dispensary_admin',
+                currentOrgId: 'org-789',
+                orgId: 'org-789',
+            });
 
             mockGet
                 .mockResolvedValueOnce({
