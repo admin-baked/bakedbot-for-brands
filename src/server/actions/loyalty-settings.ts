@@ -13,6 +13,40 @@ import { DEFAULT_LOYALTY_SETTINGS } from '@/types/customers';
 import type { LoyaltySettings, LoyaltyTier, RedemptionTier, SegmentThresholds, LoyaltyMenuDisplay, DiscountProgram } from '@/types/customers';
 import { requireUser } from '@/server/auth/auth';
 
+function isSuperRole(role: unknown): boolean {
+    return role === 'super_user' || role === 'super_admin';
+}
+
+function getActorOrgId(user: unknown): string | null {
+    if (!user || typeof user !== 'object') return null;
+    const token = user as {
+        currentOrgId?: string;
+        orgId?: string;
+        brandId?: string;
+        tenantId?: string;
+        organizationId?: string;
+    };
+    return (
+        token.currentOrgId ||
+        token.orgId ||
+        token.brandId ||
+        token.tenantId ||
+        token.organizationId ||
+        null
+    );
+}
+
+function assertOrgAccess(user: unknown, orgId: string): void {
+    const role = typeof user === 'object' && user ? (user as { role?: string }).role : null;
+    if (isSuperRole(role)) {
+        return;
+    }
+    const actorOrgId = getActorOrgId(user);
+    if (!actorOrgId || actorOrgId !== orgId) {
+        throw new Error('Unauthorized');
+    }
+}
+
 /**
  * Public (no auth) — fetch only the menu-display-relevant fields for a given orgId.
  * Called from public menu pages to render the loyalty/discount bar.
@@ -55,7 +89,9 @@ export async function getLoyaltySettings(orgId: string): Promise<{
     error?: string;
 }> {
     try {
+        const user = await requireUser();
         if (!orgId) throw new Error('orgId is required');
+        assertOrgAccess(user, orgId);
 
         const db = getAdminFirestore();
         const doc = await db
@@ -96,9 +132,10 @@ export async function updateLoyaltySettings(
     settings: Partial<LoyaltySettings>
 ): Promise<{ success: boolean; error?: string }> {
     try {
-        await requireUser(['dispensary', 'super_user']);
+        const user = await requireUser(['dispensary', 'super_user']);
 
         if (!orgId) throw new Error('orgId is required');
+        assertOrgAccess(user, orgId);
 
         const db = getAdminFirestore();
         await db
@@ -126,9 +163,10 @@ export async function updateSegmentThresholds(
     thresholds: Partial<SegmentThresholds>
 ): Promise<{ success: boolean; error?: string }> {
     try {
-        await requireUser(['dispensary', 'super_user']);
+        const user = await requireUser(['dispensary', 'super_user']);
 
         if (!orgId) throw new Error('orgId is required');
+        assertOrgAccess(user, orgId);
 
         const db = getAdminFirestore();
         const updateData: Record<string, unknown> = { updatedAt: new Date() };
@@ -158,7 +196,8 @@ export async function upsertLoyaltyTier(
     tier: LoyaltyTier
 ): Promise<{ success: boolean; error?: string }> {
     try {
-        await requireUser(['dispensary', 'super_user']);
+        const user = await requireUser(['dispensary', 'super_user']);
+        assertOrgAccess(user, orgId);
 
         const { data: current } = await getLoyaltySettings(orgId);
         const tiers = current?.tiers ?? [...DEFAULT_LOYALTY_SETTINGS.tiers];
@@ -181,7 +220,8 @@ export async function deleteLoyaltyTier(
     tierId: string
 ): Promise<{ success: boolean; error?: string }> {
     try {
-        await requireUser(['dispensary', 'super_user']);
+        const user = await requireUser(['dispensary', 'super_user']);
+        assertOrgAccess(user, orgId);
 
         const { data: current } = await getLoyaltySettings(orgId);
         const tiers = (current?.tiers ?? []).filter(t => t.id !== tierId);
@@ -200,7 +240,8 @@ export async function upsertRedemptionTier(
     tier: RedemptionTier
 ): Promise<{ success: boolean; error?: string }> {
     try {
-        await requireUser(['dispensary', 'super_user']);
+        const user = await requireUser(['dispensary', 'super_user']);
+        assertOrgAccess(user, orgId);
 
         const { data: current } = await getLoyaltySettings(orgId);
         const tiers = current?.redemptionTiers ?? [...DEFAULT_LOYALTY_SETTINGS.redemptionTiers!];
