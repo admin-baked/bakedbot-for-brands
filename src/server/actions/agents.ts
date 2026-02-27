@@ -4,6 +4,21 @@ import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
 import { agents as DEFAULT_AGENTS, AgentId } from '@/config/agents';
 
+function isSuperRole(role: unknown): boolean {
+    return role === 'super_user' || role === 'super_admin';
+}
+
+function getActorOrgId(user: unknown): string | null {
+    if (!user || typeof user !== 'object') return null;
+    const token = user as {
+        uid?: string;
+        currentOrgId?: string;
+        orgId?: string;
+        brandId?: string;
+    };
+    return token.currentOrgId || token.orgId || token.brandId || token.uid || null;
+}
+
 export interface AgentEntity {
     id: string; // "smokey", "craig", etc.
     name: string;
@@ -23,8 +38,19 @@ export interface AgentEntity {
  * Seeds default agents if none exist.
  */
 export async function listBrandAgents(brandId: string): Promise<AgentEntity[]> {
+    if (!brandId || brandId.includes('/')) {
+        throw new Error('Invalid brandId');
+    }
+
+    const user = await requireUser();
+    const role = typeof user === 'object' && user ? (user as { role?: string }).role : null;
+    const isSuperUser = isSuperRole(role);
+    const actorOrgId = getActorOrgId(user);
+    if (!isSuperUser && actorOrgId && brandId !== actorOrgId) {
+        throw new Error('Unauthorized');
+    }
+
     const { firestore } = await createServerClient();
-    await requireUser();
 
     const collectionRef = firestore.collection('brands').doc(brandId).collection('agents');
     const snap = await collectionRef.get();
