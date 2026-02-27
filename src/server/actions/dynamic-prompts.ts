@@ -2,6 +2,32 @@
 
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
+import { requireUser } from '@/server/auth/auth';
+
+function isSuperRole(role: unknown): boolean {
+    return role === 'super_user' || role === 'super_admin';
+}
+
+function getActorOrgId(user: unknown): string | null {
+    if (!user || typeof user !== 'object') return null;
+    const token = user as {
+        currentOrgId?: string;
+        orgId?: string;
+        brandId?: string;
+        dispensaryId?: string;
+        tenantId?: string;
+        organizationId?: string;
+    };
+    return (
+        token.currentOrgId ||
+        token.orgId ||
+        token.brandId ||
+        token.dispensaryId ||
+        token.tenantId ||
+        token.organizationId ||
+        null
+    );
+}
 
 /**
  * getDynamicPromptSuggestions
@@ -25,15 +51,31 @@ export async function getDynamicPromptSuggestions(orgId: string, userId?: string
     if (!orgId) return [];
 
     try {
+        const user = await requireUser();
+        const role = typeof user === 'object' && user ? (user as { role?: string }).role : null;
+        const actorOrgId = getActorOrgId(user);
+        const actorUid =
+            typeof user === 'object' && user && typeof (user as { uid?: unknown }).uid === 'string'
+                ? (user as { uid: string }).uid
+                : null;
+
+        if (!isSuperRole(role) && (!actorOrgId || actorOrgId !== orgId)) {
+            throw new Error('Unauthorized');
+        }
+        if (!isSuperRole(role) && userId && actorUid && userId !== actorUid) {
+            throw new Error('Unauthorized');
+        }
+
         const db = getAdminFirestore();
         const prompts: string[] = [];
 
         // ── 0. Onboarding setup prompts (highest priority) ──────────────────
         // Surface setup nudges for new users or incomplete setup steps.
         // If any setup is missing, return these first — they're most actionable.
-        if (userId) {
+        if (userId || actorUid) {
             try {
-                const userDoc = await db.collection('users').doc(userId).get();
+                const onboardingUserId = userId || actorUid!;
+                const userDoc = await db.collection('users').doc(onboardingUserId).get();
                 const userData = userDoc.data() as any;
 
                 const isNewUser = userData?.isNewUser === true;
@@ -63,7 +105,12 @@ export async function getDynamicPromptSuggestions(orgId: string, userId?: string
                 // The caller (useDynamicPrompts) will fill remaining slots from static pool.
                 if (setupPrompts.length > 0) {
                     logger.info('[DynamicPrompts] Returning onboarding prompts', {
-                        orgId, userId, count: setupPrompts.length, isNewUser, hasPOS, hasCompetitors
+                        orgId,
+                        userId: onboardingUserId,
+                        count: setupPrompts.length,
+                        isNewUser,
+                        hasPOS,
+                        hasCompetitors
                     });
                     return [...new Set(setupPrompts)].slice(0, 4);
                 }
