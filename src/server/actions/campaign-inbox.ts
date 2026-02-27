@@ -287,7 +287,7 @@ export async function sendCampaignFromInbox(params: {
             revenue: 0,
             openRate: 0,
             clickRate: 0,
-            bounceRate: sentCount > 0 ? failedCount / recipients.length : 0,
+            bounceRate: recipients.length > 0 ? failedCount / recipients.length : 0,
             conversionRate: 0,
             lastUpdated: now,
         };

@@ -189,4 +189,112 @@ describe('campaign-inbox actions', () => {
     });
     expect(mockPlaybookSet).not.toHaveBeenCalled();
   });
+
+  it('records bounceRate from failed sends even when sentCount is zero', async () => {
+    const mockCampaignSet = jest.fn().mockResolvedValue(undefined);
+    const mockCampaignUpdate = jest.fn().mockResolvedValue(undefined);
+    const mockRecipientDoc = jest.fn(() => ({ id: 'recipient-1' }));
+    const mockCampaignDoc = {
+      id: 'camp-1',
+      set: mockCampaignSet,
+      update: mockCampaignUpdate,
+      collection: jest.fn((name: string) => {
+        if (name === 'recipients') {
+          return { doc: mockRecipientDoc };
+        }
+        return { doc: jest.fn(() => ({ id: 'child-doc' })) };
+      }),
+    };
+    const mockCampaignCollection = {
+      doc: jest.fn(() => mockCampaignDoc),
+    };
+    const mockTenantDoc = {
+      get: jest.fn().mockResolvedValue({
+        data: () => ({ name: 'Org Name' }),
+      }),
+    };
+    const mockCommsCollection = {
+      doc: jest.fn(() => ({ id: 'comm-1' })),
+    };
+    const mockBatchSet = jest.fn();
+    const mockBatchCommit = jest.fn().mockResolvedValue(undefined);
+    const mockBatch = {
+      set: mockBatchSet,
+      commit: mockBatchCommit,
+    };
+
+    mockArtifactGet.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        orgId: 'org-current',
+        type: 'outreach_draft',
+        data: {
+          channel: 'email',
+          subject: 'Subject',
+          body: 'Body',
+          targetSegments: ['vip'],
+        },
+      }),
+    });
+
+    (deebo.checkContent as jest.Mock).mockResolvedValue({
+      status: 'pass',
+      violations: [],
+      suggestions: [],
+    });
+    (resolveAudience as jest.Mock).mockResolvedValue([
+      {
+        customerId: 'cust-1',
+        email: 'customer@example.com',
+        firstName: 'First',
+        lastName: 'Last',
+        segment: 'vip',
+      },
+    ]);
+    (sendGenericEmail as jest.Mock).mockResolvedValue({ success: false });
+
+    const mockDb = {
+      collection: jest.fn((name: string) => {
+        if (name === 'inbox_artifacts') {
+          return {
+            doc: jest.fn(() => mockInboArtifactDoc),
+          };
+        }
+        if (name === 'campaigns') return mockCampaignCollection;
+        if (name === 'tenants') {
+          return {
+            doc: jest.fn(() => mockTenantDoc),
+          };
+        }
+        if (name === 'customer_communications') return mockCommsCollection;
+        if (name === 'playbooks') {
+          return {
+            doc: jest.fn(() => mockPlaybookDoc),
+          };
+        }
+        return {
+          doc: jest.fn(() => ({ id: 'generic-doc', get: jest.fn(), set: jest.fn() })),
+        };
+      }),
+      batch: jest.fn(() => mockBatch),
+    };
+    (getAdminFirestore as jest.Mock).mockReturnValue(mockDb);
+
+    const result = await sendCampaignFromInbox({ artifactId: 'art-bounce' });
+
+    expect(result.success).toBe(true);
+    expect(result.sent).toBe(0);
+    expect(result.failed).toBe(1);
+
+    expect(mockCampaignUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        performance: expect.objectContaining({
+          totalRecipients: 1,
+          sent: 0,
+          bounced: 1,
+          bounceRate: 1,
+        }),
+      })
+    );
+  });
 });
