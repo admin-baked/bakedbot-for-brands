@@ -445,15 +445,19 @@ export async function getTestCases(filters: {
 
 export async function getRegressionHistory(area: QABugArea): Promise<QABug[]> {
     try {
-        await requireUser();
+        const user = await requireUser();
         const db = getAdminFirestore();
 
-        const snap = await db.collection('qa_bugs')
+        let query = db.collection('qa_bugs')
             .where('area', '==', area)
-            .where('status', 'in', ['verified', 'closed', 'fixed'])
-            .orderBy('updatedAt', 'desc')
-            .limit(20)
-            .get();
+            .where('status', 'in', ['verified', 'closed', 'fixed']) as FirebaseFirestore.Query;
+
+        if (user.role !== 'super_user') {
+            const orgId = user.currentOrgId || user.brandId || user.orgId || user.uid;
+            query = query.where('affectedOrgId', '==', orgId);
+        }
+
+        const snap = await query.orderBy('updatedAt', 'desc').limit(20).get();
 
         return snap.docs.map(d => ({ id: d.id, ...d.data() } as QABug));
     } catch (error) {
