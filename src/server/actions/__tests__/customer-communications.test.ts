@@ -146,5 +146,24 @@ describe('customer-communications access control', () => {
       }),
     );
   });
-});
 
+  it('blocks non-super users with missing org context from reading communications', async () => {
+    (getServerSessionUser as jest.Mock).mockResolvedValue({
+      uid: 'user-1',
+      role: 'dispensary_admin',
+    });
+
+    const result = await getCustomerCommunications('customer@example.com', 'org-a');
+
+    expect(result).toEqual([]);
+    expect(createServerClient).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid communication id path before firestore access', async () => {
+    await updateCommunicationStatus('comm/1', 'opened');
+
+    expect(getServerSessionUser).not.toHaveBeenCalled();
+    expect(createServerClient).not.toHaveBeenCalled();
+    expect(customerCommsDocRef.update).not.toHaveBeenCalled();
+  });
+});

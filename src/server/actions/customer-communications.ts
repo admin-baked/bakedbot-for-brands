@@ -10,6 +10,37 @@ import type {
     ScheduledCommunication,
 } from '@/types/customer-communications';
 
+type SessionActor = {
+    uid: string;
+    role?: string;
+    currentOrgId?: string;
+    orgId?: string;
+    brandId?: string;
+    dispensaryId?: string;
+    tenantId?: string;
+    organizationId?: string;
+};
+
+function isSuperRole(role: unknown): boolean {
+    return role === 'super_user' || role === 'super_admin';
+}
+
+function getActorOrgId(user: SessionActor): string | null {
+    return (
+        user.currentOrgId ||
+        user.orgId ||
+        user.brandId ||
+        user.dispensaryId ||
+        user.tenantId ||
+        user.organizationId ||
+        null
+    );
+}
+
+function isValidDocId(id: string): boolean {
+    return !!id && !id.includes('/');
+}
+
 // ==========================================
 // Log a communication (fire-and-forget safe)
 // ==========================================
@@ -87,13 +118,23 @@ export async function getCustomerCommunications(
     }
 ): Promise<CustomerCommunication[]> {
     try {
+        if (!isValidDocId(orgId)) {
+            logger.warn('[COMMS] Invalid orgId for communication history read', { orgId });
+            return [];
+        }
         const user = await getServerSessionUser();
         if (!user) {
             return [];
         }
 
-        const isSuperUser = user.role === 'super_user' || user.role === 'super_admin';
-        const actorOrgId = user.currentOrgId || user.orgId || user.brandId || user.uid;
+        const isSuperUser = isSuperRole(user.role);
+        const actorOrgId = getActorOrgId(user as SessionActor);
+        if (!isSuperUser && !actorOrgId) {
+            logger.warn('[COMMS] Missing actor org context for communication history read', {
+                userId: user.uid,
+            });
+            return [];
+        }
         if (!isSuperUser && orgId !== actorOrgId) {
             logger.warn('[COMMS] Unauthorized org access attempt', {
                 userId: user.uid,
@@ -166,13 +207,23 @@ export async function getUpcomingCommunications(
     orgId: string
 ): Promise<ScheduledCommunication[]> {
     try {
+        if (!isValidDocId(orgId)) {
+            logger.warn('[COMMS] Invalid orgId for upcoming communication read', { orgId });
+            return [];
+        }
         const user = await getServerSessionUser();
         if (!user) {
             return [];
         }
 
-        const isSuperUser = user.role === 'super_user' || user.role === 'super_admin';
-        const actorOrgId = user.currentOrgId || user.orgId || user.brandId || user.uid;
+        const isSuperUser = isSuperRole(user.role);
+        const actorOrgId = getActorOrgId(user as SessionActor);
+        if (!isSuperUser && !actorOrgId) {
+            logger.warn('[COMMS] Missing actor org context for upcoming communication read', {
+                userId: user.uid,
+            });
+            return [];
+        }
         if (!isSuperUser && orgId !== actorOrgId) {
             logger.warn('[COMMS] Unauthorized org access attempt', {
                 userId: user.uid,
@@ -225,6 +276,10 @@ export async function updateCommunicationStatus(
     status: 'delivered' | 'opened' | 'clicked' | 'bounced',
 ): Promise<void> {
     try {
+        if (!isValidDocId(communicationId)) {
+            logger.warn('[COMMS] Invalid communicationId for status update', { communicationId });
+            return;
+        }
         const user = await getServerSessionUser();
         if (!user) {
             logger.warn('[COMMS] Unauthorized status update attempt', { communicationId });
@@ -241,10 +296,10 @@ export async function updateCommunicationStatus(
 
         const data = commSnap.data() as { orgId?: string } | undefined;
         const commOrgId = data?.orgId;
-        const isSuperUser = user.role === 'super_user' || user.role === 'super_admin';
-        const actorOrgId = user.currentOrgId || user.orgId || user.brandId || user.uid;
+        const isSuperUser = isSuperRole(user.role);
+        const actorOrgId = getActorOrgId(user as SessionActor);
 
-        if (!isSuperUser && (!commOrgId || commOrgId !== actorOrgId)) {
+        if (!isSuperUser && (!actorOrgId || !commOrgId || commOrgId !== actorOrgId)) {
             logger.warn('[COMMS] Unauthorized status update attempt', {
                 userId: user.uid,
                 communicationId,
