@@ -1,4 +1,4 @@
-import { generateTestCasesFromSpec, getBugById } from '../qa';
+import { generateTestCasesFromSpec, getBugById, getQAReport } from '../qa';
 import { getAdminFirestore } from '@/firebase/admin';
 import { requireUser } from '@/server/auth/auth';
 import { callClaude } from '@/ai/claude';
@@ -300,5 +300,66 @@ describe('qa actions: getBugById access control', () => {
         affectedOrgId: 'org-z',
       }),
     );
+  });
+});
+
+describe('qa actions: getQAReport scoping', () => {
+  const bugsWhere = jest.fn();
+  const bugsGet = jest.fn();
+  const testCasesGet = jest.fn();
+  const mockCollection = jest.fn();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    bugsWhere.mockReturnThis();
+    bugsGet.mockResolvedValue({ docs: [] });
+    testCasesGet.mockResolvedValue({ docs: [] });
+
+    mockCollection.mockImplementation((name: string) => {
+      if (name === 'qa_bugs') {
+        return {
+          where: bugsWhere,
+          get: bugsGet,
+        };
+      }
+      if (name === 'qa_test_cases') {
+        return {
+          get: testCasesGet,
+        };
+      }
+      return { get: jest.fn().mockResolvedValue({ docs: [] }) };
+    });
+
+    (getAdminFirestore as jest.Mock).mockReturnValue({
+      collection: mockCollection,
+    });
+  });
+
+  it('forces non-super users to their own org scope even when an orgId filter is provided', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'user-1',
+      role: 'dispensary_admin',
+      currentOrgId: 'org-a',
+      orgId: 'org-a',
+      brandId: 'org-a',
+    });
+
+    await getQAReport('org-b');
+
+    expect(bugsWhere).toHaveBeenCalledWith('affectedOrgId', '==', 'org-a');
+  });
+
+  it('allows super users to request a specific org scope', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'super-1',
+      role: 'super_user',
+      currentOrgId: 'org-a',
+      orgId: 'org-a',
+    });
+
+    await getQAReport('org-b');
+
+    expect(bugsWhere).toHaveBeenCalledWith('affectedOrgId', '==', 'org-b');
   });
 });

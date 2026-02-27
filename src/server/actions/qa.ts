@@ -322,12 +322,16 @@ export async function getBugById(bugId: string): Promise<QABug | null> {
 
 export async function getQAReport(orgId?: string): Promise<QAReport> {
     try {
-        await requireUser();
+        const user = await requireUser();
         const db = getAdminFirestore();
+
+        const scopedOrgId = user.role === 'super_user'
+            ? orgId
+            : (user.currentOrgId || user.brandId || user.orgId || user.uid);
 
         // Fetch all bugs (super user) or org-scoped
         let bugsQuery = db.collection('qa_bugs') as FirebaseFirestore.Query;
-        if (orgId) bugsQuery = bugsQuery.where('affectedOrgId', '==', orgId);
+        if (scopedOrgId) bugsQuery = bugsQuery.where('affectedOrgId', '==', scopedOrgId);
 
         const [bugsSnap, testCasesSnap] = await Promise.all([
             bugsQuery.get(),
