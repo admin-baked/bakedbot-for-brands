@@ -44,6 +44,12 @@ jest.mock('@/lib/plan-limits', () => ({
     maxProducts: planId === 'premium' ? 1000 : 100,
   })),
 }));
+jest.mock('@/lib/config', () => ({
+  CANNMENUS_CONFIG: {
+    API_KEY: 'test-api-key',
+    API_BASE: 'https://api.cannmenus.test',
+  },
+}));
 
 import { createServerClient } from '@/firebase/server-client';
 import { withRetry } from '@/lib/retry-utility';
@@ -84,16 +90,7 @@ describe('CannMenusService', () => {
     // Reset withRetry to just call the function
     (withRetry as jest.Mock).mockImplementation((fn) => fn());
 
-    // Setup environment
-    process.env.CANNMENUS_API_KEY = 'test-api-key';
-    process.env.CANNMENUS_API_BASE = 'https://api.cannmenus.test';
-
     jest.clearAllMocks();
-  });
-
-  afterEach(() => {
-    delete process.env.CANNMENUS_API_KEY;
-    delete process.env.CANNMENUS_API_BASE;
   });
 
   describe('findRetailersCarryingBrand', () => {

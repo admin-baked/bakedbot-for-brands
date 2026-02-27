@@ -32,10 +32,17 @@ export async function searchCannMenusRetailers(query: string): Promise<CannMenus
 
     // Force mock for demo/testing
     if (query.toLowerCase().includes('demo') || query.toLowerCase().includes('test')) {
-        return MOCK_RETAILERS.filter(r =>
-            r.name.toLowerCase().includes(query.toLowerCase()) ||
-            r.type.includes(query.toLowerCase())
-        );
+        const normalizedQuery = query.toLowerCase().trim();
+        const stripped = normalizedQuery.replace(/\b(demo|test)\b/g, '').trim();
+        if (!stripped) {
+            return MOCK_RETAILERS.slice(0, 10);
+        }
+
+        return MOCK_RETAILERS.filter((r) => {
+            const lowerName = r.name.toLowerCase();
+            const lowerId = r.id.toLowerCase();
+            return lowerName.includes(stripped) || r.type.includes(stripped) || lowerId.includes(stripped);
+        }).slice(0, 10);
     }
 
     const { API_BASE: base, API_KEY: apiKey } = (await import('@/lib/config')).CANNMENUS_CONFIG;
