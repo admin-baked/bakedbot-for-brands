@@ -20,7 +20,7 @@ import type { X402Wallet } from '@/types/x402';
 
 let _coinbaseInitialized = false;
 
-function ensureCoinbaseInitialized(): void {
+export function ensureCoinbaseInitialized(): void {
   if (_coinbaseInitialized) return;
 
   const apiKeyName = process.env.CDP_API_KEY_NAME;

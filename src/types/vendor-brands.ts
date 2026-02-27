@@ -42,6 +42,12 @@ export interface VendorBrand {
   /** Confidence score from the extractor (0–100) */
   extractionConfidence?: number;
 
+  // --- GreenLedger linkage ---
+  /** BakedBot org ID for this brand, if they're on the platform */
+  brandOrgId?: string;
+  /** Whether this brand has opted into USDC settlement + GreenLedger Advance */
+  settlementEnabled?: boolean;
+
   ingestedAt: Date;
   lastUpdatedAt: Date;
 }

@@ -1440,6 +1440,68 @@
             "fields": [
                 { "fieldPath": "dailyRoomName", "order": "ASCENDING" }
             ]
+        },
+        {
+            "collectionGroup": "greenledger_offers",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "brandOrgId", "order": "ASCENDING" },
+                { "fieldPath": "status", "order": "ASCENDING" },
+                { "fieldPath": "createdAt", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "greenledger_offers",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "status", "order": "ASCENDING" },
+                { "fieldPath": "eligibility", "order": "ASCENDING" },
+                { "fieldPath": "createdAt", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "greenledger_advances",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "brandOrgId", "order": "ASCENDING" },
+                { "fieldPath": "status", "order": "ASCENDING" },
+                { "fieldPath": "createdAt", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "greenledger_advances",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "dispensaryOrgId", "order": "ASCENDING" },
+                { "fieldPath": "status", "order": "ASCENDING" },
+                { "fieldPath": "createdAt", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "greenledger_advances",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "status", "order": "ASCENDING" },
+                { "fieldPath": "autoRefundAt", "order": "ASCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "greenledger_transactions",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "brandOrgId", "order": "ASCENDING" },
+                { "fieldPath": "type", "order": "ASCENDING" },
+                { "fieldPath": "createdAt", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "greenledger_transactions",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "dispensaryOrgId", "order": "ASCENDING" },
+                { "fieldPath": "type", "order": "ASCENDING" },
+                { "fieldPath": "createdAt", "order": "DESCENDING" }
+            ]
         }
     ],
     "fieldOverrides": []
