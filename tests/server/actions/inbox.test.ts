@@ -143,6 +143,8 @@ describe('Inbox Server Actions', () => {
     const mockCollection = {
         doc: jest.fn(() => mockDocRef),
         where: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        startAfter: jest.fn().mockReturnThis(),
         limit: jest.fn().mockReturnThis(),
         get: jest.fn(),
     };
@@ -201,6 +203,37 @@ describe('Inbox Server Actions', () => {
             expect(result.success).toBe(true);
             expect(result.thread?.messages).toHaveLength(1);
             expect(result.thread?.preview).toBe('Create a featured products carousel');
+        });
+
+        it('should reject non-super users trying to force another org context', async () => {
+            const result = await createInboxThread({
+                type: 'carousel',
+                title: 'Cross-org attempt',
+                brandId: 'org-other',
+            });
+
+            expect(result.success).toBe(false);
+            expect(result.error).toBe('Unauthorized org context');
+            expect(mockDocRef.set).not.toHaveBeenCalled();
+        });
+
+        it('should allow super users to set org context explicitly', async () => {
+            (getServerSessionUser as jest.Mock).mockResolvedValue({
+                uid: 'super-1',
+                email: 'super@example.com',
+                role: 'super_user',
+                currentOrgId: 'org-super',
+            });
+
+            const result = await createInboxThread({
+                type: 'carousel',
+                title: 'Support thread',
+                brandId: 'org-target',
+            });
+
+            expect(result.success).toBe(true);
+            expect(result.thread?.orgId).toBe('org-target');
+            expect(mockDocRef.set).toHaveBeenCalled();
         });
     });
 
