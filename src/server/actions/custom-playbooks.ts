@@ -24,6 +24,67 @@ function canAccessOrg(
     return resolveActorOrgId(user) === orgId;
 }
 
+function normalizePlaybookName(name: string): string | null {
+    const normalized = name.trim();
+    return normalized.length > 0 ? normalized : null;
+}
+
+function isCronExpressionValid(cron: string): boolean {
+    // Basic 5-field cron validation; scheduler enforces full semantics.
+    return /^(\S+\s+){4}\S+$/.test(cron.trim());
+}
+
+function sanitizeTriggers(
+    triggers: PlaybookTrigger[],
+): { ok: true; value: PlaybookTrigger[] } | { ok: false; error: string } {
+    if (!Array.isArray(triggers) || triggers.length === 0) {
+        return { ok: false, error: 'At least one trigger is required.' };
+    }
+
+    const sanitized: PlaybookTrigger[] = [];
+
+    for (const trigger of triggers) {
+        if (!trigger || typeof trigger.type !== 'string') {
+            return { ok: false, error: 'Invalid trigger format.' };
+        }
+
+        if (trigger.type === 'manual') {
+            sanitized.push({ type: 'manual' });
+            continue;
+        }
+
+        if (trigger.type === 'schedule') {
+            const cron = typeof trigger.cron === 'string' ? trigger.cron.trim() : '';
+            if (!cron || !isCronExpressionValid(cron)) {
+                return { ok: false, error: 'Invalid schedule trigger. Use 5-field cron syntax.' };
+            }
+            const timezone = typeof trigger.timezone === 'string' && trigger.timezone.trim().length > 0
+                ? trigger.timezone.trim()
+                : 'America/New_York';
+            sanitized.push({ type: 'schedule', cron, timezone });
+            continue;
+        }
+
+        if (trigger.type === 'event') {
+            const eventName = typeof trigger.eventName === 'string' ? trigger.eventName.trim() : '';
+            if (!eventName) {
+                return { ok: false, error: 'Event triggers require an eventName.' };
+            }
+            sanitized.push({ type: 'event', eventName });
+            continue;
+        }
+
+        if (trigger.type === 'calendar') {
+            sanitized.push({ type: 'calendar' });
+            continue;
+        }
+
+        return { ok: false, error: `Unsupported trigger type: ${String(trigger.type)}` };
+    }
+
+    return { ok: true, value: sanitized };
+}
+
 // ---------------------------------------------------------------------------
 // Query: List Custom Playbooks for an Org
 // ---------------------------------------------------------------------------
@@ -78,6 +139,14 @@ export async function createCustomPlaybook(
         if (!canAccessOrg(user, orgId)) {
             return { success: false, error: 'Not authorized' };
         }
+        const name = normalizePlaybookName(input.name);
+        if (!name) {
+            return { success: false, error: 'Playbook name is required.' };
+        }
+        const triggerValidation = sanitizeTriggers(input.triggers);
+        if (!triggerValidation.ok) {
+            return { success: false, error: triggerValidation.error };
+        }
 
         const db = getAdminFirestore();
         const ref = db.collection('playbooks').doc();
@@ -85,12 +154,12 @@ export async function createCustomPlaybook(
 
         const playbook: Playbook = {
             id: ref.id,
-            name: input.name.trim(),
+            name,
             description: input.description?.trim() ?? '',
             status: 'draft',
             agent: input.agent,
             category: input.category,
-            triggers: input.triggers,
+            triggers: triggerValidation.value,
             steps: [],
             ownerId: user.uid,
             isCustom: true,
@@ -153,11 +222,21 @@ export async function updateCustomPlaybook(
         }
 
         const updates: Partial<Playbook> = { updatedAt: new Date() };
-        if (patch.name !== undefined) updates.name = patch.name.trim();
+        if (patch.name !== undefined) {
+            const name = normalizePlaybookName(patch.name);
+            if (!name) return { success: false, error: 'Playbook name is required.' };
+            updates.name = name;
+        }
         if (patch.description !== undefined) updates.description = patch.description.trim();
         if (patch.agent !== undefined) updates.agent = patch.agent;
         if (patch.category !== undefined) updates.category = patch.category;
-        if (patch.triggers !== undefined) updates.triggers = patch.triggers;
+        if (patch.triggers !== undefined) {
+            const triggerValidation = sanitizeTriggers(patch.triggers);
+            if (!triggerValidation.ok) {
+                return { success: false, error: triggerValidation.error };
+            }
+            updates.triggers = triggerValidation.value;
+        }
         if (patch.status !== undefined) updates.status = patch.status;
 
         await ref.update(updates);
@@ -229,6 +308,9 @@ export async function toggleCustomPlaybookStatus(
         const data = snap.data() as Playbook;
         if (data.orgId !== orgId) return { success: false, error: 'Not authorized' };
         if (!data.isCustom) return { success: false, error: 'Cannot modify system playbooks' };
+        if (data.ownerId !== user.uid && user.role !== 'super_user') {
+            return { success: false, error: 'Only the owner can modify this playbook' };
+        }
 
         const newStatus: PlaybookStatus = active ? 'active' : 'paused';
         await ref.update({ status: newStatus, updatedAt: new Date() });
