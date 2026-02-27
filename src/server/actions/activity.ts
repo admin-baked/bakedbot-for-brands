@@ -12,12 +12,22 @@ function isSuperRole(role: unknown): boolean {
 function getActorOrgId(user: unknown): string | null {
     if (!user || typeof user !== 'object') return null;
     const token = user as {
-        uid?: string;
         currentOrgId?: string;
         orgId?: string;
         brandId?: string;
+        dispensaryId?: string;
+        tenantId?: string;
+        organizationId?: string;
     };
-    return token.currentOrgId || token.orgId || token.brandId || token.uid || null;
+    return (
+        token.currentOrgId ||
+        token.orgId ||
+        token.brandId ||
+        token.dispensaryId ||
+        token.tenantId ||
+        token.organizationId ||
+        null
+    );
 }
 
 function getUserUid(user: unknown): string {
@@ -28,14 +38,28 @@ function getUserUid(user: unknown): string {
     throw new Error('Unauthorized');
 }
 
-export async function getRecentActivity(orgId: string): Promise<ActivityEvent[]> {
-    const user = await requireUser();
+function validateOrgId(orgId: string): void {
+    if (!orgId || orgId.includes('/')) {
+        throw new Error('Invalid orgId');
+    }
+}
+
+function assertOrgAccess(user: unknown, orgId: string): void {
     const role = typeof user === 'object' && user ? (user as { role?: string }).role : null;
-    const isSuperUser = isSuperRole(role);
+    if (isSuperRole(role)) {
+        return;
+    }
+
     const actorOrgId = getActorOrgId(user);
-    if (!isSuperUser && actorOrgId && orgId !== actorOrgId) {
+    if (!actorOrgId || actorOrgId !== orgId) {
         throw new Error('Unauthorized');
     }
+}
+
+export async function getRecentActivity(orgId: string): Promise<ActivityEvent[]> {
+    validateOrgId(orgId);
+    const user = await requireUser();
+    assertOrgAccess(user, orgId);
 
     const { firestore } = await createServerClient();
 
@@ -52,13 +76,9 @@ export async function getRecentActivity(orgId: string): Promise<ActivityEvent[]>
 }
 
 export async function getUsageStats(orgId: string): Promise<UsageSummary> {
+    validateOrgId(orgId);
     const user = await requireUser();
-    const role = typeof user === 'object' && user ? (user as { role?: string }).role : null;
-    const isSuperUser = isSuperRole(role);
-    const actorOrgId = getActorOrgId(user);
-    if (!isSuperUser && actorOrgId && orgId !== actorOrgId) {
-        throw new Error('Unauthorized');
-    }
+    assertOrgAccess(user, orgId);
 
     const { firestore } = await createServerClient();
     const period = new Date().toISOString().slice(0, 7); // YYYY-MM
@@ -75,13 +95,11 @@ export async function getUsageStats(orgId: string): Promise<UsageSummary> {
 }
 
 export async function logActivity(orgId: string, userId: string, userName: string, type: string, description: string) {
+    validateOrgId(orgId);
     const user = await requireUser();
+    assertOrgAccess(user, orgId);
     const role = typeof user === 'object' && user ? (user as { role?: string }).role : null;
     const isSuperUser = isSuperRole(role);
-    const actorOrgId = getActorOrgId(user);
-    if (!isSuperUser && actorOrgId && orgId !== actorOrgId) {
-        throw new Error('Unauthorized');
-    }
 
     const actorUid = getUserUid(user);
     const { firestore } = await createServerClient();
