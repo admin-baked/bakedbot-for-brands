@@ -109,6 +109,47 @@ describe('custom-playbooks action security', () => {
     expect(mockCollection).toHaveBeenCalledWith('playbooks');
   });
 
+  it('allows super_admin users to list custom playbooks for another org', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'super-admin-1',
+      role: 'super_admin',
+      currentOrgId: 'org-a',
+      orgId: 'org-a',
+    });
+
+    const query = {
+      where: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockReturnThis(),
+      get: jest.fn().mockResolvedValue({
+        docs: [
+          {
+            id: 'pb-2',
+            data: () => ({
+              name: 'Super Admin Playbook',
+              status: 'active',
+              isCustom: true,
+            }),
+          },
+        ],
+      }),
+    };
+
+    mockCollection.mockImplementation((name: string) => {
+      if (name === 'playbooks') return query;
+      return {};
+    });
+
+    const result = await listCustomPlaybooks('org-b');
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.playbooks).toHaveLength(1);
+      expect(result.playbooks[0].id).toBe('pb-2');
+    }
+    expect(mockCollection).toHaveBeenCalledWith('playbooks');
+  });
+
   it('refuses toggling system playbooks through custom playbook action', async () => {
     (requireUser as jest.Mock).mockResolvedValue({
       uid: 'user-1',
