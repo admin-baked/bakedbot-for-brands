@@ -11,6 +11,31 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { requireBrandAccess, requireDispensaryAccess, requirePermission, isBrandRole, isDispensaryRole, isBrandAdmin, isDispensaryAdmin } from '@/server/auth/rbac';
 import { logger } from '@/lib/logger';
 
+function isSuperRole(role: unknown): boolean {
+    return role === 'super_user' || role === 'super_admin';
+}
+
+function getActorOrgId(user: unknown): string | null {
+    if (!user || typeof user !== 'object') return null;
+    const token = user as {
+        currentOrgId?: string;
+        orgId?: string;
+        brandId?: string;
+        dispensaryId?: string;
+        tenantId?: string;
+        organizationId?: string;
+    };
+    return (
+        token.currentOrgId ||
+        token.orgId ||
+        token.brandId ||
+        token.dispensaryId ||
+        token.tenantId ||
+        token.organizationId ||
+        null
+    );
+}
+
 // --- ACTIONS ---
 
 /**
@@ -20,10 +45,11 @@ export async function createInvitationAction(input: z.infer<typeof CreateInvitat
     try {
         const user = await requireUser();
         const firestore = getAdminFirestore();
+        const role = (user as { role?: string }).role;
 
         // Security Checks
         if (input.role === 'super_user' || input.role === 'super_admin' || input.role === 'intern') {
-            const isSuper = await isSuperUser();
+            const isSuper = isSuperRole(role) || await isSuperUser();
             if (!isSuper) {
                 throw new Error('Unauthorized: Only Super Users can invite platform-level roles.');
             }
@@ -139,27 +165,43 @@ export async function getInvitationsAction(orgId?: string) {
     try {
         const user = await requireUser();
         const firestore = getAdminFirestore();
-        let query = firestore.collection('invitations').where('status', '==', 'pending');
+        const userRole: string | null = (user as { role?: string }).role ?? null;
+        const isSuper = isSuperRole(userRole) || await isSuperUser();
+        const actorOrgId = getActorOrgId(user);
 
         if (orgId) {
-            // Security: Ensure user has access to this org
-            // We assume orgId matches user's context, but explicit check is safer
-            const userRole = (user as any).role;
-            
+            // Security: org-scoped query must match actor org unless super role.
+            if (!isSuper && (!actorOrgId || actorOrgId !== orgId)) {
+                return [];
+            }
+
             if (isBrandRole(userRole)) {
                 requireBrandAccess(user as any, orgId);
             } else if (isDispensaryRole(userRole)) {
                 requireDispensaryAccess(user as any, orgId);
             }
-            
-            query = query.where('targetOrgId', '==', orgId);
+
+            const query = firestore
+                .collection('invitations')
+                .where('status', '==', 'pending')
+                .where('targetOrgId', '==', orgId);
+
+            const snapshot = await query.orderBy('createdAt', 'desc').get();
+            return snapshot.docs.map(doc => ({
+                ...doc.data(),
+                createdAt: (doc.data().createdAt as any).toDate(),
+                expiresAt: (doc.data().expiresAt as any).toDate(),
+            } as Invitation));
         } else {
-            // If no orgId, only Super Admin can query all (or filtered by system role)
-             const isSuper = await isSuperUser();
-             if (!isSuper) return []; // Unauthorized
+            // If no orgId, only super-role users can query globally.
+            if (!isSuper) return [];
         }
 
-        const snapshot = await query.orderBy('createdAt', 'desc').get();
+        const snapshot = await firestore
+            .collection('invitations')
+            .where('status', '==', 'pending')
+            .orderBy('createdAt', 'desc')
+            .get();
         
         return snapshot.docs.map(doc => ({
             ...doc.data(),
@@ -180,6 +222,8 @@ export async function revokeInvitationAction(invitationId: string) {
     try {
         const user = await requireUser();
         const firestore = getAdminFirestore();
+        const userRole: string | null = (user as { role?: string }).role ?? null;
+        const isSuper = isSuperRole(userRole) || await isSuperUser();
         
         const inviteRef = firestore.collection('invitations').doc(invitationId);
         const inviteDoc = await inviteRef.get();
@@ -213,8 +257,6 @@ export async function revokeInvitationAction(invitationId: string) {
              }
         }
         
-        const isSuper = await isSuperUser();
-
         if (!isInviter && !isAdminOfTarget && !isSuper) {
              throw new Error('Unauthorized to revoke this invitation.');
         }
