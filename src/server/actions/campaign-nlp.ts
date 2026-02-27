@@ -52,33 +52,64 @@ function getTrimmedString(value: unknown): string {
     return typeof value === 'string' ? value.trim() : '';
 }
 
+function normalizeToken(value: unknown): string {
+    return getTrimmedString(value).toLowerCase().replace(/[\s-]+/g, '_');
+}
+
+function normalizeGoal(value: unknown): CampaignGoal | null {
+    const normalized = normalizeToken(value);
+    return VALID_GOALS.has(normalized as CampaignGoal) ? (normalized as CampaignGoal) : null;
+}
+
+function normalizeChannel(value: unknown): CampaignChannel | null {
+    const normalized = normalizeToken(value);
+    if (normalized === 'text' || normalized === 'text_message' || normalized === 'text_messages') {
+        return 'sms';
+    }
+    return VALID_CHANNELS.has(normalized as CampaignChannel) ? (normalized as CampaignChannel) : null;
+}
+
+function normalizeSegment(value: unknown): CustomerSegment | null {
+    const normalized = normalizeToken(value);
+    const aliases: Record<string, CustomerSegment> = {
+        vip: 'vip',
+        loyal: 'loyal',
+        frequent: 'frequent',
+        high_value: 'high_value',
+        new: 'new',
+        slipping: 'slipping',
+        at_risk: 'at_risk',
+        churned: 'churned',
+    };
+    const mapped = aliases[normalized];
+    return mapped && VALID_SEGMENTS.has(mapped) ? mapped : null;
+}
+
 function sanitizeGeneratedCampaign(value: unknown): GeneratedCampaign | null {
     if (!isRecord(value)) return null;
 
     const name = getTrimmedString(value.name);
-    const goal = getTrimmedString(value.goal) as CampaignGoal;
+    const goal = normalizeGoal(value.goal);
     const emailBody = getTrimmedString(value.emailBody);
-    if (!name || !emailBody || !VALID_GOALS.has(goal)) {
+    if (!name || !emailBody || !goal) {
         return null;
     }
 
     const rawChannels = Array.isArray(value.channels) ? value.channels : [];
     const channels = Array.from(
         new Set(
-            rawChannels.filter(
-                (item): item is CampaignChannel =>
-                    typeof item === 'string' && VALID_CHANNELS.has(item as CampaignChannel),
-            ),
+            rawChannels
+                .map((item) => normalizeChannel(item))
+                .filter((item): item is CampaignChannel => item !== null),
         ),
     );
 
     const rawSegments = Array.isArray(value.targetSegments) ? value.targetSegments : [];
     const targetSegments = Array.from(
         new Set(
-            rawSegments.filter(
-                (item): item is CustomerSegment =>
-                    typeof item === 'string' && VALID_SEGMENTS.has(item as CustomerSegment),
-            ),
+            rawSegments
+                .map((item) => normalizeSegment(item))
+                .filter((item): item is CustomerSegment => item !== null),
         ),
     ).slice(0, 3);
 
