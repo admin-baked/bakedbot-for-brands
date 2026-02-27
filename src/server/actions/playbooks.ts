@@ -9,6 +9,43 @@ import { FieldValue } from 'firebase-admin/firestore';
 // Actions that require approval when targeting customers (not logged-in user)
 const CUSTOMER_EMAIL_ACTIONS = ['gmail.send', 'gmail.send_batch', 'email.send', 'notify'];
 
+function isSuperRole(role: unknown): boolean {
+    return role === 'super_user' || role === 'super_admin';
+}
+
+function getActorOrgId(user: unknown): string | null {
+    if (!user || typeof user !== 'object') return null;
+    const token = user as {
+        currentOrgId?: string;
+        orgId?: string;
+        brandId?: string;
+        tenantId?: string;
+        organizationId?: string;
+        uid?: string;
+    };
+    return (
+        token.currentOrgId ||
+        token.orgId ||
+        token.brandId ||
+        token.tenantId ||
+        token.organizationId ||
+        token.uid ||
+        null
+    );
+}
+
+function assertBrandAccess(user: unknown, brandId: string): void {
+    const role = typeof user === 'object' && user ? (user as { role?: string }).role : null;
+    if (isSuperRole(role)) {
+        return;
+    }
+
+    const actorOrgId = getActorOrgId(user);
+    if (!actorOrgId || actorOrgId !== brandId) {
+        throw new Error('Unauthorized');
+    }
+}
+
 /**
  * Detect if a playbook requires approval based on customer-facing email steps
  */
@@ -66,10 +103,10 @@ async function canEditPlaybook(userId: string, userRole: string, playbook: Playb
  */
 export async function listBrandPlaybooks(brandId: string): Promise<Playbook[]> {
     try {
-        const { firestore } = await createServerClient();
-        await requireUser();
-
+        const user = await requireUser();
         if (!brandId) throw new Error('Brand ID is required');
+        assertBrandAccess(user, brandId);
+        const { firestore } = await createServerClient();
 
         const collectionRef = firestore.collection('brands').doc(brandId).collection('playbooks');
         const snap = await collectionRef.get();
@@ -288,8 +325,9 @@ export async function createPlaybook(
     }
 ): Promise<{ success: boolean; playbook?: Playbook; error?: string }> {
     try {
-        const { firestore } = await createServerClient();
         const user = await requireUser();
+        assertBrandAccess(user, brandId);
+        const { firestore } = await createServerClient();
 
         const collectionRef = firestore.collection('brands').doc(brandId).collection('playbooks');
         const newDocRef = collectionRef.doc();
@@ -336,8 +374,9 @@ export async function updatePlaybook(
     updates: Partial<Pick<Playbook, 'name' | 'description' | 'agent' | 'category' | 'triggers' | 'steps' | 'status' | 'metadata'>>
 ): Promise<{ success: boolean; error?: string }> {
     try {
-        const { firestore } = await createServerClient();
         const user = await requireUser();
+        assertBrandAccess(user, brandId);
+        const { firestore } = await createServerClient();
 
         const docRef = firestore.collection('brands').doc(brandId).collection('playbooks').doc(playbookId);
         const snap = await docRef.get();
@@ -380,8 +419,9 @@ export async function deletePlaybook(
     playbookId: string
 ): Promise<{ success: boolean; error?: string }> {
     try {
-        const { firestore } = await createServerClient();
         const user = await requireUser();
+        assertBrandAccess(user, brandId);
+        const { firestore } = await createServerClient();
 
         const docRef = firestore.collection('brands').doc(brandId).collection('playbooks').doc(playbookId);
         const snap = await docRef.get();
@@ -418,8 +458,9 @@ export async function clonePlaybook(
     sourcePlaybookId: string
 ): Promise<{ success: boolean; playbook?: Playbook; error?: string }> {
     try {
-        const { firestore } = await createServerClient();
         const user = await requireUser();
+        assertBrandAccess(user, brandId);
+        const { firestore } = await createServerClient();
 
         const sourceRef = firestore.collection('brands').doc(brandId).collection('playbooks').doc(sourcePlaybookId);
         const sourceSnap = await sourceRef.get();
@@ -450,8 +491,9 @@ export async function clonePlaybook(
  */
 export async function togglePlaybookStatus(brandId: string, playbookId: string, isActive: boolean) {
     try {
-        const { firestore } = await createServerClient();
         const user = await requireUser();
+        assertBrandAccess(user, brandId);
+        const { firestore } = await createServerClient();
 
         const docRef = firestore.collection('brands').doc(brandId).collection('playbooks').doc(playbookId);
         const snap = await docRef.get();
@@ -484,8 +526,9 @@ export async function togglePlaybookStatus(brandId: string, playbookId: string, 
  */
 export async function runPlaybookTest(brandId: string, playbookId: string) {
     try {
+        const user = await requireUser();
+        assertBrandAccess(user, brandId);
         const { firestore } = await createServerClient();
-        await requireUser();
 
         const docRef = firestore.collection('brands').doc(brandId).collection('playbooks').doc(playbookId);
 
