@@ -53,6 +53,7 @@ import {
     Zap,
     Flag,
     BarChart3,
+    Coins,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -389,6 +390,23 @@ export const BrandSidebar = memo(function BrandSidebar() {
                         </SidebarGroupContent>
                     </CollapsibleContent>
                 </Collapsible>
+            </SidebarGroup>
+
+            {/* GreenLedger - Supply Chain Finance */}
+            <SidebarGroup>
+                <SidebarGroupContent>
+                    <SidebarMenu>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive('/dashboard/greenledger')}>
+                                <Link href="/dashboard/greenledger" prefetch={true}>
+                                    <Coins />
+                                    <span>GreenLedger</span>
+                                    <span className="ml-auto text-[10px] bg-green-500/10 text-green-600 px-1.5 py-0.5 rounded font-medium">NEW</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                </SidebarGroupContent>
             </SidebarGroup>
 
             {/* Admin - Settings & Integrations */}

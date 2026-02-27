@@ -18,6 +18,8 @@
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import { sendUSDC, getBakedBotWalletAddress, getOrgWallet } from '@/lib/x402/cdp-wallets';
+import { releaseFromEscrow } from '@/lib/x402/greenledger-escrow';
+import { applyAdvanceToSettlement } from '@/server/services/greenledger';
 import { FieldValue } from 'firebase-admin/firestore';
 import {
   X402_SETTLEMENT_FEE_BPS,
@@ -179,13 +181,25 @@ export class BrandSettlementService {
     const orderTotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
     const { brandRevenue, bakedBotFeeUsd, brandReceivesUsd } = this.calculateSplit(items);
 
+    // Check for an active GreenLedger advance (discount applied from escrow)
+    const advanceResult = await applyAdvanceToSettlement(
+      dispensaryOrgId,
+      brandOrgId,
+      brandRevenue,
+      orderId,
+    ).catch(() => null);
+
+    const effectiveBrandReceivesUsd = advanceResult
+      ? advanceResult.escrowDeductionUsd - bakedBotFeeUsd
+      : brandReceivesUsd;
+
     logger.info(
-      `[settlement] Brand ${brandOrgId}: revenue $${brandRevenue.toFixed(4)}, fee $${bakedBotFeeUsd.toFixed(4)}, net $${brandReceivesUsd.toFixed(4)}`,
+      `[settlement] Brand ${brandOrgId}: revenue $${brandRevenue.toFixed(4)}, fee $${bakedBotFeeUsd.toFixed(4)}, net $${effectiveBrandReceivesUsd.toFixed(4)}${advanceResult ? ` (advance discount ${(advanceResult.discountBps / 100).toFixed(0)}%)` : ''}`,
     );
 
     // Skip if too small to settle (< $0.01)
-    if (brandReceivesUsd < 0.01) {
-      logger.info(`[settlement] Brand ${brandOrgId} amount too small ($${brandReceivesUsd}) — skipping`);
+    if (effectiveBrandReceivesUsd < 0.01) {
+      logger.info(`[settlement] Brand ${brandOrgId} amount too small ($${effectiveBrandReceivesUsd}) — skipping`);
 
       await db.collection('brand_settlements').add({
         orderId,
@@ -194,9 +208,11 @@ export class BrandSettlementService {
         orderTotal,
         brandRevenue,
         bakedBotFeeUsd,
-        brandReceivesUsd,
+        brandReceivesUsd: effectiveBrandReceivesUsd,
         dispensaryWalletAddress,
         brandWalletAddress,
+        advanceId: advanceResult?.advanceId ?? null,
+        discountAppliedUsd: advanceResult?.discountUsd ?? null,
         status: 'skipped',
         skipReason: 'amount_too_small',
         createdAt: FieldValue.serverTimestamp(),
@@ -212,52 +228,82 @@ export class BrandSettlementService {
       orderTotal,
       brandRevenue,
       bakedBotFeeUsd,
-      brandReceivesUsd,
+      brandReceivesUsd: effectiveBrandReceivesUsd,
       dispensaryWalletAddress,
       brandWalletAddress,
+      advanceId: advanceResult?.advanceId ?? null,
+      discountAppliedUsd: advanceResult?.discountUsd ?? null,
       status: 'pending',
       createdAt: FieldValue.serverTimestamp(),
     });
 
     try {
-      // Transfer brand's share from dispensary wallet → brand wallet
-      const brandTransfer = await sendUSDC({
-        fromOrgId: dispensaryOrgId,
-        toAddress: brandWalletAddress,
-        amountUsd: brandReceivesUsd,
-      });
-
-      if (!brandTransfer.success) {
-        throw new Error(brandTransfer.error ?? 'CDP transfer failed');
-      }
-
-      // Transfer BakedBot's fee from dispensary wallet → BakedBot wallet
+      let brandTxHash: string | undefined;
       let feeTxHash: string | undefined;
-      if (bakedBotFeeUsd >= 0.01) {
+
+      if (advanceResult) {
+        // GreenLedger advance path: pull from escrow wallet, not dispensary wallet
+        const advanceDoc = await db.collection('greenledger_advances').doc(advanceResult.advanceId).get();
+        const escrowWalletId: string = advanceDoc.data()?.escrowWalletId ?? '';
         const bakedBotAddress = getBakedBotWalletAddress();
-        const feeTransfer = await sendUSDC({
-          fromOrgId: dispensaryOrgId,
-          toAddress: bakedBotAddress,
-          amountUsd: bakedBotFeeUsd,
+
+        const escrowResult = await releaseFromEscrow({
+          walletId: escrowWalletId,
+          brandWalletAddress,
+          bakedBotWalletAddress: bakedBotAddress,
+          brandAmountUsd: effectiveBrandReceivesUsd,
+          bakedBotFeeUsd,
         });
 
-        if (feeTransfer.success) {
-          feeTxHash = feeTransfer.txHash;
-        } else {
-          logger.warn(`[settlement] BakedBot fee transfer failed (non-fatal): ${feeTransfer.error}`);
+        if (!escrowResult.success) {
+          throw new Error(escrowResult.error ?? 'Escrow release failed');
+        }
+
+        brandTxHash = escrowResult.brandTxHash;
+        feeTxHash = escrowResult.bakedBotTxHash;
+
+        logger.info(`[settlement] GreenLedger advance path: escrow ${escrowWalletId} → brand ${brandWalletAddress} (discount $${advanceResult.discountUsd.toFixed(4)})`);
+      } else {
+        // Standard path: transfer from dispensary's x402 wallet
+        const brandTransfer = await sendUSDC({
+          fromOrgId: dispensaryOrgId,
+          toAddress: brandWalletAddress,
+          amountUsd: effectiveBrandReceivesUsd,
+        });
+
+        if (!brandTransfer.success) {
+          throw new Error(brandTransfer.error ?? 'CDP transfer failed');
+        }
+
+        brandTxHash = brandTransfer.txHash;
+
+        // Transfer BakedBot's fee from dispensary wallet → BakedBot wallet
+        if (bakedBotFeeUsd >= 0.01) {
+          const bakedBotAddress = getBakedBotWalletAddress();
+          const feeTransfer = await sendUSDC({
+            fromOrgId: dispensaryOrgId,
+            toAddress: bakedBotAddress,
+            amountUsd: bakedBotFeeUsd,
+          });
+
+          if (feeTransfer.success) {
+            feeTxHash = feeTransfer.txHash;
+          } else {
+            logger.warn(`[settlement] BakedBot fee transfer failed (non-fatal): ${feeTransfer.error}`);
+          }
         }
       }
 
       // Mark settled
       await settlementRef.update({
         status: 'settled',
-        txHash: brandTransfer.txHash,
+        txHash: brandTxHash ?? null,
         feeTxHash: feeTxHash ?? null,
         settledAt: FieldValue.serverTimestamp(),
       });
 
       logger.info(
-        `[settlement] ✅ Settled brand ${brandOrgId}: $${brandReceivesUsd.toFixed(4)} → ${brandWalletAddress} (tx: ${brandTransfer.txHash})`,
+        `[settlement] ✅ Settled brand ${brandOrgId}: $${effectiveBrandReceivesUsd.toFixed(4)} → ${brandWalletAddress} (tx: ${brandTxHash})`,
       );
     } catch (err) {
       logger.error(`[settlement] Transfer failed for brand ${brandOrgId}: ${String(err)}`);
