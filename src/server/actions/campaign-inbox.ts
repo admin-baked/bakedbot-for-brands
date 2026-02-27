@@ -31,7 +31,12 @@ import type { Playbook, PlaybookTrigger, PlaybookStep } from '@/types/playbook';
 const ALLOWED_ROLES: UserRole[] = ['dispensary_admin', 'brand_admin', 'super_user'];
 
 function getOrgId(user: { orgId?: string; brandId?: string; currentOrgId?: string; uid: string }): string {
-    return user.orgId || user.brandId || user.currentOrgId || user.uid;
+    return user.currentOrgId || user.orgId || user.brandId || user.uid;
+}
+
+function isCronExpressionValid(cron: string): boolean {
+    // Basic 5-field cron validation; executor enforces semantics later.
+    return /^(\S+\s+){4}\S+$/.test(cron.trim());
 }
 
 // ---------------------------------------------------------------------------
@@ -97,6 +102,12 @@ export async function sendCampaignFromInbox(params: {
 
         if (!data.body) {
             return { success: false, error: 'Draft has no body content.' };
+        }
+        if (data.channel !== 'email') {
+            return {
+                success: false,
+                error: 'SMS outreach drafts are not supported in inbox fast-path yet. Use the campaign wizard.',
+            };
         }
 
         // ── 1. Inline Deebo compliance check ────────────────────────────────
@@ -341,6 +352,12 @@ export async function scheduleCampaignFromInbox(params: {
         if (!data.body) {
             return { success: false, error: 'Draft has no body content.' };
         }
+        if (data.channel !== 'email') {
+            return {
+                success: false,
+                error: 'SMS outreach drafts are not supported in inbox fast-path yet. Use the campaign wizard.',
+            };
+        }
 
         const scheduledAt = new Date(params.scheduledAt);
         if (isNaN(scheduledAt.getTime()) || scheduledAt <= new Date()) {
@@ -464,9 +481,16 @@ export async function convertOutreachToPlaybook(params: {
         const orgId = getOrgId(user);
 
         const { data } = await loadOutreachArtifact(params.artifactId, orgId);
+        const playbookName = params.playbookName.trim();
+        if (!playbookName) {
+            return { success: false, error: 'Playbook name is required.' };
+        }
 
         if (!data.body) {
             return { success: false, error: 'Draft has no body content.' };
+        }
+        if (params.cronSchedule && !isCronExpressionValid(params.cronSchedule)) {
+            return { success: false, error: 'Invalid cron schedule format. Use 5-field cron syntax.' };
         }
 
         const db = getAdminFirestore();
@@ -493,7 +517,7 @@ export async function convertOutreachToPlaybook(params: {
         };
 
         const playbook: Omit<Playbook, 'id'> = {
-            name: params.playbookName,
+            name: playbookName,
             description: params.description || `Repeating campaign created from inbox draft`,
             status: 'draft',
             agent: 'craig',

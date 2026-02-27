@@ -1,0 +1,192 @@
+import {
+  sendCampaignFromInbox,
+  scheduleCampaignFromInbox,
+  convertOutreachToPlaybook,
+} from '../campaign-inbox';
+import { requireUser } from '@/server/auth/auth';
+import { getAdminFirestore } from '@/firebase/admin';
+import { sendGenericEmail } from '@/lib/email/dispatcher';
+import { deebo } from '@/server/agents/deebo';
+import { resolveAudience } from '@/server/services/campaign-sender';
+
+jest.mock('@/server/auth/auth', () => ({
+  requireUser: jest.fn(),
+}));
+
+jest.mock('@/firebase/admin', () => ({
+  getAdminFirestore: jest.fn(),
+}));
+
+jest.mock('@/lib/email/dispatcher', () => ({
+  sendGenericEmail: jest.fn(),
+}));
+
+jest.mock('@/server/agents/deebo', () => ({
+  deebo: {
+    checkContent: jest.fn(),
+  },
+}));
+
+jest.mock('@/server/services/campaign-sender', () => ({
+  resolveAudience: jest.fn(),
+  personalize: jest.fn((body: string) => body),
+}));
+
+jest.mock('@/lib/logger', () => ({
+  logger: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
+
+describe('campaign-inbox actions', () => {
+  const mockArtifactGet = jest.fn();
+  const mockArtifactUpdate = jest.fn();
+  const mockInboArtifactDoc = {
+    get: mockArtifactGet,
+    update: mockArtifactUpdate,
+  };
+  const mockPlaybookSet = jest.fn();
+  const mockPlaybookDoc = {
+    id: 'pb-1',
+    set: mockPlaybookSet,
+  };
+  const mockCollection = jest.fn();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'user-1',
+      role: 'dispensary_admin',
+      orgId: 'org-base',
+      currentOrgId: 'org-current',
+    });
+
+    mockCollection.mockImplementation((name: string) => {
+      if (name === 'inbox_artifacts') {
+        return {
+          doc: jest.fn(() => mockInboArtifactDoc),
+        };
+      }
+      if (name === 'playbooks') {
+        return {
+          doc: jest.fn(() => mockPlaybookDoc),
+        };
+      }
+      return {
+        doc: jest.fn(() => ({ id: 'generic-doc', get: jest.fn(), set: jest.fn() })),
+      };
+    });
+
+    (getAdminFirestore as jest.Mock).mockReturnValue({
+      collection: mockCollection,
+    });
+  });
+
+  it('uses currentOrgId context and rejects sms fast-path sends', async () => {
+    mockArtifactGet.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        orgId: 'org-current',
+        type: 'outreach_draft',
+        data: {
+          channel: 'sms',
+          body: 'SMS body',
+          targetSegments: [],
+        },
+      }),
+    });
+
+    const result = await sendCampaignFromInbox({ artifactId: 'art-1' });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'SMS outreach drafts are not supported in inbox fast-path yet. Use the campaign wizard.',
+    });
+    expect(deebo.checkContent).not.toHaveBeenCalled();
+    expect(resolveAudience).not.toHaveBeenCalled();
+    expect(sendGenericEmail).not.toHaveBeenCalled();
+  });
+
+  it('rejects sms fast-path scheduling', async () => {
+    mockArtifactGet.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        orgId: 'org-current',
+        type: 'outreach_draft',
+        data: {
+          channel: 'sms',
+          body: 'SMS body',
+          targetSegments: [],
+        },
+      }),
+    });
+
+    const result = await scheduleCampaignFromInbox({
+      artifactId: 'art-1',
+      scheduledAt: new Date(Date.now() + 60_000).toISOString(),
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'SMS outreach drafts are not supported in inbox fast-path yet. Use the campaign wizard.',
+    });
+    expect(deebo.checkContent).not.toHaveBeenCalled();
+  });
+
+  it('validates playbook name before converting outreach drafts', async () => {
+    mockArtifactGet.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        orgId: 'org-current',
+        type: 'outreach_draft',
+        data: {
+          channel: 'email',
+          body: 'Email body',
+          targetSegments: ['vip'],
+        },
+      }),
+    });
+
+    const result = await convertOutreachToPlaybook({
+      artifactId: 'art-2',
+      playbookName: '   ',
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Playbook name is required.',
+    });
+    expect(mockPlaybookSet).not.toHaveBeenCalled();
+  });
+
+  it('validates cron schedule format when converting outreach drafts', async () => {
+    mockArtifactGet.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        orgId: 'org-current',
+        type: 'outreach_draft',
+        data: {
+          channel: 'email',
+          body: 'Email body',
+          targetSegments: ['vip'],
+        },
+      }),
+    });
+
+    const result = await convertOutreachToPlaybook({
+      artifactId: 'art-2',
+      playbookName: 'Weekly VIP Followup',
+      cronSchedule: 'every day at 9am',
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Invalid cron schedule format. Use 5-field cron syntax.',
+    });
+    expect(mockPlaybookSet).not.toHaveBeenCalled();
+  });
+});
