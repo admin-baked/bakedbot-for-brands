@@ -32,6 +32,79 @@ import type {
 } from '@/types/delivery';
 import type { ShippingAddress } from '@/types/orders';
 
+function isSuperRole(role: unknown): boolean {
+    return role === 'super_user' || role === 'super_admin';
+}
+
+function getActorOrgId(user: unknown): string | null {
+    if (!user || typeof user !== 'object') return null;
+    const token = user as {
+        currentOrgId?: string;
+        orgId?: string;
+        brandId?: string;
+        dispensaryId?: string;
+        tenantId?: string;
+        organizationId?: string;
+        locationId?: string;
+    };
+    return (
+        token.currentOrgId ||
+        token.orgId ||
+        token.brandId ||
+        token.dispensaryId ||
+        token.tenantId ||
+        token.organizationId ||
+        token.locationId ||
+        null
+    );
+}
+
+function normalizeToOrgId(scopeId: string | null | undefined): string | null {
+    if (!scopeId) return null;
+    if (scopeId.startsWith('loc_')) {
+        return `org_${scopeId.slice(4)}`;
+    }
+    return scopeId;
+}
+
+function assertOrgAccess(user: unknown, targetOrgOrLocationId: string): void {
+    const role = typeof user === 'object' && user ? (user as { role?: string }).role : null;
+    if (isSuperRole(role)) {
+        return;
+    }
+
+    const actorOrgId = normalizeToOrgId(getActorOrgId(user));
+    const targetOrgId = normalizeToOrgId(targetOrgOrLocationId);
+    if (!actorOrgId || !targetOrgId || actorOrgId !== targetOrgId) {
+        throw new Error('Unauthorized');
+    }
+}
+
+function assertLocationAccess(user: unknown, locationId: string): void {
+    assertOrgAccess(user, locationId);
+}
+
+async function fetchDeliveryZonesForLocation(locationId: string): Promise<DeliveryZone[]> {
+    const db = getAdminFirestore();
+
+    const zonesSnapshot = await db
+        .collection('locations')
+        .doc(locationId)
+        .collection('delivery_zones')
+        .orderBy('radiusMiles', 'asc')
+        .get();
+
+    return zonesSnapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+            ...data,
+            id: doc.id,
+            createdAt: data.createdAt?.toDate?.()?.toISOString() ?? null,
+            updatedAt: data.updatedAt?.toDate?.()?.toISOString() ?? null,
+        };
+    }) as unknown as DeliveryZone[];
+}
+
 // ===========================
 // Driver Management Actions
 // ===========================
@@ -43,6 +116,7 @@ import type { ShippingAddress } from '@/types/orders';
 export async function createDriver(input: CreateDriverInput) {
     try {
         const user = await requireUser(['dispensary_admin', 'super_user']);
+        assertOrgAccess(user, input.orgId);
         const db = getAdminFirestore();
 
         // Validate driver age (must be 21+ per NY OCM)
@@ -116,8 +190,17 @@ export async function createDriver(input: CreateDriverInput) {
  */
 export async function updateDriver(driverId: string, input: UpdateDriverInput) {
     try {
-        await requireUser(['dispensary_admin', 'super_user']);
+        const currentUser = await requireUser(['dispensary_admin', 'super_user']);
         const db = getAdminFirestore();
+        const driverRef = db.collection('drivers').doc(driverId);
+        const driverDoc = await driverRef.get();
+
+        if (!driverDoc.exists) {
+            return { success: false, error: 'Driver not found' };
+        }
+
+        const driver = driverDoc.data() as Driver;
+        assertOrgAccess(currentUser, driver.orgId);
 
         const updateData: any = {
             ...input,
@@ -129,7 +212,7 @@ export async function updateDriver(driverId: string, input: UpdateDriverInput) {
             updateData.licenseExpiry = Timestamp.fromDate(new Date(input.licenseExpiry));
         }
 
-        await db.collection('drivers').doc(driverId).update(updateData);
+        await driverRef.update(updateData);
 
         logger.info('Driver updated', { driverId });
 
@@ -150,7 +233,7 @@ export async function updateDriver(driverId: string, input: UpdateDriverInput) {
  */
 export async function toggleDriverAvailability(driverId: string) {
     try {
-        await requireUser(['dispensary_admin', 'super_user', 'delivery_driver']);
+        const currentUser = await requireUser(['dispensary_admin', 'super_user', 'delivery_driver']);
         const db = getAdminFirestore();
 
         const driverRef = db.collection('drivers').doc(driverId);
@@ -160,7 +243,10 @@ export async function toggleDriverAvailability(driverId: string) {
             return { success: false, error: 'Driver not found' };
         }
 
-        const currentAvailability = driverDoc.data()?.isAvailable || false;
+        const driver = driverDoc.data() as Driver;
+        assertOrgAccess(currentUser, driver.orgId);
+
+        const currentAvailability = driver.isAvailable || false;
 
         await driverRef.update({
             isAvailable: !currentAvailability,
@@ -186,7 +272,8 @@ export async function toggleDriverAvailability(driverId: string) {
  */
 export async function getDrivers(orgId: string) {
     try {
-        await requireUser(['dispensary_admin', 'dispensary_staff', 'super_user']);
+        const currentUser = await requireUser(['dispensary_admin', 'dispensary_staff', 'super_user']);
+        assertOrgAccess(currentUser, orgId);
         const db = getAdminFirestore();
 
         const driversSnapshot = await db
@@ -216,7 +303,8 @@ export async function getDrivers(orgId: string) {
  */
 export async function getAvailableDrivers(orgId: string) {
     try {
-        await requireUser(['dispensary_admin', 'dispensary_staff', 'super_user']);
+        const currentUser = await requireUser(['dispensary_admin', 'dispensary_staff', 'super_user']);
+        assertOrgAccess(currentUser, orgId);
         const db = getAdminFirestore();
 
         const driversSnapshot = await db
@@ -372,7 +460,7 @@ export async function autoAssignDriver(deliveryId: string, locationId: string) {
  */
 export async function assignDriver(deliveryId: string, driverId: string) {
     try {
-        await requireUser(['dispensary_admin', 'dispensary_staff', 'super_user']);
+        const currentUser = await requireUser(['dispensary_admin', 'dispensary_staff', 'super_user']);
         const db = getAdminFirestore();
 
         // Use transaction to prevent double-assignment
@@ -393,7 +481,15 @@ export async function assignDriver(deliveryId: string, driverId: string) {
                 throw new Error('Driver not found');
             }
 
+            const delivery = deliveryDoc.data() as Delivery;
             const driver = driverDoc.data() as Driver;
+
+            assertLocationAccess(currentUser, delivery.locationId);
+            assertOrgAccess(currentUser, driver.orgId);
+
+            if (normalizeToOrgId(driver.orgId) !== normalizeToOrgId(delivery.locationId)) {
+                throw new Error('Driver and delivery org mismatch');
+            }
 
             if (!driver.isAvailable) {
                 throw new Error('Driver is not available');
@@ -451,7 +547,7 @@ export async function assignDriver(deliveryId: string, driverId: string) {
  */
 export async function updateDeliveryStatus(input: UpdateDeliveryStatusInput) {
     try {
-        await requireUser(['dispensary_admin', 'dispensary_staff', 'delivery_driver', 'super_user']);
+        const currentUser = await requireUser(['dispensary_admin', 'dispensary_staff', 'delivery_driver', 'super_user']);
         const db = getAdminFirestore();
 
         const deliveryRef = db.collection('deliveries').doc(input.deliveryId);
@@ -459,6 +555,29 @@ export async function updateDeliveryStatus(input: UpdateDeliveryStatusInput) {
 
         if (!deliveryDoc.exists) {
             return { success: false, error: 'Delivery not found' };
+        }
+
+        const delivery = deliveryDoc.data() as Delivery;
+        const role = typeof currentUser === 'object' && currentUser ? (currentUser as { role?: string }).role : null;
+
+        if (!isSuperRole(role)) {
+            if (role === 'delivery_driver') {
+                if (!delivery.driverId) {
+                    return { success: false, error: 'Unauthorized' };
+                }
+
+                const driverDoc = await db.collection('drivers').doc(delivery.driverId).get();
+                if (!driverDoc.exists) {
+                    return { success: false, error: 'Unauthorized' };
+                }
+
+                const driver = driverDoc.data() as Driver;
+                if (!driver.userId || driver.userId !== currentUser.uid) {
+                    return { success: false, error: 'Unauthorized' };
+                }
+            } else {
+                assertLocationAccess(currentUser, delivery.locationId);
+            }
         }
 
         const updateData: any = {
@@ -514,7 +633,8 @@ export async function updateDeliveryStatus(input: UpdateDeliveryStatusInput) {
  */
 export async function getActiveDeliveries(locationId: string) {
     try {
-        await requireUser(['dispensary_admin', 'dispensary_staff', 'super_user']);
+        const currentUser = await requireUser(['dispensary_admin', 'dispensary_staff', 'super_user']);
+        assertLocationAccess(currentUser, locationId);
         const db = getAdminFirestore();
 
         const deliveriesSnapshot = await db
@@ -575,7 +695,8 @@ export async function getDelivery(deliveryId: string) {
  */
 export async function createDeliveryZone(input: CreateZoneInput) {
     try {
-        await requireUser(['dispensary_admin', 'super_user']);
+        const currentUser = await requireUser(['dispensary_admin', 'super_user']);
+        assertLocationAccess(currentUser, input.locationId);
         const db = getAdminFirestore();
 
         const zoneId = `zone_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -618,7 +739,8 @@ export async function createDeliveryZone(input: CreateZoneInput) {
  */
 export async function updateDeliveryZone(locationId: string, zoneId: string, input: UpdateZoneInput) {
     try {
-        await requireUser(['dispensary_admin', 'super_user']);
+        const currentUser = await requireUser(['dispensary_admin', 'super_user']);
+        assertLocationAccess(currentUser, locationId);
         const db = getAdminFirestore();
 
         const updateData = {
@@ -652,24 +774,9 @@ export async function updateDeliveryZone(locationId: string, zoneId: string, inp
  */
 export async function getDeliveryZones(locationId: string) {
     try {
-        const db = getAdminFirestore();
-
-        const zonesSnapshot = await db
-            .collection('locations')
-            .doc(locationId)
-            .collection('delivery_zones')
-            .orderBy('radiusMiles', 'asc')
-            .get();
-
-        const zones = zonesSnapshot.docs.map((doc) => {
-            const data = doc.data();
-            return {
-                ...data,
-                id: doc.id,
-                createdAt: data.createdAt?.toDate?.()?.toISOString() ?? null,
-                updatedAt: data.updatedAt?.toDate?.()?.toISOString() ?? null,
-            };
-        }) as unknown as DeliveryZone[];
+        const currentUser = await requireUser(['dispensary_admin', 'dispensary_staff', 'super_user']);
+        assertLocationAccess(currentUser, locationId);
+        const zones = await fetchDeliveryZonesForLocation(locationId);
 
         return { success: true, zones };
     } catch (error) {
@@ -703,13 +810,13 @@ export async function calculateDeliveryFee(
         const locationData = locationDoc.data();
         const locationAddress = locationData?.address;
 
-        // Get all active zones
-        const zonesResult = await getDeliveryZones(locationId);
-        if (!zonesResult.success || !zonesResult.zones) {
+        // Get all active zones (public route uses this path; do not require dashboard auth)
+        const zones = await fetchDeliveryZonesForLocation(locationId);
+        if (!zones || zones.length === 0) {
             return { success: false, error: 'No delivery zones configured' };
         }
 
-        const activeZones = zonesResult.zones.filter((z) => z.isActive);
+        const activeZones = zones.filter((z) => z.isActive);
         if (activeZones.length === 0) {
             return { success: false, error: 'No active delivery zones' };
         }
@@ -748,7 +855,8 @@ export async function calculateDeliveryFee(
  */
 export async function getDeliveryStats(locationId: string): Promise<DeliveryStats> {
     try {
-        await requireUser(['dispensary_admin', 'dispensary_staff', 'super_user']);
+        const currentUser = await requireUser(['dispensary_admin', 'dispensary_staff', 'super_user']);
+        assertLocationAccess(currentUser, locationId);
         const db = getAdminFirestore();
 
         const deliveriesSnapshot = await db
@@ -836,6 +944,7 @@ export async function reassignDriver(deliveryId: string, newDriverId: string) {
         }
 
         const delivery = deliveryDoc.data() as Delivery;
+        assertLocationAccess(currentUser, delivery.locationId);
 
         // Cannot reassign completed/failed deliveries
         if (delivery.status === 'delivered' || delivery.status === 'failed') {
@@ -855,6 +964,15 @@ export async function reassignDriver(deliveryId: string, newDriverId: string) {
         }
 
         const newDriver = newDriverDoc.data() as Driver;
+        assertOrgAccess(currentUser, newDriver.orgId);
+
+        if (normalizeToOrgId(newDriver.orgId) !== normalizeToOrgId(delivery.locationId)) {
+            return {
+                success: false,
+                error: 'Driver and delivery org mismatch',
+            };
+        }
+
         if (newDriver.status !== 'active') {
             return {
                 success: false,
@@ -893,7 +1011,8 @@ export async function reassignDriver(deliveryId: string, newDriverId: string) {
  */
 export async function getDriverPerformance(locationId: string) {
     try {
-        await requireUser(DISPENSARY_ADMIN_ROLES);
+        const currentUser = await requireUser(DISPENSARY_ADMIN_ROLES);
+        assertLocationAccess(currentUser, locationId);
         const db = getAdminFirestore();
 
         // Get completed deliveries grouped by driver
