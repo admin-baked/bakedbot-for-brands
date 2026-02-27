@@ -38,6 +38,79 @@ const offersCol = () => db().collection('greenledger_offers');
 const advancesCol = () => db().collection('greenledger_advances');
 const txCol = () => db().collection('greenledger_transactions');
 
+function normalizeDescription(description: string): string {
+  const normalized = description.trim();
+  if (!normalized) throw new Error('Offer description is required');
+  return normalized;
+}
+
+function normalizeEligibleOrgIds(eligibleOrgIds: string[] | undefined): string[] | undefined {
+  if (eligibleOrgIds === undefined) return undefined;
+  const normalized = Array.from(
+    new Set(
+      eligibleOrgIds
+        .filter((value): value is string => typeof value === 'string')
+        .map((value) => value.trim())
+        .filter((value) => value.length > 0),
+    ),
+  );
+  return normalized;
+}
+
+function normalizePositiveUsd(value: number | undefined, fieldName: string): number | undefined {
+  if (value === undefined) return undefined;
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    throw new Error(`${fieldName} must be a positive number`);
+  }
+  return roundUsd(numeric);
+}
+
+function normalizeOfferTiers(tiers: CreateOfferInput['tiers']): Omit<OfferTier, 'id'>[] {
+  if (!Array.isArray(tiers) || tiers.length === 0) {
+    throw new Error('Offer must include at least one tier');
+  }
+
+  return tiers.map((tier, index) => {
+    const minDepositUsd = Number(tier?.minDepositUsd);
+    if (!Number.isFinite(minDepositUsd) || minDepositUsd <= 0) {
+      throw new Error(`Tier ${index + 1}: minDepositUsd must be a positive number`);
+    }
+
+    const discountBps = Number(tier?.discountBps);
+    if (!Number.isFinite(discountBps) || discountBps <= 0 || discountBps > 10000) {
+      throw new Error(`Tier ${index + 1}: discountBps must be between 1 and 10000`);
+    }
+
+    const normalized: Omit<OfferTier, 'id'> = {
+      minDepositUsd: roundUsd(minDepositUsd),
+      discountBps: Math.round(discountBps),
+    };
+
+    if (tier?.durationDays !== undefined) {
+      const durationDays = Number(tier.durationDays);
+      if (!Number.isFinite(durationDays) || durationDays <= 0) {
+        throw new Error(`Tier ${index + 1}: durationDays must be a positive number when provided`);
+      }
+      normalized.durationDays = Math.floor(durationDays);
+    }
+
+    return normalized;
+  });
+}
+
+function normalizeExpiresAt(expiresAt: string | undefined): Date | undefined {
+  if (expiresAt === undefined) return undefined;
+  if (expiresAt.trim().length === 0) {
+    throw new Error('expiresAt must be a valid ISO date string');
+  }
+  const parsed = new Date(expiresAt);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error('expiresAt must be a valid ISO date string');
+  }
+  return parsed;
+}
+
 function roundUsd(value: number): number {
   return Math.round(value * 100) / 100;
 }
@@ -74,8 +147,17 @@ export async function createOffer(
   brandLogoUrl?: string,
   brandPrimaryColor?: string,
 ): Promise<GreenLedgerOffer> {
+  const description = normalizeDescription(input.description);
+  const tiersInput = normalizeOfferTiers(input.tiers);
+  const eligibleOrgIds = normalizeEligibleOrgIds(input.eligibleOrgIds);
+  if (input.eligibility === 'specific' && (!eligibleOrgIds || eligibleOrgIds.length === 0)) {
+    throw new Error('eligibleOrgIds is required when eligibility is specific');
+  }
+  const maxCommitmentsUsd = normalizePositiveUsd(input.maxCommitmentsUsd, 'maxCommitmentsUsd');
+  const expiresAt = normalizeExpiresAt(input.expiresAt);
+
   const offerId = nanoid();
-  const tiers: OfferTier[] = input.tiers.map((t) => ({ ...t, id: nanoid() }));
+  const tiers: OfferTier[] = tiersInput.map((t) => ({ ...t, id: nanoid() }));
 
   const now = FieldValue.serverTimestamp();
   const doc: Omit<GreenLedgerOffer, 'createdAt' | 'updatedAt'> & {
@@ -87,15 +169,15 @@ export async function createOffer(
     brandName,
     brandLogoUrl,
     brandPrimaryColor,
-    description: input.description,
+    description,
     tiers,
     eligibility: input.eligibility,
-    eligibleOrgIds: input.eligibleOrgIds,
-    maxCommitmentsUsd: input.maxCommitmentsUsd,
+    eligibleOrgIds,
+    maxCommitmentsUsd,
     currentCommitmentsUsd: 0,
     status: 'draft',
-    expiresAt: input.expiresAt
-      ? Timestamp.fromDate(new Date(input.expiresAt))
+    expiresAt: expiresAt
+      ? Timestamp.fromDate(expiresAt)
       : undefined,
     createdAt: now,
     updatedAt: now,
@@ -118,15 +200,25 @@ export async function updateOffer(
     throw new Error('Offer not found or access denied');
   }
   const patch: Record<string, unknown> = { updatedAt: FieldValue.serverTimestamp() };
-  if (updates.description !== undefined) patch.description = updates.description;
+  if (updates.description !== undefined) patch.description = normalizeDescription(updates.description);
   if (updates.eligibility !== undefined) patch.eligibility = updates.eligibility;
-  if (updates.eligibleOrgIds !== undefined) patch.eligibleOrgIds = updates.eligibleOrgIds;
-  if (updates.maxCommitmentsUsd !== undefined) patch.maxCommitmentsUsd = updates.maxCommitmentsUsd;
+  if (updates.eligibleOrgIds !== undefined) {
+    patch.eligibleOrgIds = normalizeEligibleOrgIds(updates.eligibleOrgIds);
+  }
+  if (
+    updates.eligibility === 'specific'
+    && (!Array.isArray(patch.eligibleOrgIds) || patch.eligibleOrgIds.length === 0)
+  ) {
+    throw new Error('eligibleOrgIds is required when eligibility is specific');
+  }
+  if (updates.maxCommitmentsUsd !== undefined) {
+    patch.maxCommitmentsUsd = normalizePositiveUsd(updates.maxCommitmentsUsd, 'maxCommitmentsUsd');
+  }
   if (updates.expiresAt !== undefined) {
-    patch.expiresAt = Timestamp.fromDate(new Date(updates.expiresAt));
+    patch.expiresAt = Timestamp.fromDate(normalizeExpiresAt(updates.expiresAt)!);
   }
   if (updates.tiers !== undefined) {
-    patch.tiers = updates.tiers.map((t) => ({ ...t, id: nanoid() }));
+    patch.tiers = normalizeOfferTiers(updates.tiers).map((t) => ({ ...t, id: nanoid() }));
   }
   await ref.update(patch);
 }
