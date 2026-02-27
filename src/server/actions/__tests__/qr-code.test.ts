@@ -42,7 +42,8 @@ describe('qr-code actions: getQRCodes access control', () => {
 
   it('ignores caller-provided orgId for non-super users', async () => {
     (getServerSessionUser as jest.Mock).mockResolvedValue({
-      uid: 'org-a',
+      uid: 'user-1',
+      currentOrgId: 'org-a',
       role: 'dispensary_admin',
     });
 
@@ -62,5 +63,33 @@ describe('qr-code actions: getQRCodes access control', () => {
 
     expect(result.success).toBe(true);
     expect(query.where).toHaveBeenCalledWith('orgId', '==', 'org-b');
+  });
+
+  it('uses super user org context when no orgId filter is provided', async () => {
+    (getServerSessionUser as jest.Mock).mockResolvedValue({
+      uid: 'super-1',
+      role: 'super_user',
+      currentOrgId: 'org-super',
+    });
+
+    const result = await getQRCodes();
+
+    expect(result.success).toBe(true);
+    expect(query.where).toHaveBeenCalledWith('orgId', '==', 'org-super');
+  });
+
+  it('returns an error when org context is missing', async () => {
+    (getServerSessionUser as jest.Mock).mockResolvedValue({
+      uid: 'user-1',
+      role: 'dispensary_admin',
+    });
+
+    const result = await getQRCodes();
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Missing organization context',
+    });
+    expect(query.where).not.toHaveBeenCalled();
   });
 });

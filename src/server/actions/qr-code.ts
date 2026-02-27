@@ -23,6 +23,32 @@ function getDb() {
     return getAdminFirestore();
 }
 
+type SessionActor = {
+    uid: string;
+    role?: string;
+    orgId?: string;
+    brandId?: string;
+    currentOrgId?: string;
+};
+
+function isSuperRole(role: unknown): boolean {
+    return role === 'super_user' || role === 'super_admin';
+}
+
+function getActorOrgId(user: SessionActor): string | null {
+    return user.currentOrgId || user.orgId || user.brandId || null;
+}
+
+function isValidOrgId(orgId: string): boolean {
+    return !!orgId && !orgId.includes('/');
+}
+
+function canAccessOrg(user: SessionActor, orgId: string): boolean {
+    if (isSuperRole(user.role)) return true;
+    const actorOrgId = getActorOrgId(user);
+    return !!actorOrgId && actorOrgId === orgId;
+}
+
 // ============ QR Code Generation ============
 
 /**
@@ -45,6 +71,15 @@ export async function generateQRCode(input: {
         const user = await getServerSessionUser();
         if (!user) {
             return { success: false, error: 'Unauthorized' };
+        }
+        const actor = user as SessionActor;
+        const orgId = getActorOrgId(actor);
+        if (!orgId || !isValidOrgId(orgId)) {
+            logger.warn('Missing org context for QR code generation', {
+                actor: actor.uid,
+                role: actor.role,
+            });
+            return { success: false, error: 'Missing organization context' };
         }
 
         // Normalize target URL to ensure it has a protocol
@@ -79,7 +114,7 @@ export async function generateQRCode(input: {
         // Create QR code record
         const qrCode: QRCodeType = {
             id: qrCodeId,
-            orgId: user.uid, // TODO: Get actual orgId from user context
+            orgId,
             type: input.type,
             title: input.title,
             description: input.description,
@@ -205,10 +240,24 @@ export async function getQRCodes(params?: {
         if (!user) {
             return { success: false, error: 'Unauthorized' };
         }
+        const actor = user as SessionActor;
+        const actorOrgId = getActorOrgId(actor);
+        const isSuperUser = isSuperRole(actor.role);
+        const requestedOrgId = params?.orgId;
+
+        const scopedOrgId = isSuperUser
+            ? (requestedOrgId || actorOrgId)
+            : actorOrgId;
+        if (!scopedOrgId || !isValidOrgId(scopedOrgId)) {
+            logger.warn('Missing org scope for QR code query', {
+                actor: actor.uid,
+                role: actor.role,
+                requestedOrgId,
+            });
+            return { success: false, error: 'Missing organization context' };
+        }
 
         const db = getDb();
-        const isSuperUser = user.role === 'super_user' || user.role === 'super_admin';
-        const scopedOrgId = isSuperUser ? (params?.orgId || user.uid) : user.uid;
         let query = db.collection(QR_CODES_COLLECTION)
             .where('orgId', '==', scopedOrgId);
 
@@ -250,6 +299,7 @@ export async function getQRCodeAnalytics(
         if (!user) {
             return { success: false, error: 'Unauthorized' };
         }
+        const actor = user as SessionActor;
 
         const db = getDb();
 
@@ -262,7 +312,7 @@ export async function getQRCodeAnalytics(
         const qrCode = qrCodeDoc.data() as QRCodeType;
 
         // Verify ownership
-        if (qrCode.orgId !== user.uid) {
+        if (!canAccessOrg(actor, qrCode.orgId)) {
             return { success: false, error: 'Unauthorized' };
         }
 
@@ -333,6 +383,7 @@ export async function updateQRCode(
         if (!user) {
             return { success: false, error: 'Unauthorized' };
         }
+        const actor = user as SessionActor;
 
         const db = getDb();
 
@@ -343,7 +394,7 @@ export async function updateQRCode(
         }
 
         const qrCode = qrCodeDoc.data() as QRCodeType;
-        if (qrCode.orgId !== user.uid) {
+        if (!canAccessOrg(actor, qrCode.orgId)) {
             return { success: false, error: 'Unauthorized' };
         }
 
@@ -383,6 +434,7 @@ export async function deleteQRCode(
         if (!user) {
             return { success: false, error: 'Unauthorized' };
         }
+        const actor = user as SessionActor;
 
         const db = getDb();
 
@@ -393,7 +445,7 @@ export async function deleteQRCode(
         }
 
         const qrCode = qrCodeDoc.data() as QRCodeType;
-        if (qrCode.orgId !== user.uid) {
+        if (!canAccessOrg(actor, qrCode.orgId)) {
             return { success: false, error: 'Unauthorized' };
         }
 
