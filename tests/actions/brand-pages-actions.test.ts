@@ -136,6 +136,7 @@ function buildFirestoreMock(overrides: {
 describe('getBrandPage', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        (requireUser as jest.Mock).mockResolvedValue(MOCK_USER);
     });
 
     it('returns page content when document exists', async () => {
@@ -192,6 +193,20 @@ describe('getBrandPage', () => {
         expect(mockOrgDoc).toHaveBeenCalledWith(ORG_ID);
         expect(mockSubCollection).toHaveBeenCalledWith('brand_pages');
         expect(mockDoc).toHaveBeenCalledWith('careers');
+    });
+
+    it('returns null for cross-org reads by non-super users', async () => {
+        const { firestore } = buildFirestoreMock();
+        (createServerClient as jest.Mock).mockResolvedValue({ firestore });
+        (requireUser as jest.Mock).mockResolvedValue({
+            uid: 'user123',
+            role: 'dispensary',
+            orgId: 'org_other',
+            currentOrgId: 'org_other',
+        });
+
+        const result = await getBrandPage(ORG_ID, 'about');
+        expect(result).toBeNull();
     });
 });
 
@@ -268,6 +283,19 @@ describe('updateBrandPage', () => {
 
         await expect(updateBrandPage(ORG_ID, 'about', {})).rejects.toThrow('Failed to update brand page');
     });
+
+    it('throws when non-super users try to update a different org', async () => {
+        (requireUser as jest.Mock).mockResolvedValue({
+            uid: 'user123',
+            role: 'dispensary',
+            orgId: 'org_other',
+            currentOrgId: 'org_other',
+        });
+        const { firestore } = buildFirestoreMock();
+        (createServerClient as jest.Mock).mockResolvedValue({ firestore });
+
+        await expect(updateBrandPage(ORG_ID, 'about', {})).rejects.toThrow('Unauthorized');
+    });
 });
 
 // ============================================================================
@@ -319,6 +347,19 @@ describe('toggleBrandPagePublish', () => {
         expect(mockUpdate).toHaveBeenCalledWith(
             expect.objectContaining({ lastEditedBy: MOCK_USER.uid })
         );
+    });
+
+    it('throws when non-super users try to publish a different org', async () => {
+        (requireUser as jest.Mock).mockResolvedValue({
+            uid: 'user123',
+            role: 'dispensary',
+            orgId: 'org_other',
+            currentOrgId: 'org_other',
+        });
+        const { firestore } = buildFirestoreMock();
+        (createServerClient as jest.Mock).mockResolvedValue({ firestore });
+
+        await expect(toggleBrandPagePublish(ORG_ID, 'about', true)).rejects.toThrow('Unauthorized');
     });
 });
 
@@ -393,5 +434,19 @@ describe('getBrandPageBySlug', () => {
         if (result) {
             expect(result.orgId).toBeDefined();
         }
+    });
+
+    it('returns null for unpublished pages on public slug lookup', async () => {
+        const { firestore } = buildFirestoreMock({
+            docExists: true,
+            docData: {
+                ...MOCK_PAGE_DOC,
+                isPublished: false,
+            },
+        });
+        (createServerClient as jest.Mock).mockResolvedValue({ firestore });
+
+        const result = await getBrandPageBySlug('thrivesyracuse', 'about');
+        expect(result).toBeNull();
     });
 });

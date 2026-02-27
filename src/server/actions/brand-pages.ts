@@ -27,6 +27,39 @@ import { Timestamp } from '@google-cloud/firestore';
 import { requireUser } from '@/lib/auth-helpers';
 import { logger } from '@/lib/logger';
 
+function isSuperRole(role: unknown): boolean {
+    return role === 'super_user' || role === 'super_admin';
+}
+
+function getActorOrgId(user: unknown): string | null {
+    if (!user || typeof user !== 'object') return null;
+    const token = user as {
+        uid?: string;
+        currentOrgId?: string;
+        orgId?: string;
+        brandId?: string;
+    };
+    return token.currentOrgId || token.orgId || token.brandId || token.uid || null;
+}
+
+function canAccessOrg(user: unknown, orgId: string): boolean {
+    const role = typeof user === 'object' && user ? (user as { role?: string }).role : null;
+    if (isSuperRole(role)) return true;
+    const actorOrgId = getActorOrgId(user);
+    if (!actorOrgId) return true;
+    return actorOrgId === orgId;
+}
+
+async function getBrandPageDoc(orgId: string, pageType: BrandPageType) {
+    const { firestore } = await createServerClient();
+    return firestore
+        .collection('tenants')
+        .doc(orgId)
+        .collection('brand_pages')
+        .doc(pageType)
+        .get();
+}
+
 // ============================================================================
 // Get Brand Page
 // ============================================================================
@@ -39,14 +72,12 @@ export async function getBrandPage(
     pageType: BrandPageType
 ): Promise<BrandPageDoc | null> {
     try {
-        const { firestore } = await createServerClient();
+        const user = await requireUser(['brand', 'dispensary', 'super_user']);
+        if (!canAccessOrg(user, orgId)) {
+            throw new Error('Unauthorized');
+        }
 
-        const doc = await firestore
-            .collection('tenants')
-            .doc(orgId)
-            .collection('brand_pages')
-            .doc(pageType)
-            .get();
+        const doc = await getBrandPageDoc(orgId, pageType);
 
         if (!doc.exists) {
             // Return default content if page doesn't exist
@@ -65,6 +96,11 @@ export async function getBrandPage(
  */
 export async function getAllBrandPages(orgId: string): Promise<BrandPageDoc[]> {
     try {
+        const user = await requireUser(['brand', 'dispensary', 'super_user']);
+        if (!canAccessOrg(user, orgId)) {
+            throw new Error('Unauthorized');
+        }
+
         const { firestore } = await createServerClient();
 
         const snapshot = await firestore
@@ -109,6 +145,9 @@ export async function updateBrandPage(
     content: Partial<BrandPageDoc>
 ): Promise<BrandPageDoc> {
     const user = await requireUser(['brand', 'dispensary', 'super_user']);
+    if (!canAccessOrg(user, orgId)) {
+        throw new Error('Unauthorized');
+    }
 
     try {
         const { firestore } = await createServerClient();
@@ -166,6 +205,9 @@ export async function toggleBrandPagePublish(
     isPublished: boolean
 ): Promise<BrandPageDoc> {
     const user = await requireUser(['brand', 'dispensary', 'super_user']);
+    if (!canAccessOrg(user, orgId)) {
+        throw new Error('Unauthorized');
+    }
 
     try {
         const { firestore } = await createServerClient();
@@ -264,11 +306,19 @@ export async function getBrandPageBySlug(
             }
 
             const brandId = brandsQuery.docs[0].id;
-            return getBrandPage(brandId, pageType);
+            const pageDoc = await getBrandPageDoc(brandId, pageType);
+            if (!pageDoc.exists) return null;
+            const pageData = pageDoc.data() as Partial<BrandPageDoc>;
+            if (!pageData.isPublished) return null;
+            return { ...pageData, orgId: brandId, pageType } as BrandPageDoc;
         }
 
         const orgId = orgsQuery.docs[0].id;
-        return getBrandPage(orgId, pageType);
+        const pageDoc = await getBrandPageDoc(orgId, pageType);
+        if (!pageDoc.exists) return null;
+        const pageData = pageDoc.data() as Partial<BrandPageDoc>;
+        if (!pageData.isPublished) return null;
+        return { ...pageData, orgId, pageType } as BrandPageDoc;
     } catch (error) {
         logger.error('[getBrandPageBySlug] Error fetching brand page by slug', {
             error,
