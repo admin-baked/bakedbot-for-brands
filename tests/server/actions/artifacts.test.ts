@@ -126,6 +126,31 @@ describe('Artifact Server Actions', () => {
 
             expect(result.type).toBe('markdown');
         });
+
+        it('should reject updating an artifact owned by another user', async () => {
+            const { getAdminFirestore } = require('@/firebase/admin');
+            getAdminFirestore.mockImplementationOnce(() => ({
+                collection: jest.fn(() => ({
+                    doc: jest.fn(() => ({
+                        id: 'existing-artifact-id',
+                        get: jest.fn().mockResolvedValue({
+                            exists: true,
+                            data: () => ({ ownerId: 'different-user' }),
+                        }),
+                        set: jest.fn().mockResolvedValue({}),
+                    })),
+                })),
+            }));
+
+            await expect(
+                saveArtifact({
+                    id: 'existing-artifact-id',
+                    type: 'code',
+                    title: 'Unauthorized update',
+                    content: 'nope',
+                })
+            ).rejects.toThrow('Not authorized');
+        });
     });
 
     describe('shareArtifact', () => {
@@ -153,6 +178,45 @@ describe('Artifact Server Actions', () => {
             );
 
             expect(result.success).toBe(true);
+        });
+
+        it('should reject sharing artifacts owned by another user', async () => {
+            const { getAdminFirestore } = require('@/firebase/admin');
+            getAdminFirestore.mockImplementationOnce(() => ({
+                collection: jest.fn((name: string) => {
+                    if (name === 'artifacts') {
+                        return {
+                            doc: jest.fn(() => ({
+                                get: jest.fn().mockResolvedValue({
+                                    exists: true,
+                                    data: () => ({ ownerId: 'different-user' }),
+                                }),
+                                update: jest.fn().mockResolvedValue({}),
+                            })),
+                        };
+                    }
+
+                    if (name === 'shared_artifacts') {
+                        return {
+                            doc: jest.fn(() => ({
+                                set: jest.fn().mockResolvedValue({}),
+                            })),
+                        };
+                    }
+
+                    return { doc: jest.fn() };
+                }),
+            }));
+
+            const result = await shareArtifact(
+                'artifact-123',
+                'Shared Artifact',
+                'Content',
+                'research'
+            );
+
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('Not authorized');
         });
     });
 
