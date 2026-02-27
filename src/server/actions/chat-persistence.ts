@@ -5,6 +5,14 @@ import { ChatSession } from '@/lib/store/agent-chat-store';
 import { logger } from '@/lib/monitoring';
 import { requireUser } from '@/server/auth/auth';
 
+function isSuperRole(role: unknown): boolean {
+    return role === 'super_user' || role === 'super_admin';
+}
+
+function isValidUserId(userId: string): boolean {
+    return !!userId && !userId.includes('/');
+}
+
 export async function saveChatSession(session: ChatSession) {
     try {
         const user = await requireUser();
@@ -26,14 +34,16 @@ export async function saveChatSession(session: ChatSession) {
 export async function getChatSessions(userId?: string) {
     try {
         const user = await requireUser();
-        // Allow admin override if userId is provided? For now, stick to current user
-        const targetId = userId || user.uid;
+        const requestedUserId = userId?.trim();
+        const targetId = requestedUserId || user.uid;
 
-        // Safety check: only allow own data unless admin (simplified)
-        if (userId && userId !== user.uid) {
-            // In real app, check for admin role
-            // For now we allow it but log warning
-            logger.warn(`User ${user.uid} accessing sessions of ${userId}`);
+        if (!isValidUserId(targetId)) {
+            return { success: false, error: 'Invalid user id' };
+        }
+
+        if (requestedUserId && requestedUserId !== user.uid && !isSuperRole((user as { role?: string }).role)) {
+            logger.warn(`Unauthorized chat session access attempt by ${user.uid} for ${requestedUserId}`);
+            return { success: false, error: 'Unauthorized' };
         }
 
         const { firestore } = await createServerClient();
