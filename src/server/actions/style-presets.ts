@@ -6,16 +6,48 @@ import { StylePreset, MediaABTest, MediaABTestResult } from '@/types/media-gener
 import { getBuiltInPresets } from '@/server/services/style-presets';
 import { logger } from '@/lib/logger';
 
+function isSuperRole(role: unknown): boolean {
+    return role === 'super_user' || role === 'super_admin';
+}
+
+function getActorOrgId(user: unknown): string | null {
+    if (!user || typeof user !== 'object') return null;
+    const token = user as {
+        currentOrgId?: string;
+        orgId?: string;
+        brandId?: string;
+        tenantId?: string;
+        organizationId?: string;
+    };
+    return (
+        token.currentOrgId ||
+        token.orgId ||
+        token.brandId ||
+        token.tenantId ||
+        token.organizationId ||
+        null
+    );
+}
+
+function assertTenantAccess(user: unknown, tenantId: string): void {
+    const role = typeof user === 'object' && user ? (user as { role?: string }).role : null;
+    if (isSuperRole(role)) {
+        return;
+    }
+
+    const actorOrgId = getActorOrgId(user);
+    if (!actorOrgId || actorOrgId !== tenantId) {
+        throw new Error('Unauthorized');
+    }
+}
+
 /**
  * Get all available style presets (built-in + custom)
  */
 export async function getStylePresets(tenantId: string): Promise<StylePreset[]> {
     const user = await requireUser();
 
-    // Verify access
-    if (user.brandId !== tenantId && user.role !== 'super_user') {
-        throw new Error('Unauthorized');
-    }
+    assertTenantAccess(user, tenantId);
 
     const db = getAdminFirestore();
 
@@ -42,11 +74,7 @@ export async function createStylePreset(
 ): Promise<{ success: boolean; presetId?: string; error?: string }> {
     try {
         const user = await requireUser();
-
-        // Verify access
-        if (user.brandId !== tenantId && user.role !== 'super_user') {
-            throw new Error('Unauthorized');
-        }
+        assertTenantAccess(user, tenantId);
 
         const db = getAdminFirestore();
         const docRef = db
@@ -87,11 +115,7 @@ export async function updateStylePreset(
 ): Promise<{ success: boolean; error?: string }> {
     try {
         const user = await requireUser();
-
-        // Verify access
-        if (user.brandId !== tenantId && user.role !== 'super_user') {
-            throw new Error('Unauthorized');
-        }
+        assertTenantAccess(user, tenantId);
 
         const db = getAdminFirestore();
         await db
@@ -123,11 +147,7 @@ export async function deleteStylePreset(
 ): Promise<{ success: boolean; error?: string }> {
     try {
         const user = await requireUser();
-
-        // Verify access
-        if (user.brandId !== tenantId && user.role !== 'super_user') {
-            throw new Error('Unauthorized');
-        }
+        assertTenantAccess(user, tenantId);
 
         const db = getAdminFirestore();
         await db
@@ -152,6 +172,9 @@ export async function deleteStylePreset(
  */
 export async function trackPresetUsage(tenantId: string, presetId: string): Promise<void> {
     try {
+        const user = await requireUser();
+        assertTenantAccess(user, tenantId);
+
         const db = getAdminFirestore();
 
         // Try to update custom preset usage count
@@ -179,11 +202,7 @@ export async function trackPresetUsage(tenantId: string, presetId: string): Prom
  */
 export async function getMediaABTests(tenantId: string): Promise<MediaABTest[]> {
     const user = await requireUser();
-
-    // Verify access
-    if (user.brandId !== tenantId && user.role !== 'super_user') {
-        throw new Error('Unauthorized');
-    }
+    assertTenantAccess(user, tenantId);
 
     const db = getAdminFirestore();
     const snapshot = await db
@@ -205,11 +224,7 @@ export async function createMediaABTest(
 ): Promise<{ success: boolean; testId?: string; error?: string }> {
     try {
         const user = await requireUser();
-
-        // Verify access
-        if (user.brandId !== tenantId && user.role !== 'super_user') {
-            throw new Error('Unauthorized');
-        }
+        assertTenantAccess(user, tenantId);
 
         const db = getAdminFirestore();
         const docRef = db
@@ -246,11 +261,7 @@ export async function getMediaABTestResults(
     testId: string
 ): Promise<MediaABTestResult[]> {
     const user = await requireUser();
-
-    // Verify access
-    if (user.brandId !== tenantId && user.role !== 'super_user') {
-        throw new Error('Unauthorized');
-    }
+    assertTenantAccess(user, tenantId);
 
     const db = getAdminFirestore();
     const snapshot = await db
@@ -275,11 +286,7 @@ export async function updateMediaABTestResult(
 ): Promise<{ success: boolean; error?: string }> {
     try {
         const user = await requireUser();
-
-        // Verify access
-        if (user.brandId !== tenantId && user.role !== 'super_user') {
-            throw new Error('Unauthorized');
-        }
+        assertTenantAccess(user, tenantId);
 
         const db = getAdminFirestore();
         const resultRef = db
