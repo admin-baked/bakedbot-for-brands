@@ -1,4 +1,4 @@
-import { generateTestCasesFromSpec, getBugById, getQAReport } from '../qa';
+import { generateTestCasesFromSpec, getBugById, getQAReport, getBugs } from '../qa';
 import { getAdminFirestore } from '@/firebase/admin';
 import { requireUser } from '@/server/auth/auth';
 import { callClaude } from '@/ai/claude';
@@ -361,5 +361,60 @@ describe('qa actions: getQAReport scoping', () => {
     await getQAReport('org-b');
 
     expect(bugsWhere).toHaveBeenCalledWith('affectedOrgId', '==', 'org-b');
+  });
+});
+
+describe('qa actions: getBugs scoping', () => {
+  const query = {
+    where: jest.fn(),
+    orderBy: jest.fn(),
+    limit: jest.fn(),
+    get: jest.fn(),
+  };
+  const mockCollection = jest.fn();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    query.where.mockReturnValue(query);
+    query.orderBy.mockReturnValue(query);
+    query.limit.mockReturnValue(query);
+    query.get.mockResolvedValue({ docs: [] });
+
+    mockCollection.mockImplementation((name: string) => {
+      if (name === 'qa_bugs') return query;
+      return { get: jest.fn().mockResolvedValue({ docs: [] }) };
+    });
+
+    (getAdminFirestore as jest.Mock).mockReturnValue({
+      collection: mockCollection,
+    });
+  });
+
+  it('forces non-super users to their own org even when filters.orgId is provided', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'user-1',
+      role: 'dispensary_admin',
+      currentOrgId: 'org-a',
+      orgId: 'org-a',
+      brandId: 'org-a',
+    });
+
+    await getBugs({ orgId: 'org-b', limit: 5 });
+
+    expect(query.where).toHaveBeenCalledWith('affectedOrgId', '==', 'org-a');
+  });
+
+  it('allows super users to query any org via filters.orgId', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'super-1',
+      role: 'super_user',
+      currentOrgId: 'org-a',
+      orgId: 'org-a',
+    });
+
+    await getBugs({ orgId: 'org-b', limit: 5 });
+
+    expect(query.where).toHaveBeenCalledWith('affectedOrgId', '==', 'org-b');
   });
 });

@@ -255,7 +255,7 @@ export async function getBugs(filters: {
 
         // Dispensary admins can only see bugs affecting their org
         if (user.role !== 'super_user') {
-            const orgId = filters.orgId || user.currentOrgId || user.brandId || user.uid;
+            const orgId = user.currentOrgId || user.brandId || user.orgId || user.uid;
             query = query.where('affectedOrgId', '==', orgId);
         } else if (filters.orgId) {
             query = query.where('affectedOrgId', '==', filters.orgId);
