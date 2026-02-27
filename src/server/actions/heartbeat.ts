@@ -27,6 +27,42 @@ import {
     saveTenantHeartbeatConfig,
 } from '@/server/services/heartbeat';
 
+type HeartbeatActor = {
+    uid: string;
+    role?: string;
+    orgId?: string;
+    brandId?: string;
+    currentOrgId?: string;
+};
+
+function getActorTenantId(user: HeartbeatActor): string | null {
+    return user.currentOrgId || user.orgId || user.brandId || null;
+}
+
+function isValidTenantId(tenantId: string): boolean {
+    return !!tenantId && !tenantId.includes('/');
+}
+
+function resolveTenantContext(
+    user: HeartbeatActor,
+    action: string
+): { tenantId: string; role: HeartbeatRole } | null {
+    const tenantId = getActorTenantId(user);
+    if (!tenantId || !isValidTenantId(tenantId)) {
+        logger.warn('[Heartbeat] Missing or invalid tenant context', {
+            action,
+            actor: user.uid,
+            actorRole: user.role,
+            tenantId,
+        });
+        return null;
+    }
+    return {
+        tenantId,
+        role: determineRole(user.role),
+    };
+}
+
 // =============================================================================
 // GET CONFIGURATION
 // =============================================================================
@@ -42,8 +78,11 @@ export async function getHeartbeatConfig(): Promise<{
 }> {
     try {
         const user = await requireUser();
-        const tenantId = user.orgId || user.brandId || user.uid;
-        const role = determineRole(user.role);
+        const context = resolveTenantContext(user as HeartbeatActor, 'getHeartbeatConfig');
+        if (!context) {
+            return { success: false, error: 'Missing tenant context' };
+        }
+        const { tenantId, role } = context;
 
         const savedConfig = await getTenantHeartbeatConfig(tenantId, role);
         const defaultConfig = buildDefaultConfig(role);
@@ -96,8 +135,11 @@ export async function updateHeartbeatConfig(updates: {
 }> {
     try {
         const user = await requireUser();
-        const tenantId = user.orgId || user.brandId || user.uid;
-        const role = determineRole(user.role);
+        const context = resolveTenantContext(user as HeartbeatActor, 'updateHeartbeatConfig');
+        if (!context) {
+            return { success: false, error: 'Missing tenant context' };
+        }
+        const { tenantId, role } = context;
 
         // Validate updates
         if (updates.interval !== undefined && (updates.interval < 5 || updates.interval > 1440)) {
@@ -154,8 +196,11 @@ export async function toggleHeartbeatCheck(
 }> {
     try {
         const user = await requireUser();
-        const tenantId = user.orgId || user.brandId || user.uid;
-        const role = determineRole(user.role);
+        const context = resolveTenantContext(user as HeartbeatActor, 'toggleHeartbeatCheck');
+        if (!context) {
+            return { success: false, error: 'Missing tenant context' };
+        }
+        const { tenantId, role } = context;
 
         // Get current config
         const savedConfig = await getTenantHeartbeatConfig(tenantId, role);
@@ -208,8 +253,11 @@ export async function triggerHeartbeat(): Promise<{
 }> {
     try {
         const user = await requireUser();
-        const tenantId = user.orgId || user.brandId || user.uid;
-        const role = determineRole(user.role);
+        const context = resolveTenantContext(user as HeartbeatActor, 'triggerHeartbeat');
+        if (!context) {
+            return { success: false, error: 'Missing tenant context' };
+        }
+        const { tenantId, role } = context;
 
         // Get config
         const savedConfig = await getTenantHeartbeatConfig(tenantId, role);
@@ -259,7 +307,11 @@ export async function getHeartbeatHistory(limit: number = 20): Promise<{
 }> {
     try {
         const user = await requireUser();
-        const tenantId = user.orgId || user.brandId || user.uid;
+        const context = resolveTenantContext(user as HeartbeatActor, 'getHeartbeatHistory');
+        if (!context) {
+            return { success: false, error: 'Missing tenant context' };
+        }
+        const { tenantId } = context;
 
         const db = getAdminFirestore();
         const snap = await db
@@ -306,7 +358,11 @@ export async function getRecentAlerts(limit: number = 50): Promise<{
 }> {
     try {
         const user = await requireUser();
-        const tenantId = user.orgId || user.brandId || user.uid;
+        const context = resolveTenantContext(user as HeartbeatActor, 'getRecentAlerts');
+        if (!context) {
+            return { success: false, error: 'Missing tenant context' };
+        }
+        const { tenantId } = context;
 
         const db = getAdminFirestore();
 
@@ -367,8 +423,11 @@ export async function diagnoseHeartbeat(): Promise<{
 }> {
     try {
         const user = await requireUser();
-        const tenantId = user.orgId || user.brandId || user.uid;
-        const role = determineRole(user.role);
+        const context = resolveTenantContext(user as HeartbeatActor, 'diagnoseHeartbeat');
+        if (!context) {
+            return { success: false, error: 'Missing tenant context' };
+        }
+        const { tenantId, role } = context;
         const db = getAdminFirestore();
 
         const issues: Array<{
@@ -493,8 +552,11 @@ export async function fixHeartbeat(): Promise<{
 }> {
     try {
         const user = await requireUser();
-        const tenantId = user.orgId || user.brandId || user.uid;
-        const role = determineRole(user.role);
+        const context = resolveTenantContext(user as HeartbeatActor, 'fixHeartbeat');
+        if (!context) {
+            return { success: false, error: 'Missing tenant context' };
+        }
+        const { tenantId, role } = context;
         const db = getAdminFirestore();
 
         const fixes: string[] = [];
@@ -604,7 +666,11 @@ export async function configureSlackWebhook(
 ): Promise<{ success: boolean; error?: string }> {
     try {
         const user = await requireUser();
-        const tenantId = user.orgId || user.brandId || user.uid;
+        const context = resolveTenantContext(user as HeartbeatActor, 'configureSlackWebhook');
+        if (!context) {
+            return { success: false, error: 'Missing tenant context' };
+        }
+        const { tenantId } = context;
         const db = getAdminFirestore();
 
         const configRef = db
