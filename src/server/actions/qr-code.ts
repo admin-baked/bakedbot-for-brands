@@ -207,8 +207,10 @@ export async function getQRCodes(params?: {
         }
 
         const db = getDb();
+        const isSuperUser = user.role === 'super_user' || user.role === 'super_admin';
+        const scopedOrgId = isSuperUser ? (params?.orgId || user.uid) : user.uid;
         let query = db.collection(QR_CODES_COLLECTION)
-            .where('orgId', '==', params?.orgId || user.uid);
+            .where('orgId', '==', scopedOrgId);
 
         if (params?.campaign) {
             query = query.where('campaign', '==', params.campaign);
