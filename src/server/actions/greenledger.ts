@@ -214,8 +214,11 @@ export async function checkAdvanceDepositAction(advanceId: string): Promise<{
   error?: string;
 }> {
   try {
-    await requireUser(['dispensary_admin', 'super_user']);
-    const activated = await checkAndActivateAdvance(advanceId);
+    const user = await requireUser(['dispensary_admin', 'super_user']);
+    const orgId = user.currentOrgId ?? user.orgId;
+    if (!orgId) return { success: false, error: 'No org context' };
+
+    const activated = await checkAndActivateAdvance(advanceId, orgId);
     return { success: true, activated };
   } catch (err) {
     return { success: false, error: String(err) };
