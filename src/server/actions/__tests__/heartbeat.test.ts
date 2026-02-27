@@ -170,6 +170,20 @@ describe('Heartbeat Server Actions', () => {
             expect(result.success).toBe(false);
             expect(result.error).toBe('Not authenticated');
         });
+
+        it('should fail when tenant context is missing', async () => {
+            mockRequireUser.mockResolvedValueOnce({
+                uid: 'user-without-tenant',
+                role: 'dispensary',
+            });
+
+            const result = await getHeartbeatConfig();
+
+            expect(result).toEqual({
+                success: false,
+                error: 'Missing tenant context',
+            });
+        });
     });
 
     describe('updateHeartbeatConfig', () => {
@@ -225,6 +239,21 @@ describe('Heartbeat Server Actions', () => {
             expect(mockTenantDoc).toHaveBeenCalledWith('org_test');
             expect(mockSettingsCollection).toHaveBeenCalledWith('settings');
             expect(mockHeartbeatDoc).toHaveBeenCalledWith('heartbeat');
+        });
+
+        it('should not write when tenant context is missing', async () => {
+            mockRequireUser.mockResolvedValueOnce({
+                uid: 'user-without-tenant',
+                role: 'dispensary',
+            });
+
+            const result = await updateHeartbeatConfig({ enabled: true });
+
+            expect(result).toEqual({
+                success: false,
+                error: 'Missing tenant context',
+            });
+            expect(mockSet).not.toHaveBeenCalled();
         });
     });
 
@@ -432,10 +461,25 @@ describe('Heartbeat Server Actions', () => {
             expect(result.config?.role).toBe('dispensary');
         });
 
-        it('should use orgId first, then brandId, then uid for tenantId', async () => {
+        it('should prioritize currentOrgId over orgId and brandId for tenantId', async () => {
+            mockRequireUser.mockResolvedValueOnce({
+                uid: 'user-1',
+                orgId: 'org_fallback',
+                currentOrgId: 'org_current',
+                brandId: 'brand_1',
+                role: 'brand',
+            });
+
+            await updateHeartbeatConfig({ enabled: true });
+
+            expect(mockTenantDoc).toHaveBeenCalledWith('org_current');
+        });
+
+        it('should use brandId when orgId and currentOrgId are missing', async () => {
             mockRequireUser.mockResolvedValueOnce({
                 uid: 'user-1',
                 orgId: undefined,
+                currentOrgId: undefined,
                 brandId: 'brand_1',
                 role: 'brand',
             });
