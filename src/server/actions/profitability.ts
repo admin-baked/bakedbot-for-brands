@@ -37,8 +37,34 @@ import type {
 // HELPER FUNCTIONS
 // =============================================================================
 
-function getOrgId(user: { orgId?: string; brandId?: string; currentOrgId?: string; uid: string }): string {
-  return user.orgId || user.brandId || user.currentOrgId || user.uid;
+type ProfitabilityActor = {
+  uid: string;
+  role?: string;
+  orgId?: string;
+  brandId?: string;
+  currentOrgId?: string;
+};
+
+function getOrgId(user: ProfitabilityActor): string | null {
+  return user.currentOrgId || user.orgId || user.brandId || null;
+}
+
+function isValidOrgId(orgId: string): boolean {
+  return !!orgId && !orgId.includes('/');
+}
+
+function requireOrgId(user: ProfitabilityActor, action: string): string {
+  const orgId = getOrgId(user);
+  if (!orgId || !isValidOrgId(orgId)) {
+    logger.warn('[profitability] Missing or invalid org context', {
+      action,
+      actor: user.uid,
+      actorRole: user.role,
+      orgId,
+    });
+    throw new Error('Missing organization context');
+  }
+  return orgId;
 }
 
 function getPeriodDates(period: ReportPeriod, customStart?: Date, customEnd?: Date): { start: Date; end: Date } {
@@ -105,7 +131,7 @@ export async function get280EAnalysis(
   customEnd?: Date
 ): Promise<Tax280EAnalysis> {
   const user = await requireUser(['dispensary', 'brand', 'super_user']);
-  const orgId = getOrgId(user);
+  const orgId = requireOrgId(user as ProfitabilityActor, 'get280EAnalysis');
 
   const { start, end } = getPeriodDates(period, customStart, customEnd);
 
@@ -129,7 +155,7 @@ export async function addExpense(
 ): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
     const user = await requireUser(['dispensary', 'brand', 'super_user']);
-    const orgId = getOrgId(user);
+    const orgId = requireOrgId(user as ProfitabilityActor, 'addExpense');
 
     const { firestore } = await createServerClient();
     const now = new Date();
@@ -178,7 +204,7 @@ export async function getExpenses(
   customEnd?: Date
 ): Promise<Expense280E[]> {
   const user = await requireUser(['dispensary', 'brand', 'super_user']);
-  const orgId = getOrgId(user);
+  const orgId = requireOrgId(user as ProfitabilityActor, 'getExpenses');
 
   const { firestore } = await createServerClient();
   const { start, end } = getPeriodDates(period, customStart, customEnd);
@@ -208,7 +234,7 @@ export async function updateExpenseAllocation(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const user = await requireUser(['dispensary', 'brand', 'super_user']);
-    const orgId = getOrgId(user);
+    const orgId = requireOrgId(user as ProfitabilityActor, 'updateExpenseAllocation');
 
     const { firestore } = await createServerClient();
 
@@ -245,7 +271,7 @@ export async function getNYTaxSummary(
   customEnd?: Date
 ): Promise<NYTaxSummary> {
   const user = await requireUser(['dispensary', 'brand', 'super_user']);
-  const orgId = getOrgId(user);
+  const orgId = requireOrgId(user as ProfitabilityActor, 'getNYTaxSummary');
 
   const { start, end } = getPeriodDates(period, customStart, customEnd);
 
@@ -267,7 +293,7 @@ export async function getProfitabilityMetrics(
   customEnd?: Date
 ): Promise<ProfitabilityMetrics> {
   const user = await requireUser(['dispensary', 'brand', 'super_user']);
-  const orgId = getOrgId(user);
+  const orgId = requireOrgId(user as ProfitabilityActor, 'getProfitabilityMetrics');
 
   const { start, end } = getPeriodDates(period, customStart, customEnd);
 
@@ -287,7 +313,7 @@ export async function getPriceCompressionAnalysis(
   marketPriceDropPercent: number
 ): Promise<PriceCompressionAnalysis> {
   const user = await requireUser(['dispensary', 'brand', 'super_user']);
-  const orgId = getOrgId(user);
+  const orgId = requireOrgId(user as ProfitabilityActor, 'getPriceCompressionAnalysis');
 
   logger.info('[profitability] Calculating price compression', { orgId, marketPriceDropPercent });
 
@@ -305,7 +331,7 @@ export async function getPriceCompressionAnalysis(
  */
 export async function getWorkingCapitalAnalysis(): Promise<WorkingCapitalAnalysis> {
   const user = await requireUser(['dispensary', 'brand', 'super_user']);
-  const orgId = getOrgId(user);
+  const orgId = requireOrgId(user as ProfitabilityActor, 'getWorkingCapitalAnalysis');
 
   const config = await getTenantTaxConfig(orgId);
 
@@ -323,7 +349,7 @@ export async function getWorkingCapitalAnalysis(): Promise<WorkingCapitalAnalysi
  */
 export async function getTaxConfig(): Promise<TenantTaxConfig | null> {
   const user = await requireUser(['dispensary', 'brand', 'super_user']);
-  const orgId = getOrgId(user);
+  const orgId = requireOrgId(user as ProfitabilityActor, 'getTaxConfig');
 
   return getTenantTaxConfig(orgId);
 }
@@ -336,7 +362,7 @@ export async function saveTaxConfig(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const user = await requireUser(['dispensary', 'brand', 'super_user']);
-    const orgId = getOrgId(user);
+    const orgId = requireOrgId(user as ProfitabilityActor, 'saveTaxConfig');
 
     await saveTenantTaxConfig(orgId, config);
 
@@ -421,7 +447,7 @@ export async function getProfitabilityDashboard(
   config: TenantTaxConfig | null;
 }> {
   const user = await requireUser(['dispensary', 'brand', 'super_user']);
-  const orgId = getOrgId(user);
+  const orgId = requireOrgId(user as ProfitabilityActor, 'getProfitabilityDashboard');
 
   const { start, end } = getPeriodDates(period, customStart, customEnd);
 
@@ -494,7 +520,7 @@ export async function getProductProfitabilityData(): Promise<{
   };
 }> {
   const user = await requireUser(['dispensary', 'brand', 'super_user']);
-  const orgId = getOrgId(user as any);
+  const orgId = requireOrgId(user as ProfitabilityActor, 'getProductProfitabilityData');
 
   const { firestore } = await createServerClient();
 
@@ -606,7 +632,7 @@ export async function getThriveProfitabilityDashboard(
   const orgId = 'org_thrive_syracuse';
 
   // Check authorization
-  const userOrgId = getOrgId(user);
+  const userOrgId = getOrgId(user as ProfitabilityActor);
   if (userOrgId !== orgId && user.role !== 'super_user') {
     throw new Error('Unauthorized access to Thrive Syracuse data');
   }
