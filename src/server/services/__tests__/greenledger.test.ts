@@ -1,7 +1,9 @@
 import {
   applyAdvanceToSettlement,
   checkAndActivateAdvance,
+  createOffer,
   initiateAdvance,
+  updateOffer,
 } from '../greenledger';
 import { getAdminFirestore } from '@/firebase/admin';
 import { createEscrowWallet, getEscrowBalance } from '@/lib/x402/greenledger-escrow';
@@ -104,6 +106,84 @@ describe('greenledger service hardening', () => {
       'Offer is only available to existing brand partners',
     );
     expect(createEscrowWallet).not.toHaveBeenCalled();
+  });
+
+  it('rejects createOffer when tier discount exceeds 10000 bps', async () => {
+    await expect(
+      createOffer('brand-1', 'Brand One', {
+        description: 'Promo',
+        eligibility: 'all',
+        tiers: [{ minDepositUsd: 500, discountBps: 10001 }],
+      } as any),
+    ).rejects.toThrow('Tier 1: discountBps must be between 1 and 10000');
+
+    expect(mockCollection).not.toHaveBeenCalled();
+  });
+
+  it('rejects createOffer when eligibility is specific without eligibleOrgIds', async () => {
+    await expect(
+      createOffer('brand-1', 'Brand One', {
+        description: 'Promo',
+        eligibility: 'specific',
+        tiers: [{ minDepositUsd: 500, discountBps: 800 }],
+      } as any),
+    ).rejects.toThrow('eligibleOrgIds is required when eligibility is specific');
+
+    expect(mockCollection).not.toHaveBeenCalled();
+  });
+
+  it('rejects updateOffer when specific eligibility is set without allowlist', async () => {
+    const offerRef = {
+      get: jest.fn().mockResolvedValue({
+        exists: true,
+        data: () => ({ brandOrgId: 'brand-1' }),
+      }),
+      update: jest.fn(),
+    };
+
+    mockCollection.mockImplementation((name: string) => {
+      if (name === 'greenledger_offers') {
+        return {
+          doc: jest.fn(() => offerRef),
+        };
+      }
+      return {};
+    });
+
+    await expect(
+      updateOffer('offer-1', 'brand-1', {
+        eligibility: 'specific',
+      }),
+    ).rejects.toThrow('eligibleOrgIds is required when eligibility is specific');
+
+    expect(offerRef.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects updateOffer when maxCommitmentsUsd is non-positive', async () => {
+    const offerRef = {
+      get: jest.fn().mockResolvedValue({
+        exists: true,
+        data: () => ({ brandOrgId: 'brand-1' }),
+      }),
+      update: jest.fn(),
+    };
+
+    mockCollection.mockImplementation((name: string) => {
+      if (name === 'greenledger_offers') {
+        return {
+          doc: jest.fn(() => offerRef),
+        };
+      }
+      return {};
+    });
+
+    await expect(
+      updateOffer('offer-1', 'brand-1', {
+        maxCommitmentsUsd: 0,
+      }),
+    ).rejects.toThrow('maxCommitmentsUsd must be a positive number');
+
+    expect(offerRef.update).not.toHaveBeenCalled();
   });
 
   it('rejects initiating allowlisted offers for dispensaries outside the allowlist', async () => {
