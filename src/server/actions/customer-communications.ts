@@ -1,6 +1,7 @@
 'use server';
 
 import { createServerClient } from '@/firebase/server-client';
+import { getServerSessionUser } from '@/server/auth/session';
 import { logger } from '@/lib/logger';
 import type {
     CustomerCommunication,
@@ -86,11 +87,28 @@ export async function getCustomerCommunications(
     }
 ): Promise<CustomerCommunication[]> {
     try {
+        const user = await getServerSessionUser();
+        if (!user) {
+            return [];
+        }
+
+        const isSuperUser = user.role === 'super_user' || user.role === 'super_admin';
+        const actorOrgId = user.currentOrgId || user.orgId || user.brandId || user.uid;
+        if (!isSuperUser && orgId !== actorOrgId) {
+            logger.warn('[COMMS] Unauthorized org access attempt', {
+                userId: user.uid,
+                requestedOrgId: orgId,
+                actorOrgId,
+            });
+            return [];
+        }
+
+        const scopedOrgId = isSuperUser ? orgId : actorOrgId;
         const { firestore } = await createServerClient();
 
         let query: FirebaseFirestore.Query = firestore.collection('customer_communications')
             .where('customerEmail', '==', customerEmail.toLowerCase())
-            .where('orgId', '==', orgId)
+            .where('orgId', '==', scopedOrgId)
             .orderBy('createdAt', 'desc');
 
         if (options?.channel) {
@@ -148,10 +166,28 @@ export async function getUpcomingCommunications(
     orgId: string
 ): Promise<ScheduledCommunication[]> {
     try {
+        const user = await getServerSessionUser();
+        if (!user) {
+            return [];
+        }
+
+        const isSuperUser = user.role === 'super_user' || user.role === 'super_admin';
+        const actorOrgId = user.currentOrgId || user.orgId || user.brandId || user.uid;
+        if (!isSuperUser && orgId !== actorOrgId) {
+            logger.warn('[COMMS] Unauthorized org access attempt', {
+                userId: user.uid,
+                requestedOrgId: orgId,
+                actorOrgId,
+            });
+            return [];
+        }
+
+        const scopedOrgId = isSuperUser ? orgId : actorOrgId;
         const { firestore } = await createServerClient();
 
         const snap = await firestore.collection('scheduled_emails')
             .where('email', '==', customerEmail.toLowerCase())
+            .where('orgId', '==', scopedOrgId)
             .where('status', '==', 'pending')
             .orderBy('scheduledFor', 'asc')
             .limit(10)
@@ -189,7 +225,35 @@ export async function updateCommunicationStatus(
     status: 'delivered' | 'opened' | 'clicked' | 'bounced',
 ): Promise<void> {
     try {
+        const user = await getServerSessionUser();
+        if (!user) {
+            logger.warn('[COMMS] Unauthorized status update attempt', { communicationId });
+            return;
+        }
+
         const { firestore } = await createServerClient();
+        const commRef = firestore.collection('customer_communications').doc(communicationId);
+        const commSnap = await commRef.get();
+        if (!commSnap.exists) {
+            logger.warn('[COMMS] Communication not found for status update', { communicationId });
+            return;
+        }
+
+        const data = commSnap.data() as { orgId?: string } | undefined;
+        const commOrgId = data?.orgId;
+        const isSuperUser = user.role === 'super_user' || user.role === 'super_admin';
+        const actorOrgId = user.currentOrgId || user.orgId || user.brandId || user.uid;
+
+        if (!isSuperUser && (!commOrgId || commOrgId !== actorOrgId)) {
+            logger.warn('[COMMS] Unauthorized status update attempt', {
+                userId: user.uid,
+                communicationId,
+                communicationOrgId: commOrgId || null,
+                actorOrgId,
+            });
+            return;
+        }
+
         const updateData: Record<string, unknown> = {
             status,
             updatedAt: new Date(),
@@ -200,7 +264,7 @@ export async function updateCommunicationStatus(
         if (status === 'bounced') updateData.bouncedAt = new Date();
         if (status === 'delivered') updateData.deliveredAt = new Date();
 
-        await firestore.collection('customer_communications').doc(communicationId).update(updateData);
+        await commRef.update(updateData);
     } catch (error) {
         logger.error('[COMMS] Failed to update status', {
             error: (error as Error).message,
