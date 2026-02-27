@@ -299,4 +299,174 @@ describe('greenledger service hardening', () => {
       }),
     );
   });
+
+  it('rejects deposit activation when the selected tier no longer exists on the offer', async () => {
+    const advanceRef = {
+      get: jest.fn().mockResolvedValue({
+        exists: true,
+        data: () => ({
+          id: 'adv-1',
+          brandOrgId: 'brand-1',
+          dispensaryOrgId: 'disp-1',
+          offerId: 'offer-1',
+          tierId: 'tier-legacy',
+          escrowWalletId: 'escrow-1',
+          status: 'pending_deposit',
+        }),
+      }),
+    };
+
+    const offerRef = {
+      get: jest.fn().mockResolvedValue({
+        exists: true,
+        data: () => ({
+          id: 'offer-1',
+          status: 'active',
+          tiers: [{ id: 'tier-current', minDepositUsd: 100, discountBps: 1000 }],
+        }),
+      }),
+    };
+
+    mockCollection.mockImplementation((name: string) => {
+      if (name === 'greenledger_advances') {
+        return { doc: jest.fn(() => advanceRef) };
+      }
+      if (name === 'greenledger_offers') {
+        return { doc: jest.fn(() => offerRef) };
+      }
+      return {};
+    });
+
+    await expect(checkAndActivateAdvance('adv-1', 'disp-1')).rejects.toThrow(
+      'Tier no longer available on offer',
+    );
+    expect(getEscrowBalance).not.toHaveBeenCalled();
+    expect(mockRunTransaction).not.toHaveBeenCalled();
+  });
+
+  it('rejects deposit activation when the offer is no longer active', async () => {
+    const advanceRef = {
+      get: jest.fn().mockResolvedValue({
+        exists: true,
+        data: () => ({
+          id: 'adv-1',
+          brandOrgId: 'brand-1',
+          dispensaryOrgId: 'disp-1',
+          offerId: 'offer-1',
+          tierId: 'tier-1',
+          escrowWalletId: 'escrow-1',
+          status: 'pending_deposit',
+        }),
+      }),
+    };
+
+    const offerRef = {
+      get: jest.fn().mockResolvedValue({
+        exists: true,
+        data: () => ({
+          id: 'offer-1',
+          status: 'paused',
+          tiers: [{ id: 'tier-1', minDepositUsd: 100, discountBps: 1000 }],
+        }),
+      }),
+    };
+
+    mockCollection.mockImplementation((name: string) => {
+      if (name === 'greenledger_advances') {
+        return { doc: jest.fn(() => advanceRef) };
+      }
+      if (name === 'greenledger_offers') {
+        return { doc: jest.fn(() => offerRef) };
+      }
+      return {};
+    });
+
+    await expect(checkAndActivateAdvance('adv-1', 'disp-1')).rejects.toThrow(
+      'Offer is not currently active',
+    );
+    expect(getEscrowBalance).not.toHaveBeenCalled();
+    expect(mockRunTransaction).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when offer is paused during activation transaction race', async () => {
+    const advanceRef = {
+      get: jest.fn().mockResolvedValue({
+        exists: true,
+        data: () => ({
+          id: 'adv-1',
+          brandOrgId: 'brand-1',
+          dispensaryOrgId: 'disp-1',
+          offerId: 'offer-1',
+          tierId: 'tier-1',
+          escrowWalletId: 'escrow-1',
+          status: 'pending_deposit',
+        }),
+      }),
+    };
+
+    const offerRef = {
+      get: jest.fn().mockResolvedValue({
+        exists: true,
+        data: () => ({
+          id: 'offer-1',
+          status: 'active',
+          tiers: [{ id: 'tier-1', minDepositUsd: 100, discountBps: 1000 }],
+        }),
+      }),
+    };
+
+    mockCollection.mockImplementation((name: string) => {
+      if (name === 'greenledger_advances') {
+        return { doc: jest.fn(() => advanceRef) };
+      }
+      if (name === 'greenledger_offers') {
+        return { doc: jest.fn(() => offerRef) };
+      }
+      if (name === 'greenledger_transactions') {
+        return { doc: jest.fn(() => ({})) };
+      }
+      return {};
+    });
+
+    (getEscrowBalance as jest.Mock).mockResolvedValue(200);
+
+    const tx = {
+      get: jest.fn(async (ref: unknown) => {
+        if (ref === advanceRef) {
+          return {
+            exists: true,
+            data: () => ({
+              id: 'adv-1',
+              brandOrgId: 'brand-1',
+              dispensaryOrgId: 'disp-1',
+              offerId: 'offer-1',
+              tierId: 'tier-1',
+              status: 'pending_deposit',
+            }),
+          };
+        }
+        if (ref === offerRef) {
+          return {
+            exists: true,
+            data: () => ({
+              id: 'offer-1',
+              status: 'paused',
+              currentCommitmentsUsd: 0,
+              tiers: [{ id: 'tier-1', minDepositUsd: 100, discountBps: 1000 }],
+            }),
+          };
+        }
+        return { exists: false, data: () => ({}) };
+      }),
+      update: jest.fn(),
+      set: jest.fn(),
+    };
+    mockRunTransaction.mockImplementation(async (callback: (t: typeof tx) => unknown) => callback(tx));
+
+    const activated = await checkAndActivateAdvance('adv-1', 'disp-1');
+
+    expect(activated).toBe(false);
+    expect(tx.update).not.toHaveBeenCalled();
+    expect(tx.set).not.toHaveBeenCalled();
+  });
 });

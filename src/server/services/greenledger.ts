@@ -397,9 +397,21 @@ export async function checkAndActivateAdvance(
 
   // Get the minimum deposit for this tier
   const offerSnap = await offersCol().doc(advance.offerId).get();
+  if (!offerSnap.exists) {
+    throw new Error('Offer not found');
+  }
   const offer = offerSnap.data() as GreenLedgerOffer;
-  const tier = offer?.tiers.find((t) => t.id === advance.tierId);
-  const minDeposit = tier?.minDepositUsd ?? 0;
+  if (offer.status !== 'active') {
+    throw new Error('Offer is not currently active');
+  }
+  if (isOfferExpired(offer)) {
+    throw new Error('Offer has expired');
+  }
+  const tier = offer.tiers.find((t) => t.id === advance.tierId);
+  if (!tier) {
+    throw new Error('Tier no longer available on offer');
+  }
+  const minDeposit = tier.minDepositUsd;
 
   // Check on-chain balance
   const balance = roundUsd(await getEscrowBalance(advance.escrowWalletId));
@@ -423,8 +435,14 @@ export async function checkAndActivateAdvance(
     if (!txOfferSnap.exists) throw new Error('Offer not found');
 
     const txOffer = txOfferSnap.data() as GreenLedgerOffer;
+    if (txOffer.status !== 'active' || isOfferExpired(txOffer)) {
+      return false;
+    }
     const txTier = txOffer.tiers.find((t) => t.id === txAdvance.tierId);
-    const txMinDeposit = txTier?.minDepositUsd ?? 0;
+    if (!txTier) {
+      return false;
+    }
+    const txMinDeposit = txTier.minDepositUsd;
     if (balance < txMinDeposit) return false;
 
     const currentCommitments = roundUsd(Number(txOffer.currentCommitmentsUsd ?? 0));
