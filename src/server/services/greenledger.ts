@@ -38,6 +38,31 @@ const offersCol = () => db().collection('greenledger_offers');
 const advancesCol = () => db().collection('greenledger_advances');
 const txCol = () => db().collection('greenledger_transactions');
 
+function roundUsd(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+function isOfferExpired(offer: GreenLedgerOffer): boolean {
+  if (!offer.expiresAt) return false;
+  const expiresAt = (offer.expiresAt as unknown as { toDate?: () => Date }).toDate?.();
+  return expiresAt instanceof Date ? expiresAt.getTime() < Date.now() : false;
+}
+
+async function isExistingVendorPartner(
+  dispensaryOrgId: string,
+  brandOrgId: string,
+): Promise<boolean> {
+  const partnerSnap = await db()
+    .collection('tenants')
+    .doc(dispensaryOrgId)
+    .collection('vendor_brands')
+    .where('brandOrgId', '==', brandOrgId)
+    .limit(1)
+    .get();
+
+  return !partnerSnap.empty;
+}
+
 // ============================================================================
 // Brand: offer management
 // ============================================================================
@@ -265,9 +290,31 @@ export async function initiateAdvance(
   const offer = offerSnap.data() as GreenLedgerOffer;
 
   if (offer.status !== 'active') throw new Error('Offer is not currently active');
+  if (isOfferExpired(offer)) throw new Error('Offer has expired');
 
   const tier = offer.tiers.find((t) => t.id === tierId);
   if (!tier) throw new Error('Tier not found on offer');
+
+  if (offer.eligibility === 'specific') {
+    const allowList = offer.eligibleOrgIds ?? [];
+    if (!allowList.includes(dispensaryOrgId)) {
+      throw new Error('Offer is not available for this dispensary');
+    }
+  }
+
+  if (offer.eligibility === 'partners_only') {
+    const isPartner = await isExistingVendorPartner(dispensaryOrgId, offer.brandOrgId);
+    if (!isPartner) {
+      throw new Error('Offer is only available to existing brand partners');
+    }
+  }
+
+  if (
+    offer.maxCommitmentsUsd !== undefined
+    && roundUsd(offer.currentCommitmentsUsd) >= roundUsd(offer.maxCommitmentsUsd)
+  ) {
+    throw new Error('Offer commitment cap reached');
+  }
 
   // Check if advance already exists for this pair
   const existingSnap = await advancesCol()
@@ -331,12 +378,21 @@ export async function initiateAdvance(
  * If balance >= minDepositUsd for the tier, activate the advance.
  * Returns true if newly activated.
  */
-export async function checkAndActivateAdvance(advanceId: string): Promise<boolean> {
+export async function checkAndActivateAdvance(
+  advanceId: string,
+  expectedDispensaryOrgId?: string,
+): Promise<boolean> {
   const ref = advancesCol().doc(advanceId);
   const snap = await ref.get();
   if (!snap.exists) return false;
 
   const advance = snap.data() as GreenLedgerAdvance;
+  if (
+    expectedDispensaryOrgId
+    && advance.dispensaryOrgId !== expectedDispensaryOrgId
+  ) {
+    throw new Error('Access denied');
+  }
   if (advance.status !== 'pending_deposit') return false;
 
   // Get the minimum deposit for this tier
@@ -346,37 +402,71 @@ export async function checkAndActivateAdvance(advanceId: string): Promise<boolea
   const minDeposit = tier?.minDepositUsd ?? 0;
 
   // Check on-chain balance
-  const balance = await getEscrowBalance(advance.escrowWalletId);
+  const balance = roundUsd(await getEscrowBalance(advance.escrowWalletId));
   if (balance < minDeposit) return false;
 
-  // Activate
-  await ref.update({
-    status: 'active',
-    totalDepositedUsd: balance,
-    remainingBalanceUsd: balance,
-    activatedAt: FieldValue.serverTimestamp(),
-    updatedAt: FieldValue.serverTimestamp(),
+  const activated = await db().runTransaction(async (tx) => {
+    const txAdvanceSnap = await tx.get(ref);
+    if (!txAdvanceSnap.exists) return false;
+
+    const txAdvance = txAdvanceSnap.data() as GreenLedgerAdvance;
+    if (
+      expectedDispensaryOrgId
+      && txAdvance.dispensaryOrgId !== expectedDispensaryOrgId
+    ) {
+      throw new Error('Access denied');
+    }
+    if (txAdvance.status !== 'pending_deposit') return false;
+
+    const offerRef = offersCol().doc(txAdvance.offerId);
+    const txOfferSnap = await tx.get(offerRef);
+    if (!txOfferSnap.exists) throw new Error('Offer not found');
+
+    const txOffer = txOfferSnap.data() as GreenLedgerOffer;
+    const txTier = txOffer.tiers.find((t) => t.id === txAdvance.tierId);
+    const txMinDeposit = txTier?.minDepositUsd ?? 0;
+    if (balance < txMinDeposit) return false;
+
+    const currentCommitments = roundUsd(Number(txOffer.currentCommitmentsUsd ?? 0));
+    if (
+      txOffer.maxCommitmentsUsd !== undefined
+      && roundUsd(currentCommitments + balance) > roundUsd(txOffer.maxCommitmentsUsd)
+    ) {
+      throw new Error('Offer commitment cap reached');
+    }
+
+    tx.update(ref, {
+      status: 'active',
+      totalDepositedUsd: balance,
+      remainingBalanceUsd: balance,
+      activatedAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    tx.update(offerRef, {
+      currentCommitmentsUsd: roundUsd(currentCommitments + balance),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    const txId = nanoid();
+    tx.set(txCol().doc(txId), {
+      id: txId,
+      advanceId,
+      brandOrgId: txAdvance.brandOrgId,
+      dispensaryOrgId: txAdvance.dispensaryOrgId,
+      type: 'deposit',
+      amountUsd: balance,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+
+    return true;
   });
 
-  // Record deposit transaction
-  await txCol().doc(nanoid()).set({
-    id: nanoid(),
-    advanceId,
-    brandOrgId: advance.brandOrgId,
-    dispensaryOrgId: advance.dispensaryOrgId,
-    type: 'deposit',
-    amountUsd: balance,
-    createdAt: FieldValue.serverTimestamp(),
-  });
+  if (activated) {
+    logger.info(`[GreenLedger] Advance ${advanceId} activated with $${balance} USDC`);
+  }
 
-  // Increment offer's currentCommitmentsUsd
-  await offersCol().doc(advance.offerId).update({
-    currentCommitmentsUsd: FieldValue.increment(balance),
-    updatedAt: FieldValue.serverTimestamp(),
-  });
-
-  logger.info(`[GreenLedger] Advance ${advanceId} activated with $${balance} USDC`);
-  return true;
+  return activated;
 }
 
 export async function getMyAdvances(dispensaryOrgId: string): Promise<AdvanceWithBrand[]> {
@@ -503,6 +593,12 @@ export async function processRefund(advanceId: string): Promise<{
   const snap = await ref.get();
   if (!snap.exists) return { success: false, amountRefundedUsd: 0 };
   const advance = snap.data() as GreenLedgerAdvance;
+  if (!['refund_requested', 'auto_refund_pending', 'active'].includes(advance.status)) {
+    logger.warn(
+      `[GreenLedger] Refusing refund for advance ${advanceId} in status ${advance.status}`,
+    );
+    return { success: false, amountRefundedUsd: 0 };
+  }
 
   // Get dispensary's x402 wallet for the refund destination
   const dispensaryWallet = await getOrgWallet(advance.dispensaryOrgId);
@@ -536,6 +632,17 @@ export async function processRefund(advanceId: string): Promise<{
         txHash: result.txHash,
         createdAt: FieldValue.serverTimestamp(),
       });
+
+      const offerRef = offersCol().doc(advance.offerId);
+      await db().runTransaction(async (tx) => {
+        const offerSnap = await tx.get(offerRef);
+        if (!offerSnap.exists) return;
+        const currentCommitments = roundUsd(Number(offerSnap.data()?.currentCommitmentsUsd ?? 0));
+        tx.update(offerRef, {
+          currentCommitmentsUsd: Math.max(0, roundUsd(currentCommitments - result.amountRefundedUsd)),
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+      });
     }
 
     logger.info(`[GreenLedger] Advance ${advanceId} refunded: $${result.amountRefundedUsd}`);
@@ -563,6 +670,11 @@ export async function applyAdvanceToSettlement(
   wholesaleUsd: number,
   orderId: string,
 ): Promise<AdvanceDiscountResult | null> {
+  const roundedWholesaleUsd = roundUsd(wholesaleUsd);
+  if (!Number.isFinite(roundedWholesaleUsd) || roundedWholesaleUsd <= 0) {
+    return null;
+  }
+
   const snap = await advancesCol()
     .where('brandOrgId', '==', brandOrgId)
     .where('dispensaryOrgId', '==', dispensaryOrgId)
@@ -572,50 +684,68 @@ export async function applyAdvanceToSettlement(
 
   if (snap.empty) return null;
 
-  const advance = snap.docs[0].data() as GreenLedgerAdvance;
   const ref = snap.docs[0].ref;
+  const result = await db().runTransaction(async (tx) => {
+    const advanceSnap = await tx.get(ref);
+    if (!advanceSnap.exists) return null;
 
-  const discountUsd = Math.round(wholesaleUsd * (advance.discountBps / 10000) * 100) / 100;
-  const escrowDeductionUsd = wholesaleUsd - discountUsd;
+    const advance = advanceSnap.data() as GreenLedgerAdvance;
+    if (advance.status !== 'active') return null;
 
-  // Don't deduct more than the remaining balance
-  if (advance.remainingBalanceUsd < escrowDeductionUsd) {
-    return null; // insufficient balance — settle without discount
-  }
+    const discountUsd = roundUsd(roundedWholesaleUsd * (advance.discountBps / 10000));
+    const escrowDeductionUsd = roundUsd(roundedWholesaleUsd - discountUsd);
+    if (escrowDeductionUsd <= 0) return null;
 
-  // Deduct from advance
-  await ref.update({
-    remainingBalanceUsd: FieldValue.increment(-escrowDeductionUsd),
-    totalSavedUsd: FieldValue.increment(discountUsd),
-    updatedAt: FieldValue.serverTimestamp(),
+    if (roundUsd(advance.remainingBalanceUsd) < escrowDeductionUsd) {
+      return null;
+    }
+
+    const newBalance = Math.max(0, roundUsd(advance.remainingBalanceUsd - escrowDeductionUsd));
+    tx.update(ref, {
+      remainingBalanceUsd: newBalance,
+      totalSavedUsd: FieldValue.increment(discountUsd),
+      status: newBalance < 0.01 ? 'depleted' : advance.status,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    const offerRef = offersCol().doc(advance.offerId);
+    const offerSnap = await tx.get(offerRef);
+    if (offerSnap.exists) {
+      const currentCommitments = roundUsd(Number(offerSnap.data()?.currentCommitmentsUsd ?? 0));
+      tx.update(offerRef, {
+        currentCommitmentsUsd: Math.max(0, roundUsd(currentCommitments - escrowDeductionUsd)),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    }
+
+    const settlementTxId = nanoid();
+    tx.set(txCol().doc(settlementTxId), {
+      id: settlementTxId,
+      advanceId: advance.id,
+      brandOrgId,
+      dispensaryOrgId,
+      type: 'settlement_deduction',
+      amountUsd: escrowDeductionUsd,
+      discountAppliedUsd: discountUsd,
+      orderId,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+
+    return {
+      advanceId: advance.id,
+      discountBps: advance.discountBps,
+      discountUsd,
+      escrowDeductionUsd,
+    } as AdvanceDiscountResult;
   });
 
-  // Record transaction
-  await txCol().doc(nanoid()).set({
-    id: nanoid(),
-    advanceId: advance.id,
-    brandOrgId,
-    dispensaryOrgId,
-    type: 'settlement_deduction',
-    amountUsd: escrowDeductionUsd,
-    discountAppliedUsd: discountUsd,
-    orderId,
-    createdAt: FieldValue.serverTimestamp(),
-  });
-
-  // Mark depleted if balance now near zero
-  const newBalance = advance.remainingBalanceUsd - escrowDeductionUsd;
-  if (newBalance < 0.01) {
-    await ref.update({ status: 'depleted', updatedAt: FieldValue.serverTimestamp() });
-    logger.info(`[GreenLedger] Advance ${advance.id} depleted`);
+  if (result) {
+    logger.info(
+      `[GreenLedger] Applied advance ${result.advanceId} to order ${orderId}: discount ${result.discountUsd.toFixed(2)}, escrow deduction ${result.escrowDeductionUsd.toFixed(2)}`,
+    );
   }
 
-  return {
-    advanceId: advance.id,
-    discountBps: advance.discountBps,
-    discountUsd,
-    escrowDeductionUsd,
-  };
+  return result;
 }
 
 // ============================================================================
@@ -641,3 +771,4 @@ export async function processAutoRefunds(): Promise<{ processed: number; failed:
   logger.info(`[GreenLedger] Auto-refund cron: ${processed} processed, ${failed} failed`);
   return { processed, failed };
 }
+
