@@ -30,6 +30,69 @@ const EMBEDDING_DIMENSIONS = 768;
 
 // --- HELPER FUNCTIONS ---
 
+function isSuperRole(role: unknown): boolean {
+    return role === 'super_user' || role === 'super_admin';
+}
+
+function getActorOrgId(user: unknown): string | null {
+    if (!user || typeof user !== 'object') return null;
+    const token = user as {
+        currentOrgId?: string;
+        orgId?: string;
+        brandId?: string;
+        dispensaryId?: string;
+        tenantId?: string;
+        organizationId?: string;
+    };
+    return (
+        token.currentOrgId ||
+        token.orgId ||
+        token.brandId ||
+        token.dispensaryId ||
+        token.tenantId ||
+        token.organizationId ||
+        null
+    );
+}
+
+async function assertKnowledgeOwnerAccess(
+    user: unknown,
+    ownerId: string,
+    ownerType: KnowledgeBaseOwnerType
+): Promise<void> {
+    const role = typeof user === 'object' && user ? (user as { role?: string }).role : null;
+    if (isSuperRole(role) || await isSuperUser()) {
+        return;
+    }
+
+    if (ownerType === 'system') {
+        throw new Error('Unauthorized: Only super admins can access system Knowledge Bases.');
+    }
+
+    const actorOrgId = getActorOrgId(user);
+    if (!actorOrgId || actorOrgId !== ownerId) {
+        throw new Error('Unauthorized: Cannot access another organization\'s Knowledge Base.');
+    }
+}
+
+async function getKnowledgeBaseRecord(kbId: string): Promise<{
+    firestore: ReturnType<typeof getAdminFirestore>;
+    kbRef: any;
+    kbData: KnowledgeBase;
+}> {
+    const firestore = getAdminFirestore();
+    const kbRef = firestore.collection('knowledge_bases').doc(kbId);
+    const kbDoc = await kbRef.get();
+    if (!kbDoc.exists) {
+        throw new Error('Knowledge Base not found');
+    }
+    return {
+        firestore,
+        kbRef,
+        kbData: kbDoc.data() as KnowledgeBase,
+    };
+}
+
 /**
  * Get usage limits for a plan
  */
@@ -67,7 +130,8 @@ export async function createKnowledgeBaseAction(input: z.infer<typeof CreateKnow
     console.log('[createKnowledgeBaseAction] Starting creation for:', input.name);
     try {
         const user = await requireUser();
-        const isSuper = await isSuperUser();
+        const role = (user as { role?: string }).role;
+        const isSuper = isSuperRole(role) || await isSuperUser();
 
         // Security: System KBs require super user
         if (input.ownerType === 'system' && !isSuper) {
@@ -76,7 +140,7 @@ export async function createKnowledgeBaseAction(input: z.infer<typeof CreateKnow
 
         // Security: Brand/Dispensary must match user's org
         if ((input.ownerType === 'brand' || input.ownerType === 'dispensary') && !isSuper) {
-            const userOrgId = user.brandId || user.dispensaryId;
+            const userOrgId = getActorOrgId(user);
             if (input.ownerId !== userOrgId) {
                 throw new Error('Unauthorized: Cannot create KB for another organization.');
             }
@@ -124,7 +188,6 @@ export async function createKnowledgeBaseAction(input: z.infer<typeof CreateKnow
 export async function updateKnowledgeBaseAction(input: z.infer<typeof UpdateKnowledgeBaseSchema>) {
     try {
         const user = await requireUser();
-        const isSuper = await isSuperUser();
         const firestore = getAdminFirestore();
         const kbRef = firestore.collection('knowledge_bases').doc(input.knowledgeBaseId);
 
@@ -133,13 +196,7 @@ export async function updateKnowledgeBaseAction(input: z.infer<typeof UpdateKnow
 
         const data = doc.data() as KnowledgeBase;
 
-        // Security Check
-        if (data.ownerType === 'system' && !isSuper) {
-            throw new Error('Unauthorized: Only super admins can update system KBs.');
-        }
-        if (data.ownerType !== 'system' && data.ownerId !== user.brandId && data.ownerId !== user.dispensaryId && !isSuper) {
-             throw new Error('Unauthorized: Cannot update this KB.');
-        }
+        await assertKnowledgeOwnerAccess(user, data.ownerId, data.ownerType);
 
         const updates: any = { updatedAt: new Date() };
         if (input.name) updates.name = input.name;
@@ -161,7 +218,6 @@ export async function deleteKnowledgeBaseAction(kbId: string) {
     console.log('[deleteKnowledgeBaseAction] Deleting:', kbId);
     try {
         const user = await requireUser();
-        const isSuper = await isSuperUser();
         const firestore = getAdminFirestore();
         const kbRef = firestore.collection('knowledge_bases').doc(kbId);
 
@@ -170,13 +226,7 @@ export async function deleteKnowledgeBaseAction(kbId: string) {
 
         const data = doc.data() as KnowledgeBase;
 
-        // Security Check
-        if (data.ownerType === 'system' && !isSuper) {
-            throw new Error('Unauthorized: Only super admins can delete system KBs.');
-        }
-        if (data.ownerType !== 'system' && data.ownerId !== user.brandId && data.ownerId !== user.dispensaryId && !isSuper) {
-             throw new Error('Unauthorized: Cannot delete this KB.');
-        }
+        await assertKnowledgeOwnerAccess(user, data.ownerId, data.ownerType);
 
         // Recursive Delete Documents (Manual Batching)
         const batchSize = 200;
@@ -207,7 +257,13 @@ export async function deleteKnowledgeBaseAction(kbId: string) {
  * Get all Knowledge Bases for a specific owner
  */
 export async function getKnowledgeBasesAction(ownerId: string) {
-    await requireUser();
+    const user = await requireUser();
+    const ownerType: KnowledgeBaseOwnerType = ownerId === 'system' ? 'system' : 'brand';
+    try {
+        await assertKnowledgeOwnerAccess(user, ownerId, ownerType);
+    } catch {
+        return [];
+    }
     const { firestore } = await createServerClient();
 
     const snapshot = await firestore.collection('knowledge_bases')
@@ -256,10 +312,14 @@ export async function getSystemKnowledgeBasesAction() {
  */
 export async function checkUsageLimitsAction(ownerId: string, ownerType: KnowledgeBaseOwnerType): Promise<KnowledgeUsageStatus> {
     const user = await requireUser();
-    const isSuper = await isSuperUser();
+    const role = (user as { role?: string }).role;
+    const isSuper = isSuperRole(role) || await isSuperUser();
 
-    // System tier has no limits
-    if (ownerType === 'system' || isSuper) {
+    // System tier has no limits, but only super users can inspect system scope.
+    if (ownerType === 'system') {
+        if (!isSuper) {
+            throw new Error('Unauthorized: Only super admins can access system Knowledge Base usage.');
+        }
         return {
             documentCount: 0,
             totalBytes: 0,
@@ -268,6 +328,18 @@ export async function checkUsageLimitsAction(ownerId: string, ownerType: Knowled
             percentUsed: 0
         };
     }
+
+    if (isSuper) {
+        return {
+            documentCount: 0,
+            totalBytes: 0,
+            limits: KNOWLEDGE_LIMITS.system,
+            isAtLimit: false,
+            percentUsed: 0
+        };
+    }
+
+    await assertKnowledgeOwnerAccess(user, ownerId, ownerType);
 
     // Get plan for user
     const planId = await getUserPlanId(user.uid);
@@ -318,6 +390,7 @@ export async function addDocumentAction(input: z.infer<typeof AddDocumentSchema>
         if (!kbDoc.exists) throw new Error('Knowledge Base not found');
 
         const kbData = kbDoc.data() as KnowledgeBase;
+        await assertKnowledgeOwnerAccess(user, kbData.ownerId, kbData.ownerType);
 
         // Check usage limits (skip for system)
         if (kbData.ownerType !== 'system') {
@@ -396,14 +469,15 @@ export async function addDocumentAction(input: z.infer<typeof AddDocumentSchema>
  * Delete a document
  */
 export async function deleteDocumentAction(kbId: string, docId: string) {
-    await requireUser();
-    const firestore = getAdminFirestore();
-    const kbRef = firestore.collection('knowledge_bases').doc(kbId);
-    const docRef = kbRef.collection('documents').doc(docId);
+    const user = await requireUser();
 
     try {
+        const { firestore, kbRef, kbData } = await getKnowledgeBaseRecord(kbId);
+        await assertKnowledgeOwnerAccess(user, kbData.ownerId, kbData.ownerType);
+        const docRef = kbRef.collection('documents').doc(docId);
+
         await firestore.runTransaction(async (t) => {
-            const doc = await t.get(docRef);
+            const doc = await t.get(docRef as any) as any;
             if (!doc.exists) throw new Error('Document not found');
 
             const docData = doc.data();
@@ -427,7 +501,9 @@ export async function deleteDocumentAction(kbId: string, docId: string) {
  * Get documents for a Knowledge Base (excludes embedding for performance)
  */
 export async function getDocumentsAction(kbId: string) {
-    await requireUser();
+    const user = await requireUser();
+    const { kbData } = await getKnowledgeBaseRecord(kbId);
+    await assertKnowledgeOwnerAccess(user, kbData.ownerId, kbData.ownerType);
     const { firestore } = await createServerClient();
 
     const snapshot = await firestore.collection('knowledge_bases').doc(kbId).collection('documents')
@@ -454,6 +530,9 @@ export async function searchKnowledgeBaseAction(kbId: string, query: string, lim
     if (!query || query.length < 3) return [];
 
     try {
+        const user = await requireUser();
+        const { kbData } = await getKnowledgeBaseRecord(kbId);
+        await assertKnowledgeOwnerAccess(user, kbData.ownerId, kbData.ownerType);
         const queryEmbedding = await generateEmbedding(query);
         const firestore = getAdminFirestore();
 
