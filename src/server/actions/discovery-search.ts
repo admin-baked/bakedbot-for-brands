@@ -20,11 +20,26 @@ export interface SearchResult {
     error?: string;
 }
 
+type DiscoveryActor = {
+    uid: string;
+    orgId?: string;
+    currentOrgId?: string;
+    brandId?: string;
+};
+
+function getActorOrgId(user: DiscoveryActor): string | null {
+    return user.currentOrgId || user.orgId || user.brandId || null;
+}
+
+function isValidOrgId(orgId: string): boolean {
+    return !!orgId && !orgId.includes('/');
+}
+
 /**
  * Search for cannabis businesses using BakedBot Discovery (FireCrawl)
  */
 export async function searchEntities(query: string, type: 'dispensary' | 'brand', zip?: string): Promise<SearchResult> {
-    const user = await requireUser();
+    await requireUser();
     
     try {
         // Construct targeted query
@@ -59,17 +74,15 @@ export async function linkEntity(entity: DiscoveryEntity) {
     const { firestore } = await createServerClient();
     
     try {
-        // 1. Determine collection based on role/type
-        // For now, assuming user linking their OWN business matches their role
-        // But we should probably use the specific entity type to be safe.
-        const collection = entity.type === 'dispensary' ? 'crm_dispensaries' : 'crm_brands';
-        
-        // 2. Create or Update record
+        // 1. Create or update org record
         // We'll use the URL as a unique key for now or just add a new doc if we don't strictly de-dupe yet.
         // Better: Update the User's "Linked Organization"
         
-        // Get user's org ID or create one
-        let orgId = (user as any).brandId || user.uid; // Fallback
+        // Require explicit org context from auth claims.
+        const orgId = getActorOrgId(user as DiscoveryActor);
+        if (!orgId || !isValidOrgId(orgId)) {
+            return { success: false, error: 'Missing organization context' };
+        }
         
         // Update Firestore
         const docRef = firestore.collection('organizations').doc(orgId);

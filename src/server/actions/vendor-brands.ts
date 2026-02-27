@@ -8,8 +8,27 @@ import type { VendorBrand, VendorBrandContext } from '@/types/vendor-brands';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function getOrgId(user: { orgId?: string; currentOrgId?: string; uid: string }): string {
-  return user.orgId || user.currentOrgId || user.uid;
+type VendorBrandActor = {
+  uid: string;
+  orgId?: string;
+  currentOrgId?: string;
+  brandId?: string;
+};
+
+function getOrgId(user: VendorBrandActor): string | null {
+  return user.currentOrgId || user.orgId || user.brandId || null;
+}
+
+function isValidOrgId(orgId: string): boolean {
+  return !!orgId && !orgId.includes('/');
+}
+
+function requireOrgId(user: VendorBrandActor, action: string): string {
+  const orgId = getOrgId(user);
+  if (!orgId || !isValidOrgId(orgId)) {
+    throw new Error(`Missing organization context for ${action}`);
+  }
+  return orgId;
 }
 
 function normalizeUrl(input: string): string {
@@ -21,37 +40,44 @@ function normalizeUrl(input: string): string {
 // ─── List ─────────────────────────────────────────────────────────────────────
 
 export async function getVendorBrands(): Promise<VendorBrand[]> {
-  const user = await requireUser([
-    'dispensary', 'dispensary_admin', 'brand', 'brand_admin', 'super_user',
-  ]);
-  const orgId = getOrgId(user as any);
-  const db = getAdminFirestore();
+  try {
+    const user = await requireUser([
+      'dispensary', 'dispensary_admin', 'brand', 'brand_admin', 'super_user',
+    ]);
+    const orgId = requireOrgId(user as VendorBrandActor, 'getVendorBrands');
+    const db = getAdminFirestore();
 
-  const snap = await db
-    .collection('tenants').doc(orgId)
-    .collection('vendor_brands')
-    .orderBy('name')
-    .get();
+    const snap = await db
+      .collection('tenants').doc(orgId)
+      .collection('vendor_brands')
+      .orderBy('name')
+      .get();
 
-  return snap.docs.map(doc => {
-    const d = doc.data();
-    return {
-      id: doc.id,
-      orgId,
-      name: d.name,
-      website: d.website,
-      logoUrl: d.logoUrl,
-      primaryColor: d.primaryColor,
-      description: d.description,
-      brandStory: d.brandStory,
-      voiceKeywords: d.voiceKeywords,
-      productLines: d.productLines,
-      categories: d.categories,
-      extractionConfidence: d.extractionConfidence,
-      ingestedAt: d.ingestedAt?.toDate?.() ?? new Date(d.ingestedAt),
-      lastUpdatedAt: d.lastUpdatedAt?.toDate?.() ?? new Date(d.lastUpdatedAt),
-    } as VendorBrand;
-  });
+    return snap.docs.map(doc => {
+      const d = doc.data();
+      return {
+        id: doc.id,
+        orgId,
+        name: d.name,
+        website: d.website,
+        logoUrl: d.logoUrl,
+        primaryColor: d.primaryColor,
+        description: d.description,
+        brandStory: d.brandStory,
+        voiceKeywords: d.voiceKeywords,
+        productLines: d.productLines,
+        categories: d.categories,
+        extractionConfidence: d.extractionConfidence,
+        ingestedAt: d.ingestedAt?.toDate?.() ?? new Date(d.ingestedAt),
+        lastUpdatedAt: d.lastUpdatedAt?.toDate?.() ?? new Date(d.lastUpdatedAt),
+      } as VendorBrand;
+    });
+  } catch (err) {
+    logger.warn('[VendorBrands] Failed to fetch vendor brands', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return [];
+  }
 }
 
 // ─── Ingest ───────────────────────────────────────────────────────────────────
@@ -63,7 +89,7 @@ export async function ingestVendorBrand(
     const user = await requireUser([
       'dispensary', 'dispensary_admin', 'brand', 'brand_admin', 'super_user',
     ]);
-    const orgId = getOrgId(user as any);
+    const orgId = requireOrgId(user as VendorBrandActor, 'ingestVendorBrand');
     const url = normalizeUrl(website);
 
     logger.info('[VendorBrands] Ingesting vendor brand', { url, orgId });
@@ -144,7 +170,7 @@ export async function updateVendorBrand(
     const user = await requireUser([
       'dispensary', 'dispensary_admin', 'brand', 'brand_admin', 'super_user',
     ]);
-    const orgId = getOrgId(user as any);
+    const orgId = requireOrgId(user as VendorBrandActor, 'updateVendorBrand');
     const db = getAdminFirestore();
 
     await db
@@ -167,7 +193,7 @@ export async function deleteVendorBrand(
     const user = await requireUser([
       'dispensary', 'dispensary_admin', 'brand', 'brand_admin', 'super_user',
     ]);
-    const orgId = getOrgId(user as any);
+    const orgId = requireOrgId(user as VendorBrandActor, 'deleteVendorBrand');
     const db = getAdminFirestore();
 
     await db
