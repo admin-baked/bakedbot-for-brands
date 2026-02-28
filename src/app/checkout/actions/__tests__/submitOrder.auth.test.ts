@@ -4,6 +4,8 @@ const mockRequireUser = jest.fn();
 const mockCreateServerClient = jest.fn();
 const mockApplyCoupon = jest.fn();
 const mockCookies = jest.fn();
+const mockCouponUpdate = jest.fn();
+const mockProductGet = jest.fn();
 
 const originalFetch = global.fetch;
 
@@ -54,13 +56,42 @@ describe('submitOrder auth hardening', () => {
 
     mockCreateServerClient.mockResolvedValue({
       firestore: {
-        collection: jest.fn(() => ({
-          doc: jest.fn(() => ({
-            update: jest.fn().mockResolvedValue(undefined),
-          })),
-        })),
+        collection: jest.fn((name: string) => {
+          if (name === 'products') {
+            return {
+              doc: jest.fn(() => ({
+                get: mockProductGet,
+              })),
+            };
+          }
+
+          if (name === 'coupons') {
+            return {
+              doc: jest.fn(() => ({
+                update: mockCouponUpdate,
+              })),
+            };
+          }
+
+          return {
+            doc: jest.fn(() => ({
+              update: jest.fn().mockResolvedValue(undefined),
+            })),
+          };
+        }),
       },
     });
+
+    mockProductGet.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        name: 'Server Product',
+        price: 20,
+        brandId: 'org_1',
+        dispensaryId: 'disp_1',
+      }),
+    });
+    mockCouponUpdate.mockResolvedValue(undefined);
 
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
@@ -137,5 +168,55 @@ describe('submitOrder auth hardening', () => {
     expect(body.customer.uid).toBe('user-1');
     expect(body.customer.email).toBe('owner@example.com');
   });
-});
 
+  it('uses server catalog pricing when posting checkout payload', async () => {
+    mockRequireUser.mockResolvedValue({
+      uid: 'user-1',
+      email: 'owner@example.com',
+    });
+
+    const result = await submitOrder({
+      ...validPayload(),
+      items: [{ id: 'prod-1', name: 'Client Item', quantity: 1, price: 1 }],
+    } as any);
+
+    expect(result.ok).toBe(true);
+    const fetchArgs = (global.fetch as jest.Mock).mock.calls[0];
+    const body = JSON.parse(fetchArgs[1].body);
+
+    expect(body.items).toEqual([
+      expect.objectContaining({
+        productId: 'prod-1',
+        name: 'Server Product',
+        unitPrice: 20,
+        quantity: 1,
+      }),
+    ]);
+    expect(body.subtotal).toBe(20);
+    expect(body.tax).toBe(3);
+    expect(body.total).toBe(23);
+  });
+
+  it('rejects cart items outside checkout context', async () => {
+    mockRequireUser.mockResolvedValue({
+      uid: 'user-1',
+      email: 'owner@example.com',
+    });
+
+    mockProductGet.mockResolvedValueOnce({
+      exists: true,
+      data: () => ({
+        name: 'Foreign Product',
+        price: 20,
+        brandId: 'org_other',
+        dispensaryId: 'disp_other',
+      }),
+    });
+
+    const result = await submitOrder(validPayload() as any);
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain('checkout context');
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+});
