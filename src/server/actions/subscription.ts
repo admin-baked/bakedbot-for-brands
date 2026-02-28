@@ -22,16 +22,16 @@ const CreateSubscriptionSchema = z.object({
   orgId: z.string().min(1, 'Organization ID required'),
   tierId: z.enum(['pro', 'growth', 'empire'] as const, { message: 'Invalid tier' }),
   opaqueData: z.object({
-    dataDescriptor: z.string(),
-    dataValue: z.string(),
+    dataDescriptor: z.string().trim().min(1).max(120),
+    dataValue: z.string().trim().min(1),
   }),
   billTo: z.object({
-    firstName: z.string().min(1),
-    lastName: z.string().min(1),
-    address: z.string().min(1),
-    city: z.string().min(1),
-    state: z.string().min(2).max(2),
-    zip: z.string().min(5),
+    firstName: z.string().trim().min(1),
+    lastName: z.string().trim().min(1),
+    address: z.string().trim().min(1),
+    city: z.string().trim().min(1),
+    state: z.string().trim().regex(/^[A-Za-z]{2}$/, 'State must be a 2-letter code').transform((value) => value.toUpperCase()),
+    zip: z.string().trim().regex(/^\d{5}(-\d{4})?$/, 'ZIP must be 5 digits or ZIP+4'),
   }),
   promoCode: z.string().optional(),
 });
@@ -75,6 +75,9 @@ export async function createSubscription(
 
     // 2. Authenticate + verify org membership
     const user = await requireUser();
+    if ((user as any).email_verified === false || (user as any).emailVerified === false) {
+      return { success: false, error: 'Email verification is required before starting a paid subscription.' };
+    }
     const { firestore } = await createServerClient();
 
     // Verify user is admin of this org
