@@ -17,6 +17,7 @@ import { isShippingCheckoutEnabled } from '@/lib/feature-flags';
 
 // States where hemp shipping is restricted
 const RESTRICTED_STATES = ['ID', 'MS', 'SD', 'NE', 'KS'];
+const DOCUMENT_ID_REGEX = /^[A-Za-z0-9_-]{1,128}$/;
 
 type CreateShippingOrderInput = {
     items: any[];
@@ -32,6 +33,14 @@ type CreateShippingOrderInput = {
     subtotal?: number;
     tax?: number;
     total: number;
+};
+
+type ResolvedShippingItem = {
+    id: string;
+    name: string;
+    quantity: number;
+    price: number;
+    category?: string;
 };
 
 function normalizeAddress(address: any): BillingAddress | null {
@@ -57,6 +66,16 @@ function normalizeAddress(address: any): BillingAddress | null {
         zip,
         country,
     };
+}
+
+function productBelongsToBrand(product: any, brandId: string): boolean {
+    if (!product || typeof product !== 'object') return false;
+    if (product.brandId === brandId) return true;
+    if (product.orgId === brandId) return true;
+    if (product.organizationId === brandId) return true;
+    if (product.dispensaryId === brandId) return true;
+    if (Array.isArray(product.retailerIds) && product.retailerIds.includes(brandId)) return true;
+    return false;
 }
 
 export async function createShippingOrder(input: CreateShippingOrderInput) {
@@ -88,8 +107,55 @@ export async function createShippingOrder(input: CreateShippingOrderInput) {
         }
 
         const { firestore } = await createServerClient();
-        const calculatedSubtotal = Number(input.items.reduce(
-            (sum, item) => sum + ((item.price || 0) * (item.quantity || 1)),
+
+        const resolvedItems: ResolvedShippingItem[] = [];
+        for (const item of input.items) {
+            const productId = typeof item?.id === 'string' ? item.id.trim() : '';
+            const quantity = Number(item?.quantity || 1);
+
+            if (!productId || !DOCUMENT_ID_REGEX.test(productId) || !Number.isInteger(quantity) || quantity <= 0 || quantity > 100) {
+                return { success: false, error: 'Invalid cart items provided.' };
+            }
+
+            const productDoc = await firestore.collection('products').doc(productId).get();
+            if (!productDoc.exists) {
+                return { success: false, error: `Product ${productId} is no longer available.` };
+            }
+
+            const productData = productDoc.data() || {};
+            if (!productBelongsToBrand(productData, input.brandId)) {
+                return { success: false, error: 'Cart contains products that do not belong to this brand.' };
+            }
+
+            if (productData.shippable === false) {
+                return { success: false, error: `${productData.name || 'A product'} is not available for shipping.` };
+            }
+
+            const restrictedStates = Array.isArray(productData.shippingRestrictions)
+                ? productData.shippingRestrictions.map((state: any) => String(state).toUpperCase())
+                : [];
+            if (restrictedStates.includes(normalizedShipping.state)) {
+                return { success: false, error: `${productData.name || 'A product'} cannot be shipped to ${normalizedShipping.state}.` };
+            }
+
+            const serverPrice = Number(productData.price);
+            if (!Number.isFinite(serverPrice) || serverPrice < 0) {
+                return { success: false, error: `${productData.name || 'A product'} has an invalid price.` };
+            }
+
+            resolvedItems.push({
+                id: productId,
+                name: typeof productData.name === 'string' && productData.name.trim().length > 0
+                    ? productData.name
+                    : (typeof item?.name === 'string' ? item.name : 'Product'),
+                quantity,
+                price: Number(serverPrice.toFixed(2)),
+                category: typeof productData.category === 'string' ? productData.category : undefined,
+            });
+        }
+
+        const calculatedSubtotal = Number(resolvedItems.reduce(
+            (sum, item) => sum + (item.price * item.quantity),
             0,
         ).toFixed(2));
         const calculatedTax = typeof input.tax === 'number' && input.tax >= 0
@@ -122,10 +188,10 @@ export async function createShippingOrder(input: CreateShippingOrderInput) {
         const normalizedCustomerEmail = sessionEmail || requestEmail;
         const orderDraft = {
             userId: session.uid,
-            items: input.items.map(item => ({
+            items: resolvedItems.map(item => ({
                 productId: item.id,
                 name: item.name,
-                qty: item.quantity || 1,
+                qty: item.quantity,
                 price: item.price,
                 category: item.category,
             })),
@@ -223,9 +289,9 @@ export async function createShippingOrder(input: CreateShippingOrderInput) {
             customerName: input.customer.name,
             customerEmail: normalizedCustomerEmail,
             total: calculatedTotal,
-            items: input.items.map(i => ({
+            items: resolvedItems.map(i => ({
                 name: i.name,
-                qty: i.quantity || 1,
+                qty: i.quantity,
                 price: i.price,
             })),
             retailerName: 'Ecstatic Edibles',
