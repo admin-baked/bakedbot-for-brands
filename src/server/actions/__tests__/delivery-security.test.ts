@@ -1,4 +1,4 @@
-import { assignDriver, getDeliveryZones, getDriverPerformance } from '../delivery';
+import { assignDriver, getDelivery, getDeliveryZones, getDriverPerformance, getPublicDeliveryQr } from '../delivery';
 import { requireUser } from '@/server/auth/auth';
 import { getAdminFirestore } from '@/firebase/admin';
 
@@ -133,5 +133,72 @@ describe('delivery actions security', () => {
     expect(result.error).toBe('Unauthorized');
     expect(getAdminFirestore).not.toHaveBeenCalled();
   });
-});
 
+  it('blocks non-super users from reading cross-org delivery details', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'user-1',
+      role: 'dispensary_admin',
+      currentOrgId: 'org_a',
+    });
+
+    const db = {
+      collection: jest.fn().mockImplementation((name: string) => {
+        if (name !== 'deliveries') return {};
+        return {
+          doc: jest.fn().mockReturnValue({
+            get: jest.fn().mockResolvedValue({
+              exists: true,
+              id: 'del_1',
+              data: () => ({ locationId: 'loc_b' }),
+            }),
+          }),
+        };
+      }),
+    };
+    (getAdminFirestore as jest.Mock).mockReturnValue(db);
+
+    const result = await getDelivery('del_1');
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Unauthorized');
+  });
+
+  it('returns a limited public payload for QR rendering', async () => {
+    const db = {
+      collection: jest.fn().mockImplementation((name: string) => {
+        if (name !== 'deliveries') return {};
+        return {
+          doc: jest.fn().mockReturnValue({
+            get: jest.fn().mockResolvedValue({
+              exists: true,
+              id: 'del_1',
+              data: () => ({
+                orderId: 'order_123',
+                status: 'assigned',
+                deliveryQrCode: 'qr_abc',
+                deliveryAddress: { street: '123 Main', city: 'Syracuse', state: 'NY', zip: '13202' },
+                driverId: 'driver_999',
+                idVerification: { verified: false },
+              }),
+            }),
+          }),
+        };
+      }),
+    };
+    (getAdminFirestore as jest.Mock).mockReturnValue(db);
+
+    const result = await getPublicDeliveryQr('del_1');
+
+    expect(result.success).toBe(true);
+    expect((result as any).delivery.driverId).toBeUndefined();
+    expect((result as any).delivery.idVerification).toBeUndefined();
+    expect((result as any).delivery.deliveryQrCode).toBe('qr_abc');
+  });
+
+  it('rejects invalid public delivery ids before reading firestore', async () => {
+    const result = await getPublicDeliveryQr('bad/id');
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Invalid delivery ID');
+    expect(getAdminFirestore).not.toHaveBeenCalled();
+  });
+});

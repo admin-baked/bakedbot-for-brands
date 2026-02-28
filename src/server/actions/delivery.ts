@@ -36,6 +36,15 @@ function isSuperRole(role: unknown): boolean {
     return role === 'super_user' || role === 'super_admin';
 }
 
+function isValidDocumentId(value: unknown): value is string {
+    return (
+        typeof value === 'string' &&
+        value.length >= 3 &&
+        value.length <= 128 &&
+        !/[\/\\?#\[\]]/.test(value)
+    );
+}
+
 function getActorOrgId(user: unknown): string | null {
     if (!user || typeof user !== 'object') return null;
     const token = user as {
@@ -115,7 +124,7 @@ async function fetchDeliveryZonesForLocation(locationId: string): Promise<Delive
  */
 export async function createDriver(input: CreateDriverInput) {
     try {
-        const user = await requireUser(['dispensary_admin', 'super_user']);
+        const user = await requireUser(['dispensary_admin', 'super_user', 'super_admin']);
         assertOrgAccess(user, input.orgId);
         const db = getAdminFirestore();
 
@@ -190,7 +199,7 @@ export async function createDriver(input: CreateDriverInput) {
  */
 export async function updateDriver(driverId: string, input: UpdateDriverInput) {
     try {
-        const currentUser = await requireUser(['dispensary_admin', 'super_user']);
+        const currentUser = await requireUser(['dispensary_admin', 'super_user', 'super_admin']);
         const db = getAdminFirestore();
         const driverRef = db.collection('drivers').doc(driverId);
         const driverDoc = await driverRef.get();
@@ -233,7 +242,7 @@ export async function updateDriver(driverId: string, input: UpdateDriverInput) {
  */
 export async function toggleDriverAvailability(driverId: string) {
     try {
-        const currentUser = await requireUser(['dispensary_admin', 'super_user', 'delivery_driver']);
+        const currentUser = await requireUser(['dispensary_admin', 'super_user', 'super_admin', 'delivery_driver']);
         const db = getAdminFirestore();
 
         const driverRef = db.collection('drivers').doc(driverId);
@@ -272,7 +281,7 @@ export async function toggleDriverAvailability(driverId: string) {
  */
 export async function getDrivers(orgId: string) {
     try {
-        const currentUser = await requireUser(['dispensary_admin', 'dispensary_staff', 'super_user']);
+        const currentUser = await requireUser(['dispensary_admin', 'dispensary_staff', 'super_user', 'super_admin']);
         assertOrgAccess(currentUser, orgId);
         const db = getAdminFirestore();
 
@@ -303,7 +312,7 @@ export async function getDrivers(orgId: string) {
  */
 export async function getAvailableDrivers(orgId: string) {
     try {
-        const currentUser = await requireUser(['dispensary_admin', 'dispensary_staff', 'super_user']);
+        const currentUser = await requireUser(['dispensary_admin', 'dispensary_staff', 'super_user', 'super_admin']);
         assertOrgAccess(currentUser, orgId);
         const db = getAdminFirestore();
 
@@ -460,7 +469,7 @@ export async function autoAssignDriver(deliveryId: string, locationId: string) {
  */
 export async function assignDriver(deliveryId: string, driverId: string) {
     try {
-        const currentUser = await requireUser(['dispensary_admin', 'dispensary_staff', 'super_user']);
+        const currentUser = await requireUser(['dispensary_admin', 'dispensary_staff', 'super_user', 'super_admin']);
         const db = getAdminFirestore();
 
         // Use transaction to prevent double-assignment
@@ -547,7 +556,7 @@ export async function assignDriver(deliveryId: string, driverId: string) {
  */
 export async function updateDeliveryStatus(input: UpdateDeliveryStatusInput) {
     try {
-        const currentUser = await requireUser(['dispensary_admin', 'dispensary_staff', 'delivery_driver', 'super_user']);
+        const currentUser = await requireUser(['dispensary_admin', 'dispensary_staff', 'delivery_driver', 'super_user', 'super_admin']);
         const db = getAdminFirestore();
 
         const deliveryRef = db.collection('deliveries').doc(input.deliveryId);
@@ -633,7 +642,7 @@ export async function updateDeliveryStatus(input: UpdateDeliveryStatusInput) {
  */
 export async function getActiveDeliveries(locationId: string) {
     try {
-        const currentUser = await requireUser(['dispensary_admin', 'dispensary_staff', 'super_user']);
+        const currentUser = await requireUser(['dispensary_admin', 'dispensary_staff', 'super_user', 'super_admin']);
         assertLocationAccess(currentUser, locationId);
         const db = getAdminFirestore();
 
@@ -666,6 +675,11 @@ export async function getActiveDeliveries(locationId: string) {
  */
 export async function getDelivery(deliveryId: string) {
     try {
+        if (!isValidDocumentId(deliveryId)) {
+            return { success: false, error: 'Invalid delivery ID' };
+        }
+
+        const currentUser = await requireUser(['dispensary_admin', 'dispensary_staff', 'super_user', 'super_admin']);
         const db = getAdminFirestore();
 
         const deliveryDoc = await db.collection('deliveries').doc(deliveryId).get();
@@ -675,10 +689,48 @@ export async function getDelivery(deliveryId: string) {
         }
 
         const delivery = { ...deliveryDoc.data(), id: deliveryDoc.id } as Delivery;
+        assertLocationAccess(currentUser, delivery.locationId);
 
         return { success: true, delivery };
     } catch (error) {
         logger.error('Failed to fetch delivery', { error, deliveryId });
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to fetch delivery',
+        };
+    }
+}
+
+/**
+ * Public-safe delivery payload for customer QR page
+ * No auth required; do not expose internal fields.
+ */
+export async function getPublicDeliveryQr(deliveryId: string) {
+    try {
+        if (!isValidDocumentId(deliveryId)) {
+            return { success: false, error: 'Invalid delivery ID' };
+        }
+
+        const db = getAdminFirestore();
+        const deliveryDoc = await db.collection('deliveries').doc(deliveryId).get();
+
+        if (!deliveryDoc.exists) {
+            return { success: false, error: 'Delivery not found' };
+        }
+
+        const delivery = deliveryDoc.data() as Delivery;
+        return {
+            success: true,
+            delivery: {
+                id: deliveryDoc.id,
+                orderId: delivery.orderId,
+                status: delivery.status,
+                deliveryQrCode: delivery.deliveryQrCode,
+                deliveryAddress: delivery.deliveryAddress,
+            },
+        };
+    } catch (error) {
+        logger.error('Failed to fetch public delivery qr payload', { error, deliveryId });
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Failed to fetch delivery',
@@ -695,7 +747,7 @@ export async function getDelivery(deliveryId: string) {
  */
 export async function createDeliveryZone(input: CreateZoneInput) {
     try {
-        const currentUser = await requireUser(['dispensary_admin', 'super_user']);
+        const currentUser = await requireUser(['dispensary_admin', 'super_user', 'super_admin']);
         assertLocationAccess(currentUser, input.locationId);
         const db = getAdminFirestore();
 
@@ -739,7 +791,7 @@ export async function createDeliveryZone(input: CreateZoneInput) {
  */
 export async function updateDeliveryZone(locationId: string, zoneId: string, input: UpdateZoneInput) {
     try {
-        const currentUser = await requireUser(['dispensary_admin', 'super_user']);
+        const currentUser = await requireUser(['dispensary_admin', 'super_user', 'super_admin']);
         assertLocationAccess(currentUser, locationId);
         const db = getAdminFirestore();
 
@@ -774,7 +826,7 @@ export async function updateDeliveryZone(locationId: string, zoneId: string, inp
  */
 export async function getDeliveryZones(locationId: string) {
     try {
-        const currentUser = await requireUser(['dispensary_admin', 'dispensary_staff', 'super_user']);
+        const currentUser = await requireUser(['dispensary_admin', 'dispensary_staff', 'super_user', 'super_admin']);
         assertLocationAccess(currentUser, locationId);
         const zones = await fetchDeliveryZonesForLocation(locationId);
 
@@ -855,7 +907,7 @@ export async function calculateDeliveryFee(
  */
 export async function getDeliveryStats(locationId: string): Promise<DeliveryStats> {
     try {
-        const currentUser = await requireUser(['dispensary_admin', 'dispensary_staff', 'super_user']);
+        const currentUser = await requireUser(['dispensary_admin', 'dispensary_staff', 'super_user', 'super_admin']);
         assertLocationAccess(currentUser, locationId);
         const db = getAdminFirestore();
 

@@ -1,4 +1,4 @@
-import { getLeads } from '../email-capture';
+import { captureEmailLead, getLeads } from '../email-capture';
 import { requireUser } from '@/server/auth/auth';
 import { getAdminFirestore } from '@/firebase/admin';
 
@@ -113,5 +113,87 @@ describe('email-capture security', () => {
     expect(collection).toHaveBeenCalledWith('email_leads');
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe('lead-1');
+  });
+
+  it('does not overwrite another org lead when email matches', async () => {
+    const existingUpdate = jest.fn().mockResolvedValue(undefined);
+    const emailGet = jest.fn().mockResolvedValue({
+      empty: false,
+      docs: [
+        {
+          id: 'lead-org-a',
+          get: (field: string) => (field === 'brandId' ? 'org-a' : undefined),
+          ref: { update: existingUpdate },
+        },
+      ],
+    });
+    const phoneGet = jest.fn().mockResolvedValue({ empty: true, docs: [] });
+    const add = jest.fn().mockResolvedValue({ id: 'lead-org-b' });
+
+    (getAdminFirestore as jest.Mock).mockReturnValue({
+      collection: jest.fn().mockImplementation((name: string) => {
+        if (name !== 'email_leads') return { add: jest.fn(), where: jest.fn() };
+        return {
+          where: jest.fn().mockImplementation((field: string) => {
+            if (field === 'email') return { get: emailGet };
+            if (field === 'phone') return { get: phoneGet };
+            return { get: jest.fn().mockResolvedValue({ empty: true, docs: [] }) };
+          }),
+          add,
+        };
+      }),
+    });
+
+    const result = await captureEmailLead({
+      email: 'same@example.com',
+      emailConsent: false,
+      smsConsent: false,
+      brandId: 'org-b',
+      source: 'menu',
+    });
+
+    expect(result.success).toBe(true);
+    expect(add).toHaveBeenCalledTimes(1);
+    expect(existingUpdate).not.toHaveBeenCalled();
+  });
+
+  it('updates existing lead when scope matches', async () => {
+    const existingUpdate = jest.fn().mockResolvedValue(undefined);
+    const emailGet = jest.fn().mockResolvedValue({
+      empty: false,
+      docs: [
+        {
+          id: 'lead-org-a',
+          get: (field: string) => (field === 'brandId' ? 'org-a' : undefined),
+          ref: { update: existingUpdate },
+        },
+      ],
+    });
+    const add = jest.fn().mockResolvedValue({ id: 'lead-new' });
+
+    (getAdminFirestore as jest.Mock).mockReturnValue({
+      collection: jest.fn().mockImplementation((name: string) => {
+        if (name !== 'email_leads') return { add: jest.fn(), where: jest.fn() };
+        return {
+          where: jest.fn().mockImplementation((field: string) => {
+            if (field === 'email') return { get: emailGet };
+            return { get: jest.fn().mockResolvedValue({ empty: true, docs: [] }) };
+          }),
+          add,
+        };
+      }),
+    });
+
+    const result = await captureEmailLead({
+      email: 'same@example.com',
+      emailConsent: false,
+      smsConsent: false,
+      brandId: 'org-a',
+      source: 'menu',
+    });
+
+    expect(result.success).toBe(true);
+    expect(existingUpdate).toHaveBeenCalledTimes(1);
+    expect(add).not.toHaveBeenCalled();
   });
 });
