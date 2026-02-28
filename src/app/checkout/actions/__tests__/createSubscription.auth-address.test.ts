@@ -187,4 +187,39 @@ describe('createSubscription auth + address hardening', () => {
             }),
         }), { merge: true });
     });
+
+    it('ignores AUTHNET_FORCE_MOCK in production and uses real recurring setup path', async () => {
+        process.env.NODE_ENV = 'production';
+        process.env.AUTHNET_FORCE_MOCK = 'true';
+        process.env.AUTHNET_API_LOGIN_ID = 'login-id';
+        process.env.AUTHNET_TRANSACTION_KEY = 'txn-key';
+        process.env.NEXT_PUBLIC_ENABLE_COMPANY_PLAN_CHECKOUT = 'true';
+        process.env.ENABLE_COMPANY_PLAN_CHECKOUT = 'true';
+
+        mockRequireUser.mockResolvedValue({
+            uid: 'user-1',
+            email: 'owner@example.com',
+        });
+
+        const input = {
+            ...baseInput(),
+            billingAddress: {
+                street: '1 Main St',
+                city: 'Syracuse',
+                state: 'NY',
+                zip: '13224',
+                country: 'US',
+            },
+        };
+
+        const result = await createSubscription(input as any);
+
+        expect(result.success).toBe(true);
+        expect(mockCreateCustomerProfile).toHaveBeenCalledTimes(1);
+        expect(mockCreateSubscriptionFromProfile).toHaveBeenCalledTimes(1);
+        expect(mockSubscriptionSet).toHaveBeenCalledWith(expect.objectContaining({
+            providerSubscriptionId: 'arb_1',
+            transactionId: 'arb_1',
+        }));
+    });
 });
