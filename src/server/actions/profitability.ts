@@ -53,6 +53,10 @@ function isValidOrgId(orgId: string): boolean {
   return !!orgId && !orgId.includes('/');
 }
 
+function isValidDocumentId(id: string): boolean {
+  return !!id && !id.includes('/');
+}
+
 function requireOrgId(user: ProfitabilityActor, action: string): string {
   const orgId = getOrgId(user);
   if (!orgId || !isValidOrgId(orgId)) {
@@ -130,7 +134,7 @@ export async function get280EAnalysis(
   customStart?: Date,
   customEnd?: Date
 ): Promise<Tax280EAnalysis> {
-  const user = await requireUser(['dispensary', 'brand', 'super_user']);
+  const user = await requireUser(['dispensary', 'brand', 'super_user', 'super_admin']);
   const orgId = requireOrgId(user as ProfitabilityActor, 'get280EAnalysis');
 
   const { start, end } = getPeriodDates(period, customStart, customEnd);
@@ -154,7 +158,7 @@ export async function addExpense(
   invoiceNumber?: string
 ): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
-    const user = await requireUser(['dispensary', 'brand', 'super_user']);
+    const user = await requireUser(['dispensary', 'brand', 'super_user', 'super_admin']);
     const orgId = requireOrgId(user as ProfitabilityActor, 'addExpense');
 
     const { firestore } = await createServerClient();
@@ -203,7 +207,7 @@ export async function getExpenses(
   customStart?: Date,
   customEnd?: Date
 ): Promise<Expense280E[]> {
-  const user = await requireUser(['dispensary', 'brand', 'super_user']);
+  const user = await requireUser(['dispensary', 'brand', 'super_user', 'super_admin']);
   const orgId = requireOrgId(user as ProfitabilityActor, 'getExpenses');
 
   const { firestore } = await createServerClient();
@@ -233,7 +237,10 @@ export async function updateExpenseAllocation(
   allocationRationale: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const user = await requireUser(['dispensary', 'brand', 'super_user']);
+    if (!isValidDocumentId(expenseId)) {
+      return { success: false, error: 'Invalid expense id' };
+    }
+    const user = await requireUser(['dispensary', 'brand', 'super_user', 'super_admin']);
     const orgId = requireOrgId(user as ProfitabilityActor, 'updateExpenseAllocation');
 
     const { firestore } = await createServerClient();
@@ -270,7 +277,7 @@ export async function getNYTaxSummary(
   customStart?: Date,
   customEnd?: Date
 ): Promise<NYTaxSummary> {
-  const user = await requireUser(['dispensary', 'brand', 'super_user']);
+  const user = await requireUser(['dispensary', 'brand', 'super_user', 'super_admin']);
   const orgId = requireOrgId(user as ProfitabilityActor, 'getNYTaxSummary');
 
   const { start, end } = getPeriodDates(period, customStart, customEnd);
@@ -292,7 +299,7 @@ export async function getProfitabilityMetrics(
   customStart?: Date,
   customEnd?: Date
 ): Promise<ProfitabilityMetrics> {
-  const user = await requireUser(['dispensary', 'brand', 'super_user']);
+  const user = await requireUser(['dispensary', 'brand', 'super_user', 'super_admin']);
   const orgId = requireOrgId(user as ProfitabilityActor, 'getProfitabilityMetrics');
 
   const { start, end } = getPeriodDates(period, customStart, customEnd);
@@ -312,7 +319,7 @@ export async function getPriceCompressionAnalysis(
   currentVolume: number,
   marketPriceDropPercent: number
 ): Promise<PriceCompressionAnalysis> {
-  const user = await requireUser(['dispensary', 'brand', 'super_user']);
+  const user = await requireUser(['dispensary', 'brand', 'super_user', 'super_admin']);
   const orgId = requireOrgId(user as ProfitabilityActor, 'getPriceCompressionAnalysis');
 
   logger.info('[profitability] Calculating price compression', { orgId, marketPriceDropPercent });
@@ -330,7 +337,7 @@ export async function getPriceCompressionAnalysis(
  * Get working capital analysis
  */
 export async function getWorkingCapitalAnalysis(): Promise<WorkingCapitalAnalysis> {
-  const user = await requireUser(['dispensary', 'brand', 'super_user']);
+  const user = await requireUser(['dispensary', 'brand', 'super_user', 'super_admin']);
   const orgId = requireOrgId(user as ProfitabilityActor, 'getWorkingCapitalAnalysis');
 
   const config = await getTenantTaxConfig(orgId);
@@ -348,7 +355,7 @@ export async function getWorkingCapitalAnalysis(): Promise<WorkingCapitalAnalysi
  * Get tenant tax configuration
  */
 export async function getTaxConfig(): Promise<TenantTaxConfig | null> {
-  const user = await requireUser(['dispensary', 'brand', 'super_user']);
+  const user = await requireUser(['dispensary', 'brand', 'super_user', 'super_admin']);
   const orgId = requireOrgId(user as ProfitabilityActor, 'getTaxConfig');
 
   return getTenantTaxConfig(orgId);
@@ -361,7 +368,7 @@ export async function saveTaxConfig(
   config: Partial<TenantTaxConfig>
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const user = await requireUser(['dispensary', 'brand', 'super_user']);
+    const user = await requireUser(['dispensary', 'brand', 'super_user', 'super_admin']);
     const orgId = requireOrgId(user as ProfitabilityActor, 'saveTaxConfig');
 
     await saveTenantTaxConfig(orgId, config);
@@ -446,7 +453,7 @@ export async function getProfitabilityDashboard(
   workingCapital: WorkingCapitalAnalysis;
   config: TenantTaxConfig | null;
 }> {
-  const user = await requireUser(['dispensary', 'brand', 'super_user']);
+  const user = await requireUser(['dispensary', 'brand', 'super_user', 'super_admin']);
   const orgId = requireOrgId(user as ProfitabilityActor, 'getProfitabilityDashboard');
 
   const { start, end } = getPeriodDates(period, customStart, customEnd);
@@ -519,7 +526,7 @@ export async function getProductProfitabilityData(): Promise<{
     productsWithoutCogs: number;
   };
 }> {
-  const user = await requireUser(['dispensary', 'brand', 'super_user']);
+  const user = await requireUser(['dispensary', 'brand', 'super_user', 'super_admin']);
   const orgId = requireOrgId(user as ProfitabilityActor, 'getProductProfitabilityData');
 
   const { firestore } = await createServerClient();
@@ -626,14 +633,14 @@ export async function getThriveProfitabilityDashboard(
   workingCapital: WorkingCapitalAnalysis;
   config: TenantTaxConfig;
 }> {
-  const user = await requireUser(['dispensary', 'super_user']);
+  const user = await requireUser(['dispensary', 'super_user', 'super_admin']);
 
   // Thrive Syracuse specific tenant ID
   const orgId = 'org_thrive_syracuse';
 
   // Check authorization
   const userOrgId = getOrgId(user as ProfitabilityActor);
-  if (userOrgId !== orgId && user.role !== 'super_user') {
+  if (userOrgId !== orgId && user.role !== 'super_user' && user.role !== 'super_admin') {
     throw new Error('Unauthorized access to Thrive Syracuse data');
   }
 

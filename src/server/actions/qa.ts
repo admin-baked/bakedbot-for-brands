@@ -44,7 +44,7 @@ type QAActor = {
 };
 
 function isSuperRole(role: unknown): boolean {
-    return role === 'super_user';
+    return role === 'super_user' || role === 'super_admin';
 }
 
 function getActorOrgId(user: QAActor): string | null {
@@ -53,6 +53,10 @@ function getActorOrgId(user: QAActor): string | null {
 
 function isValidOrgId(orgId: string): boolean {
     return !!orgId && !orgId.includes('/');
+}
+
+function isValidDocumentId(id: string): boolean {
+    return !!id && !id.includes('/');
 }
 
 function getScopedOrgIdOrNull(user: QAActor, action: string): string | null {
@@ -88,6 +92,23 @@ export async function reportBug(input: {
 }): Promise<{ success: boolean; bugId?: string; error?: string }> {
     try {
         const user = await requireUser();
+        const actor = user as QAActor;
+        const actorOrgId = getScopedOrgIdOrNull(actor, 'reportBug');
+        let affectedOrgId = input.affectedOrgId;
+
+        if (isSuperRole(actor.role)) {
+            if (affectedOrgId && !isValidOrgId(affectedOrgId)) {
+                return { success: false, error: 'Invalid organization context' };
+            }
+        } else {
+            if (!actorOrgId) {
+                return { success: false, error: 'Missing organization context' };
+            }
+            if (affectedOrgId && affectedOrgId !== actorOrgId) {
+                return { success: false, error: 'Unauthorized organization context' };
+            }
+            affectedOrgId = actorOrgId;
+        }
         const db = getAdminFirestore();
 
         const bugData: Omit<QABug, 'id'> = {
@@ -100,7 +121,7 @@ export async function reportBug(input: {
             status: 'open',
             environment: input.environment || 'production',
             reportedBy: user.role === 'super_user' ? (user.email || user.uid) : user.uid,
-            affectedOrgId: input.affectedOrgId,
+            affectedOrgId,
             testCaseId: input.testCaseId,
             screenshotUrl: input.screenshotUrl,
             notes: input.notes,
@@ -146,6 +167,9 @@ export async function updateBugStatus(
     notes?: string
 ): Promise<{ success: boolean; error?: string }> {
     try {
+        if (!isValidDocumentId(bugId)) {
+            return { success: false, error: 'Invalid bug id' };
+        }
         const user = await requireUser(['super_user']);
         const db = getAdminFirestore();
 
@@ -203,6 +227,9 @@ export async function assignBug(
     assignedTo: string
 ): Promise<{ success: boolean; error?: string }> {
     try {
+        if (!isValidDocumentId(bugId)) {
+            return { success: false, error: 'Invalid bug id' };
+        }
         await requireUser(['super_user']);
         const db = getAdminFirestore();
 
@@ -230,6 +257,9 @@ export async function verifyFix(
     commitFixed?: string
 ): Promise<{ success: boolean; error?: string }> {
     try {
+        if (!isValidDocumentId(bugId)) {
+            return { success: false, error: 'Invalid bug id' };
+        }
         const user = await requireUser(['super_user']);
         const db = getAdminFirestore();
 
@@ -333,6 +363,7 @@ export async function getBugs(filters: {
 
 export async function getBugById(bugId: string): Promise<QABug | null> {
     try {
+        if (!isValidDocumentId(bugId)) return null;
         const user = await requireUser();
         const db = getAdminFirestore();
         const snap = await db.collection('qa_bugs').doc(bugId).get();
@@ -441,6 +472,12 @@ export async function updateTestCaseStatus(
     linkedBugId?: string
 ): Promise<{ success: boolean; error?: string }> {
     try {
+        if (!isValidDocumentId(testCaseId)) {
+            return { success: false, error: 'Invalid test case id' };
+        }
+        if (linkedBugId && !isValidDocumentId(linkedBugId)) {
+            return { success: false, error: 'Invalid linked bug id' };
+        }
         const user = await requireUser();
         const db = getAdminFirestore();
 
@@ -648,6 +685,9 @@ export async function getInboxThreadContent(threadId: string): Promise<{
     error?: string;
 }> {
     try {
+        if (!isValidDocumentId(threadId)) {
+            return { success: false, error: 'Invalid thread id' };
+        }
         await requireUser(['super_user']);
         const db = getAdminFirestore();
 
