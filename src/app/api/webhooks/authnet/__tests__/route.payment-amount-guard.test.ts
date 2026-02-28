@@ -76,9 +76,11 @@ describe('POST /api/webhooks/authnet payment amount guard', () => {
   function setupDb({
     withOrder = true,
     orderTotal = 10,
+    duplicateOrderMatch = false,
   }: {
     withOrder?: boolean;
     orderTotal?: number;
+    duplicateOrderMatch?: boolean;
   } = {}) {
     const webhookLogRef = {
       create: jest.fn().mockResolvedValue(undefined),
@@ -99,7 +101,22 @@ describe('POST /api/webhooks/authnet payment amount guard', () => {
     };
 
     const rootOrdersSnapshot = { docs: withOrder ? [orderDoc] : [], empty: !withOrder };
-    const groupOrdersSnapshot = { docs: [], empty: true };
+    const duplicateOrderDoc = {
+      id: 'order-dup',
+      ref: {
+        path: 'organizations/org_demo/orders/order-dup',
+        set: mockOrderSet,
+      },
+      data: () => ({
+        totals: { total: orderTotal },
+        brandId: 'org_demo',
+        paymentStatus: 'pending',
+      }),
+    };
+    const groupOrdersSnapshot = {
+      docs: duplicateOrderMatch ? [duplicateOrderDoc] : [],
+      empty: !duplicateOrderMatch,
+    };
 
     const db = {
       collection: jest.fn((name: string) => {
@@ -296,6 +313,45 @@ describe('POST /api/webhooks/authnet payment amount guard', () => {
       transactionId: 'txn_missing_amount',
       expectedAmountCents: 1000,
       providerAmountCents: null,
+    }));
+  });
+
+  it('records forensics and skips transitions when a transaction maps to multiple orders', async () => {
+    setupDb({ withOrder: true, orderTotal: 10, duplicateOrderMatch: true });
+    const { POST } = await import('../route');
+
+    const body = JSON.stringify({
+      notificationId: 'notif-duplicate-map',
+      eventType: 'net.authorize.payment.authcapture.created',
+      payload: {
+        id: 'txn_duplicate',
+        responseCode: '1',
+        authAmount: '10.00',
+      },
+    });
+
+    const req = new NextRequest('http://localhost/api/webhooks/authnet', {
+      method: 'POST',
+      body,
+      headers: {
+        'x-anet-signature': 'sha512=fake',
+      },
+    });
+
+    const response = await POST(req);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.warning).toContain('duplicate_transaction_mapping');
+    expect(data.processedOrders).toBe(0);
+    expect(mockOrderSet).not.toHaveBeenCalled();
+    expect(mockEmitEvent).not.toHaveBeenCalled();
+    expect(mockForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'authorize_net',
+      source: 'authnet_webhook',
+      reason: 'duplicate_transaction_mapping',
+      transactionId: 'txn_duplicate',
+      orderCount: 2,
     }));
   });
 });
