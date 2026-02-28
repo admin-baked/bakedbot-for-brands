@@ -42,6 +42,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const isEmailUnverified =
+      (user as any).email_verified === false ||
+      (user as any).emailVerified === false;
+    if (isEmailUnverified) {
+      return NextResponse.json(
+        { error: 'Email verification is required before processing payment.' },
+        { status: 403 },
+      );
+    }
+
     // 2. Parse request body
     const body = authorizeRequestSchema.parse(await request.json());
     const { orderId, amount, organizationId } = body;

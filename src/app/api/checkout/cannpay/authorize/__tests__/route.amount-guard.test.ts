@@ -113,4 +113,23 @@ describe('POST /api/checkout/cannpay/authorize amount guard', () => {
     expect(body.error).toContain('Organization mismatch');
     expect(mockAuthorizePayment).not.toHaveBeenCalled();
   });
+
+  it('requires verified email before paid authorization', async () => {
+    mockGetUserFromRequest.mockResolvedValue({
+      uid: 'user-1',
+      emailVerified: false,
+    });
+
+    const response = await POST({
+      json: async () => ({
+        orderId: 'order-1',
+        amount: 4999,
+      }),
+    } as any);
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body.error).toContain('Email verification is required');
+    expect(mockAuthorizePayment).not.toHaveBeenCalled();
+  });
 });
