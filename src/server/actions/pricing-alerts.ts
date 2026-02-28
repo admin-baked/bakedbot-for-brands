@@ -22,6 +22,25 @@ function isSuperRole(role: unknown): boolean {
   return role === 'super_user' || role === 'super_admin';
 }
 
+function isValidDocumentId(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    value.length >= 3 &&
+    value.length <= 128 &&
+    !/[\/\\?#\[\]]/.test(value)
+  );
+}
+
+function clampLimit(limit: number, fallback: number, max: number): number {
+  if (!Number.isFinite(limit)) return fallback;
+  return Math.min(max, Math.max(1, Math.floor(limit)));
+}
+
+function clampDays(days: number, fallback: number): number {
+  if (!Number.isFinite(days)) return fallback;
+  return Math.min(365, Math.max(1, Math.floor(days)));
+}
+
 function getActorOrgId(user: unknown): string | null {
   if (!user || typeof user !== 'object') return null;
   const token = user as {
@@ -65,6 +84,9 @@ export async function getPricingAlerts(
   tenantId: string
 ): Promise<{ success: boolean; data?: PricingAlertConfig; error?: string }> {
   try {
+    if (!isValidDocumentId(tenantId)) {
+      return { success: false, error: 'Invalid tenant ID' };
+    }
     await assertTenantAccess(tenantId);
     const config = await getPricingAlertConfig(tenantId);
 
@@ -104,6 +126,9 @@ export async function updatePricingAlerts(
   config: PricingAlertConfig
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    if (!isValidDocumentId(config.tenantId)) {
+      return { success: false, error: 'Invalid tenant ID' };
+    }
     await assertTenantAccess(config.tenantId);
     const success = await savePricingAlertConfig(config);
 
@@ -133,6 +158,10 @@ export async function getRecentPricingAlerts(
   limit: number = 50
 ): Promise<{ success: boolean; data?: PricingAlert[]; error?: string }> {
   try {
+    if (!isValidDocumentId(tenantId)) {
+      return { success: false, error: 'Invalid tenant ID' };
+    }
+    const safeLimit = clampLimit(limit, 50, 500);
     await assertTenantAccess(tenantId);
     const db = getAdminFirestore();
 
@@ -140,7 +169,7 @@ export async function getRecentPricingAlerts(
       .collection('pricing_alerts')
       .where('tenantId', '==', tenantId)
       .orderBy('triggeredAt', 'desc')
-      .limit(limit)
+      .limit(safeLimit)
       .get();
 
     const alerts: PricingAlert[] = alertsSnap.docs.map((doc) => ({
@@ -178,10 +207,17 @@ export async function getProductPriceHistory(
   error?: string;
 }> {
   try {
+    if (!isValidDocumentId(tenantId)) {
+      return { success: false, error: 'Invalid tenant ID' };
+    }
+    if (!isValidDocumentId(productId)) {
+      return { success: false, error: 'Invalid product ID' };
+    }
+    const safeDays = clampDays(days, 30);
     await assertTenantAccess(tenantId);
     const db = getAdminFirestore();
     const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - days);
+    cutoffDate.setDate(cutoffDate.getDate() - safeDays);
 
     const historySnap = await db
       .collection('competitor_price_history')
@@ -224,6 +260,9 @@ export async function triggerPriceCheck(
   error?: string;
 }> {
   try {
+    if (!isValidDocumentId(tenantId)) {
+      return { success: false, error: 'Invalid tenant ID' };
+    }
     await assertTenantAccess(tenantId);
     // Get configuration
     const config = await getPricingAlertConfig(tenantId);

@@ -17,6 +17,15 @@ function isSuperRole(role: unknown): boolean {
     return role === 'super_user' || role === 'super_admin';
 }
 
+function isValidDocumentId(value: unknown): value is string {
+    return (
+        typeof value === 'string' &&
+        value.length >= 3 &&
+        value.length <= 128 &&
+        !/[\/\\?#\[\]]/.test(value)
+    );
+}
+
 function getActorOrgId(user: unknown): string | null {
     if (!user || typeof user !== 'object') return null;
     const token = user as {
@@ -57,7 +66,7 @@ export async function getPublicMenuSettings(orgId: string): Promise<{
     discountPrograms: DiscountProgram[];
 } | null> {
     try {
-        if (!orgId) return null;
+        if (!isValidDocumentId(orgId)) return null;
         const db = getAdminFirestore();
         const doc = await db
             .collection('tenants').doc(orgId)
@@ -90,7 +99,7 @@ export async function getLoyaltySettings(orgId: string): Promise<{
 }> {
     try {
         const user = await requireUser();
-        if (!orgId) throw new Error('orgId is required');
+        if (!isValidDocumentId(orgId)) throw new Error('orgId is required');
         assertOrgAccess(user, orgId);
 
         const db = getAdminFirestore();
@@ -134,7 +143,7 @@ export async function updateLoyaltySettings(
     try {
         const user = await requireUser(['dispensary', 'super_user']);
 
-        if (!orgId) throw new Error('orgId is required');
+        if (!isValidDocumentId(orgId)) throw new Error('orgId is required');
         assertOrgAccess(user, orgId);
 
         const db = getAdminFirestore();
@@ -165,7 +174,7 @@ export async function updateSegmentThresholds(
     try {
         const user = await requireUser(['dispensary', 'super_user']);
 
-        if (!orgId) throw new Error('orgId is required');
+        if (!isValidDocumentId(orgId)) throw new Error('orgId is required');
         assertOrgAccess(user, orgId);
 
         const db = getAdminFirestore();
@@ -197,6 +206,9 @@ export async function upsertLoyaltyTier(
 ): Promise<{ success: boolean; error?: string }> {
     try {
         const user = await requireUser(['dispensary', 'super_user']);
+        if (!isValidDocumentId(orgId)) {
+            throw new Error('orgId is required');
+        }
         assertOrgAccess(user, orgId);
 
         const { data: current } = await getLoyaltySettings(orgId);
@@ -221,6 +233,9 @@ export async function deleteLoyaltyTier(
 ): Promise<{ success: boolean; error?: string }> {
     try {
         const user = await requireUser(['dispensary', 'super_user']);
+        if (!isValidDocumentId(orgId)) {
+            throw new Error('orgId is required');
+        }
         assertOrgAccess(user, orgId);
 
         const { data: current } = await getLoyaltySettings(orgId);
@@ -241,6 +256,9 @@ export async function upsertRedemptionTier(
 ): Promise<{ success: boolean; error?: string }> {
     try {
         const user = await requireUser(['dispensary', 'super_user']);
+        if (!isValidDocumentId(orgId)) {
+            throw new Error('orgId is required');
+        }
         assertOrgAccess(user, orgId);
 
         const { data: current } = await getLoyaltySettings(orgId);
