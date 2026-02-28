@@ -160,7 +160,10 @@ export async function POST(req: NextRequest) {
   let webhookLogRef: FirebaseFirestore.DocumentReference | null = null;
 
   try {
-    const secret = process.env.AUTHNET_SIGNATURE_KEY || process.env.AUTHORIZE_NET_SIGNATURE_KEY;
+    const secret =
+      process.env.AUTHNET_SIGNATURE_KEY ||
+      process.env.AUTHORIZE_NET_SIGNATURE_KEY ||
+      process.env.AUTHNET_NOTIFICATION_KEY;
     if (!secret) {
       logger.critical('[AUTHNET_WEBHOOK] Missing AUTHNET signature key configuration');
       return NextResponse.json(
