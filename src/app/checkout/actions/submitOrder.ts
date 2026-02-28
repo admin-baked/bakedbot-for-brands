@@ -30,8 +30,44 @@ export type SubmitOrderResult = {
 
 const DOCUMENT_ID_REGEX = /^[A-Za-z0-9_-]{1,128}$/;
 
+type ResolvedOrderItem = {
+  productId: string;
+  name: string;
+  quantity: number;
+  price: number;
+};
+
 function isValidDocumentId(value: unknown): value is string {
   return typeof value === 'string' && DOCUMENT_ID_REGEX.test(value);
+}
+
+function productMatchesCheckoutContext(
+  product: any,
+  organizationId: string,
+  retailerId: string,
+): boolean {
+  if (!product || typeof product !== 'object') return false;
+
+  const matchesOrg =
+    product.brandId === organizationId ||
+    product.orgId === organizationId ||
+    product.organizationId === organizationId;
+
+  const matchesRetailer =
+    product.dispensaryId === retailerId ||
+    product.retailerId === retailerId ||
+    (Array.isArray(product.retailerIds) && product.retailerIds.includes(retailerId));
+
+  const hasContextFields =
+    typeof product.brandId === 'string' ||
+    typeof product.orgId === 'string' ||
+    typeof product.organizationId === 'string' ||
+    typeof product.dispensaryId === 'string' ||
+    typeof product.retailerId === 'string' ||
+    Array.isArray(product.retailerIds);
+
+  if (!hasContextFields) return true;
+  return matchesOrg || matchesRetailer;
 }
 
 const TRUSTED_EXTERNAL_CHECKOUT_HOSTS = new Set([
@@ -66,10 +102,44 @@ export async function submitOrder(clientPayload: ClientOrderInput): Promise<Subm
   const cookieStore = await cookies();
   const userId = session.uid;
 
-  const subtotal = clientPayload.items.reduce(
+  const resolvedItems: ResolvedOrderItem[] = [];
+  for (const item of clientPayload.items) {
+    const productId = typeof item?.id === 'string' ? item.id.trim() : '';
+    const quantity = Number(item?.quantity ?? 1);
+
+    if (!isValidDocumentId(productId) || !Number.isInteger(quantity) || quantity <= 0 || quantity > 100) {
+      return { ok: false, error: 'Invalid cart items provided.' };
+    }
+
+    const productDoc = await firestore.collection('products').doc(productId).get();
+    if (!productDoc.exists) {
+      return { ok: false, error: `Product ${productId} is no longer available.` };
+    }
+
+    const productData = productDoc.data() || {};
+    if (!productMatchesCheckoutContext(productData, clientPayload.organizationId, clientPayload.retailerId)) {
+      return { ok: false, error: 'Cart contains products that do not belong to this checkout context.' };
+    }
+
+    const serverPrice = Number(productData.price);
+    if (!Number.isFinite(serverPrice) || serverPrice < 0) {
+      return { ok: false, error: `${productData.name || 'A product'} has an invalid price.` };
+    }
+
+    resolvedItems.push({
+      productId,
+      name: typeof productData.name === 'string' && productData.name.trim().length > 0
+        ? productData.name
+        : (typeof item?.name === 'string' ? item.name : 'Product'),
+      quantity,
+      price: Number(serverPrice.toFixed(2)),
+    });
+  }
+
+  const subtotal = Number(resolvedItems.reduce(
     (sum, i) => sum + i.price * i.quantity,
     0
-  );
+  ).toFixed(2));
 
   let discount = 0;
   let appliedCoupon: { couponId: string; code: string; discountAmount: number } | null = null;
@@ -121,8 +191,8 @@ export async function submitOrder(clientPayload: ClientOrderInput): Promise<Subm
             phone: clientPayload.customer.phone,
             uid: userId,
           },
-          items: clientPayload.items.map(item => ({
-            productId: item.id,
+          items: resolvedItems.map(item => ({
+            productId: item.productId,
             name: item.name,
             quantity: item.quantity,
             unitPrice: item.price,
