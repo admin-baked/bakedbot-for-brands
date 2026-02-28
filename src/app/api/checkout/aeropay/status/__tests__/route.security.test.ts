@@ -201,6 +201,7 @@ describe('POST /api/checkout/aeropay/status security', () => {
     expect(response.status).toBe(409);
     expect(body.error).toContain('amount mismatch');
     expect(mockOrderUpdate).not.toHaveBeenCalled();
+    expect(mockTransactionUpdate).not.toHaveBeenCalled();
     expect(mockForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
       provider: 'aeropay',
       source: 'aeropay_status_poll',
@@ -235,6 +236,7 @@ describe('POST /api/checkout/aeropay/status security', () => {
     expect(response.status).toBe(409);
     expect(body.error).toContain('not bound to this order');
     expect(mockOrderUpdate).not.toHaveBeenCalled();
+    expect(mockTransactionUpdate).not.toHaveBeenCalled();
     expect(mockForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
       provider: 'aeropay',
       source: 'aeropay_status_poll',
