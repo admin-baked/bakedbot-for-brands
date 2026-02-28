@@ -316,7 +316,14 @@ export const POST = withProtection(
                         { status: 400 },
                     );
                 }
-                if (providerTxn.amount && Math.abs(Number(providerTxn.amount) - expectedAmountCents) > 0) {
+                const providerAmountCents = Number(providerTxn.amount);
+                if (!Number.isFinite(providerAmountCents)) {
+                    return NextResponse.json(
+                        { success: false, error: 'CannPay transaction amount unavailable' },
+                        { status: 409 },
+                    );
+                }
+                if (Math.abs(providerAmountCents - expectedAmountCents) > 0) {
                     return NextResponse.json(
                         { success: false, error: 'CannPay transaction amount mismatch' },
                         { status: 409 },
@@ -406,7 +413,14 @@ export const POST = withProtection(
                         { status: 400 },
                     );
                 }
-                if (Math.abs(Number(providerTxn.amount) - expectedAmountCents) > 0) {
+                const providerAmountCents = Number(providerTxn.amount);
+                if (!Number.isFinite(providerAmountCents)) {
+                    return NextResponse.json(
+                        { success: false, error: 'Aeropay transaction amount unavailable' },
+                        { status: 409 },
+                    );
+                }
+                if (Math.abs(providerAmountCents - expectedAmountCents) > 0) {
                     return NextResponse.json(
                         { success: false, error: 'Aeropay transaction amount mismatch' },
                         { status: 409 },
