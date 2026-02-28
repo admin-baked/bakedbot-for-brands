@@ -79,14 +79,25 @@ describe('POST /api/webhooks/authnet payment amount guard', () => {
     orderTotal = 10,
     duplicateOrderMatch = false,
     fallbackOrderByInvoice = false,
+    duplicateWebhookByCreate = false,
   }: {
     withOrder?: boolean;
     orderTotal?: number;
     duplicateOrderMatch?: boolean;
     fallbackOrderByInvoice?: boolean;
+    duplicateWebhookByCreate?: boolean;
   } = {}) {
+    let webhookCreateCalls = 0;
     const webhookLogRef = {
-      create: jest.fn().mockResolvedValue(undefined),
+      create: jest.fn().mockImplementation(async () => {
+        webhookCreateCalls += 1;
+        if (duplicateWebhookByCreate && webhookCreateCalls > 1) {
+          const err = new Error('already exists') as Error & { code?: string };
+          err.code = 'already-exists';
+          throw err;
+        }
+        return undefined;
+      }),
       set: jest.fn().mockResolvedValue(undefined),
     };
 
@@ -462,5 +473,45 @@ describe('POST /api/webhooks/authnet payment amount guard', () => {
       transactionId: 'txn_duplicate',
       orderCount: 2,
     }));
+  });
+
+  it('deduplicates repeated payloads without notificationId using body hash', async () => {
+    setupDb({ withOrder: false, duplicateWebhookByCreate: true });
+    const { POST } = await import('../route');
+
+    const body = JSON.stringify({
+      eventType: 'net.authorize.payment.authcapture.created',
+      payload: {
+        id: 'txn_no_notification',
+        responseCode: '1',
+        authAmount: '2.00',
+      },
+    });
+
+    const req1 = new NextRequest('http://localhost/api/webhooks/authnet', {
+      method: 'POST',
+      body,
+      headers: {
+        'x-anet-signature': 'sha512=fake',
+      },
+    });
+
+    const req2 = new NextRequest('http://localhost/api/webhooks/authnet', {
+      method: 'POST',
+      body,
+      headers: {
+        'x-anet-signature': 'sha512=fake',
+      },
+    });
+
+    const first = await POST(req1);
+    const firstBody = await first.json();
+    const second = await POST(req2);
+    const secondBody = await second.json();
+
+    expect(first.status).toBe(200);
+    expect(firstBody.duplicate).toBeUndefined();
+    expect(second.status).toBe(200);
+    expect(secondBody.duplicate).toBe(true);
   });
 });
