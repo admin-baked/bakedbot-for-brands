@@ -15,12 +15,25 @@ type VendorBrandActor = {
   brandId?: string;
 };
 
+const VENDOR_BRAND_ROLES = [
+  'dispensary',
+  'dispensary_admin',
+  'brand',
+  'brand_admin',
+  'super_user',
+  'super_admin',
+] as const;
+
 function getOrgId(user: VendorBrandActor): string | null {
   return user.currentOrgId || user.orgId || user.brandId || null;
 }
 
 function isValidOrgId(orgId: string): boolean {
   return !!orgId && !orgId.includes('/');
+}
+
+function isValidDocumentId(id: string): boolean {
+  return !!id && !id.includes('/');
 }
 
 function requireOrgId(user: VendorBrandActor, action: string): string {
@@ -41,9 +54,7 @@ function normalizeUrl(input: string): string {
 
 export async function getVendorBrands(): Promise<VendorBrand[]> {
   try {
-    const user = await requireUser([
-      'dispensary', 'dispensary_admin', 'brand', 'brand_admin', 'super_user',
-    ]);
+    const user = await requireUser([...VENDOR_BRAND_ROLES]);
     const orgId = requireOrgId(user as VendorBrandActor, 'getVendorBrands');
     const db = getAdminFirestore();
 
@@ -86,9 +97,7 @@ export async function ingestVendorBrand(
   website: string
 ): Promise<{ success: boolean; brand?: VendorBrand; error?: string }> {
   try {
-    const user = await requireUser([
-      'dispensary', 'dispensary_admin', 'brand', 'brand_admin', 'super_user',
-    ]);
+    const user = await requireUser([...VENDOR_BRAND_ROLES]);
     const orgId = requireOrgId(user as VendorBrandActor, 'ingestVendorBrand');
     const url = normalizeUrl(website);
 
@@ -167,9 +176,10 @@ export async function updateVendorBrand(
   updates: Partial<Pick<VendorBrand, 'name' | 'description' | 'brandStory' | 'voiceKeywords' | 'productLines' | 'categories'>>
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const user = await requireUser([
-      'dispensary', 'dispensary_admin', 'brand', 'brand_admin', 'super_user',
-    ]);
+    if (!isValidDocumentId(id)) {
+      return { success: false, error: 'Invalid vendor brand id' };
+    }
+    const user = await requireUser([...VENDOR_BRAND_ROLES]);
     const orgId = requireOrgId(user as VendorBrandActor, 'updateVendorBrand');
     const db = getAdminFirestore();
 
@@ -190,9 +200,10 @@ export async function deleteVendorBrand(
   id: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const user = await requireUser([
-      'dispensary', 'dispensary_admin', 'brand', 'brand_admin', 'super_user',
-    ]);
+    if (!isValidDocumentId(id)) {
+      return { success: false, error: 'Invalid vendor brand id' };
+    }
+    const user = await requireUser([...VENDOR_BRAND_ROLES]);
     const orgId = requireOrgId(user as VendorBrandActor, 'deleteVendorBrand');
     const db = getAdminFirestore();
 

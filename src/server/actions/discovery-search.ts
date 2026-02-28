@@ -22,10 +22,20 @@ export interface SearchResult {
 
 type DiscoveryActor = {
     uid: string;
+    role?: string;
     orgId?: string;
     currentOrgId?: string;
     brandId?: string;
 };
+
+const DISCOVERY_ROLES = [
+    'dispensary',
+    'dispensary_admin',
+    'brand',
+    'brand_admin',
+    'super_user',
+    'super_admin',
+] as const;
 
 function getActorOrgId(user: DiscoveryActor): string | null {
     return user.currentOrgId || user.orgId || user.brandId || null;
@@ -35,11 +45,23 @@ function isValidOrgId(orgId: string): boolean {
     return !!orgId && !orgId.includes('/');
 }
 
+function isSuperRole(role: unknown): boolean {
+    return role === 'super_user' || role === 'super_admin';
+}
+
+function normalizeHttpUrl(input: string): string {
+    const parsed = new URL(input);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        throw new Error('Invalid entity URL');
+    }
+    return parsed.toString();
+}
+
 /**
  * Search for cannabis businesses using BakedBot Discovery (FireCrawl)
  */
 export async function searchEntities(query: string, type: 'dispensary' | 'brand', zip?: string): Promise<SearchResult> {
-    await requireUser();
+    await requireUser([...DISCOVERY_ROLES]);
     
     try {
         // Construct targeted query
@@ -70,7 +92,7 @@ export async function searchEntities(query: string, type: 'dispensary' | 'brand'
  * Link an entity (Dispensary/Brand) and trigger initial sync
  */
 export async function linkEntity(entity: DiscoveryEntity) {
-    const user = await requireUser();
+    const user = await requireUser([...DISCOVERY_ROLES]);
     const { firestore } = await createServerClient();
     
     try {
@@ -83,12 +105,13 @@ export async function linkEntity(entity: DiscoveryEntity) {
         if (!orgId || !isValidOrgId(orgId)) {
             return { success: false, error: 'Missing organization context' };
         }
+        const targetUrl = normalizeHttpUrl(entity.url);
         
         // Update Firestore
         const docRef = firestore.collection('organizations').doc(orgId);
         await docRef.set({
             name: entity.name,
-            website: entity.url,
+            website: targetUrl,
             type: entity.type,
             discoverySource: 'firecrawl',
             updatedAt: FieldValue.serverTimestamp(),
@@ -103,7 +126,7 @@ export async function linkEntity(entity: DiscoveryEntity) {
         // For now, we'll just set the status to 'pending' and the UI can trigger the actual sync 
         // or we call it here if we want immediate action.
         // Let's call the sync function directly (async)
-        triggerDiscoverySync(orgId, entity.url, entity.type).catch(e => console.error(e));
+        triggerDiscoverySync(orgId, targetUrl, entity.type).catch(e => console.error(e));
 
         return { success: true, orgId };
     } catch (error: any) {
@@ -117,6 +140,19 @@ export async function linkEntity(entity: DiscoveryEntity) {
  * Scrapes the site for menu/products and updates progress
  */
 export async function triggerDiscoverySync(orgId: string, url: string, type: 'dispensary' | 'brand') {
+    const user = await requireUser([...DISCOVERY_ROLES]);
+    if (!isValidOrgId(orgId)) {
+        throw new Error('Invalid organization context');
+    }
+    const actorOrgId = getActorOrgId(user as DiscoveryActor);
+    if (!actorOrgId || !isValidOrgId(actorOrgId)) {
+        throw new Error('Missing organization context');
+    }
+    if (!isSuperRole((user as DiscoveryActor).role) && actorOrgId !== orgId) {
+        throw new Error('Unauthorized organization context');
+    }
+    const normalizedUrl = normalizeHttpUrl(url);
+
     const { firestore } = await createServerClient();
     const statusRef = firestore.collection('organizations').doc(orgId);
     
@@ -124,7 +160,8 @@ export async function triggerDiscoverySync(orgId: string, url: string, type: 'di
     await statusRef.update({
         'syncStatus.status': 'syncing',
         'syncStatus.productsFound': 0,
-        'syncStatus.lastSync': FieldValue.serverTimestamp()
+        'syncStatus.lastSync': FieldValue.serverTimestamp(),
+        'syncStatus.sourceUrl': normalizedUrl,
     });
     
     try {
@@ -152,7 +189,7 @@ export async function triggerDiscoverySync(orgId: string, url: string, type: 'di
         // In a real scenario, we would parse `discovery.extractData` results here.
         // For now, we will perform a basic extraction to see if we get real data.
         
-        // const extracted = await discovery.discoverUrl(url); 
+        // const extracted = await discovery.discoverUrl(normalizedUrl); 
         // Process extracted markdown...
         
         // For robustnes, we'll just mark as 'completed' after a short delay for this iteration

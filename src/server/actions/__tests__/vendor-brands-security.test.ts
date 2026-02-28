@@ -1,4 +1,4 @@
-import { getVendorBrands, updateVendorBrand } from '../vendor-brands';
+import { getVendorBrands, updateVendorBrand, deleteVendorBrand } from '../vendor-brands';
 import { requireUser } from '@/server/auth/auth';
 import { getAdminFirestore } from '@/firebase/admin';
 
@@ -74,5 +74,47 @@ describe('vendor-brands security', () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain('Missing organization context');
+  });
+
+  it('rejects invalid vendor brand ids on update', async () => {
+    const result = await updateVendorBrand('bad/id', { name: 'Updated' });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Invalid vendor brand id',
+    });
+    expect(getAdminFirestore).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid vendor brand ids on delete', async () => {
+    const result = await deleteVendorBrand('bad/id');
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Invalid vendor brand id',
+    });
+    expect(getAdminFirestore).not.toHaveBeenCalled();
+  });
+
+  it('allows super_admin role for vendor brand reads', async () => {
+    const doc = jest.fn().mockImplementation(() => ({
+      collection: jest.fn().mockImplementation(() => ({
+        orderBy: jest.fn().mockImplementation(() => ({
+          get: jest.fn().mockResolvedValue({ docs: [] }),
+        })),
+      })),
+    }));
+    (getAdminFirestore as jest.Mock).mockReturnValue({
+      collection: jest.fn().mockImplementation(() => ({ doc })),
+    });
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'super-1',
+      role: 'super_admin',
+      currentOrgId: 'org-current',
+    });
+
+    await getVendorBrands();
+
+    expect(doc).toHaveBeenCalledWith('org-current');
   });
 });
