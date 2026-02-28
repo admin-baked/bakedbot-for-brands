@@ -148,4 +148,53 @@ describe('payment-config security', () => {
     expect(result.success).toBe(true);
     expect(mockUpdate).toHaveBeenCalled();
   });
+
+  it('blocks getPaymentConfig when locationId matches but orgId mismatches', async () => {
+    mockRequireUser.mockResolvedValue({
+      uid: 'user-1',
+      role: 'dispensary',
+      currentOrgId: 'org-a',
+      orgId: 'org-a',
+      locationId: 'loc-1',
+    });
+    mockGet.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        orgId: 'org-b',
+        paymentConfig: { enabledMethods: ['dispensary_direct'] },
+      }),
+    });
+
+    const result = await getPaymentConfig('loc-1');
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Unauthorized');
+  });
+
+  it('blocks updatePaymentMethod when locationId matches but orgId mismatches', async () => {
+    mockRequireUser.mockResolvedValue({
+      uid: 'user-1',
+      role: 'dispensary',
+      currentOrgId: 'org-a',
+      orgId: 'org-a',
+      locationId: 'loc-1',
+    });
+    mockGet.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        orgId: 'org-b',
+        paymentConfig: { enabledMethods: ['dispensary_direct'] },
+      }),
+    });
+
+    const result = await updatePaymentMethod({
+      locationId: 'loc-1',
+      method: 'usdc',
+      enabled: true,
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Unauthorized');
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
 });
