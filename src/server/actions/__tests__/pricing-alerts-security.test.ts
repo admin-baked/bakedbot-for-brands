@@ -2,6 +2,7 @@ import {
   getPricingAlerts,
   updatePricingAlerts,
   getRecentPricingAlerts,
+  getProductPriceHistory,
   triggerPriceCheck,
 } from '../pricing-alerts';
 import { requireUser } from '@/server/auth/auth';
@@ -109,5 +110,18 @@ describe('pricing-alerts actions security', () => {
       expect.objectContaining({ tenantId: 'org-b' }),
     );
   });
-});
 
+  it('rejects malformed tenant ids before service calls', async () => {
+    const result = await getPricingAlerts('bad/id');
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Invalid tenant ID');
+    expect(getPricingAlertConfig).not.toHaveBeenCalled();
+  });
+
+  it('rejects malformed product ids for price history', async () => {
+    const result = await getProductPriceHistory('org-a', 'bad/id', 30);
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Invalid product ID');
+    expect(getAdminFirestore).not.toHaveBeenCalled();
+  });
+});

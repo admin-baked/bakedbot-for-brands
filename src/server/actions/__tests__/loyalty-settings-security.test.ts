@@ -95,5 +95,10 @@ describe('loyalty-settings security', () => {
       { merge: true },
     );
   });
-});
 
+  it('rejects malformed org ids in public menu settings', async () => {
+    const result = await getPublicMenuSettings('bad/id');
+    expect(result).toBeNull();
+    expect(getAdminFirestore).not.toHaveBeenCalled();
+  });
+});

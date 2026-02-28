@@ -61,8 +61,8 @@ describe('platform-connections security', () => {
     const result = await connectPlatform({
       platform: 'meta',
       tenantId: 'org-b',
-      authCode: 'code-123',
-      state: 'state-1',
+      authCode: 'code-1234',
+      state: 'state-12345',
     });
 
     expect(result.success).toBe(false);
@@ -110,5 +110,26 @@ describe('platform-connections security', () => {
       }),
     );
   });
-});
 
+  it('rejects malformed tenant ids before oauth flow starts', async () => {
+    const result = await getOAuthUrl('meta', 'bad/id');
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Invalid tenant ID');
+    expect(requireUser).not.toHaveBeenCalled();
+    expect(generateOAuthState).not.toHaveBeenCalled();
+  });
+
+  it('requires oauth state when connecting platforms', async () => {
+    const result = await connectPlatform({
+      platform: 'meta',
+      tenantId: 'org-a',
+      authCode: 'code-12345678',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Missing OAuth state');
+    expect(exchangeCodeForToken).not.toHaveBeenCalled();
+    expect(getAdminFirestore).not.toHaveBeenCalled();
+  });
+});

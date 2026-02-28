@@ -32,6 +32,15 @@ function isSuperRole(role: unknown): boolean {
   return role === 'super_user' || role === 'super_admin';
 }
 
+function isValidDocumentId(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    value.length >= 3 &&
+    value.length <= 128 &&
+    !/[\/\\?#\[\]]/.test(value)
+  );
+}
+
 function getActorOrgId(user: unknown): string | null {
   if (!user || typeof user !== 'object') return null;
   const token = user as {
@@ -86,6 +95,9 @@ export async function getOAuthUrl(
   tenantId: string
 ): Promise<{ success: boolean; authUrl?: string; state?: string; error?: string }> {
   try {
+    if (!isValidDocumentId(tenantId)) {
+      return { success: false, error: 'Invalid tenant ID' };
+    }
     await assertTenantAccess(tenantId);
 
     // Generate secure state
@@ -128,25 +140,34 @@ export async function connectPlatform(
   const { platform, tenantId, authCode, state } = request;
 
   try {
+    if (!isValidDocumentId(tenantId)) {
+      return { success: false, error: 'Invalid tenant ID' };
+    }
+    if (typeof authCode !== 'string' || authCode.trim().length < 8) {
+      return { success: false, error: 'Invalid authorization code' };
+    }
+    if (typeof state !== 'string' || state.trim().length < 8) {
+      return { success: false, error: 'Missing OAuth state' };
+    }
     await assertTenantAccess(tenantId);
 
     const db = getAdminFirestore();
 
     // Verify state parameter
-    if (state) {
-      const stateDoc = await db.collection('oauth_states').doc(state).get();
-      if (!stateDoc.exists) {
-        throw new Error('Invalid or expired authorization state');
-      }
-
-      const stateData = stateDoc.data();
-      if (stateData?.tenantId !== tenantId || stateData?.platform !== platform) {
-        throw new Error('State parameter mismatch');
-      }
-
-      // Delete used state
-      await stateDoc.ref.delete();
+    const stateDoc = await db.collection('oauth_states').doc(state).get();
+    if (!stateDoc.exists) {
+      throw new Error('Invalid or expired authorization state');
     }
+    const stateData = stateDoc.data();
+    if (stateData?.tenantId !== tenantId || stateData?.platform !== platform) {
+      throw new Error('State parameter mismatch');
+    }
+    if (typeof stateData?.expiresAt === 'number' && stateData.expiresAt < Date.now()) {
+      throw new Error('Authorization state expired');
+    }
+
+    // Delete used state
+    await stateDoc.ref.delete();
 
     // Exchange authorization code for access token
     const tokenData = await exchangeCodeForToken(platform, authCode);
@@ -209,6 +230,9 @@ export async function disconnectPlatform(
   const { platform, tenantId } = request;
 
   try {
+    if (!isValidDocumentId(tenantId)) {
+      return { success: false, error: 'Invalid tenant ID' };
+    }
     await assertTenantAccess(tenantId);
 
     const db = getAdminFirestore();
@@ -257,6 +281,9 @@ export async function getPlatformConnectionStatus(
   platform: IntegratedPlatform
 ): Promise<{ success: boolean; status?: PlatformConnectionStatusResponse; error?: string }> {
   try {
+    if (!isValidDocumentId(tenantId)) {
+      return { success: false, error: 'Invalid tenant ID' };
+    }
     await assertTenantAccess(tenantId);
 
     const db = getAdminFirestore();
@@ -323,6 +350,9 @@ export async function refreshPlatformToken(
   platform: IntegratedPlatform
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    if (!isValidDocumentId(tenantId)) {
+      return { success: false, error: 'Invalid tenant ID' };
+    }
     await assertTenantAccess(tenantId);
 
     const db = getAdminFirestore();
@@ -485,6 +515,9 @@ export async function getDecryptedAccessToken(
   platform: IntegratedPlatform
 ): Promise<{ success: boolean; accessToken?: string; error?: string }> {
   try {
+    if (!isValidDocumentId(tenantId)) {
+      return { success: false, error: 'Invalid tenant ID' };
+    }
     await assertTenantAccess(tenantId);
 
     const db = getAdminFirestore();
