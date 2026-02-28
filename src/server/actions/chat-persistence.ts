@@ -6,6 +6,9 @@ import { logger } from '@/lib/monitoring';
 import { requireUser } from '@/server/auth/auth';
 
 function isSuperRole(role: unknown): boolean {
+    if (Array.isArray(role)) {
+        return role.includes('super_user') || role.includes('super_admin');
+    }
     return role === 'super_user' || role === 'super_admin';
 }
 
@@ -16,10 +19,15 @@ function isValidUserId(userId: string): boolean {
 export async function saveChatSession(session: ChatSession) {
     try {
         const user = await requireUser();
+        const normalizedSessionId = typeof session.id === 'string' ? session.id.trim() : '';
+        if (!isValidUserId(normalizedSessionId)) {
+            return { success: false, error: 'Invalid session id' };
+        }
         const { firestore } = await createServerClient();
 
-        await firestore.collection('users').doc(user.uid).collection('chat_sessions').doc(session.id).set({
+        await firestore.collection('users').doc(user.uid).collection('chat_sessions').doc(normalizedSessionId).set({
             ...session,
+            id: normalizedSessionId,
             updatedAt: new Date(),
             userId: user.uid
         }, { merge: true });
@@ -35,6 +43,9 @@ export async function getChatSessions(userId?: string) {
     try {
         const user = await requireUser();
         const requestedUserId = userId?.trim();
+        if (typeof userId === 'string' && requestedUserId?.length === 0) {
+            return { success: false, error: 'Invalid user id' };
+        }
         const targetId = requestedUserId || user.uid;
 
         if (!isValidUserId(targetId)) {
@@ -78,7 +89,7 @@ export async function getChatSessions(userId?: string) {
 
         return { success: true, sessions };
     } catch (error: any) {
-        console.error('Failed to get chat sessions:', error);
+        logger.error('Failed to get chat sessions', error);
         // Return a clean error object, do not throw
         return { success: false, error: error.message || 'Unknown error' };
     }

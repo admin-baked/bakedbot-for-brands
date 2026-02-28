@@ -1,4 +1,4 @@
-import { getChatSessions } from '../chat-persistence';
+import { getChatSessions, saveChatSession } from '../chat-persistence';
 import { requireUser } from '@/server/auth/auth';
 import { createServerClient } from '@/firebase/server-client';
 
@@ -66,6 +66,19 @@ describe('chat-persistence security', () => {
     expect(get).toHaveBeenCalled();
   });
 
+  it('allows super users with role array to read another users chat sessions', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'super-1',
+      role: ['super_user'],
+    });
+
+    const result = await getChatSessions('user-2');
+
+    expect(result.success).toBe(true);
+    expect(doc).toHaveBeenCalledWith('user-2');
+    expect(get).toHaveBeenCalled();
+  });
+
   it('rejects invalid user ids', async () => {
     (requireUser as jest.Mock).mockResolvedValue({
       uid: 'user-1',
@@ -77,6 +90,45 @@ describe('chat-persistence security', () => {
     expect(result).toEqual({
       success: false,
       error: 'Invalid user id',
+    });
+    expect(createServerClient).not.toHaveBeenCalled();
+  });
+
+  it('rejects blank explicit user ids', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'user-1',
+      role: 'super_user',
+    });
+
+    const result = await getChatSessions('   ');
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Invalid user id',
+    });
+    expect(createServerClient).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid chat session ids on save', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'user-1',
+      role: 'dispensary_admin',
+    });
+
+    const result = await saveChatSession({
+      id: 'bad/session-id',
+      title: 'Hello',
+      preview: '',
+      timestamp: new Date().toISOString(),
+      messages: [],
+      role: 'smokey',
+      projectId: 'p1',
+      artifacts: [],
+    } as any);
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Invalid session id',
     });
     expect(createServerClient).not.toHaveBeenCalled();
   });
