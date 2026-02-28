@@ -58,6 +58,7 @@ describe('POST /api/checkout/aeropay/authorize amount guard', () => {
       exists: true,
       data: () => ({
         userId: 'user-1',
+        organizationId: 'org_server',
         paymentStatus: 'pending',
         totals: { total: 49.99 },
       }),
@@ -131,5 +132,20 @@ describe('POST /api/checkout/aeropay/authorize amount guard', () => {
     expect(mockTransactionSet).toHaveBeenCalledWith(expect.objectContaining({
       amount: 5049,
     }));
+  });
+
+  it('rejects client organization override mismatches', async () => {
+    const response = await POST({
+      json: async () => ({
+        orderId: 'order-1',
+        amount: 4999,
+        organizationId: 'org_spoofed',
+      }),
+    } as any);
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body.error).toContain('Organization mismatch');
+    expect(mockCreateTransaction).not.toHaveBeenCalled();
   });
 });

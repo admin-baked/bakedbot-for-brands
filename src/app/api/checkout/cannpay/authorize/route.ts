@@ -22,14 +22,17 @@ import { authorizePayment, CANNPAY_TRANSACTION_FEE_CENTS } from '@/lib/payments/
 import { getUserFromRequest } from '@/server/auth/auth-helpers';
 import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
+import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
 
-interface AuthorizeRequest {
-  orderId: string;
-  amount: number; // in cents
-  organizationId?: string;
-}
+const DOCUMENT_ID_REGEX = /^[A-Za-z0-9_-]{1,128}$/;
+
+const authorizeRequestSchema = z.object({
+  orderId: z.string().trim().regex(DOCUMENT_ID_REGEX, 'Invalid orderId'),
+  amount: z.number().int().min(1).max(5_000_000), // cents
+  organizationId: z.string().trim().regex(DOCUMENT_ID_REGEX, 'Invalid organizationId').optional(),
+}).strict();
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,15 +43,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Parse request body
-    const body: AuthorizeRequest = await request.json();
+    const body = authorizeRequestSchema.parse(await request.json());
     const { orderId, amount, organizationId } = body;
-
-    if (!orderId || !amount || amount <= 0) {
-      return NextResponse.json(
-        { error: 'Missing or invalid orderId or amount' },
-        { status: 400 }
-      );
-    }
 
     // 3. Verify order exists and belongs to user
     const { firestore } = await createServerClient();
@@ -61,10 +57,31 @@ export async function POST(request: NextRequest) {
 
     const orderData = orderSnap.data();
 
+    const sessionEmail = typeof user.email === 'string' ? user.email.toLowerCase() : '';
+    const orderEmail = typeof orderData?.customer?.email === 'string' ? orderData.customer.email.toLowerCase() : '';
+    const isOwner =
+      orderData?.customerId === user.uid ||
+      orderData?.userId === user.uid ||
+      (!!sessionEmail && orderEmail === sessionEmail);
+
     // Verify order ownership (customer must own the order)
-    if (orderData?.customerId !== user.uid && orderData?.userId !== user.uid) {
+    if (!isOwner) {
       return NextResponse.json(
         { error: 'You do not have permission to pay for this order' },
+        { status: 403 }
+      );
+    }
+
+    const orderOrganizationId = orderData?.organizationId || orderData?.orgId || orderData?.brandId;
+    if (!orderOrganizationId || !DOCUMENT_ID_REGEX.test(orderOrganizationId)) {
+      return NextResponse.json(
+        { error: 'Order organization is invalid' },
+        { status: 400 }
+      );
+    }
+    if (organizationId && organizationId !== orderOrganizationId) {
+      return NextResponse.json(
+        { error: 'Organization mismatch for order' },
         { status: 403 }
       );
     }
@@ -97,7 +114,7 @@ export async function POST(request: NextRequest) {
     // 4. Authorize payment with CannPay
     const passthrough = JSON.stringify({
       orderId,
-      organizationId: organizationId || orderData.organizationId,
+      organizationId: orderOrganizationId,
       customerId: user.uid,
     });
 
@@ -124,7 +141,7 @@ export async function POST(request: NextRequest) {
     logger.info('[P0-PAY-CANNPAY] Authorized payment for order', {
       orderId,
       intentId: authResult.intent_id,
-      amount,
+      amount: serverAmountCents,
       fee: CANNPAY_TRANSACTION_FEE_CENTS,
       userId: user.uid,
     });
@@ -138,6 +155,12 @@ export async function POST(request: NextRequest) {
       transactionFee: CANNPAY_TRANSACTION_FEE_CENTS,
     });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: error.issues[0]?.message || 'Invalid request payload' },
+        { status: 400 }
+      );
+    }
     logger.error('[P0-PAY-CANNPAY] Authorization failed', error instanceof Error ? error : new Error(String(error)));
 
     // Return appropriate error
