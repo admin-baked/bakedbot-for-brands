@@ -334,6 +334,57 @@ async function handleTransactionWebhook(
   }
 
   const orderData = orderSnap.data() as Record<string, any>;
+  if (
+    merchantOrderId &&
+    String(merchantOrderId).trim() &&
+    String(merchantOrderId).trim() !== String(orderId)
+  ) {
+    logger.error('[AEROPAY-WEBHOOK] merchantOrderId mismatch with resolved orderId', {
+      orderId,
+      merchantOrderId,
+      transactionId,
+      status,
+    });
+
+    await db.collection('payment_forensics').add({
+      provider: 'aeropay',
+      source: 'aeropay_webhook',
+      reason: 'order_mismatch',
+      orderId,
+      transactionId,
+      merchantOrderId,
+      expectedMerchantOrderId: orderId,
+      providerStatus: status || null,
+      observedAt: FieldValue.serverTimestamp(),
+    });
+    return;
+  }
+
+  const storedTransactionId =
+    typeof orderData?.transactionId === 'string' ? orderData.transactionId : null;
+  if (storedTransactionId && storedTransactionId !== transactionId) {
+    logger.error('[AEROPAY-WEBHOOK] transactionId mismatch for resolved order', {
+      orderId,
+      transactionId,
+      expectedTransactionId: storedTransactionId,
+      merchantOrderId: merchantOrderId || null,
+      status,
+    });
+
+    await db.collection('payment_forensics').add({
+      provider: 'aeropay',
+      source: 'aeropay_webhook',
+      reason: 'transaction_mismatch',
+      orderId,
+      transactionId,
+      expectedTransactionId: storedTransactionId,
+      merchantOrderId: merchantOrderId || null,
+      providerStatus: status || null,
+      observedAt: FieldValue.serverTimestamp(),
+    });
+    return;
+  }
+
   const expectedAmountCents = getExpectedAeropayAmountCents(orderData);
   const providerAmountCents = toCents(data.amount);
 
