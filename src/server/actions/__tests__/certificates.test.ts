@@ -198,6 +198,21 @@ describe('Certificate Server Actions', () => {
             expect(getAdminFirestore).not.toHaveBeenCalled();
         });
 
+        it('should reject blank target user id', async () => {
+            const { requireUser } = await import('@/server/auth/auth');
+            (requireUser as jest.Mock).mockResolvedValue({ uid: 'test-user' });
+
+            const { getAdminFirestore } = await import('@/firebase/admin');
+
+            const result = await generateCertificate('   ');
+
+            expect(result.success).toBe(false);
+            if (!result.success) {
+                expect(result.error).toContain('Invalid user id');
+            }
+            expect(getAdminFirestore).not.toHaveBeenCalled();
+        });
+
         it('should not treat substring role matches as super access', async () => {
             const { requireUser } = await import('@/server/auth/auth');
             (requireUser as jest.Mock).mockResolvedValue({
