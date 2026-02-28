@@ -44,7 +44,8 @@ import { POST } from '../route';
 const mockCreateServerClient = jest.fn();
 const mockEmitEvent = jest.fn();
 
-const mockPaymentWebhookAdd = jest.fn();
+const mockPaymentWebhookCreate = jest.fn();
+const mockPaymentWebhookSet = jest.fn();
 const mockTransactionGet = jest.fn();
 const mockTransactionUpdate = jest.fn();
 const mockOrderGet = jest.fn();
@@ -92,7 +93,8 @@ describe('POST /api/webhooks/aeropay amount guard', () => {
       AEROPAY_WEBHOOK_SECRET: 'aero-secret',
     };
 
-    mockPaymentWebhookAdd.mockResolvedValue(undefined);
+    mockPaymentWebhookCreate.mockResolvedValue(undefined);
+    mockPaymentWebhookSet.mockResolvedValue(undefined);
     mockTransactionGet.mockResolvedValue({
       exists: true,
       data: () => ({ orderId: 'order-1' }),
@@ -113,7 +115,12 @@ describe('POST /api/webhooks/aeropay amount guard', () => {
       firestore: {
         collection: jest.fn((name: string) => {
           if (name === 'payment_webhooks') {
-            return { add: mockPaymentWebhookAdd };
+            return {
+              doc: jest.fn(() => ({
+                create: mockPaymentWebhookCreate,
+                set: mockPaymentWebhookSet,
+              })),
+            };
           }
 
           if (name === 'aeropay_transactions') {
@@ -247,6 +254,48 @@ describe('POST /api/webhooks/aeropay amount guard', () => {
       expectedAmountCents: 5050,
       providerAmountCents: null,
     }));
+  });
+
+  it('deduplicates replayed webhook payloads', async () => {
+    mockPaymentWebhookCreate.mockRejectedValueOnce({ code: 'already-exists' });
+
+    const webhookBody = JSON.stringify({
+      topic: 'transaction_completed',
+      date: '2026-02-28T12:00:00.000Z',
+      data: {
+        transactionId: 'tx_duplicate',
+        userId: 'user_1',
+        merchantId: 'merchant_1',
+        amount: '5050',
+        status: 'completed',
+        merchantOrderId: 'order-1',
+        createdAt: '2026-02-28T12:00:00.000Z',
+      },
+    });
+
+    const signature = crypto
+      .createHmac('sha256', 'aero-secret')
+      .update(webhookBody)
+      .digest('hex')
+      .toLowerCase();
+
+    const request = new NextRequest('http://localhost/api/webhooks/aeropay', {
+      method: 'POST',
+      body: webhookBody,
+      headers: {
+        'x-aeropay-signature': signature,
+      },
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.received).toBe(true);
+    expect(data.duplicate).toBe(true);
+    expect(mockTransactionUpdate).not.toHaveBeenCalled();
+    expect(mockOrderUpdate).not.toHaveBeenCalled();
+    expect(mockEmitEvent).not.toHaveBeenCalled();
   });
 
   it('blocks transitions when merchantOrderId mismatches transaction-linked order', async () => {
