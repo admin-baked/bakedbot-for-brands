@@ -6,6 +6,7 @@ import { emitEvent } from "@/server/events/emitter";
 import { requireUser } from "@/server/auth/auth";
 
 import { logger } from '@/lib/logger';
+import { isCompanyPlanCheckoutEnabled } from '@/lib/feature-flags';
 
 /**
  * Verify that a user has access to an organization (owner or admin)
@@ -78,6 +79,13 @@ export async function POST(req: NextRequest) {
   let body: SubscribeBody | null = null;
 
   try {
+    if (!isCompanyPlanCheckoutEnabled()) {
+      return NextResponse.json(
+        { error: "Subscription checkout is currently disabled. Please contact sales." },
+        { status: 503 }
+      );
+    }
+
     // SECURITY: Require authenticated session
     const session = await requireUser();
 

@@ -12,7 +12,7 @@ export async function PricingSection() {
     const getPlanCtaHref = (planId: string) => {
         if (planId === 'free') return '/get-started?plan=free';
         if (planId === 'empire') return '/contact';
-        return `/checkout/subscription?plan=${planId}`;
+        return `/get-started?plan=${planId}`;
     };
 
     return (
@@ -59,7 +59,7 @@ export async function PricingSection() {
                         <div style={{ fontSize: '13px', opacity: 0.9 }}>Lock in <strong>$79/mo for life</strong> (same features as Claim Pro).</div>
                     </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                        <Link href="/checkout/subscription?plan=founders_claim" style={{
+                        <Link href="/get-started?plan=founders_claim" style={{
                             background: 'white',
                             color: '#16a34a',
                             padding: '8px 16px',

@@ -5,6 +5,9 @@ import { FieldValue, DocumentReference, type DocumentData, type Transaction } fr
 import { logger } from '@/lib/logger';
 import { PRICING_PLANS } from '@/lib/config/pricing';
 import { createCustomerProfile, createSubscriptionFromProfile } from '@/lib/payments/authorize-net';
+import { requireUser } from '@/server/auth/auth';
+import type { BillingAddress } from '@/types/orders';
+import { isCompanyPlanCheckoutEnabled } from '@/lib/feature-flags';
 
 type CreateSubscriptionInput = {
     planId: string;
@@ -15,6 +18,7 @@ type CreateSubscriptionInput = {
     };
     paymentData?: any;
     couponCode?: string;
+    billingAddress?: BillingAddress;
 };
 
 function getEmergencyOverrideCoupon(normalizedCode: string, basePrice: number) {
@@ -66,8 +70,50 @@ function asDate(value: any): Date | null {
     return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
+function normalizeBillingAddress(address: any): BillingAddress | null {
+    if (!address || typeof address !== 'object') return null;
+
+    const street = typeof address.street === 'string' ? address.street.trim() : '';
+    const street2 = typeof address.street2 === 'string' ? address.street2.trim() : undefined;
+    const city = typeof address.city === 'string' ? address.city.trim() : '';
+    const state = typeof address.state === 'string' ? address.state.trim().toUpperCase() : '';
+    const zip = typeof address.zip === 'string' ? address.zip.trim() : '';
+    const countryRaw = typeof address.country === 'string' ? address.country.trim().toUpperCase() : 'US';
+    const country = countryRaw || 'US';
+
+    if (!street || !city || !state || !zip) return null;
+    if (state.length !== 2) return null;
+    if (!/^\d{5}(-\d{4})?$/.test(zip)) return null;
+
+    return {
+        street,
+        ...(street2 ? { street2 } : {}),
+        city,
+        state,
+        zip,
+        country,
+    };
+}
+
 export async function createSubscription(input: CreateSubscriptionInput) {
     try {
+        if (!isCompanyPlanCheckoutEnabled()) {
+            return { success: false, error: 'Subscription checkout is currently disabled. Please contact sales.' };
+        }
+
+        let session;
+        try {
+            session = await requireUser();
+        } catch {
+            return { success: false, error: 'You must be signed in to create a subscription.' };
+        }
+
+        const sessionEmail = typeof session.email === 'string' ? session.email.toLowerCase() : '';
+        const requestEmail = input.customer.email.trim().toLowerCase();
+        if (sessionEmail && requestEmail !== sessionEmail) {
+            return { success: false, error: 'Customer email must match your signed-in account.' };
+        }
+
         let firestore: any = null;
         // In local/dev we default to bypassing Firebase Admin unless explicitly enabled.
         // Set LOCAL_CHECKOUT_USE_FIREBASE=true to force real Firestore writes locally.
@@ -198,10 +244,14 @@ export async function createSubscription(input: CreateSubscriptionInput) {
         let customerPaymentProfileId: string | null = null;
         let subscriptionStartDate: string | null = null;
         let subscriptionStatus = 'active';
+        const normalizedBillingAddress = normalizeBillingAddress(input.billingAddress);
 
         // 2. Process Initial Payment (if price > 0)
         if (finalPrice > 0 && !input.paymentData) {
             return { success: false, error: 'Payment information is required for paid plans.' };
+        }
+        if (finalPrice > 0 && !normalizedBillingAddress) {
+            return { success: false, error: 'A valid billing address is required for paid plans.' };
         }
 
         if (finalPrice > 0 && input.paymentData) {
@@ -226,7 +276,11 @@ export async function createSubscription(input: CreateSubscriptionInput) {
                 const billTo = {
                     firstName,
                     lastName,
-                    zip: input.paymentData.zip,
+                    address: normalizedBillingAddress?.street,
+                    city: normalizedBillingAddress?.city,
+                    state: normalizedBillingAddress?.state,
+                    zip: normalizedBillingAddress?.zip || input.paymentData.zip,
+                    country: normalizedBillingAddress?.country,
                 };
 
                 const paymentProfile = {
@@ -274,12 +328,14 @@ export async function createSubscription(input: CreateSubscriptionInput) {
 
         // 3. Create Subscription Record in Firestore
         const subscription = {
+            userId: session.uid,
             planId: plan.id,
             planName: plan.name,
             price: finalPrice,
             originalPrice: plan.price,
             discount: discountApplied,
             customer: input.customer,
+            billingAddress: normalizedBillingAddress || undefined,
             status: subscriptionStatus,
             transactionId: transactionId || 'free_plan',
             providerSubscriptionId,
@@ -330,6 +386,14 @@ export async function createSubscription(input: CreateSubscriptionInput) {
         }
 
         const subscriptionId = subscriptionRef.id;
+
+        if (!localDevNoFirestore && normalizedBillingAddress) {
+            await firestore.collection('users').doc(session.uid).set({
+                billingAddress: normalizedBillingAddress,
+                billingAddressUpdatedAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            }, { merge: true });
+        }
 
         // 4. Send Confirmation (Log for now)
         logger.info('Subscription created', { subscriptionId, plan: plan.id, mocked: localDevNoFirestore });

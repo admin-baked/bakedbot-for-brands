@@ -100,7 +100,7 @@ export function ZipCodeSearch({ className, autoFocus = false }: ZipCodeSearchPro
                 </div>
 
                 <Button size="lg" className="w-full h-12 text-lg bg-emerald-600 hover:bg-emerald-700 shadow-xl shadow-emerald-600/20" asChild>
-                    <Link href={`/checkout/subscription?plan=claim_pro&zip=${searchedZip}`}>
+                    <Link href={`/get-started?plan=claim_pro&zip=${searchedZip}`}>
                         Claim Territory for $99 <ArrowRight className="ml-2 w-5 h-5" />
                     </Link>
                 </Button>

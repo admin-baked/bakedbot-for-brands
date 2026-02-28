@@ -15,6 +15,7 @@ import { emitEvent } from '@/server/events/emitter';
 import { logger } from '@/lib/logger';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
+import { isCompanyPlanCheckoutEnabled } from '@/lib/feature-flags';
 
 // Input validation schema
 const CreateSubscriptionSchema = z.object({
@@ -64,6 +65,10 @@ export async function createSubscription(
   input: CreateSubscriptionInput
 ): Promise<SubscriptionResult> {
   try {
+    if (!isCompanyPlanCheckoutEnabled()) {
+      return { success: false, error: 'Subscription checkout is currently disabled. Please contact sales.' };
+    }
+
     // 1. Validate input
     const validInput = CreateSubscriptionSchema.parse(input);
     const { orgId, tierId, opaqueData, billTo, promoCode } = validInput;

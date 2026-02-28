@@ -23,6 +23,8 @@ import { useRouter } from 'next/navigation';
 import type { ShippingAddress } from '@/types/orders';
 import { logger } from '@/lib/logger';
 import { applyCoupon } from '@/app/checkout/actions/applyCoupon';
+import { CheckoutAuthRequired } from './checkout-auth-required';
+import { isShippingCheckoutEnabled } from '@/lib/feature-flags';
 
 // States where hemp shipping is restricted
 const RESTRICTED_STATES = ['ID', 'MS', 'SD', 'NE', 'KS'];
@@ -56,7 +58,7 @@ interface ShippingCheckoutFlowProps {
 
 export function ShippingCheckoutFlow({ brandId }: ShippingCheckoutFlowProps) {
     const { cartItems, getCartTotal, clearCart } = useStore();
-    const { user } = useUser();
+    const { user, isUserLoading } = useUser();
     const { toast } = useToast();
     const router = useRouter();
 
@@ -83,6 +85,7 @@ export function ShippingCheckoutFlow({ brandId }: ShippingCheckoutFlowProps) {
         zip: '',
         country: 'US',
     });
+    const shippingCheckoutEnabled = isShippingCheckoutEnabled();
 
     useEffect(() => {
         if (user) {
@@ -173,6 +176,11 @@ export function ShippingCheckoutFlow({ brandId }: ShippingCheckoutFlowProps) {
     const handleShippingSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
+        if (!user) {
+            toast({ variant: 'destructive', title: 'Sign In Required', description: 'Please sign in to continue checkout.' });
+            return;
+        }
+
         if (!customerDetails.name || !customerDetails.email) {
             toast({ variant: 'destructive', title: 'Missing Information', description: 'Please fill in your name and email.' });
             return;
@@ -204,6 +212,7 @@ export function ShippingCheckoutFlow({ brandId }: ShippingCheckoutFlowProps) {
                     items: cartItems,
                     customer: customerDetails,
                     shippingAddress,
+                    billingAddress: shippingAddress,
                     brandId,
                     paymentMethod: 'authorize_net',
                     paymentData,
@@ -244,6 +253,42 @@ export function ShippingCheckoutFlow({ brandId }: ShippingCheckoutFlowProps) {
             setLoading(false);
         }
     };
+
+    if (isUserLoading) {
+        return (
+            <Card>
+                <CardContent className="py-12 text-center text-sm text-muted-foreground">
+                    Checking account status...
+                </CardContent>
+            </Card>
+        );
+    }
+
+    if (!user) {
+        return (
+            <CheckoutAuthRequired
+                title="Account Required for Checkout"
+                description="Shipping checkout requires an account so your order and payment are securely tied to you."
+                nextPath="/checkout"
+            />
+        );
+    }
+
+    if (!shippingCheckoutEnabled) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Shipping Checkout Unavailable</CardTitle>
+                    <CardDescription>
+                        Online shipping checkout is currently disabled for this environment.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">
+                    You can continue browsing products, but shipping checkout cannot be completed right now.
+                </CardContent>
+            </Card>
+        );
+    }
 
     return (
         <div className="space-y-8">

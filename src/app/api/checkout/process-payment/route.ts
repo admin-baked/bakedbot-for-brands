@@ -28,9 +28,53 @@ import { createServerClient } from '@/firebase/server-client';
 import { withProtection } from '@/server/middleware/with-protection';
 import { processPaymentSchema, type ProcessPaymentRequest } from '../../schemas';
 import { recordProductSale } from '@/server/services/order-analytics';
+import { requireUser } from '@/server/auth/auth';
+import type { BillingAddress } from '@/types/orders';
 
 // Force dynamic rendering - prevents build-time evaluation of agent dependencies
 export const dynamic = 'force-dynamic';
+
+function normalizeBillingAddress(address: any): BillingAddress | null {
+    if (!address || typeof address !== 'object') return null;
+
+    const street = typeof address.street === 'string' ? address.street.trim() : '';
+    const street2 = typeof address.street2 === 'string' ? address.street2.trim() : undefined;
+    const city = typeof address.city === 'string' ? address.city.trim() : '';
+    const state = typeof address.state === 'string' ? address.state.trim().toUpperCase() : '';
+    const zip = typeof address.zip === 'string' ? address.zip.trim() : '';
+    const countryRaw = typeof address.country === 'string' ? address.country.trim().toUpperCase() : 'US';
+    const country = countryRaw || 'US';
+
+    if (!street || !city || !state || !zip) return null;
+    if (state.length !== 2) return null;
+    if (!/^\d{5}(-\d{4})?$/.test(zip)) return null;
+
+    return {
+        street,
+        ...(street2 ? { street2 } : {}),
+        city,
+        state,
+        zip,
+        country,
+    };
+}
+
+function parseCustomerName(fullName: string | undefined | null): { firstName: string; lastName: string } {
+    const safeName = (fullName || '').trim();
+    if (!safeName) {
+        return { firstName: 'Customer', lastName: 'Checkout' };
+    }
+
+    const parts = safeName.split(/\s+/);
+    return {
+        firstName: parts[0] || 'Customer',
+        lastName: parts.slice(1).join(' ') || parts[0] || 'Checkout',
+    };
+}
+
+function isPaidLikeStatus(paymentStatus: string | undefined): boolean {
+    return paymentStatus === 'paid' || paymentStatus === 'refunded' || paymentStatus === 'voided';
+}
 
 /**
  * Record sales analytics for a completed order (async, non-blocking)
@@ -55,7 +99,6 @@ async function recordSalesForOrder(orderId: string, firestore: any) {
             return;
         }
 
-        // Convert order items to recordProductSale format
         const salesItems = order.items.map((item: any) => ({
             productId: item.productId,
             quantity: item.qty || item.quantity || 1,
@@ -80,14 +123,16 @@ async function recordSalesForOrder(orderId: string, firestore: any) {
             orderId,
             error: error instanceof Error ? error.message : String(error),
         });
-        // Non-blocking - don't throw, just log
     }
 }
 
 export const POST = withProtection(
-    async (req: NextRequest, data?: ProcessPaymentRequest) => {
+    async (_req: NextRequest, data?: ProcessPaymentRequest) => {
         try {
-            // Data is already validated by middleware
+            const session = await requireUser();
+            const sessionUid = session.uid;
+            const sessionEmail = typeof session.email === 'string' ? session.email.toLowerCase() : '';
+
             const {
                 amount,
                 paymentData,
@@ -95,134 +140,143 @@ export const POST = withProtection(
                 orderId,
                 cart,
                 dispensaryState,
-                paymentMethod = 'dispensary_direct'
+                paymentMethod = 'dispensary_direct',
+                billingAddress,
             } = data!;
+
+            const { firestore } = await createServerClient();
+
+            let ownedOrderDoc: FirebaseFirestore.DocumentSnapshot | null = null;
+            let ownedOrder: any = null;
+
+            if (orderId) {
+                const orderDoc = await firestore.collection('orders').doc(orderId).get();
+                if (!orderDoc.exists) {
+                    return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
+                }
+
+                const order = orderDoc.data() || {};
+                const orderEmail = typeof order?.customer?.email === 'string' ? order.customer.email.toLowerCase() : '';
+                const isOwner = order.userId === sessionUid || (!!sessionEmail && orderEmail === sessionEmail);
+                if (!isOwner) {
+                    return NextResponse.json({ success: false, error: 'Forbidden: order access denied' }, { status: 403 });
+                }
+
+                ownedOrderDoc = orderDoc;
+                ownedOrder = order;
+            }
 
             // COMPLIANCE VALIDATION (Deebo Enforcement)
             if (customer && cart && dispensaryState) {
                 logger.info('[P0-INT-DEEBO-CHECKOUT] Running compliance validation', {
                     orderId,
                     state: dispensaryState,
-                    cartItems: cart.length
+                    cartItems: cart.length,
+                    sessionUid,
                 });
 
-                // Transform cart items to CheckoutCartItem format
                 const checkoutCart = cart.map(item => ({
                     productType: (item.productType || 'flower') as 'flower' | 'concentrate' | 'edibles',
                     quantity: item.quantity,
-                    name: item.productName
+                    name: item.productName,
                 }));
 
                 const complianceResult = await deeboCheckCheckout({
                     customer: {
-                        uid: customer.uid || customer.id || '',
+                        uid: customer.uid || customer.id || sessionUid,
                         dateOfBirth: customer.dateOfBirth || '',
                         hasMedicalCard: customer.hasMedicalCard || false,
-                        state: customer.state || dispensaryState
+                        state: customer.state || dispensaryState,
                     },
                     cart: checkoutCart,
-                    dispensaryState: dispensaryState
+                    dispensaryState,
                 });
 
                 if (!complianceResult.allowed) {
                     logger.error('[P0-INT-DEEBO-CHECKOUT] Compliance validation FAILED', {
                         orderId,
                         errors: complianceResult.errors,
-                        state: dispensaryState
+                        state: dispensaryState,
                     });
 
                     return NextResponse.json({
                         success: false,
                         error: 'Compliance validation failed',
                         complianceErrors: complianceResult.errors,
-                        complianceWarnings: complianceResult.warnings
+                        complianceWarnings: complianceResult.warnings,
                     }, { status: 403 });
                 }
 
-                // Log compliance warnings (non-blocking)
                 if (complianceResult.warnings.length > 0) {
                     logger.warn('[P0-INT-DEEBO-CHECKOUT] Compliance warnings', {
                         orderId,
-                        warnings: complianceResult.warnings
+                        warnings: complianceResult.warnings,
                     });
                 }
-
-                logger.info('[P0-INT-DEEBO-CHECKOUT] Compliance validation PASSED', {
-                    orderId,
-                    state: dispensaryState,
-                    warnings: complianceResult.warnings.length
-                });
             } else {
                 logger.warn('[P0-INT-DEEBO-CHECKOUT] Skipping compliance check - missing data', {
                     orderId,
                     hasCustomer: !!customer,
                     hasCart: !!cart,
-                    hasState: !!dispensaryState
+                    hasState: !!dispensaryState,
                 });
             }
 
-            // Handle Different Payment Methods
             logger.info('[P0-PAY-SMOKEYPAY] Processing payment after compliance validation', {
                 orderId,
-                amount,
-                paymentMethod
+                clientAmount: amount,
+                paymentMethod,
+                sessionUid,
             });
 
             // Option 1: Dispensary Direct (pay at pickup - no payment processing needed)
             if (paymentMethod === 'dispensary_direct') {
-                if (orderId) {
-                    const { firestore } = await createServerClient();
-                    await firestore.collection('orders').doc(orderId).update({
+                if (orderId && ownedOrderDoc) {
+                    await ownedOrderDoc.ref.update({
+                        userId: ownedOrder?.userId || sessionUid,
                         paymentMethod: 'dispensary_direct',
                         paymentStatus: 'pending_pickup',
-                        updatedAt: new Date().toISOString()
+                        updatedAt: new Date().toISOString(),
                     });
 
-                    // Record sales asynchronously (non-blocking)
                     setImmediate(async () => {
                         const { firestore: fs } = await createServerClient();
                         await recordSalesForOrder(orderId, fs);
                     });
                 }
 
-                logger.info('[P0-PAY-SMOKEYPAY] Dispensary direct payment selected', { orderId });
-
                 return NextResponse.json({
                     success: true,
                     paymentMethod: 'dispensary_direct',
                     message: 'Order confirmed. Payment will be collected at pickup.',
-                    complianceValidated: true
+                    complianceValidated: true,
                 });
             }
 
             // Option 2: Smokey Pay (internal: CannPay integration)
             if (paymentMethod === 'cannpay') {
-                // Smokey Pay payment is handled via webhook after widget completion
-                // This endpoint confirms the frontend callback was received
-                const cannpayData = paymentData as any; // Type assertion for CannPay-specific data
+                const cannpayData = paymentData as any;
                 const { intentId, transactionNumber, status } = cannpayData;
 
                 if (!intentId || !transactionNumber) {
                     return NextResponse.json(
                         { error: 'Missing Smokey Pay transaction details' },
-                        { status: 400 }
+                        { status: 400 },
                     );
                 }
 
-                // Update order with Smokey Pay transaction details
                 const cannpaySuccessful = status === 'Success' || status === 'Settled';
-                if (orderId) {
-                    const { firestore } = await createServerClient();
-                    await firestore.collection('orders').doc(orderId).update({
+                if (orderId && ownedOrderDoc) {
+                    await ownedOrderDoc.ref.update({
+                        userId: ownedOrder?.userId || sessionUid,
                         paymentMethod: 'cannpay',
                         paymentStatus: cannpaySuccessful ? 'paid' : 'failed',
                         'canpay.transactionNumber': transactionNumber,
                         'canpay.status': status,
                         'canpay.completedAt': new Date().toISOString(),
-                        updatedAt: new Date().toISOString()
+                        updatedAt: new Date().toISOString(),
                     });
 
-                    // Record sales asynchronously if payment successful (non-blocking)
                     if (cannpaySuccessful) {
                         setImmediate(async () => {
                             const { firestore: fs } = await createServerClient();
@@ -231,51 +285,40 @@ export const POST = withProtection(
                     }
                 }
 
-                logger.info('[P0-PAY-SMOKEYPAY] Smokey Pay payment completed', {
-                    orderId,
-                    intentId,
-                    transactionNumber,
-                    status
-                });
-
                 return NextResponse.json({
                     success: cannpaySuccessful,
                     paymentMethod: 'cannpay',
                     transactionId: transactionNumber,
                     message: status === 'Success' ? 'Payment successful' : 'Payment failed',
-                    complianceValidated: true
+                    complianceValidated: true,
                 });
             }
 
             // Option 3: Aeropay (Bank Transfer)
-            // @ts-ignore - Aeropay is a valid payment method
-            else if (paymentMethod === 'aeropay') {
-                // Aeropay payment is handled via webhook after transaction completion
-                // This endpoint confirms the frontend callback was received
-                const aeropayData = paymentData as any; // Type assertion for Aeropay-specific data
+            // @ts-ignore - Aeropay is a valid runtime payment method
+            if (paymentMethod === 'aeropay') {
+                const aeropayData = paymentData as any;
                 const { transactionId, status } = aeropayData;
 
                 if (!transactionId) {
                     return NextResponse.json(
                         { error: 'Missing Aeropay transaction details' },
-                        { status: 400 }
+                        { status: 400 },
                     );
                 }
 
-                // Update order with Aeropay transaction details
                 const aeropaySuccessful = status === 'completed';
-                if (orderId) {
-                    const { firestore } = await createServerClient();
-                    await firestore.collection('orders').doc(orderId).update({
+                if (orderId && ownedOrderDoc) {
+                    await ownedOrderDoc.ref.update({
+                        userId: ownedOrder?.userId || sessionUid,
                         paymentMethod: 'aeropay',
                         paymentStatus: aeropaySuccessful ? 'paid' : 'failed',
                         'aeropay.transactionId': transactionId,
                         'aeropay.status': status,
                         'aeropay.completedAt': new Date().toISOString(),
-                        updatedAt: new Date().toISOString()
+                        updatedAt: new Date().toISOString(),
                     });
 
-                    // Record sales asynchronously if payment successful (non-blocking)
                     if (aeropaySuccessful) {
                         setImmediate(async () => {
                             const { firestore: fs } = await createServerClient();
@@ -284,57 +327,113 @@ export const POST = withProtection(
                     }
                 }
 
-                logger.info('[AEROPAY-INTEGRATION] Aeropay payment completed', {
-                    orderId,
-                    transactionId,
-                    status
-                });
-
                 return NextResponse.json({
                     success: aeropaySuccessful,
                     paymentMethod: 'aeropay',
                     transactionId,
                     message: aeropaySuccessful ? 'Payment successful' : 'Payment failed',
-                    complianceValidated: true
+                    complianceValidated: true,
                 });
             }
 
             // Option 4: Credit Card (Authorize.Net)
             if (paymentMethod === 'credit_card') {
-                const cardData = paymentData as any; // Type assertion for Credit Card-specific data
+                if (!orderId) {
+                    return NextResponse.json(
+                        { success: false, error: 'Order ID is required for credit card payments' },
+                        { status: 400 },
+                    );
+                }
+                if (!ownedOrderDoc || !ownedOrder) {
+                    return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
+                }
+                if (isPaidLikeStatus(ownedOrder.paymentStatus)) {
+                    return NextResponse.json(
+                        { success: false, error: 'Order has already been paid or closed' },
+                        { status: 409 },
+                    );
+                }
+
+                const orderTotal = Number(ownedOrder?.totals?.total ?? ownedOrder?.amount ?? 0);
+                if (!Number.isFinite(orderTotal) || orderTotal <= 0) {
+                    return NextResponse.json(
+                        { success: false, error: 'Order total is invalid for payment' },
+                        { status: 400 },
+                    );
+                }
+
+                if (Math.abs(Number(amount) - orderTotal) > 0.01) {
+                    logger.warn('[P0-PAY-SMOKEYPAY] Client card amount mismatch; using order total', {
+                        orderId,
+                        clientAmount: amount,
+                        serverAmount: orderTotal,
+                    });
+                }
+
+                const requestBilling = normalizeBillingAddress(billingAddress);
+                const orderBilling = normalizeBillingAddress(ownedOrder.billingAddress);
+                const orderShipping = normalizeBillingAddress(ownedOrder.shippingAddress);
+
+                const userDoc = await firestore.collection('users').doc(sessionUid).get();
+                const userBilling = normalizeBillingAddress(userDoc.data()?.billingAddress);
+
+                const resolvedBilling = requestBilling || orderBilling || orderShipping || userBilling;
+                if (!resolvedBilling) {
+                    return NextResponse.json(
+                        { success: false, error: 'Billing address is required for credit card payments' },
+                        { status: 400 },
+                    );
+                }
+
+                const cardData = paymentData as any;
+                const orderCustomerName = typeof ownedOrder?.customer?.name === 'string' ? ownedOrder.customer.name : '';
+                const names = parseCustomerName(orderCustomerName || customer?.firstName || customer?.lastName);
+                const payerEmail =
+                    sessionEmail ||
+                    (typeof ownedOrder?.customer?.email === 'string' ? ownedOrder.customer.email : '') ||
+                    customer?.email ||
+                    undefined;
+
                 const paymentRequest: PaymentRequest = {
-                    amount,
+                    amount: orderTotal,
                     orderId,
-                    customer,
-                    // Support both opaque data (Accept.js) and raw card data (PCI/Testing)
-                    opaqueData: cardData.opaqueData,
-                    cardNumber: cardData.cardNumber,
-                    expirationDate: cardData.expirationDate,
-                    cvv: cardData.cvv,
+                    customer: {
+                        email: payerEmail,
+                        firstName: names.firstName,
+                        lastName: names.lastName,
+                        address: resolvedBilling.street,
+                        city: resolvedBilling.city,
+                        state: resolvedBilling.state,
+                        zip: resolvedBilling.zip,
+                    },
+                    opaqueData: cardData?.opaqueData,
+                    cardNumber: cardData?.cardNumber,
+                    expirationDate: cardData?.expirationDate,
+                    cvv: cardData?.cvv,
+                    description: `Checkout order ${orderId}`,
                 };
 
                 const result = await createTransaction(paymentRequest);
 
                 if (result.success) {
-                    if (orderId) {
-                        const { firestore } = await createServerClient();
-                        await firestore.collection('orders').doc(orderId).update({
-                            paymentMethod: 'credit_card',
-                            paymentStatus: 'paid',
-                            paymentProvider: 'authorize_net',
-                            updatedAt: new Date().toISOString()
-                        });
+                    await ownedOrderDoc.ref.update({
+                        userId: ownedOrder?.userId || sessionUid,
+                        billingAddress: resolvedBilling,
+                        paymentMethod: 'credit_card',
+                        paymentStatus: 'paid',
+                        paymentProvider: 'authorize_net',
+                        updatedAt: new Date().toISOString(),
+                    });
 
-                        // Record sales asynchronously (non-blocking)
-                        setImmediate(async () => {
-                            const { firestore: fs } = await createServerClient();
-                            await recordSalesForOrder(orderId, fs);
-                        });
-                    }
+                    await firestore.collection('users').doc(sessionUid).set({
+                        billingAddress: resolvedBilling,
+                        billingAddressUpdatedAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                    }, { merge: true });
 
-                    logger.info('[P0-PAY-SMOKEYPAY] Authorize.Net payment successful', {
-                        orderId,
-                        transactionId: result.transactionId
+                    setImmediate(async () => {
+                        const { firestore: fs } = await createServerClient();
+                        await recordSalesForOrder(orderId, fs);
                     });
 
                     return NextResponse.json({
@@ -342,40 +441,42 @@ export const POST = withProtection(
                         paymentMethod: 'credit_card',
                         transactionId: result.transactionId,
                         message: result.message,
-                        complianceValidated: true
+                        complianceValidated: true,
                     });
-                } else {
-                    logger.warn('[P0-PAY-SMOKEYPAY] Payment declined', {
-                        orderId,
-                        errors: result.errors
-                    });
-
-                    return NextResponse.json({
-                        success: false,
-                        error: result.message,
-                        details: result.errors
-                    }, { status: 400 });
                 }
+
+                await ownedOrderDoc.ref.update({
+                    userId: ownedOrder?.userId || sessionUid,
+                    billingAddress: resolvedBilling,
+                    paymentStatus: 'failed',
+                    updatedAt: new Date().toISOString(),
+                });
+
+                return NextResponse.json({
+                    success: false,
+                    error: result.message,
+                    details: result.errors,
+                }, { status: 400 });
             }
 
-            // Should never reach here due to validation above
             return NextResponse.json(
                 { error: 'Invalid payment method' },
-                { status: 400 }
+                { status: 400 },
             );
-
         } catch (error) {
             const err = error instanceof Error ? error : new Error(String(error));
             logger.error('Payment processing error', { error: err.message });
             return NextResponse.json(
                 { error: 'Internal server error processing payment' },
-                { status: 500 }
+                { status: 500 },
             );
         }
     },
     {
         schema: processPaymentSchema,
         csrf: true,
-        appCheck: true
-    }
+        appCheck: true,
+        requireAuth: true,
+    },
 );
+

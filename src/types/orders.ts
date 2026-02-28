@@ -18,6 +18,16 @@ export type OrderStatus = 'pending' | 'submitted' | 'confirmed' | 'preparing' | 
 export type PaymentMethod = 'dispensary_direct' | 'cannpay' | 'credit_card' | 'aeropay' | 'usdc';
 export type PaymentStatus = 'pending_pickup' | 'pending' | 'paid' | 'failed' | 'voided' | 'refunded';
 
+// Billing address for card payments
+export type BillingAddress = {
+    street: string;
+    street2?: string;
+    city: string;
+    state: string;
+    zip: string;
+    country: string;
+};
+
 // Shipping address for e-commerce orders
 export type ShippingAddress = {
     street: string;
@@ -108,6 +118,7 @@ export type OrderDoc = {
     };
 
     // Shipping fields for e-commerce orders
+    billingAddress?: BillingAddress;
     purchaseModel?: PurchaseModel;
     shippingAddress?: ShippingAddress;
     fulfillmentStatus?: FulfillmentStatus;

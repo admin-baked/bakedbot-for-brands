@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { ShoppingCart, Search, Store, Truck, X } from 'lucide-react';
 import { useStore } from '@/hooks/use-store';
+import { useToast } from '@/hooks/use-toast';
 import type { Product, Retailer, Brand } from '@/types/domain';
 
 // Components
@@ -31,6 +32,7 @@ import { ProductDetailModal } from '@/components/demo/product-detail-modal';
 import { DispensaryLocatorFlow } from '@/components/demo/dispensary-locator-flow';
 import { BrandCheckoutFlow } from '@/components/demo/brand-checkout-flow';
 import { ShippingCheckoutFlow } from '@/components/checkout/shipping-checkout-flow';
+import { isShippingCheckoutEnabled } from '@/lib/feature-flags';
 
 // PostMessage event types
 type PostMessageEvent =
@@ -70,6 +72,7 @@ export function EmbedMenuClient({ brand, products, retailers, config }: EmbedMen
     // Cart state
     const [cartOpen, setCartOpen] = useState(false);
     const { addToCart, cartItems, clearCart, removeFromCart, updateQuantity } = useStore();
+    const { toast } = useToast();
 
     // Dispensary state (for THC brands with local pickup)
     const [selectedDispensary, setSelectedDispensary] = useState<{
@@ -88,6 +91,8 @@ export function EmbedMenuClient({ brand, products, retailers, config }: EmbedMen
     // Purchase model
     const purchaseModel = brand.purchaseModel || 'local_pickup';
     const isOnlineOnly = purchaseModel === 'online_only';
+    const shippingCheckoutEnabled = isShippingCheckoutEnabled();
+    const canUseShippingCheckout = isOnlineOnly && shippingCheckoutEnabled;
     const isDispensary = brand.menuDesign === 'dispensary' || brand.type === 'dispensary';
 
     // PostMessage bridge - send events to parent
@@ -266,9 +271,16 @@ export function EmbedMenuClient({ brand, products, retailers, config }: EmbedMen
             // Dispensary: Smokey Pay, POS, or Pay In-Store
             // For now, show cart slide-over - checkout handled there
             setCartOpen(true);
-        } else if (isOnlineOnly) {
+        } else if (canUseShippingCheckout) {
             // Online-only brand: Authorize.net / SquareCBD
             setView('shipping-checkout');
+        } else if (isOnlineOnly) {
+            toast({
+                variant: 'destructive',
+                title: 'Checkout Unavailable',
+                description: 'Shipping checkout is currently disabled.',
+            });
+            setCartOpen(true);
         } else {
             // THC brand with local pickup: Show dispensary locator
             setView('locator');
@@ -284,7 +296,7 @@ export function EmbedMenuClient({ brand, products, retailers, config }: EmbedMen
     // ============================================
     // SHIPPING CHECKOUT VIEW (Online-only brands)
     // ============================================
-    if (view === 'shipping-checkout' && isOnlineOnly && cartItems.length > 0) {
+    if (view === 'shipping-checkout' && canUseShippingCheckout && cartItems.length > 0) {
         return (
             <div className="min-h-screen bg-background p-4">
                 <div className="max-w-2xl mx-auto">

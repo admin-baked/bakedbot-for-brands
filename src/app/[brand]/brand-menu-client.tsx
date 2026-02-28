@@ -32,6 +32,7 @@ import { Badge } from '@/components/ui/badge';
 import { ShoppingCart, Search, Store, Truck, Cookie, Shirt, Leaf, Wind, Sparkles, Droplet, Heart, Package, X, SlidersHorizontal } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useStore } from '@/hooks/use-store';
+import { useToast } from '@/hooks/use-toast';
 import type { Product, Retailer, Brand } from '@/types/domain';
 import type { BundleDeal } from '@/types/bundles';
 import type { HeroSlide } from '@/types/hero-slides';
@@ -54,6 +55,7 @@ import { BundleDealsSection } from '@/components/demo/bundle-deals-section';
 import { CartSlideOver } from '@/components/demo/cart-slide-over';
 import { CheckoutFlow } from '@/components/checkout/checkout-flow';
 import { ShippingCheckoutFlow } from '@/components/checkout/shipping-checkout-flow';
+import { isShippingCheckoutEnabled } from '@/lib/feature-flags';
 import Chatbot from '@/components/chatbot';
 
 // Dispensary Menu Components
@@ -159,6 +161,7 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
   // Cart state
   const [cartOpen, setCartOpen] = useState(false);
   const { addToCart, cartItems, clearCart, removeFromCart, updateQuantity, setSelectedRetailerId } = useStore();
+  const { toast } = useToast();
 
   // Dispensary state
   const [selectedDispensary, setSelectedDispensary] = useState<{
@@ -186,6 +189,8 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
   // Extract purchase model settings
   const purchaseModel = brand.purchaseModel || 'local_pickup';
   const isOnlineOnly = purchaseModel === 'online_only';
+  const shippingCheckoutEnabled = isShippingCheckoutEnabled();
+  const canUseShippingCheckout = isOnlineOnly && shippingCheckoutEnabled;
   const shipsNationwide = brand.shipsNationwide || false;
 
   // Determine menu design mode
@@ -488,7 +493,7 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
   };
 
   // Shipping Checkout view (for online_only brands)
-  if (brandView === 'shipping-checkout' && isOnlineOnly && cartItems.length > 0) {
+  if (brandView === 'shipping-checkout' && canUseShippingCheckout && cartItems.length > 0) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <BrandMenuHeader
@@ -501,7 +506,7 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
           cartItemCount={cartItems.length}
           purchaseModel={purchaseModel}
           shipsNationwide={shipsNationwide}
-          onCartClick={() => setBrandView('shipping-checkout')}
+          onCartClick={() => canUseShippingCheckout && setBrandView('shipping-checkout')}
         />
 
         <main className="flex-1 container mx-auto px-4 py-8 max-w-4xl">
@@ -997,9 +1002,16 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
         onSearch={handleSearch}
         onCartClick={() => {
           if (cartItems.length > 0) {
-            if (isOnlineOnly) {
+            if (canUseShippingCheckout) {
               // For online_only, go directly to shipping checkout
               setBrandView('shipping-checkout');
+            } else if (isOnlineOnly) {
+              toast({
+                variant: 'destructive',
+                title: 'Checkout Unavailable',
+                description: 'Shipping checkout is currently disabled.',
+              });
+              setCartOpen(true);
             } else if (selectedDispensary) {
               setBrandView('checkout');
             } else {
@@ -1295,15 +1307,21 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
                     ? `Your ${brand.name} products will be shipped directly to your door. Free shipping on all orders!`
                     : `Complete your order and we'll ship your ${brand.name} products directly to you.`}
                 </p>
-                <Button
-                  size="lg"
-                  className="font-bold gap-2"
-                  style={{ backgroundColor: primaryColor }}
-                  onClick={() => setBrandView('shipping-checkout')}
-                >
-                  <Truck className="h-5 w-5" />
-                  Proceed to Checkout
-                </Button>
+                {canUseShippingCheckout ? (
+                  <Button
+                    size="lg"
+                    className="font-bold gap-2"
+                    style={{ backgroundColor: primaryColor }}
+                    onClick={() => setBrandView('shipping-checkout')}
+                  >
+                    <Truck className="h-5 w-5" />
+                    Proceed to Checkout
+                  </Button>
+                ) : (
+                  <div className="inline-flex items-center rounded-md border px-4 py-2 text-sm text-muted-foreground bg-background">
+                    Shipping checkout is currently disabled.
+                  </div>
+                )}
               </div>
             </section>
           )
@@ -1357,8 +1375,14 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
         onClearCart={clearCart}
         onCheckout={() => {
           setCartOpen(false);
-          if (isOnlineOnly) {
+          if (canUseShippingCheckout) {
             setBrandView('shipping-checkout');
+          } else if (isOnlineOnly) {
+            toast({
+              variant: 'destructive',
+              title: 'Checkout Unavailable',
+              description: 'Shipping checkout is currently disabled.',
+            });
           } else {
             setBrandView('locator');
           }

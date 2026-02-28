@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,6 +23,7 @@ import Link from 'next/link';
 
 export function UnifiedLoginForm() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { auth } = useFirebase();
     const { toast } = useToast();
 
@@ -55,6 +56,14 @@ export function UnifiedLoginForm() {
         return String(error?.message || 'Authentication failed.')
             .replace('Firebase:', '')
             .trim();
+    };
+
+    const getSafeNextPath = (): string | null => {
+        const next = searchParams?.get('next');
+        if (!next || typeof next !== 'string') return null;
+        if (!next.startsWith('/')) return null;
+        if (next.startsWith('//')) return null;
+        return next;
     };
 
     const handleAuthSuccess = async (userCredential: UserCredential) => {
@@ -103,8 +112,14 @@ export function UnifiedLoginForm() {
 
             const role = idTokenResult.claims.role as string | undefined;
             const isNewUser = getAdditionalUserInfo(userCredential)?.isNewUser;
+            const safeNextPath = getSafeNextPath();
 
             logger.info('Unified Login Routing', { role, isNewUser, uid: userCredential.user.uid });
+
+            if (safeNextPath) {
+                window.location.href = safeNextPath;
+                return;
+            }
 
             if (!role) {
                 // No role -> Onboarding

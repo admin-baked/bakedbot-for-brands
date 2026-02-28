@@ -15,12 +15,12 @@ import { ArrowLeft, Truck, Store } from 'lucide-react';
 import Link from 'next/link';
 import { useStore } from '@/hooks/use-store';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { isShippingCheckoutEnabled } from '@/lib/feature-flags';
 
 export default function CheckoutPage() {
   const { cartItems, selectedRetailerId, purchaseMode, selectedBrandId } = useStore();
-  const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const shippingCheckoutEnabled = isShippingCheckoutEnabled();
 
   useEffect(() => {
     setMounted(true);
@@ -41,6 +41,7 @@ export default function CheckoutPage() {
   }
 
   const isShippingMode = purchaseMode === 'shipping' && selectedBrandId;
+  const shippingDisabledForMode = isShippingMode && !shippingCheckoutEnabled;
   const backLink = isShippingMode
     ? `/${selectedBrandId}`
     : selectedRetailerId
@@ -60,7 +61,12 @@ export default function CheckoutPage() {
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold tracking-tight">Checkout</h1>
           <p className="text-muted-foreground flex items-center justify-center gap-2">
-            {isShippingMode ? (
+            {shippingDisabledForMode ? (
+              <>
+                <Truck className="h-4 w-4" />
+                Shipping checkout is currently disabled
+              </>
+            ) : isShippingMode ? (
               <>
                 <Truck className="h-4 w-4" />
                 Complete your order for shipping
@@ -74,7 +80,11 @@ export default function CheckoutPage() {
           </p>
         </div>
 
-        {isShippingMode ? (
+        {shippingDisabledForMode ? (
+          <div className="rounded-lg border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
+            This checkout path is unavailable right now. Please return to shopping.
+          </div>
+        ) : isShippingMode ? (
           <ShippingCheckoutFlow brandId={selectedBrandId} />
         ) : (
           <CheckoutFlow />

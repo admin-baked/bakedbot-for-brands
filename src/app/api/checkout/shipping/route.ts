@@ -1,7 +1,7 @@
 // src/app/api/checkout/shipping/route.ts
 /**
  * API Route for Hemp E-Commerce Shipping Orders
- * Replaces server action for better production reliability
+ * Hardened for authenticated, order-bound card charges.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -10,9 +10,10 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { createTransaction } from '@/lib/authorize-net';
 import { sendOrderConfirmationEmail } from '@/lib/email/dispatcher';
 import { logger } from '@/lib/logger';
-import type { ShippingAddress, PurchaseModel } from '@/types/orders';
+import { requireUser } from '@/server/auth/auth';
+import type { BillingAddress, ShippingAddress, PurchaseModel } from '@/types/orders';
+import { isShippingCheckoutEnabled } from '@/lib/feature-flags';
 
-// States where hemp shipping is restricted
 const RESTRICTED_STATES = ['ID', 'MS', 'SD', 'NE', 'KS'];
 
 type ShippingOrderRequest = {
@@ -41,8 +42,50 @@ function asDate(value: any): Date | null {
     return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
+function normalizeAddress(address: any): BillingAddress | null {
+    if (!address || typeof address !== 'object') return null;
+
+    const street = typeof address.street === 'string' ? address.street.trim() : '';
+    const street2 = typeof address.street2 === 'string' ? address.street2.trim() : undefined;
+    const city = typeof address.city === 'string' ? address.city.trim() : '';
+    const state = typeof address.state === 'string' ? address.state.trim().toUpperCase() : '';
+    const zip = typeof address.zip === 'string' ? address.zip.trim() : '';
+    const countryRaw = typeof address.country === 'string' ? address.country.trim().toUpperCase() : 'US';
+    const country = countryRaw || 'US';
+
+    if (!street || !city || !state || !zip) return null;
+    if (state.length !== 2) return null;
+    if (!/^\d{5}(-\d{4})?$/.test(zip)) return null;
+
+    return {
+        street,
+        ...(street2 ? { street2 } : {}),
+        city,
+        state,
+        zip,
+        country,
+    };
+}
+
 export async function POST(req: NextRequest) {
     try {
+        if (!isShippingCheckoutEnabled()) {
+            return NextResponse.json({
+                success: false,
+                error: 'Shipping checkout is currently disabled.',
+            }, { status: 503 });
+        }
+
+        let session;
+        try {
+            session = await requireUser();
+        } catch {
+            return NextResponse.json({
+                success: false,
+                error: 'Authentication required for checkout.',
+            }, { status: 401 });
+        }
+
         const body: ShippingOrderRequest = await req.json();
         const { items, customer, shippingAddress, brandId, paymentData, couponCode, total } = body;
 
@@ -60,18 +103,34 @@ export async function POST(req: NextRequest) {
             }, { status: 400 });
         }
 
-        const rawSubtotal = Number(items.reduce(
-            (sum, item) => sum + ((item.price || 0) * (item.quantity || 1)),
-            0
-        ).toFixed(2));
-
-        // 1. Validate shipping state
-        if (RESTRICTED_STATES.includes(shippingAddress.state)) {
+        const normalizedShipping = normalizeAddress(shippingAddress);
+        if (!normalizedShipping) {
             return NextResponse.json({
                 success: false,
-                error: `Sorry, we cannot ship to ${shippingAddress.state} due to state regulations.`
+                error: 'A valid shipping address is required.',
             }, { status: 400 });
         }
+
+        if (RESTRICTED_STATES.includes(normalizedShipping.state)) {
+            return NextResponse.json({
+                success: false,
+                error: `Sorry, we cannot ship to ${normalizedShipping.state} due to state regulations.`,
+            }, { status: 400 });
+        }
+
+        const sessionEmail = typeof session.email === 'string' ? session.email.toLowerCase() : '';
+        const requestEmail = customer.email.trim().toLowerCase();
+        if (sessionEmail && requestEmail !== sessionEmail) {
+            return NextResponse.json({
+                success: false,
+                error: 'Customer email must match authenticated account.',
+            }, { status: 403 });
+        }
+
+        const rawSubtotal = Number(items.reduce(
+            (sum, item) => sum + ((item.price || 0) * (item.quantity || 1)),
+            0,
+        ).toFixed(2));
 
         const { firestore } = await createServerClient();
 
@@ -152,66 +211,16 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        let transactionId = null;
-        let paymentStatus = 'pending';
-
-        // 2. Process Payment via Authorize.net
-        if (paymentData) {
-            logger.info('[ShippingOrderAPI] Processing Authorize.net payment', {
-                brandId,
-                total: calculatedTotal,
-                customerEmail: customer.email
-            });
-
-            const nameParts = customer.name.split(' ');
-            const firstName = nameParts[0];
-            const lastName = nameParts.slice(1).join(' ') || firstName;
-
-            const paymentResult = await createTransaction({
-                amount: calculatedTotal,
-                opaqueData: paymentData.opaqueData,
-                cardNumber: paymentData.cardNumber,
-                expirationDate: paymentData.expirationDate,
-                cvv: paymentData.cvv,
-                customer: {
-                    email: customer.email,
-                    firstName,
-                    lastName,
-                    address: shippingAddress.street,
-                    city: shippingAddress.city,
-                    state: shippingAddress.state,
-                    zip: shippingAddress.zip,
-                },
-                description: `Hemp order for ${customer.email}`
-            });
-
-            if (!paymentResult.success) {
-                logger.warn('[ShippingOrderAPI] Payment failed', {
-                    message: paymentResult.message,
-                    errors: paymentResult.errors,
-                    responseCode: paymentResult.responseCode,
-                    brandId,
-                    total: calculatedTotal
-                });
-                return NextResponse.json({
-                    success: false,
-                    error: paymentResult.message || 'Payment declined. Please check your card details.',
-                    details: paymentResult.errors
-                }, { status: 400 });
-            }
-
-            transactionId = paymentResult.transactionId;
-            paymentStatus = 'paid';
-            logger.info('[ShippingOrderAPI] Payment successful', { transactionId, brandId });
-        } else {
+        if (!paymentData) {
             return NextResponse.json({
                 success: false,
-                error: 'Payment information is required for shipping orders.'
+                error: 'Payment information is required for shipping orders.',
             }, { status: 400 });
         }
 
-        // 3. Create Order in Firestore
-        const order = {
+        const normalizedCustomerEmail = sessionEmail || requestEmail;
+        const orderDraft = {
+            userId: session.uid,
             items: items.map(item => ({
                 productId: item.id,
                 name: item.name,
@@ -221,42 +230,95 @@ export async function POST(req: NextRequest) {
             })),
             customer: {
                 name: customer.name,
-                email: customer.email,
+                email: normalizedCustomerEmail,
                 phone: customer.phone,
             },
             brandId,
-            retailerId: brandId, // For shipping orders, brand is the "retailer"
+            retailerId: brandId,
             totals: {
                 subtotal: calculatedSubtotal,
                 tax: calculatedTax,
                 discount,
-                shipping: 0, // Free shipping
+                shipping: 0,
                 total: calculatedTotal,
             },
             coupon: appliedCoupon ? {
                 code: appliedCoupon.code,
                 discount: appliedCoupon.discountAmount,
             } : undefined,
-            transactionId,
+            billingAddress: normalizedShipping,
             paymentMethod: 'credit_card',
             paymentProvider: 'authorize_net',
-            paymentStatus,
+            paymentStatus: 'pending',
             status: 'submitted',
             mode: 'live' as const,
-
-            // Shipping-specific fields
             purchaseModel: 'online_only' as PurchaseModel,
-            shippingAddress,
+            shippingAddress: normalizedShipping,
             fulfillmentStatus: 'pending' as const,
-
             createdAt: FieldValue.serverTimestamp(),
             updatedAt: FieldValue.serverTimestamp(),
         };
 
-        const docRef = await firestore.collection('orders').add(order);
-        const orderId = docRef.id;
+        const orderRef = await firestore.collection('orders').add(orderDraft);
+        const orderId = orderRef.id;
 
-        logger.info('[ShippingOrderAPI] Order created', { orderId, brandId });
+        logger.info('[ShippingOrderAPI] Processing Authorize.net payment', {
+            orderId,
+            brandId,
+            total: calculatedTotal,
+            customerEmail: normalizedCustomerEmail,
+        });
+
+        const nameParts = customer.name.split(' ');
+        const firstName = nameParts[0];
+        const lastName = nameParts.slice(1).join(' ') || firstName;
+
+        const paymentResult = await createTransaction({
+            amount: calculatedTotal,
+            orderId,
+            opaqueData: paymentData.opaqueData,
+            cardNumber: paymentData.cardNumber,
+            expirationDate: paymentData.expirationDate,
+            cvv: paymentData.cvv,
+            customer: {
+                email: normalizedCustomerEmail,
+                firstName,
+                lastName,
+                address: normalizedShipping.street,
+                city: normalizedShipping.city,
+                state: normalizedShipping.state,
+                zip: normalizedShipping.zip,
+            },
+            description: `Hemp order for ${normalizedCustomerEmail}`,
+        });
+
+        if (!paymentResult.success) {
+            await orderRef.update({
+                paymentStatus: 'failed',
+                updatedAt: FieldValue.serverTimestamp(),
+            });
+
+            logger.warn('[ShippingOrderAPI] Payment failed', {
+                orderId,
+                message: paymentResult.message,
+                errors: paymentResult.errors,
+                responseCode: paymentResult.responseCode,
+                brandId,
+                total: calculatedTotal,
+            });
+            return NextResponse.json({
+                success: false,
+                error: paymentResult.message || 'Payment declined. Please check your card details.',
+                details: paymentResult.errors,
+                orderId,
+            }, { status: 400 });
+        }
+
+        await orderRef.update({
+            transactionId: paymentResult.transactionId || null,
+            paymentStatus: 'paid',
+            updatedAt: FieldValue.serverTimestamp(),
+        });
 
         if (appliedCoupon) {
             try {
@@ -273,8 +335,19 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        // 4. Send Confirmation Email
-        const shippingAddressStr = `${shippingAddress.street}${shippingAddress.street2 ? ', ' + shippingAddress.street2 : ''}, ${shippingAddress.city}, ${shippingAddress.state} ${shippingAddress.zip}`;
+        await firestore.collection('users').doc(session.uid).set({
+            billingAddress: normalizedShipping,
+            billingAddressUpdatedAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        }, { merge: true });
+
+        logger.info('[ShippingOrderAPI] Payment successful and order updated', {
+            orderId,
+            transactionId: paymentResult.transactionId,
+            brandId,
+        });
+
+        const shippingAddressStr = `${normalizedShipping.street}${normalizedShipping.street2 ? ', ' + normalizedShipping.street2 : ''}, ${normalizedShipping.city}, ${normalizedShipping.state} ${normalizedShipping.zip}`;
         let brandName = 'Ecstatic Edibles';
         try {
             const brandDoc = await firestore.collection('brands').doc(brandId).get();
@@ -291,28 +364,27 @@ export async function POST(req: NextRequest) {
         sendOrderConfirmationEmail({
             orderId,
             customerName: customer.name,
-            customerEmail: customer.email,
+            customerEmail: normalizedCustomerEmail,
             total: calculatedTotal,
             items: items.map(i => ({
                 name: i.name,
                 qty: i.quantity || 1,
-                price: i.price
+                price: i.price,
             })),
             retailerName: brandName,
             pickupAddress: `Shipping to: ${shippingAddressStr}`,
         }).catch(err => logger.error('[ShippingOrderAPI] Email send failed', { error: err.message }));
 
         return NextResponse.json({ success: true, orderId });
-
     } catch (error: any) {
         logger.error('[ShippingOrderAPI] Failed to create order', {
             error: error.message,
-            stack: error.stack
+            stack: error.stack,
         });
 
         return NextResponse.json({
             success: false,
-            error: 'Failed to create order. Please try again.'
+            error: 'Failed to create order. Please try again.',
         }, { status: 500 });
     }
 }
