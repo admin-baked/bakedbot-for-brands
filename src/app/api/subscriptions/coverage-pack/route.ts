@@ -53,6 +53,13 @@ export async function POST(request: NextRequest) {
                 { status: 401 }
             );
         }
+
+        if ((session as any).email_verified === false || (session as any).emailVerified === false) {
+            return NextResponse.json(
+                { success: false, error: 'Email verification is required before starting a paid subscription.' },
+                { status: 403 }
+            );
+        }
         const body = subscribeSchema.parse(await request.json());
         const {
             packId,

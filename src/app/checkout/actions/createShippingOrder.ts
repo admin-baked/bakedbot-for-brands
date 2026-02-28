@@ -91,6 +91,10 @@ export async function createShippingOrder(input: CreateShippingOrderInput) {
             return { success: false, error: 'You must be signed in to complete checkout.' };
         }
 
+        if ((session as any).email_verified === false || (session as any).emailVerified === false) {
+            return { success: false, error: 'Please verify your email before placing a shipping order.' };
+        }
+
         if (!Array.isArray(input.items) || input.items.length === 0 || !input.brandId) {
             return { success: false, error: 'Missing required checkout fields.' };
         }

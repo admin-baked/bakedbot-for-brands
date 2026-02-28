@@ -143,4 +143,31 @@ describe('POST /api/billing/authorize-net checkout gate', () => {
         expect(body.error).toContain('must match');
         expect(mockEmitEvent).not.toHaveBeenCalled();
     });
+
+    it('rejects paid subscription checkout when email is unverified', async () => {
+        process.env.NEXT_PUBLIC_ENABLE_COMPANY_PLAN_CHECKOUT = 'true';
+        mockRequireUser.mockResolvedValue({
+            uid: 'user-1',
+            email: 'owner@example.com',
+            email_verified: false,
+        });
+
+        const request = {
+            json: async () => ({
+                organizationId: 'org_1',
+                planId: 'claim_pro',
+                locationCount: 1,
+                customer: {
+                    email: 'owner@example.com',
+                },
+            }),
+        } as any;
+
+        const response = await POST(request);
+        const body = await response.json();
+
+        expect(response.status).toBe(403);
+        expect(body.error).toContain('Email verification is required');
+        expect(mockEmitEvent).not.toHaveBeenCalled();
+    });
 });
