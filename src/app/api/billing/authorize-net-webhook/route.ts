@@ -43,6 +43,14 @@ const SUBSCRIPTION_TERMINATED_EVENTS = new Set([
     'net.authorize.subscription.expired',
 ]);
 
+type VoidAttemptResult = {
+    attempted: boolean;
+    succeeded: boolean;
+    message?: string;
+    code?: string | null;
+    providerTransId?: string | null;
+};
+
 function asString(value: unknown): string | null {
     if (typeof value !== 'string') return null;
     const trimmed = value.trim();
@@ -58,6 +66,155 @@ function asNumber(value: unknown): number | null {
     return null;
 }
 
+function extractTransactionId(webhookPayload: Record<string, unknown> | undefined): string | null {
+    if (!webhookPayload) return null;
+
+    const payment = webhookPayload.payment as Record<string, unknown> | undefined;
+    const transaction = webhookPayload.transaction as Record<string, unknown> | undefined;
+
+    return (
+        asString(webhookPayload.id) ||
+        asString(transaction?.id) ||
+        asString(payment?.id)
+    );
+}
+
+function extractAmount(webhookPayload: Record<string, unknown> | undefined): number | null {
+    if (!webhookPayload) return null;
+    const payment = webhookPayload.payment as Record<string, unknown> | undefined;
+    return (
+        asNumber(webhookPayload.authAmount) ??
+        asNumber(webhookPayload.amount) ??
+        asNumber(payment?.amount)
+    );
+}
+
+function isAuthorizationOnlyEvent(eventType: string): boolean {
+    const normalized = eventType.toLowerCase();
+    return (
+        normalized.includes('net.authorize.payment.authorization.') ||
+        normalized.includes('authonly')
+    );
+}
+
+function getAuthNetEndpoint(): string {
+    const env = (process.env.AUTHNET_ENV || '').toLowerCase();
+    const isProduction = env === 'production' || (process.env.NODE_ENV || '').toLowerCase() === 'production';
+    return isProduction
+        ? 'https://api2.authorize.net/xml/v1/request.api'
+        : 'https://apitest.authorize.net/xml/v1/request.api';
+}
+
+function getAuthNetCredentials(): { apiLoginId: string; transactionKey: string } | null {
+    const apiLoginId =
+        process.env.AUTHNET_API_LOGIN_ID ||
+        process.env.AUTHORIZE_NET_LOGIN_ID ||
+        process.env.AUTHORIZENET_API_LOGIN_ID ||
+        process.env.AUTHORIZENET_LOGIN_ID ||
+        '';
+    const transactionKey =
+        process.env.AUTHNET_TRANSACTION_KEY ||
+        process.env.AUTHORIZE_NET_TRANSACTION_KEY ||
+        process.env.AUTHORIZENET_TRANSACTION_KEY ||
+        '';
+
+    if (!apiLoginId || !transactionKey) {
+        return null;
+    }
+
+    return { apiLoginId, transactionKey };
+}
+
+async function attemptVoidAuthorization(
+    transactionId: string,
+    eventType: string,
+): Promise<VoidAttemptResult> {
+    if (!isAuthorizationOnlyEvent(eventType)) {
+        return { attempted: false, succeeded: false, message: 'event_not_authorization_only' };
+    }
+
+    const credentials = getAuthNetCredentials();
+    if (!credentials) {
+        logger.warn('[BILLING:WEBHOOK] Missing credentials for suspicious authorization void attempt', {
+            transactionId,
+            eventType,
+        });
+        return { attempted: false, succeeded: false, message: 'credentials_missing' };
+    }
+
+    const requestPayload = {
+        createTransactionRequest: {
+            merchantAuthentication: {
+                name: credentials.apiLoginId,
+                transactionKey: credentials.transactionKey,
+            },
+            refId: `billing_void_${Date.now()}`,
+            transactionRequest: {
+                transactionType: 'voidTransaction',
+                refTransId: transactionId,
+            },
+        },
+    };
+
+    try {
+        const response = await fetch(getAuthNetEndpoint(), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestPayload),
+        });
+
+        if (!response.ok) {
+            return {
+                attempted: true,
+                succeeded: false,
+                message: `http_${response.status}`,
+            };
+        }
+
+        const data = await response.json().catch(() => null);
+        const resultCode = data?.messages?.resultCode;
+        const transactionResponse = data?.transactionResponse || {};
+        const errorText =
+            transactionResponse?.errors?.[0]?.errorText ||
+            data?.messages?.message?.[0]?.text ||
+            null;
+        const errorCode =
+            transactionResponse?.errors?.[0]?.errorCode ||
+            data?.messages?.message?.[0]?.code ||
+            null;
+        const providerTransId = transactionResponse?.transId || null;
+
+        if (resultCode === 'Ok') {
+            return {
+                attempted: true,
+                succeeded: true,
+                message: 'void_submitted',
+                code: null,
+                providerTransId,
+            };
+        }
+
+        return {
+            attempted: true,
+            succeeded: false,
+            message: errorText || 'void_failed',
+            code: errorCode,
+            providerTransId,
+        };
+    } catch (error) {
+        logger.error('[BILLING:WEBHOOK] Failed to void suspicious authorization', {
+            transactionId,
+            eventType,
+            error: error instanceof Error ? error.message : String(error),
+        });
+        return {
+            attempted: true,
+            succeeded: false,
+            message: error instanceof Error ? error.message : 'void_request_failed',
+        };
+    }
+}
+
 function extractProfile(payload: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
     const profile = payload?.profile;
     return profile && typeof profile === 'object' ? (profile as Record<string, unknown>) : undefined;
@@ -71,18 +228,8 @@ function buildForensicsRecord(
     reason: 'missing_org_mapping' | 'unhandled_event_type',
 ) {
     const profile = extractProfile(webhookPayload);
-    const payment = webhookPayload?.payment as Record<string, unknown> | undefined;
-    const transaction = webhookPayload?.transaction as Record<string, unknown> | undefined;
-
-    const transactionId =
-        asString(webhookPayload?.id) ||
-        asString(transaction?.id) ||
-        asString(payment?.id);
-
-    const amount =
-        asNumber(webhookPayload?.authAmount) ??
-        asNumber(webhookPayload?.amount) ??
-        asNumber(payment?.amount);
+    const transactionId = extractTransactionId(webhookPayload);
+    const amount = extractAmount(webhookPayload);
 
     return {
         provider: 'authorize_net',
@@ -195,9 +342,23 @@ export async function POST(request: NextRequest) {
             eventType,
             webhookId: payload?.webhookId,
         });
+        const forensicsRecord = buildForensicsRecord(payload, webhookPayload, eventType, null, 'missing_org_mapping');
+        const suspiciousTxnId = typeof forensicsRecord.transactionId === 'string'
+            ? forensicsRecord.transactionId
+            : null;
+        const voidAttempt = suspiciousTxnId
+            ? await attemptVoidAuthorization(suspiciousTxnId, eventType)
+            : { attempted: false, succeeded: false };
         await recordForensics(
             db,
-            buildForensicsRecord(payload, webhookPayload, eventType, null, 'missing_org_mapping'),
+            {
+                ...forensicsRecord,
+                voidAttempted: voidAttempt.attempted,
+                voidSucceeded: voidAttempt.succeeded,
+                voidMessage: voidAttempt.message || null,
+                voidCode: voidAttempt.code || null,
+                voidProviderTransId: voidAttempt.providerTransId || null,
+            },
         );
         // Return 200 to prevent Authorize.net retries for structurally unprocessable events
         return NextResponse.json({ received: true, warning: 'No orgId' });
@@ -268,9 +429,23 @@ export async function POST(request: NextRequest) {
             }
         } else {
             logger.info('[BILLING:WEBHOOK] Unhandled event type (no status change)', { eventType, orgId });
+            const forensicsRecord = buildForensicsRecord(payload, webhookPayload, eventType, orgId, 'unhandled_event_type');
+            const suspiciousTxnId = typeof forensicsRecord.transactionId === 'string'
+                ? forensicsRecord.transactionId
+                : null;
+            const voidAttempt = suspiciousTxnId
+                ? await attemptVoidAuthorization(suspiciousTxnId, eventType)
+                : { attempted: false, succeeded: false };
             await recordForensics(
                 db,
-                buildForensicsRecord(payload, webhookPayload, eventType, orgId, 'unhandled_event_type'),
+                {
+                    ...forensicsRecord,
+                    voidAttempted: voidAttempt.attempted,
+                    voidSucceeded: voidAttempt.succeeded,
+                    voidMessage: voidAttempt.message || null,
+                    voidCode: voidAttempt.code || null,
+                    voidProviderTransId: voidAttempt.providerTransId || null,
+                },
             );
         }
 
