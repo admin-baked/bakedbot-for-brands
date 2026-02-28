@@ -281,6 +281,52 @@ describe('POST /api/webhooks/authnet authorization-only hardening', () => {
     }));
   });
 
+  it('attempts to void unmatched authorization events when responseCode is missing', async () => {
+    setupDb({ withOrder: false });
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        messages: { resultCode: 'Ok', message: [] },
+        transactionResponse: {
+          responseCode: '1',
+          transId: 'txn_voided_missing_rc',
+        },
+      }),
+    });
+    const { POST } = await import('../route');
+
+    const body = JSON.stringify({
+      notificationId: 'notif-auth-only-missing-rc',
+      eventType: 'net.authorize.payment.authorization.created',
+      payload: {
+        id: 'txn_unknown_missing_rc',
+        authAmount: '2.00',
+      },
+    });
+
+    const req = new NextRequest('http://localhost/api/webhooks/authnet', {
+      method: 'POST',
+      body,
+      headers: {
+        'x-anet-signature': 'sha512=fake',
+      },
+    });
+
+    const response = await POST(req);
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.processedOrders).toBe(0);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(mockForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'authorize_net',
+      reason: 'missing_order_mapping',
+      transactionId: 'txn_unknown_missing_rc',
+      voidAttempted: true,
+      voidSucceeded: true,
+    }));
+  });
+
   it('does not mark unknown responseCode=1 events as paid', async () => {
     setupDb({ withOrder: true });
     const { POST } = await import('../route');
