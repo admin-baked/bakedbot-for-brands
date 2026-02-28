@@ -48,6 +48,30 @@ const UpdatePaymentMethodSchema = z.object({
   enabled: z.boolean(),
 });
 
+function isSuperRole(role: unknown): boolean {
+  if (Array.isArray(role)) {
+    return role.includes('super_user') || role.includes('super_admin');
+  }
+  return role === 'super_user' || role === 'super_admin';
+}
+
+function isValidDocId(id: string): boolean {
+  return !!id && !id.includes('/');
+}
+
+function getActorOrgId(user: unknown): string | null {
+  if (!user || typeof user !== 'object') return null;
+  const actor = user as {
+    currentOrgId?: string;
+    orgId?: string;
+    brandId?: string;
+  };
+
+  const candidate = actor.currentOrgId || actor.orgId || actor.brandId || null;
+  if (!candidate || !isValidDocId(candidate)) return null;
+  return candidate;
+}
+
 // ============================================================================
 // Server Actions
 // ============================================================================
@@ -62,15 +86,32 @@ export async function getPaymentConfig(locationId: string): Promise<{
 }> {
   try {
     const user = await requireUser(['super_user', 'dispensary', 'brand']);
+    const normalizedLocationId = locationId.trim();
+    if (!isValidDocId(normalizedLocationId)) {
+      return { success: false, error: 'Invalid location id' };
+    }
+
     const { firestore } = await createServerClient();
 
-    const locationDoc = await firestore.collection('locations').doc(locationId).get();
+    const locationDoc = await firestore.collection('locations').doc(normalizedLocationId).get();
 
     if (!locationDoc.exists) {
       return { success: false, error: 'Location not found' };
     }
 
     const locationData = locationDoc.data();
+    const locationOrgId = typeof locationData?.orgId === 'string' ? locationData.orgId : null;
+    const actorOrgId = getActorOrgId(user);
+    const actorLocationId = typeof user.locationId === 'string' ? user.locationId : null;
+
+    if (
+      !isSuperRole((user as { role?: unknown }).role) &&
+      actorLocationId !== normalizedLocationId &&
+      (!actorOrgId || !locationOrgId || actorOrgId !== locationOrgId)
+    ) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
     const paymentConfig = locationData?.paymentConfig || {
       enabledMethods: ['dispensary_direct'],
     };
@@ -92,9 +133,14 @@ export async function updatePaymentMethod(input: z.infer<typeof UpdatePaymentMet
   try {
     const user = await requireUser(['super_user', 'dispensary']);
     const validated = UpdatePaymentMethodSchema.parse(input);
+    const normalizedLocationId = validated.locationId.trim();
+    if (!isValidDocId(normalizedLocationId)) {
+      return { success: false, error: 'Invalid location id' };
+    }
+
     const { firestore } = await createServerClient();
 
-    const locationRef = firestore.collection('locations').doc(validated.locationId);
+    const locationRef = firestore.collection('locations').doc(normalizedLocationId);
     const locationDoc = await locationRef.get();
 
     if (!locationDoc.exists) {
@@ -102,6 +148,18 @@ export async function updatePaymentMethod(input: z.infer<typeof UpdatePaymentMet
     }
 
     const locationData = locationDoc.data();
+    const locationOrgId = typeof locationData?.orgId === 'string' ? locationData.orgId : null;
+    const actorOrgId = getActorOrgId(user);
+    const actorLocationId = typeof user.locationId === 'string' ? user.locationId : null;
+
+    if (
+      !isSuperRole((user as { role?: unknown }).role) &&
+      actorLocationId !== normalizedLocationId &&
+      (!actorOrgId || !locationOrgId || actorOrgId !== locationOrgId)
+    ) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
     const paymentConfig: PaymentConfig = locationData?.paymentConfig || {
       enabledMethods: ['dispensary_direct'],
     };
@@ -175,7 +233,7 @@ export async function updatePaymentMethod(input: z.infer<typeof UpdatePaymentMet
     });
 
     logger.info('[PAYMENT_CONFIG] Payment method updated', {
-      locationId: validated.locationId,
+      locationId: normalizedLocationId,
       method: validated.method,
       enabled: validated.enabled,
       userId: user.uid,
