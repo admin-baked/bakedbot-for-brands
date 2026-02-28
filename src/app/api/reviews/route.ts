@@ -7,50 +7,60 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/monitoring';
-import { cookies } from 'next/headers';
+import { requireUser } from '@/server/auth/auth';
+import { z } from 'zod';
 import type {
     Review,
     ReviewAggregate,
-    CreateReviewRequest,
     CreateReviewResponse,
-    GetReviewsRequest,
     GetReviewsResponse,
     ModerationResult,
 } from '@/types/reviews';
 import { MODERATION_PATTERNS } from '@/types/reviews';
 
+const DOCUMENT_ID_REGEX = /^[A-Za-z0-9_-]{1,128}$/;
+
+const createReviewSchema = z.object({
+    entityType: z.enum(['dispensary', 'product', 'brand']),
+    entityId: z.string().trim().regex(DOCUMENT_ID_REGEX, 'Invalid entityId'),
+    rating: z.number().int().min(1).max(5),
+    tags: z.array(z.string().trim().min(1).max(50)).max(20).optional(),
+    text: z.string().trim().max(2000).optional(),
+    verificationEventId: z.string().trim().regex(DOCUMENT_ID_REGEX, 'Invalid verificationEventId').optional(),
+}).strict();
+
+const getReviewsQuerySchema = z.object({
+    entityType: z.enum(['dispensary', 'product', 'brand']),
+    entityId: z.string().trim().regex(DOCUMENT_ID_REGEX, 'Invalid entityId'),
+    limit: z.coerce.number().int().min(1).max(100).default(10),
+    offset: z.coerce.number().int().min(0).max(1000).default(0),
+    verifiedOnly: z.enum(['true', 'false']).optional().default('false').transform((value) => value === 'true'),
+});
+
 // ============== POST: Create Review ==============
 
 export async function POST(request: NextRequest) {
     try {
-        const body: CreateReviewRequest = await request.json();
-        const { entityType, entityId, rating, tags, text, verificationEventId } = body;
-
-        // Get user ID from session
-        const cookieStore = await cookies();
-        const userId = cookieStore.get('userId')?.value;
-
-        if (!userId) {
+        let session;
+        try {
+            session = await requireUser();
+        } catch {
             return NextResponse.json(
                 { success: false, error: 'Authentication required' },
                 { status: 401 }
             );
         }
+        const userId = session.uid;
 
-        // Validate required fields
-        if (!entityType || !entityId || !rating) {
-            return NextResponse.json(
-                { success: false, error: 'entityType, entityId, and rating are required' },
-                { status: 400 }
-            );
-        }
-
-        if (rating < 1 || rating > 5) {
-            return NextResponse.json(
-                { success: false, error: 'Rating must be between 1 and 5' },
-                { status: 400 }
-            );
-        }
+        const body = createReviewSchema.parse(await request.json());
+        const {
+            entityType,
+            entityId,
+            rating,
+            tags = [],
+            text,
+            verificationEventId,
+        } = body;
 
         const firestore = getAdminFirestore();
 
@@ -99,7 +109,7 @@ export async function POST(request: NextRequest) {
             verified,
             verificationEvidence,
             rating: rating as 1 | 2 | 3 | 4 | 5,
-            tags: tags || [],
+            tags,
             text,
             moderation: {
                 status: moderationResult.approved ? 'approved' : 'pending',
@@ -135,6 +145,12 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(response);
 
     } catch (error: any) {
+        if (error instanceof z.ZodError) {
+            return NextResponse.json(
+                { success: false, error: error.issues[0]?.message || 'Invalid request payload' },
+                { status: 400 }
+            );
+        }
         logger.error('Create review failed:', error);
         return NextResponse.json(
             { success: false, error: error.message },
@@ -148,18 +164,19 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
-        const entityType = searchParams.get('entityType');
-        const entityId = searchParams.get('entityId');
-        const limit = parseInt(searchParams.get('limit') || '10');
-        const offset = parseInt(searchParams.get('offset') || '0');
-        const verifiedOnly = searchParams.get('verifiedOnly') === 'true';
-
-        if (!entityType || !entityId) {
-            return NextResponse.json(
-                { success: false, error: 'entityType and entityId are required' },
-                { status: 400 }
-            );
-        }
+        const {
+            entityType,
+            entityId,
+            limit,
+            offset,
+            verifiedOnly,
+        } = getReviewsQuerySchema.parse({
+            entityType: searchParams.get('entityType') ?? undefined,
+            entityId: searchParams.get('entityId') ?? undefined,
+            limit: searchParams.get('limit') ?? undefined,
+            offset: searchParams.get('offset') ?? undefined,
+            verifiedOnly: searchParams.get('verifiedOnly') ?? undefined,
+        });
 
         const firestore = getAdminFirestore();
 
@@ -200,6 +217,12 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(response);
 
     } catch (error: any) {
+        if (error instanceof z.ZodError) {
+            return NextResponse.json(
+                { success: false, error: error.issues[0]?.message || 'Invalid query parameters' },
+                { status: 400 }
+            );
+        }
         logger.error('Get reviews failed:', error);
         return NextResponse.json(
             { success: false, error: error.message },
