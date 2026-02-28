@@ -36,6 +36,15 @@ function getActorOrgId(user: unknown): string | null {
     );
 }
 
+function isValidDocumentId(value: unknown): value is string {
+    return (
+        typeof value === 'string' &&
+        value.length >= 3 &&
+        value.length <= 128 &&
+        !/[\/\\?#\[\]]/.test(value)
+    );
+}
+
 // --- ACTIONS ---
 
 /**
@@ -43,32 +52,41 @@ function getActorOrgId(user: unknown): string | null {
  */
 export async function createInvitationAction(input: z.infer<typeof CreateInvitationSchema>) {
     try {
+        const parsed = CreateInvitationSchema.safeParse(input);
+        if (!parsed.success) {
+            return {
+                success: false,
+                message: parsed.error.issues[0]?.message || 'Invalid invitation payload',
+            };
+        }
+
+        const validatedInput = parsed.data;
         const user = await requireUser();
         const firestore = getAdminFirestore();
         const role = (user as { role?: string }).role;
 
         // Security Checks
-        if (input.role === 'super_user' || input.role === 'super_admin' || input.role === 'intern') {
+        if (validatedInput.role === 'super_user' || validatedInput.role === 'super_admin' || validatedInput.role === 'intern') {
             const isSuper = isSuperRole(role) || await isSuperUser();
             if (!isSuper) {
                 throw new Error('Unauthorized: Only Super Users can invite platform-level roles.');
             }
-        } else if (isBrandRole(input.role)) {
+        } else if (isBrandRole(validatedInput.role)) {
             // Must be admin of that brand
-            if (!input.targetOrgId) {
+            if (!validatedInput.targetOrgId) {
                 throw new Error('Target Organization ID is required for this role.');
             }
             // Enforce Access & Permission
-            requireBrandAccess(user as any, input.targetOrgId);
+            requireBrandAccess(user as any, validatedInput.targetOrgId);
             requirePermission(user as any, 'manage:team');
             
-        } else if (isDispensaryRole(input.role)) {
+        } else if (isDispensaryRole(validatedInput.role)) {
             // Must be admin of that dispensary
-            if (!input.targetOrgId) {
+            if (!validatedInput.targetOrgId) {
                 throw new Error('Target Organization ID is required for this role.');
             }
             // Enforce Access & Permission
-            requireDispensaryAccess(user as any, input.targetOrgId);
+            requireDispensaryAccess(user as any, validatedInput.targetOrgId);
             requirePermission(user as any, 'manage:team');
         }
         
@@ -77,9 +95,9 @@ export async function createInvitationAction(input: z.infer<typeof CreateInvitat
         
         const newInvitation: Invitation = {
             id: uuidv4(),
-            email: input.email.toLowerCase(),
-            role: input.role,
-            targetOrgId: input.targetOrgId,
+            email: validatedInput.email.toLowerCase(),
+            role: validatedInput.role,
+            targetOrgId: validatedInput.targetOrgId,
             invitedBy: user.uid,
             status: 'pending',
             token: token,
@@ -91,15 +109,15 @@ export async function createInvitationAction(input: z.infer<typeof CreateInvitat
 
         // Send Invitation Email via Mailjet/SendGrid
         const inviteLink = `https://bakedbot.ai/join/${token}`;
-        const roleName = input.role.replace('_', ' ').toUpperCase();
+        const roleName = validatedInput.role.replace('_', ' ').toUpperCase();
 
         let emailSent = false;
         let emailError: string | null = null;
         try {
             const { sendGenericEmail } = await import('@/lib/email/dispatcher');
             const result = await sendGenericEmail({
-                to: input.email,
-                name: input.email.split('@')[0],
+                to: validatedInput.email,
+                name: validatedInput.email.split('@')[0],
                 subject: `You're invited to join BakedBot as ${roleName}`,
                 htmlBody: `
                     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -125,18 +143,18 @@ export async function createInvitationAction(input: z.infer<typeof CreateInvitat
 
             if (result.success) {
                 emailSent = true;
-                logger.info('[createInvitationAction] Email sent successfully', { email: input.email });
+                logger.info('[createInvitationAction] Email sent successfully', { email: validatedInput.email });
             } else {
                 emailError = result.error || 'Unknown error';
                 logger.warn('[createInvitationAction] Email sending failed', {
-                    email: input.email,
+                    email: validatedInput.email,
                     error: emailError
                 });
             }
         } catch (emailException) {
             emailError = emailException instanceof Error ? emailException.message : String(emailException);
             logger.error('[createInvitationAction] Email exception', {
-                email: input.email,
+                email: validatedInput.email,
                 error: emailError
             });
         }
@@ -220,6 +238,10 @@ export async function getInvitationsAction(orgId?: string) {
  */
 export async function revokeInvitationAction(invitationId: string) {
     try {
+        if (!isValidDocumentId(invitationId)) {
+            return { success: false, message: 'Invalid invitation ID' };
+        }
+
         const user = await requireUser();
         const firestore = getAdminFirestore();
         const userRole: string | null = (user as { role?: string }).role ?? null;
@@ -276,9 +298,14 @@ export async function revokeInvitationAction(invitationId: string) {
  */
 export async function validateInvitationAction(token: string) {
     try {
+        const parsed = AcceptInvitationSchema.safeParse({ token });
+        if (!parsed.success) {
+            return { valid: false, message: 'Invalid token.' };
+        }
+
         const firestore = getAdminFirestore();
         const snapshot = await firestore.collection('invitations')
-            .where('token', '==', token)
+            .where('token', '==', parsed.data.token)
             .limit(1)
             .get();
 
@@ -308,11 +335,16 @@ export async function validateInvitationAction(token: string) {
  */
 export async function acceptInvitationAction(token: string) {
     try {
+        const parsed = AcceptInvitationSchema.safeParse({ token });
+        if (!parsed.success) {
+            return { success: false, message: 'Invalid token.' };
+        }
+
         const user = await requireUser();
         const { auth } = await createServerClient();
         const firestore = getAdminFirestore();
 
-        const validRes = await validateInvitationAction(token);
+        const validRes = await validateInvitationAction(parsed.data.token);
         if (!validRes.valid || !validRes.invitation) {
             throw new Error(validRes.message);
         }
