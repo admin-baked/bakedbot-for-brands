@@ -80,6 +80,33 @@ function mapLeadDoc(doc: FirebaseFirestore.QueryDocumentSnapshot): EmailLead {
     } as EmailLead;
 }
 
+type LeadScope = {
+    brandId?: string;
+    dispensaryId?: string;
+};
+
+function sameLeadScope(existing: LeadScope, incoming: LeadScope): boolean {
+    const existingBrand = existing.brandId || '';
+    const existingDispensary = existing.dispensaryId || '';
+    const incomingBrand = incoming.brandId || '';
+    const incomingDispensary = incoming.dispensaryId || '';
+
+    if (incomingBrand || existingBrand) {
+        return incomingBrand !== '' && existingBrand !== '' && incomingBrand === existingBrand;
+    }
+
+    if (incomingDispensary || existingDispensary) {
+        return (
+            incomingDispensary !== '' &&
+            existingDispensary !== '' &&
+            incomingDispensary === existingDispensary
+        );
+    }
+
+    // Unscoped leads (marketing/homepage capture) can dedupe globally.
+    return true;
+}
+
 /**
  * Capture email lead from age gate or other source
  */
@@ -129,26 +156,40 @@ export async function captureEmailLead(request: CaptureEmailLeadRequest): Promis
 
         // Check if lead already exists (by email or phone)
         const db = getAdminFirestore();
-        let existingLead = null;
+        let existingLead: FirebaseFirestore.QueryDocumentSnapshot | null = null;
         if (request.email) {
             const emailQuery = await db.collection('email_leads')
                 .where('email', '==', request.email)
-                .limit(1)
                 .get();
 
             if (!emailQuery.empty) {
-                existingLead = emailQuery.docs[0];
+                existingLead = emailQuery.docs.find((doc) =>
+                    sameLeadScope(
+                        {
+                            brandId: doc.get('brandId'),
+                            dispensaryId: doc.get('dispensaryId'),
+                        },
+                        { brandId: request.brandId, dispensaryId: request.dispensaryId },
+                    ),
+                ) || null;
             }
         }
 
         if (!existingLead && request.phone) {
             const phoneQuery = await db.collection('email_leads')
                 .where('phone', '==', request.phone)
-                .limit(1)
                 .get();
 
             if (!phoneQuery.empty) {
-                existingLead = phoneQuery.docs[0];
+                existingLead = phoneQuery.docs.find((doc) =>
+                    sameLeadScope(
+                        {
+                            brandId: doc.get('brandId'),
+                            dispensaryId: doc.get('dispensaryId'),
+                        },
+                        { brandId: request.brandId, dispensaryId: request.dispensaryId },
+                    ),
+                ) || null;
             }
         }
 

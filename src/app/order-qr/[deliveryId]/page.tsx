@@ -9,7 +9,7 @@
  */
 
 import type { Metadata } from 'next';
-import { getDelivery } from '@/server/actions/delivery';
+import { getPublicDeliveryQr } from '@/server/actions/delivery';
 import { buildQrImageUrl } from '@/lib/delivery-qr';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Package } from 'lucide-react';
@@ -25,7 +25,7 @@ export default async function OrderQrPage({
     params: Promise<{ deliveryId: string }>;
 }) {
     const { deliveryId } = await params;
-    const result = await getDelivery(deliveryId);
+    const result = await getPublicDeliveryQr(deliveryId);
 
     if (!result.success || !result.delivery) {
         return <QrErrorPage message="This QR code link is invalid or has expired." />;
