@@ -12,13 +12,33 @@ import { COVERAGE_PACKS, type CoveragePackTier } from '@/types/subscriptions';
 import { requireUser } from '@/server/auth/auth';
 import { isCompanyPlanCheckoutEnabled } from '@/lib/feature-flags';
 
-const IS_PRODUCTION = process.env.NODE_ENV === 'production';
-const AUTHORIZE_LOGIN_ID = process.env.AUTHORIZE_NET_LOGIN_ID;
-const AUTHORIZE_TRANSACTION_KEY = process.env.AUTHORIZE_NET_TRANSACTION_KEY;
+function getAuthNetEndpoint(): string {
+    const env = (process.env.AUTHNET_ENV || '').toLowerCase();
+    const isProduction = env === 'production' || (process.env.NODE_ENV || '').toLowerCase() === 'production';
+    return isProduction
+        ? 'https://api2.authorize.net/xml/v1/request.api'
+        : 'https://apitest.authorize.net/xml/v1/request.api';
+}
 
-const API_ENDPOINT = IS_PRODUCTION
-    ? 'https://api2.authorize.net/xml/v1/request.api'
-    : 'https://apitest.authorize.net/xml/v1/request.api';
+function getAuthNetCredentials(): { loginId: string; transactionKey: string } | null {
+    const loginId =
+        process.env.AUTHORIZE_NET_LOGIN_ID ||
+        process.env.AUTHNET_API_LOGIN_ID ||
+        process.env.AUTHORIZENET_LOGIN_ID ||
+        process.env.AUTHORIZENET_API_LOGIN_ID ||
+        '';
+    const transactionKey =
+        process.env.AUTHORIZE_NET_TRANSACTION_KEY ||
+        process.env.AUTHNET_TRANSACTION_KEY ||
+        process.env.AUTHORIZENET_TRANSACTION_KEY ||
+        '';
+
+    if (!loginId || !transactionKey) {
+        return null;
+    }
+
+    return { loginId, transactionKey };
+}
 
 const subscribeSchema = z.object({
     packId: z.custom<CoveragePackTier>((value) => {
@@ -90,14 +110,16 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        const authnetCredentials = getAuthNetCredentials();
         // Check Authorize.net credentials
-        if (!AUTHORIZE_LOGIN_ID || !AUTHORIZE_TRANSACTION_KEY) {
+        if (!authnetCredentials) {
             logger.error('Authorize.net credentials missing');
             return NextResponse.json(
                 { success: false, error: 'Payment processing unavailable' },
                 { status: 500 }
             );
         }
+        const apiEndpoint = getAuthNetEndpoint();
 
         const firestore = getAdminFirestore();
 
@@ -125,8 +147,8 @@ export async function POST(request: NextRequest) {
         const profileRequest = {
             createCustomerProfileRequest: {
                 merchantAuthentication: {
-                    name: AUTHORIZE_LOGIN_ID,
-                    transactionKey: AUTHORIZE_TRANSACTION_KEY,
+                    name: authnetCredentials.loginId,
+                    transactionKey: authnetCredentials.transactionKey,
                 },
                 profile: {
                     email: contactEmail,
@@ -145,7 +167,7 @@ export async function POST(request: NextRequest) {
             },
         };
 
-        const profileResponse = await fetch(API_ENDPOINT, {
+        const profileResponse = await fetch(apiEndpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(profileRequest),
@@ -182,8 +204,8 @@ export async function POST(request: NextRequest) {
         const subscriptionRequest = {
             ARBCreateSubscriptionRequest: {
                 merchantAuthentication: {
-                    name: AUTHORIZE_LOGIN_ID,
-                    transactionKey: AUTHORIZE_TRANSACTION_KEY,
+                    name: authnetCredentials.loginId,
+                    transactionKey: authnetCredentials.transactionKey,
                 },
                 subscription: {
                     name: `${pack.name} Coverage Pack`,
@@ -204,7 +226,7 @@ export async function POST(request: NextRequest) {
             },
         };
 
-        const subResponse = await fetch(API_ENDPOINT, {
+        const subResponse = await fetch(apiEndpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(subscriptionRequest),
