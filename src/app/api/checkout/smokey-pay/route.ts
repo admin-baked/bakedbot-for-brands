@@ -6,8 +6,39 @@ import { FieldValue } from "firebase-admin/firestore";
 import { emitEvent } from "@/server/events/emitter";
 import { getUserFromRequest } from "@/server/auth/auth-helpers";
 import { authorizePayment, CANNPAY_TRANSACTION_FEE_CENTS } from "@/lib/payments/cannpay";
+import { z } from 'zod';
 
 import { logger } from '@/lib/logger';
+const DOCUMENT_ID_REGEX = /^[A-Za-z0-9_-]{1,128}$/;
+
+const checkoutItemSchema = z.object({
+  productId: z.string().trim().min(1).max(128),
+  cannmenusProductId: z.string().trim().max(128).optional(),
+  name: z.string().trim().min(1).max(200),
+  sku: z.string().trim().max(128).optional(),
+  quantity: z.number().int().min(1).max(100),
+  unitPrice: z.number().finite().min(0).max(10000),
+});
+
+const smokeyPaySchema = z.object({
+  organizationId: z.string().trim().regex(DOCUMENT_ID_REGEX, 'Invalid organizationId'),
+  dispensaryId: z.string().trim().regex(DOCUMENT_ID_REGEX, 'Invalid dispensaryId'),
+  pickupLocationId: z.string().trim().regex(DOCUMENT_ID_REGEX, 'Invalid pickupLocationId'),
+  customer: z.object({
+    email: z.string().trim().email(),
+    name: z.string().trim().min(1).max(120),
+    phone: z.string().trim().min(5).max(40),
+    uid: z.string().trim().regex(DOCUMENT_ID_REGEX).nullable().optional(),
+  }),
+  items: z.array(checkoutItemSchema).min(1).max(100),
+  subtotal: z.number().finite().min(0),
+  tax: z.number().finite().min(0),
+  fees: z.number().finite().min(0),
+  total: z.number().finite().min(0),
+  couponCode: z.string().trim().max(64).optional(),
+  currency: z.string().trim().max(10).optional(),
+});
+
 type CheckoutItem = {
   productId: string;
   cannmenusProductId?: string;
@@ -50,33 +81,27 @@ export async function POST(req: NextRequest) {
   let body: SmokeyPayBody | null = null;
 
   try {
-    body = (await req.json()) as SmokeyPayBody;
+    const user = await getUserFromRequest(req);
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    }
 
-    if (
-      !body.organizationId ||
-      !body.dispensaryId ||
-      !body.pickupLocationId ||
-      !body.customer?.email ||
-      !body.items?.length ||
-      typeof body.total !== 'number' ||
-      !Number.isFinite(body.total) ||
-      body.total < 0
-    ) {
+    body = smokeyPaySchema.parse(await req.json()) as SmokeyPayBody;
+
+    const sessionEmail = typeof user.email === 'string' ? user.email.toLowerCase() : '';
+    const requestEmail = body.customer.email.toLowerCase();
+    if (sessionEmail && requestEmail !== sessionEmail) {
       return NextResponse.json(
-        { error: "Missing required fields for Smokey Pay checkout." },
-        { status: 400 }
+        { error: "Customer email must match your signed-in account." },
+        { status: 403 }
       );
     }
 
-    // Security Check: If UID is provided, verify it matches the authenticated user
-    if (body.customer.uid) {
-      const user = await getUserFromRequest(req);
-      if (!user || user.uid !== body.customer.uid) {
-        return NextResponse.json(
-          { error: "Unauthorized: User ID mismatch or unauthenticated" },
-          { status: 401 }
-        );
-      }
+    if (body.customer.uid && body.customer.uid !== user.uid) {
+      return NextResponse.json(
+        { error: "Unauthorized: User ID mismatch." },
+        { status: 403 }
+      );
     }
 
     const currency = body.currency || "USD";
@@ -151,10 +176,10 @@ export async function POST(req: NextRequest) {
     const orderData = {
       brandId: orgId, // Denormalize brandId for easier queries
       dispensaryId: body.dispensaryId,
-      userId: body.customer.uid || null,
+      userId: user.uid,
       customer: {
         name: body.customer.name,
-        email: body.customer.email,
+        email: sessionEmail || requestEmail,
       },
       items: body.items.map((i) => ({
         productId: i.productId,
@@ -254,6 +279,9 @@ export async function POST(req: NextRequest) {
 
 
   } catch (err: any) {
+    if (err instanceof z.ZodError) {
+      return NextResponse.json({ error: err.issues[0]?.message || 'Invalid request payload' }, { status: 400 });
+    }
     logger.error("smokey-pay:checkout_error", err);
     if (body?.organizationId) {
       await emitEvent({ orgId: body.organizationId, type: 'checkout.failed', agent: 'smokey', data: { error: err?.message || String(err) } });
