@@ -88,6 +88,7 @@ describe('POST /api/webhooks/cannpay amount guard', () => {
       data: () => ({
         totals: { total: 49.99 },
         brandId: 'org_demo',
+        canpay: { intentId: 'intent-123' },
       }),
     });
     mockOrgGet.mockResolvedValue({ exists: false, data: () => null });
@@ -187,6 +188,52 @@ describe('POST /api/webhooks/cannpay amount guard', () => {
     }));
   });
 
+  it('does not transition order when webhook intent_id does not match canonical order intent', async () => {
+    const responsePayload = JSON.stringify({
+      intent_id: 'intent-spoofed',
+      status: 'Success',
+      amount: 4999,
+      merchant_order_id: 'order-1',
+      passthrough_param: JSON.stringify({ orderId: 'order-1', brandId: 'org_demo' }),
+    });
+
+    const signature = crypto
+      .createHmac('sha256', 'test-secret')
+      .update(responsePayload)
+      .digest('hex')
+      .toLowerCase();
+
+    const reqBody = JSON.stringify({
+      response: responsePayload,
+      signature,
+    });
+
+    const request = new NextRequest('http://localhost/api/webhooks/cannpay', {
+      method: 'POST',
+      body: reqBody,
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.received).toBe(true);
+    expect(data.warning).toContain('Intent mismatch');
+
+    expect(mockTopSet).not.toHaveBeenCalled();
+    expect(mockOrgSet).not.toHaveBeenCalled();
+    expect(mockEmitEvent).not.toHaveBeenCalled();
+
+    expect(mockForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'cannpay',
+      source: 'cannpay_webhook',
+      reason: 'intent_mismatch',
+      orderId: 'order-1',
+      intentId: 'intent-spoofed',
+      expectedIntentId: 'intent-123',
+    }));
+  });
+
   it('does not force ready_for_pickup for online-only shipping orders', async () => {
     mockTopGet.mockResolvedValue({
       exists: true,
@@ -240,7 +287,7 @@ describe('POST /api/webhooks/cannpay amount guard', () => {
 
   it('does not transition order when paid event amount is missing', async () => {
     const responsePayload = JSON.stringify({
-      intent_id: 'intent-456',
+      intent_id: 'intent-123',
       status: 'Success',
       merchant_order_id: 'order-1',
       passthrough_param: JSON.stringify({ orderId: 'order-1', brandId: 'org_demo' }),
