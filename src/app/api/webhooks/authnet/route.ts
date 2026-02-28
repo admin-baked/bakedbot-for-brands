@@ -108,6 +108,38 @@ function mapPaymentWebhookOutcome(eventType: string, responseCode: number | null
   return { paymentStatus: 'pending' };
 }
 
+function mapPaymentEventToSubscriptionOutcome(
+  eventType: string,
+  responseCode: number | null,
+): SubscriptionWebhookOutcome {
+  const normalizedType = eventType.toLowerCase();
+
+  if (isAuthorizationOnlyEvent(eventType)) {
+    return {};
+  }
+
+  if (
+    normalizedType.includes('payment.declined') ||
+    normalizedType.includes('payment.fraud.declined') ||
+    normalizedType.includes('payment.void.created') ||
+    responseCode === 2 ||
+    responseCode === 3 ||
+    responseCode === 4
+  ) {
+    return { subscriptionStatus: 'past_due', emittedEvent: 'subscription.failed' };
+  }
+
+  if (
+    normalizedType.includes('payment.authcapture.created') ||
+    normalizedType.includes('payment.capture.created') ||
+    normalizedType.includes('payment.fraud.approved')
+  ) {
+    return { subscriptionStatus: 'active', emittedEvent: 'subscription.updated' };
+  }
+
+  return {};
+}
+
 function isAuthorizationOnlyEvent(eventType: string): boolean {
   const normalizedType = eventType.toLowerCase();
   return (
@@ -290,6 +322,22 @@ function resolveOrderStatus(currentOrderData: Record<string, any>, desiredStatus
 function extractOrgIdFromSubscriptionPath(path: string): string | null {
   const match = path.match(/^organizations\/([^/]+)\/subscription\/[^/]+$/);
   return match?.[1] ?? null;
+}
+
+function extractOrgIdFromPaymentPayload(payload: Record<string, unknown>): string | null {
+  const merchantReferenceId =
+    typeof payload?.merchantReferenceId === 'string' && payload.merchantReferenceId.trim().length > 0
+      ? payload.merchantReferenceId.trim()
+      : null;
+  if (merchantReferenceId) return merchantReferenceId;
+
+  const profile = payload?.profile as Record<string, unknown> | undefined;
+  const merchantCustomerId =
+    typeof profile?.merchantCustomerId === 'string' && profile.merchantCustomerId.trim().length > 0
+      ? profile.merchantCustomerId.trim()
+      : null;
+
+  return merchantCustomerId;
 }
 
 export async function POST(req: NextRequest) {
@@ -582,6 +630,46 @@ export async function POST(req: NextRequest) {
           }
         })
       );
+
+      if (orderDocMap.size === 0) {
+        const orgIdFromPayload = extractOrgIdFromPaymentPayload(payload);
+        const subscriptionOutcome = mapPaymentEventToSubscriptionOutcome(eventType, responseCode);
+
+        if (orgIdFromPayload && subscriptionOutcome.subscriptionStatus) {
+          const orgSubscriptionRef = db
+            .collection('organizations')
+            .doc(orgIdFromPayload)
+            .collection('subscription')
+            .doc('current');
+
+          await orgSubscriptionRef.set(
+            {
+              status: subscriptionOutcome.subscriptionStatus,
+              updatedAt: FieldValue.serverTimestamp(),
+              providerLastEventType: eventType,
+              providerLastEventAt: eventDate || FieldValue.serverTimestamp(),
+            },
+            { merge: true },
+          );
+
+          processedSubscriptions += 1;
+
+          if (subscriptionOutcome.emittedEvent) {
+            await emitEvent({
+              orgId: orgIdFromPayload,
+              type: subscriptionOutcome.emittedEvent,
+              agent: 'money_mike',
+              refId: 'current',
+              data: {
+                status: subscriptionOutcome.subscriptionStatus,
+                eventType,
+                transactionId: entityId,
+                responseCode,
+              },
+            });
+          }
+        }
+      }
     }
 
     if (isSubscriptionWebhookEvent(eventType) && entityId) {

@@ -81,6 +81,9 @@ describe('POST /api/webhooks/authnet subscription event coverage', () => {
     mockAssignTierPlaybooks.mockResolvedValue(undefined);
 
     const subscriptionRefSet = jest.fn().mockResolvedValue(undefined);
+    const orgSubscriptionRefSet = jest.fn().mockResolvedValue(undefined);
+    const paymentForensicsAdd = jest.fn().mockResolvedValue(undefined);
+
     const subscriptionDoc = {
       id: 'current',
       ref: {
@@ -99,6 +102,16 @@ describe('POST /api/webhooks/authnet subscription event coverage', () => {
 
     const db = {
       collectionGroup: jest.fn((name: string) => {
+        if (name === 'orders') {
+          return {
+            where: jest.fn(() => ({
+              limit: jest.fn(() => ({
+                get: jest.fn().mockResolvedValue({ docs: [], empty: true }),
+              })),
+            })),
+          };
+        }
+
         if (name === 'subscription') {
           return {
             where: jest.fn(() => ({
@@ -119,6 +132,43 @@ describe('POST /api/webhooks/authnet subscription event coverage', () => {
         if (name === 'payment_webhooks') {
           return {
             doc: jest.fn(() => webhookLogRef),
+          };
+        }
+
+        if (name === 'orders') {
+          return {
+            where: jest.fn(() => ({
+              limit: jest.fn(() => ({
+                get: jest.fn().mockResolvedValue({ docs: [], empty: true }),
+              })),
+            })),
+          };
+        }
+
+        if (name === 'payment_forensics') {
+          return {
+            add: paymentForensicsAdd,
+          };
+        }
+
+        if (name === 'organizations') {
+          return {
+            doc: jest.fn(() => ({
+              collection: jest.fn((subName: string) => {
+                if (subName === 'subscription') {
+                  return {
+                    doc: jest.fn(() => ({
+                      set: orgSubscriptionRefSet,
+                    })),
+                  };
+                }
+                return {
+                  doc: jest.fn(() => ({
+                    set: jest.fn().mockResolvedValue(undefined),
+                  })),
+                };
+              }),
+            })),
           };
         }
 
@@ -180,6 +230,44 @@ describe('POST /api/webhooks/authnet subscription event coverage', () => {
         providerSubscriptionId: 'sub_abc123',
         status: 'past_due',
         eventType: 'net.authorize.subscription.suspended',
+      }),
+    }));
+  });
+
+  it('maps org-scoped payment.declined events to past_due when no order mapping exists', async () => {
+    const { POST } = await import('../route');
+
+    const body = JSON.stringify({
+      notificationId: 'notif-declined-1',
+      eventType: 'net.authorize.payment.declined',
+      payload: {
+        id: 'txn_declined_1',
+        responseCode: '2',
+        merchantReferenceId: 'org_demo',
+      },
+    });
+
+    const req = new NextRequest('http://localhost/api/webhooks/authnet', {
+      method: 'POST',
+      body,
+      headers: {
+        'x-anet-signature': `sha512=${crypto.createHash('sha256').update(body).digest('hex')}`,
+      },
+    });
+
+    const response = await POST(req);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.processedSubscriptions).toBeGreaterThanOrEqual(1);
+
+    expect(mockEmitEvent).toHaveBeenCalledWith(expect.objectContaining({
+      orgId: 'org_demo',
+      type: 'subscription.failed',
+      data: expect.objectContaining({
+        status: 'past_due',
+        transactionId: 'txn_declined_1',
+        eventType: 'net.authorize.payment.declined',
       }),
     }));
   });
