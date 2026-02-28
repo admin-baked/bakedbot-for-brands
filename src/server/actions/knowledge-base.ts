@@ -55,6 +55,34 @@ function getActorOrgId(user: unknown): string | null {
     );
 }
 
+function isPrivateDiscoveryHost(hostname: string): boolean {
+    const host = hostname.trim().toLowerCase();
+    if (!host) return true;
+    if (host === 'localhost' || host === '::1') return true;
+    if (host.endsWith('.local')) return true;
+    if (/^127\./.test(host)) return true;
+    if (/^10\./.test(host)) return true;
+    if (/^192\.168\./.test(host)) return true;
+    if (/^169\.254\./.test(host)) return true;
+    if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(host)) return true;
+    return false;
+}
+
+function normalizeDiscoveryUrl(urlValue: string): string | null {
+    try {
+        const parsed = new URL(urlValue.trim());
+        if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+            return null;
+        }
+        if (isPrivateDiscoveryHost(parsed.hostname)) {
+            return null;
+        }
+        return parsed.toString();
+    } catch {
+        return null;
+    }
+}
+
 async function assertKnowledgeOwnerAccess(
     user: unknown,
     ownerId: string,
@@ -625,8 +653,17 @@ export async function discoverUrlAction(input: z.infer<typeof DiscoverUrlSchema>
     await requireUser();
 
     try {
+        const parsed = DiscoverUrlSchema.safeParse(input);
+        if (!parsed.success) {
+            return { success: false, message: parsed.error.issues[0]?.message || 'Invalid URL input.' };
+        }
+        const normalizedUrl = normalizeDiscoveryUrl(parsed.data.url);
+        if (!normalizedUrl) {
+            return { success: false, message: 'Only public http(s) URLs are allowed for discovery.' };
+        }
+
         // Fetch URL content
-        const response = await fetch(input.url, {
+        const response = await fetch(normalizedUrl, {
             headers: { 'User-Agent': 'BakedBot-Crawler/1.0' }
         });
 
@@ -651,16 +688,16 @@ export async function discoverUrlAction(input: z.infer<typeof DiscoverUrlSchema>
 
         // Extract title from URL or HTML
         const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-        const title = input.title || titleMatch?.[1]?.trim() || new URL(input.url).hostname;
+        const title = parsed.data.title || titleMatch?.[1]?.trim() || new URL(normalizedUrl).hostname;
 
         // Add as document
         return addDocumentAction({
-            knowledgeBaseId: input.knowledgeBaseId,
+            knowledgeBaseId: parsed.data.knowledgeBaseId,
             type: 'link',
             source: 'discovery',
             title: title,
             content: textContent,
-            sourceUrl: input.url
+            sourceUrl: normalizedUrl
         });
 
     } catch (error: any) {
