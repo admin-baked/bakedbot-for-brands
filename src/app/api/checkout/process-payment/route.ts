@@ -78,6 +78,11 @@ function isPaidLikeStatus(paymentStatus: string | undefined): boolean {
     return paymentStatus === 'paid' || paymentStatus === 'refunded' || paymentStatus === 'voided';
 }
 
+function isClosedOrderStatus(status: string | undefined): boolean {
+    const normalized = String(status || '').toLowerCase();
+    return normalized === 'completed' || normalized === 'canceled' || normalized === 'cancelled';
+}
+
 function getOrderTotal(order: any): number {
     return Number(order?.totals?.total ?? order?.amount ?? 0);
 }
@@ -177,6 +182,12 @@ export const POST = withProtection(
                 if (!isOwner) {
                     return NextResponse.json({ success: false, error: 'Forbidden: order access denied' }, { status: 403 });
                 }
+                if (isClosedOrderStatus(order?.status)) {
+                    return NextResponse.json(
+                        { success: false, error: 'Order is already closed and cannot be modified' },
+                        { status: 409 },
+                    );
+                }
 
                 ownedOrderDoc = orderDoc;
                 ownedOrder = order;
@@ -248,6 +259,13 @@ export const POST = withProtection(
             // Option 1: Dispensary Direct (pay at pickup - no payment processing needed)
             if (paymentMethod === 'dispensary_direct') {
                 if (orderId && ownedOrderDoc) {
+                    if (isPaidLikeStatus(ownedOrder?.paymentStatus)) {
+                        return NextResponse.json(
+                            { success: false, error: 'Order has already been paid or closed' },
+                            { status: 409 },
+                        );
+                    }
+
                     await ownedOrderDoc.ref.update({
                         userId: ownedOrder?.userId || sessionUid,
                         paymentMethod: 'dispensary_direct',
