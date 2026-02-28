@@ -19,7 +19,7 @@ jest.mock('@/server/auth/rbac', () => ({
 
 import { getAdminFirestore } from '@/firebase/admin';
 import { requireUser, isSuperUser } from '@/server/auth/auth';
-import { getInvitationsAction } from '../invitations';
+import { createInvitationAction, getInvitationsAction, revokeInvitationAction } from '../invitations';
 
 describe('invitations security', () => {
   function buildFirestoreWithResult() {
@@ -98,5 +98,24 @@ describe('invitations security', () => {
     expect(firestore.collection).toHaveBeenCalledWith('invitations');
     expect(Array.isArray(result)).toBe(true);
     expect(result).toHaveLength(1);
+  });
+
+  it('rejects malformed invitation payloads before writing', async () => {
+    const result = await createInvitationAction({
+      email: 'not-an-email',
+      role: 'brand',
+      targetOrgId: 'org-a',
+    } as any);
+
+    expect(result.success).toBe(false);
+    expect(getAdminFirestore).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid invitation ids before revoke lookup', async () => {
+    const result = await revokeInvitationAction('bad/id');
+
+    expect(result.success).toBe(false);
+    expect(result.message).toBe('Invalid invitation ID');
+    expect(getAdminFirestore).not.toHaveBeenCalled();
   });
 });

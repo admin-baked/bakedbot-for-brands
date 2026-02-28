@@ -2,6 +2,23 @@
 // Mocks must be defined before imports to ensure they are available
 jest.mock('@/firebase/admin', () => ({ getAdminFirestore: jest.fn() }));
 jest.mock('@/server/auth/auth', () => ({ requireUser: jest.fn(), isSuperUser: jest.fn() }));
+jest.mock('@/firebase/server-client', () => ({
+    createServerClient: jest.fn().mockResolvedValue({
+        auth: { setCustomUserClaims: jest.fn().mockResolvedValue(undefined) },
+    }),
+}));
+jest.mock('@/server/auth/rbac', () => ({
+    requireBrandAccess: jest.fn(),
+    requireDispensaryAccess: jest.fn(),
+    requirePermission: jest.fn(),
+    isBrandRole: jest.fn((role: string) => role === 'brand'),
+    isDispensaryRole: jest.fn((role: string) => role === 'dispensary'),
+    isBrandAdmin: jest.fn(() => false),
+    isDispensaryAdmin: jest.fn(() => false),
+}));
+jest.mock('@/lib/email/dispatcher', () => ({
+    sendGenericEmail: jest.fn().mockResolvedValue({ success: true }),
+}));
 jest.mock('server-only', () => ({}));
 jest.mock('firebase-admin/firestore', () => ({
     FieldValue: {
@@ -89,6 +106,7 @@ describe('Invitation Server Actions', () => {
             const mockInviteData = {
                 id: 'invite-123',
                 role: 'brand',
+                email: 'invitee@example.com',
                 targetOrgId: 'brand-123',
                 status: 'pending',
                 expiresAt: { toDate: () => new Date(Date.now() + 10000) }
@@ -100,7 +118,8 @@ describe('Invitation Server Actions', () => {
             });
 
             (requireUser as jest.Mock).mockResolvedValue({ uid: 'new-user-1' });
-            mockTransaction.get.mockResolvedValue({ exists: true });
+            mockTransaction.get.mockResolvedValue({ exists: true, data: () => ({ name: 'New User' }) });
+            mockDoc.get.mockResolvedValue({ exists: false, data: () => ({}) });
 
             const result = await acceptInvitationAction('valid-token');
 
