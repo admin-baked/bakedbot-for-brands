@@ -564,6 +564,109 @@ describe('POST /api/billing/authorize-net-webhook', () => {
                 orgId: null,
             }));
         });
+
+        it('auto-voids suspicious auth-only events with missing org mapping', async () => {
+            process.env.AUTHNET_API_LOGIN_ID = 'login-id';
+            process.env.AUTHNET_TRANSACTION_KEY = 'txn-key';
+            process.env.AUTHNET_ENV = 'sandbox';
+
+            (global.fetch as jest.Mock).mockResolvedValue({
+                ok: true,
+                json: async () => ({
+                    messages: { resultCode: 'Ok', message: [] },
+                    transactionResponse: { responseCode: '1', transId: 'void_txn_1' },
+                }),
+            });
+
+            const payload = JSON.stringify({
+                webhookId: 'wh_auth_only_no_org',
+                eventType: 'net.authorize.payment.authorization.created',
+                payload: {
+                    id: 'txn_auth_only_1',
+                },
+            });
+            const validSignature = createSignature(payload);
+
+            const request = new NextRequest('http://localhost/api/billing/authorize-net-webhook', {
+                method: 'POST',
+                body: payload,
+                headers: {
+                    'X-Anet-Signature': `sha512=${validSignature}`,
+                },
+            });
+
+            const response = await POST(request);
+            const data = await response.json();
+
+            expect(response.status).toBe(200);
+            expect(data.warning).toBe('No orgId');
+            expect(global.fetch).toHaveBeenCalledTimes(1);
+            expect(global.fetch).toHaveBeenCalledWith(
+                'https://apitest.authorize.net/xml/v1/request.api',
+                expect.objectContaining({ method: 'POST' }),
+            );
+
+            const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
+            const authnetBody = JSON.parse(fetchCall[1].body);
+            expect(authnetBody.createTransactionRequest.transactionRequest.transactionType).toBe('voidTransaction');
+            expect(authnetBody.createTransactionRequest.transactionRequest.refTransId).toBe('txn_auth_only_1');
+
+            expect(mockForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
+                reason: 'missing_org_mapping',
+                eventType: 'net.authorize.payment.authorization.created',
+                transactionId: 'txn_auth_only_1',
+                voidAttempted: true,
+                voidSucceeded: true,
+            }));
+        });
+
+        it('auto-voids auth-only events that are otherwise unhandled', async () => {
+            process.env.AUTHNET_API_LOGIN_ID = 'login-id';
+            process.env.AUTHNET_TRANSACTION_KEY = 'txn-key';
+            process.env.AUTHNET_ENV = 'sandbox';
+
+            (global.fetch as jest.Mock).mockResolvedValue({
+                ok: true,
+                json: async () => ({
+                    messages: { resultCode: 'Ok', message: [] },
+                    transactionResponse: { responseCode: '1', transId: 'void_txn_2' },
+                }),
+            });
+
+            const payload = JSON.stringify({
+                webhookId: 'wh_auth_only_unhandled',
+                eventType: 'net.authorize.payment.authorization.created',
+                payload: {
+                    id: 'txn_auth_only_2',
+                    merchantReferenceId: 'org_auth_only',
+                },
+            });
+            const validSignature = createSignature(payload);
+
+            const request = new NextRequest('http://localhost/api/billing/authorize-net-webhook', {
+                method: 'POST',
+                body: payload,
+                headers: {
+                    'X-Anet-Signature': `sha512=${validSignature}`,
+                },
+            });
+
+            const response = await POST(request);
+            const data = await response.json();
+
+            expect(response.status).toBe(200);
+            expect(data.processed).toBe(false);
+            expect(global.fetch).toHaveBeenCalledTimes(1);
+            expect(mockSubscriptionRef.set).not.toHaveBeenCalled();
+            expect(mockForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
+                reason: 'unhandled_event_type',
+                eventType: 'net.authorize.payment.authorization.created',
+                orgId: 'org_auth_only',
+                transactionId: 'txn_auth_only_2',
+                voidAttempted: true,
+                voidSucceeded: true,
+            }));
+        });
     });
 
     // =========================================================================
