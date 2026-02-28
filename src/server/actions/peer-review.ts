@@ -116,7 +116,7 @@ export async function assignPeerReviewers(
 
             const review: PeerReview = {
                 id: reviewRef.id,
-                submissionId,
+                submissionId: normalizedSubmissionId,
                 reviewerId,
                 authorId: submission.userId,
                 challengeId: submission.challengeId,
@@ -159,7 +159,7 @@ export async function assignPeerReviewers(
         });
 
         logger.info('[Peer Review] Assigned reviewers', {
-            submissionId,
+            submissionId: normalizedSubmissionId,
             reviewers: selectedReviewers,
         });
 
@@ -267,14 +267,14 @@ export async function submitPeerReview(
         await checkAndAwardBadges(user.uid);
 
         logger.info('[Peer Review] Review submitted', {
-            reviewId: validated.reviewId,
+            reviewId: normalizedReviewId,
             reviewerId: user.uid,
             rating: validated.rating,
         });
 
         revalidatePath('/dashboard/training');
 
-        return { success: true, data: { reviewId: validated.reviewId } };
+        return { success: true, data: { reviewId: normalizedReviewId } };
     } catch (error) {
         logger.error('[Peer Review] Failed to submit review', { error });
         return { success: false, error: 'Failed to submit review' };
@@ -480,9 +480,21 @@ async function checkAndAwardBadges(userId: string): Promise<void> {
 export async function skipPeerReview(reviewId: string, reason: string): Promise<ActionResult> {
     try {
         const user = await requireUser(['intern', 'super_user']);
+        const normalizedReviewId = reviewId.trim();
+        if (!isValidDocId(normalizedReviewId)) {
+            return { success: false, error: 'Invalid review id' };
+        }
+        const normalizedReason = reason.trim();
+        if (!normalizedReason) {
+            return { success: false, error: 'Skip reason required' };
+        }
+        if (normalizedReason.length > 500) {
+            return { success: false, error: 'Skip reason too long' };
+        }
+
         const db = getAdminFirestore();
 
-        const reviewDoc = await db.collection('peerReviews').doc(reviewId).get();
+        const reviewDoc = await db.collection('peerReviews').doc(normalizedReviewId).get();
         if (!reviewDoc.exists) {
             return { success: false, error: 'Review not found' };
         }
@@ -497,10 +509,10 @@ export async function skipPeerReview(reviewId: string, reason: string): Promise<
         await reviewDoc.ref.update({
             status: 'skipped',
             updatedAt: Timestamp.now(),
-            skipReason: reason,
+            skipReason: normalizedReason,
         });
 
-        logger.info('[Peer Review] Review skipped', { reviewId, reason });
+        logger.info('[Peer Review] Review skipped', { reviewId: normalizedReviewId, reason: normalizedReason });
 
         return { success: true, data: {} };
     } catch (error) {
