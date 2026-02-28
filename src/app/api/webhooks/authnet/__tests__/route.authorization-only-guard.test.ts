@@ -74,7 +74,13 @@ describe('POST /api/webhooks/authnet authorization-only hardening', () => {
   const originalEnv = process.env;
   const originalFetch = global.fetch;
 
-  function setupDb({ withOrder = true }: { withOrder?: boolean } = {}) {
+  function setupDb({
+    withOrder = true,
+    orderPaymentStatus = 'pending',
+  }: {
+    withOrder?: boolean;
+    orderPaymentStatus?: string;
+  } = {}) {
     const webhookLogRef = {
       create: jest.fn().mockResolvedValue(undefined),
       set: jest.fn().mockResolvedValue(undefined),
@@ -89,7 +95,7 @@ describe('POST /api/webhooks/authnet authorization-only hardening', () => {
       data: () => ({
         totals: { total: 2.0 },
         brandId: 'org_demo',
-        paymentStatus: 'pending',
+        paymentStatus: orderPaymentStatus,
       }),
     };
 
@@ -309,5 +315,48 @@ describe('POST /api/webhooks/authnet authorization-only hardening', () => {
       { merge: true },
     );
     expect(mockEmitEvent).not.toHaveBeenCalled();
+  });
+
+  it('does not downgrade paid orders on late authorization-only events', async () => {
+    setupDb({ withOrder: true, orderPaymentStatus: 'paid' });
+    const { POST } = await import('../route');
+
+    const body = JSON.stringify({
+      notificationId: 'notif-auth-only-paid-order',
+      eventType: 'net.authorize.payment.authorization.created',
+      payload: {
+        id: 'txn_auth_paid',
+        responseCode: '1',
+        authAmount: '2.00',
+      },
+    });
+
+    const req = new NextRequest('http://localhost/api/webhooks/authnet', {
+      method: 'POST',
+      body,
+      headers: {
+        'x-anet-signature': 'sha512=fake',
+      },
+    });
+
+    const response = await POST(req);
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.processedOrders).toBe(1);
+    expect(mockOrderSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        paymentStatus: 'paid',
+      }),
+      { merge: true },
+    );
+    expect(mockForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'authorize_net',
+      reason: 'status_regression_blocked',
+      transactionId: 'txn_auth_paid',
+      currentPaymentStatus: 'paid',
+      desiredPaymentStatus: 'authorized',
+      appliedPaymentStatus: 'paid',
+    }));
   });
 });

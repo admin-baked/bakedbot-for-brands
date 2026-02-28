@@ -110,6 +110,29 @@ function mapPaymentWebhookOutcome(eventType: string, responseCode: number | null
   return { paymentStatus: 'pending' };
 }
 
+function resolvePaymentStatus(currentOrderData: Record<string, any>, desiredPaymentStatus: string): string {
+  const desired = String(desiredPaymentStatus || '').toLowerCase();
+  if (!desired) {
+    return String(currentOrderData?.paymentStatus || 'pending').toLowerCase();
+  }
+
+  const current = String(currentOrderData?.paymentStatus || '').toLowerCase();
+  if (!current) return desired;
+
+  // Do not allow late authorization/decline/pending events to downgrade settled orders.
+  if (current === 'paid') {
+    if (desired === 'refunded') return desired;
+    return current;
+  }
+
+  // Refunded/voided are terminal settlement states.
+  if (current === 'refunded' || current === 'voided') {
+    return current;
+  }
+
+  return desired;
+}
+
 function mapPaymentEventToSubscriptionOutcome(
   eventType: string,
   responseCode: number | null,
@@ -670,9 +693,27 @@ export async function POST(req: NextRequest) {
           }
 
           const nextStatus = resolveOrderStatus(orderData, outcome.orderStatus);
+          const nextPaymentStatus = resolvePaymentStatus(orderData, outcome.paymentStatus);
+          if (nextPaymentStatus !== outcome.paymentStatus) {
+            await db.collection('payment_forensics').add({
+              provider: 'authorize_net',
+              source: 'authnet_webhook',
+              reason: 'status_regression_blocked',
+              orderId: doc.id,
+              orderPath: doc.ref.path,
+              transactionId: entityId,
+              eventType,
+              responseCode,
+              currentPaymentStatus: String(orderData.paymentStatus || ''),
+              desiredPaymentStatus: outcome.paymentStatus,
+              appliedPaymentStatus: nextPaymentStatus,
+              observedAt: FieldValue.serverTimestamp(),
+            });
+          }
+
           const updatePayload: Record<string, unknown> = {
             paymentProvider: 'authorize_net',
-            paymentStatus: outcome.paymentStatus,
+            paymentStatus: nextPaymentStatus,
             lastPaymentEvent: {
               eventType,
               eventDate,
@@ -707,7 +748,7 @@ export async function POST(req: NextRequest) {
               refId: doc.id,
               data: {
                 transactionId: entityId,
-                paymentStatus: outcome.paymentStatus,
+                paymentStatus: nextPaymentStatus,
                 responseCode,
                 amount: parseNumericValue(payload.authAmount) ?? parseNumericValue(payload.amount),
                 eventType,
@@ -722,7 +763,7 @@ export async function POST(req: NextRequest) {
                 refId: doc.id,
                 data: {
                   transactionId: entityId,
-                  paymentStatus: outcome.paymentStatus,
+                  paymentStatus: nextPaymentStatus,
                 },
               });
             }
