@@ -312,6 +312,43 @@ describe('POST /api/checkout/process-payment guardrails', () => {
         expect(mockRecordProductSale).not.toHaveBeenCalled();
     });
 
+    it('rejects CannPay finalization when provider omits amount', async () => {
+        mockOrderGet.mockResolvedValue({
+            exists: true,
+            data: () => ({
+                userId: 'user-1',
+                customer: { email: 'owner@example.com' },
+                totals: { total: 40 },
+                canpay: { intentId: 'intent-1' },
+                paymentStatus: 'pending',
+            }),
+            ref: { update: mockOrderUpdate },
+        });
+        mockCannPayTransactionDetails.mockResolvedValue({
+            intentId: 'intent-1',
+            canpayTransactionNumber: 'cp_tx_real',
+            status: 'Success',
+            amount: undefined,
+            merchantOrderId: 'order-1',
+        });
+
+        const response = await POST({} as any, {
+            amount: 40,
+            paymentMethod: 'cannpay',
+            orderId: 'order-1',
+            paymentData: {
+                intentId: 'intent-1',
+                transactionNumber: 'cp_tx_fake',
+                status: 'Success',
+            },
+        } as any);
+
+        const body = await response.json();
+        expect(response.status).toBe(409);
+        expect(body.error).toContain('amount unavailable');
+        expect(mockOrderUpdate).not.toHaveBeenCalled();
+    });
+
     it('rejects CannPay intent mismatch between request and order', async () => {
         mockOrderGet.mockResolvedValue({
             exists: true,
@@ -374,6 +411,41 @@ describe('POST /api/checkout/process-payment guardrails', () => {
         const body = await response.json();
         expect(response.status).toBe(409);
         expect(body.error).toContain('amount mismatch');
+        expect(mockOrderUpdate).not.toHaveBeenCalled();
+    });
+
+    it('rejects Aeropay finalization when provider omits amount', async () => {
+        mockOrderGet.mockResolvedValue({
+            exists: true,
+            data: () => ({
+                userId: 'user-1',
+                customer: { email: 'owner@example.com' },
+                totals: { total: 50 },
+                aeropay: { transactionId: 'aero_tx_1' },
+                paymentStatus: 'pending',
+            }),
+            ref: { update: mockOrderUpdate },
+        });
+        mockAeropayTransactionDetails.mockResolvedValue({
+            transactionId: 'aero_tx_1',
+            status: 'completed',
+            amount: undefined,
+            merchantOrderId: 'order-1',
+        });
+
+        const response = await POST({} as any, {
+            amount: 50,
+            paymentMethod: 'aeropay',
+            orderId: 'order-1',
+            paymentData: {
+                transactionId: 'aero_tx_1',
+                status: 'completed',
+            },
+        } as any);
+
+        const body = await response.json();
+        expect(response.status).toBe(409);
+        expect(body.error).toContain('amount unavailable');
         expect(mockOrderUpdate).not.toHaveBeenCalled();
     });
 });
