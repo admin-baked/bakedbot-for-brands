@@ -77,5 +77,27 @@ describe('playbooks security', () => {
     expect(result.success).toBe(true);
     expect(update).toHaveBeenCalled();
   });
-});
 
+  it('rejects invalid brand ids before creating playbooks', async () => {
+    const result = await createPlaybook('bad/id', {
+      name: 'Invalid Brand',
+      description: 'x',
+      agent: 'craig',
+      category: 'marketing',
+      triggers: [{ type: 'manual' }],
+      steps: [],
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Invalid brand ID');
+    expect(requireUser).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid playbook ids before test runs', async () => {
+    const result = await runPlaybookTest('org-a', 'bad/id');
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Invalid playbook ID');
+    expect(createServerClient).not.toHaveBeenCalled();
+  });
+});

@@ -63,5 +63,18 @@ describe('crm-panel security', () => {
     expect(result).toEqual({ summary: 'ok', comms: [] });
     expect(getCustomerComms).toHaveBeenCalledWith('alice@example.com', 'org-b', 10);
   });
-});
 
+  it('rejects invalid org ids before lookup', async () => {
+    await expect(lookupCustomerAction('alice@example.com', 'bad/id')).rejects.toThrow('Invalid organization ID');
+    expect(requireUser).not.toHaveBeenCalled();
+    expect(lookupCustomer).not.toHaveBeenCalled();
+  });
+
+  it('clamps history limit to a sane max', async () => {
+    (getCustomerHistory as jest.Mock).mockResolvedValue({ summary: 'ok', history: [] });
+
+    await getCustomerHistoryAction('cust-1', 'org-a', 999);
+
+    expect(getCustomerHistory).toHaveBeenCalledWith('cust-1', 'org-a', 100);
+  });
+});

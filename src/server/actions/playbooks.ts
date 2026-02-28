@@ -13,6 +13,15 @@ function isSuperRole(role: unknown): boolean {
     return role === 'super_user' || role === 'super_admin';
 }
 
+function isValidDocumentId(value: unknown): value is string {
+    return (
+        typeof value === 'string' &&
+        value.length >= 3 &&
+        value.length <= 128 &&
+        !/[\/\\?#\[\]]/.test(value)
+    );
+}
+
 function getActorOrgId(user: unknown): string | null {
     if (!user || typeof user !== 'object') return null;
     const token = user as {
@@ -29,7 +38,6 @@ function getActorOrgId(user: unknown): string | null {
         token.brandId ||
         token.tenantId ||
         token.organizationId ||
-        token.uid ||
         null
     );
 }
@@ -104,7 +112,7 @@ async function canEditPlaybook(userId: string, userRole: string, playbook: Playb
 export async function listBrandPlaybooks(brandId: string): Promise<Playbook[]> {
     try {
         const user = await requireUser();
-        if (!brandId) throw new Error('Brand ID is required');
+        if (!isValidDocumentId(brandId)) throw new Error('Brand ID is required');
         assertBrandAccess(user, brandId);
         const { firestore } = await createServerClient();
 
@@ -165,6 +173,12 @@ export async function assignPlaybookToOrg(
     templateId: string
 ): Promise<{ success: boolean; playbookId?: string; error?: string }> {
     try {
+        if (!isValidDocumentId(orgId)) {
+            return { success: false, error: 'Invalid organization ID' };
+        }
+        if (typeof templateId !== 'string' || templateId.trim().length < 3) {
+            return { success: false, error: 'Invalid template ID' };
+        }
         const { firestore } = await createServerClient();
 
         // Find the template playbook in defaults
@@ -231,6 +245,9 @@ export async function assignTierPlaybooks(
     tier: 'free' | 'pro' | 'enterprise'
 ): Promise<{ success: boolean; assigned: string[]; error?: string }> {
     try {
+        if (!isValidDocumentId(orgId)) {
+            return { success: false, assigned: [], error: 'Invalid organization ID' };
+        }
         const { firestore } = await createServerClient();
         const assigned: string[] = [];
 
@@ -325,6 +342,9 @@ export async function createPlaybook(
     }
 ): Promise<{ success: boolean; playbook?: Playbook; error?: string }> {
     try {
+        if (!isValidDocumentId(brandId)) {
+            return { success: false, error: 'Invalid brand ID' };
+        }
         const user = await requireUser();
         assertBrandAccess(user, brandId);
         const { firestore } = await createServerClient();
@@ -374,6 +394,12 @@ export async function updatePlaybook(
     updates: Partial<Pick<Playbook, 'name' | 'description' | 'agent' | 'category' | 'triggers' | 'steps' | 'status' | 'metadata'>>
 ): Promise<{ success: boolean; error?: string }> {
     try {
+        if (!isValidDocumentId(brandId)) {
+            return { success: false, error: 'Invalid brand ID' };
+        }
+        if (!isValidDocumentId(playbookId)) {
+            return { success: false, error: 'Invalid playbook ID' };
+        }
         const user = await requireUser();
         assertBrandAccess(user, brandId);
         const { firestore } = await createServerClient();
@@ -419,6 +445,12 @@ export async function deletePlaybook(
     playbookId: string
 ): Promise<{ success: boolean; error?: string }> {
     try {
+        if (!isValidDocumentId(brandId)) {
+            return { success: false, error: 'Invalid brand ID' };
+        }
+        if (!isValidDocumentId(playbookId)) {
+            return { success: false, error: 'Invalid playbook ID' };
+        }
         const user = await requireUser();
         assertBrandAccess(user, brandId);
         const { firestore } = await createServerClient();
@@ -458,6 +490,12 @@ export async function clonePlaybook(
     sourcePlaybookId: string
 ): Promise<{ success: boolean; playbook?: Playbook; error?: string }> {
     try {
+        if (!isValidDocumentId(brandId)) {
+            return { success: false, error: 'Invalid brand ID' };
+        }
+        if (!isValidDocumentId(sourcePlaybookId)) {
+            return { success: false, error: 'Invalid playbook ID' };
+        }
         const user = await requireUser();
         assertBrandAccess(user, brandId);
         const { firestore } = await createServerClient();
@@ -491,6 +529,12 @@ export async function clonePlaybook(
  */
 export async function togglePlaybookStatus(brandId: string, playbookId: string, isActive: boolean) {
     try {
+        if (!isValidDocumentId(brandId)) {
+            return { success: false, error: 'Invalid brand ID' };
+        }
+        if (!isValidDocumentId(playbookId)) {
+            return { success: false, error: 'Invalid playbook ID' };
+        }
         const user = await requireUser();
         assertBrandAccess(user, brandId);
         const { firestore } = await createServerClient();
@@ -526,6 +570,12 @@ export async function togglePlaybookStatus(brandId: string, playbookId: string, 
  */
 export async function runPlaybookTest(brandId: string, playbookId: string) {
     try {
+        if (!isValidDocumentId(brandId)) {
+            return { success: false, error: 'Invalid brand ID' };
+        }
+        if (!isValidDocumentId(playbookId)) {
+            return { success: false, error: 'Invalid playbook ID' };
+        }
         const user = await requireUser();
         assertBrandAccess(user, brandId);
         const { firestore } = await createServerClient();
