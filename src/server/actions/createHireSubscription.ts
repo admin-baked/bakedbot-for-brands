@@ -4,6 +4,8 @@ import { createServerClient } from '@/firebase/server-client';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logger } from '@/lib/logger';
 import { createCustomerProfile, createSubscriptionFromProfile } from '@/lib/payments/authorize-net';
+import { requireUser } from '@/server/auth/auth';
+import { isCompanyPlanCheckoutEnabled } from '@/lib/feature-flags';
 
 export interface HireSubscriptionInput {
     userId: string;
@@ -25,6 +27,23 @@ export interface HireSubscriptionInput {
 
 export async function createHireSubscription(input: HireSubscriptionInput) {
     try {
+        if (!isCompanyPlanCheckoutEnabled()) {
+            return { success: false, error: 'Subscription checkout is currently disabled. Please contact sales.' };
+        }
+
+        let session;
+        try {
+            session = await requireUser();
+        } catch {
+            return { success: false, error: 'Authentication required.' };
+        }
+
+        const sessionEmail = typeof session.email === 'string' ? session.email.toLowerCase() : '';
+        const requestEmail = input.email.trim().toLowerCase();
+        if (session.uid !== input.userId || (sessionEmail && sessionEmail !== requestEmail)) {
+            return { success: false, error: 'Forbidden: identity mismatch for subscription request.' };
+        }
+
         const { firestore } = await createServerClient();
         const userRef = firestore.collection('users').doc(input.userId);
         
