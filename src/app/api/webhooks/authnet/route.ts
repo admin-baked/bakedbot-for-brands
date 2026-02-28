@@ -35,6 +35,14 @@ type SubscriptionWebhookOutcome = {
   emittedEvent?: EventType;
 };
 
+type VoidAttemptResult = {
+  attempted: boolean;
+  succeeded: boolean;
+  message?: string;
+  code?: string | null;
+  providerTransId?: string | null;
+};
+
 function isAlreadyExistsError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
   const code = (error as { code?: unknown }).code;
@@ -81,6 +89,10 @@ function mapPaymentWebhookOutcome(eventType: string, responseCode: number | null
     };
   }
 
+  if (isAuthorizationOnlyEvent(eventType)) {
+    return { paymentStatus: 'authorized' };
+  }
+
   if (
     normalizedType.includes('authcapture') ||
     normalizedType.includes('capture') ||
@@ -95,6 +107,132 @@ function mapPaymentWebhookOutcome(eventType: string, responseCode: number | null
   }
 
   return { paymentStatus: 'pending' };
+}
+
+function isAuthorizationOnlyEvent(eventType: string): boolean {
+  const normalizedType = eventType.toLowerCase();
+  return (
+    normalizedType.includes('net.authorize.payment.authorization.') ||
+    normalizedType.includes('authonly')
+  );
+}
+
+function getAuthNetEndpoint(): string {
+  const env = (process.env.AUTHNET_ENV || '').toLowerCase();
+  const isProduction = env === 'production' || (process.env.NODE_ENV || '').toLowerCase() === 'production';
+  return isProduction
+    ? 'https://api2.authorize.net/xml/v1/request.api'
+    : 'https://apitest.authorize.net/xml/v1/request.api';
+}
+
+function getAuthNetCredentials(): { apiLoginId: string; transactionKey: string } | null {
+  const apiLoginId =
+    process.env.AUTHNET_API_LOGIN_ID ||
+    process.env.AUTHORIZE_NET_LOGIN_ID ||
+    process.env.AUTHORIZENET_API_LOGIN_ID ||
+    process.env.AUTHORIZENET_LOGIN_ID ||
+    '';
+  const transactionKey =
+    process.env.AUTHNET_TRANSACTION_KEY ||
+    process.env.AUTHORIZE_NET_TRANSACTION_KEY ||
+    process.env.AUTHORIZENET_TRANSACTION_KEY ||
+    '';
+
+  if (!apiLoginId || !transactionKey) {
+    return null;
+  }
+
+  return { apiLoginId, transactionKey };
+}
+
+async function attemptVoidAuthorization(
+  transactionId: string,
+  eventType: string,
+): Promise<VoidAttemptResult> {
+  if (!isAuthorizationOnlyEvent(eventType)) {
+    return { attempted: false, succeeded: false, message: 'event_not_authorization_only' };
+  }
+
+  const credentials = getAuthNetCredentials();
+  if (!credentials) {
+    logger.warn('[AUTHNET_WEBHOOK] Missing credentials for suspicious authorization void attempt', {
+      transactionId,
+      eventType,
+    });
+    return { attempted: false, succeeded: false, message: 'credentials_missing' };
+  }
+
+  const payload = {
+    createTransactionRequest: {
+      merchantAuthentication: {
+        name: credentials.apiLoginId,
+        transactionKey: credentials.transactionKey,
+      },
+      refId: `authnet_void_${Date.now()}`,
+      transactionRequest: {
+        transactionType: 'voidTransaction',
+        refTransId: transactionId,
+      },
+    },
+  };
+
+  try {
+    const response = await fetch(getAuthNetEndpoint(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      return {
+        attempted: true,
+        succeeded: false,
+        message: `http_${response.status}`,
+      };
+    }
+
+    const data = await response.json().catch(() => null);
+    const resultCode = data?.messages?.resultCode;
+    const transactionResponse = data?.transactionResponse || {};
+    const errorText =
+      transactionResponse?.errors?.[0]?.errorText ||
+      data?.messages?.message?.[0]?.text ||
+      null;
+    const errorCode =
+      transactionResponse?.errors?.[0]?.errorCode ||
+      data?.messages?.message?.[0]?.code ||
+      null;
+    const providerTransId =
+      transactionResponse?.transId || null;
+
+    if (resultCode === 'Ok') {
+      return {
+        attempted: true,
+        succeeded: true,
+        message: 'void_submitted',
+        code: null,
+        providerTransId,
+      };
+    }
+
+    return {
+      attempted: true,
+      succeeded: false,
+      message: errorText || 'void_failed',
+      code: errorCode,
+      providerTransId,
+    };
+  } catch (error: any) {
+    logger.error('[AUTHNET_WEBHOOK] Failed to void suspicious authorization', {
+      transactionId,
+      error: error?.message || String(error),
+    });
+    return {
+      attempted: true,
+      succeeded: false,
+      message: error?.message || 'void_request_failed',
+    };
+  }
 }
 
 function mapSubscriptionWebhookOutcome(eventType: string): SubscriptionWebhookOutcome {
@@ -262,6 +400,8 @@ export async function POST(req: NextRequest) {
           eventType,
         });
 
+        const voidAttempt = await attemptVoidAuthorization(entityId, eventType);
+
         await db.collection('payment_forensics').add({
           provider: 'authorize_net',
           source: 'authnet_webhook',
@@ -270,6 +410,11 @@ export async function POST(req: NextRequest) {
           eventType,
           responseCode,
           providerAmountCents,
+          voidAttempted: voidAttempt.attempted,
+          voidSucceeded: voidAttempt.succeeded,
+          voidMessage: voidAttempt.message || null,
+          voidCode: voidAttempt.code || null,
+          voidProviderTransId: voidAttempt.providerTransId || null,
           observedAt: FieldValue.serverTimestamp(),
         });
       }
@@ -303,6 +448,8 @@ export async function POST(req: NextRequest) {
               responseCode,
               expectedAmountCents,
               providerAmountCents,
+              voidAttempted: false,
+              voidSucceeded: false,
               observedAt: FieldValue.serverTimestamp(),
             });
             return;
