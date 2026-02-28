@@ -190,6 +190,32 @@ describe('POST /api/checkout/shipping auth + address hardening', () => {
         expect(mockCreateTransaction).not.toHaveBeenCalled();
     });
 
+    it('returns 403 when authenticated user email is not verified', async () => {
+        mockRequireUser.mockResolvedValue({
+            uid: 'user-1',
+            email: 'owner@example.com',
+            email_verified: false,
+        });
+
+        const request = {
+            json: async () => ({
+                items: [{ id: 'prod-1', name: 'Hemp Gummies', price: 20, quantity: 1 }],
+                customer: { name: 'Owner Example', email: 'owner@example.com' },
+                shippingAddress: { street: '1 Main St', city: 'Syracuse', state: 'NY', zip: '13224', country: 'US' },
+                brandId: 'brand-1',
+                paymentMethod: 'authorize_net',
+                paymentData: { opaqueData: { dataDescriptor: 'COMMON.ACCEPT.INAPP.PAYMENT', dataValue: 'opaque' } },
+                total: 23,
+            }),
+        } as any;
+
+        const response = await POST(request);
+        const body = await response.json();
+        expect(response.status).toBe(403);
+        expect(body.error).toContain('verify your email');
+        expect(mockCreateTransaction).not.toHaveBeenCalled();
+    });
+
     it('returns 400 when shipping address is invalid', async () => {
         mockRequireUser.mockResolvedValue({
             uid: 'user-1',

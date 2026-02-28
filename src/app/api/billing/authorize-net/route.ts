@@ -120,6 +120,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
 
+    if ((session as any).email_verified === false || (session as any).emailVerified === false) {
+      return NextResponse.json(
+        { error: 'Email verification is required before starting a paid subscription.' },
+        { status: 403 }
+      );
+    }
+
     body = subscribeBodySchema.parse(await req.json()) as SubscribeBody;
 
     if (!isValidDocumentId(body.organizationId)) {

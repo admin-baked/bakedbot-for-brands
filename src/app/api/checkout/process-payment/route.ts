@@ -150,6 +150,16 @@ export const POST = withProtection(
                 billingAddress,
             } = data!;
 
+            const isEmailUnverified =
+                (session as any).email_verified === false ||
+                (session as any).emailVerified === false;
+            if (paymentMethod !== 'dispensary_direct' && isEmailUnverified) {
+                return NextResponse.json(
+                    { success: false, error: 'Email verification is required before processing payment.' },
+                    { status: 403 },
+                );
+            }
+
             const { firestore } = await createServerClient();
 
             let ownedOrderDoc: FirebaseFirestore.DocumentSnapshot | null = null;

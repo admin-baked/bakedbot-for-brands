@@ -105,6 +105,13 @@ export async function POST(req: NextRequest) {
             }, { status: 401 });
         }
 
+        if ((session as any).email_verified === false || (session as any).emailVerified === false) {
+            return NextResponse.json({
+                success: false,
+                error: 'Please verify your email before placing a shipping order.',
+            }, { status: 403 });
+        }
+
         const body: ShippingOrderRequest = await req.json();
         const { items, customer, shippingAddress, brandId, paymentData, couponCode, total } = body;
 

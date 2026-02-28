@@ -167,6 +167,31 @@ describe('POST /api/checkout/process-payment guardrails', () => {
         expect(mockCreateTransaction).not.toHaveBeenCalled();
     });
 
+    it('rejects paid payment methods when authenticated email is unverified', async () => {
+        mockRequireUser.mockResolvedValue({
+            uid: 'user-1',
+            email: 'owner@example.com',
+            email_verified: false,
+        });
+
+        const response = await POST({} as any, {
+            amount: 40,
+            paymentMethod: 'credit_card',
+            orderId: 'order-1',
+            paymentData: {
+                opaqueData: {
+                    dataDescriptor: 'COMMON.ACCEPT.INAPP.PAYMENT',
+                    dataValue: 'opaque-token',
+                },
+            },
+        } as any);
+
+        const body = await response.json();
+        expect(response.status).toBe(403);
+        expect(body.error).toContain('Email verification is required');
+        expect(mockCreateServerClient).not.toHaveBeenCalled();
+    });
+
     it('uses server-side order total instead of client amount for card charge', async () => {
         mockOrderGet.mockResolvedValue({
             exists: true,

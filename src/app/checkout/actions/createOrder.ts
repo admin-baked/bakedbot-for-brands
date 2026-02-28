@@ -132,6 +132,10 @@ export async function createOrder(input: CreateOrderInput) {
             return { success: false, error: 'You must be signed in to complete checkout.' };
         }
 
+        if ((session as any).email_verified === false || (session as any).emailVerified === false) {
+            return { success: false, error: 'Please verify your email before placing an order.' };
+        }
+
         const sessionEmail = typeof session.email === 'string' ? session.email.toLowerCase() : '';
         const requestEmail = input.customer.email.trim().toLowerCase();
         if (sessionEmail && requestEmail !== sessionEmail) {
