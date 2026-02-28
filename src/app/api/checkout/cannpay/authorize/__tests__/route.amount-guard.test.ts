@@ -49,6 +49,7 @@ describe('POST /api/checkout/cannpay/authorize amount guard', () => {
       exists: true,
       data: () => ({
         userId: 'user-1',
+        organizationId: 'org_server',
         paymentStatus: 'pending',
         totals: { total: 49.99 },
       }),
@@ -91,9 +92,25 @@ describe('POST /api/checkout/cannpay/authorize amount guard', () => {
     expect(mockAuthorizePayment).toHaveBeenCalledWith(expect.objectContaining({
       amount: 4999,
       merchantOrderId: 'order-1',
+      passthrough: expect.stringContaining('"organizationId":"org_server"'),
     }));
     expect(mockOrderUpdate).toHaveBeenCalledWith(expect.objectContaining({
       'canpay.amount': 5049,
     }));
+  });
+
+  it('rejects client organization override mismatches', async () => {
+    const response = await POST({
+      json: async () => ({
+        orderId: 'order-1',
+        amount: 4999,
+        organizationId: 'org_spoofed',
+      }),
+    } as any);
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body.error).toContain('Organization mismatch');
+    expect(mockAuthorizePayment).not.toHaveBeenCalled();
   });
 });
