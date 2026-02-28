@@ -18,6 +18,17 @@ export type ActionResult<T = any> =
     | { success: true; data: T }
     | { success: false; error: string };
 
+function isSuperRole(role: unknown): boolean {
+    if (Array.isArray(role)) {
+        return role.includes('super_user') || role.includes('super_admin');
+    }
+    return role === 'super_user' || role === 'super_admin';
+}
+
+function isValidDocId(id: string): boolean {
+    return !!id && !id.includes('/');
+}
+
 const SubmitPeerReviewSchema = z.object({
     reviewId: z.string(),
     rating: z.number().min(1).max(5),
@@ -44,10 +55,15 @@ export async function assignPeerReviewers(
 ): Promise<ActionResult<{ assignedReviewers: string[] }>> {
     try {
         await requireUser(['super_user']); // Only admins can manually assign
+        const normalizedSubmissionId = submissionId.trim();
+        if (!isValidDocId(normalizedSubmissionId)) {
+            return { success: false, error: 'Invalid submission id' };
+        }
+
         const db = getAdminFirestore();
 
         // Get submission
-        const submissionDoc = await db.collection('trainingSubmissions').doc(submissionId).get();
+        const submissionDoc = await db.collection('trainingSubmissions').doc(normalizedSubmissionId).get();
         if (!submissionDoc.exists) {
             return { success: false, error: 'Submission not found' };
         }
@@ -187,11 +203,15 @@ export async function submitPeerReview(
     try {
         const user = await requireUser(['intern', 'super_user']);
         const validated = SubmitPeerReviewSchema.parse(input);
+        const normalizedReviewId = validated.reviewId.trim();
+        if (!isValidDocId(normalizedReviewId)) {
+            return { success: false, error: 'Invalid review id' };
+        }
 
         const db = getAdminFirestore();
 
         // Get review document
-        const reviewDoc = await db.collection('peerReviews').doc(validated.reviewId).get();
+        const reviewDoc = await db.collection('peerReviews').doc(normalizedReviewId).get();
         if (!reviewDoc.exists) {
             return { success: false, error: 'Review not found' };
         }
@@ -291,16 +311,21 @@ export async function getMyPendingReviews(): Promise<ActionResult<PeerReview[]>>
 export async function getReceivedReviews(submissionId: string): Promise<ActionResult<PeerReview[]>> {
     try {
         const user = await requireUser(['intern', 'super_user']);
+        const normalizedSubmissionId = submissionId.trim();
+        if (!isValidDocId(normalizedSubmissionId)) {
+            return { success: false, error: 'Invalid submission id' };
+        }
+
         const db = getAdminFirestore();
 
         // Verify ownership
-        const submissionDoc = await db.collection('trainingSubmissions').doc(submissionId).get();
+        const submissionDoc = await db.collection('trainingSubmissions').doc(normalizedSubmissionId).get();
         if (!submissionDoc.exists) {
             return { success: false, error: 'Submission not found' };
         }
 
         const submission = submissionDoc.data() as TrainingSubmission;
-        const isSuperUser = (user as any).role?.includes('super_user');
+        const isSuperUser = isSuperRole((user as { role?: unknown }).role);
 
         if (submission.userId !== user.uid && !isSuperUser) {
             return { success: false, error: 'Unauthorized' };
@@ -309,7 +334,7 @@ export async function getReceivedReviews(submissionId: string): Promise<ActionRe
         // Get reviews
         const reviewsSnapshot = await db
             .collection('peerReviews')
-            .where('submissionId', '==', submissionId)
+            .where('submissionId', '==', normalizedSubmissionId)
             .where('status', '==', 'completed')
             .get();
 
@@ -328,9 +353,14 @@ export async function getReceivedReviews(submissionId: string): Promise<ActionRe
 export async function markReviewHelpful(reviewId: string): Promise<ActionResult> {
     try {
         const user = await requireUser(['intern', 'super_user']);
+        const normalizedReviewId = reviewId.trim();
+        if (!isValidDocId(normalizedReviewId)) {
+            return { success: false, error: 'Invalid review id' };
+        }
+
         const db = getAdminFirestore();
 
-        const reviewDoc = await db.collection('peerReviews').doc(reviewId).get();
+        const reviewDoc = await db.collection('peerReviews').doc(normalizedReviewId).get();
         if (!reviewDoc.exists) {
             return { success: false, error: 'Review not found' };
         }

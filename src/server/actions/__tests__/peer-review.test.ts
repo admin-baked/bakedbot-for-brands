@@ -5,9 +5,27 @@
 import { describe, expect, it, jest, beforeEach } from '@jest/globals';
 import type { PeerReview } from '@/types/training';
 
+jest.mock('@google-cloud/firestore', () => ({
+    Timestamp: {
+        now: jest.fn(() => ({ seconds: Date.now() / 1000 })),
+    },
+    FieldValue: {
+        increment: jest.fn((value: number) => ({ __increment: value })),
+    },
+}));
+jest.mock('next/cache', () => ({
+    revalidatePath: jest.fn(),
+}));
 jest.mock('@/server/auth/auth');
 jest.mock('@/firebase/admin');
-jest.mock('@/lib/logger');
+jest.mock('@/lib/logger', () => ({
+    logger: {
+        error: jest.fn(),
+        warn: jest.fn(),
+        info: jest.fn(),
+        debug: jest.fn(),
+    },
+}));
 
 describe('Peer Review Server Actions', () => {
     beforeEach(() => {
@@ -104,30 +122,90 @@ describe('Peer Review Server Actions', () => {
             expect(result.success).toBe(false);
             expect(result.error).toContain('Unauthorized');
         });
+
+        it('should reject invalid review id path', async () => {
+            const { requireUser } = await import('@/server/auth/auth');
+            (requireUser as jest.Mock).mockResolvedValue({ uid: 'test-user' });
+
+            const { getAdminFirestore } = await import('@/firebase/admin');
+
+            const { submitPeerReview } = await import('../peer-review');
+            const result = await submitPeerReview({
+                reviewId: 'bad/review-id',
+                rating: 4,
+                strengths: ['Good work'],
+                improvements: ['Add tests'],
+                questions: [],
+                wouldApprove: true,
+                rubricScores: [{ category: 'Code Quality', score: 4 }],
+            });
+
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('Invalid review id');
+            expect(getAdminFirestore).not.toHaveBeenCalled();
+        });
     });
 
     describe('assignPeerReviewers', () => {
         it('should assign correct number of reviewers', async () => {
             const { assignPeerReviewers } = await import('../peer-review');
+            const mockSubmissionUpdate = jest.fn().mockResolvedValue(undefined);
+            const mockReviewerProgressUpdate = jest.fn().mockResolvedValue(undefined);
+
+            let reviewCounter = 0;
+            const pendingReviewsCount = {
+                get: jest.fn().mockResolvedValue({
+                    data: () => ({ count: 0 }),
+                }),
+            };
+            const peerReviewsCollection = {
+                where: jest.fn().mockReturnThis(),
+                count: jest.fn().mockReturnValue(pendingReviewsCount),
+                doc: jest.fn(() => ({
+                    id: `review-${++reviewCounter}`,
+                    set: jest.fn().mockResolvedValue(undefined),
+                })),
+            };
 
             const mockDb = {
-                collection: jest.fn(() => ({
-                    doc: jest.fn(() => ({
-                        get: jest.fn().mockResolvedValue({
-                            exists: true,
-                            data: () => ({
-                                userId: 'author-user',
-                                cohortId: 'test-cohort',
-                                challengeId: 'week1-ch1',
-                                status: 'approved',
-                            }),
-                        }),
-                        ref: {
-                            update: jest.fn().mockResolvedValue(undefined),
-                        },
-                    })),
-                    add: jest.fn().mockResolvedValue({ id: 'new-review-id' }),
-                })),
+                collection: jest.fn((name: string) => {
+                    if (name === 'trainingSubmissions') {
+                        return {
+                            doc: jest.fn(() => ({
+                                get: jest.fn().mockResolvedValue({
+                                    exists: true,
+                                    data: () => ({
+                                        userId: 'author-user',
+                                        cohortId: 'test-cohort',
+                                        challengeId: 'week1-ch1',
+                                        status: 'approved',
+                                    }),
+                                    ref: {
+                                        update: mockSubmissionUpdate,
+                                    },
+                                }),
+                            })),
+                        };
+                    }
+
+                    if (name === 'peerReviews') {
+                        return peerReviewsCollection;
+                    }
+
+                    if (name === 'users') {
+                        return {
+                            doc: jest.fn(() => ({
+                                collection: jest.fn(() => ({
+                                    doc: jest.fn(() => ({
+                                        update: mockReviewerProgressUpdate,
+                                    })),
+                                })),
+                            })),
+                        };
+                    }
+
+                    return {};
+                }),
                 collectionGroup: jest.fn(() => ({
                     where: jest.fn().mockReturnThis(),
                     get: jest.fn().mockResolvedValue({
@@ -190,6 +268,20 @@ describe('Peer Review Server Actions', () => {
             expect(result.success).toBe(false);
             expect(result.error).toContain('Not enough eligible reviewers');
         });
+
+        it('should reject invalid submission id path', async () => {
+            const { requireUser } = await import('@/server/auth/auth');
+            (requireUser as jest.Mock).mockResolvedValue({ uid: 'admin-user', role: ['super_user'] });
+
+            const { getAdminFirestore } = await import('@/firebase/admin');
+
+            const { assignPeerReviewers } = await import('../peer-review');
+            const result = await assignPeerReviewers('bad/submission-id', 2);
+
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('Invalid submission id');
+            expect(getAdminFirestore).not.toHaveBeenCalled();
+        });
     });
 
     describe('markReviewHelpful', () => {
@@ -197,21 +289,45 @@ describe('Peer Review Server Actions', () => {
             const mockUpdateFn = jest.fn().mockResolvedValue(undefined);
 
             const mockDb = {
-                collection: jest.fn(() => ({
-                    doc: jest.fn(() => ({
-                        get: jest.fn().mockResolvedValue({
-                            exists: true,
-                            data: () => ({
-                                submissionId: 'test-submission',
-                                reviewerId: 'reviewer-user',
-                                helpfulVotes: 5,
+                collection: jest.fn((name: string) => {
+                    if (name === 'peerReviews') {
+                        return {
+                            doc: jest.fn(() => ({
+                                get: jest.fn().mockResolvedValue({
+                                    exists: true,
+                                    data: () => ({
+                                        submissionId: 'test-submission',
+                                        reviewerId: 'reviewer-user',
+                                        helpfulVotes: 5,
+                                    }),
+                                    ref: {
+                                        update: mockUpdateFn,
+                                    },
+                                }),
+                            })),
+                            where: jest.fn().mockReturnThis(),
+                            get: jest.fn().mockResolvedValue({
+                                empty: true,
+                                docs: [],
                             }),
-                        }),
-                        ref: {
-                            update: mockUpdateFn,
-                        },
-                    })),
-                })),
+                        };
+                    }
+
+                    if (name === 'trainingSubmissions') {
+                        return {
+                            doc: jest.fn(() => ({
+                                get: jest.fn().mockResolvedValue({
+                                    exists: true,
+                                    data: () => ({
+                                        userId: 'author-user',
+                                    }),
+                                }),
+                            })),
+                        };
+                    }
+
+                    return {};
+                }),
             };
 
             const { requireUser } = await import('@/server/auth/auth');
@@ -226,6 +342,75 @@ describe('Peer Review Server Actions', () => {
 
             expect(result.success).toBe(true);
             expect(mockUpdateFn).toHaveBeenCalled();
+        });
+
+        it('should reject invalid review id path', async () => {
+            const { requireUser } = await import('@/server/auth/auth');
+            (requireUser as jest.Mock).mockResolvedValue({ uid: 'author-user' });
+
+            const { getAdminFirestore } = await import('@/firebase/admin');
+
+            const { markReviewHelpful } = await import('../peer-review');
+            const result = await markReviewHelpful('bad/review-id');
+
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('Invalid review id');
+            expect(getAdminFirestore).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('getReceivedReviews', () => {
+        it('should reject invalid submission id path', async () => {
+            const { requireUser } = await import('@/server/auth/auth');
+            (requireUser as jest.Mock).mockResolvedValue({ uid: 'test-user' });
+
+            const { getAdminFirestore } = await import('@/firebase/admin');
+
+            const { getReceivedReviews } = await import('../peer-review');
+            const result = await getReceivedReviews('bad/submission-id');
+
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('Invalid submission id');
+            expect(getAdminFirestore).not.toHaveBeenCalled();
+        });
+
+        it('should not treat substring role matches as super access', async () => {
+            const { requireUser } = await import('@/server/auth/auth');
+            (requireUser as jest.Mock).mockResolvedValue({
+                uid: 'regular-user',
+                role: 'not_super_user',
+            });
+
+            const mockDb = {
+                collection: jest.fn((name: string) => {
+                    if (name === 'trainingSubmissions') {
+                        return {
+                            doc: jest.fn(() => ({
+                                get: jest.fn().mockResolvedValue({
+                                    exists: true,
+                                    data: () => ({
+                                        userId: 'submission-owner',
+                                    }),
+                                }),
+                            })),
+                        };
+                    }
+
+                    return {
+                        where: jest.fn().mockReturnThis(),
+                        get: jest.fn().mockResolvedValue({ docs: [] }),
+                    };
+                }),
+            };
+
+            const { getAdminFirestore } = await import('@/firebase/admin');
+            (getAdminFirestore as jest.Mock).mockReturnValue(mockDb);
+
+            const { getReceivedReviews } = await import('../peer-review');
+            const result = await getReceivedReviews('submission-123');
+
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('Unauthorized');
         });
     });
 });
