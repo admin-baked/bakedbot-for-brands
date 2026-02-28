@@ -259,7 +259,12 @@ export async function createSubscription(input: CreateSubscriptionInput) {
 
             const hasAuthNetCreds = !!(process.env.AUTHNET_API_LOGIN_ID && process.env.AUTHNET_TRANSACTION_KEY);
             const isProduction = process.env.NODE_ENV === 'production';
-            const shouldMock = process.env.AUTHNET_FORCE_MOCK === 'true' || (!isProduction && !hasAuthNetCreds);
+            const forceMockRequested = process.env.AUTHNET_FORCE_MOCK === 'true';
+            const shouldMock = !isProduction && (forceMockRequested || !hasAuthNetCreds);
+
+            if (isProduction && forceMockRequested) {
+                logger.warn('Ignoring AUTHNET_FORCE_MOCK in production');
+            }
 
             if (shouldMock) {
                 providerSubscriptionId = `mock_sub_${Date.now()}`;
