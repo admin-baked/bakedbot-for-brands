@@ -42,6 +42,36 @@ interface ClaimSubscriptionResult {
     error?: string;
 }
 
+function hasValidOpaqueData(opaqueData?: ClaimSubscriptionInput['opaqueData']): boolean {
+    return !!(
+        opaqueData &&
+        typeof opaqueData.dataDescriptor === 'string' &&
+        opaqueData.dataDescriptor.trim().length > 0 &&
+        typeof opaqueData.dataValue === 'string' &&
+        opaqueData.dataValue.trim().length > 0
+    );
+}
+
+function hasCardFallback(input: ClaimSubscriptionInput): boolean {
+    return !!(
+        typeof input.cardNumber === 'string' &&
+        input.cardNumber.trim().length > 0 &&
+        typeof input.expirationDate === 'string' &&
+        input.expirationDate.trim().length > 0 &&
+        typeof input.cvv === 'string' &&
+        input.cvv.trim().length > 0
+    );
+}
+
+function isValidUsZip(zip?: string): boolean {
+    if (typeof zip !== 'string') return false;
+    return /^\d{5}(-\d{4})?$/.test(zip.trim());
+}
+
+function isVerifiedSession(session: any): boolean {
+    return session?.email_verified !== false && session?.emailVerified !== false;
+}
+
 /**
  * Get the current count of Founders Claim subscriptions
  */
@@ -86,6 +116,10 @@ export async function createClaimWithSubscription(
             session = await requireUser();
         } catch {
             return { success: false, error: 'Authentication required.' };
+        }
+
+        if (!isVerifiedSession(session)) {
+            return { success: false, error: 'Email verification is required before starting a paid subscription.' };
         }
 
         const sessionEmail = typeof session.email === 'string' ? session.email.toLowerCase() : '';
@@ -136,6 +170,24 @@ export async function createClaimWithSubscription(
         }
 
         const price = computeMonthlyAmount(input.planId, 1, input.coveragePackIds);
+        const isPaidPlan = price > 0;
+        const isProduction = process.env.NODE_ENV === 'production';
+
+        if (isPaidPlan && !isValidUsZip(input.zip)) {
+            return { success: false, error: 'A valid billing ZIP code is required for paid claims.' };
+        }
+        if (isPaidPlan && !input.businessAddress?.trim()) {
+            return { success: false, error: 'A business address is required for paid claims.' };
+        }
+
+        const hasOpaqueData = hasValidOpaqueData(input.opaqueData);
+        const hasRawCardFallback = hasCardFallback(input);
+        if (isPaidPlan && !hasOpaqueData && !hasRawCardFallback) {
+            return { success: false, error: 'Payment information is required for paid claims.' };
+        }
+        if (isPaidPlan && isProduction && !hasOpaqueData) {
+            return { success: false, error: 'Tokenized payment data is required in production.' };
+        }
 
         // 3. Create the claim record first (pending status)
         const claimRef = await firestore

@@ -25,6 +25,36 @@ export interface HireSubscriptionInput {
     zip: string;
 }
 
+function hasValidOpaqueData(payment: HireSubscriptionInput['payment']): boolean {
+    return !!(
+        payment?.opaqueData &&
+        typeof payment.opaqueData.dataDescriptor === 'string' &&
+        payment.opaqueData.dataDescriptor.trim().length > 0 &&
+        typeof payment.opaqueData.dataValue === 'string' &&
+        payment.opaqueData.dataValue.trim().length > 0
+    );
+}
+
+function hasCardFallback(payment: HireSubscriptionInput['payment']): boolean {
+    return !!(
+        typeof payment?.cardNumber === 'string' &&
+        payment.cardNumber.trim().length > 0 &&
+        typeof payment?.expirationDate === 'string' &&
+        payment.expirationDate.trim().length > 0 &&
+        typeof payment?.cardCode === 'string' &&
+        payment.cardCode.trim().length > 0
+    );
+}
+
+function isValidUsZip(zip?: string): boolean {
+    if (typeof zip !== 'string') return false;
+    return /^\d{5}(-\d{4})?$/.test(zip.trim());
+}
+
+function isVerifiedSession(session: any): boolean {
+    return session?.email_verified !== false && session?.emailVerified !== false;
+}
+
 export async function createHireSubscription(input: HireSubscriptionInput) {
     try {
         if (!isCompanyPlanCheckoutEnabled()) {
@@ -38,10 +68,27 @@ export async function createHireSubscription(input: HireSubscriptionInput) {
             return { success: false, error: 'Authentication required.' };
         }
 
+        if (!isVerifiedSession(session)) {
+            return { success: false, error: 'Email verification is required before starting a paid subscription.' };
+        }
+
+        const isProduction = process.env.NODE_ENV === 'production';
         const sessionEmail = typeof session.email === 'string' ? session.email.toLowerCase() : '';
         const requestEmail = input.email.trim().toLowerCase();
         if (session.uid !== input.userId || (sessionEmail && sessionEmail !== requestEmail)) {
             return { success: false, error: 'Forbidden: identity mismatch for subscription request.' };
+        }
+        if (!isValidUsZip(input.zip)) {
+            return { success: false, error: 'A valid billing ZIP code is required for paid subscriptions.' };
+        }
+
+        const hasOpaqueData = hasValidOpaqueData(input.payment);
+        const hasRawCardFallback = hasCardFallback(input.payment);
+        if (!hasOpaqueData && !hasRawCardFallback) {
+            return { success: false, error: 'Payment information is required for paid subscriptions.' };
+        }
+        if (isProduction && !hasOpaqueData) {
+            return { success: false, error: 'Tokenized payment data is required in production.' };
         }
 
         const { firestore } = await createServerClient();
