@@ -147,10 +147,9 @@ function generateHandoffUrl(
 ): string {
     // Check if dispensary has CanPay integration for cannabis payments
     if (dispensary.cannpayEnabled && dispensary.cannpayMerchantId) {
-        // For CanPay, we return a special URL that triggers the CanPay flow
-        // The actual payment intent will be created when user clicks checkout
-        const totalAmount = items.reduce((sum, item) => sum + (item.unitPriceSnapshot * item.qty), 0);
-        return `/checkout/cannpay?dispId=${dispensary.id || ''}&amount=${Math.round(totalAmount * 100)}&items=${encodeURIComponent(JSON.stringify(items.map(i => ({ id: i.productId, qty: i.qty }))))}`;
+        // Route to the standard, authenticated checkout flow.
+        // Payment intents are now created only by order-bound endpoints.
+        return `/checkout?dispId=${encodeURIComponent(dispensary.id || '')}`;
     }
 
     // If dispensary has Dutchie, Jane, or other partner integration
