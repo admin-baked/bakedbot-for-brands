@@ -249,6 +249,35 @@ export async function POST(req: NextRequest) {
     const expectedAmountCents = getExpectedOrderTotalCents(canonicalOrder);
     const providerAmountCents = toCents(amount);
 
+    if (
+      paymentStatus === 'paid' &&
+      expectedAmountCents !== null &&
+      providerAmountCents === null
+    ) {
+      logger.error("[P0-SEC-CANNPAY-WEBHOOK] Missing provider amount on paid event - refusing state transition", {
+        orderId,
+        intentId,
+        expectedAmountCents,
+        status,
+      });
+
+      await db.collection('payment_forensics').add({
+        provider: 'cannpay',
+        source: 'cannpay_webhook',
+        reason: 'missing_amount',
+        orderId,
+        intentId,
+        merchantOrderId: merchantOrderId || null,
+        organizationId: organizationId || null,
+        expectedAmountCents,
+        providerAmountCents: null,
+        providerStatus: status || null,
+        observedAt: FieldValue.serverTimestamp(),
+      });
+
+      return NextResponse.json({ received: true, warning: 'Amount missing' });
+    }
+
     if (expectedAmountCents !== null && providerAmountCents !== null) {
       const centsMatch = providerAmountCents === expectedAmountCents;
       const dollarsMatch = providerAmountCents * 100 === expectedAmountCents;

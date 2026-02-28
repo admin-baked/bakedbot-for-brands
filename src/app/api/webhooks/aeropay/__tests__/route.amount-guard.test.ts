@@ -199,4 +199,53 @@ describe('POST /api/webhooks/aeropay amount guard', () => {
       providerAmountCents: 300,
     }));
   });
+
+  it('records forensic evidence and blocks transitions when paid event amount is missing', async () => {
+    const webhookBody = JSON.stringify({
+      topic: 'transaction_completed',
+      date: '2026-02-28T12:00:00.000Z',
+      data: {
+        transactionId: 'tx_missing_amount',
+        userId: 'user_1',
+        merchantId: 'merchant_1',
+        status: 'completed',
+        merchantOrderId: 'order-1',
+        createdAt: '2026-02-28T12:00:00.000Z',
+      },
+    });
+
+    const signature = crypto
+      .createHmac('sha256', 'aero-secret')
+      .update(webhookBody)
+      .digest('hex')
+      .toLowerCase();
+
+    const request = new NextRequest('http://localhost/api/webhooks/aeropay', {
+      method: 'POST',
+      body: webhookBody,
+      headers: {
+        'x-aeropay-signature': signature,
+      },
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.received).toBe(true);
+
+    expect(mockTransactionUpdate).not.toHaveBeenCalled();
+    expect(mockOrderUpdate).not.toHaveBeenCalled();
+    expect(mockEmitEvent).not.toHaveBeenCalled();
+
+    expect(mockForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'aeropay',
+      source: 'aeropay_webhook',
+      reason: 'missing_amount',
+      orderId: 'order-1',
+      transactionId: 'tx_missing_amount',
+      expectedAmountCents: 5050,
+      providerAmountCents: null,
+    }));
+  });
 });

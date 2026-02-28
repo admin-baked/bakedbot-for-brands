@@ -337,6 +337,34 @@ async function handleTransactionWebhook(
   const expectedAmountCents = getExpectedAeropayAmountCents(orderData);
   const providerAmountCents = toCents(data.amount);
 
+  if (
+    paymentStatus === 'paid' &&
+    expectedAmountCents !== null &&
+    providerAmountCents === null
+  ) {
+    logger.error('[AEROPAY-WEBHOOK] Missing provider amount on paid event - refusing state transition', {
+      orderId,
+      transactionId,
+      expectedAmountCents,
+      status,
+    });
+
+    await db.collection('payment_forensics').add({
+      provider: 'aeropay',
+      source: 'aeropay_webhook',
+      reason: 'missing_amount',
+      orderId,
+      transactionId,
+      merchantOrderId: merchantOrderId || null,
+      expectedAmountCents,
+      providerAmountCents: null,
+      providerStatus: status || null,
+      observedAt: FieldValue.serverTimestamp(),
+    });
+
+    return;
+  }
+
   if (expectedAmountCents !== null && providerAmountCents !== null) {
     const centsMatch = providerAmountCents === expectedAmountCents;
     const dollarsMatch = providerAmountCents * 100 === expectedAmountCents;

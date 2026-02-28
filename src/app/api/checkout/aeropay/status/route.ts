@@ -146,6 +146,30 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        if (
+          transaction.status === 'completed' &&
+          expectedAmountCents !== null &&
+          !Number.isFinite(providerAmountCents)
+        ) {
+          await firestore.collection('payment_forensics').add({
+            provider: 'aeropay',
+            source: 'aeropay_status_poll',
+            reason: 'missing_amount',
+            userId: user.uid,
+            orderId,
+            transactionId,
+            expectedAmountCents,
+            providerAmountCents: null,
+            providerStatus: transaction.status,
+            observedAt: FieldValue.serverTimestamp(),
+          });
+
+          return NextResponse.json(
+            { error: 'Aeropay transaction amount missing' },
+            { status: 409 }
+          );
+        }
+
         const updates: any = {
           'aeropay.status': transaction.status,
           updatedAt: new Date().toISOString(),

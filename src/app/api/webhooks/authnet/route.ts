@@ -454,6 +454,36 @@ export async function POST(req: NextRequest) {
             return;
           }
 
+          if (
+            outcome.paymentStatus === 'paid' &&
+            expectedAmountCents !== null &&
+            providerAmountCents === null
+          ) {
+            logger.error('[AUTHNET_WEBHOOK] Missing provider amount on paid event - refusing state transition', {
+              orderId: doc.id,
+              transactionId: entityId,
+              eventType,
+              expectedAmountCents,
+            });
+
+            await db.collection('payment_forensics').add({
+              provider: 'authorize_net',
+              source: 'authnet_webhook',
+              reason: 'missing_amount',
+              orderId: doc.id,
+              orderPath: doc.ref.path,
+              transactionId: entityId,
+              eventType,
+              responseCode,
+              expectedAmountCents,
+              providerAmountCents: null,
+              voidAttempted: false,
+              voidSucceeded: false,
+              observedAt: FieldValue.serverTimestamp(),
+            });
+            return;
+          }
+
           const nextStatus = resolveOrderStatus(orderData, outcome.orderStatus);
           const updatePayload: Record<string, unknown> = {
             paymentProvider: 'authorize_net',

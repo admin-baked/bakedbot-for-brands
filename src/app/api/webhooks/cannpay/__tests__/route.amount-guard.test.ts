@@ -237,4 +237,48 @@ describe('POST /api/webhooks/cannpay amount guard', () => {
     expect(updatedTopOrder.paymentStatus).toBe('paid');
     expect(updatedTopOrder.status).toBeUndefined();
   });
+
+  it('does not transition order when paid event amount is missing', async () => {
+    const responsePayload = JSON.stringify({
+      intent_id: 'intent-456',
+      status: 'Success',
+      merchant_order_id: 'order-1',
+      passthrough_param: JSON.stringify({ orderId: 'order-1', brandId: 'org_demo' }),
+    });
+
+    const signature = crypto
+      .createHmac('sha256', 'test-secret')
+      .update(responsePayload)
+      .digest('hex')
+      .toLowerCase();
+
+    const reqBody = JSON.stringify({
+      response: responsePayload,
+      signature,
+    });
+
+    const request = new NextRequest('http://localhost/api/webhooks/cannpay', {
+      method: 'POST',
+      body: reqBody,
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.received).toBe(true);
+    expect(data.warning).toContain('Amount missing');
+
+    expect(mockTopSet).not.toHaveBeenCalled();
+    expect(mockOrgSet).not.toHaveBeenCalled();
+    expect(mockEmitEvent).not.toHaveBeenCalled();
+    expect(mockForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'cannpay',
+      source: 'cannpay_webhook',
+      reason: 'missing_amount',
+      orderId: 'order-1',
+      expectedAmountCents: 4999,
+      providerAmountCents: null,
+    }));
+  });
 });
