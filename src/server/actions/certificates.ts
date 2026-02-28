@@ -24,6 +24,17 @@ export type ActionResult<T = any> =
     | { success: true; data: T }
     | { success: false; error: string };
 
+function isSuperRole(role: unknown): boolean {
+    if (Array.isArray(role)) {
+        return role.includes('super_user') || role.includes('super_admin');
+    }
+    return role === 'super_user' || role === 'super_admin';
+}
+
+function isValidDocId(id: string): boolean {
+    return !!id && !id.includes('/');
+}
+
 /**
  * Generate certificate for user
  */
@@ -34,9 +45,13 @@ export async function generateCertificate(userId?: string): Promise<ActionResult
     try {
         const user = await requireUser(['intern', 'super_user']);
 
-        // Allow admins to generate for any user
-        const targetUserId = userId || user.uid;
-        const isSuperUser = (user as any).role?.includes('super_user');
+        const requestedUserId = userId?.trim();
+        const targetUserId = requestedUserId || user.uid;
+        const isSuperUser = isSuperRole((user as { role?: unknown }).role);
+
+        if (!isValidDocId(targetUserId)) {
+            return { success: false, error: 'Invalid user id' };
+        }
 
         if (targetUserId !== user.uid && !isSuperUser) {
             return { success: false, error: 'Unauthorized' };
@@ -162,9 +177,14 @@ export async function generateCertificate(userId?: string): Promise<ActionResult
  */
 export async function verifyCertificate(certificateId: string): Promise<ActionResult<CertificateMetadata>> {
     try {
+        const normalizedCertificateId = certificateId.trim();
+        if (!isValidDocId(normalizedCertificateId)) {
+            return { success: false, error: 'Invalid certificate id' };
+        }
+
         const db = getAdminFirestore();
 
-        const certDoc = await db.collection('certificates').doc(certificateId).get();
+        const certDoc = await db.collection('certificates').doc(normalizedCertificateId).get();
 
         if (!certDoc.exists) {
             return { success: false, error: 'Certificate not found' };
