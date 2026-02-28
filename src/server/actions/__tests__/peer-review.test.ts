@@ -413,4 +413,34 @@ describe('Peer Review Server Actions', () => {
             expect(result.error).toContain('Unauthorized');
         });
     });
+
+    describe('skipPeerReview', () => {
+        it('should reject invalid review id path', async () => {
+            const { requireUser } = await import('@/server/auth/auth');
+            (requireUser as jest.Mock).mockResolvedValue({ uid: 'author-user' });
+
+            const { getAdminFirestore } = await import('@/firebase/admin');
+            const { skipPeerReview } = await import('../peer-review');
+
+            const result = await skipPeerReview('bad/review-id', 'Need more time');
+
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('Invalid review id');
+            expect(getAdminFirestore).not.toHaveBeenCalled();
+        });
+
+        it('should reject empty skip reason', async () => {
+            const { requireUser } = await import('@/server/auth/auth');
+            (requireUser as jest.Mock).mockResolvedValue({ uid: 'author-user' });
+
+            const { getAdminFirestore } = await import('@/firebase/admin');
+            const { skipPeerReview } = await import('../peer-review');
+
+            const result = await skipPeerReview('review-123', '   ');
+
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('Skip reason required');
+            expect(getAdminFirestore).not.toHaveBeenCalled();
+        });
+    });
 });
