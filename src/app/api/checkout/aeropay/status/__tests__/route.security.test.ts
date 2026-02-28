@@ -69,7 +69,10 @@ describe('POST /api/checkout/aeropay/status security', () => {
 
     mockOrderGet.mockResolvedValue({
       exists: true,
-      data: () => ({}),
+      data: () => ({
+        totals: { total: 50 },
+        aeropay: { transactionId: 'tx_1' },
+      }),
     });
     mockOrderUpdate.mockResolvedValue(undefined);
 
@@ -164,6 +167,7 @@ describe('POST /api/checkout/aeropay/status security', () => {
       exists: true,
       data: () => ({
         totals: { total: 50 },
+        aeropay: { transactionId: 'tx_1' },
       }),
     });
 
@@ -183,6 +187,7 @@ describe('POST /api/checkout/aeropay/status security', () => {
       exists: true,
       data: () => ({
         totals: { total: 50 },
+        aeropay: { transactionId: 'tx_1' },
       }),
     });
     mockGetTransactionDetails.mockResolvedValue({
@@ -218,6 +223,7 @@ describe('POST /api/checkout/aeropay/status security', () => {
       exists: true,
       data: () => ({
         totals: { total: 50 },
+        aeropay: { transactionId: 'tx_1' },
       }),
     });
     mockGetTransactionDetails.mockResolvedValue({
@@ -253,6 +259,7 @@ describe('POST /api/checkout/aeropay/status security', () => {
       exists: true,
       data: () => ({
         totals: { total: 50 },
+        aeropay: { transactionId: 'tx_1' },
       }),
     });
     mockGetTransactionDetails.mockResolvedValue({
@@ -281,5 +288,63 @@ describe('POST /api/checkout/aeropay/status security', () => {
       expectedAmountCents: 5050,
       providerAmountCents: null,
     }));
+  });
+
+  it('blocks status transition when canonical order transaction binding mismatches', async () => {
+    mockOrderGet.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        totals: { total: 50 },
+        aeropay: { transactionId: 'tx_other' },
+      }),
+    });
+
+    const response = await POST({
+      json: async () => ({ transactionId: 'tx_1' }),
+    } as any);
+    const body = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(body.error).toContain('does not match this order');
+    expect(mockOrderUpdate).not.toHaveBeenCalled();
+    expect(mockTransactionUpdate).not.toHaveBeenCalled();
+    expect(mockForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'aeropay',
+      source: 'aeropay_status_poll',
+      reason: 'transaction_mismatch',
+      orderId: 'order-1',
+      transactionId: 'tx_1',
+      expectedTransactionId: 'tx_other',
+    }));
+  });
+
+  it('accepts dollar-denominated Aeropay amount payloads when they match expected total', async () => {
+    mockOrderGet.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        totals: { total: 50 },
+        aeropay: { transactionId: 'tx_1' },
+      }),
+    });
+
+    mockGetTransactionDetails.mockResolvedValue({
+      transactionId: 'tx_1',
+      status: 'completed',
+      amount: '50.50',
+      merchantOrderId: 'order-1',
+      updatedAt: '2026-02-28T20:00:00.000Z',
+    });
+
+    const response = await POST({
+      json: async () => ({ transactionId: 'tx_1' }),
+    } as any);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.status).toBe('completed');
+    expect(mockOrderUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      paymentStatus: 'paid',
+    }));
+    expect(mockTransactionUpdate).toHaveBeenCalled();
   });
 });
