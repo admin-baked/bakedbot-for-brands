@@ -259,4 +259,43 @@ describe('POST /api/webhooks/authnet payment amount guard', () => {
       providerAmountCents: 410,
     }));
   });
+
+  it('records forensics and skips paid transition when provider amount is missing', async () => {
+    setupDb({ withOrder: true, orderTotal: 10 });
+    const { POST } = await import('../route');
+
+    const body = JSON.stringify({
+      notificationId: 'notif-missing-amount',
+      eventType: 'net.authorize.payment.authcapture.created',
+      payload: {
+        id: 'txn_missing_amount',
+        responseCode: '1',
+      },
+    });
+
+    const req = new NextRequest('http://localhost/api/webhooks/authnet', {
+      method: 'POST',
+      body,
+      headers: {
+        'x-anet-signature': 'sha512=fake',
+      },
+    });
+
+    const response = await POST(req);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.processedOrders).toBe(0);
+    expect(mockOrderSet).not.toHaveBeenCalled();
+    expect(mockEmitEvent).not.toHaveBeenCalled();
+    expect(mockForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'authorize_net',
+      source: 'authnet_webhook',
+      reason: 'missing_amount',
+      orderId: 'order-1',
+      transactionId: 'txn_missing_amount',
+      expectedAmountCents: 1000,
+      providerAmountCents: null,
+    }));
+  });
 });

@@ -247,4 +247,39 @@ describe('POST /api/checkout/aeropay/status security', () => {
       expectedMerchantOrderId: 'order-1',
     }));
   });
+
+  it('blocks completed status transition and records forensics when provider amount is missing', async () => {
+    mockOrderGet.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        totals: { total: 50 },
+      }),
+    });
+    mockGetTransactionDetails.mockResolvedValue({
+      transactionId: 'tx_1',
+      status: 'completed',
+      amount: undefined,
+      merchantOrderId: 'order-1',
+      updatedAt: '2026-02-28T20:00:00.000Z',
+    });
+
+    const response = await POST({
+      json: async () => ({ transactionId: 'tx_1' }),
+    } as any);
+    const body = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(body.error).toContain('amount missing');
+    expect(mockOrderUpdate).not.toHaveBeenCalled();
+    expect(mockTransactionUpdate).not.toHaveBeenCalled();
+    expect(mockForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'aeropay',
+      source: 'aeropay_status_poll',
+      reason: 'missing_amount',
+      orderId: 'order-1',
+      transactionId: 'tx_1',
+      expectedAmountCents: 5050,
+      providerAmountCents: null,
+    }));
+  });
 });
