@@ -142,5 +142,28 @@ describe('POST /api/smokey/cart/prepare security', () => {
       dispId: 'disp_1',
     }));
   });
-});
 
+  it('does not embed amount/items in CanPay handoff URLs', async () => {
+    mockDispGet.mockResolvedValueOnce({
+      data: () => ({
+        id: 'disp_1',
+        cannpayEnabled: true,
+        cannpayMerchantId: 'merchant_1',
+      }),
+    });
+
+    const response = await POST({
+      json: async () => ({
+        dispId: 'disp_1',
+        items: [{ productId: 'prod_1', qty: 1 }],
+      }),
+    } as any);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(body.handoffUrl).toBe('/checkout?dispId=disp_1');
+    expect(body.handoffUrl).not.toContain('amount=');
+    expect(body.handoffUrl).not.toContain('/checkout/cannpay');
+  });
+});
