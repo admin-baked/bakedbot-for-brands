@@ -7,8 +7,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/monitoring';
-import { cookies } from 'next/headers';
+import { z } from 'zod';
 import { COVERAGE_PACKS, type CoveragePackTier } from '@/types/subscriptions';
+import { requireUser } from '@/server/auth/auth';
+import { isCompanyPlanCheckoutEnabled } from '@/lib/feature-flags';
 
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 const AUTHORIZE_LOGIN_ID = process.env.AUTHORIZE_NET_LOGIN_ID;
@@ -18,46 +20,57 @@ const API_ENDPOINT = IS_PRODUCTION
     ? 'https://api2.authorize.net/xml/v1/request.api'
     : 'https://apitest.authorize.net/xml/v1/request.api';
 
-interface SubscribeToCoveragePackRequest {
-    packId: CoveragePackTier;
-    billingPeriod: 'monthly' | 'annual';
-    opaqueData?: {
-        dataDescriptor: string;
-        dataValue: string;
-    };
-    cardNumber?: string;
-    expirationDate?: string;
-    cvv?: string;
-    zip?: string;
-    businessName: string;
-    contactName: string;
-    contactEmail: string;
-}
+const subscribeSchema = z.object({
+    packId: z.custom<CoveragePackTier>((value) => {
+        return typeof value === 'string' && COVERAGE_PACKS.some(p => p.id === value);
+    }, 'Invalid coverage pack'),
+    billingPeriod: z.enum(['monthly', 'annual']),
+    opaqueData: z.object({
+        dataDescriptor: z.string().trim().min(1).max(120),
+        dataValue: z.string().trim().min(1),
+    }),
+    zip: z.string().trim().regex(/^\d{5}(-\d{4})?$/, 'Invalid ZIP code').optional(),
+    businessName: z.string().trim().min(1).max(160),
+    contactName: z.string().trim().min(1).max(120),
+    contactEmail: z.string().trim().email(),
+}).strict();
 
 export async function POST(request: NextRequest) {
     try {
-        const body: SubscribeToCoveragePackRequest = await request.json();
+        if (!isCompanyPlanCheckoutEnabled()) {
+            return NextResponse.json(
+                { success: false, error: 'Subscription checkout is currently disabled. Please contact sales.' },
+                { status: 503 }
+            );
+        }
+
+        let session;
+        try {
+            session = await requireUser();
+        } catch {
+            return NextResponse.json(
+                { success: false, error: 'Authentication required' },
+                { status: 401 }
+            );
+        }
+        const body = subscribeSchema.parse(await request.json());
         const {
             packId,
             billingPeriod,
             opaqueData,
-            cardNumber,
-            expirationDate,
-            cvv,
             zip,
             businessName,
             contactName,
             contactEmail,
         } = body;
+        const userId = session.uid;
+        const sessionEmail = typeof session.email === 'string' ? session.email.toLowerCase() : '';
+        const normalizedContactEmail = contactEmail.toLowerCase();
 
-        // Get user ID from session
-        const cookieStore = await cookies();
-        const userId = cookieStore.get('userId')?.value;
-
-        if (!userId) {
+        if (sessionEmail && normalizedContactEmail !== sessionEmail) {
             return NextResponse.json(
-                { success: false, error: 'Authentication required' },
-                { status: 401 }
+                { success: false, error: 'Contact email must match your signed-in account.' },
+                { status: 403 }
             );
         }
 
@@ -90,29 +103,16 @@ export async function POST(request: NextRequest) {
 
         const intervalLength = billingPeriod === 'annual' ? 12 : 1;
 
-        // Build payment data
-        let paymentData: any;
-        if (opaqueData) {
-            paymentData = {
-                opaqueData: {
-                    dataDescriptor: opaqueData.dataDescriptor,
-                    dataValue: opaqueData.dataValue,
-                },
-            };
-        } else if (cardNumber && expirationDate) {
-            paymentData = {
-                creditCard: {
-                    cardNumber,
-                    expirationDate,
-                    cardCode: cvv,
-                },
-            };
-        } else {
-            return NextResponse.json(
-                { success: false, error: 'Payment method required' },
-                { status: 400 }
-            );
-        }
+        const paymentData = {
+            opaqueData: {
+                dataDescriptor: opaqueData.dataDescriptor,
+                dataValue: opaqueData.dataValue,
+            },
+        };
+
+        const nameParts = contactName.split(/\s+/);
+        const firstName = nameParts[0] || 'Customer';
+        const lastName = nameParts.slice(1).join(' ') || firstName;
 
         // Create customer profile
         const profileRequest = {
@@ -126,14 +126,15 @@ export async function POST(request: NextRequest) {
                     description: `${businessName} - ${pack.name}`,
                     paymentProfiles: {
                         billTo: {
-                            firstName: contactName.split(' ')[0],
-                            lastName: contactName.split(' ').slice(1).join(' ') || contactName,
+                            firstName,
+                            lastName,
                             company: businessName,
                             zip: zip || '00000',
                         },
                         payment: paymentData,
                     },
                 },
+                validationMode: 'none',
             },
         };
 
@@ -154,7 +155,9 @@ export async function POST(request: NextRequest) {
         }
 
         const customerProfileId = profileJson.customerProfileId;
-        const paymentProfileId = profileJson.customerPaymentProfileIdList?.[0];
+        const paymentProfileId =
+            profileJson.customerPaymentProfileIdList?.[0] ??
+            profileJson.customerPaymentProfileIdList?.customerPaymentProfileId;
 
         if (!customerProfileId || !paymentProfileId) {
             logger.error('Missing profile IDs from Authorize.net');
@@ -272,6 +275,12 @@ export async function POST(request: NextRequest) {
 
     } catch (error: any) {
         logger.error('Coverage pack subscription failed:', error);
+        if (error instanceof z.ZodError) {
+            return NextResponse.json(
+                { success: false, error: error.issues[0]?.message || 'Invalid request payload' },
+                { status: 400 }
+            );
+        }
         return NextResponse.json(
             { success: false, error: error.message },
             { status: 500 }
@@ -282,15 +291,16 @@ export async function POST(request: NextRequest) {
 // GET: Retrieve current subscription
 export async function GET(request: NextRequest) {
     try {
-        const cookieStore = await cookies();
-        const userId = cookieStore.get('userId')?.value;
-
-        if (!userId) {
+        let session;
+        try {
+            session = await requireUser();
+        } catch {
             return NextResponse.json(
                 { success: false, error: 'Authentication required' },
                 { status: 401 }
             );
         }
+        const userId = session.uid;
 
         const firestore = getAdminFirestore();
 
