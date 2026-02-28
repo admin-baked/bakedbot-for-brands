@@ -90,6 +90,7 @@ describe('/api/subscriptions/coverage-pack security', () => {
                 businessName: 'Test Biz',
                 contactName: 'Owner Example',
                 contactEmail: 'other@example.com',
+                zip: '13202',
             }),
         } as any);
         const body = await response.json();
@@ -124,6 +125,32 @@ describe('/api/subscriptions/coverage-pack security', () => {
         expect(mockGetAdminFirestore).not.toHaveBeenCalled();
     });
 
+    it('requires billing ZIP for paid coverage-pack subscriptions', async () => {
+        mockRequireUser.mockResolvedValue({
+            uid: 'user-1',
+            email: 'owner@example.com',
+        });
+
+        const response = await POST({
+            json: async () => ({
+                packId: 'starter',
+                billingPeriod: 'monthly',
+                opaqueData: {
+                    dataDescriptor: 'COMMON.ACCEPT.INAPP.PAYMENT',
+                    dataValue: 'opaque-token',
+                },
+                businessName: 'Test Biz',
+                contactName: 'Owner Example',
+                contactEmail: 'owner@example.com',
+            }),
+        } as any);
+        const body = await response.json();
+
+        expect(response.status).toBe(400);
+        expect(body.error).toBeTruthy();
+        expect(mockGetAdminFirestore).not.toHaveBeenCalled();
+    });
+
     it('requires authentication on GET', async () => {
         mockRequireUser.mockRejectedValue(new Error('Unauthorized'));
 
@@ -135,4 +162,3 @@ describe('/api/subscriptions/coverage-pack security', () => {
         expect(mockGetAdminFirestore).not.toHaveBeenCalled();
     });
 });
-
