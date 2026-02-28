@@ -177,7 +177,7 @@ function shouldAttemptVoidForUnmappedPayment(
   eventType: string,
   responseCode: number | null,
 ): boolean {
-  if (responseCode !== 1) return false;
+  if (responseCode !== null && responseCode !== 1) return false;
   const normalizedType = eventType.toLowerCase();
   if (!normalizedType.includes('net.authorize.payment.')) return false;
   if (
