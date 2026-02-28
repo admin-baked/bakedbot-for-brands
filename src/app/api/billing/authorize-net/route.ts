@@ -75,7 +75,7 @@ function getAuthNetBaseUrl() {
  * SECURITY: Requires authentication and org admin access.
  */
 export async function POST(req: NextRequest) {
-  const { firestore: db } = await createServerClient();
+  let db: FirebaseFirestore.Firestore;
   let body: SubscribeBody | null = null;
 
   try {
@@ -85,6 +85,8 @@ export async function POST(req: NextRequest) {
         { status: 503 }
       );
     }
+
+    ({ firestore: db } = await createServerClient());
 
     // SECURITY: Require authenticated session
     const session = await requireUser();
