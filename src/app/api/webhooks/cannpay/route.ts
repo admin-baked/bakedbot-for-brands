@@ -13,7 +13,7 @@ import { createServerClient } from "@/firebase/server-client";
 import { FieldValue } from "firebase-admin/firestore";
 import { emitEvent } from "@/server/events/emitter";
 import type { EventType } from "@/types/domain";
-import { createHmac, timingSafeEqual } from "crypto";
+import { createHash, createHmac, timingSafeEqual } from "crypto";
 import { logger } from "@/lib/logger";
 
 /**
@@ -37,6 +37,12 @@ function verifySignature(payload: string, signature: string, secret: string): bo
     Buffer.from(computed, "utf-8"),
     Buffer.from(signature, "utf-8")
   );
+}
+
+function isAlreadyExistsError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const code = (error as { code?: unknown }).code;
+  return code === 6 || code === '6' || code === 'already-exists';
 }
 
 function safeParseJson(value: unknown): Record<string, any> {
@@ -98,6 +104,7 @@ function resolveOrderStatus(
 
 export async function POST(req: NextRequest) {
   const { firestore: db } = await createServerClient();
+  let webhookLogRef: FirebaseFirestore.DocumentReference | null = null;
 
   try {
     // Primary secret is CANPAY_API_SECRET; allow legacy fallback for compatibility.
@@ -170,6 +177,31 @@ export async function POST(req: NextRequest) {
     const passthrough = safeParseJson(passthroughParam);
     const orderId = passthrough?.orderId || merchantOrderId;
     const organizationId = passthrough?.brandId || passthrough?.organizationId || event?.organization_id;
+
+    const webhookLogId = `cannpay_${createHash('sha256').update(responseString).digest('hex').slice(0, 32)}`;
+    webhookLogRef = db.collection('payment_webhooks').doc(webhookLogId);
+
+    try {
+      await webhookLogRef.create({
+        provider: 'cannpay',
+        status: 'received',
+        receivedAt: FieldValue.serverTimestamp(),
+        intentId: intentId || null,
+        canpayTransactionNumber: canpayTransactionNumber || null,
+        merchantOrderId: merchantOrderId || null,
+        orderId: orderId || null,
+      });
+    } catch (error) {
+      if (isAlreadyExistsError(error)) {
+        logger.info('[P0-SEC-CANNPAY-WEBHOOK] Duplicate webhook payload ignored', {
+          webhookLogId,
+          intentId: intentId || null,
+          canpayTransactionNumber: canpayTransactionNumber || null,
+        });
+        return NextResponse.json({ received: true, duplicate: true });
+      }
+      throw error;
+    }
 
     if (!intentId) {
       logger.error("[P0-SEC-CANNPAY-WEBHOOK] Missing intent_id in verified payload");
@@ -436,12 +468,28 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    if (webhookLogRef) {
+      await webhookLogRef.set({
+        status: 'processed',
+        processedAt: FieldValue.serverTimestamp(),
+        paymentStatus,
+        providerStatus: status || null,
+      }, { merge: true });
+    }
+
     return NextResponse.json({ received: true });
   } catch (err: any) {
     logger.error("[P0-SEC-CANNPAY-WEBHOOK] Webhook processing failed", {
       error: err?.message,
       stack: err?.stack,
     });
+    if (webhookLogRef) {
+      await webhookLogRef.set({
+        status: 'failed',
+        failedAt: FieldValue.serverTimestamp(),
+        error: err?.message || String(err),
+      }, { merge: true });
+    }
     return NextResponse.json(
       { error: err?.message || "Webhook processing error" },
       { status: 500 }
