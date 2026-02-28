@@ -6,7 +6,8 @@ import { logger } from '@/lib/logger';
 import { PRICING_PLANS, findPricingPlan } from '@/lib/config/pricing';
 import { createCustomerProfile, createSubscriptionFromProfile } from '@/lib/payments/authorize-net';
 import { PlanId, computeMonthlyAmount, CoveragePackId, COVERAGE_PACKS } from '@/lib/plans';
-import { cookies } from 'next/headers';
+import { requireUser } from '@/server/auth/auth';
+import { isCompanyPlanCheckoutEnabled } from '@/lib/feature-flags';
 
 interface ClaimSubscriptionInput {
     // Business Info
@@ -76,24 +77,25 @@ export async function createClaimWithSubscription(
     input: ClaimSubscriptionInput
 ): Promise<ClaimSubscriptionResult> {
     try {
-        const { firestore, auth } = await createServerClient();
-
-        // 0. Resolve User from Session
-        let userId: string | null = null;
-        try {
-            const cookieStore = await cookies();
-            const sessionCookie = cookieStore.get('__session')?.value;
-            if (sessionCookie) {
-                const decoded = await auth.verifySessionCookie(sessionCookie, true);
-                userId = decoded.uid;
-            }
-        } catch (e) {
-            logger.warn('Failed to resolve user from session in createClaimWithSubscription', { error: e });
-            // We allow proceeding without a user for now (legacy behavior?), or should we fail?
-            // The prompt implies "silent failure" of user CREATION. 
-            // If the user isn't logged in, they shouldn't be here (middleware usually protects).
-            // But let's proceed and create the claim, logging the issue.
+        if (!isCompanyPlanCheckoutEnabled()) {
+            return { success: false, error: 'Subscription checkout is currently disabled. Please contact sales.' };
         }
+
+        let session;
+        try {
+            session = await requireUser();
+        } catch {
+            return { success: false, error: 'Authentication required.' };
+        }
+
+        const sessionEmail = typeof session.email === 'string' ? session.email.toLowerCase() : '';
+        const requestEmail = input.contactEmail.trim().toLowerCase();
+        if (sessionEmail && requestEmail !== sessionEmail) {
+            return { success: false, error: 'Contact email must match your signed-in account.' };
+        }
+
+        const userId = session.uid;
+        const { firestore } = await createServerClient();
 
         // 1. Validate plan
         const plan = findPricingPlan(input.planId);
@@ -161,62 +163,60 @@ export async function createClaimWithSubscription(
         const claimId = claimRef.id;
 
         // 3a. Ensure User Document Exists & Set Role
-        if (userId) {
-            try {
-                const userRef = firestore.collection('users').doc(userId);
-                const userDoc = await userRef.get();
+        try {
+            const userRef = firestore.collection('users').doc(userId);
+            const userDoc = await userRef.get();
 
-                // Prepare user data
-                const userData: any = {
-                    email: input.contactEmail,
-                    displayName: input.contactName,
-                    phoneNumber: input.contactPhone,
-                    updatedAt: FieldValue.serverTimestamp(),
-                    // Flattened role/claims for easy access
-                    role: input.role,
-                };
+            // Prepare user data
+            const userData: any = {
+                email: input.contactEmail,
+                displayName: input.contactName,
+                phoneNumber: input.contactPhone,
+                updatedAt: FieldValue.serverTimestamp(),
+                // Flattened role/claims for easy access
+                role: input.role,
+            };
 
-                // Link org if applicable (provisional, until claimed)
-                if (input.orgId) {
-                    // Keep these fields aligned with the onboarding flow so CEO CRM can resolve org context.
-                    userData.currentOrgId = input.orgId;
-                    userData.orgId = input.orgId;
-                    userData.tenantId = input.orgId;
+            // Link org if applicable (provisional, until claimed)
+            if (input.orgId) {
+                // Keep these fields aligned with the onboarding flow so CEO CRM can resolve org context.
+                userData.currentOrgId = input.orgId;
+                userData.orgId = input.orgId;
+                userData.tenantId = input.orgId;
 
-                    if (input.role === 'brand') {
-                        userData.brandId = input.orgId;
-                    }
-
-                    if (input.role === 'dispensary') {
-                        // Legacy field (some older code paths expect it)
-                        userData.dispensaryId = input.orgId;
-                        // Canonical field used across most dashboard logic
-                        userData.locationId = input.orgId;
-                    }
+                if (input.role === 'brand') {
+                    userData.brandId = input.orgId;
                 }
 
-                await userRef.set(userData, { merge: true });
-
-                // Set Custom Claims for Auth
-                // Cast input.role to valid type or fallback to 'owner' if generic
-                const roleType = (input.role === 'brand' || input.role === 'dispensary') ? input.role : 'owner';
-                const additionalData: { brandId?: string; locationId?: string; tenantId?: string } = {};
-                if (input.role === 'brand' && input.orgId) {
-                    additionalData.brandId = input.orgId;
-                    additionalData.tenantId = input.orgId;
+                if (input.role === 'dispensary') {
+                    // Legacy field (some older code paths expect it)
+                    userData.dispensaryId = input.orgId;
+                    // Canonical field used across most dashboard logic
+                    userData.locationId = input.orgId;
                 }
-                if (input.role === 'dispensary' && input.orgId) {
-                    additionalData.locationId = input.orgId;
-                    additionalData.tenantId = input.orgId;
-                }
-                await setUserRole(userId, roleType as any, additionalData);
-
-                logger.info('User document updated and role set', { userId, role: roleType, claimId });
-
-            } catch (err) {
-                logger.error('Failed to update user document during claim', { userId, error: err });
-                // Don't fail the claim, but this is critical for access.
             }
+
+            await userRef.set(userData, { merge: true });
+
+            // Set Custom Claims for Auth
+            // Cast input.role to valid type or fallback to 'owner' if generic
+            const roleType = (input.role === 'brand' || input.role === 'dispensary') ? input.role : 'owner';
+            const additionalData: { brandId?: string; locationId?: string; tenantId?: string } = {};
+            if (input.role === 'brand' && input.orgId) {
+                additionalData.brandId = input.orgId;
+                additionalData.tenantId = input.orgId;
+            }
+            if (input.role === 'dispensary' && input.orgId) {
+                additionalData.locationId = input.orgId;
+                additionalData.tenantId = input.orgId;
+            }
+            await setUserRole(userId, roleType as any, additionalData);
+
+            logger.info('User document updated and role set', { userId, role: roleType, claimId });
+
+        } catch (err) {
+            logger.error('Failed to update user document during claim', { userId, error: err });
+            // Don't fail the claim, but this is critical for access.
         }
 
         // 3b. Update CRM Record if linked

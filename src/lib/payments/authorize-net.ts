@@ -97,7 +97,9 @@ export async function createCustomerProfile(
                     payment: paymentType
                 }]
             },
-            validationMode: AUTHNET_ENV === 'production' ? 'liveMode' : 'testMode'
+            // Prevent unsolicited auth-only validation transactions during profile creation.
+            // Payment authority is enforced at subscription/order creation time.
+            validationMode: 'none'
         }
     };
 

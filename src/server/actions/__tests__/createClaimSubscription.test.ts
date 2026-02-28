@@ -1,8 +1,9 @@
 
 import { createClaimWithSubscription } from '../createClaimSubscription';
 import { createServerClient, setUserRole } from '@/firebase/server-client';
-import { cookies } from 'next/headers';
 import { createCustomerProfile, createSubscriptionFromProfile } from '@/lib/payments/authorize-net';
+import { requireUser } from '@/server/auth/auth';
+import { isCompanyPlanCheckoutEnabled } from '@/lib/feature-flags';
 
 // Mock dependencies
 jest.mock('@/firebase/server-client', () => ({
@@ -10,8 +11,12 @@ jest.mock('@/firebase/server-client', () => ({
     setUserRole: jest.fn(),
 }));
 
-jest.mock('next/headers', () => ({
-    cookies: jest.fn(),
+jest.mock('@/server/auth/auth', () => ({
+    requireUser: jest.fn(),
+}));
+
+jest.mock('@/lib/feature-flags', () => ({
+    isCompanyPlanCheckoutEnabled: jest.fn(),
 }));
 
 jest.mock('@/lib/logger', () => ({
@@ -33,8 +38,6 @@ jest.mock('../free-user-setup', () => ({
 
 describe('createClaimWithSubscription', () => {
     let mockFirestore: any;
-    let mockAuth: any;
-    let mockCookieStore: any;
 
     beforeEach(() => {
         jest.clearAllMocks();
@@ -51,21 +54,14 @@ describe('createClaimWithSubscription', () => {
             count: jest.fn().mockReturnThis(),
         };
 
-        // Setup Auth Mock
-        mockAuth = {
-            verifySessionCookie: jest.fn(),
-        };
-
         (createServerClient as jest.Mock).mockResolvedValue({
             firestore: mockFirestore,
-            auth: mockAuth,
         });
-
-        // Setup Cookie Mock
-        mockCookieStore = {
-            get: jest.fn(),
-        };
-        (cookies as jest.Mock).mockReturnValue(mockCookieStore);
+        (isCompanyPlanCheckoutEnabled as jest.Mock).mockReturnValue(true);
+        (requireUser as jest.Mock).mockResolvedValue({
+            uid: 'user-123',
+            email: 'john@example.com',
+        });
     });
 
     it('should link claim to user if session cookie exists', async () => {
@@ -81,9 +77,6 @@ describe('createClaimWithSubscription', () => {
             planId: 'free' as const,
             zip: '90210'
         };
-
-        mockCookieStore.get.mockReturnValue({ value: 'valid-session-cookie' });
-        mockAuth.verifySessionCookie.mockResolvedValue({ uid: userId });
 
         // Mock User Doc check
         mockFirestore.get.mockResolvedValue({ exists: true }); // For misc gets
@@ -108,12 +101,10 @@ describe('createClaimWithSubscription', () => {
         }), { merge: true });
 
         // Check Role Setting
-        expect(setUserRole).toHaveBeenCalledWith(userId, 'owner', expect.objectContaining({
-            claimId: 'new-claim-id'
-        }));
+        expect(setUserRole).toHaveBeenCalledWith(userId, 'owner', {});
     });
 
-    it('should create claim without user if session missing (but log warning)', async () => {
+    it('should require authenticated session', async () => {
         // Arrange
         const input = {
             businessName: 'Test Biz',
@@ -126,26 +117,40 @@ describe('createClaimWithSubscription', () => {
             zip: '90210'
         };
 
-        mockCookieStore.get.mockReturnValue(undefined);
+        (requireUser as jest.Mock).mockRejectedValueOnce(new Error('Unauthorized'));
 
         // Act
         const result = await createClaimWithSubscription(input);
 
         // Assert
-        expect(result.success).toBe(true);
-        expect(mockFirestore.add).toHaveBeenCalledWith(expect.objectContaining({
-            userId: null,
-            businessName: 'Test Biz'
-        }));
-        
-        // Should NOT attempt to update user doc or set role
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('Authentication required');
+        expect(mockFirestore.add).not.toHaveBeenCalled();
         expect(mockFirestore.set).not.toHaveBeenCalled();
         expect(setUserRole).not.toHaveBeenCalled();
     });
 
+    it('should reject contact email mismatch from signed-in account', async () => {
+        const input = {
+            businessName: 'Mismatch Biz',
+            businessAddress: '123 St',
+            contactName: 'Jane Doe',
+            contactEmail: 'different@example.com',
+            contactPhone: '555-5555',
+            role: 'owner',
+            planId: 'free' as const,
+            zip: '90210'
+        };
+
+        const result = await createClaimWithSubscription(input);
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('must match your signed-in account');
+        expect(mockFirestore.add).not.toHaveBeenCalled();
+    });
+
     it('should process payment for pro plans', async () => {
         // Arrange
-        const userId = 'user-456';
         const input = {
             businessName: 'Pro Biz',
             businessAddress: '123 St',
@@ -160,8 +165,10 @@ describe('createClaimWithSubscription', () => {
             cvv: '123'
         };
 
-        mockCookieStore.get.mockReturnValue({ value: 'session' });
-        mockAuth.verifySessionCookie.mockResolvedValue({ uid: userId });
+        (requireUser as jest.Mock).mockResolvedValueOnce({
+            uid: 'user-456',
+            email: 'jane@example.com',
+        });
         
         (createCustomerProfile as jest.Mock).mockResolvedValue({
             customerProfileId: 'cust-1',
@@ -179,7 +186,7 @@ describe('createClaimWithSubscription', () => {
         expect(createCustomerProfile).toHaveBeenCalled();
         expect(createSubscriptionFromProfile).toHaveBeenCalled();
         expect(mockFirestore.add).toHaveBeenCalledWith(expect.objectContaining({
-            userId: userId,
+            userId: 'user-456',
             planPrice: 99
         }));
     });
