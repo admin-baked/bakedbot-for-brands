@@ -113,9 +113,9 @@ async function verifyOrgAccess(orgId: string): Promise<void> {
     }
 
     const user = await requireUser([
-        'brand', 'brand_admin', 'dispensary', 'dispensary_admin', 'super_user',
+        'brand', 'brand_admin', 'dispensary', 'dispensary_admin', 'super_user', 'super_admin',
     ]);
-    if (user.role !== 'super_user') {
+    if (user.role !== 'super_user' && user.role !== 'super_admin') {
         const userOrgId = getActorOrgId(user as AnalyticsActor);
         if (userOrgId !== orgId) {
             throw new Error('Forbidden: org mismatch');
