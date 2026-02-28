@@ -7,6 +7,7 @@ const mockTransactionGet = jest.fn();
 const mockTransactionUpdate = jest.fn();
 const mockOrderGet = jest.fn();
 const mockOrderUpdate = jest.fn();
+const mockForensicsAdd = jest.fn();
 
 jest.mock('next/server', () => ({
   NextRequest: class {},
@@ -28,6 +29,13 @@ jest.mock('@/firebase/server-client', () => ({
 
 jest.mock('@/lib/payments/aeropay', () => ({
   getTransactionDetails: (...args: unknown[]) => mockGetTransactionDetails(...args),
+  AEROPAY_TRANSACTION_FEE_CENTS: 50,
+}));
+
+jest.mock('firebase-admin/firestore', () => ({
+  FieldValue: {
+    serverTimestamp: jest.fn(() => 'MOCK_SERVER_TIMESTAMP'),
+  },
 }));
 
 jest.mock('@/lib/logger', () => ({
@@ -68,7 +76,8 @@ describe('POST /api/checkout/aeropay/status security', () => {
     mockGetTransactionDetails.mockResolvedValue({
       transactionId: 'tx_1',
       status: 'pending',
-      amount: 1234,
+      amount: 5050,
+      merchantOrderId: 'order-1',
       updatedAt: '2026-02-28T20:00:00.000Z',
     });
 
@@ -89,6 +98,12 @@ describe('POST /api/checkout/aeropay/status security', () => {
               get: mockOrderGet,
               update: mockOrderUpdate,
             })),
+          };
+        }
+
+        if (name === 'payment_forensics') {
+          return {
+            add: mockForensicsAdd,
           };
         }
 
@@ -145,6 +160,13 @@ describe('POST /api/checkout/aeropay/status security', () => {
   });
 
   it('returns transaction status for owning user', async () => {
+    mockOrderGet.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        totals: { total: 50 },
+      }),
+    });
+
     const response = await POST({
       json: async () => ({ transactionId: 'tx_1' }),
     } as any);
@@ -155,5 +177,72 @@ describe('POST /api/checkout/aeropay/status security', () => {
     expect(mockGetTransactionDetails).toHaveBeenCalledWith('tx_1');
     expect(mockTransactionUpdate).toHaveBeenCalled();
   });
-});
 
+  it('blocks order update and records forensics when provider amount mismatches order total+fee', async () => {
+    mockOrderGet.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        totals: { total: 50 },
+      }),
+    });
+    mockGetTransactionDetails.mockResolvedValue({
+      transactionId: 'tx_1',
+      status: 'completed',
+      amount: 300,
+      merchantOrderId: 'order-1',
+      updatedAt: '2026-02-28T20:00:00.000Z',
+    });
+
+    const response = await POST({
+      json: async () => ({ transactionId: 'tx_1' }),
+    } as any);
+    const body = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(body.error).toContain('amount mismatch');
+    expect(mockOrderUpdate).not.toHaveBeenCalled();
+    expect(mockForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'aeropay',
+      source: 'aeropay_status_poll',
+      reason: 'amount_mismatch',
+      orderId: 'order-1',
+      transactionId: 'tx_1',
+      expectedAmountCents: 5050,
+      providerAmountCents: 300,
+    }));
+  });
+
+  it('blocks order update and records forensics when provider order binding mismatches', async () => {
+    mockOrderGet.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        totals: { total: 50 },
+      }),
+    });
+    mockGetTransactionDetails.mockResolvedValue({
+      transactionId: 'tx_1',
+      status: 'completed',
+      amount: 5050,
+      merchantOrderId: 'order-other',
+      updatedAt: '2026-02-28T20:00:00.000Z',
+    });
+
+    const response = await POST({
+      json: async () => ({ transactionId: 'tx_1' }),
+    } as any);
+    const body = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(body.error).toContain('not bound to this order');
+    expect(mockOrderUpdate).not.toHaveBeenCalled();
+    expect(mockForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'aeropay',
+      source: 'aeropay_status_poll',
+      reason: 'order_mismatch',
+      orderId: 'order-1',
+      transactionId: 'tx_1',
+      providerMerchantOrderId: 'order-other',
+      expectedMerchantOrderId: 'order-1',
+    }));
+  });
+});
