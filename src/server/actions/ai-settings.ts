@@ -26,6 +26,23 @@ function isSuperRole(role: unknown): boolean {
     return role === 'super_user' || role === 'super_admin';
 }
 
+function canManageTenantSettings(role: unknown): boolean {
+    if (Array.isArray(role)) {
+        return role.some((value) => canManageTenantSettings(value));
+    }
+    if (typeof role !== 'string') return false;
+    return [
+        'super_user',
+        'super_admin',
+        'brand_admin',
+        'brand',
+        'dispensary_admin',
+        'dispensary',
+        'owner',
+        'admin',
+    ].includes(role);
+}
+
 function isValidDocId(id: string): boolean {
     return !!id && !id.includes('/');
 }
@@ -115,6 +132,9 @@ export async function saveTenantAISettings(
         const role = typeof session === 'object' && session ? (session as { role?: string }).role : null;
         const isSuperUser = isSuperRole(role);
         const actorOrgId = getActorOrgId(session);
+        if (!canManageTenantSettings(role)) {
+            return { success: false, error: 'Unauthorized' };
+        }
         if (!isSuperUser && (!actorOrgId || normalizedTenantId !== actorOrgId)) {
             return { success: false, error: 'Unauthorized' };
         }
