@@ -120,5 +120,24 @@ describe('activity security', () => {
       }),
     );
   });
-});
 
+  it('allows super_admin to read/write across orgs', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'super-admin-1',
+      role: 'super_admin',
+      currentOrgId: 'org-x',
+    });
+
+    await expect(getRecentActivity('org-z')).resolves.toEqual([]);
+    await expect(
+      logActivity('org-z', 'delegated-user', 'Pinky', 'note', 'cross-org write')
+    ).resolves.toBeUndefined();
+
+    expect(add).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orgId: 'org-z',
+        userId: 'delegated-user',
+      }),
+    );
+  });
+});

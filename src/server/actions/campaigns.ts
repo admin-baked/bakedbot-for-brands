@@ -27,7 +27,7 @@ function isSuperRole(role: unknown): boolean {
 }
 
 function getOrgId(user: CampaignActionUser): string | null {
-    return user.orgId || user.brandId || user.currentOrgId || null;
+    return user.currentOrgId || user.orgId || user.brandId || null;
 }
 
 function isValidDocId(id: string): boolean {
@@ -75,7 +75,7 @@ export async function createCampaign(params: {
 }): Promise<Campaign | null> {
     try {
         const { firestore } = await createServerClient();
-        const user = await requireUser(['dispensary', 'brand', 'super_user']);
+        const user = await requireUser(['dispensary', 'brand', 'super_user', 'super_admin']);
         const userOrgId = getOrgId(user);
         const orgId = params.orgId || userOrgId;
 
@@ -153,7 +153,7 @@ export async function updateCampaign(
     try {
         if (!isValidDocId(campaignId)) return false;
         const { firestore } = await createServerClient();
-        const user = await requireUser(['dispensary', 'brand', 'super_user']);
+        const user = await requireUser(['dispensary', 'brand', 'super_user', 'super_admin']);
 
         const allowed = await userCanAccessCampaign(firestore, campaignId, user);
         if (!allowed) {
@@ -193,7 +193,7 @@ export async function getCampaign(campaignId: string): Promise<Campaign | null> 
     try {
         if (!isValidDocId(campaignId)) return null;
         const { firestore } = await createServerClient();
-        const user = await requireUser(['dispensary', 'brand', 'super_user']);
+        const user = await requireUser(['dispensary', 'brand', 'super_user', 'super_admin']);
         const doc = await firestore.collection('campaigns').doc(campaignId).get();
 
         if (!doc.exists) return null;
@@ -246,7 +246,7 @@ export async function getCampaigns(
 ): Promise<Campaign[]> {
     try {
         const { firestore } = await createServerClient();
-        const user = await requireUser(['dispensary', 'brand', 'super_user']);
+        const user = await requireUser(['dispensary', 'brand', 'super_user', 'super_admin']);
         const userOrgId = getOrgId(user);
         const orgId = orgIdParam || userOrgId;
 
@@ -366,7 +366,7 @@ export async function submitForComplianceReview(campaignId: string): Promise<boo
     try {
         if (!isValidDocId(campaignId)) return false;
         const { firestore } = await createServerClient();
-        const user = await requireUser(['dispensary', 'brand', 'super_user']);
+        const user = await requireUser(['dispensary', 'brand', 'super_user', 'super_admin']);
 
         const allowed = await userCanAccessCampaign(firestore, campaignId, user);
         if (!allowed) {
@@ -416,7 +416,7 @@ export async function approveCampaign(
     try {
         if (!isValidDocId(campaignId)) return false;
         const { firestore } = await createServerClient();
-        const user = await requireUser(['dispensary', 'brand', 'super_user']);
+        const user = await requireUser(['dispensary', 'brand', 'super_user', 'super_admin']);
         const allowed = await userCanAccessCampaign(firestore, campaignId, user);
         if (!allowed) {
             logger.warn('[CAMPAIGNS] Blocked unauthorized approve attempt', {
@@ -453,7 +453,7 @@ export async function scheduleCampaign(
     try {
         if (!isValidDocId(campaignId)) return false;
         const { firestore } = await createServerClient();
-        const user = await requireUser(['dispensary', 'brand', 'super_user']);
+        const user = await requireUser(['dispensary', 'brand', 'super_user', 'super_admin']);
         const allowed = await userCanAccessCampaign(firestore, campaignId, user);
         if (!allowed) {
             logger.warn('[CAMPAIGNS] Blocked unauthorized schedule attempt', {
@@ -488,7 +488,7 @@ export async function cancelCampaign(campaignId: string): Promise<boolean> {
     try {
         if (!isValidDocId(campaignId)) return false;
         const { firestore } = await createServerClient();
-        const user = await requireUser(['dispensary', 'brand', 'super_user']);
+        const user = await requireUser(['dispensary', 'brand', 'super_user', 'super_admin']);
         const allowed = await userCanAccessCampaign(firestore, campaignId, user);
         if (!allowed) {
             logger.warn('[CAMPAIGNS] Blocked unauthorized cancel attempt', {
@@ -519,7 +519,7 @@ export async function pauseCampaign(campaignId: string): Promise<boolean> {
     try {
         if (!isValidDocId(campaignId)) return false;
         const { firestore } = await createServerClient();
-        const user = await requireUser(['dispensary', 'brand', 'super_user']);
+        const user = await requireUser(['dispensary', 'brand', 'super_user', 'super_admin']);
         const allowed = await userCanAccessCampaign(firestore, campaignId, user);
         if (!allowed) {
             logger.warn('[CAMPAIGNS] Blocked unauthorized pause attempt', {
@@ -557,7 +557,7 @@ export async function updateCampaignPerformance(
     try {
         if (!isValidDocId(campaignId)) return false;
         const { firestore } = await createServerClient();
-        const user = await requireUser(['dispensary', 'brand', 'super_user']);
+        const user = await requireUser(['dispensary', 'brand', 'super_user', 'super_admin']);
 
         const allowed = await userCanAccessCampaign(firestore, campaignId, user);
         if (!allowed) {
@@ -581,14 +581,21 @@ export async function updateCampaignPerformance(
         };
 
         // Recompute rates
-        if (updated.sent > 0) {
-            updated.openRate = (updated.opened / updated.sent) * 100;
-            updated.clickRate = (updated.clicked / updated.sent) * 100;
-            updated.bounceRate = (updated.bounced / updated.sent) * 100;
+        const sent = Number(updated.sent) || 0;
+        const opened = Number(updated.opened) || 0;
+        const clicked = Number(updated.clicked) || 0;
+        const bounced = Number(updated.bounced) || 0;
+
+        if (sent > 0) {
+            updated.openRate = (opened / sent) * 100;
+            updated.clickRate = (clicked / sent) * 100;
+            updated.bounceRate = (bounced / sent) * 100;
+        } else {
+            updated.openRate = 0;
+            updated.clickRate = 0;
+            updated.bounceRate = 0;
         }
-        if (updated.opened > 0) {
-            updated.conversionRate = (updated.clicked / updated.opened) * 100;
-        }
+        updated.conversionRate = opened > 0 ? (clicked / opened) * 100 : 0;
 
         await firestore.collection('campaigns').doc(campaignId).update({
             performance: updated,
