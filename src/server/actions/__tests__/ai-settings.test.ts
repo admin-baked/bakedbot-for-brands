@@ -66,6 +66,13 @@ describe('AI Settings Server Actions', () => {
     });
 
     describe('getTenantAISettings', () => {
+        it('returns defaults for invalid tenant id', async () => {
+            const result = await getTenantAISettings('bad/tenant');
+
+            expect(result).toEqual(DEFAULT_TENANT_AI_SETTINGS);
+            expect(mockCollection).not.toHaveBeenCalledWith('tenants');
+        });
+
         it('returns default settings when document does not exist', async () => {
             mockGet.mockResolvedValue({ exists: false });
 
@@ -124,6 +131,18 @@ describe('AI Settings Server Actions', () => {
             const result = await getTenantAISettings('tenant-123');
 
             expect(result).toEqual(DEFAULT_TENANT_AI_SETTINGS);
+        });
+
+        it('returns defaults for non-super users without org context', async () => {
+            mockRequireUser.mockResolvedValue({
+                uid: 'user-123',
+                role: 'dispensary_admin',
+            });
+
+            const result = await getTenantAISettings('tenant-123');
+
+            expect(result).toEqual(DEFAULT_TENANT_AI_SETTINGS);
+            expect(mockCollection).not.toHaveBeenCalledWith('tenants');
         });
     });
 
@@ -218,6 +237,31 @@ describe('AI Settings Server Actions', () => {
             expect(result.error).toBe('Unauthorized');
             expect(mockSet).not.toHaveBeenCalled();
         });
+
+        it('rejects tenant writes for non-super users without org context', async () => {
+            mockRequireUser.mockResolvedValue({
+                uid: 'user-123',
+                role: 'dispensary_admin',
+            });
+
+            const result = await saveTenantAISettings('tenant-123', {
+                customInstructions: 'Nope',
+            });
+
+            expect(result.success).toBe(false);
+            expect(result.error).toBe('Unauthorized');
+            expect(mockSet).not.toHaveBeenCalled();
+        });
+
+        it('rejects invalid tenant id', async () => {
+            const result = await saveTenantAISettings('bad/tenant', {
+                customInstructions: 'Nope',
+            });
+
+            expect(result.success).toBe(false);
+            expect(result.error).toBe('Invalid tenant id');
+            expect(mockSet).not.toHaveBeenCalled();
+        });
     });
 
     describe('getUserAISettings', () => {
@@ -278,6 +322,13 @@ describe('AI Settings Server Actions', () => {
             });
 
             const result = await getUserAISettings('user-999');
+
+            expect(result).toEqual(DEFAULT_USER_AI_SETTINGS);
+            expect(mockCollection).not.toHaveBeenCalledWith('users');
+        });
+
+        it('returns defaults for invalid user id', async () => {
+            const result = await getUserAISettings('bad/user');
 
             expect(result).toEqual(DEFAULT_USER_AI_SETTINGS);
             expect(mockCollection).not.toHaveBeenCalledWith('users');
@@ -422,6 +473,25 @@ describe('AI Settings Server Actions', () => {
 
             expect(result.tenant).toBeNull();
             expect(result.user).toBeNull();
+        });
+
+        it('does not load tenant settings for non-super users without org context', async () => {
+            mockRequireUser.mockResolvedValue({
+                uid: 'user-123',
+                role: 'dispensary_admin',
+            });
+
+            mockGet.mockResolvedValue({
+                exists: true,
+                data: () => ({
+                    customInstructions: 'User instructions',
+                }),
+            });
+
+            const result = await loadAISettingsForAgent('tenant-123', 'user-123');
+
+            expect(result.tenant).toBeNull();
+            expect(result.user).not.toBeNull();
         });
     });
 

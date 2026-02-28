@@ -20,7 +20,14 @@ import {
 } from '@/types/ai-settings';
 
 function isSuperRole(role: unknown): boolean {
+    if (Array.isArray(role)) {
+        return role.includes('super_user') || role.includes('super_admin');
+    }
     return role === 'super_user' || role === 'super_admin';
+}
+
+function isValidDocId(id: string): boolean {
+    return !!id && !id.includes('/');
 }
 
 function getActorOrgId(session: unknown): string | null {
@@ -31,7 +38,9 @@ function getActorOrgId(session: unknown): string | null {
         orgId?: string;
         brandId?: string;
     };
-    return token.currentOrgId || token.orgId || token.brandId || token.uid || null;
+    const candidate = token.currentOrgId || token.orgId || token.brandId || null;
+    if (!candidate || !isValidDocId(candidate)) return null;
+    return candidate;
 }
 
 // ============================================================================
@@ -43,18 +52,23 @@ function getActorOrgId(session: unknown): string | null {
  */
 export async function getTenantAISettings(tenantId: string): Promise<TenantAISettings> {
     try {
+        const normalizedTenantId = tenantId.trim();
+        if (!isValidDocId(normalizedTenantId)) {
+            return DEFAULT_TENANT_AI_SETTINGS;
+        }
+
         const session = await requireUser();
         const role = typeof session === 'object' && session ? (session as { role?: string }).role : null;
         const isSuperUser = isSuperRole(role);
         const actorOrgId = getActorOrgId(session);
-        if (!isSuperUser && actorOrgId && tenantId !== actorOrgId) {
+        if (!isSuperUser && (!actorOrgId || normalizedTenantId !== actorOrgId)) {
             throw new Error('Unauthorized');
         }
 
         const db = getAdminFirestore();
         const doc = await db
             .collection('tenants')
-            .doc(tenantId)
+            .doc(normalizedTenantId)
             .collection('settings')
             .doc('ai')
             .get();
@@ -68,7 +82,7 @@ export async function getTenantAISettings(tenantId: string): Promise<TenantAISet
 
         if (!parsed.success) {
             logger.warn('[AISettings] Invalid tenant settings data, using defaults', {
-                tenantId,
+                tenantId: normalizedTenantId,
                 errors: parsed.error.errors,
             });
             return DEFAULT_TENANT_AI_SETTINGS;
@@ -92,16 +106,21 @@ export async function saveTenantAISettings(
     settings: Partial<TenantAISettings>
 ): Promise<{ success: boolean; error?: string }> {
     try {
+        const normalizedTenantId = tenantId.trim();
+        if (!isValidDocId(normalizedTenantId)) {
+            return { success: false, error: 'Invalid tenant id' };
+        }
+
         const session = await requireUser();
         const role = typeof session === 'object' && session ? (session as { role?: string }).role : null;
         const isSuperUser = isSuperRole(role);
         const actorOrgId = getActorOrgId(session);
-        if (!isSuperUser && actorOrgId && tenantId !== actorOrgId) {
+        if (!isSuperUser && (!actorOrgId || normalizedTenantId !== actorOrgId)) {
             return { success: false, error: 'Unauthorized' };
         }
 
         // Validate settings
-        const currentSettings = await getTenantAISettings(tenantId);
+        const currentSettings = await getTenantAISettings(normalizedTenantId);
         const mergedSettings = { ...currentSettings, ...settings };
         const parsed = TenantAISettingsSchema.safeParse(mergedSettings);
 
@@ -115,7 +134,7 @@ export async function saveTenantAISettings(
         const db = getAdminFirestore();
         await db
             .collection('tenants')
-            .doc(tenantId)
+            .doc(normalizedTenantId)
             .collection('settings')
             .doc('ai')
             .set({
@@ -125,7 +144,7 @@ export async function saveTenantAISettings(
             }, { merge: true });
 
         logger.info('[AISettings] Tenant settings saved', {
-            tenantId,
+            tenantId: normalizedTenantId,
             updatedBy: session.uid,
         });
 
@@ -151,17 +170,22 @@ export async function saveTenantAISettings(
  */
 export async function getUserAISettings(userId: string): Promise<UserAISettings> {
     try {
+        const normalizedUserId = userId.trim();
+        if (!isValidDocId(normalizedUserId)) {
+            return DEFAULT_USER_AI_SETTINGS;
+        }
+
         const session = await requireUser();
         const role = typeof session === 'object' && session ? (session as { role?: string }).role : null;
         const isSuperUser = isSuperRole(role);
-        if (!isSuperUser && session.uid !== userId) {
+        if (!isSuperUser && session.uid !== normalizedUserId) {
             throw new Error('Unauthorized');
         }
 
         const db = getAdminFirestore();
         const doc = await db
             .collection('users')
-            .doc(userId)
+            .doc(normalizedUserId)
             .collection('settings')
             .doc('ai')
             .get();
@@ -175,7 +199,7 @@ export async function getUserAISettings(userId: string): Promise<UserAISettings>
 
         if (!parsed.success) {
             logger.warn('[AISettings] Invalid user settings data, using defaults', {
-                userId,
+                userId: normalizedUserId,
                 errors: parsed.error.errors,
             });
             return DEFAULT_USER_AI_SETTINGS;
@@ -259,12 +283,20 @@ export async function loadAISettingsForAgent(
         const role = typeof session === 'object' && session ? (session as { role?: string }).role : null;
         const isSuperUser = isSuperRole(role);
         const actorOrgId = getActorOrgId(session);
-
-        const scopedTenantId = tenantId && (isSuperUser || !actorOrgId || tenantId === actorOrgId)
-            ? tenantId
+        const normalizedTenantId = tenantId?.trim();
+        const normalizedUserId = userId?.trim();
+        const validTenantId = normalizedTenantId && isValidDocId(normalizedTenantId)
+            ? normalizedTenantId
             : undefined;
-        const scopedUserId = userId && (isSuperUser || userId === session.uid)
-            ? userId
+        const validUserId = normalizedUserId && isValidDocId(normalizedUserId)
+            ? normalizedUserId
+            : undefined;
+
+        const scopedTenantId = validTenantId && (isSuperUser || (!!actorOrgId && validTenantId === actorOrgId))
+            ? validTenantId
+            : undefined;
+        const scopedUserId = validUserId && (isSuperUser || validUserId === session.uid)
+            ? validUserId
             : undefined;
 
         const [tenant, user] = await Promise.all([
@@ -304,7 +336,7 @@ export async function getMyTenantAISettings(): Promise<TenantAISettings | null> 
 
     const tenantId = userData?.currentOrgId || userData?.orgId || userData?.brandId;
 
-    if (!tenantId) {
+    if (!tenantId || !isValidDocId(tenantId)) {
         return null;
     }
 
