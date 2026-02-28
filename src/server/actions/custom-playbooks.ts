@@ -12,6 +12,15 @@ function isSuperRole(role: unknown): boolean {
     return role === 'super_user' || role === 'super_admin';
 }
 
+function isValidDocumentId(value: unknown): value is string {
+    return (
+        typeof value === 'string' &&
+        value.length >= 3 &&
+        value.length <= 128 &&
+        !/[\/\\?#\[\]]/.test(value)
+    );
+}
+
 function resolveActorOrgId(user: Record<string, unknown>): string | null {
     const currentOrgId =
         typeof user.currentOrgId === 'string' ? user.currentOrgId : undefined;
@@ -101,6 +110,9 @@ export async function listCustomPlaybooks(
     orgId: string,
 ): Promise<{ success: true; playbooks: Playbook[] } | { success: false; error: string }> {
     try {
+        if (!isValidDocumentId(orgId)) {
+            return { success: false, error: 'Invalid organization ID' };
+        }
         const user = await requireUser(ALLOWED_ROLES);
         if (!canAccessOrg(user, orgId)) {
             return { success: false, error: 'Not authorized' };
@@ -143,6 +155,9 @@ export async function createCustomPlaybook(
     input: CreateCustomPlaybookInput,
 ): Promise<{ success: true; playbookId: string } | { success: false; error: string }> {
     try {
+        if (!isValidDocumentId(orgId)) {
+            return { success: false, error: 'Invalid organization ID' };
+        }
         const user = await requireUser(ALLOWED_ROLES);
         if (!canAccessOrg(user, orgId)) {
             return { success: false, error: 'Not authorized' };
@@ -211,6 +226,12 @@ export async function updateCustomPlaybook(
     patch: UpdateCustomPlaybookInput,
 ): Promise<{ success: true } | { success: false; error: string }> {
     try {
+        if (!isValidDocumentId(orgId)) {
+            return { success: false, error: 'Invalid organization ID' };
+        }
+        if (!isValidDocumentId(playbookId)) {
+            return { success: false, error: 'Invalid playbook ID' };
+        }
         const user = await requireUser(ALLOWED_ROLES);
         if (!canAccessOrg(user, orgId)) {
             return { success: false, error: 'Not authorized' };
@@ -266,6 +287,12 @@ export async function deleteCustomPlaybook(
     playbookId: string,
 ): Promise<{ success: true } | { success: false; error: string }> {
     try {
+        if (!isValidDocumentId(orgId)) {
+            return { success: false, error: 'Invalid organization ID' };
+        }
+        if (!isValidDocumentId(playbookId)) {
+            return { success: false, error: 'Invalid playbook ID' };
+        }
         const user = await requireUser(ALLOWED_ROLES);
         if (!canAccessOrg(user, orgId)) {
             return { success: false, error: 'Not authorized' };
@@ -303,6 +330,12 @@ export async function toggleCustomPlaybookStatus(
     active: boolean,
 ): Promise<{ success: true } | { success: false; error: string }> {
     try {
+        if (!isValidDocumentId(orgId)) {
+            return { success: false, error: 'Invalid organization ID' };
+        }
+        if (!isValidDocumentId(playbookId)) {
+            return { success: false, error: 'Invalid playbook ID' };
+        }
         const user = await requireUser(ALLOWED_ROLES);
         if (!canAccessOrg(user, orgId)) {
             return { success: false, error: 'Not authorized' };

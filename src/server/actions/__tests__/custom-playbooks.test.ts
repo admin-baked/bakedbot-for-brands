@@ -434,4 +434,18 @@ describe('custom-playbooks action security', () => {
     });
     expect(docRef.update).not.toHaveBeenCalled();
   });
+
+  it('rejects invalid organization ids before querying firestore', async () => {
+    const result = await listCustomPlaybooks('bad/id');
+
+    expect(result).toEqual({ success: false, error: 'Invalid organization ID' });
+    expect(mockCollection).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid playbook ids before status toggle', async () => {
+    const result = await toggleCustomPlaybookStatus('org-a', 'bad/id', true);
+
+    expect(result).toEqual({ success: false, error: 'Invalid playbook ID' });
+    expect(mockCollection).not.toHaveBeenCalled();
+  });
 });
