@@ -15,6 +15,7 @@ import type { BillingAddress, ShippingAddress, PurchaseModel } from '@/types/ord
 import { isShippingCheckoutEnabled } from '@/lib/feature-flags';
 
 const RESTRICTED_STATES = ['ID', 'MS', 'SD', 'NE', 'KS'];
+const DOCUMENT_ID_REGEX = /^[A-Za-z0-9_-]{1,128}$/;
 
 type ShippingOrderRequest = {
     items: any[];
@@ -31,6 +32,14 @@ type ShippingOrderRequest = {
     subtotal?: number;
     tax?: number;
     total: number;
+};
+
+type ResolvedLineItem = {
+    id: string;
+    name: string;
+    quantity: number;
+    price: number;
+    category?: string;
 };
 
 function asDate(value: any): Date | null {
@@ -65,6 +74,16 @@ function normalizeAddress(address: any): BillingAddress | null {
         zip,
         country,
     };
+}
+
+function productBelongsToBrand(product: any, brandId: string): boolean {
+    if (!product || typeof product !== 'object') return false;
+    if (product.brandId === brandId) return true;
+    if (product.orgId === brandId) return true;
+    if (product.organizationId === brandId) return true;
+    if (product.dispensaryId === brandId) return true;
+    if (Array.isArray(product.retailerIds) && product.retailerIds.includes(brandId)) return true;
+    return false;
 }
 
 export async function POST(req: NextRequest) {
@@ -127,12 +146,76 @@ export async function POST(req: NextRequest) {
             }, { status: 403 });
         }
 
-        const rawSubtotal = Number(items.reduce(
-            (sum, item) => sum + ((item.price || 0) * (item.quantity || 1)),
+        const { firestore } = await createServerClient();
+
+        const resolvedItems: ResolvedLineItem[] = [];
+        for (const item of items) {
+            const productId = typeof item?.id === 'string' ? item.id.trim() : '';
+            const quantity = Number(item?.quantity ?? 1);
+
+            if (!productId || !DOCUMENT_ID_REGEX.test(productId) || !Number.isInteger(quantity) || quantity <= 0 || quantity > 100) {
+                return NextResponse.json({
+                    success: false,
+                    error: 'Invalid cart items provided.',
+                }, { status: 400 });
+            }
+
+            const productDoc = await firestore.collection('products').doc(productId).get();
+            if (!productDoc.exists) {
+                return NextResponse.json({
+                    success: false,
+                    error: `Product ${productId} is no longer available.`,
+                }, { status: 400 });
+            }
+
+            const productData = productDoc.data() || {};
+            if (!productBelongsToBrand(productData, brandId)) {
+                return NextResponse.json({
+                    success: false,
+                    error: 'Cart contains products that do not belong to this brand.',
+                }, { status: 403 });
+            }
+
+            if (productData.shippable === false) {
+                return NextResponse.json({
+                    success: false,
+                    error: `${productData.name || 'A product'} is not available for shipping.`,
+                }, { status: 400 });
+            }
+
+            const restrictedStates = Array.isArray(productData.shippingRestrictions)
+                ? productData.shippingRestrictions.map((state: any) => String(state).toUpperCase())
+                : [];
+            if (restrictedStates.includes(normalizedShipping.state)) {
+                return NextResponse.json({
+                    success: false,
+                    error: `${productData.name || 'A product'} cannot be shipped to ${normalizedShipping.state}.`,
+                }, { status: 400 });
+            }
+
+            const serverPrice = Number(productData.price);
+            if (!Number.isFinite(serverPrice) || serverPrice < 0) {
+                return NextResponse.json({
+                    success: false,
+                    error: `${productData.name || 'A product'} has an invalid price configuration.`,
+                }, { status: 400 });
+            }
+
+            resolvedItems.push({
+                id: productId,
+                name: typeof productData.name === 'string' && productData.name.trim().length > 0
+                    ? productData.name
+                    : (typeof item?.name === 'string' ? item.name : 'Product'),
+                quantity,
+                price: Number(serverPrice.toFixed(2)),
+                category: typeof productData.category === 'string' ? productData.category : undefined,
+            });
+        }
+
+        const rawSubtotal = Number(resolvedItems.reduce(
+            (sum, item) => sum + (item.price * item.quantity),
             0,
         ).toFixed(2));
-
-        const { firestore } = await createServerClient();
 
         let discount = 0;
         let appliedCoupon: { couponId: string; code: string; discountAmount: number } | null = null;
@@ -221,10 +304,10 @@ export async function POST(req: NextRequest) {
         const normalizedCustomerEmail = sessionEmail || requestEmail;
         const orderDraft = {
             userId: session.uid,
-            items: items.map(item => ({
+            items: resolvedItems.map(item => ({
                 productId: item.id,
                 name: item.name,
-                qty: item.quantity || 1,
+                qty: item.quantity,
                 price: item.price,
                 category: item.category,
             })),
@@ -366,9 +449,9 @@ export async function POST(req: NextRequest) {
             customerName: customer.name,
             customerEmail: normalizedCustomerEmail,
             total: calculatedTotal,
-            items: items.map(i => ({
+            items: resolvedItems.map(i => ({
                 name: i.name,
-                qty: i.quantity || 1,
+                qty: i.quantity,
                 price: i.price,
             })),
             retailerName: brandName,

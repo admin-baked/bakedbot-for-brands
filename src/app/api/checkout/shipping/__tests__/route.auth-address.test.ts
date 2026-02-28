@@ -7,6 +7,7 @@ const mockSendOrderConfirmationEmail = jest.fn();
 const mockOrderAdd = jest.fn();
 const mockOrderUpdate = jest.fn();
 const mockUserSet = jest.fn();
+const mockProductGet = jest.fn();
 
 jest.mock('next/server', () => {
     return {
@@ -101,9 +102,29 @@ describe('POST /api/checkout/shipping auth + address hardening', () => {
                     return chain;
                 }
 
+                if (name === 'products') {
+                    return {
+                        doc: jest.fn((productId: string) => ({
+                            get: () => mockProductGet(productId),
+                        })),
+                    };
+                }
+
                 return {};
             }),
         };
+
+        mockProductGet.mockImplementation(async (productId: string) => ({
+            exists: true,
+            data: () => ({
+                id: productId,
+                name: 'Hemp Gummies',
+                price: 20,
+                category: 'Edibles',
+                brandId: 'brand-1',
+                shippable: true,
+            }),
+        }));
 
         mockCreateServerClient.mockResolvedValue({ firestore });
         mockCreateTransaction.mockResolvedValue({
@@ -193,6 +214,42 @@ describe('POST /api/checkout/shipping auth + address hardening', () => {
         expect(body.error).toContain('shipping address is required');
     });
 
+    it('rejects cart items from a different brand', async () => {
+        mockRequireUser.mockResolvedValue({
+            uid: 'user-1',
+            email: 'owner@example.com',
+        });
+        mockProductGet.mockResolvedValue({
+            exists: true,
+            data: () => ({
+                id: 'prod-1',
+                name: 'Foreign Product',
+                price: 20,
+                brandId: 'other-brand',
+                shippable: true,
+            }),
+        });
+
+        const request = {
+            json: async () => ({
+                items: [{ id: 'prod-1', name: 'Foreign Product', price: 1, quantity: 1 }],
+                customer: { name: 'Owner Example', email: 'owner@example.com' },
+                shippingAddress: { street: '1 Main St', city: 'Syracuse', state: 'NY', zip: '13224', country: 'US' },
+                brandId: 'brand-1',
+                paymentMethod: 'authorize_net',
+                paymentData: { opaqueData: { dataDescriptor: 'COMMON.ACCEPT.INAPP.PAYMENT', dataValue: 'opaque' } },
+                total: 23,
+            }),
+        } as any;
+
+        const response = await POST(request);
+        const body = await response.json();
+
+        expect(response.status).toBe(403);
+        expect(body.error).toContain('do not belong to this brand');
+        expect(mockCreateTransaction).not.toHaveBeenCalled();
+    });
+
     it('uses server-calculated amount (not client total) and order-bound payment', async () => {
         mockRequireUser.mockResolvedValue({
             uid: 'user-1',
@@ -201,7 +258,7 @@ describe('POST /api/checkout/shipping auth + address hardening', () => {
 
         const request = {
             json: async () => ({
-                items: [{ id: 'prod-1', name: 'Hemp Gummies', price: 10, quantity: 2 }],
+                items: [{ id: 'prod-1', name: 'Hemp Gummies', price: 1, quantity: 1 }],
                 customer: { name: 'Owner Example', email: 'owner@example.com', phone: '555-111-2222' },
                 shippingAddress: { street: '1 Main St', city: 'Syracuse', state: 'NY', zip: '13224', country: 'US' },
                 brandId: 'brand-1',
@@ -225,6 +282,7 @@ describe('POST /api/checkout/shipping auth + address hardening', () => {
         expect(mockOrderAdd).toHaveBeenCalledWith(expect.objectContaining({
             userId: 'user-1',
             customer: expect.objectContaining({ email: 'owner@example.com' }),
+            items: [expect.objectContaining({ price: 20, qty: 1 })],
             billingAddress: expect.objectContaining({
                 street: '1 Main St',
                 city: 'Syracuse',
