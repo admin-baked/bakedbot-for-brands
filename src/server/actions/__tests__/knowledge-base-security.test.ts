@@ -19,7 +19,7 @@ jest.mock('@/ai/genkit', () => ({
 
 import { requireUser, isSuperUser } from '@/server/auth/auth';
 import { createServerClient } from '@/firebase/server-client';
-import { getKnowledgeBasesAction } from '../knowledge-base';
+import { discoverUrlAction, getKnowledgeBasesAction } from '../knowledge-base';
 
 describe('knowledge-base security', () => {
   function mockKnowledgeBaseQuery() {
@@ -102,5 +102,27 @@ describe('knowledge-base security', () => {
 
     expect(result).toEqual([]);
     expect(createServerClient).not.toHaveBeenCalled();
+  });
+
+  it('blocks private network URLs during discovery to prevent SSRF', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'user-1',
+      role: 'brand_admin',
+      currentOrgId: 'org-a',
+    });
+
+    const originalFetch = (global as any).fetch;
+    const fetchMock = jest.fn();
+    (global as any).fetch = fetchMock;
+
+    const result = await discoverUrlAction({
+      knowledgeBaseId: 'kb-1',
+      url: 'http://localhost/internal',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('Only public http(s) URLs are allowed');
+    expect(fetchMock).not.toHaveBeenCalled();
+    (global as any).fetch = originalFetch;
   });
 });
