@@ -51,6 +51,29 @@ function safeParseJson(value: unknown): Record<string, any> {
   }
 }
 
+function toCents(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
+    return Number.isInteger(value) ? value : Math.round(value * 100);
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const parsed = Number(trimmed);
+    if (!Number.isFinite(parsed) || parsed < 0) return null;
+    return trimmed.includes('.') ? Math.round(parsed * 100) : Math.round(parsed);
+  }
+
+  return null;
+}
+
+function getExpectedOrderTotalCents(orderData: Record<string, any> | undefined): number | null {
+  if (!orderData) return null;
+  const total = Number(orderData?.totals?.total ?? orderData?.amount);
+  if (!Number.isFinite(total) || total < 0) return null;
+  return Math.round(total * 100);
+}
+
 export async function POST(req: NextRequest) {
   const { firestore: db } = await createServerClient();
 
@@ -198,6 +221,41 @@ export async function POST(req: NextRequest) {
         intentId,
       });
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    const canonicalOrder = (topLevelSnap.exists ? topLevelSnap.data() : orgOrderSnap?.data()) as Record<string, any> | undefined;
+    const expectedAmountCents = getExpectedOrderTotalCents(canonicalOrder);
+    const providerAmountCents = toCents(amount);
+
+    if (expectedAmountCents !== null && providerAmountCents !== null) {
+      const centsMatch = providerAmountCents === expectedAmountCents;
+      const dollarsMatch = providerAmountCents * 100 === expectedAmountCents;
+
+      if (!centsMatch && !dollarsMatch) {
+        logger.error("[P0-SEC-CANNPAY-WEBHOOK] Amount mismatch - refusing state transition", {
+          orderId,
+          intentId,
+          expectedAmountCents,
+          providerAmountCents,
+          status,
+        });
+
+        await db.collection('payment_forensics').add({
+          provider: 'cannpay',
+          source: 'cannpay_webhook',
+          reason: 'amount_mismatch',
+          orderId,
+          intentId,
+          merchantOrderId: merchantOrderId || null,
+          organizationId: organizationId || null,
+          expectedAmountCents,
+          providerAmountCents,
+          providerStatus: status || null,
+          observedAt: FieldValue.serverTimestamp(),
+        });
+
+        return NextResponse.json({ received: true, warning: 'Amount mismatch' });
+      }
     }
 
     const updatePayload = {
