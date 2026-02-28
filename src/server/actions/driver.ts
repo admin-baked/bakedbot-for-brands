@@ -23,6 +23,15 @@ function isSuperRole(role: unknown): boolean {
     return role === 'super_user' || role === 'super_admin';
 }
 
+function isValidDocumentId(value: unknown): value is string {
+    return (
+        typeof value === 'string' &&
+        value.length >= 3 &&
+        value.length <= 128 &&
+        !/[\/\\?#\[\]]/.test(value)
+    );
+}
+
 function getActorOrgId(user: unknown): string | null {
     if (!user || typeof user !== 'object') return null;
     const token = user as {
@@ -161,6 +170,12 @@ export async function updateDriver(input: UpdateDriverInput) {
     try {
         const validated = UpdateDriverSchema.parse(input);
         const { id, ...updates } = validated;
+        if (!isValidDocumentId(id)) {
+            return {
+                success: false,
+                error: 'Invalid driver ID',
+            };
+        }
 
         const currentUser = await requireUser(DRIVER_ADMIN_ROLES as any);
         const { firestore } = await createServerClient();
@@ -237,6 +252,12 @@ export async function updateDriver(input: UpdateDriverInput) {
  */
 export async function deleteDriver(driverId: string) {
     try {
+        if (!isValidDocumentId(driverId)) {
+            return {
+                success: false,
+                error: 'Invalid driver ID',
+            };
+        }
         const currentUser = await requireUser(DRIVER_ADMIN_ROLES as any);
         const { firestore } = await createServerClient();
 
@@ -289,6 +310,12 @@ export async function deleteDriver(driverId: string) {
  */
 export async function toggleDriverAvailability(driverId: string) {
     try {
+        if (!isValidDocumentId(driverId)) {
+            return {
+                success: false,
+                error: 'Invalid driver ID',
+            };
+        }
         const currentUser = await requireUser(DRIVER_ADMIN_ROLES as any);
         const { firestore } = await createServerClient();
 
@@ -335,6 +362,13 @@ export async function toggleDriverAvailability(driverId: string) {
  */
 export async function getDrivers(orgId: string) {
     try {
+        if (!isValidDocumentId(orgId)) {
+            return {
+                success: false,
+                error: 'Invalid organization ID',
+                drivers: [],
+            };
+        }
         const currentUser = await requireUser(DRIVER_ADMIN_ROLES as any);
         assertOrgAccess(currentUser, orgId);
         const { firestore } = await createServerClient();
@@ -372,6 +406,13 @@ export async function getDrivers(orgId: string) {
  */
 export async function getAvailableDrivers(orgId: string) {
     try {
+        if (!isValidDocumentId(orgId)) {
+            return {
+                success: false,
+                error: 'Invalid organization ID',
+                drivers: [],
+            };
+        }
         const currentUser = await requireUser(DRIVER_ADMIN_ROLES as any);
         assertOrgAccess(currentUser, orgId);
         const { firestore } = await createServerClient();

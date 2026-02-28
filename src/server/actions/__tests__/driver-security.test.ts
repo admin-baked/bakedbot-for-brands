@@ -133,4 +133,13 @@ describe('driver action security', () => {
       expect.objectContaining({ isAvailable: true })
     );
   });
+
+  it('rejects invalid driver ids before loading firestore', async () => {
+    const result = await toggleDriverAvailability('bad/id');
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Invalid driver ID');
+    expect(requireUser).not.toHaveBeenCalled();
+    expect(createServerClient).not.toHaveBeenCalled();
+  });
 });

@@ -1,4 +1,4 @@
-import { getMediaBudget, updateMediaBudget } from '../media-budget';
+import { getMediaBudget, updateMediaBudget, updateMediaCostAlert } from '../media-budget';
 import { requireUser } from '@/server/auth/auth';
 import { getAdminFirestore } from '@/firebase/admin';
 
@@ -94,5 +94,17 @@ describe('media-budget security', () => {
       { merge: true },
     );
   });
-});
 
+  it('rejects invalid tenant ids before reading firestore', async () => {
+    await expect(getMediaBudget('bad/id')).rejects.toThrow('Invalid tenant ID');
+    expect(getAdminFirestore).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid alert ids before updating cost alerts', async () => {
+    const result = await updateMediaCostAlert('org-a', 'bad/id', { enabled: false } as any);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Invalid alert ID');
+    expect(getAdminFirestore).not.toHaveBeenCalled();
+  });
+});
