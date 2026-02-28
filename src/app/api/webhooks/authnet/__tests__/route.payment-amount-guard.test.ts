@@ -77,10 +77,12 @@ describe('POST /api/webhooks/authnet payment amount guard', () => {
     withOrder = true,
     orderTotal = 10,
     duplicateOrderMatch = false,
+    fallbackOrderByInvoice = false,
   }: {
     withOrder?: boolean;
     orderTotal?: number;
     duplicateOrderMatch?: boolean;
+    fallbackOrderByInvoice?: boolean;
   } = {}) {
     const webhookLogRef = {
       create: jest.fn().mockResolvedValue(undefined),
@@ -101,6 +103,19 @@ describe('POST /api/webhooks/authnet payment amount guard', () => {
     };
 
     const rootOrdersSnapshot = { docs: withOrder ? [orderDoc] : [], empty: !withOrder };
+    const fallbackOrderDoc = {
+      id: 'order-1',
+      exists: fallbackOrderByInvoice,
+      ref: {
+        path: 'orders/order-1',
+        set: mockOrderSet,
+      },
+      data: () => ({
+        totals: { total: orderTotal },
+        brandId: 'org_demo',
+        paymentStatus: 'pending',
+      }),
+    };
     const duplicateOrderDoc = {
       id: 'order-dup',
       ref: {
@@ -132,6 +147,9 @@ describe('POST /api/webhooks/authnet payment amount guard', () => {
               limit: jest.fn(() => ({
                 get: jest.fn().mockResolvedValue(rootOrdersSnapshot),
               })),
+            })),
+            doc: jest.fn(() => ({
+              get: jest.fn().mockResolvedValue(fallbackOrderDoc),
             })),
           };
         }
@@ -274,6 +292,46 @@ describe('POST /api/webhooks/authnet payment amount guard', () => {
       reason: 'missing_order_mapping',
       transactionId: 'txn_missing',
       providerAmountCents: 410,
+    }));
+  });
+
+  it('recovers missing transaction mapping via payload invoiceNumber fallback', async () => {
+    setupDb({ withOrder: false, orderTotal: 4.1, fallbackOrderByInvoice: true });
+    const { POST } = await import('../route');
+
+    const body = JSON.stringify({
+      notificationId: 'notif-invoice-fallback',
+      eventType: 'net.authorize.payment.authcapture.created',
+      payload: {
+        id: 'txn_invoice_fallback',
+        responseCode: '1',
+        authAmount: '4.10',
+        order: {
+          invoiceNumber: 'order-1',
+        },
+      },
+    });
+
+    const req = new NextRequest('http://localhost/api/webhooks/authnet', {
+      method: 'POST',
+      body,
+      headers: {
+        'x-anet-signature': 'sha512=fake',
+      },
+    });
+
+    const response = await POST(req);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.processedOrders).toBe(1);
+    expect(mockOrderSet).toHaveBeenCalledWith(expect.objectContaining({
+      paymentStatus: 'paid',
+      transactionId: 'txn_invoice_fallback',
+    }), { merge: true });
+    expect(mockForensicsAdd).not.toHaveBeenCalledWith(expect.objectContaining({
+      reason: 'missing_order_mapping',
+      transactionId: 'txn_invoice_fallback',
     }));
   });
 

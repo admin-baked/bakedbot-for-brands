@@ -8,6 +8,7 @@ import type { EventType } from '@/types/domain';
 import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
+const DOCUMENT_ID_REGEX = /^[A-Za-z0-9_-]{1,128}$/;
 
 type AuthNetWebhookPayload = {
   notificationId?: string;
@@ -340,6 +341,35 @@ function extractOrgIdFromPaymentPayload(payload: Record<string, unknown>): strin
   return merchantCustomerId;
 }
 
+function extractOrderIdFromPaymentPayload(payload: Record<string, unknown>): string | null {
+  const directInvoice =
+    typeof payload?.invoiceNumber === 'string' && payload.invoiceNumber.trim().length > 0
+      ? payload.invoiceNumber.trim()
+      : null;
+  if (directInvoice && DOCUMENT_ID_REGEX.test(directInvoice)) {
+    return directInvoice;
+  }
+
+  const merchantOrderId =
+    typeof payload?.merchantOrderId === 'string' && payload.merchantOrderId.trim().length > 0
+      ? payload.merchantOrderId.trim()
+      : null;
+  if (merchantOrderId && DOCUMENT_ID_REGEX.test(merchantOrderId)) {
+    return merchantOrderId;
+  }
+
+  const order = payload?.order as Record<string, unknown> | undefined;
+  const nestedInvoice =
+    typeof order?.invoiceNumber === 'string' && order.invoiceNumber.trim().length > 0
+      ? order.invoiceNumber.trim()
+      : null;
+  if (nestedInvoice && DOCUMENT_ID_REGEX.test(nestedInvoice)) {
+    return nestedInvoice;
+  }
+
+  return null;
+}
+
 export async function POST(req: NextRequest) {
   const { firestore: db } = await createServerClient();
   let webhookLogRef: FirebaseFirestore.DocumentReference | null = null;
@@ -437,9 +467,49 @@ export async function POST(req: NextRequest) {
         db.collectionGroup('orders').where('transactionId', '==', entityId).limit(50).get(),
       ]);
 
-      const orderDocMap = new Map<string, FirebaseFirestore.QueryDocumentSnapshot>();
+      const orderDocMap = new Map<string, FirebaseFirestore.DocumentSnapshot>();
       for (const doc of rootOrdersSnapshot.docs) orderDocMap.set(doc.ref.path, doc);
       for (const doc of groupOrdersSnapshot.docs) orderDocMap.set(doc.ref.path, doc);
+
+      if (orderDocMap.size === 0) {
+        const fallbackOrderId = extractOrderIdFromPaymentPayload(payload);
+        if (fallbackOrderId) {
+          const fallbackOrderRef = db.collection('orders').doc(fallbackOrderId);
+          const fallbackOrderSnap = await fallbackOrderRef.get();
+
+          if (fallbackOrderSnap.exists) {
+            const fallbackOrderData = (fallbackOrderSnap.data() || {}) as Record<string, unknown>;
+            const existingTransactionId =
+              typeof fallbackOrderData.transactionId === 'string'
+                ? fallbackOrderData.transactionId
+                : null;
+
+            if (existingTransactionId && existingTransactionId !== entityId) {
+              logger.error('[AUTHNET_WEBHOOK] Fallback order transaction conflict', {
+                orderId: fallbackOrderId,
+                expectedTransactionId: existingTransactionId,
+                incomingTransactionId: entityId,
+                eventType,
+              });
+
+              await db.collection('payment_forensics').add({
+                provider: 'authorize_net',
+                source: 'authnet_webhook',
+                reason: 'order_transaction_conflict',
+                orderId: fallbackOrderId,
+                transactionId: entityId,
+                expectedTransactionId: existingTransactionId,
+                eventType,
+                responseCode,
+                providerAmountCents,
+                observedAt: FieldValue.serverTimestamp(),
+              });
+            } else {
+              orderDocMap.set(fallbackOrderRef.path, fallbackOrderSnap);
+            }
+          }
+        }
+      }
 
       if (orderDocMap.size > 1) {
         const orderPaths = Array.from(orderDocMap.keys());
@@ -510,7 +580,16 @@ export async function POST(req: NextRequest) {
 
       await Promise.all(
         Array.from(orderDocMap.values()).map(async (doc) => {
-          const orderData = doc.data();
+          const orderDataRaw = doc.data();
+          if (!orderDataRaw) {
+            logger.warn('[AUTHNET_WEBHOOK] Order snapshot missing data; skipping transition', {
+              orderPath: doc.ref.path,
+              transactionId: entityId,
+              eventType,
+            });
+            return;
+          }
+          const orderData = orderDataRaw as Record<string, any>;
           const expectedAmountCents = getExpectedOrderTotalCents(orderData);
 
           if (
@@ -586,6 +665,10 @@ export async function POST(req: NextRequest) {
             },
             updatedAt: FieldValue.serverTimestamp(),
           };
+
+          if (!orderData.transactionId) {
+            updatePayload.transactionId = entityId;
+          }
 
           if (nextStatus) {
             updatePayload.status = nextStatus;
