@@ -49,6 +49,8 @@ const mockTopSet = jest.fn();
 const mockOrgGet = jest.fn();
 const mockOrgSet = jest.fn();
 const mockForensicsAdd = jest.fn();
+const mockWebhookCreate = jest.fn();
+const mockWebhookSet = jest.fn();
 
 jest.mock('@/firebase/server-client', () => ({
   createServerClient: (...args: unknown[]) => mockCreateServerClient(...args),
@@ -95,10 +97,21 @@ describe('POST /api/webhooks/cannpay amount guard', () => {
     mockTopSet.mockResolvedValue(undefined);
     mockOrgSet.mockResolvedValue(undefined);
     mockForensicsAdd.mockResolvedValue(undefined);
+    mockWebhookCreate.mockResolvedValue(undefined);
+    mockWebhookSet.mockResolvedValue(undefined);
 
     mockCreateServerClient.mockResolvedValue({
       firestore: {
         collection: jest.fn((name: string) => {
+          if (name === 'payment_webhooks') {
+            return {
+              doc: jest.fn(() => ({
+                create: mockWebhookCreate,
+                set: mockWebhookSet,
+              })),
+            };
+          }
+
           if (name === 'orders') {
             return {
               doc: jest.fn(() => ({
@@ -327,5 +340,43 @@ describe('POST /api/webhooks/cannpay amount guard', () => {
       expectedAmountCents: 4999,
       providerAmountCents: null,
     }));
+  });
+
+  it('deduplicates replayed webhook payloads', async () => {
+    mockWebhookCreate.mockRejectedValueOnce({ code: 'already-exists' });
+
+    const responsePayload = JSON.stringify({
+      intent_id: 'intent-123',
+      status: 'Success',
+      amount: 4999,
+      merchant_order_id: 'order-1',
+      passthrough_param: JSON.stringify({ orderId: 'order-1', brandId: 'org_demo' }),
+    });
+
+    const signature = crypto
+      .createHmac('sha256', 'test-secret')
+      .update(responsePayload)
+      .digest('hex')
+      .toLowerCase();
+
+    const reqBody = JSON.stringify({
+      response: responsePayload,
+      signature,
+    });
+
+    const request = new NextRequest('http://localhost/api/webhooks/cannpay', {
+      method: 'POST',
+      body: reqBody,
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.received).toBe(true);
+    expect(data.duplicate).toBe(true);
+    expect(mockTopSet).not.toHaveBeenCalled();
+    expect(mockOrgSet).not.toHaveBeenCalled();
+    expect(mockEmitEvent).not.toHaveBeenCalled();
   });
 });
