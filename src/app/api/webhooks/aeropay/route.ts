@@ -31,7 +31,7 @@ import { createServerClient } from '@/firebase/server-client';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { emitEvent } from '@/server/events/emitter';
 import type { EventType } from '@/types/domain';
-import { createHmac, timingSafeEqual } from 'crypto';
+import { createHash, createHmac, timingSafeEqual } from 'crypto';
 import { logger } from '@/lib/logger';
 import type { AeropayWebhookEvent } from '@/types/aeropay';
 import { AEROPAY_TRANSACTION_FEE_CENTS } from '@/lib/payments/aeropay';
@@ -68,6 +68,12 @@ function verifyAeropaySignature(
     Buffer.from(computed, 'utf-8'),
     Buffer.from(signature, 'utf-8')
   );
+}
+
+function isAlreadyExistsError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const code = (error as { code?: unknown }).code;
+  return code === 6 || code === '6' || code === 'already-exists';
 }
 
 function toCents(value: unknown): number | null {
@@ -116,6 +122,7 @@ function resolveOrderStatus(
 
 export async function POST(req: NextRequest) {
   const { firestore: db } = await createServerClient();
+  let webhookLogRef: FirebaseFirestore.DocumentReference | null = null;
 
   try {
     // 1. Get webhook secret
@@ -182,15 +189,29 @@ export async function POST(req: NextRequest) {
       date,
     });
 
-    // 6. Log webhook to payment_webhooks collection for audit trail
-    await db.collection('payment_webhooks').add({
-      provider: 'aeropay',
-      eventType: topic,
-      payload: webhookEvent,
-      receivedAt: Timestamp.now(),
-      signature,
-      status: 'received',
-    });
+    // 6. Idempotent webhook logging/deduplication
+    const webhookLogId = `aeropay_${createHash('sha256').update(rawBody).digest('hex').slice(0, 32)}`;
+    webhookLogRef = db.collection('payment_webhooks').doc(webhookLogId);
+    try {
+      await webhookLogRef.create({
+        provider: 'aeropay',
+        eventType: topic,
+        payload: webhookEvent,
+        receivedAt: Timestamp.now(),
+        signature,
+        status: 'received',
+      });
+    } catch (error) {
+      if (isAlreadyExistsError(error)) {
+        logger.info('[AEROPAY-WEBHOOK] Duplicate webhook payload ignored', {
+          topic,
+          webhookLogId,
+          transactionId: (data as any)?.transactionId || null,
+        });
+        return NextResponse.json({ received: true, duplicate: true });
+      }
+      throw error;
+    }
 
     // 7. Route to appropriate handler based on topic
     switch (topic) {
@@ -222,12 +243,32 @@ export async function POST(req: NextRequest) {
         break;
     }
 
+    if (webhookLogRef) {
+      await webhookLogRef.set(
+        {
+          status: 'processed',
+          processedAt: Timestamp.now(),
+        },
+        { merge: true }
+      );
+    }
+
     return NextResponse.json({ received: true });
   } catch (err: any) {
     logger.error('[AEROPAY-WEBHOOK] Webhook processing failed', {
       error: err?.message,
       stack: err?.stack,
     });
+    if (webhookLogRef) {
+      await webhookLogRef.set(
+        {
+          status: 'failed',
+          failedAt: Timestamp.now(),
+          error: err?.message || String(err),
+        },
+        { merge: true }
+      );
+    }
     return NextResponse.json(
       { error: err?.message || 'Webhook processing error' },
       { status: 500 }
