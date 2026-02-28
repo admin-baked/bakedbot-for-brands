@@ -48,6 +48,15 @@ type CheckoutItem = {
   unitPrice: number; // in dollars
 };
 
+type ResolvedCheckoutItem = {
+  productId: string;
+  cannmenusProductId?: string;
+  name: string;
+  sku?: string;
+  quantity: number;
+  unitPrice: number;
+};
+
 interface SmokeyPayBody {
   organizationId: string;
   dispensaryId: string;
@@ -65,6 +74,35 @@ interface SmokeyPayBody {
   total: number;
   couponCode?: string;
   currency?: string;
+}
+
+function productMatchesCheckoutContext(
+  product: any,
+  organizationId: string,
+  dispensaryId: string,
+): boolean {
+  if (!product || typeof product !== 'object') return false;
+
+  const matchesOrg =
+    product.brandId === organizationId ||
+    product.orgId === organizationId ||
+    product.organizationId === organizationId;
+
+  const matchesDispensary =
+    product.dispensaryId === dispensaryId ||
+    product.retailerId === dispensaryId ||
+    (Array.isArray(product.retailerIds) && product.retailerIds.includes(dispensaryId));
+
+  const hasContextFields =
+    typeof product.brandId === 'string' ||
+    typeof product.orgId === 'string' ||
+    typeof product.organizationId === 'string' ||
+    typeof product.dispensaryId === 'string' ||
+    typeof product.retailerId === 'string' ||
+    Array.isArray(product.retailerIds);
+
+  if (!hasContextFields) return true;
+  return matchesOrg || matchesDispensary;
 }
 
 function asDate(value: any): Date | null {
@@ -107,7 +145,43 @@ export async function POST(req: NextRequest) {
     const currency = body.currency || "USD";
     const orgId = body.organizationId;
 
-    const itemsTotal = Number(body.items.reduce(
+    const resolvedItems: ResolvedCheckoutItem[] = [];
+    for (const item of body.items) {
+      const productId = typeof item?.productId === 'string' ? item.productId.trim() : '';
+      const quantity = Number(item?.quantity);
+
+      if (!productId || !DOCUMENT_ID_REGEX.test(productId) || !Number.isInteger(quantity) || quantity <= 0 || quantity > 100) {
+        return NextResponse.json({ error: 'Invalid cart items provided.' }, { status: 400 });
+      }
+
+      const productDoc = await db.collection('products').doc(productId).get();
+      if (!productDoc.exists) {
+        return NextResponse.json({ error: `Product ${productId} is no longer available.` }, { status: 400 });
+      }
+
+      const productData = productDoc.data() || {};
+      if (!productMatchesCheckoutContext(productData, body.organizationId, body.dispensaryId)) {
+        return NextResponse.json({ error: 'Cart contains products outside this checkout context.' }, { status: 403 });
+      }
+
+      const serverUnitPrice = Number(productData.price);
+      if (!Number.isFinite(serverUnitPrice) || serverUnitPrice < 0) {
+        return NextResponse.json({ error: `${productData.name || 'A product'} has an invalid price.` }, { status: 400 });
+      }
+
+      resolvedItems.push({
+        productId,
+        cannmenusProductId: typeof item?.cannmenusProductId === 'string' ? item.cannmenusProductId : undefined,
+        name: typeof productData.name === 'string' && productData.name.trim().length > 0
+          ? productData.name
+          : item.name,
+        sku: typeof item?.sku === 'string' ? item.sku : undefined,
+        quantity,
+        unitPrice: Number(serverUnitPrice.toFixed(2)),
+      });
+    }
+
+    const itemsTotal = Number(resolvedItems.reduce(
       (acc, item) => acc + item.unitPrice * item.quantity,
       0
     ).toFixed(2));
@@ -157,7 +231,7 @@ export async function POST(req: NextRequest) {
 
     const subtotal = Number(Math.max(0, itemsTotal - discount).toFixed(2));
     const tax = Number((subtotal * 0.15).toFixed(2));
-    const fees = typeof body.fees === 'number' && body.fees >= 0 ? Number(body.fees.toFixed(2)) : 0;
+    const fees = 0;
     const total = Number((subtotal + tax + fees).toFixed(2));
 
     if (Math.abs(body.total - total) > 0.01) {
@@ -181,7 +255,7 @@ export async function POST(req: NextRequest) {
         name: body.customer.name,
         email: sessionEmail || requestEmail,
       },
-      items: body.items.map((i) => ({
+      items: resolvedItems.map((i) => ({
         productId: i.productId,
         cannmenusProductId: i.cannmenusProductId || null,
         name: i.name,
@@ -219,7 +293,7 @@ export async function POST(req: NextRequest) {
       refId: orderRef.id,
       data: {
         total, currency, dispensaryId: body.dispensaryId,
-        pickupLocationId: body.pickupLocationId, itemCount: body.items.length,
+        pickupLocationId: body.pickupLocationId, itemCount: resolvedItems.length,
       },
     });
 
