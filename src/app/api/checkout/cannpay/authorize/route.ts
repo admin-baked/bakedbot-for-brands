@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     const orderData = orderSnap.data();
 
     // Verify order ownership (customer must own the order)
-    if (orderData?.customerId !== user.uid) {
+    if (orderData?.customerId !== user.uid && orderData?.userId !== user.uid) {
       return NextResponse.json(
         { error: 'You do not have permission to pay for this order' },
         { status: 403 }
@@ -77,6 +77,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const orderTotalUsd = Number(orderData?.totals?.total ?? orderData?.amount ?? 0);
+    if (!Number.isFinite(orderTotalUsd) || orderTotalUsd <= 0) {
+      return NextResponse.json(
+        { error: 'Order total is invalid for payment authorization' },
+        { status: 400 }
+      );
+    }
+    const serverAmountCents = Math.round(orderTotalUsd * 100);
+    if (Math.abs(amount - serverAmountCents) > 0) {
+      logger.warn('[P0-PAY-CANNPAY] Client amount mismatch; using order total', {
+        orderId,
+        clientAmount: amount,
+        serverAmount: serverAmountCents,
+        userId: user.uid,
+      });
+    }
+
     // 4. Authorize payment with CannPay
     const passthrough = JSON.stringify({
       orderId,
@@ -85,7 +102,7 @@ export async function POST(request: NextRequest) {
     });
 
     const authResult = await authorizePayment({
-      amount,
+      amount: serverAmountCents,
       deliveryFee: CANNPAY_TRANSACTION_FEE_CENTS, // $0.50 transaction fee
       merchantOrderId: orderId,
       passthrough,
@@ -97,7 +114,7 @@ export async function POST(request: NextRequest) {
       paymentMethod: 'cannpay',
       'canpay.intentId': authResult.intent_id,
       'canpay.status': 'Pending',
-      'canpay.amount': amount + CANNPAY_TRANSACTION_FEE_CENTS,
+      'canpay.amount': serverAmountCents + CANNPAY_TRANSACTION_FEE_CENTS,
       'canpay.fee': CANNPAY_TRANSACTION_FEE_CENTS,
       'canpay.authorizedAt': new Date().toISOString(),
       paymentStatus: 'pending',
@@ -117,7 +134,7 @@ export async function POST(request: NextRequest) {
       intentId: authResult.intent_id,
       widgetUrl: authResult.widget_url,
       expiresAt: authResult.expires_at,
-      totalAmount: amount + CANNPAY_TRANSACTION_FEE_CENTS,
+      totalAmount: serverAmountCents + CANNPAY_TRANSACTION_FEE_CENTS,
       transactionFee: CANNPAY_TRANSACTION_FEE_CENTS,
     });
   } catch (error) {

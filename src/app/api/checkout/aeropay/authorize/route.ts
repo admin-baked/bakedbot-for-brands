@@ -86,6 +86,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const orderTotalUsd = Number(orderData?.totals?.total ?? orderData?.amount ?? 0);
+    if (!Number.isFinite(orderTotalUsd) || orderTotalUsd <= 0) {
+      return NextResponse.json(
+        { error: 'Order total is invalid for payment authorization' },
+        { status: 400 }
+      );
+    }
+    const serverAmountCents = Math.round(orderTotalUsd * 100);
+    if (Math.abs(amount - serverAmountCents) > 0) {
+      logger.warn('[AEROPAY] Client amount mismatch; using order total', {
+        orderId,
+        clientAmount: amount,
+        serverAmount: serverAmountCents,
+        userId: user.uid,
+      });
+    }
+
     // 4. Check if user has Aeropay account in Firestore
     const aeropayUserRef = firestore.collection('aeropay_users').doc(user.uid);
     const aeropayUserSnap = await aeropayUserRef.get();
@@ -201,7 +218,7 @@ export async function POST(request: NextRequest) {
     const transaction = await createTransaction({
       userId: aeropayUser.aeropayUserId,
       bankAccountId: selectedBankAccountId,
-      amount: amount + AEROPAY_TRANSACTION_FEE_CENTS, // Include fee
+      amount: serverAmountCents + AEROPAY_TRANSACTION_FEE_CENTS, // Include fee
       merchantId,
       merchantOrderId: orderId,
       description: `Order ${orderId}`,
@@ -218,7 +235,7 @@ export async function POST(request: NextRequest) {
       'aeropay.userId': aeropayUser.aeropayUserId,
       'aeropay.bankAccountId': selectedBankAccountId,
       'aeropay.status': transaction.status,
-      'aeropay.amount': amount + AEROPAY_TRANSACTION_FEE_CENTS,
+      'aeropay.amount': serverAmountCents + AEROPAY_TRANSACTION_FEE_CENTS,
       'aeropay.fee': AEROPAY_TRANSACTION_FEE_CENTS,
       'aeropay.authorizedAt': new Date().toISOString(),
       'aeropay.merchantOrderId': orderId,
@@ -237,7 +254,7 @@ export async function POST(request: NextRequest) {
       aeropayUserId: aeropayUser.aeropayUserId,
       bankAccountId: selectedBankAccountId,
       merchantId,
-      amount: amount + AEROPAY_TRANSACTION_FEE_CENTS,
+      amount: serverAmountCents + AEROPAY_TRANSACTION_FEE_CENTS,
       fee: AEROPAY_TRANSACTION_FEE_CENTS,
       status: transaction.status,
       merchantOrderId: orderId,
@@ -260,7 +277,7 @@ export async function POST(request: NextRequest) {
       requiresBankLink: false,
       transactionId: transaction.transactionId,
       status: transaction.status,
-      totalAmount: amount + AEROPAY_TRANSACTION_FEE_CENTS,
+      totalAmount: serverAmountCents + AEROPAY_TRANSACTION_FEE_CENTS,
       transactionFee: AEROPAY_TRANSACTION_FEE_CENTS,
     });
   } catch (error) {
