@@ -201,6 +201,10 @@ export async function toggleHeartbeatCheck(
             return { success: false, error: 'Missing tenant context' };
         }
         const { tenantId, role } = context;
+        const validChecks = getChecksForRole(role).map(c => c.id);
+        if (!validChecks.includes(checkId)) {
+            return { success: false, error: `Invalid check for role: ${checkId}` };
+        }
 
         // Get current config
         const savedConfig = await getTenantHeartbeatConfig(tenantId, role);
@@ -709,7 +713,7 @@ export async function configureSlackWebhook(
 function determineRole(userRole: string | undefined): HeartbeatRole {
     if (!userRole) return 'dispensary';
 
-    if (userRole === 'super_user' || userRole === 'admin') {
+    if (userRole === 'super_user' || userRole === 'super_admin' || userRole === 'admin') {
         return 'super_user';
     }
     if (userRole === 'brand' || userRole === 'brand_admin' || userRole === 'brand_manager') {

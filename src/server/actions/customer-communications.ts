@@ -63,10 +63,23 @@ export async function logCommunication(params: {
     metadata?: Record<string, unknown>;
 }): Promise<string | null> {
     try {
+        if (!isValidDocId(params.orgId)) {
+            logger.warn('[COMMS] Invalid orgId for communication log', { orgId: params.orgId });
+            return null;
+        }
+        const recipient = params.customerEmail?.trim();
+        if (!recipient) {
+            logger.warn('[COMMS] Missing recipient identifier for communication log', {
+                orgId: params.orgId,
+                channel: params.channel,
+            });
+            return null;
+        }
+
         const { firestore } = await createServerClient();
 
         const doc = await firestore.collection('customer_communications').add({
-            customerEmail: params.customerEmail.toLowerCase(),
+            customerEmail: recipient.toLowerCase(),
             orgId: params.orgId,
             channel: params.channel,
             direction: 'outbound',
@@ -88,7 +101,7 @@ export async function logCommunication(params: {
             id: doc.id,
             channel: params.channel,
             type: params.type,
-            email: params.customerEmail,
+            email: recipient,
         });
 
         return doc.id;
