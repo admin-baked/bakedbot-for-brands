@@ -393,6 +393,48 @@ export async function POST(req: NextRequest) {
       for (const doc of rootOrdersSnapshot.docs) orderDocMap.set(doc.ref.path, doc);
       for (const doc of groupOrdersSnapshot.docs) orderDocMap.set(doc.ref.path, doc);
 
+      if (orderDocMap.size > 1) {
+        const orderPaths = Array.from(orderDocMap.keys());
+        logger.error('[AUTHNET_WEBHOOK] Duplicate transaction mapping detected - refusing state transitions', {
+          transactionId: entityId,
+          eventType,
+          orderCount: orderDocMap.size,
+          orderPaths,
+        });
+
+        await db.collection('payment_forensics').add({
+          provider: 'authorize_net',
+          source: 'authnet_webhook',
+          reason: 'duplicate_transaction_mapping',
+          transactionId: entityId,
+          eventType,
+          responseCode,
+          providerAmountCents,
+          orderCount: orderDocMap.size,
+          orderPaths,
+          observedAt: FieldValue.serverTimestamp(),
+        });
+
+        await webhookLogRef.set(
+          {
+            status: 'processed',
+            processedAt: FieldValue.serverTimestamp(),
+            processedOrders: 0,
+            processedSubscriptions: 0,
+            warning: 'duplicate_transaction_mapping',
+          },
+          { merge: true },
+        );
+
+        return NextResponse.json({
+          received: true,
+          eventType,
+          processedOrders: 0,
+          processedSubscriptions: 0,
+          warning: 'duplicate_transaction_mapping',
+        });
+      }
+
       if (orderDocMap.size === 0) {
         logger.warn('[AUTHNET_WEBHOOK] Payment event received with no matching order', {
           transactionId: entityId,
