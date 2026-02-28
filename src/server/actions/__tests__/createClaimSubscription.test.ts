@@ -38,9 +38,11 @@ jest.mock('../free-user-setup', () => ({
 
 describe('createClaimWithSubscription', () => {
     let mockFirestore: any;
+    const originalEnv = process.env;
 
     beforeEach(() => {
         jest.clearAllMocks();
+        process.env = { ...originalEnv, NODE_ENV: 'test' };
 
         // Setup Firestore Mock
         mockFirestore = {
@@ -62,6 +64,10 @@ describe('createClaimWithSubscription', () => {
             uid: 'user-123',
             email: 'john@example.com',
         });
+    });
+
+    afterEach(() => {
+        process.env = originalEnv;
     });
 
     it('should link claim to user if session cookie exists', async () => {
@@ -146,6 +152,100 @@ describe('createClaimWithSubscription', () => {
 
         expect(result.success).toBe(false);
         expect(result.error).toContain('must match your signed-in account');
+        expect(mockFirestore.add).not.toHaveBeenCalled();
+    });
+
+    it('should require verified email before paid claim checkout', async () => {
+        const input = {
+            businessName: 'Pro Biz',
+            businessAddress: '123 St',
+            contactName: 'Jane Doe',
+            contactEmail: 'john@example.com',
+            contactPhone: '555-5555',
+            role: 'brand',
+            planId: 'claim_pro' as const,
+            zip: '90210',
+            opaqueData: {
+                dataDescriptor: 'COMMON.ACCEPT.INAPP.PAYMENT',
+                dataValue: 'opaque-token',
+            },
+        };
+
+        (requireUser as jest.Mock).mockResolvedValueOnce({
+            uid: 'user-123',
+            email: 'john@example.com',
+            email_verified: false,
+        });
+
+        const result = await createClaimWithSubscription(input);
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('Email verification');
+        expect(mockFirestore.add).not.toHaveBeenCalled();
+    });
+
+    it('should require valid billing ZIP for paid claims', async () => {
+        const input = {
+            businessName: 'Pro Biz',
+            businessAddress: '123 St',
+            contactName: 'Jane Doe',
+            contactEmail: 'john@example.com',
+            contactPhone: '555-5555',
+            role: 'brand',
+            planId: 'claim_pro' as const,
+            zip: 'BADZIP',
+            opaqueData: {
+                dataDescriptor: 'COMMON.ACCEPT.INAPP.PAYMENT',
+                dataValue: 'opaque-token',
+            },
+        };
+
+        const result = await createClaimWithSubscription(input);
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('billing ZIP');
+        expect(mockFirestore.add).not.toHaveBeenCalled();
+    });
+
+    it('should require payment info for paid claims', async () => {
+        const input = {
+            businessName: 'Pro Biz',
+            businessAddress: '123 St',
+            contactName: 'Jane Doe',
+            contactEmail: 'john@example.com',
+            contactPhone: '555-5555',
+            role: 'brand',
+            planId: 'claim_pro' as const,
+            zip: '90210',
+        };
+
+        const result = await createClaimWithSubscription(input);
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('Payment information is required');
+        expect(mockFirestore.add).not.toHaveBeenCalled();
+    });
+
+    it('should block raw card fallback in production', async () => {
+        process.env.NODE_ENV = 'production';
+        const input = {
+            businessName: 'Pro Biz',
+            businessAddress: '123 St',
+            contactName: 'Jane Doe',
+            contactEmail: 'john@example.com',
+            contactPhone: '555-5555',
+            role: 'brand',
+            planId: 'claim_pro' as const,
+            zip: '90210',
+            cardNumber: '4111111111111111',
+            expirationDate: '1228',
+            cvv: '123',
+        };
+
+        const result = await createClaimWithSubscription(input);
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('Tokenized payment data is required');
         expect(mockFirestore.add).not.toHaveBeenCalled();
     });
 

@@ -30,6 +30,7 @@ jest.mock('@/lib/logger', () => ({
 }));
 
 describe('createHireSubscription auth hardening', () => {
+    const originalEnv = process.env;
     const validInput = {
         userId: 'user-1',
         email: 'owner@example.com',
@@ -47,11 +48,16 @@ describe('createHireSubscription auth hardening', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
+        process.env = { ...originalEnv, NODE_ENV: 'test' };
         (isCompanyPlanCheckoutEnabled as jest.Mock).mockReturnValue(true);
         (requireUser as jest.Mock).mockResolvedValue({
             uid: 'user-1',
             email: 'owner@example.com',
         });
+    });
+
+    afterEach(() => {
+        process.env = originalEnv;
     });
 
     it('returns disabled when company checkout is off', async () => {
@@ -88,5 +94,56 @@ describe('createHireSubscription auth hardening', () => {
         expect(createCustomerProfile).not.toHaveBeenCalled();
         expect(createSubscriptionFromProfile).not.toHaveBeenCalled();
     });
-});
 
+    it('requires verified email before paid subscription', async () => {
+        (requireUser as jest.Mock).mockResolvedValueOnce({
+            uid: 'user-1',
+            email: 'owner@example.com',
+            email_verified: false,
+        });
+
+        const result = await createHireSubscription(validInput);
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('Email verification');
+        expect(createServerClient).not.toHaveBeenCalled();
+    });
+
+    it('requires valid billing ZIP for paid subscription', async () => {
+        const result = await createHireSubscription({
+            ...validInput,
+            zip: 'bad-zip',
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('billing ZIP');
+        expect(createServerClient).not.toHaveBeenCalled();
+    });
+
+    it('requires payment payload for paid subscription', async () => {
+        const result = await createHireSubscription({
+            ...validInput,
+            payment: {},
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('Payment information is required');
+        expect(createServerClient).not.toHaveBeenCalled();
+    });
+
+    it('blocks raw card fallback in production', async () => {
+        process.env.NODE_ENV = 'production';
+        const result = await createHireSubscription({
+            ...validInput,
+            payment: {
+                cardNumber: '4111111111111111',
+                expirationDate: '2028-12',
+                cardCode: '123',
+            },
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('Tokenized payment data is required');
+        expect(createServerClient).not.toHaveBeenCalled();
+    });
+});
