@@ -1,6 +1,7 @@
-import { getAgentCognitiveState, getAllAgentCognitiveStates } from '../intelligence';
+import { getAgentCognitiveState, getAllAgentCognitiveStates, resolveMemoryConflict } from '../intelligence';
 import { requireUser } from '@/server/auth/auth';
 import { cognitiveStateManager } from '@/server/services/letta/cognitive-state-manager';
+import { getAdminFirestore } from '@/firebase/admin';
 
 jest.mock('@/server/auth/auth', () => ({
   requireUser: jest.fn(),
@@ -83,5 +84,67 @@ describe('intelligence actions security', () => {
     await getAllAgentCognitiveStates();
 
     expect(cognitiveStateManager.getAllAgentStates).toHaveBeenCalledWith('brand-org');
+  });
+
+  it('rejects invalid conflict ids before querying Firestore', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'super-1',
+      role: 'super_user',
+      currentOrgId: 'org-current',
+    });
+
+    await expect(resolveMemoryConflict('bad/id', 'resolved')).rejects.toThrow('Invalid conflict id');
+    expect(getAdminFirestore).not.toHaveBeenCalled();
+  });
+
+  it('rejects resolving conflicts outside actor org', async () => {
+    const update = jest.fn().mockResolvedValue(undefined);
+    (getAdminFirestore as jest.Mock).mockReturnValue({
+      collection: jest.fn(() => ({
+        doc: jest.fn(() => ({
+          get: jest.fn().mockResolvedValue({
+            exists: true,
+            data: () => ({ tenantId: 'org-other' }),
+          }),
+          update,
+        })),
+      })),
+    });
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'super-1',
+      role: 'super_user',
+      currentOrgId: 'org-current',
+    });
+
+    await expect(resolveMemoryConflict('conflict-1', 'resolved')).rejects.toThrow('Forbidden: org mismatch');
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('allows resolving conflicts within actor org', async () => {
+    const update = jest.fn().mockResolvedValue(undefined);
+    (getAdminFirestore as jest.Mock).mockReturnValue({
+      collection: jest.fn(() => ({
+        doc: jest.fn(() => ({
+          get: jest.fn().mockResolvedValue({
+            exists: true,
+            data: () => ({ tenantId: 'org-current' }),
+          }),
+          update,
+        })),
+      })),
+    });
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'super-1',
+      role: 'super_admin',
+      currentOrgId: 'org-current',
+    });
+
+    await expect(resolveMemoryConflict('conflict-1', 'resolved')).resolves.toBeUndefined();
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resolution: 'resolved',
+        resolvedBy: 'super-1',
+      })
+    );
   });
 });
