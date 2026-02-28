@@ -103,11 +103,14 @@ export async function getPaymentConfig(locationId: string): Promise<{
     const locationOrgId = typeof locationData?.orgId === 'string' ? locationData.orgId : null;
     const actorOrgId = getActorOrgId(user);
     const actorLocationId = typeof user.locationId === 'string' ? user.locationId : null;
+    const sameOrg = !!actorOrgId && !!locationOrgId && actorOrgId === locationOrgId;
+    const hasActorOrgClaim = !!actorOrgId;
+    const sameLocationWithoutOrgClaim = !hasActorOrgClaim && actorLocationId === normalizedLocationId;
 
     if (
       !isSuperRole((user as { role?: unknown }).role) &&
-      actorLocationId !== normalizedLocationId &&
-      (!actorOrgId || !locationOrgId || actorOrgId !== locationOrgId)
+      !sameOrg &&
+      !sameLocationWithoutOrgClaim
     ) {
       return { success: false, error: 'Unauthorized' };
     }
@@ -151,11 +154,14 @@ export async function updatePaymentMethod(input: z.infer<typeof UpdatePaymentMet
     const locationOrgId = typeof locationData?.orgId === 'string' ? locationData.orgId : null;
     const actorOrgId = getActorOrgId(user);
     const actorLocationId = typeof user.locationId === 'string' ? user.locationId : null;
+    const sameOrg = !!actorOrgId && !!locationOrgId && actorOrgId === locationOrgId;
+    const hasActorOrgClaim = !!actorOrgId;
+    const sameLocationWithoutOrgClaim = !hasActorOrgClaim && actorLocationId === normalizedLocationId;
 
     if (
       !isSuperRole((user as { role?: unknown }).role) &&
-      actorLocationId !== normalizedLocationId &&
-      (!actorOrgId || !locationOrgId || actorOrgId !== locationOrgId)
+      !sameOrg &&
+      !sameLocationWithoutOrgClaim
     ) {
       return { success: false, error: 'Unauthorized' };
     }
