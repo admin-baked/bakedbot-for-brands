@@ -207,6 +207,7 @@ describe('POST /api/checkout/process-payment guardrails', () => {
             orderId: 'order-1',
         }));
         expect(mockOrderUpdate).toHaveBeenCalledWith(expect.objectContaining({
+            transactionId: 'txn_123',
             paymentStatus: 'paid',
             paymentMethod: 'credit_card',
         }));
