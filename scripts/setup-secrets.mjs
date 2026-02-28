@@ -256,22 +256,56 @@ async function main() {
     // Provision if --deploy
     if (deploy && needsProvisioning.length > 0) {
       console.log(`\n🔧 Provisioning ${needsProvisioning.length} missing/incomplete secrets...\n`);
+      const provisioningFailures = [];
 
       for (const item of needsProvisioning) {
         if (!item.value) {
           console.log(`⚠️  Skipping ${item.secret} (no value in .env.local)`);
+          provisioningFailures.push({
+            secret: item.secret,
+            reason: 'missing_env_value',
+          });
           continue;
         }
 
         if (!item.exists) {
-          createSecret(item.secret, item.value);
+          const created = createSecret(item.secret, item.value);
+          if (!created) {
+            provisioningFailures.push({
+              secret: item.secret,
+              reason: 'create_failed',
+            });
+            continue;
+          }
         } else if (item.versions === 0) {
-          addSecretVersion(item.secret, item.value);
+          const versionAdded = addSecretVersion(item.secret, item.value);
+          if (!versionAdded) {
+            provisioningFailures.push({
+              secret: item.secret,
+              reason: 'add_version_failed',
+            });
+            continue;
+          }
         }
 
         if (!item.hasBinding) {
-          grantFirebaseAccess(item.secret);
+          const granted = grantFirebaseAccess(item.secret);
+          if (!granted) {
+            provisioningFailures.push({
+              secret: item.secret,
+              reason: 'grant_access_failed',
+            });
+          }
         }
+      }
+
+      if (provisioningFailures.length > 0) {
+        console.log('\n❌ Provisioning completed with failures:');
+        provisioningFailures.forEach(item => {
+          console.log(`   - ${item.secret}: ${item.reason}`);
+        });
+        console.log('\nRun the failing step(s), then re-run: npm run setup:secrets:deploy\n');
+        process.exit(1);
       }
 
       console.log('\n✅ Provisioning complete!');
