@@ -1,4 +1,12 @@
-import { generateTestCasesFromSpec, getBugById, getQAReport, getBugs, getRegressionHistory } from '../qa';
+import {
+  generateTestCasesFromSpec,
+  getBugById,
+  getQAReport,
+  getBugs,
+  getRegressionHistory,
+  reportBug,
+  updateBugStatus,
+} from '../qa';
 import { getAdminFirestore } from '@/firebase/admin';
 import { requireUser } from '@/server/auth/auth';
 import { callClaude } from '@/ai/claude';
@@ -533,5 +541,77 @@ describe('qa actions: getRegressionHistory scoping', () => {
     expect(result).toEqual([]);
     expect(query.where).not.toHaveBeenCalledWith('affectedOrgId', '==', expect.any(String));
     expect(query.get).not.toHaveBeenCalled();
+  });
+});
+
+describe('qa actions: reportBug scoping and id validation', () => {
+  const add = jest.fn().mockResolvedValue({ id: 'bug-new' });
+  const collection = jest.fn();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    collection.mockImplementation((name: string) => {
+      if (name === 'qa_bugs') return { add, doc: jest.fn() };
+      return { add: jest.fn(), doc: jest.fn() };
+    });
+    (getAdminFirestore as jest.Mock).mockReturnValue({ collection });
+  });
+
+  it('blocks non-super users from filing bugs against other orgs', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'user-1',
+      role: 'dispensary_admin',
+      currentOrgId: 'org-a',
+    });
+
+    const result = await reportBug({
+      title: 'Cross-org attempt',
+      steps: ['1. step'],
+      expected: 'x',
+      actual: 'y',
+      priority: 'P2',
+      area: 'agents',
+      affectedOrgId: 'org-b',
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Unauthorized organization context',
+    });
+    expect(add).not.toHaveBeenCalled();
+  });
+
+  it('defaults non-super bug reports to the actor org', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'user-1',
+      role: 'dispensary_admin',
+      currentOrgId: 'org-a',
+    });
+
+    const result = await reportBug({
+      title: 'Scoped bug',
+      steps: ['1. step'],
+      expected: 'x',
+      actual: 'y',
+      priority: 'P2',
+      area: 'agents',
+    });
+
+    expect(result.success).toBe(true);
+    expect(add).toHaveBeenCalledWith(
+      expect.objectContaining({
+        affectedOrgId: 'org-a',
+      })
+    );
+  });
+
+  it('rejects invalid bug ids before status updates', async () => {
+    const result = await updateBugStatus('bad/id', 'triaged');
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Invalid bug id',
+    });
+    expect(requireUser).not.toHaveBeenCalled();
   });
 });

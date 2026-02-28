@@ -8,6 +8,7 @@
 import {
   getPriceCompressionAnalysis,
   addExpense,
+  updateExpenseAllocation,
 } from '../profitability';
 
 // Mock auth
@@ -309,6 +310,17 @@ describe('Profitability Server Actions', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Missing organization context');
+    });
+  });
+
+  describe('updateExpenseAllocation', () => {
+    it('rejects invalid expense ids before touching Firestore', async () => {
+      const result = await updateExpenseAllocation('bad/id', 40, 'Allocation rationale');
+
+      expect(result).toEqual({
+        success: false,
+        error: 'Invalid expense id',
+      });
     });
   });
 
