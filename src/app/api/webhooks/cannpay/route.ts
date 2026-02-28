@@ -74,6 +74,28 @@ function getExpectedOrderTotalCents(orderData: Record<string, any> | undefined):
   return Math.round(total * 100);
 }
 
+function resolveOrderStatus(
+  orderData: Record<string, any> | undefined,
+  desiredStatus: string,
+): string | undefined {
+  if (!orderData) return desiredStatus;
+
+  if (desiredStatus === 'ready_for_pickup') {
+    const hasShippingAddress = !!orderData.shippingAddress;
+    const purchaseModel = orderData.purchaseModel;
+    if (hasShippingAddress || purchaseModel === 'online_only') {
+      return undefined;
+    }
+  }
+
+  const currentStatus = String(orderData.status || '').toLowerCase();
+  if (currentStatus === 'completed' || currentStatus === 'canceled' || currentStatus === 'cancelled') {
+    return undefined;
+  }
+
+  return desiredStatus;
+}
+
 export async function POST(req: NextRequest) {
   const { firestore: db } = await createServerClient();
 
@@ -261,7 +283,6 @@ export async function POST(req: NextRequest) {
     const updatePayload = {
       paymentIntentId: intentId,
       paymentStatus,
-      status: orderStatus,
       updatedAt: FieldValue.serverTimestamp(),
       lastPaymentEvent: event,
       // Store CannPay-specific fields
@@ -276,7 +297,12 @@ export async function POST(req: NextRequest) {
         passthrough: passthroughParam,
         merchantOrderId,
       },
-    };
+    } as Record<string, unknown>;
+
+    const nextOrderStatus = resolveOrderStatus(canonicalOrder, orderStatus);
+    if (nextOrderStatus) {
+      updatePayload.status = nextOrderStatus;
+    }
 
     const updateTargets = [];
     if (topLevelSnap.exists) {

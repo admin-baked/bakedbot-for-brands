@@ -186,4 +186,55 @@ describe('POST /api/webhooks/cannpay amount guard', () => {
       providerAmountCents: 300,
     }));
   });
+
+  it('does not force ready_for_pickup for online-only shipping orders', async () => {
+    mockTopGet.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        totals: { total: 49.99 },
+        brandId: 'org_demo',
+        purchaseModel: 'online_only',
+        shippingAddress: {
+          street: '123 Main St',
+          city: 'Austin',
+          state: 'TX',
+          zip: '78701',
+        },
+      }),
+    });
+
+    const responsePayload = JSON.stringify({
+      intent_id: 'intent-123',
+      status: 'Success',
+      amount: 4999,
+      merchant_order_id: 'order-1',
+      passthrough_param: JSON.stringify({ orderId: 'order-1', brandId: 'org_demo' }),
+    });
+
+    const signature = crypto
+      .createHmac('sha256', 'test-secret')
+      .update(responsePayload)
+      .digest('hex')
+      .toLowerCase();
+
+    const reqBody = JSON.stringify({
+      response: responsePayload,
+      signature,
+    });
+
+    const request = new NextRequest('http://localhost/api/webhooks/cannpay', {
+      method: 'POST',
+      body: reqBody,
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.received).toBe(true);
+    expect(mockTopSet).toHaveBeenCalledTimes(1);
+    const [updatedTopOrder] = mockTopSet.mock.calls[0];
+    expect(updatedTopOrder.paymentStatus).toBe('paid');
+    expect(updatedTopOrder.status).toBeUndefined();
+  });
 });
