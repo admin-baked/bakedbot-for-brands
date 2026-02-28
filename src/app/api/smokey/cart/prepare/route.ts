@@ -12,31 +12,35 @@ import type {
     PrepareCartResponse,
     DraftCart,
 } from '@/types/smokey-actions';
-import { cookies } from 'next/headers';
+import { requireUser } from '@/server/auth/auth';
+import { z } from 'zod';
+
+const DOCUMENT_ID_REGEX = /^[A-Za-z0-9_-]{1,128}$/;
+
+const prepareCartSchema = z.object({
+    dispId: z.string().trim().regex(DOCUMENT_ID_REGEX, 'Invalid dispId'),
+    items: z.array(z.object({
+        productId: z.string().trim().regex(DOCUMENT_ID_REGEX, 'Invalid productId'),
+        qty: z.number().int().min(1).max(100),
+    })).min(1).max(100),
+    handoffType: z.enum(['deepLink', 'prefilledUrl']).optional(),
+}).strict();
 
 export async function POST(request: NextRequest) {
     try {
-        const body: PrepareCartRequest = await request.json();
-        const { dispId, items, handoffType = 'deepLink' } = body;
-
-        // Get user ID from session
-        const cookieStore = await cookies();
-        const userId = cookieStore.get('userId')?.value;
-
-        if (!userId) {
+        let session;
+        try {
+            session = await requireUser();
+        } catch {
             return NextResponse.json(
                 { success: false, error: 'Authentication required' },
                 { status: 401 }
             );
         }
 
-        // Validate request
-        if (!dispId || !items || items.length === 0) {
-            return NextResponse.json(
-                { success: false, error: 'dispId and items are required' },
-                { status: 400 }
-            );
-        }
+        const body: PrepareCartRequest = prepareCartSchema.parse(await request.json());
+        const { dispId, items, handoffType = 'deepLink' } = body;
+        const userId = session.uid;
 
         const firestore = getAdminFirestore();
 
@@ -118,6 +122,12 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(response);
 
     } catch (error: any) {
+        if (error instanceof z.ZodError) {
+            return NextResponse.json(
+                { success: false, error: error.issues[0]?.message || 'Invalid request payload' },
+                { status: 400 }
+            );
+        }
         logger.error('Prepare cart failed:', error);
         return NextResponse.json(
             { success: false, error: error.message },
