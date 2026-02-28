@@ -112,6 +112,14 @@ function mapSubscriptionWebhookOutcome(eventType: string): SubscriptionWebhookOu
   return {};
 }
 
+function isSubscriptionWebhookEvent(eventType: string): boolean {
+  const normalizedType = eventType.toLowerCase();
+  return (
+    normalizedType.includes('net.authorize.customer.subscription.') ||
+    normalizedType.includes('net.authorize.subscription.')
+  );
+}
+
 function resolveOrderStatus(currentOrderData: Record<string, any>, desiredStatus?: string): string | undefined {
   if (!desiredStatus) return undefined;
 
@@ -299,7 +307,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (eventType.toLowerCase().includes('net.authorize.customer.subscription.') && entityId) {
+    if (isSubscriptionWebhookEvent(eventType) && entityId) {
       const outcome = mapSubscriptionWebhookOutcome(eventType);
 
       const [subscriptionSnapshot, topLevelByProviderSnapshot, topLevelByAuthNetSnapshot] = await Promise.all([
