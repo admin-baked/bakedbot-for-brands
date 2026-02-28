@@ -1,4 +1,4 @@
-import { linkEntity } from '../discovery-search';
+import { linkEntity, triggerDiscoverySync } from '../discovery-search';
 import { requireUser } from '@/server/auth/auth';
 import { createServerClient } from '@/firebase/server-client';
 
@@ -77,5 +77,48 @@ describe('discovery-search security', () => {
     expect(result.success).toBe(true);
     expect(doc).toHaveBeenCalledWith('org-current');
     expect(set).toHaveBeenCalled();
+  });
+
+  it('blocks sync trigger when a non-super user targets another org', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'user-1',
+      role: 'dispensary_admin',
+      currentOrgId: 'org-current',
+    });
+
+    await expect(
+      triggerDiscoverySync('org-other', 'https://example.com', 'brand')
+    ).rejects.toThrow('Unauthorized organization context');
+    expect(collection).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid sync URLs before any writes', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'user-1',
+      role: 'dispensary_admin',
+      currentOrgId: 'org-current',
+    });
+
+    await expect(
+      triggerDiscoverySync('org-current', 'javascript:alert(1)', 'brand')
+    ).rejects.toThrow('Invalid entity URL');
+    expect(collection).not.toHaveBeenCalled();
+  });
+
+  it('allows sync trigger for the actor org', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'user-1',
+      role: 'dispensary_admin',
+      currentOrgId: 'org-current',
+    });
+
+    await triggerDiscoverySync('org-current', 'https://example.com', 'dispensary');
+
+    expect(doc).toHaveBeenCalledWith('org-current');
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        'syncStatus.status': 'syncing',
+      })
+    );
   });
 });
