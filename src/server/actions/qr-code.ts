@@ -43,6 +43,23 @@ function isValidOrgId(orgId: string): boolean {
     return !!orgId && !orgId.includes('/');
 }
 
+function isValidDocumentId(id: string): boolean {
+    return !!id && !id.includes('/');
+}
+
+function normalizeHttpUrl(input: string): string {
+    const trimmed = input.trim();
+    const withProtocol =
+        trimmed.startsWith('http://') || trimmed.startsWith('https://')
+            ? trimmed
+            : `https://${trimmed}`;
+    const parsed = new URL(withProtocol);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        throw new Error('Invalid target URL');
+    }
+    return parsed.toString();
+}
+
 function canAccessOrg(user: SessionActor, orgId: string): boolean {
     if (isSuperRole(user.role)) return true;
     const actorOrgId = getActorOrgId(user);
@@ -82,10 +99,11 @@ export async function generateQRCode(input: {
             return { success: false, error: 'Missing organization context' };
         }
 
-        // Normalize target URL to ensure it has a protocol
-        let normalizedTargetUrl = input.targetUrl.trim();
-        if (!normalizedTargetUrl.startsWith('http://') && !normalizedTargetUrl.startsWith('https://')) {
-            normalizedTargetUrl = `https://${normalizedTargetUrl}`;
+        let normalizedTargetUrl: string;
+        try {
+            normalizedTargetUrl = normalizeHttpUrl(input.targetUrl);
+        } catch {
+            return { success: false, error: 'Invalid target URL' };
         }
 
         const db = getDb();
@@ -295,6 +313,9 @@ export async function getQRCodeAnalytics(
     qrCodeId: string
 ): Promise<{ success: boolean; analytics?: QRCodeAnalytics; error?: string }> {
     try {
+        if (!isValidDocumentId(qrCodeId)) {
+            return { success: false, error: 'Invalid QR code id' };
+        }
         const user = await getServerSessionUser();
         if (!user) {
             return { success: false, error: 'Unauthorized' };
@@ -379,6 +400,9 @@ export async function updateQRCode(
     updates: Partial<Pick<QRCodeType, 'targetUrl' | 'title' | 'description' | 'campaign' | 'tags'>>
 ): Promise<{ success: boolean; error?: string }> {
     try {
+        if (!isValidDocumentId(qrCodeId)) {
+            return { success: false, error: 'Invalid QR code id' };
+        }
         const user = await getServerSessionUser();
         if (!user) {
             return { success: false, error: 'Unauthorized' };
@@ -401,11 +425,11 @@ export async function updateQRCode(
         // Normalize target URL if it's being updated
         const normalizedUpdates = { ...updates };
         if (normalizedUpdates.targetUrl) {
-            let url = normalizedUpdates.targetUrl.trim();
-            if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                url = `https://${url}`;
+            try {
+                normalizedUpdates.targetUrl = normalizeHttpUrl(normalizedUpdates.targetUrl);
+            } catch {
+                return { success: false, error: 'Invalid target URL' };
             }
-            normalizedUpdates.targetUrl = url;
         }
 
         // Update QR code
@@ -430,6 +454,9 @@ export async function deleteQRCode(
     qrCodeId: string
 ): Promise<{ success: boolean; error?: string }> {
     try {
+        if (!isValidDocumentId(qrCodeId)) {
+            return { success: false, error: 'Invalid QR code id' };
+        }
         const user = await getServerSessionUser();
         if (!user) {
             return { success: false, error: 'Unauthorized' };

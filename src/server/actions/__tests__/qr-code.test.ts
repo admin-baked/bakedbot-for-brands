@@ -1,4 +1,10 @@
-import { getQRCodes } from '../qr-code';
+import {
+  getQRCodes,
+  getQRCodeAnalytics,
+  updateQRCode,
+  deleteQRCode,
+  generateQRCode,
+} from '../qr-code';
 import { getServerSessionUser } from '@/server/auth/session';
 import { getAdminFirestore } from '@/firebase/admin';
 
@@ -91,5 +97,47 @@ describe('qr-code actions: getQRCodes access control', () => {
       error: 'Missing organization context',
     });
     expect(query.where).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid QR code ids in analytics/update/delete actions', async () => {
+    (getServerSessionUser as jest.Mock).mockResolvedValue({
+      uid: 'user-1',
+      currentOrgId: 'org-a',
+      role: 'dispensary_admin',
+    });
+
+    await expect(getQRCodeAnalytics('bad/id')).resolves.toEqual({
+      success: false,
+      error: 'Invalid QR code id',
+    });
+    await expect(updateQRCode('bad/id', { title: 'x' })).resolves.toEqual({
+      success: false,
+      error: 'Invalid QR code id',
+    });
+    await expect(deleteQRCode('bad/id')).resolves.toEqual({
+      success: false,
+      error: 'Invalid QR code id',
+    });
+    expect(getAdminFirestore).not.toHaveBeenCalled();
+  });
+
+  it('rejects non-http target URLs during QR generation', async () => {
+    (getServerSessionUser as jest.Mock).mockResolvedValue({
+      uid: 'user-1',
+      currentOrgId: 'org-a',
+      role: 'dispensary_admin',
+    });
+
+    const result = await generateQRCode({
+      type: 'menu',
+      title: 'Bad URL',
+      targetUrl: 'javascript:alert(1)',
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Invalid target URL',
+    });
+    expect(getAdminFirestore).not.toHaveBeenCalled();
   });
 });
