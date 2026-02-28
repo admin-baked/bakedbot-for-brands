@@ -22,6 +22,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createTransaction, PaymentRequest } from '@/lib/authorize-net';
+import { getTransactionDetails as getCannPayTransactionDetails } from '@/lib/payments/cannpay';
+import { getTransactionDetails as getAeropayTransactionDetails, AEROPAY_TRANSACTION_FEE_CENTS } from '@/lib/payments/aeropay';
 import { logger } from '@/lib/monitoring';
 import { deeboCheckCheckout } from '@/server/agents/deebo';
 import { createServerClient } from '@/firebase/server-client';
@@ -74,6 +76,10 @@ function parseCustomerName(fullName: string | undefined | null): { firstName: st
 
 function isPaidLikeStatus(paymentStatus: string | undefined): boolean {
     return paymentStatus === 'paid' || paymentStatus === 'refunded' || paymentStatus === 'voided';
+}
+
+function getOrderTotal(order: any): number {
+    return Number(order?.totals?.total ?? order?.amount ?? 0);
 }
 
 /**
@@ -256,7 +262,7 @@ export const POST = withProtection(
             // Option 2: Smokey Pay (internal: CannPay integration)
             if (paymentMethod === 'cannpay') {
                 const cannpayData = paymentData as any;
-                const { intentId, transactionNumber, status } = cannpayData;
+                const { intentId, transactionNumber } = cannpayData;
 
                 if (!intentId || !transactionNumber) {
                     return NextResponse.json(
@@ -265,31 +271,80 @@ export const POST = withProtection(
                     );
                 }
 
-                const cannpaySuccessful = status === 'Success' || status === 'Settled';
-                if (orderId && ownedOrderDoc) {
-                    await ownedOrderDoc.ref.update({
-                        userId: ownedOrder?.userId || sessionUid,
-                        paymentMethod: 'cannpay',
-                        paymentStatus: cannpaySuccessful ? 'paid' : 'failed',
-                        'canpay.transactionNumber': transactionNumber,
-                        'canpay.status': status,
-                        'canpay.completedAt': new Date().toISOString(),
-                        updatedAt: new Date().toISOString(),
-                    });
+                if (!orderId || !ownedOrderDoc || !ownedOrder) {
+                    return NextResponse.json(
+                        { error: 'Order ID is required for Smokey Pay finalization' },
+                        { status: 400 },
+                    );
+                }
 
-                    if (cannpaySuccessful) {
-                        setImmediate(async () => {
-                            const { firestore: fs } = await createServerClient();
-                            await recordSalesForOrder(orderId, fs);
-                        });
-                    }
+                if (isPaidLikeStatus(ownedOrder.paymentStatus)) {
+                    return NextResponse.json(
+                        { success: false, error: 'Order has already been paid or closed' },
+                        { status: 409 },
+                    );
+                }
+
+                const expectedIntentId = ownedOrder?.canpay?.intentId;
+                if (!expectedIntentId || intentId !== expectedIntentId) {
+                    return NextResponse.json(
+                        { success: false, error: 'CannPay intent does not match this order' },
+                        { status: 403 },
+                    );
+                }
+
+                const providerTxn = await getCannPayTransactionDetails(intentId);
+                const providerStatus = providerTxn.status;
+                const providerTransactionNumber = providerTxn.canpayTransactionNumber || transactionNumber;
+                const cannpaySuccessful = providerStatus === 'Success' || providerStatus === 'Settled';
+
+                const orderTotal = getOrderTotal(ownedOrder);
+                const expectedAmountCents = Math.round(orderTotal * 100);
+                if (!Number.isFinite(expectedAmountCents) || expectedAmountCents <= 0) {
+                    return NextResponse.json(
+                        { success: false, error: 'Order total is invalid for payment' },
+                        { status: 400 },
+                    );
+                }
+                if (providerTxn.amount && Math.abs(Number(providerTxn.amount) - expectedAmountCents) > 0) {
+                    return NextResponse.json(
+                        { success: false, error: 'CannPay transaction amount mismatch' },
+                        { status: 409 },
+                    );
+                }
+                if (providerTxn.merchantOrderId && providerTxn.merchantOrderId !== orderId) {
+                    return NextResponse.json(
+                        { success: false, error: 'CannPay transaction is not bound to this order' },
+                        { status: 409 },
+                    );
+                }
+
+                const resolvedPaymentStatus =
+                    cannpaySuccessful ? 'paid' : (providerStatus === 'Failed' || providerStatus === 'Voided' ? 'failed' : 'pending');
+
+                await ownedOrderDoc.ref.update({
+                    userId: ownedOrder?.userId || sessionUid,
+                    paymentMethod: 'cannpay',
+                    paymentStatus: resolvedPaymentStatus,
+                    'canpay.transactionNumber': providerTransactionNumber,
+                    'canpay.status': providerStatus,
+                    'canpay.completedAt': cannpaySuccessful ? new Date().toISOString() : ownedOrder?.canpay?.completedAt || null,
+                    updatedAt: new Date().toISOString(),
+                });
+
+                if (cannpaySuccessful) {
+                    setImmediate(async () => {
+                        const { firestore: fs } = await createServerClient();
+                        await recordSalesForOrder(orderId, fs);
+                    });
                 }
 
                 return NextResponse.json({
                     success: cannpaySuccessful,
                     paymentMethod: 'cannpay',
-                    transactionId: transactionNumber,
-                    message: status === 'Success' ? 'Payment successful' : 'Payment failed',
+                    transactionId: providerTransactionNumber,
+                    message: cannpaySuccessful ? 'Payment successful' : 'Payment pending or failed',
+                    providerStatus,
                     complianceValidated: true,
                 });
             }
@@ -298,7 +353,7 @@ export const POST = withProtection(
             // @ts-ignore - Aeropay is a valid runtime payment method
             if (paymentMethod === 'aeropay') {
                 const aeropayData = paymentData as any;
-                const { transactionId, status } = aeropayData;
+                const { transactionId } = aeropayData;
 
                 if (!transactionId) {
                     return NextResponse.json(
@@ -307,31 +362,79 @@ export const POST = withProtection(
                     );
                 }
 
-                const aeropaySuccessful = status === 'completed';
-                if (orderId && ownedOrderDoc) {
-                    await ownedOrderDoc.ref.update({
-                        userId: ownedOrder?.userId || sessionUid,
-                        paymentMethod: 'aeropay',
-                        paymentStatus: aeropaySuccessful ? 'paid' : 'failed',
-                        'aeropay.transactionId': transactionId,
-                        'aeropay.status': status,
-                        'aeropay.completedAt': new Date().toISOString(),
-                        updatedAt: new Date().toISOString(),
-                    });
+                if (!orderId || !ownedOrderDoc || !ownedOrder) {
+                    return NextResponse.json(
+                        { error: 'Order ID is required for Aeropay finalization' },
+                        { status: 400 },
+                    );
+                }
 
-                    if (aeropaySuccessful) {
-                        setImmediate(async () => {
-                            const { firestore: fs } = await createServerClient();
-                            await recordSalesForOrder(orderId, fs);
-                        });
-                    }
+                if (isPaidLikeStatus(ownedOrder.paymentStatus)) {
+                    return NextResponse.json(
+                        { success: false, error: 'Order has already been paid or closed' },
+                        { status: 409 },
+                    );
+                }
+
+                const expectedAeropayTransactionId = ownedOrder?.aeropay?.transactionId || ownedOrder?.transactionId;
+                if (expectedAeropayTransactionId && expectedAeropayTransactionId !== transactionId) {
+                    return NextResponse.json(
+                        { success: false, error: 'Aeropay transaction does not match this order' },
+                        { status: 403 },
+                    );
+                }
+
+                const providerTxn = await getAeropayTransactionDetails(transactionId);
+                const providerStatus = providerTxn.status;
+                const aeropaySuccessful = providerStatus === 'completed';
+
+                const orderTotal = getOrderTotal(ownedOrder);
+                const expectedAmountCents = Math.round(orderTotal * 100) + AEROPAY_TRANSACTION_FEE_CENTS;
+                if (!Number.isFinite(expectedAmountCents) || expectedAmountCents <= 0) {
+                    return NextResponse.json(
+                        { success: false, error: 'Order total is invalid for payment' },
+                        { status: 400 },
+                    );
+                }
+                if (Math.abs(Number(providerTxn.amount) - expectedAmountCents) > 0) {
+                    return NextResponse.json(
+                        { success: false, error: 'Aeropay transaction amount mismatch' },
+                        { status: 409 },
+                    );
+                }
+                if (providerTxn.merchantOrderId && providerTxn.merchantOrderId !== orderId) {
+                    return NextResponse.json(
+                        { success: false, error: 'Aeropay transaction is not bound to this order' },
+                        { status: 409 },
+                    );
+                }
+
+                const resolvedPaymentStatus =
+                    aeropaySuccessful ? 'paid' : (providerStatus === 'declined' ? 'failed' : providerStatus);
+
+                await ownedOrderDoc.ref.update({
+                    userId: ownedOrder?.userId || sessionUid,
+                    paymentMethod: 'aeropay',
+                    paymentStatus: resolvedPaymentStatus,
+                    'aeropay.transactionId': transactionId,
+                    'aeropay.status': providerStatus,
+                    'aeropay.completedAt': aeropaySuccessful ? new Date().toISOString() : ownedOrder?.aeropay?.completedAt || null,
+                    updatedAt: new Date().toISOString(),
+                });
+
+                if (aeropaySuccessful) {
+                    setImmediate(async () => {
+                        const { firestore: fs } = await createServerClient();
+                        await recordSalesForOrder(orderId, fs);
+                    });
                 }
 
                 return NextResponse.json({
                     success: aeropaySuccessful,
                     paymentMethod: 'aeropay',
                     transactionId,
-                    message: aeropaySuccessful ? 'Payment successful' : 'Payment failed',
+                    message: aeropaySuccessful ? 'Payment successful' : 'Payment pending or failed',
+                    providerStatus,
                     complianceValidated: true,
                 });
             }
@@ -479,4 +582,3 @@ export const POST = withProtection(
         requireAuth: true,
     },
 );
-

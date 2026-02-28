@@ -8,6 +8,8 @@ const mockOrderUpdate = jest.fn();
 const mockUserGet = jest.fn();
 const mockUserSet = jest.fn();
 const mockRecordProductSale = jest.fn();
+const mockCannPayTransactionDetails = jest.fn();
+const mockAeropayTransactionDetails = jest.fn();
 
 jest.mock('next/server', () => ({
     NextRequest: class {},
@@ -33,6 +35,15 @@ jest.mock('@/firebase/server-client', () => ({
 
 jest.mock('@/lib/authorize-net', () => ({
     createTransaction: (...args: unknown[]) => mockCreateTransaction(...args),
+}));
+
+jest.mock('@/lib/payments/cannpay', () => ({
+    getTransactionDetails: (...args: unknown[]) => mockCannPayTransactionDetails(...args),
+}));
+
+jest.mock('@/lib/payments/aeropay', () => ({
+    getTransactionDetails: (...args: unknown[]) => mockAeropayTransactionDetails(...args),
+    AEROPAY_TRANSACTION_FEE_CENTS: 50,
 }));
 
 jest.mock('@/server/agents/deebo', () => ({
@@ -104,6 +115,19 @@ describe('POST /api/checkout/process-payment guardrails', () => {
             success: true,
             transactionId: 'txn_123',
             message: 'Approved',
+        });
+        mockCannPayTransactionDetails.mockResolvedValue({
+            intentId: 'intent-1',
+            canpayTransactionNumber: 'cp_tx_1',
+            status: 'Success',
+            amount: 4999,
+            merchantOrderId: 'order-1',
+        });
+        mockAeropayTransactionDetails.mockResolvedValue({
+            transactionId: 'aero_tx_1',
+            status: 'completed',
+            amount: 5049,
+            merchantOrderId: 'order-1',
         });
         mockRecordProductSale.mockResolvedValue(undefined);
 
@@ -217,5 +241,113 @@ describe('POST /api/checkout/process-payment guardrails', () => {
         expect(response.status).toBe(400);
         expect(body.error).toContain('Billing address is required');
         expect(mockCreateTransaction).not.toHaveBeenCalled();
+    });
+
+    it('does not mark CannPay order as paid when provider reports pending despite spoofed client success', async () => {
+        mockOrderGet.mockResolvedValue({
+            exists: true,
+            data: () => ({
+                userId: 'user-1',
+                customer: { email: 'owner@example.com' },
+                totals: { total: 40 },
+                canpay: { intentId: 'intent-1' },
+                paymentStatus: 'pending',
+            }),
+            ref: { update: mockOrderUpdate },
+        });
+        mockCannPayTransactionDetails.mockResolvedValue({
+            intentId: 'intent-1',
+            canpayTransactionNumber: 'cp_tx_real',
+            status: 'Pending',
+            amount: 4000,
+            merchantOrderId: 'order-1',
+        });
+
+        const response = await POST({} as any, {
+            amount: 40,
+            paymentMethod: 'cannpay',
+            orderId: 'order-1',
+            paymentData: {
+                intentId: 'intent-1',
+                transactionNumber: 'cp_tx_fake',
+                status: 'Success',
+            },
+        } as any);
+
+        const body = await response.json();
+        expect(response.status).toBe(200);
+        expect(body.success).toBe(false);
+        expect(body.providerStatus).toBe('Pending');
+        expect(mockOrderUpdate).toHaveBeenCalledWith(expect.objectContaining({
+            paymentStatus: 'pending',
+            'canpay.status': 'Pending',
+            'canpay.transactionNumber': 'cp_tx_real',
+        }));
+        expect(mockRecordProductSale).not.toHaveBeenCalled();
+    });
+
+    it('rejects CannPay intent mismatch between request and order', async () => {
+        mockOrderGet.mockResolvedValue({
+            exists: true,
+            data: () => ({
+                userId: 'user-1',
+                customer: { email: 'owner@example.com' },
+                totals: { total: 40 },
+                canpay: { intentId: 'intent-real' },
+                paymentStatus: 'pending',
+            }),
+            ref: { update: mockOrderUpdate },
+        });
+
+        const response = await POST({} as any, {
+            amount: 40,
+            paymentMethod: 'cannpay',
+            orderId: 'order-1',
+            paymentData: {
+                intentId: 'intent-spoofed',
+                transactionNumber: 'cp_tx_fake',
+                status: 'Success',
+            },
+        } as any);
+
+        const body = await response.json();
+        expect(response.status).toBe(403);
+        expect(body.error).toContain('intent does not match');
+        expect(mockCannPayTransactionDetails).not.toHaveBeenCalled();
+    });
+
+    it('rejects Aeropay finalization when provider amount does not match order total', async () => {
+        mockOrderGet.mockResolvedValue({
+            exists: true,
+            data: () => ({
+                userId: 'user-1',
+                customer: { email: 'owner@example.com' },
+                totals: { total: 50 },
+                aeropay: { transactionId: 'aero_tx_1' },
+                paymentStatus: 'pending',
+            }),
+            ref: { update: mockOrderUpdate },
+        });
+        mockAeropayTransactionDetails.mockResolvedValue({
+            transactionId: 'aero_tx_1',
+            status: 'completed',
+            amount: 100, // should be 5050 with fee
+            merchantOrderId: 'order-1',
+        });
+
+        const response = await POST({} as any, {
+            amount: 50,
+            paymentMethod: 'aeropay',
+            orderId: 'order-1',
+            paymentData: {
+                transactionId: 'aero_tx_1',
+                status: 'completed',
+            },
+        } as any);
+
+        const body = await response.json();
+        expect(response.status).toBe(409);
+        expect(body.error).toContain('amount mismatch');
+        expect(mockOrderUpdate).not.toHaveBeenCalled();
     });
 });

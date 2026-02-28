@@ -45,7 +45,7 @@ export type ChatRequest = z.infer<typeof chatRequestSchema>;
 
 // NOTE: 'cannpay' is the internal value for Smokey Pay (customer-facing brand name)
 // Internal code uses 'cannpay', customer-facing UI displays 'Smokey Pay'
-const paymentMethodEnum = z.enum(['dispensary_direct', 'cannpay', 'credit_card']);
+const paymentMethodEnum = z.enum(['dispensary_direct', 'cannpay', 'aeropay', 'credit_card']);
 
 const customerSchema = z.object({
   uid: z.string().optional(),
@@ -80,6 +80,11 @@ const cannpayDataSchema = z.object({
   status: z.string(),
 });
 
+const aeropayDataSchema = z.object({
+  transactionId: z.string(),
+  status: z.string().optional(),
+});
+
 const creditCardDataSchema = z.object({
   opaqueData: opaqueDataSchema.optional(),
   cardNumber: z.string().optional(),
@@ -99,7 +104,7 @@ export const billingAddressSchema = z.object({
 export const processPaymentSchema = z.object({
   amount: z.number().positive('Amount must be positive'),
   paymentMethod: paymentMethodEnum.default('dispensary_direct'),
-  paymentData: z.union([cannpayDataSchema, creditCardDataSchema]).optional(),
+  paymentData: z.union([cannpayDataSchema, aeropayDataSchema, creditCardDataSchema]).optional(),
   customer: customerSchema.optional(),
   orderId: z.string().optional(),
   cart: z.array(cartItemSchema).optional(),
@@ -107,7 +112,7 @@ export const processPaymentSchema = z.object({
   billingAddress: billingAddressSchema.optional(),
 }).refine((data) => {
   // For online payments, require paymentData
-  if (['cannpay', 'credit_card'].includes(data.paymentMethod) && !data.paymentData) {
+  if (['cannpay', 'aeropay', 'credit_card'].includes(data.paymentMethod) && !data.paymentData) {
     return false;
   }
   return true;
