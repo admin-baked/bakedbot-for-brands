@@ -448,4 +448,60 @@ describe('POST /api/checkout/process-payment guardrails', () => {
         expect(body.error).toContain('amount unavailable');
         expect(mockOrderUpdate).not.toHaveBeenCalled();
     });
+
+    it('rejects payment finalization for closed orders before provider calls', async () => {
+        mockOrderGet.mockResolvedValue({
+            exists: true,
+            data: () => ({
+                userId: 'user-1',
+                customer: { name: 'Owner Example', email: 'owner@example.com' },
+                totals: { total: 49.99 },
+                status: 'canceled',
+                paymentStatus: 'pending',
+            }),
+            ref: { update: mockOrderUpdate },
+        });
+
+        const response = await POST({} as any, {
+            amount: 49.99,
+            paymentMethod: 'credit_card',
+            orderId: 'order-1',
+            paymentData: {
+                opaqueData: {
+                    dataDescriptor: 'COMMON.ACCEPT.INAPP.PAYMENT',
+                    dataValue: 'opaque-token',
+                },
+            },
+        } as any);
+
+        const body = await response.json();
+        expect(response.status).toBe(409);
+        expect(body.error).toContain('already closed');
+        expect(mockCreateTransaction).not.toHaveBeenCalled();
+    });
+
+    it('rejects dispensary_direct updates for already-paid orders', async () => {
+        mockOrderGet.mockResolvedValue({
+            exists: true,
+            data: () => ({
+                userId: 'user-1',
+                customer: { email: 'owner@example.com' },
+                totals: { total: 40 },
+                status: 'submitted',
+                paymentStatus: 'paid',
+            }),
+            ref: { update: mockOrderUpdate },
+        });
+
+        const response = await POST({} as any, {
+            amount: 40,
+            paymentMethod: 'dispensary_direct',
+            orderId: 'order-1',
+        } as any);
+
+        const body = await response.json();
+        expect(response.status).toBe(409);
+        expect(body.error).toContain('already been paid');
+        expect(mockOrderUpdate).not.toHaveBeenCalled();
+    });
 });
