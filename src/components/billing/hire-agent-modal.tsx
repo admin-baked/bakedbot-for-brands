@@ -62,9 +62,15 @@ export function HireAgentModal({ isOpen, onClose, planId }: HireAgentModalProps)
             await loadAcceptJs();
             
             // 1. Tokenize Card Data (Accept.js)
+            const clientKey = process.env.NEXT_PUBLIC_AUTHNET_CLIENT_KEY;
+            const apiLoginID = process.env.NEXT_PUBLIC_AUTHNET_API_LOGIN_ID;
+            if (!clientKey || !apiLoginID) {
+                throw new Error('Authorize.Net public configuration missing');
+            }
+
             const authData = {
-                clientKey: process.env.NEXT_PUBLIC_AUTHNET_CLIENT_KEY,
-                apiLoginID: process.env.NEXT_PUBLIC_AUTHNET_API_LOGIN_ID || '3F9PchQ873' // Fallback to what user provided if env missing
+                clientKey,
+                apiLoginID,
             };
 
             const cardData = {

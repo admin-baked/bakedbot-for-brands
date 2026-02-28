@@ -96,8 +96,7 @@ function mapPaymentWebhookOutcome(eventType: string, responseCode: number | null
   if (
     normalizedType.includes('authcapture') ||
     normalizedType.includes('capture') ||
-    normalizedType.includes('settled') ||
-    responseCode === 1
+    normalizedType.includes('settled')
   ) {
     return {
       paymentStatus: 'paid',
