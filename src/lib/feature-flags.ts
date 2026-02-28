@@ -7,7 +7,10 @@
  *
  * Company plan/pricing checkout:
  * - Disabled by default outside tests
- * - Enable only with NEXT_PUBLIC_ENABLE_COMPANY_PLAN_CHECKOUT="true"
+ * - Requires BOTH:
+ *   - NEXT_PUBLIC_ENABLE_COMPANY_PLAN_CHECKOUT="true" (UI opt-in)
+ *   - ENABLE_COMPANY_PLAN_CHECKOUT="true" (server opt-in)
+ * This prevents accidental exposure via client-only env toggles.
  */
 export function isShippingCheckoutEnabled(): boolean {
     const configured = process.env.NEXT_PUBLIC_ENABLE_SHIPPING_CHECKOUT;
@@ -19,14 +22,17 @@ export function isShippingCheckoutEnabled(): boolean {
 }
 
 export function isCompanyPlanCheckoutEnabled(): boolean {
-    const configured = process.env.NEXT_PUBLIC_ENABLE_COMPANY_PLAN_CHECKOUT;
-
-    if (configured === 'true') return true;
-    if (configured === 'false') return false;
+    const publicFlag = process.env.NEXT_PUBLIC_ENABLE_COMPANY_PLAN_CHECKOUT;
+    const serverFlag = process.env.ENABLE_COMPANY_PLAN_CHECKOUT;
+    const uiEnabled = publicFlag === 'true';
+    const serverEnabled = serverFlag === 'true';
 
     if (process.env.NODE_ENV === 'test') {
+        if (publicFlag === 'false' || serverFlag === 'false') {
+            return false;
+        }
         return true;
     }
 
-    return false;
+    return uiEnabled && serverEnabled;
 }
