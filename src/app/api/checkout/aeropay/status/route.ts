@@ -84,13 +84,7 @@ export async function POST(request: NextRequest) {
 
     const transaction = await getTransactionDetails(transactionId);
 
-    // 5. Update Firestore transaction document with latest status
-    await transactionRef.update({
-      status: transaction.status,
-      updatedAt: new Date().toISOString(),
-    });
-
-    // Also update the order if status changed
+    // 5. Update the related order if status changed
     const orderId = transactionData.orderId;
     if (orderId) {
       const orderRef = firestore.collection('orders').doc(orderId);
@@ -171,13 +165,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 6. Update Firestore transaction document with latest status after guardrails
+    await transactionRef.update({
+      status: transaction.status,
+      updatedAt: new Date().toISOString(),
+    });
+
     logger.debug('[AEROPAY] Transaction status retrieved', {
       transactionId,
       status: transaction.status,
       amount: transaction.amount,
     });
 
-    // 6. Return transaction status to frontend
+    // 7. Return transaction status to frontend
     return NextResponse.json({
       transactionId: transaction.transactionId,
       status: transaction.status,
