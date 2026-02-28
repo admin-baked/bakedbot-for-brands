@@ -22,12 +22,15 @@ import { getTransactionDetails } from '@/lib/payments/aeropay';
 import { getUserFromRequest } from '@/server/auth/auth-helpers';
 import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
+import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
 
-interface StatusRequest {
-  transactionId: string;
-}
+const DOCUMENT_ID_REGEX = /^[A-Za-z0-9_-]{1,128}$/;
+
+const statusRequestSchema = z.object({
+  transactionId: z.string().trim().regex(DOCUMENT_ID_REGEX, 'Invalid transactionId'),
+}).strict();
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,15 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Parse request body
-    const body: StatusRequest = await request.json();
-    const { transactionId } = body;
-
-    if (!transactionId) {
-      return NextResponse.json(
-        { error: 'Missing transactionId' },
-        { status: 400 }
-      );
-    }
+    const { transactionId } = statusRequestSchema.parse(await request.json());
 
     // 3. Verify transaction exists in Firestore and belongs to user
     const { firestore } = await createServerClient();
@@ -126,6 +121,12 @@ export async function POST(request: NextRequest) {
       updatedAt: transaction.updatedAt || new Date().toISOString(),
     });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: error.issues[0]?.message || 'Invalid request payload' },
+        { status: 400 }
+      );
+    }
     logger.error('[AEROPAY] Status check failed', error instanceof Error ? error : new Error(String(error)));
 
     // Return appropriate error
