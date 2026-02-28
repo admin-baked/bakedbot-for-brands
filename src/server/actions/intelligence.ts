@@ -47,6 +47,10 @@ function isValidOrgId(orgId: string): boolean {
     return !!orgId && !orgId.includes('/');
 }
 
+function isValidDocumentId(id: string): boolean {
+    return !!id && !id.includes('/');
+}
+
 function requireActorOrgId(user: IntelligenceActor, action: string): string {
     const orgId = getActorOrgId(user);
     if (!orgId || !isValidOrgId(orgId)) {
@@ -216,17 +220,29 @@ export async function resolveMemoryConflict(
     conflictId: string,
     resolution: MemoryConflict['resolution']
 ): Promise<void> {
-    const user = await requireUser(['super_user']);
+    const user = await requireUser(['super_user', 'super_admin']);
+    const orgId = requireActorOrgId(user as IntelligenceActor, 'resolveMemoryConflict');
+    if (!isValidDocumentId(conflictId)) {
+        throw new Error('Invalid conflict id');
+    }
 
     const db = getFirestore();
-    await db
-        .collection('memory_conflicts')
-        .doc(conflictId)
-        .update({
-            resolution,
-            resolvedAt: new Date().toISOString(),
-            resolvedBy: user.uid,
-        });
+    const conflictRef = db.collection('memory_conflicts').doc(conflictId);
+    const conflictDoc = await conflictRef.get();
+    if (!conflictDoc.exists) {
+        throw new Error('Conflict not found');
+    }
+
+    const conflictData = conflictDoc.data() as { tenantId?: string };
+    if (!conflictData?.tenantId || !isValidOrgId(conflictData.tenantId) || conflictData.tenantId !== orgId) {
+        throw new Error('Forbidden: org mismatch');
+    }
+
+    await conflictRef.update({
+        resolution,
+        resolvedAt: new Date().toISOString(),
+        resolvedBy: user.uid,
+    });
 }
 
 // =============================================================================
