@@ -63,6 +63,10 @@ function isValidOrgId(orgId: string): boolean {
     return !!orgId && !orgId.includes('/');
 }
 
+function isValidDocumentId(id: string): boolean {
+    return !!id && !id.includes('/') && id.length <= 128;
+}
+
 /**
  * Convert Firestore timestamp to Date
  */
@@ -144,6 +148,9 @@ export async function createInboxThread(input: {
         if (requestedOrgId && !isValidOrgId(requestedOrgId)) {
             return { success: false, error: 'Invalid organization context' };
         }
+        if (input.id && !isValidDocumentId(input.id)) {
+            return { success: false, error: 'Invalid thread id' };
+        }
 
         if (!isSuperUser && requestedOrgId && requestedOrgId !== actorOrgId) {
             return { success: false, error: 'Unauthorized org context' };
@@ -160,6 +167,9 @@ export async function createInboxThread(input: {
         const db = getDb();
         // Use client-provided ID if available, otherwise generate new one
         const threadId = input.id || createInboxThreadId();
+        if (!isValidDocumentId(threadId)) {
+            return { success: false, error: 'Invalid thread id' };
+        }
 
         const thread: InboxThread = {
             id: threadId,
@@ -225,12 +235,16 @@ export async function createInboxThread(input: {
         if (thread.color) firestoreData.color = thread.color;
         if (thread.isPinned !== undefined) firestoreData.isPinned = thread.isPinned;
 
-        await db.collection(INBOX_THREADS_COLLECTION).doc(threadId).set(firestoreData);
+        const threadRef = db.collection(INBOX_THREADS_COLLECTION).doc(threadId);
+        await threadRef.create(firestoreData);
 
         logger.info('Created inbox thread', { threadId, type: input.type, userId: user.uid });
 
         return { success: true, thread: serializeThread(thread) };
     } catch (error) {
+        if ((error as { code?: number })?.code === 6 || String(error).toLowerCase().includes('already exists')) {
+            return { success: false, error: 'Thread ID already exists' };
+        }
         logger.error('Failed to create inbox thread', { error });
         return { success: false, error: 'Failed to create thread' };
     }
@@ -1558,48 +1572,65 @@ function getArtifactTitle(artifact: InboxArtifact): string {
 }
 
 // =============================================================================
-// INJECT AGENT MESSAGE (server-side, no auth required)
+// INJECT AGENT MESSAGE (internal service only)
 // =============================================================================
 
 /**
- * Inject a message from an agent into an existing thread.
- * Used by background services (heartbeat, campaign sender) to push proactive updates.
- * Does NOT require user auth — uses admin Firestore directly.
+ * Inject a message from an internal service into an existing thread.
+ * Requires a valid internal token and is blocked for user-triggered calls.
  */
 export async function injectAgentMessage(
     threadId: string,
     agent: string,
     message: string,
+    options?: { internalToken?: string },
 ): Promise<boolean> {
     try {
+        const expectedToken = process.env.INBOX_AGENT_INJECT_TOKEN;
+        if (!expectedToken || options?.internalToken !== expectedToken) {
+            logger.warn('[INBOX] Rejected agent injection attempt', { threadId, reason: 'invalid_internal_token' });
+            return false;
+        }
+        if (!isValidDocumentId(threadId)) {
+            logger.warn('[INBOX] Rejected agent injection attempt', { threadId, reason: 'invalid_thread_id' });
+            return false;
+        }
+
+        const trimmedAgent = agent.trim();
+        const trimmedMessage = message.trim();
+        if (!trimmedAgent || !trimmedMessage) {
+            logger.warn('[INBOX] Rejected agent injection attempt', { threadId, reason: 'invalid_payload' });
+            return false;
+        }
+
         const db = getDb();
         const threadRef = db.collection(INBOX_THREADS_COLLECTION).doc(threadId);
         const doc = await threadRef.get();
 
         if (!doc.exists) {
-            logger.warn('[INBOX] Cannot inject message — thread not found', { threadId });
+            logger.warn('[INBOX] Cannot inject message - thread not found', { threadId });
             return false;
         }
 
         const agentMessage = {
             id: `agent_${Date.now()}_${Math.random().toString(36).slice(2)}`,
             role: 'assistant',
-            content: message,
+            content: trimmedMessage,
             timestamp: new Date().toISOString(),
-            agentPersona: agent,
+            agentPersona: trimmedAgent,
         };
 
         await threadRef.update({
             messages: FieldValue.arrayUnion(agentMessage),
-            preview: message.slice(0, 50),
+            preview: trimmedMessage.slice(0, 50),
             updatedAt: FieldValue.serverTimestamp(),
             lastActivityAt: FieldValue.serverTimestamp(),
         });
 
         logger.info('[INBOX] Agent message injected', {
             threadId,
-            agent,
-            messageLength: message.length,
+            agent: trimmedAgent,
+            messageLength: trimmedMessage.length,
         });
 
         return true;
