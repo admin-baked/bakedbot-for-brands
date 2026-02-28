@@ -100,4 +100,16 @@ describe('dynamic-prompts security', () => {
     expect(Array.isArray(result)).toBe(true);
     expect(getAdminFirestore).toHaveBeenCalled();
   });
+
+  it('blocks non-super onboarding reads when actor uid is missing', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      role: 'dispensary_admin',
+      currentOrgId: 'org-a',
+    });
+
+    const result = await getDynamicPromptSuggestions('org-a', 'user-2');
+
+    expect(result).toEqual([]);
+    expect(getAdminFirestore).not.toHaveBeenCalled();
+  });
 });

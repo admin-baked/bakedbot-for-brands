@@ -9,6 +9,15 @@ function isSuperRole(role: unknown): boolean {
     return role === 'super_user' || role === 'super_admin';
 }
 
+function isValidDocumentId(value: unknown): value is string {
+    return (
+        typeof value === 'string' &&
+        value.length >= 3 &&
+        value.length <= 128 &&
+        !/[\/\\?#\[\]]/.test(value)
+    );
+}
+
 function getActorOrgId(user: unknown): string | null {
     if (!user || typeof user !== 'object') return null;
     const token = user as {
@@ -43,6 +52,9 @@ function assertTenantAccess(user: unknown, tenantId: string): void {
  * Get media budget configuration for a tenant
  */
 export async function getMediaBudget(tenantId: string): Promise<MediaBudget | null> {
+    if (!isValidDocumentId(tenantId)) {
+        throw new Error('Invalid tenant ID');
+    }
     const user = await requireUser();
     assertTenantAccess(user, tenantId);
 
@@ -69,6 +81,9 @@ export async function updateMediaBudget(
     budget: Partial<MediaBudget>
 ): Promise<{ success: boolean; error?: string }> {
     try {
+        if (!isValidDocumentId(tenantId)) {
+            return { success: false, error: 'Invalid tenant ID' };
+        }
         const user = await requireUser();
         assertTenantAccess(user, tenantId);
 
@@ -105,6 +120,9 @@ export async function updateMediaBudget(
  * Get all cost alerts for a tenant
  */
 export async function getMediaCostAlerts(tenantId: string): Promise<MediaCostAlert[]> {
+    if (!isValidDocumentId(tenantId)) {
+        throw new Error('Invalid tenant ID');
+    }
     const user = await requireUser();
     assertTenantAccess(user, tenantId);
 
@@ -127,6 +145,9 @@ export async function createMediaCostAlert(
     alert: Omit<MediaCostAlert, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>
 ): Promise<{ success: boolean; alertId?: string; error?: string }> {
     try {
+        if (!isValidDocumentId(tenantId)) {
+            return { success: false, error: 'Invalid tenant ID' };
+        }
         const user = await requireUser();
         assertTenantAccess(user, tenantId);
 
@@ -166,6 +187,12 @@ export async function updateMediaCostAlert(
     updates: Partial<MediaCostAlert>
 ): Promise<{ success: boolean; error?: string }> {
     try {
+        if (!isValidDocumentId(tenantId)) {
+            return { success: false, error: 'Invalid tenant ID' };
+        }
+        if (!isValidDocumentId(alertId)) {
+            return { success: false, error: 'Invalid alert ID' };
+        }
         const user = await requireUser();
         assertTenantAccess(user, tenantId);
 
@@ -198,6 +225,12 @@ export async function deleteMediaCostAlert(
     alertId: string
 ): Promise<{ success: boolean; error?: string }> {
     try {
+        if (!isValidDocumentId(tenantId)) {
+            return { success: false, error: 'Invalid tenant ID' };
+        }
+        if (!isValidDocumentId(alertId)) {
+            return { success: false, error: 'Invalid alert ID' };
+        }
         const user = await requireUser();
         assertTenantAccess(user, tenantId);
 
@@ -227,6 +260,9 @@ export async function getMediaBudgetStatus(tenantId: string): Promise<{
     weekly: { spent: number; limit?: number; remaining: number };
     monthly: { spent: number; limit?: number; remaining: number };
 }> {
+    if (!isValidDocumentId(tenantId)) {
+        throw new Error('Invalid tenant ID');
+    }
     const user = await requireUser();
     assertTenantAccess(user, tenantId);
 

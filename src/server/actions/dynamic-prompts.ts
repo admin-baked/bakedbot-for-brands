@@ -8,6 +8,15 @@ function isSuperRole(role: unknown): boolean {
     return role === 'super_user' || role === 'super_admin';
 }
 
+function isValidDocumentId(value: unknown): value is string {
+    return (
+        typeof value === 'string' &&
+        value.length >= 3 &&
+        value.length <= 128 &&
+        !/[\/\\?#\[\]]/.test(value)
+    );
+}
+
 function getActorOrgId(user: unknown): string | null {
     if (!user || typeof user !== 'object') return null;
     const token = user as {
@@ -48,7 +57,8 @@ function getActorOrgId(user: unknown): string | null {
  * @param userId - The current user's UID (optional — enables onboarding prompts)
  */
 export async function getDynamicPromptSuggestions(orgId: string, userId?: string): Promise<string[]> {
-    if (!orgId) return [];
+    if (!orgId || !isValidDocumentId(orgId)) return [];
+    if (userId && !isValidDocumentId(userId)) return [];
 
     try {
         const user = await requireUser();
@@ -62,8 +72,10 @@ export async function getDynamicPromptSuggestions(orgId: string, userId?: string
         if (!isSuperRole(role) && (!actorOrgId || actorOrgId !== orgId)) {
             throw new Error('Unauthorized');
         }
-        if (!isSuperRole(role) && userId && actorUid && userId !== actorUid) {
-            throw new Error('Unauthorized');
+        if (!isSuperRole(role) && userId) {
+            if (!actorUid || userId !== actorUid) {
+                throw new Error('Unauthorized');
+            }
         }
 
         const db = getAdminFirestore();
