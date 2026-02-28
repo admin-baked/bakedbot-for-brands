@@ -149,6 +149,31 @@ function isAuthorizationOnlyEvent(eventType: string): boolean {
   );
 }
 
+function shouldAttemptVoidForUnmappedPayment(
+  eventType: string,
+  responseCode: number | null,
+): boolean {
+  if (responseCode !== 1) return false;
+  const normalizedType = eventType.toLowerCase();
+  if (!normalizedType.includes('net.authorize.payment.')) return false;
+  if (
+    normalizedType.includes('refund') ||
+    normalizedType.includes('void') ||
+    normalizedType.includes('declined') ||
+    normalizedType.includes('failed')
+  ) {
+    return false;
+  }
+
+  return (
+    normalizedType.includes('authorization') ||
+    normalizedType.includes('authonly') ||
+    normalizedType.includes('authcapture') ||
+    normalizedType.includes('capture') ||
+    normalizedType.includes('settled')
+  );
+}
+
 function getAuthNetEndpoint(): string {
   const env = (process.env.AUTHNET_ENV || '').toLowerCase();
   const isProduction = env === 'production' || (process.env.NODE_ENV || '').toLowerCase() === 'production';
@@ -177,14 +202,10 @@ function getAuthNetCredentials(): { apiLoginId: string; transactionKey: string }
   return { apiLoginId, transactionKey };
 }
 
-async function attemptVoidAuthorization(
+async function attemptVoidSuspiciousPayment(
   transactionId: string,
   eventType: string,
 ): Promise<VoidAttemptResult> {
-  if (!isAuthorizationOnlyEvent(eventType)) {
-    return { attempted: false, succeeded: false, message: 'event_not_authorization_only' };
-  }
-
   const credentials = getAuthNetCredentials();
   if (!credentials) {
     logger.warn('[AUTHNET_WEBHOOK] Missing credentials for suspicious authorization void attempt', {
@@ -559,7 +580,10 @@ export async function POST(req: NextRequest) {
           eventType,
         });
 
-        const voidAttempt = await attemptVoidAuthorization(entityId, eventType);
+        const shouldVoid = shouldAttemptVoidForUnmappedPayment(eventType, responseCode);
+        const voidAttempt = shouldVoid
+          ? await attemptVoidSuspiciousPayment(entityId, eventType)
+          : { attempted: false, succeeded: false, message: 'void_not_required' };
 
         await db.collection('payment_forensics').add({
           provider: 'authorize_net',

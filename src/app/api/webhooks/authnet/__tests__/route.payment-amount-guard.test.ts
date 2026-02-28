@@ -72,6 +72,7 @@ jest.mock('@/lib/logger', () => ({
 
 describe('POST /api/webhooks/authnet payment amount guard', () => {
   const originalEnv = process.env;
+  const originalFetch = global.fetch;
 
   function setupDb({
     withOrder = true,
@@ -216,6 +217,7 @@ describe('POST /api/webhooks/authnet payment amount guard', () => {
 
   afterEach(() => {
     process.env = originalEnv;
+    global.fetch = originalFetch;
   });
 
   it('records forensics and skips order transition on amount mismatch', async () => {
@@ -292,6 +294,55 @@ describe('POST /api/webhooks/authnet payment amount guard', () => {
       reason: 'missing_order_mapping',
       transactionId: 'txn_missing',
       providerAmountCents: 410,
+    }));
+  });
+
+  it('attempts void for unmapped successful authcapture events', async () => {
+    setupDb({ withOrder: false });
+    process.env.AUTHNET_API_LOGIN_ID = 'login-id';
+    process.env.AUTHNET_TRANSACTION_KEY = 'txn-key';
+    process.env.AUTHNET_ENV = 'sandbox';
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        messages: { resultCode: 'Ok', message: [] },
+        transactionResponse: { responseCode: '1', transId: 'txn_void_1' },
+      }),
+    } as never);
+
+    const { POST } = await import('../route');
+
+    const body = JSON.stringify({
+      notificationId: 'notif-missing-order-void',
+      eventType: 'net.authorize.payment.authcapture.created',
+      payload: {
+        id: 'txn_missing_capture',
+        responseCode: '1',
+        authAmount: '3.00',
+      },
+    });
+
+    const req = new NextRequest('http://localhost/api/webhooks/authnet', {
+      method: 'POST',
+      body,
+      headers: {
+        'x-anet-signature': 'sha512=fake',
+      },
+    });
+
+    const response = await POST(req);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.processedOrders).toBe(0);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(mockForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'authorize_net',
+      source: 'authnet_webhook',
+      reason: 'missing_order_mapping',
+      transactionId: 'txn_missing_capture',
+      voidAttempted: true,
+      voidSucceeded: true,
     }));
   });
 
