@@ -72,19 +72,18 @@ env:
     secret: CANNMENUS_API_KEY@3
     availability:
       - RUNTIME
-  # Authorize.Net - Proper Secret Manager references with Firebase CLI IAM bindings (2026-02-16)
-  # Fixed by running: firebase apphosting:secrets:grantaccess AUTHNET_API_LOGIN_ID --backend=bakedbot-prod
-  # Uses version 4 which contains production credentials
+  # Authorize.Net - Secret Manager references with Firebase CLI IAM bindings
+  # Use @latest to avoid stale pinned secret versions after credential rotation.
   - variable: AUTHNET_API_LOGIN_ID
-    secret: AUTHNET_API_LOGIN_ID@4
+    secret: AUTHNET_API_LOGIN_ID@latest
     availability:
       - RUNTIME
   - variable: AUTHNET_TRANSACTION_KEY
-    secret: AUTHNET_TRANSACTION_KEY@4
+    secret: AUTHNET_TRANSACTION_KEY@latest
     availability:
       - RUNTIME
   - variable: AUTHNET_SIGNATURE_KEY
-    secret: AUTHNET_SIGNATURE_KEY@1
+    secret: AUTHNET_SIGNATURE_KEY@latest
     availability:
       - RUNTIME
   - variable: AUTHNET_ENV
@@ -102,7 +101,7 @@ env:
   #     - BUILD
   #     - RUNTIME
   - variable: NEXT_PUBLIC_AUTHNET_API_LOGIN_ID
-    secret: AUTHNET_API_LOGIN_ID@4
+    secret: AUTHNET_API_LOGIN_ID@latest
     availability:
       - BUILD
       - RUNTIME

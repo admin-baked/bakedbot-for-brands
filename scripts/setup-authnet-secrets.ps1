@@ -24,7 +24,7 @@ Write-Host "================================================================" -F
 Write-Host ""
 
 $apiLoginId = Read-Host "API Login ID (8-20 alphanumeric chars)"
-$transactionKey = Read-Host "Transaction Key (16 hexadecimal chars)"
+$transactionKey = Read-Host "Transaction Key (16 alphanumeric chars)"
 
 # Validate format
 Write-Host ""
@@ -48,8 +48,8 @@ if ($transactionKey.Length -ne 16) {
     Write-Host "  ERROR: Transaction Key must be exactly 16 characters" -ForegroundColor Red
     Write-Host "  Current length: $($transactionKey.Length)" -ForegroundColor Red
     $valid = $false
-} elseif ($transactionKey -notmatch '^[0-9a-fA-F]+$') {
-    Write-Host "  ERROR: Transaction Key must be hexadecimal (0-9, a-f)" -ForegroundColor Red
+} elseif ($transactionKey -notmatch '^[a-zA-Z0-9]+$') {
+    Write-Host "  ERROR: Transaction Key must be alphanumeric (a-z, A-Z, 0-9)" -ForegroundColor Red
     $valid = $false
 } else {
     Write-Host "  OK: Transaction Key format valid" -ForegroundColor Green

@@ -6,9 +6,9 @@ $PROJECT_ID = "studio-567050101-bc6e8"
 Write-Host "Verifying Authorize.Net Secrets..." -ForegroundColor Cyan
 Write-Host ""
 
-# Expected formats (from Authorize.Net documentation):
+# Expected formats:
 # - API_LOGIN_ID: 8-20 alphanumeric characters
-# - TRANSACTION_KEY: 16 hexadecimal characters (0-9, a-f, A-F)
+# - TRANSACTION_KEY: 16 alphanumeric characters
 
 function Test-SecretFormat {
     param(
@@ -75,7 +75,7 @@ Write-Host "================================================================" -F
 Write-Host "2. AUTHNET_TRANSACTION_KEY" -ForegroundColor White
 Write-Host "================================================================" -ForegroundColor Cyan
 $transKeyExists = Test-SecretFormat -SecretName "AUTHNET_TRANSACTION_KEY" `
-    -ExpectedPattern "^[0-9a-fA-F]+$" `
+    -ExpectedPattern "^[a-zA-Z0-9]+$" `
     -MinLength 16 `
     -MaxLength 16
 
