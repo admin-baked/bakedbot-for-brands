@@ -14,11 +14,16 @@ import { PaymentCreditCard } from '@/components/checkout/payment-credit-card';
 import { createSubscription } from '../actions/createSubscription';
 
 import { validateCoupon } from '../actions/validateCoupon';
+import { useUser } from '@/firebase/auth/use-user';
+import { CheckoutAuthRequired } from '@/components/checkout/checkout-auth-required';
+import { isCompanyPlanCheckoutEnabled } from '@/lib/feature-flags';
 
 function SubscriptionCheckoutContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const { toast } = useToast();
+    const { user, isUserLoading } = useUser();
+    const companyPlanCheckoutEnabled = isCompanyPlanCheckoutEnabled();
 
     const planId = searchParams?.get('plan') || '';
     const plan = planId ? findPricingPlan(planId) : undefined;
@@ -29,6 +34,14 @@ function SubscriptionCheckoutContent() {
         name: '',
         email: '',
         phone: '',
+    });
+    const [billingAddress, setBillingAddress] = useState({
+        street: '',
+        street2: '',
+        city: '',
+        state: '',
+        zip: '',
+        country: 'US',
     });
 
     // Coupon State
@@ -44,6 +57,15 @@ function SubscriptionCheckoutContent() {
         }
         setFinalPrice(undefined);
     }, [plan?.id, plan?.price]);
+
+    useEffect(() => {
+        if (!user) return;
+        setCustomerDetails((prev) => ({
+            name: prev.name || user.displayName || '',
+            email: prev.email || user.email || '',
+            phone: prev.phone || user.phoneNumber || '',
+        }));
+    }, [user]);
 
     if (!planId) {
         if (typeof window !== 'undefined') {
@@ -68,6 +90,42 @@ function SubscriptionCheckoutContent() {
             <div className="text-center py-12">
                 <h1 className="text-2xl font-bold text-destructive">Invalid Plan Selected</h1>
                 <Link href="/pricing"><Button variant="link">Back to Pricing</Button></Link>
+            </div>
+        );
+    }
+
+    if (!companyPlanCheckoutEnabled) {
+        return (
+            <div className="text-center py-12 space-y-4">
+                <h1 className="text-2xl font-bold">Plan Checkout Unavailable</h1>
+                <p className="text-muted-foreground">
+                    Self-serve subscription checkout is currently disabled. Contact sales to set up a plan.
+                </p>
+                <div className="flex items-center justify-center gap-3">
+                    <Link href="/pricing"><Button variant="outline">Back to Pricing</Button></Link>
+                    <Link href="/get-started"><Button>Contact Sales</Button></Link>
+                </div>
+            </div>
+        );
+    }
+
+    if (isUserLoading) {
+        return (
+            <div className="max-w-3xl mx-auto text-center py-16">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+                <h1 className="text-2xl font-semibold">Checking account...</h1>
+            </div>
+        );
+    }
+
+    if (!user) {
+        return (
+            <div className="max-w-lg mx-auto py-10">
+                <CheckoutAuthRequired
+                    title="Account Required for Subscription Checkout"
+                    description="Sign in or create an account to complete subscription billing securely."
+                    nextPath={`/checkout/subscription?plan=${encodeURIComponent(planId)}`}
+                />
             </div>
         );
     }
@@ -121,11 +179,36 @@ function SubscriptionCheckoutContent() {
     const handleSubscriptionSubmit = async (paymentData?: any) => {
         setLoading(true);
         try {
+            if (finalPrice && finalPrice > 0) {
+                const hasBillingAddress =
+                    billingAddress.street.trim() &&
+                    billingAddress.city.trim() &&
+                    billingAddress.state.trim().length === 2 &&
+                    billingAddress.zip.trim();
+
+                if (!hasBillingAddress) {
+                    toast({
+                        variant: 'destructive',
+                        title: 'Billing Address Required',
+                        description: 'Please provide a valid billing address before payment.',
+                    });
+                    return;
+                }
+            }
+
             const result = await createSubscription({
                 planId: plan.id,
                 customer: customerDetails,
                 paymentData,
-                couponCode: appliedCoupon ? appliedCoupon.code : undefined
+                couponCode: appliedCoupon ? appliedCoupon.code : undefined,
+                billingAddress: finalPrice && finalPrice > 0 ? {
+                    street: billingAddress.street.trim(),
+                    ...(billingAddress.street2.trim() ? { street2: billingAddress.street2.trim() } : {}),
+                    city: billingAddress.city.trim(),
+                    state: billingAddress.state.trim().toUpperCase(),
+                    zip: billingAddress.zip.trim(),
+                    country: 'US',
+                } : undefined,
             });
 
             if (result.success) {
@@ -236,6 +319,69 @@ function SubscriptionCheckoutContent() {
                         <Button variant="ghost" onClick={() => setStep('details')} className="pl-0">
                             <ArrowLeft className="h-4 w-4 mr-2" /> Back to Details
                         </Button>
+
+                        {finalPrice && finalPrice > 0 && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Billing Address</CardTitle>
+                                    <CardDescription>This address is required for subscription billing.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="billingStreet">Street Address</Label>
+                                        <Input
+                                            id="billingStreet"
+                                            value={billingAddress.street}
+                                            onChange={(e) => setBillingAddress((prev) => ({ ...prev, street: e.target.value }))}
+                                            placeholder="123 Main St"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="billingStreet2">Apt, Suite, etc. (Optional)</Label>
+                                        <Input
+                                            id="billingStreet2"
+                                            value={billingAddress.street2}
+                                            onChange={(e) => setBillingAddress((prev) => ({ ...prev, street2: e.target.value }))}
+                                            placeholder="Apt 4B"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="billingCity">City</Label>
+                                            <Input
+                                                id="billingCity"
+                                                value={billingAddress.city}
+                                                onChange={(e) => setBillingAddress((prev) => ({ ...prev, city: e.target.value }))}
+                                                placeholder="Syracuse"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="billingState">State</Label>
+                                            <Input
+                                                id="billingState"
+                                                value={billingAddress.state}
+                                                onChange={(e) => setBillingAddress((prev) => ({ ...prev, state: e.target.value.toUpperCase() }))}
+                                                placeholder="NY"
+                                                maxLength={2}
+                                                required
+                                            />
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="billingZip">ZIP Code</Label>
+                                            <Input
+                                                id="billingZip"
+                                                value={billingAddress.zip}
+                                                onChange={(e) => setBillingAddress((prev) => ({ ...prev, zip: e.target.value }))}
+                                                placeholder="13224"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
 
                         <Card>
                             <CardContent className="pt-6">

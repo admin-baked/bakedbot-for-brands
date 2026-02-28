@@ -3,6 +3,7 @@
 // src/app/checkout/actions/createOrder.ts
 /**
  * Server action to create an order in Firestore
+ * Hardened for account-bound, address-validated card checkout.
  */
 
 import { createServerClient } from '@/firebase/server-client';
@@ -11,8 +12,11 @@ import { createTransaction } from '@/lib/authorize-net';
 import { sendOrderConfirmationEmail } from '@/lib/email/dispatcher';
 import { applyCoupon } from './applyCoupon';
 import { createDelivery, autoAssignDriver } from '@/server/actions/delivery';
+import { requireUser } from '@/server/auth/auth';
+import type { BillingAddress } from '@/types/orders';
 
 import { logger } from '@/lib/logger';
+
 type CreateOrderInput = {
     items: any[];
     customer: {
@@ -23,9 +27,10 @@ type CreateOrderInput = {
     retailerId: string;
     brandId?: string;
     couponCode?: string;
-    paymentMethod: 'authorize_net' | 'cannpay' | 'cash' | 'smokey_pay'; // smokey_pay is legacy alias
+    paymentMethod: 'authorize_net' | 'cannpay' | 'cash' | 'smokey_pay';
     paymentData?: any;
     total: number;
+    billingAddress?: BillingAddress;
     // Delivery fields (optional)
     fulfillmentType?: 'pickup' | 'delivery';
     deliveryAddress?: {
@@ -40,11 +45,59 @@ type CreateOrderInput = {
     deliveryInstructions?: string;
 };
 
+function normalizeAddress(address: any): BillingAddress | null {
+    if (!address || typeof address !== 'object') return null;
+
+    const street = typeof address.street === 'string' ? address.street.trim() : '';
+    const street2 = typeof address.street2 === 'string' ? address.street2.trim() : undefined;
+    const city = typeof address.city === 'string' ? address.city.trim() : '';
+    const state = typeof address.state === 'string' ? address.state.trim().toUpperCase() : '';
+    const zip = typeof address.zip === 'string' ? address.zip.trim() : '';
+    const countryRaw = typeof address.country === 'string' ? address.country.trim().toUpperCase() : 'US';
+    const country = countryRaw || 'US';
+
+    if (!street || !city || !state || !zip) return null;
+    if (state.length !== 2) return null;
+    if (!/^\d{5}(-\d{4})?$/.test(zip)) return null;
+
+    return {
+        street,
+        ...(street2 ? { street2 } : {}),
+        city,
+        state,
+        zip,
+        country,
+    };
+}
+
+function splitName(fullName: string): { firstName: string; lastName: string } {
+    const trimmed = fullName.trim();
+    if (!trimmed) {
+        return { firstName: 'Customer', lastName: 'Checkout' };
+    }
+    const parts = trimmed.split(/\s+/);
+    return {
+        firstName: parts[0] || 'Customer',
+        lastName: parts.slice(1).join(' ') || parts[0] || 'Checkout',
+    };
+}
+
 export async function createOrder(input: CreateOrderInput) {
     try {
+        let session;
+        try {
+            session = await requireUser();
+        } catch {
+            return { success: false, error: 'You must be signed in to complete checkout.' };
+        }
+
+        const sessionEmail = typeof session.email === 'string' ? session.email.toLowerCase() : '';
+        const requestEmail = input.customer.email.trim().toLowerCase();
+        if (sessionEmail && requestEmail !== sessionEmail) {
+            return { success: false, error: 'Customer email must match your signed-in account.' };
+        }
+
         const { firestore } = await createServerClient();
-        let transactionId = null;
-        let paymentStatus = 'pending';
 
         const normalizedItems = input.items.map((item) => ({
             productId: item.productId || item.id,
@@ -55,7 +108,7 @@ export async function createOrder(input: CreateOrderInput) {
         }));
 
         const subtotal = Number(
-            normalizedItems.reduce((sum, item) => sum + (item.price * item.qty), 0).toFixed(2)
+            normalizedItems.reduce((sum, item) => sum + (item.price * item.qty), 0).toFixed(2),
         );
 
         const inferredBrandId = input.brandId || input.items.find((item) => typeof item.brandId === 'string')?.brandId;
@@ -66,7 +119,7 @@ export async function createOrder(input: CreateOrderInput) {
             if (!inferredBrandId) {
                 return {
                     success: false,
-                    error: 'Coupon validation requires a brand context.'
+                    error: 'Coupon validation requires a brand context.',
                 };
             }
 
@@ -103,51 +156,25 @@ export async function createOrder(input: CreateOrderInput) {
             });
         }
 
-        // 1. Process Payment (if Authorize.net)
-        if (input.paymentMethod === 'authorize_net' && input.paymentData) {
-            logger.info('Processing Authorize.net payment for order');
+        const normalizedBillingAddress =
+            normalizeAddress(input.billingAddress) ||
+            normalizeAddress(input.deliveryAddress);
 
-            const paymentResult = await createTransaction({
-                amount: serverTotal,
-                // Support opaque data from client
-                opaqueData: input.paymentData.opaqueData,
-                // Or raw card data (if passed - be careful with logging!)
-                cardNumber: input.paymentData.cardNumber,
-                expirationDate: input.paymentData.expirationDate,
-                cvv: input.paymentData.cvv,
-                customer: {
-                    email: input.customer.email,
-                    firstName: input.customer.name.split(' ')[0],
-                    lastName: input.customer.name.split(' ').slice(1).join(' '),
-                },
-                description: `Order for ${input.customer.email}`
-            });
-
-            if (!paymentResult.success) {
-                logger.warn('Payment failed', { errors: paymentResult.errors });
-                return {
-                    success: false,
-                    error: paymentResult.message || 'Payment declined. Please check your card details.'
-                };
-            }
-
-            transactionId = paymentResult.transactionId;
-            paymentStatus = 'paid';
-            logger.info('Payment successful', { transactionId });
-        } else if (input.paymentMethod === 'cannpay') {
-            // CannPay flow - typically handled via redirect or external link
-            // For now, we assume the client has initiated the flow or will do so
-            paymentStatus = 'pending_cannpay';
-            logger.info('Order placed with CannPay intent');
-        } else {
-            // Cash / Pay at Pickup
-            paymentStatus = 'pay_at_pickup';
+        if (input.paymentMethod === 'authorize_net' && !normalizedBillingAddress) {
+            return {
+                success: false,
+                error: 'A valid billing address is required for credit card payment.',
+            };
         }
 
-        // 2. Create Order in Firestore
+        const normalizedCustomerEmail = sessionEmail || requestEmail;
         const order = {
+            userId: session.uid,
             items: normalizedItems,
-            customer: input.customer,
+            customer: {
+                ...input.customer,
+                email: normalizedCustomerEmail,
+            },
             retailerId: input.retailerId,
             brandId: inferredBrandId || null,
             totals: {
@@ -161,18 +188,23 @@ export async function createOrder(input: CreateOrderInput) {
                 code: appliedCoupon.code,
                 discount: appliedCoupon.discountAmount,
             } : undefined,
-            // Fulfillment fields
             fulfillmentType: input.fulfillmentType || 'pickup',
             shippingAddress: input.deliveryAddress || undefined,
+            billingAddress: normalizedBillingAddress || undefined,
             deliveryFee: deliveryFee > 0 ? deliveryFee : undefined,
             deliveryWindow: input.deliveryWindow ? {
                 start: input.deliveryWindow.start,
                 end: input.deliveryWindow.end,
             } : undefined,
             deliveryInstructions: input.deliveryInstructions || undefined,
-            transactionId,
-            status: 'submitted', // Initial status
-            paymentStatus,
+            transactionId: null as string | null,
+            status: 'submitted',
+            paymentStatus:
+                input.paymentMethod === 'authorize_net'
+                    ? 'pending'
+                    : input.paymentMethod === 'cannpay'
+                        ? 'pending_cannpay'
+                        : 'pay_at_pickup',
             paymentMethod: input.paymentMethod === 'authorize_net' ? 'credit_card' : input.paymentMethod,
             paymentProvider: input.paymentMethod === 'authorize_net'
                 ? 'authorize_net'
@@ -187,7 +219,69 @@ export async function createOrder(input: CreateOrderInput) {
         const docRef = await firestore.collection('orders').add(order);
         const orderId = docRef.id;
 
-        if (appliedCoupon) {
+        let paymentSuccessful = true;
+        let transactionId: string | null = null;
+
+        if (input.paymentMethod === 'authorize_net') {
+            if (!input.paymentData) {
+                await docRef.update({
+                    paymentStatus: 'failed',
+                    updatedAt: FieldValue.serverTimestamp(),
+                });
+                return {
+                    success: false,
+                    error: 'Payment details are required for credit card checkout.',
+                };
+            }
+
+            const { firstName, lastName } = splitName(input.customer.name);
+            const paymentResult = await createTransaction({
+                amount: serverTotal,
+                orderId,
+                opaqueData: input.paymentData.opaqueData,
+                cardNumber: input.paymentData.cardNumber,
+                expirationDate: input.paymentData.expirationDate,
+                cvv: input.paymentData.cvv,
+                customer: {
+                    email: normalizedCustomerEmail,
+                    firstName,
+                    lastName,
+                    address: normalizedBillingAddress!.street,
+                    city: normalizedBillingAddress!.city,
+                    state: normalizedBillingAddress!.state,
+                    zip: normalizedBillingAddress!.zip,
+                },
+                description: `Order for ${normalizedCustomerEmail}`,
+            });
+
+            if (!paymentResult.success) {
+                paymentSuccessful = false;
+                await docRef.update({
+                    paymentStatus: 'failed',
+                    updatedAt: FieldValue.serverTimestamp(),
+                });
+                logger.warn('Payment failed', { orderId, errors: paymentResult.errors });
+                return {
+                    success: false,
+                    error: paymentResult.message || 'Payment declined. Please check your card details.',
+                };
+            }
+
+            transactionId = paymentResult.transactionId || null;
+            await docRef.update({
+                transactionId,
+                paymentStatus: 'paid',
+                updatedAt: FieldValue.serverTimestamp(),
+            });
+
+            await firestore.collection('users').doc(session.uid).set({
+                billingAddress: normalizedBillingAddress,
+                billingAddressUpdatedAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            }, { merge: true });
+        }
+
+        if (appliedCoupon && paymentSuccessful) {
             try {
                 await firestore.collection('coupons').doc(appliedCoupon.couponId).update({
                     uses: FieldValue.increment(1),
@@ -202,8 +296,6 @@ export async function createOrder(input: CreateOrderInput) {
             }
         }
 
-        // 3. Send Confirmation Email
-        // Fetch retailer details for the email
         let retailerName = 'Dispensary';
         let pickupAddress = 'Pickup Location';
 
@@ -214,11 +306,10 @@ export async function createOrder(input: CreateOrderInput) {
                 retailerName = data?.name || retailerName;
                 pickupAddress = `${data?.address}, ${data?.city}, ${data?.state} ${data?.zip}`;
             }
-        } catch (e) {
+        } catch {
             logger.warn('Failed to fetch retailer for email', { retailerId: input.retailerId });
         }
 
-        // 4. Create Delivery Record (for delivery orders)
         let deliveryId: string | undefined;
         if (input.fulfillmentType === 'delivery' && input.deliveryAddress && input.deliveryWindow) {
             try {
@@ -235,28 +326,24 @@ export async function createOrder(input: CreateOrderInput) {
                         end: input.deliveryWindow.end as any,
                         type: 'scheduled',
                     },
-                    deliveryFee: deliveryFee,
+                    deliveryFee,
                     zoneId: 'zone_default',
                 });
 
                 if (deliveryResult.success && deliveryResult.delivery) {
                     deliveryId = deliveryResult.delivery.id;
-
-                    // Try to auto-assign an available driver
                     autoAssignDriver(deliveryId, `loc_${input.retailerId}`)
                         .catch(err => logger.warn('Auto-assign driver failed', { orderId, error: err }));
                 }
             } catch (deliveryError) {
-                // Non-blocking: order succeeds even if delivery record fails
                 logger.error('Failed to create delivery record', { orderId, error: deliveryError });
             }
         }
 
-        // 5. Send Confirmation Email
         sendOrderConfirmationEmail({
             orderId,
             customerName: input.customer.name,
-            customerEmail: input.customer.email,
+            customerEmail: normalizedCustomerEmail,
             total: serverTotal,
             items: normalizedItems.map(i => ({
                 name: i.name,
@@ -264,7 +351,7 @@ export async function createOrder(input: CreateOrderInput) {
                 price: i.price,
             })),
             retailerName,
-            pickupAddress
+            pickupAddress,
         }).catch(err => logger.error('Background email send failed', err));
 
         return {
@@ -278,3 +365,4 @@ export async function createOrder(input: CreateOrderInput) {
         return { success: false, error: 'Failed to create order. Please try again.' };
     }
 }
+

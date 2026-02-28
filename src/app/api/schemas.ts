@@ -87,6 +87,15 @@ const creditCardDataSchema = z.object({
   cvv: z.string().optional(),
 });
 
+export const billingAddressSchema = z.object({
+  street: z.string().min(1, 'Street is required'),
+  street2: z.string().optional(),
+  city: z.string().min(1, 'City is required'),
+  state: z.string().min(2, 'State is required').max(2, 'State must be a 2-letter code'),
+  zip: z.string().min(5, 'ZIP code is required').max(10, 'ZIP code is invalid'),
+  country: z.string().default('US'),
+});
+
 export const processPaymentSchema = z.object({
   amount: z.number().positive('Amount must be positive'),
   paymentMethod: paymentMethodEnum.default('dispensary_direct'),
@@ -95,6 +104,7 @@ export const processPaymentSchema = z.object({
   orderId: z.string().optional(),
   cart: z.array(cartItemSchema).optional(),
   dispensaryState: z.string().optional(),
+  billingAddress: billingAddressSchema.optional(),
 }).refine((data) => {
   // For online payments, require paymentData
   if (['cannpay', 'credit_card'].includes(data.paymentMethod) && !data.paymentData) {
@@ -104,6 +114,14 @@ export const processPaymentSchema = z.object({
 }, {
   message: 'Payment data required for online payments',
   path: ['paymentData'],
+}).refine((data) => {
+  if (data.paymentMethod === 'credit_card' && !data.orderId) {
+    return false;
+  }
+  return true;
+}, {
+  message: 'Order ID is required for credit card payments',
+  path: ['orderId'],
 });
 
 export type ProcessPaymentRequest = z.infer<typeof processPaymentSchema>;

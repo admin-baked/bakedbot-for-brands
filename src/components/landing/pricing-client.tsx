@@ -148,7 +148,7 @@ export function PricingClient() {
                                             }`}
                                             asChild
                                         >
-                                            <a href={t.id === "empire" ? "/get-started?plan=empire" : t.id === "scout" ? "/get-started" : `/checkout/subscription?plan=${t.id}`}>
+                                            <a href={t.id === "empire" ? "/get-started?plan=empire" : t.id === "scout" ? "/get-started" : `/get-started?plan=${t.id}`}>
                                                 {t.pill}
                                             </a>
                                         </Button>

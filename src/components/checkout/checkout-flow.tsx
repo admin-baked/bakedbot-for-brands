@@ -25,6 +25,7 @@ import { createOrder } from '@/app/checkout/actions/createOrder';
 import { submitOrder } from '@/app/checkout/actions/submitOrder';
 import { applyCoupon } from '@/app/checkout/actions/applyCoupon';
 import { useRouter } from 'next/navigation';
+import { CheckoutAuthRequired } from './checkout-auth-required';
 
 import { logger } from '@/lib/logger';
 import { ProductUpsellRow } from '@/components/upsell/product-upsell-row';
@@ -35,7 +36,7 @@ type CheckoutStep = 'fulfillment' | 'details' | 'payment' | 'confirmation';
 
 export function CheckoutFlow() {
     const { cartItems, getCartTotal, selectedRetailerId, clearCart, addToCart, addToCartForShipping, purchaseMode, selectedBrandId } = useStore();
-    const { user } = useUser();
+    const { user, isUserLoading } = useUser();
     const { toast } = useToast();
     const router = useRouter();
 
@@ -57,6 +58,15 @@ export function CheckoutFlow() {
         name: '',
         email: '',
         phone: '',
+    });
+
+    const [billingAddress, setBillingAddress] = useState({
+        street: '',
+        street2: '',
+        city: '',
+        state: '',
+        zip: '',
+        country: 'US',
     });
 
     // Payment
@@ -181,6 +191,10 @@ export function CheckoutFlow() {
 
     const handleDetailsSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        if (!user) {
+            toast({ variant: 'destructive', title: 'Sign In Required', description: 'Please sign in to continue checkout.' });
+            return;
+        }
         if (!customerDetails.name || !customerDetails.email || !customerDetails.phone) {
             toast({ variant: 'destructive', title: 'Missing Information', description: 'Please fill in all details.' });
             return;
@@ -191,6 +205,11 @@ export function CheckoutFlow() {
     const handleOrderSubmit = async (paymentData?: any) => {
         setLoading(true);
         try {
+            if (!user) {
+                toast({ variant: 'destructive', title: 'Sign In Required', description: 'Please sign in to continue checkout.' });
+                return;
+            }
+
             if (!selectedRetailerId) {
                 toast({ variant: 'destructive', title: 'Retailer Required', description: 'Please choose a pickup location before checkout.' });
                 return;
@@ -200,6 +219,22 @@ export function CheckoutFlow() {
             if (!brandId) {
                 toast({ variant: 'destructive', title: 'Order Failed', description: 'Unable to determine brand for this order.' });
                 return;
+            }
+
+            if (paymentMethod === 'card' && !selectedRetailerId) {
+                const hasBillingAddress =
+                    billingAddress.street.trim() &&
+                    billingAddress.city.trim() &&
+                    billingAddress.state.trim().length === 2 &&
+                    billingAddress.zip.trim();
+                if (!hasBillingAddress) {
+                    toast({
+                        variant: 'destructive',
+                        title: 'Billing Address Required',
+                        description: 'Please provide a valid billing address before payment.',
+                    });
+                    return;
+                }
             }
 
             if (paymentMethod === 'cannpay') {
@@ -242,6 +277,16 @@ export function CheckoutFlow() {
                 paymentMethod: paymentMethod === 'card' ? 'authorize_net' : 'cash',
                 paymentData,
                 total,
+                billingAddress: paymentMethod === 'card'
+                    ? {
+                        street: billingAddress.street.trim(),
+                        ...(billingAddress.street2.trim() ? { street2: billingAddress.street2.trim() } : {}),
+                        city: billingAddress.city.trim(),
+                        state: billingAddress.state.trim().toUpperCase(),
+                        zip: billingAddress.zip.trim(),
+                        country: 'US',
+                    }
+                    : undefined,
                 // Delivery data (if delivery selected)
                 fulfillmentType: fulfillmentType || 'pickup',
                 ...(fulfillmentType === 'delivery' && deliveryData ? {
@@ -275,6 +320,26 @@ export function CheckoutFlow() {
             setLoading(false);
         }
     };
+
+    if (isUserLoading) {
+        return (
+            <Card>
+                <CardContent className="py-12 text-center text-sm text-muted-foreground">
+                    Checking account status...
+                </CardContent>
+            </Card>
+        );
+    }
+
+    if (!user) {
+        return (
+            <CheckoutAuthRequired
+                title="Account Required for Checkout"
+                description="Checkout requires an account so your order and payment are securely tied to your profile."
+                nextPath="/checkout"
+            />
+        );
+    }
 
     if (!verified) {
         return (
@@ -534,11 +599,74 @@ export function CheckoutFlow() {
                     )}
 
                     {paymentMethod === 'card' && !selectedRetailerId && (
-                        <PaymentCreditCard
-                            amount={total}
-                            onSuccess={(result) => handleOrderSubmit(result)}
-                            onError={(err) => toast({ variant: 'destructive', title: 'Payment Failed', description: err })}
-                        />
+                        <div className="space-y-4">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Billing Address</CardTitle>
+                                    <CardDescription>This address is required for credit card authorization.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="billingStreet">Street Address</Label>
+                                        <Input
+                                            id="billingStreet"
+                                            value={billingAddress.street}
+                                            onChange={(e) => setBillingAddress(prev => ({ ...prev, street: e.target.value }))}
+                                            placeholder="123 Main St"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="billingStreet2">Apt, Suite, etc. (Optional)</Label>
+                                        <Input
+                                            id="billingStreet2"
+                                            value={billingAddress.street2}
+                                            onChange={(e) => setBillingAddress(prev => ({ ...prev, street2: e.target.value }))}
+                                            placeholder="Apt 4B"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="billingCity">City</Label>
+                                            <Input
+                                                id="billingCity"
+                                                value={billingAddress.city}
+                                                onChange={(e) => setBillingAddress(prev => ({ ...prev, city: e.target.value }))}
+                                                placeholder="Syracuse"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="billingState">State</Label>
+                                            <Input
+                                                id="billingState"
+                                                value={billingAddress.state}
+                                                onChange={(e) => setBillingAddress(prev => ({ ...prev, state: e.target.value.toUpperCase() }))}
+                                                placeholder="NY"
+                                                maxLength={2}
+                                                required
+                                            />
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="billingZip">ZIP Code</Label>
+                                            <Input
+                                                id="billingZip"
+                                                value={billingAddress.zip}
+                                                onChange={(e) => setBillingAddress(prev => ({ ...prev, zip: e.target.value }))}
+                                                placeholder="13224"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <PaymentCreditCard
+                                amount={total}
+                                onSuccess={(result) => handleOrderSubmit(result)}
+                                onError={(err) => toast({ variant: 'destructive', title: 'Payment Failed', description: err })}
+                            />
+                        </div>
                     )}
 
                     {paymentMethod === 'cash' && (

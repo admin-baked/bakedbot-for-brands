@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useAcceptJs } from "@/hooks/useAcceptJs";
 import { useToast } from "@/hooks/use-toast";
 import { logger } from "@/lib/logger";
+import { isCompanyPlanCheckoutEnabled } from "@/lib/feature-flags";
 
 interface BillingFormProps {
   organizationId: string;
@@ -26,6 +27,7 @@ interface BillingFormProps {
 export function BillingForm(props: BillingFormProps) {
   const { organizationId, locationCount } = props;
   const { toast } = useToast();
+  const companyPlanCheckoutEnabled = isCompanyPlanCheckoutEnabled();
 
   const [planId, setPlanId] = useState<PlanId>("claim_pro");
   const [selectedPacks, setSelectedPacks] = useState<CoveragePackId[]>([]);
@@ -53,6 +55,14 @@ export function BillingForm(props: BillingFormProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!companyPlanCheckoutEnabled) {
+      toast({
+        title: "Checkout unavailable",
+        description: "Self-serve subscription checkout is currently disabled. Contact sales.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (planId === "enterprise") {
       toast({
@@ -181,9 +191,17 @@ export function BillingForm(props: BillingFormProps) {
       <div>
         <h2 className="text-lg font-semibold">Billing & Subscription</h2>
         <p className="text-sm text-muted-foreground">
-          Choose your plan based on active locations. Authorize.Net handles the monthly billing.
+          {companyPlanCheckoutEnabled
+            ? "Choose your plan based on active locations. Authorize.Net handles the monthly billing."
+            : "Self-serve subscription checkout is currently disabled. Contact sales to set up or modify a plan."}
         </p>
       </div>
+
+      {!companyPlanCheckoutEnabled && (
+        <div className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Plan billing checkout has been disabled for this environment.
+        </div>
+      )}
 
       <form className="space-y-6" onSubmit={handleSubmit}>
         <div className="space-y-3">
@@ -324,8 +342,8 @@ export function BillingForm(props: BillingFormProps) {
               </>
             )}
           </div>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Processing..." : "Update subscription"}
+          <Button type="submit" disabled={isSubmitting || !companyPlanCheckoutEnabled}>
+            {companyPlanCheckoutEnabled ? (isSubmitting ? "Processing..." : "Update subscription") : "Checkout disabled"}
           </Button>
         </div>
       </form>
