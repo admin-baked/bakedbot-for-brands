@@ -96,10 +96,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify order hasn't already been paid
-    if (orderData?.paymentStatus === 'paid') {
+    const normalizedPaymentStatus = String(orderData?.paymentStatus || '').toLowerCase();
+    if (normalizedPaymentStatus === 'paid' || normalizedPaymentStatus === 'refunded' || normalizedPaymentStatus === 'voided') {
       return NextResponse.json(
-        { error: 'Order has already been paid' },
+        { error: 'Order has already been paid or closed' },
         { status: 400 }
       );
     }
@@ -118,6 +118,36 @@ export async function POST(request: NextRequest) {
         clientAmount: amount,
         serverAmount: serverAmountCents,
         userId: user.uid,
+      });
+    }
+
+    const existingIntentId =
+      typeof orderData?.canpay?.intentId === 'string'
+        ? orderData.canpay.intentId
+        : null;
+    const existingIntentStatus = String(orderData?.canpay?.status || '').toLowerCase();
+    const hasActiveCannPayAuthorization =
+      !!existingIntentId &&
+      normalizedPaymentStatus === 'pending' &&
+      (
+        String(orderData?.paymentMethod || '').toLowerCase() === 'cannpay' ||
+        existingIntentStatus === 'pending' ||
+        existingIntentStatus === 'authorized'
+      );
+
+    if (hasActiveCannPayAuthorization) {
+      logger.info('[P0-PAY-CANNPAY] Reusing existing pending CannPay authorization', {
+        orderId,
+        intentId: existingIntentId,
+        userId: user.uid,
+      });
+      return NextResponse.json({
+        intentId: existingIntentId,
+        widgetUrl: orderData?.canpay?.widgetUrl || null,
+        expiresAt: orderData?.canpay?.expiresAt || null,
+        totalAmount: serverAmountCents + CANNPAY_TRANSACTION_FEE_CENTS,
+        transactionFee: CANNPAY_TRANSACTION_FEE_CENTS,
+        reused: true,
       });
     }
 
@@ -140,6 +170,8 @@ export async function POST(request: NextRequest) {
     await orderRef.update({
       paymentMethod: 'cannpay',
       'canpay.intentId': authResult.intent_id,
+      'canpay.widgetUrl': authResult.widget_url || null,
+      'canpay.expiresAt': authResult.expires_at || null,
       'canpay.status': 'Pending',
       'canpay.amount': serverAmountCents + CANNPAY_TRANSACTION_FEE_CENTS,
       'canpay.fee': CANNPAY_TRANSACTION_FEE_CENTS,

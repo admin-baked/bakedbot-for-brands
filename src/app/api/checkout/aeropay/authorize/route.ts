@@ -105,10 +105,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify order hasn't already been paid
-    if (orderData?.paymentStatus === 'paid') {
+    const normalizedPaymentStatus = String(orderData?.paymentStatus || '').toLowerCase();
+    if (normalizedPaymentStatus === 'paid' || normalizedPaymentStatus === 'refunded' || normalizedPaymentStatus === 'voided') {
       return NextResponse.json(
-        { error: 'Order has already been paid' },
+        { error: 'Order has already been paid or closed' },
         { status: 400 }
       );
     }
@@ -127,6 +127,38 @@ export async function POST(request: NextRequest) {
         clientAmount: amount,
         serverAmount: serverAmountCents,
         userId: user.uid,
+      });
+    }
+
+    const existingAeropayTransactionId =
+      typeof orderData?.aeropay?.transactionId === 'string'
+        ? orderData.aeropay.transactionId
+        : typeof orderData?.transactionId === 'string'
+          ? orderData.transactionId
+          : null;
+    const existingAeropayStatus = String(orderData?.aeropay?.status || '').toLowerCase();
+    const hasActiveAeropayAuthorization =
+      !!existingAeropayTransactionId &&
+      normalizedPaymentStatus === 'pending' &&
+      (
+        String(orderData?.paymentMethod || '').toLowerCase() === 'aeropay' ||
+        existingAeropayStatus === 'pending' ||
+        existingAeropayStatus === 'authorized'
+      );
+
+    if (hasActiveAeropayAuthorization) {
+      logger.info('[AEROPAY] Reusing existing pending Aeropay authorization', {
+        orderId,
+        transactionId: existingAeropayTransactionId,
+        userId: user.uid,
+      });
+      return NextResponse.json({
+        requiresBankLink: false,
+        transactionId: existingAeropayTransactionId,
+        status: orderData?.aeropay?.status || orderData?.paymentStatus || 'pending',
+        totalAmount: serverAmountCents + AEROPAY_TRANSACTION_FEE_CENTS,
+        transactionFee: AEROPAY_TRANSACTION_FEE_CENTS,
+        reused: true,
       });
     }
 

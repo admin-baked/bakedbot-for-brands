@@ -132,4 +132,37 @@ describe('POST /api/checkout/cannpay/authorize amount guard', () => {
     expect(body.error).toContain('Email verification is required');
     expect(mockAuthorizePayment).not.toHaveBeenCalled();
   });
+
+  it('reuses an existing pending CannPay authorization for the same order', async () => {
+    mockOrderGet.mockResolvedValueOnce({
+      exists: true,
+      data: () => ({
+        userId: 'user-1',
+        organizationId: 'org_server',
+        paymentStatus: 'pending',
+        paymentMethod: 'cannpay',
+        totals: { total: 49.99 },
+        canpay: {
+          intentId: 'intent-existing',
+          status: 'Pending',
+          widgetUrl: 'https://widget.canpayapp.com/existing',
+          expiresAt: '2026-03-02T00:00:00.000Z',
+        },
+      }),
+    });
+
+    const response = await POST({
+      json: async () => ({
+        orderId: 'order-1',
+        amount: 4999,
+      }),
+    } as any);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.reused).toBe(true);
+    expect(body.intentId).toBe('intent-existing');
+    expect(mockAuthorizePayment).not.toHaveBeenCalled();
+    expect(mockOrderUpdate).not.toHaveBeenCalled();
+  });
 });
