@@ -1,4 +1,5 @@
 import {
+  logCommunication,
   getCustomerCommunications,
   getUpcomingCommunications,
   updateCommunicationStatus,
@@ -165,5 +166,29 @@ describe('customer-communications access control', () => {
     expect(getServerSessionUser).not.toHaveBeenCalled();
     expect(createServerClient).not.toHaveBeenCalled();
     expect(customerCommsDocRef.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects communication logging with invalid org ids', async () => {
+    const result = await logCommunication({
+      customerEmail: 'customer@example.com',
+      orgId: 'bad/org',
+      channel: 'email',
+      type: 'manual',
+    });
+
+    expect(result).toBeNull();
+    expect(createServerClient).not.toHaveBeenCalled();
+  });
+
+  it('rejects communication logging with missing recipient identifier', async () => {
+    const result = await logCommunication({
+      customerEmail: '   ',
+      orgId: 'org-a',
+      channel: 'sms',
+      type: 'manual',
+    });
+
+    expect(result).toBeNull();
+    expect(createServerClient).not.toHaveBeenCalled();
   });
 });

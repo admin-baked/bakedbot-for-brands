@@ -28,7 +28,7 @@ import type { Playbook, PlaybookTrigger, PlaybookStep } from '@/types/playbook';
 // Role gate — same as campaign management
 // ---------------------------------------------------------------------------
 
-const ALLOWED_ROLES: UserRole[] = ['dispensary_admin', 'brand_admin', 'super_user'];
+const ALLOWED_ROLES: UserRole[] = ['dispensary_admin', 'brand_admin', 'super_user', 'super_admin'];
 
 type CampaignInboxUser = {
     uid: string;

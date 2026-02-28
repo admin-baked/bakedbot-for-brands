@@ -292,15 +292,23 @@ describe('Heartbeat Server Actions', () => {
 
         it('should not duplicate when enabling already enabled check', async () => {
             mockGetTenantConfig.mockResolvedValueOnce({
-                enabledChecks: ['low_stock'],
+                enabledChecks: ['expiring_batches'],
             });
 
-            const result = await toggleHeartbeatCheck('low_stock' as any, true);
+            const result = await toggleHeartbeatCheck('expiring_batches' as any, true);
 
             expect(result.success).toBe(true);
             const savedChecks = mockSet.mock.calls[0][0].enabledChecks;
             const uniqueChecks = [...new Set(savedChecks)];
             expect(savedChecks.length).toBe(uniqueChecks.length);
+        });
+
+        it('should reject checks not available for the actor role', async () => {
+            const result = await toggleHeartbeatCheck('system_errors' as any, true);
+
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('Invalid check for role');
+            expect(mockSet).not.toHaveBeenCalled();
         });
     });
 
@@ -430,6 +438,18 @@ describe('Heartbeat Server Actions', () => {
                 uid: 'admin',
                 orgId: 'org_admin',
                 role: 'admin',
+            });
+
+            const result = await getHeartbeatConfig();
+
+            expect(result.config?.role).toBe('super_user');
+        });
+
+        it('should map super_admin to super_user', async () => {
+            mockRequireUser.mockResolvedValueOnce({
+                uid: 'super-admin',
+                orgId: 'org_admin',
+                role: 'super_admin',
             });
 
             const result = await getHeartbeatConfig();

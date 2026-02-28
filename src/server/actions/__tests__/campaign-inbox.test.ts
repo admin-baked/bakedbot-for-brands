@@ -170,6 +170,33 @@ describe('campaign-inbox actions', () => {
     expect(deebo.checkContent).not.toHaveBeenCalled();
   });
 
+  it('allows super_admin without org context to access cross-org artifacts', async () => {
+    (requireUser as jest.Mock).mockResolvedValueOnce({
+      uid: 'super-admin-1',
+      role: 'super_admin',
+    });
+    mockArtifactGet.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        orgId: 'org-other',
+        type: 'outreach_draft',
+        data: {
+          channel: 'sms',
+          body: 'SMS body',
+          targetSegments: [],
+        },
+      }),
+    });
+
+    const result = await sendCampaignFromInbox({ artifactId: 'art-super-admin' });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'SMS outreach drafts are not supported in inbox fast-path yet. Use the campaign wizard.',
+    });
+    expect(deebo.checkContent).not.toHaveBeenCalled();
+  });
+
   it('does not update artifacts from another org when authorization fails', async () => {
     mockArtifactGet.mockResolvedValue({
       exists: true,
