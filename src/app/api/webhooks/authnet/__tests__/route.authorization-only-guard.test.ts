@@ -274,5 +274,40 @@ describe('POST /api/webhooks/authnet authorization-only hardening', () => {
       voidSucceeded: true,
     }));
   });
-});
 
+  it('does not mark unknown responseCode=1 events as paid', async () => {
+    setupDb({ withOrder: true });
+    const { POST } = await import('../route');
+
+    const body = JSON.stringify({
+      notificationId: 'notif-unknown-1',
+      eventType: 'net.authorize.payment.review.created',
+      payload: {
+        id: 'txn_review_1',
+        responseCode: '1',
+        authAmount: '2.00',
+      },
+    });
+
+    const req = new NextRequest('http://localhost/api/webhooks/authnet', {
+      method: 'POST',
+      body,
+      headers: {
+        'x-anet-signature': 'sha512=fake',
+      },
+    });
+
+    const response = await POST(req);
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.processedOrders).toBe(1);
+    expect(mockOrderSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        paymentStatus: 'pending',
+      }),
+      { merge: true },
+    );
+    expect(mockEmitEvent).not.toHaveBeenCalled();
+  });
+});
