@@ -6,6 +6,7 @@ const mockEmitEvent = jest.fn();
 const mockAuthorizePayment = jest.fn();
 const mockOrderSet = jest.fn();
 const mockOrderUpdate = jest.fn();
+const mockProductGet = jest.fn();
 
 jest.mock('next/server', () => ({
   NextRequest: class {},
@@ -92,6 +93,13 @@ describe('POST /api/checkout/smokey-pay auth hardening', () => {
             })),
           };
         }
+        if (name === 'products') {
+          return {
+            doc: jest.fn(() => ({
+              get: mockProductGet,
+            })),
+          };
+        }
         if (name === 'coupons') {
           return {
             where: jest.fn(() => ({
@@ -116,6 +124,15 @@ describe('POST /api/checkout/smokey-pay auth hardening', () => {
     };
 
     mockCreateServerClient.mockResolvedValue({ firestore });
+    mockProductGet.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        name: 'Server Product',
+        price: 20,
+        brandId: 'org_1',
+        dispensaryId: 'disp_1',
+      }),
+    });
     mockOrderSet.mockResolvedValue(undefined);
     mockOrderUpdate.mockResolvedValue(undefined);
     mockEmitEvent.mockResolvedValue(undefined);
@@ -198,5 +215,59 @@ describe('POST /api/checkout/smokey-pay auth hardening', () => {
       }),
     }));
   });
-});
 
+  it('uses server product pricing instead of client-provided unitPrice', async () => {
+    const response = await POST({
+      json: async () => validBody({
+        items: [{
+          productId: 'prod-1',
+          name: 'Client Name',
+          quantity: 1,
+          unitPrice: 1,
+        }],
+        subtotal: 1,
+        tax: 0.15,
+        total: 1.15,
+      }),
+    } as any);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(mockOrderSet).toHaveBeenCalledWith(expect.objectContaining({
+      items: expect.arrayContaining([
+        expect.objectContaining({
+          productId: 'prod-1',
+          name: 'Server Product',
+          price: 20,
+        }),
+      ]),
+      totals: expect.objectContaining({
+        subtotal: 20,
+        tax: 3,
+        total: 23,
+      }),
+    }));
+  });
+
+  it('rejects products outside organization/dispensary checkout context', async () => {
+    mockProductGet.mockResolvedValueOnce({
+      exists: true,
+      data: () => ({
+        name: 'Foreign Product',
+        price: 20,
+        brandId: 'org_other',
+        dispensaryId: 'disp_other',
+      }),
+    });
+
+    const response = await POST({
+      json: async () => validBody(),
+    } as any);
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body.error).toContain('outside this checkout context');
+    expect(mockOrderSet).not.toHaveBeenCalled();
+  });
+});
