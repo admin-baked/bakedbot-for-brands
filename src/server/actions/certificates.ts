@@ -44,6 +44,9 @@ export async function generateCertificate(userId?: string): Promise<ActionResult
 }>> {
     try {
         const user = await requireUser(['intern', 'super_user']);
+        if (typeof userId === 'string' && userId.trim().length === 0) {
+            return { success: false, error: 'Invalid user id' };
+        }
 
         const requestedUserId = userId?.trim();
         const targetUserId = requestedUserId || user.uid;
