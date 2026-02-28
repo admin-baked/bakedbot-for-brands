@@ -41,6 +41,22 @@ function getExpectedAeropayAmountCents(orderData: Record<string, unknown> | unde
   return Math.round(total * 100) + AEROPAY_TRANSACTION_FEE_CENTS;
 }
 
+function toCents(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
+    return Number.isInteger(value) ? value : Math.round(value * 100);
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const parsed = Number(trimmed);
+    if (!Number.isFinite(parsed) || parsed < 0) return null;
+    return trimmed.includes('.') ? Math.round(parsed * 100) : Math.round(parsed);
+  }
+
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   try {
     // 1. Authenticate user
@@ -92,8 +108,30 @@ export async function POST(request: NextRequest) {
 
       if (orderSnap.exists) {
         const orderData = orderSnap.data() as Record<string, unknown>;
+        const expectedTransactionId = String(
+          (orderData as any)?.aeropay?.transactionId ?? (orderData as any)?.transactionId ?? '',
+        ).trim();
+        if (expectedTransactionId && expectedTransactionId !== transactionId) {
+          await firestore.collection('payment_forensics').add({
+            provider: 'aeropay',
+            source: 'aeropay_status_poll',
+            reason: 'transaction_mismatch',
+            userId: user.uid,
+            orderId,
+            transactionId,
+            expectedTransactionId,
+            providerStatus: transaction.status,
+            observedAt: FieldValue.serverTimestamp(),
+          });
+
+          return NextResponse.json(
+            { error: 'Aeropay transaction does not match this order' },
+            { status: 409 }
+          );
+        }
+
         const expectedAmountCents = getExpectedAeropayAmountCents(orderData);
-        const providerAmountCents = Number(transaction.amount);
+        const providerAmountCents = toCents(transaction.amount);
         const providerMerchantOrderId =
           typeof (transaction as any).merchantOrderId === 'string'
             ? String((transaction as any).merchantOrderId)
@@ -124,32 +162,37 @@ export async function POST(request: NextRequest) {
 
         if (
           expectedAmountCents !== null &&
-          Number.isFinite(providerAmountCents) &&
-          providerAmountCents !== expectedAmountCents
+          providerAmountCents !== null
         ) {
-          await firestore.collection('payment_forensics').add({
-            provider: 'aeropay',
-            source: 'aeropay_status_poll',
-            reason: 'amount_mismatch',
-            userId: user.uid,
-            orderId,
-            transactionId,
-            expectedAmountCents,
-            providerAmountCents,
-            providerStatus: transaction.status,
-            observedAt: FieldValue.serverTimestamp(),
-          });
+          const centsMatch = providerAmountCents === expectedAmountCents;
+          const dollarsMatch = providerAmountCents * 100 === expectedAmountCents;
+          if (centsMatch || dollarsMatch) {
+            // Accept both cent-denominated and dollar-denominated provider payloads.
+          } else {
+            await firestore.collection('payment_forensics').add({
+              provider: 'aeropay',
+              source: 'aeropay_status_poll',
+              reason: 'amount_mismatch',
+              userId: user.uid,
+              orderId,
+              transactionId,
+              expectedAmountCents,
+              providerAmountCents,
+              providerStatus: transaction.status,
+              observedAt: FieldValue.serverTimestamp(),
+            });
 
-          return NextResponse.json(
-            { error: 'Aeropay transaction amount mismatch' },
-            { status: 409 }
-          );
+            return NextResponse.json(
+              { error: 'Aeropay transaction amount mismatch' },
+              { status: 409 }
+            );
+          }
         }
 
         if (
           transaction.status === 'completed' &&
           expectedAmountCents !== null &&
-          !Number.isFinite(providerAmountCents)
+          providerAmountCents === null
         ) {
           await firestore.collection('payment_forensics').add({
             provider: 'aeropay',
@@ -159,7 +202,7 @@ export async function POST(request: NextRequest) {
             orderId,
             transactionId,
             expectedAmountCents,
-            providerAmountCents: null,
+            providerAmountCents,
             providerStatus: transaction.status,
             observedAt: FieldValue.serverTimestamp(),
           });
