@@ -16,6 +16,7 @@ import { requireUser } from '@/server/auth/auth';
 import type { BillingAddress } from '@/types/orders';
 
 import { logger } from '@/lib/logger';
+const DOCUMENT_ID_REGEX = /^[A-Za-z0-9_-]{1,128}$/;
 
 type CreateOrderInput = {
     items: any[];
@@ -43,6 +44,15 @@ type CreateOrderInput = {
     deliveryFee?: number;
     deliveryWindow?: { start: Date; end: Date };
     deliveryInstructions?: string;
+};
+
+type ResolvedOrderItem = {
+    productId: string;
+    name: string;
+    qty: number;
+    price: number;
+    category?: string;
+    brandId?: string;
 };
 
 function normalizeAddress(address: any): BillingAddress | null {
@@ -82,6 +92,37 @@ function splitName(fullName: string): { firstName: string; lastName: string } {
     };
 }
 
+function productMatchesCheckoutContext(
+    product: any,
+    retailerId: string,
+    brandId?: string,
+): boolean {
+    if (!product || typeof product !== 'object') return false;
+
+    const matchesRetailer =
+        product.dispensaryId === retailerId ||
+        product.retailerId === retailerId ||
+        (Array.isArray(product.retailerIds) && product.retailerIds.includes(retailerId));
+
+    const matchesBrand =
+        !!brandId && (
+            product.brandId === brandId ||
+            product.orgId === brandId ||
+            product.organizationId === brandId
+        );
+
+    const hasContextFields =
+        typeof product.dispensaryId === 'string' ||
+        typeof product.retailerId === 'string' ||
+        Array.isArray(product.retailerIds) ||
+        typeof product.brandId === 'string' ||
+        typeof product.orgId === 'string' ||
+        typeof product.organizationId === 'string';
+
+    if (!hasContextFields) return true;
+    return matchesRetailer || matchesBrand;
+}
+
 export async function createOrder(input: CreateOrderInput) {
     try {
         let session;
@@ -99,19 +140,49 @@ export async function createOrder(input: CreateOrderInput) {
 
         const { firestore } = await createServerClient();
 
-        const normalizedItems = input.items.map((item) => ({
-            productId: item.productId || item.id,
-            name: item.name,
-            qty: item.quantity || item.qty || 1,
-            price: item.unitPrice || item.price || 0,
-            category: item.category,
-        }));
+        const resolvedItems: ResolvedOrderItem[] = [];
+        for (const item of input.items) {
+            const productId = typeof (item.productId || item.id) === 'string'
+                ? String(item.productId || item.id).trim()
+                : '';
+            const qty = Number(item.quantity || item.qty || 1);
+
+            if (!productId || !DOCUMENT_ID_REGEX.test(productId) || !Number.isInteger(qty) || qty <= 0 || qty > 100) {
+                return { success: false, error: 'Invalid cart items provided.' };
+            }
+
+            const productDoc = await firestore.collection('products').doc(productId).get();
+            if (!productDoc.exists) {
+                return { success: false, error: `Product ${productId} is no longer available.` };
+            }
+
+            const productData = productDoc.data() || {};
+            if (!productMatchesCheckoutContext(productData, input.retailerId, input.brandId)) {
+                return { success: false, error: 'Cart contains products that do not belong to this retailer.' };
+            }
+
+            const serverPrice = Number(productData.price);
+            if (!Number.isFinite(serverPrice) || serverPrice < 0) {
+                return { success: false, error: `${productData.name || 'A product'} has an invalid price.` };
+            }
+
+            resolvedItems.push({
+                productId,
+                name: typeof productData.name === 'string' && productData.name.trim().length > 0
+                    ? productData.name
+                    : (typeof item.name === 'string' ? item.name : 'Product'),
+                qty,
+                price: Number(serverPrice.toFixed(2)),
+                category: typeof productData.category === 'string' ? productData.category : undefined,
+                brandId: typeof productData.brandId === 'string' ? productData.brandId : undefined,
+            });
+        }
 
         const subtotal = Number(
-            normalizedItems.reduce((sum, item) => sum + (item.price * item.qty), 0).toFixed(2),
+            resolvedItems.reduce((sum, item) => sum + (item.price * item.qty), 0).toFixed(2),
         );
 
-        const inferredBrandId = input.brandId || input.items.find((item) => typeof item.brandId === 'string')?.brandId;
+        const inferredBrandId = input.brandId || resolvedItems.find((item) => typeof item.brandId === 'string')?.brandId;
         let discount = 0;
         let appliedCoupon: { couponId: string; code: string; discountAmount: number } | null = null;
 
@@ -170,7 +241,7 @@ export async function createOrder(input: CreateOrderInput) {
         const normalizedCustomerEmail = sessionEmail || requestEmail;
         const order = {
             userId: session.uid,
-            items: normalizedItems,
+            items: resolvedItems,
             customer: {
                 ...input.customer,
                 email: normalizedCustomerEmail,
@@ -345,7 +416,7 @@ export async function createOrder(input: CreateOrderInput) {
             customerName: input.customer.name,
             customerEmail: normalizedCustomerEmail,
             total: serverTotal,
-            items: normalizedItems.map(i => ({
+            items: resolvedItems.map(i => ({
                 name: i.name,
                 qty: i.qty,
                 price: i.price,
@@ -365,4 +436,3 @@ export async function createOrder(input: CreateOrderInput) {
         return { success: false, error: 'Failed to create order. Please try again.' };
     }
 }
-

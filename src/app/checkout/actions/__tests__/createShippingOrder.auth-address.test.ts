@@ -7,6 +7,7 @@ const mockSendOrderConfirmationEmail = jest.fn();
 const mockOrderAdd = jest.fn();
 const mockOrderUpdate = jest.fn();
 const mockUserSet = jest.fn();
+const mockProductGet = jest.fn();
 
 jest.mock('@/server/auth/auth', () => ({
     requireUser: (...args: unknown[]) => mockRequireUser(...args),
@@ -41,7 +42,7 @@ jest.mock('firebase-admin/firestore', () => ({
 
 function baseInput() {
     return {
-        items: [{ id: 'prod-1', name: 'Hemp Gummies', price: 10, quantity: 2 }],
+        items: [{ id: 'prod-1', name: 'Hemp Gummies', price: 1, quantity: 1 }],
         customer: { name: 'Owner Example', email: 'owner@example.com', phone: '555-111-2222' },
         shippingAddress: { street: '1 Main St', city: 'Syracuse', state: 'NY', zip: '13224', country: 'US' },
         brandId: 'brand-1',
@@ -83,6 +84,14 @@ describe('createShippingOrder auth + address hardening', () => {
                     };
                 }
 
+                if (name === 'products') {
+                    return {
+                        doc: jest.fn((productId: string) => ({
+                            get: () => mockProductGet(productId),
+                        })),
+                    };
+                }
+
                 return {};
             }),
         };
@@ -94,6 +103,17 @@ describe('createShippingOrder auth + address hardening', () => {
             message: 'Approved',
         });
         mockSendOrderConfirmationEmail.mockResolvedValue(undefined);
+        mockProductGet.mockResolvedValue({
+            exists: true,
+            data: () => ({
+                id: 'prod-1',
+                name: 'Hemp Gummies',
+                price: 20,
+                category: 'Edibles',
+                brandId: 'brand-1',
+                shippable: true,
+            }),
+        });
 
         ({ createShippingOrder } = await import('../createShippingOrder'));
     });
@@ -147,10 +167,34 @@ describe('createShippingOrder auth + address hardening', () => {
         }));
         expect(mockOrderAdd).toHaveBeenCalledWith(expect.objectContaining({
             userId: 'user-1',
+            items: [expect.objectContaining({ productId: 'prod-1', qty: 1, price: 20 })],
             billingAddress: expect.objectContaining({ zip: '13224' }),
         }));
         expect(mockUserSet).toHaveBeenCalledWith(expect.objectContaining({
             billingAddress: expect.objectContaining({ city: 'Syracuse' }),
         }), { merge: true });
+    });
+
+    it('rejects cart items that do not belong to the selected brand', async () => {
+        mockRequireUser.mockResolvedValue({
+            uid: 'user-1',
+            email: 'owner@example.com',
+        });
+        mockProductGet.mockResolvedValue({
+            exists: true,
+            data: () => ({
+                id: 'prod-1',
+                name: 'Other Brand Product',
+                price: 20,
+                brandId: 'other-brand',
+                shippable: true,
+            }),
+        });
+
+        const result = await createShippingOrder(baseInput() as any);
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('do not belong to this brand');
+        expect(mockCreateTransaction).not.toHaveBeenCalled();
     });
 });

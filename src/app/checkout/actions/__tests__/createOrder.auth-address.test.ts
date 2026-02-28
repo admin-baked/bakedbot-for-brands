@@ -11,6 +11,7 @@ const mockOrderAdd = jest.fn();
 const mockOrderUpdate = jest.fn();
 const mockUserSet = jest.fn();
 const mockRetailerGet = jest.fn();
+const mockProductGet = jest.fn();
 
 jest.mock('@/server/auth/auth', () => ({
     requireUser: (...args: unknown[]) => mockRequireUser(...args),
@@ -55,7 +56,7 @@ jest.mock('firebase-admin/firestore', () => ({
 
 function baseInput() {
     return {
-        items: [{ id: 'prod-1', name: 'Item A', price: 20, quantity: 1 }],
+        items: [{ id: 'prod-1', name: 'Item A', price: 1, quantity: 1 }],
         customer: {
             name: 'Owner Example',
             email: 'owner@example.com',
@@ -109,6 +110,14 @@ describe('createOrder auth + address hardening', () => {
                     };
                 }
 
+                if (name === 'products') {
+                    return {
+                        doc: jest.fn((productId: string) => ({
+                            get: () => mockProductGet(productId),
+                        })),
+                    };
+                }
+
                 return {};
             }),
         };
@@ -130,6 +139,17 @@ describe('createOrder auth + address hardening', () => {
         });
         mockCreateDelivery.mockResolvedValue({ success: true, delivery: { id: 'delivery-1' } });
         mockAutoAssignDriver.mockResolvedValue(undefined);
+        mockProductGet.mockResolvedValue({
+            exists: true,
+            data: () => ({
+                id: 'prod-1',
+                name: 'Item A',
+                price: 20,
+                category: 'Flower',
+                brandId: 'brand-1',
+                retailerIds: ['retailer-1'],
+            }),
+        });
 
         ({ createOrder } = await import('../createOrder'));
     });
@@ -224,7 +244,30 @@ describe('createOrder auth + address hardening', () => {
         expect(mockOrderAdd).toHaveBeenCalledWith(expect.objectContaining({
             userId: 'user-1',
             customer: expect.objectContaining({ email: 'owner@example.com' }),
+            items: [expect.objectContaining({ productId: 'prod-1', qty: 1, price: 20 })],
         }));
     });
-});
 
+    it('rejects products outside checkout context', async () => {
+        mockRequireUser.mockResolvedValue({
+            uid: 'user-1',
+            email: 'owner@example.com',
+        });
+        mockProductGet.mockResolvedValue({
+            exists: true,
+            data: () => ({
+                id: 'prod-1',
+                name: 'Foreign Item',
+                price: 20,
+                brandId: 'other-brand',
+                retailerIds: ['other-retailer'],
+            }),
+        });
+
+        const result = await createOrder(baseInput() as any);
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('do not belong');
+        expect(mockOrderAdd).not.toHaveBeenCalled();
+    });
+});
