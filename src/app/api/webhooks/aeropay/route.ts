@@ -34,6 +34,7 @@ import type { EventType } from '@/types/domain';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { logger } from '@/lib/logger';
 import type { AeropayWebhookEvent } from '@/types/aeropay';
+import { AEROPAY_TRANSACTION_FEE_CENTS } from '@/lib/payments/aeropay';
 
 /**
  * Verifies webhook signature
@@ -67,6 +68,50 @@ function verifyAeropaySignature(
     Buffer.from(computed, 'utf-8'),
     Buffer.from(signature, 'utf-8')
   );
+}
+
+function toCents(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
+    return Number.isInteger(value) ? value : Math.round(value * 100);
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const parsed = Number(trimmed);
+    if (!Number.isFinite(parsed) || parsed < 0) return null;
+    return trimmed.includes('.') ? Math.round(parsed * 100) : Math.round(parsed);
+  }
+
+  return null;
+}
+
+function getExpectedAeropayAmountCents(orderData: Record<string, any> | undefined): number | null {
+  if (!orderData) return null;
+  const total = Number(orderData?.totals?.total ?? orderData?.amount);
+  if (!Number.isFinite(total) || total < 0) return null;
+  return Math.round(total * 100) + AEROPAY_TRANSACTION_FEE_CENTS;
+}
+
+function resolveOrderStatus(
+  orderData: Record<string, any>,
+  desiredStatus?: string
+): string | undefined {
+  if (!desiredStatus) return undefined;
+
+  const hasShippingAddress = !!orderData.shippingAddress;
+  const purchaseModel = orderData.purchaseModel;
+
+  if (desiredStatus === 'ready_for_pickup' && (hasShippingAddress || purchaseModel === 'online_only')) {
+    return undefined;
+  }
+
+  const currentStatus = String(orderData.status || '').toLowerCase();
+  if (currentStatus === 'completed' || currentStatus === 'canceled' || currentStatus === 'cancelled') {
+    return undefined;
+  }
+
+  return desiredStatus;
 }
 
 export async function POST(req: NextRequest) {
@@ -224,17 +269,17 @@ async function handleTransactionWebhook(
   switch (status.toLowerCase()) {
     case 'completed':
       paymentStatus = 'paid';
-      orderStatus = 'ready';
+      orderStatus = 'ready_for_pickup';
       eventType = 'checkout.paid';
       break;
     case 'declined':
       paymentStatus = 'failed';
-      orderStatus = 'cancelled';
+      orderStatus = 'canceled';
       eventType = 'checkout.failed';
       break;
     case 'voided':
       paymentStatus = 'voided';
-      orderStatus = 'cancelled';
+      orderStatus = 'canceled';
       eventType = 'checkout.failed';
       break;
     case 'refunded':
@@ -276,18 +321,6 @@ async function handleTransactionWebhook(
     return;
   }
 
-  // Update transaction with new status and webhook event
-  await transactionRef.update({
-    status: paymentStatus,
-    updatedAt: Timestamp.now(),
-    ...(status === 'completed' && { completedAt: Timestamp.now() }),
-    webhookEvents: FieldValue.arrayUnion({
-      topic,
-      data,
-      receivedAt: new Date().toISOString(),
-    }),
-  });
-
   // Update order document
   const orderRef = db.collection('orders').doc(orderId);
   const orderSnap = await orderRef.get();
@@ -300,6 +333,52 @@ async function handleTransactionWebhook(
     return;
   }
 
+  const orderData = orderSnap.data() as Record<string, any>;
+  const expectedAmountCents = getExpectedAeropayAmountCents(orderData);
+  const providerAmountCents = toCents(data.amount);
+
+  if (expectedAmountCents !== null && providerAmountCents !== null) {
+    const centsMatch = providerAmountCents === expectedAmountCents;
+    const dollarsMatch = providerAmountCents * 100 === expectedAmountCents;
+
+    if (!centsMatch && !dollarsMatch) {
+      logger.error('[AEROPAY-WEBHOOK] Amount mismatch - refusing state transition', {
+        orderId,
+        transactionId,
+        expectedAmountCents,
+        providerAmountCents,
+        status,
+      });
+
+      await db.collection('payment_forensics').add({
+        provider: 'aeropay',
+        source: 'aeropay_webhook',
+        reason: 'amount_mismatch',
+        orderId,
+        transactionId,
+        merchantOrderId: merchantOrderId || null,
+        expectedAmountCents,
+        providerAmountCents,
+        providerStatus: status || null,
+        observedAt: FieldValue.serverTimestamp(),
+      });
+
+      return;
+    }
+  }
+
+  // Update transaction with new status and webhook event
+  await transactionRef.update({
+    status: paymentStatus,
+    updatedAt: Timestamp.now(),
+    ...(status === 'completed' && { completedAt: Timestamp.now() }),
+    webhookEvents: FieldValue.arrayUnion({
+      topic,
+      data,
+      receivedAt: new Date().toISOString(),
+    }),
+  });
+
   const updatePayload: any = {
     paymentStatus,
     updatedAt: FieldValue.serverTimestamp(),
@@ -308,9 +387,13 @@ async function handleTransactionWebhook(
     'aeropay.updatedAt': new Date().toISOString(),
   };
 
-  // Only update order status for completed/declined/voided (not for refunds)
-  if (status.toLowerCase() !== 'refunded') {
-    updatePayload.status = orderStatus;
+  const resolvedOrderStatus = resolveOrderStatus(
+    orderData,
+    status.toLowerCase() === 'refunded' ? undefined : orderStatus,
+  );
+
+  if (resolvedOrderStatus) {
+    updatePayload.status = resolvedOrderStatus;
   }
 
   // Add completion timestamp for completed payments
@@ -320,7 +403,6 @@ async function handleTransactionWebhook(
 
   await orderRef.update(updatePayload);
 
-  const orderData = orderSnap.data();
   const orgId = orderData?.brandId || orderData?.retailerId;
 
   logger.info('[AEROPAY-WEBHOOK] Transaction updated successfully', {
