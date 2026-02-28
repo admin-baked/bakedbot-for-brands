@@ -6,6 +6,8 @@
 
 import { logger } from '@/lib/logger';
 
+const DOCUMENT_ID_REGEX = /^[A-Za-z0-9_-]{1,128}$/;
+
 function getConfig() {
     const authnetEnv = (process.env.AUTHNET_ENV || '').toLowerCase();
     const nodeEnv = (process.env.NODE_ENV || '').toLowerCase();
@@ -55,6 +57,39 @@ export type PaymentResponse = {
     errors?: string[];
 };
 
+function hasValidOpaqueData(payment: PaymentRequest): boolean {
+    return !!(
+        payment.opaqueData &&
+        typeof payment.opaqueData.dataDescriptor === 'string' &&
+        payment.opaqueData.dataDescriptor.trim().length > 0 &&
+        typeof payment.opaqueData.dataValue === 'string' &&
+        payment.opaqueData.dataValue.trim().length > 0
+    );
+}
+
+function hasCompleteBillingProfile(payment: PaymentRequest): boolean {
+    const customer = payment.customer;
+    if (!customer) return false;
+
+    const email = typeof customer.email === 'string' ? customer.email.trim() : '';
+    const firstName = typeof customer.firstName === 'string' ? customer.firstName.trim() : '';
+    const lastName = typeof customer.lastName === 'string' ? customer.lastName.trim() : '';
+    const address = typeof customer.address === 'string' ? customer.address.trim() : '';
+    const city = typeof customer.city === 'string' ? customer.city.trim() : '';
+    const state = typeof customer.state === 'string' ? customer.state.trim() : '';
+    const zip = typeof customer.zip === 'string' ? customer.zip.trim() : '';
+
+    return (
+        email.length > 0 &&
+        firstName.length > 0 &&
+        lastName.length > 0 &&
+        address.length > 0 &&
+        city.length > 0 &&
+        state.length === 2 &&
+        /^\d{5}(-\d{4})?$/.test(zip)
+    );
+}
+
 /**
  * Create a transaction (Auth & Capture)
  */
@@ -88,6 +123,45 @@ export async function createTransaction(payment: PaymentRequest): Promise<Paymen
             message: 'Payment configuration error',
             errors: ['Missing API credentials'],
         };
+    }
+
+    if (IS_PRODUCTION) {
+        const hasOrderId =
+            typeof payment.orderId === 'string' &&
+            payment.orderId.trim().length > 0 &&
+            DOCUMENT_ID_REGEX.test(payment.orderId.trim());
+        if (!hasOrderId) {
+            logger.error('Authorize.net transaction blocked: missing or invalid orderId', {
+                orderId: payment.orderId,
+            });
+            return {
+                success: false,
+                message: 'Payment request missing required order identifier',
+                errors: ['Missing or invalid orderId'],
+            };
+        }
+
+        if (!hasValidOpaqueData(payment)) {
+            logger.error('Authorize.net transaction blocked: missing tokenized payment payload', {
+                orderId: payment.orderId,
+            });
+            return {
+                success: false,
+                message: 'Payment request missing tokenized payment data',
+                errors: ['Opaque payment token required in production'],
+            };
+        }
+
+        if (!hasCompleteBillingProfile(payment)) {
+            logger.error('Authorize.net transaction blocked: incomplete billing profile', {
+                orderId: payment.orderId,
+            });
+            return {
+                success: false,
+                message: 'Billing profile is incomplete',
+                errors: ['Customer email and billing address are required'],
+            };
+        }
     }
 
     const API_ENDPOINT = getAPIEndpoint(IS_PRODUCTION);
