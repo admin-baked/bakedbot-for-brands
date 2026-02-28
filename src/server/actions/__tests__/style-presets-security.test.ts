@@ -1,4 +1,4 @@
-import { getStylePresets, trackPresetUsage } from '../style-presets';
+import { getStylePresets, trackPresetUsage, updateMediaABTestResult } from '../style-presets';
 import { requireUser } from '@/server/auth/auth';
 import { getAdminFirestore } from '@/firebase/admin';
 
@@ -100,5 +100,20 @@ describe('style-presets security', () => {
       expect.objectContaining({ usageCount: 5 }),
     );
   });
-});
 
+  it('rejects invalid tenant ids before reading presets', async () => {
+    await expect(getStylePresets('bad/id')).rejects.toThrow('Invalid tenant ID');
+    expect(requireUser).not.toHaveBeenCalled();
+    expect(getAdminFirestore).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid variant ids for AB test result updates', async () => {
+    const result = await updateMediaABTestResult('org-a', 'test-1', 'bad/id', {
+      clicks: 1,
+    } as any);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Invalid variant ID');
+    expect(getAdminFirestore).not.toHaveBeenCalled();
+  });
+});

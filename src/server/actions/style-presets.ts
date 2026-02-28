@@ -10,6 +10,21 @@ function isSuperRole(role: unknown): boolean {
     return role === 'super_user' || role === 'super_admin';
 }
 
+function isValidDocumentId(value: unknown): value is string {
+    return (
+        typeof value === 'string' &&
+        value.length >= 3 &&
+        value.length <= 128 &&
+        !/[\/\\?#\[\]]/.test(value)
+    );
+}
+
+function normalizeMetricDelta(value: unknown): number {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return 0;
+    return Math.max(0, numeric);
+}
+
 function getActorOrgId(user: unknown): string | null {
     if (!user || typeof user !== 'object') return null;
     const token = user as {
@@ -45,6 +60,9 @@ function assertTenantAccess(user: unknown, tenantId: string): void {
  * Get all available style presets (built-in + custom)
  */
 export async function getStylePresets(tenantId: string): Promise<StylePreset[]> {
+    if (!isValidDocumentId(tenantId)) {
+        throw new Error('Invalid tenant ID');
+    }
     const user = await requireUser();
 
     assertTenantAccess(user, tenantId);
@@ -73,6 +91,9 @@ export async function createStylePreset(
     preset: Omit<StylePreset, 'id' | 'tenantId' | 'category' | 'usageCount' | 'createdAt' | 'updatedAt'>
 ): Promise<{ success: boolean; presetId?: string; error?: string }> {
     try {
+        if (!isValidDocumentId(tenantId)) {
+            return { success: false, error: 'Invalid tenant ID' };
+        }
         const user = await requireUser();
         assertTenantAccess(user, tenantId);
 
@@ -114,6 +135,12 @@ export async function updateStylePreset(
     updates: Partial<StylePreset>
 ): Promise<{ success: boolean; error?: string }> {
     try {
+        if (!isValidDocumentId(tenantId)) {
+            return { success: false, error: 'Invalid tenant ID' };
+        }
+        if (!isValidDocumentId(presetId)) {
+            return { success: false, error: 'Invalid preset ID' };
+        }
         const user = await requireUser();
         assertTenantAccess(user, tenantId);
 
@@ -146,6 +173,12 @@ export async function deleteStylePreset(
     presetId: string
 ): Promise<{ success: boolean; error?: string }> {
     try {
+        if (!isValidDocumentId(tenantId)) {
+            return { success: false, error: 'Invalid tenant ID' };
+        }
+        if (!isValidDocumentId(presetId)) {
+            return { success: false, error: 'Invalid preset ID' };
+        }
         const user = await requireUser();
         assertTenantAccess(user, tenantId);
 
@@ -172,6 +205,9 @@ export async function deleteStylePreset(
  */
 export async function trackPresetUsage(tenantId: string, presetId: string): Promise<void> {
     try {
+        if (!isValidDocumentId(tenantId) || !isValidDocumentId(presetId)) {
+            return;
+        }
         const user = await requireUser();
         assertTenantAccess(user, tenantId);
 
@@ -201,6 +237,9 @@ export async function trackPresetUsage(tenantId: string, presetId: string): Prom
  * Get all A/B tests for a tenant
  */
 export async function getMediaABTests(tenantId: string): Promise<MediaABTest[]> {
+    if (!isValidDocumentId(tenantId)) {
+        throw new Error('Invalid tenant ID');
+    }
     const user = await requireUser();
     assertTenantAccess(user, tenantId);
 
@@ -223,6 +262,9 @@ export async function createMediaABTest(
     test: Omit<MediaABTest, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>
 ): Promise<{ success: boolean; testId?: string; error?: string }> {
     try {
+        if (!isValidDocumentId(tenantId)) {
+            return { success: false, error: 'Invalid tenant ID' };
+        }
         const user = await requireUser();
         assertTenantAccess(user, tenantId);
 
@@ -260,6 +302,9 @@ export async function getMediaABTestResults(
     tenantId: string,
     testId: string
 ): Promise<MediaABTestResult[]> {
+    if (!isValidDocumentId(tenantId) || !isValidDocumentId(testId)) {
+        throw new Error('Invalid test scope');
+    }
     const user = await requireUser();
     assertTenantAccess(user, tenantId);
 
@@ -285,6 +330,15 @@ export async function updateMediaABTestResult(
     metrics: Partial<Pick<MediaABTestResult, 'impressions' | 'clicks' | 'conversions' | 'engagement' | 'costUsd'>>
 ): Promise<{ success: boolean; error?: string }> {
     try {
+        if (!isValidDocumentId(tenantId)) {
+            return { success: false, error: 'Invalid tenant ID' };
+        }
+        if (!isValidDocumentId(testId)) {
+            return { success: false, error: 'Invalid test ID' };
+        }
+        if (!isValidDocumentId(variantId)) {
+            return { success: false, error: 'Invalid variant ID' };
+        }
         const user = await requireUser();
         assertTenantAccess(user, tenantId);
 
@@ -301,11 +355,17 @@ export async function updateMediaABTestResult(
         const currentData = doc.exists ? (doc.data() as MediaABTestResult) : null;
 
         // Calculate new metrics
-        const newImpressions = (currentData?.impressions || 0) + (metrics.impressions || 0);
-        const newClicks = (currentData?.clicks || 0) + (metrics.clicks || 0);
-        const newConversions = (currentData?.conversions || 0) + (metrics.conversions || 0);
-        const newEngagement = (currentData?.engagement || 0) + (metrics.engagement || 0);
-        const newCost = (currentData?.costUsd || 0) + (metrics.costUsd || 0);
+        const impressionsDelta = normalizeMetricDelta(metrics.impressions);
+        const clicksDelta = normalizeMetricDelta(metrics.clicks);
+        const conversionsDelta = normalizeMetricDelta(metrics.conversions);
+        const engagementDelta = normalizeMetricDelta(metrics.engagement);
+        const costDelta = normalizeMetricDelta(metrics.costUsd);
+
+        const newImpressions = (currentData?.impressions || 0) + impressionsDelta;
+        const newClicks = (currentData?.clicks || 0) + clicksDelta;
+        const newConversions = (currentData?.conversions || 0) + conversionsDelta;
+        const newEngagement = (currentData?.engagement || 0) + engagementDelta;
+        const newCost = (currentData?.costUsd || 0) + costDelta;
 
         // Calculate rates
         const ctr = newImpressions > 0 ? (newClicks / newImpressions) * 100 : 0;

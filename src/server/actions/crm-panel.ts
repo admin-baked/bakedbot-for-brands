@@ -15,6 +15,24 @@ function isSuperRole(role: unknown): boolean {
     return role === 'super_user' || role === 'super_admin';
 }
 
+function isValidDocumentId(value: unknown): value is string {
+    return (
+        typeof value === 'string' &&
+        value.length >= 3 &&
+        value.length <= 128 &&
+        !/[\/\\?#\[\]]/.test(value)
+    );
+}
+
+function sanitizeLookupInput(value: string): string {
+    return value.trim().slice(0, 320);
+}
+
+function clampLimit(limit: number, fallback: number): number {
+    if (!Number.isFinite(limit)) return fallback;
+    return Math.min(100, Math.max(1, Math.floor(limit)));
+}
+
 function getActorOrgId(user: unknown): string | null {
     if (!user || typeof user !== 'object') return null;
     const token = user as {
@@ -50,9 +68,16 @@ export async function lookupCustomerAction(
     identifier: string,
     orgId: string,
 ) {
+    if (!isValidDocumentId(orgId)) {
+        throw new Error('Invalid organization ID');
+    }
+    const sanitizedIdentifier = sanitizeLookupInput(identifier);
+    if (!sanitizedIdentifier) {
+        throw new Error('Identifier is required');
+    }
     const user = await requireUser();
     assertOrgAccess(user, orgId);
-    return lookupCustomer(identifier, orgId);
+    return lookupCustomer(sanitizedIdentifier, orgId);
 }
 
 export async function getCustomerHistoryAction(
@@ -60,9 +85,17 @@ export async function getCustomerHistoryAction(
     orgId: string,
     limit: number = 5,
 ) {
+    if (!isValidDocumentId(orgId)) {
+        throw new Error('Invalid organization ID');
+    }
+    const sanitizedCustomerId = sanitizeLookupInput(customerId);
+    if (!sanitizedCustomerId) {
+        throw new Error('Customer ID is required');
+    }
+    const safeLimit = clampLimit(limit, 5);
     const user = await requireUser();
     assertOrgAccess(user, orgId);
-    return getCustomerHistory(customerId, orgId, limit);
+    return getCustomerHistory(sanitizedCustomerId, orgId, safeLimit);
 }
 
 export async function getCustomerCommsAction(
@@ -70,7 +103,15 @@ export async function getCustomerCommsAction(
     orgId: string,
     limit: number = 5,
 ) {
+    if (!isValidDocumentId(orgId)) {
+        throw new Error('Invalid organization ID');
+    }
+    const sanitizedCustomerEmail = sanitizeLookupInput(customerEmail);
+    if (!sanitizedCustomerEmail) {
+        throw new Error('Customer email is required');
+    }
+    const safeLimit = clampLimit(limit, 5);
     const user = await requireUser();
     assertOrgAccess(user, orgId);
-    return getCustomerComms(customerEmail, orgId, limit);
+    return getCustomerComms(sanitizedCustomerEmail, orgId, safeLimit);
 }
