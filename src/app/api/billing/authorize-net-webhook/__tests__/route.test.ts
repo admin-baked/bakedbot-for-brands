@@ -8,6 +8,44 @@
  * - Slack alerts on payment failures
  */
 
+jest.mock('next/server', () => {
+    class MockNextRequest {
+        private readonly rawBody: string;
+        readonly headers: { get: (name: string) => string | null };
+
+        constructor(_url: string, init?: { body?: unknown; headers?: Record<string, string>; method?: string }) {
+            this.rawBody = typeof init?.body === 'string'
+                ? init.body
+                : init?.body
+                    ? JSON.stringify(init.body)
+                    : '';
+
+            const normalized = new Map<string, string>();
+            Object.entries(init?.headers || {}).forEach(([key, value]) => {
+                normalized.set(String(key).toLowerCase(), String(value));
+            });
+
+            this.headers = {
+                get: (name: string) => normalized.get(name.toLowerCase()) || null,
+            };
+        }
+
+        async text() {
+            return this.rawBody;
+        }
+    }
+
+    return {
+        NextRequest: MockNextRequest,
+        NextResponse: {
+            json: (body: any, init?: any) => ({
+                status: init?.status || 200,
+                json: async () => body,
+            }),
+        },
+    };
+});
+
 import { POST } from '../route';
 import { NextRequest } from 'next/server';
 import crypto from 'crypto';
@@ -40,6 +78,7 @@ describe('POST /api/billing/authorize-net-webhook', () => {
     let mockDb: any;
     let mockSubscriptionRef: any;
     let mockHistoryRef: any;
+    let mockForensicsAdd: jest.Mock;
     const originalEnv = process.env;
     const TEST_SIGNATURE_KEY = 'test-signature-key-123';
 
@@ -56,6 +95,8 @@ describe('POST /api/billing/authorize-net-webhook', () => {
         mockHistoryRef = {
             set: jest.fn().mockResolvedValue(undefined),
         };
+
+        mockForensicsAdd = jest.fn().mockResolvedValue(undefined);
 
         mockDb = {
             collection: jest.fn((name: string) => {
@@ -76,6 +117,11 @@ describe('POST /api/billing/authorize-net-webhook', () => {
                                 return {};
                             },
                         }),
+                    };
+                }
+                if (name === 'payment_forensics') {
+                    return {
+                        add: mockForensicsAdd,
                     };
                 }
                 return {};
@@ -455,6 +501,11 @@ describe('POST /api/billing/authorize-net-webhook', () => {
             expect(data.processed).toBe(false);
 
             expect(mockSubscriptionRef.set).not.toHaveBeenCalled();
+            expect(mockForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
+                reason: 'unhandled_event_type',
+                eventType: 'net.authorize.customer.updated',
+                orgId: 'org_xyz',
+            }));
         });
 
         it('acknowledges ping/test events with no eventType', async () => {
@@ -507,6 +558,11 @@ describe('POST /api/billing/authorize-net-webhook', () => {
             expect(data.warning).toBe('No orgId');
 
             expect(mockSubscriptionRef.set).not.toHaveBeenCalled();
+            expect(mockForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
+                reason: 'missing_org_mapping',
+                eventType: 'net.authorize.payment.authcapture.created',
+                orgId: null,
+            }));
         });
     });
 

@@ -8,7 +8,7 @@
  * Authorize.net sends: X-Anet-Signature: sha512=<HMAC-SHA512(rawBody, signatureKey)>
  *
  * Register this URL in Authorize.net portal:
- *   Account → Webhooks → Add Endpoint → https://bakedbot.ai/api/billing/authorize-net-webhook
+ *   Account -> Webhooks -> Add Endpoint -> https://bakedbot.ai/api/billing/authorize-net-webhook
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -42,6 +42,83 @@ const SUBSCRIPTION_TERMINATED_EVENTS = new Set([
     'net.authorize.subscription.cancelled',
     'net.authorize.subscription.expired',
 ]);
+
+function asString(value: unknown): string | null {
+    if (typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+}
+
+function asNumber(value: unknown): number | null {
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string' && value.trim().length > 0) {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : null;
+    }
+    return null;
+}
+
+function extractProfile(payload: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
+    const profile = payload?.profile;
+    return profile && typeof profile === 'object' ? (profile as Record<string, unknown>) : undefined;
+}
+
+function buildForensicsRecord(
+    webhookRoot: Record<string, unknown>,
+    webhookPayload: Record<string, unknown> | undefined,
+    eventType: string,
+    orgId: string | null,
+    reason: 'missing_org_mapping' | 'unhandled_event_type',
+) {
+    const profile = extractProfile(webhookPayload);
+    const payment = webhookPayload?.payment as Record<string, unknown> | undefined;
+    const transaction = webhookPayload?.transaction as Record<string, unknown> | undefined;
+
+    const transactionId =
+        asString(webhookPayload?.id) ||
+        asString(transaction?.id) ||
+        asString(payment?.id);
+
+    const amount =
+        asNumber(webhookPayload?.authAmount) ??
+        asNumber(webhookPayload?.amount) ??
+        asNumber(payment?.amount);
+
+    return {
+        provider: 'authorize_net',
+        source: 'billing_authorize_net_webhook',
+        reason,
+        eventType,
+        orgId: orgId || null,
+        webhookId: asString(webhookRoot.webhookId),
+        notificationId: asString(webhookRoot.notificationId),
+        eventDate: asString(webhookRoot.eventDate),
+        transactionId,
+        authCode: asString(webhookPayload?.authCode),
+        responseCode: asString(webhookPayload?.responseCode),
+        entityName: asString(webhookPayload?.entityName),
+        merchantReferenceId: asString(webhookPayload?.merchantReferenceId),
+        merchantCustomerId: asString(profile?.merchantCustomerId),
+        customerProfileId: asString(profile?.customerProfileId),
+        amount,
+        observedAt: FieldValue.serverTimestamp(),
+    };
+}
+
+async function recordForensics(
+    db: FirebaseFirestore.Firestore,
+    record: Record<string, unknown>,
+) {
+    try {
+        await db.collection('payment_forensics').add(record);
+    } catch (error) {
+        logger.warn('[BILLING:WEBHOOK] Failed to persist forensics record', {
+            reason: record.reason,
+            eventType: record.eventType,
+            error: error instanceof Error ? error.message : String(error),
+        });
+    }
+}
 
 export async function POST(request: NextRequest) {
     // Read raw body for signature validation (must be done before any JSON parsing)
@@ -80,7 +157,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!sigValid) {
-        logger.warn('[BILLING:WEBHOOK] Invalid signature — possible replay or spoofed request');
+        logger.warn('[BILLING:WEBHOOK] Invalid signature - possible replay or spoofed request');
         return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
@@ -111,17 +188,22 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ received: true });
     }
 
+    const db = getAdminFirestore();
+
     if (!orgId) {
-        logger.warn('[BILLING:WEBHOOK] No orgId in webhook payload — cannot update subscription', {
+        logger.warn('[BILLING:WEBHOOK] No orgId in webhook payload - cannot update subscription', {
             eventType,
             webhookId: payload?.webhookId,
         });
+        await recordForensics(
+            db,
+            buildForensicsRecord(payload, webhookPayload, eventType, null, 'missing_org_mapping'),
+        );
         // Return 200 to prevent Authorize.net retries for structurally unprocessable events
         return NextResponse.json({ received: true, warning: 'No orgId' });
     }
 
     try {
-        const db = getAdminFirestore();
         const subscriptionRef = db
             .collection('organizations')
             .doc(orgId)
@@ -179,13 +261,17 @@ export async function POST(request: NextRequest) {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            text: `:warning: *BakedBot Billing Alert*\nOrg \`${orgId}\` subscription is now \`${newStatus}\` — triggered by Authorize.net event \`${eventType}\`.\nCheck Firestore: \`organizations/${orgId}/subscription/current\``,
+                            text: `:warning: *BakedBot Billing Alert*\nOrg \`${orgId}\` subscription is now \`${newStatus}\` - triggered by Authorize.net event \`${eventType}\`.\nCheck Firestore: \`organizations/${orgId}/subscription/current\``,
                         }),
                     }).catch(err => logger.warn('[BILLING:WEBHOOK] Slack alert failed', { error: String(err) }));
                 }
             }
         } else {
             logger.info('[BILLING:WEBHOOK] Unhandled event type (no status change)', { eventType, orgId });
+            await recordForensics(
+                db,
+                buildForensicsRecord(payload, webhookPayload, eventType, orgId, 'unhandled_event_type'),
+            );
         }
 
         return NextResponse.json({ received: true, processed: !!newStatus });
