@@ -68,14 +68,24 @@ function verifyBakedBotSignature(rawBody: string, signature: string | null): boo
     return false;
   }
 
+  const normalizedSignature = signature.trim().toLowerCase();
+  if (!/^[a-f0-9]{64}$/.test(normalizedSignature)) {
+    return false;
+  }
+
   const expectedSignature = crypto
     .createHmac('sha256', process.env.ECOMMERCE_WEBHOOK_SECRET)
     .update(rawBody, 'utf8')
-    .digest('hex');
+    .digest('hex')
+    .toLowerCase();
+
+  if (expectedSignature.length !== normalizedSignature.length) {
+    return false;
+  }
 
   return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(expectedSignature)
+    Buffer.from(normalizedSignature, 'utf8'),
+    Buffer.from(expectedSignature, 'utf8')
   );
 }
 
