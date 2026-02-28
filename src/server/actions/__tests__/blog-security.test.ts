@@ -1,5 +1,7 @@
 import {
   createBlogPost,
+  getBlogPost,
+  getBlogPostBySlug,
   updateBlogPost,
   deleteBlogPost,
   getBlogPosts,
@@ -222,5 +224,74 @@ describe('blog actions security', () => {
 
     expect(result.orgId).toBe('org-b');
     expect(set).toHaveBeenCalledWith({ enabled: true }, { merge: true });
+  });
+
+  it('rejects invalid org ids before creating posts', async () => {
+    await expect(
+      createBlogPost({
+        orgId: 'org/bad',
+        title: 'Invalid Org',
+        excerpt: 'excerpt',
+        content: 'content',
+        category: 'education',
+      }),
+    ).rejects.toThrow('Failed to create blog post');
+
+    expect(createServerClient).not.toHaveBeenCalled();
+  });
+
+  it('blocks reading unpublished posts across orgs', async () => {
+    const postDoc = {
+      id: 'post-1',
+      data: () => ({ orgId: 'org-b', status: 'draft' }),
+    };
+    const postQuery = {
+      where: jest.fn(),
+      limit: jest.fn(),
+      get: jest.fn(),
+    };
+    postQuery.where.mockReturnValue(postQuery);
+    postQuery.limit.mockReturnValue(postQuery);
+    postQuery.get.mockResolvedValue({ empty: false, docs: [postDoc] });
+
+    (createServerClient as jest.Mock).mockResolvedValue({
+      firestore: {
+        collectionGroup: jest.fn().mockReturnValue(postQuery),
+      },
+    });
+
+    await expect(getBlogPost('post-1')).rejects.toThrow('Unauthorized');
+  });
+
+  it('returns published posts without requiring org auth', async () => {
+    const postDoc = {
+      id: 'post-1',
+      data: () => ({ orgId: 'org-b', status: 'published' }),
+    };
+    const postQuery = {
+      where: jest.fn(),
+      limit: jest.fn(),
+      get: jest.fn(),
+    };
+    postQuery.where.mockReturnValue(postQuery);
+    postQuery.limit.mockReturnValue(postQuery);
+    postQuery.get.mockResolvedValue({ empty: false, docs: [postDoc] });
+
+    (createServerClient as jest.Mock).mockResolvedValue({
+      firestore: {
+        collectionGroup: jest.fn().mockReturnValue(postQuery),
+      },
+    });
+
+    const result = await getBlogPost('post-1');
+
+    expect(result?.status).toBe('published');
+    expect(requireUser).not.toHaveBeenCalled();
+  });
+
+  it('returns null for invalid slug format', async () => {
+    const result = await getBlogPostBySlug('org-a', 'bad/slug');
+    expect(result).toBeNull();
+    expect(createServerClient).not.toHaveBeenCalled();
   });
 });
