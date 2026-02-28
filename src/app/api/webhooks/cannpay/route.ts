@@ -246,6 +246,64 @@ export async function POST(req: NextRequest) {
     }
 
     const canonicalOrder = (topLevelSnap.exists ? topLevelSnap.data() : orgOrderSnap?.data()) as Record<string, any> | undefined;
+
+    if (
+      merchantOrderId &&
+      String(merchantOrderId).trim() &&
+      String(merchantOrderId).trim() !== String(orderId)
+    ) {
+      logger.error("[P0-SEC-CANNPAY-WEBHOOK] merchant_order_id mismatch with resolved orderId", {
+        orderId,
+        merchantOrderId,
+        intentId,
+      });
+
+      await db.collection('payment_forensics').add({
+        provider: 'cannpay',
+        source: 'cannpay_webhook',
+        reason: 'order_mismatch',
+        orderId,
+        intentId,
+        merchantOrderId,
+        expectedMerchantOrderId: orderId,
+        organizationId: organizationId || null,
+        providerStatus: status || null,
+        observedAt: FieldValue.serverTimestamp(),
+      });
+
+      return NextResponse.json({ received: true, warning: 'Order mismatch' });
+    }
+
+    const expectedIntentId =
+      typeof canonicalOrder?.canpay?.intentId === 'string'
+        ? canonicalOrder.canpay.intentId
+        : typeof canonicalOrder?.paymentIntentId === 'string'
+          ? canonicalOrder.paymentIntentId
+          : null;
+
+    if (expectedIntentId && expectedIntentId !== intentId) {
+      logger.error("[P0-SEC-CANNPAY-WEBHOOK] intent_id mismatch for canonical order", {
+        orderId,
+        intentId,
+        expectedIntentId,
+      });
+
+      await db.collection('payment_forensics').add({
+        provider: 'cannpay',
+        source: 'cannpay_webhook',
+        reason: 'intent_mismatch',
+        orderId,
+        intentId,
+        expectedIntentId,
+        merchantOrderId: merchantOrderId || null,
+        organizationId: organizationId || null,
+        providerStatus: status || null,
+        observedAt: FieldValue.serverTimestamp(),
+      });
+
+      return NextResponse.json({ received: true, warning: 'Intent mismatch' });
+    }
+
     const expectedAmountCents = getExpectedOrderTotalCents(canonicalOrder);
     const providerAmountCents = toCents(amount);
 
