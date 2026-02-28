@@ -262,6 +262,23 @@ describe('AI Settings Server Actions', () => {
             expect(result.error).toBe('Invalid tenant id');
             expect(mockSet).not.toHaveBeenCalled();
         });
+
+        it('rejects non-admin tenant writes for same-org staff role', async () => {
+            mockRequireUser.mockResolvedValue({
+                uid: 'user-123',
+                role: 'dispensary_staff',
+                currentOrgId: 'tenant-123',
+                orgId: 'tenant-123',
+            });
+
+            const result = await saveTenantAISettings('tenant-123', {
+                customInstructions: 'Nope',
+            });
+
+            expect(result.success).toBe(false);
+            expect(result.error).toBe('Unauthorized');
+            expect(mockSet).not.toHaveBeenCalled();
+        });
     });
 
     describe('getUserAISettings', () => {
