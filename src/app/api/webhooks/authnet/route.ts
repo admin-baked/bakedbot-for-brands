@@ -50,6 +50,18 @@ function parseNumericValue(value: unknown): number | null {
   return null;
 }
 
+function parseAmountToCents(value: unknown): number | null {
+  const numeric = parseNumericValue(value);
+  if (numeric === null || numeric < 0) return null;
+  return Math.round(numeric * 100);
+}
+
+function getExpectedOrderTotalCents(orderData: Record<string, any>): number | null {
+  const total = parseNumericValue(orderData?.totals?.total ?? orderData?.amount);
+  if (total === null || total < 0) return null;
+  return Math.round(total * 100);
+}
+
 function mapPaymentWebhookOutcome(eventType: string, responseCode: number | null): PaymentWebhookOutcome {
   const normalizedType = eventType.toLowerCase();
 
@@ -229,6 +241,8 @@ export async function POST(req: NextRequest) {
     if (eventType.toLowerCase().includes('net.authorize.payment.') && entityId) {
       const responseCode = parseNumericValue(payload.responseCode);
       const outcome = mapPaymentWebhookOutcome(eventType, responseCode);
+      const providerAmountCents =
+        parseAmountToCents(payload.authAmount) ?? parseAmountToCents(payload.amount);
 
       const [rootOrdersSnapshot, groupOrdersSnapshot] = await Promise.all([
         db.collection('orders').where('transactionId', '==', entityId).limit(20).get(),
@@ -244,11 +258,53 @@ export async function POST(req: NextRequest) {
           transactionId: entityId,
           eventType,
         });
+
+        await db.collection('payment_forensics').add({
+          provider: 'authorize_net',
+          source: 'authnet_webhook',
+          reason: 'missing_order_mapping',
+          transactionId: entityId,
+          eventType,
+          responseCode,
+          providerAmountCents,
+          observedAt: FieldValue.serverTimestamp(),
+        });
       }
 
       await Promise.all(
         Array.from(orderDocMap.values()).map(async (doc) => {
           const orderData = doc.data();
+          const expectedAmountCents = getExpectedOrderTotalCents(orderData);
+
+          if (
+            expectedAmountCents !== null &&
+            providerAmountCents !== null &&
+            expectedAmountCents !== providerAmountCents
+          ) {
+            logger.error('[AUTHNET_WEBHOOK] Amount mismatch - refusing state transition', {
+              orderId: doc.id,
+              transactionId: entityId,
+              eventType,
+              expectedAmountCents,
+              providerAmountCents,
+            });
+
+            await db.collection('payment_forensics').add({
+              provider: 'authorize_net',
+              source: 'authnet_webhook',
+              reason: 'amount_mismatch',
+              orderId: doc.id,
+              orderPath: doc.ref.path,
+              transactionId: entityId,
+              eventType,
+              responseCode,
+              expectedAmountCents,
+              providerAmountCents,
+              observedAt: FieldValue.serverTimestamp(),
+            });
+            return;
+          }
+
           const nextStatus = resolveOrderStatus(orderData, outcome.orderStatus);
           const updatePayload: Record<string, unknown> = {
             paymentProvider: 'authorize_net',
@@ -285,7 +341,7 @@ export async function POST(req: NextRequest) {
                 transactionId: entityId,
                 paymentStatus: outcome.paymentStatus,
                 responseCode,
-                amount: parseNumericValue(payload.authAmount),
+                amount: parseNumericValue(payload.authAmount) ?? parseNumericValue(payload.amount),
                 eventType,
               },
             });
