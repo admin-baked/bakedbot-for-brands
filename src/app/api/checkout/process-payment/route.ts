@@ -522,6 +522,7 @@ export const POST = withProtection(
                     await ownedOrderDoc.ref.update({
                         userId: ownedOrder?.userId || sessionUid,
                         billingAddress: resolvedBilling,
+                        transactionId: result.transactionId || null,
                         paymentMethod: 'credit_card',
                         paymentStatus: 'paid',
                         paymentProvider: 'authorize_net',
