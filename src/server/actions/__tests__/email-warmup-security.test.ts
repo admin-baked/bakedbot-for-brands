@@ -121,5 +121,42 @@ describe('email-warmup actions security', () => {
     expect(result.success).toBe(true);
     expect(recordWarmupSendService).toHaveBeenCalledWith('org-a', 5);
   });
-});
 
+  it('blocks non-super users with missing org claims', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'user-1',
+      role: 'dispensary_admin',
+    });
+
+    const result = await startEmailWarmup('org-a', 'standard');
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Unauthorized');
+    expect(startWarmup).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid org ids before service calls', async () => {
+    const result = await getMyWarmupStatus('bad/org');
+
+    expect(result).toEqual({ active: false });
+    expect(getWarmupStatus).not.toHaveBeenCalled();
+  });
+
+  it('clamps warmup log days to safe bounds', async () => {
+    await getEmailWarmupLogs('org-a', 9999);
+    expect(getWarmupLogs).toHaveBeenCalledWith('org-a', 90);
+  });
+
+  it('clamps warmup send count to non-negative bounded values', async () => {
+    await recordWarmupSend('org-a', -123);
+    expect(recordWarmupSendService).toHaveBeenCalledWith('org-a', 0);
+  });
+
+  it('rejects invalid warmup schedule type', async () => {
+    const result = await startEmailWarmup('org-a', 'invalid' as any);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Invalid warmup schedule type');
+    expect(startWarmup).not.toHaveBeenCalled();
+  });
+});

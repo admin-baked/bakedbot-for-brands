@@ -3,23 +3,60 @@
 import { z } from 'zod';
 import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
-import { canAccessOrg } from '@/server/auth/rbac';
+import { canAccessOrg, requirePermission } from '@/server/auth/rbac';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logger } from '@/lib/logger';
-import type { Invitation } from '@/types/invitation';
 import type { OrgContext } from '@/types/org-membership';
-import type { DomainUserProfile } from '@/types/users';
+import { ROLES } from '@/types/roles';
+
+const DOCUMENT_ID_REGEX = /^[A-Za-z0-9_-]{1,128}$/;
+
+function isValidDocumentId(value: unknown): value is string {
+  return typeof value === 'string' && DOCUMENT_ID_REGEX.test(value);
+}
+
+function assertValidDocumentId(value: unknown, field: string): asserts value is string {
+  if (!isValidDocumentId(value)) {
+    throw new Error(`${field} is required`);
+  }
+}
+
+function assertOrgAccess(user: unknown, orgId: string): void {
+  if (!canAccessOrg(user as any, orgId)) {
+    throw new Error('Unauthorized');
+  }
+}
+
+function clampInt(value: unknown, min: number, max: number, fallback: number): number {
+  const parsed = Number.isFinite(Number(value)) ? Number(value) : fallback;
+  const intValue = Math.floor(parsed);
+  return Math.min(max, Math.max(min, intValue));
+}
+
+const orgLocationCreateSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  address: z.string().trim().max(250).optional(),
+  state: z.string().trim().min(2).max(64),
+  posProvider: z.string().trim().max(64).optional(),
+  posApiKey: z.string().trim().max(256).optional(),
+  posDispensaryId: z.string().trim().max(128).optional(),
+});
+
+const orgLocationUpdateSchema = orgLocationCreateSchema.partial();
+
+const userRoleSchema = z.enum(ROLES);
 
 /**
  * Get all users in an organization with their roles and invitation status
  */
 export async function getUsersByOrg(orgId: string) {
   try {
+    assertValidDocumentId(orgId, 'orgId');
     const user = await requireUser();
-    const { firestore, auth } = await createServerClient();
+    assertOrgAccess(user, orgId);
+    requirePermission(user as any, 'manage:team');
 
-    // Security: ensure user can access this org
-    canAccessOrg(user as any, orgId);
+    const { firestore } = await createServerClient();
 
     // Fetch all users belonging to this org
     const usersSnap = await firestore
@@ -87,11 +124,13 @@ export async function getUsersByOrg(orgId: string) {
  */
 export async function removeUserFromOrg(userId: string, orgId: string) {
   try {
+    assertValidDocumentId(userId, 'userId');
+    assertValidDocumentId(orgId, 'orgId');
     const user = await requireUser();
-    const { firestore, auth } = await createServerClient();
 
-    // Security: ensure user can access this org
-    canAccessOrg(user as any, orgId);
+    assertOrgAccess(user, orgId);
+    requirePermission(user as any, 'manage:team');
+    const { firestore, auth } = await createServerClient();
 
     // Fetch target user
     const userDoc = await firestore.collection('users').doc(userId).get();
@@ -161,11 +200,20 @@ export async function updateUserOrgRole(
   newRole: string
 ) {
   try {
+    assertValidDocumentId(userId, 'userId');
+    assertValidDocumentId(orgId, 'orgId');
     const user = await requireUser();
-    const { firestore, auth } = await createServerClient();
+    const validatedRole = userRoleSchema.parse(newRole);
 
-    // Security: ensure user can access this org
-    canAccessOrg(user as any, orgId);
+    assertOrgAccess(user, orgId);
+    requirePermission(user as any, 'manage:team');
+
+    if (validatedRole === 'super_user' || validatedRole === 'super_admin') {
+      if ((user as any).role !== 'super_user' && (user as any).role !== 'super_admin') {
+        throw new Error('Unauthorized');
+      }
+    }
+    const { firestore, auth } = await createServerClient();
 
     // Fetch user and org
     const userDoc = await firestore.collection('users').doc(userId).get();
@@ -187,7 +235,7 @@ export async function updateUserOrgRole(
         orgId,
         orgName: orgData.name || 'Unknown Org',
         orgType: orgData.type || 'brand',
-        role: newRole,
+        role: validatedRole,
         joinedAt: userData.orgMemberships?.[orgId]?.joinedAt || new Date().toISOString(),
       },
     });
@@ -195,22 +243,22 @@ export async function updateUserOrgRole(
     // If this is their current org, also update users.role + custom claims
     if (userData.currentOrgId === orgId) {
       await firestore.collection('users').doc(userId).update({
-        role: newRole,
+        role: validatedRole,
       });
 
       // Update Firebase custom claims
       const claims: Record<string, any> = {
-        role: newRole,
+        role: validatedRole,
         orgId,
         currentOrgId: orgId,
       };
       await auth.setCustomUserClaims(userId, claims);
     }
 
-    logger.info('[updateUserOrgRole] User role updated', { userId, orgId, newRole });
+    logger.info('[updateUserOrgRole] User role updated', { userId, orgId, newRole: validatedRole });
     return {
       success: true,
-      message: `User role updated to ${newRole}`,
+      message: `User role updated to ${validatedRole}`,
     };
   } catch (error: any) {
     logger.error('[updateUserOrgRole] Error:', { error: error.message, userId, orgId });
@@ -226,6 +274,7 @@ export async function updateUserOrgRole(
  */
 export async function switchOrgContext(orgId: string) {
   try {
+    assertValidDocumentId(orgId, 'orgId');
     const user = await requireUser();
     const { firestore, auth } = await createServerClient();
 
@@ -293,6 +342,9 @@ export async function switchOrgContext(orgId: string) {
 export async function getOrgsForUser(uid?: string) {
   try {
     const user = await requireUser();
+    if (uid !== undefined) {
+      assertValidDocumentId(uid, 'uid');
+    }
     const userId = uid || user.uid;
     const isSuperUser = user.role === 'super_user' || user.role === 'super_admin';
 
@@ -344,18 +396,20 @@ export async function getOrgsForUser(uid?: string) {
 export async function getOrgsForSuperUser(limit = 50, offset = 0) {
   try {
     const user = await requireUser();
-    const { firestore } = await createServerClient();
+    const safeLimit = clampInt(limit, 1, 100, 50);
+    const safeOffset = clampInt(offset, 0, 10000, 0);
 
     // Verify super user
     if (user.role !== 'super_user' && user.role !== 'super_admin') {
       return { success: false, error: 'Unauthorized: Super user access required' };
     }
+    const { firestore } = await createServerClient();
 
     const snapshot = await firestore
       .collection('organizations')
       .orderBy('createdAt', 'desc')
-      .limit(limit)
-      .offset(offset)
+      .limit(safeLimit)
+      .offset(safeOffset)
       .get();
 
     const orgs = snapshot.docs.map((doc) => {
@@ -396,11 +450,13 @@ export async function addOrgLocation(
   }
 ) {
   try {
+    assertValidDocumentId(orgId, 'orgId');
     const user = await requireUser();
-    const { firestore } = await createServerClient();
+    const validatedLocation = orgLocationCreateSchema.parse(locationData);
 
-    // Security: ensure user can access this org
-    canAccessOrg(user as any, orgId);
+    assertOrgAccess(user, orgId);
+    requirePermission(user as any, 'manage:dispensary');
+    const { firestore } = await createServerClient();
 
     // Verify org exists and is a dispensary
     const orgDoc = await firestore.collection('organizations').doc(orgId).get();
@@ -411,20 +467,20 @@ export async function addOrgLocation(
     // Create location
     const locationRef = await firestore.collection('locations').add({
       orgId,
-      name: locationData.name,
-      address: locationData.address || null,
-      state: locationData.state,
+      name: validatedLocation.name,
+      address: validatedLocation.address || null,
+      state: validatedLocation.state,
       isActive: true,
-      posConfig: locationData.posProvider
+      posConfig: validatedLocation.posProvider
         ? {
-            provider: locationData.posProvider,
-            apiKey: locationData.posApiKey || null,
-            dispensaryId: locationData.posDispensaryId || null,
+            provider: validatedLocation.posProvider,
+            apiKey: validatedLocation.posApiKey || null,
+            dispensaryId: validatedLocation.posDispensaryId || null,
             status: 'active',
           }
         : { provider: 'none', status: 'inactive' },
       complianceConfig: {
-        state: locationData.state,
+        state: validatedLocation.state,
       },
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
@@ -460,11 +516,14 @@ export async function updateOrgLocation(
   }>
 ) {
   try {
+    assertValidDocumentId(orgId, 'orgId');
+    assertValidDocumentId(locationId, 'locationId');
     const user = await requireUser();
-    const { firestore } = await createServerClient();
+    const validatedLocation = orgLocationUpdateSchema.parse(locationData);
 
-    // Security: ensure user can access this org
-    canAccessOrg(user as any, orgId);
+    assertOrgAccess(user, orgId);
+    requirePermission(user as any, 'manage:dispensary');
+    const { firestore } = await createServerClient();
 
     // Verify location belongs to org
     const locDoc = await firestore.collection('locations').doc(locationId).get();
@@ -476,21 +535,21 @@ export async function updateOrgLocation(
       updatedAt: FieldValue.serverTimestamp(),
     };
 
-    if (locationData.name) updateData.name = locationData.name;
-    if (locationData.address) updateData.address = locationData.address;
-    if (locationData.state) updateData.state = locationData.state;
+    if (validatedLocation.name) updateData.name = validatedLocation.name;
+    if (validatedLocation.address) updateData.address = validatedLocation.address;
+    if (validatedLocation.state) updateData.state = validatedLocation.state;
 
-    if (locationData.posProvider) {
+    if (validatedLocation.posProvider) {
       updateData.posConfig = {
-        provider: locationData.posProvider,
-        apiKey: locationData.posApiKey || null,
-        dispensaryId: locationData.posDispensaryId || null,
+        provider: validatedLocation.posProvider,
+        apiKey: validatedLocation.posApiKey || null,
+        dispensaryId: validatedLocation.posDispensaryId || null,
         status: 'active',
       };
     }
 
-    if (locationData.state) {
-      updateData.complianceConfig = { state: locationData.state };
+    if (validatedLocation.state) {
+      updateData.complianceConfig = { state: validatedLocation.state };
     }
 
     await firestore.collection('locations').doc(locationId).update(updateData);
@@ -514,11 +573,13 @@ export async function updateOrgLocation(
  */
 export async function removeOrgLocation(orgId: string, locationId: string) {
   try {
+    assertValidDocumentId(orgId, 'orgId');
+    assertValidDocumentId(locationId, 'locationId');
     const user = await requireUser();
-    const { firestore } = await createServerClient();
 
-    // Security: ensure user can access this org
-    canAccessOrg(user as any, orgId);
+    assertOrgAccess(user, orgId);
+    requirePermission(user as any, 'manage:dispensary');
+    const { firestore } = await createServerClient();
 
     // Verify location belongs to org
     const locDoc = await firestore.collection('locations').doc(locationId).get();

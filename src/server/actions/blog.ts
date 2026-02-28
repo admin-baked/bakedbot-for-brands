@@ -57,6 +57,9 @@ const updateBlogPostSchema = z.object({
     tags: z.array(z.string()).max(BLOG_DEFAULTS.MAX_TAGS).optional(),
 });
 
+const DOCUMENT_ID_REGEX = /^[A-Za-z0-9_-]{1,128}$/;
+const SEO_SLUG_REGEX = /^[a-z0-9_-]{1,120}$/;
+
 type AuthenticatedUser = Awaited<ReturnType<typeof requireUser>>;
 
 function isSuperRole(role: unknown): boolean {
@@ -87,7 +90,24 @@ function isUnauthorizedError(error: unknown): boolean {
     return error instanceof Error && error.message === 'Unauthorized';
 }
 
+function isValidDocumentId(value: unknown): value is string {
+    return typeof value === 'string' && DOCUMENT_ID_REGEX.test(value);
+}
+
+function assertValidDocumentId(value: unknown, field: string): asserts value is string {
+    if (!isValidDocumentId(value)) {
+        throw new Error(`${field} is required`);
+    }
+}
+
+function clampInt(value: unknown, min: number, max: number, fallback: number): number {
+    const parsed = Number.isFinite(Number(value)) ? Number(value) : fallback;
+    const intValue = Math.floor(parsed);
+    return Math.min(max, Math.max(min, intValue));
+}
+
 async function getBlogPostDocById(firestore: any, postId: string) {
+    assertValidDocumentId(postId, 'postId');
     const postsQuery = await firestore
         .collectionGroup('blog_posts')
         .where('__name__', '==', postId)
@@ -163,6 +183,7 @@ export async function createBlogPost(input: CreateBlogPostInput): Promise<BlogPo
     try {
         // Validate input
         const validated = createBlogPostSchema.parse(input);
+        assertValidDocumentId(validated.orgId, 'orgId');
         assertOrgAccess(user, validated.orgId);
 
         const { firestore } = await createServerClient();
@@ -237,6 +258,7 @@ export async function updateBlogPost(
     const user = await requireUser(['brand', 'dispensary', 'super_user']);
 
     try {
+        assertValidDocumentId(postId, 'postId');
         // Validate input
         const validated = updateBlogPostSchema.parse(updates);
 
@@ -295,6 +317,7 @@ export async function deleteBlogPost(postId: string): Promise<void> {
     const user = await requireUser(['brand', 'dispensary', 'super_user']);
 
     try {
+        assertValidDocumentId(postId, 'postId');
         const { firestore } = await createServerClient();
         const { postDoc } = await getBlogPostWithAccess(firestore, user, postId);
         await postDoc.ref.delete();
@@ -314,6 +337,7 @@ export async function deleteBlogPost(postId: string): Promise<void> {
  */
 export async function getBlogPost(postId: string): Promise<BlogPost | null> {
     try {
+        assertValidDocumentId(postId, 'postId');
         const { firestore } = await createServerClient();
 
         const postsQuery = await firestore
@@ -327,8 +351,19 @@ export async function getBlogPost(postId: string): Promise<BlogPost | null> {
         }
 
         const doc = postsQuery.docs[0];
-        return { id: doc.id, ...doc.data() } as BlogPost;
+        const post = { id: doc.id, ...doc.data() } as BlogPost;
+
+        if (post.status === 'published') {
+            return post;
+        }
+
+        const user = await requireUser(['brand', 'dispensary', 'super_user']);
+        assertOrgAccess(user, post.orgId);
+        return post;
     } catch (error) {
+        if (isUnauthorizedError(error)) {
+            throw error;
+        }
         logger.error('[getBlogPost] Error fetching blog post', { error, postId });
         return null;
     }
@@ -342,6 +377,7 @@ export async function getBlogPosts(
     options: QueryOptions = {}
 ): Promise<BlogPost[]> {
     try {
+        assertValidDocumentId(filters.orgId, 'orgId');
         const isPublishedOnlyFilter =
             filters.status === 'published' ||
             (Array.isArray(filters.status) && filters.status.every(status => status === 'published'));
@@ -382,12 +418,14 @@ export async function getBlogPosts(
         query = query.orderBy(orderBy, order);
 
         // Apply pagination
-        if (options.limit) {
-            query = query.limit(options.limit);
+        if (options.limit !== undefined) {
+            const safeLimit = clampInt(options.limit, 1, 100, 25);
+            query = query.limit(safeLimit);
         }
 
-        if (options.offset) {
-            query = query.offset(options.offset);
+        if (options.offset !== undefined) {
+            const safeOffset = clampInt(options.offset, 0, 10000, 0);
+            query = query.offset(safeOffset);
         }
 
         const snapshot = await query.get();
@@ -416,6 +454,7 @@ export async function publishBlogPost(postId: string): Promise<BlogPost> {
     const user = await requireUser(['brand', 'dispensary', 'super_user']);
 
     try {
+        assertValidDocumentId(postId, 'postId');
         const { firestore } = await createServerClient();
         const { postDoc, post } = await getBlogPostWithAccess(firestore, user, postId);
 
@@ -449,6 +488,7 @@ export async function scheduleBlogPost(postId: string, publishAt: Date): Promise
     const user = await requireUser(['brand', 'dispensary', 'super_user']);
 
     try {
+        assertValidDocumentId(postId, 'postId');
         const { firestore } = await createServerClient();
         const { postDoc, post } = await getBlogPostWithAccess(firestore, user, postId);
 
@@ -479,6 +519,7 @@ export async function unpublishBlogPost(postId: string): Promise<BlogPost> {
     const user = await requireUser(['brand', 'dispensary', 'super_user']);
 
     try {
+        assertValidDocumentId(postId, 'postId');
         const { firestore } = await createServerClient();
         const { postDoc, post } = await getBlogPostWithAccess(firestore, user, postId);
 
@@ -510,6 +551,7 @@ export async function generateSlug(title: string, orgId: string): Promise<string
     const user = await requireUser(['brand', 'dispensary', 'super_user']);
 
     try {
+        assertValidDocumentId(orgId, 'orgId');
         const { firestore } = await createServerClient();
         assertOrgAccess(user, orgId);
         return generateUniqueSlug(title, orgId, firestore);
@@ -531,13 +573,19 @@ export async function getBlogPostBySlug(
     slug: string
 ): Promise<BlogPost | null> {
     try {
+        assertValidDocumentId(orgId, 'orgId');
+        const normalizedSlug = slug.trim().toLowerCase();
+        if (!SEO_SLUG_REGEX.test(normalizedSlug)) {
+            return null;
+        }
+
         const { firestore } = await createServerClient();
 
         const snapshot = await firestore
             .collection('tenants')
             .doc(orgId)
             .collection('blog_posts')
-            .where('slug', '==', slug)
+            .where('slug', '==', normalizedSlug)
             .limit(1)
             .get();
 
@@ -546,8 +594,18 @@ export async function getBlogPostBySlug(
         }
 
         const doc = snapshot.docs[0];
-        return { id: doc.id, ...doc.data() } as BlogPost;
+        const post = { id: doc.id, ...doc.data() } as BlogPost;
+        if (post.status === 'published') {
+            return post;
+        }
+
+        const user = await requireUser(['brand', 'dispensary', 'super_user']);
+        assertOrgAccess(user, post.orgId);
+        return post;
     } catch (error) {
+        if (isUnauthorizedError(error)) {
+            throw error;
+        }
         logger.error('[getBlogPostBySlug] Error fetching blog post by slug', { error, slug });
         return null;
     }
@@ -601,6 +659,12 @@ export async function getPostsByTag(
     options: QueryOptions = {}
 ): Promise<BlogPost[]> {
     try {
+        assertValidDocumentId(orgId, 'orgId');
+        const normalizedTag = tag.trim();
+        if (!normalizedTag) {
+            return [];
+        }
+
         const { firestore } = await createServerClient();
 
         let query = firestore
@@ -608,12 +672,13 @@ export async function getPostsByTag(
             .doc(orgId)
             .collection('blog_posts')
             .where('status', '==', 'published')
-            .where('tags', 'array-contains', tag) as any;
+            .where('tags', 'array-contains', normalizedTag) as any;
 
         query = query.orderBy('publishedAt', 'desc');
 
-        if (options.limit) {
-            query = query.limit(options.limit);
+        if (options.limit !== undefined) {
+            const safeLimit = clampInt(options.limit, 1, 100, 25);
+            query = query.limit(safeLimit);
         }
 
         const snapshot = await query.get();
@@ -633,11 +698,13 @@ export async function getPostsByTag(
  */
 export async function getRelatedPosts(postId: string, limit = 3): Promise<BlogPost[]> {
     try {
+        assertValidDocumentId(postId, 'postId');
+        const safeLimit = clampInt(limit, 1, 20, 3);
         const post = await getBlogPost(postId);
         if (!post) return [];
 
-        return getPostsByCategory(post.orgId, post.category, { limit: limit + 1 })
-            .then(posts => posts.filter(p => p.id !== postId).slice(0, limit));
+        return getPostsByCategory(post.orgId, post.category, { limit: safeLimit + 1 })
+            .then(posts => posts.filter(p => p.id !== postId).slice(0, safeLimit));
     } catch (error) {
         logger.error('[getRelatedPosts] Error fetching related posts', { error, postId });
         return [];
@@ -653,6 +720,9 @@ export async function getRelatedPosts(postId: string, limit = 3): Promise<BlogPo
  */
 export async function incrementViewCount(postId: string): Promise<void> {
     try {
+        if (!isValidDocumentId(postId)) {
+            return;
+        }
         const { firestore } = await createServerClient();
 
         const postsQuery = await firestore
@@ -681,6 +751,7 @@ export async function getBlogAnalytics(orgId: string): Promise<BlogAnalytics> {
     const user = await requireUser(['brand', 'dispensary', 'super_user']);
 
     try {
+        assertValidDocumentId(orgId, 'orgId');
         assertOrgAccess(user, orgId);
         const { firestore } = await createServerClient();
 
@@ -751,6 +822,7 @@ export async function getBlogSettings(orgId: string): Promise<BlogSettings | nul
     const user = await requireUser(['brand', 'dispensary', 'super_user']);
 
     try {
+        assertValidDocumentId(orgId, 'orgId');
         assertOrgAccess(user, orgId);
         const { firestore } = await createServerClient();
 
@@ -785,6 +857,7 @@ export async function updateBlogSettings(
     const user = await requireUser(['brand', 'dispensary', 'super_user']);
 
     try {
+        assertValidDocumentId(orgId, 'orgId');
         assertOrgAccess(user, orgId);
         const { firestore } = await createServerClient();
 
@@ -818,6 +891,7 @@ export async function generateBlogDraft(input: BlogGeneratorInput): Promise<Blog
     const user = await requireUser(['brand', 'dispensary', 'super_user']);
 
     try {
+        assertValidDocumentId(input.orgId, 'orgId');
         assertOrgAccess(user, input.orgId);
         logger.info('[generateBlogDraft] Generating blog draft with AI', {
             orgId: input.orgId,
@@ -867,6 +941,7 @@ export async function runComplianceCheck(postId: string): Promise<BlogPost> {
     const user = await requireUser(['brand', 'dispensary', 'super_user']);
 
     try {
+        assertValidDocumentId(postId, 'postId');
         const { firestore } = await createServerClient();
 
         const { postDoc, post } = await getBlogPostWithAccess(firestore, user, postId);
