@@ -146,6 +146,12 @@ export async function createSubscription(input: CreateSubscriptionInput) {
         if (plan.price === null) {
             return { success: false, error: 'This plan requires a custom quote. Please contact sales.' };
         }
+        const isEmailUnverified =
+            (session as any).email_verified === false ||
+            (session as any).emailVerified === false;
+        if (plan.price > 0 && isEmailUnverified) {
+            return { success: false, error: 'Please verify your email before starting a paid subscription.' };
+        }
 
         // 0. Handle Coupon Logic (validate first, redeem atomically with subscription write)
         let finalPrice = plan.price;
