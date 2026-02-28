@@ -6,6 +6,7 @@ import { verifyAuthorizeNetSignature } from '@/lib/payments/webhook-validation';
 import { assignTierPlaybooks } from '@/server/actions/playbooks';
 import type { EventType } from '@/types/domain';
 import { logger } from '@/lib/logger';
+import { createHash } from 'crypto';
 
 export const dynamic = 'force-dynamic';
 const DOCUMENT_ID_REGEX = /^[A-Za-z0-9_-]{1,128}$/;
@@ -440,38 +441,29 @@ export async function POST(req: NextRequest) {
 
     const webhookLogId = notificationId
       ? `authnet_${notificationId}`
-      : `authnet_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+      : `authnet_${createHash('sha256').update(rawBody).digest('hex').slice(0, 32)}`;
 
     webhookLogRef = db.collection('payment_webhooks').doc(webhookLogId);
 
-    if (notificationId) {
-      try {
-        await webhookLogRef.create({
-          provider: 'authorize_net',
-          notificationId,
-          webhookId: body.webhookId || null,
-          eventType,
-          entityId: entityId || null,
-          receivedAt: FieldValue.serverTimestamp(),
-          status: 'received',
-        });
-      } catch (error) {
-        if (isAlreadyExistsError(error)) {
-          logger.info('[AUTHNET_WEBHOOK] Duplicate notification ignored', { notificationId, eventType });
-          return NextResponse.json({ received: true, duplicate: true });
-        }
-        throw error;
-      }
-    } else {
-      await webhookLogRef.set({
+    try {
+      await webhookLogRef.create({
         provider: 'authorize_net',
-        notificationId: null,
+        notificationId: notificationId || null,
         webhookId: body.webhookId || null,
         eventType,
         entityId: entityId || null,
         receivedAt: FieldValue.serverTimestamp(),
         status: 'received',
       });
+    } catch (error) {
+      if (isAlreadyExistsError(error)) {
+        logger.info('[AUTHNET_WEBHOOK] Duplicate notification ignored', {
+          notificationId: notificationId || null,
+          eventType,
+        });
+        return NextResponse.json({ received: true, duplicate: true });
+      }
+      throw error;
     }
 
     let processedOrders = 0;
