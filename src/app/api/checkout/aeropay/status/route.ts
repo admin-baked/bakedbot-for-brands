@@ -164,11 +164,7 @@ export async function POST(request: NextRequest) {
           expectedAmountCents !== null &&
           providerAmountCents !== null
         ) {
-          const centsMatch = providerAmountCents === expectedAmountCents;
-          const dollarsMatch = providerAmountCents * 100 === expectedAmountCents;
-          if (centsMatch || dollarsMatch) {
-            // Accept both cent-denominated and dollar-denominated provider payloads.
-          } else {
+          if (providerAmountCents !== expectedAmountCents) {
             await firestore.collection('payment_forensics').add({
               provider: 'aeropay',
               source: 'aeropay_status_poll',
