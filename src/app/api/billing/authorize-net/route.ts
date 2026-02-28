@@ -4,9 +4,29 @@ import { createServerClient } from "@/firebase/server-client";
 import { FieldValue } from "firebase-admin/firestore";
 import { emitEvent } from "@/server/events/emitter";
 import { requireUser } from "@/server/auth/auth";
+import { z } from 'zod';
 
 import { logger } from '@/lib/logger';
 import { isCompanyPlanCheckoutEnabled } from '@/lib/feature-flags';
+
+const DOCUMENT_ID_REGEX = /^[A-Za-z0-9_-]{1,128}$/;
+
+const subscribeBodySchema = z.object({
+  organizationId: z.string().trim().min(1),
+  planId: z.string().trim().min(1),
+  locationCount: z.number().int().min(1).max(500),
+  coveragePackIds: z.array(z.string().trim().min(1).max(64)).max(20).optional(),
+  opaqueData: z.object({
+    dataDescriptor: z.string().trim().min(1).max(120),
+    dataValue: z.string().trim().min(1),
+  }).optional(),
+  customer: z.object({
+    fullName: z.string().trim().min(1).max(120).optional(),
+    email: z.string().trim().email().optional(),
+    company: z.string().trim().max(160).optional(),
+    zip: z.string().trim().regex(/^\d{5}(-\d{4})?$/).optional(),
+  }).optional(),
+});
 
 /**
  * Verify that a user has access to an organization (owner or admin)
@@ -61,6 +81,10 @@ interface SubscribeBody {
   };
 }
 
+function isValidDocumentId(value: unknown): value is string {
+  return typeof value === 'string' && DOCUMENT_ID_REGEX.test(value);
+}
+
 function getAuthNetBaseUrl() {
   const env = (process.env.AUTHNET_ENV || "sandbox").toLowerCase();
   return env === "production"
@@ -89,19 +113,29 @@ export async function POST(req: NextRequest) {
     ({ firestore: db } = await createServerClient());
 
     // SECURITY: Require authenticated session
-    const session = await requireUser();
+    let session;
+    try {
+      session = await requireUser();
+    } catch {
+      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    }
 
-    body = (await req.json()) as SubscribeBody;
+    body = subscribeBodySchema.parse(await req.json()) as SubscribeBody;
 
-    if (!body.organizationId || !body.planId || typeof body.locationCount !== "number") {
-      return NextResponse.json(
-        { error: "Missing organizationId, planId, or locationCount." },
-        { status: 400 }
-      );
+    if (!isValidDocumentId(body.organizationId)) {
+      return NextResponse.json({ error: "Invalid organizationId." }, { status: 400 });
     }
 
     const orgId = body.organizationId;
     const planId = body.planId;
+    const sessionEmail = typeof session.email === 'string' ? session.email.toLowerCase() : '';
+    const requestEmail = body.customer?.email?.toLowerCase();
+    if (requestEmail && sessionEmail && requestEmail !== sessionEmail) {
+      return NextResponse.json(
+        { error: "Customer email must match your signed-in account." },
+        { status: 403 }
+      );
+    }
 
     // SECURITY: Verify user has admin access to the organization
     const hasAccess = await verifyOrgAccess(session.uid, orgId, db);
@@ -182,6 +216,12 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+    if (!body.customer?.fullName || !body.customer?.email || !body.customer?.zip) {
+      return NextResponse.json(
+        { error: "Paid plans require customer full name, email, and billing ZIP." },
+        { status: 400 }
+      );
+    }
 
     const apiLoginId = process.env.AUTHNET_API_LOGIN_ID;
     const transactionKey = process.env.AUTHNET_TRANSACTION_KEY;
@@ -207,7 +247,8 @@ export async function POST(req: NextRequest) {
             payment: { opaqueData: { dataDescriptor: body.opaqueData.dataDescriptor, dataValue: body.opaqueData.dataValue } },
           }],
         },
-        validationMode: (process.env.AUTHNET_ENV || "sandbox").toLowerCase() === "production" ? "liveMode" : "testMode",
+        // Prevent random live validation holds; ARB creation remains the source of truth.
+        validationMode: "none",
       },
     };
 
@@ -271,6 +312,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, free: false, planId, amount, providerSubscriptionId, customerProfileId, customerPaymentProfileId });
   } catch (err: any) {
+    if (err instanceof z.ZodError) {
+      return NextResponse.json({ error: err.issues[0]?.message || 'Invalid request payload' }, { status: 400 });
+    }
     logger.error("authorize-net:subscription_error", err);
     if (body?.organizationId) {
       await emitEvent({ orgId: body.organizationId, type: 'subscription.failed', agent: 'money_mike', data: { error: err?.message || String(err), planId: body.planId } });
