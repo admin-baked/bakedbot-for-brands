@@ -105,6 +105,23 @@ function productMatchesCheckoutContext(
   return matchesOrg || matchesDispensary;
 }
 
+function dispensaryMatchesOrganization(dispensary: any, organizationId: string): boolean {
+  if (!dispensary || typeof dispensary !== 'object') return false;
+
+  const matchesOrg =
+    dispensary.brandId === organizationId ||
+    dispensary.orgId === organizationId ||
+    dispensary.organizationId === organizationId;
+
+  const hasContextFields =
+    typeof dispensary.brandId === 'string' ||
+    typeof dispensary.orgId === 'string' ||
+    typeof dispensary.organizationId === 'string';
+
+  if (!hasContextFields) return true;
+  return matchesOrg;
+}
+
 function asDate(value: any): Date | null {
   if (!value) return null;
   if (value instanceof Date) return value;
@@ -144,6 +161,20 @@ export async function POST(req: NextRequest) {
 
     const currency = body.currency || "USD";
     const orgId = body.organizationId;
+
+    const dispensaryDoc = await db.collection('dispensaries').doc(body.dispensaryId).get();
+    if (!dispensaryDoc.exists) {
+      return NextResponse.json({ error: 'Dispensary not found.' }, { status: 404 });
+    }
+
+    const dispensaryData = dispensaryDoc.data() || {};
+    if (!dispensaryMatchesOrganization(dispensaryData, orgId)) {
+      return NextResponse.json({ error: 'Dispensary does not belong to this organization.' }, { status: 403 });
+    }
+
+    if (!dispensaryData.cannpayEnabled || !dispensaryData.cannpayMerchantId) {
+      return NextResponse.json({ error: 'CannPay is not enabled for this dispensary.' }, { status: 400 });
+    }
 
     const resolvedItems: ResolvedCheckoutItem[] = [];
     for (const item of body.items) {

@@ -7,6 +7,7 @@ const mockAuthorizePayment = jest.fn();
 const mockOrderSet = jest.fn();
 const mockOrderUpdate = jest.fn();
 const mockProductGet = jest.fn();
+const mockDispensaryGet = jest.fn();
 
 jest.mock('next/server', () => ({
   NextRequest: class {},
@@ -100,6 +101,13 @@ describe('POST /api/checkout/smokey-pay auth hardening', () => {
             })),
           };
         }
+        if (name === 'dispensaries') {
+          return {
+            doc: jest.fn(() => ({
+              get: mockDispensaryGet,
+            })),
+          };
+        }
         if (name === 'coupons') {
           return {
             where: jest.fn(() => ({
@@ -124,6 +132,14 @@ describe('POST /api/checkout/smokey-pay auth hardening', () => {
     };
 
     mockCreateServerClient.mockResolvedValue({ firestore });
+    mockDispensaryGet.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        orgId: 'org_1',
+        cannpayEnabled: true,
+        cannpayMerchantId: 'merchant_1',
+      }),
+    });
     mockProductGet.mockResolvedValue({
       exists: true,
       data: () => ({
@@ -268,6 +284,26 @@ describe('POST /api/checkout/smokey-pay auth hardening', () => {
 
     expect(response.status).toBe(403);
     expect(body.error).toContain('outside this checkout context');
+    expect(mockOrderSet).not.toHaveBeenCalled();
+  });
+
+  it('rejects checkout when CannPay is not enabled on dispensary', async () => {
+    mockDispensaryGet.mockResolvedValueOnce({
+      exists: true,
+      data: () => ({
+        orgId: 'org_1',
+        cannpayEnabled: false,
+        cannpayMerchantId: null,
+      }),
+    });
+
+    const response = await POST({
+      json: async () => validBody(),
+    } as any);
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain('not enabled');
     expect(mockOrderSet).not.toHaveBeenCalled();
   });
 });
