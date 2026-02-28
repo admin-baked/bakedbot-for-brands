@@ -7,6 +7,7 @@ const mockToDataURL = jest.fn();
 const mockOrderGet = jest.fn();
 const mockOrderUpdate = jest.fn();
 const mockIntentSet = jest.fn();
+const mockIntentGet = jest.fn();
 
 jest.mock('next/server', () => ({
   NextRequest: class {},
@@ -74,6 +75,7 @@ describe('POST /api/checkout/usdc/intent security', () => {
     });
     mockOrderUpdate.mockResolvedValue(undefined);
     mockIntentSet.mockResolvedValue(undefined);
+    mockIntentGet.mockResolvedValue({ exists: false, data: () => ({}) });
     mockGetOrCreateOrgWallet.mockResolvedValue({
       walletAddress: '0xabc123',
       usdcBalanceUsd: 50,
@@ -95,6 +97,7 @@ describe('POST /api/checkout/usdc/intent security', () => {
             doc: jest.fn(() => ({
               id: 'intent-1',
               set: mockIntentSet,
+              get: mockIntentGet,
             })),
           };
         }
@@ -151,6 +154,94 @@ describe('POST /api/checkout/usdc/intent security', () => {
     expect(mockGetOrCreateOrgWallet).not.toHaveBeenCalled();
   });
 
+  it('blocks creating a new USDC intent for paid/closed orders', async () => {
+    mockOrderGet.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        userId: 'user-1',
+        orgId: 'org-1',
+        paymentStatus: 'paid',
+        totals: { total: 12.34 },
+        customer: { email: 'owner@example.com' },
+      }),
+    });
+
+    const response = await POST({
+      json: async () => ({ orderId: 'order_1', orgId: 'org-1' }),
+    } as any);
+    const body = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(body.error).toContain('already been paid');
+    expect(mockGetOrCreateOrgWallet).not.toHaveBeenCalled();
+    expect(mockIntentSet).not.toHaveBeenCalled();
+  });
+
+  it('reuses active pending intent instead of creating a new one', async () => {
+    mockOrderGet.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        userId: 'user-1',
+        orgId: 'org-1',
+        paymentStatus: 'pending',
+        totals: { total: 12.34 },
+        customer: { email: 'owner@example.com' },
+        usdc: {
+          intentId: 'intent-existing',
+          paymentAddress: '0xabc123',
+          amountUsdc: 12.34,
+          expiresAt: new Date(Date.now() + 10 * 60_000).toISOString(),
+        },
+      }),
+    });
+
+    mockIntentGet.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        orderId: 'order_1',
+        orgId: 'org-1',
+        walletAddress: '0xabc123',
+        status: 'pending',
+      }),
+    });
+
+    const firestore = {
+      collection: jest.fn((name: string) => {
+        if (name === 'orders') {
+          return {
+            doc: jest.fn(() => ({
+              get: mockOrderGet,
+              update: mockOrderUpdate,
+            })),
+          };
+        }
+        if (name === 'x402_deposits') {
+          return {
+            doc: jest.fn(() => ({
+              id: 'intent-existing',
+              set: mockIntentSet,
+              get: mockIntentGet,
+            })),
+          };
+        }
+        return { doc: jest.fn() };
+      }),
+    };
+    mockGetAdminFirestore.mockReturnValue(firestore);
+
+    const response = await POST({
+      json: async () => ({ orderId: 'order_1', orgId: 'org-1' }),
+    } as any);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.intentId).toBe('intent-existing');
+    expect(body.reused).toBe(true);
+    expect(mockGetOrCreateOrgWallet).not.toHaveBeenCalled();
+    expect(mockIntentSet).not.toHaveBeenCalled();
+    expect(mockOrderUpdate).not.toHaveBeenCalled();
+  });
+
   it('stores baseline balance from intent creation for safe confirmation checks', async () => {
     const response = await POST({
       json: async () => ({ orderId: 'order_1', orgId: 'org-1' }),
@@ -174,4 +265,3 @@ describe('POST /api/checkout/usdc/intent security', () => {
     }));
   });
 });
-
