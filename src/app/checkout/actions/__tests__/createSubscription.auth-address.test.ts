@@ -118,6 +118,21 @@ describe('createSubscription auth + address hardening', () => {
         expect(result.error).toContain('signed in');
     });
 
+    it('rejects unverified email for paid subscription checkout', async () => {
+        mockRequireUser.mockResolvedValue({
+            uid: 'user-1',
+            email: 'owner@example.com',
+            email_verified: false,
+        });
+
+        const result = await createSubscription(baseInput() as any);
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('verify your email');
+        expect(mockCreateCustomerProfile).not.toHaveBeenCalled();
+        expect(mockCreateSubscriptionFromProfile).not.toHaveBeenCalled();
+    });
+
     it('blocks company plan checkout when feature flag is disabled', async () => {
         process.env.NEXT_PUBLIC_ENABLE_COMPANY_PLAN_CHECKOUT = 'false';
 
