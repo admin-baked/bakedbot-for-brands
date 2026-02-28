@@ -183,6 +183,39 @@ describe('Certificate Server Actions', () => {
             }
         });
 
+        it('should reject invalid target user id', async () => {
+            const { requireUser } = await import('@/server/auth/auth');
+            (requireUser as jest.Mock).mockResolvedValue({ uid: 'test-user' });
+
+            const { getAdminFirestore } = await import('@/firebase/admin');
+
+            const result = await generateCertificate('bad/user');
+
+            expect(result.success).toBe(false);
+            if (!result.success) {
+                expect(result.error).toContain('Invalid user id');
+            }
+            expect(getAdminFirestore).not.toHaveBeenCalled();
+        });
+
+        it('should not treat substring role matches as super access', async () => {
+            const { requireUser } = await import('@/server/auth/auth');
+            (requireUser as jest.Mock).mockResolvedValue({
+                uid: 'regular-user',
+                role: 'not_super_user',
+            });
+
+            const { getAdminFirestore } = await import('@/firebase/admin');
+
+            const result = await generateCertificate('other-user');
+
+            expect(result.success).toBe(false);
+            if (!result.success) {
+                expect(result.error).toContain('Unauthorized');
+            }
+            expect(getAdminFirestore).not.toHaveBeenCalled();
+        });
+
         it('should allow super_user to generate for any user', async () => {
             const { requireUser } = await import('@/server/auth/auth');
             (requireUser as jest.Mock).mockResolvedValue({
@@ -233,6 +266,18 @@ describe('Certificate Server Actions', () => {
     });
 
     describe('verifyCertificate', () => {
+        it('should reject invalid certificate path id', async () => {
+            const { getAdminFirestore } = await import('@/firebase/admin');
+
+            const result = await verifyCertificate('bad/id');
+
+            expect(result.success).toBe(false);
+            if (!result.success) {
+                expect(result.error).toContain('Invalid certificate id');
+            }
+            expect(getAdminFirestore).not.toHaveBeenCalled();
+        });
+
         it('should verify valid certificate', async () => {
             const mockCertificate: CertificateMetadata = {
                 certificateId: 'cert-123',
