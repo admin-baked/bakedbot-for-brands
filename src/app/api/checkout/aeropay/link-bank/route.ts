@@ -26,14 +26,17 @@ import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
 import type { AeropayUserDoc, AeropayBankAccount } from '@/types/aeropay';
 import { Timestamp } from 'firebase-admin/firestore';
+import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
 
-interface LinkBankRequest {
-  userId: string; // BakedBot user ID (Firebase Auth UID)
-  aeropayUserId: string; // Aeropay user ID
-  aggregatorAccountId: string; // From Aerosync widget callback
-}
+const DOCUMENT_ID_REGEX = /^[A-Za-z0-9_-]{1,128}$/;
+
+const linkBankRequestSchema = z.object({
+  userId: z.string().trim().regex(DOCUMENT_ID_REGEX, 'Invalid userId').optional(),
+  aeropayUserId: z.string().trim().regex(DOCUMENT_ID_REGEX, 'Invalid aeropayUserId'),
+  aggregatorAccountId: z.string().trim().regex(DOCUMENT_ID_REGEX, 'Invalid aggregatorAccountId'),
+}).strict();
 
 export async function POST(request: NextRequest) {
   try {
@@ -44,18 +47,12 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Parse request body
-    const body: LinkBankRequest = await request.json();
-    const { userId, aeropayUserId, aggregatorAccountId } = body;
+    const body = linkBankRequestSchema.parse(await request.json());
+    const { userId: requestedUserId, aeropayUserId, aggregatorAccountId } = body;
+    const userId = user.uid;
 
-    if (!userId || !aeropayUserId || !aggregatorAccountId) {
-      return NextResponse.json(
-        { error: 'Missing required fields: userId, aeropayUserId, aggregatorAccountId' },
-        { status: 400 }
-      );
-    }
-
-    // 3. Verify user matches authenticated user
-    if (userId !== user.uid) {
+    // 3. Verify optional requested user matches authenticated user
+    if (requestedUserId && requestedUserId !== user.uid) {
       return NextResponse.json(
         { error: 'User ID does not match authenticated user' },
         { status: 403 }
@@ -141,6 +138,12 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: error.issues[0]?.message || 'Invalid request payload' },
+        { status: 400 }
+      );
+    }
     logger.error('[AEROPAY] Bank link failed', error instanceof Error ? error : new Error(String(error)));
 
     // Return appropriate error
