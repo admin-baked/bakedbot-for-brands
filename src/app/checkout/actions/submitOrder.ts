@@ -7,6 +7,7 @@ import type { CartItem } from '@/types/domain';
 import { applyCoupon } from './applyCoupon';
 import type { ServerOrderPayload as ServerOrderPayloadType } from '@/types/domain';
 import { FieldValue } from 'firebase-admin/firestore';
+import { requireUser } from '@/server/auth/auth';
 
 import { logger } from '@/lib/logger';
 export interface ClientOrderInput {
@@ -27,6 +28,12 @@ export type SubmitOrderResult = {
   checkoutUrl?: string;
 };
 
+const DOCUMENT_ID_REGEX = /^[A-Za-z0-9_-]{1,128}$/;
+
+function isValidDocumentId(value: unknown): value is string {
+  return typeof value === 'string' && DOCUMENT_ID_REGEX.test(value);
+}
+
 const TRUSTED_EXTERNAL_CHECKOUT_HOSTS = new Set([
   'widget.canpayapp.com',
   'sandbox-widget.canpayapp.com',
@@ -35,19 +42,29 @@ const TRUSTED_EXTERNAL_CHECKOUT_HOSTS = new Set([
 ]);
 
 export async function submitOrder(clientPayload: ClientOrderInput): Promise<SubmitOrderResult> {
-  const { auth, firestore } = await createServerClient();
-  const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get('__session')?.value;
-  let userId: string | null = null;
-  if (sessionCookie) {
-    try {
-      const decodedToken = await auth.verifySessionCookie(sessionCookie, true);
-      userId = decodedToken.uid;
-    } catch (error) {
-      // Not a valid session, but allow anonymous orders
-      logger.warn("Could not verify session for order, proceeding as anonymous.");
-    }
+  if (!Array.isArray(clientPayload.items) || clientPayload.items.length === 0) {
+    return { ok: false, error: 'Cart items are required.' };
   }
+  if (!isValidDocumentId(clientPayload.organizationId) || !isValidDocumentId(clientPayload.retailerId)) {
+    return { ok: false, error: 'Invalid organization or retailer context.' };
+  }
+
+  let session;
+  try {
+    session = await requireUser();
+  } catch {
+    return { ok: false, error: 'You must be signed in to complete checkout.' };
+  }
+
+  const sessionEmail = typeof session.email === 'string' ? session.email.toLowerCase() : '';
+  const requestEmail = clientPayload.customer.email.trim().toLowerCase();
+  if (sessionEmail && requestEmail !== sessionEmail) {
+    return { ok: false, error: 'Customer email must match your signed-in account.' };
+  }
+
+  const { firestore } = await createServerClient();
+  const cookieStore = await cookies();
+  const userId = session.uid;
 
   const subtotal = clientPayload.items.reduce(
     (sum, i) => sum + i.price * i.quantity,
@@ -99,7 +116,7 @@ export async function submitOrder(clientPayload: ClientOrderInput): Promise<Subm
           dispensaryId: clientPayload.retailerId,
           pickupLocationId: clientPayload.retailerId,
           customer: {
-            email: clientPayload.customer.email,
+            email: sessionEmail || requestEmail,
             name: clientPayload.customer.name,
             phone: clientPayload.customer.phone,
             uid: userId,
@@ -170,7 +187,7 @@ export async function submitOrder(clientPayload: ClientOrderInput): Promise<Subm
     return {
       ok: true,
       orderId: json.orderId,
-      userId: userId || 'anonymous',
+      userId,
       checkoutUrl,
     };
 
