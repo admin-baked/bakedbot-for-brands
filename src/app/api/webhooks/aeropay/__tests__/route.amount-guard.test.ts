@@ -400,4 +400,110 @@ describe('POST /api/webhooks/aeropay amount guard', () => {
       expectedTransactionId: 'tx_expected',
     }));
   });
+
+  it('rejects ambiguous integer amount payloads that underpay order total+fee', async () => {
+    const webhookBody = JSON.stringify({
+      topic: 'transaction_completed',
+      date: '2026-02-28T12:00:00.000Z',
+      data: {
+        transactionId: 'tx_ambiguous_amount',
+        userId: 'user_1',
+        merchantId: 'merchant_1',
+        amount: 50, // ambiguous integer dollars; should not pass as 5050 cents
+        status: 'completed',
+        merchantOrderId: 'order-1',
+        createdAt: '2026-02-28T12:00:00.000Z',
+      },
+    });
+
+    const signature = crypto
+      .createHmac('sha256', 'aero-secret')
+      .update(webhookBody)
+      .digest('hex')
+      .toLowerCase();
+
+    const request = new NextRequest('http://localhost/api/webhooks/aeropay', {
+      method: 'POST',
+      body: webhookBody,
+      headers: {
+        'x-aeropay-signature': signature,
+      },
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.received).toBe(true);
+    expect(mockTransactionUpdate).not.toHaveBeenCalled();
+    expect(mockOrderUpdate).not.toHaveBeenCalled();
+    expect(mockEmitEvent).not.toHaveBeenCalled();
+    expect(mockForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'aeropay',
+      source: 'aeropay_webhook',
+      reason: 'amount_mismatch',
+      orderId: 'order-1',
+      transactionId: 'tx_ambiguous_amount',
+      expectedAmountCents: 5050,
+      providerAmountCents: 50,
+    }));
+  });
+
+  it('does not downgrade paid orders on out-of-order pending callbacks', async () => {
+    mockOrderGet.mockResolvedValueOnce({
+      exists: true,
+      data: () => ({
+        totals: { total: 50 },
+        brandId: 'org_demo',
+        paymentStatus: 'paid',
+      }),
+    });
+
+    const webhookBody = JSON.stringify({
+      topic: 'transaction_declined',
+      date: '2026-02-28T12:00:00.000Z',
+      data: {
+        transactionId: 'tx_paid_regression',
+        userId: 'user_1',
+        merchantId: 'merchant_1',
+        amount: '5050',
+        status: 'pending',
+        merchantOrderId: 'order-1',
+        createdAt: '2026-02-28T12:00:00.000Z',
+      },
+    });
+
+    const signature = crypto
+      .createHmac('sha256', 'aero-secret')
+      .update(webhookBody)
+      .digest('hex')
+      .toLowerCase();
+
+    const request = new NextRequest('http://localhost/api/webhooks/aeropay', {
+      method: 'POST',
+      body: webhookBody,
+      headers: {
+        'x-aeropay-signature': signature,
+      },
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.received).toBe(true);
+    expect(mockOrderUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      paymentStatus: 'paid',
+    }));
+    expect(mockForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'aeropay',
+      source: 'aeropay_webhook',
+      reason: 'status_regression_blocked',
+      orderId: 'order-1',
+      transactionId: 'tx_paid_regression',
+      currentPaymentStatus: 'paid',
+      desiredPaymentStatus: 'pending',
+      appliedPaymentStatus: 'paid',
+    }));
+  });
 });

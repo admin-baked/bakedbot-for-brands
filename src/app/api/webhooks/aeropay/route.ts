@@ -99,6 +99,30 @@ function getExpectedAeropayAmountCents(orderData: Record<string, any> | undefine
   return Math.round(total * 100) + AEROPAY_TRANSACTION_FEE_CENTS;
 }
 
+function resolvePaymentStatus(
+  orderData: Record<string, any>,
+  desiredPaymentStatus: string,
+): string {
+  const desired = String(desiredPaymentStatus || '').toLowerCase();
+  const current = String(orderData?.paymentStatus || '').toLowerCase();
+
+  if (!desired) return current || 'pending';
+  if (!current) return desired;
+
+  if (current === 'paid') {
+    if (desired === 'refunded' || desired === 'voided') {
+      return desired;
+    }
+    return current;
+  }
+
+  if (current === 'refunded' || current === 'voided') {
+    return current;
+  }
+
+  return desired;
+}
+
 function resolveOrderStatus(
   orderData: Record<string, any>,
   desiredStatus?: string
@@ -458,10 +482,7 @@ async function handleTransactionWebhook(
   }
 
   if (expectedAmountCents !== null && providerAmountCents !== null) {
-    const centsMatch = providerAmountCents === expectedAmountCents;
-    const dollarsMatch = providerAmountCents * 100 === expectedAmountCents;
-
-    if (!centsMatch && !dollarsMatch) {
+    if (providerAmountCents !== expectedAmountCents) {
       logger.error('[AEROPAY-WEBHOOK] Amount mismatch - refusing state transition', {
         orderId,
         transactionId,
@@ -486,10 +507,26 @@ async function handleTransactionWebhook(
       return;
     }
   }
+  const nextPaymentStatus = resolvePaymentStatus(orderData, paymentStatus);
+  if (nextPaymentStatus !== paymentStatus) {
+    await db.collection('payment_forensics').add({
+      provider: 'aeropay',
+      source: 'aeropay_webhook',
+      reason: 'status_regression_blocked',
+      orderId,
+      transactionId,
+      merchantOrderId: merchantOrderId || null,
+      currentPaymentStatus: String(orderData?.paymentStatus || ''),
+      desiredPaymentStatus: paymentStatus,
+      appliedPaymentStatus: nextPaymentStatus,
+      providerStatus: status || null,
+      observedAt: FieldValue.serverTimestamp(),
+    });
+  }
 
   // Update transaction with new status and webhook event
   await transactionRef.update({
-    status: paymentStatus,
+    status: nextPaymentStatus,
     updatedAt: Timestamp.now(),
     ...(status === 'completed' && { completedAt: Timestamp.now() }),
     webhookEvents: FieldValue.arrayUnion({
@@ -500,7 +537,7 @@ async function handleTransactionWebhook(
   });
 
   const updatePayload: any = {
-    paymentStatus,
+    paymentStatus: nextPaymentStatus,
     updatedAt: FieldValue.serverTimestamp(),
     lastPaymentEvent: data,
     'aeropay.status': status,
@@ -529,7 +566,7 @@ async function handleTransactionWebhook(
     orderId,
     transactionId,
     status,
-    paymentStatus,
+    paymentStatus: nextPaymentStatus,
     orderStatus,
   });
 
@@ -540,7 +577,7 @@ async function handleTransactionWebhook(
       type: eventType,
       agent: 'smokey',
       refId: orderId,
-      data: { paymentStatus, orderStatus, transactionId },
+      data: { paymentStatus: nextPaymentStatus, orderStatus, transactionId },
     });
 
     // Emit order ready event for completed payments
@@ -550,7 +587,7 @@ async function handleTransactionWebhook(
         type: 'order.readyForPickup',
         agent: 'smokey',
         refId: orderId,
-        data: { paymentStatus },
+        data: { paymentStatus: nextPaymentStatus },
       });
     }
   } else if (eventType) {
