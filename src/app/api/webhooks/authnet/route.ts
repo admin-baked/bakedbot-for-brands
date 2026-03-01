@@ -415,6 +415,29 @@ function extractOrderIdFromPaymentPayload(payload: Record<string, unknown>): str
   return null;
 }
 
+function isEligibleInvoiceFallbackOrder(orderData: Record<string, unknown>): boolean {
+  const paymentProvider = String(orderData?.paymentProvider || '').toLowerCase();
+  const paymentMethod = String(orderData?.paymentMethod || '').toLowerCase();
+  const paymentStatus = String(orderData?.paymentStatus || '').toLowerCase();
+  const orderStatus = String(orderData?.status || '').toLowerCase();
+  const transactionId =
+    typeof orderData?.transactionId === 'string'
+      ? orderData.transactionId.trim()
+      : '';
+
+  const providerMatches = paymentProvider === 'authorize_net' || paymentMethod === 'credit_card';
+  const pendingLikeStatus =
+    !paymentStatus || paymentStatus === 'pending' || paymentStatus === 'authorized';
+  const orderIsOpen =
+    orderStatus !== 'completed' &&
+    orderStatus !== 'canceled' &&
+    orderStatus !== 'cancelled';
+
+  // Invoice fallback should only reconcile known pending Authorize.Net orders that
+  // do not yet have a bound gateway transaction id.
+  return providerMatches && pendingLikeStatus && orderIsOpen && transactionId.length === 0;
+}
+
 export async function POST(req: NextRequest) {
   const { firestore: db } = await createServerClient();
   let webhookLogRef: FirebaseFirestore.DocumentReference | null = null;
@@ -571,6 +594,32 @@ export async function POST(req: NextRequest) {
                 eventType,
                 responseCode,
                 providerAmountCents,
+                observedAt: FieldValue.serverTimestamp(),
+              });
+            } else if (!isEligibleInvoiceFallbackOrder(fallbackOrderData)) {
+              logger.error('[AUTHNET_WEBHOOK] Fallback order is not eligible for invoice-based reconciliation', {
+                orderId: fallbackOrderId,
+                incomingTransactionId: entityId,
+                eventType,
+                paymentProvider: String(fallbackOrderData.paymentProvider || ''),
+                paymentMethod: String(fallbackOrderData.paymentMethod || ''),
+                paymentStatus: String(fallbackOrderData.paymentStatus || ''),
+                status: String(fallbackOrderData.status || ''),
+              });
+
+              await db.collection('payment_forensics').add({
+                provider: 'authorize_net',
+                source: 'authnet_webhook',
+                reason: 'fallback_order_not_eligible',
+                orderId: fallbackOrderId,
+                transactionId: entityId,
+                eventType,
+                responseCode,
+                providerAmountCents,
+                paymentProvider: String(fallbackOrderData.paymentProvider || null),
+                paymentMethod: String(fallbackOrderData.paymentMethod || null),
+                paymentStatus: String(fallbackOrderData.paymentStatus || null),
+                orderStatus: String(fallbackOrderData.status || null),
                 observedAt: FieldValue.serverTimestamp(),
               });
             } else {

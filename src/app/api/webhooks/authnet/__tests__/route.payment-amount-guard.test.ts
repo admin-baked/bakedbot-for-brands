@@ -82,12 +82,20 @@ describe('POST /api/webhooks/authnet payment amount guard', () => {
     duplicateOrderMatch = false,
     fallbackOrderByInvoice = false,
     duplicateWebhookByCreate = false,
+    fallbackPaymentProvider = 'authorize_net',
+    fallbackPaymentMethod = 'credit_card',
+    fallbackPaymentStatus = 'pending',
+    fallbackOrderStatus = 'submitted',
   }: {
     withOrder?: boolean;
     orderTotal?: number;
     duplicateOrderMatch?: boolean;
     fallbackOrderByInvoice?: boolean;
     duplicateWebhookByCreate?: boolean;
+    fallbackPaymentProvider?: string;
+    fallbackPaymentMethod?: string;
+    fallbackPaymentStatus?: string;
+    fallbackOrderStatus?: string;
   } = {}) {
     let webhookCreateCalls = 0;
     mockWebhookCreate.mockImplementation(async () => {
@@ -129,7 +137,10 @@ describe('POST /api/webhooks/authnet payment amount guard', () => {
       data: () => ({
         totals: { total: orderTotal },
         brandId: 'org_demo',
-        paymentStatus: 'pending',
+        paymentStatus: fallbackPaymentStatus,
+        paymentProvider: fallbackPaymentProvider,
+        paymentMethod: fallbackPaymentMethod,
+        status: fallbackOrderStatus,
       }),
     };
     const duplicateOrderDoc = {
@@ -398,6 +409,62 @@ describe('POST /api/webhooks/authnet payment amount guard', () => {
     expect(mockForensicsAdd).not.toHaveBeenCalledWith(expect.objectContaining({
       reason: 'missing_order_mapping',
       transactionId: 'txn_invoice_fallback',
+    }));
+  });
+
+  it('rejects invoice fallback for non-Authorize.Net order contexts', async () => {
+    setupDb({
+      withOrder: false,
+      orderTotal: 4.1,
+      fallbackOrderByInvoice: true,
+      fallbackPaymentProvider: 'cannpay',
+      fallbackPaymentMethod: 'cannpay',
+      fallbackPaymentStatus: 'pending',
+      fallbackOrderStatus: 'submitted',
+    });
+    const { POST } = await import('../route');
+
+    const body = JSON.stringify({
+      notificationId: 'notif-invoice-fallback-reject',
+      eventType: 'net.authorize.payment.authcapture.created',
+      payload: {
+        id: 'txn_invoice_reject',
+        responseCode: '1',
+        authAmount: '4.10',
+        order: {
+          invoiceNumber: 'order-1',
+        },
+      },
+    });
+
+    const req = new NextRequest('http://localhost/api/webhooks/authnet', {
+      method: 'POST',
+      body,
+      headers: {
+        'x-anet-signature': 'sha512=fake',
+      },
+    });
+
+    const response = await POST(req);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.processedOrders).toBe(0);
+    expect(mockOrderSet).not.toHaveBeenCalled();
+    expect(mockForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'authorize_net',
+      source: 'authnet_webhook',
+      reason: 'fallback_order_not_eligible',
+      orderId: 'order-1',
+      transactionId: 'txn_invoice_reject',
+      paymentProvider: 'cannpay',
+      paymentMethod: 'cannpay',
+    }));
+    expect(mockForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'authorize_net',
+      source: 'authnet_webhook',
+      reason: 'missing_order_mapping',
+      transactionId: 'txn_invoice_reject',
     }));
   });
 
