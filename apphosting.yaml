@@ -72,18 +72,18 @@ env:
     secret: CANNMENUS_API_KEY@3
     availability:
       - RUNTIME
-  # Authorize.Net - Secret Manager references with Firebase CLI IAM bindings
-  # Use @latest to avoid stale pinned secret versions after credential rotation.
+  # Authorize.Net - Secret Manager references with Firebase CLI IAM bindings.
+  # App Hosting rollout builds require numeric secret versions (not @latest).
   - variable: AUTHNET_API_LOGIN_ID
-    secret: AUTHNET_API_LOGIN_ID@latest
+    secret: AUTHNET_API_LOGIN_ID@4
     availability:
       - RUNTIME
   - variable: AUTHNET_TRANSACTION_KEY
-    secret: AUTHNET_TRANSACTION_KEY@latest
+    secret: AUTHNET_TRANSACTION_KEY@5
     availability:
       - RUNTIME
   - variable: AUTHNET_SIGNATURE_KEY
-    secret: AUTHNET_SIGNATURE_KEY@latest
+    secret: AUTHNET_SIGNATURE_KEY@2
     availability:
       - RUNTIME
   - variable: AUTHNET_ENV
@@ -101,7 +101,7 @@ env:
   #     - BUILD
   #     - RUNTIME
   - variable: NEXT_PUBLIC_AUTHNET_API_LOGIN_ID
-    secret: AUTHNET_API_LOGIN_ID@latest
+    secret: AUTHNET_API_LOGIN_ID@4
     availability:
       - BUILD
       - RUNTIME
