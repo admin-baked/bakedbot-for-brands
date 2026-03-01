@@ -70,6 +70,11 @@ import { HeroGeneratorInline } from './hero-generator-inline';
 import { BundleGeneratorInline } from './bundle-generator-inline';
 import { SocialPostGeneratorInline } from './social-post-generator-inline';
 import { DynamicPricingGeneratorInline } from './dynamic-pricing-generator-inline';
+import { VideoGeneratorInline } from './video-generator-inline';
+import { CampaignPlannerInline } from './campaign-planner-inline';
+import { PerformanceReviewInline } from './performance-review-inline';
+import { OutreachGeneratorInline } from './outreach-generator-inline';
+import { EventPlannerInline } from './event-planner-inline';
 import { formatDistanceToNow } from 'date-fns';
 import { runInboxAgentChat, addMessageToInboxThread } from '@/server/actions/inbox';
 import { generateQRCode } from '@/server/actions/qr-code';
@@ -490,11 +495,22 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     const [showBundleGenerator, setShowBundleGenerator] = useState(false);
     const [showSocialPostGenerator, setShowSocialPostGenerator] = useState(false);
     const [showPricingGenerator, setShowPricingGenerator] = useState(false);
+    const [showVideoGenerator, setShowVideoGenerator] = useState(false);
+    const [showCampaignPlanner, setShowCampaignPlanner] = useState(false);
+    const [showPerformanceReview, setShowPerformanceReview] = useState(false);
+    const [showOutreachGenerator, setShowOutreachGenerator] = useState(false);
+    const [showEventPlanner, setShowEventPlanner] = useState(false);
+
     const [carouselInitialPrompt, setCarouselInitialPrompt] = useState('');
     const [heroInitialPrompt, setHeroInitialPrompt] = useState('');
     const [bundleInitialPrompt, setBundleInitialPrompt] = useState('');
     const [socialPostInitialPrompt, setSocialPostInitialPrompt] = useState('');
     const [pricingInitialPrompt, setPricingInitialPrompt] = useState('');
+    const [videoInitialPrompt, setVideoInitialPrompt] = useState('');
+    const [campaignInitialPrompt, setCampaignInitialPrompt] = useState('');
+    const [performanceInitialPrompt, setPerformanceInitialPrompt] = useState('');
+    const [outreachInitialPrompt, setOutreachInitialPrompt] = useState('');
+    const [eventInitialPrompt, setEventInitialPrompt] = useState('');
     const [lastCreatedHeroId, setLastCreatedHeroId] = useState<string | null>(null);
     const [lastCreatedHeroOrgId, setLastCreatedHeroOrgId] = useState<string | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -506,6 +522,11 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     const hasAutoShownBundle = useRef<boolean>(false);
     const hasAutoShownSocialPost = useRef<boolean>(false);
     const hasAutoShownPricing = useRef<boolean>(false);
+    const hasAutoShownVideo = useRef<boolean>(false);
+    const hasAutoShownCampaign = useRef<boolean>(false);
+    const hasAutoShownPerformance = useRef<boolean>(false);
+    const hasAutoShownOutreach = useRef<boolean>(false);
+    const hasAutoShownEvent = useRef<boolean>(false);
 
     const { addMessageToThread, addArtifacts, isThreadPending } = useInboxStore();
     const isPending = isThreadPending(thread.id);
@@ -723,6 +744,61 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             hasAutoShownPricing.current = false;
         }
     }, [thread.id, thread.type, showPricingGenerator]);
+
+    // Auto-open Video generator for video threads
+    useEffect(() => {
+        if (thread.type === 'video') {
+            if (!showVideoGenerator) setShowVideoGenerator(true);
+            hasAutoShownVideo.current = true;
+        } else {
+            if (showVideoGenerator) setShowVideoGenerator(false);
+            hasAutoShownVideo.current = false;
+        }
+    }, [thread.id, thread.type, showVideoGenerator]);
+
+    // Auto-open Campaign planner for campaign threads
+    useEffect(() => {
+        if (thread.type === 'campaign') {
+            if (!showCampaignPlanner) setShowCampaignPlanner(true);
+            hasAutoShownCampaign.current = true;
+        } else {
+            if (showCampaignPlanner) setShowCampaignPlanner(false);
+            hasAutoShownCampaign.current = false;
+        }
+    }, [thread.id, thread.type, showCampaignPlanner]);
+
+    // Auto-open Performance review for performance threads
+    useEffect(() => {
+        if (thread.type === 'performance') {
+            if (!showPerformanceReview) setShowPerformanceReview(true);
+            hasAutoShownPerformance.current = true;
+        } else {
+            if (showPerformanceReview) setShowPerformanceReview(false);
+            hasAutoShownPerformance.current = false;
+        }
+    }, [thread.id, thread.type, showPerformanceReview]);
+
+    // Auto-open Outreach generator for outreach threads
+    useEffect(() => {
+        if (thread.type === 'outreach') {
+            if (!showOutreachGenerator) setShowOutreachGenerator(true);
+            hasAutoShownOutreach.current = true;
+        } else {
+            if (showOutreachGenerator) setShowOutreachGenerator(false);
+            hasAutoShownOutreach.current = false;
+        }
+    }, [thread.id, thread.type, showOutreachGenerator]);
+
+    // Auto-open Event planner for event threads
+    useEffect(() => {
+        if (thread.type === 'event') {
+            if (!showEventPlanner) setShowEventPlanner(true);
+            hasAutoShownEvent.current = true;
+        } else {
+            if (showEventPlanner) setShowEventPlanner(false);
+            hasAutoShownEvent.current = false;
+        }
+    }, [thread.id, thread.type, showEventPlanner]);
 
     const handleSubmit = async () => {
         if ((!input.trim() && attachments.length === 0) || isSubmitting || isPending) return;
@@ -1097,6 +1173,66 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         setPricingInitialPrompt('');
     };
 
+    const handleCompleteVideo = async (videoData: any) => {
+        setShowVideoGenerator(false);
+        const confirmationMessage: ChatMessage = {
+            id: `msg-${Date.now()}`,
+            type: 'agent',
+            content: `🎬 **Video Concept Ready!**\n\nTitle: "${videoData.title}"\nYour video script and concept have been generated. You can pass this to your creative team or record it yourself!`,
+            timestamp: new Date(),
+        };
+        addMessageToThread(thread.id, confirmationMessage);
+        setVideoInitialPrompt('');
+    };
+
+    const handleCompleteCampaign = async (campaignData: any) => {
+        setShowCampaignPlanner(false);
+        const confirmationMessage: ChatMessage = {
+            id: `msg-${Date.now()}`,
+            type: 'agent',
+            content: `🚀 **Campaign Plan Approved!**\n\n"${campaignData.name}" has been outlined. We will coordinate across ${campaignData.channels.join(', ')}.\n\nLet me know when you'd like to start drafting the individual assets!`,
+            timestamp: new Date(),
+        };
+        addMessageToThread(thread.id, confirmationMessage);
+        setCampaignInitialPrompt('');
+    };
+
+    const handleCompletePerformance = async (reportData: any) => {
+        setShowPerformanceReview(false);
+        const confirmationMessage: ChatMessage = {
+            id: `msg-${Date.now()}`,
+            type: 'agent',
+            content: `📊 **Analysis Complete**\n\nRecommendation acknowledged: ${reportData.recommendation}\n\nI'll monitor this metric and alert you of any significant changes.`,
+            timestamp: new Date(),
+        };
+        addMessageToThread(thread.id, confirmationMessage);
+        setPerformanceInitialPrompt('');
+    };
+
+    const handleCompleteOutreach = async (draftData: any) => {
+        setShowOutreachGenerator(false);
+        const confirmationMessage: ChatMessage = {
+            id: `msg-${Date.now()}`,
+            type: 'agent',
+            content: `📨 **Outreach Ready for Review!**\n\nYour ${draftData.channel} blast to ${draftData.audience} is staged and ready to be scheduled through your messaging platform.`,
+            timestamp: new Date(),
+        };
+        addMessageToThread(thread.id, confirmationMessage);
+        setOutreachInitialPrompt('');
+    };
+
+    const handleCompleteEvent = async (eventData: any) => {
+        setShowEventPlanner(false);
+        const confirmationMessage: ChatMessage = {
+            id: `msg-${Date.now()}`,
+            type: 'agent',
+            content: `🎉 **Event Marketing Plan Confirmed!**\n\nWe're officially gearing up for "${eventData.name}" on ${eventData.date}. I have the promo schedule logged in our calendar.`,
+            timestamp: new Date(),
+        };
+        addMessageToThread(thread.id, confirmationMessage);
+        setEventInitialPrompt('');
+    };
+
     const handleCompleteQRCode = async (qrCodeData: {
         url: string;
         campaignName: string;
@@ -1153,7 +1289,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                 <div className="max-w-3xl mx-auto py-4">
                     {thread.messages.length === 0 ? (
                         <>
-                            {!showQRGenerator && !showCarouselGenerator && !showHeroGenerator && !showBundleGenerator && !showSocialPostGenerator && !showPricingGenerator && (
+                            {!showQRGenerator && !showCarouselGenerator && !showHeroGenerator && !showBundleGenerator && !showSocialPostGenerator && !showPricingGenerator && !showVideoGenerator && !showCampaignPlanner && !showPerformanceReview && !showOutreachGenerator && !showEventPlanner && (
                                 <div className="text-center py-12">
                                     <Sparkles className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
                                     <h3 className="font-medium text-lg mb-2">Start the conversation</h3>
@@ -1235,6 +1371,51 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                                     />
                                 </div>
                             )}
+
+                            {showVideoGenerator && (
+                                <div className="mt-4">
+                                    <VideoGeneratorInline
+                                        onComplete={handleCompleteVideo}
+                                        initialPrompt={videoInitialPrompt}
+                                    />
+                                </div>
+                            )}
+
+                            {showCampaignPlanner && (
+                                <div className="mt-4">
+                                    <CampaignPlannerInline
+                                        onComplete={handleCompleteCampaign}
+                                        initialPrompt={campaignInitialPrompt}
+                                    />
+                                </div>
+                            )}
+
+                            {showPerformanceReview && (
+                                <div className="mt-4">
+                                    <PerformanceReviewInline
+                                        onComplete={handleCompletePerformance}
+                                        initialPrompt={performanceInitialPrompt}
+                                    />
+                                </div>
+                            )}
+
+                            {showOutreachGenerator && (
+                                <div className="mt-4">
+                                    <OutreachGeneratorInline
+                                        onComplete={handleCompleteOutreach}
+                                        initialPrompt={outreachInitialPrompt}
+                                    />
+                                </div>
+                            )}
+
+                            {showEventPlanner && (
+                                <div className="mt-4">
+                                    <EventPlannerInline
+                                        onComplete={handleCompleteEvent}
+                                        initialPrompt={eventInitialPrompt}
+                                    />
+                                </div>
+                            )}
                         </>
                     ) : (
                         <>
@@ -1304,6 +1485,51 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                                     <DynamicPricingGeneratorInline
                                         onComplete={handleCompletePricing}
                                         initialPrompt={pricingInitialPrompt}
+                                    />
+                                </div>
+                            )}
+
+                            {showVideoGenerator && (
+                                <div className="mt-4">
+                                    <VideoGeneratorInline
+                                        onComplete={handleCompleteVideo}
+                                        initialPrompt={videoInitialPrompt}
+                                    />
+                                </div>
+                            )}
+
+                            {showCampaignPlanner && (
+                                <div className="mt-4">
+                                    <CampaignPlannerInline
+                                        onComplete={handleCompleteCampaign}
+                                        initialPrompt={campaignInitialPrompt}
+                                    />
+                                </div>
+                            )}
+
+                            {showPerformanceReview && (
+                                <div className="mt-4">
+                                    <PerformanceReviewInline
+                                        onComplete={handleCompletePerformance}
+                                        initialPrompt={performanceInitialPrompt}
+                                    />
+                                </div>
+                            )}
+
+                            {showOutreachGenerator && (
+                                <div className="mt-4">
+                                    <OutreachGeneratorInline
+                                        onComplete={handleCompleteOutreach}
+                                        initialPrompt={outreachInitialPrompt}
+                                    />
+                                </div>
+                            )}
+
+                            {showEventPlanner && (
+                                <div className="mt-4">
+                                    <EventPlannerInline
+                                        onComplete={handleCompleteEvent}
+                                        initialPrompt={eventInitialPrompt}
                                     />
                                 </div>
                             )}

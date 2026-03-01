@@ -26,6 +26,7 @@ export type InboxThreadType =
     | 'hero'              // Hero banner creation
     | 'bundle'            // Bundle deal creation
     | 'creative'          // Social media content
+    | 'video'             // Video content generation
     | 'campaign'          // Multi-channel campaign
     | 'qr_code'           // Trackable QR code generation
     | 'blog'              // Blog post creation
@@ -481,7 +482,7 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         label: 'Create Video',
         description: 'Generate short-form video content for social media',
         icon: 'Video',
-        threadType: 'creative',
+        threadType: 'video',
         defaultAgent: 'craig',
         promptTemplate: 'Help me create video content for social media. I need engaging short-form videos for TikTok or Instagram Reels.',
         roles: ALL_BUSINESS_ROLES,
