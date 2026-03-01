@@ -379,4 +379,112 @@ describe('POST /api/webhooks/cannpay amount guard', () => {
     expect(mockOrgSet).not.toHaveBeenCalled();
     expect(mockEmitEvent).not.toHaveBeenCalled();
   });
+
+  it('rejects ambiguous integer amount payloads that underpay order total', async () => {
+    mockTopGet.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        totals: { total: 50.0 },
+        brandId: 'org_demo',
+        canpay: { intentId: 'intent-123' },
+      }),
+    });
+
+    const responsePayload = JSON.stringify({
+      intent_id: 'intent-123',
+      status: 'Success',
+      amount: 50, // ambiguous integer dollars; should not pass as 5000 cents
+      merchant_order_id: 'order-1',
+      passthrough_param: JSON.stringify({ orderId: 'order-1', brandId: 'org_demo' }),
+    });
+
+    const signature = crypto
+      .createHmac('sha256', 'test-secret')
+      .update(responsePayload)
+      .digest('hex')
+      .toLowerCase();
+
+    const reqBody = JSON.stringify({
+      response: responsePayload,
+      signature,
+    });
+
+    const request = new NextRequest('http://localhost/api/webhooks/cannpay', {
+      method: 'POST',
+      body: reqBody,
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.received).toBe(true);
+    expect(data.warning).toContain('Amount mismatch');
+    expect(mockTopSet).not.toHaveBeenCalled();
+    expect(mockOrgSet).not.toHaveBeenCalled();
+    expect(mockEmitEvent).not.toHaveBeenCalled();
+    expect(mockForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'cannpay',
+      source: 'cannpay_webhook',
+      reason: 'amount_mismatch',
+      orderId: 'order-1',
+      expectedAmountCents: 5000,
+      providerAmountCents: 50,
+    }));
+  });
+
+  it('does not downgrade paid orders on out-of-order pending callbacks', async () => {
+    mockTopGet.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        totals: { total: 49.99 },
+        brandId: 'org_demo',
+        paymentStatus: 'paid',
+        canpay: { intentId: 'intent-123' },
+      }),
+    });
+
+    const responsePayload = JSON.stringify({
+      intent_id: 'intent-123',
+      status: 'Pending',
+      amount: 4999,
+      merchant_order_id: 'order-1',
+      passthrough_param: JSON.stringify({ orderId: 'order-1', brandId: 'org_demo' }),
+    });
+
+    const signature = crypto
+      .createHmac('sha256', 'test-secret')
+      .update(responsePayload)
+      .digest('hex')
+      .toLowerCase();
+
+    const reqBody = JSON.stringify({
+      response: responsePayload,
+      signature,
+    });
+
+    const request = new NextRequest('http://localhost/api/webhooks/cannpay', {
+      method: 'POST',
+      body: reqBody,
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.received).toBe(true);
+    expect(mockTopSet).toHaveBeenCalledTimes(1);
+    const [updatedTopOrder] = mockTopSet.mock.calls[0];
+    expect(updatedTopOrder.paymentStatus).toBe('paid');
+    expect(mockForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'cannpay',
+      source: 'cannpay_webhook',
+      reason: 'status_regression_blocked',
+      orderId: 'order-1',
+      intentId: 'intent-123',
+      currentPaymentStatus: 'paid',
+      desiredPaymentStatus: 'pending',
+      appliedPaymentStatus: 'paid',
+    }));
+  });
 });
