@@ -491,7 +491,7 @@ describe('POST /api/checkout/process-payment guardrails', () => {
         expect(mockOrderUpdate).not.toHaveBeenCalled();
     });
 
-    it('does not regress Aeropay order from failed back to pending on stale provider status', async () => {
+    it('accepts Aeropay dollar-denominated amount strings when they match total plus fee', async () => {
         mockOrderGet.mockResolvedValue({
             exists: true,
             data: () => ({
@@ -499,6 +499,44 @@ describe('POST /api/checkout/process-payment guardrails', () => {
                 customer: { email: 'owner@example.com' },
                 totals: { total: 50 },
                 aeropay: { transactionId: 'aero_tx_1' },
+                paymentStatus: 'pending',
+            }),
+            ref: { update: mockOrderUpdate },
+        });
+        mockAeropayTransactionDetails.mockResolvedValue({
+            transactionId: 'aero_tx_1',
+            status: 'completed',
+            amount: '50.50',
+            merchantOrderId: 'order-1',
+        });
+
+        const response = await POST({} as any, {
+            amount: 50,
+            paymentMethod: 'aeropay',
+            orderId: 'order-1',
+            paymentData: {
+                transactionId: 'aero_tx_1',
+            },
+        } as any);
+
+        const body = await response.json();
+        expect(response.status).toBe(200);
+        expect(body.success).toBe(true);
+        expect(body.providerStatus).toBe('completed');
+        expect(mockOrderUpdate).toHaveBeenCalledWith(expect.objectContaining({
+            paymentStatus: 'paid',
+            'aeropay.status': 'completed',
+        }));
+    });
+
+    it('does not regress Aeropay order from failed back to pending on stale provider status', async () => {
+        mockOrderGet.mockResolvedValue({
+            exists: true,
+            data: () => ({
+                userId: 'user-1',
+                customer: { email: 'owner@example.com' },
+                totals: { total: 50 },
+                aeropay: { transactionId: 'aero_tx_1', status: 'declined' },
                 paymentStatus: 'failed',
             }),
             ref: { update: mockOrderUpdate },
@@ -525,7 +563,7 @@ describe('POST /api/checkout/process-payment guardrails', () => {
         expect(body.providerStatus).toBe('pending');
         expect(mockOrderUpdate).toHaveBeenCalledWith(expect.objectContaining({
             paymentStatus: 'failed',
-            'aeropay.status': 'pending',
+            'aeropay.status': 'declined',
         }));
         expect(mockRecordProductSale).not.toHaveBeenCalled();
     });

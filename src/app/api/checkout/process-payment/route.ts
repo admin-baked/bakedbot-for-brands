@@ -116,6 +116,51 @@ function getOrderTotal(order: any): number {
     return Number(order?.totals?.total ?? order?.amount ?? 0);
 }
 
+function toCents(value: unknown): number | null {
+    if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
+        return Number.isInteger(value) ? value : Math.round(value * 100);
+    }
+
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (!trimmed) return null;
+        const parsed = Number(trimmed);
+        if (!Number.isFinite(parsed) || parsed < 0) return null;
+        return trimmed.includes('.') ? Math.round(parsed * 100) : Math.round(parsed);
+    }
+
+    return null;
+}
+
+function normalizeAeropayStatus(value: unknown): string {
+    return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
+function resolveAeropayProviderStatus(currentStatus: string | undefined, desiredStatus: string | undefined): string {
+    const current = normalizeAeropayStatus(currentStatus);
+    const desired = normalizeAeropayStatus(desiredStatus);
+
+    if (!desired) return current || 'pending';
+    if (!current) return desired;
+
+    if (current === 'completed') {
+        if (desired === 'refunded' || desired === 'voided') {
+            return desired;
+        }
+        return current;
+    }
+
+    if (current === 'declined') {
+        return current;
+    }
+
+    if (current === 'refunded' || current === 'voided') {
+        return current;
+    }
+
+    return desired;
+}
+
 /**
  * Record sales analytics for a completed order (async, non-blocking)
  */
@@ -453,7 +498,7 @@ export const POST = withProtection(
                 }
 
                 const providerTxn = await getAeropayTransactionDetails(transactionId);
-                const providerStatus = providerTxn.status;
+                const providerStatus = normalizeAeropayStatus(providerTxn.status);
                 const aeropaySuccessful = providerStatus === 'completed';
 
                 const orderTotal = getOrderTotal(ownedOrder);
@@ -464,8 +509,8 @@ export const POST = withProtection(
                         { status: 400 },
                     );
                 }
-                const providerAmountCents = Number(providerTxn.amount);
-                if (!Number.isFinite(providerAmountCents)) {
+                const providerAmountCents = toCents(providerTxn.amount);
+                if (providerAmountCents === null) {
                     return NextResponse.json(
                         { success: false, error: 'Aeropay transaction amount unavailable' },
                         { status: 409 },
@@ -490,13 +535,17 @@ export const POST = withProtection(
                     ownedOrder.paymentStatus,
                     resolvedPaymentStatus,
                 );
+                const finalProviderStatus = resolveAeropayProviderStatus(
+                    ownedOrder?.aeropay?.status,
+                    providerStatus,
+                );
 
                 await ownedOrderDoc.ref.update({
                     userId: ownedOrder?.userId || sessionUid,
                     paymentMethod: 'aeropay',
                     paymentStatus: finalPaymentStatus,
                     'aeropay.transactionId': transactionId,
-                    'aeropay.status': providerStatus,
+                    'aeropay.status': finalProviderStatus || providerStatus,
                     'aeropay.completedAt': finalPaymentStatus === 'paid' ? new Date().toISOString() : ownedOrder?.aeropay?.completedAt || null,
                     updatedAt: new Date().toISOString(),
                 });
