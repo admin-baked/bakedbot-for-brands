@@ -363,6 +363,46 @@ describe('POST /api/webhooks/authnet authorization-only hardening', () => {
     expect(mockEmitEvent).not.toHaveBeenCalled();
   });
 
+  it('allows paid orders to transition to voided on void events', async () => {
+    setupDb({ withOrder: true, orderPaymentStatus: 'paid' });
+    const { POST } = await import('../route');
+
+    const body = JSON.stringify({
+      notificationId: 'notif-void-paid-order',
+      eventType: 'net.authorize.payment.void.created',
+      payload: {
+        id: 'txn_void_paid',
+        responseCode: '1',
+        authAmount: '2.00',
+      },
+    });
+
+    const req = new NextRequest('http://localhost/api/webhooks/authnet', {
+      method: 'POST',
+      body,
+      headers: {
+        'x-anet-signature': 'sha512=fake',
+      },
+    });
+
+    const response = await POST(req);
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.processedOrders).toBe(1);
+    expect(mockOrderSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        paymentStatus: 'voided',
+        status: 'canceled',
+      }),
+      { merge: true },
+    );
+    expect(mockEmitEvent).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'checkout.failed',
+      refId: 'order-auth-1',
+    }));
+  });
+
   it('does not downgrade paid orders on late authorization-only events', async () => {
     setupDb({ withOrder: true, orderPaymentStatus: 'paid' });
     const { POST } = await import('../route');

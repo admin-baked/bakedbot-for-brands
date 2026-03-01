@@ -84,8 +84,10 @@ function mapPaymentWebhookOutcome(eventType: string, responseCode: number | null
     responseCode === 3 ||
     responseCode === 4
   ) {
+    const isRefund = normalizedType.includes('refund');
+    const isVoid = normalizedType.includes('void');
     return {
-      paymentStatus: normalizedType.includes('refund') ? 'refunded' : 'failed',
+      paymentStatus: isRefund ? 'refunded' : isVoid ? 'voided' : 'failed',
       orderStatus: 'canceled',
       emittedEvent: 'checkout.failed',
     };
@@ -121,7 +123,7 @@ function resolvePaymentStatus(currentOrderData: Record<string, any>, desiredPaym
 
   // Do not allow late authorization/decline/pending events to downgrade settled orders.
   if (current === 'paid') {
-    if (desired === 'refunded') return desired;
+    if (desired === 'refunded' || desired === 'voided') return desired;
     return current;
   }
 
