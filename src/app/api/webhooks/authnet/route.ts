@@ -434,12 +434,45 @@ export async function POST(req: NextRequest) {
 
     const signature = req.headers.get('x-anet-signature') || '';
     const rawBody = await req.text();
+    const payloadHash = createHash('sha256').update(rawBody).digest('hex');
+    let fallbackNotificationId = '';
+    let fallbackEventType: string | null = null;
+    let fallbackEntityId: string | null = null;
+    try {
+      const parsed = JSON.parse(rawBody) as AuthNetWebhookPayload;
+      fallbackNotificationId = typeof parsed?.notificationId === 'string' ? parsed.notificationId : '';
+      fallbackEventType = typeof parsed?.eventType === 'string' ? parsed.eventType : null;
+      fallbackEntityId = parsed?.payload?.id != null ? String(parsed.payload.id) : null;
+    } catch {
+      // Ignore parsing errors here; signature validation still happens on raw body.
+    }
+    const fallbackWebhookLogId = fallbackNotificationId
+      ? `authnet_${fallbackNotificationId}`
+      : `authnet_${payloadHash.slice(0, 32)}`;
+    webhookLogRef = db.collection('payment_webhooks').doc(fallbackWebhookLogId);
     const validation = verifyAuthorizeNetSignature(rawBody, signature, secret);
 
     if (!validation.valid) {
       logger.warn('[AUTHNET_WEBHOOK] Invalid webhook signature', {
         reason: validation.error,
       });
+      try {
+        await webhookLogRef.set({
+          provider: 'authorize_net',
+          notificationId: fallbackNotificationId || null,
+          eventType: fallbackEventType,
+          entityId: fallbackEntityId,
+          payloadHash,
+          receivedAt: FieldValue.serverTimestamp(),
+          status: 'rejected_invalid_signature',
+          rejectionReason: validation.error || 'invalid_signature',
+          signaturePresent: signature.length > 0,
+        }, { merge: true });
+      } catch (logError) {
+        logger.warn('[AUTHNET_WEBHOOK] Failed to persist invalid signature forensic log', {
+          reason: logError instanceof Error ? logError.message : String(logError),
+        });
+      }
       return NextResponse.json({ error: 'Invalid signature' }, { status: 403 });
     }
 
@@ -464,7 +497,7 @@ export async function POST(req: NextRequest) {
 
     const webhookLogId = notificationId
       ? `authnet_${notificationId}`
-      : `authnet_${createHash('sha256').update(rawBody).digest('hex').slice(0, 32)}`;
+      : `authnet_${payloadHash.slice(0, 32)}`;
 
     webhookLogRef = db.collection('payment_webhooks').doc(webhookLogId);
 

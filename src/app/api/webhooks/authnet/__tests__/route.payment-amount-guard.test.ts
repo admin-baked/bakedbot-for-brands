@@ -44,6 +44,8 @@ const mockVerifyAuthorizeNetSignature = jest.fn();
 const mockAssignTierPlaybooks = jest.fn();
 const mockForensicsAdd = jest.fn();
 const mockOrderSet = jest.fn();
+const mockWebhookCreate = jest.fn();
+const mockWebhookSet = jest.fn();
 
 jest.mock('@/firebase/server-client', () => ({
   createServerClient: (...args: unknown[]) => mockCreateServerClient(...args),
@@ -88,8 +90,7 @@ describe('POST /api/webhooks/authnet payment amount guard', () => {
     duplicateWebhookByCreate?: boolean;
   } = {}) {
     let webhookCreateCalls = 0;
-    const webhookLogRef = {
-      create: jest.fn().mockImplementation(async () => {
+    mockWebhookCreate.mockImplementation(async () => {
         webhookCreateCalls += 1;
         if (duplicateWebhookByCreate && webhookCreateCalls > 1) {
           const err = new Error('already exists') as Error & { code?: string };
@@ -97,8 +98,11 @@ describe('POST /api/webhooks/authnet payment amount guard', () => {
           throw err;
         }
         return undefined;
-      }),
-      set: jest.fn().mockResolvedValue(undefined),
+      });
+    mockWebhookSet.mockResolvedValue(undefined);
+    const webhookLogRef = {
+      create: mockWebhookCreate,
+      set: mockWebhookSet,
     };
 
     const orderDoc = {
@@ -513,5 +517,50 @@ describe('POST /api/webhooks/authnet payment amount guard', () => {
     expect(firstBody.duplicate).toBeUndefined();
     expect(second.status).toBe(200);
     expect(secondBody.duplicate).toBe(true);
+  });
+
+  it('persists forensic evidence for invalid webhook signatures', async () => {
+    setupDb({ withOrder: false });
+    mockVerifyAuthorizeNetSignature.mockReturnValueOnce({
+      valid: false,
+      error: 'signature_mismatch',
+    });
+
+    const { POST } = await import('../route');
+
+    const body = JSON.stringify({
+      notificationId: 'notif-invalid-sig',
+      eventType: 'net.authorize.payment.authcapture.created',
+      payload: {
+        id: 'txn_invalid_sig',
+        responseCode: '1',
+      },
+    });
+
+    const req = new NextRequest('http://localhost/api/webhooks/authnet', {
+      method: 'POST',
+      body,
+      headers: {
+        'x-anet-signature': 'sha512=invalid',
+      },
+    });
+
+    const response = await POST(req);
+    const data = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(data.error).toContain('Invalid signature');
+    expect(mockWebhookSet).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'authorize_net',
+      notificationId: 'notif-invalid-sig',
+      eventType: 'net.authorize.payment.authcapture.created',
+      entityId: 'txn_invalid_sig',
+      status: 'rejected_invalid_signature',
+      rejectionReason: 'signature_mismatch',
+      signaturePresent: true,
+    }), { merge: true });
+    expect(mockWebhookCreate).not.toHaveBeenCalled();
+    expect(mockForensicsAdd).not.toHaveBeenCalled();
+    expect(mockOrderSet).not.toHaveBeenCalled();
   });
 });
