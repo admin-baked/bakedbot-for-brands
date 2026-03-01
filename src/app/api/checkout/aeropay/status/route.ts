@@ -57,6 +57,77 @@ function toCents(value: unknown): number | null {
   return null;
 }
 
+function normalizeProviderStatus(value: unknown): string {
+  return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
+function mapProviderStatusToOrderPaymentStatus(status: string): string {
+  switch (status) {
+    case 'completed':
+      return 'paid';
+    case 'declined':
+      return 'failed';
+    case 'voided':
+      return 'voided';
+    case 'refunded':
+      return 'refunded';
+    case 'pending':
+      return 'pending';
+    default:
+      return '';
+  }
+}
+
+function resolveOrderPaymentStatus(orderData: Record<string, unknown>, desiredPaymentStatus: string): string {
+  const desired = String(desiredPaymentStatus || '').toLowerCase();
+  const current = String((orderData as any)?.paymentStatus || '').toLowerCase();
+
+  if (!desired) return current || 'pending';
+  if (!current) return desired;
+
+  if (current === 'paid') {
+    if (desired === 'refunded' || desired === 'voided') {
+      return desired;
+    }
+    return current;
+  }
+
+  if (current === 'failed') {
+    return current;
+  }
+
+  if (current === 'refunded' || current === 'voided') {
+    return current;
+  }
+
+  return desired;
+}
+
+function resolveTransactionStatus(currentStatus: string, desiredStatus: string): string {
+  const current = String(currentStatus || '').toLowerCase();
+  const desired = String(desiredStatus || '').toLowerCase();
+
+  if (!desired) return current || 'pending';
+  if (!current) return desired;
+
+  if (current === 'completed') {
+    if (desired === 'refunded' || desired === 'voided') {
+      return desired;
+    }
+    return current;
+  }
+
+  if (current === 'declined') {
+    return current;
+  }
+
+  if (current === 'refunded' || current === 'voided') {
+    return current;
+  }
+
+  return desired;
+}
+
 export async function POST(request: NextRequest) {
   try {
     // 1. Authenticate user
@@ -209,19 +280,37 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        const providerStatus = normalizeProviderStatus(transaction.status);
+        const desiredPaymentStatus = mapProviderStatusToOrderPaymentStatus(providerStatus);
+        const nextPaymentStatus = resolveOrderPaymentStatus(orderData, desiredPaymentStatus);
+
+        if (desiredPaymentStatus && nextPaymentStatus !== desiredPaymentStatus) {
+          await firestore.collection('payment_forensics').add({
+            provider: 'aeropay',
+            source: 'aeropay_status_poll',
+            reason: 'status_regression_blocked',
+            userId: user.uid,
+            orderId,
+            transactionId,
+            currentPaymentStatus: String((orderData as any)?.paymentStatus || ''),
+            desiredPaymentStatus,
+            appliedPaymentStatus: nextPaymentStatus,
+            providerStatus,
+            observedAt: FieldValue.serverTimestamp(),
+          });
+        }
+
         const updates: any = {
-          'aeropay.status': transaction.status,
+          'aeropay.status': providerStatus || transaction.status,
           updatedAt: new Date().toISOString(),
         };
 
-        // Update payment status based on transaction status
-        if (transaction.status === 'completed') {
-          updates.paymentStatus = 'paid';
+        const currentPaymentStatus = String((orderData as any)?.paymentStatus || '').toLowerCase();
+        if (nextPaymentStatus && nextPaymentStatus !== currentPaymentStatus) {
+          updates.paymentStatus = nextPaymentStatus;
+        }
+        if (providerStatus === 'completed' && nextPaymentStatus === 'paid') {
           updates['aeropay.completedAt'] = new Date().toISOString();
-        } else if (transaction.status === 'declined') {
-          updates.paymentStatus = 'failed';
-        } else if (transaction.status === 'voided' || transaction.status === 'refunded') {
-          updates.paymentStatus = transaction.status;
         }
 
         await orderRef.update(updates);
@@ -229,8 +318,27 @@ export async function POST(request: NextRequest) {
     }
 
     // 6. Update Firestore transaction document with latest status after guardrails
+    const currentTransactionStatus = normalizeProviderStatus((transactionData as any)?.status);
+    const desiredTransactionStatus = normalizeProviderStatus(transaction.status);
+    const nextTransactionStatus = resolveTransactionStatus(currentTransactionStatus, desiredTransactionStatus);
+
+    if (desiredTransactionStatus && nextTransactionStatus !== desiredTransactionStatus) {
+      await firestore.collection('payment_forensics').add({
+        provider: 'aeropay',
+        source: 'aeropay_status_poll',
+        reason: 'transaction_status_regression_blocked',
+        userId: user.uid,
+        orderId: transactionData?.orderId || null,
+        transactionId,
+        currentTransactionStatus,
+        desiredTransactionStatus,
+        appliedTransactionStatus: nextTransactionStatus,
+        observedAt: FieldValue.serverTimestamp(),
+      });
+    }
+
     await transactionRef.update({
-      status: transaction.status,
+      status: nextTransactionStatus || transaction.status,
       updatedAt: new Date().toISOString(),
     });
 

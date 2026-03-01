@@ -384,4 +384,69 @@ describe('POST /api/checkout/aeropay/status security', () => {
       providerAmountCents: 50,
     }));
   });
+
+  it('blocks payment status regression when a settled order is later polled as declined', async () => {
+    mockTransactionGet.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        userId: 'user-1',
+        orderId: 'order-1',
+        status: 'completed',
+      }),
+    });
+    mockOrderGet.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        paymentStatus: 'paid',
+        totals: { total: 50 },
+        aeropay: { transactionId: 'tx_1', status: 'completed' },
+      }),
+    });
+    mockGetTransactionDetails.mockResolvedValue({
+      transactionId: 'tx_1',
+      status: 'declined',
+      amount: 5050,
+      merchantOrderId: 'order-1',
+      updatedAt: '2026-02-28T20:00:00.000Z',
+    });
+
+    const response = await POST({
+      json: async () => ({ transactionId: 'tx_1' }),
+    } as any);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.status).toBe('declined');
+
+    const orderUpdateArg = mockOrderUpdate.mock.calls[0][0];
+    expect(orderUpdateArg['aeropay.status']).toBe('declined');
+    expect(orderUpdateArg.paymentStatus).toBeUndefined();
+
+    expect(mockForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'aeropay',
+      source: 'aeropay_status_poll',
+      reason: 'status_regression_blocked',
+      orderId: 'order-1',
+      transactionId: 'tx_1',
+      currentPaymentStatus: 'paid',
+      desiredPaymentStatus: 'failed',
+      appliedPaymentStatus: 'paid',
+      providerStatus: 'declined',
+    }));
+
+    expect(mockForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'aeropay',
+      source: 'aeropay_status_poll',
+      reason: 'transaction_status_regression_blocked',
+      orderId: 'order-1',
+      transactionId: 'tx_1',
+      currentTransactionStatus: 'completed',
+      desiredTransactionStatus: 'declined',
+      appliedTransactionStatus: 'completed',
+    }));
+
+    expect(mockTransactionUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'completed',
+    }));
+  });
 });
