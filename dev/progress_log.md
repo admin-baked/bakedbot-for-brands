@@ -1,3 +1,22 @@
+## Session: 2026-03-01 (Inbox Primitives Enhancement)
+### Task ID
+inbox_primitives_enhancement
+
+### Summary
+Successfully implemented new dedicated inline UI primitives for 'Create Video', 'Plan Event', 'Plan Campaign', 'Performance Review', and 'Customer Blast' inbox presets. This replaced the fallback chat or incorrect Social Post UI loops with correct intention-driven user interfaces. Verified rendering via local automated rendering tests and the browser subagent capturing screenshots.
+
+### Key Changes
+*   **FEATURE**: `src/components/inbox/video-generator-inline.tsx` - Created Video planner primitive and mapped `create-video` action to the `video` thread type.
+*   **FEATURE**: Created `EventPlannerInline`, `CampaignPlannerInline`, `PerformanceReviewInline`, and `OutreachGeneratorInline` React components.
+*   **FIX**: Updated `inbox-conversation.tsx` to detect intents and inject these new inline component UIs based on matched trigger phrasing and agent constraints.
+*   **TEST**: Updated `inbox-conversation.test.tsx` to ensure tests continue to explicitly pass following the additional UI rendering complexities.
+
+### Verification Results
+*   **Unit Tests**: ✅ PASS (`tests/components/inbox/inbox-conversation.test.tsx`)
+*   **Visual Tests**: ✅ VERIFIED via browser subagent local screenshots.
+
+---
+
 ## Session: 2026-03-01 (Agent Runner Crash Fix & Unit Test Verification)
 ### Task ID
 agent_runner_crash_fix
