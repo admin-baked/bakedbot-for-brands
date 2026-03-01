@@ -455,12 +455,17 @@ describe('POST /api/webhooks/aeropay amount guard', () => {
   });
 
   it('does not downgrade paid orders on out-of-order pending callbacks', async () => {
+    mockTransactionGet.mockResolvedValueOnce({
+      exists: true,
+      data: () => ({ orderId: 'order-1', status: 'completed' }),
+    });
     mockOrderGet.mockResolvedValueOnce({
       exists: true,
       data: () => ({
         totals: { total: 50 },
         brandId: 'org_demo',
         paymentStatus: 'paid',
+        aeropay: { status: 'completed' },
       }),
     });
 
@@ -499,6 +504,10 @@ describe('POST /api/webhooks/aeropay amount guard', () => {
     expect(data.received).toBe(true);
     expect(mockOrderUpdate).toHaveBeenCalledWith(expect.objectContaining({
       paymentStatus: 'paid',
+      'aeropay.status': 'completed',
+    }));
+    expect(mockTransactionUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'completed',
     }));
     expect(mockForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
       provider: 'aeropay',
@@ -509,6 +518,16 @@ describe('POST /api/webhooks/aeropay amount guard', () => {
       currentPaymentStatus: 'paid',
       desiredPaymentStatus: 'pending',
       appliedPaymentStatus: 'paid',
+    }));
+    expect(mockForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'aeropay',
+      source: 'aeropay_webhook',
+      reason: 'transaction_status_regression_blocked',
+      orderId: 'order-1',
+      transactionId: 'tx_paid_regression',
+      currentTransactionStatus: 'completed',
+      desiredTransactionStatus: 'pending',
+      appliedTransactionStatus: 'completed',
     }));
   });
 
