@@ -506,4 +506,44 @@ describe('POST /api/webhooks/aeropay amount guard', () => {
       appliedPaymentStatus: 'paid',
     }));
   });
+
+  it('persists forensic evidence for invalid webhook signatures', async () => {
+    const webhookBody = JSON.stringify({
+      topic: 'transaction_completed',
+      date: '2026-02-28T12:00:00.000Z',
+      data: {
+        transactionId: 'tx_invalid_sig',
+        userId: 'user_1',
+        merchantId: 'merchant_1',
+        amount: '5050',
+        status: 'completed',
+        merchantOrderId: 'order-1',
+        createdAt: '2026-02-28T12:00:00.000Z',
+      },
+    });
+
+    const request = new NextRequest('http://localhost/api/webhooks/aeropay', {
+      method: 'POST',
+      body: webhookBody,
+      headers: {
+        'x-aeropay-signature': 'invalid-signature',
+      },
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(data.error).toContain('Invalid signature');
+    expect(mockPaymentWebhookSet).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'aeropay',
+      status: 'rejected_invalid_signature',
+      rejectionReason: 'invalid_signature',
+      signaturePresent: true,
+    }), { merge: true });
+    expect(mockPaymentWebhookCreate).not.toHaveBeenCalled();
+    expect(mockTransactionUpdate).not.toHaveBeenCalled();
+    expect(mockOrderUpdate).not.toHaveBeenCalled();
+    expect(mockEmitEvent).not.toHaveBeenCalled();
+  });
 });
