@@ -349,6 +349,48 @@ describe('POST /api/checkout/process-payment guardrails', () => {
         expect(mockOrderUpdate).not.toHaveBeenCalled();
     });
 
+    it('does not regress CannPay order from failed back to pending on stale provider status', async () => {
+        mockOrderGet.mockResolvedValue({
+            exists: true,
+            data: () => ({
+                userId: 'user-1',
+                customer: { email: 'owner@example.com' },
+                totals: { total: 40 },
+                canpay: { intentId: 'intent-1' },
+                paymentStatus: 'failed',
+            }),
+            ref: { update: mockOrderUpdate },
+        });
+        mockCannPayTransactionDetails.mockResolvedValue({
+            intentId: 'intent-1',
+            canpayTransactionNumber: 'cp_tx_real',
+            status: 'Pending',
+            amount: 4000,
+            merchantOrderId: 'order-1',
+        });
+
+        const response = await POST({} as any, {
+            amount: 40,
+            paymentMethod: 'cannpay',
+            orderId: 'order-1',
+            paymentData: {
+                intentId: 'intent-1',
+                transactionNumber: 'cp_tx_fake',
+            },
+        } as any);
+
+        const body = await response.json();
+        expect(response.status).toBe(200);
+        expect(body.success).toBe(false);
+        expect(body.providerStatus).toBe('Pending');
+        expect(mockOrderUpdate).toHaveBeenCalledWith(expect.objectContaining({
+            paymentStatus: 'failed',
+            'canpay.status': 'Pending',
+            'canpay.transactionNumber': 'cp_tx_real',
+        }));
+        expect(mockRecordProductSale).not.toHaveBeenCalled();
+    });
+
     it('rejects CannPay intent mismatch between request and order', async () => {
         mockOrderGet.mockResolvedValue({
             exists: true,
@@ -447,6 +489,45 @@ describe('POST /api/checkout/process-payment guardrails', () => {
         expect(response.status).toBe(409);
         expect(body.error).toContain('amount unavailable');
         expect(mockOrderUpdate).not.toHaveBeenCalled();
+    });
+
+    it('does not regress Aeropay order from failed back to pending on stale provider status', async () => {
+        mockOrderGet.mockResolvedValue({
+            exists: true,
+            data: () => ({
+                userId: 'user-1',
+                customer: { email: 'owner@example.com' },
+                totals: { total: 50 },
+                aeropay: { transactionId: 'aero_tx_1' },
+                paymentStatus: 'failed',
+            }),
+            ref: { update: mockOrderUpdate },
+        });
+        mockAeropayTransactionDetails.mockResolvedValue({
+            transactionId: 'aero_tx_1',
+            status: 'pending',
+            amount: 5050,
+            merchantOrderId: 'order-1',
+        });
+
+        const response = await POST({} as any, {
+            amount: 50,
+            paymentMethod: 'aeropay',
+            orderId: 'order-1',
+            paymentData: {
+                transactionId: 'aero_tx_1',
+            },
+        } as any);
+
+        const body = await response.json();
+        expect(response.status).toBe(200);
+        expect(body.success).toBe(false);
+        expect(body.providerStatus).toBe('pending');
+        expect(mockOrderUpdate).toHaveBeenCalledWith(expect.objectContaining({
+            paymentStatus: 'failed',
+            'aeropay.status': 'pending',
+        }));
+        expect(mockRecordProductSale).not.toHaveBeenCalled();
     });
 
     it('rejects payment finalization for closed orders before provider calls', async () => {
