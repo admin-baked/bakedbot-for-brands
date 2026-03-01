@@ -165,4 +165,30 @@ describe('POST /api/checkout/cannpay/authorize amount guard', () => {
     expect(mockAuthorizePayment).not.toHaveBeenCalled();
     expect(mockOrderUpdate).not.toHaveBeenCalled();
   });
+
+  it('rejects authorization when order is in closed status', async () => {
+    mockOrderGet.mockResolvedValueOnce({
+      exists: true,
+      data: () => ({
+        userId: 'user-1',
+        organizationId: 'org_server',
+        status: 'canceled',
+        paymentStatus: 'pending',
+        totals: { total: 49.99 },
+      }),
+    });
+
+    const response = await POST({
+      json: async () => ({
+        orderId: 'order-1',
+        amount: 4999,
+      }),
+    } as any);
+    const body = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(body.error).toContain('closed');
+    expect(mockAuthorizePayment).not.toHaveBeenCalled();
+    expect(mockOrderUpdate).not.toHaveBeenCalled();
+  });
 });

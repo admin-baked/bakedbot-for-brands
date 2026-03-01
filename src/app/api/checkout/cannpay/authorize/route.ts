@@ -34,6 +34,11 @@ const authorizeRequestSchema = z.object({
   organizationId: z.string().trim().regex(DOCUMENT_ID_REGEX, 'Invalid organizationId').optional(),
 }).strict();
 
+function isClosedOrderStatus(status: unknown): boolean {
+  const normalized = String(status || '').toLowerCase();
+  return normalized === 'completed' || normalized === 'canceled' || normalized === 'cancelled';
+}
+
 export async function POST(request: NextRequest) {
   try {
     // 1. Authenticate user
@@ -101,6 +106,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Order has already been paid or closed' },
         { status: 400 }
+      );
+    }
+    if (isClosedOrderStatus(orderData?.status)) {
+      return NextResponse.json(
+        { error: 'Order is closed and cannot be paid' },
+        { status: 409 }
       );
     }
 
