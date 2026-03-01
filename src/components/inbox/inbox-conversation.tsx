@@ -429,11 +429,11 @@ function ThreadHeader({ thread }: { thread: InboxThread }) {
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => {/* TODO: Edit title */}}>
+                        <DropdownMenuItem onClick={() => {/* TODO: Edit title */ }}>
                             <Edit2 className="h-4 w-4 mr-2" />
                             Edit Title
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => {/* TODO: Manage tags */}}>
+                        <DropdownMenuItem onClick={() => {/* TODO: Manage tags */ }}>
                             <TagIcon className="h-4 w-4 mr-2" />
                             Manage Tags
                         </DropdownMenuItem>
@@ -528,7 +528,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             const len = textareaRef.current.value.length;
             textareaRef.current.setSelectionRange(len, len);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // Run once on mount only
 
     // Auto-resize textarea
@@ -926,8 +926,13 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
 
         const messageContent = input.trim();
         setInput('');
+        if (textareaRef.current) {
+            textareaRef.current.value = '';
+        }
         setAttachments([]); // Clear attachments after sending
-        setIsSubmitting(true);
+
+        // Slight delay before disabling the input to ensure the clear renders
+        setTimeout(() => setIsSubmitting(true), 10);
 
         try {
             // Call the inbox agent chat with attachments
@@ -987,7 +992,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             hasPendingAutoSubmit.current = false;
             handleSubmit();
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handleCompleteCarousel = async (carouselData: any) => {
@@ -1189,7 +1194,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                             )}
 
                             {/* Show Bundle Generator inline for empty bundle threads */}
-                            {!showBundleGenerator && thread.type !== 'bundle' && (
+                            {!showBundleGenerator && thread.type === 'bundle' && (
                                 <Button
                                     variant="outline"
                                     size="sm"
@@ -1392,8 +1397,8 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                         {isPending
                             ? 'Preparing your conversation...'
                             : attachments.length > 0
-                            ? `${attachments.length} file(s) attached. Press Enter to send.`
-                            : 'Press Enter to send, Shift+Enter for new line. Use 📎 to attach files.'}
+                                ? `${attachments.length} file(s) attached. Press Enter to send.`
+                                : 'Press Enter to send, Shift+Enter for new line. Use 📎 to attach files.'}
                     </p>
                 </div>
             </div>

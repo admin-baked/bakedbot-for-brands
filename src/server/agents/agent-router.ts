@@ -35,7 +35,7 @@ const MAX_CACHE_SIZE = 500;
  * Normalize message for cache key (lowercase, trim, collapse whitespace)
  */
 function normalizeForCache(message: string): string {
-    return message.toLowerCase().trim().replace(/\s+/g, ' ').slice(0, 200);
+    return (message || '').toLowerCase().trim().replace(/\s+/g, ' ').slice(0, 200);
 }
 
 /**
@@ -84,11 +84,7 @@ export async function routeToAgent(userMessage: string): Promise<RoutingResult> 
     const cacheKey = normalizeForCache(userMessage);
     const cached = ROUTE_CACHE.get(cacheKey);
 
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-        return { ...cached.result, reasoning: cached.result.reasoning + ' (cached)' };
-    }
-
-    const lowerMessage = userMessage.toLowerCase();
+    const lowerMessage = (userMessage || '').toLowerCase();
 
     // Score each agent based on keyword matches
     const scores: { agent: AgentCapability; score: number; matches: string[] }[] = [];

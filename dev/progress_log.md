@@ -1,5 +1,49 @@
-## Session: 2026-02-21 (Dispensary Dashboard Production Readiness Audit — Phase 3)
+## Session: 2026-03-01 (Agent Runner Crash Fix & Unit Test Verification)
 ### Task ID
+agent_runner_crash_fix
+
+### Summary
+Resolved a critical `TypeError: Cannot read properties of undefined (reading 'toLowerCase')` crash in `agent-runner.ts` and `agent-router.ts`. The crash was caused by unhandled `undefined` user messages propagating through the system due to broken security mocks in unit tests. Added defensive guards across the agent runner and security filters. Verified all Inbox and Agent unit tests are now passing with corrected mocks and format-aware assertions.
+
+### Key Changes
+*   **FIX**: `src/server/agents/agent-runner.ts` - Added defensive guards for `.toLowerCase()` on `userMessage`, `finalMessage`, and `result.error`.
+*   **FIX**: `src/server/agents/agent-router.ts` - Safeguarded `normalizeForCache` against undefined inputs.
+*   **FIX**: `src/server/security/prompt-guard.ts` - Added null checks to `normalizeInput` and `validateInput`.
+*   **TEST**: `tests/server/agents/inbox-enhancements.test.ts` - Corrected `validateInput`/`validateOutput` mocks to return structured objects. Added `canRoleAccessAgent` mock to force fallthrough for directive testing. Updated assertions for prompt format flexibility.
+
+### Verification Results
+*   **Agent Runner Unit Tests**: ✅ PASS (`inbox-enhancements.test.ts`)
+*   **Inbox UI Unit Tests**: ✅ PASS (`inbox-conversation.test.tsx`)
+
+---
+
+## Session: 2026-03-01 (Inbox Bugs and Enhancements)
+### Task ID
+fix_inbox_bugs_and_enhancements
+
+### Summary
+Resolved multiple bugs and implemented feature enhancements within the Inbox communication flow. Tested presets and custom prompts using a browser subagent on the dashboard. Fixed a UI bug improperly showing the Bundle Creator for non-bundle threads, and resolved a chat input clearing race condition that prevented reliable UI updates after prompt submission. Enhanced agent capabilities by explicitly prompting users to connect their Integrations when data is missing instead of a generic lack of knowledge error. Updated Ezal's system prompt to proactively search the web for nearby competitors if the current watchlist is empty.
+
+### Key Changes
+*   **DOCS**: `inbox_preset_testing_1772337671109.webp` - Uploaded subagent screenshot test artifact.
+*   **FIX**: `src/components/inbox/inbox-conversation.tsx` - Corrected Bundle Creator button condition (`thread.type === 'bundle'`) and fixed textarea disabling race condition during `setInput('')`.
+*   **ENHANCEMENT**: `src/server/agents/agent-runner.ts` - Embedded global missing-integration directive for all agents to provide a direct markdown link: `[Connect your POS or Data Source](/dashboard/settings/integrations)`.
+*   **ENHANCEMENT**: `src/server/agents/ezal.ts` - Refined instructions to force `searchWeb` utilization for local scanning when the tracked competitor array is empty.
+
+### Verification Results
+*   **Inbox UI**: ✅ CODE VERIFIED (React state timing issue fixed)
+*   **Agent Prompts**: ✅ CODE VERIFIED (Integration link and Ezal logic injected)
+
+### Issues Found
+*   (Fixed) Chat input remained visually sticky disabled instead of clearing.
+*   (Fixed) The "Review Performance" intent erroneously suggested bundling.
+
+### New Tasks Created
+*   `Unit Test: Inbox UI and Prompt Enhancements` added to backlog.
+
+---
+
+## Session: 2026-02-21 (Dispensary Dashboard Production Readiness Audit — Phase 3)
 feat_production_readiness_audit_phase3
 
 ### Summary

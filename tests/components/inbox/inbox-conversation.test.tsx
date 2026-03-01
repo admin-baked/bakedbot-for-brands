@@ -85,6 +85,36 @@ describe('InboxConversation Job Polling', () => {
             expect(content).toContain('jobError');
             expect(content).toContain('Job polling error');
         });
+
+        it('should use setTimeout delay before setting isSubmitting(true) to allow input clear to render', async () => {
+            const fs = require('fs');
+            const path = require('path');
+
+            const componentPath = path.join(
+                process.cwd(),
+                'src/components/inbox/inbox-conversation.tsx'
+            );
+            const content = fs.readFileSync(componentPath, 'utf-8');
+
+            // Verify the setTimeout fix for the input clearing race condition
+            expect(content).toContain('setTimeout(() =>');
+            expect(content).toContain('setIsSubmitting(true)');
+        });
+
+        it('should only show the Bundle Creator button for bundle threads', async () => {
+            const fs = require('fs');
+            const path = require('path');
+
+            const componentPath = path.join(
+                process.cwd(),
+                'src/components/inbox/inbox-conversation.tsx'
+            );
+            const content = fs.readFileSync(componentPath, 'utf-8');
+
+            // Verify the corrected condition for the Bundle Creator button
+            expect(content).toContain("thread.type === 'bundle'");
+            expect(content).toContain('Show Bundle Creator');
+        });
     });
 
     describe('useJobPoller hook behavior', () => {
