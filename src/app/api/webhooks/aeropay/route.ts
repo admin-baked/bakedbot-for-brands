@@ -164,8 +164,8 @@ export async function POST(req: NextRequest) {
 
     // 2. Read raw request body
     const rawBody = await req.text();
-    const webhookLogId = `aeropay_${createHash('sha256').update(rawBody).digest('hex').slice(0, 32)}`;
-    webhookLogRef = db.collection('payment_webhooks').doc(webhookLogId);
+    const payloadHash = createHash('sha256').update(rawBody).digest('hex');
+    const webhookLogId = `aeropay_${payloadHash.slice(0, 32)}`;
 
     // 3. Get signature from headers
     // TODO: Confirm header name with Aeropay (using x-aeropay-signature as assumption)
@@ -176,14 +176,14 @@ export async function POST(req: NextRequest) {
 
     if (!signature) {
       logger.error('[AEROPAY-WEBHOOK] Missing signature header');
-      if (webhookLogRef) {
-        await webhookLogRef.set({
-          provider: 'aeropay',
-          status: 'rejected_missing_signature',
-          rejectionReason: 'missing_signature_header',
-          receivedAt: Timestamp.now(),
-        }, { merge: true });
-      }
+      const rejectedWebhookLogRef = db.collection('payment_webhooks').doc(`aeropay_reject_${payloadHash.slice(0, 32)}`);
+      await rejectedWebhookLogRef.set({
+        provider: 'aeropay',
+        payloadHash,
+        status: 'rejected_missing_signature',
+        rejectionReason: 'missing_signature_header',
+        receivedAt: Timestamp.now(),
+      }, { merge: true });
       return NextResponse.json(
         { error: 'Missing webhook signature' },
         { status: 400 }
@@ -196,15 +196,15 @@ export async function POST(req: NextRequest) {
       logger.error('[AEROPAY-WEBHOOK] SECURITY: Invalid signature detected', {
         signatureProvided: signature.substring(0, 10) + '...',
       });
-      if (webhookLogRef) {
-        await webhookLogRef.set({
-          provider: 'aeropay',
-          status: 'rejected_invalid_signature',
-          rejectionReason: 'invalid_signature',
-          signaturePresent: true,
-          receivedAt: Timestamp.now(),
-        }, { merge: true });
-      }
+      const rejectedWebhookLogRef = db.collection('payment_webhooks').doc(`aeropay_reject_${payloadHash.slice(0, 32)}`);
+      await rejectedWebhookLogRef.set({
+        provider: 'aeropay',
+        payloadHash,
+        status: 'rejected_invalid_signature',
+        rejectionReason: 'invalid_signature',
+        signaturePresent: true,
+        receivedAt: Timestamp.now(),
+      }, { merge: true });
       return NextResponse.json({ error: 'Invalid signature' }, { status: 403 });
     }
 
@@ -233,6 +233,7 @@ export async function POST(req: NextRequest) {
     });
 
     // 6. Idempotent webhook logging/deduplication
+    webhookLogRef = db.collection('payment_webhooks').doc(webhookLogId);
     try {
       await webhookLogRef.create({
         provider: 'aeropay',

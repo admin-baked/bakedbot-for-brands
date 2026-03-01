@@ -46,6 +46,7 @@ const mockForensicsAdd = jest.fn();
 const mockOrderSet = jest.fn();
 const mockWebhookCreate = jest.fn();
 const mockWebhookSet = jest.fn();
+let paymentWebhookDocIds: string[] = [];
 
 jest.mock('@/firebase/server-client', () => ({
   createServerClient: (...args: unknown[]) => mockCreateServerClient(...args),
@@ -164,7 +165,10 @@ describe('POST /api/webhooks/authnet payment amount guard', () => {
       collection: jest.fn((name: string) => {
         if (name === 'payment_webhooks') {
           return {
-            doc: jest.fn(() => webhookLogRef),
+            doc: jest.fn((docId: string) => {
+              paymentWebhookDocIds.push(String(docId));
+              return webhookLogRef;
+            }),
           };
         }
 
@@ -233,6 +237,7 @@ describe('POST /api/webhooks/authnet payment amount guard', () => {
   beforeEach(() => {
     jest.resetModules();
     jest.clearAllMocks();
+    paymentWebhookDocIds = [];
     process.env = { ...originalEnv, AUTHNET_SIGNATURE_KEY: 'sig-key' };
 
     mockVerifyAuthorizeNetSignature.mockReturnValue({ valid: true });
@@ -632,6 +637,7 @@ describe('POST /api/webhooks/authnet payment amount guard', () => {
       rejectionReason: 'signature_mismatch',
       signaturePresent: true,
     }), { merge: true });
+    expect(paymentWebhookDocIds).toContain('authnet_reject_notif-invalid-sig');
     expect(mockWebhookCreate).not.toHaveBeenCalled();
     expect(mockForensicsAdd).not.toHaveBeenCalled();
     expect(mockOrderSet).not.toHaveBeenCalled();

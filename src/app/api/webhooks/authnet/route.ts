@@ -469,10 +469,10 @@ export async function POST(req: NextRequest) {
     } catch {
       // Ignore parsing errors here; signature validation still happens on raw body.
     }
-    const fallbackWebhookLogId = fallbackNotificationId
-      ? `authnet_${fallbackNotificationId}`
-      : `authnet_${payloadHash.slice(0, 32)}`;
-    webhookLogRef = db.collection('payment_webhooks').doc(fallbackWebhookLogId);
+    const fallbackRejectedWebhookLogId = fallbackNotificationId
+      ? `authnet_reject_${fallbackNotificationId}`
+      : `authnet_reject_${payloadHash.slice(0, 32)}`;
+    const rejectedWebhookLogRef = db.collection('payment_webhooks').doc(fallbackRejectedWebhookLogId);
     const validation = verifyAuthorizeNetSignature(rawBody, signature, secret);
 
     if (!validation.valid) {
@@ -480,7 +480,7 @@ export async function POST(req: NextRequest) {
         reason: validation.error,
       });
       try {
-        await webhookLogRef.set({
+        await rejectedWebhookLogRef.set({
           provider: 'authorize_net',
           notificationId: fallbackNotificationId || null,
           eventType: fallbackEventType,

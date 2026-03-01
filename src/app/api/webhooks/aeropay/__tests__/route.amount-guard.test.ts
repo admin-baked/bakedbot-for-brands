@@ -51,6 +51,7 @@ const mockTransactionUpdate = jest.fn();
 const mockOrderGet = jest.fn();
 const mockOrderUpdate = jest.fn();
 const mockForensicsAdd = jest.fn();
+let paymentWebhookDocIds: string[] = [];
 
 jest.mock('@/firebase/server-client', () => ({
   createServerClient: (...args: unknown[]) => mockCreateServerClient(...args),
@@ -88,6 +89,7 @@ describe('POST /api/webhooks/aeropay amount guard', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    paymentWebhookDocIds = [];
     process.env = {
       ...originalEnv,
       AEROPAY_WEBHOOK_SECRET: 'aero-secret',
@@ -116,10 +118,13 @@ describe('POST /api/webhooks/aeropay amount guard', () => {
         collection: jest.fn((name: string) => {
           if (name === 'payment_webhooks') {
             return {
-              doc: jest.fn(() => ({
-                create: mockPaymentWebhookCreate,
-                set: mockPaymentWebhookSet,
-              })),
+              doc: jest.fn((docId: string) => {
+                paymentWebhookDocIds.push(String(docId));
+                return {
+                  create: mockPaymentWebhookCreate,
+                  set: mockPaymentWebhookSet,
+                };
+              }),
             };
           }
 
@@ -541,6 +546,7 @@ describe('POST /api/webhooks/aeropay amount guard', () => {
       rejectionReason: 'invalid_signature',
       signaturePresent: true,
     }), { merge: true });
+    expect(paymentWebhookDocIds.some((docId) => docId.startsWith('aeropay_reject_'))).toBe(true);
     expect(mockPaymentWebhookCreate).not.toHaveBeenCalled();
     expect(mockTransactionUpdate).not.toHaveBeenCalled();
     expect(mockOrderUpdate).not.toHaveBeenCalled();
