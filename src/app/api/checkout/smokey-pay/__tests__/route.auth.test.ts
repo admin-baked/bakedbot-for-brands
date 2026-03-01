@@ -173,6 +173,24 @@ describe('POST /api/checkout/smokey-pay auth hardening', () => {
     expect(body.error).toContain('Authentication required');
   });
 
+  it('requires verified email for paid checkout', async () => {
+    mockGetUserFromRequest.mockResolvedValue({
+      uid: 'user-1',
+      email: 'owner@example.com',
+      email_verified: false,
+    });
+
+    const response = await POST({
+      json: async () => validBody(),
+    } as any);
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body.error).toContain('Email verification is required');
+    expect(mockOrderSet).not.toHaveBeenCalled();
+    expect(mockAuthorizePayment).not.toHaveBeenCalled();
+  });
+
   it('rejects customer email mismatch', async () => {
     const response = await POST({
       json: async () => validBody({
