@@ -79,11 +79,11 @@ env:
     availability:
       - RUNTIME
   - variable: AUTHNET_TRANSACTION_KEY
-    secret: AUTHNET_TRANSACTION_KEY@6
+    secret: AUTHNET_TRANSACTION_KEY@7
     availability:
       - RUNTIME
   - variable: AUTHNET_SIGNATURE_KEY
-    secret: AUTHNET_SIGNATURE_KEY@3
+    secret: AUTHNET_SIGNATURE_KEY@4
     availability:
       - RUNTIME
   - variable: AUTHNET_ENV
