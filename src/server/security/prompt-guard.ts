@@ -331,6 +331,7 @@ function detectEncodedContent(input: string): PromptFlag[] {
  * 2. Leetspeak decoding for injection keywords
  */
 function normalizeInput(input: string): string {
+    if (!input) return '';
     // 1. Unicode Canonicalization
     let normalized = input.normalize('NFKC');
 
@@ -444,7 +445,7 @@ export function validateInput(
     }
 
     // 5. Sensitive keywords
-    const inputLower = input.toLowerCase();
+    const inputLower = (input || '').toLowerCase();
     for (const keyword of SENSITIVE_KEYWORDS) {
         if (inputLower.includes(keyword)) {
             flags.push({

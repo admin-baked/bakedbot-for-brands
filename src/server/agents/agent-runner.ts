@@ -235,7 +235,7 @@ async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOver
         const relevantTracks = allTracks.filter(t =>
             ((t.role as string) === 'all' || (t.role as string) === (personaConfig?.id || 'assistant')) &&
             t.isActive &&
-            t.triggerKeywords.some(k => (stimulus || '').toLowerCase().includes(k.toLowerCase()))
+            t.triggerKeywords.some(k => (stimulus || '').toLowerCase().includes((k || '').toLowerCase()))
         );
 
         if (relevantTracks.length > 0) {
@@ -423,7 +423,7 @@ export async function runAgentCore(
     jobId?: string
 ): Promise<AgentResult> {
 
-    await emitThought(jobId, 'Analyzing Request', `Processing user input: "${userMessage.substring(0, 50)}..."`);
+    await emitThought(jobId, 'Analyzing Request', `Processing user input: "${userMessage?.substring(0, 50)}..."`);
 
     // === SECURITY: Input Validation for Prompt Injection ===
     const inputValidation = validateInput(userMessage, {
@@ -695,17 +695,16 @@ All agents are online and ready. Type an agent name or describe your task to get
                 customInstructionsBlock = buildCustomInstructionsBlock(cachedSettings.tenant, cachedSettings.user);
 
                 if (customInstructionsBlock) {
-                    logger.debug('[AgentRunner] Injecting custom AI instructions', {
-                        hasTenantSettings: !!cachedSettings.tenant?.customInstructions,
-                        hasUserSettings: !!cachedSettings.user?.customInstructions,
-                        tenantId,
-                        userId,
-                    });
+                    // Removed logger.debug
                 }
             }
         } catch (e) {
             logger.warn('[AgentRunner] Failed to load AI settings:', { error: e instanceof Error ? e.message : String(e) });
         }
+
+        // === SYSTEM DIRECTIVES ===
+        const missingIntegrationDirective = `\n\n[SYSTEM DIRECTIVE: MISSING DATA]\nIf you cannot answer a query about sales, inventory, products, or customers because the necessary integrations (POS, ecommerce, marketing) are not connected, you MUST instruct the user to connect their system using this exact markdown link: [Connect your POS or Data Source](/dashboard/settings/integrations)\n`;
+        customInstructionsBlock += missingIntegrationDirective;
 
         // === MODEL TIER ENFORCEMENT ===
         let effectiveModelLevel = extraOptions?.modelLevel || 'lite';
@@ -741,10 +740,10 @@ All agents are online and ready. Type an agent name or describe your task to get
         // Auto-detect complex research intent for Paid users
         const isDeepResearchRequested = extraOptions?.modelLevel === 'deep_research' ||
             (!isFreeUser && (
-                /analyze\s+.*vs.*/i.test(userMessage) ||
-                /competitive\s+analysis/i.test(userMessage) ||
-                /market\s+report/i.test(userMessage) ||
-                /deep\s+dive/i.test(userMessage)
+                /analyze\s+.*vs.*/i.test(finalMessage) ||
+                /competitive\s+analysis/i.test(finalMessage) ||
+                /market\s+report/i.test(finalMessage) ||
+                /deep\s+dive/i.test(finalMessage)
             ));
 
         // When user selects "Deep Research" model level, route to Research Service
@@ -759,7 +758,7 @@ All agents are online and ready. Type an agent name or describe your task to get
                 await emitThought(jobId, 'Creating Task', 'Queueing research task for processing...');
 
                 // Create the research task
-                const result = await createResearchTaskAction(userMessage);
+                const result = await createResearchTaskAction(finalMessage);
 
                 if (result.success && result.taskId) {
                     executedTools[executedTools.length - 1].status = 'success';
@@ -768,7 +767,7 @@ All agents are online and ready. Type an agent name or describe your task to get
                     await emitThought(jobId, 'Research Queued', 'Your research task has been created and is processing in the background.');
 
                     return {
-                        content: `**🔬 Deep Research Task Created**\n\nYour research query has been queued for comprehensive analysis:\n\n> "${userMessage}"\n\n**Task ID:** \`${result.taskId}\`\n\nThe research agent is now:\n1. Searching multiple web sources\n2. Analyzing and cross-referencing data\n3. Compiling a comprehensive report\n\n📊 **View progress:** [Deep Research Dashboard](/dashboard/research)\n\nYou'll be notified when the report is ready. Complex queries may take 2-5 minutes.\n\n**🤖 Automate this?**\nReply with "Create a playbook for this" to turn this analysis into a recurring Daily Report.`,
+                        content: `**🔬 Deep Research Task Created**\n\nYour research query has been queued for comprehensive analysis:\n\n> "${finalMessage}"\n\n**Task ID:** \`${result.taskId}\`\n\nThe research agent is now:\n1. Searching multiple web sources\n2. Analyzing and cross-referencing data\n3. Compiling a comprehensive report\n\n📊 **View progress:** [Deep Research Dashboard](/dashboard/research)\n\nYou'll be notified when the report is ready. Complex queries may take 2-5 minutes.\n\n**🤖 Automate this?**\nReply with "Create a playbook for this" to turn this analysis into a recurring Daily Report.`,
                         toolCalls: executedTools,
                         metadata: {
                             brandId: userBrandId,
@@ -829,7 +828,7 @@ All agents are online and ready. Type an agent name or describe your task to get
         } else {
             // Auto-route based on message content
             await emitThought(jobId, 'Routing', 'Determining best agent for task...');
-            routing = await routeToAgent(userMessage);
+            routing = await routeToAgent(finalMessage);
             await emitThought(jobId, 'Agent Selected', `Routed to ${routing.primaryAgent} (${(routing.confidence * 100).toFixed(0)}% confidence).`);
             agentInfo = AGENT_CAPABILITIES.find(a => a.id === routing.primaryAgent) ||
                 AGENT_CAPABILITIES.find(a => a.id === 'general');
@@ -840,7 +839,7 @@ All agents are online and ready. Type an agent name or describe your task to get
             await emitThought(jobId, 'Memory Lookup', 'Searching Knowledge Base...');
 
             // Try cache first for KB search results (1 minute TTL for freshness)
-            const kbCacheKey = CacheKeys.kbSearch(agentInfo?.id || 'general', userMessage, userBrandId);
+            const kbCacheKey = CacheKeys.kbSearch(agentInfo?.id || 'general', finalMessage, userBrandId);
             let cachedKB = agentCache.get<{ context: string; docCount: number }>(kbCacheKey);
 
             if (cachedKB) {
@@ -863,7 +862,7 @@ All agents are online and ready. Type an agent name or describe your task to get
                 const allKbs = [...kbs, ...userKbs];
 
                 if (allKbs.length > 0) {
-                    const searchPromises = allKbs.map(kb => searchKnowledgeBaseAction(kb.id, userMessage, 2));
+                    const searchPromises = allKbs.map(kb => searchKnowledgeBaseAction(kb.id, finalMessage, 2));
                     const results = await Promise.all(searchPromises);
                     const docs = results.flat().filter(d => d && d.similarity > 0.65).slice(0, 3);
 
@@ -898,7 +897,7 @@ All agents are online and ready. Type an agent name or describe your task to get
         };
 
         // ... Tool Detection Logic ...
-        const lowerMessage = userMessage.toLowerCase();
+        const lowerMessage = (finalMessage || userMessage || '').toLowerCase();
 
         // 0. Playbook Creation Detection - "create a playbook that..." or "build an automation..."
         const playbookCreationPatterns = [
@@ -1074,7 +1073,7 @@ All agents are online and ready. Type an agent name or describe your task to get
 
         // 3. Web Search (Explicit Triggers Only)
         // Prevent aggressive matching on words like "Search Console"
-        const isExplicitSearch = /^(?:please\s+)?(?:web\s+)?search\s+(?:for\s+)?|google\s+/i.test(userMessage) && !userMessage.toLowerCase().includes('console');
+        const isExplicitSearch = /^(?:please\s+)?(?:web\s+)?search\s+(?:for\s+)?|google\s+/i.test(userMessage || '') && !(userMessage || '').toLowerCase().includes('console');
 
         let searchContext = '';
 
@@ -1164,94 +1163,94 @@ All agents are online and ready. Type an agent name or describe your task to get
                                         provider: 'gmail',
                                         reason: 'To send personalized emails directly from your account',
                                         enablesAction: 'send_gmail',
-                                    }).catch(() => {});
+                                    }).catch(() => { });
                                 }
-                            }).catch(() => {});
+                            }).catch(() => { });
                     }
                     // Fall through — let the LLM generate the full task response
                 }
 
                 if (!skipGmailHandling) {
-                await emitThought(jobId, 'Tool Detected', 'Gmail Integration triggered');
-                executedTools.push({ id: `gmail-${Date.now()}`, name: 'Gmail', status: 'running', result: 'Processing...' });
+                    await emitThought(jobId, 'Tool Detected', 'Gmail Integration triggered');
+                    executedTools.push({ id: `gmail-${Date.now()}`, name: 'Gmail', status: 'running', result: 'Processing...' });
 
-                try {
-                    // Structured extraction (no LLM needed)
-                    const params = extractGmailParams(userMessage);
+                    try {
+                        // Structured extraction (no LLM needed)
+                        const params = extractGmailParams(userMessage);
 
-                    // Connect intent: user said "connect gmail" / "setup gmail" — skip API, show setup card immediately
-                    if (params.query === '__connect__') {
-                        const threadId = extraOptions?.context?.threadId as string | undefined;
-                        const orgId = userBrandId;
-                        if (threadId && orgId && user?.uid) {
-                            try {
-                                await requestIntegration({
-                                    userId: user.uid,
-                                    orgId,
-                                    threadId,
-                                    provider: 'gmail',
-                                    reason: 'To send emails directly from your Gmail account',
-                                    enablesAction: 'send_gmail',
-                                });
-                            } catch {
-                                // non-blocking — don't fail the response
+                        // Connect intent: user said "connect gmail" / "setup gmail" — skip API, show setup card immediately
+                        if (params.query === '__connect__') {
+                            const threadId = extraOptions?.context?.threadId as string | undefined;
+                            const orgId = userBrandId;
+                            if (threadId && orgId && user?.uid) {
+                                try {
+                                    await requestIntegration({
+                                        userId: user.uid,
+                                        orgId,
+                                        threadId,
+                                        provider: 'gmail',
+                                        reason: 'To send emails directly from your Gmail account',
+                                        enablesAction: 'send_gmail',
+                                    });
+                                } catch {
+                                    // non-blocking — don't fail the response
+                                }
                             }
+                            executedTools[executedTools.length - 1].status = 'success';
+                            executedTools[executedTools.length - 1].result = 'Setup card added';
+                            return {
+                                content: `📬 **Let's Connect Gmail!**\n\nI've added a setup card to this conversation — click **Connect Gmail** to authorize in about 1 minute.\n\nOnce connected, I can send personalized outreach emails directly from your account.`,
+                                toolCalls: executedTools
+                            };
                         }
-                        executedTools[executedTools.length - 1].status = 'success';
-                        executedTools[executedTools.length - 1].result = 'Setup card added';
+
+                        executedTools[executedTools.length - 1].result = `${params.action.toUpperCase()} email`;
+
+                        // PASS USER CONTEXT
+                        await emitThought(jobId, 'Executing Tool', `Connecting to Gmail API as ${user?.email}...`);
+                        const result = await gmailAction(params, user || undefined);
+                        await emitThought(jobId, 'Tool Complete', result.success ? 'Action successful' : 'Action failed');
+
+                        executedTools[executedTools.length - 1].status = result.success ? 'success' : 'error';
+                        executedTools[executedTools.length - 1].result = result.success ? (params.action === 'list' ? `Found ${(result.data || []).length} emails` : 'Success') : result.error || 'Error';
+
+                        // If Gmail not connected, create an integration_request artifact in the inbox
+                        if (!result.success && result.error?.toLowerCase().includes('not connected') && user?.uid) {
+                            const threadId = extraOptions?.context?.threadId as string | undefined;
+                            const orgId = userBrandId;
+                            if (threadId && orgId) {
+                                try {
+                                    await requestIntegration({
+                                        userId: user.uid,
+                                        orgId,
+                                        threadId,
+                                        provider: 'gmail',
+                                        reason: 'To send emails directly from your Gmail account',
+                                        enablesAction: 'send_gmail',
+                                    });
+                                } catch {
+                                    // non-blocking — don't fail the response
+                                }
+                            }
+                            return {
+                                content: `📬 **Gmail Setup Required**\n\nI need to connect to your Gmail account to send emails. I've added a setup card to this conversation — click **Connect Gmail** to authorize in about 1 minute.\n\nOnce connected, just ask me again and I'll send the email from your account.`,
+                                toolCalls: executedTools
+                            };
+                        }
+
                         return {
-                            content: `📬 **Let's Connect Gmail!**\n\nI've added a setup card to this conversation — click **Connect Gmail** to authorize in about 1 minute.\n\nOnce connected, I can send personalized outreach emails directly from your account.`,
+                            content: result.success ? `✅ **Gmail Action Complete**\n\n${JSON.stringify(result.data, null, 2)}` : `⚠️ **Gmail Error**: ${result.error}`,
+                            toolCalls: executedTools
+                        };
+                    } catch (e: any) {
+                        executedTools[executedTools.length - 1].status = 'error';
+                        executedTools[executedTools.length - 1].result = 'Failed: ' + e.message;
+                        // Early return — never let exceptions fall through to the LLM
+                        return {
+                            content: `⚠️ **Gmail Error**: ${(e as Error).message || 'Unable to access Gmail'}. Try reconnecting in Settings > Integrations.`,
                             toolCalls: executedTools
                         };
                     }
-
-                    executedTools[executedTools.length - 1].result = `${params.action.toUpperCase()} email`;
-
-                    // PASS USER CONTEXT
-                    await emitThought(jobId, 'Executing Tool', `Connecting to Gmail API as ${user?.email}...`);
-                    const result = await gmailAction(params, user || undefined);
-                    await emitThought(jobId, 'Tool Complete', result.success ? 'Action successful' : 'Action failed');
-
-                    executedTools[executedTools.length - 1].status = result.success ? 'success' : 'error';
-                    executedTools[executedTools.length - 1].result = result.success ? (params.action === 'list' ? `Found ${(result.data || []).length} emails` : 'Success') : result.error || 'Error';
-
-                    // If Gmail not connected, create an integration_request artifact in the inbox
-                    if (!result.success && result.error?.toLowerCase().includes('not connected') && user?.uid) {
-                        const threadId = extraOptions?.context?.threadId as string | undefined;
-                        const orgId = userBrandId;
-                        if (threadId && orgId) {
-                            try {
-                                await requestIntegration({
-                                    userId: user.uid,
-                                    orgId,
-                                    threadId,
-                                    provider: 'gmail',
-                                    reason: 'To send emails directly from your Gmail account',
-                                    enablesAction: 'send_gmail',
-                                });
-                            } catch {
-                                // non-blocking — don't fail the response
-                            }
-                        }
-                        return {
-                            content: `📬 **Gmail Setup Required**\n\nI need to connect to your Gmail account to send emails. I've added a setup card to this conversation — click **Connect Gmail** to authorize in about 1 minute.\n\nOnce connected, just ask me again and I'll send the email from your account.`,
-                            toolCalls: executedTools
-                        };
-                    }
-
-                    return {
-                        content: result.success ? `✅ **Gmail Action Complete**\n\n${JSON.stringify(result.data, null, 2)}` : `⚠️ **Gmail Error**: ${result.error}`,
-                        toolCalls: executedTools
-                    };
-                } catch (e: any) {
-                    executedTools[executedTools.length - 1].status = 'error';
-                    executedTools[executedTools.length - 1].result = 'Failed: ' + e.message;
-                    // Early return — never let exceptions fall through to the LLM
-                    return {
-                        content: `⚠️ **Gmail Error**: ${(e as Error).message || 'Unable to access Gmail'}. Try reconnecting in Settings > Integrations.`,
-                        toolCalls: executedTools
-                    };
-                }
                 } // end: if (!skipGmailHandling)
             }
         }
@@ -1398,7 +1397,7 @@ All agents are online and ready. Type an agent name or describe your task to get
         // --- AGENTIC EVAL GATE ---
         // If it's a compliance task or involves Deebo, run compliance evals
         let evalResults: any[] = [];
-        if (activePersona.id === 'deebo' || userMessage.toLowerCase().includes('compliance') || userMessage.toLowerCase().includes('legal')) {
+        if (activePersona.id === 'deebo' || (userMessage || '').toLowerCase().includes('compliance') || (userMessage || '').toLowerCase().includes('legal')) {
             await emitThought(jobId, 'Running Evals', 'Verifying result against compliance gate...');
             // In a real scenario, we'd parse the 'content' or 'tool results' to find cart items
             // For now, we simulate a check if a cart was mentioned or just run the engine.

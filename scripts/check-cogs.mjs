@@ -1,0 +1,10 @@
+import { readFileSync } from 'fs';
+const raw = readFileSync('./alleaves-inventory-full.json', 'utf-8');
+const d = JSON.parse(raw);
+const items = Array.isArray(d) ? d : (d.data || d.items || []);
+const total = items.length;
+const withCost = items.filter(i => i.cost_of_good != null && i.cost_of_good > 0).length;
+const nullCost = items.filter(i => i.cost_of_good == null).length;
+const zeroCost = items.filter(i => i.cost_of_good === 0).length;
+console.log(`Total: ${total} | With cost >0: ${withCost} | Null: ${nullCost} | Zero: ${zeroCost}`);
+console.log('Sample costs:', items.slice(0, 5).map(i => ({ name: i.item, cost: i.cost_of_good, batch: i.batch_cost_of_good })));
