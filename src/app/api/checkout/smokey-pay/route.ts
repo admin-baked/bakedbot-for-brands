@@ -140,6 +140,15 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
+    const isEmailUnverified =
+      (user as any).email_verified === false ||
+      (user as any).emailVerified === false;
+    if (isEmailUnverified) {
+      return NextResponse.json(
+        { error: 'Email verification is required before processing payment.' },
+        { status: 403 },
+      );
+    }
 
     body = smokeyPaySchema.parse(await req.json()) as SmokeyPayBody;
 
