@@ -144,6 +144,35 @@ function resolveOrderStatus(
   return desiredStatus;
 }
 
+function normalizeProviderStatus(value: unknown): string {
+  return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
+function resolveProviderTransactionStatus(currentStatus: string, desiredStatus: string): string {
+  const current = normalizeProviderStatus(currentStatus);
+  const desired = normalizeProviderStatus(desiredStatus);
+
+  if (!desired) return current || 'pending';
+  if (!current) return desired;
+
+  if (current === 'completed') {
+    if (desired === 'refunded' || desired === 'voided') {
+      return desired;
+    }
+    return current;
+  }
+
+  if (current === 'declined') {
+    return current;
+  }
+
+  if (current === 'refunded' || current === 'voided') {
+    return current;
+  }
+
+  return desired;
+}
+
 export async function POST(req: NextRequest) {
   const { firestore: db } = await createServerClient();
   let webhookLogRef: FirebaseFirestore.DocumentReference | null = null;
@@ -338,6 +367,7 @@ async function handleTransactionWebhook(
   }
 ) {
   const { transactionId, merchantOrderId, status } = data;
+  const desiredProviderStatus = normalizeProviderStatus(status);
 
   if (!transactionId) {
     logger.error('[AEROPAY-WEBHOOK] Missing transactionId in webhook data');
@@ -349,7 +379,7 @@ async function handleTransactionWebhook(
   let orderStatus: string = 'pending';
   let eventType: EventType | null = null;
 
-  switch (status.toLowerCase()) {
+  switch (desiredProviderStatus) {
     case 'completed':
       paymentStatus = 'paid';
       orderStatus = 'ready_for_pickup';
@@ -378,7 +408,7 @@ async function handleTransactionWebhook(
         status,
         transactionId,
       });
-      paymentStatus = status;
+      paymentStatus = desiredProviderStatus || 'pending';
       break;
   }
 
@@ -542,11 +572,31 @@ async function handleTransactionWebhook(
     });
   }
 
+  const currentProviderStatus = normalizeProviderStatus(transactionData?.status);
+  const nextProviderStatus = resolveProviderTransactionStatus(
+    currentProviderStatus,
+    desiredProviderStatus,
+  );
+  if (desiredProviderStatus && nextProviderStatus !== desiredProviderStatus) {
+    await db.collection('payment_forensics').add({
+      provider: 'aeropay',
+      source: 'aeropay_webhook',
+      reason: 'transaction_status_regression_blocked',
+      orderId,
+      transactionId,
+      merchantOrderId: merchantOrderId || null,
+      currentTransactionStatus: currentProviderStatus,
+      desiredTransactionStatus: desiredProviderStatus,
+      appliedTransactionStatus: nextProviderStatus,
+      observedAt: FieldValue.serverTimestamp(),
+    });
+  }
+
   // Update transaction with new status and webhook event
   await transactionRef.update({
-    status: nextPaymentStatus,
+    status: nextProviderStatus || currentProviderStatus || desiredProviderStatus || 'pending',
     updatedAt: Timestamp.now(),
-    ...(status === 'completed' && { completedAt: Timestamp.now() }),
+    ...(nextProviderStatus === 'completed' && { completedAt: Timestamp.now() }),
     webhookEvents: FieldValue.arrayUnion({
       topic,
       data,
@@ -558,13 +608,13 @@ async function handleTransactionWebhook(
     paymentStatus: nextPaymentStatus,
     updatedAt: FieldValue.serverTimestamp(),
     lastPaymentEvent: data,
-    'aeropay.status': status,
+    'aeropay.status': nextProviderStatus || desiredProviderStatus || status,
     'aeropay.updatedAt': new Date().toISOString(),
   };
 
   const resolvedOrderStatus = resolveOrderStatus(
     orderData,
-    status.toLowerCase() === 'refunded' ? undefined : orderStatus,
+    desiredProviderStatus === 'refunded' ? undefined : orderStatus,
   );
 
   if (resolvedOrderStatus) {
@@ -572,7 +622,7 @@ async function handleTransactionWebhook(
   }
 
   // Add completion timestamp for completed payments
-  if (status.toLowerCase() === 'completed') {
+  if (nextProviderStatus === 'completed') {
     updatePayload['aeropay.completedAt'] = new Date().toISOString();
   }
 
