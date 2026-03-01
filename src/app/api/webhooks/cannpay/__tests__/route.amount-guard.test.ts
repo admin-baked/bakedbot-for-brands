@@ -487,4 +487,40 @@ describe('POST /api/webhooks/cannpay amount guard', () => {
       appliedPaymentStatus: 'paid',
     }));
   });
+
+  it('persists forensic evidence for invalid webhook signatures', async () => {
+    const responsePayload = JSON.stringify({
+      intent_id: 'intent-123',
+      status: 'Success',
+      amount: 4999,
+      merchant_order_id: 'order-1',
+      passthrough_param: JSON.stringify({ orderId: 'order-1', brandId: 'org_demo' }),
+    });
+
+    const reqBody = JSON.stringify({
+      response: responsePayload,
+      signature: 'invalid-signature',
+    });
+
+    const request = new NextRequest('http://localhost/api/webhooks/cannpay', {
+      method: 'POST',
+      body: reqBody,
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(data.error).toContain('Invalid signature');
+    expect(mockWebhookSet).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'cannpay',
+      status: 'rejected_invalid_signature',
+      rejectionReason: 'invalid_signature',
+      signaturePresent: true,
+    }), { merge: true });
+    expect(mockWebhookCreate).not.toHaveBeenCalled();
+    expect(mockTopSet).not.toHaveBeenCalled();
+    expect(mockOrgSet).not.toHaveBeenCalled();
+    expect(mockEmitEvent).not.toHaveBeenCalled();
+  });
 });

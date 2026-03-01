@@ -144,6 +144,8 @@ export async function POST(req: NextRequest) {
     }
 
     const rawBody = await req.text();
+    const rawPayloadHash = createHash('sha256').update(rawBody).digest('hex');
+    webhookLogRef = db.collection('payment_webhooks').doc(`cannpay_${rawPayloadHash.slice(0, 32)}`);
 
     // Per CannPay spec, widget sends { response: "<JSON>", signature: "<HMAC>" }
     let payload: { response?: string; signature?: string };
@@ -159,6 +161,16 @@ export async function POST(req: NextRequest) {
     // Validate required fields
     if (!responseString || !signature) {
       logger.error("[P0-SEC-CANNPAY-WEBHOOK] Missing response or signature");
+      if (webhookLogRef) {
+        await webhookLogRef.set({
+          provider: 'cannpay',
+          status: 'rejected_malformed_payload',
+          rejectionReason: 'missing_response_or_signature',
+          payloadHash: rawPayloadHash,
+          signaturePresent: !!signature,
+          receivedAt: FieldValue.serverTimestamp(),
+        }, { merge: true });
+      }
       return NextResponse.json(
         { error: "Missing response or signature" },
         { status: 400 }
@@ -171,6 +183,16 @@ export async function POST(req: NextRequest) {
       logger.error("[P0-SEC-CANNPAY-WEBHOOK] SECURITY: Invalid signature detected", {
         signatureProvided: signature.substring(0, 10) + "...",
       });
+      if (webhookLogRef) {
+        await webhookLogRef.set({
+          provider: 'cannpay',
+          status: 'rejected_invalid_signature',
+          rejectionReason: 'invalid_signature',
+          payloadHash: rawPayloadHash,
+          signaturePresent: true,
+          receivedAt: FieldValue.serverTimestamp(),
+        }, { merge: true });
+      }
       return NextResponse.json(
         { error: "Invalid signature" },
         { status: 403 }
