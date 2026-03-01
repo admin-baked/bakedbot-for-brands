@@ -83,6 +83,35 @@ function isClosedOrderStatus(status: string | undefined): boolean {
     return normalized === 'completed' || normalized === 'canceled' || normalized === 'cancelled';
 }
 
+function resolveFinalPaymentStatus(
+    currentStatus: string | undefined,
+    desiredStatus: string | undefined,
+): string {
+    const current = String(currentStatus || '').toLowerCase();
+    const desired = String(desiredStatus || '').toLowerCase();
+
+    if (!desired) return current || 'pending';
+    if (!current) return desired;
+
+    if (current === 'paid') {
+        if (desired === 'refunded' || desired === 'voided') {
+            return desired;
+        }
+        return current;
+    }
+
+    if (current === 'refunded' || current === 'voided') {
+        return current;
+    }
+
+    // Prevent stale provider states from reopening a terminal failure.
+    if (current === 'failed' && desired === 'pending') {
+        return current;
+    }
+
+    return desired;
+}
+
 function getOrderTotal(order: any): number {
     return Number(order?.totals?.total ?? order?.amount ?? 0);
 }
@@ -356,18 +385,22 @@ export const POST = withProtection(
 
                 const resolvedPaymentStatus =
                     cannpaySuccessful ? 'paid' : (providerStatus === 'Failed' || providerStatus === 'Voided' ? 'failed' : 'pending');
+                const finalPaymentStatus = resolveFinalPaymentStatus(
+                    ownedOrder.paymentStatus,
+                    resolvedPaymentStatus,
+                );
 
                 await ownedOrderDoc.ref.update({
                     userId: ownedOrder?.userId || sessionUid,
                     paymentMethod: 'cannpay',
-                    paymentStatus: resolvedPaymentStatus,
+                    paymentStatus: finalPaymentStatus,
                     'canpay.transactionNumber': providerTransactionNumber,
                     'canpay.status': providerStatus,
-                    'canpay.completedAt': cannpaySuccessful ? new Date().toISOString() : ownedOrder?.canpay?.completedAt || null,
+                    'canpay.completedAt': finalPaymentStatus === 'paid' ? new Date().toISOString() : ownedOrder?.canpay?.completedAt || null,
                     updatedAt: new Date().toISOString(),
                 });
 
-                if (cannpaySuccessful) {
+                if (finalPaymentStatus === 'paid') {
                     setImmediate(async () => {
                         const { firestore: fs } = await createServerClient();
                         await recordSalesForOrder(orderId, fs);
@@ -375,10 +408,10 @@ export const POST = withProtection(
                 }
 
                 return NextResponse.json({
-                    success: cannpaySuccessful,
+                    success: finalPaymentStatus === 'paid',
                     paymentMethod: 'cannpay',
                     transactionId: providerTransactionNumber,
-                    message: cannpaySuccessful ? 'Payment successful' : 'Payment pending or failed',
+                    message: finalPaymentStatus === 'paid' ? 'Payment successful' : 'Payment pending or failed',
                     providerStatus,
                     complianceValidated: true,
                 });
@@ -453,18 +486,22 @@ export const POST = withProtection(
 
                 const resolvedPaymentStatus =
                     aeropaySuccessful ? 'paid' : (providerStatus === 'declined' ? 'failed' : providerStatus);
+                const finalPaymentStatus = resolveFinalPaymentStatus(
+                    ownedOrder.paymentStatus,
+                    resolvedPaymentStatus,
+                );
 
                 await ownedOrderDoc.ref.update({
                     userId: ownedOrder?.userId || sessionUid,
                     paymentMethod: 'aeropay',
-                    paymentStatus: resolvedPaymentStatus,
+                    paymentStatus: finalPaymentStatus,
                     'aeropay.transactionId': transactionId,
                     'aeropay.status': providerStatus,
-                    'aeropay.completedAt': aeropaySuccessful ? new Date().toISOString() : ownedOrder?.aeropay?.completedAt || null,
+                    'aeropay.completedAt': finalPaymentStatus === 'paid' ? new Date().toISOString() : ownedOrder?.aeropay?.completedAt || null,
                     updatedAt: new Date().toISOString(),
                 });
 
-                if (aeropaySuccessful) {
+                if (finalPaymentStatus === 'paid') {
                     setImmediate(async () => {
                         const { firestore: fs } = await createServerClient();
                         await recordSalesForOrder(orderId, fs);
@@ -472,10 +509,10 @@ export const POST = withProtection(
                 }
 
                 return NextResponse.json({
-                    success: aeropaySuccessful,
+                    success: finalPaymentStatus === 'paid',
                     paymentMethod: 'aeropay',
                     transactionId,
-                    message: aeropaySuccessful ? 'Payment successful' : 'Payment pending or failed',
+                    message: finalPaymentStatus === 'paid' ? 'Payment successful' : 'Payment pending or failed',
                     providerStatus,
                     complianceValidated: true,
                 });
