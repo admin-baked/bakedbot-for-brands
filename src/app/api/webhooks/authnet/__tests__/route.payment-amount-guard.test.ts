@@ -284,6 +284,9 @@ describe('POST /api/webhooks/authnet payment amount guard', () => {
       transactionId: 'txn_123',
       expectedAmountCents: 1000,
       providerAmountCents: 300,
+      voidAttempted: false,
+      voidSucceeded: false,
+      voidMessage: 'credentials_missing',
     }));
   });
 
@@ -504,6 +507,9 @@ describe('POST /api/webhooks/authnet payment amount guard', () => {
       transactionId: 'txn_missing_amount',
       expectedAmountCents: 1000,
       providerAmountCents: null,
+      voidAttempted: false,
+      voidSucceeded: false,
+      voidMessage: 'credentials_missing',
     }));
   });
 

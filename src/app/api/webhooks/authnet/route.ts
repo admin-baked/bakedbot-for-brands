@@ -726,6 +726,11 @@ export async function POST(req: NextRequest) {
               providerAmountCents,
             });
 
+            const shouldVoid = shouldAttemptVoidForUnmappedPayment(eventType, responseCode);
+            const voidAttempt = shouldVoid
+              ? await attemptVoidSuspiciousPayment(entityId, eventType)
+              : { attempted: false, succeeded: false, message: 'void_not_required' };
+
             await db.collection('payment_forensics').add({
               provider: 'authorize_net',
               source: 'authnet_webhook',
@@ -737,8 +742,11 @@ export async function POST(req: NextRequest) {
               responseCode,
               expectedAmountCents,
               providerAmountCents,
-              voidAttempted: false,
-              voidSucceeded: false,
+              voidAttempted: voidAttempt.attempted,
+              voidSucceeded: voidAttempt.succeeded,
+              voidMessage: voidAttempt.message || null,
+              voidCode: voidAttempt.code || null,
+              voidProviderTransId: voidAttempt.providerTransId || null,
               observedAt: FieldValue.serverTimestamp(),
             });
             return;
@@ -756,6 +764,11 @@ export async function POST(req: NextRequest) {
               expectedAmountCents,
             });
 
+            const shouldVoid = shouldAttemptVoidForUnmappedPayment(eventType, responseCode);
+            const voidAttempt = shouldVoid
+              ? await attemptVoidSuspiciousPayment(entityId, eventType)
+              : { attempted: false, succeeded: false, message: 'void_not_required' };
+
             await db.collection('payment_forensics').add({
               provider: 'authorize_net',
               source: 'authnet_webhook',
@@ -767,8 +780,11 @@ export async function POST(req: NextRequest) {
               responseCode,
               expectedAmountCents,
               providerAmountCents: null,
-              voidAttempted: false,
-              voidSucceeded: false,
+              voidAttempted: voidAttempt.attempted,
+              voidSucceeded: voidAttempt.succeeded,
+              voidMessage: voidAttempt.message || null,
+              voidCode: voidAttempt.code || null,
+              voidProviderTransId: voidAttempt.providerTransId || null,
               observedAt: FieldValue.serverTimestamp(),
             });
             return;
