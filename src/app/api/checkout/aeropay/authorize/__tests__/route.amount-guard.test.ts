@@ -200,4 +200,31 @@ describe('POST /api/checkout/aeropay/authorize amount guard', () => {
     expect(mockOrderUpdate).not.toHaveBeenCalled();
     expect(mockTransactionSet).not.toHaveBeenCalled();
   });
+
+  it('rejects authorization when order is in closed status', async () => {
+    mockOrderGet.mockResolvedValueOnce({
+      exists: true,
+      data: () => ({
+        userId: 'user-1',
+        organizationId: 'org_server',
+        status: 'completed',
+        paymentStatus: 'pending',
+        totals: { total: 49.99 },
+      }),
+    });
+
+    const response = await POST({
+      json: async () => ({
+        orderId: 'order-1',
+        amount: 4999,
+      }),
+    } as any);
+    const body = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(body.error).toContain('closed');
+    expect(mockCreateTransaction).not.toHaveBeenCalled();
+    expect(mockOrderUpdate).not.toHaveBeenCalled();
+    expect(mockTransactionSet).not.toHaveBeenCalled();
+  });
 });
