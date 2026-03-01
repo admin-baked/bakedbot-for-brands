@@ -80,6 +80,30 @@ function getExpectedOrderTotalCents(orderData: Record<string, any> | undefined):
   return Math.round(total * 100);
 }
 
+function resolvePaymentStatus(
+  orderData: Record<string, any> | undefined,
+  desiredPaymentStatus: string,
+): string {
+  const desired = String(desiredPaymentStatus || '').toLowerCase();
+  const current = String(orderData?.paymentStatus || '').toLowerCase();
+
+  if (!desired) return current || 'pending';
+  if (!current) return desired;
+
+  if (current === 'paid') {
+    if (desired === 'refunded' || desired === 'voided') {
+      return desired;
+    }
+    return current;
+  }
+
+  if (current === 'refunded' || current === 'voided') {
+    return current;
+  }
+
+  return desired;
+}
+
 function resolveOrderStatus(
   orderData: Record<string, any> | undefined,
   desiredStatus: string,
@@ -369,10 +393,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (expectedAmountCents !== null && providerAmountCents !== null) {
-      const centsMatch = providerAmountCents === expectedAmountCents;
-      const dollarsMatch = providerAmountCents * 100 === expectedAmountCents;
-
-      if (!centsMatch && !dollarsMatch) {
+      if (providerAmountCents !== expectedAmountCents) {
         logger.error("[P0-SEC-CANNPAY-WEBHOOK] Amount mismatch - refusing state transition", {
           orderId,
           intentId,
@@ -399,9 +420,27 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const nextPaymentStatus = resolvePaymentStatus(canonicalOrder, paymentStatus);
+    if (nextPaymentStatus !== paymentStatus) {
+      await db.collection('payment_forensics').add({
+        provider: 'cannpay',
+        source: 'cannpay_webhook',
+        reason: 'status_regression_blocked',
+        orderId,
+        intentId,
+        merchantOrderId: merchantOrderId || null,
+        organizationId: organizationId || null,
+        currentPaymentStatus: String(canonicalOrder?.paymentStatus || ''),
+        desiredPaymentStatus: paymentStatus,
+        appliedPaymentStatus: nextPaymentStatus,
+        providerStatus: status || null,
+        observedAt: FieldValue.serverTimestamp(),
+      });
+    }
+
     const updatePayload = {
       paymentIntentId: intentId,
-      paymentStatus,
+      paymentStatus: nextPaymentStatus,
       updatedAt: FieldValue.serverTimestamp(),
       lastPaymentEvent: event,
       // Store CannPay-specific fields
@@ -448,7 +487,7 @@ export async function POST(req: NextRequest) {
         type: eventType,
         agent: 'smokey',
         refId: orderId,
-        data: { paymentStatus, orderStatus, intentId },
+        data: { paymentStatus: nextPaymentStatus, orderStatus, intentId },
       });
 
       if (eventType === 'checkout.paid') {
@@ -457,7 +496,7 @@ export async function POST(req: NextRequest) {
           type: 'order.readyForPickup',
           agent: 'smokey',
           refId: orderId,
-          data: { paymentStatus },
+          data: { paymentStatus: nextPaymentStatus },
         });
       }
     } else if (eventType) {
@@ -472,7 +511,7 @@ export async function POST(req: NextRequest) {
       await webhookLogRef.set({
         status: 'processed',
         processedAt: FieldValue.serverTimestamp(),
-        paymentStatus,
+        paymentStatus: nextPaymentStatus,
         providerStatus: status || null,
       }, { merge: true });
     }
