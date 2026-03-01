@@ -83,6 +83,12 @@ export async function routeToAgent(userMessage: string): Promise<RoutingResult> 
     // Check cache first
     const cacheKey = normalizeForCache(userMessage);
     const cached = ROUTE_CACHE.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+        return {
+            ...cached.result,
+            reasoning: `${cached.result.reasoning} (cached)`,
+        };
+    }
 
     const lowerMessage = (userMessage || '').toLowerCase();
 
