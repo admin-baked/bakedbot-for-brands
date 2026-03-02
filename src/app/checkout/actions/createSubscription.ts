@@ -9,6 +9,8 @@ import { requireUser } from '@/server/auth/auth';
 import type { BillingAddress } from '@/types/orders';
 import { isCompanyPlanCheckoutEnabled } from '@/lib/feature-flags';
 
+const ACTIVE_SUBSCRIPTION_STATUSES = new Set(['active', 'trialing', 'past_due']);
+
 type CreateSubscriptionInput = {
     planId: string;
     customer: {
@@ -243,6 +245,27 @@ export async function createSubscription(input: CreateSubscriptionInput) {
         const subscriptionRef = localDevNoFirestore
             ? { id: `local_sub_${Date.now()}` }
             : firestore.collection('subscriptions').doc();
+
+        if (!localDevNoFirestore) {
+            // Idempotency guard: reuse existing active subscription for same user + plan.
+            // Query only by userId to avoid introducing composite index requirements.
+            const existingSubsSnapshot = await firestore
+                .collection('subscriptions')
+                .where('userId', '==', session.uid)
+                .limit(25)
+                .get();
+
+            const existingMatch = existingSubsSnapshot.docs.find((doc: any) => {
+                const data = doc.data() || {};
+                const status = typeof data.status === 'string' ? data.status.toLowerCase() : '';
+                const planId = typeof data.planId === 'string' ? data.planId : '';
+                return planId === plan.id && ACTIVE_SUBSCRIPTION_STATUSES.has(status);
+            });
+
+            if (existingMatch) {
+                return { success: true, subscriptionId: existingMatch.id, reused: true };
+            }
+        }
 
         let transactionId = null;
         let providerSubscriptionId: string | null = null;
