@@ -559,4 +559,148 @@ describe('POST /api/webhooks/authnet subscription event coverage', () => {
       (global as any).fetch = originalFetch;
     }
   });
+
+  it('refuses subscription updates when providerSubscriptionId maps to multiple orgs', async () => {
+    const paymentForensicsAdd = jest.fn().mockResolvedValue(undefined);
+
+    const webhookLogRef = {
+      create: jest.fn().mockResolvedValue(undefined),
+      set: jest.fn().mockResolvedValue(undefined),
+    };
+
+    const duplicateSubscriptionDocs = [
+      {
+        id: 'current',
+        ref: {
+          path: 'organizations/org_alpha/subscription/current',
+          set: jest.fn().mockResolvedValue(undefined),
+        },
+        data: () => ({ status: 'active' }),
+      },
+      {
+        id: 'current',
+        ref: {
+          path: 'organizations/org_beta/subscription/current',
+          set: jest.fn().mockResolvedValue(undefined),
+        },
+        data: () => ({ status: 'active' }),
+      },
+    ];
+
+    const emptyQueryGet = jest.fn().mockResolvedValue({ docs: [], empty: true });
+
+    const db = {
+      collectionGroup: jest.fn((name: string) => {
+        if (name === 'orders') {
+          return {
+            where: jest.fn(() => ({
+              limit: jest.fn(() => ({
+                get: jest.fn().mockResolvedValue({ docs: [], empty: true }),
+              })),
+            })),
+          };
+        }
+        if (name === 'subscription') {
+          return {
+            where: jest.fn(() => ({
+              limit: jest.fn(() => ({
+                get: jest.fn().mockResolvedValue({
+                  docs: duplicateSubscriptionDocs,
+                  empty: false,
+                }),
+              })),
+            })),
+          };
+        }
+        return {
+          where: jest.fn(() => ({
+            limit: jest.fn(() => ({ get: emptyQueryGet })),
+          })),
+        };
+      }),
+      collection: jest.fn((name: string) => {
+        if (name === 'payment_webhooks') {
+          return {
+            doc: jest.fn(() => webhookLogRef),
+          };
+        }
+        if (name === 'orders') {
+          return {
+            where: jest.fn(() => ({
+              limit: jest.fn(() => ({
+                get: jest.fn().mockResolvedValue({ docs: [], empty: true }),
+              })),
+            })),
+          };
+        }
+        if (name === 'payment_forensics') {
+          return { add: paymentForensicsAdd };
+        }
+        if (name === 'subscriptions') {
+          return {
+            where: jest.fn(() => ({
+              limit: jest.fn(() => ({ get: emptyQueryGet })),
+            })),
+            doc: jest.fn(() => ({
+              get: jest.fn().mockResolvedValue({ exists: false }),
+            })),
+          };
+        }
+        if (name === 'organizations') {
+          return {
+            doc: jest.fn(() => ({
+              collection: jest.fn(() => ({
+                doc: jest.fn(() => ({
+                  get: jest.fn().mockResolvedValue({ exists: false }),
+                  set: jest.fn().mockResolvedValue(undefined),
+                })),
+              })),
+            })),
+          };
+        }
+        return {
+          doc: jest.fn(() => ({
+            get: jest.fn().mockResolvedValue({ exists: false }),
+          })),
+        };
+      }),
+    };
+
+    mockCreateServerClient.mockResolvedValueOnce({ firestore: db });
+
+    const { POST } = await import('../route');
+
+    const body = JSON.stringify({
+      notificationId: 'notif-duplicate-sub-map',
+      eventType: 'net.authorize.subscription.updated',
+      payload: {
+        id: 'sub_duplicate_1',
+      },
+    });
+
+    const req = new NextRequest('http://localhost/api/webhooks/authnet', {
+      method: 'POST',
+      body,
+      headers: {
+        'x-anet-signature': `sha512=${crypto.createHash('sha256').update(body).digest('hex')}`,
+      },
+    });
+
+    const response = await POST(req);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.processedSubscriptions).toBe(0);
+    expect(data.warning).toBe('duplicate_subscription_mapping');
+    expect(mockEmitEvent).not.toHaveBeenCalledWith(expect.objectContaining({
+      type: 'subscription.updated',
+      data: expect.objectContaining({
+        providerSubscriptionId: 'sub_duplicate_1',
+      }),
+    }));
+    expect(paymentForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
+      reason: 'duplicate_subscription_mapping',
+      providerSubscriptionId: 'sub_duplicate_1',
+    }));
+  });
 });

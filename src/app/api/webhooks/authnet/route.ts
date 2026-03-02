@@ -372,6 +372,33 @@ function extractOrgIdFromSubscriptionPath(path: string): string | null {
   return match?.[1] ?? null;
 }
 
+function extractOrgIdFromTopLevelSubscriptionDoc(
+  doc: FirebaseFirestore.DocumentSnapshot,
+): string | null {
+  const data = (doc.data() || {}) as Record<string, unknown>;
+
+  const fromFields =
+    typeof data.orgId === 'string' && data.orgId.trim().length > 0
+      ? data.orgId.trim()
+      : typeof data.organizationId === 'string' && data.organizationId.trim().length > 0
+        ? data.organizationId.trim()
+        : typeof data.customerId === 'string' && data.customerId.trim().length > 0
+          ? data.customerId.trim()
+          : null;
+  if (fromFields && DOCUMENT_ID_REGEX.test(fromFields)) {
+    return fromFields;
+  }
+
+  // Legacy fallback for company-plan subscriptions stored under doc id = orgId.
+  // Skip known claim-wizard records where doc id is typically provider subscription id.
+  const source = typeof data.source === 'string' ? data.source.toLowerCase() : '';
+  if (source !== 'claim_wizard' && DOCUMENT_ID_REGEX.test(doc.id)) {
+    return doc.id;
+  }
+
+  return null;
+}
+
 function extractOrgIdFromPaymentPayload(payload: Record<string, unknown>): string | null {
   const merchantReferenceId =
     typeof payload?.merchantReferenceId === 'string' && payload.merchantReferenceId.trim().length > 0
@@ -1011,6 +1038,62 @@ export async function POST(req: NextRequest) {
         if (directDoc.exists) {
           topLevelDocs.push(directDoc);
         }
+      }
+
+      const mappedOrgIds = new Set<string>();
+      const mappingPaths: string[] = [];
+      for (const doc of subscriptionSnapshot.docs) {
+        const orgId = extractOrgIdFromSubscriptionPath(doc.ref.path);
+        if (orgId) {
+          mappedOrgIds.add(orgId);
+          mappingPaths.push(doc.ref.path);
+        }
+      }
+      for (const doc of topLevelDocs) {
+        const orgId = extractOrgIdFromTopLevelSubscriptionDoc(doc);
+        if (orgId) {
+          mappedOrgIds.add(orgId);
+          mappingPaths.push(doc.ref.path);
+        }
+      }
+
+      if (mappedOrgIds.size > 1) {
+        logger.error('[AUTHNET_WEBHOOK] Duplicate subscription mapping detected - refusing transitions', {
+          providerSubscriptionId: entityId,
+          eventType,
+          mappedOrgIds: Array.from(mappedOrgIds),
+          mappingPaths,
+        });
+
+        await db.collection('payment_forensics').add({
+          provider: 'authorize_net',
+          source: 'authnet_webhook',
+          reason: 'duplicate_subscription_mapping',
+          providerSubscriptionId: entityId,
+          eventType,
+          mappedOrgIds: Array.from(mappedOrgIds),
+          mappingPaths,
+          observedAt: FieldValue.serverTimestamp(),
+        });
+
+        await webhookLogRef.set(
+          {
+            status: 'processed',
+            processedAt: FieldValue.serverTimestamp(),
+            processedOrders: 0,
+            processedSubscriptions: 0,
+            warning: 'duplicate_subscription_mapping',
+          },
+          { merge: true },
+        );
+
+        return NextResponse.json({
+          received: true,
+          eventType,
+          processedOrders: 0,
+          processedSubscriptions: 0,
+          warning: 'duplicate_subscription_mapping',
+        });
       }
 
       if (subscriptionSnapshot.empty && topLevelDocs.length === 0) {
