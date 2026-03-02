@@ -251,7 +251,34 @@ async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOver
         logger.warn('[AgentRunner] Failed to load Talk Tracks:', { error });
     }
 
-    let currentStimulus = (stimulus || '') + trainingContext;
+    // 3. Inject Letta Memory Context (Shared memory from past interactions)
+    // This ensures ALL agents going through the harness (Executive Board + Support Staff)
+    // get relevant memory context, not just the primary chat path in runAgentCore().
+    let lettaContext = '';
+    if (brandId && brandId !== 'general' && brandId !== 'demo-brand-123') {
+        try {
+            const { memoryBridgeService } = await import('@/server/services/letta/memory-bridge');
+            const memResults = await memoryBridgeService.unifiedSearch(
+                brandId,
+                stimulus || '',
+                { includeFirestore: true, includeLetta: true, limit: 3 }
+            );
+
+            const allResults = [
+                ...memResults.lettaResults.map(r => sanitizeForPrompt(r, 300)),
+                ...memResults.firestoreResults.map(r => sanitizeForPrompt(r.content, 300)),
+            ].slice(0, 3);
+
+            if (allResults.length > 0) {
+                lettaContext = `\n\n[AGENT MEMORY]\nRelevant context from organizational memory:\n${allResults.map(r => `- ${r}`).join('\n')}\n`;
+            }
+        } catch (e) {
+            // Non-blocking — memory retrieval should never break agent execution
+            logger.warn('[AgentRunner:triggerAgentRun] Letta memory retrieval failed', { error: e instanceof Error ? e.message : String(e), agentName });
+        }
+    }
+
+    let currentStimulus = (stimulus || '') + trainingContext + lettaContext;
     let attempts = 0;
 
     while (attempts < MAX_RETRIES) {
@@ -893,7 +920,7 @@ All agents are online and ready. Type an agent name or describe your task to get
         // Search Letta archival memory for relevant context from past interactions.
         // This bridges the gap between the KB (static docs) and agent memory (learned facts).
         let lettaMemoryContext = '';
-        if (isPaidUser && userBrandId && userBrandId !== 'general') {
+        if ((isPaidUser || isSuperUser) && userBrandId && userBrandId !== 'general') {
             try {
                 const lettaCacheKey = CacheKeys.lettaMemory(agentInfo?.id || 'general', finalMessage, userBrandId);
                 const cachedLetta = agentCache.get<{ context: string; resultCount: number }>(lettaCacheKey);
