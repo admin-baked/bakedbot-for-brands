@@ -882,31 +882,77 @@ export async function POST(req: NextRequest) {
             .collection('subscription')
             .doc('current');
 
-          await orgSubscriptionRef.set(
-            {
-              status: subscriptionOutcome.subscriptionStatus,
-              updatedAt: FieldValue.serverTimestamp(),
-              providerLastEventType: eventType,
-              providerLastEventAt: eventDate || FieldValue.serverTimestamp(),
-            },
-            { merge: true },
-          );
-
-          processedSubscriptions += 1;
-
-          if (subscriptionOutcome.emittedEvent) {
-            await emitEvent({
+          const orgSubscriptionSnap = await orgSubscriptionRef.get();
+          if (!orgSubscriptionSnap.exists) {
+            logger.warn('[AUTHNET_WEBHOOK] Skipping subscription fallback update: org has no subscription record', {
               orgId: orgIdFromPayload,
-              type: subscriptionOutcome.emittedEvent,
-              agent: 'money_mike',
-              refId: 'current',
-              data: {
-                status: subscriptionOutcome.subscriptionStatus,
+              eventType,
+              transactionId: entityId,
+            });
+
+            await db.collection('payment_forensics').add({
+              provider: 'authorize_net',
+              source: 'authnet_webhook',
+              reason: 'subscription_fallback_missing_record',
+              orgId: orgIdFromPayload,
+              transactionId: entityId,
+              eventType,
+              responseCode,
+              observedAt: FieldValue.serverTimestamp(),
+            });
+          } else {
+            const orgSubscriptionData = (orgSubscriptionSnap.data() || {}) as Record<string, unknown>;
+            const provider = String(orgSubscriptionData.provider || '').toLowerCase();
+            const isAuthNetProvider =
+              provider === 'authorizenet' || provider === 'authorize_net' || provider === '';
+
+            if (!isAuthNetProvider) {
+              logger.warn('[AUTHNET_WEBHOOK] Skipping subscription fallback update: provider mismatch', {
+                orgId: orgIdFromPayload,
+                provider,
                 eventType,
                 transactionId: entityId,
+              });
+
+              await db.collection('payment_forensics').add({
+                provider: 'authorize_net',
+                source: 'authnet_webhook',
+                reason: 'subscription_fallback_provider_mismatch',
+                orgId: orgIdFromPayload,
+                transactionId: entityId,
+                eventType,
                 responseCode,
-              },
-            });
+                existingProvider: provider || null,
+                observedAt: FieldValue.serverTimestamp(),
+              });
+            } else {
+              await orgSubscriptionRef.set(
+                {
+                  status: subscriptionOutcome.subscriptionStatus,
+                  updatedAt: FieldValue.serverTimestamp(),
+                  providerLastEventType: eventType,
+                  providerLastEventAt: eventDate || FieldValue.serverTimestamp(),
+                },
+                { merge: true },
+              );
+
+              processedSubscriptions += 1;
+
+              if (subscriptionOutcome.emittedEvent) {
+                await emitEvent({
+                  orgId: orgIdFromPayload,
+                  type: subscriptionOutcome.emittedEvent,
+                  agent: 'money_mike',
+                  refId: 'current',
+                  data: {
+                    status: subscriptionOutcome.subscriptionStatus,
+                    eventType,
+                    transactionId: entityId,
+                    responseCode,
+                  },
+                });
+              }
+            }
           }
         }
       }

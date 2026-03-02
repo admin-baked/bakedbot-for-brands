@@ -82,6 +82,10 @@ describe('POST /api/webhooks/authnet subscription event coverage', () => {
 
     const subscriptionRefSet = jest.fn().mockResolvedValue(undefined);
     const orgSubscriptionRefSet = jest.fn().mockResolvedValue(undefined);
+    const orgSubscriptionRefGet = jest.fn().mockResolvedValue({
+      exists: true,
+      data: () => ({ provider: 'authorizenet', status: 'active' }),
+    });
     const paymentForensicsAdd = jest.fn().mockResolvedValue(undefined);
 
     const subscriptionDoc = {
@@ -158,6 +162,7 @@ describe('POST /api/webhooks/authnet subscription event coverage', () => {
                 if (subName === 'subscription') {
                   return {
                     doc: jest.fn(() => ({
+                      get: orgSubscriptionRefGet,
                       set: orgSubscriptionRefSet,
                     })),
                   };
@@ -269,6 +274,138 @@ describe('POST /api/webhooks/authnet subscription event coverage', () => {
         transactionId: 'txn_declined_1',
         eventType: 'net.authorize.payment.declined',
       }),
+    }));
+  });
+
+  it('does not mutate subscription when fallback org has no active subscription record', async () => {
+    const orgSubscriptionRefSet = jest.fn().mockResolvedValue(undefined);
+    const paymentForensicsAdd = jest.fn().mockResolvedValue(undefined);
+    const emptyQueryGet = jest.fn().mockResolvedValue({ docs: [], empty: true });
+
+    const db = {
+      collectionGroup: jest.fn((name: string) => {
+        if (name === 'orders') {
+          return {
+            where: jest.fn(() => ({
+              limit: jest.fn(() => ({
+                get: jest.fn().mockResolvedValue({ docs: [], empty: true }),
+              })),
+            })),
+          };
+        }
+        if (name === 'subscription') {
+          return {
+            where: jest.fn(() => ({
+              limit: jest.fn(() => ({
+                get: jest.fn().mockResolvedValue({ docs: [], empty: true }),
+              })),
+            })),
+          };
+        }
+        return {
+          where: jest.fn(() => ({
+            limit: jest.fn(() => ({ get: emptyQueryGet })),
+          })),
+        };
+      }),
+      collection: jest.fn((name: string) => {
+        if (name === 'payment_webhooks') {
+          return {
+            doc: jest.fn(() => ({
+              create: jest.fn().mockResolvedValue(undefined),
+              set: jest.fn().mockResolvedValue(undefined),
+            })),
+          };
+        }
+        if (name === 'orders') {
+          return {
+            where: jest.fn(() => ({
+              limit: jest.fn(() => ({
+                get: jest.fn().mockResolvedValue({ docs: [], empty: true }),
+              })),
+            })),
+          };
+        }
+        if (name === 'payment_forensics') {
+          return { add: paymentForensicsAdd };
+        }
+        if (name === 'organizations') {
+          return {
+            doc: jest.fn(() => ({
+              collection: jest.fn((subName: string) => {
+                if (subName === 'subscription') {
+                  return {
+                    doc: jest.fn(() => ({
+                      get: jest.fn().mockResolvedValue({ exists: false }),
+                      set: orgSubscriptionRefSet,
+                    })),
+                  };
+                }
+                return {
+                  doc: jest.fn(() => ({
+                    set: jest.fn().mockResolvedValue(undefined),
+                  })),
+                };
+              }),
+            })),
+          };
+        }
+        if (name === 'subscriptions') {
+          return {
+            where: jest.fn(() => ({
+              limit: jest.fn(() => ({ get: emptyQueryGet })),
+            })),
+            doc: jest.fn(() => ({
+              get: jest.fn().mockResolvedValue({ exists: false }),
+            })),
+          };
+        }
+        return {
+          doc: jest.fn(() => ({
+            get: jest.fn().mockResolvedValue({ exists: false }),
+          })),
+        };
+      }),
+    };
+
+    mockCreateServerClient.mockResolvedValueOnce({ firestore: db });
+
+    const { POST } = await import('../route');
+
+    const body = JSON.stringify({
+      notificationId: 'notif-declined-missing-sub',
+      eventType: 'net.authorize.payment.declined',
+      payload: {
+        id: 'txn_declined_2',
+        responseCode: '2',
+        merchantReferenceId: 'org_missing_sub',
+      },
+    });
+
+    const req = new NextRequest('http://localhost/api/webhooks/authnet', {
+      method: 'POST',
+      body,
+      headers: {
+        'x-anet-signature': `sha512=${crypto.createHash('sha256').update(body).digest('hex')}`,
+      },
+    });
+
+    const response = await POST(req);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.processedSubscriptions).toBe(0);
+    expect(orgSubscriptionRefSet).not.toHaveBeenCalled();
+    expect(mockEmitEvent).not.toHaveBeenCalledWith(expect.objectContaining({
+      orgId: 'org_missing_sub',
+      type: 'subscription.failed',
+    }));
+    expect(paymentForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'authorize_net',
+      source: 'authnet_webhook',
+      reason: 'subscription_fallback_missing_record',
+      orgId: 'org_missing_sub',
+      transactionId: 'txn_declined_2',
     }));
   });
 });
