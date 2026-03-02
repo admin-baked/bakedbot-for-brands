@@ -555,6 +555,11 @@ export async function POST(req: NextRequest) {
       const outcome = mapPaymentWebhookOutcome(eventType, responseCode);
       const providerAmountCents =
         parseAmountToCents(payload.authAmount) ?? parseAmountToCents(payload.amount);
+      const orgIdFromPayload = extractOrgIdFromPaymentPayload(payload);
+      const subscriptionFallbackOutcome = mapPaymentEventToSubscriptionOutcome(eventType, responseCode);
+      const hasSubscriptionFallbackTarget = !!(
+        orgIdFromPayload && subscriptionFallbackOutcome.subscriptionStatus
+      );
 
       const [rootOrdersSnapshot, groupOrdersSnapshot] = await Promise.all([
         db.collection('orders').where('transactionId', '==', entityId).limit(20).get(),
@@ -679,10 +684,18 @@ export async function POST(req: NextRequest) {
           eventType,
         });
 
-        const shouldVoid = shouldAttemptVoidForUnmappedPayment(eventType, responseCode);
+        const shouldVoid =
+          !hasSubscriptionFallbackTarget &&
+          shouldAttemptVoidForUnmappedPayment(eventType, responseCode);
         const voidAttempt = shouldVoid
           ? await attemptVoidSuspiciousPayment(entityId, eventType)
-          : { attempted: false, succeeded: false, message: 'void_not_required' };
+          : {
+              attempted: false,
+              succeeded: false,
+              message: hasSubscriptionFallbackTarget
+                ? 'void_skipped_subscription_fallback'
+                : 'void_not_required',
+            };
 
         await db.collection('payment_forensics').add({
           provider: 'authorize_net',
@@ -872,10 +885,7 @@ export async function POST(req: NextRequest) {
       );
 
       if (orderDocMap.size === 0) {
-        const orgIdFromPayload = extractOrgIdFromPaymentPayload(payload);
-        const subscriptionOutcome = mapPaymentEventToSubscriptionOutcome(eventType, responseCode);
-
-        if (orgIdFromPayload && subscriptionOutcome.subscriptionStatus) {
+        if (orgIdFromPayload && subscriptionFallbackOutcome.subscriptionStatus) {
           const orgSubscriptionRef = db
             .collection('organizations')
             .doc(orgIdFromPayload)
@@ -928,7 +938,7 @@ export async function POST(req: NextRequest) {
             } else {
               await orgSubscriptionRef.set(
                 {
-                  status: subscriptionOutcome.subscriptionStatus,
+                  status: subscriptionFallbackOutcome.subscriptionStatus,
                   updatedAt: FieldValue.serverTimestamp(),
                   providerLastEventType: eventType,
                   providerLastEventAt: eventDate || FieldValue.serverTimestamp(),
@@ -938,14 +948,14 @@ export async function POST(req: NextRequest) {
 
               processedSubscriptions += 1;
 
-              if (subscriptionOutcome.emittedEvent) {
+              if (subscriptionFallbackOutcome.emittedEvent) {
                 await emitEvent({
                   orgId: orgIdFromPayload,
-                  type: subscriptionOutcome.emittedEvent,
+                  type: subscriptionFallbackOutcome.emittedEvent,
                   agent: 'money_mike',
                   refId: 'current',
                   data: {
-                    status: subscriptionOutcome.subscriptionStatus,
+                    status: subscriptionFallbackOutcome.subscriptionStatus,
                     eventType,
                     transactionId: entityId,
                     responseCode,
