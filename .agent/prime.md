@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-03-02)
 
 **Recent work (2026-03-02):** See `memory/MEMORY.md` for full log.
-Key completed: [NY10 freemium expansion — Scout tier + promos + Gemini cost control + batch onboard + POS banner] (`de39bb0a`), [foot-traffic tab crash fix] (in progress)
+Key completed: [Content Engine 6-phase architecture] (`fd40b01d`), [ai-seo-optimizer boundary fix] (`8be45d54`)
 
 ---
 
