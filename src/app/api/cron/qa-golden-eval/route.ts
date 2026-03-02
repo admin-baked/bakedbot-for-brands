@@ -113,7 +113,7 @@ function normalizeExitCode(exitCode: number | string): number {
     return -1;
 }
 
-export function parseEvalOutput(
+function parseEvalOutput(
     stdout: string,
     agent: QAGoldenSetEvalResult['agent'],
     tier: QAGoldenSetEvalResult['tier'],
