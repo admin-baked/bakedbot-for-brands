@@ -220,7 +220,25 @@ export async function POST(request: NextRequest) {
         const expectedTransactionId = String(
           (orderData as any)?.aeropay?.transactionId ?? (orderData as any)?.transactionId ?? '',
         ).trim();
-        if (expectedTransactionId && expectedTransactionId !== transactionId) {
+        if (!expectedTransactionId) {
+          await firestore.collection('payment_forensics').add({
+            provider: 'aeropay',
+            source: 'aeropay_status_poll',
+            reason: 'missing_transaction_binding',
+            userId: user.uid,
+            orderId: resolvedOrderId,
+            transactionId,
+            providerStatus: transaction.status,
+            observedAt: FieldValue.serverTimestamp(),
+          });
+
+          return NextResponse.json(
+            { error: 'Aeropay authorization is missing for this order' },
+            { status: 409 }
+          );
+        }
+
+        if (expectedTransactionId !== transactionId) {
           await firestore.collection('payment_forensics').add({
             provider: 'aeropay',
             source: 'aeropay_status_poll',
