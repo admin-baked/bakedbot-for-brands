@@ -174,10 +174,48 @@ export async function POST(request: NextRequest) {
     // 5. Update the related order if status changed
     const orderId = transactionData.orderId;
     if (orderId) {
-      const orderRef = firestore.collection('orders').doc(orderId);
-      const orderSnap = await orderRef.get();
+      let orderRef: FirebaseFirestore.DocumentReference = firestore.collection('orders').doc(orderId);
+      let orderSnap = await orderRef.get();
+
+      if (!orderSnap.exists) {
+        const fallbackMatches = await firestore
+          .collectionGroup('orders')
+          .where('transactionId', '==', transactionId)
+          .limit(10)
+          .get();
+
+        if (!fallbackMatches.empty) {
+          const distinctOrderIds = new Set(fallbackMatches.docs.map((doc) => doc.id));
+          if (distinctOrderIds.size > 1) {
+            await firestore.collection('payment_forensics').add({
+              provider: 'aeropay',
+              source: 'aeropay_status_poll',
+              reason: 'duplicate_transaction_mapping',
+              userId: user.uid,
+              orderIdFromTransaction: orderId,
+              transactionId,
+              matchedOrderIds: Array.from(distinctOrderIds),
+              matchedPaths: fallbackMatches.docs.map((doc) => doc.ref.path),
+              observedAt: FieldValue.serverTimestamp(),
+            });
+
+            return NextResponse.json(
+              { error: 'Aeropay transaction maps to multiple orders' },
+              { status: 409 }
+            );
+          }
+
+          orderSnap = fallbackMatches.docs[0];
+          orderRef = orderSnap.ref;
+          logger.warn('[AEROPAY] Resolved status poll order via collectionGroup fallback', {
+            transactionId,
+            orderPath: orderRef.path,
+          });
+        }
+      }
 
       if (orderSnap.exists) {
+        const resolvedOrderId = orderRef.id;
         const orderData = orderSnap.data() as Record<string, unknown>;
         const expectedTransactionId = String(
           (orderData as any)?.aeropay?.transactionId ?? (orderData as any)?.transactionId ?? '',
@@ -188,7 +226,7 @@ export async function POST(request: NextRequest) {
             source: 'aeropay_status_poll',
             reason: 'transaction_mismatch',
             userId: user.uid,
-            orderId,
+            orderId: resolvedOrderId,
             transactionId,
             expectedTransactionId,
             providerStatus: transaction.status,
@@ -210,17 +248,17 @@ export async function POST(request: NextRequest) {
 
         if (
           providerMerchantOrderId &&
-          providerMerchantOrderId !== orderId
+          providerMerchantOrderId !== resolvedOrderId
         ) {
           await firestore.collection('payment_forensics').add({
             provider: 'aeropay',
             source: 'aeropay_status_poll',
             reason: 'order_mismatch',
             userId: user.uid,
-            orderId,
+            orderId: resolvedOrderId,
             transactionId,
             providerMerchantOrderId,
-            expectedMerchantOrderId: orderId,
+            expectedMerchantOrderId: resolvedOrderId,
             providerStatus: transaction.status,
             observedAt: FieldValue.serverTimestamp(),
           });
@@ -241,7 +279,7 @@ export async function POST(request: NextRequest) {
               source: 'aeropay_status_poll',
               reason: 'amount_mismatch',
               userId: user.uid,
-              orderId,
+              orderId: resolvedOrderId,
               transactionId,
               expectedAmountCents,
               providerAmountCents,
@@ -266,7 +304,7 @@ export async function POST(request: NextRequest) {
             source: 'aeropay_status_poll',
             reason: 'missing_amount',
             userId: user.uid,
-            orderId,
+            orderId: resolvedOrderId,
             transactionId,
             expectedAmountCents,
             providerAmountCents,
@@ -290,7 +328,7 @@ export async function POST(request: NextRequest) {
             source: 'aeropay_status_poll',
             reason: 'status_regression_blocked',
             userId: user.uid,
-            orderId,
+            orderId: resolvedOrderId,
             transactionId,
             currentPaymentStatus: String((orderData as any)?.paymentStatus || ''),
             desiredPaymentStatus,
