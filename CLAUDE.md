@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-03-02 (Content Engine 6-phase build fix; unblocked Firebase build queue; workflow TS fixes)
+**Current Status:** 🟢 Passing | **Last update:** 2026-03-02 (NY outreach pipeline + provisioning; Firebase webhook reconnect; QEV secret; CRON auth on test-emails)
 
 ---
 
