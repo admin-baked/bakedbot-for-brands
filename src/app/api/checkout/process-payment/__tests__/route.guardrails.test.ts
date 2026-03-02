@@ -6,6 +6,7 @@ const mockCreateTransaction = jest.fn();
 const mockOrderGet = jest.fn();
 const mockOrderUpdate = jest.fn();
 const mockRunTransaction = jest.fn();
+const mockTransactionUpdate = jest.fn();
 const mockUserGet = jest.fn();
 const mockUserSet = jest.fn();
 const mockRecordProductSale = jest.fn();
@@ -115,7 +116,7 @@ describe('POST /api/checkout/process-payment guardrails', () => {
         mockRunTransaction.mockImplementation(async (handler: any) => {
             const tx = {
                 get: jest.fn(async () => await mockOrderGet()),
-                update: jest.fn(async () => undefined),
+                update: mockTransactionUpdate,
             };
             return handler(tx);
         });
@@ -330,6 +331,58 @@ describe('POST /api/checkout/process-payment guardrails', () => {
         expect(mockCreateTransaction).not.toHaveBeenCalled();
     });
 
+    it('rejects CannPay finalization when transactional lock sees already processing', async () => {
+        mockOrderGet.mockResolvedValue({
+            exists: true,
+            data: () => ({
+                userId: 'user-1',
+                customer: { email: 'owner@example.com' },
+                totals: { total: 40 },
+                canpay: { intentId: 'intent-1' },
+                paymentStatus: 'pending',
+                status: 'submitted',
+            }),
+            ref: { update: mockOrderUpdate },
+        });
+        mockCannPayTransactionDetails.mockResolvedValue({
+            intentId: 'intent-1',
+            canpayTransactionNumber: 'cp_tx_real',
+            status: 'Success',
+            amount: 4000,
+            merchantOrderId: 'order-1',
+        });
+
+        mockRunTransaction.mockImplementationOnce(async (handler: any) => {
+            const tx = {
+                get: jest.fn(async () => ({
+                    exists: true,
+                    data: () => ({
+                        paymentStatus: 'processing',
+                        status: 'submitted',
+                    }),
+                })),
+                update: mockTransactionUpdate,
+            };
+            return handler(tx);
+        });
+
+        const response = await POST({} as any, {
+            amount: 40,
+            paymentMethod: 'cannpay',
+            orderId: 'order-1',
+            paymentData: {
+                intentId: 'intent-1',
+                transactionNumber: 'cp_tx_fake',
+                status: 'Success',
+            },
+        } as any);
+
+        const body = await response.json();
+        expect(response.status).toBe(409);
+        expect(body.error).toContain('already processing');
+        expect(mockRecordProductSale).not.toHaveBeenCalled();
+    });
+
     it('does not mark CannPay order as paid when provider reports pending despite spoofed client success', async () => {
         mockOrderGet.mockResolvedValue({
             exists: true,
@@ -365,7 +418,7 @@ describe('POST /api/checkout/process-payment guardrails', () => {
         expect(response.status).toBe(200);
         expect(body.success).toBe(false);
         expect(body.providerStatus).toBe('Pending');
-        expect(mockOrderUpdate).toHaveBeenCalledWith(expect.objectContaining({
+        expect(mockTransactionUpdate).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
             paymentStatus: 'pending',
             'canpay.status': 'Pending',
             'canpay.transactionNumber': 'cp_tx_real',
@@ -408,7 +461,7 @@ describe('POST /api/checkout/process-payment guardrails', () => {
         expect(response.status).toBe(200);
         expect(body.success).toBe(true);
         expect(body.providerStatus).toBe('Success');
-        expect(mockOrderUpdate).toHaveBeenCalledWith(expect.objectContaining({
+        expect(mockTransactionUpdate).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
             paymentStatus: 'paid',
             'canpay.status': 'Success',
             'canpay.transactionNumber': 'cp_tx_real',
@@ -486,7 +539,7 @@ describe('POST /api/checkout/process-payment guardrails', () => {
         expect(response.status).toBe(200);
         expect(body.success).toBe(false);
         expect(body.providerStatus).toBe('Pending');
-        expect(mockOrderUpdate).toHaveBeenCalledWith(expect.objectContaining({
+        expect(mockTransactionUpdate).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
             paymentStatus: 'failed',
             'canpay.status': 'Pending',
             'canpay.transactionNumber': 'cp_tx_real',
@@ -654,7 +707,7 @@ describe('POST /api/checkout/process-payment guardrails', () => {
         expect(response.status).toBe(200);
         expect(body.success).toBe(true);
         expect(body.providerStatus).toBe('completed');
-        expect(mockOrderUpdate).toHaveBeenCalledWith(expect.objectContaining({
+        expect(mockTransactionUpdate).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
             paymentStatus: 'paid',
             'aeropay.status': 'completed',
         }));
@@ -692,10 +745,59 @@ describe('POST /api/checkout/process-payment guardrails', () => {
         expect(response.status).toBe(200);
         expect(body.success).toBe(false);
         expect(body.providerStatus).toBe('pending');
-        expect(mockOrderUpdate).toHaveBeenCalledWith(expect.objectContaining({
+        expect(mockTransactionUpdate).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
             paymentStatus: 'failed',
             'aeropay.status': 'declined',
         }));
+        expect(mockRecordProductSale).not.toHaveBeenCalled();
+    });
+
+    it('rejects Aeropay finalization when transactional lock sees already processing', async () => {
+        mockOrderGet.mockResolvedValue({
+            exists: true,
+            data: () => ({
+                userId: 'user-1',
+                customer: { email: 'owner@example.com' },
+                totals: { total: 50 },
+                aeropay: { transactionId: 'aero_tx_1' },
+                paymentStatus: 'pending',
+                status: 'submitted',
+            }),
+            ref: { update: mockOrderUpdate },
+        });
+        mockAeropayTransactionDetails.mockResolvedValue({
+            transactionId: 'aero_tx_1',
+            status: 'completed',
+            amount: 5050,
+            merchantOrderId: 'order-1',
+        });
+
+        mockRunTransaction.mockImplementationOnce(async (handler: any) => {
+            const tx = {
+                get: jest.fn(async () => ({
+                    exists: true,
+                    data: () => ({
+                        paymentStatus: 'processing',
+                        status: 'submitted',
+                    }),
+                })),
+                update: mockTransactionUpdate,
+            };
+            return handler(tx);
+        });
+
+        const response = await POST({} as any, {
+            amount: 50,
+            paymentMethod: 'aeropay',
+            orderId: 'order-1',
+            paymentData: {
+                transactionId: 'aero_tx_1',
+            },
+        } as any);
+
+        const body = await response.json();
+        expect(response.status).toBe(409);
+        expect(body.error).toContain('already processing');
         expect(mockRecordProductSale).not.toHaveBeenCalled();
     });
 
