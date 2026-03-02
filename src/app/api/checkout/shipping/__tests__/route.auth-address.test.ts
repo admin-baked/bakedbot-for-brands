@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
+import crypto from 'crypto';
 
 const mockRequireUser = jest.fn();
 const mockCreateServerClient = jest.fn();
@@ -57,10 +58,12 @@ jest.mock('firebase-admin/firestore', () => ({
 describe('POST /api/checkout/shipping auth + address hardening', () => {
     let POST: typeof import('../route').POST;
     const originalEnv = process.env;
+    let existingUserOrders: Array<{ id: string; data: () => Record<string, unknown> }>;
 
     beforeEach(async () => {
         jest.clearAllMocks();
         process.env = { ...originalEnv };
+        existingUserOrders = [];
 
         const orderRef = {
             id: 'order-123',
@@ -72,6 +75,13 @@ describe('POST /api/checkout/shipping auth + address hardening', () => {
                 if (name === 'orders') {
                     return {
                         add: mockOrderAdd.mockResolvedValue(orderRef),
+                        where: jest.fn(() => ({
+                            limit: jest.fn(() => ({
+                                get: jest.fn().mockResolvedValue({
+                                    docs: existingUserOrders,
+                                }),
+                            })),
+                        })),
                     };
                 }
 
@@ -381,5 +391,48 @@ describe('POST /api/checkout/shipping auth + address hardening', () => {
                 city: 'Syracuse',
             }),
         }));
+    });
+
+    it('reuses existing order when the same opaque payment token is replayed', async () => {
+        mockRequireUser.mockResolvedValue({
+            uid: 'user-1',
+            email: 'owner@example.com',
+        });
+
+        const tokenValue = 'opaque-replayed-token';
+        const tokenHash = crypto.createHash('sha256').update(tokenValue).digest('hex');
+        existingUserOrders = [
+            {
+                id: 'order-existing-1',
+                data: () => ({
+                    paymentProvider: 'authorize_net',
+                    opaqueTokenHash: tokenHash,
+                    paymentStatus: 'paid',
+                    status: 'submitted',
+                }),
+            },
+        ];
+
+        const request = {
+            json: async () => ({
+                items: [{ id: 'prod-1', name: 'Hemp Gummies', price: 1, quantity: 1 }],
+                customer: { name: 'Owner Example', email: 'owner@example.com', phone: '555-111-2222' },
+                shippingAddress: { street: '1 Main St', city: 'Syracuse', state: 'NY', zip: '13224', country: 'US' },
+                brandId: 'brand-1',
+                paymentMethod: 'authorize_net',
+                paymentData: { opaqueData: { dataDescriptor: 'COMMON.ACCEPT.INAPP.PAYMENT', dataValue: tokenValue } },
+                total: 23,
+            }),
+        } as any;
+
+        const response = await POST(request);
+        const body = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(body.success).toBe(true);
+        expect(body.reused).toBe(true);
+        expect(body.orderId).toBe('order-existing-1');
+        expect(mockOrderAdd).not.toHaveBeenCalled();
+        expect(mockCreateTransaction).not.toHaveBeenCalled();
     });
 });
