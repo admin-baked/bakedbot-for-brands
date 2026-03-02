@@ -408,8 +408,8 @@ export const POST = withProtection(
                         { status: 400 },
                     );
                 }
-                const providerAmountCents = Number(providerTxn.amount);
-                if (!Number.isFinite(providerAmountCents)) {
+                const providerAmountCents = toCents(providerTxn.amount);
+                if (providerAmountCents === null) {
                     return NextResponse.json(
                         { success: false, error: 'CannPay transaction amount unavailable' },
                         { status: 409 },

@@ -312,6 +312,48 @@ describe('POST /api/checkout/process-payment guardrails', () => {
         expect(mockRecordProductSale).not.toHaveBeenCalled();
     });
 
+    it('accepts CannPay dollar-denominated amount values when they match the order total', async () => {
+        mockOrderGet.mockResolvedValue({
+            exists: true,
+            data: () => ({
+                userId: 'user-1',
+                customer: { email: 'owner@example.com' },
+                totals: { total: 40 },
+                canpay: { intentId: 'intent-1' },
+                paymentStatus: 'pending',
+            }),
+            ref: { update: mockOrderUpdate },
+        });
+        mockCannPayTransactionDetails.mockResolvedValue({
+            intentId: 'intent-1',
+            canpayTransactionNumber: 'cp_tx_real',
+            status: 'Success',
+            amount: '40.00',
+            merchantOrderId: 'order-1',
+        });
+
+        const response = await POST({} as any, {
+            amount: 40,
+            paymentMethod: 'cannpay',
+            orderId: 'order-1',
+            paymentData: {
+                intentId: 'intent-1',
+                transactionNumber: 'cp_tx_fake',
+                status: 'Success',
+            },
+        } as any);
+
+        const body = await response.json();
+        expect(response.status).toBe(200);
+        expect(body.success).toBe(true);
+        expect(body.providerStatus).toBe('Success');
+        expect(mockOrderUpdate).toHaveBeenCalledWith(expect.objectContaining({
+            paymentStatus: 'paid',
+            'canpay.status': 'Success',
+            'canpay.transactionNumber': 'cp_tx_real',
+        }));
+    });
+
     it('rejects CannPay finalization when provider omits amount', async () => {
         mockOrderGet.mockResolvedValue({
             exists: true,
