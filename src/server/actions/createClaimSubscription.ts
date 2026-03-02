@@ -42,6 +42,8 @@ interface ClaimSubscriptionResult {
     error?: string;
 }
 
+type ClaimRole = 'owner' | 'brand' | 'dispensary';
+
 function hasValidOpaqueData(opaqueData?: ClaimSubscriptionInput['opaqueData']): boolean {
     return !!(
         opaqueData &&
@@ -70,6 +72,15 @@ function isValidUsZip(zip?: string): boolean {
 
 function isVerifiedSession(session: any): boolean {
     return session?.email_verified !== false && session?.emailVerified !== false;
+}
+
+function normalizeClaimRole(role: unknown): ClaimRole | null {
+    if (typeof role !== 'string') return null;
+    const normalized = role.trim().toLowerCase();
+    if (normalized === 'owner' || normalized === 'brand' || normalized === 'dispensary') {
+        return normalized;
+    }
+    return null;
 }
 
 /**
@@ -107,6 +118,11 @@ export async function createClaimWithSubscription(
     input: ClaimSubscriptionInput
 ): Promise<ClaimSubscriptionResult> {
     try {
+        const normalizedRole = normalizeClaimRole(input.role);
+        if (!normalizedRole) {
+            return { success: false, error: 'Invalid role selected.' };
+        }
+
         if (!isCompanyPlanCheckoutEnabled()) {
             return { success: false, error: 'Subscription checkout is currently disabled. Please contact sales.' };
         }
@@ -202,7 +218,7 @@ export async function createClaimWithSubscription(
                 contactName: input.contactName,
                 contactEmail: input.contactEmail,
                 contactPhone: input.contactPhone,
-                role: input.role,
+                role: normalizedRole,
                 planId: input.planId,
                 packIds: input.coveragePackIds || [],
                 planPrice: price,
@@ -226,7 +242,7 @@ export async function createClaimWithSubscription(
                 phoneNumber: input.contactPhone,
                 updatedAt: FieldValue.serverTimestamp(),
                 // Flattened role/claims for easy access
-                role: input.role,
+                role: normalizedRole,
             };
 
             // Link org if applicable (provisional, until claimed)
@@ -236,11 +252,11 @@ export async function createClaimWithSubscription(
                 userData.orgId = input.orgId;
                 userData.tenantId = input.orgId;
 
-                if (input.role === 'brand') {
+                if (normalizedRole === 'brand') {
                     userData.brandId = input.orgId;
                 }
 
-                if (input.role === 'dispensary') {
+                if (normalizedRole === 'dispensary') {
                     // Legacy field (some older code paths expect it)
                     userData.dispensaryId = input.orgId;
                     // Canonical field used across most dashboard logic
@@ -252,13 +268,13 @@ export async function createClaimWithSubscription(
 
             // Set Custom Claims for Auth
             // Cast input.role to valid type or fallback to 'owner' if generic
-            const roleType = (input.role === 'brand' || input.role === 'dispensary') ? input.role : 'owner';
+            const roleType: ClaimRole = normalizedRole;
             const additionalData: { brandId?: string; locationId?: string; tenantId?: string } = {};
-            if (input.role === 'brand' && input.orgId) {
+            if (normalizedRole === 'brand' && input.orgId) {
                 additionalData.brandId = input.orgId;
                 additionalData.tenantId = input.orgId;
             }
-            if (input.role === 'dispensary' && input.orgId) {
+            if (normalizedRole === 'dispensary' && input.orgId) {
                 additionalData.locationId = input.orgId;
                 additionalData.tenantId = input.orgId;
             }
