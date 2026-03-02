@@ -1435,13 +1435,6 @@
             ]
         },
         {
-            "collectionGroup": "meeting_bookings",
-            "queryScope": "COLLECTION",
-            "fields": [
-                { "fieldPath": "dailyRoomName", "order": "ASCENDING" }
-            ]
-        },
-        {
             "collectionGroup": "greenledger_offers",
             "queryScope": "COLLECTION",
             "fields": [
