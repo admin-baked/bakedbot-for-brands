@@ -20,9 +20,7 @@ import type {
     WorkflowStep,
     WorkflowExecution,
     WorkflowStepResult,
-    WorkflowStepStatus,
     ExecuteWorkflowOptions,
-    WORKFLOW_DEFAULTS,
 } from '@/types/workflow';
 import { getWorkflow } from './workflow-registry';
 
