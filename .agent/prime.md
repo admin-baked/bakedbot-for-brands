@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-03-02)
 
 **Recent work (2026-03-02):** See `memory/MEMORY.md` for full log.
-Key completed: [Content Engine 6-phase + build fixes] (`fd40b01d`, `8be45d54`, `01f5128c`), [Firebase build queue unblocked via manual rollout]
+Key completed: [NY outreach provisioning + Firestore indexes] (`3ef14adf`), [Firebase webhook reconnect + QEV secret] (`a117465f`), [Build fix: route export] (`d0d3c6ab`)
 
 ---
 
