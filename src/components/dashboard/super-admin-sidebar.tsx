@@ -290,6 +290,14 @@ export function SuperAdminSidebar() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={pathname?.startsWith('/dashboard/blog')}>
+                                <Link href="/dashboard/blog">
+                                    <BookOpen />
+                                    <span>Blog</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
                     </SidebarMenu>
                 </SidebarGroupContent>
             </SidebarGroup>

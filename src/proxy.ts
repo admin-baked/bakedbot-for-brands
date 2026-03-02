@@ -217,11 +217,14 @@ export async function proxy(request: NextRequest) {
     const isBookingRoute = pathname.startsWith('/book/');
     // Driver app routes — not a cannabis menu, no age gate needed
     const isDriverRoute = pathname.startsWith('/driver');
+    // Platform blog — not a cannabis menu, no age gate needed
+    const isBlogRoute = pathname.startsWith('/blog');
     const isMenuRoute =
         !isProtectedRoute &&
         !isMetaPath &&
         !isBookingRoute &&
         !isDriverRoute &&
+        !isBlogRoute &&
         !pathname.startsWith('/api/') &&
         !pathname.startsWith('/signin') &&
         !pathname.startsWith('/verify-age') &&

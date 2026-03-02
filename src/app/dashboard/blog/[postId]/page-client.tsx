@@ -39,6 +39,11 @@ import {
     AlertCircle,
     CheckCircle,
 } from 'lucide-react';
+import { FeaturedImageUpload } from '@/components/blog/featured-image-upload';
+import { VideoEmbed } from '@/components/blog/video-embed';
+import { AuthorSelector } from '@/components/blog/author-selector';
+import { AISeoOptimizer } from '@/components/blog/ai-seo-optimizer';
+import type { BlogMedia, BlogVideoEmbed, BlogAuthor } from '@/types/blog';
 
 interface BlogPostEditorClientProps {
     orgId: string;
@@ -77,6 +82,14 @@ export function BlogPostEditorClient({
     const [category, setCategory] = useState<BlogCategory>(post?.category || 'education');
     const [tags, setTags] = useState<string[]>(post?.tags || []);
     const [tagInput, setTagInput] = useState('');
+
+    // Media state
+    const [featuredImage, setFeaturedImage] = useState<BlogMedia | null>(post?.featuredImage || null);
+    const [videoEmbed, setVideoEmbed] = useState<BlogVideoEmbed | null>(post?.videoEmbed || null);
+
+    // Author state
+    const [author, setAuthor] = useState<BlogAuthor>(post?.author || { id: userId, name: userEmail });
+    const [authorSlug, setAuthorSlug] = useState<string | undefined>(post?.authorSlug);
 
     // SEO state
     const [seoTitle, setSeoTitle] = useState(post?.seo.title || '');
@@ -161,10 +174,10 @@ export function BlogPostEditorClient({
                 content,
                 category,
                 tags,
-                author: post?.author || {
-                    id: userId,
-                    name: userEmail,
-                },
+                author,
+                ...(authorSlug && { authorSlug }),
+                ...(featuredImage && { featuredImage }),
+                ...(videoEmbed && { videoEmbed }),
                 seo: {
                     title: seoTitle || title,
                     metaDescription: metaDescription || excerpt.substring(0, 160),
@@ -354,17 +367,23 @@ export function BlogPostEditorClient({
                         </div>
 
                         {/* Featured Image */}
-                        <Card>
-                            <CardContent className="p-6">
-                                <div className="flex items-center justify-center border-2 border-dashed rounded-lg p-8">
-                                    <div className="text-center">
-                                        <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground/50" />
-                                        <p className="mt-2 text-sm font-medium">Featured Image</p>
-                                        <p className="text-xs text-muted-foreground">Coming soon</p>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
+                        <div>
+                            <Label className="mb-2 block">Featured Image</Label>
+                            <FeaturedImageUpload
+                                image={featuredImage}
+                                onImageChange={setFeaturedImage}
+                                orgId={orgId}
+                                postId={post?.id}
+                            />
+                        </div>
+
+                        {/* Video Embed */}
+                        <div>
+                            <VideoEmbed
+                                embed={videoEmbed}
+                                onEmbedChange={setVideoEmbed}
+                            />
+                        </div>
 
                         {/* Content Editor */}
                         <div>
@@ -459,6 +478,17 @@ export function BlogPostEditorClient({
                                             ))}
                                         </div>
                                     </div>
+                                    {/* AI SEO Optimizer */}
+                                    <AISeoOptimizer
+                                        title={title}
+                                        excerpt={excerpt}
+                                        content={content}
+                                        seoTitle={seoTitle}
+                                        metaDescription={metaDescription}
+                                        keywords={keywords}
+                                        onSeoTitleChange={setSeoTitle}
+                                        onMetaDescriptionChange={setMetaDescription}
+                                    />
                                 </AccordionContent>
                             </AccordionItem>
 
@@ -466,6 +496,16 @@ export function BlogPostEditorClient({
                             <AccordionItem value="publishing">
                                 <AccordionTrigger>Publishing</AccordionTrigger>
                                 <AccordionContent className="space-y-4">
+                                    {/* Author Selector */}
+                                    <AuthorSelector
+                                        currentAuthor={author}
+                                        authorSlug={authorSlug}
+                                        onAuthorChange={(newAuthor, newSlug) => {
+                                            setAuthor(newAuthor);
+                                            setAuthorSlug(newSlug);
+                                        }}
+                                    />
+
                                     <div>
                                         <Label htmlFor="category">Category</Label>
                                         <Select value={category} onValueChange={(v) => setCategory(v as BlogCategory)}>

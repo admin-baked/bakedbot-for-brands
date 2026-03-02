@@ -38,6 +38,8 @@ const WORD_COUNT_MAP = {
     long: 1200,
 };
 
+const PLATFORM_ORG_ID = 'org_bakedbot_platform';
+
 /**
  * Generate a blog post draft using AI
  */
@@ -46,32 +48,41 @@ export async function generateBlogDraft(
 ): Promise<BlogGeneratorOutput> {
     try {
         const firestore = getAdminFirestore();
+        const isPlatform = input.orgId === PLATFORM_ORG_ID;
 
-        // Fetch brand guide for voice/tone
-        const brandGuideDoc = await firestore
-            .collection('brandGuides')
-            .doc(input.orgId)
-            .get();
+        let brandGuide: BrandGuide | null = null;
+        let brandName = 'our brand';
 
-        const brandGuide = brandGuideDoc.exists ? (brandGuideDoc.data() as BrandGuide) : null;
+        if (isPlatform) {
+            // Platform blog uses BakedBot's own voice
+            brandName = 'BakedBot AI';
+        } else {
+            // Per-org blog uses their brand guide
+            const brandGuideDoc = await firestore
+                .collection('brandGuides')
+                .doc(input.orgId)
+                .get();
+            brandGuide = brandGuideDoc.exists ? (brandGuideDoc.data() as BrandGuide) : null;
 
-        // Fetch brand/tenant info
-        const tenantDoc = await firestore
-            .collection('tenants')
-            .doc(input.orgId)
-            .get();
-
-        const tenant = tenantDoc.exists ? tenantDoc.data() : null;
-        const brandName = tenant?.name || 'our brand';
+            const tenantDoc = await firestore
+                .collection('tenants')
+                .doc(input.orgId)
+                .get();
+            const tenant = tenantDoc.exists ? tenantDoc.data() : null;
+            brandName = tenant?.name || 'our brand';
+        }
 
         // Build prompt
-        const prompt = buildBlogPrompt(input, brandGuide, brandName);
+        const prompt = isPlatform
+            ? buildPlatformBlogPrompt(input)
+            : buildBlogPrompt(input, brandGuide, brandName);
 
         logger.info('[BlogGenerator] Generating blog post', {
             orgId: input.orgId,
             topic: input.topic,
             category: input.category,
             length: input.length,
+            isPlatform,
         });
 
         // Generate with Claude
@@ -95,6 +106,100 @@ export async function generateBlogDraft(
         logger.error('[BlogGenerator] Error generating blog post', { error, input });
         throw new Error('Failed to generate blog post');
     }
+}
+
+/**
+ * Generate a structured outline from a topic (for review before full draft)
+ */
+export async function generateBlogOutline(
+    topic: string,
+    category: BlogCategory,
+    keywords?: string[]
+): Promise<string> {
+    const prompt = `Create a detailed blog post outline for a cannabis industry blog.
+
+Topic: ${topic}
+Category: ${category.replace('_', ' ')}
+${keywords?.length ? `Target Keywords: ${keywords.join(', ')}` : ''}
+
+Create a structured outline with:
+1. A compelling title suggestion
+2. 4-6 main sections (H2 headings) with brief descriptions
+3. 2-3 sub-points per section
+4. A conclusion section
+5. Key takeaways or CTA suggestion
+
+Format as a clean Markdown outline that can be used as a writing guide.
+Keep it concise — outline only, no full paragraphs.`;
+
+    try {
+        const response = await callClaude({
+            userMessage: prompt,
+            temperature: 0.6,
+            maxTokens: 1000,
+        });
+        return response.trim();
+    } catch (error) {
+        logger.error('[BlogGenerator] Error generating outline', { error });
+        throw new Error('Failed to generate outline');
+    }
+}
+
+/**
+ * Build prompt for platform-level blog posts (BakedBot's own voice)
+ */
+function buildPlatformBlogPrompt(input: BlogGeneratorInput): string {
+    const wordCount = WORD_COUNT_MAP[input.length || 'medium'];
+    const tone = input.tone || 'professional';
+
+    return `You are a content writer for BakedBot AI, an agentic commerce operating system for the cannabis industry.
+
+Write a ${input.length || 'medium'} length blog post (approximately ${wordCount} words) about: ${input.topic}
+
+${input.outline ? `Follow this outline:\n${input.outline}\n` : ''}
+
+BakedBot Platform Voice:
+- We are the leading cannabis technology platform combining AI agents, compliance automation, and data-driven marketing
+- We speak with authority on cannabis industry trends, technology, marketing, and compliance
+- Tone: ${tone}, knowledgeable, forward-thinking, industry-expert
+- We use "cannabis" (not marijuana, weed, pot)
+- We position ourselves as thought leaders empowering dispensaries and brands
+- We reference real industry challenges: compliance complexity, customer retention, competitive markets
+
+${input.targetAudience ? `Target Audience: ${input.targetAudience}` : 'Target Audience: Cannabis dispensary owners, brand managers, and industry professionals'}
+${input.seoKeywords?.length ? `SEO Keywords to include naturally: ${input.seoKeywords.join(', ')}` : ''}
+
+Category: ${input.category.replace('_', ' ')}
+
+${input.productToFeature ? `Feature this product/capability: ${input.productToFeature}` : ''}
+
+Compliance Rules:
+- NO medical claims (do not use: cure, treat, heal, diagnose, therapy, medicine)
+- Content targets 21+ professionals
+- Focus on business outcomes, technology, compliance, and marketing strategy
+- Use compliant terminology throughout
+
+Format Requirements:
+- Write in Markdown format
+- Structure: Title (H1), optional subtitle, 2-3 sentence excerpt, then full article with H2/H3 sections
+- Aim for exactly ${wordCount} words in the main content
+- Include 3-5 relevant tags
+- Include 5-10 SEO keywords
+
+Output EXACTLY in this format:
+TITLE: [Blog post title - compelling and SEO-friendly]
+SUBTITLE: [Optional subtitle for context]
+EXCERPT: [2-3 sentence summary that hooks the reader]
+TAGS: [tag1, tag2, tag3, tag4, tag5]
+SEO_KEYWORDS: [keyword1, keyword2, keyword3, keyword4, keyword5]
+---
+[Full blog post content in Markdown format with H2/H3 headings, paragraphs, lists, etc.]
+
+Remember:
+- Write as BakedBot's editorial voice — authoritative, helpful, industry-expert
+- Include actionable insights for cannabis business professionals
+- Reference industry data and trends where relevant
+- ${wordCount} words for the main content`;
 }
 
 /**

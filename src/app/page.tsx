@@ -13,6 +13,7 @@ const nav = [
   { label: "Pricing", href: "#pricing" },
   { label: "Proof", href: "#proof" },
   { label: "Compliance", href: "#compliance" },
+  { label: "Blog", href: "/blog" },
 ];
 
 function AuthButtons() {

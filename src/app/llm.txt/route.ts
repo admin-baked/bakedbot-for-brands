@@ -65,7 +65,38 @@ export async function GET(): Promise<NextResponse> {
             CacheTTL.AGENT * 2 // 10 minutes for global directory
         );
 
-        const content = generateGlobalLlmTxt(brands);
+        // Fetch platform blog posts for LLM discovery
+        let blogSection = '';
+        try {
+            const { firestore: fs } = await createServerClient();
+            const platformPosts = await fs
+                .collection('tenants')
+                .doc('org_bakedbot_platform')
+                .collection('blog_posts')
+                .where('status', '==', 'published')
+                .orderBy('publishedAt', 'desc')
+                .select('title', 'excerpt', 'seo', 'category', 'publishedAt')
+                .limit(20)
+                .get();
+
+            if (!platformPosts.empty) {
+                blogSection = '\n\n## Blog — Cannabis Industry Insights\n';
+                blogSection += '- Blog Index: https://bakedbot.ai/blog\n';
+                blogSection += '- RSS Feed: https://bakedbot.ai/blog/rss.xml\n\n';
+                blogSection += '### Recent Posts\n';
+                for (const doc of platformPosts.docs) {
+                    const p = doc.data();
+                    const slug = p.seo?.slug || doc.id;
+                    blogSection += `- [${p.title}](https://bakedbot.ai/blog/${slug})`;
+                    if (p.excerpt) blogSection += ` — ${p.excerpt.substring(0, 100)}`;
+                    blogSection += '\n';
+                }
+            }
+        } catch {
+            // Blog section is optional — don't fail the whole response
+        }
+
+        const content = generateGlobalLlmTxt(brands) + blogSection;
 
         return new NextResponse(content, {
             status: 200,

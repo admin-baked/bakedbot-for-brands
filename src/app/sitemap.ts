@@ -260,7 +260,48 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // 8. Blog Posts (High Priority Content)
     let blogRoutes: MetadataRoute.Sitemap = [];
     try {
-      // Fetch all brands for blog index pages
+      // 8a. Platform blog (bakedbot.ai/blog)
+      blogRoutes.push({
+        url: `${BASE_URL}/blog`,
+        lastModified: new Date(),
+        changeFrequency: 'daily' as const,
+        priority: 0.9,
+      });
+      blogRoutes.push({
+        url: `${BASE_URL}/blog/rss.xml`,
+        lastModified: new Date(),
+        changeFrequency: 'daily' as const,
+        priority: 0.5,
+      });
+
+      // Platform blog posts
+      const platformPostsSnapshot = await firestore
+        .collection('tenants')
+        .doc('org_bakedbot_platform')
+        .collection('blog_posts')
+        .where('status', '==', 'published')
+        .select('seo', 'updatedAt', 'publishedAt')
+        .limit(200)
+        .get();
+
+      if (!platformPostsSnapshot.empty) {
+        blogRoutes = blogRoutes.concat(
+          platformPostsSnapshot.docs.map((postDoc) => {
+            const postData = postDoc.data();
+            return {
+              url: `${BASE_URL}/blog/${postData.seo?.slug || postDoc.id}`,
+              lastModified:
+                typeof postData.updatedAt?.toDate === 'function'
+                  ? postData.updatedAt.toDate()
+                  : new Date(),
+              changeFrequency: 'weekly' as const,
+              priority: 0.8,
+            };
+          })
+        );
+      }
+
+      // 8b. Per-brand blog posts
       const brandsForBlogSnapshot = await firestore
         .collection('brands')
         .select('slug')
