@@ -16,7 +16,7 @@ type Step = 'role' | 'brand-search' | 'manual' | 'review';
 export function OnboardingPageClient() {
   const { user, loginAs } = useDevAuth();
   const [step, setStep] = useState<Step>('role');
-  const [role, setRole] = useState<'brand' | 'dispensary' | 'customer' | null>(
+  const [role, setRole] = useState<'brand' | 'dispensary' | 'grower' | 'customer' | null>(
     null,
   );
   const [query, setQuery] = useState('');
@@ -45,9 +45,9 @@ export function OnboardingPageClient() {
 
   function handleSelectRole(r: typeof role) {
     setRole(r);
-    if (r === 'brand') {
-      // In dev, ensure we look like a brand user
-      if (!user) loginAs('brand');
+    if (r === 'brand' || r === 'grower') {
+      // In dev, ensure we look like a brand-level user
+      if (!user) loginAs(r === 'grower' ? 'grower' : 'brand');
       setStep('brand-search');
     } else {
       // For now, non-brand roles just land on review
@@ -82,7 +82,7 @@ export function OnboardingPageClient() {
         <section className="space-y-4">
           <h2 className="font-display text-xl">Who are you?</h2>
           <div className="grid gap-3 sm:grid-cols-3">
-            {(['brand', 'dispensary', 'customer'] as const).map((r) => (
+            {(['brand', 'dispensary', 'grower', 'customer'] as const).map((r) => (
               <button
                 key={r}
                 type="button"
@@ -97,6 +97,8 @@ export function OnboardingPageClient() {
                     'Own or manage a brand and want AI-driven menus & locator.'}
                   {r === 'dispensary' &&
                     'Operate a retail location that carries partner brands.'}
+                  {r === 'grower' &&
+                    'Cultivate flower and sell wholesale to brands (B2B).'}
                   {r === 'customer' &&
                     'Just exploring the demo – no setup required.'}
                 </p>

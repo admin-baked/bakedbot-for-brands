@@ -3,10 +3,12 @@
 import { AgentsGrid } from '@/components/dashboard/agent-grid';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDashboardConfig } from '@/hooks/use-dashboard-config';
+import { useUserRole } from '@/hooks/use-user-role';
 import { BarChart3, Sparkles, Users } from 'lucide-react';
 
 export default function DashboardWelcome() {
   const { navLinks } = useDashboardConfig();
+  const { role } = useUserRole();
 
   const accountLink = navLinks.find((link) => link.href === '/account');
   const agentsLink = navLinks.find((link) => link.href.startsWith('/dashboard/agents'));
@@ -21,18 +23,33 @@ export default function DashboardWelcome() {
               Welcome back
             </p>
             <CardTitle className="text-lg font-semibold">
-              Your AI agents are on shift.
+              {role === 'grower' ? 'Your Wholesale Hub is Active.' : 'Your AI agents are on shift.'}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-muted-foreground">
-            <p>
-              This is your command center for <span className="font-medium text-foreground">autonomous cannabis commerce</span>.
-              Keep customers in your brand funnel while Smokey, Craig, Pops and crew handle the heavy lifting.
-            </p>
-            <p>
-              Start by tuning your <span className="font-medium">agents</span> and{' '}
-              <span className="font-medium">account settings</span>, then plug in menus, campaigns, and analytics.
-            </p>
+            {role === 'grower' ? (
+              <>
+                <p>
+                  This is your command center for <span className="font-medium text-foreground">B2B wholesale commerce</span>.
+                  Manage your harvest, track brand relationships, and scale your wholesale footprint.
+                </p>
+                <p>
+                  Start by reviewing your <span className="font-medium">yield analytics</span> and{' '}
+                  <span className="font-medium">wholesale availability</span> lists.
+                </p>
+              </>
+            ) : (
+              <>
+                <p>
+                  This is your command center for <span className="font-medium text-foreground">autonomous cannabis commerce</span>.
+                  Keep customers in your brand funnel while Smokey, Craig, Pops and crew handle the heavy lifting.
+                </p>
+                <p>
+                  Start by tuning your <span className="font-medium">agents</span> and{' '}
+                  <span className="font-medium">account settings</span>, then plug in menus, campaigns, and analytics.
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 

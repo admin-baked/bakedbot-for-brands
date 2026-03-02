@@ -36,6 +36,10 @@ export type InboxThreadType =
     | 'outreach'          // Customer outreach (SMS/Email)
     | 'inventory_promo'   // Inventory-driven promotions
     | 'event'             // Event marketing
+    // ---- Grower / Cultivation Threads ----
+    | 'yield_analysis'     // Review harvest yield/quality
+    | 'wholesale_inventory' // Manage wholesale availability
+    | 'brand_outreach'     // Outreach to potential brand partners
     // ---- Customer Threads ----
     | 'product_discovery' // Customer product search
     | 'support'           // Customer support
@@ -622,6 +626,47 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         defaultAgent: 'craig' as InboxAgentPersona,
         promptTemplate: 'Show me recent abandoned carts. Draft a recovery SMS/email campaign with personalized product recommendations for customers who left items behind. Include a time-limited discount incentive.',
         roles: [...DISPENSARY_ROLES],
+    },
+    // ============ Grower: Wholesale & Yield ============
+    {
+        id: 'yield-analysis',
+        label: 'Yield Analysis',
+        description: 'Review harvest yield, potency, and quality metrics',
+        icon: 'BarChart3',
+        threadType: 'yield_analysis',
+        defaultAgent: 'pops',
+        promptTemplate: 'Review my last harvest yield and quality metrics. How does it compare to previous cycles? Show me potency trends and terpene profiles for the top 3 strains.',
+        roles: ['grower'],
+    },
+    {
+        id: 'wholesale-inventory',
+        label: 'Wholesale Inventory',
+        description: 'Generate availability lists and manage wholesale stock',
+        icon: 'PackageSearch',
+        threadType: 'wholesale_inventory',
+        defaultAgent: 'day_day',
+        promptTemplate: 'Generate a wholesale availability list for brand partners. Include current stock levels, testing results (COAs), and suggested bulk pricing based on market data.',
+        roles: ['grower'],
+    },
+    {
+        id: 'grower-brand-outreach',
+        label: 'Brand Outreach',
+        description: 'Draft outreach to potential brand partners',
+        icon: 'Handshake',
+        threadType: 'brand_outreach',
+        defaultAgent: 'craig',
+        promptTemplate: 'Draft an intro to new brands looking for high-quality flower. Highlight our cultivation practices, current availability, and why we are a good fit for their product line.',
+        roles: ['grower'],
+    },
+    {
+        id: 'grower-compliance-check',
+        label: 'Compliance Check',
+        description: 'Run a COA and transfer compliance scan',
+        icon: 'ShieldCheck',
+        threadType: 'compliance_research' as InboxThreadType,
+        defaultAgent: 'deebo',
+        promptTemplate: 'Run a compliance check for my upcoming transfer. Verify that all COAs are attached, metrc tags are valid, and we meet the requirements for the destination market.',
+        roles: ['grower'],
     },
 
     // ============ Super User: Growth Management ============
@@ -1485,6 +1530,10 @@ export function getThreadTypeIcon(type: InboxThreadType): string {
         outreach: 'Send',
         inventory_promo: 'Package',
         event: 'CalendarDays',
+        // Grower
+        yield_analysis: 'BarChart3',
+        wholesale_inventory: 'PackageSearch',
+        brand_outreach: 'Handshake',
         // Customer
         product_discovery: 'Search',
         support: 'HelpCircle',
@@ -1549,6 +1598,10 @@ export function getThreadTypeLabel(type: InboxThreadType): string {
         outreach: 'Outreach',
         inventory_promo: 'Inventory Promo',
         event: 'Event',
+        // Grower
+        yield_analysis: 'Yield Analysis',
+        wholesale_inventory: 'Wholesale Inventory',
+        brand_outreach: 'Brand Outreach',
         // Customer
         product_discovery: 'Products',
         support: 'Support',
@@ -1654,6 +1707,10 @@ export function getArtifactTypesForThreadType(type: InboxThreadType): InboxArtif
         market_research: ['market_analysis', 'research_brief'],
         // CRM / Customer Intelligence
         crm_customer: ['report'],
+        // Grower
+        yield_analysis: ['report'],
+        wholesale_inventory: ['sell_sheet'],
+        brand_outreach: ['outreach_draft'],
     };
     return mapping[type] || [];
 }

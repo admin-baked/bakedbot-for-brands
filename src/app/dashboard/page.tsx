@@ -35,7 +35,8 @@ export default function DashboardPage() {
       role === 'brand_member' ||
       role === 'dispensary' ||
       role === 'dispensary_admin' ||
-      role === 'dispensary_staff'
+      role === 'dispensary_staff' ||
+      role === 'grower'
     ) {
       router.replace('/dashboard/inbox');
       return;
@@ -47,12 +48,13 @@ export default function DashboardPage() {
 
   // Show loading state while determining role
   if (isLoading ||
-      role === 'brand' ||
-      role === 'brand_admin' ||
-      role === 'brand_member' ||
-      role === 'dispensary' ||
-      role === 'dispensary_admin' ||
-      role === 'dispensary_staff'
+    role === 'brand' ||
+    role === 'brand_admin' ||
+    role === 'brand_member' ||
+    role === 'dispensary' ||
+    role === 'dispensary_admin' ||
+    role === 'dispensary_staff' ||
+    role === 'grower'
   ) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-4rem)]">

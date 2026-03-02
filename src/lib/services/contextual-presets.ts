@@ -217,6 +217,34 @@ const SUPER_CONTEXTUAL_PRIORITIES: Record<
 };
 
 /**
+ * Grower-specific priorities focusing on wholesale and yield
+ */
+const GROWER_CONTEXTUAL_PRIORITIES: Record<
+    string,
+    {
+        presetIds: string[];
+        suggestion: string;
+    }
+> = {
+    'morning:monday': {
+        presetIds: ['yield-analysis', 'wholesale-inventory', 'grower-compliance-check'],
+        suggestion: 'Start the week by reviewing last harvest and updating wholesale lists.',
+    },
+    'morning:weekday': {
+        presetIds: ['yield-analysis', 'wholesale-inventory', 'grower-brand-outreach'],
+        suggestion: 'Review yields or reach out to new brand partners.',
+    },
+    'afternoon:weekday': {
+        presetIds: ['wholesale-inventory', 'grower-brand-outreach', 'grower-compliance-check'],
+        suggestion: 'Manage your wholesale stock and partner relationships.',
+    },
+    'evening:weekday': {
+        presetIds: ['yield-analysis', 'grower-brand-outreach', 'deep-research'],
+        suggestion: 'Analyze performance or plan your next cultivation cycle.',
+    },
+};
+
+/**
  * Generate contextual presets based on current context
  */
 export function generateContextualPresets(options: ContextualPresetOptions): ContextualPresetResult {
@@ -235,8 +263,11 @@ export function generateContextualPresets(options: ContextualPresetOptions): Con
         ? allPresets.filter((p) => p.roles.length === 1 && p.roles[0] === 'super_user')
         : [];
     const rolePresets = roleIsSuper && superOnlyPresets.length > 0 ? superOnlyPresets : allPresets;
+    const isGrower = role === 'grower';
 
-    const priorities = roleIsSuper ? SUPER_CONTEXTUAL_PRIORITIES : CONTEXTUAL_PRIORITIES;
+    let priorities = CONTEXTUAL_PRIORITIES;
+    if (roleIsSuper) priorities = SUPER_CONTEXTUAL_PRIORITIES;
+    if (isGrower) priorities = GROWER_CONTEXTUAL_PRIORITIES;
 
     let prioritizedIds: string[] = [];
     let suggestion = 'What would you like to work on today?';

@@ -38,6 +38,8 @@ export const LEGAL_US_STATES = [
     'WA', // Washington
     'WV', // West Virginia (Medical) (Dispensaries exist)
     'UT', // Utah (Medical)
+    'AL', // Alabama (Medical)
+    'MS', // Mississippi (Medical)
     // 'WI', // Wisconsin is NOT legal
     // 'TX', // Texas is NOT legal (limited medical, often hemp shops)
 ];

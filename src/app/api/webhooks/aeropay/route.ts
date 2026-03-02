@@ -70,6 +70,18 @@ function verifyAeropaySignature(
   );
 }
 
+function normalizeAeropaySignature(signatureHeader: string): string | null {
+  const trimmed = String(signatureHeader || '').trim();
+  if (!trimmed) return null;
+
+  const withoutPrefix = trimmed.replace(/^sha256=/i, '').trim().toLowerCase();
+  if (!/^[0-9a-f]{64}$/i.test(withoutPrefix)) {
+    return null;
+  }
+
+  return withoutPrefix;
+}
+
 function isAlreadyExistsError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
   const code = (error as { code?: unknown }).code;
@@ -198,23 +210,28 @@ export async function POST(req: NextRequest) {
 
     // 3. Get signature from headers
     // TODO: Confirm header name with Aeropay (using x-aeropay-signature as assumption)
-    const signature =
+    const signatureHeader =
       req.headers.get('x-aeropay-signature') ||
       req.headers.get('x-signature') ||
       '';
 
+    const signature = normalizeAeropaySignature(signatureHeader);
+
     if (!signature) {
-      logger.error('[AEROPAY-WEBHOOK] Missing signature header');
+      logger.error('[AEROPAY-WEBHOOK] Missing or invalid signature header', {
+        signaturePresent: !!signatureHeader,
+      });
       const rejectedWebhookLogRef = db.collection('payment_webhooks').doc(`aeropay_reject_${payloadHash.slice(0, 32)}`);
       await rejectedWebhookLogRef.set({
         provider: 'aeropay',
         payloadHash,
-        status: 'rejected_missing_signature',
-        rejectionReason: 'missing_signature_header',
+        status: signatureHeader ? 'rejected_invalid_signature_format' : 'rejected_missing_signature',
+        rejectionReason: signatureHeader ? 'invalid_signature_format' : 'missing_signature_header',
+        signaturePresent: !!signatureHeader,
         receivedAt: Timestamp.now(),
       }, { merge: true });
       return NextResponse.json(
-        { error: 'Missing webhook signature' },
+        { error: signatureHeader ? 'Invalid webhook signature format' : 'Missing webhook signature' },
         { status: 400 }
       );
     }
