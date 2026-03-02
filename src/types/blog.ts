@@ -11,6 +11,26 @@ import { Timestamp } from '@google-cloud/firestore';
 // Core Blog Types
 // ============================================================================
 
+export type BlogContentType = 'standard' | 'hub' | 'spoke' | 'programmatic' | 'comparison' | 'report';
+
+export interface BlogComparisonEntry {
+  name: string;
+  logo?: string;
+  rating: number;          // 1-5
+  pros: string[];
+  cons: string[];
+  bestFor: string;
+  pricing?: string;
+  url?: string;
+}
+
+export interface BlogComparisonData {
+  competitors: BlogComparisonEntry[];
+  methodology?: string;
+  lastVerified?: Date;
+  verdict?: string;
+}
+
 export interface BlogPost {
   id: string;
   orgId: string;
@@ -58,6 +78,17 @@ export interface BlogPost {
   version: number;
   versionHistory: BlogVersion[]; // Last 10 versions
 
+  // Content Engine fields
+  contentType?: BlogContentType;
+  parentPostId?: string;        // spoke → hub link
+  seriesId?: string;            // group related posts (e.g., "NY Cannabis Guide")
+  seriesOrder?: number;         // ordering within series
+  dataSnapshot?: Record<string, unknown>;  // frozen data used to generate the post
+  generatedBy?: 'manual' | 'craig' | 'programmatic_cron';
+  templateId?: string;          // which content template generated it
+  internalLinks?: string[];     // postIds this article links to
+  comparisonData?: BlogComparisonData;  // structured comparison data (for contentType: 'comparison')
+
   // Timestamps
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -79,7 +110,11 @@ export type BlogCategory =
   | 'strain_profile'      // Deep dives on strains
   | 'compliance'          // Legal/regulatory guidance
   | 'cannabis_culture'    // Lifestyle, community
-  | 'wellness';           // Health & wellness topics
+  | 'wellness'            // Health & wellness topics
+  | 'market_report'       // Data journalism, quarterly reports
+  | 'comparison'          // Best-of guides, alternative comparisons
+  | 'regulatory_alert'    // Compliance updates, state law changes
+  | 'case_study';         // Customer success stories
 
 // ============================================================================
 // SEO Types
@@ -292,6 +327,15 @@ export interface CreateBlogPostInput {
   createdBy?: string; // userId or 'agent:craig'
   seoKeywords?: string[];
   scheduledAt?: Timestamp;
+  // Content Engine fields
+  contentType?: BlogContentType;
+  parentPostId?: string;
+  seriesId?: string;
+  seriesOrder?: number;
+  dataSnapshot?: Record<string, unknown>;
+  generatedBy?: 'manual' | 'craig' | 'programmatic_cron';
+  templateId?: string;
+  comparisonData?: BlogComparisonData;
 }
 
 export interface UpdateBlogPostInput {
@@ -380,6 +424,26 @@ export const BLOG_CATEGORY_META: Record<BlogCategory, {
     label: 'Wellness',
     description: 'Health and wellness topics',
     icon: 'Heart',
+  },
+  market_report: {
+    label: 'Market Reports',
+    description: 'Data-driven industry analysis and quarterly reports',
+    icon: 'BarChart3',
+  },
+  comparison: {
+    label: 'Comparisons',
+    description: 'Best-of guides and product comparisons',
+    icon: 'GitCompare',
+  },
+  regulatory_alert: {
+    label: 'Regulatory Alerts',
+    description: 'Compliance updates and state law changes',
+    icon: 'AlertTriangle',
+  },
+  case_study: {
+    label: 'Case Studies',
+    description: 'Customer success stories and implementation guides',
+    icon: 'Trophy',
   },
 };
 

@@ -317,6 +317,24 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
                 schema: z.object({
                     query: z.string().describe("Search query (e.g., 'cannabis brands in Colorado', 'premium vape brands')")
                 })
+            },
+            {
+                name: "generate_blog_post",
+                description: "Generate and save a blog post draft with AI-powered content, SEO optimization, and compliance checking. Returns the created post ID and URL.",
+                schema: z.object({
+                    topic: z.string().describe("The blog post topic or title idea"),
+                    category: z.enum([
+                        'education', 'product_spotlight', 'industry_news', 'company_update',
+                        'strain_profile', 'compliance', 'cannabis_culture', 'wellness',
+                        'market_report', 'comparison', 'regulatory_alert', 'case_study'
+                    ]).describe("Blog category"),
+                    contentType: z.enum(['standard', 'hub', 'spoke', 'programmatic', 'comparison', 'report']).optional().describe("Content type for the content engine (default: standard)"),
+                    parentPostId: z.string().optional().describe("Parent hub post ID (for spoke articles)"),
+                    seoKeywords: z.array(z.string()).optional().describe("Target SEO keywords"),
+                    tone: z.enum(['professional', 'casual', 'educational', 'playful']).optional().describe("Writing tone (default: professional)"),
+                    length: z.enum(['short', 'medium', 'long']).optional().describe("Post length: short ~300w, medium ~700w, long ~1200w"),
+                    dataContext: z.string().optional().describe("Additional data or context to incorporate into the post"),
+                })
             }
         ];
 
@@ -510,6 +528,77 @@ export function createCraigToolImpls() {
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         logger.error('[Craig:searchWebBrands] Failed', { error: message });
+        return { success: false, error: message };
+      }
+    },
+
+    generate_blog_post: async (input: {
+      topic: string;
+      category: string;
+      contentType?: string;
+      parentPostId?: string;
+      seoKeywords?: string[];
+      tone?: string;
+      length?: string;
+      dataContext?: string;
+    }) => {
+      try {
+        const { generateBlogDraft } = await import('@/server/services/blog-generator');
+        const { createBlogPostInternal } = await import('@/server/actions/blog');
+        const { checkBlogCompliance } = await import('@/server/services/blog-compliance');
+
+        logger.info('[Craig:generate_blog_post] Generating blog post', { topic: input.topic, category: input.category });
+
+        // Generate draft via AI
+        const draft = await generateBlogDraft({
+          topic: input.dataContext ? `${input.topic}\n\nContext data:\n${input.dataContext}` : input.topic,
+          category: input.category as any,
+          tone: (input.tone as any) || 'professional',
+          length: (input.length as any) || 'medium',
+          seoKeywords: input.seoKeywords,
+          orgId: 'org_bakedbot_platform',
+          userId: 'agent:craig',
+        });
+
+        // Run compliance check
+        const compliance = await checkBlogCompliance({
+          title: draft.title,
+          content: draft.content,
+          category: input.category as any,
+          status: 'draft',
+        } as any).catch(() => null);
+        const compliancePassed = !compliance || compliance.status !== 'failed';
+
+        // Create blog post in Firestore
+        const post = await createBlogPostInternal({
+          orgId: 'org_bakedbot_platform',
+          title: draft.title,
+          excerpt: draft.excerpt,
+          content: draft.content,
+          category: input.category as any,
+          tags: draft.tags,
+          seoKeywords: draft.seoKeywords,
+          createdBy: 'agent:craig',
+          status: compliancePassed ? 'approved' : 'pending_review',
+          generatedBy: 'craig',
+          contentType: (input.contentType as any) || 'standard',
+          parentPostId: input.parentPostId,
+          author: { id: 'agent:craig', name: 'Craig', role: 'AI Content Strategist' },
+        });
+
+        return {
+          success: true,
+          postId: post.id,
+          title: post.title,
+          slug: post.slug,
+          status: post.status,
+          url: `/blog/${post.slug}`,
+          complianceStatus: compliance?.status || 'skipped',
+          complianceIssues: compliance?.issues?.length || 0,
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        logger.error('[Craig:generate_blog_post] Failed', { error: message });
         return { success: false, error: message };
       }
     }

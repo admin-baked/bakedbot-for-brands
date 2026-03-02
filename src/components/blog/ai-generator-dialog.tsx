@@ -60,6 +60,10 @@ const CATEGORY_LABELS: Record<BlogCategory, string> = {
     compliance: 'Compliance',
     cannabis_culture: 'Cannabis Culture',
     wellness: 'Wellness',
+    market_report: 'Market Report',
+    comparison: 'Comparison',
+    regulatory_alert: 'Regulatory Alert',
+    case_study: 'Case Study',
 };
 
 const LENGTH_LABELS = {

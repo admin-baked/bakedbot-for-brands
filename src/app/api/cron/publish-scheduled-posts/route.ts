@@ -23,6 +23,10 @@ import { logger } from '@/lib/logger';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 minutes timeout
 
+export async function GET(request: Request) {
+    return POST(request);
+}
+
 export async function POST(request: Request) {
     try {
         // Verify cron secret

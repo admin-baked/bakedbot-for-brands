@@ -51,6 +51,23 @@ export class RegulatoryInsightsGenerator extends InsightGeneratorBase {
             this.createRegulatoryChangeInsight(change, jurisdiction)
           )
         );
+
+        // Trigger content engine blog post for regulatory alert (non-blocking)
+        setImmediate(() => {
+          import('@/server/services/content-engine/generator')
+            .then(({ generateFromTemplate }) => {
+              for (const change of regulationChanges) {
+                generateFromTemplate('regulatory_alert', {
+                  state: jurisdiction,
+                  change_summary: change.proposedModifications || 'Regulatory update detected',
+                  effective_date: 'TBD — review required',
+                }).catch(err => {
+                  logger.warn('[RegulatoryInsights] Blog generation failed', { error: String(err) });
+                });
+              }
+            })
+            .catch(() => {});
+        });
       }
 
       // Check compliance deadline calendar
