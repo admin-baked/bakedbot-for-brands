@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-03-02)
 
 **Recent work (2026-03-02):** See `memory/MEMORY.md` for full log.
-Key completed: [Claude Code orchestration layer — 5 commands + justfile] (`022ff3f7`), [Content Engine 6-phase] (`fd40b01d`)
+Key completed: [Content Engine 6-phase + build fixes] (`fd40b01d`, `8be45d54`, `01f5128c`), [Firebase build queue unblocked via manual rollout]
 
 ---
 
