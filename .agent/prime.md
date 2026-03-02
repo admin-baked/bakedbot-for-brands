@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-03-02)
 
 **Recent work (2026-03-02):** See `memory/MEMORY.md` for full log.
-Key completed: [NY outreach provisioning + Firestore indexes] (`3ef14adf`), [Firebase webhook reconnect + QEV secret] (`a117465f`), [Build fix: route export] (`d0d3c6ab`)
+Key completed: [Workflow DSL orchestration layer — types, registry, runtime, 3 POC definitions, CLI, 83 tests] (`d89c6fe3`), [NY outreach provisioning] (`3ef14adf`)
 
 ---
 
@@ -194,12 +194,10 @@ Do NOT wait for the user to say "P1" or "file a bug first" — triage, file, and
 
 ---
 
-**Recent work (2026-02-19):** See `memory/MEMORY.md` for full log.
+**Recent work (2026-03-02):** See `memory/MEMORY.md` for full log.
 Key completed:
-- [Critical Tier 1 Gap Fixes] (`c5e653ca`) — Campaign sender cron auth bypass fix; Deebo compliance gate in executeCampaign(); Authorize.net webhook receiver (HMAC-SHA512 signature validation).
-- [Production Spec Initiative] (`e9fea945`) — `.agent/specs/` created; 5 Tier 1 production specs written (Campaign, POS/Menu, Compliance, Billing, Public Menu).
-- [The Herbalist Samui — International Pilot] (`abf56b8e`) — First international dispensary on BakedBot. Koh Samui, Thailand. Org `dispensary_herbalistsamui`, 22 demo products (THB ฿ pricing), 4 local competitors, Cloud Scheduler daily CI at 9 AM Bangkok, invites to jack@bakedbot.ai + bryan@thebeachsamui.com. See `scripts/seed-herbalist-samui.ts` + `HERBALIST_SAMUI_SETUP.md`.
-- [Multi-Region ISR: Thailand/Koh Samui] (`f9b85263`) — New `/destination/[country]/[city]` route structure with 4-hour ISR cache. RTRVR-powered Google Maps scraping, multi-currency (THB/VND/KHR/USD), GitHub Actions daily automation (3 AM UTC). Seeded 4 Koh Samui dispensaries. See `src/app/destination/` + `src/server/services/growth/international-discovery.ts`.
+- [Pinky QA Agent — 14 Tools] (`34989f8e`) — Expanded from 8 to 14 tools: get_bug_detail, check_regression_history, get_test_cases, generate_test_cases (Claude + Firestore batch), run_golden_set_eval (shells to run-golden-eval.mjs via cron), intake_customer_bug (reads inbox thread → extracts + files structured bug).
+- [Thrive QA Runbook v2] (local) — `dev/THRIVE_LIVE_SESSION_PLAYBOOK.md` rewritten as Pinky's owned QA runbook: 72+ test case IDs, explicit PASS/FAIL gates, pinky CLI commands at every failure, golden eval gates before compliance sections, regression risk callouts for all known chronic areas.
 
 ---
 
