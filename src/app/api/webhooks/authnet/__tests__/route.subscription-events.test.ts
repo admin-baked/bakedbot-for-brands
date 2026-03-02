@@ -408,4 +408,155 @@ describe('POST /api/webhooks/authnet subscription event coverage', () => {
       transactionId: 'txn_declined_2',
     }));
   });
+
+  it('does not attempt void for org-scoped authcapture events that map to subscription fallback', async () => {
+    const orgSubscriptionRefSet = jest.fn().mockResolvedValue(undefined);
+    const paymentForensicsAdd = jest.fn().mockResolvedValue(undefined);
+    const emptyQueryGet = jest.fn().mockResolvedValue({ docs: [], empty: true });
+
+    const db = {
+      collectionGroup: jest.fn((name: string) => {
+        if (name === 'orders') {
+          return {
+            where: jest.fn(() => ({
+              limit: jest.fn(() => ({
+                get: jest.fn().mockResolvedValue({ docs: [], empty: true }),
+              })),
+            })),
+          };
+        }
+        if (name === 'subscription') {
+          return {
+            where: jest.fn(() => ({
+              limit: jest.fn(() => ({
+                get: jest.fn().mockResolvedValue({ docs: [], empty: true }),
+              })),
+            })),
+          };
+        }
+        return {
+          where: jest.fn(() => ({
+            limit: jest.fn(() => ({ get: emptyQueryGet })),
+          })),
+        };
+      }),
+      collection: jest.fn((name: string) => {
+        if (name === 'payment_webhooks') {
+          return {
+            doc: jest.fn(() => ({
+              create: jest.fn().mockResolvedValue(undefined),
+              set: jest.fn().mockResolvedValue(undefined),
+            })),
+          };
+        }
+        if (name === 'orders') {
+          return {
+            where: jest.fn(() => ({
+              limit: jest.fn(() => ({
+                get: jest.fn().mockResolvedValue({ docs: [], empty: true }),
+              })),
+            })),
+          };
+        }
+        if (name === 'payment_forensics') {
+          return { add: paymentForensicsAdd };
+        }
+        if (name === 'organizations') {
+          return {
+            doc: jest.fn(() => ({
+              collection: jest.fn((subName: string) => {
+                if (subName === 'subscription') {
+                  return {
+                    doc: jest.fn(() => ({
+                      get: jest.fn().mockResolvedValue({
+                        exists: true,
+                        data: () => ({ provider: 'authorizenet', status: 'active' }),
+                      }),
+                      set: orgSubscriptionRefSet,
+                    })),
+                  };
+                }
+                return {
+                  doc: jest.fn(() => ({
+                    set: jest.fn().mockResolvedValue(undefined),
+                  })),
+                };
+              }),
+            })),
+          };
+        }
+        if (name === 'subscriptions') {
+          return {
+            where: jest.fn(() => ({
+              limit: jest.fn(() => ({ get: emptyQueryGet })),
+            })),
+            doc: jest.fn(() => ({
+              get: jest.fn().mockResolvedValue({ exists: false }),
+            })),
+          };
+        }
+        return {
+          doc: jest.fn(() => ({
+            get: jest.fn().mockResolvedValue({ exists: false }),
+          })),
+        };
+      }),
+    };
+
+    mockCreateServerClient.mockResolvedValueOnce({ firestore: db });
+
+    const originalFetch = global.fetch;
+    const fetchSpy = jest.fn();
+    // This path should never call the void API for valid org-scoped subscription fallback.
+    (global as any).fetch = fetchSpy;
+
+    try {
+      const { POST } = await import('../route');
+
+      const body = JSON.stringify({
+        notificationId: 'notif-authcapture-sub-fallback',
+        eventType: 'net.authorize.payment.authcapture.created',
+        payload: {
+          id: 'txn_authcapture_sub_1',
+          responseCode: '1',
+          authAmount: '99.00',
+          merchantReferenceId: 'org_demo',
+        },
+      });
+
+      const req = new NextRequest('http://localhost/api/webhooks/authnet', {
+        method: 'POST',
+        body,
+        headers: {
+          'x-anet-signature': `sha512=${crypto.createHash('sha256').update(body).digest('hex')}`,
+        },
+      });
+
+      const response = await POST(req);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.processedSubscriptions).toBe(1);
+      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(orgSubscriptionRefSet).toHaveBeenCalledWith(expect.objectContaining({
+        status: 'active',
+      }), { merge: true });
+      expect(mockEmitEvent).toHaveBeenCalledWith(expect.objectContaining({
+        orgId: 'org_demo',
+        type: 'subscription.updated',
+        data: expect.objectContaining({
+          transactionId: 'txn_authcapture_sub_1',
+        }),
+      }));
+      expect(paymentForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
+        provider: 'authorize_net',
+        source: 'authnet_webhook',
+        reason: 'missing_order_mapping',
+        voidAttempted: false,
+        voidMessage: 'void_skipped_subscription_fallback',
+      }));
+    } finally {
+      (global as any).fetch = originalFetch;
+    }
+  });
 });
