@@ -115,6 +115,7 @@ describe('POST /api/webhooks/cannpay amount guard', () => {
           if (name === 'orders') {
             return {
               doc: jest.fn(() => ({
+                path: 'orders/order-1',
                 get: mockTopGet,
                 set: mockTopSet,
               })),
@@ -128,6 +129,7 @@ describe('POST /api/webhooks/cannpay amount guard', () => {
                   if (subName === 'orders') {
                     return {
                       doc: jest.fn(() => ({
+                        path: 'organizations/org_demo/orders/order-1',
                         get: mockOrgGet,
                         set: mockOrgSet,
                       })),
@@ -485,6 +487,66 @@ describe('POST /api/webhooks/cannpay amount guard', () => {
       currentPaymentStatus: 'paid',
       desiredPaymentStatus: 'pending',
       appliedPaymentStatus: 'paid',
+    }));
+  });
+
+  it('updates only eligible targets when org-scoped mirror has mismatched intent binding', async () => {
+    mockTopGet.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        totals: { total: 49.99 },
+        brandId: 'org_demo',
+        canpay: { intentId: 'intent-123' },
+      }),
+    });
+    mockOrgGet.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        totals: { total: 49.99 },
+        brandId: 'org_demo',
+        canpay: { intentId: 'intent-drifted' },
+      }),
+    });
+
+    const responsePayload = JSON.stringify({
+      intent_id: 'intent-123',
+      status: 'Success',
+      amount: 4999,
+      merchant_order_id: 'order-1',
+      passthrough_param: JSON.stringify({ orderId: 'order-1', brandId: 'org_demo' }),
+    });
+
+    const signature = crypto
+      .createHmac('sha256', 'test-secret')
+      .update(responsePayload)
+      .digest('hex')
+      .toLowerCase();
+
+    const reqBody = JSON.stringify({
+      response: responsePayload,
+      signature,
+    });
+
+    const request = new NextRequest('http://localhost/api/webhooks/cannpay', {
+      method: 'POST',
+      body: reqBody,
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.received).toBe(true);
+    expect(mockTopSet).toHaveBeenCalledTimes(1);
+    expect(mockOrgSet).not.toHaveBeenCalled();
+    expect(mockForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'cannpay',
+      source: 'cannpay_webhook',
+      reason: 'update_target_intent_mismatch',
+      orderId: 'order-1',
+      intentId: 'intent-123',
+      expectedIntentId: 'intent-drifted',
+      scope: 'organization_scoped',
     }));
   });
 

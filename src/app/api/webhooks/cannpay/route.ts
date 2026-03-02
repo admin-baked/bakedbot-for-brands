@@ -80,6 +80,17 @@ function getExpectedOrderTotalCents(orderData: Record<string, any> | undefined):
   return Math.round(total * 100);
 }
 
+function getExpectedIntentId(orderData: Record<string, any> | undefined): string | null {
+  if (!orderData) return null;
+  if (typeof orderData?.canpay?.intentId === 'string' && orderData.canpay.intentId.trim()) {
+    return orderData.canpay.intentId.trim();
+  }
+  if (typeof orderData?.paymentIntentId === 'string' && orderData.paymentIntentId.trim()) {
+    return orderData.paymentIntentId.trim();
+  }
+  return null;
+}
+
 function resolvePaymentStatus(
   orderData: Record<string, any> | undefined,
   desiredPaymentStatus: string,
@@ -323,7 +334,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    const canonicalOrder = (topLevelSnap.exists ? topLevelSnap.data() : orgOrderSnap?.data()) as Record<string, any> | undefined;
+    const topLevelOrder = (topLevelSnap.exists ? topLevelSnap.data() : undefined) as Record<string, any> | undefined;
+    const orgScopedOrder = (orgOrderSnap?.exists ? orgOrderSnap.data() : undefined) as Record<string, any> | undefined;
+    const canonicalOrder = (topLevelOrder || orgScopedOrder) as Record<string, any> | undefined;
 
     if (
       merchantOrderId &&
@@ -352,12 +365,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true, warning: 'Order mismatch' });
     }
 
-    const expectedIntentId =
-      typeof canonicalOrder?.canpay?.intentId === 'string'
-        ? canonicalOrder.canpay.intentId
-        : typeof canonicalOrder?.paymentIntentId === 'string'
-          ? canonicalOrder.paymentIntentId
-          : null;
+    const expectedIntentId = getExpectedIntentId(canonicalOrder);
 
     if (expectedIntentId && expectedIntentId !== intentId) {
       logger.error("[P0-SEC-CANNPAY-WEBHOOK] intent_id mismatch for canonical order", {
@@ -484,16 +492,130 @@ export async function POST(req: NextRequest) {
       updatePayload.status = nextOrderStatus;
     }
 
-    const updateTargets = [];
-    if (topLevelSnap.exists) {
-      updateTargets.push(topLevelOrderRef.set(updatePayload, { merge: true }));
+    const updateTargets: Promise<unknown>[] = [];
+    const targetOrgIds: string[] = [];
+    const targetCandidates: Array<{
+      scope: 'top_level' | 'organization_scoped';
+      ref: FirebaseFirestore.DocumentReference;
+      order: Record<string, any>;
+    }> = [];
+
+    if (topLevelSnap.exists && topLevelOrder) {
+      targetCandidates.push({
+        scope: 'top_level',
+        ref: topLevelOrderRef,
+        order: topLevelOrder,
+      });
     }
-    if (orgOrderRef && orgOrderSnap?.exists) {
-      updateTargets.push(orgOrderRef.set(updatePayload, { merge: true }));
+    if (orgOrderRef && orgOrderSnap?.exists && orgScopedOrder) {
+      targetCandidates.push({
+        scope: 'organization_scoped',
+        ref: orgOrderRef,
+        order: orgScopedOrder,
+      });
     }
+
+    for (const candidate of targetCandidates) {
+      const candidateExpectedIntentId = getExpectedIntentId(candidate.order);
+      if (candidateExpectedIntentId && candidateExpectedIntentId !== intentId) {
+        logger.error("[P0-SEC-CANNPAY-WEBHOOK] Skipping update target due to intent mismatch", {
+          orderId,
+          scope: candidate.scope,
+          intentId,
+          expectedIntentId: candidateExpectedIntentId,
+        });
+
+        await db.collection('payment_forensics').add({
+          provider: 'cannpay',
+          source: 'cannpay_webhook',
+          reason: 'update_target_intent_mismatch',
+          orderId,
+          intentId,
+          expectedIntentId: candidateExpectedIntentId,
+          scope: candidate.scope,
+          orderPath: candidate.ref.path,
+          merchantOrderId: merchantOrderId || null,
+          organizationId: organizationId || null,
+          providerStatus: status || null,
+          observedAt: FieldValue.serverTimestamp(),
+        });
+        continue;
+      }
+
+      if (
+        paymentStatus === 'paid' &&
+        providerAmountCents !== null
+      ) {
+        const candidateExpectedAmountCents = getExpectedOrderTotalCents(candidate.order);
+        if (
+          candidateExpectedAmountCents !== null &&
+          candidateExpectedAmountCents !== providerAmountCents
+        ) {
+          logger.error("[P0-SEC-CANNPAY-WEBHOOK] Skipping update target due to amount mismatch", {
+            orderId,
+            scope: candidate.scope,
+            intentId,
+            expectedAmountCents: candidateExpectedAmountCents,
+            providerAmountCents,
+          });
+
+          await db.collection('payment_forensics').add({
+            provider: 'cannpay',
+            source: 'cannpay_webhook',
+            reason: 'update_target_amount_mismatch',
+            orderId,
+            intentId,
+            scope: candidate.scope,
+            orderPath: candidate.ref.path,
+            merchantOrderId: merchantOrderId || null,
+            organizationId: organizationId || null,
+            expectedAmountCents: candidateExpectedAmountCents,
+            providerAmountCents,
+            providerStatus: status || null,
+            observedAt: FieldValue.serverTimestamp(),
+          });
+          continue;
+        }
+      }
+
+      updateTargets.push(candidate.ref.set(updatePayload, { merge: true }));
+      const targetOrgId =
+        typeof candidate.order.brandId === 'string'
+          ? candidate.order.brandId
+          : typeof candidate.order.organizationId === 'string'
+            ? candidate.order.organizationId
+            : null;
+      if (targetOrgId) {
+        targetOrgIds.push(targetOrgId);
+      }
+    }
+
+    if (updateTargets.length === 0) {
+      logger.error("[P0-SEC-CANNPAY-WEBHOOK] No eligible order targets for update", {
+        orderId,
+        intentId,
+        status,
+      });
+      if (webhookLogRef) {
+        await webhookLogRef.set({
+          status: 'processed',
+          processedAt: FieldValue.serverTimestamp(),
+          warning: 'no_eligible_order_targets',
+          paymentStatus: nextPaymentStatus,
+          providerStatus: status || null,
+        }, { merge: true });
+      }
+      return NextResponse.json({ received: true, warning: 'No eligible order targets' });
+    }
+
     await Promise.all(updateTargets);
 
-    const eventOrgId = organizationId || topLevelSnap.data()?.brandId || orgOrderSnap?.data()?.brandId || null;
+    const eventOrgId =
+      organizationId ||
+      targetOrgIds[0] ||
+      topLevelOrder?.brandId ||
+      orgScopedOrder?.brandId ||
+      null;
 
     logger.info("[P0-SEC-CANNPAY-WEBHOOK] Order updated successfully", {
       orderId,
