@@ -50,6 +50,8 @@ const mockTransactionGet = jest.fn();
 const mockTransactionUpdate = jest.fn();
 const mockOrderGet = jest.fn();
 const mockOrderUpdate = jest.fn();
+const mockFallbackOrderUpdate = jest.fn();
+const mockCollectionGroupGet = jest.fn();
 const mockForensicsAdd = jest.fn();
 let paymentWebhookDocIds: string[] = [];
 
@@ -111,6 +113,8 @@ describe('POST /api/webhooks/aeropay amount guard', () => {
       }),
     });
     mockOrderUpdate.mockResolvedValue(undefined);
+    mockFallbackOrderUpdate.mockResolvedValue(undefined);
+    mockCollectionGroupGet.mockResolvedValue({ empty: true, docs: [] });
     mockForensicsAdd.mockResolvedValue(undefined);
 
     mockCreateServerClient.mockResolvedValue({
@@ -139,7 +143,9 @@ describe('POST /api/webhooks/aeropay amount guard', () => {
 
           if (name === 'orders') {
             return {
-              doc: jest.fn(() => ({
+              doc: jest.fn((docId?: string) => ({
+                id: String(docId || 'order-1'),
+                path: `orders/${String(docId || 'order-1')}`,
                 get: mockOrderGet,
                 update: mockOrderUpdate,
               })),
@@ -149,6 +155,19 @@ describe('POST /api/webhooks/aeropay amount guard', () => {
           if (name === 'payment_forensics') {
             return {
               add: mockForensicsAdd,
+            };
+          }
+
+          return {};
+        }),
+        collectionGroup: jest.fn((name: string) => {
+          if (name === 'orders') {
+            return {
+              where: jest.fn(() => ({
+                limit: jest.fn(() => ({
+                  get: mockCollectionGroupGet,
+                })),
+              })),
             };
           }
 
@@ -574,6 +593,66 @@ describe('POST /api/webhooks/aeropay amount guard', () => {
     }));
   });
 
+  it('falls back to organization-scoped order documents when top-level order is missing', async () => {
+    mockOrderGet.mockResolvedValueOnce({ exists: false });
+    mockCollectionGroupGet.mockResolvedValueOnce({
+      empty: false,
+      docs: [
+        {
+          id: 'order-1',
+          data: () => ({
+            totals: { total: 50 },
+            brandId: 'org_demo',
+          }),
+          ref: {
+            id: 'order-1',
+            path: 'organizations/org_demo/orders/order-1',
+            update: mockFallbackOrderUpdate,
+          },
+        },
+      ],
+    });
+
+    const webhookBody = JSON.stringify({
+      topic: 'transaction_completed',
+      date: '2026-02-28T12:00:00.000Z',
+      data: {
+        transactionId: 'tx_org_order_fallback',
+        userId: 'user_1',
+        merchantId: 'merchant_1',
+        amount: '5050',
+        status: 'completed',
+        merchantOrderId: 'order-1',
+        createdAt: '2026-02-28T12:00:00.000Z',
+      },
+    });
+
+    const signatureHex = crypto
+      .createHmac('sha256', 'aero-secret')
+      .update(webhookBody)
+      .digest('hex')
+      .toLowerCase();
+
+    const request = new NextRequest('http://localhost/api/webhooks/aeropay', {
+      method: 'POST',
+      body: webhookBody,
+      headers: {
+        'x-aeropay-signature': signatureHex,
+      },
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.received).toBe(true);
+    expect(mockFallbackOrderUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      paymentStatus: 'paid',
+      'aeropay.status': 'completed',
+    }));
+    expect(mockOrderUpdate).not.toHaveBeenCalled();
+  });
+
   it('persists forensic evidence for invalid webhook signatures', async () => {
     const webhookBody = JSON.stringify({
       topic: 'transaction_completed',
@@ -593,7 +672,7 @@ describe('POST /api/webhooks/aeropay amount guard', () => {
       method: 'POST',
       body: webhookBody,
       headers: {
-        'x-aeropay-signature': 'invalid-signature',
+        'x-aeropay-signature': 'f'.repeat(64),
       },
     });
 
@@ -606,6 +685,47 @@ describe('POST /api/webhooks/aeropay amount guard', () => {
       provider: 'aeropay',
       status: 'rejected_invalid_signature',
       rejectionReason: 'invalid_signature',
+      signaturePresent: true,
+    }), { merge: true });
+    expect(paymentWebhookDocIds.some((docId) => docId.startsWith('aeropay_reject_'))).toBe(true);
+    expect(mockPaymentWebhookCreate).not.toHaveBeenCalled();
+    expect(mockTransactionUpdate).not.toHaveBeenCalled();
+    expect(mockOrderUpdate).not.toHaveBeenCalled();
+    expect(mockEmitEvent).not.toHaveBeenCalled();
+  });
+
+  it('rejects malformed signature format and records forensic metadata', async () => {
+    const webhookBody = JSON.stringify({
+      topic: 'transaction_completed',
+      date: '2026-02-28T12:00:00.000Z',
+      data: {
+        transactionId: 'tx_invalid_sig_format',
+        userId: 'user_1',
+        merchantId: 'merchant_1',
+        amount: '5050',
+        status: 'completed',
+        merchantOrderId: 'order-1',
+        createdAt: '2026-02-28T12:00:00.000Z',
+      },
+    });
+
+    const request = new NextRequest('http://localhost/api/webhooks/aeropay', {
+      method: 'POST',
+      body: webhookBody,
+      headers: {
+        'x-aeropay-signature': 'not-a-hex-signature',
+      },
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toContain('Invalid webhook signature format');
+    expect(mockPaymentWebhookSet).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'aeropay',
+      status: 'rejected_invalid_signature_format',
+      rejectionReason: 'invalid_signature_format',
       signaturePresent: true,
     }), { merge: true });
     expect(paymentWebhookDocIds.some((docId) => docId.startsWith('aeropay_reject_'))).toBe(true);
