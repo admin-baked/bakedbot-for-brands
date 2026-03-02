@@ -1502,6 +1502,30 @@
                 { "fieldPath": "type", "order": "ASCENDING" },
                 { "fieldPath": "createdAt", "order": "DESCENDING" }
             ]
+        },
+        {
+            "collectionGroup": "email_leads",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "source", "order": "ASCENDING" },
+                { "fieldPath": "capturedAt", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "email_leads",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "state", "order": "ASCENDING" },
+                { "fieldPath": "capturedAt", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "email_leads",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "emailConsent", "order": "ASCENDING" },
+                { "fieldPath": "capturedAt", "order": "DESCENDING" }
+            ]
         }
     ],
     "fieldOverrides": []

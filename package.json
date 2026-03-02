@@ -53,7 +53,8 @@
     "check:compliance": "node scripts/check-compliance.mjs",
     "audit:consistency": "node scripts/audit-consistency.mjs",
     "setup:monitoring": "node scripts/setup-monitoring.mjs",
-    "audit:costs": "node scripts/audit-query-cost.mjs"
+    "audit:costs": "node scripts/audit-query-cost.mjs",
+    "provision:ny-outreach": "node scripts/provision-ny-outreach.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.0",
