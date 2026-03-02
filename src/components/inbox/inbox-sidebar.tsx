@@ -104,6 +104,11 @@ function getDefaultFavoritesForRole(role: string | null): string[] {
         return ['find-products', 'my-routines', 'get-help'];
     }
 
+    // Growers: focus on wholesale and B2B workflows
+    if (role === 'grower') {
+        return ['new-carousel', 'review-performance', 'market-intel'];
+    }
+
     // Default (brand/dispensary)
     return ['new-carousel', 'new-bundle', 'new-creative', 'new-campaign', 'review-performance', 'customer-blast'];
 }
@@ -382,6 +387,12 @@ function FilterButton({ collapsed }: { collapsed?: boolean }) {
         market_research: 'Market Research',
         // CRM
         crm_customer: 'CRM Customer',
+        // Grower
+        yield_analysis: 'Yield Analysis',
+        wholesale_inventory: 'Wholesale Inventory',
+        brand_outreach: 'Brand Outreach',
+        // Video
+        video: 'Video Content',
     };
 
     if (collapsed) {

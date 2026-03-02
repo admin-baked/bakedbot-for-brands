@@ -43,14 +43,14 @@ export function useDashboardConfig() {
         href: '/dashboard/inbox',
         icon: 'Inbox',
         description: 'Conversation-driven workspace for carousels, bundles, and content.',
-        roles: ['brand', 'dispensary', 'super_user', 'customer'],
+        roles: ['brand', 'dispensary', 'super_user', 'customer', 'grower'],
       },
       {
         label: 'Playbooks',
         href: '/dashboard/playbooks',
         icon: 'BookOpen',
         description: 'Manage automation playbooks and workflows.',
-        roles: ['brand', 'dispensary', 'super_user'],
+        roles: ['brand', 'dispensary', 'super_user', 'grower'],
       },
       {
         label: 'Template Health',
@@ -64,7 +64,7 @@ export function useDashboardConfig() {
         href: '/dashboard/projects',
         icon: 'FolderKanban',
         description: 'Organize chats with dedicated context and instructions.',
-        roles: ['brand', 'dispensary', 'super_user'],
+        roles: ['brand', 'dispensary', 'super_user', 'grower'],
       },
       {
         label: 'Agents',
@@ -79,7 +79,7 @@ export function useDashboardConfig() {
         href: '/dashboard/products',
         icon: 'Package',
         description: 'Manage your product catalog.',
-        roles: ['brand', 'super_user'],
+        roles: ['brand', 'super_user', 'grower'],
       },
       {
         label: 'Intelligence',
@@ -115,7 +115,7 @@ export function useDashboardConfig() {
         href: '/dashboard/competitive-intel',
         icon: 'Zap',
         description: 'Track competitor pricing, menus, and local market share.',
-        roles: ['brand', 'dispensary', 'super_user'],
+        roles: ['brand', 'dispensary', 'super_user', 'grower'],
       },
       {
         label: 'Distribution',
@@ -161,7 +161,7 @@ export function useDashboardConfig() {
         href: '/dashboard/dispensaries',
         icon: 'Store',
         description: 'Manage your dispensary partners.',
-        roles: ['brand', 'super_user'],
+        roles: ['brand', 'super_user', 'grower'],
       },
       {
         label: 'Promotions',
@@ -176,7 +176,7 @@ export function useDashboardConfig() {
         href: '/dashboard/apps',
         icon: 'LayoutGrid',
         description: 'Manage POS and marketing integrations.',
-        roles: ['brand', 'super_user', 'dispensary', 'customer'],
+        roles: ['brand', 'super_user', 'dispensary', 'customer', 'grower'],
       },
       // Shared Commerce & E-com
       {
@@ -184,7 +184,7 @@ export function useDashboardConfig() {
         href: '/dashboard/orders',
         icon: 'ShoppingCart',
         description: 'View and manage customer orders.',
-        roles: ['brand', 'dispensary', 'super_user'],
+        roles: ['brand', 'dispensary', 'super_user', 'grower'],
       },
       {
         label: 'Menu',
@@ -215,6 +215,7 @@ export function useDashboardConfig() {
         icon: 'Users',
         description: 'Manage your customer base.',
         roles: ['brand', 'dispensary', 'super_user'],
+        // Note: growers don't have customers in the traditional sense — they have buyers (dispensaries)
       },
       {
         label: 'Menu Bundles',
@@ -274,7 +275,7 @@ export function useDashboardConfig() {
         href: '/dashboard/research',
         icon: 'Globe',
         description: 'AI-powered comprehensive web research and analysis.',
-        roles: ['brand', 'dispensary', 'super_user'],
+        roles: ['brand', 'dispensary', 'super_user', 'grower'],
         badge: 'beta',
       },
       {
@@ -282,7 +283,7 @@ export function useDashboardConfig() {
         href: '/dashboard/settings',
         icon: 'Settings',
         description: 'Configure domains, embeds, and integrations.',
-        roles: ['brand', 'dispensary', 'super_user'],
+        roles: ['brand', 'dispensary', 'super_user', 'grower'],
       },
       // This is not a primary nav item but needed for the settings page to have a description
       {

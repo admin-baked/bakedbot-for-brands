@@ -1034,6 +1034,10 @@ export const THREAD_AGENT_MAPPING: Record<InboxThreadType, {
         primary: 'craig',
         supporting: ['deebo', 'ezal'],
     },
+    video: {
+        primary: 'craig',
+        supporting: ['deebo'],
+    },
     campaign: {
         primary: 'craig',  // Glenda restricted to super_user; Craig handles campaigns for business users
         supporting: ['money_mike', 'pops', 'deebo'],
@@ -1225,6 +1229,20 @@ export const THREAD_AGENT_MAPPING: Record<InboxThreadType, {
     crm_customer: {
         primary: 'mrs_parker',
         supporting: ['craig', 'money_mike', 'smokey'],
+    },
+
+    // Grower thread types
+    yield_analysis: {
+        primary: 'pops',
+        supporting: ['money_mike', 'ezal'],
+    },
+    wholesale_inventory: {
+        primary: 'money_mike',
+        supporting: ['smokey', 'day_day'],
+    },
+    brand_outreach: {
+        primary: 'craig',
+        supporting: ['deebo', 'money_mike'],
     },
 };
 
@@ -1521,6 +1539,7 @@ export function getThreadTypeIcon(type: InboxThreadType): string {
         hero: 'ImagePlus',
         bundle: 'PackagePlus',
         creative: 'Palette',
+        video: 'Video',
         campaign: 'Megaphone',
         qr_code: 'QrCode',
         blog: 'FileText',
@@ -1589,6 +1608,7 @@ export function getThreadTypeLabel(type: InboxThreadType): string {
         hero: 'Hero Banner',
         bundle: 'Bundle',
         creative: 'Creative',
+        video: 'Video',
         campaign: 'Campaign',
         qr_code: 'QR Code',
         blog: 'Blog Post',
@@ -1657,6 +1677,7 @@ export function getArtifactTypesForThreadType(type: InboxThreadType): InboxArtif
         hero: ['creative_content'],
         bundle: ['bundle'],
         creative: ['creative_content'],
+        video: ['creative_content'],
         campaign: ['carousel', 'bundle', 'creative_content'],
         qr_code: ['qr_code'],
         blog: ['blog_post'],

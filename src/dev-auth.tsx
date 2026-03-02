@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from 'react';
 
-export type DevUserRole = 'brand' | 'dispensary' | 'admin';
+export type DevUserRole = 'brand' | 'dispensary' | 'admin' | 'grower';
 
 export type DevUser = {
   id: string;
@@ -43,8 +43,10 @@ export function DevAuthProvider({ children }: { children: ReactNode }) {
             role === 'brand'
               ? 'Brand Owner (Dev)'
               : role === 'dispensary'
-              ? 'Dispensary Owner (Dev)'
-              : 'Admin (Dev)',
+                ? 'Dispensary Owner (Dev)'
+                : role === 'grower'
+                  ? 'Grower (Dev)'
+                  : 'Admin (Dev)',
           email: `${role}@dev.bakedbot.ai`,
         });
       },
