@@ -472,13 +472,15 @@ async function handleTransactionWebhook(
       return;
     }
 
-    const distinctOrderIds = new Set(fallbackMatches.docs.map((doc) => doc.id));
-    if (distinctOrderIds.size > 1) {
+    const matchedPaths = fallbackMatches.docs.map((doc) => doc.ref.path);
+    const distinctMatchedPaths = Array.from(new Set(matchedPaths));
+    const distinctOrderIds = Array.from(new Set(fallbackMatches.docs.map((doc) => doc.id)));
+    if (distinctMatchedPaths.length !== 1) {
       logger.error('[AEROPAY-WEBHOOK] Ambiguous order mapping for Aeropay transaction', {
         transactionId,
         orderIdFromTransaction: orderId,
-        matchedOrderIds: Array.from(distinctOrderIds),
-        matchedPaths: fallbackMatches.docs.map((doc) => doc.ref.path),
+        matchedOrderIds: distinctOrderIds,
+        matchedPaths: distinctMatchedPaths,
       });
 
       await db.collection('payment_forensics').add({
@@ -487,8 +489,8 @@ async function handleTransactionWebhook(
         reason: 'duplicate_transaction_mapping',
         transactionId,
         orderIdFromTransaction: orderId,
-        matchedOrderIds: Array.from(distinctOrderIds),
-        matchedPaths: fallbackMatches.docs.map((doc) => doc.ref.path),
+        matchedOrderIds: distinctOrderIds,
+        matchedPaths: distinctMatchedPaths,
         observedAt: FieldValue.serverTimestamp(),
       });
       return;

@@ -653,6 +653,88 @@ describe('POST /api/webhooks/aeropay amount guard', () => {
     expect(mockOrderUpdate).not.toHaveBeenCalled();
   });
 
+  it('blocks ambiguous organization-scoped fallback mappings', async () => {
+    mockOrderGet.mockResolvedValueOnce({ exists: false });
+    mockCollectionGroupGet.mockResolvedValueOnce({
+      empty: false,
+      docs: [
+        {
+          id: 'order-1',
+          data: () => ({
+            totals: { total: 50 },
+            brandId: 'org_alpha',
+          }),
+          ref: {
+            id: 'order-1',
+            path: 'organizations/org_alpha/orders/order-1',
+            update: mockFallbackOrderUpdate,
+          },
+        },
+        {
+          id: 'order-1',
+          data: () => ({
+            totals: { total: 50 },
+            brandId: 'org_beta',
+          }),
+          ref: {
+            id: 'order-1',
+            path: 'organizations/org_beta/orders/order-1',
+            update: mockFallbackOrderUpdate,
+          },
+        },
+      ],
+    });
+
+    const webhookBody = JSON.stringify({
+      topic: 'transaction_completed',
+      date: '2026-02-28T12:00:00.000Z',
+      data: {
+        transactionId: 'tx_ambiguous_fallback',
+        userId: 'user_1',
+        merchantId: 'merchant_1',
+        amount: '5050',
+        status: 'completed',
+        merchantOrderId: 'order-1',
+        createdAt: '2026-02-28T12:00:00.000Z',
+      },
+    });
+
+    const signatureHex = crypto
+      .createHmac('sha256', 'aero-secret')
+      .update(webhookBody)
+      .digest('hex')
+      .toLowerCase();
+
+    const request = new NextRequest('http://localhost/api/webhooks/aeropay', {
+      method: 'POST',
+      body: webhookBody,
+      headers: {
+        'x-aeropay-signature': signatureHex,
+      },
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.received).toBe(true);
+    expect(mockTransactionUpdate).not.toHaveBeenCalled();
+    expect(mockOrderUpdate).not.toHaveBeenCalled();
+    expect(mockFallbackOrderUpdate).not.toHaveBeenCalled();
+    expect(mockEmitEvent).not.toHaveBeenCalled();
+    expect(mockForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'aeropay',
+      source: 'aeropay_webhook',
+      reason: 'duplicate_transaction_mapping',
+      transactionId: 'tx_ambiguous_fallback',
+      matchedOrderIds: ['order-1'],
+      matchedPaths: expect.arrayContaining([
+        'organizations/org_alpha/orders/order-1',
+        'organizations/org_beta/orders/order-1',
+      ]),
+    }));
+  });
+
   it('persists forensic evidence for invalid webhook signatures', async () => {
     const webhookBody = JSON.stringify({
       topic: 'transaction_completed',
