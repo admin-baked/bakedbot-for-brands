@@ -651,6 +651,60 @@ export const POST = withProtection(
                     description: `Checkout order ${orderId}`,
                 };
 
+                try {
+                    const processingStartedAt = new Date().toISOString();
+                    await firestore.runTransaction(async (tx: FirebaseFirestore.Transaction) => {
+                        const latestOrderSnap = await tx.get(ownedOrderDoc.ref);
+                        if (!latestOrderSnap.exists) {
+                            throw new Error('ORDER_NOT_FOUND');
+                        }
+
+                        const latestOrder = (latestOrderSnap.data() || {}) as Record<string, any>;
+                        const latestPaymentStatus = String(latestOrder.paymentStatus || '').toLowerCase();
+                        const latestOrderStatus = String(latestOrder.status || '').toLowerCase();
+
+                        if (latestPaymentStatus === 'processing') {
+                            throw new Error('ORDER_ALREADY_PROCESSING');
+                        }
+                        if (isPaidLikeStatus(latestPaymentStatus) || isClosedOrderStatus(latestOrderStatus)) {
+                            throw new Error('ORDER_ALREADY_CLOSED');
+                        }
+
+                        tx.update(ownedOrderDoc.ref, {
+                            paymentStatus: 'processing',
+                            updatedAt: processingStartedAt,
+                            paymentProcessing: {
+                                startedAt: processingStartedAt,
+                                userId: sessionUid,
+                                method: 'credit_card',
+                            },
+                        });
+                    });
+                } catch (lockError: any) {
+                    if (lockError?.message === 'ORDER_ALREADY_PROCESSING') {
+                        return NextResponse.json(
+                            { success: false, error: 'Payment is already processing for this order' },
+                            { status: 409 },
+                        );
+                    }
+
+                    if (lockError?.message === 'ORDER_ALREADY_CLOSED') {
+                        return NextResponse.json(
+                            { success: false, error: 'Order has already been paid or closed' },
+                            { status: 409 },
+                        );
+                    }
+
+                    if (lockError?.message === 'ORDER_NOT_FOUND') {
+                        return NextResponse.json(
+                            { success: false, error: 'Order not found' },
+                            { status: 404 },
+                        );
+                    }
+
+                    throw lockError;
+                }
+
                 const result = await createTransaction(paymentRequest);
 
                 if (result.success) {
@@ -661,6 +715,7 @@ export const POST = withProtection(
                         paymentMethod: 'credit_card',
                         paymentStatus: 'paid',
                         paymentProvider: 'authorize_net',
+                        paymentProcessing: null,
                         updatedAt: new Date().toISOString(),
                     });
 
@@ -688,6 +743,7 @@ export const POST = withProtection(
                     userId: ownedOrder?.userId || sessionUid,
                     billingAddress: resolvedBilling,
                     paymentStatus: 'failed',
+                    paymentProcessing: null,
                     updatedAt: new Date().toISOString(),
                 });
 
