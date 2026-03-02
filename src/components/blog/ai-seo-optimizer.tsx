@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Sparkles, Loader2, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
-import { optimizeTitleForSEO, generateMetaDescription } from '@/server/services/blog-generator';
+import { optimizeTitleForSEOAction, generateMetaDescriptionAction } from '@/server/actions/blog';
 
 interface AISeoOptimizerProps {
     title: string;
@@ -116,10 +116,10 @@ export function AISeoOptimizer(props: AISeoOptimizerProps) {
         try {
             const [optimizedTitle, optimizedDesc] = await Promise.all([
                 props.keywords.length > 0
-                    ? optimizeTitleForSEO(props.title, props.keywords)
+                    ? optimizeTitleForSEOAction(props.title, props.keywords)
                     : Promise.resolve(props.seoTitle),
                 props.keywords.length > 0
-                    ? generateMetaDescription(props.excerpt || props.title, props.keywords)
+                    ? generateMetaDescriptionAction(props.excerpt || props.title, props.keywords)
                     : Promise.resolve(props.metaDescription),
             ]);
 

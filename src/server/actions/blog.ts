@@ -1387,3 +1387,29 @@ export async function suggestInternalLinks(postId: string): Promise<Array<{
         return [];
     }
 }
+
+// ============================================================================
+// SEO Actions (client-safe wrappers for blog-generator functions)
+// ============================================================================
+
+/**
+ * Optimize a blog post title for SEO (server action wrapper)
+ */
+export async function optimizeTitleForSEOAction(
+    title: string,
+    keywords: string[]
+): Promise<string> {
+    const { optimizeTitleForSEO } = await import('@/server/services/blog-generator');
+    return optimizeTitleForSEO(title, keywords);
+}
+
+/**
+ * Generate meta description from excerpt (server action wrapper)
+ */
+export async function generateMetaDescriptionAction(
+    excerpt: string,
+    keywords: string[]
+): Promise<string> {
+    const { generateMetaDescription } = await import('@/server/services/blog-generator');
+    return generateMetaDescription(excerpt, keywords);
+}
