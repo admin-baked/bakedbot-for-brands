@@ -332,4 +332,97 @@ describe('POST /api/billing/authorize-net checkout gate', () => {
         expect(response.status).toBe(409);
         expect(body.error).toContain('active subscription already exists');
     });
+
+    it('rejects paid checkout when another checkout lock is already in progress', async () => {
+        process.env.NEXT_PUBLIC_ENABLE_COMPANY_PLAN_CHECKOUT = 'true';
+        mockRequireUser.mockResolvedValue({
+            uid: 'user-1',
+            email: 'owner@example.com',
+            email_verified: true,
+        });
+
+        const subscriptionCurrentDoc = {
+            get: jest.fn().mockResolvedValue({
+                exists: true,
+                data: () => ({
+                    status: 'canceled',
+                    planId: 'pro',
+                }),
+            }),
+        };
+
+        const orgDocRef = {
+            get: jest.fn().mockResolvedValue({
+                exists: true,
+                data: () => ({ ownerId: 'user-1' }),
+            }),
+            collection: jest.fn((name: string) => {
+                if (name === 'subscription') {
+                    return {
+                        doc: jest.fn(() => subscriptionCurrentDoc),
+                    };
+                }
+                return {
+                    doc: jest.fn(() => ({
+                        set: jest.fn().mockResolvedValue(undefined),
+                    })),
+                };
+            }),
+        };
+
+        const firestore = {
+            runTransaction: jest.fn(async (handler: any) => {
+                const tx = {
+                    get: jest.fn(async () => ({
+                        exists: true,
+                        data: () => ({
+                            status: 'canceled',
+                            checkoutLock: {
+                                token: 'existing-lock-token',
+                                startedAt: new Date().toISOString(),
+                            },
+                        }),
+                    })),
+                    set: jest.fn(),
+                };
+                return handler(tx);
+            }),
+            collection: jest.fn((name: string) => {
+                if (name === 'organizations') {
+                    return {
+                        doc: jest.fn(() => orgDocRef),
+                    };
+                }
+                return {
+                    doc: jest.fn(() => ({
+                        get: jest.fn().mockResolvedValue({ exists: false, data: () => ({}) }),
+                    })),
+                };
+            }),
+        };
+        mockCreateServerClient.mockResolvedValueOnce({ firestore });
+
+        const request = {
+            json: async () => ({
+                organizationId: 'org_1',
+                planId: 'pro',
+                locationCount: 1,
+                customer: {
+                    fullName: 'Owner Example',
+                    email: 'owner@example.com',
+                    zip: '13224',
+                },
+                opaqueData: {
+                    dataDescriptor: 'COMMON.ACCEPT.INAPP.PAYMENT',
+                    dataValue: 'opaque-token',
+                },
+            }),
+        } as any;
+
+        const response = await POST(request);
+        const body = await response.json();
+
+        expect(response.status).toBe(409);
+        expect(body.error).toContain('already in progress');
+    });
 });
