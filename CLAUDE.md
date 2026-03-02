@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-03-02 (Content Engine 6-phase architecture: templates, hub/spoke, comparisons, reports, calendar; ai-seo-optimizer boundary fix)
+**Current Status:** 🟢 Passing | **Last update:** 2026-03-02 (NY outreach pipeline + CEO controls; double-slash URL fix; NL playbook detection expansion)
 
 ---
 
