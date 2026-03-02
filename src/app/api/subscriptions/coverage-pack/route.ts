@@ -55,6 +55,11 @@ const subscribeSchema = z.object({
     contactEmail: z.string().trim().email(),
 }).strict();
 
+function isActiveCoverageSubscriptionStatus(status: unknown): boolean {
+    const normalized = typeof status === 'string' ? status.toLowerCase() : '';
+    return normalized === 'active' || normalized === 'past_due' || normalized === 'trialing';
+}
+
 export async function POST(request: NextRequest) {
     try {
         if (!isCompanyPlanCheckoutEnabled()) {
@@ -110,6 +115,40 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        const firestore = getAdminFirestore();
+
+        // Idempotency/safety: avoid creating duplicate recurring subscriptions when clients retry.
+        const existingSubscriptionsSnap = await firestore
+            .collection('subscriptions')
+            .where('userId', '==', userId)
+            .limit(25)
+            .get();
+
+        const existingActiveSubscription = existingSubscriptionsSnap.docs.find((doc) => {
+            const data = doc.data() as Record<string, unknown>;
+            return (
+                data.packId === packId &&
+                data.billingPeriod === billingPeriod &&
+                isActiveCoverageSubscriptionStatus(data.status)
+            );
+        });
+
+        if (existingActiveSubscription) {
+            logger.info('Reusing existing active coverage pack subscription', {
+                userId,
+                packId,
+                billingPeriod,
+                subscriptionId: existingActiveSubscription.id,
+            });
+            return NextResponse.json({
+                success: true,
+                reused: true,
+                subscriptionId: existingActiveSubscription.id,
+                packId,
+                packName: pack.name,
+            });
+        }
+
         const authnetCredentials = getAuthNetCredentials();
         // Check Authorize.net credentials
         if (!authnetCredentials) {
@@ -120,8 +159,6 @@ export async function POST(request: NextRequest) {
             );
         }
         const apiEndpoint = getAuthNetEndpoint();
-
-        const firestore = getAdminFirestore();
 
         // Calculate amount (pack.price is in cents)
         // Annual = 10 months for price of 12 (discount)
@@ -268,13 +305,13 @@ export async function POST(request: NextRequest) {
         });
 
         // Update user's subscription
-        await firestore.collection('users').doc(userId).update({
+        await firestore.collection('users').doc(userId).set({
             'subscription.packId': packId,
             'subscription.tier': pack.id,
             'subscription.status': 'active',
             'subscription.subscriptionId': subscriptionRef.id,
             'subscription.updatedAt': now,
-        });
+        }, { merge: true });
 
         // Log event
         await firestore.collection('events').add({

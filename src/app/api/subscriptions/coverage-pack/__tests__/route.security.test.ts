@@ -151,6 +151,86 @@ describe('/api/subscriptions/coverage-pack security', () => {
         expect(mockGetAdminFirestore).not.toHaveBeenCalled();
     });
 
+    it('reuses an existing active coverage-pack subscription and skips gateway calls', async () => {
+        mockRequireUser.mockResolvedValue({
+            uid: 'user-1',
+            email: 'owner@example.com',
+        });
+
+        const mockSubscriptionsGet = jest.fn().mockResolvedValue({
+            docs: [
+                {
+                    id: 'sub-existing-1',
+                    data: () => ({
+                        userId: 'user-1',
+                        packId: 'starter',
+                        billingPeriod: 'monthly',
+                        status: 'active',
+                    }),
+                },
+            ],
+        });
+
+        const firestore = {
+            collection: jest.fn((name: string) => {
+                if (name === 'subscriptions') {
+                    return {
+                        where: jest.fn(() => ({
+                            limit: jest.fn(() => ({
+                                get: mockSubscriptionsGet,
+                            })),
+                        })),
+                    };
+                }
+                return {
+                    doc: jest.fn(() => ({
+                        set: jest.fn(),
+                        update: jest.fn(),
+                        get: jest.fn(),
+                    })),
+                    add: jest.fn(),
+                    where: jest.fn(() => ({
+                        limit: jest.fn(() => ({
+                            get: jest.fn().mockResolvedValue({ docs: [] }),
+                        })),
+                    })),
+                };
+            }),
+        };
+        mockGetAdminFirestore.mockReturnValue(firestore);
+
+        const originalFetch = global.fetch;
+        const fetchSpy = jest.fn();
+        (global as any).fetch = fetchSpy;
+
+        try {
+            const response = await POST({
+                json: async () => ({
+                    packId: 'starter',
+                    billingPeriod: 'monthly',
+                    opaqueData: {
+                        dataDescriptor: 'COMMON.ACCEPT.INAPP.PAYMENT',
+                        dataValue: 'opaque-token',
+                    },
+                    businessName: 'Test Biz',
+                    contactName: 'Owner Example',
+                    contactEmail: 'owner@example.com',
+                    zip: '13202',
+                }),
+            } as any);
+            const body = await response.json();
+
+            expect(response.status).toBe(200);
+            expect(body.success).toBe(true);
+            expect(body.reused).toBe(true);
+            expect(body.subscriptionId).toBe('sub-existing-1');
+            expect(fetchSpy).not.toHaveBeenCalled();
+            expect(mockSubscriptionsGet).toHaveBeenCalled();
+        } finally {
+            (global as any).fetch = originalFetch;
+        }
+    });
+
     it('requires authentication on GET', async () => {
         mockRequireUser.mockRejectedValue(new Error('Unauthorized'));
 
