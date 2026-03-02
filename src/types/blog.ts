@@ -29,6 +29,7 @@ export interface BlogPost {
   // Media
   featuredImage?: BlogMedia;
   contentImages: BlogMedia[];
+  videoEmbed?: BlogVideoEmbed;
 
   // Publishing
   status: BlogStatus;
@@ -37,6 +38,7 @@ export interface BlogPost {
 
   // Author
   author: BlogAuthor;
+  authorSlug?: string; // Links to blog_authors collection for rich profile
   createdBy: string; // userId or 'agent:craig'
 
   // SEO
@@ -130,6 +132,16 @@ export interface BlogMedia {
 }
 
 // ============================================================================
+// Video Embed Types
+// ============================================================================
+
+export interface BlogVideoEmbed {
+  platform: 'youtube' | 'vimeo';
+  videoId: string;
+  url: string;
+}
+
+// ============================================================================
 // Author Types
 // ============================================================================
 
@@ -139,6 +151,25 @@ export interface BlogAuthor {
   role?: string;
   avatar?: string;
   bio?: string;
+}
+
+/**
+ * Extended author profile for the platform blog (stored in blog_authors collection)
+ */
+export interface BlogAuthorProfile {
+  slug: string;       // URL-friendly (e.g., 'martez-smith')
+  name: string;
+  title: string;      // e.g., 'CEO & Co-Founder'
+  bio: string;
+  headshot?: string;  // Firebase Storage URL
+  socialLinks?: {
+    twitter?: string;
+    linkedin?: string;
+    instagram?: string;
+  };
+  userId: string;     // Firebase Auth UID
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 
 // ============================================================================

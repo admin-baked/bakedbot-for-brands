@@ -931,6 +931,182 @@ export async function generateBlogDraft(input: BlogGeneratorInput): Promise<Blog
 }
 
 // ============================================================================
+// Platform Blog (Public Reads — no auth required)
+// ============================================================================
+
+const PLATFORM_ORG_ID = 'org_bakedbot_platform';
+
+/**
+ * Get published platform blog posts (public-facing, no auth)
+ */
+export async function getPublishedPlatformPosts(
+    options: QueryOptions = {}
+): Promise<BlogPost[]> {
+    try {
+        const { firestore } = await createServerClient();
+
+        let query = firestore
+            .collection('tenants')
+            .doc(PLATFORM_ORG_ID)
+            .collection('blog_posts')
+            .where('status', '==', 'published')
+            .orderBy('publishedAt', 'desc') as any;
+
+        if (options.limit !== undefined) {
+            const safeLimit = clampInt(options.limit, 1, 100, 25);
+            query = query.limit(safeLimit);
+        }
+
+        if (options.offset !== undefined) {
+            const safeOffset = clampInt(options.offset, 0, 10000, 0);
+            query = query.offset(safeOffset);
+        }
+
+        const snapshot = await query.get();
+
+        return snapshot.docs.map((doc: any) => ({
+            id: doc.id,
+            ...doc.data()
+        })) as BlogPost[];
+    } catch (error) {
+        logger.error('[getPublishedPlatformPosts] Error fetching platform posts', { error });
+        return [];
+    }
+}
+
+/**
+ * Get a platform blog post by slug (public-facing, no auth)
+ */
+export async function getPlatformPostBySlug(slug: string): Promise<BlogPost | null> {
+    try {
+        const normalizedSlug = slug.trim().toLowerCase();
+        if (!SEO_SLUG_REGEX.test(normalizedSlug)) {
+            return null;
+        }
+
+        const { firestore } = await createServerClient();
+
+        const snapshot = await firestore
+            .collection('tenants')
+            .doc(PLATFORM_ORG_ID)
+            .collection('blog_posts')
+            .where('slug', '==', normalizedSlug)
+            .where('status', '==', 'published')
+            .limit(1)
+            .get();
+
+        if (snapshot.empty) {
+            return null;
+        }
+
+        const doc = snapshot.docs[0];
+        return { id: doc.id, ...doc.data() } as BlogPost;
+    } catch (error) {
+        logger.error('[getPlatformPostBySlug] Error fetching platform post by slug', { error, slug });
+        return null;
+    }
+}
+
+/**
+ * Get platform posts by category (public-facing, no auth)
+ */
+export async function getPlatformPostsByCategory(
+    category: BlogCategory,
+    options: QueryOptions = {}
+): Promise<BlogPost[]> {
+    try {
+        const { firestore } = await createServerClient();
+
+        let query = firestore
+            .collection('tenants')
+            .doc(PLATFORM_ORG_ID)
+            .collection('blog_posts')
+            .where('status', '==', 'published')
+            .where('category', '==', category)
+            .orderBy('publishedAt', 'desc') as any;
+
+        if (options.limit !== undefined) {
+            const safeLimit = clampInt(options.limit, 1, 100, 25);
+            query = query.limit(safeLimit);
+        }
+
+        const snapshot = await query.get();
+
+        return snapshot.docs.map((doc: any) => ({
+            id: doc.id,
+            ...doc.data()
+        })) as BlogPost[];
+    } catch (error) {
+        logger.error('[getPlatformPostsByCategory] Error', { error, category });
+        return [];
+    }
+}
+
+/**
+ * Get platform posts by tag (public-facing, no auth)
+ */
+export async function getPlatformPostsByTag(
+    tag: string,
+    options: QueryOptions = {}
+): Promise<BlogPost[]> {
+    try {
+        const normalizedTag = tag.trim();
+        if (!normalizedTag) return [];
+
+        const { firestore } = await createServerClient();
+
+        let query = firestore
+            .collection('tenants')
+            .doc(PLATFORM_ORG_ID)
+            .collection('blog_posts')
+            .where('status', '==', 'published')
+            .where('tags', 'array-contains', normalizedTag)
+            .orderBy('publishedAt', 'desc') as any;
+
+        if (options.limit !== undefined) {
+            const safeLimit = clampInt(options.limit, 1, 100, 25);
+            query = query.limit(safeLimit);
+        }
+
+        const snapshot = await query.get();
+
+        return snapshot.docs.map((doc: any) => ({
+            id: doc.id,
+            ...doc.data()
+        })) as BlogPost[];
+    } catch (error) {
+        logger.error('[getPlatformPostsByTag] Error', { error, tag });
+        return [];
+    }
+}
+
+/**
+ * Get related platform posts (same category, different post)
+ */
+export async function getRelatedPlatformPosts(postId: string, limit = 3): Promise<BlogPost[]> {
+    try {
+        assertValidDocumentId(postId, 'postId');
+        const { firestore } = await createServerClient();
+        const postDoc = await firestore
+            .collection('tenants')
+            .doc(PLATFORM_ORG_ID)
+            .collection('blog_posts')
+            .doc(postId)
+            .get();
+
+        if (!postDoc.exists) return [];
+        const postData = postDoc.data() as BlogPost;
+
+        const safeLimit = clampInt(limit, 1, 20, 3);
+        const related = await getPlatformPostsByCategory(postData.category, { limit: safeLimit + 1 });
+        return related.filter(p => p.id !== postId).slice(0, safeLimit);
+    } catch (error) {
+        logger.error('[getRelatedPlatformPosts] Error', { error, postId });
+        return [];
+    }
+}
+
+// ============================================================================
 // Compliance
 // ============================================================================
 
