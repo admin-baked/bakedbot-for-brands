@@ -74,6 +74,7 @@ export const CacheKeys = {
     aiSettings: (tenantId: string, userId?: string) => `ai-settings:${tenantId}:${userId || 'none'}`,
     agentConfig: (personaId: string, brandId: string) => `agent-config:${personaId}:${brandId}`,
     kbSearch: (agentId: string, query: string, orgId: string) => `kb:${agentId}:${orgId}:${query.substring(0, 50)}`,
+    lettaMemory: (agentId: string, query: string, orgId: string) => `letta:${agentId}:${orgId}:${query.substring(0, 50)}`,
 } as const;
 
 /**
@@ -84,4 +85,5 @@ export const CacheTTL = {
     AI_SETTINGS: 5 * 60,   // 5 minutes
     AGENT_CONFIG: 5 * 60,  // 5 minutes
     KB_SEARCH: 60,         // 1 minute (shorter for freshness)
+    LETTA_MEMORY: 2 * 60,  // 2 minutes (memory changes less frequently than KB)
 } as const;

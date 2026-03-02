@@ -178,9 +178,9 @@ export const AGENT_CAPABILITIES: AgentCapability[] = [
     {
         id: 'openclaw',
         name: 'OpenClaw',
-        specialty: 'Autonomous Task Execution',
-        keywords: ['whatsapp', 'send', 'message', 'email', 'automate', 'task', 'browse', 'research', 'execute', 'do', 'action', 'work'],
-        description: 'Autonomous AI agent that gets work done. Multi-channel communication (WhatsApp, Email), browser automation, web research, and task execution.',
+        specialty: 'WhatsApp & Task Automation',
+        keywords: ['whatsapp', 'task', 'remind', 'remember', 'form', 'fill'],
+        description: 'Autonomous task execution agent for WhatsApp messaging, task management, personal memory, and web form automation.',
         responseFormat: 'Action-oriented. Confirm task, execute, report results. No fluff.',
         roleRestrictions: ['guest', 'customer', 'dispensary', 'brand', 'intern'] // Super User only
     }
