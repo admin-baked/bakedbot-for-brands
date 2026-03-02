@@ -44,6 +44,10 @@ import {
     scheduleCampaignFromInbox,
     convertOutreachToPlaybook,
 } from '@/server/actions/campaign-inbox';
+import {
+    approveAndSendDraft,
+    rejectDraft,
+} from '@/server/actions/ny-outreach-dashboard';
 
 // ────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -142,6 +146,185 @@ function ComplianceBanner({
 }
 
 // ────────────────────────────────────────────────────────────────────────────
+// NY Outreach Draft Sub-Component (approve/reject single lead email)
+// ────────────────────────────────────────────────────────────────────────────
+
+function NYOutreachDraftCard({ artifact }: { artifact: InboxArtifact }) {
+    const data = artifact.data as OutreachDraftData;
+    const [status, setStatus] = useState<'idle' | 'approving' | 'rejecting' | 'sent' | 'rejected' | 'failed'>('idle');
+    const [errorMsg, setErrorMsg] = useState<string>();
+    const [bodyOpen, setBodyOpen] = useState(false);
+
+    const draftId = data.outreachDraftId!;
+
+    async function handleApprove() {
+        setStatus('approving');
+        setErrorMsg(undefined);
+        try {
+            const result = await approveAndSendDraft(draftId);
+            if (result.success) {
+                setStatus('sent');
+            } else {
+                setStatus('failed');
+                setErrorMsg(result.error || 'Send failed');
+            }
+        } catch (e) {
+            setStatus('failed');
+            setErrorMsg((e as Error).message);
+        }
+    }
+
+    async function handleReject() {
+        setStatus('rejecting');
+        setErrorMsg(undefined);
+        try {
+            const result = await rejectDraft(draftId);
+            if (result.success) {
+                setStatus('rejected');
+            } else {
+                setErrorMsg(result.error || 'Reject failed');
+            }
+        } catch (e) {
+            setErrorMsg((e as Error).message);
+            setStatus('idle');
+        }
+    }
+
+    if (status === 'sent') {
+        return (
+            <div className="flex items-center gap-3 px-4 py-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                <CheckCircle2 className="h-6 w-6 text-emerald-400 shrink-0" />
+                <div>
+                    <p className="font-semibold text-emerald-400">Email sent via Gmail!</p>
+                    <p className="text-sm text-muted-foreground">
+                        Sent to {data.outreachLeadName} ({data.outreachLeadEmail})
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
+    if (status === 'rejected') {
+        return (
+            <div className="flex items-center gap-3 px-4 py-4 rounded-lg bg-muted border">
+                <XCircle className="h-6 w-6 text-muted-foreground shrink-0" />
+                <div>
+                    <p className="font-semibold text-muted-foreground">Draft rejected</p>
+                    <p className="text-sm text-muted-foreground">
+                        {data.outreachLeadName} — will not be contacted
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-3">
+            {/* Header */}
+            <div className="flex items-center gap-2">
+                <Mail className="h-5 w-5 text-primary" />
+                <h3 className="font-semibold text-base">NY Outreach Draft</h3>
+                {data.outreachTemplateId && (
+                    <Badge variant="outline" className="ml-auto text-xs">
+                        {data.outreachTemplateId.replace(/-/g, ' ')}
+                    </Badge>
+                )}
+            </div>
+
+            {/* Recipient info */}
+            <div className="rounded-md border px-3 py-2 bg-muted/50">
+                <p className="text-sm font-medium">{data.outreachLeadName}</p>
+                <p className="text-xs text-muted-foreground">{data.outreachLeadEmail}</p>
+                {data.outreachEmailVerified !== undefined && (
+                    <Badge variant="outline" className={cn(
+                        'mt-1 text-xs',
+                        data.outreachEmailVerified
+                            ? 'border-green-300 text-green-700'
+                            : 'border-amber-300 text-amber-700'
+                    )}>
+                        {data.outreachEmailVerified ? 'Email verified' : 'Email unverified'}
+                    </Badge>
+                )}
+            </div>
+
+            {/* Subject */}
+            {data.subject && (
+                <div className="px-3 py-2 rounded-md bg-muted text-sm">
+                    <span className="text-muted-foreground text-xs uppercase tracking-wide font-medium">Subject: </span>
+                    {data.subject}
+                </div>
+            )}
+
+            {/* Body preview */}
+            <Collapsible open={bodyOpen} onOpenChange={setBodyOpen}>
+                <CollapsibleTrigger asChild>
+                    <button className="flex w-full items-center justify-between px-3 py-2 rounded-md bg-muted text-sm hover:bg-muted/80 transition-colors">
+                        <span className="text-muted-foreground text-xs uppercase tracking-wide font-medium">
+                            Email body
+                        </span>
+                        {bodyOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                    {data.htmlBody ? (
+                        <div
+                            className="mt-1 px-3 py-2 rounded-md bg-muted/50 text-sm max-h-60 overflow-y-auto prose prose-sm"
+                            dangerouslySetInnerHTML={{ __html: data.htmlBody }}
+                        />
+                    ) : (
+                        <div className="mt-1 px-3 py-2 rounded-md bg-muted/50 text-sm whitespace-pre-wrap text-muted-foreground max-h-60 overflow-y-auto">
+                            {data.body}
+                        </div>
+                    )}
+                </CollapsibleContent>
+            </Collapsible>
+
+            {/* Error */}
+            {errorMsg && (
+                <p className="text-sm text-destructive">{errorMsg}</p>
+            )}
+
+            {/* Action buttons */}
+            {(status === 'idle' || status === 'failed') && (
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                    <Button
+                        className="gap-1.5 text-xs h-9 bg-green-600 hover:bg-green-700"
+                        onClick={handleApprove}
+                        disabled={status !== 'idle' && status !== 'failed'}
+                    >
+                        <Send className="h-3.5 w-3.5" />
+                        Approve &amp; Send
+                    </Button>
+                    <Button
+                        variant="outline"
+                        className="gap-1.5 text-xs h-9 text-red-600 border-red-200 hover:bg-red-50"
+                        onClick={handleReject}
+                        disabled={status !== 'idle' && status !== 'failed'}
+                    >
+                        <XCircle className="h-3.5 w-3.5" />
+                        Reject
+                    </Button>
+                </div>
+            )}
+
+            {/* Loading states */}
+            {status === 'approving' && (
+                <div className="flex items-center justify-center gap-2 py-4 text-muted-foreground text-sm">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Sending via Gmail…
+                </div>
+            )}
+            {status === 'rejecting' && (
+                <div className="flex items-center justify-center gap-2 py-4 text-muted-foreground text-sm">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Rejecting…
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 // Main Component
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -154,6 +337,11 @@ type ActionMode = 'idle' | 'schedule' | 'playbook';
 export function OutreachDraftCard({ artifact }: OutreachDraftCardProps) {
     const router = useRouter();
     const data = artifact.data as OutreachDraftData;
+
+    // If this is an NY outreach draft (linked to ny_outreach_drafts), render specialized UI
+    if (data.outreachDraftId) {
+        return <NYOutreachDraftCard artifact={artifact} />;
+    }
 
     // ── Local UI state ───────────────────────────────────────────────────────
     const [mode, setMode] = useState<ActionMode>('idle');
