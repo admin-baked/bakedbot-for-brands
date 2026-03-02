@@ -84,18 +84,23 @@ export default async function BlogIndexPage() {
                                 >
                                     <article className="h-full border rounded-lg overflow-hidden hover:shadow-lg transition-all hover:scale-[1.02]">
                                         {post.featuredImage && (
-                                            <div className="aspect-video overflow-hidden">
+                                            <figure className="aspect-video overflow-hidden">
                                                 <img
                                                     src={post.featuredImage.url}
                                                     alt={post.featuredImage.alt}
                                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                    width={600}
+                                                    height={338}
+                                                    loading="lazy"
                                                 />
-                                            </div>
+                                            </figure>
                                         )}
                                         <div className="p-5">
-                                            <Badge variant="secondary" className="text-xs mb-3">
-                                                {BLOG_CATEGORY_META[post.category]?.label || post.category}
-                                            </Badge>
+                                            <Link href={`/blog/category/${post.category}`} onClick={(e) => e.stopPropagation()}>
+                                                <Badge variant="secondary" className="text-xs mb-3 hover:bg-primary hover:text-primary-foreground transition-colors">
+                                                    {BLOG_CATEGORY_META[post.category]?.label || post.category}
+                                                </Badge>
+                                            </Link>
                                             <h2 className="text-xl font-semibold mb-2 line-clamp-2 group-hover:text-primary transition-colors">
                                                 {post.title}
                                             </h2>

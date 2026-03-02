@@ -1,0 +1,48 @@
+{
+  "dispensaries": [
+    {
+      "name": "GreenLeaf Wellness NYC",
+      "slug": "greenleaf-nyc",
+      "email": "martez@bakedbot.ai",
+      "city": "New York",
+      "state": "NY",
+      "zip": "10001",
+      "posSystem": "none",
+      "promoCode": "NYFOUNDINGPARTNER",
+      "planId": "scout"
+    },
+    {
+      "name": "Empire State Cannabis",
+      "slug": "empire-state-cannabis",
+      "email": "martez@bakedbot.ai",
+      "city": "Brooklyn",
+      "state": "NY",
+      "zip": "11201",
+      "posSystem": "none",
+      "promoCode": "NYFOUNDINGPARTNER",
+      "planId": "scout"
+    },
+    {
+      "name": "Hudson Valley Dispensary",
+      "slug": "hudson-valley-dispensary",
+      "email": "martez@bakedbot.ai",
+      "city": "Albany",
+      "state": "NY",
+      "zip": "12207",
+      "posSystem": "alleaves",
+      "promoCode": "NYFOUNDINGPARTNER",
+      "planId": "scout"
+    },
+    {
+      "name": "Buffalo Greens",
+      "slug": "buffalo-greens",
+      "email": "martez@bakedbot.ai",
+      "city": "Buffalo",
+      "state": "NY",
+      "zip": "14201",
+      "posSystem": "none",
+      "promoCode": "NYFOUNDINGPARTNER",
+      "planId": "scout"
+    }
+  ]
+}

@@ -16,19 +16,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { getAdminFirestore } from '@/firebase/admin';
 import { requireCronSecret } from '@/server/auth/cron';
-import { postMorningBriefingToInbox } from '@/server/services/morning-briefing';
+import { postMorningBriefingToInbox, generateMorningBriefing } from '@/server/services/morning-briefing';
+import { sendGenericEmail } from '@/lib/email/dispatcher';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * Collect unique orgIds from active dispensary/brand admin users.
+ * Collect unique orgIds from active dispensary/brand admin AND super_user users.
  * Returns at most 50 distinct orgIds (rate-limit safety).
  */
 async function getActiveOrgIds(): Promise<string[]> {
     const db = getAdminFirestore();
     const orgIds = new Set<string>();
 
-    for (const role of ['dispensary_admin', 'brand_admin']) {
+    for (const role of ['dispensary_admin', 'brand_admin', 'super_user']) {
         try {
             const snap = await db
                 .collection('users')
@@ -42,6 +43,13 @@ async function getActiveOrgIds(): Promise<string[]> {
                 if (orgId && typeof orgId === 'string') {
                     orgIds.add(orgId);
                 }
+                // For super users, also check orgMemberships for all their orgs
+                if (role === 'super_user' && data.orgMemberships) {
+                    for (const memberOrgId of Object.keys(data.orgMemberships)) {
+                        orgIds.add(memberOrgId);
+                        if (orgIds.size >= 50) break;
+                    }
+                }
                 if (orgIds.size >= 50) break;
             }
         } catch (err) {
@@ -54,6 +62,35 @@ async function getActiveOrgIds(): Promise<string[]> {
     }
 
     return Array.from(orgIds);
+}
+
+/**
+ * Collect email addresses for super users who should receive briefing emails.
+ */
+async function getSuperUserEmails(): Promise<string[]> {
+    const db = getAdminFirestore();
+    const emails: string[] = [];
+
+    try {
+        const snap = await db
+            .collection('users')
+            .where('role', '==', 'super_user')
+            .where('status', '==', 'active')
+            .limit(10)
+            .get();
+        for (const doc of snap.docs) {
+            const data = doc.data();
+            if (data.email && typeof data.email === 'string') {
+                emails.push(data.email);
+            }
+        }
+    } catch (err) {
+        logger.warn('[MorningBriefingCron] Failed to fetch super user emails', {
+            error: String(err),
+        });
+    }
+
+    return emails;
 }
 
 /**
@@ -105,6 +142,79 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         }
 
         const { success, failed } = await processBatch(orgIds);
+
+        // Send email summary to super users (non-blocking)
+        try {
+            const superUserEmails = await getSuperUserEmails();
+            if (superUserEmails.length > 0 && success.length > 0) {
+                // Generate a summary briefing from the first successful org for the email
+                const sampleBriefing = await generateMorningBriefing(success[0]);
+                const metricsHtml = sampleBriefing.metrics
+                    .map(m => {
+                        const trendIcon = m.trend === 'up' ? '&#9650;' : m.trend === 'down' ? '&#9660;' : '&#8212;';
+                        const statusColor = m.status === 'critical' ? '#dc2626' : m.status === 'warning' ? '#f59e0b' : '#16a34a';
+                        return `<tr>
+                            <td style="padding:8px;border-bottom:1px solid #e5e7eb;font-weight:600;">${m.title}</td>
+                            <td style="padding:8px;border-bottom:1px solid #e5e7eb;color:${statusColor}">${m.value}</td>
+                            <td style="padding:8px;border-bottom:1px solid #e5e7eb;">${trendIcon} ${m.vsLabel || ''}</td>
+                        </tr>`;
+                    })
+                    .join('');
+
+                const newsHtml = sampleBriefing.newsItems.length > 0
+                    ? sampleBriefing.newsItems.map(n =>
+                        `<li><a href="${n.url}" style="color:#2563eb;">${n.headline}</a> — ${n.source}</li>`
+                    ).join('')
+                    : '<li>No cannabis news today</li>';
+
+                const htmlBody = `
+                    <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
+                        <h2 style="color:#16a34a;">&#128202; ${sampleBriefing.dayOfWeek}'s Briefing</h2>
+                        ${sampleBriefing.topAlert ? `<div style="background:#fef3c7;border-left:4px solid #f59e0b;padding:12px;margin-bottom:16px;border-radius:4px;">${sampleBriefing.topAlert}</div>` : ''}
+                        <p style="color:#6b7280;font-size:14px;">Market: ${sampleBriefing.marketContext} | Orgs processed: ${success.length}</p>
+                        <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+                            <thead><tr style="background:#f3f4f6;">
+                                <th style="padding:8px;text-align:left;">Metric</th>
+                                <th style="padding:8px;text-align:left;">Value</th>
+                                <th style="padding:8px;text-align:left;">Trend</th>
+                            </tr></thead>
+                            <tbody>${metricsHtml}</tbody>
+                        </table>
+                        <h3 style="color:#374151;">Industry News</h3>
+                        <ul style="padding-left:20px;">${newsHtml}</ul>
+                        <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;" />
+                        <p style="color:#9ca3af;font-size:12px;">
+                            <a href="https://bakedbot.ai/dashboard/ceo?tab=ny-pilot" style="color:#2563eb;">View NY10 Pilot Dashboard</a> |
+                            <a href="https://bakedbot.ai/dashboard/inbox" style="color:#2563eb;">Open Inbox</a>
+                        </p>
+                    </div>
+                `;
+
+                for (const email of superUserEmails) {
+                    sendGenericEmail({
+                        to: email,
+                        subject: `${sampleBriefing.dayOfWeek}'s Briefing — ${sampleBriefing.urgencyLevel === 'clean' ? 'All Clear' : sampleBriefing.urgencyLevel.toUpperCase()}`,
+                        htmlBody,
+                        fromName: 'BakedBot Daily Briefing',
+                        communicationType: 'transactional',
+                        agentName: 'pops',
+                    }).catch(err => {
+                        logger.warn('[MorningBriefingCron] Failed to send email', {
+                            email,
+                            error: String(err),
+                        });
+                    });
+                }
+
+                logger.info('[MorningBriefingCron] Sent email briefings', {
+                    recipients: superUserEmails.length,
+                });
+            }
+        } catch (emailErr) {
+            logger.warn('[MorningBriefingCron] Email delivery failed (non-fatal)', {
+                error: String(emailErr),
+            });
+        }
 
         logger.info('[MorningBriefingCron] Completed', {
             orgsProcessed: success.length,
