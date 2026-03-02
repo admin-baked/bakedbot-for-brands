@@ -56,17 +56,26 @@ function baseInput() {
 describe('createSubscription auth + address hardening', () => {
     let createSubscription: typeof import('../createSubscription').createSubscription;
     const originalEnv = process.env;
+    let activeSubscriptionDocs: Array<{ id: string; data: () => Record<string, unknown> }>;
 
     beforeEach(async () => {
         jest.clearAllMocks();
         process.env = { ...originalEnv };
         process.env.LOCAL_CHECKOUT_USE_FIREBASE = 'true';
         process.env.AUTHNET_FORCE_MOCK = 'true';
+        activeSubscriptionDocs = [];
 
         const firestore = {
             collection: jest.fn((name: string) => {
                 if (name === 'subscriptions') {
                     return {
+                        where: jest.fn(() => ({
+                            limit: jest.fn(() => ({
+                                get: jest.fn().mockResolvedValue({
+                                    docs: activeSubscriptionDocs,
+                                }),
+                            })),
+                        })),
                         doc: jest.fn(() => ({
                             id: 'sub-1',
                             set: mockSubscriptionSet,
@@ -236,5 +245,41 @@ describe('createSubscription auth + address hardening', () => {
             providerSubscriptionId: 'arb_1',
             transactionId: 'arb_1',
         }));
+    });
+
+    it('reuses existing active subscription for the same plan', async () => {
+        mockRequireUser.mockResolvedValue({
+            uid: 'user-1',
+            email: 'owner@example.com',
+        });
+        activeSubscriptionDocs = [
+            {
+                id: 'sub-existing-1',
+                data: () => ({
+                    planId: 'pro',
+                    status: 'active',
+                }),
+            },
+        ];
+
+        const input = {
+            ...baseInput(),
+            billingAddress: {
+                street: '1 Main St',
+                city: 'Syracuse',
+                state: 'NY',
+                zip: '13224',
+                country: 'US',
+            },
+        };
+
+        const result = await createSubscription(input as any);
+
+        expect(result.success).toBe(true);
+        expect(result.subscriptionId).toBe('sub-existing-1');
+        expect((result as any).reused).toBe(true);
+        expect(mockCreateCustomerProfile).not.toHaveBeenCalled();
+        expect(mockCreateSubscriptionFromProfile).not.toHaveBeenCalled();
+        expect(mockSubscriptionSet).not.toHaveBeenCalled();
     });
 });
