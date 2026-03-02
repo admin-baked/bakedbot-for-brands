@@ -12,3 +12,4 @@ export { saveResearchedLeads, getLeadsForSpreadsheet, syncToDriverSpreadsheet } 
 export type { OutreachLead, OutreachResult } from './outreach-service';
 export type { OutreachEmailData, OutreachEmail } from './email-templates';
 export type { ResearchedLead } from './lead-research';
+export { researchNewLeads } from './contact-research';

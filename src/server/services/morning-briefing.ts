@@ -18,6 +18,7 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import { getMarketBenchmarks } from '@/server/services/market-benchmarks';
 import { getDispensaryGreenLedgerSummary } from '@/server/services/greenledger';
+import { getOutreachStats } from '@/server/services/ny-outreach/outreach-service';
 import { jinaSearch } from '@/server/tools/jina-tools';
 import type { AnalyticsBriefing, BriefingMetric, BriefingNewsItem } from '@/types/inbox';
 import {
@@ -148,12 +149,19 @@ interface GreenLedgerSummaryRow {
     avgDiscountPct: number;
 }
 
+interface OutreachStatsRow {
+    totalSent: number;
+    totalFailed: number;
+    totalBadEmails: number;
+}
+
 function buildMetrics(
     yesterdayOrders: OrderRow[],
     last7Orders: OrderRow[],
     products: ProductRow[],
     benchmarks: Awaited<ReturnType<typeof getMarketBenchmarks>>,
     greenledger?: GreenLedgerSummaryRow | null,
+    outreachStats?: OutreachStatsRow | null,
 ): BriefingMetric[] {
     const metrics: BriefingMetric[] = [];
 
@@ -270,18 +278,34 @@ function buildMetrics(
         });
     }
 
+    // 7. NY Outreach Pipeline (super user only — shown when stats exist)
+    if (outreachStats && (outreachStats.totalSent > 0 || outreachStats.totalFailed > 0)) {
+        const hasFailures = outreachStats.totalFailed > 0 || outreachStats.totalBadEmails > 0;
+        metrics.push({
+            title: 'NY Outreach (24h)',
+            value: `${outreachStats.totalSent} sent`,
+            trend: outreachStats.totalSent > 0 ? 'up' : 'flat',
+            vsLabel: `${outreachStats.totalBadEmails} bad emails · ${outreachStats.totalFailed} failed`,
+            status: hasFailures ? 'warning' : 'good',
+            actionable: hasFailures
+                ? 'Check outreach digest for delivery issues'
+                : undefined,
+        });
+    }
+
     return metrics;
 }
 
 // ============ Core generation function ============
 
 export async function generateMorningBriefing(orgId: string): Promise<AnalyticsBriefing> {
-    const [benchmarks, products, yesterdayOrders, last7Orders, greenledgerSummary] = await Promise.allSettled([
+    const [benchmarks, products, yesterdayOrders, last7Orders, greenledgerSummary, outreachStatsResult] = await Promise.allSettled([
         getMarketBenchmarks(orgId),
         loadOrgProducts(orgId),
         loadYesterdayOrders(orgId),
         loadLast7DaysOrders(orgId),
         getDispensaryGreenLedgerSummary(orgId),
+        getOutreachStats(Date.now() - 24 * 60 * 60 * 1000),
     ]);
 
     const bm = benchmarks.status === 'fulfilled' ? benchmarks.value : await getMarketBenchmarks('');
@@ -289,9 +313,10 @@ export async function generateMorningBriefing(orgId: string): Promise<AnalyticsB
     const yesterdayOrds = yesterdayOrders.status === 'fulfilled' ? yesterdayOrders.value : [];
     const last7Ords = last7Orders.status === 'fulfilled' ? last7Orders.value : [];
     const glSummary = greenledgerSummary.status === 'fulfilled' ? greenledgerSummary.value : null;
+    const outreachStats = outreachStatsResult.status === 'fulfilled' ? outreachStatsResult.value : null;
 
     // Build metrics
-    const metrics = buildMetrics(yesterdayOrds, last7Ords, prods, bm, glSummary);
+    const metrics = buildMetrics(yesterdayOrds, last7Ords, prods, bm, glSummary, outreachStats);
 
     // Fetch cannabis news (top 3, non-blocking)
     let newsItems: BriefingNewsItem[] = [];
