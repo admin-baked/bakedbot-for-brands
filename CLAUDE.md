@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-03-02 (NY outreach pipeline + CEO controls; double-slash URL fix; NL playbook detection expansion)
+**Current Status:** 🟢 Passing | **Last update:** 2026-03-02 (Claude Code orchestration layer: 5 commands + justfile; createClaimSubscription role normalization)
 
 ---
 
