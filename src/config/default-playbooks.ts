@@ -2725,6 +2725,94 @@ steps:
     updatedAt: new Date(),
     createdBy: 'system',
     orgId: 'system'
+  },
+
+  // NY Dispensary Outreach Playbook
+  {
+    name: 'NY Dispensary Outreach',
+    description: 'Daily outreach to NY dispensaries: research 10 leads, verify emails via QuickEmailVerification, send personalized outreach from Martez (Founder), log results to Drive spreadsheet, and send twice-daily digest.',
+    status: 'active',
+    yaml: `name: NY Dispensary Outreach
+description: Automated outreach to NY dispensaries for BakedBot expansion
+
+triggers:
+  - type: schedule
+    cron: "0 8 * * 1-5"  # Weekdays at 8 AM EST
+  - type: manual
+
+steps:
+  - action: delegate
+    agent: ezal
+    task: Research 10 new NY dispensary leads from OCM registry, Google Maps, and cannabis directories
+    label: Research New Leads
+
+  - action: delegate
+    agent: ezal
+    task: For each lead, find contact email and check for "Contact Us" form on website
+    label: Find Contact Info
+
+  - action: email.verify
+    params:
+      provider: quickemailverification
+    label: Verify Emails
+
+  - action: email.send
+    params:
+      from: martez@bakedbot.ai
+      fromName: "Martez — BakedBot AI"
+      template: competitive-report
+      personalizeWith: ezal.competitive_data
+    label: Send Outreach Email
+
+  - action: delegate
+    agent: ezal
+    task: Submit outreach via contact form for dispensaries without email
+    label: Submit Contact Forms
+
+  - action: delegate
+    agent: pops
+    task: Log all results (sent, failed, bad emails) to NY Outreach spreadsheet on Drive
+    label: Log to Spreadsheet
+
+  - action: notify
+    channels:
+      - email
+    to: martez@bakedbot.ai
+    subject: "NY Outreach Daily Summary"
+    body: |
+      Today's outreach results:
+      - Leads researched: {{pops.leads_researched}}
+      - Emails verified: {{pops.emails_verified}}
+      - Emails sent: {{pops.emails_sent}}
+      - Bad emails: {{pops.bad_emails}}
+      - Contact forms submitted: {{pops.forms_submitted}}
+`,
+    triggers: [
+      { id: 'trigger-outreach-daily', type: 'schedule', name: 'Weekday Morning', config: { cron: '0 8 * * 1-5', timezone: 'America/New_York' }, enabled: true },
+      { id: 'trigger-outreach-manual', type: 'manual', name: 'Manual Run', enabled: true },
+    ],
+    steps: [
+      { id: 'step-research', action: 'delegate', params: { agent: 'ezal', task: 'Research 10 new NY dispensary leads' }, label: 'Research New Leads', retryOnFailure: true, maxRetries: 2 },
+      { id: 'step-find-contact', action: 'delegate', params: { agent: 'ezal', task: 'Find contact emails and contact forms' }, label: 'Find Contact Info', retryOnFailure: true },
+      { id: 'step-verify', action: 'email.verify', params: { provider: 'quickemailverification' }, label: 'Verify Emails' },
+      { id: 'step-send', action: 'email.send', params: { from: 'martez@bakedbot.ai', fromName: 'Martez — BakedBot AI', template: 'competitive-report' }, label: 'Send Outreach Email' },
+      { id: 'step-forms', action: 'delegate', params: { agent: 'ezal', task: 'Submit contact forms' }, label: 'Submit Contact Forms', retryOnFailure: true },
+      { id: 'step-log', action: 'delegate', params: { agent: 'pops', task: 'Log results to Drive spreadsheet' }, label: 'Log to Spreadsheet' },
+      { id: 'step-notify', action: 'notify', params: { channels: ['email'], to: 'martez@bakedbot.ai' }, label: 'Send Summary' },
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1,
+    agent: 'ezal',
+    category: 'growth',
+    ownerId: 'system',
+    isCustom: false,
+    requiresApproval: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    createdBy: 'system',
+    orgId: 'system'
   }
 ];
 

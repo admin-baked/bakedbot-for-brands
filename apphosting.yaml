@@ -415,6 +415,14 @@ env:
     secret: ECOMMERCE_WEBHOOK_SECRET@1
     availability:
       - RUNTIME
+  # QuickEmailVerification — Email verification for outreach campaigns (2026-03-02)
+  # Setup:
+  #   echo -n "API_KEY_HERE" | gcloud secrets create QUICKEMAILVERIFICATION_API_KEY --data-file=- --project=studio-567050101-bc6e8
+  #   firebase apphosting:secrets:grantaccess QUICKEMAILVERIFICATION_API_KEY --backend=bakedbot-prod
+  - variable: QUICKEMAILVERIFICATION_API_KEY
+    secret: QUICKEMAILVERIFICATION_API_KEY@1
+    availability:
+      - RUNTIME
 
 runConfig:
   minInstances: 0
