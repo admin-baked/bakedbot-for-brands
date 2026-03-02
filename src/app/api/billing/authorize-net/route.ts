@@ -11,6 +11,7 @@ import { isCompanyPlanCheckoutEnabled } from '@/lib/feature-flags';
 
 const DOCUMENT_ID_REGEX = /^[A-Za-z0-9_-]{1,128}$/;
 const ACTIVE_SUBSCRIPTION_STATUSES = new Set(['active', 'trialing', 'past_due']);
+const CHECKOUT_LOCK_WINDOW_MS = 10 * 60 * 1000;
 
 const subscribeBodySchema = z.object({
   organizationId: z.string().trim().min(1),
@@ -86,6 +87,52 @@ function isValidDocumentId(value: unknown): value is string {
   return typeof value === 'string' && DOCUMENT_ID_REGEX.test(value);
 }
 
+function toMillis(value: unknown): number | null {
+  if (!value) return null;
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const parsed = Date.parse(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  if (typeof value === 'object' && value !== null) {
+    const maybeTimestamp = value as { toMillis?: () => number; seconds?: number };
+    if (typeof maybeTimestamp.toMillis === 'function') {
+      const parsed = maybeTimestamp.toMillis();
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+    if (typeof maybeTimestamp.seconds === 'number') {
+      return Math.round(maybeTimestamp.seconds * 1000);
+    }
+  }
+  return null;
+}
+
+async function releaseCheckoutLock(
+  db: FirebaseFirestore.Firestore,
+  subscriptionRef: FirebaseFirestore.DocumentReference,
+  lockToken: string,
+) {
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(subscriptionRef);
+    if (!snap.exists) return;
+
+    const data = snap.data() || {};
+    const activeToken = typeof (data as any)?.checkoutLock?.token === 'string'
+      ? (data as any).checkoutLock.token
+      : '';
+    if (activeToken !== lockToken) return;
+
+    tx.set(
+      subscriptionRef,
+      {
+        checkoutLock: null,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+  });
+}
+
 function getAuthNetBaseUrl() {
   const env = (process.env.AUTHNET_ENV || "sandbox").toLowerCase();
   return env === "production"
@@ -100,8 +147,10 @@ function getAuthNetBaseUrl() {
  * SECURITY: Requires authentication and org admin access.
  */
 export async function POST(req: NextRequest) {
-  let db: FirebaseFirestore.Firestore;
+  let db!: FirebaseFirestore.Firestore;
   let body: SubscribeBody | null = null;
+  let checkoutLockToken: string | null = null;
+  let subscriptionRefForLock: FirebaseFirestore.DocumentReference | null = null;
 
   try {
     if (!isCompanyPlanCheckoutEnabled()) {
@@ -185,6 +234,7 @@ export async function POST(req: NextRequest) {
       .doc(orgId)
       .collection("subscription")
       .doc("current");
+    subscriptionRefForLock = subscriptionRef;
 
     const existingSubscriptionSnap = await subscriptionRef.get();
     if (existingSubscriptionSnap.exists) {
@@ -242,6 +292,7 @@ export async function POST(req: NextRequest) {
         provider: "none",
         providerSubscriptionId: null,
         status: "active",
+        checkoutLock: null,
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
       };
@@ -272,11 +323,110 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const lockStartedAt = new Date().toISOString();
+    const lockToken = `${session.uid}:${Date.now()}:${Math.random().toString(36).slice(2, 10)}`;
+    let reusedFromLock: Record<string, unknown> | null = null;
+    let blockedByActiveSubscription = false;
+
+    try {
+      await db.runTransaction(async (tx) => {
+        const latestSnap = await tx.get(subscriptionRef);
+        const latest = latestSnap.exists ? (latestSnap.data() || {}) : {};
+        const latestStatus = typeof latest.status === 'string'
+          ? latest.status.toLowerCase()
+          : '';
+        const latestPlanId = typeof latest.planId === 'string' ? latest.planId : '';
+        const latestProviderSubId =
+          typeof latest.providerSubscriptionId === 'string'
+            ? latest.providerSubscriptionId
+            : null;
+        const latestAmount = Number(latest.amount);
+
+        if (ACTIVE_SUBSCRIPTION_STATUSES.has(latestStatus)) {
+          if (latestPlanId === planId && latestProviderSubId) {
+            reusedFromLock = {
+              success: true,
+              reused: true,
+              free: false,
+              planId,
+              amount: Number.isFinite(latestAmount) ? latestAmount : amount,
+              providerSubscriptionId: latestProviderSubId,
+              customerProfileId:
+                typeof latest.customerProfileId === 'string' ? latest.customerProfileId : undefined,
+              customerPaymentProfileId:
+                typeof latest.customerPaymentProfileId === 'string'
+                  ? latest.customerPaymentProfileId
+                  : undefined,
+            };
+            return;
+          }
+
+          blockedByActiveSubscription = true;
+          return;
+        }
+
+        const existingLockToken = typeof latest.checkoutLock?.token === 'string'
+          ? latest.checkoutLock.token
+          : '';
+        const lockStartedMillis = toMillis(latest.checkoutLock?.startedAt);
+        const isFreshLock =
+          !!existingLockToken &&
+          !!lockStartedMillis &&
+          Date.now() - lockStartedMillis < CHECKOUT_LOCK_WINDOW_MS;
+
+        if (isFreshLock) {
+          throw new Error('CHECKOUT_ALREADY_IN_PROGRESS');
+        }
+
+        tx.set(
+          subscriptionRef,
+          {
+            checkoutLock: {
+              token: lockToken,
+              startedAt: lockStartedAt,
+              userId: session.uid,
+              planId,
+              amount,
+            },
+            updatedAt: FieldValue.serverTimestamp(),
+          },
+          { merge: true },
+        );
+      });
+    } catch (lockErr: any) {
+      if (lockErr?.message === 'CHECKOUT_ALREADY_IN_PROGRESS') {
+        return NextResponse.json(
+          { error: 'A subscription checkout is already in progress for this organization. Please wait and retry.' },
+          { status: 409 },
+        );
+      }
+      throw lockErr;
+    }
+
+    if (reusedFromLock) {
+      return NextResponse.json(reusedFromLock);
+    }
+    if (blockedByActiveSubscription) {
+      return NextResponse.json(
+        {
+          error:
+            "An active subscription already exists. Use Billing settings to change or cancel your current plan.",
+        },
+        { status: 409 },
+      );
+    }
+
+    checkoutLockToken = lockToken;
+
     const apiLoginId = process.env.AUTHNET_API_LOGIN_ID;
     const transactionKey = process.env.AUTHNET_TRANSACTION_KEY;
 
     if (!apiLoginId || !transactionKey) {
       logger.error("Authorize.Net env vars missing");
+      if (checkoutLockToken) {
+        await releaseCheckoutLock(db, subscriptionRef, checkoutLockToken);
+        checkoutLockToken = null;
+      }
       return NextResponse.json(
         { error: "Authorize.Net is not configured on the server." },
         { status: 500 }
@@ -307,6 +457,10 @@ export async function POST(req: NextRequest) {
     if (profileJson?.messages?.resultCode !== "Ok") {
       logger.error("Authorize.Net profile creation failed", profileJson);
       await emitEvent({ orgId, type: 'subscription.failed', agent: 'money_mike', data: { stage: "profile_creation", planId, amount, response: profileJson } });
+      if (checkoutLockToken) {
+        await releaseCheckoutLock(db, subscriptionRef, checkoutLockToken);
+        checkoutLockToken = null;
+      }
       return NextResponse.json({ error: "Failed to create customer profile with Authorize.Net" }, { status: 502 });
     }
 
@@ -315,6 +469,10 @@ export async function POST(req: NextRequest) {
 
     if (!customerProfileId || !customerPaymentProfileId) {
       logger.error("Missing profile IDs from Authorize.Net", profileJson);
+      if (checkoutLockToken) {
+        await releaseCheckoutLock(db, subscriptionRef, checkoutLockToken);
+        checkoutLockToken = null;
+      }
       return NextResponse.json({ error: "Payment profile missing from Authorize.Net response" }, { status: 502 });
     }
 
@@ -343,6 +501,10 @@ export async function POST(req: NextRequest) {
     if (subJson?.messages?.resultCode !== "Ok") {
       logger.error("Authorize.Net subscription creation failed", subJson);
       await emitEvent({ orgId, type: 'subscription.failed', agent: 'money_mike', data: { stage: "subscription_creation", planId, amount, response: subJson } });
+      if (checkoutLockToken) {
+        await releaseCheckoutLock(db, subscriptionRef, checkoutLockToken);
+        checkoutLockToken = null;
+      }
       return NextResponse.json({ error: "Failed to create subscription with Authorize.Net" }, { status: 502 });
     }
 
@@ -350,10 +512,12 @@ export async function POST(req: NextRequest) {
     const subDoc = {
       planId, locationCount: body.locationCount, packIds: body.coveragePackIds || [], amount, provider: "authorizenet",
       providerSubscriptionId, customerProfileId, customerPaymentProfileId, status: "active",
+      checkoutLock: null,
       createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
     };
 
     await subscriptionRef.set(subDoc, { merge: true });
+    checkoutLockToken = null;
     await historyRef.set({ ...subDoc, event: "plan_changed", reason: "user_subscribed", at: FieldValue.serverTimestamp() });
 
     await emitEvent({ orgId, type: 'subscription.paymentAuthorized', agent: 'money_mike', refId: subscriptionRef.id, data: { planId, amount, providerSubscriptionId } });
@@ -361,6 +525,19 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, free: false, planId, amount, providerSubscriptionId, customerProfileId, customerPaymentProfileId });
   } catch (err: any) {
+    if (checkoutLockToken && subscriptionRefForLock) {
+      try {
+        await releaseCheckoutLock(db, subscriptionRefForLock, checkoutLockToken);
+      } catch (releaseErr) {
+        logger.warn('authorize-net:checkout_lock_release_failed', {
+          error: releaseErr instanceof Error ? releaseErr.message : String(releaseErr),
+          orgId: body?.organizationId,
+        });
+      } finally {
+        checkoutLockToken = null;
+      }
+    }
+
     if (err instanceof z.ZodError) {
       return NextResponse.json({ error: err.issues[0]?.message || 'Invalid request payload' }, { status: 400 });
     }
