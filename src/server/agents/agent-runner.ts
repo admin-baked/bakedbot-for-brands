@@ -990,16 +990,26 @@ All agents are online and ready. Type an agent name or describe your task to get
         // ... Tool Detection Logic ...
         const lowerMessage = (finalMessage || userMessage || '').toLowerCase();
 
-        // 0. Playbook Creation Detection - "create a playbook that..." or "build an automation..."
+        // 0. Playbook Creation Detection - explicit ("create a playbook") + natural ("track brand X daily and email me")
         const playbookCreationPatterns = [
+            // Explicit playbook/automation keywords
             /create\s+(?:a\s+)?playbook/i,
             /build\s+(?:a\s+)?(?:playbook|automation|workflow)/i,
             /set\s+up\s+(?:a\s+)?(?:playbook|automation|workflow)/i,
             /make\s+(?:a\s+)?playbook/i,
             /new\s+playbook\s+(?:that|to|for)/i,
+            // Natural language scheduling — "track brand X daily and email me"
+            /(?:track|monitor|watch|check)\s+.{3,}\s+(?:daily|weekly|every\s+(?:day|week|morning|evening|monday|tuesday|wednesday|thursday|friday))/i,
+            /(?:send|email|text|notify)\s+me\s+(?:a\s+)?(?:daily|weekly|monthly)\s+(?:report|update|summary|digest|briefing)/i,
+            /every\s+(?:day|week|morning|evening|monday|tuesday|wednesday|thursday|friday)\s+.{3,}\s+(?:send|email|report|alert|notify)/i,
+            /(?:automate|schedule)\s+(?:a\s+)?(?:daily|weekly|monthly)\s+.{3,}/i,
+            /(?:daily|weekly|monthly)\s+(?:report|alert|update|check|scan|digest)\s+(?:on|for|about)\s+/i,
+            // "I want to receive..." / "can you..." scheduling patterns
+            /(?:i\s+want\s+to\s+)?receive\s+(?:a\s+)?(?:daily|weekly|monthly)\s+/i,
+            /(?:can\s+you|please)\s+(?:send|email|track|monitor)\s+.{3,}\s+(?:daily|weekly|every)/i,
         ];
 
-        if (playbookCreationPatterns.some(p => p.test(userMessage))) {
+        if (playbookCreationPatterns.some(p => p.test(lowerMessage))) {
 
             // Tier Check for Playbook Creation
             if (!isSuperUser && (role === 'guest' || role === 'user')) {

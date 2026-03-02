@@ -20,8 +20,19 @@ import { checkRateLimit } from './middleware/rate-limit';
  * because Edge runtime doesn't support the 'crypto' module needed for validation.
  */
 export async function proxy(request: NextRequest) {
-    const { pathname } = request.nextUrl;
+    const rawPathname = request.nextUrl.pathname;
     const origin = request.headers.get('origin');
+
+    // Normalize double (or more) slashes in the URL path to prevent
+    // History.replaceState crashes where the browser interprets the second
+    // segment as a hostname (e.g. //dashboard → https://dashboard/...).
+    if (/\/{2,}/.test(rawPathname)) {
+        const url = request.nextUrl.clone();
+        url.pathname = rawPathname.replace(/\/{2,}/g, '/');
+        return NextResponse.redirect(url, 301);
+    }
+
+    const pathname = rawPathname;
     // Use x-forwarded-host in cloud environments (Firebase/Cloud Run), fall back to host
     const hostname = request.headers.get('x-forwarded-host')
         || request.headers.get('host')
