@@ -10,6 +10,7 @@ import { logger } from '@/lib/logger';
 import { isCompanyPlanCheckoutEnabled } from '@/lib/feature-flags';
 
 const DOCUMENT_ID_REGEX = /^[A-Za-z0-9_-]{1,128}$/;
+const ACTIVE_SUBSCRIPTION_STATUSES = new Set(['active', 'trialing', 'past_due']);
 
 const subscribeBodySchema = z.object({
   organizationId: z.string().trim().min(1),
@@ -184,6 +185,47 @@ export async function POST(req: NextRequest) {
       .doc(orgId)
       .collection("subscription")
       .doc("current");
+
+    const existingSubscriptionSnap = await subscriptionRef.get();
+    if (existingSubscriptionSnap.exists) {
+      const existing = existingSubscriptionSnap.data() || {};
+      const existingStatus = typeof existing.status === 'string'
+        ? existing.status.toLowerCase()
+        : '';
+      const existingPlanId = typeof existing.planId === 'string' ? existing.planId : '';
+      const existingProviderSubId =
+        typeof existing.providerSubscriptionId === 'string'
+          ? existing.providerSubscriptionId
+          : null;
+      const existingAmount = Number(existing.amount);
+
+      if (ACTIVE_SUBSCRIPTION_STATUSES.has(existingStatus)) {
+        if (existingPlanId === planId && existingProviderSubId) {
+          return NextResponse.json({
+            success: true,
+            reused: true,
+            free: false,
+            planId,
+            amount: Number.isFinite(existingAmount) ? existingAmount : amount,
+            providerSubscriptionId: existingProviderSubId,
+            customerProfileId:
+              typeof existing.customerProfileId === 'string' ? existing.customerProfileId : undefined,
+            customerPaymentProfileId:
+              typeof existing.customerPaymentProfileId === 'string'
+                ? existing.customerPaymentProfileId
+                : undefined,
+          });
+        }
+
+        return NextResponse.json(
+          {
+            error:
+              "An active subscription already exists. Use Billing settings to change or cancel your current plan.",
+          },
+          { status: 409 },
+        );
+      }
+    }
 
     const historyRef = db
       .collection("organizations")
