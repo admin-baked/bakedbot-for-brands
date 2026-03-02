@@ -430,22 +430,74 @@ export const POST = withProtection(
 
                 const resolvedPaymentStatus =
                     cannpaySuccessful ? 'paid' : (providerStatus === 'Failed' || providerStatus === 'Voided' ? 'failed' : 'pending');
-                const finalPaymentStatus = resolveFinalPaymentStatus(
+                let finalPaymentStatus = resolveFinalPaymentStatus(
                     ownedOrder.paymentStatus,
                     resolvedPaymentStatus,
                 );
+                let transitionedToPaid = finalPaymentStatus === 'paid' && !isPaidLikeStatus(ownedOrder.paymentStatus);
+                const finalizedAt = new Date().toISOString();
 
-                await ownedOrderDoc.ref.update({
-                    userId: ownedOrder?.userId || sessionUid,
-                    paymentMethod: 'cannpay',
-                    paymentStatus: finalPaymentStatus,
-                    'canpay.transactionNumber': providerTransactionNumber,
-                    'canpay.status': providerStatus,
-                    'canpay.completedAt': finalPaymentStatus === 'paid' ? new Date().toISOString() : ownedOrder?.canpay?.completedAt || null,
-                    updatedAt: new Date().toISOString(),
-                });
+                try {
+                    await firestore.runTransaction(async (tx: FirebaseFirestore.Transaction) => {
+                        const latestOrderSnap = await tx.get(ownedOrderDoc.ref);
+                        if (!latestOrderSnap.exists) {
+                            throw new Error('ORDER_NOT_FOUND');
+                        }
 
-                if (finalPaymentStatus === 'paid') {
+                        const latestOrder = (latestOrderSnap.data() || {}) as Record<string, any>;
+                        const latestPaymentStatus = String(latestOrder.paymentStatus || '').toLowerCase();
+                        const latestOrderStatus = String(latestOrder.status || '').toLowerCase();
+
+                        if (latestPaymentStatus === 'processing') {
+                            throw new Error('ORDER_ALREADY_PROCESSING');
+                        }
+                        if (isPaidLikeStatus(latestPaymentStatus) || isClosedOrderStatus(latestOrderStatus)) {
+                            throw new Error('ORDER_ALREADY_CLOSED');
+                        }
+
+                        finalPaymentStatus = resolveFinalPaymentStatus(
+                            latestPaymentStatus,
+                            resolvedPaymentStatus,
+                        );
+                        transitionedToPaid =
+                            finalPaymentStatus === 'paid' &&
+                            !isPaidLikeStatus(latestPaymentStatus);
+
+                        tx.update(ownedOrderDoc.ref, {
+                            userId: latestOrder?.userId || sessionUid,
+                            paymentMethod: 'cannpay',
+                            paymentStatus: finalPaymentStatus,
+                            'canpay.transactionNumber': providerTransactionNumber,
+                            'canpay.status': providerStatus,
+                            'canpay.completedAt': finalPaymentStatus === 'paid'
+                                ? finalizedAt
+                                : latestOrder?.canpay?.completedAt || null,
+                            updatedAt: finalizedAt,
+                        });
+                    });
+                } catch (finalizeError: any) {
+                    if (finalizeError?.message === 'ORDER_ALREADY_PROCESSING') {
+                        return NextResponse.json(
+                            { success: false, error: 'Payment is already processing for this order' },
+                            { status: 409 },
+                        );
+                    }
+                    if (finalizeError?.message === 'ORDER_ALREADY_CLOSED') {
+                        return NextResponse.json(
+                            { success: false, error: 'Order has already been paid or closed' },
+                            { status: 409 },
+                        );
+                    }
+                    if (finalizeError?.message === 'ORDER_NOT_FOUND') {
+                        return NextResponse.json(
+                            { success: false, error: 'Order not found' },
+                            { status: 404 },
+                        );
+                    }
+                    throw finalizeError;
+                }
+
+                if (transitionedToPaid) {
                     setImmediate(async () => {
                         const { firestore: fs } = await createServerClient();
                         await recordSalesForOrder(orderId, fs);
@@ -538,26 +590,82 @@ export const POST = withProtection(
 
                 const resolvedPaymentStatus =
                     aeropaySuccessful ? 'paid' : (providerStatus === 'declined' ? 'failed' : providerStatus);
-                const finalPaymentStatus = resolveFinalPaymentStatus(
+                let finalPaymentStatus = resolveFinalPaymentStatus(
                     ownedOrder.paymentStatus,
                     resolvedPaymentStatus,
                 );
-                const finalProviderStatus = resolveAeropayProviderStatus(
+                let finalProviderStatus = resolveAeropayProviderStatus(
                     ownedOrder?.aeropay?.status,
                     providerStatus,
                 );
+                let transitionedToPaid = finalPaymentStatus === 'paid' && !isPaidLikeStatus(ownedOrder.paymentStatus);
+                const finalizedAt = new Date().toISOString();
 
-                await ownedOrderDoc.ref.update({
-                    userId: ownedOrder?.userId || sessionUid,
-                    paymentMethod: 'aeropay',
-                    paymentStatus: finalPaymentStatus,
-                    'aeropay.transactionId': transactionId,
-                    'aeropay.status': finalProviderStatus || providerStatus,
-                    'aeropay.completedAt': finalPaymentStatus === 'paid' ? new Date().toISOString() : ownedOrder?.aeropay?.completedAt || null,
-                    updatedAt: new Date().toISOString(),
-                });
+                try {
+                    await firestore.runTransaction(async (tx: FirebaseFirestore.Transaction) => {
+                        const latestOrderSnap = await tx.get(ownedOrderDoc.ref);
+                        if (!latestOrderSnap.exists) {
+                            throw new Error('ORDER_NOT_FOUND');
+                        }
 
-                if (finalPaymentStatus === 'paid') {
+                        const latestOrder = (latestOrderSnap.data() || {}) as Record<string, any>;
+                        const latestPaymentStatus = String(latestOrder.paymentStatus || '').toLowerCase();
+                        const latestOrderStatus = String(latestOrder.status || '').toLowerCase();
+
+                        if (latestPaymentStatus === 'processing') {
+                            throw new Error('ORDER_ALREADY_PROCESSING');
+                        }
+                        if (isPaidLikeStatus(latestPaymentStatus) || isClosedOrderStatus(latestOrderStatus)) {
+                            throw new Error('ORDER_ALREADY_CLOSED');
+                        }
+
+                        finalPaymentStatus = resolveFinalPaymentStatus(
+                            latestPaymentStatus,
+                            resolvedPaymentStatus,
+                        );
+                        finalProviderStatus = resolveAeropayProviderStatus(
+                            latestOrder?.aeropay?.status,
+                            providerStatus,
+                        );
+                        transitionedToPaid =
+                            finalPaymentStatus === 'paid' &&
+                            !isPaidLikeStatus(latestPaymentStatus);
+
+                        tx.update(ownedOrderDoc.ref, {
+                            userId: latestOrder?.userId || sessionUid,
+                            paymentMethod: 'aeropay',
+                            paymentStatus: finalPaymentStatus,
+                            'aeropay.transactionId': transactionId,
+                            'aeropay.status': finalProviderStatus || providerStatus,
+                            'aeropay.completedAt': finalPaymentStatus === 'paid'
+                                ? finalizedAt
+                                : latestOrder?.aeropay?.completedAt || null,
+                            updatedAt: finalizedAt,
+                        });
+                    });
+                } catch (finalizeError: any) {
+                    if (finalizeError?.message === 'ORDER_ALREADY_PROCESSING') {
+                        return NextResponse.json(
+                            { success: false, error: 'Payment is already processing for this order' },
+                            { status: 409 },
+                        );
+                    }
+                    if (finalizeError?.message === 'ORDER_ALREADY_CLOSED') {
+                        return NextResponse.json(
+                            { success: false, error: 'Order has already been paid or closed' },
+                            { status: 409 },
+                        );
+                    }
+                    if (finalizeError?.message === 'ORDER_NOT_FOUND') {
+                        return NextResponse.json(
+                            { success: false, error: 'Order not found' },
+                            { status: 404 },
+                        );
+                    }
+                    throw finalizeError;
+                }
+
+                if (transitionedToPaid) {
                     setImmediate(async () => {
                         const { firestore: fs } = await createServerClient();
                         await recordSalesForOrder(orderId, fs);
