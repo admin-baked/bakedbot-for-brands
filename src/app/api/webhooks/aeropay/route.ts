@@ -451,26 +451,66 @@ async function handleTransactionWebhook(
     return;
   }
 
-  // Update order document
-  const orderRef = db.collection('orders').doc(orderId);
-  const orderSnap = await orderRef.get();
+  // Update order document.
+  // Primary path is top-level orders/{orderId}, with a collectionGroup fallback for
+  // legacy/organization-scoped order documents keyed by the same transactionId.
+  let orderRef: FirebaseFirestore.DocumentReference = db.collection('orders').doc(orderId);
+  let orderSnap = await orderRef.get();
 
   if (!orderSnap.exists) {
-    logger.error('[AEROPAY-WEBHOOK] Order not found for webhook event', {
-      orderId,
+    const fallbackMatches = await db
+      .collectionGroup('orders')
+      .where('transactionId', '==', transactionId)
+      .limit(10)
+      .get();
+
+    if (fallbackMatches.empty) {
+      logger.error('[AEROPAY-WEBHOOK] Order not found for webhook event', {
+        orderId,
+        transactionId,
+      });
+      return;
+    }
+
+    const distinctOrderIds = new Set(fallbackMatches.docs.map((doc) => doc.id));
+    if (distinctOrderIds.size > 1) {
+      logger.error('[AEROPAY-WEBHOOK] Ambiguous order mapping for Aeropay transaction', {
+        transactionId,
+        orderIdFromTransaction: orderId,
+        matchedOrderIds: Array.from(distinctOrderIds),
+        matchedPaths: fallbackMatches.docs.map((doc) => doc.ref.path),
+      });
+
+      await db.collection('payment_forensics').add({
+        provider: 'aeropay',
+        source: 'aeropay_webhook',
+        reason: 'duplicate_transaction_mapping',
+        transactionId,
+        orderIdFromTransaction: orderId,
+        matchedOrderIds: Array.from(distinctOrderIds),
+        matchedPaths: fallbackMatches.docs.map((doc) => doc.ref.path),
+        observedAt: FieldValue.serverTimestamp(),
+      });
+      return;
+    }
+
+    orderSnap = fallbackMatches.docs[0];
+    orderRef = orderSnap.ref;
+    logger.warn('[AEROPAY-WEBHOOK] Resolved order via collectionGroup fallback', {
       transactionId,
+      orderPath: orderRef.path,
     });
-    return;
   }
 
+  const resolvedOrderId = orderRef.id;
   const orderData = orderSnap.data() as Record<string, any>;
   if (
     merchantOrderId &&
     String(merchantOrderId).trim() &&
-    String(merchantOrderId).trim() !== String(orderId)
+    String(merchantOrderId).trim() !== String(resolvedOrderId)
   ) {
     logger.error('[AEROPAY-WEBHOOK] merchantOrderId mismatch with resolved orderId', {
-      orderId,
+      orderId: resolvedOrderId,
       merchantOrderId,
       transactionId,
       status,
@@ -480,10 +520,10 @@ async function handleTransactionWebhook(
       provider: 'aeropay',
       source: 'aeropay_webhook',
       reason: 'order_mismatch',
-      orderId,
+      orderId: resolvedOrderId,
       transactionId,
       merchantOrderId,
-      expectedMerchantOrderId: orderId,
+      expectedMerchantOrderId: resolvedOrderId,
       providerStatus: status || null,
       observedAt: FieldValue.serverTimestamp(),
     });
@@ -494,7 +534,7 @@ async function handleTransactionWebhook(
     typeof orderData?.transactionId === 'string' ? orderData.transactionId : null;
   if (storedTransactionId && storedTransactionId !== transactionId) {
     logger.error('[AEROPAY-WEBHOOK] transactionId mismatch for resolved order', {
-      orderId,
+      orderId: resolvedOrderId,
       transactionId,
       expectedTransactionId: storedTransactionId,
       merchantOrderId: merchantOrderId || null,
@@ -505,7 +545,7 @@ async function handleTransactionWebhook(
       provider: 'aeropay',
       source: 'aeropay_webhook',
       reason: 'transaction_mismatch',
-      orderId,
+      orderId: resolvedOrderId,
       transactionId,
       expectedTransactionId: storedTransactionId,
       merchantOrderId: merchantOrderId || null,
@@ -524,7 +564,7 @@ async function handleTransactionWebhook(
     providerAmountCents === null
   ) {
     logger.error('[AEROPAY-WEBHOOK] Missing provider amount on paid event - refusing state transition', {
-      orderId,
+      orderId: resolvedOrderId,
       transactionId,
       expectedAmountCents,
       status,
@@ -534,7 +574,7 @@ async function handleTransactionWebhook(
       provider: 'aeropay',
       source: 'aeropay_webhook',
       reason: 'missing_amount',
-      orderId,
+      orderId: resolvedOrderId,
       transactionId,
       merchantOrderId: merchantOrderId || null,
       expectedAmountCents,
@@ -549,7 +589,7 @@ async function handleTransactionWebhook(
   if (expectedAmountCents !== null && providerAmountCents !== null) {
     if (providerAmountCents !== expectedAmountCents) {
       logger.error('[AEROPAY-WEBHOOK] Amount mismatch - refusing state transition', {
-        orderId,
+        orderId: resolvedOrderId,
         transactionId,
         expectedAmountCents,
         providerAmountCents,
@@ -560,7 +600,7 @@ async function handleTransactionWebhook(
         provider: 'aeropay',
         source: 'aeropay_webhook',
         reason: 'amount_mismatch',
-        orderId,
+        orderId: resolvedOrderId,
         transactionId,
         merchantOrderId: merchantOrderId || null,
         expectedAmountCents,
@@ -578,7 +618,7 @@ async function handleTransactionWebhook(
       provider: 'aeropay',
       source: 'aeropay_webhook',
       reason: 'status_regression_blocked',
-      orderId,
+      orderId: resolvedOrderId,
       transactionId,
       merchantOrderId: merchantOrderId || null,
       currentPaymentStatus: String(orderData?.paymentStatus || ''),
@@ -599,7 +639,7 @@ async function handleTransactionWebhook(
       provider: 'aeropay',
       source: 'aeropay_webhook',
       reason: 'transaction_status_regression_blocked',
-      orderId,
+      orderId: resolvedOrderId,
       transactionId,
       merchantOrderId: merchantOrderId || null,
       currentTransactionStatus: currentProviderStatus,
@@ -648,7 +688,7 @@ async function handleTransactionWebhook(
   const orgId = orderData?.brandId || orderData?.retailerId;
 
   logger.info('[AEROPAY-WEBHOOK] Transaction updated successfully', {
-    orderId,
+    orderId: resolvedOrderId,
     transactionId,
     status,
     paymentStatus: nextPaymentStatus,
@@ -661,7 +701,7 @@ async function handleTransactionWebhook(
       orgId,
       type: eventType,
       agent: 'smokey',
-      refId: orderId,
+      refId: resolvedOrderId,
       data: { paymentStatus: nextPaymentStatus, orderStatus, transactionId },
     });
 
@@ -671,13 +711,13 @@ async function handleTransactionWebhook(
         orgId,
         type: 'order.readyForPickup',
         agent: 'smokey',
-        refId: orderId,
+        refId: resolvedOrderId,
         data: { paymentStatus: nextPaymentStatus },
       });
     }
   } else if (eventType) {
     logger.warn('[AEROPAY-WEBHOOK] Skipping event emit due to missing organization context', {
-      orderId,
+      orderId: resolvedOrderId,
       transactionId,
       eventType,
     });
