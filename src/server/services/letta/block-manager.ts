@@ -174,9 +174,11 @@ export class LettaBlockManager {
             const summary = summaryResponse.text;
 
             // Store the summary in archival memory for future retrieval
-            // Find any agent associated with this tenant to store the passage
+            // Find the agent for this tenant using exact name match to prevent
+            // cross-tenant data leaks (e.g., 'org_test' matching 'org_test_bakedbot')
             const agents = await lettaClient.listAgents();
-            const tenantAgent = agents.find(a => a.name.includes(tenantId));
+            const tenantAgent = agents.find(a => a.name === tenantId)
+                || agents.find(a => a.name === 'BakedBot Research Memory');
 
             if (tenantAgent) {
                 await lettaClient.insertPassage(tenantAgent.id, JSON.stringify({
