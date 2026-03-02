@@ -9,11 +9,11 @@
  * - Assigns default weekly playbook
  */
 
-import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
 import { discovery } from '@/server/services/firecrawl';
 import { quickSetupCompetitor } from '@/server/services/ezal/competitor-manager';
 import { assignPlaybookToOrg } from '@/server/actions/playbooks';
+import { getEzalLimits } from '@/lib/plan-limits';
 
 // =============================================================================
 // TYPES
@@ -49,11 +49,7 @@ export interface FreeUserSetupResult {
 // CONSTANTS
 // =============================================================================
 
-const FREE_TIER_LIMITS = {
-    maxCompetitors: 3,
-    maxRadiusMiles: 25,
-    scrapeFrequencyMinutes: 1440, // Daily
-};
+const DEFAULT_RADIUS_MILES = 25;
 
 const WEEKLY_INTEL_PLAYBOOK_ID = 'free-weekly-competitive-intel';
 
@@ -62,21 +58,28 @@ const WEEKLY_INTEL_PLAYBOOK_ID = 'free-weekly-competitive-intel';
 // =============================================================================
 
 /**
- * Initialize competitors for a new Free tier user.
+ * Initialize competitors for a new user.
  * Called after claim/onboarding confirmation.
+ * Uses plan-based limits for competitor count and scrape frequency.
  */
 export async function initializeFreeUserCompetitors(
     orgId: string,
-    location: FreeUserSetupLocation
+    location: FreeUserSetupLocation,
+    planId: string = 'scout'
 ): Promise<FreeUserSetupResult> {
+    const ezalLimits = getEzalLimits(planId);
+
     logger.info('[FreeUserSetup] Starting competitor discovery', {
         orgId,
+        planId,
+        maxCompetitors: ezalLimits.maxCompetitors,
+        frequencyMinutes: ezalLimits.frequencyMinutes,
         location: { city: location.city, state: location.state, zip: location.zip },
     });
 
     try {
         // 1. Discover nearby competitors using Firecrawl web search
-        const competitors = await discoverNearbyCompetitors(location);
+        const competitors = await discoverNearbyCompetitors(location, ezalLimits.maxCompetitors);
 
         if (competitors.length === 0) {
             logger.warn('[FreeUserSetup] No competitors found', { orgId });
@@ -89,9 +92,9 @@ export async function initializeFreeUserCompetitors(
             };
         }
 
-        // 2. Create competitor records (limit to 3 for Free tier)
+        // 2. Create competitor records (limited by plan tier)
         const createdCompetitors: { id: string; name: string }[] = [];
-        const limitedCompetitors = competitors.slice(0, FREE_TIER_LIMITS.maxCompetitors);
+        const limitedCompetitors = competitors.slice(0, ezalLimits.maxCompetitors);
 
         for (const comp of limitedCompetitors) {
             try {
@@ -103,8 +106,8 @@ export async function initializeFreeUserCompetitors(
                     zip: comp.zip || location.zip,
                     menuUrl: comp.menuUrl,
                     parserProfileId: 'generic-menu', // Default parser
-                    frequencyMinutes: FREE_TIER_LIMITS.scrapeFrequencyMinutes,
-                    planId: 'free',
+                    frequencyMinutes: ezalLimits.frequencyMinutes,
+                    planId,
                 });
 
                 createdCompetitors.push({ id: competitor.id, name: competitor.name });
@@ -165,7 +168,8 @@ export async function initializeFreeUserCompetitors(
  * Discover nearby dispensaries using Firecrawl web search.
  */
 async function discoverNearbyCompetitors(
-    location: FreeUserSetupLocation
+    location: FreeUserSetupLocation,
+    maxCompetitors: number = 3
 ): Promise<DiscoveredCompetitor[]> {
     if (!discovery.isConfigured()) {
         logger.warn('[FreeUserSetup] Firecrawl not configured, skipping discovery');
@@ -203,7 +207,7 @@ async function discoverNearbyCompetitors(
             }
 
             // Stop at our limit
-            if (competitors.length >= FREE_TIER_LIMITS.maxCompetitors) {
+            if (competitors.length >= maxCompetitors) {
                 break;
             }
         }

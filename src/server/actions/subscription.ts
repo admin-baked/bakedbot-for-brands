@@ -435,7 +435,23 @@ export async function createSubscription(
  */
 export async function getSubscription(orgId: string) {
   try {
+    const user = await requireUser();
     const { firestore } = await createServerClient();
+
+    const orgDoc = await firestore.collection('organizations').doc(orgId).get();
+    if (!orgDoc.exists) {
+      return null;
+    }
+
+    const org = orgDoc.data();
+    if (!org || (org.ownerId !== user.uid && org.ownerUid !== user.uid)) {
+      logger.warn('[subscription] getSubscription unauthorized org access denied', {
+        orgId,
+        userId: user.uid,
+      });
+      return null;
+    }
+
     const doc = await firestore.collection('subscriptions').doc(orgId).get();
     return doc.exists ? doc.data() : null;
   } catch (error: any) {
@@ -452,7 +468,23 @@ export async function getSubscription(orgId: string) {
  */
 export async function getInvoices(orgId: string) {
   try {
+    const user = await requireUser();
     const { firestore } = await createServerClient();
+
+    const orgDoc = await firestore.collection('organizations').doc(orgId).get();
+    if (!orgDoc.exists) {
+      return [];
+    }
+
+    const org = orgDoc.data();
+    if (!org || (org.ownerId !== user.uid && org.ownerUid !== user.uid)) {
+      logger.warn('[subscription] getInvoices unauthorized org access denied', {
+        orgId,
+        userId: user.uid,
+      });
+      return [];
+    }
+
     const snapshot = await firestore
       .collection('invoices')
       .doc(orgId)

@@ -44,7 +44,7 @@ export async function validatePromoCode(
     const promo = PROMO_CODES[promoKey];
 
     // 2. Check if tier is applicable
-    if (!promo.applicableTiers.includes(tierId as 'pro' | 'growth' | 'empire')) {
+    if (!(promo.applicableTiers as readonly string[]).includes(tierId)) {
       return {
         valid: false,
         error: `Promo code not applicable for ${tierId} tier`,

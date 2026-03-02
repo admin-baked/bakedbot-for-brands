@@ -22,10 +22,11 @@ export const TIERS = {
       aiSessions: 25,
       smsCustomer: 0,
       smsInternal: 0,
-      emails: 0,
+      emails: 100,
       competitors: 1,
       zipCodes: 1,
-      creativeAssets: 0,
+      creativeAssets: 5,
+      videosPerWeek: 3,
       customCampaigns: 0,
       playbooks: 3,
       playbookIds: [
@@ -38,7 +39,7 @@ export const TIERS = {
     features: {
       headlessMenu: false,
       smokey: true, // limited to 25 AI sessions
-      craig: false,
+      craig: true, // limited creative assets + emails
       ezal: true, // limited to 1 competitor, weekly only
       deebo: false,
       bigWorm: false,

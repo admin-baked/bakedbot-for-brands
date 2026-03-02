@@ -347,6 +347,28 @@ export default function ROICalculatorPage() {
                     )}
                 </div>
             </div>
+
+            <FoundingPartnerCTA />
+        </div>
+    );
+}
+
+function FoundingPartnerCTA() {
+    return (
+        <div className="mt-12 bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-2xl p-8 md:p-12 text-center text-white">
+            <h2 className="text-2xl md:text-3xl font-bold mb-4 font-teko uppercase">
+                NY Founding Partner Program
+            </h2>
+            <p className="text-emerald-100 max-w-xl mx-auto mb-6">
+                10 NY dispensaries get 50% off for 60 days, then 30% off for 6 months.
+                Start proving your ROI with real data.
+            </p>
+            <a
+                href="/pricing?promo=NYFOUNDINGPARTNER"
+                className="inline-flex items-center justify-center h-12 px-8 rounded-md bg-white text-emerald-700 font-semibold hover:bg-emerald-50 transition-colors"
+            >
+                View Plans &amp; Get Started
+            </a>
         </div>
     );
 }
