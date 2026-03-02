@@ -350,6 +350,32 @@ describe('POST /api/checkout/aeropay/status security', () => {
     }));
   });
 
+  it('rejects status poll when order lacks bound Aeropay transaction', async () => {
+    mockOrderGet.mockResolvedValue({
+      exists: true,
+      data: () => ({
+        totals: { total: 50 },
+      }),
+    });
+
+    const response = await POST({
+      json: async () => ({ transactionId: 'tx_1' }),
+    } as any);
+    const body = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(body.error).toContain('authorization is missing');
+    expect(mockOrderUpdate).not.toHaveBeenCalled();
+    expect(mockTransactionUpdate).not.toHaveBeenCalled();
+    expect(mockForensicsAdd).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'aeropay',
+      source: 'aeropay_status_poll',
+      reason: 'missing_transaction_binding',
+      orderId: 'order-1',
+      transactionId: 'tx_1',
+    }));
+  });
+
   it('blocks status transition when canonical order transaction binding mismatches', async () => {
     mockOrderGet.mockResolvedValue({
       exists: true,
