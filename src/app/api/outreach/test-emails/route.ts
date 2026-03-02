@@ -11,12 +11,18 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireSuperUser } from '@/server/auth/auth';
+import { requireCronSecret } from '@/server/auth/cron';
 import { sendTestOutreachBatch } from '@/server/services/ny-outreach/outreach-service';
 import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
     try {
-        await requireSuperUser();
+        // Accept either a logged-in super user session OR CRON_SECRET header (for CLI testing)
+        const cronAuth = await requireCronSecret(request, 'test-emails');
+        if (cronAuth !== null) {
+            // Not authorized via cron secret — try session auth
+            await requireSuperUser();
+        }
 
         const body = await request.json().catch(() => ({}));
         const recipients = body.recipients || ['martez@bakedbot.ai', 'jack@bakedbot.ai'];
