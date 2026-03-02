@@ -138,7 +138,7 @@ export default function FootTrafficTab() {
     const filteredPages = useMemo(() => {
         return seoPages.filter(page => {
             const matchesSearch =
-                page.zipCode.includes(searchQuery) ||
+                (page.zipCode || '').includes(searchQuery) ||
                 (page.city || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (page.state || '').toLowerCase().includes(searchQuery.toLowerCase());
 
