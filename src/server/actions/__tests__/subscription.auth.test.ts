@@ -2,6 +2,10 @@ import { createSubscription } from '../subscription';
 import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
 import { isCompanyPlanCheckoutEnabled } from '@/lib/feature-flags';
+import {
+  createCustomerProfile,
+  createSubscriptionFromProfile,
+} from '@/lib/payments/authorize-net';
 
 jest.mock('@/firebase/server-client', () => ({
   createServerClient: jest.fn(),
@@ -115,5 +119,100 @@ describe('createSubscription auth + billing validation hardening', () => {
     expect(requireUser).not.toHaveBeenCalled();
     expect(createServerClient).not.toHaveBeenCalled();
   });
-});
 
+  it('reuses an existing active subscription on the same tier and skips gateway calls', async () => {
+    const firestore = {
+      collection: jest.fn((name: string) => {
+        if (name === 'organizations') {
+          return {
+            doc: jest.fn(() => ({
+              get: jest.fn().mockResolvedValue({
+                exists: true,
+                data: () => ({ ownerId: 'user-1' }),
+              }),
+            })),
+          };
+        }
+
+        if (name === 'subscriptions') {
+          return {
+            doc: jest.fn(() => ({
+              get: jest.fn().mockResolvedValue({
+                exists: true,
+                data: () => ({
+                  status: 'active',
+                  tierId: 'pro',
+                  authorizeNetSubscriptionId: 'arb_existing_123',
+                  amount: 199,
+                }),
+              }),
+            })),
+          };
+        }
+
+        return {
+          doc: jest.fn(() => ({
+            get: jest.fn().mockResolvedValue({ exists: false, data: () => ({}) }),
+          })),
+        };
+      }),
+    };
+
+    (createServerClient as jest.Mock).mockResolvedValueOnce({ firestore });
+
+    const result = await createSubscription(validInput);
+
+    expect(result.success).toBe(true);
+    expect(result.subscriptionId).toBe('arb_existing_123');
+    expect((result as any).reused).toBe(true);
+    expect(createCustomerProfile).not.toHaveBeenCalled();
+    expect(createSubscriptionFromProfile).not.toHaveBeenCalled();
+  });
+
+  it('blocks creating a second active subscription when tier differs', async () => {
+    const firestore = {
+      collection: jest.fn((name: string) => {
+        if (name === 'organizations') {
+          return {
+            doc: jest.fn(() => ({
+              get: jest.fn().mockResolvedValue({
+                exists: true,
+                data: () => ({ ownerId: 'user-1' }),
+              }),
+            })),
+          };
+        }
+
+        if (name === 'subscriptions') {
+          return {
+            doc: jest.fn(() => ({
+              get: jest.fn().mockResolvedValue({
+                exists: true,
+                data: () => ({
+                  status: 'active',
+                  tierId: 'growth',
+                  authorizeNetSubscriptionId: 'arb_existing_456',
+                }),
+              }),
+            })),
+          };
+        }
+
+        return {
+          doc: jest.fn(() => ({
+            get: jest.fn().mockResolvedValue({ exists: false, data: () => ({}) }),
+          })),
+        };
+      }),
+    };
+
+    (createServerClient as jest.Mock).mockResolvedValueOnce({ firestore });
+
+    const result = await createSubscription(validInput);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('active subscription already exists');
+    expect(createCustomerProfile).not.toHaveBeenCalled();
+    expect(createSubscriptionFromProfile).not.toHaveBeenCalled();
+  });
+});

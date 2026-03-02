@@ -43,8 +43,11 @@ interface SubscriptionResult {
   subscriptionId?: string;
   amount?: number;
   promoApplied?: { code: string; discount: string };
+  reused?: boolean;
   error?: string;
 }
+
+const ACTIVE_SUBSCRIPTION_STATUSES = new Set(['active', 'trialing', 'past_due']);
 
 /**
  * Creates a new subscription for an organization.
@@ -89,6 +92,37 @@ export async function createSubscription(
     const org = orgDoc.data();
     if (!org || (org.ownerId !== user.uid && org.ownerUid !== user.uid)) {
       return { success: false, error: 'Not authorized to modify this organization' };
+    }
+
+    // Idempotency guard: avoid creating duplicate billable subscriptions for the same org.
+    const existingSubscriptionDoc = await firestore.collection('subscriptions').doc(orgId).get();
+    if (existingSubscriptionDoc.exists) {
+      const existing = existingSubscriptionDoc.data() || {};
+      const existingStatus =
+        typeof existing.status === 'string' ? existing.status.toLowerCase() : '';
+      const existingSubscriptionId =
+        typeof existing.authorizeNetSubscriptionId === 'string'
+          ? existing.authorizeNetSubscriptionId
+          : '';
+      const existingTierId = typeof existing.tierId === 'string' ? existing.tierId : '';
+
+      if (ACTIVE_SUBSCRIPTION_STATUSES.has(existingStatus)) {
+        if (existingTierId === tierId && existingSubscriptionId) {
+          return {
+            success: true,
+            subscriptionId: existingSubscriptionId,
+            amount:
+              typeof existing.amount === 'number' ? existing.amount : TIERS[tierId].price,
+            reused: true,
+          };
+        }
+
+        return {
+          success: false,
+          error:
+            'An active subscription already exists. Use Billing to change your current plan.',
+        };
+      }
     }
 
     // 3. Get organization email

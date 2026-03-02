@@ -146,4 +146,77 @@ describe('createHireSubscription auth hardening', () => {
         expect(result.error).toContain('Tokenized payment data is required');
         expect(createServerClient).not.toHaveBeenCalled();
     });
+
+    it('reuses existing active subscription on same plan without gateway calls', async () => {
+        const mockUserDoc = {
+            exists: true,
+            data: () => ({
+                subscriptionStatus: 'active',
+                subscriptionId: 'sub_existing_123',
+                planId: 'specialist',
+            }),
+        };
+        const userRef = {
+            get: jest.fn().mockResolvedValue(mockUserDoc),
+            update: jest.fn(),
+        };
+        const firestore = {
+            collection: jest.fn((name: string) => {
+                if (name === 'users') {
+                    return {
+                        doc: jest.fn(() => userRef),
+                    };
+                }
+                return {
+                    doc: jest.fn(() => userRef),
+                };
+            }),
+        };
+        (createServerClient as jest.Mock).mockResolvedValueOnce({ firestore });
+
+        const result = await createHireSubscription(validInput);
+
+        expect(result.success).toBe(true);
+        expect((result as any).reused).toBe(true);
+        expect(result.subscriptionId).toBe('sub_existing_123');
+        expect(createCustomerProfile).not.toHaveBeenCalled();
+        expect(createSubscriptionFromProfile).not.toHaveBeenCalled();
+        expect(userRef.update).not.toHaveBeenCalled();
+    });
+
+    it('blocks second subscription creation when an active subscription exists on another plan', async () => {
+        const mockUserDoc = {
+            exists: true,
+            data: () => ({
+                subscriptionStatus: 'active',
+                subscriptionId: 'sub_existing_456',
+                planId: 'empire',
+            }),
+        };
+        const userRef = {
+            get: jest.fn().mockResolvedValue(mockUserDoc),
+            update: jest.fn(),
+        };
+        const firestore = {
+            collection: jest.fn((name: string) => {
+                if (name === 'users') {
+                    return {
+                        doc: jest.fn(() => userRef),
+                    };
+                }
+                return {
+                    doc: jest.fn(() => userRef),
+                };
+            }),
+        };
+        (createServerClient as jest.Mock).mockResolvedValueOnce({ firestore });
+
+        const result = await createHireSubscription(validInput);
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('active subscription already exists');
+        expect(createCustomerProfile).not.toHaveBeenCalled();
+        expect(createSubscriptionFromProfile).not.toHaveBeenCalled();
+        expect(userRef.update).not.toHaveBeenCalled();
+    });
 });

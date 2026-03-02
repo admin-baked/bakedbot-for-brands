@@ -25,6 +25,8 @@ export interface HireSubscriptionInput {
     zip: string;
 }
 
+const ACTIVE_SUBSCRIPTION_STATUSES = new Set(['active', 'trialing', 'past_due']);
+
 function hasValidOpaqueData(payment: HireSubscriptionInput['payment']): boolean {
     return !!(
         payment?.opaqueData &&
@@ -98,6 +100,31 @@ export async function createHireSubscription(input: HireSubscriptionInput) {
         const userDoc = await userRef.get();
         if (!userDoc.exists) {
             return { success: false, error: 'User not found.' };
+        }
+        const userData = userDoc.data() || {};
+        const existingSubscriptionStatus =
+            typeof userData.subscriptionStatus === 'string'
+                ? userData.subscriptionStatus.toLowerCase()
+                : '';
+        const existingSubscriptionId =
+            typeof userData.subscriptionId === 'string' ? userData.subscriptionId : '';
+        const existingPlanId = typeof userData.planId === 'string' ? userData.planId : '';
+        if (
+            existingSubscriptionId &&
+            ACTIVE_SUBSCRIPTION_STATUSES.has(existingSubscriptionStatus)
+        ) {
+            if (existingPlanId === input.planId) {
+                return {
+                    success: true,
+                    subscriptionId: existingSubscriptionId,
+                    reused: true,
+                };
+            }
+            return {
+                success: false,
+                error:
+                    'An active subscription already exists. Manage plan changes from Billing settings.',
+            };
         }
 
         // 2. Define Plan Details
