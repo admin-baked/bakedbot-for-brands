@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-26 (Goal-Driven Directive System Phase 1-4 + 5 unit test suites; GreenLedger on-chain financing; morning-briefing Cloud Scheduler)
+**Current Status:** 🟢 Passing | **Last update:** 2026-03-02 (NY10 freemium expansion: Scout tier allocations, promo codes, Gemini cost control, batch onboarding, POS detection banner; foot-traffic tab crash fix)
 
 ---
 
