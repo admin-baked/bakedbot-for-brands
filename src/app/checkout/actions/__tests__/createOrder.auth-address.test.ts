@@ -270,4 +270,26 @@ describe('createOrder auth + address hardening', () => {
         expect(result.error).toContain('do not belong');
         expect(mockOrderAdd).not.toHaveBeenCalled();
     });
+
+    it('normalizes legacy smokey_pay method into cannpay pending flow', async () => {
+        mockRequireUser.mockResolvedValue({
+            uid: 'user-1',
+            email: 'owner@example.com',
+        });
+
+        const input = {
+            ...baseInput(),
+            paymentMethod: 'smokey_pay' as const,
+        };
+
+        const result = await createOrder(input as any);
+
+        expect(result.success).toBe(true);
+        expect(mockOrderAdd).toHaveBeenCalledWith(expect.objectContaining({
+            paymentMethod: 'cannpay',
+            paymentProvider: 'cannpay',
+            paymentStatus: 'pending_cannpay',
+        }));
+        expect(mockCreateTransaction).not.toHaveBeenCalled();
+    });
 });

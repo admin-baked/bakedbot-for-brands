@@ -243,6 +243,8 @@ export async function createOrder(input: CreateOrderInput) {
         }
 
         const normalizedCustomerEmail = sessionEmail || requestEmail;
+        const normalizedPaymentMethod =
+            input.paymentMethod === 'smokey_pay' ? 'cannpay' : input.paymentMethod;
         const order = {
             userId: session.uid,
             items: resolvedItems,
@@ -275,15 +277,15 @@ export async function createOrder(input: CreateOrderInput) {
             transactionId: null as string | null,
             status: 'submitted',
             paymentStatus:
-                input.paymentMethod === 'authorize_net'
+                normalizedPaymentMethod === 'authorize_net'
                     ? 'pending'
-                    : input.paymentMethod === 'cannpay'
+                    : normalizedPaymentMethod === 'cannpay'
                         ? 'pending_cannpay'
                         : 'pay_at_pickup',
-            paymentMethod: input.paymentMethod === 'authorize_net' ? 'credit_card' : input.paymentMethod,
-            paymentProvider: input.paymentMethod === 'authorize_net'
+            paymentMethod: normalizedPaymentMethod === 'authorize_net' ? 'credit_card' : normalizedPaymentMethod,
+            paymentProvider: normalizedPaymentMethod === 'authorize_net'
                 ? 'authorize_net'
-                : input.paymentMethod === 'cannpay'
+                : normalizedPaymentMethod === 'cannpay'
                     ? 'cannpay'
                     : null,
             mode: 'live' as const,
@@ -297,7 +299,7 @@ export async function createOrder(input: CreateOrderInput) {
         let paymentSuccessful = true;
         let transactionId: string | null = null;
 
-        if (input.paymentMethod === 'authorize_net') {
+        if (normalizedPaymentMethod === 'authorize_net') {
             if (!input.paymentData) {
                 await docRef.update({
                     paymentStatus: 'failed',
