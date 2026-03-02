@@ -25,9 +25,46 @@ import {
     PageType
 } from '@/lib/claim-exclusivity';
 import { createServerClient } from '@/firebase/server-client';
+import { requireUser } from '@/server/auth/auth';
 
 // Re-export types for client use
 export type { PageClaim, ClaimEntityType, PageType };
+
+function isClaimsAdminRole(role: unknown): boolean {
+    if (Array.isArray(role)) {
+        return role.some((value) => isClaimsAdminRole(value));
+    }
+    if (typeof role !== 'string') return false;
+    return ['super_user', 'super_admin', 'admin'].includes(role);
+}
+
+async function getAuthorizedClaimsAdmin(
+    requestedAdminUserId?: string
+): Promise<{ uid: string } | null> {
+    try {
+        const session = await requireUser();
+        const sessionUid =
+            typeof session === 'object' && session && 'uid' in session
+                ? String((session as { uid?: string }).uid || '')
+                : '';
+        const role =
+            typeof session === 'object' && session && 'role' in session
+                ? (session as { role?: unknown }).role
+                : null;
+
+        if (!sessionUid || !isClaimsAdminRole(role)) {
+            return null;
+        }
+
+        if (requestedAdminUserId && requestedAdminUserId !== sessionUid) {
+            return null;
+        }
+
+        return { uid: sessionUid };
+    } catch {
+        return null;
+    }
+}
 
 /**
  * Claim a ZIP or city page
@@ -122,9 +159,13 @@ export async function adminApproveClaim(
     claimId: string,
     adminUserId: string
 ): Promise<{ success: boolean; error?: string }> {
-    // TODO: Verify admin permissions
+    const admin = await getAuthorizedClaimsAdmin(adminUserId);
+    if (!admin) {
+        return { success: false, error: 'Unauthorized' };
+    }
+
     try {
-        return await approveClaim(claimId, adminUserId);
+        return await approveClaim(claimId, admin.uid);
     } catch (error) {
         console.error('Error approving claim:', error);
         return { success: false, error: 'Failed to approve claim' };
@@ -139,9 +180,13 @@ export async function adminRevokeClaim(
     adminUserId: string,
     reason: string
 ): Promise<{ success: boolean; error?: string }> {
-    // TODO: Verify admin permissions
+    const admin = await getAuthorizedClaimsAdmin(adminUserId);
+    if (!admin) {
+        return { success: false, error: 'Unauthorized' };
+    }
+
     try {
-        return await revokeClaim(claimId, adminUserId, reason);
+        return await revokeClaim(claimId, admin.uid, reason);
     } catch (error) {
         console.error('Error revoking claim:', error);
         return { success: false, error: 'Failed to revoke claim' };
@@ -158,9 +203,13 @@ export async function adminGenerateInvite(
     adminUserId: string,
     expiresInDays?: number
 ): Promise<{ success: boolean; code?: string; error?: string }> {
-    // TODO: Verify admin permissions
+    const admin = await getAuthorizedClaimsAdmin(adminUserId);
+    if (!admin) {
+        return { success: false, error: 'Unauthorized' };
+    }
+
     try {
-        return await generateInviteCode(email, entityType, pageIds, adminUserId, expiresInDays);
+        return await generateInviteCode(email, entityType, pageIds, admin.uid, expiresInDays);
     } catch (error) {
         console.error('Error generating invite:', error);
         return { success: false, error: 'Failed to generate invite' };
@@ -229,6 +278,11 @@ export async function getCurrentPageOwner(
  * Admin: Get all pending claims for review
  */
 export async function getPendingClaims(): Promise<PageClaim[]> {
+    const admin = await getAuthorizedClaimsAdmin();
+    if (!admin) {
+        return [];
+    }
+
     try {
         const { firestore } = await createServerClient();
 
@@ -253,6 +307,11 @@ export async function getPendingClaims(): Promise<PageClaim[]> {
  * Admin: Get all active claims
  */
 export async function getActiveClaims(limit: number = 100): Promise<PageClaim[]> {
+    const admin = await getAuthorizedClaimsAdmin();
+    if (!admin) {
+        return [];
+    }
+
     try {
         const { firestore } = await createServerClient();
 
