@@ -115,6 +115,8 @@ export class LettaBlockManager {
 
     /**
      * Append content to a block with agent attribution.
+     * When the block overflows, the oldest content is summarized via LLM
+     * and archived as a Letta passage before being dropped.
      */
     async appendToBlock(
         tenantId: string,
@@ -123,20 +125,81 @@ export class LettaBlockManager {
         agentName: string
     ): Promise<LettaBlock> {
         const block = await this.getOrCreateBlock(tenantId, label);
-        
+
         if (block.read_only) {
             throw new Error(`Cannot modify read-only block: ${label}`);
         }
 
         const timestamp = new Date().toISOString().split('T')[0];
         const newValue = `${block.value}\n\n[${agentName} @ ${timestamp}]: ${content}`;
-        
-        // Trim if exceeding limit
-        const trimmedValue = newValue.length > block.limit 
-            ? newValue.slice(-block.limit + 500) // Keep some buffer
-            : newValue;
 
-        return await lettaClient.updateBlock(block.id, trimmedValue);
+        // If within limit, no truncation needed
+        if (newValue.length <= block.limit) {
+            return await lettaClient.updateBlock(block.id, newValue);
+        }
+
+        // Content will overflow — summarize the portion being dropped
+        const keepLength = block.limit - 500; // buffer
+        const droppedContent = newValue.slice(0, newValue.length - keepLength);
+        const keptContent = newValue.slice(-keepLength);
+
+        // Fire-and-forget: summarize dropped content and archive it
+        this.summarizeAndArchive(tenantId, label, droppedContent, agentName).catch(err => {
+            logger.warn('[LettaBlockManager] Failed to archive truncated content', { error: err instanceof Error ? err.message : String(err) });
+        });
+
+        logger.info(`[LettaBlockManager] Block ${label} overflow: archived ${droppedContent.length} chars, kept ${keptContent.length} chars`);
+
+        return await lettaClient.updateBlock(block.id, keptContent);
+    }
+
+    /**
+     * Summarize truncated block content and store it in Letta archival memory.
+     * Uses a fast model (Gemini Flash Lite) to keep cost near zero.
+     */
+    private async summarizeAndArchive(
+        tenantId: string,
+        label: BlockLabel,
+        droppedContent: string,
+        agentName: string
+    ): Promise<void> {
+        try {
+            const { ai } = await import('@/ai/genkit');
+
+            const summaryResponse = await ai.generate({
+                model: 'googleai/gemini-2.5-flash-lite',
+                prompt: `Summarize the following agent memory block content that is being archived. Keep only key facts, decisions, and insights. Be concise (max 200 words).\n\nContent:\n${droppedContent.slice(0, 3000)}`,
+            });
+
+            const summary = summaryResponse.text;
+
+            // Store the summary in archival memory for future retrieval
+            // Find any agent associated with this tenant to store the passage
+            const agents = await lettaClient.listAgents();
+            const tenantAgent = agents.find(a => a.name.includes(tenantId));
+
+            if (tenantAgent) {
+                await lettaClient.insertPassage(tenantAgent.id, JSON.stringify({
+                    _type: 'block_archive',
+                    _version: 1,
+                    tenantId,
+                    blockLabel: label,
+                    summary,
+                    archivedAt: new Date().toISOString(),
+                    archivedBy: agentName,
+                    originalLength: droppedContent.length,
+                }));
+            }
+
+            logger.info(`[LettaBlockManager] Archived summary for block ${label} (${summary.length} chars)`);
+        } catch (error) {
+            // Log but don't throw — archival is best-effort
+            logger.warn('[LettaBlockManager] Summarize-and-archive failed', {
+                error: error instanceof Error ? error.message : String(error),
+                label,
+                tenantId,
+            });
+        }
     }
 
     /**
