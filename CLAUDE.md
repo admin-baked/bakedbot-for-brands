@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-03-02 (NY outreach pipeline + provisioning; Firebase webhook reconnect; QEV secret; CRON auth on test-emails)
+**Current Status:** 🟢 Passing | **Last update:** 2026-03-02 (Workflow DSL orchestration layer — 3 POC workflows, CLI, 83 tests)
 
 ---
 
