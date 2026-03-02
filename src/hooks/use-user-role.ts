@@ -3,12 +3,13 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useUser } from '@/firebase/auth/use-user';
 import type { DomainUserProfile } from '@/types/domain';
-import { 
-    UserRole, 
-    isBrandRole, 
-    isBrandAdmin, 
-    isDispensaryRole, 
+import {
+    UserRole,
+    isBrandRole,
+    isBrandAdmin,
+    isDispensaryRole,
     isDispensaryAdmin,
+    isGrowerRole,
     normalizeRole,
     DASHBOARD_ROLES,
     ALL_ROLES
@@ -44,7 +45,7 @@ export function useUserRole() {
 
     // Simulated role from cookie (client-side only, after hydration)
     const [simulatedRole, setSimulatedRole] = useState<Role | null>(null);
-    
+
     useEffect(() => {
         // Role simulation is a development-only feature.
         if (process.env.NODE_ENV === 'production') return;
@@ -75,14 +76,14 @@ export function useUserRole() {
     const hasAnyRole = useMemo(() => {
         return (roles: Role[]) => {
             if (!role) return false;
-            
+
             // Direct match
             if (roles.includes(role)) return true;
 
             // Legacy super admin compatibility
             if (role === 'super_admin' && roles.includes('super_user')) return true;
             if (role === 'super_user' && roles.includes('super_admin')) return true;
-            
+
             // Check for group matches
             for (const r of roles) {
                 // 'brand' matches any brand role
@@ -94,7 +95,7 @@ export function useUserRole() {
                 // dispensary_staff matches dispensary_admin
                 if (r === 'dispensary_staff' && (role === 'dispensary_admin' || role === 'dispensary')) return true;
             }
-            
+
             return false;
         };
     }, [role]);
@@ -129,27 +130,27 @@ export function useUserRole() {
 
     const defaultRoute = useMemo(() => {
         if (!role) return '/';
-        
+
         // Super users go to the CEO dashboard (production internal workspace)
         if (role === 'super_user' || role === 'super_admin') {
             return '/dashboard/ceo?tab=boardroom';
         }
-        
+
         // All brand roles go to dashboard
         if (isBrandRole(role)) {
             return '/dashboard';
         }
-        
+
         // All dispensary roles go to dashboard
         if (isDispensaryRole(role)) {
             return '/dashboard';
         }
-        
+
         // Customer and budtender
         if (role === 'customer' || role === 'budtender') {
             return '/dashboard';
         }
-        
+
         return '/';
     }, [role]);
 
@@ -166,15 +167,15 @@ export function useUserRole() {
         if (isBrandRole(role)) {
             return '/brand-login';
         }
-        
+
         if (isDispensaryRole(role)) {
             return '/dispensary-login';
         }
-        
+
         if (role === 'customer') {
             return '/customer-login';
         }
-        
+
         return '/signin';
     }, [role]);
 
@@ -208,6 +209,7 @@ export function useUserRole() {
         isDispensaryRole: role ? isDispensaryRole(role) : false,
         isBrandAdmin: role ? isBrandAdmin(role) : false,
         isDispensaryAdmin: role ? isDispensaryAdmin(role) : false,
+        isGrowerRole: role ? isGrowerRole(role) : false,
         isSuperUser: role === 'super_user' || role === 'super_admin',
     };
 }

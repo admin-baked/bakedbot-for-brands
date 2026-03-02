@@ -1,0 +1,12 @@
+{
+  "name": "projects/studio-567050101-bc6e8/locations/us-central1/backends/bakedbot-prod/traffic",
+  "rolloutPolicy": null,
+  "target": {
+    "splits": [
+      {
+        "build": "projects/1016399212569/locations/us-central1/backends/bakedbot-prod/builds/build-2026-03-01-026",
+        "percent": 100
+      }
+    ]
+  }
+}

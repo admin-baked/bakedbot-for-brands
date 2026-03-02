@@ -282,7 +282,7 @@ export interface BrandMessaging {
 export type USState =
   | 'CA' | 'CO' | 'MA' | 'MI' | 'NV' | 'OR' | 'WA' | 'AZ' | 'IL' | 'NJ'
   | 'NY' | 'CT' | 'VT' | 'ME' | 'MT' | 'NM' | 'VA' | 'RI' | 'MD' | 'MO'
-  | 'AK' | 'DC' | 'OK' | 'PA';
+  | 'AK' | 'DC' | 'OK' | 'PA' | 'AL' | 'MS';
 
 export interface ComplianceRule {
   state: USState;

@@ -47,6 +47,9 @@ export type UserRole =
     // Training
     | 'intern'          // Training program participants
 
+    // Grower level
+    | 'grower'          // NEW: Cultivators selling wholesale to brands
+
     // Delivery
     | 'delivery_driver'; // Delivery drivers
 
@@ -74,6 +77,7 @@ export const ROLES = [
     'budtender',
     'customer',
     'intern',
+    'grower',
     'delivery_driver'
 ] as const;
 
@@ -89,7 +93,8 @@ export const DASHBOARD_ROLES: UserRole[] = [
     'dispensary_staff',
     'dispensary',
     'budtender',
-    'intern'
+    'intern',
+    'grower'
 ];
 
 /**
@@ -106,6 +111,14 @@ export function isBrandRole(role: UserRole | string | null): boolean {
 export function isBrandAdmin(role: UserRole | string | null): boolean {
     if (!role) return false;
     return ['brand_admin', 'brand'].includes(role as string);
+}
+
+/**
+ * Helper to check if a role is a "grower" (any level)
+ */
+export function isGrowerRole(role: UserRole | string | null): boolean {
+    if (!role) return false;
+    return role === 'grower';
 }
 
 /**
@@ -129,21 +142,21 @@ export function isDispensaryAdmin(role: UserRole | string | null): boolean {
  */
 export function normalizeRole(role: UserRole | string | null): UserRole {
     if (!role) return 'customer';
-    
+
     // Legacy super admin roles
     if (['owner', 'executive', 'super_admin'].includes(role)) {
         return 'super_user';
     }
-    
+
     // Legacy brand role -> brand_admin (preserving admin access for existing users)
     if (role === 'brand') {
         return 'brand_admin';
     }
-    
+
     // Legacy dispensary role -> dispensary_admin  
     if (role === 'dispensary') {
         return 'dispensary_admin';
     }
-    
+
     return role as UserRole;
 }

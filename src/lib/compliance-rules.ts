@@ -21,7 +21,7 @@ import type { ComplianceRule, USState } from '@/types/brand-guide';
 export const US_STATES: USState[] = [
   'CA', 'CO', 'MA', 'MI', 'NV', 'OR', 'WA', 'AZ', 'IL', 'NJ',
   'NY', 'CT', 'VT', 'ME', 'MT', 'NM', 'VA', 'RI', 'MD', 'MO',
-  'AK', 'DC', 'OK', 'PA'
+  'AK', 'DC', 'OK', 'PA', 'AL', 'MS'
 ];
 
 // ============================================================================
@@ -667,6 +667,42 @@ export const COMPLIANCE_RULES_BY_STATE: Record<USState, ComplianceRule[]> = {
       penalty: 'License action',
       reference: 'PA Medical Marijuana Act',
     },
+  ],
+  AL: [
+    {
+      state: 'AL',
+      category: 'marketing',
+      rule: 'Alabama medical cannabis marketing must remain purely informational and not appeal to minors',
+      required: true,
+      penalty: 'Administrative fines',
+      reference: 'Alabama Medical Cannabis Commission Rules',
+    },
+    {
+      state: 'AL',
+      category: 'advertising',
+      rule: 'No advertising that promotes adult-use (recreational) cannabis',
+      required: true,
+      penalty: 'License suspension',
+      reference: 'Alabama State Law',
+    }
+  ],
+  MS: [
+    {
+      state: 'MS',
+      category: 'marketing',
+      rule: 'No marketing or advertising within 1,000 feet of schools or facilities for children',
+      required: true,
+      penalty: 'License revocation',
+      reference: 'Mississippi Medical Cannabis Act',
+    },
+    {
+      state: 'MS',
+      category: 'age_verification',
+      rule: 'Must verify medical cannabis patient status before displaying product inventory',
+      required: true,
+      penalty: 'Criminal penalties possible',
+      reference: 'MDOH Regulations',
+    }
   ],
 };
 

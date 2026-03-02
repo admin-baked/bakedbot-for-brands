@@ -42,6 +42,10 @@ export const AVAILABLE_MARKETS: Market[] = [
     { code: 'VA', name: 'Virginia', enabled: true, priority: 27 },
     { code: 'NM', name: 'New Mexico', enabled: true, priority: 28 },
     { code: 'MN', name: 'Minnesota', enabled: true, priority: 29 },
+
+    // Emerging markets (AL/MS)
+    { code: 'AL', name: 'Alabama', enabled: true, priority: 30 },
+    { code: 'MS', name: 'Mississippi', enabled: true, priority: 31 },
 ];
 
 /**
