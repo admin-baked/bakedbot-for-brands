@@ -218,6 +218,32 @@ export class MemoryBridgeService {
     }
 
     /**
+     * Resolve the Letta agent ID for a given tenant.
+     * Prefers exact name match, then falls back to the shared research agent.
+     * Returns null if no agent is found.
+     */
+    async resolveTenantAgentId(tenantId: string): Promise<string | null> {
+        try {
+            const agents = await lettaClient.listAgents();
+            // Exact name match first — prevents cross-tenant substring collisions
+            const exactMatch = agents.find(a => a.name === tenantId);
+            if (exactMatch) return exactMatch.id;
+
+            // Fallback: shared research agent (used by all tools/default-tools)
+            const researchAgent = agents.find(a => a.name === 'BakedBot Research Memory');
+            if (researchAgent) return researchAgent.id;
+
+            return null;
+        } catch (e) {
+            logger.warn('[MemoryBridge] Failed to resolve tenant agent', {
+                tenantId,
+                error: e instanceof Error ? e.message : String(e),
+            });
+            return null;
+        }
+    }
+
+    /**
      * Unified query across both Letta and Firestore.
      * Use this when you need context from both systems.
      */
@@ -241,14 +267,17 @@ export class MemoryBridgeService {
 
         const limit = options?.limit || 5;
 
-        // Search Letta (if agent ID provided)
-        if (options?.includeLetta !== false && options?.agentId) {
+        // Search Letta — auto-resolve agent ID from tenant when not provided
+        if (options?.includeLetta !== false) {
             try {
-                result.lettaResults = await lettaClient.searchPassages(
-                    options.agentId,
-                    query,
-                    limit
-                );
+                const agentId = options?.agentId || await this.resolveTenantAgentId(tenantId);
+                if (agentId) {
+                    result.lettaResults = await lettaClient.searchPassages(
+                        agentId,
+                        query,
+                        limit
+                    );
+                }
             } catch (e: unknown) {
                 logger.warn('[MemoryBridge] Letta search failed:', e as Record<string, any>);
             }
