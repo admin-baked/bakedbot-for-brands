@@ -489,8 +489,15 @@ export const POST = withProtection(
                     );
                 }
 
-                const expectedAeropayTransactionId = ownedOrder?.aeropay?.transactionId || ownedOrder?.transactionId;
-                if (expectedAeropayTransactionId && expectedAeropayTransactionId !== transactionId) {
+                const expectedAeropayTransactionId =
+                    ownedOrder?.aeropay?.transactionId || ownedOrder?.transactionId;
+                if (!expectedAeropayTransactionId) {
+                    return NextResponse.json(
+                        { success: false, error: 'Aeropay authorization is missing for this order' },
+                        { status: 409 },
+                    );
+                }
+                if (expectedAeropayTransactionId !== transactionId) {
                     return NextResponse.json(
                         { success: false, error: 'Aeropay transaction does not match this order' },
                         { status: 403 },

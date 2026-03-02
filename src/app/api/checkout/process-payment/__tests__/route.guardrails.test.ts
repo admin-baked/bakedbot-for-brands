@@ -463,6 +463,34 @@ describe('POST /api/checkout/process-payment guardrails', () => {
         expect(mockCannPayTransactionDetails).not.toHaveBeenCalled();
     });
 
+    it('rejects Aeropay finalization when order has no bound transaction', async () => {
+        mockOrderGet.mockResolvedValue({
+            exists: true,
+            data: () => ({
+                userId: 'user-1',
+                customer: { email: 'owner@example.com' },
+                totals: { total: 50 },
+                paymentStatus: 'pending',
+            }),
+            ref: { update: mockOrderUpdate },
+        });
+
+        const response = await POST({} as any, {
+            amount: 50,
+            paymentMethod: 'aeropay',
+            orderId: 'order-1',
+            paymentData: {
+                transactionId: 'aero_tx_1',
+            },
+        } as any);
+
+        const body = await response.json();
+        expect(response.status).toBe(409);
+        expect(body.error).toContain('authorization is missing');
+        expect(mockAeropayTransactionDetails).not.toHaveBeenCalled();
+        expect(mockOrderUpdate).not.toHaveBeenCalled();
+    });
+
     it('rejects Aeropay finalization when provider amount does not match order total', async () => {
         mockOrderGet.mockResolvedValue({
             exists: true,
