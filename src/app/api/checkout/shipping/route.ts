@@ -86,6 +86,22 @@ function productBelongsToBrand(product: any, brandId: string): boolean {
     return false;
 }
 
+function allowsShippingCheckout(purchaseModel: unknown): boolean {
+    const normalized = typeof purchaseModel === 'string'
+        ? purchaseModel.trim().toLowerCase()
+        : '';
+
+    return normalized === 'online_only' || normalized === 'hybrid';
+}
+
+function hasLegacyShippingFlag(data: Record<string, unknown>): boolean {
+    return (
+        data.shipsNationwide === true ||
+        data.shippingEnabled === true ||
+        (typeof data.checkoutUrl === 'string' && data.checkoutUrl.trim().length > 0)
+    );
+}
+
 export async function POST(req: NextRequest) {
     try {
         if (!isShippingCheckoutEnabled()) {
@@ -154,6 +170,22 @@ export async function POST(req: NextRequest) {
         }
 
         const { firestore } = await createServerClient();
+
+        const brandDoc = await firestore.collection('brands').doc(brandId).get();
+        if (!brandDoc.exists) {
+            return NextResponse.json({
+                success: false,
+                error: 'Brand not found for shipping checkout.',
+            }, { status: 404 });
+        }
+
+        const brandData = (brandDoc.data() || {}) as Record<string, unknown>;
+        if (!allowsShippingCheckout(brandData.purchaseModel) && !hasLegacyShippingFlag(brandData)) {
+            return NextResponse.json({
+                success: false,
+                error: 'Shipping checkout is not enabled for this brand.',
+            }, { status: 403 });
+        }
 
         const resolvedItems: ResolvedLineItem[] = [];
         for (const item of items) {
@@ -438,11 +470,13 @@ export async function POST(req: NextRequest) {
         });
 
         const shippingAddressStr = `${normalizedShipping.street}${normalizedShipping.street2 ? ', ' + normalizedShipping.street2 : ''}, ${normalizedShipping.city}, ${normalizedShipping.state} ${normalizedShipping.zip}`;
-        let brandName = 'Ecstatic Edibles';
+        let brandName = typeof brandData.name === 'string' ? brandData.name : 'Ecstatic Edibles';
         try {
-            const brandDoc = await firestore.collection('brands').doc(brandId).get();
-            if (brandDoc.exists) {
-                brandName = brandDoc.data()?.name || brandName;
+            if (!brandName) {
+                const latestBrandDoc = await firestore.collection('brands').doc(brandId).get();
+                if (latestBrandDoc.exists) {
+                    brandName = latestBrandDoc.data()?.name || 'Ecstatic Edibles';
+                }
             }
         } catch (brandError) {
             logger.warn('[ShippingOrderAPI] Could not fetch brand for confirmation email', {

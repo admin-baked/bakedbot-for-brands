@@ -78,6 +78,22 @@ function productBelongsToBrand(product: any, brandId: string): boolean {
     return false;
 }
 
+function allowsShippingCheckout(purchaseModel: unknown): boolean {
+    const normalized = typeof purchaseModel === 'string'
+        ? purchaseModel.trim().toLowerCase()
+        : '';
+
+    return normalized === 'online_only' || normalized === 'hybrid';
+}
+
+function hasLegacyShippingFlag(data: Record<string, unknown>): boolean {
+    return (
+        data.shipsNationwide === true ||
+        data.shippingEnabled === true ||
+        (typeof data.checkoutUrl === 'string' && data.checkoutUrl.trim().length > 0)
+    );
+}
+
 export async function createShippingOrder(input: CreateShippingOrderInput) {
     try {
         if (!isShippingCheckoutEnabled()) {
@@ -111,6 +127,15 @@ export async function createShippingOrder(input: CreateShippingOrderInput) {
         }
 
         const { firestore } = await createServerClient();
+
+        const brandDoc = await firestore.collection('brands').doc(input.brandId).get();
+        if (!brandDoc.exists) {
+            return { success: false, error: 'Brand not found for shipping checkout.' };
+        }
+        const brandData = (brandDoc.data() || {}) as Record<string, unknown>;
+        if (!allowsShippingCheckout(brandData.purchaseModel) && !hasLegacyShippingFlag(brandData)) {
+            return { success: false, error: 'Shipping checkout is not enabled for this brand.' };
+        }
 
         const resolvedItems: ResolvedShippingItem[] = [];
         for (const item of input.items) {

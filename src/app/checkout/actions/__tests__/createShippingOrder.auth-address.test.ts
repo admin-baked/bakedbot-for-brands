@@ -8,6 +8,7 @@ const mockOrderAdd = jest.fn();
 const mockOrderUpdate = jest.fn();
 const mockUserSet = jest.fn();
 const mockProductGet = jest.fn();
+const mockBrandGet = jest.fn();
 
 jest.mock('@/server/auth/auth', () => ({
     requireUser: (...args: unknown[]) => mockRequireUser(...args),
@@ -92,6 +93,14 @@ describe('createShippingOrder auth + address hardening', () => {
                     };
                 }
 
+                if (name === 'brands') {
+                    return {
+                        doc: jest.fn(() => ({
+                            get: () => mockBrandGet(),
+                        })),
+                    };
+                }
+
                 return {};
             }),
         };
@@ -103,6 +112,13 @@ describe('createShippingOrder auth + address hardening', () => {
             message: 'Approved',
         });
         mockSendOrderConfirmationEmail.mockResolvedValue(undefined);
+        mockBrandGet.mockResolvedValue({
+            exists: true,
+            data: () => ({
+                purchaseModel: 'online_only',
+                name: 'Ecstatic Edibles',
+            }),
+        });
         mockProductGet.mockResolvedValue({
             exists: true,
             data: () => ({
@@ -148,6 +164,42 @@ describe('createShippingOrder auth + address hardening', () => {
         const result = await createShippingOrder(input as any);
         expect(result.success).toBe(false);
         expect(result.error).toContain('must match');
+        expect(mockCreateTransaction).not.toHaveBeenCalled();
+    });
+
+    it('rejects shipping order when brand record is missing', async () => {
+        mockRequireUser.mockResolvedValue({
+            uid: 'user-1',
+            email: 'owner@example.com',
+        });
+        mockBrandGet.mockResolvedValueOnce({
+            exists: false,
+            data: () => ({}),
+        });
+
+        const result = await createShippingOrder(baseInput() as any);
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('Brand not found');
+        expect(mockCreateTransaction).not.toHaveBeenCalled();
+    });
+
+    it('rejects shipping order when brand purchase model is local_pickup', async () => {
+        mockRequireUser.mockResolvedValue({
+            uid: 'user-1',
+            email: 'owner@example.com',
+        });
+        mockBrandGet.mockResolvedValueOnce({
+            exists: true,
+            data: () => ({
+                purchaseModel: 'local_pickup',
+            }),
+        });
+
+        const result = await createShippingOrder(baseInput() as any);
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('not enabled');
         expect(mockCreateTransaction).not.toHaveBeenCalled();
     });
 
