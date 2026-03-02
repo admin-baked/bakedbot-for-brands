@@ -8,6 +8,7 @@ const mockOrderAdd = jest.fn();
 const mockOrderUpdate = jest.fn();
 const mockUserSet = jest.fn();
 const mockProductGet = jest.fn();
+const mockBrandGet = jest.fn();
 
 jest.mock('next/server', () => {
     return {
@@ -85,10 +86,7 @@ describe('POST /api/checkout/shipping auth + address hardening', () => {
                 if (name === 'brands') {
                     return {
                         doc: jest.fn(() => ({
-                            get: jest.fn().mockResolvedValue({
-                                exists: false,
-                                data: () => ({}),
-                            }),
+                            get: () => mockBrandGet(),
                         })),
                     };
                 }
@@ -131,6 +129,13 @@ describe('POST /api/checkout/shipping auth + address hardening', () => {
             success: true,
             transactionId: 'txn-ship-1',
             message: 'Approved',
+        });
+        mockBrandGet.mockResolvedValue({
+            exists: true,
+            data: () => ({
+                purchaseModel: 'online_only',
+                name: 'Ecstatic Edibles',
+            }),
         });
         mockSendOrderConfirmationEmail.mockResolvedValue(undefined);
 
@@ -238,6 +243,68 @@ describe('POST /api/checkout/shipping auth + address hardening', () => {
         const body = await response.json();
         expect(response.status).toBe(400);
         expect(body.error).toContain('shipping address is required');
+    });
+
+    it('returns 404 when shipping checkout brand is missing', async () => {
+        mockRequireUser.mockResolvedValue({
+            uid: 'user-1',
+            email: 'owner@example.com',
+        });
+        mockBrandGet.mockResolvedValueOnce({
+            exists: false,
+            data: () => ({}),
+        });
+
+        const request = {
+            json: async () => ({
+                items: [{ id: 'prod-1', name: 'Hemp Gummies', price: 20, quantity: 1 }],
+                customer: { name: 'Owner Example', email: 'owner@example.com' },
+                shippingAddress: { street: '1 Main St', city: 'Syracuse', state: 'NY', zip: '13224', country: 'US' },
+                brandId: 'brand-1',
+                paymentMethod: 'authorize_net',
+                paymentData: { opaqueData: { dataDescriptor: 'COMMON.ACCEPT.INAPP.PAYMENT', dataValue: 'opaque' } },
+                total: 23,
+            }),
+        } as any;
+
+        const response = await POST(request);
+        const body = await response.json();
+
+        expect(response.status).toBe(404);
+        expect(body.error).toContain('Brand not found');
+        expect(mockCreateTransaction).not.toHaveBeenCalled();
+    });
+
+    it('returns 403 when brand purchase model does not allow shipping checkout', async () => {
+        mockRequireUser.mockResolvedValue({
+            uid: 'user-1',
+            email: 'owner@example.com',
+        });
+        mockBrandGet.mockResolvedValueOnce({
+            exists: true,
+            data: () => ({
+                purchaseModel: 'local_pickup',
+            }),
+        });
+
+        const request = {
+            json: async () => ({
+                items: [{ id: 'prod-1', name: 'Hemp Gummies', price: 20, quantity: 1 }],
+                customer: { name: 'Owner Example', email: 'owner@example.com' },
+                shippingAddress: { street: '1 Main St', city: 'Syracuse', state: 'NY', zip: '13224', country: 'US' },
+                brandId: 'brand-1',
+                paymentMethod: 'authorize_net',
+                paymentData: { opaqueData: { dataDescriptor: 'COMMON.ACCEPT.INAPP.PAYMENT', dataValue: 'opaque' } },
+                total: 23,
+            }),
+        } as any;
+
+        const response = await POST(request);
+        const body = await response.json();
+
+        expect(response.status).toBe(403);
+        expect(body.error).toContain('not enabled');
+        expect(mockCreateTransaction).not.toHaveBeenCalled();
     });
 
     it('rejects cart items from a different brand', async () => {
