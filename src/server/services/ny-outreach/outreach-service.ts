@@ -290,6 +290,121 @@ export async function getOutreachStats(since?: number): Promise<{
     };
 }
 
+// =============================================================================
+// Draft Types
+// =============================================================================
+
+export interface OutreachDraft {
+    id: string;
+    leadId: string;
+    dispensaryName: string;
+    contactName?: string;
+    email: string;
+    city: string;
+    state: string;
+    posSystem?: string;
+    websiteUrl?: string;
+
+    // Generated email content (editable before approve)
+    templateId: string;
+    templateName: string;
+    subject: string;
+    htmlBody: string;
+    textBody: string;
+
+    // Status lifecycle
+    status: 'draft' | 'approved' | 'sent' | 'rejected' | 'failed';
+
+    // Tracking
+    createdAt: number;
+    createdBy: string; // 'cron' or userId
+    approvedAt?: number;
+    approvedBy?: string;
+    rejectedAt?: number;
+    rejectedBy?: string;
+    rejectionReason?: string;
+    sentAt?: number;
+    sendError?: string;
+
+    // Email verification
+    emailVerified?: boolean;
+    verificationResult?: string;
+
+    // Inbox artifact link
+    inboxArtifactId?: string;
+    inboxThreadId?: string;
+}
+
+// =============================================================================
+// CRM Tracking (shared by cron runner + approval flow)
+// =============================================================================
+
+/**
+ * Track outreach in CRM by creating/updating a record.
+ */
+export async function trackInCRM(lead: OutreachLead, result: OutreachResult): Promise<void> {
+    const db = getAdminFirestore();
+
+    try {
+        const existingSnap = await db.collection('crm_outreach_contacts')
+            .where('email', '==', lead.email.toLowerCase())
+            .limit(1)
+            .get();
+
+        const crmData = {
+            email: lead.email.toLowerCase(),
+            dispensaryName: lead.dispensaryName,
+            contactName: lead.contactName || null,
+            phone: lead.phone || null,
+            city: lead.city,
+            state: lead.state,
+            posSystem: lead.posSystem || null,
+            websiteUrl: lead.websiteUrl || null,
+            source: 'ny-outreach',
+            lastOutreachAt: Date.now(),
+            lastTemplateId: result.templateId,
+            emailVerified: result.emailVerified,
+            outreachCount: 1,
+            status: result.emailSent ? 'contacted' : 'failed',
+            updatedAt: Date.now(),
+        };
+
+        if (existingSnap.empty) {
+            await db.collection('crm_outreach_contacts').add({
+                ...crmData,
+                createdAt: Date.now(),
+                outreachHistory: [{
+                    templateId: result.templateId,
+                    sentAt: result.timestamp,
+                    emailSent: result.emailSent,
+                    error: result.sendError || null,
+                }],
+            });
+        } else {
+            const doc = existingSnap.docs[0];
+            const existing = doc.data();
+            await doc.ref.update({
+                ...crmData,
+                outreachCount: (existing.outreachCount || 0) + 1,
+                outreachHistory: [
+                    ...(existing.outreachHistory || []),
+                    {
+                        templateId: result.templateId,
+                        sentAt: result.timestamp,
+                        emailSent: result.emailSent,
+                        error: result.sendError || null,
+                    },
+                ],
+            });
+        }
+    } catch (err) {
+        logger.warn('[NYOutreach] CRM tracking failed (non-fatal)', {
+            email: lead.email,
+            error: String(err),
+        });
+    }
+}
+
 /**
  * Send outreach status digest to specified email.
  */

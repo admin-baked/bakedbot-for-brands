@@ -1,13 +1,12 @@
 /**
  * NY Outreach Runner Cron
  *
- * Daily automated outreach pipeline:
+ * Daily automated outreach pipeline (draft-first approval flow):
  * 1. Check if there are enough researched leads in the queue
  * 2. If below threshold, research new dispensaries via Jina web scraping
  * 3. Pick next N uncontacted leads (default 5/day for testing)
- * 4. Send personalized outreach via Mailjet
- * 5. Log results to Firestore + sync to Drive spreadsheet
- * 6. Track in CRM
+ * 4. Generate personalized email drafts (NOT send immediately)
+ * 5. User reviews + approves drafts in CEO dashboard or Inbox
  *
  * Cloud Scheduler:
  *   Name:     ny-outreach-runner
@@ -21,10 +20,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireCronSecret } from '@/server/auth/cron';
 import { logger } from '@/lib/logger';
 import { getAdminFirestore } from '@/firebase/admin';
-import { executeOutreach, getOutreachStats } from '@/server/services/ny-outreach/outreach-service';
-import { syncToDriverSpreadsheet } from '@/server/services/ny-outreach/lead-research';
 import { researchNewLeads } from '@/server/services/ny-outreach/contact-research';
-import type { OutreachLead, OutreachResult } from '@/server/services/ny-outreach/outreach-service';
+import { generateOutreachEmails, type OutreachEmailData } from '@/server/services/ny-outreach/email-templates';
+import { verifyEmail } from '@/server/services/email-verification';
 
 export const dynamic = 'force-dynamic';
 
@@ -80,21 +78,20 @@ async function getNextLeadBatch(limit: number): Promise<Array<{
 }>> {
     const db = getAdminFirestore();
 
-    // Check how many we've already sent today
+    // Check how many drafts we've already generated today
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
-    const todaySentSnap = await db.collection('ny_outreach_log')
-        .where('timestamp', '>=', todayStart.getTime())
-        .where('emailSent', '==', true)
+    const todayDraftsSnap = await db.collection('ny_outreach_drafts')
+        .where('createdAt', '>=', todayStart.getTime())
         .get();
-    const sentToday = todaySentSnap.size;
+    const draftsToday = todayDraftsSnap.size;
 
-    if (sentToday >= limit) {
-        logger.info('[NYOutreachRunner] Daily limit already reached', { sentToday, limit });
+    if (draftsToday >= limit) {
+        logger.info('[NYOutreachRunner] Daily draft limit already reached', { draftsToday, limit });
         return [];
     }
 
-    const remaining = limit - sentToday;
+    const remaining = limit - draftsToday;
 
     // Get uncontacted leads with email
     const leadsSnap = await db.collection('ny_dispensary_leads')
@@ -123,73 +120,6 @@ async function getNextLeadBatch(limit: number): Promise<Array<{
             };
         })
         .filter((l): l is NonNullable<typeof l> => l !== null);
-}
-
-/**
- * Track outreach in CRM by creating/updating a record.
- */
-async function trackInCRM(lead: OutreachLead, result: OutreachResult): Promise<void> {
-    const db = getAdminFirestore();
-
-    try {
-        // Check if CRM contact exists for this email
-        const existingSnap = await db.collection('crm_outreach_contacts')
-            .where('email', '==', lead.email.toLowerCase())
-            .limit(1)
-            .get();
-
-        const crmData = {
-            email: lead.email.toLowerCase(),
-            dispensaryName: lead.dispensaryName,
-            contactName: lead.contactName || null,
-            phone: lead.phone || null,
-            city: lead.city,
-            state: lead.state,
-            posSystem: lead.posSystem || null,
-            websiteUrl: lead.websiteUrl || null,
-            source: 'ny-outreach',
-            lastOutreachAt: Date.now(),
-            lastTemplateId: result.templateId,
-            emailVerified: result.emailVerified,
-            outreachCount: 1,
-            status: result.emailSent ? 'contacted' : 'failed',
-            updatedAt: Date.now(),
-        };
-
-        if (existingSnap.empty) {
-            await db.collection('crm_outreach_contacts').add({
-                ...crmData,
-                createdAt: Date.now(),
-                outreachHistory: [{
-                    templateId: result.templateId,
-                    sentAt: result.timestamp,
-                    emailSent: result.emailSent,
-                    error: result.sendError || null,
-                }],
-            });
-        } else {
-            const doc = existingSnap.docs[0];
-            const existing = doc.data();
-            await doc.ref.update({
-                ...crmData,
-                outreachCount: (existing.outreachCount || 0) + 1,
-                outreachHistory: [
-                    ...(existing.outreachHistory || []),
-                    {
-                        templateId: result.templateId,
-                        sentAt: result.timestamp,
-                        emailSent: result.emailSent,
-                        error: result.sendError || null,
-                    },
-                ],
-            });
-        }
-    } catch (err) {
-        logger.warn('[NYOutreachRunner] CRM tracking failed (non-fatal)', {
-            email: lead.email,
-            error: String(err),
-        });
-    }
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -235,52 +165,105 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
                 summary: {
                     leadsInQueue: queueDepth,
                     newLeadsResearched,
-                    emailsSent: 0,
-                    emailsFailed: 0,
+                    draftsCreated: 0,
+                    draftsFailed: 0,
                     dailyLimit: DAILY_SEND_LIMIT,
                     message: 'No leads to contact',
                 },
             });
         }
 
-        // Step 4: Execute outreach for each lead
-        const results: OutreachResult[] = [];
+        // Step 4: Generate drafts for each lead (NOT send)
+        let draftsCreated = 0;
+        let draftsFailed = 0;
+        const draftResults: Array<{ dispensary: string; template: string; verified: boolean; error?: string }> = [];
+
         for (const lead of leads) {
             const templateId = selectTemplate(lead);
-            const outreachLead: OutreachLead = {
+            const emailData: OutreachEmailData = {
                 dispensaryName: lead.dispensaryName,
                 contactName: lead.contactName,
-                email: lead.email,
-                phone: lead.phone,
                 city: lead.city,
                 state: lead.state,
                 posSystem: lead.posSystem,
-                websiteUrl: lead.websiteUrl,
-                contactFormUrl: lead.contactFormUrl,
-                source: lead.source,
             };
 
             try {
-                const result = await executeOutreach(outreachLead, templateId);
-                results.push(result);
+                // Generate email content
+                const templates = generateOutreachEmails(emailData);
+                const template = templates.find(t => t.id === templateId);
+                if (!template) {
+                    logger.warn('[NYOutreachRunner] Template not found', { templateId });
+                    draftsFailed++;
+                    continue;
+                }
 
-                // Update lead status
+                // Verify email (non-blocking — draft still created if verification fails)
+                let emailVerified = false;
+                let verificationResult = 'pending';
+                try {
+                    const verification = await verifyEmail({ email: lead.email });
+                    emailVerified = verification.safe_to_send;
+                    verificationResult = `${verification.result}: ${verification.reason}`;
+                } catch {
+                    emailVerified = true; // Assume OK if verification service is down
+                    verificationResult = 'service_unavailable';
+                }
+
+                // Write draft to Firestore
+                const draftDoc = {
+                    leadId: lead.id,
+                    dispensaryName: lead.dispensaryName,
+                    contactName: lead.contactName || null,
+                    email: lead.email,
+                    city: lead.city,
+                    state: lead.state,
+                    posSystem: lead.posSystem || null,
+                    websiteUrl: lead.websiteUrl || null,
+                    templateId,
+                    templateName: template.name,
+                    subject: template.subject,
+                    htmlBody: template.htmlBody,
+                    textBody: template.textBody,
+                    status: 'draft',
+                    createdAt: Date.now(),
+                    createdBy: 'cron',
+                    emailVerified,
+                    verificationResult,
+                };
+
+                await db.collection('ny_outreach_drafts').add(draftDoc);
+
+                // Update lead status to draft_generated (NOT outreachSent)
                 await db.collection('ny_dispensary_leads').doc(lead.id).update({
-                    outreachSent: true,
-                    outreachSentAt: Date.now(),
+                    status: 'draft_generated',
+                    draftGeneratedAt: Date.now(),
                     outreachTemplateId: templateId,
-                    outreachResult: result.emailSent ? 'sent' : 'failed',
-                    status: result.emailSent ? 'contacted' : 'outreach_failed',
                     updatedAt: Date.now(),
                 });
 
-                // Track in CRM
-                await trackInCRM(outreachLead, result);
+                draftsCreated++;
+                draftResults.push({
+                    dispensary: lead.dispensaryName,
+                    template: templateId,
+                    verified: emailVerified,
+                });
 
-                // Small delay between sends to avoid rate limiting
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                logger.info('[NYOutreachRunner] Draft created', {
+                    leadId: lead.id,
+                    dispensary: lead.dispensaryName,
+                    template: templateId,
+                    emailVerified,
+                });
             } catch (err) {
-                logger.error('[NYOutreachRunner] Outreach failed for lead', {
+                draftsFailed++;
+                draftResults.push({
+                    dispensary: lead.dispensaryName,
+                    template: templateId,
+                    verified: false,
+                    error: String(err),
+                });
+                logger.error('[NYOutreachRunner] Draft generation failed for lead', {
                     leadId: lead.id,
                     email: lead.email,
                     error: String(err),
@@ -288,24 +271,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             }
         }
 
-        // Step 5: Sync results to Drive spreadsheet
-        try {
-            await syncToDriverSpreadsheet();
-        } catch (err) {
-            logger.warn('[NYOutreachRunner] Drive sync failed (non-fatal)', { error: String(err) });
-        }
-
-        const sent = results.filter(r => r.emailSent).length;
-        const failed = results.filter(r => !r.emailSent).length;
-
-        // Step 6: Get updated stats
-        const stats = await getOutreachStats();
-
-        logger.info('[NYOutreachRunner] Daily outreach complete', {
-            sent,
-            failed,
+        logger.info('[NYOutreachRunner] Daily draft generation complete', {
+            draftsCreated,
+            draftsFailed,
             newLeadsResearched,
-            totalSentToday: stats.totalSent,
         });
 
         return NextResponse.json({
@@ -313,17 +282,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             summary: {
                 leadsInQueue: queueDepth + newLeadsResearched - leads.length,
                 newLeadsResearched,
-                emailsSent: sent,
-                emailsFailed: failed,
+                draftsCreated,
+                draftsFailed,
                 dailyLimit: DAILY_SEND_LIMIT,
-                totalSentAllTime: stats.totalSent,
+                message: draftsCreated > 0
+                    ? `Generated ${draftsCreated} drafts — review in CEO dashboard`
+                    : 'No drafts generated',
             },
-            results: results.map(r => ({
-                dispensary: r.dispensaryName,
-                template: r.templateId,
-                sent: r.emailSent,
-                error: r.sendError || null,
-            })),
+            results: draftResults,
         });
     } catch (error) {
         logger.error('[NYOutreachRunner] Unexpected error', { error: String(error) });

@@ -286,6 +286,18 @@ export interface OutreachDraftData {
     complianceStatus?: 'pending' | 'passed' | 'failed' | 'warning';
     complianceViolations?: string[];
     complianceSuggestions?: string[];
+
+    // ── NY Outreach Draft Fields (when linked to ny_outreach_drafts) ──
+    /** Links back to ny_outreach_drafts Firestore doc */
+    outreachDraftId?: string;
+    /** Recipient email for display */
+    outreachLeadEmail?: string;
+    /** Dispensary name for display */
+    outreachLeadName?: string;
+    /** Email verification status */
+    outreachEmailVerified?: boolean;
+    /** Template used */
+    outreachTemplateId?: string;
 }
 
 // =============================================================================
