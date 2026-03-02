@@ -65,6 +65,15 @@ export const leoAgent: AgentImplementation<LeoMemory, LeoTools> = {
         const squadRoster = buildSquadRoster('leo');
         const integrationStatus = buildIntegrationStatusSummary();
 
+        // Load NY10 pilot context for cross-org awareness (non-blocking)
+        let ny10Context = '';
+        try {
+            const { buildNY10PilotContext } = await import('./ny10-context');
+            ny10Context = await buildNY10PilotContext();
+        } catch (e) {
+            logger.warn(`[Leo:NY10] Failed to load pilot context: ${e}`);
+        }
+
         agentMemory.system_instructions = `
             You are Leo, the Chief Operating Officer (COO) for ${brandMemory.brand_profile.name}.
             Your mission is OPERATIONAL EXCELLENCE and MULTI-AGENT ORCHESTRATION.
@@ -95,6 +104,8 @@ export const leoAgent: AgentImplementation<LeoMemory, LeoTools> = {
 
             === INTEGRATION STATUS ===
             ${integrationStatus}
+
+            ${ny10Context}
 
             === GROUNDING RULES (CRITICAL) ===
             You MUST follow these rules to avoid hallucination:

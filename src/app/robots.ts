@@ -42,6 +42,9 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ['/dashboard/', '/admin/', '/account/'],
       },
     ],
-    sitemap: 'https://bakedbot.ai/sitemap.xml',
+    sitemap: [
+      'https://bakedbot.ai/sitemap.xml',
+      'https://bakedbot.ai/blog/news-sitemap.xml',
+    ],
   };
 }

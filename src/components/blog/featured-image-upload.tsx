@@ -31,6 +31,7 @@ export function FeaturedImageUpload({ image, onImageChange, orgId, postId }: Fea
     const [showUrlInput, setShowUrlInput] = useState(false);
     const [urlInput, setUrlInput] = useState('');
     const [altText, setAltText] = useState(image?.alt || '');
+    const [captionText, setCaptionText] = useState(image?.caption || '');
 
     const handleFileUpload = useCallback(async (file: File) => {
         if (!file.type.startsWith('image/')) {
@@ -63,6 +64,7 @@ export function FeaturedImageUpload({ image, onImageChange, orgId, postId }: Fea
                 id: data.fileId || crypto.randomUUID(),
                 url: data.url,
                 alt: altText || file.name.replace(/\.[^.]+$/, ''),
+                caption: captionText || undefined,
                 mimeType: file.type,
                 ...(data.width && { width: data.width }),
                 ...(data.height && { height: data.height }),
@@ -74,7 +76,7 @@ export function FeaturedImageUpload({ image, onImageChange, orgId, postId }: Fea
         } finally {
             setIsUploading(false);
         }
-    }, [orgId, postId, altText, onImageChange, toast]);
+    }, [orgId, postId, altText, captionText, onImageChange, toast]);
 
     const handleDrop = useCallback((e: React.DragEvent) => {
         e.preventDefault();
@@ -90,6 +92,7 @@ export function FeaturedImageUpload({ image, onImageChange, orgId, postId }: Fea
             id: crypto.randomUUID(),
             url: urlInput.trim(),
             alt: altText || 'Featured image',
+            caption: captionText || undefined,
             mimeType: 'image/jpeg',
         });
 
@@ -101,6 +104,7 @@ export function FeaturedImageUpload({ image, onImageChange, orgId, postId }: Fea
     const handleRemove = () => {
         onImageChange(null);
         setAltText('');
+        setCaptionText('');
     };
 
     if (image) {
@@ -120,18 +124,33 @@ export function FeaturedImageUpload({ image, onImageChange, orgId, postId }: Fea
                             <X className="w-4 h-4" />
                         </button>
                     </div>
-                    <div className="mt-3">
-                        <Label htmlFor="alt-text" className="text-xs">Alt Text</Label>
-                        <Input
-                            id="alt-text"
-                            value={altText}
-                            onChange={(e) => {
-                                setAltText(e.target.value);
-                                onImageChange({ ...image, alt: e.target.value });
-                            }}
-                            placeholder="Describe the image..."
-                            className="h-8 text-sm"
-                        />
+                    <div className="mt-3 space-y-2">
+                        <div>
+                            <Label htmlFor="alt-text" className="text-xs">Alt Text</Label>
+                            <Input
+                                id="alt-text"
+                                value={altText}
+                                onChange={(e) => {
+                                    setAltText(e.target.value);
+                                    onImageChange({ ...image, alt: e.target.value });
+                                }}
+                                placeholder="Describe the image for accessibility..."
+                                className="h-8 text-sm"
+                            />
+                        </div>
+                        <div>
+                            <Label htmlFor="caption-text" className="text-xs">Caption (visible below image, used by Google News)</Label>
+                            <Input
+                                id="caption-text"
+                                value={captionText}
+                                onChange={(e) => {
+                                    setCaptionText(e.target.value);
+                                    onImageChange({ ...image, caption: e.target.value });
+                                }}
+                                placeholder="Photo credit or descriptive caption..."
+                                className="h-8 text-sm"
+                            />
+                        </div>
                     </div>
                 </CardContent>
             </Card>
@@ -159,13 +178,13 @@ export function FeaturedImageUpload({ image, onImageChange, orgId, postId }: Fea
                         <div className="flex flex-col items-center gap-2">
                             <Upload className="h-8 w-8 text-muted-foreground/50" />
                             <p className="text-sm font-medium">Drop image here or click to upload</p>
-                            <p className="text-xs text-muted-foreground">PNG, JPG, WebP up to 5MB</p>
+                            <p className="text-xs text-muted-foreground">JPG recommended for Google News indexing. Max 5MB.</p>
                         </div>
                     )}
                     <input
                         ref={fileInputRef}
                         type="file"
-                        accept="image/*"
+                        accept="image/jpeg,image/jpg,image/png,image/webp"
                         className="hidden"
                         onChange={(e) => {
                             const file = e.target.files?.[0];

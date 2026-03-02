@@ -5,12 +5,12 @@
  * video embed support, and freemium signup CTA.
  */
 
-import { getPlatformPostBySlug, getRelatedPlatformPosts, incrementViewCount } from '@/server/actions/blog';
+import { getPlatformPostBySlug, getRelatedPlatformPosts, getPublishedPlatformPosts, incrementViewCount } from '@/server/actions/blog';
 import { BLOG_CATEGORY_META } from '@/types/blog';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, User, Clock, ArrowLeft } from 'lucide-react';
+import { Calendar, User, Clock, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { BlogSignupCta } from '@/components/blog/blog-signup-cta';
@@ -72,20 +72,46 @@ export default async function PlatformBlogPostPage({ params }: BlogPostPageProps
     const wordCount = post.content.split(/\s+/).filter(Boolean).length;
     const readTime = Math.ceil(wordCount / 200);
 
+    // Fetch more posts from same category for "More in [Category]" section
+    const categoryMeta = BLOG_CATEGORY_META[post.category];
+    const categoryPosts = await getPublishedPlatformPosts({ limit: 4 }).then(
+        posts => posts.filter(p => p.category === post.category && p.id !== post.id).slice(0, 3)
+    );
+
     return (
         <div className="bg-background">
-            {/* Back to Blog */}
-            <div className="border-b">
-                <div className="container mx-auto px-4 py-4">
-                    <Link
-                        href="/blog"
-                        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                        <ArrowLeft className="w-4 h-4" />
-                        Back to Blog
-                    </Link>
+            {/* Breadcrumbs */}
+            <nav aria-label="Breadcrumb" className="border-b">
+                <div className="container mx-auto px-4 py-3">
+                    <ol className="flex items-center gap-1.5 text-sm text-muted-foreground" itemScope itemType="https://schema.org/BreadcrumbList">
+                        <li itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem">
+                            <Link href="/" itemProp="item" className="hover:text-foreground transition-colors">
+                                <span itemProp="name">Home</span>
+                            </Link>
+                            <meta itemProp="position" content="1" />
+                        </li>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                        <li itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem">
+                            <Link href="/blog" itemProp="item" className="hover:text-foreground transition-colors">
+                                <span itemProp="name">Blog</span>
+                            </Link>
+                            <meta itemProp="position" content="2" />
+                        </li>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                        <li itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem">
+                            <Link href={`/blog/category/${post.category}`} itemProp="item" className="hover:text-foreground transition-colors">
+                                <span itemProp="name">{categoryMeta?.label || post.category}</span>
+                            </Link>
+                            <meta itemProp="position" content="3" />
+                        </li>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                        <li itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem" className="text-foreground font-medium truncate max-w-[200px] md:max-w-none">
+                            <span itemProp="name">{post.title}</span>
+                            <meta itemProp="position" content="4" />
+                        </li>
+                    </ol>
                 </div>
-            </div>
+            </nav>
 
             {/* Article */}
             <article className="py-12">
@@ -93,9 +119,11 @@ export default async function PlatformBlogPostPage({ params }: BlogPostPageProps
                     <div className="max-w-3xl mx-auto">
                         {/* Header */}
                         <header className="mb-8">
-                            <Badge variant="secondary" className="mb-4">
-                                {BLOG_CATEGORY_META[post.category]?.label || post.category}
-                            </Badge>
+                            <Link href={`/blog/category/${post.category}`}>
+                                <Badge variant="secondary" className="mb-4 hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer">
+                                    {BLOG_CATEGORY_META[post.category]?.label || post.category}
+                                </Badge>
+                            </Link>
 
                             <h1 className="text-4xl md:text-5xl font-bold mb-4">
                                 {post.title}
@@ -148,18 +176,21 @@ export default async function PlatformBlogPostPage({ params }: BlogPostPageProps
 
                         {/* Featured Image */}
                         {post.featuredImage && (
-                            <div className="mb-8 rounded-lg overflow-hidden">
+                            <figure className="mb-8 rounded-lg overflow-hidden">
                                 <img
                                     src={post.featuredImage.url}
                                     alt={post.featuredImage.alt}
                                     className="w-full h-auto"
+                                    width={post.featuredImage.width || 1200}
+                                    height={post.featuredImage.height || 630}
+                                    loading="eager"
                                 />
                                 {post.featuredImage.caption && (
-                                    <p className="text-sm text-muted-foreground text-center mt-2">
+                                    <figcaption className="text-sm text-muted-foreground text-center mt-2 px-2">
                                         {post.featuredImage.caption}
-                                    </p>
+                                    </figcaption>
                                 )}
-                            </div>
+                            </figure>
                         )}
 
                         {/* Video Embed */}
@@ -222,20 +253,81 @@ export default async function PlatformBlogPostPage({ params }: BlogPostPageProps
                                         <Card className="h-full hover:shadow-lg transition-all hover:scale-[1.02] cursor-pointer">
                                             <CardContent className="p-4">
                                                 {relatedPost.featuredImage && (
-                                                    <img
-                                                        src={relatedPost.featuredImage.url}
-                                                        alt={relatedPost.featuredImage.alt}
-                                                        className="w-full h-40 object-cover rounded mb-3"
-                                                    />
+                                                    <figure className="mb-3">
+                                                        <img
+                                                            src={relatedPost.featuredImage.url}
+                                                            alt={relatedPost.featuredImage.alt}
+                                                            className="w-full h-40 object-cover rounded"
+                                                            width={400}
+                                                            height={160}
+                                                            loading="lazy"
+                                                        />
+                                                        {relatedPost.featuredImage.caption && (
+                                                            <figcaption className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                                                                {relatedPost.featuredImage.caption}
+                                                            </figcaption>
+                                                        )}
+                                                    </figure>
                                                 )}
-                                                <Badge variant="secondary" className="text-xs mb-2">
-                                                    {BLOG_CATEGORY_META[relatedPost.category]?.label || relatedPost.category}
-                                                </Badge>
+                                                <Link href={`/blog/category/${relatedPost.category}`}>
+                                                    <Badge variant="secondary" className="text-xs mb-2 hover:bg-primary hover:text-primary-foreground transition-colors">
+                                                        {BLOG_CATEGORY_META[relatedPost.category]?.label || relatedPost.category}
+                                                    </Badge>
+                                                </Link>
                                                 <h3 className="font-semibold mb-2 line-clamp-2">
                                                     {relatedPost.title}
                                                 </h3>
                                                 <p className="text-sm text-muted-foreground line-clamp-2">
                                                     {relatedPost.excerpt}
+                                                </p>
+                                            </CardContent>
+                                        </Card>
+                                    </Link>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            )}
+
+            {/* More in [Category] */}
+            {categoryPosts.length > 0 && (
+                <section className="py-12 border-t">
+                    <div className="container mx-auto px-4">
+                        <div className="max-w-5xl mx-auto">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-2xl font-bold">
+                                    More in {categoryMeta?.label || post.category}
+                                </h2>
+                                <Link
+                                    href={`/blog/category/${post.category}`}
+                                    className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+                                >
+                                    View all <ChevronRight className="w-3.5 h-3.5" />
+                                </Link>
+                            </div>
+                            <div className="grid md:grid-cols-3 gap-6">
+                                {categoryPosts.map((catPost) => (
+                                    <Link key={catPost.id} href={`/blog/${catPost.seo.slug}`}>
+                                        <Card className="h-full hover:shadow-lg transition-all hover:scale-[1.02] cursor-pointer">
+                                            <CardContent className="p-4">
+                                                {catPost.featuredImage && (
+                                                    <figure className="mb-3">
+                                                        <img
+                                                            src={catPost.featuredImage.url}
+                                                            alt={catPost.featuredImage.alt}
+                                                            className="w-full h-40 object-cover rounded"
+                                                            width={400}
+                                                            height={160}
+                                                            loading="lazy"
+                                                        />
+                                                    </figure>
+                                                )}
+                                                <h3 className="font-semibold mb-2 line-clamp-2">
+                                                    {catPost.title}
+                                                </h3>
+                                                <p className="text-sm text-muted-foreground line-clamp-2">
+                                                    {catPost.excerpt}
                                                 </p>
                                             </CardContent>
                                         </Card>

@@ -6,7 +6,7 @@ import { getPlatformPostsByTag } from '@/server/actions/blog';
 import { BLOG_CATEGORY_META } from '@/types/blog';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, User, Clock, ArrowLeft } from 'lucide-react';
+import { Calendar, User, Clock, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Metadata } from 'next';
 
@@ -31,16 +31,35 @@ export default async function BlogTagPage({ params }: TagPageProps) {
 
     return (
         <div className="bg-background">
+            {/* Breadcrumbs */}
+            <nav aria-label="Breadcrumb" className="border-b">
+                <div className="container mx-auto px-4 py-3">
+                    <ol className="flex items-center gap-1.5 text-sm text-muted-foreground" itemScope itemType="https://schema.org/BreadcrumbList">
+                        <li itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem">
+                            <Link href="/" itemProp="item" className="hover:text-foreground transition-colors">
+                                <span itemProp="name">Home</span>
+                            </Link>
+                            <meta itemProp="position" content="1" />
+                        </li>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                        <li itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem">
+                            <Link href="/blog" itemProp="item" className="hover:text-foreground transition-colors">
+                                <span itemProp="name">Blog</span>
+                            </Link>
+                            <meta itemProp="position" content="2" />
+                        </li>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                        <li itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem" className="text-foreground font-medium">
+                            <span itemProp="name">{displayTag}</span>
+                            <meta itemProp="position" content="3" />
+                        </li>
+                    </ol>
+                </div>
+            </nav>
+
             {/* Header */}
             <section className="border-b">
                 <div className="container mx-auto px-4 py-8">
-                    <Link
-                        href="/blog"
-                        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
-                    >
-                        <ArrowLeft className="w-4 h-4" />
-                        All Posts
-                    </Link>
                     <div className="flex items-center gap-3">
                         <h1 className="text-3xl font-bold">Tag:</h1>
                         <Badge variant="secondary" className="text-lg px-3 py-1">{displayTag}</Badge>
@@ -62,18 +81,23 @@ export default async function BlogTagPage({ params }: TagPageProps) {
                                 <Link key={post.id} href={`/blog/${post.seo.slug}`} className="group">
                                     <article className="h-full border rounded-lg overflow-hidden hover:shadow-lg transition-all hover:scale-[1.02]">
                                         {post.featuredImage && (
-                                            <div className="aspect-video overflow-hidden">
+                                            <figure className="aspect-video overflow-hidden">
                                                 <img
                                                     src={post.featuredImage.url}
                                                     alt={post.featuredImage.alt}
                                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                    width={600}
+                                                    height={338}
+                                                    loading="lazy"
                                                 />
-                                            </div>
+                                            </figure>
                                         )}
                                         <div className="p-5">
-                                            <Badge variant="secondary" className="text-xs mb-3">
-                                                {BLOG_CATEGORY_META[post.category]?.label || post.category}
-                                            </Badge>
+                                            <Link href={`/blog/category/${post.category}`} onClick={(e) => e.stopPropagation()}>
+                                                <Badge variant="secondary" className="text-xs mb-3 hover:bg-primary hover:text-primary-foreground transition-colors">
+                                                    {BLOG_CATEGORY_META[post.category]?.label || post.category}
+                                                </Badge>
+                                            </Link>
                                             <h2 className="text-xl font-semibold mb-2 line-clamp-2 group-hover:text-primary transition-colors">
                                                 {post.title}
                                             </h2>

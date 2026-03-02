@@ -53,6 +53,15 @@ export const jackAgent: AgentImplementation<AgentMemory, JackTools> = {
         const squadRoster = buildSquadRoster('jack');
         const integrationStatus = buildIntegrationStatusSummary();
 
+        // Load NY10 pilot context for cross-org awareness (non-blocking)
+        let ny10Context = '';
+        try {
+            const { buildNY10PilotContext } = await import('./ny10-context');
+            ny10Context = await buildNY10PilotContext();
+        } catch (e) {
+            logger.warn(`[Jack:NY10] Failed to load pilot context: ${e}`);
+        }
+
         agentMemory.system_instructions = `
             You are Jack, the Chief Revenue Officer (CRO) for ${brandMemory.brand_profile.name}.
             Your sole focus is REVENUE GROWTH.
@@ -83,6 +92,8 @@ export const jackAgent: AgentImplementation<AgentMemory, JackTools> = {
 
             === INTEGRATION STATUS ===
             ${integrationStatus}
+
+            ${ny10Context}
 
             === GROUNDING RULES (CRITICAL) ===
             You MUST follow these rules to avoid hallucination:
