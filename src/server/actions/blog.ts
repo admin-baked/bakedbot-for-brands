@@ -39,7 +39,8 @@ const createBlogPostSchema = z.object({
     content: z.string().min(1),
     category: z.enum([
         'education', 'product_spotlight', 'industry_news', 'company_update',
-        'strain_profile', 'compliance', 'cannabis_culture', 'wellness'
+        'strain_profile', 'compliance', 'cannabis_culture', 'wellness',
+        'market_report', 'comparison', 'regulatory_alert', 'case_study'
     ]),
     tags: z.array(z.string()).max(BLOG_DEFAULTS.MAX_TAGS).optional(),
     seoKeywords: z.array(z.string()).max(BLOG_DEFAULTS.MAX_KEYWORDS).optional(),
@@ -52,7 +53,8 @@ const updateBlogPostSchema = z.object({
     content: z.string().min(1).optional(),
     category: z.enum([
         'education', 'product_spotlight', 'industry_news', 'company_update',
-        'strain_profile', 'compliance', 'cannabis_culture', 'wellness'
+        'strain_profile', 'compliance', 'cannabis_culture', 'wellness',
+        'market_report', 'comparison', 'regulatory_alert', 'case_study'
     ]).optional(),
     tags: z.array(z.string()).max(BLOG_DEFAULTS.MAX_TAGS).optional(),
 });
@@ -245,6 +247,88 @@ export async function createBlogPost(input: CreateBlogPostInput): Promise<BlogPo
         }
         logger.error('[createBlogPost] Error creating blog post', { error, input });
         throw new Error('Failed to create blog post');
+    }
+}
+
+/**
+ * Create a blog post without auth context (for agents/crons/content engine).
+ * Caller is responsible for providing valid orgId and createdBy.
+ */
+export async function createBlogPostInternal(input: CreateBlogPostInput & {
+    createdBy: string;
+    status?: BlogStatus;
+    generatedBy?: 'manual' | 'craig' | 'programmatic_cron';
+    contentType?: BlogPost['contentType'];
+    parentPostId?: string;
+    seriesId?: string;
+    seriesOrder?: number;
+    dataSnapshot?: Record<string, unknown>;
+    templateId?: string;
+    internalLinks?: string[];
+}): Promise<BlogPost> {
+    try {
+        const { firestore } = await createServerClient();
+
+        const slug = await generateUniqueSlug(input.title, input.orgId, firestore)
+            .catch(() => `post-${Date.now()}`);
+
+        const now = Timestamp.now();
+        const postData: Omit<BlogPost, 'id'> = {
+            orgId: input.orgId,
+            slug,
+            title: input.title,
+            subtitle: input.subtitle,
+            excerpt: input.excerpt,
+            content: input.content,
+            category: input.category,
+            tags: input.tags || [],
+            featuredImage: input.featuredImage,
+            contentImages: input.contentImages || [],
+            status: input.status || 'draft',
+            publishedAt: input.status === 'published' ? now : null,
+            scheduledAt: input.scheduledAt || null,
+            author: input.author || { id: input.createdBy, name: input.createdBy },
+            authorSlug: undefined,
+            createdBy: input.createdBy,
+            seo: {
+                title: input.title.substring(0, BLOG_DEFAULTS.SEO_TITLE_MAX_LENGTH),
+                metaDescription: input.excerpt.substring(0, BLOG_DEFAULTS.SEO_DESCRIPTION_MAX_LENGTH),
+                slug,
+                keywords: input.seoKeywords || [],
+            },
+            viewCount: 0,
+            version: 1,
+            versionHistory: [],
+            contentType: input.contentType || 'standard',
+            parentPostId: input.parentPostId,
+            seriesId: input.seriesId,
+            seriesOrder: input.seriesOrder,
+            dataSnapshot: input.dataSnapshot,
+            generatedBy: input.generatedBy || 'manual',
+            templateId: input.templateId,
+            internalLinks: input.internalLinks,
+            createdAt: now,
+            updatedAt: now,
+        };
+
+        const docRef = await firestore
+            .collection('tenants')
+            .doc(input.orgId)
+            .collection('blog_posts')
+            .add(postData);
+
+        logger.info('[createBlogPostInternal] Created blog post', {
+            postId: docRef.id,
+            orgId: input.orgId,
+            title: input.title,
+            generatedBy: input.generatedBy,
+            contentType: input.contentType,
+        });
+
+        return { id: docRef.id, ...postData };
+    } catch (error) {
+        logger.error('[createBlogPostInternal] Error', { error, title: input.title });
+        throw new Error('Failed to create blog post internally');
     }
 }
 
@@ -1164,5 +1248,142 @@ export async function runComplianceCheck(postId: string): Promise<BlogPost> {
         }
         logger.error('[runComplianceCheck] Error during compliance check', { error, postId });
         throw new Error('Failed to run compliance check');
+    }
+}
+
+// ============================================================================
+// Hub & Spoke Queries (public, no auth)
+// ============================================================================
+
+/**
+ * Get spoke articles linked to a hub post (by parentPostId)
+ */
+export async function getSpokePosts(hubPostId: string): Promise<BlogPost[]> {
+    try {
+        const { firestore } = await createServerClient();
+        const snapshot = await firestore
+            .collection('tenants')
+            .doc(PLATFORM_ORG_ID)
+            .collection('blog_posts')
+            .where('parentPostId', '==', hubPostId)
+            .where('status', '==', 'published')
+            .orderBy('seriesOrder', 'asc')
+            .get();
+
+        return snapshot.docs.map((doc: any) => ({
+            id: doc.id,
+            ...doc.data()
+        })) as BlogPost[];
+    } catch (error) {
+        logger.error('[getSpokePosts] Error', { error, hubPostId });
+        return [];
+    }
+}
+
+/**
+ * Get a hub post by its ID (public, no auth)
+ */
+export async function getHubPost(postId: string): Promise<BlogPost | null> {
+    try {
+        const { firestore } = await createServerClient();
+        const doc = await firestore
+            .collection('tenants')
+            .doc(PLATFORM_ORG_ID)
+            .collection('blog_posts')
+            .doc(postId)
+            .get();
+
+        if (!doc.exists) return null;
+        return { id: doc.id, ...doc.data() } as BlogPost;
+    } catch (error) {
+        logger.error('[getHubPost] Error', { error, postId });
+        return null;
+    }
+}
+
+/**
+ * Get sibling spoke posts (same parent hub, excluding current post)
+ */
+export async function getSiblingSpokes(parentPostId: string, excludePostId: string): Promise<BlogPost[]> {
+    try {
+        const spokes = await getSpokePosts(parentPostId);
+        return spokes.filter(s => s.id !== excludePostId);
+    } catch (error) {
+        logger.error('[getSiblingSpokes] Error', { error, parentPostId });
+        return [];
+    }
+}
+
+/**
+ * Suggest internal links for a post based on keyword/tag overlap
+ */
+export async function suggestInternalLinks(postId: string): Promise<Array<{
+    targetPostId: string;
+    targetSlug: string;
+    targetTitle: string;
+    relevanceScore: number;
+}>> {
+    try {
+        const { firestore } = await createServerClient();
+
+        const postDoc = await firestore
+            .collection('tenants')
+            .doc(PLATFORM_ORG_ID)
+            .collection('blog_posts')
+            .doc(postId)
+            .get();
+
+        if (!postDoc.exists) return [];
+        const post = postDoc.data() as BlogPost;
+
+        // Get all published posts (excluding self)
+        const allPosts = await firestore
+            .collection('tenants')
+            .doc(PLATFORM_ORG_ID)
+            .collection('blog_posts')
+            .where('status', '==', 'published')
+            .limit(100)
+            .get();
+
+        const postKeywords = new Set([
+            ...(post.tags || []).map((t: string) => t.toLowerCase()),
+            ...(post.seo?.keywords || []).map((k: string) => k.toLowerCase()),
+        ]);
+
+        if (postKeywords.size === 0) return [];
+
+        const scored = allPosts.docs
+            .filter((d: any) => d.id !== postId)
+            .map((d: any) => {
+                const data = d.data();
+                const targetKeywords = new Set([
+                    ...(data.tags || []).map((t: string) => t.toLowerCase()),
+                    ...(data.seo?.keywords || []).map((k: string) => k.toLowerCase()),
+                ]);
+
+                // Count overlapping keywords
+                let overlap = 0;
+                for (const kw of postKeywords) {
+                    if (targetKeywords.has(kw)) overlap++;
+                }
+
+                // Bonus for same category
+                if (data.category === post.category) overlap += 0.5;
+
+                return {
+                    targetPostId: d.id,
+                    targetSlug: data.seo?.slug || data.slug,
+                    targetTitle: data.title,
+                    relevanceScore: overlap,
+                };
+            })
+            .filter(s => s.relevanceScore > 0)
+            .sort((a, b) => b.relevanceScore - a.relevanceScore)
+            .slice(0, 5);
+
+        return scored;
+    } catch (error) {
+        logger.error('[suggestInternalLinks] Error', { error, postId });
+        return [];
     }
 }

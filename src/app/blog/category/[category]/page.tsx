@@ -17,7 +17,8 @@ interface CategoryPageProps {
 
 const VALID_CATEGORIES: BlogCategory[] = [
     'education', 'product_spotlight', 'industry_news', 'company_update',
-    'strain_profile', 'compliance', 'cannabis_culture', 'wellness'
+    'strain_profile', 'compliance', 'cannabis_culture', 'wellness',
+    'market_report', 'comparison', 'regulatory_alert', 'case_study'
 ];
 
 export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {

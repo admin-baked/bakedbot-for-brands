@@ -5,12 +5,12 @@
  * video embed support, and freemium signup CTA.
  */
 
-import { getPlatformPostBySlug, getRelatedPlatformPosts, getPublishedPlatformPosts, incrementViewCount } from '@/server/actions/blog';
+import { getPlatformPostBySlug, getRelatedPlatformPosts, getPublishedPlatformPosts, incrementViewCount, getSpokePosts, getHubPost, getSiblingSpokes } from '@/server/actions/blog';
 import { BLOG_CATEGORY_META } from '@/types/blog';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, User, Clock, ChevronRight } from 'lucide-react';
+import { Calendar, User, Clock, ChevronRight, BookOpen, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { BlogSignupCta } from '@/components/blog/blog-signup-cta';
@@ -68,6 +68,13 @@ export default async function PlatformBlogPostPage({ params }: BlogPostPageProps
     // Get related posts
     const relatedPosts = await getRelatedPlatformPosts(post.id, 3);
 
+    // Hub & Spoke data
+    const isHub = post.contentType === 'hub';
+    const isSpoke = post.contentType === 'spoke' && !!post.parentPostId;
+    const spokePosts = isHub ? await getSpokePosts(post.id) : [];
+    const hubPost = isSpoke ? await getHubPost(post.parentPostId!) : null;
+    const siblingSpokes = isSpoke && post.parentPostId ? await getSiblingSpokes(post.parentPostId, post.id) : [];
+
     // Calculate read time
     const wordCount = post.content.split(/\s+/).filter(Boolean).length;
     const readTime = Math.ceil(wordCount / 200);
@@ -112,6 +119,19 @@ export default async function PlatformBlogPostPage({ params }: BlogPostPageProps
                     </ol>
                 </div>
             </nav>
+
+            {/* Spoke: Part of Hub Banner */}
+            {isSpoke && hubPost && (
+                <div className="bg-primary/5 border-b">
+                    <div className="container mx-auto px-4 py-3">
+                        <Link href={`/blog/${hubPost.seo.slug}`} className="flex items-center gap-2 text-sm text-primary hover:underline">
+                            <ArrowLeft className="w-4 h-4" />
+                            <BookOpen className="w-4 h-4" />
+                            <span>Part of: <strong>{hubPost.title}</strong></span>
+                        </Link>
+                    </div>
+                </div>
+            )}
 
             {/* Article */}
             <article className="py-12">
@@ -173,6 +193,29 @@ export default async function PlatformBlogPostPage({ params }: BlogPostPageProps
                                 </div>
                             </div>
                         </header>
+
+                        {/* Hub: In This Guide TOC */}
+                        {isHub && spokePosts.length > 0 && (
+                            <nav className="mb-8 p-6 bg-muted/50 rounded-lg border">
+                                <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                                    <BookOpen className="w-5 h-5 text-primary" />
+                                    In This Guide
+                                </h2>
+                                <ol className="space-y-2">
+                                    {spokePosts.map((spoke, i) => (
+                                        <li key={spoke.id} className="flex items-start gap-2">
+                                            <span className="text-primary font-semibold text-sm mt-0.5">{i + 1}.</span>
+                                            <Link
+                                                href={`/blog/${spoke.seo.slug}`}
+                                                className="text-sm hover:text-primary transition-colors hover:underline"
+                                            >
+                                                {spoke.title}
+                                            </Link>
+                                        </li>
+                                    ))}
+                                </ol>
+                            </nav>
+                        )}
 
                         {/* Featured Image */}
                         {post.featuredImage && (
@@ -240,6 +283,65 @@ export default async function PlatformBlogPostPage({ params }: BlogPostPageProps
                     </div>
                 </div>
             </article>
+
+            {/* Hub: Spoke Articles Grid */}
+            {isHub && spokePosts.length > 0 && (
+                <section className="py-12 bg-primary/5">
+                    <div className="container mx-auto px-4">
+                        <div className="max-w-5xl mx-auto">
+                            <h2 className="text-2xl font-bold mb-2">Articles in This Guide</h2>
+                            <p className="text-muted-foreground mb-6">Deep dives into each topic covered in this guide.</p>
+                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {spokePosts.map((spoke, i) => {
+                                    const spokeWordCount = spoke.content.split(/\s+/).filter(Boolean).length;
+                                    const spokeReadTime = Math.ceil(spokeWordCount / 200);
+                                    return (
+                                        <Link key={spoke.id} href={`/blog/${spoke.seo.slug}`} className="group">
+                                            <Card className="h-full hover:shadow-lg transition-all hover:scale-[1.02]">
+                                                <CardContent className="p-5">
+                                                    <span className="text-xs text-primary font-semibold mb-2 block">Part {i + 1}</span>
+                                                    <h3 className="font-semibold mb-2 line-clamp-2 group-hover:text-primary transition-colors">
+                                                        {spoke.title}
+                                                    </h3>
+                                                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{spoke.excerpt}</p>
+                                                    <span className="text-xs text-muted-foreground">{spokeReadTime} min read</span>
+                                                </CardContent>
+                                            </Card>
+                                        </Link>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            )}
+
+            {/* Spoke: Sibling Articles */}
+            {isSpoke && siblingSpokes.length > 0 && (
+                <section className="py-12 bg-muted/30">
+                    <div className="container mx-auto px-4">
+                        <div className="max-w-5xl mx-auto">
+                            <h2 className="text-2xl font-bold mb-6">More in This Guide</h2>
+                            <div className="grid md:grid-cols-3 gap-6">
+                                {siblingSpokes.map((sibling) => (
+                                    <Link key={sibling.id} href={`/blog/${sibling.seo.slug}`}>
+                                        <Card className="h-full hover:shadow-lg transition-all hover:scale-[1.02] cursor-pointer">
+                                            <CardContent className="p-4">
+                                                <h3 className="font-semibold mb-2 line-clamp-2">
+                                                    {sibling.title}
+                                                </h3>
+                                                <p className="text-sm text-muted-foreground line-clamp-2">
+                                                    {sibling.excerpt}
+                                                </p>
+                                            </CardContent>
+                                        </Card>
+                                    </Link>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            )}
 
             {/* Related Posts */}
             {relatedPosts.length > 0 && (
