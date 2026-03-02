@@ -7,6 +7,7 @@ const mockTransactionGet = jest.fn();
 const mockTransactionUpdate = jest.fn();
 const mockOrderGet = jest.fn();
 const mockOrderUpdate = jest.fn();
+const mockCollectionGroupGet = jest.fn();
 const mockForensicsAdd = jest.fn();
 
 jest.mock('next/server', () => ({
@@ -75,6 +76,7 @@ describe('POST /api/checkout/aeropay/status security', () => {
       }),
     });
     mockOrderUpdate.mockResolvedValue(undefined);
+    mockCollectionGroupGet.mockResolvedValue({ empty: true, docs: [] });
 
     mockGetTransactionDetails.mockResolvedValue({
       transactionId: 'tx_1',
@@ -97,7 +99,9 @@ describe('POST /api/checkout/aeropay/status security', () => {
 
         if (name === 'orders') {
           return {
-            doc: jest.fn(() => ({
+            doc: jest.fn((docId?: string) => ({
+              id: String(docId || 'order-1'),
+              path: `orders/${String(docId || 'order-1')}`,
               get: mockOrderGet,
               update: mockOrderUpdate,
             })),
@@ -111,6 +115,19 @@ describe('POST /api/checkout/aeropay/status security', () => {
         }
 
         return { doc: jest.fn(() => ({ get: jest.fn(), update: jest.fn() })) };
+      }),
+      collectionGroup: jest.fn((name: string) => {
+        if (name === 'orders') {
+          return {
+            where: jest.fn(() => ({
+              limit: jest.fn(() => ({
+                get: mockCollectionGroupGet,
+              })),
+            })),
+          };
+        }
+
+        return {};
       }),
     };
 
@@ -180,6 +197,49 @@ describe('POST /api/checkout/aeropay/status security', () => {
     expect(body.status).toBe('pending');
     expect(mockGetTransactionDetails).toHaveBeenCalledWith('tx_1');
     expect(mockTransactionUpdate).toHaveBeenCalled();
+  });
+
+  it('falls back to org-scoped order document when top-level order is missing', async () => {
+    mockOrderGet.mockResolvedValueOnce({ exists: false });
+    const fallbackOrderUpdate = jest.fn().mockResolvedValue(undefined);
+    mockCollectionGroupGet.mockResolvedValueOnce({
+      empty: false,
+      docs: [
+        {
+          exists: true,
+          id: 'order-1',
+          data: () => ({
+            totals: { total: 50 },
+            aeropay: { transactionId: 'tx_1' },
+          }),
+          ref: {
+            id: 'order-1',
+            path: 'organizations/org_demo/orders/order-1',
+            update: fallbackOrderUpdate,
+          },
+        },
+      ],
+    });
+    mockGetTransactionDetails.mockResolvedValueOnce({
+      transactionId: 'tx_1',
+      status: 'completed',
+      amount: 5050,
+      merchantOrderId: 'order-1',
+      updatedAt: '2026-02-28T20:00:00.000Z',
+    });
+
+    const response = await POST({
+      json: async () => ({ transactionId: 'tx_1' }),
+    } as any);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.status).toBe('completed');
+    expect(fallbackOrderUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      paymentStatus: 'paid',
+      'aeropay.status': 'completed',
+    }));
+    expect(mockOrderUpdate).not.toHaveBeenCalled();
   });
 
   it('blocks order update and records forensics when provider amount mismatches order total+fee', async () => {
