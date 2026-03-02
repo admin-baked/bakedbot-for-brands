@@ -5,6 +5,7 @@ const mockCreateServerClient = jest.fn();
 const mockCreateTransaction = jest.fn();
 const mockOrderGet = jest.fn();
 const mockOrderUpdate = jest.fn();
+const mockRunTransaction = jest.fn();
 const mockUserGet = jest.fn();
 const mockUserSet = jest.fn();
 const mockRecordProductSale = jest.fn();
@@ -85,6 +86,7 @@ describe('POST /api/checkout/process-payment guardrails', () => {
         });
 
         const firestore = {
+            runTransaction: (...args: unknown[]) => mockRunTransaction(...args),
             collection: jest.fn((name: string) => {
                 if (name === 'orders') {
                     return {
@@ -110,6 +112,13 @@ describe('POST /api/checkout/process-payment guardrails', () => {
         };
 
         mockCreateServerClient.mockResolvedValue({ firestore });
+        mockRunTransaction.mockImplementation(async (handler: any) => {
+            const tx = {
+                get: jest.fn(async () => await mockOrderGet()),
+                update: jest.fn(async () => undefined),
+            };
+            return handler(tx);
+        });
         mockUserGet.mockResolvedValue({ data: () => ({}) });
         mockCreateTransaction.mockResolvedValue({
             success: true,
@@ -266,6 +275,58 @@ describe('POST /api/checkout/process-payment guardrails', () => {
         const body = await response.json();
         expect(response.status).toBe(400);
         expect(body.error).toContain('Billing address is required');
+        expect(mockCreateTransaction).not.toHaveBeenCalled();
+    });
+
+    it('rejects duplicate concurrent credit-card processing attempts', async () => {
+        mockOrderGet.mockResolvedValue({
+            exists: true,
+            data: () => ({
+                userId: 'user-1',
+                customer: { name: 'Owner Example', email: 'owner@example.com' },
+                totals: { total: 49.99 },
+                shippingAddress: {
+                    street: '123 Main St',
+                    city: 'Syracuse',
+                    state: 'NY',
+                    zip: '13224',
+                    country: 'US',
+                },
+                paymentStatus: 'pending',
+                status: 'submitted',
+            }),
+            ref: { update: mockOrderUpdate },
+        });
+
+        mockRunTransaction.mockImplementationOnce(async (handler: any) => {
+            const tx = {
+                get: jest.fn(async () => ({
+                    exists: true,
+                    data: () => ({
+                        paymentStatus: 'processing',
+                        status: 'submitted',
+                    }),
+                })),
+                update: jest.fn(async () => undefined),
+            };
+            return handler(tx);
+        });
+
+        const response = await POST({} as any, {
+            amount: 49.99,
+            paymentMethod: 'credit_card',
+            orderId: 'order-1',
+            paymentData: {
+                opaqueData: {
+                    dataDescriptor: 'COMMON.ACCEPT.INAPP.PAYMENT',
+                    dataValue: 'opaque-token',
+                },
+            },
+        } as any);
+
+        const body = await response.json();
+        expect(response.status).toBe(409);
+        expect(body.error).toContain('already processing');
         expect(mockCreateTransaction).not.toHaveBeenCalled();
     });
 
