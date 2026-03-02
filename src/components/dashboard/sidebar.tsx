@@ -31,10 +31,11 @@ import { InviteUserDialog } from '@/components/invitations/invite-user-dialog';
 import { SuperAdminSidebar } from '@/components/dashboard/super-admin-sidebar';
 import { BrandSidebar } from '@/components/dashboard/brand-sidebar';
 import { DispensarySidebar } from '@/components/dashboard/dispensary-sidebar';
+import { GrowerSidebar } from '@/components/dashboard/grower-sidebar';
 import { SharedSidebarHistory } from '@/components/dashboard/shared-sidebar-history';
 import { logger } from '@/lib/logger';
 import { useSuperAdmin } from '@/hooks/use-super-admin';
-import { UserRole, isBrandRole, isDispensaryRole, normalizeRole } from '@/types/roles';
+import { UserRole, isBrandRole, isDispensaryRole, isGrowerRole, normalizeRole } from '@/types/roles';
 
 // Loading fallback for sidebar components that use useSearchParams (required in Next.js 15+)
 function SidebarLoading() {
@@ -61,14 +62,18 @@ export function DashboardSidebar() {
   // We exclude /dashboard/shop to allow testing the customer flow
   const isBusinessRole = normalizedRole ? isBrandRole(normalizedRole) || isDispensaryRole(normalizedRole) : false;
   const isCeoDashboard = pathname?.startsWith('/dashboard/ceo') ||
-                         (isSuperAdmin && !isBusinessRole && !pathname?.startsWith('/dashboard/shop'));
+    (isSuperAdmin && !isBusinessRole && !pathname?.startsWith('/dashboard/shop'));
 
   // Show Brand Sidebar for brand users (including brand_admin, brand_member)
   const isBrandDashboard = !isCeoDashboard && (normalizedRole ? isBrandRole(normalizedRole) : false);
 
   // Show Dispensary Sidebar for dispensary users (including dispensary_admin, dispensary_staff)
   const isDispensaryDashboard = !isCeoDashboard && !isBrandDashboard &&
-                                 (normalizedRole ? isDispensaryRole(normalizedRole) : false);
+    (normalizedRole ? isDispensaryRole(normalizedRole) : false);
+
+  // Show Grower Sidebar for grower users (B2B wholesale cultivators)
+  const isGrowerDashboard = !isCeoDashboard && !isBrandDashboard && !isDispensaryDashboard &&
+    (normalizedRole ? isGrowerRole(normalizedRole) : false);
 
   const inviteAllowedRoles: UserRole[] = (() => {
     if (!normalizedRole) return [];
@@ -173,6 +178,12 @@ export function DashboardSidebar() {
             <SharedSidebarHistory />
             <DispensarySidebar />
           </>
+        ) : isGrowerDashboard ? (
+          /* Grower Dashboard: Show Grower Navigation */
+          <>
+            <SharedSidebarHistory />
+            <GrowerSidebar />
+          </>
         ) : (
           /* Default: Show role-filtered navigation */
           <>
@@ -184,7 +195,7 @@ export function DashboardSidebar() {
                   .split('-')
                   .map(part => part.charAt(0).toUpperCase() + part.slice(1))
                   .join('');
-                
+
                 const Icon = (LucideIcons as any)[iconName] || LucideIcons.Folder as ElementType;
 
                 const isComingSoon = link.badge === 'coming-soon';
@@ -227,21 +238,21 @@ export function DashboardSidebar() {
           </>
         )}
 
-        
+
         {/* Invite Team Member Action - only show for default nav (not CEO, Brand, or Dispensary sidebars which have their own) */}
-        {!isCeoDashboard && !isBrandDashboard && !isDispensaryDashboard && user && orgId && inviteAllowedRoles.length > 0 && (
-            <div className="mt-auto p-4">
-               <InviteUserDialog 
-                    orgId={orgId || undefined}
-                    allowedRoles={inviteAllowedRoles}
-                    trigger={
-                        <div className="w-full flex items-center justify-start gap-2 px-4 py-2 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md cursor-pointer transition-colors">
-                            <UserPlus className="h-4 w-4" />
-                            <span>Invite Member</span>
-                        </div>
-                    }
-               />
-            </div>
+        {!isCeoDashboard && !isBrandDashboard && !isDispensaryDashboard && !isGrowerDashboard && user && orgId && inviteAllowedRoles.length > 0 && (
+          <div className="mt-auto p-4">
+            <InviteUserDialog
+              orgId={orgId || undefined}
+              allowedRoles={inviteAllowedRoles}
+              trigger={
+                <div className="w-full flex items-center justify-start gap-2 px-4 py-2 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md cursor-pointer transition-colors">
+                  <UserPlus className="h-4 w-4" />
+                  <span>Invite Member</span>
+                </div>
+              }
+            />
+          </div>
         )}
       </SidebarContent>
       <SidebarFooter>

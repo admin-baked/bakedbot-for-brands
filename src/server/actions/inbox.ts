@@ -1252,6 +1252,23 @@ Use the createCreativeArtifact tool to generate platform-specific content.
 Return structured artifacts using the :::artifact:creative_post:Title format.
 Always consider cannabis advertising compliance rules.`,
 
+        video: `You are helping create video content for a cannabis brand.
+Plan video concepts, scripts, and visual direction.
+Ensure all content complies with cannabis advertising regulations.`,
+
+        // Grower thread types
+        yield_analysis: `You are helping a cannabis cultivator analyze their harvest yield and quality.
+Review batch data, terpene profiles, potency, and yield per plant.
+Generate report artifacts with actionable cultivation insights.`,
+
+        wholesale_inventory: `You are helping a cannabis grower manage wholesale inventory.
+Track batch quantities, pricing, and buyer allocations.
+Generate sell sheet artifacts for outreach to retail buyers.`,
+
+        brand_outreach: `You are helping a cannabis grower reach out to potential brand partners.
+Draft professional outreach messages and partnership proposals.
+Generate outreach draft artifacts ready for review.`,
+
         campaign: `You are helping plan and execute a marketing campaign.
 Coordinate with other agents (Craig for content, Smokey for products, Money Mike for pricing).
 Break down the campaign into actionable artifacts.`,
