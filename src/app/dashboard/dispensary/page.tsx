@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { POSSyncStatus } from '@/components/dashboard/pos-sync-status';
+import { PosConnectBanner } from '@/components/dashboard/pos-connect-banner';
 import { getBugs } from '@/server/actions/qa';
 import { QA_PRIORITY_CONFIG, QA_STATUS_CONFIG } from '@/types/qa';
 import type { QABug } from '@/types/qa';
@@ -80,6 +81,11 @@ export default async function DispensaryDashboard() {
         </div>
         <POSSyncStatus orgId={orgId} dataType="customers" />
       </div>
+
+      {/* POS Connect Banner (shown when POS not connected) */}
+      <Suspense fallback={null}>
+        <PosConnectBanner orgId={orgId} />
+      </Suspense>
 
       {/* Stats Grid */}
       <Suspense fallback={<StatsGridSkeleton />}>

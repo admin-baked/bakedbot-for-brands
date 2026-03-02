@@ -116,6 +116,23 @@ export default async function FoundingPartnerPage() {
                 <FoundingPartnerForm spotsRemaining={spotsRemaining} />
             </div>
 
+            {/* Pricing CTA */}
+            <div className="mt-20 bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-2xl p-8 md:p-12 text-center text-white">
+                <h2 className="text-2xl md:text-3xl font-bold mb-4 font-teko uppercase">
+                    Ready to Lock In Your Rate?
+                </h2>
+                <p className="text-emerald-100 max-w-xl mx-auto mb-6">
+                    View all plans and start with 50% off for your first 60 days.
+                    Code NYFOUNDINGPARTNER is automatically applied.
+                </p>
+                <a
+                    href="/pricing?promo=NYFOUNDINGPARTNER"
+                    className="inline-flex items-center justify-center h-12 px-8 rounded-md bg-white text-emerald-700 font-semibold hover:bg-emerald-50 transition-colors"
+                >
+                    View Plans &amp; Pricing
+                </a>
+            </div>
+
             {/* Ideal Partner */}
             <div className="mt-20 text-center">
                 <h2 className="text-2xl font-bold mb-8">Who We&apos;re Looking For</h2>

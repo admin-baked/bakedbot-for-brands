@@ -117,6 +117,7 @@ export const FREE_TIER_LIMITS = {
     playbooksPerWeek: 1,
     deepResearchPerWeek: 1,
     imagesPerWeek: 5,
+    videosPerWeek: 3,
 };
 
 /**

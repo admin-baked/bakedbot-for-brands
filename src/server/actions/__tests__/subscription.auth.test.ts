@@ -1,4 +1,4 @@
-import { createSubscription } from '../subscription';
+import { createSubscription, getSubscription, getInvoices } from '../subscription';
 import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
 import { isCompanyPlanCheckoutEnabled } from '@/lib/feature-flags';
@@ -214,5 +214,131 @@ describe('createSubscription auth + billing validation hardening', () => {
     expect(result.error).toContain('active subscription already exists');
     expect(createCustomerProfile).not.toHaveBeenCalled();
     expect(createSubscriptionFromProfile).not.toHaveBeenCalled();
+  });
+});
+
+describe('subscription read access controls', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'owner-1',
+      email: 'owner@example.com',
+    });
+  });
+
+  it('denies getSubscription for non-owner access', async () => {
+    const firestore = {
+      collection: jest.fn((name: string) => {
+        if (name === 'organizations') {
+          return {
+            doc: jest.fn(() => ({
+              get: jest.fn().mockResolvedValue({
+                exists: true,
+                data: () => ({ ownerId: 'different-owner' }),
+              }),
+            })),
+          };
+        }
+        if (name === 'subscriptions') {
+          return {
+            doc: jest.fn(() => ({
+              get: jest.fn().mockResolvedValue({
+                exists: true,
+                data: () => ({ authorizeNetSubscriptionId: 'arb_leak' }),
+              }),
+            })),
+          };
+        }
+        return {
+          doc: jest.fn(() => ({
+            get: jest.fn().mockResolvedValue({ exists: false, data: () => ({}) }),
+          })),
+        };
+      }),
+    };
+    (createServerClient as jest.Mock).mockResolvedValueOnce({ firestore });
+
+    const result = await getSubscription('org-secret');
+
+    expect(result).toBeNull();
+  });
+
+  it('denies getInvoices for non-owner access', async () => {
+    const firestore = {
+      collection: jest.fn((name: string) => {
+        if (name === 'organizations') {
+          return {
+            doc: jest.fn(() => ({
+              get: jest.fn().mockResolvedValue({
+                exists: true,
+                data: () => ({ ownerId: 'different-owner' }),
+              }),
+            })),
+          };
+        }
+        if (name === 'invoices') {
+          return {
+            doc: jest.fn(() => ({
+              collection: jest.fn(() => ({
+                orderBy: jest.fn(() => ({
+                  limit: jest.fn(() => ({
+                    get: jest.fn().mockResolvedValue({
+                      docs: [{ id: 'inv_1', data: () => ({ amount: 10 }) }],
+                    }),
+                  })),
+                })),
+              })),
+            })),
+          };
+        }
+        return {
+          doc: jest.fn(() => ({
+            get: jest.fn().mockResolvedValue({ exists: false, data: () => ({}) }),
+          })),
+        };
+      }),
+    };
+    (createServerClient as jest.Mock).mockResolvedValueOnce({ firestore });
+
+    const result = await getInvoices('org-secret');
+
+    expect(result).toEqual([]);
+  });
+
+  it('returns subscription for owner access', async () => {
+    const firestore = {
+      collection: jest.fn((name: string) => {
+        if (name === 'organizations') {
+          return {
+            doc: jest.fn(() => ({
+              get: jest.fn().mockResolvedValue({
+                exists: true,
+                data: () => ({ ownerId: 'owner-1' }),
+              }),
+            })),
+          };
+        }
+        if (name === 'subscriptions') {
+          return {
+            doc: jest.fn(() => ({
+              get: jest.fn().mockResolvedValue({
+                exists: true,
+                data: () => ({ authorizeNetSubscriptionId: 'arb_owner_1' }),
+              }),
+            })),
+          };
+        }
+        return {
+          doc: jest.fn(() => ({
+            get: jest.fn().mockResolvedValue({ exists: false, data: () => ({}) }),
+          })),
+        };
+      }),
+    };
+    (createServerClient as jest.Mock).mockResolvedValueOnce({ firestore });
+
+    const result = await getSubscription('org-owned');
+
+    expect(result).toEqual({ authorizeNetSubscriptionId: 'arb_owner_1' });
   });
 });

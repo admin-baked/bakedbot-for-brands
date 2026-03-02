@@ -761,6 +761,21 @@ All agents are online and ready. Type an agent name or describe your task to get
                     return { content: message, toolCalls: [] };
                 }
             }
+
+            // Scout tier enforcement: paid roles (dispensary_admin etc.) on free plan
+            // still get forced to Gemini Lite to control AI costs (~$2.50 → ~$0.10/mo)
+            if (isPaidUser && userBrandId && userBrandId !== 'general') {
+                try {
+                    const { getOrgTier } = await import('@/lib/get-org-tier');
+                    const orgTier = await getOrgTier(userBrandId);
+                    if (orgTier === 'scout' && effectiveModelLevel !== 'lite') {
+                        await emitThought(jobId, 'Optimizing', 'Scout plan using optimized AI model.');
+                        effectiveModelLevel = 'lite';
+                    }
+                } catch {
+                    // Non-blocking: if tier check fails, allow default model
+                }
+            }
         }
 
         // === DEEP RESEARCH ROUTING ===
