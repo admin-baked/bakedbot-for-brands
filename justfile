@@ -173,6 +173,26 @@ secrets:
     npm run setup:secrets
 
 # ==========================================================================
+# WORKFLOWS (Declarative Orchestration DSL)
+# ==========================================================================
+
+# List all registered workflows
+workflows:
+    npx tsx scripts/workflow-cli.ts list
+
+# Run a workflow by ID (just workflow morning-briefing)
+workflow ID *ARGS:
+    npx tsx scripts/workflow-cli.ts run {{ID}} {{ARGS}}
+
+# Validate a workflow definition
+workflow-validate ID:
+    npx tsx scripts/workflow-cli.ts validate {{ID}}
+
+# Dry-run a workflow (no side effects)
+workflow-dry ID:
+    npx tsx scripts/workflow-cli.ts run {{ID}} --dry-run
+
+# ==========================================================================
 # DEVELOPMENT
 # ==========================================================================
 
