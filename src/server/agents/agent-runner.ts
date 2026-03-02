@@ -251,7 +251,34 @@ async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOver
         logger.warn('[AgentRunner] Failed to load Talk Tracks:', { error });
     }
 
-    let currentStimulus = (stimulus || '') + trainingContext;
+    // 3. Inject Letta Memory Context (Shared memory from past interactions)
+    // This ensures ALL agents going through the harness (Executive Board + Support Staff)
+    // get relevant memory context, not just the primary chat path in runAgentCore().
+    let lettaContext = '';
+    if (brandId && brandId !== 'general' && brandId !== 'demo-brand-123') {
+        try {
+            const { memoryBridgeService } = await import('@/server/services/letta/memory-bridge');
+            const memResults = await memoryBridgeService.unifiedSearch(
+                brandId,
+                stimulus || '',
+                { includeFirestore: true, includeLetta: true, limit: 3 }
+            );
+
+            const allResults = [
+                ...memResults.lettaResults.map(r => sanitizeForPrompt(r, 300)),
+                ...memResults.firestoreResults.map(r => sanitizeForPrompt(r.content, 300)),
+            ].slice(0, 3);
+
+            if (allResults.length > 0) {
+                lettaContext = `\n\n[AGENT MEMORY]\nRelevant context from organizational memory:\n${allResults.map(r => `- ${r}`).join('\n')}\n`;
+            }
+        } catch (e) {
+            // Non-blocking — memory retrieval should never break agent execution
+            logger.warn('[AgentRunner:triggerAgentRun] Letta memory retrieval failed', { error: e instanceof Error ? e.message : String(e), agentName });
+        }
+    }
+
+    let currentStimulus = (stimulus || '') + trainingContext + lettaContext;
     let attempts = 0;
 
     while (attempts < MAX_RETRIES) {
@@ -889,6 +916,55 @@ All agents are online and ready. Type an agent name or describe your task to get
             logger.warn('[AgentRunner] KB Access failed', { error: e instanceof Error ? e.message : String(e) });
         }
 
+        // === LETTA MEMORY RETRIEVAL ===
+        // Search Letta archival memory for relevant context from past interactions.
+        // This bridges the gap between the KB (static docs) and agent memory (learned facts).
+        let lettaMemoryContext = '';
+        if ((isPaidUser || isSuperUser) && userBrandId && userBrandId !== 'general') {
+            try {
+                const lettaCacheKey = CacheKeys.lettaMemory(agentInfo?.id || 'general', finalMessage, userBrandId);
+                const cachedLetta = agentCache.get<{ context: string; resultCount: number }>(lettaCacheKey);
+
+                if (cachedLetta) {
+                    lettaMemoryContext = cachedLetta.context;
+                } else {
+                    const { memoryBridgeService } = await import('@/server/services/letta/memory-bridge');
+                    const memResults = await memoryBridgeService.unifiedSearch(
+                        userBrandId,
+                        finalMessage,
+                        {
+                            includeFirestore: true,
+                            includeLetta: true,
+                            limit: 3,
+                        }
+                    );
+
+                    const allResults = [
+                        ...memResults.lettaResults.map(r => sanitizeForPrompt(r, 300)),
+                        ...memResults.firestoreResults.map(r => sanitizeForPrompt(r.content, 300)),
+                    ].slice(0, 3);
+
+                    if (allResults.length > 0) {
+                        lettaMemoryContext = `\n\n[AGENT MEMORY]\nRelevant context from previous interactions:\n${allResults.map(r => `- ${r}`).join('\n')}\n`;
+                        executedTools.push({
+                            id: `memory-${Date.now()}`,
+                            name: 'Agent Memory',
+                            status: 'success',
+                            result: `Recalled ${allResults.length} relevant memories.`
+                        });
+                    }
+
+                    agentCache.set(lettaCacheKey, {
+                        context: lettaMemoryContext,
+                        resultCount: allResults.length
+                    }, CacheTTL.LETTA_MEMORY);
+                }
+            } catch (e) {
+                // Non-blocking — memory retrieval should never break chat
+                logger.warn('[AgentRunner] Letta memory retrieval failed', { error: e instanceof Error ? e.message : String(e) });
+            }
+        }
+
         const metadata = {
             brandId: userBrandId,
             brandName: userBrandName,
@@ -1301,7 +1377,7 @@ All agents are online and ready. Type an agent name or describe your task to get
                 });
 
                 const claudeResult = await executeWithTools(
-                    `${activePersona.systemPrompt}${customInstructionsBlock}\n\nUser Request: ${userMessage}${knowledgeContext}`,
+                    `${activePersona.systemPrompt}${customInstructionsBlock}\n\nUser Request: ${userMessage}${knowledgeContext}${lettaMemoryContext}`,
                     tools,
                     executor
                 );
@@ -1336,7 +1412,7 @@ All agents are online and ready. Type an agent name or describe your task to get
 
         // Construct Multimodal Prompt
         let promptParts: any[] = [
-            { text: `${activePersona.systemPrompt}${customInstructionsBlock}\nUser: ${userMessage}\nContext: ${knowledgeContext}${searchContext}` }
+            { text: `${activePersona.systemPrompt}${customInstructionsBlock}\nUser: ${userMessage}\nContext: ${knowledgeContext}${lettaMemoryContext}${searchContext}` }
         ];
 
         // 1. Audio Input

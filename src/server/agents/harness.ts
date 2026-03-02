@@ -180,6 +180,8 @@ export interface MultiStepContext {
     tools: any;
     maxIterations?: number;
     model?: string;
+    /** Override planning model for hybrid path (default: gemini-2.5-flash) */
+    planningModel?: string;
     /** Agent ID for validation pipeline selection */
     agentId?: string;
     /** Maximum remediation attempts before failing */
@@ -354,7 +356,7 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
             `;
 
             const plan = await ai.generate({
-                model: 'googleai/gemini-2.5-flash', // Gemini for fast planning
+                model: context.planningModel || 'googleai/gemini-2.5-flash', // Default: 2.5 Flash; override with Gemini 3 for paid users
                 prompt: planPrompt,
                 output: {
                     schema: z.object({

@@ -117,8 +117,19 @@ export const firestoreMemoryAdapter: MemoryAdapter = {
         const { firestore } = await createServerClient();
         const docRef = firestore.doc(`tenants/${brandId}/agents/${agentName}/data/memory`);
 
+        // Enforce array size limits to prevent unbounded document growth.
+        // Keeps the most recent entries (tail) and drops oldest (head).
+        const MAX_ARRAY_SIZE = 100;
+        const trimmedMemory = { ...memory } as Record<string, unknown>;
+        for (const [key, value] of Object.entries(trimmedMemory)) {
+            if (Array.isArray(value) && value.length > MAX_ARRAY_SIZE) {
+                logger.info(`[FirestorePersistence] Trimming ${agentName}.${key}: ${value.length} → ${MAX_ARRAY_SIZE}`);
+                trimmedMemory[key] = value.slice(-MAX_ARRAY_SIZE);
+            }
+        }
+
         await docRef.set({
-            ...memory,
+            ...trimmedMemory,
             last_active: new Date() // Ensure timestamp update
         }, { merge: true });
 
