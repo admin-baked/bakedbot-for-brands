@@ -1,7 +1,30 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(npm run check:types:*)",
+      "Bash(npm run fix:build:*)",
+      "Bash(npm test:*)",
+      "Bash(npm run audit:*)",
+      "Bash(npm run test:security:*)",
+      "Bash(npm run check:compliance:*)",
+      "Bash(npm run seed:*)",
+      "Bash(npm run setup:monitoring:*)",
+      "Bash(npm run generate:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run dev:*)",
+      "Bash(node scripts/run-smoke-tests.mjs:*)",
+      "Bash(node scripts/run-golden-eval.mjs:*)",
+      "Bash(node scripts/pinky.mjs:*)",
+      "Bash(node scripts/batch-onboard-ny10.mjs:*)",
+      "Bash(node scripts/fix-build.mjs:*)",
+      "Bash(npx playwright test:*)",
+      "Bash(just:*)"
     ]
   }
 }

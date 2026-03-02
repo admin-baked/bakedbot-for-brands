@@ -155,6 +155,26 @@ describe('createClaimWithSubscription', () => {
         expect(mockFirestore.add).not.toHaveBeenCalled();
     });
 
+    it('should reject invalid role values to prevent role injection', async () => {
+        const input = {
+            businessName: 'Injected Biz',
+            businessAddress: '123 St',
+            contactName: 'Eve Mallory',
+            contactEmail: 'john@example.com',
+            contactPhone: '555-5555',
+            role: 'super_user',
+            planId: 'free' as const,
+            zip: '90210'
+        };
+
+        const result = await createClaimWithSubscription(input as any);
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('Invalid role selected');
+        expect(mockFirestore.add).not.toHaveBeenCalled();
+        expect(setUserRole).not.toHaveBeenCalled();
+    });
+
     it('should require verified email before paid claim checkout', async () => {
         const input = {
             businessName: 'Pro Biz',
