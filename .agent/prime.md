@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-03-03)
 
 **Recent work (2026-03-03):** See `memory/MEMORY.md` for full log.
-Key completed: [GitHub Actions deploy pipeline — replaces broken Firebase webhook] (`2402a7a9`), [Developer Connect IAM fix + readTokenAccessor] (`c6cc982c`)
+Key completed: [Playbook design unification — all roles get PlaybookCardModern] (`062eacbf`), [Super user dashboard routing + admin layout guard] (`aaa55d3d`)
 
 ---
 
