@@ -454,6 +454,26 @@ export function SuperAdminSidebar() {
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
 
+                                {/* Payment Config Section */}
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild isActive={pathname?.startsWith('/dashboard/admin/payment-config')}>
+                                        <Link href="/dashboard/admin/payment-config">
+                                            <Wallet />
+                                            <span>Payment Config</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+
+                                {/* Template Approvals Section */}
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild isActive={pathname?.startsWith('/dashboard/admin/templates')}>
+                                        <Link href="/dashboard/admin/templates">
+                                            <Briefcase />
+                                            <span>Template Approvals</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+
                                 {/* Dev Tools Section */}
                                 <SidebarMenuItem>
                                     <SidebarMenuButton asChild isActive={isAdminSectionActive("devtools")}>

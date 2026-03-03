@@ -28,6 +28,12 @@ export default function DashboardPage() {
   useEffect(() => {
     if (isLoading) return;
 
+    // Super users: go to CEO dashboard
+    if (role === 'super_user' || role === 'super_admin') {
+      router.replace('/dashboard/ceo');
+      return;
+    }
+
     // Inbox-First: Brand and dispensary users go directly to inbox
     if (
       role === 'brand' ||
@@ -41,13 +47,12 @@ export default function DashboardPage() {
       router.replace('/dashboard/inbox');
       return;
     }
-
-    // Super users and other roles see the overview
-    // (Super users also have /dashboard/ceo as their primary workspace)
   }, [role, isLoading, router]);
 
   // Show loading state while determining role
   if (isLoading ||
+    role === 'super_user' ||
+    role === 'super_admin' ||
     role === 'brand' ||
     role === 'brand_admin' ||
     role === 'brand_member' ||
