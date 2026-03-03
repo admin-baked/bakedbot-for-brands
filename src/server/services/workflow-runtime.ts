@@ -1,5 +1,3 @@
-'use server';
-
 /**
  * Workflow Runtime — Execution Engine for Declarative Workflows
  *
