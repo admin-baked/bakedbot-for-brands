@@ -42,7 +42,21 @@ export async function saveResearchedLeads(leads: ResearchedLead[]): Promise<stri
     for (const lead of leads) {
         const docRef = db.collection('ny_dispensary_leads').doc();
         batch.set(docRef, {
-            ...lead,
+            dispensaryName: lead.dispensaryName,
+            contactName: lead.contactName || null,
+            email: lead.email || null,
+            phone: lead.phone || null,
+            city: lead.city,
+            state: lead.state,
+            address: lead.address || null,
+            websiteUrl: lead.websiteUrl || null,
+            contactFormUrl: lead.contactFormUrl || null,
+            posSystem: lead.posSystem || null,
+            licenseType: lead.licenseType || null,
+            licenseNumber: lead.licenseNumber || null,
+            source: lead.source,
+            researchedAt: lead.researchedAt,
+            notes: lead.notes || null,
             status: 'researched',
             emailVerified: false,
             outreachSent: false,
