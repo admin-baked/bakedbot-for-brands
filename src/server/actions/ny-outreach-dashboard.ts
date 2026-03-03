@@ -205,7 +205,9 @@ export async function generateOutreachDrafts(): Promise<{
             .limit(600) // covers full 500+ bulk import corpus
             .get();
 
-        const allLeads = leadsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() as Record<string, unknown> }));
+        // Cast result as indexed type — TypeScript strips index signatures from object literal spreads,
+        // so we assert the whole expression to preserve property access on lead fields
+        const allLeads = leadsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as { id: string; [key: string]: unknown }));
 
         // Split into two tracks
         const emailLeads = allLeads.filter(l => !!l.email).slice(0, DAILY_SEND_LIMIT);

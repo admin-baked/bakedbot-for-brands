@@ -314,9 +314,8 @@ function DraftCard({
                                 size="sm"
                                 className="gap-1.5 text-xs h-8 bg-green-600 hover:bg-green-700"
                                 onClick={handleApprove}
-                                disabled={status === 'approving'}
                             >
-                                {status === 'approving' ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
+                                <CheckCircle2 className="h-3 w-3" />
                                 Mark Submitted
                             </Button>
                         </>
