@@ -195,17 +195,19 @@ export async function generateOutreachDrafts(): Promise<{
 
         const db = getAdminFirestore();
 
-        // Get uncontacted leads with email
+        // Fetch a larger batch so we still find DAILY_SEND_LIMIT leads WITH email
+        // after filtering — most imported leads start with email=null until enriched.
         const leadsSnap = await db.collection('ny_dispensary_leads')
             .where('status', '==', 'researched')
             .where('outreachSent', '==', false)
             .orderBy('createdAt', 'asc')
-            .limit(DAILY_SEND_LIMIT)
+            .limit(DAILY_SEND_LIMIT * 20) // over-fetch; email filter narrows it down
             .get();
 
         const leads = leadsSnap.docs
             .map(doc => ({ id: doc.id, ...doc.data() }))
-            .filter((l: Record<string, unknown>) => !!l.email);
+            .filter((l: Record<string, unknown>) => !!l.email)
+            .slice(0, DAILY_SEND_LIMIT); // cap at daily limit after email filter
 
         if (leads.length === 0) {
             return { success: true, draftsCreated: 0 };
