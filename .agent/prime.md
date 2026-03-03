@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-03-03)
 
 **Recent work (2026-03-03):** See `memory/MEMORY.md` for full log.
-Key completed: [Outreach Research + Generate Drafts fixes] (`2debb31c`), [Google OAuth secret version fix @1→@2] (`f5a20fb3`)
+Key completed: [GitHub Actions deploy pipeline — replaces broken Firebase webhook] (`2402a7a9`), [Developer Connect IAM fix + readTokenAccessor] (`c6cc982c`)
 
 ---
 
