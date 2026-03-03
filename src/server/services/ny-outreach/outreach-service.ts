@@ -311,9 +311,11 @@ export async function getOutreachStats(since?: number): Promise<{
 export interface OutreachDraft {
     id: string;
     leadId: string;
+    outreachType: 'email' | 'form'; // email = send via Gmail, form = submit via contact form
     dispensaryName: string;
     contactName?: string;
-    email: string;
+    email: string | null;
+    contactFormUrl?: string; // populated for outreachType='form'
     city: string;
     state: string;
     posSystem?: string;
