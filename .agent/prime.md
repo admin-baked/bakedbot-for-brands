@@ -19,10 +19,10 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing (verified 2026-03-02)
+**Current Status:** 🟢 Passing (verified 2026-03-03)
 
 **Recent work (2026-03-03):** See `memory/MEMORY.md` for full log.
-Key completed: [Blog auth fix — session cookie mismatch] (`c43936c8`), [Blog sidebar + page auth] (`6cc21c00`)
+Key completed: [115 unit/integration tests — API v1, resilient-fetch, api-key-auth, delegation-tools] (`ed984f26`), [Blog auth + sidebar fixes] (`c43936c8`)
 
 ---
 
