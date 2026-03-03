@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Building2, Store, Search, Globe, CheckCircle, XCircle, Inbox, Send, ArrowUpDown, TrendingUp, Users, DollarSign, Trash2 } from 'lucide-react';
+import { Loader2, Building2, Store, Search, Globe, CheckCircle, XCircle, Inbox, Send, ArrowUpDown, TrendingUp, Users, DollarSign, Trash2, Mail, MessageSquare, ThumbsDown, RefreshCw } from 'lucide-react';
 import {
     Table,
     TableBody,
@@ -44,6 +44,12 @@ import {
 } from '@/server/services/crm-types';
 import { Pagination, usePagination } from '@/components/ui/pagination';
 import { inviteToClaimAction, approveUser, rejectUser } from '../actions/user-actions';
+import {
+    getNYOutreachForCRM,
+    addNYLeadNote,
+    markNYLeadStatus,
+    type NYOutreachCRMLead,
+} from '@/server/actions/ny-outreach-dashboard';
 
 const US_STATES = [
     'All States',
@@ -115,6 +121,13 @@ export default function CRMTab() {
     const [leadsLoading, setLeadsLoading] = useState(true);
     const [leadSearch, setLeadSearch] = useState(''); // Search by email/company
 
+    // NY Outreach Leads
+    const [outreachLeads, setOutreachLeads] = useState<NYOutreachCRMLead[]>([]);
+    const [outreachLoading, setOutreachLoading] = useState(false);
+    const [outreachFilter, setOutreachFilter] = useState('all');
+    const [outreachSearch, setOutreachSearch] = useState('');
+    const [noteInputs, setNoteInputs] = useState<Record<string, string>>({});
+
     // Sorting State
     const [brandSort, setBrandSort] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'name', direction: 'asc' });
     const [dispSort, setDispSort] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'name', direction: 'asc' });
@@ -168,6 +181,15 @@ export default function CRMTab() {
         totalItems: totalLeadsItems
     } = usePagination(leads, 10);
 
+    // Paginated Outreach Leads
+    const {
+        currentPage: outreachPage,
+        totalPages: outreachTotalPages,
+        paginatedItems: paginatedOutreachLeads,
+        setCurrentPage: setOutreachPage,
+        totalItems: totalOutreachItems
+    } = usePagination(outreachLeads, 25);
+
     // Users (Platform)
     const [users, setUsers] = useState<CRMUser[]>([]);
     const [usersLoading, setUsersLoading] = useState(true);
@@ -190,6 +212,7 @@ export default function CRMTab() {
         loadDispensaries();
         loadLeads();
         loadUsers();
+        loadOutreachLeads();
     }, []);
 
     const loadStats = async () => {
@@ -264,6 +287,44 @@ export default function CRMTab() {
             toast({ variant: 'destructive', title: 'Error', description: e.message });
         } finally {
             setUsersLoading(false);
+        }
+    };
+
+    const loadOutreachLeads = async () => {
+        setOutreachLoading(true);
+        try {
+            const result = await getNYOutreachForCRM(outreachFilter, outreachSearch);
+            if (result.success && result.leads) {
+                setOutreachLeads(result.leads);
+                setOutreachPage(1);
+            }
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Error', description: e.message });
+        } finally {
+            setOutreachLoading(false);
+        }
+    };
+
+    const handleAddNote = async (leadId: string) => {
+        const note = noteInputs[leadId]?.trim();
+        if (!note) return;
+        try {
+            await addNYLeadNote(leadId, note);
+            setNoteInputs(prev => ({ ...prev, [leadId]: '' }));
+            toast({ title: 'Note saved' });
+            loadOutreachLeads();
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Error', description: e.message });
+        }
+    };
+
+    const handleMarkStatus = async (leadId: string, status: 'responded' | 'not_interested' | 'researched') => {
+        try {
+            await markNYLeadStatus(leadId, status);
+            toast({ title: 'Status updated' });
+            loadOutreachLeads();
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Error', description: e.message });
         }
     };
 
@@ -427,6 +488,10 @@ export default function CRMTab() {
                     <TabsTrigger value="leads" className="gap-2">
                         <Inbox className="h-4 w-4" />
                         Leads
+                    </TabsTrigger>
+                    <TabsTrigger value="ny-outreach" className="gap-2">
+                        <Mail className="h-4 w-4" />
+                        NY Outreach
                     </TabsTrigger>
                 </TabsList>
 
@@ -1025,6 +1090,186 @@ export default function CRMTab() {
                                     onPageChange={setLeadsPage}
                                     itemsPerPage={10}
                                     totalItems={totalLeadsItems}
+                                    className="mt-4"
+                                />
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* NY Outreach Tab */}
+                <TabsContent value="ny-outreach" className="space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>NY Licensed Dispensaries — Outreach Pipeline</CardTitle>
+                            <CardDescription>
+                                {totalOutreachItems} NY OCMRETL licensees imported from state records. Track contact status and notes.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {/* Filters */}
+                            <div className="flex gap-2 flex-wrap">
+                                <Input
+                                    placeholder="Search by name or city..."
+                                    value={outreachSearch}
+                                    onChange={(e) => setOutreachSearch(e.target.value)}
+                                    className="max-w-xs"
+                                    onKeyDown={(e) => e.key === 'Enter' && loadOutreachLeads()}
+                                />
+                                <Select value={outreachFilter} onValueChange={setOutreachFilter}>
+                                    <SelectTrigger className="w-[180px]">
+                                        <SelectValue placeholder="Filter" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Leads</SelectItem>
+                                        <SelectItem value="has_email">Has Email</SelectItem>
+                                        <SelectItem value="no_email">No Email</SelectItem>
+                                        <SelectItem value="contacted">Contacted (Draft Sent)</SelectItem>
+                                        <SelectItem value="responded">Responded</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Button onClick={loadOutreachLeads}>
+                                    <Search className="h-4 w-4" />
+                                </Button>
+                                <Button variant="outline" onClick={loadOutreachLeads} disabled={outreachLoading}>
+                                    <RefreshCw className={`h-4 w-4 ${outreachLoading ? 'animate-spin' : ''}`} />
+                                </Button>
+                            </div>
+
+                            {/* Table */}
+                            {outreachLoading ? (
+                                <div className="flex justify-center py-8">
+                                    <Loader2 className="h-6 w-6 animate-spin" />
+                                </div>
+                            ) : outreachLeads.length === 0 ? (
+                                <p className="text-center text-muted-foreground py-8">
+                                    No leads found. Use the Outreach tab to import NY licensed dispensaries.
+                                </p>
+                            ) : (
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Dispensary</TableHead>
+                                            <TableHead>City</TableHead>
+                                            <TableHead>Contact</TableHead>
+                                            <TableHead>Email</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead>Outreach</TableHead>
+                                            <TableHead>Notes</TableHead>
+                                            <TableHead className="text-right">Actions</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {paginatedOutreachLeads.map((lead) => (
+                                            <TableRow key={lead.id}>
+                                                <TableCell className="font-medium max-w-[180px]">
+                                                    <div className="truncate">{lead.businessName}</div>
+                                                    {lead.website && (
+                                                        <a href={lead.website} target="_blank" rel="noopener noreferrer"
+                                                            className="text-xs text-blue-500 hover:underline flex items-center gap-1">
+                                                            <Globe className="h-3 w-3" />
+                                                            {lead.website.replace(/^https?:\/\/(www\.)?/, '').split('/')[0]}
+                                                        </a>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-sm">{lead.city || '—'}</TableCell>
+                                                <TableCell className="text-sm text-muted-foreground">
+                                                    {lead.contactName || '—'}
+                                                </TableCell>
+                                                <TableCell className="text-sm">
+                                                    {lead.email ? (
+                                                        <a href={`mailto:${lead.email}`} className="text-blue-500 hover:underline">
+                                                            {lead.email}
+                                                        </a>
+                                                    ) : lead.contactFormUrl ? (
+                                                        <a href={lead.contactFormUrl} target="_blank" rel="noopener noreferrer"
+                                                            className="text-xs text-muted-foreground hover:underline">
+                                                            Contact form
+                                                        </a>
+                                                    ) : (
+                                                        <span className="text-muted-foreground text-xs">No email</span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {lead.status === 'responded' ? (
+                                                        <Badge className="bg-green-100 text-green-800 text-xs">Responded</Badge>
+                                                    ) : lead.status === 'not_interested' ? (
+                                                        <Badge className="bg-red-100 text-red-800 text-xs">Not Interested</Badge>
+                                                    ) : lead.status === 'researched' ? (
+                                                        <Badge className="bg-purple-100 text-purple-800 text-xs">Researched</Badge>
+                                                    ) : (
+                                                        <Badge variant="outline" className="text-xs">New</Badge>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-xs">
+                                                    {lead.outreachSentCount > 0 ? (
+                                                        <Badge className="bg-blue-100 text-blue-800 text-xs">
+                                                            {lead.outreachSentCount} sent
+                                                        </Badge>
+                                                    ) : (
+                                                        <span className="text-muted-foreground">Not contacted</span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="max-w-[200px]">
+                                                    <div className="space-y-1">
+                                                        {lead.notes.slice(-1).map((note, i) => (
+                                                            <p key={i} className="text-xs text-muted-foreground truncate">{note.text}</p>
+                                                        ))}
+                                                        <div className="flex gap-1">
+                                                            <Input
+                                                                placeholder="Add note..."
+                                                                value={noteInputs[lead.id] || ''}
+                                                                onChange={(e) => setNoteInputs(prev => ({ ...prev, [lead.id]: e.target.value }))}
+                                                                className="h-6 text-xs px-2"
+                                                                onKeyDown={(e) => e.key === 'Enter' && handleAddNote(lead.id)}
+                                                            />
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                className="h-6 w-6 p-0"
+                                                                onClick={() => handleAddNote(lead.id)}
+                                                            >
+                                                                <MessageSquare className="h-3 w-3" />
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex justify-end gap-1">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            className="h-7 px-2 text-xs text-green-600 hover:text-green-700 hover:bg-green-50"
+                                                            onClick={() => handleMarkStatus(lead.id, 'responded')}
+                                                            title="Mark as Responded"
+                                                        >
+                                                            <CheckCircle className="h-3 w-3 mr-1" />
+                                                            Replied
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            className="h-7 px-2 text-xs text-red-500 hover:text-red-600 hover:bg-red-50"
+                                                            onClick={() => handleMarkStatus(lead.id, 'not_interested')}
+                                                            title="Mark as Not Interested"
+                                                        >
+                                                            <ThumbsDown className="h-3 w-3" />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            )}
+
+                            {outreachLeads.length > 0 && !outreachLoading && (
+                                <Pagination
+                                    currentPage={outreachPage}
+                                    totalPages={outreachTotalPages}
+                                    onPageChange={setOutreachPage}
+                                    itemsPerPage={25}
+                                    totalItems={totalOutreachItems}
                                     className="mt-4"
                                 />
                             )}
