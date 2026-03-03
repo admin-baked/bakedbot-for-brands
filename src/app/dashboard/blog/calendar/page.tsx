@@ -5,16 +5,11 @@
  * and content performance metrics.
  */
 
-import { requireUser } from '@/lib/auth-helpers';
-import { redirect } from 'next/navigation';
+import { requireUser } from '@/server/auth/auth';
 import { ContentCalendarClient } from './calendar-client';
 
 export default async function ContentCalendarPage() {
-    const user = await requireUser(['super_user', 'brand_admin']);
-
-    if (!user || (user.role !== 'super_user' && user.role !== 'brand_admin')) {
-        redirect('/dashboard');
-    }
+    await requireUser(['super_user', 'brand_admin'] as any);
 
     return <ContentCalendarClient />;
 }

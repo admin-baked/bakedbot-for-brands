@@ -5,15 +5,15 @@
  */
 
 import { redirect } from 'next/navigation';
-import { requireUser } from '@/lib/auth-helpers';
+import { requireUser } from '@/server/auth/auth';
 import { getBlogPosts } from '@/server/actions/blog';
 import { BlogDashboardClient } from './page-client';
 
 export default async function BlogDashboardPage() {
-    const user = await requireUser(['brand', 'dispensary', 'super_user']);
+    const user = await requireUser();
 
     // Get orgId from user
-    const orgId = user.orgId || user.uid;
+    const orgId = (user as any).orgId || (user as any).currentOrgId || user.uid;
 
     if (!orgId) {
         redirect('/dashboard');
@@ -30,7 +30,7 @@ export default async function BlogDashboardPage() {
             orgId={orgId}
             userId={user.uid}
             initialPosts={posts}
-            userRole={user.role}
+            userRole={(user as any).role}
         />
     );
 }

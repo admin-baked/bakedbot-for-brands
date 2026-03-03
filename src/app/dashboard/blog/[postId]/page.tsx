@@ -5,7 +5,7 @@
  */
 
 import { redirect, notFound } from 'next/navigation';
-import { requireUser } from '@/lib/auth-helpers';
+import { requireUser } from '@/server/auth/auth';
 import { getBlogPost } from '@/server/actions/blog';
 import { BlogPostEditorClient } from './page-client';
 
@@ -15,9 +15,9 @@ interface BlogPostEditorPageProps {
 
 export default async function BlogPostEditorPage({ params }: BlogPostEditorPageProps) {
     const { postId } = await params;
-    const user = await requireUser(['brand', 'dispensary', 'super_user']);
+    const user = await requireUser();
 
-    const orgId = user.orgId || user.uid;
+    const orgId = (user as any).orgId || (user as any).currentOrgId || user.uid;
 
     if (!orgId) {
         redirect('/dashboard');
