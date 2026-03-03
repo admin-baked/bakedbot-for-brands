@@ -22,7 +22,7 @@ import {
     BLOG_DEFAULTS
 } from '@/types/blog';
 import { Timestamp } from '@google-cloud/firestore';
-import { requireUser } from '@/lib/auth-helpers';
+import { requireUser } from '@/server/auth/auth';
 import { logger } from '@/lib/logger';
 import { generateBlogDraft as generateDraft, BlogGeneratorInput } from '@/server/services/blog-generator';
 import { checkBlogCompliance } from '@/server/services/blog-compliance';
