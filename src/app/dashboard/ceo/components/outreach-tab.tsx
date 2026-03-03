@@ -168,12 +168,14 @@ function DraftCard({
         }
     }
 
+    const isForm = draft.outreachType === 'form';
+
     if (status === 'sent') {
         return (
             <div className="rounded-lg border border-green-200 bg-green-50 p-4">
                 <div className="flex items-center gap-2 text-green-800">
                     <CheckCircle2 className="h-4 w-4" />
-                    <span className="font-medium text-sm">Sent via Gmail</span>
+                    <span className="font-medium text-sm">{isForm ? 'Form Submitted' : 'Sent via Gmail'}</span>
                     <span className="text-xs text-green-600 ml-auto">{draft.dispensaryName}</span>
                 </div>
             </div>
@@ -197,16 +199,33 @@ function DraftCard({
             {/* Draft header */}
             <div className="flex items-start justify-between gap-2">
                 <div>
-                    <p className="font-medium text-sm">{draft.dispensaryName}</p>
-                    <p className="text-xs text-muted-foreground">{draft.email} &middot; {draft.city}, {draft.state}</p>
+                    <div className="flex items-center gap-2">
+                        <p className="font-medium text-sm">{draft.dispensaryName}</p>
+                        {isForm && (
+                            <Badge className="text-xs bg-blue-100 text-blue-800 border-0">Contact Form</Badge>
+                        )}
+                    </div>
+                    {isForm ? (
+                        <a
+                            href={draft.contactFormUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                        >
+                            <Link2 className="h-3 w-3" />
+                            {draft.contactFormUrl}
+                        </a>
+                    ) : (
+                        <p className="text-xs text-muted-foreground">{draft.email} &middot; {draft.city}, {draft.state}</p>
+                    )}
                 </div>
                 <div className="flex items-center gap-1.5">
                     <Badge variant="outline" className="text-xs">{draft.templateId.replace(/-/g, ' ')}</Badge>
-                    {draft.emailVerified ? (
+                    {!isForm && (draft.emailVerified ? (
                         <CheckCircle2 className="h-4 w-4 text-green-500" />
                     ) : (
                         <AlertTriangle className="h-4 w-4 text-amber-500" />
-                    )}
+                    ))}
                 </div>
             </div>
 
@@ -279,15 +298,38 @@ function DraftCard({
                     </Button>
                 </div>
             ) : (status === 'idle' || status === 'failed') ? (
-                <div className="flex gap-2">
-                    <Button
-                        size="sm"
-                        className="gap-1.5 text-xs h-8 bg-green-600 hover:bg-green-700"
-                        onClick={handleApprove}
-                    >
-                        <Send className="h-3 w-3" />
-                        Approve &amp; Send
-                    </Button>
+                <div className="flex gap-2 flex-wrap">
+                    {isForm ? (
+                        <>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1.5 text-xs h-8 border-blue-300 text-blue-700 hover:bg-blue-50"
+                                onClick={() => window.open(draft.contactFormUrl, '_blank')}
+                            >
+                                <Link2 className="h-3 w-3" />
+                                Open Form
+                            </Button>
+                            <Button
+                                size="sm"
+                                className="gap-1.5 text-xs h-8 bg-green-600 hover:bg-green-700"
+                                onClick={handleApprove}
+                                disabled={status === 'approving'}
+                            >
+                                {status === 'approving' ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
+                                Mark Submitted
+                            </Button>
+                        </>
+                    ) : (
+                        <Button
+                            size="sm"
+                            className="gap-1.5 text-xs h-8 bg-green-600 hover:bg-green-700"
+                            onClick={handleApprove}
+                        >
+                            <Send className="h-3 w-3" />
+                            Approve &amp; Send
+                        </Button>
+                    )}
                     <Button
                         size="sm"
                         variant="ghost"
@@ -310,7 +352,7 @@ function DraftCard({
             ) : (
                 <div className="flex items-center gap-2 py-2 text-muted-foreground text-sm">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    {status === 'approving' ? 'Sending via Gmail…' : 'Rejecting…'}
+                    {status === 'approving' ? (isForm ? 'Marking submitted…' : 'Sending via Gmail…') : 'Rejecting…'}
                 </div>
             )}
         </div>

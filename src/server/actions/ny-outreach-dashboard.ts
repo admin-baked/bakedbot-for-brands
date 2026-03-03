@@ -195,28 +195,33 @@ export async function generateOutreachDrafts(): Promise<{
 
         const db = getAdminFirestore();
 
-        // Fetch a larger batch so we still find DAILY_SEND_LIMIT leads WITH email
-        // after filtering — most imported leads start with email=null until enriched.
+        // Fetch ALL uncontacted leads (no limit before email filter — bulk imports
+        // create 500+ leads with email=null, so limiting first misses email-having
+        // leads that were researched earlier and sit at higher createdAt values).
         const leadsSnap = await db.collection('ny_dispensary_leads')
             .where('status', '==', 'researched')
             .where('outreachSent', '==', false)
             .orderBy('createdAt', 'asc')
-            .limit(DAILY_SEND_LIMIT * 20) // over-fetch; email filter narrows it down
+            .limit(600) // covers full 500+ bulk import corpus
             .get();
 
-        const leads = leadsSnap.docs
-            .map(doc => ({ id: doc.id, ...doc.data() }))
-            .filter((l: Record<string, unknown>) => !!l.email)
-            .slice(0, DAILY_SEND_LIMIT); // cap at daily limit after email filter
+        const allLeads = leadsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() as Record<string, unknown> }));
 
-        if (leads.length === 0) {
+        // Split into two tracks
+        const emailLeads = allLeads.filter(l => !!l.email).slice(0, DAILY_SEND_LIMIT);
+        const formLeads = allLeads
+            .filter(l => !l.email && !!l.contactFormUrl)
+            .slice(0, DAILY_SEND_LIMIT); // separate quota for form track
+
+        if (emailLeads.length === 0 && formLeads.length === 0) {
             return { success: true, draftsCreated: 0 };
         }
 
         let draftsCreated = 0;
 
-        for (const lead of leads) {
-            const data = lead as Record<string, unknown>;
+        // --- Track A: email drafts ---
+        for (const lead of emailLeads) {
+            const data = lead;
             const templateId = selectTemplate({ posSystem: data.posSystem as string | undefined });
             const emailData: OutreachEmailData = {
                 dispensaryName: (data.dispensaryName as string) || 'Unknown',
@@ -244,6 +249,7 @@ export async function generateOutreachDrafts(): Promise<{
 
             await db.collection('ny_outreach_drafts').add({
                 leadId: lead.id,
+                outreachType: 'email',
                 dispensaryName: (data.dispensaryName as string) || 'Unknown',
                 contactName: data.contactName || null,
                 email: data.email,
@@ -263,7 +269,6 @@ export async function generateOutreachDrafts(): Promise<{
                 verificationResult,
             });
 
-            // Update lead status
             await db.collection('ny_dispensary_leads').doc(lead.id).update({
                 status: 'draft_generated',
                 draftGeneratedAt: Date.now(),
@@ -274,7 +279,53 @@ export async function generateOutreachDrafts(): Promise<{
             draftsCreated++;
         }
 
-        logger.info('[OutreachDashboard] Drafts generated', { count: draftsCreated, by: user.uid });
+        // --- Track B: contact-form drafts (no email, has contactFormUrl) ---
+        for (const lead of formLeads) {
+            const data = lead;
+            const emailData: OutreachEmailData = {
+                dispensaryName: (data.dispensaryName as string) || 'Unknown',
+                contactName: data.contactName as string | undefined,
+                city: (data.city as string) || 'New York',
+                state: (data.state as string) || 'NY',
+                posSystem: data.posSystem as string | undefined,
+            };
+            const templates = generateOutreachEmails(emailData);
+            const template = templates[0]; // use first template for form messages
+            if (!template) continue;
+
+            await db.collection('ny_outreach_drafts').add({
+                leadId: lead.id,
+                outreachType: 'form',
+                dispensaryName: (data.dispensaryName as string) || 'Unknown',
+                contactName: data.contactName || null,
+                email: null,
+                contactFormUrl: data.contactFormUrl,
+                city: (data.city as string) || 'New York',
+                state: (data.state as string) || 'NY',
+                posSystem: data.posSystem || null,
+                websiteUrl: data.websiteUrl || null,
+                templateId: template.id,
+                templateName: template.name,
+                subject: template.subject,
+                htmlBody: template.htmlBody,
+                textBody: template.textBody,
+                status: 'draft',
+                createdAt: Date.now(),
+                createdBy: user.uid,
+                emailVerified: false,
+                verificationResult: 'form_only',
+            });
+
+            await db.collection('ny_dispensary_leads').doc(lead.id).update({
+                status: 'draft_generated',
+                draftGeneratedAt: Date.now(),
+                updatedAt: Date.now(),
+            });
+
+            draftsCreated++;
+        }
+
+        logger.info('[OutreachDashboard] Drafts generated', { count: draftsCreated, emailTrack: emailLeads.length, formTrack: formLeads.length, by: user.uid });
         return { success: true, draftsCreated };
     } catch (err) {
         logger.error('[OutreachDashboard] Draft generation failed', { error: String(err) });
@@ -417,9 +468,34 @@ export async function approveAndSendDraft(draftId: string): Promise<{
             approvedBy: user.uid,
         });
 
-        // Send via Gmail (userId routes to Gmail when connected, Mailjet fallback)
+        // ── Form-submission track: user manually submitted the contact form ──
+        if (draft.outreachType === 'form') {
+            await ref.update({ status: 'sent', sentAt: Date.now(), sentVia: 'contact_form' });
+            await db.collection('ny_dispensary_leads').doc(draft.leadId).update({
+                outreachSent: true,
+                outreachSentAt: Date.now(),
+                outreachResult: 'form_submitted',
+                status: 'contacted',
+                updatedAt: Date.now(),
+            });
+            await db.collection('ny_outreach_log').add({
+                dispensaryName: draft.dispensaryName,
+                email: null,
+                contactFormUrl: draft.contactFormUrl || null,
+                templateId: draft.templateId,
+                emailSent: false,
+                status: 'form_submitted',
+                timestamp: Date.now(),
+                createdAt: Date.now(),
+                sentVia: 'contact_form',
+                approvedBy: user.uid,
+            });
+            return { success: true };
+        }
+
+        // ── Email track: send via Gmail (userId routes to Gmail, Mailjet fallback) ──
         const result = await sendGenericEmail({
-            to: draft.email,
+            to: draft.email as string,
             name: draft.contactName || draft.dispensaryName,
             fromEmail: 'martez@bakedbot.ai',
             fromName: 'Martez — BakedBot AI',
@@ -467,7 +543,7 @@ export async function approveAndSendDraft(draftId: string): Promise<{
             const lead: OutreachLead = {
                 dispensaryName: draft.dispensaryName,
                 contactName: draft.contactName,
-                email: draft.email,
+                email: draft.email as string,
                 city: draft.city,
                 state: draft.state,
                 posSystem: draft.posSystem,
@@ -477,7 +553,7 @@ export async function approveAndSendDraft(draftId: string): Promise<{
             await trackInCRM(lead, {
                 leadId: draft.leadId,
                 dispensaryName: draft.dispensaryName,
-                email: draft.email,
+                email: draft.email as string,
                 templateId: draft.templateId,
                 emailVerified: draft.emailVerified ?? true,
                 emailSent: true,
