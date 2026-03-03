@@ -257,7 +257,7 @@ export async function createBlogPost(input: CreateBlogPostInput): Promise<BlogPo
 export async function createBlogPostInternal(input: CreateBlogPostInput & {
     createdBy: string;
     status?: BlogStatus;
-    generatedBy?: 'manual' | 'craig' | 'programmatic_cron';
+    generatedBy?: 'manual' | 'craig' | 'programmatic_cron' | 'research_pipeline';
     contentType?: BlogPost['contentType'];
     parentPostId?: string;
     seriesId?: string;

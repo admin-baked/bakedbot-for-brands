@@ -15,9 +15,10 @@ import { google } from 'googleapis';
 import { logger } from '@/lib/logger';
 import { GoogleCalendarTokens, ExecProfileSlug } from '@/types/executive-calendar';
 
+// Use the same registered redirect URI as all other Google OAuth flows
 const REDIRECT_URI =
-    process.env.GOOGLE_CALENDAR_REDIRECT_URI ||
-    'https://bakedbot.ai/api/calendar/google/callback';
+    process.env.GOOGLE_REDIRECT_URI ||
+    'https://bakedbot.ai/api/auth/google/callback';
 
 const SCOPES = ['https://www.googleapis.com/auth/calendar'];
 
@@ -36,14 +37,19 @@ function makeOAuthClient() {
 
 /**
  * Returns the Google OAuth2 consent URL for an executive.
- * The profileSlug is passed as `state` so the callback knows which exec to update.
+ * State is encoded as JSON with service='exec_calendar' so the generic callback
+ * knows to save tokens to executive_profiles (not user integrations).
  */
 export function getGoogleAuthUrl(profileSlug: ExecProfileSlug): string {
     const oauth2Client = makeOAuthClient();
     return oauth2Client.generateAuthUrl({
         access_type: 'offline',
         scope: SCOPES,
-        state: profileSlug,
+        state: JSON.stringify({
+            service: 'exec_calendar',
+            profileSlug,
+            redirect: '/dashboard/ceo?tab=calendar',
+        }),
         prompt: 'consent', // Always show consent so we get a refresh_token
     });
 }

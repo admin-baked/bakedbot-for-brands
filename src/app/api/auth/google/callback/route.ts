@@ -5,12 +5,15 @@ import { saveCalendarToken } from '@/server/integrations/calendar/token-storage'
 import { saveSheetsToken } from '@/server/integrations/sheets/token-storage';
 import { saveDriveToken } from '@/server/integrations/drive/token-storage';
 import { requireUser } from '@/server/auth/auth';
+import { getAdminFirestore } from '@/firebase/admin';
+import { Timestamp } from '@google-cloud/firestore';
 
-type GoogleService = 'gmail' | 'calendar' | 'sheets' | 'drive';
+type GoogleService = 'gmail' | 'calendar' | 'sheets' | 'drive' | 'exec_calendar';
 
 interface OAuthState {
     service: GoogleService;
     redirect: string;
+    profileSlug?: string; // only for exec_calendar
 }
 
 export async function GET(req: NextRequest) {
@@ -30,44 +33,74 @@ export async function GET(req: NextRequest) {
     }
 
     // Parse state to get service and redirect (outside try so it's available in catch)
-    let service = 'gmail';
+    let service: GoogleService = 'gmail';
     let redirectPath = '/dashboard/ceo';
+    let execProfileSlug: string | null = null;
 
     if (stateParam) {
         try {
-            const state = JSON.parse(stateParam);
+            const state = JSON.parse(stateParam) as OAuthState;
             if (state.service) service = state.service;
             if (state.redirect) redirectPath = state.redirect;
+            if (state.profileSlug) execProfileSlug = state.profileSlug;
         } catch (e) {
             console.warn('[Google OAuth] Failed to parse state param, defaulting to gmail');
         }
     }
 
     try {
-        // Authenticate user to know who to save the token for
-        const user = await requireUser();
-
         // Exchange the code for tokens
         const tokens = await exchangeCodeForTokens(code);
 
         // Save tokens to Firestore based on service
         switch (service) {
-            case 'drive':
+            case 'exec_calendar': {
+                // Executive calendar — saves to executive_profiles, not user integrations
+                if (!execProfileSlug || !['martez', 'jack'].includes(execProfileSlug)) {
+                    throw new Error('Invalid exec profile slug for calendar connect');
+                }
+                const gcalTokens = {
+                    access_token: tokens.access_token ?? null,
+                    refresh_token: tokens.refresh_token ?? null,
+                    expiry_date: tokens.expiry_date ?? null,
+                    token_type: tokens.token_type ?? null,
+                };
+                const firestore = getAdminFirestore();
+                await firestore.collection('executive_profiles').doc(execProfileSlug).update({
+                    googleCalendarTokens: gcalTokens,
+                    updatedAt: Timestamp.now(),
+                });
+                console.log(`[Google OAuth] Exec calendar connected for: ${execProfileSlug}`);
+                return NextResponse.redirect(new URL('/dashboard/ceo?tab=calendar&calendarSync=success', req.url));
+            }
+
+            case 'drive': {
+                const user = await requireUser();
                 await saveDriveToken(user.uid, tokens);
+                console.log(`[Google OAuth] Successfully connected drive for user:`, user.uid);
                 break;
-            case 'sheets':
+            }
+            case 'sheets': {
+                const user = await requireUser();
                 await saveSheetsToken(user.uid, tokens);
+                console.log(`[Google OAuth] Successfully connected sheets for user:`, user.uid);
                 break;
-            case 'calendar':
+            }
+            case 'calendar': {
+                const user = await requireUser();
                 await saveCalendarToken(user.uid, tokens);
+                console.log(`[Google OAuth] Successfully connected calendar for user:`, user.uid);
                 break;
+            }
             case 'gmail':
-            default:
+            default: {
+                const user = await requireUser();
                 await saveGmailToken(user.uid, tokens);
+                console.log(`[Google OAuth] Successfully connected gmail for user:`, user.uid);
                 break;
+            }
         }
 
-        console.log(`[Google OAuth] Successfully connected ${service} for user:`, user.uid);
         return NextResponse.redirect(new URL(`${redirectPath}?success=${service}_connected`, req.url));
 
     } catch (err: any) {
