@@ -245,6 +245,8 @@ export interface ExecuteWorkflowOptions {
     triggeredBy: string;
     variables?: Record<string, unknown>;
     dryRun?: boolean;
+    /** Execute a specific version from the version registry */
+    version?: number;
 }
 
 /** Result of workflow validation */
@@ -252,6 +254,28 @@ export interface WorkflowValidationResult {
     valid: boolean;
     errors: string[];
     warnings: string[];
+}
+
+// ---------------------------------------------------------------------------
+// Workflow Versioning
+// ---------------------------------------------------------------------------
+
+export type WorkflowVersionStatus = 'draft' | 'active' | 'deprecated';
+
+export interface WorkflowVersion {
+    workflowId: string;
+    version: number;
+    definition: WorkflowDefinition;
+    status: WorkflowVersionStatus;
+    createdAt: Date;
+    activatedAt?: Date;
+    deprecatedAt?: Date;
+    changeLog?: string;
+}
+
+export interface WorkflowVersionFilter {
+    workflowId?: string;
+    status?: WorkflowVersionStatus;
 }
 
 // ---------------------------------------------------------------------------
