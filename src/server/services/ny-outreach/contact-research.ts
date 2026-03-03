@@ -56,7 +56,7 @@ async function extractContactInfo(pageContent: string, dispensaryName: string, w
     city?: string;
     address?: string;
 }> {
-    if (!pageContent || pageContent.length < 50) return {};
+    if (!pageContent || pageContent.length < 15) return {};
 
     try {
         const result = await callClaude({
@@ -147,7 +147,7 @@ export async function researchNewLeads(targetCount: number = 10): Promise<Resear
     const shuffled = searchQueries.sort(() => Math.random() - 0.5);
     const queriesToRun = shuffled.slice(0, 3);
 
-    const allResults: Array<{ title: string; url: string; description?: string }> = [];
+    const allResults: Array<{ title: string; url: string; snippet?: string }> = [];
 
     // Step 1: Search for dispensary websites
     for (const query of queriesToRun) {
@@ -205,17 +205,26 @@ export async function researchNewLeads(targetCount: number = 10): Promise<Resear
             const aboutContent = await jinaReadPage(`${domain}/about`);
             const contactContent = await jinaReadPage(`${domain}/contact`);
 
-            const combinedContent = [pageContent, aboutContent, contactContent]
+            const scrapedContent = [pageContent, aboutContent, contactContent]
                 .filter(c => c.length > 50)
                 .join('\n\n---\n\n');
 
-            if (combinedContent.length < 100) {
+            // Fall back to Jina search snippet when scraping fails (site blocks bots)
+            const combinedContent = scrapedContent.length >= 100
+                ? scrapedContent
+                : (result.snippet || '');
+
+            if (combinedContent.length < 20) {
                 logger.info('[ContactResearch] Insufficient page content', { url: result.url });
                 continue;
             }
 
             // Extract contact info via Claude
             const contactInfo = await extractContactInfo(combinedContent, result.title, result.url);
+
+            // Fall back to /contact page URL when Claude couldn't find a contact form
+            const contactFormUrl = contactInfo.contactFormUrl
+                || (!contactInfo.email ? `${domain}/contact` : undefined);
 
             const lead: ResearchedLead = {
                 dispensaryName: result.title.split(' - ')[0].split(' | ')[0].trim(),
@@ -226,13 +235,13 @@ export async function researchNewLeads(targetCount: number = 10): Promise<Resear
                 state: 'NY',
                 address: contactInfo.address,
                 websiteUrl: result.url,
-                contactFormUrl: contactInfo.contactFormUrl,
+                contactFormUrl,
                 source: 'jina-research',
                 researchedAt: Date.now(),
                 notes: contactInfo.email
                     ? `Email found: ${contactInfo.email}`
-                    : contactInfo.contactFormUrl
-                        ? `Contact form: ${contactInfo.contactFormUrl}`
+                    : contactFormUrl
+                        ? `Contact form: ${contactFormUrl}`
                         : 'No direct contact info found',
             };
 
