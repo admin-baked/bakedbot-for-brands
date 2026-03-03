@@ -61,8 +61,9 @@ export function DashboardSidebar() {
   // We exclude brand/dispensary roles to allow impersonation dashboards to render correctly.
   // We exclude /dashboard/shop to allow testing the customer flow
   const isBusinessRole = normalizedRole ? isBrandRole(normalizedRole) || isDispensaryRole(normalizedRole) : false;
+  const isSuperUserRole = normalizedRole === 'super_user' || normalizedRole === 'super_admin';
   const isCeoDashboard = pathname?.startsWith('/dashboard/ceo') ||
-    (isSuperAdmin && !isBusinessRole && !pathname?.startsWith('/dashboard/shop'));
+    ((isSuperAdmin || isSuperUserRole) && !isBusinessRole && !pathname?.startsWith('/dashboard/shop'));
 
   // Show Brand Sidebar for brand users (including brand_admin, brand_member)
   const isBrandDashboard = !isCeoDashboard && (normalizedRole ? isBrandRole(normalizedRole) : false);
