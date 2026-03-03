@@ -1163,12 +1163,12 @@ export default function CRMTab() {
                                         {paginatedOutreachLeads.map((lead) => (
                                             <TableRow key={lead.id}>
                                                 <TableCell className="font-medium max-w-[180px]">
-                                                    <div className="truncate">{lead.businessName}</div>
-                                                    {lead.website && (
-                                                        <a href={lead.website} target="_blank" rel="noopener noreferrer"
+                                                    <div className="truncate">{lead.dispensaryName}</div>
+                                                    {lead.websiteUrl && (
+                                                        <a href={lead.websiteUrl} target="_blank" rel="noopener noreferrer"
                                                             className="text-xs text-blue-500 hover:underline flex items-center gap-1">
                                                             <Globe className="h-3 w-3" />
-                                                            {lead.website.replace(/^https?:\/\/(www\.)?/, '').split('/')[0]}
+                                                            {lead.websiteUrl.replace(/^https?:\/\/(www\.)?/, '').split('/')[0]}
                                                         </a>
                                                     )}
                                                 </TableCell>
@@ -1180,11 +1180,6 @@ export default function CRMTab() {
                                                     {lead.email ? (
                                                         <a href={`mailto:${lead.email}`} className="text-blue-500 hover:underline">
                                                             {lead.email}
-                                                        </a>
-                                                    ) : lead.contactFormUrl ? (
-                                                        <a href={lead.contactFormUrl} target="_blank" rel="noopener noreferrer"
-                                                            className="text-xs text-muted-foreground hover:underline">
-                                                            Contact form
                                                         </a>
                                                     ) : (
                                                         <span className="text-muted-foreground text-xs">No email</span>
@@ -1202,9 +1197,9 @@ export default function CRMTab() {
                                                     )}
                                                 </TableCell>
                                                 <TableCell className="text-xs">
-                                                    {lead.outreachSentCount > 0 ? (
+                                                    {lead.outreachSent ? (
                                                         <Badge className="bg-blue-100 text-blue-800 text-xs">
-                                                            {lead.outreachSentCount} sent
+                                                            Sent
                                                         </Badge>
                                                     ) : (
                                                         <span className="text-muted-foreground">Not contacted</span>
@@ -1212,9 +1207,9 @@ export default function CRMTab() {
                                                 </TableCell>
                                                 <TableCell className="max-w-[200px]">
                                                     <div className="space-y-1">
-                                                        {lead.notes.slice(-1).map((note, i) => (
-                                                            <p key={i} className="text-xs text-muted-foreground truncate">{note.text}</p>
-                                                        ))}
+                                                        {lead.notes && (
+                                                            <p className="text-xs text-muted-foreground truncate">{lead.notes}</p>
+                                                        )}
                                                         <div className="flex gap-1">
                                                             <Input
                                                                 placeholder="Add note..."
