@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-03-02 (Workflow DSL orchestration layer — 3 POC workflows, CLI, 83 tests)
+**Current Status:** 🟢 Passing | **Last update:** 2026-03-03 (Blog auth fix — @/lib/auth-helpers → @/server/auth/auth across all blog server actions + pages; Blog sidebar section)
 
 ---
 
