@@ -19,17 +19,20 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Search, Bot, Zap, TrendingUp, Mail, BarChart3, Target, Database, Loader2, CheckCircle } from 'lucide-react';
 import { SuperUserAgentChat } from './components/super-user-agent-chat';
-import { InternalPlaybooksGrid } from './components/internal-playbooks-grid';
+import { InternalPlaybooksGrid, type InternalPlaybook } from './components/internal-playbooks-grid';
 import { CreateInternalPlaybookDialog } from './components/create-internal-playbook-dialog';
 import { seedPlaybookTemplates, type SeedResult } from '@/server/actions/seed-playbooks';
 import { useToast } from '@/hooks/use-toast';
-import { listSuperUserPlaybooks } from './playbook-actions';
+import { listSuperUserPlaybooks, updateSuperUserPlaybook } from './playbook-actions';
+import { PlaybookEditSheet } from '@/app/dashboard/playbooks/components/playbook-edit-sheet';
+import type { PlaybookTrigger } from '@/types/playbook';
 
 export default function SuperUserPlaybooksPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [refreshNonce, setRefreshNonce] = useState(0);
     const [isSeeding, setIsSeeding] = useState(false);
     const [seedResult, setSeedResult] = useState<SeedResult | null>(null);
+    const [editingPlaybook, setEditingPlaybook] = useState<InternalPlaybook | null>(null);
     const { toast } = useToast();
 
     const [stats, setStats] = useState<{
@@ -250,8 +253,43 @@ export default function SuperUserPlaybooksPage() {
                         />
                     </div>
                 </div>
-                <InternalPlaybooksGrid searchQuery={searchQuery} refreshNonce={refreshNonce} />
+                <InternalPlaybooksGrid
+                    searchQuery={searchQuery}
+                    refreshNonce={refreshNonce}
+                    onEdit={setEditingPlaybook}
+                />
             </section>
+
+            {/* Zapier-style trigger + delivery editor */}
+            {editingPlaybook && (
+                <PlaybookEditSheet
+                    open={!!editingPlaybook}
+                    onOpenChange={(open) => { if (!open) setEditingPlaybook(null); }}
+                    playbookName={editingPlaybook.name}
+                    playbookDescription={editingPlaybook.description}
+                    initialTrigger={(() => {
+                        const cron = editingPlaybook.schedule ??
+                            editingPlaybook.triggers?.find((t: any) => t?.type === 'schedule')?.cron;
+                        if (cron) return { type: 'schedule', cron } as PlaybookTrigger;
+                        const eventTrig = editingPlaybook.triggers?.find((t: any) => t?.type === 'event');
+                        if (eventTrig) return eventTrig as PlaybookTrigger;
+                        return { type: 'manual' } as PlaybookTrigger;
+                    })()}
+                    hasDelivery={false}
+                    onSave={async (trigger) => {
+                        const result = await updateSuperUserPlaybook(editingPlaybook.id, {
+                            triggers: [trigger],
+                        });
+                        if (result.success) {
+                            toast({ title: 'Playbook updated', description: `"${editingPlaybook.name}" trigger saved.` });
+                            setEditingPlaybook(null);
+                            setRefreshNonce(v => v + 1);
+                        } else {
+                            toast({ variant: 'destructive', title: 'Error', description: result.error });
+                        }
+                    }}
+                />
+            )}
         </div>
     );
 }

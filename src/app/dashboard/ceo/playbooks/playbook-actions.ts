@@ -207,6 +207,43 @@ export async function runSuperUserPlaybook(
 }
 
 /**
+ * Update a super user playbook's trigger / metadata
+ */
+export async function updateSuperUserPlaybook(
+    playbookId: string,
+    patch: {
+        triggers?: any[];
+        name?: string;
+        description?: string;
+        category?: string;
+    }
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const { firestore } = await createServerClient();
+        await requireUser(['super_user']);
+
+        const docRef = firestore.collection('playbooks').doc(playbookId);
+        const snap = await docRef.get();
+
+        if (!snap.exists) {
+            return { success: false, error: 'Playbook not found' };
+        }
+
+        const { FieldValue } = await import('firebase-admin/firestore');
+        await docRef.update({
+            ...patch,
+            updatedAt: new Date(),
+            version: FieldValue.increment(1),
+        });
+
+        return { success: true };
+    } catch (error: any) {
+        console.error('[SuperUserPlaybooks] updateSuperUserPlaybook failed:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
  * Create a super user playbook
  */
 export async function createSuperUserPlaybook(
