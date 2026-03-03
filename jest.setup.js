@@ -108,6 +108,25 @@ if (typeof Request === 'undefined') {
   }
 }
 
+// Patch web API globals that jsdom may not implement fully
+// ─── Response.json() static (factory method, missing in jsdom < 20.0.3) ───────
+if (typeof Response !== 'undefined' && !Response.json) {
+    Response.json = function(body, init) {
+        return new Response(
+            JSON.stringify(body),
+            { ...init, headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) } }
+        );
+    };
+}
+
+// ─── Request.prototype.json() (may be missing in older jsdom) ─────────────────
+if (typeof Request !== 'undefined' && !Request.prototype.json) {
+    Request.prototype.json = async function() {
+        const text = await this.text();
+        return JSON.parse(text);
+    };
+}
+
 // Mock environment variables
 process.env.NODE_ENV = 'test';
 
