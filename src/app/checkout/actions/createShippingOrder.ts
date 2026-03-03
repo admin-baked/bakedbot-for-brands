@@ -14,6 +14,7 @@ import { logger } from '@/lib/logger';
 import { requireUser } from '@/server/auth/auth';
 import type { BillingAddress, ShippingAddress, PurchaseModel } from '@/types/orders';
 import { isShippingCheckoutEnabled } from '@/lib/feature-flags';
+import { createHash } from 'crypto';
 
 // States where hemp shipping is restricted
 const RESTRICTED_STATES = ['ID', 'MS', 'SD', 'NE', 'KS'];
@@ -92,6 +93,13 @@ function hasLegacyShippingFlag(data: Record<string, unknown>): boolean {
         data.shippingEnabled === true ||
         (typeof data.checkoutUrl === 'string' && data.checkoutUrl.trim().length > 0)
     );
+}
+
+function hashOpaqueTokenValue(value: unknown): string | null {
+    if (typeof value !== 'string') return null;
+    const normalized = value.trim();
+    if (!normalized) return null;
+    return createHash('sha256').update(normalized).digest('hex');
 }
 
 export async function createShippingOrder(input: CreateShippingOrderInput) {
@@ -215,6 +223,48 @@ export async function createShippingOrder(input: CreateShippingOrderInput) {
         }
 
         const normalizedCustomerEmail = sessionEmail || requestEmail;
+        const opaqueTokenHash = hashOpaqueTokenValue(input.paymentData?.opaqueData?.dataValue);
+        if (opaqueTokenHash) {
+            const existingOrdersSnap = await firestore
+                .collection('orders')
+                .where('userId', '==', session.uid)
+                .limit(25)
+                .get();
+
+            const existingOrder = existingOrdersSnap.docs.find((doc: any) => {
+                const data = (doc.data?.() || {}) as Record<string, unknown>;
+                const provider = String(data.paymentProvider || '').toLowerCase();
+                const paymentStatus = String(data.paymentStatus || '').toLowerCase();
+                const orderStatus = String(data.status || '').toLowerCase();
+                const existingTokenHash = typeof data.opaqueTokenHash === 'string'
+                    ? data.opaqueTokenHash
+                    : '';
+                const pendingOrSettled =
+                    paymentStatus === 'pending' ||
+                    paymentStatus === 'processing' ||
+                    paymentStatus === 'paid';
+                const orderOpen =
+                    orderStatus !== 'canceled' &&
+                    orderStatus !== 'cancelled';
+
+                return (
+                    provider === 'authorize_net' &&
+                    existingTokenHash === opaqueTokenHash &&
+                    pendingOrSettled &&
+                    orderOpen
+                );
+            });
+
+            if (existingOrder) {
+                logger.info('[ShippingOrder] Reused existing order from replayed payment token', {
+                    orderId: existingOrder.id,
+                    brandId: input.brandId,
+                    userId: session.uid,
+                });
+                return { success: true, reused: true, orderId: existingOrder.id };
+            }
+        }
+
         const orderDraft = {
             userId: session.uid,
             items: resolvedItems.map(item => ({
@@ -247,6 +297,7 @@ export async function createShippingOrder(input: CreateShippingOrderInput) {
             purchaseModel: 'online_only' as PurchaseModel,
             shippingAddress: normalizedShipping,
             fulfillmentStatus: 'pending' as const,
+            ...(opaqueTokenHash ? { opaqueTokenHash } : {}),
             createdAt: FieldValue.serverTimestamp(),
             updatedAt: FieldValue.serverTimestamp(),
         };

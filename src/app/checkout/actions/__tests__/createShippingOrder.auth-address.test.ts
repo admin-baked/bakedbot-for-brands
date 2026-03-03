@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
+import crypto from 'crypto';
 
 const mockRequireUser = jest.fn();
 const mockCreateServerClient = jest.fn();
@@ -61,10 +62,12 @@ function baseInput() {
 describe('createShippingOrder auth + address hardening', () => {
     let createShippingOrder: typeof import('../createShippingOrder').createShippingOrder;
     const originalEnv = process.env;
+    let existingUserOrders: Array<{ id: string; data: () => Record<string, unknown> }>;
 
     beforeEach(async () => {
         jest.clearAllMocks();
         process.env = { ...originalEnv };
+        existingUserOrders = [];
 
         const firestore = {
             collection: jest.fn((name: string) => {
@@ -74,6 +77,13 @@ describe('createShippingOrder auth + address hardening', () => {
                             id: 'order-ship-1',
                             update: mockOrderUpdate,
                         }),
+                        where: jest.fn(() => ({
+                            limit: jest.fn(() => ({
+                                get: jest.fn().mockResolvedValue({
+                                    docs: existingUserOrders,
+                                }),
+                            })),
+                        })),
                     };
                 }
 
@@ -247,6 +257,43 @@ describe('createShippingOrder auth + address hardening', () => {
 
         expect(result.success).toBe(false);
         expect(result.error).toContain('do not belong to this brand');
+        expect(mockCreateTransaction).not.toHaveBeenCalled();
+    });
+
+    it('reuses existing order when opaque payment token is replayed', async () => {
+        mockRequireUser.mockResolvedValue({
+            uid: 'user-1',
+            email: 'owner@example.com',
+        });
+
+        const tokenValue = 'opaque-replayed-token';
+        const tokenHash = crypto.createHash('sha256').update(tokenValue).digest('hex');
+        existingUserOrders = [
+            {
+                id: 'order-existing-1',
+                data: () => ({
+                    paymentProvider: 'authorize_net',
+                    opaqueTokenHash: tokenHash,
+                    paymentStatus: 'pending',
+                    status: 'submitted',
+                }),
+            },
+        ];
+
+        const input = baseInput();
+        input.paymentData = {
+            opaqueData: {
+                dataDescriptor: 'COMMON.ACCEPT.INAPP.PAYMENT',
+                dataValue: tokenValue,
+            },
+        };
+
+        const result = await createShippingOrder(input as any);
+
+        expect(result.success).toBe(true);
+        expect((result as any).reused).toBe(true);
+        expect(result.orderId).toBe('order-existing-1');
+        expect(mockOrderAdd).not.toHaveBeenCalled();
         expect(mockCreateTransaction).not.toHaveBeenCalled();
     });
 });
