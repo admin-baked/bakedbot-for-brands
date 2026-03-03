@@ -183,9 +183,30 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
             // Mark thread as persisted (safe to use now)
             markThreadPersisted(localThread.id);
 
-            // Persist any custom text into the chat input
-            if (hasCustomText && customText.trim()) {
-                _pendingInputs.set(localThread.id, customText.trim());
+            // Thread types with dedicated inline generators — auto-submit not needed
+            // (the generator UI handles the prompt; same set as inbox-sidebar.tsx)
+            const GENERATOR_THREAD_TYPES = new Set([
+                'carousel', 'bundle', 'qr_code', 'hero', 'social_post', 'dynamic_pricing',
+            ]);
+            const isGeneratorThread = GENERATOR_THREAD_TYPES.has(action.threadType);
+
+            // Determine message to auto-send when InboxConversation mounts
+            let pendingMessage: string | null = null;
+            if (isGeneratorThread) {
+                // Generator threads: only forward custom text if the user typed something
+                if (hasCustomText && customText.trim()) {
+                    pendingMessage = customText.trim();
+                }
+            } else {
+                // Chat threads: always auto-send the preset's prompt template,
+                // with the user's custom text appended if present
+                pendingMessage = hasCustomText && customText.trim()
+                    ? `${action.promptTemplate}\n\n${customText.trim()}`
+                    : action.promptTemplate;
+            }
+
+            if (pendingMessage) {
+                _pendingInputs.set(localThread.id, pendingMessage);
             }
 
             // Set as active thread to show inline conversation
