@@ -290,11 +290,28 @@ export function SuperAdminSidebar() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
+                    </SidebarMenu>
+                </SidebarGroupContent>
+            </SidebarGroup>
+
+            {/* Content — Blog & Publishing */}
+            <SidebarGroup>
+                <SidebarGroupLabel>Content</SidebarGroupLabel>
+                <SidebarGroupContent>
+                    <SidebarMenu>
                         <SidebarMenuItem>
-                            <SidebarMenuButton asChild isActive={pathname?.startsWith('/dashboard/blog')}>
+                            <SidebarMenuButton asChild isActive={pathname?.startsWith('/dashboard/blog') && !pathname?.startsWith('/dashboard/blog/calendar')}>
                                 <Link href="/dashboard/blog">
                                     <BookOpen />
                                     <span>Blog</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={pathname?.startsWith('/dashboard/blog/calendar')}>
+                                <Link href="/dashboard/blog/calendar">
+                                    <Sparkles />
+                                    <span>Content Calendar</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
