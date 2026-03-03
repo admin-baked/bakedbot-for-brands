@@ -33,6 +33,7 @@ import {
     rejectDraft,
     triggerTestBatch,
     triggerContactResearch,
+    triggerNYAPIImport,
     checkGmailConnection,
 } from '@/server/actions/ny-outreach-dashboard';
 import type { OutreachDraft } from '@/server/services/ny-outreach/outreach-service';
@@ -455,6 +456,29 @@ export default function OutreachTab() {
         }
     };
 
+    const handleNYAPIImport = async () => {
+        setActionLoading('nyapi');
+        setActionResult(null);
+        try {
+            // Use current queue depth as offset to avoid re-importing the same batch
+            const currentOffset = data?.queueDepth || 0;
+            const result = await triggerNYAPIImport(currentOffset);
+            if (result.success) {
+                setActionResult({
+                    type: 'success',
+                    message: `NY API import: ${result.leadsFound || 0} leads imported (${result.withEmail || 0} with email)`,
+                });
+                await loadData();
+            } else {
+                setActionResult({ type: 'error', message: result.error || 'NY API import failed' });
+            }
+        } catch (err) {
+            setActionResult({ type: 'error', message: String(err) });
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex h-[400px] items-center justify-center">
@@ -614,6 +638,20 @@ export default function OutreachTab() {
                         <Search className="h-4 w-4 mr-2" />
                     )}
                     Research New Leads
+                </Button>
+
+                <Button
+                    variant="outline"
+                    onClick={handleNYAPIImport}
+                    disabled={!!actionLoading}
+                    className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                >
+                    {actionLoading === 'nyapi' ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                        <Play className="h-4 w-4 mr-2" />
+                    )}
+                    Import NY Licensed (471)
                 </Button>
             </div>
 

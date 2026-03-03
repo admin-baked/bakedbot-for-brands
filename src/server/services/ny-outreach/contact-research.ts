@@ -118,6 +118,170 @@ async function isAlreadyResearched(websiteUrl: string): Promise<boolean> {
     return !snap2.empty;
 }
 
+// NY State Cannabis License API (Socrata)
+const NY_LICENSE_API = 'https://data.ny.gov/resource/jskf-tt3q.json';
+
+interface NYLicenseRecord {
+    entity_name?: string;
+    dba?: string;
+    address_line_1?: string;
+    city?: string;
+    zip_code?: string;
+    county?: string;
+    region?: string;
+    primary_contact_name?: string;
+    license_number?: string;
+    operational_status?: string;
+    license_status?: string;
+}
+
+/**
+ * Import leads from NY State official cannabis license database.
+ * Uses data.ny.gov Socrata API — 471 active adult-use retail dispensaries.
+ * Enriches each with a targeted Jina search to find website/email.
+ *
+ * @param targetCount Number of new leads to import per run (default 20)
+ * @param offset Pagination offset for spreading across multiple runs
+ */
+export async function importNYLicensedLeads(targetCount: number = 20, offset: number = 0): Promise<ResearchedLead[]> {
+    logger.info('[ContactResearch] Starting NY API import', { targetCount, offset });
+
+    const db = getAdminFirestore();
+
+    // Fetch from NY State API — active adult-use retail only
+    let nyRecords: NYLicenseRecord[] = [];
+    try {
+        const params = new URLSearchParams({
+            '$limit': String(targetCount * 3), // Fetch extra to account for already-imported
+            '$offset': String(offset),
+            'license_status': 'Active',
+            'license_type_code': 'OCMRETL',
+            '$order': 'issued_date DESC',
+        });
+        const res = await fetch(`${NY_LICENSE_API}?${params.toString()}`, {
+            headers: { 'Accept': 'application/json' },
+            signal: AbortSignal.timeout(30000),
+        });
+        if (!res.ok) throw new Error(`NY API responded ${res.status}`);
+        nyRecords = await res.json() as NYLicenseRecord[];
+    } catch (err) {
+        logger.error('[ContactResearch] NY API fetch failed', { error: String(err) });
+        return [];
+    }
+
+    logger.info('[ContactResearch] NY API records fetched', { count: nyRecords.length });
+
+    const researchedLeads: ResearchedLead[] = [];
+
+    for (const record of nyRecords) {
+        if (researchedLeads.length >= targetCount) break;
+
+        const licenseNumber = record.license_number || '';
+        const dispensaryName = (record.dba || record.entity_name || '').trim();
+        if (!dispensaryName) continue;
+
+        const city = record.city || 'New York';
+
+        // Skip if already imported (by license number)
+        if (licenseNumber) {
+            const existing = await db.collection('ny_dispensary_leads')
+                .where('licenseNumber', '==', licenseNumber)
+                .limit(1)
+                .get();
+            if (!existing.empty) {
+                logger.info('[ContactResearch] Skipping existing license', { licenseNumber, dispensaryName });
+                continue;
+            }
+        }
+
+        // Targeted search to find website + email
+        let email: string | undefined;
+        let websiteUrl: string | undefined;
+        let contactFormUrl: string | undefined;
+        let phone: string | undefined;
+
+        try {
+            const searchQuery = `"${dispensaryName}" ${city} NY cannabis dispensary contact email`;
+            const searchResults = await jinaSearch(searchQuery);
+
+            // Find the dispensary's own site (skip directories)
+            const skipDomains = ['leafly', 'weedmaps', 'yelp', 'google', 'facebook', 'instagram', 'twitter', 'reddit'];
+            const ownSite = searchResults.find(r => {
+                try {
+                    const domain = new URL(r.url).hostname;
+                    return !skipDomains.some(d => domain.includes(d));
+                } catch { return false; }
+            });
+
+            if (ownSite) {
+                websiteUrl = ownSite.url;
+                const domain = new URL(ownSite.url).origin;
+
+                // Try to scrape homepage + contact page
+                const [pageContent, contactContent] = await Promise.all([
+                    jinaReadPage(ownSite.url),
+                    jinaReadPage(`${domain}/contact`),
+                ]);
+
+                const scrapedContent = [pageContent, contactContent].filter(c => c.length > 50).join('\n\n---\n\n');
+                const content = scrapedContent.length >= 100 ? scrapedContent : (ownSite.snippet || '');
+
+                if (content.length >= 20) {
+                    const contactInfo = await extractContactInfo(content, dispensaryName, ownSite.url);
+                    email = contactInfo.email;
+                    phone = contactInfo.phone;
+                    contactFormUrl = contactInfo.contactFormUrl || (!contactInfo.email ? `${domain}/contact` : undefined);
+                }
+            }
+        } catch (err) {
+            logger.warn('[ContactResearch] Enrichment failed for NY lead', { dispensaryName, error: String(err) });
+        }
+
+        const lead: ResearchedLead = {
+            dispensaryName,
+            contactName: record.primary_contact_name,
+            email,
+            phone,
+            city,
+            state: 'NY',
+            address: record.address_line_1,
+            websiteUrl,
+            contactFormUrl,
+            licenseNumber,
+            licenseType: 'Adult-Use Retail',
+            source: 'ny-state-api',
+            researchedAt: Date.now(),
+            notes: email
+                ? `Email found: ${email} | License: ${licenseNumber}`
+                : `License: ${licenseNumber} | Contact: ${record.primary_contact_name || 'unknown'}`,
+        };
+
+        researchedLeads.push(lead);
+
+        // Rate limit between enrichment calls
+        await new Promise(resolve => setTimeout(resolve, 1500));
+    }
+
+    // Save to Firestore + sync Drive
+    if (researchedLeads.length > 0) {
+        await saveResearchedLeads(researchedLeads);
+        try {
+            await syncToDriverSpreadsheet();
+        } catch (err) {
+            logger.warn('[ContactResearch] Drive sync failed (non-fatal)', { error: String(err) });
+        }
+    }
+
+    const withEmail = researchedLeads.filter(l => l.email).length;
+    logger.info('[ContactResearch] NY API import complete', {
+        total: researchedLeads.length,
+        withEmail,
+        withForm: researchedLeads.filter(l => l.contactFormUrl).length,
+    });
+
+    return researchedLeads;
+}
+
 /**
  * Research new NY dispensary leads.
  * Searches for dispensaries, visits their websites, and extracts contact info.
