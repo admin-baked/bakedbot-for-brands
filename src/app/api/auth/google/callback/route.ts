@@ -16,6 +16,17 @@ interface OAuthState {
     profileSlug?: string; // only for exec_calendar
 }
 
+/**
+ * Build a redirect URL using the canonical public domain.
+ * Cloud Run exposes internally as 0.0.0.0:8080 — req.url cannot be used as base.
+ * Also handles the case where redirectPath already has query params (uses & not ?).
+ */
+function buildRedirectUrl(redirectPath: string, paramKey: string, paramValue: string): string {
+    const base = process.env.NEXT_PUBLIC_CANONICAL_URL || 'https://bakedbot.ai';
+    const separator = redirectPath.includes('?') ? '&' : '?';
+    return `${base}${redirectPath}${separator}${paramKey}=${paramValue}`;
+}
+
 export async function GET(req: NextRequest) {
     const searchParams = req.nextUrl.searchParams;
     const code = searchParams.get('code');
@@ -24,12 +35,12 @@ export async function GET(req: NextRequest) {
 
     if (error) {
         console.error('[Google OAuth] User denied access:', error);
-        return NextResponse.redirect(new URL('/dashboard/ceo?error=oauth_denied', req.url));
+        return NextResponse.redirect(buildRedirectUrl('/dashboard/ceo', 'error', 'oauth_denied'));
     }
 
     if (!code) {
         console.error('[Google OAuth] No authorization code received');
-        return NextResponse.redirect(new URL('/dashboard/ceo?error=no_code', req.url));
+        return NextResponse.redirect(buildRedirectUrl('/dashboard/ceo', 'error', 'no_code'));
     }
 
     // Parse state to get service and redirect (outside try so it's available in catch)
@@ -71,7 +82,7 @@ export async function GET(req: NextRequest) {
                     updatedAt: Timestamp.now(),
                 });
                 console.log(`[Google OAuth] Exec calendar connected for: ${execProfileSlug}`);
-                return NextResponse.redirect(new URL('/dashboard/ceo?tab=calendar&calendarSync=success', req.url));
+                return NextResponse.redirect(buildRedirectUrl('/dashboard/ceo?tab=calendar', 'calendarSync', 'success'));
             }
 
             case 'drive': {
@@ -101,13 +112,13 @@ export async function GET(req: NextRequest) {
             }
         }
 
-        return NextResponse.redirect(new URL(`${redirectPath}?success=${service}_connected`, req.url));
+        return NextResponse.redirect(buildRedirectUrl(redirectPath, 'success', `${service}_connected`));
 
     } catch (err: any) {
         console.error(`[Google OAuth] Callback Error for ${service}:`, err);
         const errorMessage = err.message?.includes('credentials')
             ? 'oauth_config_error'
             : 'oauth_failed';
-        return NextResponse.redirect(new URL(`${redirectPath}?error=${errorMessage}`, req.url));
+        return NextResponse.redirect(buildRedirectUrl(redirectPath, 'error', errorMessage));
     }
 }
