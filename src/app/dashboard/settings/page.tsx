@@ -29,6 +29,7 @@ import Link from 'next/link';
 import { useUserRole } from '@/hooks/use-user-role';
 import { useUser } from '@/firebase/auth/use-user';
 import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/firebase/client';
 import { logger } from '@/lib/logger';
@@ -37,6 +38,8 @@ import { PaymentsTab } from './components/payments-tab';
 export default function SettingsPage() {
   const { role, isBrandRole, isDispensaryRole, hasBrandAdminAccess, hasDispensaryAdminAccess, isSuperUser } = useUserRole();
   const { user } = useUser();
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'brand');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [planId, setPlanId] = useState<string | undefined>(undefined);
 
@@ -84,7 +87,7 @@ export default function SettingsPage() {
         )}
       </div>
 
-      <Tabs defaultValue="brand" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="bg-muted/50 p-1 border">
           <TabsTrigger value="brand">
             <Store className="mr-2 h-4 w-4" />
