@@ -71,7 +71,14 @@ export async function executeOutreach(
             if (!emailVerified) {
                 // Log bad email
                 const logRef = await db.collection(OUTREACH_COLLECTION).add({
-                    ...lead,
+                    dispensaryName: lead.dispensaryName,
+                    contactName: lead.contactName || null,
+                    email: lead.email,
+                    phone: (lead as any).phone || null,
+                    city: lead.city,
+                    state: lead.state,
+                    posSystem: (lead as any).posSystem || null,
+                    source: (lead as any).source || null,
                     templateId,
                     emailVerified: false,
                     verificationResult: verification.result,
@@ -175,7 +182,14 @@ export async function executeOutreach(
 
     // Step 4: Log result
     const logRef = await db.collection(OUTREACH_COLLECTION).add({
-        ...lead,
+        dispensaryName: lead.dispensaryName,
+        contactName: lead.contactName || null,
+        email: lead.email,
+        phone: (lead as any).phone || null,
+        city: lead.city,
+        state: lead.state,
+        posSystem: (lead as any).posSystem || null,
+        source: (lead as any).source || null,
         templateId,
         templateName: template.name,
         subject: template.subject,
