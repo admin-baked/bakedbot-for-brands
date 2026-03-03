@@ -22,7 +22,7 @@ import {
     type OutreachDraft,
     type OutreachLead,
 } from '@/server/services/ny-outreach/outreach-service';
-import { researchNewLeads } from '@/server/services/ny-outreach/contact-research';
+import { researchNewLeads, importNYLicensedLeads } from '@/server/services/ny-outreach/contact-research';
 import { generateOutreachEmails, type OutreachEmailData } from '@/server/services/ny-outreach/email-templates';
 import { verifyEmail } from '@/server/services/email-verification';
 import { sendGenericEmail } from '@/lib/email/dispatcher';
@@ -635,6 +635,32 @@ export async function triggerContactResearch(): Promise<{
         return { success: true, leadsFound: leads.length };
     } catch (err) {
         logger.error('[OutreachDashboard] Contact research failed', { error: String(err) });
+        return { success: false, error: String(err) };
+    }
+}
+
+/**
+ * Import leads from NY State official cannabis license database.
+ * 471 active adult-use retail dispensaries with contact names + addresses.
+ * Enriches each with targeted web search to find website/email.
+ *
+ * @param offset Pagination offset — pass multiples of 20 to import batches
+ */
+export async function triggerNYAPIImport(offset: number = 0): Promise<{
+    success: boolean;
+    leadsFound?: number;
+    withEmail?: number;
+    error?: string;
+}> {
+    try {
+        const user = await requireUser(['super_user']);
+        if (!user) return { success: false, error: 'Unauthorized' };
+
+        const leads = await importNYLicensedLeads(20, offset);
+        const withEmail = leads.filter(l => l.email).length;
+        return { success: true, leadsFound: leads.length, withEmail };
+    } catch (err) {
+        logger.error('[OutreachDashboard] NY API import failed', { error: String(err) });
         return { success: false, error: String(err) };
     }
 }
