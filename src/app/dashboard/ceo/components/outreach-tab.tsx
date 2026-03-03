@@ -579,7 +579,7 @@ export default function OutreachTab() {
             <div className="flex flex-wrap gap-3">
                 <Button
                     onClick={handleGenerateDrafts}
-                    disabled={!!actionLoading || remaining === 0}
+                    disabled={!!actionLoading}
                     className="bg-green-600 hover:bg-green-700"
                 >
                     {actionLoading === 'drafts' ? (
