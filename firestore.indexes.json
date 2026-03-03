@@ -1519,6 +1519,15 @@
                 { "fieldPath": "emailConsent", "order": "ASCENDING" },
                 { "fieldPath": "capturedAt", "order": "DESCENDING" }
             ]
+        },
+        {
+            "collectionGroup": "ny_dispensary_leads",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "status", "order": "ASCENDING" },
+                { "fieldPath": "outreachSent", "order": "ASCENDING" },
+                { "fieldPath": "createdAt", "order": "ASCENDING" }
+            ]
         }
     ],
     "fieldOverrides": []
