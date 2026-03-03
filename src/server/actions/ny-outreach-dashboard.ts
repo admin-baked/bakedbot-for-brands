@@ -22,7 +22,7 @@ import {
     type OutreachDraft,
     type OutreachLead,
 } from '@/server/services/ny-outreach/outreach-service';
-import { researchNewLeads, importNYLicensedLeads } from '@/server/services/ny-outreach/contact-research';
+import { researchNewLeads, importNYLicensedLeads, bulkImportAllNYLeads } from '@/server/services/ny-outreach/contact-research';
 import { generateOutreachEmails, type OutreachEmailData } from '@/server/services/ny-outreach/email-templates';
 import { verifyEmail } from '@/server/services/email-verification';
 import { sendGenericEmail } from '@/lib/email/dispatcher';
@@ -635,6 +635,142 @@ export async function triggerContactResearch(): Promise<{
         return { success: true, leadsFound: leads.length };
     } catch (err) {
         logger.error('[OutreachDashboard] Contact research failed', { error: String(err) });
+        return { success: false, error: String(err) };
+    }
+}
+
+/**
+ * Bulk import ALL active NY licensed dispensaries — fast, no enrichment.
+ * Saves all 471 official records in ~5s. Run "Enrich NY Leads" afterward
+ * to add websites/emails in batches.
+ */
+export async function triggerBulkNYImport(): Promise<{
+    success: boolean;
+    total?: number;
+    imported?: number;
+    skipped?: number;
+    error?: string;
+}> {
+    try {
+        const user = await requireUser(['super_user']);
+        if (!user) return { success: false, error: 'Unauthorized' };
+
+        const result = await bulkImportAllNYLeads();
+        return { success: true, ...result };
+    } catch (err) {
+        logger.error('[OutreachDashboard] Bulk NY import failed', { error: String(err) });
+        return { success: false, error: String(err) };
+    }
+}
+
+/**
+ * Enrich NY API leads (no email yet) with targeted web search to find website/email.
+ * Processes 20 un-enriched leads per call — call repeatedly to enrich all.
+ */
+export async function triggerNYLeadEnrichment(): Promise<{
+    success: boolean;
+    enriched?: number;
+    withEmail?: number;
+    error?: string;
+}> {
+    try {
+        const user = await requireUser(['super_user']);
+        if (!user) return { success: false, error: 'Unauthorized' };
+
+        const db = getAdminFirestore();
+
+        // Grab 20 un-enriched NY API leads
+        const snap = await db.collection('ny_dispensary_leads')
+            .where('source', '==', 'ny-state-api')
+            .where('enriched', '==', false)
+            .orderBy('createdAt', 'asc')
+            .limit(20)
+            .get();
+
+        if (snap.empty) {
+            return { success: true, enriched: 0, withEmail: 0 };
+        }
+
+        let enriched = 0;
+        let withEmail = 0;
+
+        for (const doc of snap.docs) {
+            const data = doc.data();
+            const dispensaryName = data.dispensaryName as string;
+            const city = (data.city as string) || 'New York';
+
+            let email: string | undefined;
+            let websiteUrl: string | undefined;
+            let contactFormUrl: string | undefined;
+            let phone: string | undefined;
+
+            try {
+                const { jinaSearch } = await import('@/server/tools/jina-tools');
+
+                const searchQuery = `"${dispensaryName}" ${city} NY cannabis dispensary contact email`;
+                const searchResults = await jinaSearch(searchQuery);
+
+                const skipDomains = ['leafly', 'weedmaps', 'yelp', 'google', 'facebook', 'instagram', 'twitter', 'reddit'];
+                const ownSite = searchResults.find(r => {
+                    try {
+                        const domain = new URL(r.url).hostname;
+                        return !skipDomains.some(d => domain.includes(d));
+                    } catch { return false; }
+                });
+
+                if (ownSite) {
+                    websiteUrl = ownSite.url;
+                    const domain = new URL(ownSite.url).origin;
+
+                    const { default: fetch } = await import('node-fetch').catch(() => ({ default: globalThis.fetch }));
+                    const [pc, cc] = await Promise.all([
+                        globalThis.fetch(`https://r.jina.ai/${ownSite.url}`, {
+                            headers: { Accept: 'text/plain' },
+                            signal: AbortSignal.timeout(10000),
+                        }).then(r => r.text()).catch(() => ''),
+                        globalThis.fetch(`https://r.jina.ai/${domain}/contact`, {
+                            headers: { Accept: 'text/plain' },
+                            signal: AbortSignal.timeout(10000),
+                        }).then(r => r.text()).catch(() => ''),
+                    ]);
+
+                    const content = [pc, cc].filter(c => c.length > 50).join('\n\n') || ownSite.snippet || '';
+
+                    if (content.length >= 20) {
+                        // Simple email regex extraction (avoid full Claude call in loop)
+                        const emailMatch = content.match(/\b[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}\b/i);
+                        if (emailMatch) email = emailMatch[0];
+                        const phoneMatch = content.match(/\(?\d{3}\)?[\s\-]\d{3}[\s\-]\d{4}/);
+                        if (phoneMatch) phone = phoneMatch[0];
+                        contactFormUrl = !email ? `${domain}/contact` : undefined;
+                    }
+                }
+            } catch (err) {
+                logger.warn('[OutreachDashboard] Enrichment failed', { dispensaryName, error: String(err) });
+            }
+
+            const updates: Record<string, unknown> = {
+                enriched: true,
+                updatedAt: Date.now(),
+                notes: email
+                    ? `Email found: ${email} | License: ${data.licenseNumber || ''}`
+                    : `No email found | License: ${data.licenseNumber || ''}`,
+            };
+            if (email) { updates.email = email; withEmail++; }
+            if (phone) updates.phone = phone;
+            if (websiteUrl) updates.websiteUrl = websiteUrl;
+            if (contactFormUrl) updates.contactFormUrl = contactFormUrl;
+
+            await doc.ref.update(updates);
+            enriched++;
+
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
+        logger.info('[OutreachDashboard] Enrichment batch complete', { enriched, withEmail });
+        return { success: true, enriched, withEmail };
+    } catch (err) {
+        logger.error('[OutreachDashboard] Enrichment failed', { error: String(err) });
         return { success: false, error: String(err) };
     }
 }

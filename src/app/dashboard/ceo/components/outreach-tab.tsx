@@ -33,7 +33,8 @@ import {
     rejectDraft,
     triggerTestBatch,
     triggerContactResearch,
-    triggerNYAPIImport,
+    triggerBulkNYImport,
+    triggerNYLeadEnrichment,
     checkGmailConnection,
 } from '@/server/actions/ny-outreach-dashboard';
 import type { OutreachDraft } from '@/server/services/ny-outreach/outreach-service';
@@ -456,21 +457,40 @@ export default function OutreachTab() {
         }
     };
 
-    const handleNYAPIImport = async () => {
-        setActionLoading('nyapi');
+    const handleBulkNYImport = async () => {
+        setActionLoading('nyapi-bulk');
         setActionResult(null);
         try {
-            // Use current queue depth as offset to avoid re-importing the same batch
-            const currentOffset = data?.queueDepth || 0;
-            const result = await triggerNYAPIImport(currentOffset);
+            const result = await triggerBulkNYImport();
             if (result.success) {
                 setActionResult({
                     type: 'success',
-                    message: `NY API import: ${result.leadsFound || 0} leads imported (${result.withEmail || 0} with email)`,
+                    message: `NY import: ${result.imported || 0} new leads saved (${result.skipped || 0} already existed). Now click "Enrich NY Leads" to find emails.`,
                 });
                 await loadData();
             } else {
-                setActionResult({ type: 'error', message: result.error || 'NY API import failed' });
+                setActionResult({ type: 'error', message: result.error || 'Bulk import failed' });
+            }
+        } catch (err) {
+            setActionResult({ type: 'error', message: String(err) });
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const handleNYLeadEnrichment = async () => {
+        setActionLoading('nyapi-enrich');
+        setActionResult(null);
+        try {
+            const result = await triggerNYLeadEnrichment();
+            if (result.success) {
+                const msg = result.enriched === 0
+                    ? 'All NY leads already enriched.'
+                    : `Enriched ${result.enriched} leads — ${result.withEmail || 0} emails found. Click again for next batch.`;
+                setActionResult({ type: 'success', message: msg });
+                await loadData();
+            } else {
+                setActionResult({ type: 'error', message: result.error || 'Enrichment failed' });
             }
         } catch (err) {
             setActionResult({ type: 'error', message: String(err) });
@@ -642,16 +662,30 @@ export default function OutreachTab() {
 
                 <Button
                     variant="outline"
-                    onClick={handleNYAPIImport}
+                    onClick={handleBulkNYImport}
                     disabled={!!actionLoading}
                     className="border-blue-300 text-blue-700 hover:bg-blue-50"
                 >
-                    {actionLoading === 'nyapi' ? (
+                    {actionLoading === 'nyapi-bulk' ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     ) : (
                         <Play className="h-4 w-4 mr-2" />
                     )}
-                    Import NY Licensed (471)
+                    Import All NY Licensed
+                </Button>
+
+                <Button
+                    variant="outline"
+                    onClick={handleNYLeadEnrichment}
+                    disabled={!!actionLoading}
+                    className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                >
+                    {actionLoading === 'nyapi-enrich' ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                        <Search className="h-4 w-4 mr-2" />
+                    )}
+                    Enrich NY Leads (20/batch)
                 </Button>
             </div>
 
