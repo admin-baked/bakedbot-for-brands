@@ -9,7 +9,8 @@
  * and enhanced cards. Preserves role-based views and AgentChat integration.
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useUserRole } from '@/hooks/use-user-role';
 import { useToast } from '@/hooks/use-toast';
 import { ActivityFeed } from './components/activity-feed';
@@ -29,6 +30,7 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 
 export default function PlaybooksPage() {
+    const router = useRouter();
     const { role, user } = useUserRole();
     const { toast } = useToast();
     const [searchQuery, setSearchQuery] = useState('');
@@ -39,6 +41,14 @@ export default function PlaybooksPage() {
     );
     const [customPlaybooks, setCustomPlaybooks] = useState<Playbook[]>([]);
     const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
+
+    // Super users have their own playbooks workspace in the CEO dashboard.
+    // IMPORTANT: hook must be called before any early returns — redirect happens in effect.
+    useEffect(() => {
+        if (role === 'super_user' || role === 'super_admin') {
+            router.replace('/dashboard/ceo?tab=playbooks');
+        }
+    }, [role, router]);
 
     // IMPORTANT: All hooks must be called before any early returns
     // Filter playbooks by search and category
@@ -228,6 +238,18 @@ export default function PlaybooksPage() {
     if (isBrandRole) {
         const brandId = (user as any)?.brandId || (user as any)?.orgId || (user as any)?.currentOrgId || user?.uid;
         return <BrandPlaybooksView brandId={brandId} />;
+    }
+
+    // Super users are redirected in useEffect above — show spinner while navigating
+    if (role === 'super_user' || role === 'super_admin') {
+        return (
+            <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
+                <div className="text-center">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
+                    <p className="text-muted-foreground">Redirecting to CEO workspace…</p>
+                </div>
+            </div>
+        );
     }
 
     // Super user / other roles see the full playbooks UI
