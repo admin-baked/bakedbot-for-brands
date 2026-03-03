@@ -158,11 +158,11 @@ env:
       - RUNTIME
   # Google OAuth
   - variable: GOOGLE_CLIENT_ID
-    secret: GOOGLE_CLIENT_ID@1
+    secret: GOOGLE_CLIENT_ID@2
     availability:
       - RUNTIME
   - variable: GOOGLE_CLIENT_SECRET
-    secret: GOOGLE_CLIENT_SECRET@1
+    secret: GOOGLE_CLIENT_SECRET@2
     availability:
       - RUNTIME
   # SMS
