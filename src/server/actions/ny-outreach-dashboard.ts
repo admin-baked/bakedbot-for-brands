@@ -802,6 +802,155 @@ export async function triggerNYAPIImport(offset: number = 0): Promise<{
 }
 
 // =============================================================================
+// CRM View — NY Outreach Leads
+// =============================================================================
+
+export interface NYOutreachCRMLead {
+    id: string;
+    dispensaryName: string;
+    contactName: string | null;
+    email: string | null;
+    phone: string | null;
+    city: string;
+    address: string | null;
+    websiteUrl: string | null;
+    licenseNumber: string | null;
+    status: string;          // researched | draft_generated | contacted | responded | not_interested
+    outreachSent: boolean;
+    enriched: boolean;
+    notes: string | null;
+    createdAt: number;
+    updatedAt: number;
+}
+
+/**
+ * Fetch NY outreach leads for the CRM view.
+ * @param filter 'all' | 'has_email' | 'contacted' | 'no_email' | 'responded'
+ */
+export async function getNYOutreachForCRM(filter: string = 'all', search: string = ''): Promise<{
+    success: boolean;
+    leads?: NYOutreachCRMLead[];
+    total?: number;
+    error?: string;
+}> {
+    try {
+        const user = await requireUser(['super_user']);
+        if (!user) return { success: false, error: 'Unauthorized' };
+
+        const db = getAdminFirestore();
+        let query: FirebaseFirestore.Query = db.collection('ny_dispensary_leads')
+            .orderBy('createdAt', 'desc');
+
+        if (filter === 'has_email') {
+            query = db.collection('ny_dispensary_leads')
+                .where('email', '!=', null)
+                .orderBy('email')
+                .orderBy('createdAt', 'desc');
+        } else if (filter === 'contacted') {
+            query = db.collection('ny_dispensary_leads')
+                .where('outreachSent', '==', true)
+                .orderBy('createdAt', 'desc');
+        } else if (filter === 'no_email') {
+            query = db.collection('ny_dispensary_leads')
+                .where('enriched', '==', true)
+                .where('email', '==', null)
+                .orderBy('createdAt', 'desc');
+        } else if (filter === 'responded') {
+            query = db.collection('ny_dispensary_leads')
+                .where('status', '==', 'responded')
+                .orderBy('createdAt', 'desc');
+        }
+
+        const snap = await query.limit(500).get();
+
+        let leads: NYOutreachCRMLead[] = snap.docs.map(doc => {
+            const d = doc.data();
+            return {
+                id: doc.id,
+                dispensaryName: d.dispensaryName || 'Unknown',
+                contactName: d.contactName || null,
+                email: d.email || null,
+                phone: d.phone || null,
+                city: d.city || 'NY',
+                address: d.address || null,
+                websiteUrl: d.websiteUrl || null,
+                licenseNumber: d.licenseNumber || null,
+                status: d.status || 'researched',
+                outreachSent: !!d.outreachSent,
+                enriched: !!d.enriched,
+                notes: d.notes || null,
+                createdAt: d.createdAt || 0,
+                updatedAt: d.updatedAt || 0,
+            };
+        });
+
+        // Client-side search filter
+        if (search) {
+            const q = search.toLowerCase();
+            leads = leads.filter(l =>
+                l.dispensaryName.toLowerCase().includes(q) ||
+                (l.contactName?.toLowerCase().includes(q)) ||
+                (l.city?.toLowerCase().includes(q)) ||
+                (l.email?.toLowerCase().includes(q))
+            );
+        }
+
+        return { success: true, leads, total: leads.length };
+    } catch (err) {
+        logger.error('[OutreachCRM] Failed to load leads', { error: String(err) });
+        return { success: false, error: String(err) };
+    }
+}
+
+/**
+ * Add a team note to a NY outreach lead.
+ */
+export async function addNYLeadNote(leadId: string, note: string): Promise<{ success: boolean; error?: string }> {
+    try {
+        const user = await requireUser(['super_user']);
+        if (!user) return { success: false, error: 'Unauthorized' };
+
+        const db = getAdminFirestore();
+        const ref = db.collection('ny_dispensary_leads').doc(leadId);
+        const doc = await ref.get();
+        if (!doc.exists) return { success: false, error: 'Lead not found' };
+
+        const existing = doc.data()?.notes || '';
+        const timestamp = new Date().toLocaleDateString();
+        const newNote = existing ? `${existing}\n[${timestamp}] ${note}` : `[${timestamp}] ${note}`;
+
+        await ref.update({ notes: newNote, updatedAt: Date.now() });
+        return { success: true };
+    } catch (err) {
+        logger.error('[OutreachCRM] Add note failed', { leadId, error: String(err) });
+        return { success: false, error: String(err) };
+    }
+}
+
+/**
+ * Update the status of a NY outreach lead (team tracking).
+ */
+export async function markNYLeadStatus(
+    leadId: string,
+    status: 'responded' | 'not_interested' | 'researched'
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const user = await requireUser(['super_user']);
+        if (!user) return { success: false, error: 'Unauthorized' };
+
+        const db = getAdminFirestore();
+        await db.collection('ny_dispensary_leads').doc(leadId).update({
+            status,
+            updatedAt: Date.now(),
+        });
+        return { success: true };
+    } catch (err) {
+        logger.error('[OutreachCRM] Mark status failed', { leadId, error: String(err) });
+        return { success: false, error: String(err) };
+    }
+}
+
+// =============================================================================
 // Gmail Connection Check
 // =============================================================================
 
