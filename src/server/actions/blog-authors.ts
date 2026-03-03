@@ -8,7 +8,7 @@
 'use server';
 
 import { createServerClient } from '@/firebase/server-client';
-import { requireUser } from '@/lib/auth-helpers';
+import { requireUser } from '@/server/auth/auth';
 import { logger } from '@/lib/logger';
 import type { BlogAuthorProfile } from '@/types/blog';
 import { Timestamp } from '@google-cloud/firestore';

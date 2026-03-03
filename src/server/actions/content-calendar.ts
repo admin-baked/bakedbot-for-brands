@@ -9,7 +9,7 @@
 
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
-import { requireUser } from '@/lib/auth-helpers';
+import { requireUser } from '@/server/auth/auth';
 import type { BlogPost, BlogCategory, BlogStatus } from '@/types/blog';
 import { CONTENT_SERIES, type ContentSeries } from '@/server/services/content-engine/templates';
 
