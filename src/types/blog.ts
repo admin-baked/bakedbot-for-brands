@@ -84,7 +84,7 @@ export interface BlogPost {
   seriesId?: string;            // group related posts (e.g., "NY Cannabis Guide")
   seriesOrder?: number;         // ordering within series
   dataSnapshot?: Record<string, unknown>;  // frozen data used to generate the post
-  generatedBy?: 'manual' | 'craig' | 'programmatic_cron';
+  generatedBy?: 'manual' | 'craig' | 'programmatic_cron' | 'research_pipeline';
   templateId?: string;          // which content template generated it
   internalLinks?: string[];     // postIds this article links to
   comparisonData?: BlogComparisonData;  // structured comparison data (for contentType: 'comparison')
@@ -333,7 +333,7 @@ export interface CreateBlogPostInput {
   seriesId?: string;
   seriesOrder?: number;
   dataSnapshot?: Record<string, unknown>;
-  generatedBy?: 'manual' | 'craig' | 'programmatic_cron';
+  generatedBy?: 'manual' | 'craig' | 'programmatic_cron' | 'research_pipeline';
   templateId?: string;
   comparisonData?: BlogComparisonData;
 }

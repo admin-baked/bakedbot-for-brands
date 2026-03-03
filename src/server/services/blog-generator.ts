@@ -336,6 +336,78 @@ function parseBlogResponse(response: string): BlogGeneratorOutput {
 }
 
 /**
+ * Generate a blog post draft using AI with Jina research context injected
+ * Same as generateBlogDraft but prepends real research findings to ground the writing
+ */
+export async function generateBlogDraftWithResearch(
+    input: BlogGeneratorInput,
+    researchContext: string
+): Promise<BlogGeneratorOutput> {
+    try {
+        const firestore = getAdminFirestore();
+        const isPlatform = input.orgId === PLATFORM_ORG_ID;
+
+        let brandGuide: BrandGuide | null = null;
+        let brandName = 'our brand';
+
+        if (isPlatform) {
+            brandName = 'BakedBot AI';
+        } else {
+            const brandGuideDoc = await firestore
+                .collection('brandGuides')
+                .doc(input.orgId)
+                .get();
+            brandGuide = brandGuideDoc.exists ? (brandGuideDoc.data() as BrandGuide) : null;
+
+            const tenantDoc = await firestore
+                .collection('tenants')
+                .doc(input.orgId)
+                .get();
+            const tenant = tenantDoc.exists ? tenantDoc.data() : null;
+            brandName = tenant?.name || 'our brand';
+        }
+
+        // Build base prompt (same as generateBlogDraft)
+        const basePrompt = isPlatform
+            ? buildPlatformBlogPrompt(input)
+            : buildBlogPrompt(input, brandGuide, brandName);
+
+        // Prepend research context to ground the AI in real data
+        const prompt = `== RESEARCH CONTEXT (use as factual grounding — do NOT copy verbatim, synthesize into original writing) ==
+${researchContext}
+
+== YOUR TASK ==
+${basePrompt}`;
+
+        logger.info('[BlogGenerator] Generating research-enriched blog post', {
+            orgId: input.orgId,
+            topic: input.topic,
+            category: input.category,
+            researchLength: researchContext.length,
+        });
+
+        const response = await callClaude({
+            userMessage: prompt,
+            temperature: 0.7,
+            maxTokens: 4000,
+        });
+
+        const parsed = parseBlogResponse(response);
+
+        logger.info('[BlogGenerator] Research-enriched blog post generated', {
+            orgId: input.orgId,
+            titleLength: parsed.title.length,
+            contentLength: parsed.content.length,
+        });
+
+        return parsed;
+    } catch (error) {
+        logger.error('[BlogGenerator] Error generating research-enriched blog post', { error, input });
+        throw new Error('Failed to generate research-enriched blog post');
+    }
+}
+
+/**
  * Generate SEO-optimized title from content title
  */
 export async function optimizeTitleForSEO(
