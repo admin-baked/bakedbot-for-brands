@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-03-03)
 
 **Recent work (2026-03-03):** See `memory/MEMORY.md` for full log.
-Key completed: [115 unit/integration tests — API v1, resilient-fetch, api-key-auth, delegation-tools] (`ed984f26`), [Blog auth + sidebar fixes] (`c43936c8`)
+Key completed: [Outreach Research + Generate Drafts fixes] (`2debb31c`), [Google OAuth secret version fix @1→@2] (`f5a20fb3`)
 
 ---
 
