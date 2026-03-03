@@ -1,11 +1,17 @@
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { useState, useEffect, type ComponentType } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
-import { Search, Play, Clock, Pencil, Settings2 } from 'lucide-react';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Search, Play, Clock, MoreHorizontal, LineChart, FileText, ShieldAlert, BarChart3, Zap, Brain, Mail, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { listBrandPlaybooks, togglePlaybookStatus, runPlaybookTest, updatePlaybook } from '@/server/actions/playbooks';
 import type { Playbook, PlaybookTrigger } from '@/types/playbook';
@@ -18,6 +24,29 @@ import {
 import { PlaybookEditor } from '../../playbooks/components/playbook-editor';
 import { PlaybookEditSheet } from '../../playbooks/components/playbook-edit-sheet';
 import type { DeliveryConfig } from '../../playbooks/components/playbook-edit-sheet';
+
+// ── Category → visual config (PlaybookCardModern palette) ────────────────────
+
+const CATEGORY_DISPLAY: Record<string, {
+    icon: ComponentType<{ className?: string }>;
+    iconBg: string;
+    badgeBg: string;
+    badgeText: string;
+    label: string;
+}> = {
+    outreach:   { icon: Mail,        iconBg: 'bg-yellow-600', badgeBg: 'bg-yellow-900/50', badgeText: 'text-yellow-300', label: 'OUTREACH'   },
+    marketing:  { icon: Mail,        iconBg: 'bg-blue-600',   badgeBg: 'bg-blue-900/50',   badgeText: 'text-blue-300',   label: 'MARKETING'  },
+    intel:      { icon: LineChart,   iconBg: 'bg-purple-600', badgeBg: 'bg-purple-900/50', badgeText: 'text-purple-300', label: 'INTEL'      },
+    pricing:    { icon: BarChart3,   iconBg: 'bg-green-600',  badgeBg: 'bg-green-900/50',  badgeText: 'text-green-300',  label: 'PRICING'    },
+    compliance: { icon: ShieldAlert, iconBg: 'bg-red-600',    badgeBg: 'bg-red-900/50',    badgeText: 'text-red-300',    label: 'COMPLIANCE' },
+    reporting:  { icon: Brain,       iconBg: 'bg-cyan-600',   badgeBg: 'bg-cyan-900/50',   badgeText: 'text-cyan-300',   label: 'REPORTING'  },
+    content:    { icon: FileText,    iconBg: 'bg-blue-600',   badgeBg: 'bg-blue-900/50',   badgeText: 'text-blue-300',   label: 'CONTENT'    },
+    automation: { icon: Zap,         iconBg: 'bg-yellow-600', badgeBg: 'bg-yellow-900/50', badgeText: 'text-yellow-300', label: 'AUTOMATION' },
+};
+
+const DEFAULT_DISPLAY = { icon: Settings, iconBg: 'bg-slate-600', badgeBg: 'bg-slate-900/50', badgeText: 'text-slate-300', label: 'CUSTOM' };
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export function BrandPlaybooksList({ brandId }: { brandId: string }) {
     const { toast } = useToast();
@@ -181,47 +210,83 @@ export function BrandPlaybooksList({ brandId }: { brandId: string }) {
 
             {/* Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filtered.map(pb => (
-                    <Card key={pb.id} className="hover:bg-muted/30 transition-colors">
-                        <CardHeader className="pb-3">
-                            <div className="flex items-start justify-between">
-                                <div className="space-y-1">
-                                    <div className="flex items-center gap-2">
-                                        <CardTitle className="text-base">{pb.name}</CardTitle>
-                                        {pb.status !== 'active' && <Badge variant="outline" className="text-[10px] capitalize">{pb.status}</Badge>}
-                                        {pb.status === 'active' && <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" title="Live Monitoring Active" />}
+                {filtered.map(pb => {
+                    const display = CATEGORY_DISPLAY[pb.category ?? ''] ?? DEFAULT_DISPLAY;
+                    const Icon = display.icon;
+                    const scheduleLabel = (() => {
+                        const cron = (pb.triggers as any[])?.find((t: any) => t?.type === 'schedule')?.cron;
+                        if (!cron) return (pb.triggers as any[])?.[0]?.type === 'event' ? 'Event-driven' : 'Manual';
+                        const parts = String(cron).trim().split(/\s+/);
+                        if (parts.length === 5) {
+                            const [, , dom, , dow] = parts;
+                            if (dom === '*' && dow === '*') return 'Runs daily';
+                            if (dow !== '*') return 'Runs weekly';
+                            if (dom !== '*') return 'Runs monthly';
+                        }
+                        return 'Scheduled';
+                    })();
+                    return (
+                        <Card key={pb.id} className="glass-card glass-card-hover rounded-xl p-5 flex flex-col justify-between transition-all duration-200">
+                            {/* Top row */}
+                            <div className="flex justify-between items-start">
+                                <div className="flex gap-4 min-w-0">
+                                    <div className={`p-3 rounded-lg h-min shrink-0 ${display.iconBg}`}>
+                                        <Icon className="w-6 h-6 text-white" />
                                     </div>
-                                    <CardDescription className="text-xs line-clamp-2">{pb.description}</CardDescription>
+                                    <div className="min-w-0">
+                                        <h3 className="text-base font-semibold text-foreground line-clamp-1">{pb.name}</h3>
+                                        <p className="text-muted-foreground text-sm mt-1 line-clamp-2">{pb.description}</p>
+                                    </div>
                                 </div>
-                                <Switch
-                                    checked={pb.status === 'active'}
-                                    onCheckedChange={() => togglePlaybook(pb.id, pb.status === 'active')}
-                                />
+                                {/* Controls */}
+                                <div className="flex items-center gap-3 ml-2 shrink-0" onClick={e => e.stopPropagation()}>
+                                    <Switch
+                                        checked={pb.status === 'active'}
+                                        onCheckedChange={() => togglePlaybook(pb.id, pb.status === 'active')}
+                                        aria-label={`Toggle ${pb.name}`}
+                                    />
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger className="text-muted-foreground hover:text-foreground transition-colors">
+                                            <MoreHorizontal className="w-5 h-5" />
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem onClick={() => setConfiguringPlaybook(pb)}>
+                                                Configure
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => setEditingPlaybook(pb)}>
+                                                Edit Steps
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => runPlaybook(pb.id, pb.name)}>
+                                                <Play className="h-3.5 w-3.5 mr-2" />
+                                                Run Test
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
                             </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex items-center justify-between text-sm">
-                                <div className="flex items-center gap-2">
+                            {/* Footer */}
+                            <div className="flex items-center justify-between mt-5 gap-2 flex-wrap">
+                                <div className="flex items-center gap-3">
+                                    <Switch
+                                        checked={pb.status === 'active'}
+                                        onCheckedChange={() => togglePlaybook(pb.id, pb.status === 'active')}
+                                        className="scale-90"
+                                    />
+                                    <span className="text-sm font-medium text-foreground">{scheduleLabel}</span>
                                     {(pb.runCount || 0) > 0 && (
-                                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
                                             <Clock className="h-3 w-3" />
                                             {pb.runCount} runs
                                         </span>
                                     )}
-                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 hover:bg-green-50 hover:text-green-600" onClick={() => runPlaybook(pb.id, pb.name)}>
-                                        <Play className="h-3 w-3" />
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 hover:bg-blue-50 hover:text-blue-600" onClick={() => setEditingPlaybook(pb)} title="Edit steps">
-                                        <Pencil className="h-3 w-3" />
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 hover:bg-violet-50 hover:text-violet-600" onClick={() => setConfiguringPlaybook(pb)} title="Configure trigger and delivery">
-                                        <Settings2 className="h-3 w-3" />
-                                    </Button>
                                 </div>
+                                <span className={`text-xs font-bold px-2 py-1 rounded-md uppercase ${display.badgeBg} ${display.badgeText}`}>
+                                    {display.label}
+                                </span>
                             </div>
-                        </CardContent>
-                    </Card>
-                ))}
+                        </Card>
+                    );
+                })}
             </div>
 
             {/* Edit Playbook Dialog (full step editor) */}

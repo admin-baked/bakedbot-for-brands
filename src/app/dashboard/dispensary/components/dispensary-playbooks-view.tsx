@@ -13,12 +13,18 @@ import { motion } from 'framer-motion';
 import {
     Zap, Mail, MessageSquare, BarChart3, Shield, TrendingUp,
     Users, ShoppingBag, Loader2, CheckCircle2, Clock,
-    ChevronRight, Sparkles, Bell, Settings2, Plus, Pencil, Trash2,
+    ChevronRight, Sparkles, Bell, Settings2, Plus, Pencil, Trash2, MoreHorizontal,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -103,6 +109,22 @@ const TIER_LABELS: Record<string, string> = {
     empire: 'Empire',
 };
 
+// ── PlaybookCardModern-style display per agent ────────────────────────────────
+
+const AGENT_DISPLAY: Record<PlaybookAgent, {
+    iconBg: string;
+    badgeBg: string;
+    badgeText: string;
+    label: string;
+}> = {
+    craig:    { iconBg: 'bg-blue-600',   badgeBg: 'bg-blue-900/50',   badgeText: 'text-blue-300',   label: 'MARKETING'  },
+    smokey:   { iconBg: 'bg-green-600',  badgeBg: 'bg-green-900/50',  badgeText: 'text-green-300',  label: 'MENU'       },
+    ezal:     { iconBg: 'bg-purple-600', badgeBg: 'bg-purple-900/50', badgeText: 'text-purple-300', label: 'INTEL'      },
+    deebo:    { iconBg: 'bg-orange-600', badgeBg: 'bg-orange-900/50', badgeText: 'text-orange-300', label: 'COMPLIANCE' },
+    big_worm: { iconBg: 'bg-cyan-600',   badgeBg: 'bg-cyan-900/50',   badgeText: 'text-cyan-300',   label: 'ANALYTICS'  },
+    system:   { iconBg: 'bg-slate-600',  badgeBg: 'bg-slate-900/50',  badgeText: 'text-slate-300',  label: 'SYSTEM'     },
+};
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function getTriggerLabel(playbook: PlaybookDefinition): string {
@@ -161,76 +183,72 @@ interface PlaybookCardProps {
 
 function PlaybookCard({ playbook, isActive, onToggle, isToggling, onConfigure, customScheduleLabel }: PlaybookCardProps) {
     const agent = AGENT_CONFIG[playbook.agent];
+    const display = AGENT_DISPLAY[playbook.agent];
     const AgentIcon = agent.icon;
     const triggerLabel = customScheduleLabel ?? getTriggerLabel(playbook);
-    const channels = getChannelIcons(playbook);
 
     return (
         <Card className={cn(
-            'group transition-all duration-200 hover:shadow-md border',
-            isActive
-                ? 'border-primary/30 bg-primary/5'
-                : 'border-border bg-card hover:border-muted-foreground/30'
+            'glass-card glass-card-hover rounded-xl p-5 flex flex-col justify-between transition-all duration-200',
+            !isActive && 'opacity-60',
         )}>
-            <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-3">
-                    {/* Left: Icon + Info */}
-                    <div className="flex items-start gap-3 flex-1 min-w-0">
-                        <div className={cn(
-                            'w-9 h-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5',
-                            agent.bg
-                        )}>
-                            <AgentIcon className={cn('h-4 w-4', agent.color)} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                                <p className="text-sm font-semibold leading-tight">{playbook.name}</p>
-                                {isActive && (
-                                    <Badge variant="default" className="text-xs h-4 px-1.5 bg-green-500 hover:bg-green-500">
-                                        Active
-                                    </Badge>
-                                )}
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                                {playbook.description}
-                            </p>
-                            {/* Metadata row */}
-                            <div className="flex items-center gap-3 mt-2 flex-wrap">
-                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                    <Clock className="h-3 w-3" />
-                                    {triggerLabel}
-                                </span>
-                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                    {channels.map((ch, i) => (
-                                        <ch.icon key={i} className="h-3 w-3" />
-                                    ))}
-                                    {channels.map((ch) => ch.label).join(', ')}
-                                </span>
-                            </div>
-                        </div>
+            {/* Top row */}
+            <div className="flex justify-between items-start">
+                <div className="flex gap-4 min-w-0">
+                    <div className={cn('p-3 rounded-lg h-min shrink-0', display.iconBg)}>
+                        <AgentIcon className="w-6 h-6 text-white" />
                     </div>
-
-                    {/* Right: Configure + Toggle */}
-                    <div className="flex items-center gap-2 shrink-0">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => { e.stopPropagation(); onConfigure(playbook); }}
-                            title="Configure trigger and delivery"
-                        >
-                            <Settings2 className="h-3.5 w-3.5" />
-                        </Button>
-                        {isToggling && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
-                        <Switch
-                            checked={isActive}
-                            onCheckedChange={(checked) => onToggle(playbook.id, checked)}
-                            disabled={isToggling}
-                            className="data-[state=checked]:bg-green-500"
-                        />
+                    <div className="min-w-0">
+                        <h3 className="text-base font-semibold text-foreground line-clamp-1">
+                            {playbook.name}
+                        </h3>
+                        <p className="text-muted-foreground text-sm mt-1 line-clamp-2">
+                            {playbook.description}
+                        </p>
                     </div>
                 </div>
-            </CardContent>
+
+                {/* Controls */}
+                <div className="flex items-center gap-3 ml-2 shrink-0" onClick={e => e.stopPropagation()}>
+                    {isToggling && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+                    <Switch
+                        checked={isActive}
+                        onCheckedChange={(checked) => onToggle(playbook.id, checked)}
+                        disabled={isToggling}
+                        aria-label={`Toggle ${playbook.name}`}
+                    />
+                    <DropdownMenu>
+                        <DropdownMenuTrigger className="text-muted-foreground hover:text-foreground transition-colors">
+                            <MoreHorizontal className="w-5 h-5" />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => onConfigure(playbook)}>
+                                Configure
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-between mt-5 gap-2 flex-wrap">
+                <div className="flex items-center gap-3">
+                    <Switch
+                        checked={isActive}
+                        onCheckedChange={(checked) => onToggle(playbook.id, checked)}
+                        disabled={isToggling}
+                        className="scale-90"
+                    />
+                    <span className="text-sm font-medium text-foreground">{triggerLabel}</span>
+                </div>
+                <span className={cn(
+                    'text-xs font-bold px-2 py-1 rounded-md uppercase',
+                    display.badgeBg,
+                    display.badgeText,
+                )}>
+                    {display.label}
+                </span>
+            </div>
         </Card>
     );
 }
@@ -670,70 +688,70 @@ export function DispensaryPlaybooksView({ orgId }: DispensaryPlaybooksViewProps)
                                 <Card
                                     key={pb.id}
                                     className={cn(
-                                        'group transition-all duration-200 hover:shadow-md border',
-                                        pb.status === 'active'
-                                            ? 'border-primary/30 bg-primary/5'
-                                            : 'border-border bg-card hover:border-muted-foreground/30'
+                                        'glass-card glass-card-hover rounded-xl p-5 flex flex-col justify-between transition-all duration-200',
+                                        pb.status !== 'active' && 'opacity-60',
                                     )}
                                 >
-                                    <CardContent className="p-4">
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div className="flex-1 min-w-0">
+                                    {/* Top row */}
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex gap-4 min-w-0">
+                                            <div className="p-3 rounded-lg h-min shrink-0 bg-slate-600">
+                                                <Settings2 className="w-6 h-6 text-white" />
+                                            </div>
+                                            <div className="min-w-0">
                                                 <div className="flex items-center gap-2 flex-wrap">
-                                                    <p className="text-sm font-semibold leading-tight">{pb.name}</p>
-                                                    {pb.status === 'active' && (
-                                                        <Badge variant="default" className="text-xs h-4 px-1.5 bg-green-500 hover:bg-green-500">
-                                                            Active
-                                                        </Badge>
-                                                    )}
-                                                    <Badge variant="outline" className="text-xs h-4 px-1.5">
-                                                        Custom
-                                                    </Badge>
+                                                    <h3 className="text-base font-semibold text-foreground line-clamp-1">{pb.name}</h3>
+                                                    <Badge variant="outline" className="text-[10px] bg-pink-50 text-pink-700 border-pink-200 shrink-0">Custom</Badge>
                                                 </div>
                                                 {pb.description && (
-                                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                                                        {pb.description}
-                                                    </p>
+                                                    <p className="text-muted-foreground text-sm mt-1 line-clamp-2">{pb.description}</p>
                                                 )}
-                                                <div className="flex items-center gap-3 mt-2">
-                                                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                                        <Clock className="h-3 w-3" />
-                                                        {pb.triggers?.[0]?.type === 'schedule'
-                                                            ? 'Scheduled'
-                                                            : 'Manual'}
-                                                    </span>
-                                                    <span className="text-xs text-muted-foreground">
-                                                        {pb.agent}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-1 shrink-0">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={() => { setEditingCustomPlaybook(pb); setEditorOpen(true); }}
-                                                    title="Edit"
-                                                >
-                                                    <Pencil className="h-3.5 w-3.5" />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
-                                                    onClick={() => handleDeleteCustomPlaybook(pb)}
-                                                    title="Delete"
-                                                >
-                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                </Button>
-                                                <Switch
-                                                    checked={pb.status === 'active'}
-                                                    onCheckedChange={(checked) => handleToggleCustomPlaybook(pb, checked)}
-                                                    className="data-[state=checked]:bg-green-500"
-                                                />
                                             </div>
                                         </div>
-                                    </CardContent>
+                                        {/* Controls */}
+                                        <div className="flex items-center gap-3 ml-2 shrink-0" onClick={e => e.stopPropagation()}>
+                                            <Switch
+                                                checked={pb.status === 'active'}
+                                                onCheckedChange={(checked) => handleToggleCustomPlaybook(pb, checked)}
+                                                aria-label={`Toggle ${pb.name}`}
+                                            />
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger className="text-muted-foreground hover:text-foreground transition-colors">
+                                                    <MoreHorizontal className="w-5 h-5" />
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem onClick={() => { setEditingCustomPlaybook(pb); setEditorOpen(true); }}>
+                                                        Edit
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        onClick={() => handleDeleteCustomPlaybook(pb)}
+                                                        className="text-destructive focus:text-destructive"
+                                                    >
+                                                        Delete
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
+                                    </div>
+                                    {/* Footer */}
+                                    <div className="flex items-center justify-between mt-5 gap-2 flex-wrap">
+                                        <div className="flex items-center gap-3">
+                                            <Switch
+                                                checked={pb.status === 'active'}
+                                                onCheckedChange={(checked) => handleToggleCustomPlaybook(pb, checked)}
+                                                className="scale-90"
+                                            />
+                                            <span className="text-sm font-medium text-foreground">
+                                                {pb.triggers?.[0]?.type === 'schedule' ? 'Scheduled' : 'Manual'}
+                                            </span>
+                                            {pb.agent && (
+                                                <span className="text-xs text-muted-foreground">{pb.agent}</span>
+                                            )}
+                                        </div>
+                                        <span className="text-xs font-bold px-2 py-1 rounded-md uppercase bg-slate-900/50 text-slate-300">
+                                            CUSTOM
+                                        </span>
+                                    </div>
                                 </Card>
                             ))}
                         </div>
