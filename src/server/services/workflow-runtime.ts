@@ -275,11 +275,21 @@ interface WorkflowContext {
 // Main Executor
 // ---------------------------------------------------------------------------
 
-/** Execute a workflow by ID (looks up from registry) */
+/** Execute a workflow by ID (looks up from registry or version registry) */
 export async function executeWorkflow(
     workflowId: string,
     options: ExecuteWorkflowOptions,
 ): Promise<WorkflowExecution> {
+    // If a specific version is requested, load from version registry
+    if (options.version !== undefined) {
+        const { getVersion } = await import('./workflow-version-registry');
+        const versioned = getVersion(workflowId, options.version);
+        if (!versioned) {
+            throw new Error(`Workflow version not found: ${workflowId} v${options.version}`);
+        }
+        return executeWorkflowDefinition(versioned.definition, options);
+    }
+
     const definition = getWorkflow(workflowId);
     if (!definition) {
         throw new Error(`Workflow not found in registry: ${workflowId}`);
