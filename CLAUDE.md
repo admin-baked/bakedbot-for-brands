@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-03-03 (GitHub Actions deploy pipeline replacing broken Firebase webhook; Developer Connect IAM fix)
+**Current Status:** 🟢 Passing | **Last update:** 2026-03-03 (Playbook design unification across all roles; super user dashboard routing reconciliation)
 
 ---
 
