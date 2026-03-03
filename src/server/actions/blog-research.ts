@@ -20,7 +20,7 @@ import { generateBlogDraftWithResearch } from '@/server/services/blog-generator'
 import { createBlogPostInternal } from '@/server/actions/blog';
 import { generateFromTemplate } from '@/server/services/content-engine/generator';
 import { logger } from '@/lib/logger';
-import type { BlogCategory, BlogContentType, BlogPost } from '@/types/blog';
+import type { BlogCategory, BlogContentType } from '@/types/blog';
 
 const PLATFORM_ORG_ID = 'org_bakedbot_platform';
 
@@ -243,7 +243,7 @@ export async function researchAndGenerateBlog(input: {
     brief?: ResearchBrief;
     orgId: string;
     userId: string;
-}): Promise<BlogPost> {
+}): Promise<{ id: string; title: string }> {
     await requireSuperUser();
 
     logger.info('[BlogResearch] researchAndGenerateBlog', {
@@ -288,7 +288,9 @@ export async function researchAndGenerateBlog(input: {
         },
     });
 
-    return post;
+    // Return only serializable fields — BlogPost contains Firestore Timestamps
+    // which cannot cross the server action → client boundary
+    return { id: post.id, title: post.title };
 }
 
 // ─── 4. Programmatic Market Reports ──────────────────────────────────────────
