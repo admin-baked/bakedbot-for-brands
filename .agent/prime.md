@@ -21,8 +21,8 @@ npm run check:types
 
 **Current Status:** 🟢 Passing (verified 2026-03-02)
 
-**Recent work (2026-03-02):** See `memory/MEMORY.md` for full log.
-Key completed: [Workflow DSL orchestration layer — types, registry, runtime, 3 POC definitions, CLI, 83 tests] (`d89c6fe3`), [NY outreach provisioning] (`3ef14adf`)
+**Recent work (2026-03-03):** See `memory/MEMORY.md` for full log.
+Key completed: [Blog auth fix — session cookie mismatch] (`c43936c8`), [Blog sidebar + page auth] (`6cc21c00`)
 
 ---
 
@@ -194,10 +194,8 @@ Do NOT wait for the user to say "P1" or "file a bug first" — triage, file, and
 
 ---
 
-**Recent work (2026-03-02):** See `memory/MEMORY.md` for full log.
-Key completed:
-- [Pinky QA Agent — 14 Tools] (`34989f8e`) — Expanded from 8 to 14 tools: get_bug_detail, check_regression_history, get_test_cases, generate_test_cases (Claude + Firestore batch), run_golden_set_eval (shells to run-golden-eval.mjs via cron), intake_customer_bug (reads inbox thread → extracts + files structured bug).
-- [Thrive QA Runbook v2] (local) — `dev/THRIVE_LIVE_SESSION_PLAYBOOK.md` rewritten as Pinky's owned QA runbook: 72+ test case IDs, explicit PASS/FAIL gates, pinky CLI commands at every failure, golden eval gates before compliance sections, regression risk callouts for all known chronic areas.
+**Recent work (2026-03-03):** See `memory/MEMORY.md` for full log.
+Key completed: [Blog auth fix — session cookie mismatch] (`c43936c8`), [Blog sidebar + page auth] (`6cc21c00`)
 
 ---
 
