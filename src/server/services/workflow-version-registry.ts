@@ -1,5 +1,3 @@
-'use server';
-
 /**
  * Workflow Version Registry
  *
