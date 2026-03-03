@@ -14,6 +14,7 @@ interface OAuthState {
     service: GoogleService;
     redirect: string;
     profileSlug?: string; // only for exec_calendar
+    uid?: string; // user UID embedded at auth URL generation time (avoids SameSite=Strict issue)
 }
 
 /**
@@ -43,10 +44,11 @@ export async function GET(req: NextRequest) {
         return NextResponse.redirect(buildRedirectUrl('/dashboard/ceo', 'error', 'no_code'));
     }
 
-    // Parse state to get service and redirect (outside try so it's available in catch)
+    // Parse state to get service, redirect, uid (outside try so available in catch)
     let service: GoogleService = 'gmail';
     let redirectPath = '/dashboard/ceo';
     let execProfileSlug: string | null = null;
+    let stateUid: string | null = null;
 
     if (stateParam) {
         try {
@@ -54,9 +56,22 @@ export async function GET(req: NextRequest) {
             if (state.service) service = state.service;
             if (state.redirect) redirectPath = state.redirect;
             if (state.profileSlug) execProfileSlug = state.profileSlug;
+            if (state.uid) stateUid = state.uid;
         } catch (e) {
             console.warn('[Google OAuth] Failed to parse state param, defaulting to gmail');
         }
+    }
+
+    /**
+     * Resolve the user's UID.
+     * Prefer the UID embedded in state (set at auth URL generation where __session
+     * cookie IS present). Fall back to requireUser() in case state is missing uid
+     * (e.g., old links or exec_calendar flow which bypasses this entirely).
+     */
+    async function resolveUid(): Promise<string> {
+        if (stateUid) return stateUid;
+        const user = await requireUser();
+        return user.uid;
     }
 
     try {
@@ -86,28 +101,28 @@ export async function GET(req: NextRequest) {
             }
 
             case 'drive': {
-                const user = await requireUser();
-                await saveDriveToken(user.uid, tokens);
-                console.log(`[Google OAuth] Successfully connected drive for user:`, user.uid);
+                const uid = await resolveUid();
+                await saveDriveToken(uid, tokens);
+                console.log(`[Google OAuth] Successfully connected drive for user:`, uid);
                 break;
             }
             case 'sheets': {
-                const user = await requireUser();
-                await saveSheetsToken(user.uid, tokens);
-                console.log(`[Google OAuth] Successfully connected sheets for user:`, user.uid);
+                const uid = await resolveUid();
+                await saveSheetsToken(uid, tokens);
+                console.log(`[Google OAuth] Successfully connected sheets for user:`, uid);
                 break;
             }
             case 'calendar': {
-                const user = await requireUser();
-                await saveCalendarToken(user.uid, tokens);
-                console.log(`[Google OAuth] Successfully connected calendar for user:`, user.uid);
+                const uid = await resolveUid();
+                await saveCalendarToken(uid, tokens);
+                console.log(`[Google OAuth] Successfully connected calendar for user:`, uid);
                 break;
             }
             case 'gmail':
             default: {
-                const user = await requireUser();
-                await saveGmailToken(user.uid, tokens);
-                console.log(`[Google OAuth] Successfully connected gmail for user:`, user.uid);
+                const uid = await resolveUid();
+                await saveGmailToken(uid, tokens);
+                console.log(`[Google OAuth] Successfully connected gmail for user:`, uid);
                 break;
             }
         }
@@ -115,10 +130,21 @@ export async function GET(req: NextRequest) {
         return NextResponse.redirect(buildRedirectUrl(redirectPath, 'success', `${service}_connected`));
 
     } catch (err: any) {
-        console.error(`[Google OAuth] Callback Error for ${service}:`, err);
-        const errorMessage = err.message?.includes('credentials')
-            ? 'oauth_config_error'
-            : 'oauth_failed';
-        return NextResponse.redirect(buildRedirectUrl(redirectPath, 'error', errorMessage));
+        const errMsg = err.message || String(err);
+        console.error(`[Google OAuth] Callback Error for ${service}: ${errMsg}`, err);
+
+        let errorCode: string;
+        if (errMsg.includes('credentials') || errMsg.includes('invalid_client')) {
+            errorCode = 'oauth_config_error';
+        } else if (errMsg.includes('redirect_uri')) {
+            errorCode = 'oauth_redirect_mismatch';
+        } else if (errMsg.includes('Unauthorized') || errMsg.includes('session')) {
+            errorCode = 'oauth_no_session';
+        } else {
+            // Include first 40 chars of error for diagnosis (URL-safe)
+            const detail = encodeURIComponent(errMsg.slice(0, 40).replace(/[^a-zA-Z0-9 _-]/g, ' ').trim());
+            errorCode = `oauth_failed__${detail}`;
+        }
+        return NextResponse.redirect(buildRedirectUrl(redirectPath, 'error', errorCode));
     }
 }
