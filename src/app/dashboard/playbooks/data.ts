@@ -130,5 +130,15 @@ export const PLAYBOOKS: Playbook[] = [
         active: true,
         status: 'active',
         prompt: "Reply to this retailer email thread. Keep it short, professional, and compliant."
+    },
+    {
+        id: 'pb_growth_ny_outreach_v1',
+        title: 'NY Dispensary Outreach',
+        type: 'AUTOMATION',
+        description: 'Weekday outreach to NY dispensaries — researches leads via Jina, verifies emails, generates draft emails from Martez for CEO approval, and sends daily summary. Targeting demo bookings.',
+        tags: ['outreach', 'lead-gen', 'email', 'growth', 'ny', 'pilot'],
+        active: true,
+        status: 'active',
+        prompt: "Run today's NY dispensary outreach batch. Research any new leads in the queue, verify emails, generate draft outreach emails from Martez for my review, and show me a summary of today's pipeline."
     }
 ];
