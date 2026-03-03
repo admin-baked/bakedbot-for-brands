@@ -29,6 +29,7 @@ import {
     Factory,
     UserMinus,
     BookOpen,
+    BookMarked,
     MessageSquarePlus,
     History,
     Trash2,
@@ -299,6 +300,14 @@ export function SuperAdminSidebar() {
                 <SidebarGroupLabel>Content</SidebarGroupLabel>
                 <SidebarGroupContent>
                     <SidebarMenu>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={pathname?.startsWith('/dashboard/settings/brand-guide')}>
+                                <Link href="/dashboard/settings/brand-guide">
+                                    <BookMarked />
+                                    <span>Brand Guide</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={pathname?.startsWith('/dashboard/blog') && !pathname?.startsWith('/dashboard/blog/calendar')}>
                                 <Link href="/dashboard/blog">
