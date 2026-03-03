@@ -136,6 +136,129 @@ interface NYLicenseRecord {
 }
 
 /**
+ * Bulk import ALL active NY licensed dispensaries in one shot — no enrichment.
+ * Fast (~5s): 1 API call + 1 Firestore dedup check + batch write.
+ * Run this first, then use importNYLicensedLeads() to enrich batches for email.
+ *
+ * @returns { total, imported, skipped }
+ */
+export async function bulkImportAllNYLeads(): Promise<{
+    total: number;
+    imported: number;
+    skipped: number;
+}> {
+    logger.info('[ContactResearch] Starting bulk NY API import (no enrichment)');
+
+    const db = getAdminFirestore();
+
+    // Fetch all active adult-use retail licenses (up to 500)
+    let nyRecords: NYLicenseRecord[] = [];
+    try {
+        const params = new URLSearchParams({
+            '$limit': '500',
+            '$offset': '0',
+            'license_status': 'Active',
+            'license_type_code': 'OCMRETL',
+            '$order': 'issued_date DESC',
+        });
+        const res = await fetch(`${NY_LICENSE_API}?${params.toString()}`, {
+            headers: { 'Accept': 'application/json' },
+            signal: AbortSignal.timeout(30000),
+        });
+        if (!res.ok) throw new Error(`NY API responded ${res.status}`);
+        nyRecords = await res.json() as NYLicenseRecord[];
+    } catch (err) {
+        logger.error('[ContactResearch] NY API bulk fetch failed', { error: String(err) });
+        throw err;
+    }
+
+    logger.info('[ContactResearch] NY API returned records', { count: nyRecords.length });
+
+    // Fetch all existing license numbers from Firestore in one query
+    const existingSnap = await db.collection('ny_dispensary_leads')
+        .where('source', '==', 'ny-state-api')
+        .select('licenseNumber')
+        .get();
+    const existingLicenses = new Set(
+        existingSnap.docs.map(d => d.data().licenseNumber as string).filter(Boolean)
+    );
+
+    logger.info('[ContactResearch] Existing NY API leads in Firestore', { count: existingLicenses.size });
+
+    // Filter to only new records
+    const newRecords = nyRecords.filter(r => {
+        if (!r.license_number) return true; // Save if no license number
+        return !existingLicenses.has(r.license_number);
+    });
+
+    if (newRecords.length === 0) {
+        logger.info('[ContactResearch] All NY API records already imported');
+        return { total: nyRecords.length, imported: 0, skipped: nyRecords.length };
+    }
+
+    // Batch write all new leads (Firestore max 500/batch)
+    const BATCH_SIZE = 400;
+    let imported = 0;
+
+    for (let i = 0; i < newRecords.length; i += BATCH_SIZE) {
+        const chunk = newRecords.slice(i, i + BATCH_SIZE);
+        const batch = db.batch();
+
+        for (const record of chunk) {
+            const dispensaryName = (record.dba || record.entity_name || '').trim();
+            if (!dispensaryName) continue;
+
+            const licenseNumber = record.license_number || '';
+            const domain = dispensaryName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+
+            const docRef = db.collection('ny_dispensary_leads').doc();
+            batch.set(docRef, {
+                dispensaryName,
+                contactName: record.primary_contact_name || null,
+                email: null,
+                phone: null,
+                city: record.city || 'New York',
+                state: 'NY',
+                address: record.address_line_1 || null,
+                websiteUrl: null,
+                contactFormUrl: null,
+                licenseNumber,
+                licenseType: 'Adult-Use Retail',
+                posSystem: null,
+                source: 'ny-state-api',
+                researchedAt: Date.now(),
+                status: 'researched',
+                emailVerified: false,
+                outreachSent: false,
+                enriched: false,
+                notes: `License: ${licenseNumber} | Contact: ${record.primary_contact_name || 'unknown'} | Not yet enriched`,
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+            });
+            imported++;
+        }
+
+        await batch.commit();
+        logger.info('[ContactResearch] Batch committed', { batch: Math.floor(i / BATCH_SIZE) + 1, count: chunk.length });
+    }
+
+    // Sync Drive spreadsheet
+    try {
+        await syncToDriverSpreadsheet();
+    } catch (err) {
+        logger.warn('[ContactResearch] Drive sync failed (non-fatal)', { error: String(err) });
+    }
+
+    logger.info('[ContactResearch] Bulk NY import complete', {
+        total: nyRecords.length,
+        imported,
+        skipped: nyRecords.length - imported,
+    });
+
+    return { total: nyRecords.length, imported, skipped: nyRecords.length - imported };
+}
+
+/**
  * Import leads from NY State official cannabis license database.
  * Uses data.ny.gov Socrata API — 471 active adult-use retail dispensaries.
  * Enriches each with a targeted Jina search to find website/email.
