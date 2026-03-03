@@ -165,6 +165,11 @@ env:
     secret: GOOGLE_CLIENT_SECRET@3
     availability:
       - RUNTIME
+  # Token encryption key — AES-256-CBC for storing OAuth refresh tokens at rest
+  - variable: TOKEN_ENCRYPTION_KEY
+    secret: TOKEN_ENCRYPTION_KEY@1
+    availability:
+      - RUNTIME
   # SMS
   # - variable: LEAFBUYER_API_KEY
   #   secret: LEAFBUYER_API_KEY
