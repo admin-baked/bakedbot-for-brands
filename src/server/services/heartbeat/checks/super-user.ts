@@ -523,6 +523,207 @@ async function checkPlatformHealth(ctx: HeartbeatCheckContext) {
 }
 
 // =============================================================================
+// NY OUTREACH PIPELINE CHECK (Jack)
+// Fires when: drafts need review, lead queue running low, or stale drafts >48h
+// =============================================================================
+
+async function checkNYOutreachPipeline(ctx: HeartbeatCheckContext) {
+    const db = getAdminFirestore();
+    try {
+        const fortyEightHoursAgo = Date.now() - 48 * 60 * 60 * 1000;
+
+        const [pendingDraftsSnap, leadQueueSnap, staleDraftsSnap] = await Promise.all([
+            db.collection('ny_outreach_drafts').where('status', '==', 'draft').count().get(),
+            db.collection('ny_dispensary_leads')
+                .where('status', '==', 'researched')
+                .where('outreachSent', '==', false)
+                .count().get(),
+            db.collection('ny_outreach_drafts')
+                .where('status', '==', 'draft')
+                .where('createdAt', '<', fortyEightHoursAgo)
+                .count().get(),
+        ]);
+
+        const pendingDrafts = pendingDraftsSnap.data().count;
+        const leadQueue = leadQueueSnap.data().count;
+        const staleDrafts = staleDraftsSnap.data().count;
+
+        // Stale drafts: been sitting >48h — high priority
+        if (staleDrafts > 0) {
+            return createCheckResult('ny_outreach_pipeline', 'jack', {
+                status: 'alert',
+                priority: 'high',
+                title: `${staleDrafts} Outreach Draft${staleDrafts !== 1 ? 's' : ''} Unreviewed 48h+`,
+                message: `${pendingDrafts} total pending · ${leadQueue} leads queued — emails going cold`,
+                data: { pendingDrafts, staleDrafts, leadQueue },
+                actionUrl: '/dashboard/ceo?tab=outreach',
+                actionLabel: 'Review Drafts',
+            });
+        }
+
+        // Many pending drafts: standard review needed
+        if (pendingDrafts > 3) {
+            return createCheckResult('ny_outreach_pipeline', 'jack', {
+                status: 'warning',
+                priority: 'medium',
+                title: `${pendingDrafts} Outreach Drafts Awaiting Approval`,
+                message: `${leadQueue} leads queued behind them — review and send to keep pipeline moving`,
+                data: { pendingDrafts, leadQueue },
+                actionUrl: '/dashboard/ceo?tab=outreach',
+                actionLabel: 'Review Drafts',
+            });
+        }
+
+        // Lead queue low: need to run enrichment or research
+        if (leadQueue < 5) {
+            return createCheckResult('ny_outreach_pipeline', 'jack', {
+                status: 'warning',
+                priority: 'low',
+                title: 'NY Lead Queue Running Low',
+                message: `Only ${leadQueue} researched leads remaining — run enrichment to refill pipeline`,
+                data: { leadQueue, pendingDrafts },
+                actionUrl: '/dashboard/ceo?tab=outreach',
+                actionLabel: 'Run Enrichment',
+            });
+        }
+
+        // Good state: drafts ready
+        if (pendingDrafts > 0) {
+            return createCheckResult('ny_outreach_pipeline', 'jack', {
+                status: 'ok',
+                priority: 'low',
+                title: `${pendingDrafts} Outreach Draft${pendingDrafts !== 1 ? 's' : ''} Ready for Review`,
+                message: `${leadQueue} leads queued for future outreach`,
+                data: { pendingDrafts, leadQueue },
+                actionUrl: '/dashboard/ceo?tab=outreach',
+                actionLabel: 'Review Drafts',
+            });
+        }
+
+        return null; // Pipeline clear — no noise
+    } catch (error) {
+        logger.error('[Heartbeat] NY Outreach pipeline check failed', { error });
+        return null;
+    }
+}
+
+// =============================================================================
+// BLOG PIPELINE CHECK (Glenda)
+// Fires when: blog drafts unreviewed, scheduled posts due soon, content cadence off
+// =============================================================================
+
+async function checkBlogPipeline(ctx: HeartbeatCheckContext) {
+    const db = getAdminFirestore();
+    try {
+        const fortyEightHoursAgo = Date.now() - 48 * 60 * 60 * 1000;
+        const twoHoursFromNow = Date.now() + 2 * 60 * 60 * 1000;
+
+        const [blogDraftsSnap, staleBlogDraftsSnap, scheduledDueSoonSnap] = await Promise.all([
+            db.collection('blog_posts').where('status', '==', 'draft').count().get(),
+            db.collection('blog_posts')
+                .where('status', '==', 'draft')
+                .where('createdAt', '<', fortyEightHoursAgo)
+                .count().get(),
+            db.collection('blog_posts')
+                .where('status', '==', 'scheduled')
+                .where('publishAt', '>=', Date.now())
+                .where('publishAt', '<=', twoHoursFromNow)
+                .count().get(),
+        ]);
+
+        const blogDrafts = blogDraftsSnap.data().count;
+        const staleBlogDrafts = staleBlogDraftsSnap.data().count;
+        const scheduledDueSoon = scheduledDueSoonSnap.data().count;
+
+        // Scheduled content going live in < 2h — needs eyes
+        if (scheduledDueSoon > 0) {
+            return createCheckResult('blog_pipeline', 'glenda', {
+                status: 'warning',
+                priority: 'high',
+                title: `${scheduledDueSoon} Blog Post${scheduledDueSoon !== 1 ? 's' : ''} Publishing in <2 Hours`,
+                message: 'Scheduled content going live soon — review if any changes needed',
+                data: { scheduledDueSoon, blogDrafts },
+                actionUrl: '/dashboard/ceo?tab=content',
+                actionLabel: 'Review Scheduled',
+            });
+        }
+
+        // Stale drafts: sitting >48h unreviewed
+        if (staleBlogDrafts > 0) {
+            return createCheckResult('blog_pipeline', 'glenda', {
+                status: 'warning',
+                priority: 'medium',
+                title: `${staleBlogDrafts} Blog Draft${staleBlogDrafts !== 1 ? 's' : ''} Unreviewed 48h+`,
+                message: `${blogDrafts} total drafts waiting — approve or discard to keep pipeline healthy`,
+                data: { blogDrafts, staleBlogDrafts },
+                actionUrl: '/dashboard/ceo?tab=content',
+                actionLabel: 'Review Drafts',
+            });
+        }
+
+        // Fresh drafts available
+        if (blogDrafts > 0) {
+            return createCheckResult('blog_pipeline', 'glenda', {
+                status: 'ok',
+                priority: 'low',
+                title: `${blogDrafts} Blog Draft${blogDrafts !== 1 ? 's' : ''} Ready for Review`,
+                message: 'Generated content waiting for your approval and scheduling',
+                data: { blogDrafts },
+                actionUrl: '/dashboard/ceo?tab=content',
+                actionLabel: 'View Drafts',
+            });
+        }
+
+        return null; // No drafts = no noise
+    } catch (error) {
+        logger.debug('[Heartbeat] Blog pipeline check skipped', { error: String(error) });
+        return null;
+    }
+}
+
+// =============================================================================
+// APOLLO CREDIT ALERT (Jack)
+// Fires when credits are running low — prevents enrichment blackout
+// =============================================================================
+
+async function checkApolloCredits(ctx: HeartbeatCheckContext) {
+    try {
+        const { getApolloCreditStatus } = await import('@/server/services/ny-outreach/apollo-enrichment');
+        const credits = await getApolloCreditStatus();
+
+        if (credits.remaining < 10) {
+            return createCheckResult('apollo_credits', 'jack', {
+                status: 'alert',
+                priority: 'high',
+                title: `Apollo Credits Critical: ${credits.remaining} Remaining`,
+                message: `${credits.used}/${credits.limit} used this cycle — enrichment will stop. Resets ${new Date(credits.cycleEnd).toLocaleDateString()}`,
+                data: { credits },
+                actionUrl: '/dashboard/ceo?tab=outreach',
+                actionLabel: 'View Credits',
+            });
+        }
+
+        if (credits.remaining < 25) {
+            return createCheckResult('apollo_credits', 'jack', {
+                status: 'warning',
+                priority: 'medium',
+                title: `Apollo Credits Low: ${credits.remaining} Remaining`,
+                message: `${credits.percentUsed}% of monthly credits used — slow down enrichment or upgrade plan`,
+                data: { credits },
+                actionUrl: '/dashboard/ceo?tab=outreach',
+                actionLabel: 'View Credits',
+            });
+        }
+
+        return null; // Credits fine — no noise
+    } catch (error) {
+        // Apollo not configured or check failed — silently skip
+        logger.debug('[Heartbeat] Apollo credits check skipped', { error: String(error) });
+        return null;
+    }
+}
+
+// =============================================================================
 // REGISTRY EXPORT
 // =============================================================================
 
@@ -537,4 +738,8 @@ export const SUPER_USER_CHECKS: HeartbeatCheckRegistry[] = [
     { checkId: 'calendar_upcoming', agent: 'openclaw', execute: checkCalendarUpcoming },
     { checkId: 'competitive_intel', agent: 'ezal', execute: checkCompetitiveIntelligence },
     { checkId: 'platform_health', agent: 'linus', execute: checkPlatformHealth },
+    // --- Outreach + Content pipeline (proactive "always ready" system) ---
+    { checkId: 'ny_outreach_pipeline', agent: 'jack', execute: checkNYOutreachPipeline },
+    { checkId: 'blog_pipeline', agent: 'glenda', execute: checkBlogPipeline },
+    { checkId: 'apollo_credits', agent: 'jack', execute: checkApolloCredits },
 ];

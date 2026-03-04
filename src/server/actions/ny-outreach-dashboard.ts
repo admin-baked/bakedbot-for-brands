@@ -27,6 +27,7 @@ import { generateOutreachEmails, type OutreachEmailData } from '@/server/service
 import { verifyEmail } from '@/server/services/email-verification';
 import { sendGenericEmail } from '@/lib/email/dispatcher';
 import { apolloSearchPeople, apolloEnrichByDomain, getApolloCreditStatus, type ApolloCreditStatus } from '@/server/services/ny-outreach/apollo-enrichment';
+import { enrichLeadBatch } from '@/server/services/ny-outreach/lead-enrichment';
 import { logger } from '@/lib/logger';
 
 // Re-export Apollo credit type for UI
@@ -761,129 +762,8 @@ export async function triggerNYLeadEnrichment(): Promise<{
         const user = await requireUser(['super_user']);
         if (!user) return { success: false, error: 'Unauthorized' };
 
-        const db = getAdminFirestore();
-
-        // Grab 20 un-enriched NY API leads
-        const snap = await db.collection('ny_dispensary_leads')
-            .where('source', '==', 'ny-state-api')
-            .where('enriched', '==', false)
-            .orderBy('createdAt', 'asc')
-            .limit(20)
-            .get();
-
-        if (snap.empty) {
-            return { success: true, enriched: 0, withEmail: 0 };
-        }
-
-        let enriched = 0;
-        let withEmail = 0;
-
-        for (const doc of snap.docs) {
-            const data = doc.data();
-            const dispensaryName = data.dispensaryName as string;
-            const city = (data.city as string) || 'New York';
-
-            let email: string | undefined;
-            let websiteUrl: string | undefined;
-            let contactFormUrl: string | undefined;
-            let phone: string | undefined;
-
-            try {
-                const { jinaSearch } = await import('@/server/tools/jina-tools');
-
-                const searchQuery = `"${dispensaryName}" ${city} NY cannabis dispensary contact email`;
-                const searchResults = await jinaSearch(searchQuery);
-
-                const skipDomains = ['leafly', 'weedmaps', 'yelp', 'google', 'facebook', 'instagram', 'twitter', 'reddit'];
-                const ownSite = searchResults.find(r => {
-                    try {
-                        const domain = new URL(r.url).hostname;
-                        return !skipDomains.some(d => domain.includes(d));
-                    } catch { return false; }
-                });
-
-                if (ownSite) {
-                    websiteUrl = ownSite.url;
-                    const domain = new URL(ownSite.url).origin;
-
-                    const { default: fetch } = await import('node-fetch').catch(() => ({ default: globalThis.fetch }));
-                    const [pc, cc] = await Promise.all([
-                        globalThis.fetch(`https://r.jina.ai/${ownSite.url}`, {
-                            headers: { Accept: 'text/plain' },
-                            signal: AbortSignal.timeout(10000),
-                        }).then(r => r.text()).catch(() => ''),
-                        globalThis.fetch(`https://r.jina.ai/${domain}/contact`, {
-                            headers: { Accept: 'text/plain' },
-                            signal: AbortSignal.timeout(10000),
-                        }).then(r => r.text()).catch(() => ''),
-                    ]);
-
-                    const content = [pc, cc].filter(c => c.length > 50).join('\n\n') || ownSite.snippet || '';
-
-                    if (content.length >= 20) {
-                        // Simple email regex extraction (avoid full Claude call in loop)
-                        const emailMatch = content.match(/\b[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}\b/i);
-                        if (emailMatch) email = emailMatch[0];
-                        const phoneMatch = content.match(/\(?\d{3}\)?[\s\-]\d{3}[\s\-]\d{4}/);
-                        if (phoneMatch) phone = phoneMatch[0];
-                        contactFormUrl = !email ? `${domain}/contact` : undefined;
-                    }
-                }
-            } catch (err) {
-                logger.warn('[OutreachDashboard] Jina enrichment failed', { dispensaryName, error: String(err) });
-            }
-
-            // --- Apollo fallback: if Jina couldn't find an email, try Apollo ---
-            let apolloContactName: string | undefined;
-            if (!email) {
-                try {
-                    const apolloResult = websiteUrl
-                        ? await apolloEnrichByDomain(websiteUrl, dispensaryName)
-                        : await apolloSearchPeople(
-                            dispensaryName,
-                            city,
-                            (data.state as string) || 'NY',
-                            data.contactName as string | undefined
-                        );
-
-                    if (apolloResult.email) {
-                        email = apolloResult.email;
-                        // If Apollo found a contact name and we don't have one, use it
-                        if (!data.contactName && apolloResult.contactName) {
-                            apolloContactName = apolloResult.contactName;
-                        }
-                        logger.info('[OutreachDashboard] Apollo found email', {
-                            dispensaryName,
-                            source: apolloResult.source,
-                            creditSpent: apolloResult.creditSpent,
-                        });
-                    }
-                } catch (err) {
-                    logger.warn('[OutreachDashboard] Apollo enrichment failed', { dispensaryName, error: String(err) });
-                }
-            }
-
-            const updates: Record<string, unknown> = {
-                enriched: true,
-                updatedAt: Date.now(),
-                notes: email
-                    ? `Email found: ${email} | License: ${data.licenseNumber || ''}`
-                    : `No email found | License: ${data.licenseNumber || ''}`,
-            };
-            if (email) { updates.email = email; withEmail++; }
-            if (phone) updates.phone = phone;
-            if (websiteUrl) updates.websiteUrl = websiteUrl;
-            if (contactFormUrl) updates.contactFormUrl = contactFormUrl;
-            if (apolloContactName) updates.contactName = apolloContactName;
-
-            await doc.ref.update(updates);
-            enriched++;
-
-            await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-
-        logger.info('[OutreachDashboard] Enrichment batch complete', { enriched, withEmail });
-        return { success: true, enriched, withEmail };
+        const result = await enrichLeadBatch(20);
+        return { success: true, enriched: result.enriched, withEmail: result.withEmail };
     } catch (err) {
         logger.error('[OutreachDashboard] Enrichment failed', { error: String(err) });
         return { success: false, error: String(err) };
@@ -1117,6 +997,68 @@ export async function getApolloCreditsAction(): Promise<{
         return { success: true, credits };
     } catch (err) {
         logger.error('[OutreachDashboard] Failed to load Apollo credits', { error: String(err) });
+        return { success: false, error: String(err) };
+    }
+}
+
+// =============================================================================
+// Super User Status Counts — CEO Dashboard Proactive Banner
+// =============================================================================
+
+export interface SuperUserStatusCounts {
+    pendingOutreachDrafts: number;  // ny_outreach_drafts where status='draft'
+    unenrichedLeads: number;        // ny_dispensary_leads where enriched=false
+    pendingBlogDrafts: number;      // blog_posts where status='draft'
+    leadQueueDepth: number;         // researched leads ready for outreach
+    apolloCreditsRemaining: number; // Apollo.io credits left this cycle
+}
+
+/**
+ * Fast parallel Firestore counts powering the CEO dashboard proactive status banner.
+ * Returns everything awaiting super user attention in a single call.
+ * Designed to be called non-blocking on dashboard mount.
+ */
+export async function getSuperUserStatusCounts(): Promise<{
+    success: boolean;
+    counts?: SuperUserStatusCounts;
+    error?: string;
+}> {
+    try {
+        const user = await requireUser(['super_user']);
+        if (!user) return { success: false, error: 'Unauthorized' };
+
+        const db = getAdminFirestore();
+
+        const [
+            pendingDraftsSnap,
+            unenrichedSnap,
+            blogDraftsSnap,
+            leadQueueSnap,
+            apolloCredits,
+        ] = await Promise.all([
+            db.collection('ny_outreach_drafts').where('status', '==', 'draft').count().get(),
+            db.collection('ny_dispensary_leads').where('enriched', '==', false).count().get(),
+            db.collection('blog_posts').where('status', '==', 'draft').count().get(),
+            db.collection('ny_dispensary_leads')
+                .where('status', '==', 'researched')
+                .where('outreachSent', '==', false)
+                .count()
+                .get(),
+            getApolloCreditStatus(),
+        ]);
+
+        return {
+            success: true,
+            counts: {
+                pendingOutreachDrafts: pendingDraftsSnap.data().count,
+                unenrichedLeads: unenrichedSnap.data().count,
+                pendingBlogDrafts: blogDraftsSnap.data().count,
+                leadQueueDepth: leadQueueSnap.data().count,
+                apolloCreditsRemaining: apolloCredits.remaining,
+            },
+        };
+    } catch (err) {
+        logger.error('[OutreachDashboard] Failed to load status counts', { error: String(err) });
         return { success: false, error: String(err) };
     }
 }

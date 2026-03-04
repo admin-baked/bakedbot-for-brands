@@ -25,6 +25,9 @@ export type HeartbeatCheckId =
     | 'calendar_upcoming'
     | 'competitive_intel'
     | 'platform_health'
+    | 'ny_outreach_pipeline'
+    | 'blog_pipeline'
+    | 'apollo_credits'
     // Dispensary Checks
     | 'low_stock_alerts'
     | 'expiring_batches'
