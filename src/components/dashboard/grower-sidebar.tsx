@@ -154,7 +154,7 @@ export const GrowerSidebar = memo(function GrowerSidebar() {
                                 <Link href="/dashboard/greenledger" prefetch={true}>
                                     <Coins />
                                     <span>GreenLedger</span>
-                                    <span className="ml-auto text-[10px] bg-green-500/10 text-green-600 px-1.5 py-0.5 rounded font-medium">NEW</span>
+                                    <span className="ml-auto text-[10px] bg-green-500/10 text-green-600 px-1.5 py-0.5 rounded font-medium group-data-[collapsible=icon]:hidden">NEW</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
@@ -195,7 +195,7 @@ export const GrowerSidebar = memo(function GrowerSidebar() {
                                         <Link href="/dashboard/research" prefetch={true}>
                                             <Globe />
                                             <span>Deep Research</span>
-                                            <span className="ml-auto text-[10px] bg-blue-500/10 text-blue-500 px-1.5 py-0.5 rounded font-medium">BETA</span>
+                                            <span className="ml-auto text-[10px] bg-blue-500/10 text-blue-500 px-1.5 py-0.5 rounded font-medium group-data-[collapsible=icon]:hidden">BETA</span>
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
