@@ -214,6 +214,63 @@ export async function createGoogleCalendarEvent(
     }
 }
 
+// ─── Event List ─────────────────────────────────────────────────────────────
+
+export interface GoogleCalendarEvent {
+    id: string;
+    title: string;
+    startAt: Date;
+    endAt: Date;
+    attendees: string[];
+    htmlLink?: string;
+    isAllDay: boolean;
+}
+
+/**
+ * Lists events from the executive's primary Google Calendar for a time range.
+ * Used by the calendar-digest service for the daily briefing.
+ * Returns [] on failure (graceful degradation).
+ */
+export async function listGoogleCalendarEvents(
+    tokens: GoogleCalendarTokens,
+    timeMin: Date,
+    timeMax: Date,
+): Promise<GoogleCalendarEvent[]> {
+    try {
+        const { calendar } = await makeCalendarClient(tokens);
+        const response = await calendar.events.list({
+            calendarId: 'primary',
+            timeMin: timeMin.toISOString(),
+            timeMax: timeMax.toISOString(),
+            singleEvents: true,
+            orderBy: 'startTime',
+            maxResults: 20,
+        });
+
+        const events = response.data.items ?? [];
+        return events
+            .filter(e => e.status !== 'cancelled')
+            .map(e => ({
+                id: e.id ?? '',
+                title: e.summary ?? '(No title)',
+                startAt: e.start?.dateTime
+                    ? new Date(e.start.dateTime)
+                    : new Date(e.start?.date ?? Date.now()),
+                endAt: e.end?.dateTime
+                    ? new Date(e.end.dateTime)
+                    : new Date(e.end?.date ?? Date.now()),
+                attendees: (e.attendees ?? [])
+                    .map(a => a.email ?? '')
+                    .filter(Boolean),
+                htmlLink: e.htmlLink ?? undefined,
+                isAllDay: !e.start?.dateTime,
+            }));
+    } catch (err) {
+        logger.warn(`[GCal] events.list failed: ${String(err)}`);
+        return [];
+    }
+}
+
 // ─── Event Delete ────────────────────────────────────────────────────────────
 
 /**
