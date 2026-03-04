@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-03-03)
 
 **Recent work (2026-03-03):** See `memory/MEMORY.md` for full log.
-Key completed: [Google Calendar OAuth fix — consolidated to registered URI] (`801de278`), [Blog Research Pipeline — Jina+Claude CEO Content tab] (`5e12df33`)
+Key completed: [Blog research: 24h cache + citations pipeline + UI cache age] (`7add3b3e`), [exec_calendar OAuth token save fix] (`dbd6a8f7`)
 
 ---
 
