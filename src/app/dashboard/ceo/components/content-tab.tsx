@@ -40,6 +40,7 @@ import {
     generateMarketReports,
     type NewsIdea,
     type ContentScorecard,
+    PULSE_PRESET_KEYS,
 } from '@/server/actions/blog-research';
 import { getPublishedPlatformPosts } from '@/server/actions/blog';
 import { ResearchGeneratorSheet } from '@/components/blog/research-generator-sheet';
@@ -47,6 +48,16 @@ import { formatSmartTime } from '@/lib/utils/format-time';
 import type { BlogPost, BlogContentType } from '@/types/blog';
 
 const PLATFORM_ORG_ID = 'org_bakedbot_platform';
+
+/** Preset topic pills — keys match PulseTopic in industry-pulse.ts */
+const PULSE_PILLS = [
+    { key: 'default', label: 'All', emoji: '📰' },
+    { key: 'regulations', label: 'Regulations', emoji: '⚖️' },
+    { key: 'marketing', label: 'Marketing', emoji: '📣' },
+    { key: 'products', label: 'Products', emoji: '🌿' },
+    { key: 'trends', label: 'Trends', emoji: '📈' },
+] as const;
+type PulsePillKey = typeof PULSE_PILLS[number]['key'];
 
 const US_STATES = [
     'New York', 'California', 'Colorado', 'Illinois', 'Michigan',
@@ -115,6 +126,7 @@ export default function ContentCeoTab() {
     const [newsLoading, setNewsLoading] = useState(true);
     const [scorecardLoading, setScorecardLoading] = useState(true);
 
+    const [activePill, setActivePill] = useState<PulsePillKey>('default');
     const [topicFilter, setTopicFilter] = useState('');
     const [postsTab, setPostsTab] = useState('all');
 
@@ -147,7 +159,15 @@ export default function ContentCeoTab() {
     }, [loadData, loadNews]);
 
     const handleRefreshNews = () => {
-        loadNews(topicFilter || undefined, true);
+        const topic = topicFilter.trim() || (activePill !== 'default' ? activePill : undefined);
+        loadNews(topic, true);
+    };
+
+    const handlePillClick = (pill: PulsePillKey) => {
+        setActivePill(pill);
+        setTopicFilter('');
+        const topic = pill !== 'default' ? pill : undefined;
+        loadNews(topic, false);
     };
 
     const handleOpenSheet = (mode: BlogContentType, seedTopic = '') => {
@@ -223,30 +243,33 @@ export default function ContentCeoTab() {
                 <div className="lg:col-span-3 space-y-6">
                     {/* Industry Pulse */}
                     <Card>
-                        <CardHeader>
+                        <CardHeader className="pb-3">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <CardTitle className="text-base">Industry Pulse</CardTitle>
                                     {newsCachedAt && !newsLoading && (
                                         <p className="text-xs text-muted-foreground mt-0.5">
-                                            Cached {formatSmartTime(newsCachedAt, { showSuffix: true })}
+                                            Pre-loaded {formatSmartTime(newsCachedAt, { showSuffix: true })}
                                         </p>
                                     )}
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <Input
-                                        placeholder="Filter by topic..."
+                                        placeholder="Custom topic..."
                                         value={topicFilter}
-                                        onChange={(e) => setTopicFilter(e.target.value)}
+                                        onChange={(e) => {
+                                            setTopicFilter(e.target.value);
+                                            if (e.target.value) setActivePill('default');
+                                        }}
                                         onKeyDown={(e) => e.key === 'Enter' && handleRefreshNews()}
-                                        className="h-8 w-40 text-sm"
+                                        className="h-8 w-36 text-sm"
                                     />
                                     <Button
                                         variant="outline"
                                         size="sm"
                                         onClick={handleRefreshNews}
                                         disabled={newsLoading}
-                                        title="Force refresh (bypasses 24h cache)"
+                                        title="Force refresh (bypasses cache)"
                                     >
                                         {newsLoading ? (
                                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -255,6 +278,24 @@ export default function ContentCeoTab() {
                                         )}
                                     </Button>
                                 </div>
+                            </div>
+                            {/* Topic pills — backed by pre-warmed Firestore cache */}
+                            <div className="flex flex-wrap gap-1.5 pt-2">
+                                {PULSE_PILLS.map((pill) => (
+                                    <button
+                                        key={pill.key}
+                                        onClick={() => handlePillClick(pill.key)}
+                                        disabled={newsLoading}
+                                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+                                            activePill === pill.key && !topicFilter
+                                                ? 'bg-primary text-primary-foreground'
+                                                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                                        }`}
+                                    >
+                                        <span>{pill.emoji}</span>
+                                        {pill.label}
+                                    </button>
+                                ))}
                             </div>
                         </CardHeader>
                         <CardContent>
