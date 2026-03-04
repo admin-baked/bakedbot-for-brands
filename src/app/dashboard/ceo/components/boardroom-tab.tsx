@@ -57,9 +57,9 @@ const ALL_AGENTS = [...EXECUTIVE_TEAM, ...SUPPORT_STAFF];
 
 function HudMetric({ label, value, className }: { label: string; value: string; className?: string }) {
     return (
-        <div className="flex items-center gap-1.5">
+        <div className={cn("flex items-center gap-1.5", className)}>
             <span className="text-muted-foreground text-xs">{label}:</span>
-            <span className={cn("font-mono font-bold text-sm", className)}>{value}</span>
+            <span className="font-mono font-bold text-sm">{value}</span>
         </div>
     );
 }
@@ -219,10 +219,10 @@ export default function BoardroomTab() {
                 </div>
 
                 {/* Inline KPI HUD */}
-                <div className="flex items-center gap-4 sm:gap-6 shrink-0 border-l border-border/50 pl-4 sm:pl-6">
+                <div className="flex items-center gap-3 sm:gap-6 shrink-0 border-l border-border/50 pl-3 sm:pl-6">
                     <HudMetric label="MRR" value={`$${mrr.toLocaleString()}`} className="text-green-600" />
-                    <HudMetric label="ARR" value={`$${arr.toLocaleString()}`} />
-                    <HudMetric label="ARPU" value={`$${arpu}`} />
+                    <HudMetric label="ARR" value={`$${arr.toLocaleString()}`} className="hidden sm:flex" />
+                    <HudMetric label="ARPU" value={`$${arpu}`} className="hidden sm:flex" />
                     <HudMetric label="Users" value={totalUsers.toLocaleString()} />
                     <HudMetric label="DAU" value={dailyActiveUsers.toLocaleString()} />
                 </div>
@@ -233,7 +233,7 @@ export default function BoardroomTab() {
 
                 {/* Chat Canvas — takes all remaining width */}
                 <div className="flex-1 min-w-0 xl:flex xl:flex-col xl:min-h-0">
-                    <Card className="shadow-lg border-border/50 overflow-hidden h-[80vh] xl:h-full flex flex-col bg-background">
+                    <Card className="shadow-lg border-border/50 overflow-hidden h-[70vh] sm:h-[80vh] xl:h-full flex flex-col bg-background">
                         <CardHeader className="bg-background border-b py-3 px-5 flex flex-row items-center justify-between shadow-sm z-10 shrink-0">
                             <div className="flex items-center gap-3">
                                 {currentAgent && (
@@ -252,6 +252,44 @@ export default function BoardroomTab() {
                                 Universal Delegation Enabled
                             </Badge>
                         </CardHeader>
+
+                        {/* Mobile Agent Strip — horizontal scroll, xl:hidden (desktop uses aside) */}
+                        <div className="xl:hidden flex items-center gap-1.5 px-3 py-2 border-b border-border/40 overflow-x-auto scrollbar-none bg-muted/20 shrink-0">
+                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider shrink-0 mr-0.5">Exec</span>
+                            {EXECUTIVE_TEAM.map((agent) => (
+                                <button
+                                    key={agent.id}
+                                    onClick={() => setSelectedAgent(agent.id)}
+                                    className={cn(
+                                        "flex items-center gap-1 shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium transition-all border",
+                                        selectedAgent === agent.id
+                                            ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                                            : "bg-background border-border/60 text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                                    )}
+                                >
+                                    <agent.icon className="h-3 w-3 shrink-0" />
+                                    <span>{agent.name}</span>
+                                </button>
+                            ))}
+                            <span className="w-px h-4 bg-border/60 shrink-0 mx-0.5" />
+                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider shrink-0 mr-0.5">Staff</span>
+                            {SUPPORT_STAFF.map((agent) => (
+                                <button
+                                    key={agent.id}
+                                    onClick={() => setSelectedAgent(agent.id)}
+                                    className={cn(
+                                        "flex items-center gap-1 shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium transition-all border",
+                                        selectedAgent === agent.id
+                                            ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                                            : "bg-background border-border/60 text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                                    )}
+                                >
+                                    <agent.icon className="h-3 w-3 shrink-0" />
+                                    <span>{agent.name}</span>
+                                </button>
+                            ))}
+                        </div>
+
                         <CardContent className="flex-1 p-0 overflow-visible relative min-h-0">
                             <PuffChat
                                 persona={selectedAgent as any}

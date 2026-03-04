@@ -58,9 +58,10 @@ const ContentCeoTab = nextDynamic(() => import("./components/content-tab"), { lo
 
 import { useUserRole } from '@/hooks/use-user-role';
 import { isSuperAdminEmail } from '@/lib/super-admin-config';
-import { Loader2, Shield } from 'lucide-react';
+import { Loader2, Shield, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import Link from 'next/link';
 import { ClientOnly } from '@/components/client-only';
 import { RoleSwitcher } from '@/components/debug/role-switcher';
@@ -240,7 +241,7 @@ function CeoDashboardContent() {
     return (
         <div className="space-y-6">
             {/* Super Admin Header */}
-            <div className="rounded-lg border border-green-200 bg-green-50 p-4 flex flex-col gap-3">
+            <div className="rounded-lg border border-green-200 bg-green-50 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3">
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
@@ -251,30 +252,60 @@ function CeoDashboardContent() {
                             <p className="text-sm text-green-700">{user?.email || 'Authenticated'}</p>
                         </div>
                     </div>
-                <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
+                {/* Mobile: compact Sheet trigger */}
+                <div className="flex sm:hidden items-center gap-2">
+                    <Sheet>
+                        <SheetTrigger asChild>
+                            <Button variant="outline" size="sm" className="gap-1.5 border-green-300 text-green-800 hover:bg-green-100">
+                                <MoreHorizontal className="h-3.5 w-3.5" />
+                                Tools
+                            </Button>
+                        </SheetTrigger>
+                        <SheetContent side="bottom" className="max-h-[55dvh] overflow-y-auto rounded-t-2xl">
+                            <SheetHeader className="mb-3">
+                                <SheetTitle className="text-base">Super User Tools</SheetTitle>
+                            </SheetHeader>
+                            <div className="grid grid-cols-2 gap-2 pb-6">
+                                <Link href="?tab=dev-console"><Button variant="outline" size="sm" className="w-full justify-start">Dev Console</Button></Link>
+                                <Link href="?tab=health"><Button variant="outline" size="sm" className="w-full justify-start">System Health</Button></Link>
+                                <Link href="?tab=email"><Button variant="outline" size="sm" className="w-full justify-start">Email Tester</Button></Link>
+                                <Link href="?tab=qa"><Button variant="outline" size="sm" className="w-full justify-start">QA</Button></Link>
+                                <Link href="?tab=calendar"><Button variant="outline" size="sm" className="w-full justify-start">📅 Calendar</Button></Link>
+                                <Link href="?tab=ny-pilot"><Button variant="outline" size="sm" className="w-full justify-start">NY Pilot</Button></Link>
+                                <Link href="?tab=outreach"><Button variant="outline" size="sm" className="w-full justify-start">Outreach</Button></Link>
+                                <Link href="?tab=content"><Button variant="outline" size="sm" className="w-full justify-start">📝 Content</Button></Link>
+                            </div>
+                        </SheetContent>
+                    </Sheet>
+                    {process.env.NODE_ENV !== 'production' && <MockDataToggle />}
+                    {process.env.NODE_ENV !== 'production' && <RoleSwitcher />}
+                </div>
+
+                {/* Desktop: full button row (sm+) */}
+                <div className="hidden sm:flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
                     <Link href="?tab=dev-console">
-                        <Button variant="ghost" size="sm" className="w-full sm:w-auto">Dev Console</Button>
+                        <Button variant="ghost" size="sm">Dev Console</Button>
                     </Link>
                     <Link href="?tab=health">
-                        <Button variant="ghost" size="sm" className="w-full sm:w-auto">System Health</Button>
+                        <Button variant="ghost" size="sm">System Health</Button>
                     </Link>
                     <Link href="?tab=email">
-                        <Button variant="ghost" size="sm" className="w-full sm:w-auto">Email Tester</Button>
+                        <Button variant="ghost" size="sm">Email Tester</Button>
                     </Link>
                     <Link href="?tab=qa">
-                        <Button variant="ghost" size="sm" className="w-full sm:w-auto">QA</Button>
+                        <Button variant="ghost" size="sm">QA</Button>
                     </Link>
                     <Link href="?tab=calendar">
-                        <Button variant="ghost" size="sm" className="w-full sm:w-auto">📅 Calendar</Button>
+                        <Button variant="ghost" size="sm">📅 Calendar</Button>
                     </Link>
                     <Link href="?tab=ny-pilot">
-                        <Button variant="ghost" size="sm" className="w-full sm:w-auto">NY Pilot</Button>
+                        <Button variant="ghost" size="sm">NY Pilot</Button>
                     </Link>
                     <Link href="?tab=outreach">
-                        <Button variant="ghost" size="sm" className="w-full sm:w-auto">Outreach</Button>
+                        <Button variant="ghost" size="sm">Outreach</Button>
                     </Link>
                     <Link href="?tab=content">
-                        <Button variant="ghost" size="sm" className="w-full sm:w-auto">📝 Content</Button>
+                        <Button variant="ghost" size="sm">📝 Content</Button>
                     </Link>
                     <DataImportDropdown />
                     {process.env.NODE_ENV !== 'production' && <MockDataToggle />}

@@ -49,12 +49,12 @@ function InboxContent() {
     return (
         <div className="h-full flex flex-col">
             {/* View Toggle Header */}
-            <div className="flex items-center justify-between px-6 py-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="flex items-center justify-between px-3 sm:px-6 py-2 sm:py-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
                 <div>
-                    <h1 className="text-lg font-semibold">
+                    <h1 className="text-base sm:text-lg font-semibold">
                         {viewMode === 'inbox' ? 'Unified Inbox' : 'Agent Chat'}
                     </h1>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="hidden sm:block text-xs text-muted-foreground">
                         {viewMode === 'inbox'
                             ? 'Thread-based conversations with your AI agents'
                             : 'Traditional chat experience with your AI agents'}

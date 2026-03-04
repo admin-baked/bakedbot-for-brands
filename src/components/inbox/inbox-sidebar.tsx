@@ -56,6 +56,8 @@ import { useToast } from '@/hooks/use-toast';
 import { ProjectSelector } from '@/components/dashboard/project-selector';
 import type { Project } from '@/types/project';
 import { _pendingInputs } from './inbox-conversation';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // ============ Icon Mapping ============
 
@@ -291,7 +293,7 @@ function ThreadListItem({
                     <p className="text-xs text-muted-foreground truncate mt-0.5">
                         {thread.preview || 'No messages yet'}
                     </p>
-                    <div className="flex items-center gap-1 mt-1 flex-wrap">
+                    <div className="hidden sm:flex items-center gap-1 mt-1 flex-wrap">
                         {thread.projectId && (
                             <div className="inline-flex items-center gap-1 h-5 px-1.5 rounded text-[10px] bg-primary/10 text-primary">
                                 <FolderKanban className="h-2.5 w-2.5" />
@@ -447,6 +449,7 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
         markThreadPersisted,
         setActiveThread,
     } = useInboxStore();
+    const isMobile = useIsMobile();
 
     const threads = getFilteredThreads();
     const quickActions = getQuickActions();
@@ -563,6 +566,91 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
                     </>
                 ) : (
                     <div className="space-y-2">
+                        {/* Mobile: horizontal chip strip (sm:hidden) */}
+                        <div className="sm:hidden flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5 -mx-1 px-1">
+                            {/* New Chat chip */}
+                            <button
+                                onClick={() => setActiveThread(null)}
+                                className="flex items-center gap-1.5 shrink-0 rounded-full px-3 py-1.5 text-[12px] font-semibold bg-primary text-primary-foreground shadow-sm"
+                            >
+                                <Plus className="h-3.5 w-3.5" />
+                                New Chat
+                            </button>
+                            {/* Favorite action chips */}
+                            {favoriteGridActions.map((action) => {
+                                const Icon = getIcon(action.icon);
+                                return (
+                                    <button
+                                        key={action.id}
+                                        onClick={() => handleQuickActionSelect(action)}
+                                        className="flex items-center gap-1 shrink-0 rounded-full px-2.5 py-1.5 text-[12px] font-medium border border-border/60 bg-background text-foreground/80 hover:bg-accent transition-colors"
+                                    >
+                                        <Icon className="h-3 w-3 text-primary shrink-0" />
+                                        <span className="whitespace-nowrap">{action.label}</span>
+                                    </button>
+                                );
+                            })}
+                            {/* More chip → Sheet */}
+                            {quickActions.length > 6 && (
+                                <Sheet>
+                                    <SheetTrigger asChild>
+                                        <button className="flex items-center gap-1 shrink-0 rounded-full px-2.5 py-1.5 text-[12px] font-medium border border-border/60 bg-background text-muted-foreground hover:bg-accent transition-colors">
+                                            <MoreHorizontalIcon className="h-3 w-3" />
+                                            <span className="whitespace-nowrap">+{quickActions.length - 6} more</span>
+                                        </button>
+                                    </SheetTrigger>
+                                    <SheetContent side="bottom" className="max-h-[70dvh] overflow-y-auto rounded-t-2xl">
+                                        <SheetHeader className="mb-3">
+                                            <SheetTitle className="text-base">All Actions</SheetTitle>
+                                        </SheetHeader>
+                                        <div className="pb-6">
+                                            {(() => {
+                                                const isSuper = currentRole === 'super_user' || currentRole === 'super_admin' || currentRole === 'owner';
+                                                const isCustomer = currentRole === 'customer';
+                                                const orderedCategories: Array<keyof typeof QUICK_ACTION_CATEGORIES> = isCustomer
+                                                    ? ['customer']
+                                                    : isSuper
+                                                        ? ['growth', 'company', 'research', 'marketing', 'operations']
+                                                        : ['marketing', 'operations'];
+                                                const categorized = new Set<string>();
+                                                Object.values(QUICK_ACTION_CATEGORIES).forEach((ids) => ids.forEach((id) => categorized.add(id)));
+                                                return orderedCategories.map((category) => {
+                                                    const actions = quickActions.filter(a => QUICK_ACTION_CATEGORIES[category].includes(a.id));
+                                                    if (actions.length === 0) return null;
+                                                    return (
+                                                        <div key={category} className="mb-4">
+                                                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
+                                                                {category === 'company' ? 'Company Ops' : category.charAt(0).toUpperCase() + category.slice(1)}
+                                                            </p>
+                                                            <div className="grid grid-cols-2 gap-2">
+                                                                {actions.map((action) => {
+                                                                    const Icon = getIcon(action.icon);
+                                                                    return (
+                                                                        <Button
+                                                                            key={action.id}
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            className="justify-start gap-2 h-9 text-sm font-normal"
+                                                                            onClick={() => handleQuickActionSelect(action)}
+                                                                        >
+                                                                            <Icon className="h-4 w-4 text-primary shrink-0" />
+                                                                            <span className="truncate">{action.label}</span>
+                                                                        </Button>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                });
+                                            })()}
+                                        </div>
+                                    </SheetContent>
+                                </Sheet>
+                            )}
+                        </div>
+
+                        {/* Desktop: existing layout (hidden on mobile) */}
+                        <div className="hidden sm:block space-y-2">
                         {/* New Chat Button */}
                         <Button
                             variant="default"
@@ -600,7 +688,7 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
                                         More Actions ({quickActions.length - 6})
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="start" className="w-[280px] max-h-[400px] overflow-y-auto">
+                                <DropdownMenuContent align="start" className="w-[min(280px,calc(100vw-2rem))] max-h-[400px] overflow-y-auto">
                                     {(() => {
                                         const isSuper = currentRole === 'super_user' || currentRole === 'super_admin' || currentRole === 'owner';
                                         const isCustomer = currentRole === 'customer';
@@ -684,6 +772,7 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         )}
+                        </div>{/* end hidden sm:block desktop layout */}
                     </div>
                 )}
             </div>
@@ -726,7 +815,7 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
 
             {/* Thread List */}
             <ScrollArea className="flex-1">
-                <div className={cn('p-2', collapsed && 'flex flex-col items-center gap-1')}>
+                <div className={cn('p-2 pb-16 sm:pb-2', collapsed && 'flex flex-col items-center gap-1')}>
                     {/* Active Threads */}
                     {activeThreads.length > 0 && (
                         <>
