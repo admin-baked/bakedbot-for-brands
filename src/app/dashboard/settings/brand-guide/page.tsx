@@ -32,8 +32,14 @@ export default async function BrandGuideSettingsPage() {
     redirect('/login');
   }
 
-  // Resolve orgId — prefer currentOrgId (impersonation), then orgId, then brandId
-  const brandId = session.currentOrgId || session.orgId || session.brandId;
+  // Resolve orgId — prefer currentOrgId (impersonation), then orgId, then brandId.
+  // Super users without impersonation default to BakedBot AI's own brand guide.
+  const isSuperUser = session.role === 'super_user' || session.role === 'super_admin';
+  const brandId =
+    session.currentOrgId ||
+    session.orgId ||
+    session.brandId ||
+    (isSuperUser ? 'org_bakedbot_platform' : null);
 
   if (!brandId) {
     redirect('/dashboard/inbox');
