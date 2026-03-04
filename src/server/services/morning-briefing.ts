@@ -19,8 +19,10 @@ import { logger } from '@/lib/logger';
 import { getMarketBenchmarks } from '@/server/services/market-benchmarks';
 import { getDispensaryGreenLedgerSummary } from '@/server/services/greenledger';
 import { getOutreachStats } from '@/server/services/ny-outreach/outreach-service';
+import { getMeetingsForDay, getUpcomingMeetingsToday, getTomorrowsMeetings } from '@/server/services/calendar-digest';
+import { getEmailDigest, findSuperUserUid } from '@/server/services/email-digest';
 import { jinaSearch } from '@/server/tools/jina-tools';
-import type { AnalyticsBriefing, BriefingMetric, BriefingNewsItem } from '@/types/inbox';
+import type { AnalyticsBriefing, BriefingMetric, BriefingNewsItem, BriefingMeeting, BriefingEmailDigest } from '@/types/inbox';
 import {
     createInboxThreadId,
     createInboxArtifactId,
@@ -159,6 +161,48 @@ interface PendingReviewCounts {
     pendingOutreachDrafts: number;
     pendingBlogDrafts: number;
     unenrichedLeads: number;
+}
+
+/**
+ * Load today's meetings from BakedBot + Google Calendar.
+ */
+async function loadTodaysMeetings(): Promise<BriefingMeeting[]> {
+    try {
+        const items = await getMeetingsForDay(new Date());
+        return items.map(m => ({
+            title: m.title,
+            startTime: m.startTime,
+            source: m.source,
+            attendee: m.attendee,
+            profileSlug: m.profileSlug,
+        }));
+    } catch {
+        return [];
+    }
+}
+
+/**
+ * Load email digest for the super user (overnight emails since midnight).
+ */
+async function loadEmailDigest(sinceMs?: number): Promise<BriefingEmailDigest | null> {
+    try {
+        const uid = await findSuperUserUid();
+        if (!uid) return null;
+        const since = sinceMs ?? (() => {
+            const midnight = new Date();
+            midnight.setHours(0, 0, 0, 0);
+            return midnight.getTime();
+        })();
+        const digest = await getEmailDigest(uid, since);
+        if (!digest) return null;
+        return {
+            unreadCount: digest.unreadCount,
+            topEmails: digest.topEmails,
+            checkedAt: digest.checkedAt,
+        };
+    } catch {
+        return null;
+    }
 }
 
 /**
@@ -346,7 +390,7 @@ function buildMetrics(
 // ============ Core generation function ============
 
 export async function generateMorningBriefing(orgId: string): Promise<AnalyticsBriefing> {
-    const [benchmarks, products, yesterdayOrders, last7Orders, greenledgerSummary, outreachStatsResult, pendingCountsResult] = await Promise.allSettled([
+    const [benchmarks, products, yesterdayOrders, last7Orders, greenledgerSummary, outreachStatsResult, pendingCountsResult, meetingsResult, emailDigestResult] = await Promise.allSettled([
         getMarketBenchmarks(orgId),
         loadOrgProducts(orgId),
         loadYesterdayOrders(orgId),
@@ -354,6 +398,8 @@ export async function generateMorningBriefing(orgId: string): Promise<AnalyticsB
         getDispensaryGreenLedgerSummary(orgId),
         getOutreachStats(Date.now() - 24 * 60 * 60 * 1000),
         loadPendingCounts(),
+        loadTodaysMeetings(),
+        loadEmailDigest(), // emails since midnight
     ]);
 
     const bm = benchmarks.status === 'fulfilled' ? benchmarks.value : await getMarketBenchmarks('');
@@ -363,6 +409,8 @@ export async function generateMorningBriefing(orgId: string): Promise<AnalyticsB
     const glSummary = greenledgerSummary.status === 'fulfilled' ? greenledgerSummary.value : null;
     const outreachStats = outreachStatsResult.status === 'fulfilled' ? outreachStatsResult.value : null;
     const pendingCounts = pendingCountsResult.status === 'fulfilled' ? pendingCountsResult.value : null;
+    const meetings = meetingsResult.status === 'fulfilled' ? meetingsResult.value : [];
+    const emailDigest = emailDigestResult.status === 'fulfilled' ? emailDigestResult.value : null;
 
     // Build metrics
     const metrics = buildMetrics(yesterdayOrds, last7Ords, prods, bm, glSummary, outreachStats, pendingCounts);
@@ -420,20 +468,91 @@ export async function generateMorningBriefing(orgId: string): Promise<AnalyticsB
         urgencyLevel,
         topAlert,
         marketContext,
+        meetings: meetings.length > 0 ? meetings : undefined,
+        emailDigest: emailDigest ?? undefined,
+        pulseType: 'morning',
     };
 }
 
-// ============ Inbox post function ============
+// ============ Day Pulse (midday / evening) ============
 
-export async function postMorningBriefingToInbox(orgId: string): Promise<void> {
+/**
+ * Generate a lighter midday or evening pulse briefing.
+ * Midday: remaining meetings today + emails since morning + pending review.
+ * Evening: tomorrow's meetings preview + end-of-day email roundup.
+ */
+export async function generateDayPulse(pulseType: 'midday' | 'evening'): Promise<AnalyticsBriefing> {
+    const now = new Date();
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+    // Email window: midday = last 6h; evening = last 8h
+    const emailSinceMs = pulseType === 'midday'
+        ? now.getTime() - 6 * 60 * 60 * 1000
+        : now.getTime() - 8 * 60 * 60 * 1000;
+
+    const [meetingsResult, emailDigestResult, pendingCountsResult] = await Promise.allSettled([
+        pulseType === 'midday' ? getUpcomingMeetingsToday() : getTomorrowsMeetings(),
+        loadEmailDigest(emailSinceMs),
+        loadPendingCounts(),
+    ]);
+
+    const rawMeetings = meetingsResult.status === 'fulfilled' ? meetingsResult.value : [];
+    const emailDigest = emailDigestResult.status === 'fulfilled' ? emailDigestResult.value : null;
+    const pendingCounts = pendingCountsResult.status === 'fulfilled' ? pendingCountsResult.value : null;
+
+    const meetings: BriefingMeeting[] = rawMeetings.map(m => ({
+        title: m.title,
+        startTime: m.startTime,
+        source: m.source,
+        attendee: m.attendee,
+        profileSlug: m.profileSlug,
+    }));
+
+    // Lightweight metrics — only pending review items
+    const metrics: BriefingMetric[] = [];
+    if (pendingCounts && (pendingCounts.pendingOutreachDrafts > 0 || pendingCounts.pendingBlogDrafts > 0)) {
+        const items: string[] = [];
+        if (pendingCounts.pendingOutreachDrafts > 0) items.push(`${pendingCounts.pendingOutreachDrafts} outreach draft${pendingCounts.pendingOutreachDrafts !== 1 ? 's' : ''}`);
+        if (pendingCounts.pendingBlogDrafts > 0) items.push(`${pendingCounts.pendingBlogDrafts} blog draft${pendingCounts.pendingBlogDrafts !== 1 ? 's' : ''}`);
+        metrics.push({
+            title: 'Pending Review',
+            value: items.join(' · '),
+            trend: 'flat',
+            vsLabel: 'awaiting your approval',
+            status: 'warning',
+            actionable: 'Open Outreach and Content tabs to review and approve',
+        });
+    }
+
+    const contextLabels = {
+        midday: 'Midday Check-In',
+        evening: "Tomorrow's Preview",
+    };
+
+    return {
+        date: now.toISOString().split('T')[0],
+        dayOfWeek: dayNames[now.getDay()],
+        metrics,
+        newsItems: [],
+        urgencyLevel: metrics.length > 0 ? 'warning' : 'clean',
+        marketContext: contextLabels[pulseType],
+        meetings: meetings.length > 0 ? meetings : undefined,
+        emailDigest: emailDigest ?? undefined,
+        pulseType,
+    };
+}
+
+// ============ Inbox post functions ============
+
+/**
+ * Post any AnalyticsBriefing to the org's Daily Briefing thread.
+ * Used by midday-pulse and evening-pulse crons.
+ */
+export async function postPulseToInbox(orgId: string, briefing: AnalyticsBriefing): Promise<void> {
     const db = getAdminFirestore();
     const THREADS = 'inbox_threads';
     const ARTIFACTS = 'inbox_artifacts';
 
-    // Generate the briefing
-    const briefing = await generateMorningBriefing(orgId);
-
-    // Find or create a dedicated Daily Briefing thread
     let threadId: string;
     const existing = await db
         .collection(THREADS)
@@ -463,10 +582,11 @@ export async function postMorningBriefingToInbox(orgId: string): Promise<void> {
             updatedAt: FieldValue.serverTimestamp(),
             lastActivityAt: FieldValue.serverTimestamp(),
         });
-        logger.info('[MorningBriefing] Created new Daily Briefing thread', { orgId, threadId });
     }
 
-    // Create the analytics_briefing artifact
+    const pulseLabels = { morning: 'morning briefing', midday: 'midday check-in', evening: 'evening preview' };
+    const pulseLabel = pulseLabels[briefing.pulseType ?? 'morning'];
+
     const artifactId = createInboxArtifactId();
     await db.collection(ARTIFACTS).doc(artifactId).set({
         id: artifactId,
@@ -475,25 +595,36 @@ export async function postMorningBriefingToInbox(orgId: string): Promise<void> {
         type: 'analytics_briefing',
         status: 'approved',
         data: briefing,
-        rationale: 'Proactive daily briefing generated at 8 AM',
+        rationale: `Proactive ${pulseLabel} generated automatically`,
         createdBy: 'system',
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
     });
 
-    // Update thread: add artifact reference + bump lastActivityAt
     await db.collection(THREADS).doc(threadId).update({
         artifactIds: FieldValue.arrayUnion(artifactId),
         lastActivityAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
-        preview: `${briefing.dayOfWeek}'s briefing — ${briefing.urgencyLevel}`,
+        preview: `${briefing.dayOfWeek} ${pulseLabel} — ${briefing.urgencyLevel}`,
     });
 
-    logger.info('[MorningBriefing] Posted briefing artifact', {
+    logger.info('[Briefing] Posted pulse to inbox', {
         orgId,
         threadId,
         artifactId,
+        pulseType: briefing.pulseType,
+        urgencyLevel: briefing.urgencyLevel,
+    });
+}
+
+export async function postMorningBriefingToInbox(orgId: string): Promise<void> {
+    const briefing = await generateMorningBriefing(orgId);
+    await postPulseToInbox(orgId, briefing);
+    logger.info('[MorningBriefing] Posted morning briefing', {
+        orgId,
         urgencyLevel: briefing.urgencyLevel,
         metricsCount: briefing.metrics.length,
+        meetings: briefing.meetings?.length ?? 0,
+        emailUnread: briefing.emailDigest?.unreadCount ?? 0,
     });
 }

@@ -9,7 +9,7 @@
  */
 
 import React from 'react';
-import { TrendingUp, TrendingDown, Minus, ExternalLink, AlertTriangle, MapPin } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, ExternalLink, AlertTriangle, MapPin, Calendar, Mail } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { InboxArtifact, AnalyticsBriefing, BriefingMetric } from '@/types/inbox';
@@ -70,13 +70,19 @@ export function AnalyticsBriefingArtifact({ artifact, className }: Props) {
     const data = artifact.data as AnalyticsBriefing;
     const urgency = URGENCY_CONFIG[data.urgencyLevel];
 
+    const pulseLabel = data.pulseType === 'midday'
+        ? 'Midday Check-In'
+        : data.pulseType === 'evening'
+        ? "Tomorrow's Preview"
+        : `${data.dayOfWeek}'s Briefing`;
+
     return (
         <div className={cn('space-y-4', className)}>
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
                     <h3 className="font-semibold text-sm">
-                        {data.dayOfWeek}&apos;s Briefing · {formatDate(data.date)}
+                        {pulseLabel} · {formatDate(data.date)}
                     </h3>
                 </div>
                 <Badge variant="outline" className={cn('text-xs font-medium', urgency.className)}>
@@ -134,6 +140,65 @@ export function AnalyticsBriefingArtifact({ artifact, className }: Props) {
                             </div>
                         ))}
                     </div>
+                </div>
+            )}
+
+            {/* Today's / Tomorrow's Meetings */}
+            {data.meetings && data.meetings.length > 0 && (
+                <div className="space-y-2">
+                    <div className="flex items-center gap-1.5">
+                        <Calendar className="h-3 w-3 text-muted-foreground" />
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            {data.pulseType === 'evening' ? "Tomorrow's Meetings" : "Today's Meetings"}
+                        </p>
+                    </div>
+                    <div className="space-y-1.5">
+                        {data.meetings.map((meeting, i) => (
+                            <div key={i} className="flex items-center gap-2 p-2 rounded-md bg-white/4 border border-white/6">
+                                <span className="text-xs font-mono text-muted-foreground w-16 shrink-0">
+                                    {meeting.startTime}
+                                </span>
+                                <span className="text-xs font-medium flex-1 truncate">{meeting.title}</span>
+                                {meeting.attendee && (
+                                    <span className="text-xs text-muted-foreground truncate max-w-[100px]">
+                                        {meeting.attendee}
+                                    </span>
+                                )}
+                                <span className={cn(
+                                    'text-xs px-1.5 py-0.5 rounded-full font-medium shrink-0',
+                                    meeting.source === 'bakedbot'
+                                        ? 'bg-primary/20 text-primary'
+                                        : 'bg-blue-500/20 text-blue-400'
+                                )}>
+                                    {meeting.source === 'bakedbot' ? 'BB' : 'GCal'}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Email Digest */}
+            {data.emailDigest && (
+                <div className="space-y-2">
+                    <div className="flex items-center gap-1.5">
+                        <Mail className="h-3 w-3 text-muted-foreground" />
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            Inbox · {data.emailDigest.unreadCount} unread
+                        </p>
+                    </div>
+                    {data.emailDigest.topEmails.length > 0 ? (
+                        <div className="space-y-1.5">
+                            {data.emailDigest.topEmails.map((email, i) => (
+                                <div key={i} className="p-2 rounded-md bg-white/4 border border-white/6">
+                                    <p className="text-xs font-medium truncate">{email.subject}</p>
+                                    <p className="text-xs text-muted-foreground truncate">{email.from}</p>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-xs text-muted-foreground">No new messages in this window.</p>
+                    )}
                 </div>
             )}
 
