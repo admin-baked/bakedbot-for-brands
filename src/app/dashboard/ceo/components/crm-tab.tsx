@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Building2, Store, Search, Globe, CheckCircle, XCircle, Inbox, Send, ArrowUpDown, TrendingUp, Users, DollarSign, Trash2, Mail, MessageSquare, ThumbsDown, RefreshCw } from 'lucide-react';
+import { Loader2, Building2, Store, Search, Globe, CheckCircle, XCircle, Inbox, Send, ArrowUpDown, TrendingUp, Users, DollarSign, Trash2, Mail, MessageSquare, ThumbsDown, RefreshCw, FlaskConical, Brain, Sparkles, AlertTriangle, Lightbulb, Flag, ChevronDown, ChevronRight, TestTube2, CheckSquare, Square } from 'lucide-react';
 import {
     Table,
     TableBody,
@@ -32,6 +32,8 @@ import {
     getCRMStats,
     deleteCrmEntity,
     deleteUserByEmail,
+    markAccountAsTest,
+    getTestAccountCount,
     type CRMBrand,
     type CRMDispensary,
     type CRMLead,
@@ -48,8 +50,17 @@ import {
     getNYOutreachForCRM,
     addNYLeadNote,
     markNYLeadStatus,
+    getNYLeadDataQuality,
+    deduplicateNYLeads,
+    bulkDeleteNYLeads,
     type NYOutreachCRMLead,
 } from '@/server/actions/ny-outreach-dashboard';
+import {
+    getCRMAIInsights,
+    queryCRMWithAI,
+    getNextActionForUser,
+    type CRMAIInsight,
+} from '@/server/actions/crm-ai';
 
 const US_STATES = [
     'All States',
@@ -127,6 +138,35 @@ export default function CRMTab() {
     const [outreachFilter, setOutreachFilter] = useState('all');
     const [outreachSearch, setOutreachSearch] = useState('');
     const [noteInputs, setNoteInputs] = useState<Record<string, string>>({});
+
+    // NY Data Quality
+    const [dataQuality, setDataQuality] = useState<{ totalLeads?: number; dupCount?: number; noEmailCount?: number; incompleteCount?: number; avgScore?: number } | null>(null);
+    const [dataQualityLoading, setDataQualityLoading] = useState(false);
+    const [dedupLoading, setDedupLoading] = useState(false);
+    const [bulkDeleteLoading, setBulkDeleteLoading] = useState<string | null>(null);
+
+    // Jack AI Insights
+    const [aiInsights, setAiInsights] = useState<CRMAIInsight[]>([]);
+    const [aiInsightsLoading, setAiInsightsLoading] = useState(false);
+    const [dismissedInsights, setDismissedInsights] = useState<Set<string>>(new Set());
+
+    // AI Search
+    const [aiSearchQuery, setAiSearchQuery] = useState('');
+    const [aiSearchLoading, setAiSearchLoading] = useState(false);
+    const [aiSearchResult, setAiSearchResult] = useState<{ summary: string; filtersApplied: string } | null>(null);
+    const [isAiSearchMode, setIsAiSearchMode] = useState(false);
+
+    // Test account controls
+    const [showTestAccounts, setShowTestAccounts] = useState(false);
+    const [testAccountCount, setTestAccountCount] = useState(0);
+
+    // Bulk select
+    const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+
+    // Next action per user (lazy, keyed by userId)
+    const [nextActions, setNextActions] = useState<Record<string, string>>({});
+    const [nextActionsLoading, setNextActionsLoading] = useState<Set<string>>(new Set());
+    const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
     // Sorting State
     const [brandSort, setBrandSort] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'name', direction: 'asc' });
@@ -213,6 +253,9 @@ export default function CRMTab() {
         loadLeads();
         loadUsers();
         loadOutreachLeads();
+        loadAIInsights();
+        loadDataQuality();
+        getTestAccountCount().then(setTestAccountCount).catch(() => {});
     }, []);
 
     const loadStats = async () => {
@@ -274,10 +317,11 @@ export default function CRMTab() {
         }
     };
 
-    const loadUsers = async () => {
+    const loadUsers = async (overrideShowTest?: boolean) => {
         setUsersLoading(true);
+        setAiSearchResult(null);
         try {
-            const filters: CRMFilters = { limit: 200 };
+            const filters: CRMFilters = { limit: 200, includeTest: overrideShowTest ?? showTestAccounts };
             if (userSearch) filters.search = userSearch;
             if (userLifecycleFilter !== 'all') filters.lifecycleStage = userLifecycleFilter;
             const data = await getPlatformUsers(filters);
@@ -404,6 +448,166 @@ export default function CRMTab() {
         }
     };
 
+    // Mark a user as test account
+    const handleMarkAsTest = async (userId: string, name: string, isTest: boolean) => {
+        try {
+            await markAccountAsTest(userId, isTest);
+            toast({ title: isTest ? 'Marked as test' : 'Unmarked', description: `${name} ${isTest ? 'excluded from stats' : 'included in stats'}.` });
+            loadUsers();
+            const count = await getTestAccountCount();
+            setTestAccountCount(count);
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Error', description: e.message });
+        }
+    };
+
+    // Bulk mark selected users as test
+    const handleBulkMarkAsTest = async () => {
+        if (selectedUserIds.size === 0) return;
+        if (!confirm(`Mark ${selectedUserIds.size} account(s) as test? They will be excluded from all metrics.`)) return;
+        for (const id of Array.from(selectedUserIds)) {
+            const user = users.find(u => u.id === id);
+            if (user) await markAccountAsTest(id, true);
+        }
+        setSelectedUserIds(new Set());
+        loadUsers();
+        const count = await getTestAccountCount();
+        setTestAccountCount(count);
+        toast({ title: `${selectedUserIds.size} accounts marked as test` });
+    };
+
+    // Bulk delete selected users
+    const handleBulkDelete = async () => {
+        if (selectedUserIds.size === 0) return;
+        if (!confirm(`Delete ${selectedUserIds.size} account(s)? This cannot be undone and will remove all subcollections.`)) return;
+        for (const id of Array.from(selectedUserIds)) {
+            const user = users.find(u => u.id === id);
+            await deleteCrmEntity(id, 'user');
+            toast({ title: `Deleted ${user?.displayName || id}` });
+        }
+        setSelectedUserIds(new Set());
+        loadUsers();
+    };
+
+    // Load Jack AI insights
+    const loadAIInsights = async () => {
+        setAiInsightsLoading(true);
+        try {
+            const result = await getCRMAIInsights();
+            if (result.success && result.insights) {
+                setAiInsights(result.insights);
+            }
+        } catch (e: any) {
+            console.error('Failed to load AI insights', e);
+        } finally {
+            setAiInsightsLoading(false);
+        }
+    };
+
+    // AI natural language search
+    const handleAISearch = async () => {
+        if (!aiSearchQuery.trim()) return;
+        setAiSearchLoading(true);
+        setAiSearchResult(null);
+        try {
+            const result = await queryCRMWithAI(aiSearchQuery);
+            if (result.success && result.result) {
+                setUsers(result.result.users);
+                setAiSearchResult({ summary: result.result.summary, filtersApplied: result.result.filtersApplied });
+                setUsersPage(1);
+            } else {
+                toast({ variant: 'destructive', title: 'Search failed', description: result.error });
+            }
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Error', description: e.message });
+        } finally {
+            setAiSearchLoading(false);
+        }
+    };
+
+    // Toggle row expand and lazy-load next action
+    const handleToggleRow = async (userId: string) => {
+        const next = new Set(expandedRows);
+        if (next.has(userId)) {
+            next.delete(userId);
+        } else {
+            next.add(userId);
+            // Lazy-load next action if not cached
+            if (!nextActions[userId]) {
+                const loading = new Set(nextActionsLoading);
+                loading.add(userId);
+                setNextActionsLoading(loading);
+                try {
+                    const result = await getNextActionForUser(userId);
+                    if (result.success && result.nextAction) {
+                        setNextActions(prev => ({ ...prev, [userId]: result.nextAction! }));
+                    }
+                } catch {
+                    // silently fail
+                } finally {
+                    const l = new Set(nextActionsLoading);
+                    l.delete(userId);
+                    setNextActionsLoading(l);
+                }
+            }
+        }
+        setExpandedRows(next);
+    };
+
+    // Load NY data quality stats
+    const loadDataQuality = async () => {
+        setDataQualityLoading(true);
+        try {
+            const result = await getNYLeadDataQuality();
+            if (result.success) setDataQuality(result);
+        } catch (e: any) {
+            console.error('Data quality load failed', e);
+        } finally {
+            setDataQualityLoading(false);
+        }
+    };
+
+    // Run deduplication
+    const handleRunDedup = async () => {
+        if (!confirm('Scan all NY leads for duplicates and score data quality? This may take 10-30 seconds.')) return;
+        setDedupLoading(true);
+        try {
+            const result = await deduplicateNYLeads();
+            if (result.success) {
+                toast({ title: 'Dedup complete', description: `${result.marked} duplicates marked, ${result.scored} leads scored.` });
+                loadOutreachLeads();
+                loadDataQuality();
+            }
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Dedup failed', description: e.message });
+        } finally {
+            setDedupLoading(false);
+        }
+    };
+
+    // Bulk delete NY leads
+    const handleBulkDeleteNY = async (filter: 'duplicates' | 'no_email' | 'incomplete') => {
+        const labels: Record<string, string> = {
+            duplicates: 'duplicate leads',
+            no_email: 'leads with no email',
+            incomplete: 'incomplete leads (score < 40%)',
+        };
+        if (!confirm(`Delete all ${labels[filter]}? This cannot be undone.`)) return;
+        setBulkDeleteLoading(filter);
+        try {
+            const result = await bulkDeleteNYLeads(filter);
+            if (result.success) {
+                toast({ title: 'Deleted', description: `${result.deleted} ${labels[filter]} removed.` });
+                loadOutreachLeads();
+                loadDataQuality();
+            }
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Delete failed', description: e.message });
+        } finally {
+            setBulkDeleteLoading(null);
+        }
+    };
+
     const SortIcon = ({ column, currentSort }: { column: string, currentSort: { key: string, direction: 'asc' | 'desc' } }) => {
         if (currentSort.key !== column) return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
         return currentSort.direction === 'asc' ?
@@ -414,9 +618,74 @@ export default function CRMTab() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div>
-                <h2 className="text-2xl font-bold">BakedBot CRM</h2>
-                <p className="text-muted-foreground">Full company CRM with user lifecycle tracking and MRR</p>
+            <div className="flex items-start justify-between gap-4">
+                <div>
+                    <h2 className="text-2xl font-bold flex items-center gap-2">
+                        <Brain className="h-6 w-6 text-purple-500" />
+                        BakedBot CRM
+                    </h2>
+                    <p className="text-muted-foreground">AI-native CRM powered by Jack · lifecycle tracking · MRR</p>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => { loadAIInsights(); loadStats(); loadUsers(); }} disabled={aiInsightsLoading}>
+                    <RefreshCw className={`h-4 w-4 mr-2 ${aiInsightsLoading ? 'animate-spin' : ''}`} />
+                    Refresh
+                </Button>
+            </div>
+
+            {/* Jack AI Insights Panel */}
+            <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium text-purple-700 dark:text-purple-400">
+                    <Sparkles className="h-4 w-4" />
+                    Jack&apos;s Intelligence Feed
+                    {aiInsightsLoading && <Loader2 className="h-3 w-3 animate-spin" />}
+                </div>
+                {aiInsightsLoading ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {[1,2,3].map(i => (
+                            <div key={i} className="h-14 bg-muted rounded-lg animate-pulse" />
+                        ))}
+                    </div>
+                ) : aiInsights.filter(i => !dismissedInsights.has(i.id)).length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No active insights. Jack is watching.</p>
+                ) : (
+                    <div className="flex flex-wrap gap-2">
+                        {aiInsights.filter(i => !dismissedInsights.has(i.id)).map(insight => (
+                            <div
+                                key={insight.id}
+                                className={`flex items-center gap-2 px-3 py-2 rounded-full text-sm border ${
+                                    insight.type === 'alert' ? 'bg-red-50 border-red-200 text-red-800 dark:bg-red-950 dark:border-red-800 dark:text-red-200'
+                                    : insight.type === 'opportunity' ? 'bg-green-50 border-green-200 text-green-800 dark:bg-green-950 dark:border-green-800 dark:text-green-200'
+                                    : 'bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-200'
+                                }`}
+                            >
+                                {insight.type === 'alert' ? <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                                    : insight.type === 'opportunity' ? <Lightbulb className="h-3.5 w-3.5 shrink-0" />
+                                    : <Flag className="h-3.5 w-3.5 shrink-0" />}
+                                <span>{insight.message}</span>
+                                {insight.count !== undefined && (
+                                    <Badge variant="secondary" className="text-xs px-1.5 py-0 h-5">{insight.count}</Badge>
+                                )}
+                                {insight.action && (
+                                    <button
+                                        className="underline underline-offset-2 font-medium hover:opacity-70 text-xs shrink-0"
+                                        onClick={() => {
+                                            if (insight.filterHint?.lifecycleStage) {
+                                                setUserLifecycleFilter(insight.filterHint.lifecycleStage);
+                                                loadUsers();
+                                            }
+                                        }}
+                                    >
+                                        {insight.action}
+                                    </button>
+                                )}
+                                <button
+                                    className="ml-1 opacity-40 hover:opacity-100 shrink-0"
+                                    onClick={() => setDismissedInsights(prev => new Set([...prev, insight.id]))}
+                                >×</button>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Stats Cards */}
@@ -447,7 +716,12 @@ export default function CRMTab() {
                     <>
                         <Card>
                             <CardHeader className="pb-2">
-                                <CardDescription>Platform Users</CardDescription>
+                                <CardDescription className="flex items-center gap-1">
+                                    Platform Users
+                                    {testAccountCount > 0 && !showTestAccounts && (
+                                        <span className="text-xs text-muted-foreground">(-{testAccountCount} test)</span>
+                                    )}
+                                </CardDescription>
                                 <CardTitle className="text-2xl text-purple-600">{userStats.totalUsers}</CardTitle>
                             </CardHeader>
                         </Card>
@@ -462,6 +736,9 @@ export default function CRMTab() {
                                 <CardDescription className="flex items-center gap-1">
                                     <DollarSign className="h-3 w-3" />
                                     Total MRR
+                                    {testAccountCount > 0 && !showTestAccounts && (
+                                        <span className="text-xs text-muted-foreground">(excl. test)</span>
+                                    )}
                                 </CardDescription>
                                 <CardTitle className="text-2xl text-green-600">${userStats.totalMRR.toLocaleString()}</CardTitle>
                             </CardHeader>
@@ -499,37 +776,114 @@ export default function CRMTab() {
                 <TabsContent value="users" className="space-y-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Platform Users</CardTitle>
+                            <CardTitle className="flex items-center gap-2">
+                                Platform Users
+                                {selectedUserIds.size > 0 && (
+                                    <span className="ml-2 flex items-center gap-2">
+                                        <Badge variant="secondary">{selectedUserIds.size} selected</Badge>
+                                        <Button size="sm" variant="outline" onClick={handleBulkMarkAsTest} className="h-7 text-xs gap-1">
+                                            <FlaskConical className="h-3 w-3" />
+                                            Mark Test
+                                        </Button>
+                                        <Button size="sm" variant="destructive" onClick={handleBulkDelete} className="h-7 text-xs gap-1">
+                                            <Trash2 className="h-3 w-3" />
+                                            Delete
+                                        </Button>
+                                        <button className="text-xs text-muted-foreground underline" onClick={() => setSelectedUserIds(new Set())}>clear</button>
+                                    </span>
+                                )}
+                            </CardTitle>
                             <CardDescription>
                                 All registered users with lifecycle tracking and MRR from Authorize.net
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            {/* Filters */}
-                            <div className="flex gap-2 flex-wrap">
-                                <Input
-                                    placeholder="Search users..."
-                                    value={userSearch}
-                                    onChange={(e) => setUserSearch(e.target.value)}
-                                    className="max-w-xs"
-                                />
-                                <Select value={userLifecycleFilter} onValueChange={(v) => setUserLifecycleFilter(v as CRMLifecycleStage | 'all')}>
-                                    <SelectTrigger className="w-[180px]">
-                                        <SelectValue placeholder="Lifecycle Stage" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Stages</SelectItem>
-                                        {Object.entries(LIFECYCLE_STAGE_CONFIG).map(([key, config]) => (
-                                            <SelectItem key={key} value={key}>{config.label}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <Button onClick={loadUsers}>
-                                    <Search className="h-4 w-4" />
-                                </Button>
-                                <Button variant="destructive" size="icon" onClick={handleCleanup} title="Force User Cleanup">
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
+                            {/* AI Search Bar */}
+                            <div className="space-y-2">
+                                <div className="flex gap-2 flex-wrap">
+                                    <div className="relative flex-1 min-w-[200px]">
+                                        {isAiSearchMode ? (
+                                            <div className="flex gap-1">
+                                                <div className="relative flex-1">
+                                                    <Sparkles className="absolute left-2 top-2.5 h-4 w-4 text-purple-400" />
+                                                    <Input
+                                                        placeholder='Ask Jack: "show me VIP users inactive 30+ days"'
+                                                        value={aiSearchQuery}
+                                                        onChange={(e) => setAiSearchQuery(e.target.value)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && handleAISearch()}
+                                                        className="pl-8"
+                                                    />
+                                                </div>
+                                                <Button onClick={handleAISearch} disabled={aiSearchLoading} className="bg-purple-600 hover:bg-purple-700">
+                                                    {aiSearchLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            <div className="flex gap-1">
+                                                <Input
+                                                    placeholder="Search users..."
+                                                    value={userSearch}
+                                                    onChange={(e) => setUserSearch(e.target.value)}
+                                                    onKeyDown={(e) => e.key === 'Enter' && loadUsers()}
+                                                    className="max-w-xs"
+                                                />
+                                                <Button onClick={() => loadUsers()}>
+                                                    <Search className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <Button
+                                        variant={isAiSearchMode ? 'default' : 'outline'}
+                                        size="sm"
+                                        onClick={() => {
+                                            setIsAiSearchMode(!isAiSearchMode);
+                                            setAiSearchResult(null);
+                                            if (isAiSearchMode) loadUsers();
+                                        }}
+                                        className={isAiSearchMode ? 'bg-purple-600 hover:bg-purple-700' : ''}
+                                    >
+                                        <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                                        {isAiSearchMode ? 'AI Search' : 'AI Search'}
+                                    </Button>
+                                    <Select value={userLifecycleFilter} onValueChange={(v) => setUserLifecycleFilter(v as CRMLifecycleStage | 'all')}>
+                                        <SelectTrigger className="w-[180px]">
+                                            <SelectValue placeholder="Lifecycle Stage" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">All Stages</SelectItem>
+                                            {Object.entries(LIFECYCLE_STAGE_CONFIG).map(([key, config]) => (
+                                                <SelectItem key={key} value={key}>{config.label}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {/* Test account toggle */}
+                                    <Button
+                                        variant={showTestAccounts ? 'secondary' : 'outline'}
+                                        size="sm"
+                                        onClick={() => {
+                                            const next = !showTestAccounts;
+                                            setShowTestAccounts(next);
+                                            loadUsers(next);
+                                        }}
+                                        className="gap-1.5"
+                                    >
+                                        <TestTube2 className="h-3.5 w-3.5" />
+                                        {showTestAccounts ? `Showing test (${testAccountCount})` : testAccountCount > 0 ? `Hide ${testAccountCount} test` : 'Test accounts'}
+                                    </Button>
+                                    <Button variant="destructive" size="icon" onClick={handleCleanup} title="Force User Cleanup">
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                                {/* AI Search result summary */}
+                                {aiSearchResult && (
+                                    <div className="flex items-center gap-2 text-sm px-3 py-2 bg-purple-50 dark:bg-purple-950 rounded-lg border border-purple-200 dark:border-purple-800">
+                                        <Sparkles className="h-3.5 w-3.5 text-purple-500 shrink-0" />
+                                        <span className="text-purple-800 dark:text-purple-200 font-medium">{aiSearchResult.summary}</span>
+                                        <span className="text-purple-400 text-xs ml-auto shrink-0">{aiSearchResult.filtersApplied}</span>
+                                        <button className="text-xs text-muted-foreground underline shrink-0" onClick={() => { setAiSearchResult(null); loadUsers(); }}>clear</button>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Table */}
@@ -545,6 +899,21 @@ export default function CRMTab() {
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
+                                            <TableHead className="w-8">
+                                                <button
+                                                    onClick={() => {
+                                                        if (selectedUserIds.size === paginatedUsers.length) {
+                                                            setSelectedUserIds(new Set());
+                                                        } else {
+                                                            setSelectedUserIds(new Set(paginatedUsers.map(u => u.id)));
+                                                        }
+                                                    }}
+                                                >
+                                                    {selectedUserIds.size === paginatedUsers.length && paginatedUsers.length > 0
+                                                        ? <CheckSquare className="h-4 w-4" />
+                                                        : <Square className="h-4 w-4" />}
+                                                </button>
+                                            </TableHead>
                                             <TableHead>User</TableHead>
                                             <TableHead>Type</TableHead>
                                             <TableHead>Lifecycle</TableHead>
@@ -557,14 +926,33 @@ export default function CRMTab() {
                                     </TableHeader>
                                     <TableBody>
                                         {paginatedUsers.map((user) => (
-                                            <TableRow key={user.id}>
+                                            <>
+                                            <TableRow
+                                                key={user.id}
+                                                className={`cursor-pointer ${user.isTestAccount ? 'opacity-60 bg-muted/30' : ''}`}
+                                                onClick={() => handleToggleRow(user.id)}
+                                            >
+                                                <TableCell onClick={e => e.stopPropagation()}>
+                                                    <button onClick={() => {
+                                                        const next = new Set(selectedUserIds);
+                                                        next.has(user.id) ? next.delete(user.id) : next.add(user.id);
+                                                        setSelectedUserIds(next);
+                                                    }}>
+                                                        {selectedUserIds.has(user.id) ? <CheckSquare className="h-4 w-4 text-primary" /> : <Square className="h-4 w-4 text-muted-foreground" />}
+                                                    </button>
+                                                </TableCell>
                                                 <TableCell>
                                                     <div className="flex items-center gap-2">
                                                         {user.photoUrl && (
                                                             <img src={user.photoUrl} alt="" className="h-8 w-8 rounded-full" />
                                                         )}
                                                         <div>
-                                                            <div className="font-medium">{user.displayName}</div>
+                                                            <div className="font-medium flex items-center gap-1.5">
+                                                                {user.displayName}
+                                                                {user.isTestAccount && (
+                                                                    <Badge variant="outline" className="text-xs px-1 py-0 h-4 text-gray-500 border-gray-300">TEST</Badge>
+                                                                )}
+                                                            </div>
                                                             <div className="text-xs text-muted-foreground">{user.email}</div>
                                                         </div>
                                                     </div>
@@ -589,29 +977,35 @@ export default function CRMTab() {
                                                 <TableCell className="text-xs text-muted-foreground">
                                                     {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'Never'}
                                                 </TableCell>
-                                                <TableCell className="text-right">
-                                                    <div className="flex items-center justify-end gap-2">
+                                                <TableCell className="text-right" onClick={e => e.stopPropagation()}>
+                                                    <div className="flex items-center justify-end gap-1">
+                                                        <button
+                                                            className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                                                            title={user.isTestAccount ? 'Unmark test account' : 'Mark as test account'}
+                                                            onClick={() => handleMarkAsTest(user.id, user.displayName, !user.isTestAccount)}
+                                                        >
+                                                            <FlaskConical className={`h-3.5 w-3.5 ${user.isTestAccount ? 'text-amber-500' : ''}`} />
+                                                        </button>
                                                         {user.approvalStatus !== 'approved' && (
                                                             <>
                                                                 <Button
                                                                     variant="outline"
                                                                     size="sm"
-                                                                    className="h-8 px-2 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                                                    className="h-7 px-2 text-green-600 hover:text-green-700 hover:bg-green-50"
                                                                     onClick={() => handleApproveUser(user.id, user.displayName)}
                                                                     title="Approve User"
                                                                 >
-                                                                    <CheckCircle className="h-4 w-4" />
-                                                                    <span className="ml-1">Approve</span>
+                                                                    <CheckCircle className="h-3.5 w-3.5" />
                                                                 </Button>
                                                                 {user.approvalStatus === 'pending' && (
                                                                     <Button
                                                                         variant="outline"
                                                                         size="sm"
-                                                                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                                        className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                                                                         onClick={() => handleRejectUser(user.id, user.displayName)}
                                                                         title="Reject User"
                                                                     >
-                                                                        <XCircle className="h-4 w-4" />
+                                                                        <XCircle className="h-3.5 w-3.5" />
                                                                     </Button>
                                                                 )}
                                                             </>
@@ -619,15 +1013,38 @@ export default function CRMTab() {
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
-                                                            className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive rounded-full"
+                                                            className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive rounded-full"
                                                             onClick={() => handleDelete('user', user.id, user.displayName)}
-                                                            title="Delete User"
+                                                            title="Delete User (cascade)"
                                                         >
-                                                            <Trash2 className="h-4 w-4" />
+                                                            <Trash2 className="h-3.5 w-3.5" />
                                                         </Button>
+                                                        <span className="text-muted-foreground">
+                                                            {expandedRows.has(user.id) ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                                                        </span>
                                                     </div>
                                                 </TableCell>
                                             </TableRow>
+                                            {expandedRows.has(user.id) && (
+                                                <TableRow key={`${user.id}-expanded`} className="bg-muted/20">
+                                                    <TableCell colSpan={9} className="py-2 px-4">
+                                                        <div className="flex items-center gap-2 text-sm">
+                                                            <Sparkles className="h-3.5 w-3.5 text-purple-400 shrink-0" />
+                                                            <span className="text-muted-foreground text-xs font-medium">Jack suggests:</span>
+                                                            {nextActionsLoading.has(user.id) ? (
+                                                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                                                    <Loader2 className="h-3 w-3 animate-spin" /> Thinking...
+                                                                </span>
+                                                            ) : nextActions[user.id] ? (
+                                                                <span className="text-sm text-foreground">{nextActions[user.id]}</span>
+                                                            ) : (
+                                                                <span className="text-xs text-muted-foreground italic">No suggestion available</span>
+                                                            )}
+                                                        </div>
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+                                            </>
                                         ))}
                                     </TableBody>
                                 </Table>
@@ -1107,6 +1524,51 @@ export default function CRMTab() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
+                            {/* Data Quality Banner */}
+                            {dataQuality && (
+                                <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+                                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                                        <div className="flex items-center gap-2 text-sm font-medium">
+                                            <AlertTriangle className="h-4 w-4 text-amber-500" />
+                                            Data Quality
+                                        </div>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={handleRunDedup} disabled={dedupLoading}>
+                                                {dedupLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                                                Run Dedup &amp; Score
+                                            </Button>
+                                            {(dataQuality.dupCount ?? 0) > 0 && (
+                                                <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => handleBulkDeleteNY('duplicates')} disabled={bulkDeleteLoading === 'duplicates'}>
+                                                    {bulkDeleteLoading === 'duplicates' ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                                                    Delete {dataQuality.dupCount} Dupes
+                                                </Button>
+                                            )}
+                                            {(dataQuality.noEmailCount ?? 0) > 0 && (
+                                                <Button size="sm" variant="outline" className="h-7 text-xs text-red-600 border-red-200" onClick={() => handleBulkDeleteNY('no_email')} disabled={bulkDeleteLoading === 'no_email'}>
+                                                    {bulkDeleteLoading === 'no_email' ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                                                    Delete {dataQuality.noEmailCount} No-Email
+                                                </Button>
+                                            )}
+                                            {(dataQuality.incompleteCount ?? 0) > 0 && (
+                                                <Button size="sm" variant="outline" className="h-7 text-xs text-orange-600 border-orange-200" onClick={() => handleBulkDeleteNY('incomplete')} disabled={bulkDeleteLoading === 'incomplete'}>
+                                                    {bulkDeleteLoading === 'incomplete' ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                                                    Delete {dataQuality.incompleteCount} Incomplete
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+                                        <span><span className="font-medium text-foreground">{dataQuality.totalLeads}</span> total leads</span>
+                                        <span className={`font-medium ${(dataQuality.dupCount ?? 0) > 0 ? 'text-red-500' : 'text-green-600'}`}>{dataQuality.dupCount ?? '—'} dupes</span>
+                                        <span className={`font-medium ${(dataQuality.noEmailCount ?? 0) > 0 ? 'text-amber-500' : 'text-green-600'}`}>{dataQuality.noEmailCount ?? '—'} no email</span>
+                                        <span>Avg score: <span className={`font-medium ${(dataQuality.avgScore ?? 0) < 50 ? 'text-red-500' : (dataQuality.avgScore ?? 0) < 70 ? 'text-amber-500' : 'text-green-600'}`}>{dataQuality.avgScore ?? '—'}%</span></span>
+                                    </div>
+                                </div>
+                            )}
+                            {dataQualityLoading && !dataQuality && (
+                                <div className="h-16 bg-muted rounded-lg animate-pulse" />
+                            )}
+
                             {/* Filters */}
                             <div className="flex gap-2 flex-wrap">
                                 <Input
@@ -1153,6 +1615,7 @@ export default function CRMTab() {
                                             <TableHead>City</TableHead>
                                             <TableHead>Contact</TableHead>
                                             <TableHead>Email</TableHead>
+                                            <TableHead>Quality</TableHead>
                                             <TableHead>Status</TableHead>
                                             <TableHead>Outreach</TableHead>
                                             <TableHead>Notes</TableHead>
@@ -1161,9 +1624,14 @@ export default function CRMTab() {
                                     </TableHeader>
                                     <TableBody>
                                         {paginatedOutreachLeads.map((lead) => (
-                                            <TableRow key={lead.id}>
+                                            <TableRow key={lead.id} className={lead.isDuplicate ? 'opacity-50' : ''}>
                                                 <TableCell className="font-medium max-w-[180px]">
-                                                    <div className="truncate">{lead.dispensaryName}</div>
+                                                    <div className="flex items-center gap-1">
+                                                        <span className="truncate">{lead.dispensaryName}</span>
+                                                        {lead.isDuplicate && (
+                                                            <Badge variant="outline" className="text-xs px-1 py-0 h-4 text-red-500 border-red-300 shrink-0" title={`Duplicate of: ${lead.duplicateOf || 'another lead'}`}>DUP</Badge>
+                                                        )}
+                                                    </div>
                                                     {lead.websiteUrl && (
                                                         <a href={lead.websiteUrl} target="_blank" rel="noopener noreferrer"
                                                             className="text-xs text-blue-500 hover:underline flex items-center gap-1">
@@ -1183,6 +1651,23 @@ export default function CRMTab() {
                                                         </a>
                                                     ) : (
                                                         <span className="text-muted-foreground text-xs">No email</span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {lead.dataQualityScore !== undefined ? (
+                                                        <div className="flex items-center gap-1.5">
+                                                            <div className="w-12 h-1.5 rounded-full bg-muted overflow-hidden">
+                                                                <div
+                                                                    className={`h-full rounded-full ${lead.dataQualityScore >= 70 ? 'bg-green-500' : lead.dataQualityScore >= 40 ? 'bg-amber-500' : 'bg-red-500'}`}
+                                                                    style={{ width: `${lead.dataQualityScore}%` }}
+                                                                />
+                                                            </div>
+                                                            <span className={`text-xs font-medium ${lead.dataQualityScore >= 70 ? 'text-green-600' : lead.dataQualityScore >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
+                                                                {lead.dataQualityScore}%
+                                                            </span>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-xs text-muted-foreground">—</span>
                                                     )}
                                                 </TableCell>
                                                 <TableCell>

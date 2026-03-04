@@ -63,6 +63,8 @@ export interface CRMFilters {
     lifecycleStage?: CRMLifecycleStage;
     /** Only return users who signed up on or after this date */
     signupAfter?: Date;
+    /** Include test accounts in results (default: false — test accounts excluded) */
+    includeTest?: boolean;
 }
 
 // NOTE: LIFECYCLE_STAGE_CONFIG, CRMLifecycleStage, and CRMUser are in crm-types.ts
@@ -684,8 +686,15 @@ export async function getPlatformUsers(filters: CRMFilters = {}): Promise<CRMUse
             orgName: data.orgName || null,
             notes: data.crmNotes || null,
             approvalStatus: data.approvalStatus || 'approved', // Default to approved for legacy/existing
+            isTestAccount: data.isTestAccount === true,
+            isTestMarkedAt: coerceDate(data.isTestMarkedAt) || null,
         } as CRMUser;
     });
+
+    // Filter out test accounts by default (include only if explicitly requested)
+    if (!filters.includeTest) {
+        users = users.filter(u => !u.isTestAccount);
+    }
 
     // Filter by lifecycle stage
     if (filters.lifecycleStage) {
@@ -903,7 +912,58 @@ export async function addCRMNote(
 }
 
 /**
- * Delete a CRM entity (Brand or Dispensary)
+ * Mark a user as a test account (excludes them from CRM stats and metrics)
+ */
+export async function markAccountAsTest(userId: string, isTest: boolean): Promise<void> {
+    await requireUser(['super_user']);
+    const firestore = getAdminFirestore();
+    await firestore.collection('users').doc(userId).update({
+        isTestAccount: isTest,
+        isTestMarkedAt: isTest ? new Date() : null,
+    });
+}
+
+/**
+ * Get count of test accounts (for stats footnote)
+ */
+export async function getTestAccountCount(): Promise<number> {
+    await requireUser(['super_user']);
+    const firestore = getAdminFirestore();
+    const snap = await firestore.collection('users').where('isTestAccount', '==', true).get();
+    return snap.size;
+}
+
+/**
+ * Delete all documents in known user subcollections (batch delete, max 500 per collection)
+ */
+async function deleteUserSubcollections(
+    firestore: FirebaseFirestore.Firestore,
+    uid: string
+): Promise<void> {
+    const subcollections = [
+        'crm_notes', 'sessions', 'integrations', 'notifications', 'passport',
+        'chat_sessions', 'drop_alerts', 'user_sessions', 'tasks',
+    ];
+    for (const sub of subcollections) {
+        try {
+            const snap = await firestore
+                .collection('users').doc(uid)
+                .collection(sub)
+                .limit(500)
+                .get();
+            if (!snap.empty) {
+                const batch = firestore.batch();
+                snap.docs.forEach(doc => batch.delete(doc.ref));
+                await batch.commit();
+            }
+        } catch {
+            // Subcollection may not exist — safe to ignore
+        }
+    }
+}
+
+/**
+ * Delete a CRM entity (Brand, Dispensary, or User with full cascade)
  * Only for admin cleanup
  */
 export async function deleteCrmEntity(
@@ -915,14 +975,17 @@ export async function deleteCrmEntity(
 
     if (type === 'user') {
         const auth = getAdminAuth();
+        // 1. Delete from Firebase Auth
         try {
             await auth.deleteUser(id);
         } catch (error: any) {
-            // Ignore if user not found (already deleted or ghost)
             if (error.code !== 'auth/user-not-found') {
                 console.error('Error deleting user from Auth:', error);
             }
         }
+        // 2. Delete all subcollections
+        await deleteUserSubcollections(firestore, id);
+        // 3. Delete main user doc
         await firestore.collection('users').doc(id).delete();
         return;
     }
