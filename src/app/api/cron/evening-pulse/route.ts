@@ -22,7 +22,7 @@ import { generateDayPulse, postPulseToInbox } from '@/server/services/morning-br
 
 export const dynamic = 'force-dynamic';
 
-const PLATFORM_ORG_ID = 'org_bakedbot_platform';
+const PLATFORM_ORG_ID = 'bakedbot_super_admin';
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
     const authError = await requireCronSecret(request, 'evening-pulse');
