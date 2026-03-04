@@ -380,8 +380,8 @@ export interface AnalyticsBriefing {
     topAlert?: string;     // Most urgent single-line alert if any
     marketContext: string; // e.g., "NY Limited License | Early Market"
     // Proactive calendar + email (optional — added 2026-03-03)
-    meetings?: BriefingMeeting[];         // Today's or tomorrow's meetings
-    emailDigest?: BriefingEmailDigest;    // Recent unread email summary
+    meetings?: BriefingMeeting[] | null;  // Today's or tomorrow's meetings
+    emailDigest?: BriefingEmailDigest | null; // Recent unread email summary
     pulseType?: 'morning' | 'midday' | 'evening'; // Which check generated this
 }
 
