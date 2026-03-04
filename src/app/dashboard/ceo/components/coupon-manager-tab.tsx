@@ -34,7 +34,7 @@ interface CouponRow {
   uses: number;
   active: boolean;
   maxUses?: number;
-  expiresAt?: Date | null;
+  expiresAt?: string | null;
 }
 
 export default function CouponManagerTab() {
@@ -257,7 +257,7 @@ export default function CouponManagerTab() {
                     </div>
                     {coupon.expiresAt && (
                       <div className="text-xs text-muted-foreground">
-                        Exp {format(new Date(coupon.expiresAt), 'MMM d, yyyy')}
+                        Exp {format(coupon.expiresAt, 'MMM d, yyyy')}
                       </div>
                     )}
                   </TableCell>

@@ -21,9 +21,11 @@ import { requireCronSecret } from '@/server/auth/cron';
 import { logger } from '@/lib/logger';
 import { getAdminFirestore } from '@/firebase/admin';
 import { getMeetingsForDay, getUpcomingMeetingsToday } from '@/server/services/calendar-digest';
+import type { BriefingMeeting } from '@/types/inbox';
 import { findSuperUserUid, getEmailDigest } from '@/server/services/email-digest';
 import { searchWeb, formatSearchResults } from '@/server/tools/web-search';
 import { callClaude } from '@/ai/claude';
+import { EXEC_CONTEXT_CACHE_DOC } from '@/app/api/cron/executive-context-prewarm/route';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 min — Claude calls + search can be slow
@@ -47,10 +49,32 @@ interface ExecDomainBrief {
 
 async function loadExecutiveContext() {
     const now = new Date();
+    const db = getAdminFirestore();
+    const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/New_York' });
+
+    // Read from pre-warm cache first (written at 7:45 AM by executive-context-prewarm cron)
+    try {
+        const cacheDoc = await db.collection('platform_cache').doc(EXEC_CONTEXT_CACHE_DOC).get();
+        if (cacheDoc.exists) {
+            const data = cacheDoc.data()!;
+            const ageMs = now.getTime() - new Date(data.cachedAt as string).getTime();
+            if (ageMs < 4 * 60 * 60 * 1000) { // 4-hour TTL
+                const meetings = (data.meetings as Array<Record<string, unknown>> || []).map(m => ({
+                    ...m,
+                    startTime: new Date(m.startTime as string),
+                })) as unknown as BriefingMeeting[];
+                logger.info('[ExecProactiveCheck] Using pre-warmed context', { ageMinutes: Math.round(ageMs / 60000) });
+                return { meetings, emailDigest: data.emailDigest ?? null, dateStr: (data.dateStr as string) || dateStr };
+            }
+        }
+    } catch {
+        // cache miss — fall through to live fetch
+    }
+
+    // Live fetch fallback
     const estHour = parseInt(
         now.toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false })
     );
-
     const [meetingsResult, emailResult] = await Promise.allSettled([
         estHour >= 12 ? getUpcomingMeetingsToday() : getMeetingsForDay(now),
         (async () => {
@@ -64,7 +88,7 @@ async function loadExecutiveContext() {
     const meetings = meetingsResult.status === 'fulfilled' ? meetingsResult.value : [];
     const emailDigest = emailResult.status === 'fulfilled' ? emailResult.value : null;
 
-    return { meetings, emailDigest, dateStr: now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/New_York' }) };
+    return { meetings, emailDigest, dateStr };
 }
 
 // ============================================================================

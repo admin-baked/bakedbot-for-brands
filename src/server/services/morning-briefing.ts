@@ -415,21 +415,37 @@ export async function generateMorningBriefing(orgId: string): Promise<AnalyticsB
     // Build metrics
     const metrics = buildMetrics(yesterdayOrds, last7Ords, prods, bm, glSummary, outreachStats, pendingCounts);
 
-    // Fetch cannabis news (top 3, non-blocking)
+    // Read industry news from pre-warmed cache (written at 5:30 AM by industry-pulse-refresh cron)
     let newsItems: BriefingNewsItem[] = [];
     try {
-        const stateCode = bm.context.stateCode || 'NY';
-        const results = await jinaSearch(
-            `cannabis dispensary industry news ${stateCode} 2026`
-        );
-        newsItems = results.slice(0, 3).map(r => ({
-            headline: r.title,
-            source: new URL(r.url).hostname.replace('www.', ''),
-            url: r.url,
-            relevance: 'medium' as const,
-        }));
+        const db = getAdminFirestore();
+        const cacheDoc = await db.collection('platform_cache').doc('news_ideas_default').get();
+        if (cacheDoc.exists) {
+            const cached = cacheDoc.data()!;
+            const results = (cached.results || []) as Array<{ title: string; url: string }>;
+            newsItems = results.slice(0, 5).map(r => ({
+                headline: r.title,
+                source: new URL(r.url).hostname.replace('www.', ''),
+                url: r.url,
+                relevance: 'high' as const, // Claude-analyzed angles, higher signal than raw search
+            }));
+        }
     } catch {
-        // news is non-critical
+        // cache miss — fall back to live Jina search
+    }
+    if (newsItems.length === 0) {
+        try {
+            const stateCode = bm.context.stateCode || 'NY';
+            const results = await jinaSearch(`cannabis dispensary industry news ${stateCode} 2026`);
+            newsItems = results.slice(0, 5).map(r => ({
+                headline: r.title,
+                source: new URL(r.url).hostname.replace('www.', ''),
+                url: r.url,
+                relevance: 'medium' as const,
+            }));
+        } catch {
+            // news is non-critical
+        }
     }
 
     // Determine urgency level
