@@ -92,10 +92,11 @@ export async function GET(req: NextRequest) {
                     token_type: tokens.token_type ?? null,
                 };
                 const firestore = getAdminFirestore();
-                await firestore.collection('executive_profiles').doc(execProfileSlug).update({
+                // Use set+merge so it works even if the doc doesn't exist yet
+                await firestore.collection('executive_profiles').doc(execProfileSlug).set({
                     googleCalendarTokens: gcalTokens,
                     updatedAt: Timestamp.now(),
-                });
+                }, { merge: true });
                 console.log(`[Google OAuth] Exec calendar connected for: ${execProfileSlug}`);
                 return NextResponse.redirect(buildRedirectUrl('/dashboard/ceo?tab=calendar', 'calendarSync', 'success'));
             }
@@ -144,6 +145,10 @@ export async function GET(req: NextRequest) {
             // Include first 40 chars of error for diagnosis (URL-safe)
             const detail = encodeURIComponent(errMsg.slice(0, 40).replace(/[^a-zA-Z0-9 _-]/g, ' ').trim());
             errorCode = `oauth_failed__${detail}`;
+        }
+        // exec_calendar errors must use calendarSync= param (calendar tab only reads that)
+        if (service === 'exec_calendar') {
+            return NextResponse.redirect(buildRedirectUrl('/dashboard/ceo?tab=calendar', 'calendarSync', 'error'));
         }
         return NextResponse.redirect(buildRedirectUrl(redirectPath, 'error', errorCode));
     }
