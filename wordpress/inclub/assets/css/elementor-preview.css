@@ -1,0 +1,8 @@
+.elementor-editor-active #elementor-add-new-section{
+	margin: 0 auto;
+	padding: 100px 0;
+}
+
+.elementor-editor-active #elementor-add-new-section > .elementor-add-section-inner{
+	position: relative;
+}

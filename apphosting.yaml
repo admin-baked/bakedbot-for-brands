@@ -437,6 +437,11 @@ env:
     availability:
       - RUNTIME
 
+  # Andrews Developments WordPress proxy URL (Cloud Run service)
+  - variable: ANDREWS_WP_URL
+    secret: ANDREWS_WP_URL@1
+    availability: [ RUNTIME ]
+
 runConfig:
   minInstances: 0
   maxInstances: 10
