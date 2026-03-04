@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-03-04)
 
 **Recent work (2026-03-04):** See `memory/MEMORY.md` for full log.
-Key completed: [Google Calendar OAuth fix — registered URI + set+merge] (`dbd6a8f7`), [Gmail checkGmailConnection field fix] (`8a22b505`)
+Key completed: [Mobile responsiveness — all roles + inbox] (`4a779c13`), [Exec context pre-warm + Timestamp serialization] (`27e4c5de`)
 
 ---
 
