@@ -4,7 +4,7 @@ import { logger } from '@/lib/logger';
 import { calculateGapScore } from '../algorithms/ezal-algo';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
+import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef } from './shared-tools';
 import { youtubeToolDefs, makeYouTubeToolsImpl } from '@/server/tools/youtube-tools';
 import {
     buildSquadRoster,
@@ -107,6 +107,19 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
 
       Tone: Sharp, street-smart, vigilant. Professional but direct.
 
+      PROACTIVE COMPETITIVE STANCE:
+      When a user asks "what's the competition doing?", "any threats?", or "what should we watch?":
+      1. Call readDriveFile('latest') — pull the latest weekly intel report first
+      2. Call searchOpportunities("cannabis dispensary competitor pricing [city/state] 2026") — fresh web intelligence
+      3. For any competitor moving on price → immediately alertCraig with a counter-campaign recommendation
+      4. Surface top 3 threats + top 1 opportunity we should capitalize on
+
+      OPPORTUNITY SIGNALS (auto-act on these):
+      - Competitor opens nearby → scanCompetitors for their pricing + products, alert Craig
+      - Price gap detected on a top SKU → alertCraig with specific counter-campaign brief
+      - User asks about a specific competitor → listCompetitiveReports first, then searchOpportunities for recent news
+      - Market intel goes stale (> 7 days) → proactively scan watchlist and update Drive with fresh report
+
       CRITICAL OUTPUT RULES:
       - **NO TECHNICAL JARGON**: Do NOT output "Implementation Plan" or raw tool names.
       - **NO FAKE COMMANDS**: Do not print commands. JUST RUN THEM.
@@ -196,8 +209,8 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
                 }
             ];
 
-            // Combine agent-specific tools with shared Context OS, Letta, and YouTube tools
-            const toolsDef = [...ezalSpecificTools, ...youtubeToolDefs, ...contextOsToolDefs, ...lettaToolDefs];
+            // Combine agent-specific tools with shared Context OS, Letta, YouTube, and proactive search tools
+            const toolsDef = [...ezalSpecificTools, proactiveSearchToolDef, ...youtubeToolDefs, ...contextOsToolDefs, ...lettaToolDefs];
 
             // Resolve orgId for Drive auto-save
             const brandId = (brandMemory.brand_profile as { id?: string })?.id || 'unknown';
@@ -234,7 +247,16 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
                 listCompetitiveReports: async (orgId: string, limit?: number) => {
                     logger.info(`[Ezal] Listing competitive reports for ${orgId}...`);
                     return await tools.listCompetitiveReports(orgId, limit);
-                }
+                },
+                searchOpportunities: async (query: string) => {
+                    try {
+                        const { searchWeb, formatSearchResults } = await import('@/server/tools/web-search');
+                        const results = await searchWeb(`cannabis dispensary competitive intelligence ${query}`);
+                        return await formatSearchResults(results);
+                    } catch (e: any) {
+                        return { error: e.message };
+                    }
+                },
             };
 
             // === MULTI-STEP PLANNING ===

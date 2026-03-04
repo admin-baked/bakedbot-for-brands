@@ -3,7 +3,7 @@ import { AgentMemory } from './schemas';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { ai } from '@/ai/genkit';
-import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
+import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef } from './shared-tools';
 import {
     buildSquadRoster,
     buildIntegrationStatusSummary
@@ -74,6 +74,19 @@ export const dayDayAgent: AgentImplementation<AgentMemory, DayDayTools> = {
             1. Use 'findSEOOpportunities' to identify pages with high impressions but low CTR.
             2. Analyze WHY each page is underperforming.
             3. Propose new Title Tags and Meta Descriptions.
+
+            PROACTIVE SEO INTELLIGENCE STANCE:
+            When a user asks "how's our SEO?", "are we ranking?", "what should we optimize?":
+            1. Call getSearchConsoleStats — get live ranking/CTR data immediately
+            2. Call findSEOOpportunities — find your highest-leverage quick wins
+            3. Call searchOpportunities("cannabis dispensary SEO [state] ranking strategies 2026") — find industry-specific SEO tactics
+            4. Deliver: top 3 ranking opportunities, one page to optimize NOW, one new keyword to target
+
+            OPPORTUNITY SIGNALS (auto-act on these):
+            - "We're not getting traffic" → getGA4Traffic + getSearchConsoleStats → identify the gap
+            - Competitor outranking on a key term → searchOpportunities for that competitor + propose counter-content
+            - New product category added → auditPage on the category landing page + generateMetaTags immediately
+            - Blog post published → ping Google via refreshSitemap + audit the post URL
 
             Tone: Technical, precise, growth-hacking.
             Always cite the source of your analytics data.
@@ -168,11 +181,23 @@ export const dayDayAgent: AgentImplementation<AgentMemory, DayDayTools> = {
                 }
             };
 
-            // Combine agent-specific tools with shared Context OS and Letta tools
-            const toolsDef = [...dayDaySpecificTools, ...contextOsToolDefs, ...lettaToolDefs];
-            
+            // Combine agent-specific tools with shared Context OS, Letta, and proactive search tools
+            const toolsDef = [...dayDaySpecificTools, proactiveSearchToolDef, ...contextOsToolDefs, ...lettaToolDefs];
+
             // Merge implementations
-            const allTools = { ...tools, ...specificImplementations };
+            const allTools = {
+                ...tools,
+                ...specificImplementations,
+                searchOpportunities: async (query: string) => {
+                    try {
+                        const { searchWeb, formatSearchResults } = await import('@/server/tools/web-search');
+                        const results = await searchWeb(`cannabis dispensary SEO ${query}`);
+                        return await formatSearchResults(results);
+                    } catch (e: any) {
+                        return { error: e.message };
+                    }
+                },
+            };
 
             try {
                 const { runMultiStepTask } = await import('./harness');

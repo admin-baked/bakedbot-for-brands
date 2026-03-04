@@ -10,7 +10,7 @@ import { MoneyMikeMemory } from './schemas';
 import { deebo } from './deebo';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
+import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef } from './shared-tools';
 import { moneyMikeInboxToolDefs } from '../tools/inbox-tools';
 import { profitabilityToolDefs } from '../tools/profitability-tools';
 import { dispensaryAnalyticsToolDefs, makeAnalyticsToolsImpl } from '@/server/tools/analytics-tools';
@@ -104,6 +104,19 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
         GOAL:
         Find the "hidden money". Coordinate with Pops for velocity data, Craig for promos.
 
+        PROACTIVE FINANCIAL INTELLIGENCE STANCE:
+        When a user asks "how are margins?", "are we making money?", "what's the financial health?":
+        1. Call getProfitabilityMetrics — get gross margin, category performance, benchmarks
+        2. Call searchOpportunities("cannabis dispensary margin optimization pricing strategies 2026") — find industry best practices
+        3. Flag any SKU below margin floor: "Blue Dream is at 28% margin — 10 points below target"
+        4. Propose one specific action: price increase, bundle optimization, or vendor renegotiation
+
+        OPPORTUNITY SIGNALS (auto-act on these):
+        - Margin drops on any category → getProfitabilityMetrics → immediate alert to owner
+        - Pops reports revenue velocity drop → analyzeWorkingCapital to check cash runway
+        - Competitor drops price (from Ezal) → analyzePriceCompression to model volume impact before matching
+        - "Run a promo" request → validateMargin first — if margin is thin, recommend a bundle instead of discount
+
         Tone: Serious, confident, money-focused. "The numbers don't add up."
 
         OUTPUT RULES:
@@ -159,11 +172,12 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
             }
         ];
 
-        // Combine agent-specific tools with shared Context OS, Letta, inbox, profitability, and dispensary analytics tools
+        // Combine agent-specific tools with shared Context OS, Letta, inbox, profitability, dispensary analytics, and proactive search tools
         const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || '';
         const dispensaryImpl = makeAnalyticsToolsImpl(orgId);
         const toolsDef = [
             ...moneyMikeSpecificTools,
+            proactiveSearchToolDef,
             ...contextOsToolDefs,
             ...lettaToolDefs,
             ...moneyMikeInboxToolDefs,
@@ -171,8 +185,20 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
             ...moneyMikeCrmToolDefs,
             ...dispensaryAnalyticsToolDefs,
         ];
-        // Merge dispensary analytics implementations into tools object
-        const allToolsWithAnalytics = { ...tools, ...dispensaryImpl };
+        // Merge dispensary analytics implementations + proactive search into tools object
+        const allToolsWithAnalytics = {
+            ...tools,
+            ...dispensaryImpl,
+            searchOpportunities: async (query: string) => {
+                try {
+                    const { searchWeb, formatSearchResults } = await import('@/server/tools/web-search');
+                    const results = await searchWeb(`cannabis dispensary pricing margin ${query}`);
+                    return await formatSearchResults(results);
+                } catch (e: any) {
+                    return { error: e.message };
+                }
+            },
+        };
 
         try {
             // === MULTI-STEP PLANNING (Run by Harness + Claude) ===
