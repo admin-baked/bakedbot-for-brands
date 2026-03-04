@@ -19,10 +19,10 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing (verified 2026-03-03)
+**Current Status:** 🟢 Passing (verified 2026-03-04)
 
-**Recent work (2026-03-03):** See `memory/MEMORY.md` for full log.
-Key completed: [Blog research: 24h cache + citations pipeline + UI cache age] (`7add3b3e`), [exec_calendar OAuth token save fix] (`dbd6a8f7`)
+**Recent work (2026-03-04):** See `memory/MEMORY.md` for full log.
+Key completed: [Google Calendar OAuth fix — registered URI + set+merge] (`dbd6a8f7`), [Gmail checkGmailConnection field fix] (`8a22b505`)
 
 ---
 
@@ -195,7 +195,7 @@ Do NOT wait for the user to say "P1" or "file a bug first" — triage, file, and
 ---
 
 **Recent work (2026-03-04):** See `memory/MEMORY.md` for full log.
-Key completed: [Exec context pre-warm cron + Timestamp serialization fixes] (`27e4c5de`), [Mobile responsiveness — all roles + inbox] (`4a779c13`)
+Key completed: [Coupon manager — FOUNDER50/LAUNCH25 + Timestamp fixes] (`a981a0fb`), [Exec context pre-warm cron] (`27e4c5de`)
 
 ---
 
