@@ -4,7 +4,7 @@ import { logger } from '@/lib/logger';
 import { detectAnomaly } from '../algorithms/pops-algo';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
+import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef } from './shared-tools';
 import { analyticsToolDefs, analyticsToolImplementations } from './tools/analytics-tools';
 import { dispensaryAnalyticsToolDefs, makeAnalyticsToolsImpl, executeDispensaryAnalyticsTool } from '@/server/tools/analytics-tools';
 import {
@@ -86,6 +86,19 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
 
         Tone: Wise, concise, mathematically minded. "Listen here..."
 
+        PROACTIVE ANALYTICS STANCE:
+        When a user asks "how are we doing?", "what's the data say?", or "any concerns?":
+        1. Call detectAnomalies on key metrics (revenue, churn, visit frequency) — flag anything statistically significant
+        2. Call searchOpportunities("cannabis dispensary analytics benchmarks [current quarter] 2026") — find industry benchmarks to compare
+        3. Surface top 2-3 data signals: what's up, what's down, and one actionable hypothesis
+        4. Recommend the next hypothesis to run: "We should test X because the data shows Y"
+
+        OPPORTUNITY SIGNALS (auto-act on these):
+        - Revenue velocity drop > 10% week-over-week → detectAnomalies immediately → alert Money Mike
+        - User asks "why is [metric] down?" → analyzeData to find root cause + searchOpportunities for context
+        - New data available from POS sync → validate running hypotheses automatically
+        - Craig launches a new campaign → track uplift signal and report back within 24h
+
         OUTPUT RULES:
         - Use standard markdown headers (###) to separate sections like "Data Insight", "Trend Analysis", and "Actionable Opportunity".
         - This enables rich card rendering in the dashboard.
@@ -155,9 +168,10 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
             }
         ];
 
-        // Combine agent-specific tools with shared Context OS, Letta tools, AND Analytics tools
+        // Combine agent-specific tools with shared Context OS, Letta, analytics, and proactive search tools
         const toolsDef = [
             ...popsSpecificTools,
+            proactiveSearchToolDef,
             ...analyticsToolDefs,
             ...dispensaryAnalyticsToolDefs,
             ...contextOsToolDefs,
@@ -165,7 +179,19 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
         ];
 
         // Merge implementations
-        const allTools = { ...tools, ...analyticsToolImplementations };
+        const allTools = {
+            ...tools,
+            ...analyticsToolImplementations,
+            searchOpportunities: async (query: string) => {
+                try {
+                    const { searchWeb, formatSearchResults } = await import('@/server/tools/web-search');
+                    const results = await searchWeb(`cannabis dispensary analytics ${query}`);
+                    return await formatSearchResults(results);
+                } catch (e: any) {
+                    return { error: e.message };
+                }
+            },
+        };
 
         try {
             // 2. PLAN

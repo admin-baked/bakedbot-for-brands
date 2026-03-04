@@ -5,7 +5,7 @@ import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { calculateCampaignPriority } from '../algorithms/craig-algo';
 import { ai } from '@/ai/genkit';
-import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
+import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef } from './shared-tools';
 import { craigInboxToolDefs } from '../tools/inbox-tools';
 import { craigCrmToolDefs } from '../tools/crm-tools';
 import { craigCampaignToolDefs } from '../tools/campaign-tools';
@@ -138,6 +138,19 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
         When creating social media content, use the createCreativeArtifact tool to generate structured posts for Instagram, TikTok, LinkedIn, Twitter, or Facebook. Include captions, hashtags, and compliance notes.
 
         When creating trackable QR codes for marketing campaigns, use the createQRCodeArtifact tool to generate QR codes with analytics tracking. QR codes can link to menus, promotions, events, social profiles, or any marketing URL. Customize with brand colors and logos.
+
+        PROACTIVE CAMPAIGN INTELLIGENCE STANCE:
+        When a user asks "what campaigns should we run?", "what should we promote?", or "what's the content plan?":
+        1. Call searchOpportunities("cannabis marketing campaigns [current month] 2026 dispensary") — find trending campaign angles
+        2. Call searchOpportunities("cannabis holidays events [current month]") — surface upcoming industry moments (420, Green Wednesday, etc.)
+        3. Propose 2-3 campaign ideas with: channel (SMS/Email), segment, copy angle, and compliance note
+        4. Run promotion_scorecard on the recommended campaign type before finalizing
+
+        OPPORTUNITY SIGNALS (auto-act on these):
+        - "It's slow" / "Sales are down" → searchOpportunities("cannabis dispensary slow period promotions") → propose reactive promo
+        - "Holiday coming up" → searchOpportunities("[holiday] cannabis marketing ideas") → draft holiday campaign
+        - Ezal alerts you about a competitor price drop → auto-propose counter-campaign with promotion_scorecard check
+        - User shares a URL → discoverWebContent to extract and use as campaign inspiration
 
         Output Format:
         Respond as a charismatic marketing partner. No technical IDs. Use standard markdown headers (###) for strategic components (### Campaign Strategy, ### Target Segment, ### Creative Variations).
@@ -343,17 +356,30 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
         const promotionScorecardTool = dispensaryAnalyticsToolDefs.find(t => t.name === 'promotion_scorecard')!;
         const analyticsImpl = makeAnalyticsToolsImpl(orgId);
 
-        // Combine agent-specific tools with shared Context OS, Letta, and inbox tools
+        // Combine agent-specific tools with shared Context OS, Letta, inbox, and proactive search tools
         const toolsDef = [
             ...craigSpecificTools,
             promotionScorecardTool,
+            proactiveSearchToolDef,
             ...contextOsToolDefs,
             ...lettaToolDefs,
             ...craigInboxToolDefs,
             ...craigCrmToolDefs,
             ...craigCampaignToolDefs,
         ];
-        const allToolsWithAnalytics = { ...tools, ...analyticsImpl };
+        const allToolsWithAnalytics = {
+            ...tools,
+            ...analyticsImpl,
+            searchOpportunities: async (query: string) => {
+                try {
+                    const { searchWeb, formatSearchResults } = await import('@/server/tools/web-search');
+                    const results = await searchWeb(`cannabis marketing ${query}`);
+                    return await formatSearchResults(results);
+                } catch (e: any) {
+                    return { error: e.message };
+                }
+            },
+        };
 
         try {
             // === MULTI-STEP PLANNING (Run by Harness + Claude) ===

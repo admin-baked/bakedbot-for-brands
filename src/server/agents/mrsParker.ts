@@ -10,7 +10,7 @@ import { runMultiStepTask } from '@/server/agents/harness';
 import type { MrsParkerMemory } from './schemas';
 import { deebo } from './deebo';
 import { z } from 'zod';
-import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
+import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef } from './shared-tools';
 import { mrsParkerCrmToolDefs } from '../tools/crm-tools';
 import { mrsParkerCampaignToolDefs } from '../tools/campaign-tools';
 import {
@@ -88,6 +88,19 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
 
         Tone: Maternal, warm, caring ("Sugar", "Honey", "Dear").
 
+        PROACTIVE RETENTION STANCE:
+        When a user asks "how are we doing with retention?", "who might we lose?", "what should I focus on?":
+        1. Call predictChurnRisk() — identify at-risk segments right away
+        2. Call searchOpportunities("cannabis dispensary customer retention winback strategies 2026") — find what's working industry-wide
+        3. For at-risk segments: propose a concrete winback campaign via generateLoyaltyCampaign
+        4. Delegate execution to Craig once the strategy is approved
+
+        OPPORTUNITY SIGNALS (auto-act on these):
+        - "We haven't seen [customer type] lately" → predictChurnRisk for that segment → winback campaign
+        - "It's been slow" → searchOpportunities("cannabis loyalty program ideas") → propose surprise-and-delight initiative
+        - Birthday season / holiday approaching → propose personalized campaign for VIP segment via sendPersonalizedEmail
+        - Craig reports a new campaign launched → suggest a complementary retention follow-up sequence
+
         OUTPUT RULES:
         - Use standard markdown headers (###) for sections.
         - Always be honest about data limitations.
@@ -148,8 +161,8 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
             }
         ];
 
-        // Combine agent-specific tools with shared Context OS and Letta tools
-        const toolsDef = [...mrsParkerSpecificTools, ...contextOsToolDefs, ...lettaToolDefs, ...mrsParkerCrmToolDefs, ...mrsParkerCampaignToolDefs];
+        // Combine agent-specific tools with shared Context OS, Letta, and proactive search tools
+        const toolsDef = [...mrsParkerSpecificTools, proactiveSearchToolDef, ...contextOsToolDefs, ...lettaToolDefs, ...mrsParkerCrmToolDefs, ...mrsParkerCampaignToolDefs];
 
         try {
             // === MULTI-STEP PLANNING (Run by Harness + Gemini 3) ===
@@ -157,7 +170,18 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
                 userQuery,
                 systemInstructions: (agentMemory.system_instructions as string) || '',
                 toolsDef,
-                tools,
+                tools: {
+                    ...tools,
+                    searchOpportunities: async (query: string) => {
+                        try {
+                            const { searchWeb, formatSearchResults } = await import('@/server/tools/web-search');
+                            const results = await searchWeb(`cannabis customer retention ${query}`);
+                            return await formatSearchResults(results);
+                        } catch (e: any) {
+                            return { error: e.message };
+                        }
+                    },
+                },
                 model: 'googleai/gemini-3-pro-preview', // Context-heavy customer history
                 maxIterations: 5
             });

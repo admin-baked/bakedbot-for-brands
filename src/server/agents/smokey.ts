@@ -5,7 +5,7 @@ import { computeSkuScore } from '../algorithms/smokey-algo';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { getChatbotUpsells } from '@/server/services/upsell-engine';
-import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
+import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef } from './shared-tools';
 import { smokeyInboxToolDefs } from '../tools/inbox-tools';
 import { smokeyCrmToolDefs } from '../tools/crm-tools';
 import { jinaToolDefs, makeJinaToolsImpl } from '@/server/tools/jina-tools';
@@ -167,6 +167,19 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
             - If the customer says "no thanks" or ignores the suggestion, respect that immediately
             - Prioritize: bundles with savings > terpene pairings > category complements
 
+            PROACTIVE PRODUCT INTELLIGENCE STANCE:
+            When a user asks "what should we highlight?", "what's trending?", "what's selling well?", or "what should I promote?":
+            1. Call searchOpportunities("cannabis trending products strains [current season] 2026") — find what's hot industry-wide
+            2. Call searchMenu("") — check your live inventory for matching items
+            3. Surface a proactive recommendation: trending strain/category in stock + upsell pairing
+            4. Flag any inventory gaps: "This trend is popular but we don't carry it yet — worth stocking?"
+
+            OPPORTUNITY SIGNALS (auto-act on these):
+            - "What's popular right now?" → searchOpportunities for trends, then cross-reference inventory
+            - "Slow day / low traffic" → search for local cannabis events and propose flash promotions
+            - "Customer asked about [X] we don't carry" → searchOpportunities to validate demand, suggest procurement
+            - "What should I run a sale on?" → searchOpportunities("cannabis dispensary promotion ideas [month]"), then delegation to Craig
+
             OUTPUT RULES:
             - Use standard markdown headers (###) to separate sections like "Recommendations", "Product Details", and "Next Steps".
             - This enables the rich card UI in the user dashboard.
@@ -265,8 +278,8 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                 }
             ];
 
-            // Combine agent-specific tools with shared Context OS, Letta, inbox, Jina, and YouTube tools
-            const toolsDef = [...smokeySpecificTools, ...jinaToolDefs, ...youtubeToolDefs, ...contextOsToolDefs, ...lettaToolDefs, ...smokeyInboxToolDefs, ...smokeyCrmToolDefs];
+            // Combine agent-specific tools with shared Context OS, Letta, inbox, Jina, YouTube, and proactive search tools
+            const toolsDef = [...smokeySpecificTools, proactiveSearchToolDef, ...jinaToolDefs, ...youtubeToolDefs, ...contextOsToolDefs, ...lettaToolDefs, ...smokeyInboxToolDefs, ...smokeyCrmToolDefs];
 
             try {
                 const { runMultiStepTask } = await import('./harness');
@@ -274,7 +287,20 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                     userQuery,
                     systemInstructions: (agentMemory.system_instructions as string) || '',
                     toolsDef,
-                    tools: { ...tools, ...makeJinaToolsImpl(), ...makeYouTubeToolsImpl(orgId) },
+                    tools: {
+                        ...tools,
+                        ...makeJinaToolsImpl(),
+                        ...makeYouTubeToolsImpl(orgId),
+                        searchOpportunities: async (query: string) => {
+                            try {
+                                const { searchWeb, formatSearchResults } = await import('@/server/tools/web-search');
+                                const results = await searchWeb(`cannabis dispensary ${query}`);
+                                return await formatSearchResults(results);
+                            } catch (e: any) {
+                                return { error: e.message };
+                            }
+                        },
+                    },
                     model: 'claude-sonnet-4-5-20250929',
                     maxIterations: 5,
                     onStepComplete: async (step, toolName, res) => {
