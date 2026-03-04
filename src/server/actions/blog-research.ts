@@ -34,6 +34,15 @@ export interface NewsIdea {
     publishedDate?: string;
 }
 
+/** An attributable quote extracted from research sources */
+export interface Citation {
+    quote: string;
+    author: string;       // Person name, or publication name if no byline
+    company: string;      // Company, org, or publication
+    url: string;
+    sourceTitle: string;
+}
+
 export interface ResearchBrief {
     topic: string;
     keyFindings: string[];
@@ -42,6 +51,7 @@ export interface ResearchBrief {
     suggestedTitle: string;
     suggestedKeywords: string[];
     rawResearch: string;
+    citations: Citation[];
 }
 
 export interface ContentScorecard {
@@ -59,20 +69,66 @@ export interface ContentScorecard {
 
 // ─── 1. Cannabis News Ideas ───────────────────────────────────────────────────
 
+const NEWS_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const NEWS_CACHE_DOC = 'news_ideas_default';
+
+export interface NewsIdeasResult {
+    ideas: NewsIdea[];
+    cachedAt: string | null; // ISO string — cache timestamp or fresh fetch time; null on error/empty
+}
+
 /**
  * Fetch cannabis industry news for content ideation using Jina Search.
  * Claude adds a suggested content angle for each result.
+ *
+ * Results are cached in Firestore for 24 hours. Pass forceRefresh=true to
+ * bypass the cache (triggered by the manual Refresh button in the UI).
+ *
+ * Topic-filtered queries are always fetched fresh (no caching) since they
+ * represent interactive user intent rather than the default daily feed.
  */
-export async function getCannabisNewsIdeas(topic?: string): Promise<NewsIdea[]> {
+export async function getCannabisNewsIdeas(
+    topic?: string,
+    forceRefresh = false
+): Promise<NewsIdeasResult> {
     await requireSuperUser();
 
     const query = topic
         ? `cannabis dispensary ${topic} 2026`
         : `cannabis industry news dispensary marketing trends 2026`;
 
+    // Only cache the default (no-topic) query — topic filters are interactive
+    const useCache = !topic;
+
+    if (useCache && !forceRefresh) {
+        try {
+            const { getAdminFirestore } = await import('@/firebase/admin');
+            const firestore = getAdminFirestore();
+            const cacheDoc = await firestore
+                .collection('platform_cache')
+                .doc(NEWS_CACHE_DOC)
+                .get();
+
+            if (cacheDoc.exists) {
+                const data = cacheDoc.data() as { results: NewsIdea[]; cachedAt: { toMillis: () => number } };
+                const ageMs = Date.now() - data.cachedAt.toMillis();
+                if (ageMs < NEWS_CACHE_TTL_MS) {
+                    logger.info('[BlogResearch] Returning cached Industry Pulse', { ageMs });
+                    return {
+                        ideas: data.results,
+                        cachedAt: new Date(data.cachedAt.toMillis()).toISOString(),
+                    };
+                }
+            }
+        } catch (cacheError) {
+            // Cache read failure is non-fatal — fall through to live fetch
+            logger.warn('[BlogResearch] Cache read failed, fetching live', { error: String(cacheError) });
+        }
+    }
+
     try {
         const results = await jinaSearch(query);
-        if (results.length === 0) return [];
+        if (results.length === 0) return { ideas: [], cachedAt: null };
 
         const top8 = results.slice(0, 8);
 
@@ -105,15 +161,36 @@ Respond with ONLY a JSON array of 8 strings, one angle per article. Example:
             logger.warn('[BlogResearch] Failed to get content angles from Claude', { error: String(e) });
         }
 
-        return top8.map((result, i) => ({
+        const ideas: NewsIdea[] = top8.map((result, i) => ({
             title: result.title,
             url: result.url,
             snippet: result.snippet,
             suggestedAngle: angles[i] ?? 'Explore how this affects your local dispensary customers.',
         }));
+
+        // Persist to cache (default query only) — fire-and-forget, non-blocking
+        if (useCache) {
+            setImmediate(async () => {
+                try {
+                    const { getAdminFirestore } = await import('@/firebase/admin');
+                    const { Timestamp } = await import('firebase-admin/firestore');
+                    const firestore = getAdminFirestore();
+                    await firestore.collection('platform_cache').doc(NEWS_CACHE_DOC).set({
+                        results: ideas,
+                        cachedAt: Timestamp.now(),
+                        query,
+                    });
+                    logger.info('[BlogResearch] Industry Pulse cached', { count: ideas.length });
+                } catch (writeError) {
+                    logger.warn('[BlogResearch] Cache write failed', { error: String(writeError) });
+                }
+            });
+        }
+
+        return { ideas, cachedAt: new Date().toISOString() };
     } catch (error) {
         logger.error('[BlogResearch] getCannabisNewsIdeas failed', { error, query });
-        return [];
+        return { ideas: [], cachedAt: null };
     }
 }
 
@@ -145,6 +222,7 @@ export async function generateResearchBrief(
             suggestedTitle: `${topic}: What Cannabis Dispensaries Need to Know`,
             suggestedKeywords: [topic, 'cannabis dispensary', 'marijuana dispensary'],
             rawResearch: `Topic: ${topic}\nCategory: ${category}`,
+            citations: [],
         };
     }
 
@@ -163,7 +241,57 @@ export async function generateResearchBrief(
 
     const rawResearch = pageContents.join('\n\n---\n\n');
 
-    // Step 3: Claude synthesis → structured JSON brief
+    // Step 3a: Extract attributable citations from research sources
+    let citations: Citation[] = [];
+    try {
+        const citationPrompt = `From the following web research, extract 2-4 direct quotable passages that:
+1. Are clearly attributable to a named person OR a named company/publication
+2. Contain a specific claim, statistic, trend, or insight worth citing in a cannabis industry blog
+
+Research:
+${rawResearch.substring(0, 10000)}
+
+Source URLs:
+${top3.map(r => `"${r.title}": ${r.url}`).join('\n')}
+
+Output ONLY a JSON array. Each object must have these exact fields:
+[
+  {
+    "quote": "exact or lightly paraphrased quotable text (max 60 words)",
+    "author": "Person Name — if no specific person, use the publication or company name",
+    "company": "Company, publication, or organization name",
+    "url": "the source URL this came from",
+    "sourceTitle": "the article title"
+  }
+]
+
+Rules:
+- Prefer quotes from named executives, researchers, or industry experts
+- If no named person, use the publication as the "author" (e.g. "MJBizDaily Reports" or "Cannabis Regulatory Commission")
+- Quotes must be attributable — no anonymous statements
+- If fewer than 2 attributable quotes exist, return an empty array []
+- Output ONLY the JSON array, no other text`;
+
+        const citationResponse = await callClaude({
+            userMessage: citationPrompt,
+            temperature: 0.3,
+            maxTokens: 800,
+        });
+
+        const jsonMatch = citationResponse.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]) as Citation[];
+            if (Array.isArray(parsed)) {
+                citations = parsed.filter(c => c.quote && c.author && c.company && c.url);
+            }
+        }
+        logger.info('[BlogResearch] Extracted citations', { count: citations.length, topic });
+    } catch (citationError) {
+        // Non-fatal — blog generation proceeds without citations
+        logger.warn('[BlogResearch] Citation extraction failed', { error: String(citationError) });
+    }
+
+    // Step 3b: Claude synthesis → structured JSON brief
     const synthesisPrompt = `You are a senior cannabis content strategist. Synthesize the following research into a structured content brief.
 
 Topic: ${topic}
@@ -215,6 +343,7 @@ Rules:
             suggestedTitle: parsed.suggestedTitle ?? `${topic}: A Cannabis Industry Guide`,
             suggestedKeywords: parsed.suggestedKeywords ?? [topic, 'cannabis', 'dispensary'],
             rawResearch,
+            citations,
         };
     } catch (error) {
         logger.error('[BlogResearch] Claude synthesis failed', { error });
@@ -226,6 +355,7 @@ Rules:
             suggestedTitle: `${topic}: What Dispensaries Need to Know`,
             suggestedKeywords: [topic, 'cannabis dispensary', 'marijuana'],
             rawResearch,
+            citations,
         };
     }
 }
@@ -256,7 +386,7 @@ export async function researchAndGenerateBlog(input: {
     // Step 1: Get research brief (skip if already provided)
     const brief = input.brief ?? await generateResearchBrief(input.topic, input.category);
 
-    // Step 2: Generate enriched draft
+    // Step 2: Generate enriched draft (pass citations so ≥2 appear as blockquotes)
     const draft = await generateBlogDraftWithResearch(
         {
             topic: input.topic,
@@ -265,7 +395,8 @@ export async function researchAndGenerateBlog(input: {
             userId: input.userId,
             seoKeywords: brief.suggestedKeywords,
         },
-        brief.rawResearch
+        brief.rawResearch,
+        brief.citations
     );
 
     // Step 3: Save to Firestore

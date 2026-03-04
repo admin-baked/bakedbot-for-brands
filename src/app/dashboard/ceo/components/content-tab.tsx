@@ -43,6 +43,7 @@ import {
 } from '@/server/actions/blog-research';
 import { getPublishedPlatformPosts } from '@/server/actions/blog';
 import { ResearchGeneratorSheet } from '@/components/blog/research-generator-sheet';
+import { formatSmartTime } from '@/lib/utils/format-time';
 import type { BlogPost, BlogContentType } from '@/types/blog';
 
 const PLATFORM_ORG_ID = 'org_bakedbot_platform';
@@ -110,6 +111,7 @@ export default function ContentCeoTab() {
     const [scorecard, setScorecard] = useState<ContentScorecard | null>(null);
     const [news, setNews] = useState<NewsIdea[]>([]);
     const [posts, setPosts] = useState<BlogPost[]>([]);
+    const [newsCachedAt, setNewsCachedAt] = useState<string | null>(null);
     const [newsLoading, setNewsLoading] = useState(true);
     const [scorecardLoading, setScorecardLoading] = useState(true);
 
@@ -131,10 +133,11 @@ export default function ContentCeoTab() {
         setScorecardLoading(false);
     }, []);
 
-    const loadNews = useCallback(async (topic?: string) => {
+    const loadNews = useCallback(async (topic?: string, forceRefresh = false) => {
         setNewsLoading(true);
-        const ideas = await getCannabisNewsIdeas(topic || undefined);
-        setNews(ideas);
+        const result = await getCannabisNewsIdeas(topic, forceRefresh);
+        setNews(result.ideas);
+        setNewsCachedAt(result.cachedAt);
         setNewsLoading(false);
     }, []);
 
@@ -144,7 +147,7 @@ export default function ContentCeoTab() {
     }, [loadData, loadNews]);
 
     const handleRefreshNews = () => {
-        loadNews(topicFilter || undefined);
+        loadNews(topicFilter || undefined, true);
     };
 
     const handleOpenSheet = (mode: BlogContentType, seedTopic = '') => {
@@ -222,7 +225,14 @@ export default function ContentCeoTab() {
                     <Card>
                         <CardHeader>
                             <div className="flex items-center justify-between">
-                                <CardTitle className="text-base">Industry Pulse</CardTitle>
+                                <div>
+                                    <CardTitle className="text-base">Industry Pulse</CardTitle>
+                                    {newsCachedAt && !newsLoading && (
+                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                            Cached {formatSmartTime(newsCachedAt, { showSuffix: true })}
+                                        </p>
+                                    )}
+                                </div>
                                 <div className="flex items-center gap-2">
                                     <Input
                                         placeholder="Filter by topic..."
@@ -236,6 +246,7 @@ export default function ContentCeoTab() {
                                         size="sm"
                                         onClick={handleRefreshNews}
                                         disabled={newsLoading}
+                                        title="Force refresh (bypasses 24h cache)"
                                     >
                                         {newsLoading ? (
                                             <Loader2 className="h-4 w-4 animate-spin" />

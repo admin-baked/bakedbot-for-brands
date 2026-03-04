@@ -9,6 +9,7 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import type { BlogPost, BlogCategory } from '@/types/blog';
 import type { BrandGuide } from '@/types/brand-guide';
+import type { Citation } from '@/server/actions/blog-research';
 
 export interface BlogGeneratorInput {
     topic: string;
@@ -337,11 +338,13 @@ function parseBlogResponse(response: string): BlogGeneratorOutput {
 
 /**
  * Generate a blog post draft using AI with Jina research context injected
- * Same as generateBlogDraft but prepends real research findings to ground the writing
+ * Same as generateBlogDraft but prepends real research findings to ground the writing.
+ * If citations are provided, at least 2 MUST appear as Markdown blockquotes in the article.
  */
 export async function generateBlogDraftWithResearch(
     input: BlogGeneratorInput,
-    researchContext: string
+    researchContext: string,
+    citations?: Citation[]
 ): Promise<BlogGeneratorOutput> {
     try {
         const firestore = getAdminFirestore();
@@ -372,11 +375,30 @@ export async function generateBlogDraftWithResearch(
             ? buildPlatformBlogPrompt(input)
             : buildBlogPrompt(input, brandGuide, brandName);
 
-        // Prepend research context to ground the AI in real data
+        // Build the citations block if we have at least 2
+        const usableCitations = citations && citations.length >= 2 ? citations : [];
+        const citationsBlock = usableCitations.length > 0
+            ? `== REQUIRED CITATIONS — you MUST include at least 2 of these as Markdown blockquotes in the article body ==
+
+${usableCitations.map((c, i) =>
+    `${i + 1}. "${c.quote}"
+   — ${c.author}, ${c.company}
+   Source: ${c.sourceTitle} (${c.url})`
+).join('\n\n')}
+
+CITATION FORMAT — use exactly this Markdown syntax for each citation in the article:
+> "The quoted text here."
+> — Person Name, Company Name
+
+Place each blockquote naturally within the relevant section of the article (not all at the end).
+`
+            : '';
+
+        // Prepend research context (and required citations) to ground the AI in real data
         const prompt = `== RESEARCH CONTEXT (use as factual grounding — do NOT copy verbatim, synthesize into original writing) ==
 ${researchContext}
 
-== YOUR TASK ==
+${citationsBlock}== YOUR TASK ==
 ${basePrompt}`;
 
         logger.info('[BlogGenerator] Generating research-enriched blog post', {
