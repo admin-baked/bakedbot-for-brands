@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-03-04)
 
 **Recent work (2026-03-04):** See `memory/MEMORY.md` for full log.
-Key completed: [Proactive searchOpportunities — Craig/Parker/Pops/Smokey] (`8dc3d340`), [Andrews Development user onboarding — Ripon added to brand_XHmqB7RY] (Firestore/Auth)
+Key completed: [Privacy Policy /privacy-policy — CCPA/SHIELD/TCPA/cannabis] (`29fa8b0e`), [/privacy redirect] (`29fa8b0e`)
 
 ---
 
