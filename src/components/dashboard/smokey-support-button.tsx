@@ -100,7 +100,7 @@ export function SmokeyFloatingButton() {
     <>
       {/* Floating Action Button */}
       <div className="fixed bottom-6 right-6 flex flex-col gap-2 items-end z-50">
-        {open && !dismissed ? null : (
+        {!open && !dismissed && (
           <div className="bg-muted text-muted-foreground text-xs px-2 py-1 rounded opacity-75">
             Need help? Click the button →
           </div>
@@ -118,7 +118,7 @@ export function SmokeyFloatingButton() {
 
       {/* Inline Panel (not a modal overlay) */}
       {open && !dismissed && (
-        <div className="fixed bottom-24 right-6 z-50 w-[360px] shadow-2xl rounded-2xl border bg-background overflow-hidden">
+        <div className="fixed bottom-24 right-6 z-50 w-[calc(100vw-2rem)] max-w-[360px] shadow-2xl rounded-2xl border bg-background overflow-hidden">
           {/* Panel Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
             <div className="flex items-center gap-2">

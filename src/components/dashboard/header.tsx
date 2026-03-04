@@ -36,8 +36,10 @@ export function DashboardHeader() {
           showTooltip={true}
           size={isSuperUser ? 'large' : 'default'}
         />
-        <Separator orientation="vertical" className="h-4" />
-        <UserStreakComponent />
+        <span className="hidden sm:contents">
+          <Separator orientation="vertical" className="h-4" />
+          <UserStreakComponent />
+        </span>
         <NotificationBell />
       </div>
     </div>

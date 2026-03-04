@@ -20,6 +20,7 @@ import { InboxEmptyState } from './inbox-empty-state';
 import { CrmContextPanel } from './crm/crm-context-panel';
 import type { InboxThreadType } from '@/types/inbox';
 import { getInboxThreads, createInboxThread } from '@/server/actions/inbox';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface UnifiedInboxProps {
     className?: string;
@@ -130,6 +131,8 @@ export function UnifiedInbox({ className }: UnifiedInboxProps) {
         });
     }, [searchParams, role, orgId, createThread, setActiveThread]);
 
+    const isMobile = useIsMobile();
+
     // Determine if CRM panel should show
     const showCrmPanel = activeThread?.type === 'crm_customer' && activeThread?.customerId;
 
@@ -150,12 +153,17 @@ export function UnifiedInbox({ className }: UnifiedInboxProps) {
                 collapsed={isSidebarCollapsed}
                 className={cn(
                     'relative z-10 transition-all duration-300',
-                    isSidebarCollapsed ? 'w-16' : 'w-80'
+                    isMobile
+                        ? (activeThreadId ? 'hidden' : 'flex w-full')
+                        : (isSidebarCollapsed ? 'w-16' : 'w-80')
                 )}
             />
 
             {/* Main Content Area */}
-            <div className="relative z-10 flex flex-1 overflow-hidden">
+            <div className={cn(
+                'relative z-10 flex overflow-hidden',
+                isMobile ? (activeThreadId ? 'flex-1' : 'hidden') : 'flex-1'
+            )}>
                 {/* Conversation Area */}
                 <div className={cn(
                     'flex-1 min-h-0 flex flex-col overflow-hidden transition-all duration-300',
@@ -202,7 +210,7 @@ export function UnifiedInbox({ className }: UnifiedInboxProps) {
                             animate={{ x: 0, opacity: 1 }}
                             exit={{ x: 100, opacity: 0 }}
                             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                            className="w-[320px]"
+                            className="hidden md:block md:w-[320px]"
                         >
                             <CrmContextPanel
                                 customerId={activeThread.customerId!}
@@ -219,7 +227,7 @@ export function UnifiedInbox({ className }: UnifiedInboxProps) {
                             animate={{ x: 0, opacity: 1 }}
                             exit={{ x: 100, opacity: 0 }}
                             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                            className="w-[400px]"
+                            className="hidden md:block md:w-[400px]"
                         >
                             <InboxArtifactPanel
                                 artifacts={activeArtifacts}

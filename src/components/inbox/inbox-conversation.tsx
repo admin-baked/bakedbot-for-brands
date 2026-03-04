@@ -26,6 +26,7 @@ import {
     Pin,
     Tag as TagIcon,
     FolderKanban,
+    ArrowLeft,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -55,6 +56,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useInboxStore } from '@/lib/store/inbox-store';
+import { useIsMobile } from '@/hooks/use-mobile';
 import type { ChatMessage } from '@/lib/store/agent-chat-store';
 import type { InboxThread, InboxArtifact, InboxAgentPersona } from '@/types/inbox';
 import { getThreadTypeLabel, getThreadTypeIcon } from '@/types/inbox';
@@ -369,12 +371,23 @@ function ArtifactPreviewCard({ artifact }: { artifact: InboxArtifact }) {
 // ============ Thread Header ============
 
 function ThreadHeader({ thread }: { thread: InboxThread }) {
-    const { archiveThread, deleteThread, updateThread, togglePinThread } = useInboxStore();
+    const { archiveThread, deleteThread, updateThread, togglePinThread, setActiveThread } = useInboxStore();
+    const isMobile = useIsMobile();
     const agent = AGENT_NAMES[thread.primaryAgent] || AGENT_NAMES.auto;
 
     return (
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
             <div className="flex items-center gap-3 flex-1 min-w-0">
+                {/* Mobile back button */}
+                {isMobile && (
+                    <button
+                        onClick={() => setActiveThread(null)}
+                        className="shrink-0 -ml-1 p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                        aria-label="Back to inbox"
+                    >
+                        <ArrowLeft className="h-5 w-5" />
+                    </button>
+                )}
                 {/* Agent Avatar with colored ring */}
                 <div className={cn(
                     'p-2 rounded-xl ring-2 ring-offset-2 ring-offset-background',
