@@ -135,6 +135,15 @@ export async function getOutreachDashboardData(): Promise<{
                 .get(),
         ]);
 
+        // Helper: convert any Timestamp/Date/number to milliseconds
+        const toMs = (val: unknown): number => {
+            if (!val) return 0;
+            if (typeof val === 'number') return val;
+            if (val instanceof Date) return val.getTime();
+            if (typeof (val as any).toDate === 'function') return (val as any).toDate().getTime();
+            return 0;
+        };
+
         const queueLeads = leadsSnap.docs.map(doc => {
             const d = doc.data();
             return {
@@ -144,7 +153,7 @@ export async function getOutreachDashboardData(): Promise<{
                 city: d.city || 'NY',
                 contactFormUrl: d.contactFormUrl || undefined,
                 source: d.source || 'research',
-                createdAt: d.createdAt || d.researchedAt || Date.now(),
+                createdAt: toMs(d.createdAt) || toMs(d.researchedAt) || Date.now(),
             };
         });
 
@@ -158,7 +167,7 @@ export async function getOutreachDashboardData(): Promise<{
                 city: d.city || 'NY',
                 status: d.status || 'unknown',
                 outreachCount: d.outreachCount || 0,
-                lastOutreachAt: d.lastOutreachAt || 0,
+                lastOutreachAt: toMs(d.lastOutreachAt),
                 lastTemplateId: d.lastTemplateId || '',
             };
         });

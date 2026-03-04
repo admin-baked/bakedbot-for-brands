@@ -67,13 +67,25 @@ export async function getCoupons(): Promise<any[]> {
         await requireUser(['super_user']);
         const firestore = getAdminFirestore();
         const snapshot = await firestore.collection('coupons').get();
-        return snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-            createdAt: doc.data().createdAt?.toDate?.() || new Date(),
-            updatedAt: doc.data().updatedAt?.toDate?.() || new Date(),
-            expiresAt: doc.data().expiresAt?.toDate?.() ?? null,
-        }));
+        return snapshot.docs.map(doc => {
+            const d = doc.data();
+            // Explicitly map all fields — never spread raw Firestore data (Timestamps aren't serializable)
+            return {
+                id: doc.id,
+                code: d.code ?? '',
+                brandId: d.brandId ?? 'platform',
+                type: d.type ?? 'percentage',
+                value: typeof d.value === 'number' ? d.value : 0,
+                uses: typeof d.uses === 'number' ? d.uses : 0,
+                active: d.active !== false,
+                maxUses: typeof d.maxUses === 'number' ? d.maxUses : undefined,
+                overridePrice: typeof d.overridePrice === 'number' ? d.overridePrice : undefined,
+                description: typeof d.description === 'string' ? d.description : undefined,
+                expiresAt: d.expiresAt?.toDate?.()?.toISOString?.() ?? null,
+                createdAt: d.createdAt?.toDate?.()?.toISOString?.() ?? new Date().toISOString(),
+                updatedAt: d.updatedAt?.toDate?.()?.toISOString?.() ?? new Date().toISOString(),
+            };
+        });
     } catch (error) { return []; }
 }
 
