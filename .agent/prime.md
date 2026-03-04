@@ -195,7 +195,7 @@ Do NOT wait for the user to say "P1" or "file a bug first" — triage, file, and
 ---
 
 **Recent work (2026-03-03):** See `memory/MEMORY.md` for full log.
-Key completed: [Gmail connection check fix — refreshTokenEncrypted field] (`8a22b505`), [Blog research cache + citations + OAuth] (`7add3b3e`, `dbd6a8f7`)
+Key completed: [Apollo.io enrichment — NY leads email discovery] (`8b511938`), [Apollo credits panel in Outreach tab] (`c972d351`), [BakedBot brand guide seeded to Firestore] (script)
 
 ---
 
