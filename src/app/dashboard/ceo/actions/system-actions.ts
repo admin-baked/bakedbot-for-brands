@@ -29,18 +29,31 @@ export async function createCoupon(prevState: ActionResult, formData: FormData):
         const firestore = getAdminFirestore();
 
         const code = formData.get('code')?.toString().toUpperCase().trim();
-        const brandId = formData.get('brandId')?.toString();
+        const brandId = formData.get('brandId')?.toString() || 'platform';
         const type = formData.get('type')?.toString() || 'percentage';
         const value = parseFloat(formData.get('value')?.toString() || '0');
+        const maxUsesRaw = formData.get('maxUses')?.toString().trim();
+        const expiresAtRaw = formData.get('expiresAt')?.toString().trim();
 
         if (!code || code.length < 3) return { message: 'Coupon code must be at least 3 characters.', error: true };
-        if (!brandId) return { message: 'Please select a brand.', error: true };
         if (value <= 0) return { message: 'Value must be greater than 0.', error: true };
 
-        const newCoupon = {
+        // Check for duplicate code
+        const existing = await firestore.collection('coupons').where('code', '==', code).limit(1).get();
+        if (!existing.empty) return { message: `Coupon code ${code} already exists.`, error: true };
+
+        const newCoupon: Record<string, unknown> = {
             code, brandId, type, value, uses: 0, active: true,
             createdAt: new Date(), updatedAt: new Date(),
         };
+
+        if (maxUsesRaw && parseInt(maxUsesRaw, 10) > 0) {
+            newCoupon.maxUses = parseInt(maxUsesRaw, 10);
+        }
+        if (expiresAtRaw) {
+            const parsed = new Date(expiresAtRaw);
+            if (!isNaN(parsed.getTime())) newCoupon.expiresAt = parsed;
+        }
 
         await firestore.collection('coupons').add(newCoupon);
         return { message: `Coupon ${code} created successfully.` };
@@ -59,8 +72,20 @@ export async function getCoupons(): Promise<any[]> {
             ...doc.data(),
             createdAt: doc.data().createdAt?.toDate?.() || new Date(),
             updatedAt: doc.data().updatedAt?.toDate?.() || new Date(),
+            expiresAt: doc.data().expiresAt?.toDate?.() ?? null,
         }));
     } catch (error) { return []; }
+}
+
+export async function toggleCouponActive(couponId: string, active: boolean): Promise<ActionResult> {
+    try {
+        await requireUser(['super_user']);
+        const firestore = getAdminFirestore();
+        await firestore.collection('coupons').doc(couponId).update({ active, updatedAt: new Date() });
+        return { message: `Coupon ${active ? 'activated' : 'deactivated'} successfully.` };
+    } catch (error: any) {
+        return { message: `Failed to update coupon: ${error.message}`, error: true };
+    }
 }
 
 export async function getMrrLadder(currentMrr: number) {
