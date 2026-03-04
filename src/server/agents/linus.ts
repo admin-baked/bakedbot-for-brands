@@ -19,6 +19,7 @@ import { logger } from '@/lib/logger';
 import { browserService } from '../services/browser-service';
 import { browserToolDefs } from '../tools/browser-tools';
 import { getAdminFirestore } from '@/firebase/admin';
+import { spawn } from 'child_process';
 import {
     buildSquadRoster,
     buildIntegrationStatusSummary
@@ -4371,6 +4372,50 @@ export const linusAgent: AgentImplementation<AgentMemory, any> = {
 
     async act(brandMemory, agentMemory, targetId, tools, stimulus) {
         if (targetId === 'user_request' && stimulus) {
+            // === PRE-CLASSIFIER: DETECT DETERMINISTIC SUPER POWER COMMANDS ===
+            // These commands don't need LLM reasoning — just execute the script directly.
+            // Saves ~$0.03–0.10 per Linus Slack invocation.
+            const SUPER_POWER_PATTERNS = [
+                /(?:^|npm\s+run\s+)?fix-build(?:[:\s]|$)/i,  // fix:build, npm run fix:build
+                /(?:^|npm\s+run\s+)?audit:indexes(?:[:\s]|$)/i,  // audit:indexes, npm run audit:indexes
+                /(?:^|npm\s+run\s+)?check:types(?:[:\s]|$)/i,  // check:types, npm run check:types
+                /(?:^|npm\s+run\s+)?seed:test(?:[:\s]|$)/i,  // seed:test, npm run seed:test
+                /(?:^|npm\s+run\s+)?setup:secrets(?:[:\s]|$)/i,  // setup:secrets, npm run setup:secrets
+                /(?:^|npm\s+run\s+)?generate:component\s+\w+(?:(?!.*\{).+)/i,  // generate:component <Name>
+                /(?:^|npm\s+run\s+)?generate:action\s+\w+(?:(?!.*\{).+)/i,  // generate:action <name>
+                /(?:^|npm\s+run\s+)?generate:route\s+\w+(?:(?!.*\{).+)/i,  // generate:route <endpoint>
+                /(?:^|npm\s+run\s+)?generate:cron\s+\w+(?:(?!.*\{).+)/i,  // generate:cron <name>
+                /(?:^|npm\s+run\s+)?test:security(?:[:\s]|$)/i,  // test:security, npm run test:security
+                /(?:^|npm\s+run\s+)?check:compliance(?:[:\s]|$)/i,  // check:compliance
+                /(?:^|npm\s+run\s+)?audit:consistency(?:[:\s]|$)/i,  // audit:consistency
+                /(?:^|npm\s+run\s+)?setup:monitoring(?:[:\s]|$)/i,  // setup:monitoring
+                /(?:^|npm\s+run\s+)?audit:costs(?:[:\s]|$)/i,  // audit:costs
+                /(?:^|npm\s+run\s+)?generate:\w+(?:component|action|route|cron)(?::[^{])/i,  // generate:* (without nested braces)
+            ];
+
+            for (const pattern of SUPER_POWER_PATTERNS) {
+                if (pattern.test(stimulus)) {
+                    logger.info('[Linus] Detected super power command — executing directly', { command: stimulus });
+                    const { spawn } = await import('child_process');
+                    const command = stimulus.startsWith('npm run') ? stimulus : `npm run ${stimulus}`;
+                    const child = spawn('npm', ['run', command], {
+                        cwd: process.cwd(),
+                        stdio: 'inherit',
+                        shell: true,
+                    });
+                    const exitCode = await new Promise(resolve => child.on('exit', code => resolve(code)));
+                    const result = exitCode === 0
+                        ? `${stimulus} completed successfully (exit code 0)`
+                        : `${stimulus} failed (exit code ${exitCode})`;
+                    return {
+                        updatedMemory: agentMemory,
+                        logEntry: { action: 'super_power_execution', result, metadata: { command: stimulus, exitCode } }
+                    };
+                }
+            }
+
+            // === END PRE-CLASSIFIER ===
+
             try {
                 // Slack/harness context: limit to 8 iterations for faster, focused responses.
                 // Full 15 iterations is reserved for direct CTO-mode invocations.
