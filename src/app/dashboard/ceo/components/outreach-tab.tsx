@@ -406,9 +406,10 @@ export default function OutreachTab() {
 
             try {
                 apolloResult = await getApolloCreditsAction();
+                // Silently fail on Apollo errors — non-critical panel
             } catch (e) {
-                if (!errorSource) errorSource = 'Apollo credits';
-                console.error('[OutreachTab] getApolloCreditsAction failed:', String(e));
+                // Don't set errorSource for Apollo — it's a nice-to-have panel
+                console.error('[OutreachTab] getApolloCreditsAction failed (non-critical):', String(e));
             }
 
             if (dashResult?.success && dashResult.data) {
