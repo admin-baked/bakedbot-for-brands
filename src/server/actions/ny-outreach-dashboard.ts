@@ -1022,10 +1022,18 @@ export interface SuperUserStatusCounts {
     apolloCreditsRemaining: number; // Apollo.io credits left this cycle
 }
 
+// Matches BIZ_DEV_CACHE_DOC in executive-context-prewarm/route.ts
+const BIZ_DEV_CACHE_DOC = 'biz_dev_context_today';
+// 30-min TTL — dashboard data is more time-sensitive than exec context (4h)
+const BIZ_DEV_CACHE_TTL_MS = 30 * 60 * 1000;
+
 /**
  * Fast parallel Firestore counts powering the CEO dashboard proactive status banner.
  * Returns everything awaiting super user attention in a single call.
  * Designed to be called non-blocking on dashboard mount.
+ *
+ * Fast path: reads from biz_dev_context_today cache written by 7:45 AM prewarm cron.
+ * Fallback: live Firestore queries (used if cache is stale or missing).
  */
 export async function getSuperUserStatusCounts(): Promise<{
     success: boolean;
@@ -1038,6 +1046,36 @@ export async function getSuperUserStatusCounts(): Promise<{
 
         const db = getAdminFirestore();
 
+        // Fast path: try biz dev cache first (written by executive-context-prewarm cron at 7:45 AM)
+        try {
+            const cacheDoc = await db.collection('platform_cache').doc(BIZ_DEV_CACHE_DOC).get();
+            if (cacheDoc.exists) {
+                const d = cacheDoc.data()!;
+                const ageMs = Date.now() - new Date(d.cachedAt as string).getTime();
+                if (ageMs < BIZ_DEV_CACHE_TTL_MS) {
+                    // Cache hit — still need blog drafts + Apollo credits (not in biz dev cache)
+                    const [blogDraftsSnap, apolloCredits] = await Promise.all([
+                        db.collection('blog_posts').where('status', '==', 'draft').count().get(),
+                        getApolloCreditStatus(),
+                    ]);
+                    logger.info('[OutreachDashboard] Status counts served from cache', { ageMinutes: Math.round(ageMs / 60000) });
+                    return {
+                        success: true,
+                        counts: {
+                            pendingOutreachDrafts: (d.pendingDrafts as number) ?? 0,
+                            unenrichedLeads: (d.unenrichedLeads as number) ?? 0,
+                            pendingBlogDrafts: blogDraftsSnap.data().count,
+                            leadQueueDepth: (d.queueDepth as number) ?? 0,
+                            apolloCreditsRemaining: apolloCredits.remaining,
+                        },
+                    };
+                }
+            }
+        } catch {
+            // Cache miss or read error — fall through to live queries
+        }
+
+        // Fallback: live Firestore queries
         const [
             pendingDraftsSnap,
             unenrichedSnap,
