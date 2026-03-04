@@ -825,6 +825,10 @@ export interface NYOutreachCRMLead {
     notes: string | null;
     createdAt: number;
     updatedAt: number;
+    // Data quality fields
+    dataQualityScore?: number;  // 0–100: % of key fields filled
+    isDuplicate?: boolean;
+    duplicateOf?: string | null;
 }
 
 /**
@@ -885,6 +889,9 @@ export async function getNYOutreachForCRM(filter: string = 'all', search: string
                 notes: d.notes || null,
                 createdAt: d.createdAt || 0,
                 updatedAt: d.updatedAt || 0,
+                dataQualityScore: typeof d.dataQualityScore === 'number' ? d.dataQualityScore : undefined,
+                isDuplicate: d.isDuplicate === true,
+                duplicateOf: d.duplicateOf || null,
             };
         });
 
@@ -1106,6 +1113,205 @@ export async function getSuperUserStatusCounts(): Promise<{
         };
     } catch (err) {
         logger.error('[OutreachDashboard] Failed to load status counts', { error: String(err) });
+        return { success: false, error: String(err) };
+    }
+}
+
+// =============================================================================
+// NY Data Quality — Dedup, Scoring, Bulk Cleanup
+// =============================================================================
+
+/** Calculate data completeness score (0-100) for a lead document */
+function calcDataQualityScore(d: Record<string, unknown>): number {
+    const required = ['dispensaryName', 'email', 'phone', 'city', 'state', 'posSystem', 'websiteUrl'] as const;
+    const filled = required.filter(f => d[f] != null && String(d[f]).trim() !== '').length;
+    return Math.round((filled / required.length) * 100);
+}
+
+/**
+ * Get NY lead data quality summary (counts for the quality banner)
+ */
+export async function getNYLeadDataQuality(): Promise<{
+    success: boolean;
+    totalLeads?: number;
+    dupCount?: number;
+    noEmailCount?: number;
+    incompleteCount?: number;
+    avgScore?: number;
+    error?: string;
+}> {
+    try {
+        await requireUser(['super_user']);
+        const db = getAdminFirestore();
+        const snap = await db.collection('ny_dispensary_leads').get();
+
+        const docs = snap.docs.map(d => ({ id: d.id, data: d.data() }));
+
+        // Count dupes: group by email (non-null) and by dispensaryName+city
+        const emailGroups = new Map<string, string[]>();
+        const nameGroups = new Map<string, string[]>();
+        for (const { id, data } of docs) {
+            const email = typeof data.email === 'string' ? data.email.trim().toLowerCase() : '';
+            if (email) {
+                const existing = emailGroups.get(email) || [];
+                existing.push(id);
+                emailGroups.set(email, existing);
+            }
+            const nameKey = `${String(data.dispensaryName || '').toLowerCase().trim()}|${String(data.city || '').toLowerCase().trim()}`;
+            if (nameKey !== '|') {
+                const existing = nameGroups.get(nameKey) || [];
+                existing.push(id);
+                nameGroups.set(nameKey, existing);
+            }
+        }
+
+        const dupIds = new Set<string>();
+        for (const ids of emailGroups.values()) {
+            if (ids.length > 1) ids.slice(1).forEach(id => dupIds.add(id));
+        }
+        for (const ids of nameGroups.values()) {
+            if (ids.length > 1) ids.slice(1).forEach(id => dupIds.add(id));
+        }
+
+        const scores = docs.map(({ data }) => calcDataQualityScore(data as Record<string, unknown>));
+        const avgScore = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+        const noEmailCount = docs.filter(({ data }) => !data.email).length;
+        const incompleteCount = scores.filter(s => s < 60).length;
+
+        return {
+            success: true,
+            totalLeads: docs.length,
+            dupCount: dupIds.size,
+            noEmailCount,
+            incompleteCount,
+            avgScore,
+        };
+    } catch (err) {
+        logger.error('[DataQuality] Failed', { error: String(err) });
+        return { success: false, error: String(err) };
+    }
+}
+
+/**
+ * Detect duplicate NY leads and mark them with isDuplicate + duplicateOf fields.
+ * Also writes dataQualityScore to ALL leads.
+ * Keeps the "best" record (most filled fields) per group; marks the rest as duplicates.
+ */
+export async function deduplicateNYLeads(): Promise<{ success: boolean; marked?: number; scored?: number; error?: string }> {
+    try {
+        await requireUser(['super_user']);
+        const db = getAdminFirestore();
+        const snap = await db.collection('ny_dispensary_leads').get();
+
+        const docs = snap.docs.map(d => ({ id: d.id, ref: d.ref, data: d.data() }));
+
+        // Score all leads
+        const scores = new Map<string, number>();
+        for (const { id, data } of docs) {
+            scores.set(id, calcDataQualityScore(data as Record<string, unknown>));
+        }
+
+        // Build dupe groups by email and by dispensaryName+city
+        const emailGroups = new Map<string, { id: string; data: FirebaseFirestore.DocumentData }[]>();
+        const nameGroups = new Map<string, { id: string; data: FirebaseFirestore.DocumentData }[]>();
+        for (const { id, data } of docs) {
+            const email = typeof data.email === 'string' ? data.email.trim().toLowerCase() : '';
+            if (email) {
+                const g = emailGroups.get(email) || [];
+                g.push({ id, data });
+                emailGroups.set(email, g);
+            }
+            const nameKey = `${String(data.dispensaryName || '').toLowerCase().trim()}|${String(data.city || '').toLowerCase().trim()}`;
+            if (nameKey !== '|') {
+                const g = nameGroups.get(nameKey) || [];
+                g.push({ id, data });
+                nameGroups.set(nameKey, g);
+            }
+        }
+
+        // For each group with >1 member: pick best (highest score), mark rest as dup
+        const dupMap = new Map<string, string>(); // dupId → masterId
+        const processGroup = (group: { id: string; data: FirebaseFirestore.DocumentData }[]) => {
+            if (group.length <= 1) return;
+            const sorted = [...group].sort((a, b) => (scores.get(b.id) || 0) - (scores.get(a.id) || 0));
+            const master = sorted[0];
+            for (const dup of sorted.slice(1)) {
+                if (!dupMap.has(dup.id)) dupMap.set(dup.id, master.id);
+            }
+        };
+        for (const g of emailGroups.values()) processGroup(g);
+        for (const g of nameGroups.values()) processGroup(g);
+
+        // Write in batches of 500
+        const BATCH_SIZE = 500;
+        let marked = 0;
+        let scored = 0;
+
+        // Score updates for all docs
+        for (let i = 0; i < docs.length; i += BATCH_SIZE) {
+            const batch = db.batch();
+            for (const { id, ref } of docs.slice(i, i + BATCH_SIZE)) {
+                const isDuplicate = dupMap.has(id);
+                const duplicateOf = dupMap.get(id) || null;
+                batch.update(ref, {
+                    dataQualityScore: scores.get(id) ?? 0,
+                    isDuplicate,
+                    duplicateOf,
+                    dataQualityUpdatedAt: Date.now(),
+                });
+                if (isDuplicate) marked++;
+                scored++;
+            }
+            await batch.commit();
+        }
+
+        logger.info('[DataQuality] Dedup complete', { marked, scored });
+        return { success: true, marked, scored };
+    } catch (err) {
+        logger.error('[DataQuality] Dedup failed', { error: String(err) });
+        return { success: false, error: String(err) };
+    }
+}
+
+/**
+ * Bulk delete NY leads matching a filter.
+ * 'duplicates' — isDuplicate == true
+ * 'no_email'   — email == null (not enriched or enriched with no result)
+ * 'incomplete' — dataQualityScore < 40 (very low completeness)
+ */
+export async function bulkDeleteNYLeads(
+    filter: 'duplicates' | 'no_email' | 'incomplete'
+): Promise<{ success: boolean; deleted?: number; error?: string }> {
+    try {
+        await requireUser(['super_user']);
+        const db = getAdminFirestore();
+
+        let snap: FirebaseFirestore.QuerySnapshot;
+        if (filter === 'duplicates') {
+            snap = await db.collection('ny_dispensary_leads').where('isDuplicate', '==', true).get();
+        } else if (filter === 'no_email') {
+            snap = await db.collection('ny_dispensary_leads').where('email', '==', null).get();
+        } else {
+            // incomplete: dataQualityScore < 40 — query for docs with score set
+            snap = await db.collection('ny_dispensary_leads').where('dataQualityScore', '<', 40).get();
+        }
+
+        if (snap.empty) return { success: true, deleted: 0 };
+
+        const BATCH_SIZE = 500;
+        let deleted = 0;
+        const docs = snap.docs;
+        for (let i = 0; i < docs.length; i += BATCH_SIZE) {
+            const batch = db.batch();
+            docs.slice(i, i + BATCH_SIZE).forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+            deleted += Math.min(BATCH_SIZE, docs.length - i);
+        }
+
+        logger.info('[DataQuality] Bulk delete complete', { filter, deleted });
+        return { success: true, deleted };
+    } catch (err) {
+        logger.error('[DataQuality] Bulk delete failed', { filter, error: String(err) });
         return { success: false, error: String(err) };
     }
 }

@@ -45,4 +45,6 @@ export interface CRMUser {
     orgName?: string | null;
     notes?: string | null;
     approvalStatus?: 'pending' | 'approved' | 'rejected' | 'disabled';
+    isTestAccount?: boolean;
+    isTestMarkedAt?: Date | null;
 }
