@@ -142,7 +142,10 @@ export const BRAND_CHAT_CONFIG: RoleChatConfig = {
         'Get my SEO visibility report',
         'See where my brand appears online',
         'Show me which products are trending',
-        'What campaigns drove the most revenue last month?'
+        'What campaigns drove the most revenue last month?',
+        // Proactive Intelligence
+        'What campaigns should we run this month?',
+        'What\'s trending in cannabis marketing right now?'
     ],
     agentPersona: 'craig',
     themeColor: 'blue',
@@ -183,7 +186,10 @@ export const DISPENSARY_CHAT_CONFIG: RoleChatConfig = {
         // Compliance & Health
         'Scan my site for compliance risks',
         'Get my SEO visibility score',
-        'Flag any out-of-compliance menu listings'
+        'Flag any out-of-compliance menu listings',
+        // Proactive Intelligence
+        'What should we promote this week?',
+        'What\'s trending in the market right now?'
     ],
     agentPersona: 'money_mike',
     themeColor: 'orange',
