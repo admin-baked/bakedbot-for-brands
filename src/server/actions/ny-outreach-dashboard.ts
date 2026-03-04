@@ -1053,7 +1053,7 @@ export async function checkGmailConnection(): Promise<{
 
         const data = tokenDoc.data();
         return {
-            connected: !!data?.refreshToken,
+            connected: !!data?.refreshTokenEncrypted,
             email: data?.email as string | undefined,
         };
     } catch {
