@@ -109,10 +109,12 @@ async function processBatch(orgIds: string[]): Promise<{ success: string[]; fail
             if (result.status === 'fulfilled') {
                 success.push(orgId);
             } else {
-                failed.push(orgId);
+                // result.reason can be an Error object or string; handle both
+                const errorMsg = result.reason instanceof Error ? result.reason.message : String(result.reason);
+                failed.push(errorMsg);
                 logger.error('[MorningBriefingCron] Failed for org', {
                     orgId,
-                    error: String(result.reason),
+                    error: errorMsg,
                 });
             }
         });
