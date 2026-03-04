@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-03-04)
 
 **Recent work (2026-03-04):** See `memory/MEMORY.md` for full log.
-Key completed: [P0-P4 ARR briefing upgrades — exec UI, MRR cards, Jack pipeline, Mrs. Parker, outreach funnel] (`9259c7f1`)
+Key completed: [AI-native CRM — Jack insights, test accounts, cascade delete, NY dedup/quality] (`201c565a`)
 
 ---
 
