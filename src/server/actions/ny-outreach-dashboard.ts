@@ -26,7 +26,11 @@ import { researchNewLeads, importNYLicensedLeads, bulkImportAllNYLeads } from '@
 import { generateOutreachEmails, type OutreachEmailData } from '@/server/services/ny-outreach/email-templates';
 import { verifyEmail } from '@/server/services/email-verification';
 import { sendGenericEmail } from '@/lib/email/dispatcher';
+import { apolloSearchPeople, apolloEnrichByDomain, getApolloCreditStatus, type ApolloCreditStatus } from '@/server/services/ny-outreach/apollo-enrichment';
 import { logger } from '@/lib/logger';
+
+// Re-export Apollo credit type for UI
+export type { ApolloCreditStatus } from '@/server/services/ny-outreach/apollo-enrichment';
 
 const DAILY_SEND_LIMIT = parseInt(process.env.NY_OUTREACH_DAILY_LIMIT || '5', 10);
 
@@ -826,7 +830,37 @@ export async function triggerNYLeadEnrichment(): Promise<{
                     }
                 }
             } catch (err) {
-                logger.warn('[OutreachDashboard] Enrichment failed', { dispensaryName, error: String(err) });
+                logger.warn('[OutreachDashboard] Jina enrichment failed', { dispensaryName, error: String(err) });
+            }
+
+            // --- Apollo fallback: if Jina couldn't find an email, try Apollo ---
+            let apolloContactName: string | undefined;
+            if (!email) {
+                try {
+                    const apolloResult = websiteUrl
+                        ? await apolloEnrichByDomain(websiteUrl, dispensaryName)
+                        : await apolloSearchPeople(
+                            dispensaryName,
+                            city,
+                            (data.state as string) || 'NY',
+                            data.contactName as string | undefined
+                        );
+
+                    if (apolloResult.email) {
+                        email = apolloResult.email;
+                        // If Apollo found a contact name and we don't have one, use it
+                        if (!data.contactName && apolloResult.contactName) {
+                            apolloContactName = apolloResult.contactName;
+                        }
+                        logger.info('[OutreachDashboard] Apollo found email', {
+                            dispensaryName,
+                            source: apolloResult.source,
+                            creditSpent: apolloResult.creditSpent,
+                        });
+                    }
+                } catch (err) {
+                    logger.warn('[OutreachDashboard] Apollo enrichment failed', { dispensaryName, error: String(err) });
+                }
             }
 
             const updates: Record<string, unknown> = {
@@ -840,6 +874,7 @@ export async function triggerNYLeadEnrichment(): Promise<{
             if (phone) updates.phone = phone;
             if (websiteUrl) updates.websiteUrl = websiteUrl;
             if (contactFormUrl) updates.contactFormUrl = contactFormUrl;
+            if (apolloContactName) updates.contactName = apolloContactName;
 
             await doc.ref.update(updates);
             enriched++;
@@ -1058,5 +1093,30 @@ export async function checkGmailConnection(): Promise<{
         };
     } catch {
         return { connected: false };
+    }
+}
+
+// =============================================================================
+// Apollo.io Credit Tracking
+// =============================================================================
+
+/**
+ * Get current Apollo.io credit usage for the dashboard.
+ * Free tier: 195 credits/month (cycle: Mar 03 – Apr 03, 2026).
+ */
+export async function getApolloCreditsAction(): Promise<{
+    success: boolean;
+    credits?: ApolloCreditStatus;
+    error?: string;
+}> {
+    try {
+        const user = await requireUser(['super_user']);
+        if (!user) return { success: false, error: 'Unauthorized' };
+
+        const credits = await getApolloCreditStatus();
+        return { success: true, credits };
+    } catch (err) {
+        logger.error('[OutreachDashboard] Failed to load Apollo credits', { error: String(err) });
+        return { success: false, error: String(err) };
     }
 }
