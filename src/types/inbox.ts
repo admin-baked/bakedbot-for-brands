@@ -228,7 +228,8 @@ export type InboxArtifactType =
     | 'integration_request' // Request to connect third-party service (OAuth, API key, etc.)
     // ---- Analytics Artifacts ----
     | 'analytics_chart'     // Recharts chart from agent analytics tool output
-    | 'analytics_briefing'; // Morning proactive briefing with metrics + news
+    | 'analytics_briefing'  // Morning proactive briefing with metrics + news
+    | 'executive_proactive_check'; // Executive intelligence brief from 9 AM proactive cron
 
 /**
  * Artifact approval status
@@ -399,7 +400,7 @@ export interface InboxArtifact {
     status: InboxArtifactStatus;
 
     // The actual data (polymorphic based on type)
-    data: Carousel | BundleDeal | CreativeContent | QRCode | IntegrationRequest | ResearchReportArtifactData | AnalyticsChart | AnalyticsBriefing | OutreachDraftData;
+    data: Carousel | BundleDeal | CreativeContent | QRCode | IntegrationRequest | ResearchReportArtifactData | AnalyticsChart | AnalyticsBriefing | OutreachDraftData | Record<string, unknown>;
 
     // Agent rationale for the suggestion
     rationale?: string;

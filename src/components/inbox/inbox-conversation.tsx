@@ -65,6 +65,7 @@ import { InboxBundleCard } from './artifacts/bundle-card';
 import { InboxCreativeCard } from './artifacts/creative-card';
 import { InboxIntegrationCard } from './artifacts/integration-card';
 import { InboxResearchCard } from './artifacts/inbox-research-card';
+import { ExecutiveProactiveCheckArtifact, type ExecProactiveCheckData } from './artifacts/executive-proactive-check-artifact';
 import { InboxTaskFeed, AGENT_PULSE_CONFIG } from './inbox-task-feed';
 import { QRCodeGeneratorInline } from './qr-code-generator-inline';
 import { CarouselGeneratorInline } from './carousel-generator-inline';
@@ -363,6 +364,22 @@ function ArtifactPreviewCard({ artifact }: { artifact: InboxArtifact }) {
             return <InboxIntegrationCard artifact={artifact} />;
         case 'research_report':
             return <InboxResearchCard artifact={artifact} />;
+        case 'executive_proactive_check': {
+            const d = artifact.data as unknown as ExecProactiveCheckData;
+            return (
+                <div className="p-3 rounded-lg bg-white/5 border border-white/8">
+                    <div className="flex items-center gap-2 mb-2">
+                        <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
+                        <span className="text-xs font-semibold">Executive Intelligence Brief — {d.dateLabel}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                        {d.executiveRecommendations.length} agent{d.executiveRecommendations.length !== 1 ? 's' : ''} reported
+                        {d.meetings.length > 0 ? ` · ${d.meetings.length} meeting${d.meetings.length !== 1 ? 's' : ''}` : ''}
+                        {d.emailDigest ? ` · ${d.emailDigest.unreadCount} unread` : ''}
+                    </p>
+                </div>
+            );
+        }
         default:
             return null;
     }

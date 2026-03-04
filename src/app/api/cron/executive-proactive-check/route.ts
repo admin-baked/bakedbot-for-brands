@@ -56,7 +56,7 @@ async function getSuperUserOrgId(): Promise<string> {
 // ============================================================================
 
 interface ExecDomainBrief {
-    agent: 'leo' | 'jack' | 'glenda' | 'linus' | 'mike';
+    agent: 'leo' | 'jack' | 'glenda' | 'linus' | 'mike' | 'mrs_parker';
     title: string;
     recommendations: string[];
     urgency: 'clean' | 'info' | 'warning' | 'critical';
@@ -176,6 +176,19 @@ async function generateJackBrief(ctx: Awaited<ReturnType<typeof loadExecutiveCon
         /demo|discovery|call|meeting|sync/i.test(m.title)
     );
 
+    // Load CRM pipeline counts from Firestore
+    const db = getAdminFirestore();
+    const [contactsSnap, leadsSnap, sentTodaySnap, pendingDraftsSnap] = await Promise.allSettled([
+        db.collection('ny_dispensary_leads').count().get(),
+        db.collection('ny_dispensary_leads').where('status', '==', 'researched').where('outreachSent', '==', false).count().get(),
+        db.collection('ny_outreach_log').where('emailSent', '==', true).count().get(),
+        db.collection('ny_outreach_drafts').where('status', '==', 'draft').count().get(),
+    ]);
+    const totalLeads = contactsSnap.status === 'fulfilled' ? contactsSnap.value.data().count : 0;
+    const queueDepth = leadsSnap.status === 'fulfilled' ? leadsSnap.value.data().count : 0;
+    const totalSent = sentTodaySnap.status === 'fulfilled' ? sentTodaySnap.value.data().count : 0;
+    const pendingDrafts = pendingDraftsSnap.status === 'fulfilled' ? pendingDraftsSnap.value.data().count : 0;
+
     const userMessage = `You are Jack, CRO of BakedBot. Today is ${ctx.dateStr}.
 
 SALES MEETINGS TODAY: ${salesMeetings.length > 0 ? salesMeetings.map(m => `${m.startTime} ${m.title}`).join(', ') : 'None'}
@@ -184,7 +197,14 @@ POTENTIAL LEAD EMAILS: ${emailLeads.length > 0 ? emailLeads.map((e: { subject: s
 
 MARKET INTEL: ${searchSummary || 'No recent intel'}
 
-Generate 3-4 revenue action items for today. Be specific: who to contact, what deal to push, what opportunity to capture.
+NY BIZ DEV PIPELINE:
+- Total leads in database: ${totalLeads}
+- Leads researched & ready for outreach: ${queueDepth}
+- Total outreach emails sent (all time): ${totalSent}
+- Drafts pending CEO approval: ${pendingDrafts}
+
+Generate 3-4 revenue action items focused on moving these leads through the pipeline to closed deals.
+Flag if pendingDrafts > 0 — CEO needs to approve before emails can send.
 Format as bullet points. Under 20 words each. No fluff.`;
 
     try {
@@ -350,6 +370,79 @@ Format as bullet points. Under 20 words each. No fluff.`;
     }
 }
 
+async function generateMrsParkerBrief(ctx: Awaited<ReturnType<typeof loadExecutiveContext>>): Promise<ExecDomainBrief> {
+    try {
+        const db = getAdminFirestore();
+
+        // Query for retention signals
+        const [orgsSnap, recentOrgsSnap] = await Promise.allSettled([
+            db.collection('organizations').where('status', '==', 'active').count().get(),
+            // New orgs in last 30 days (use createdAt field)
+            db.collection('organizations').where('status', '==', 'active')
+              .where('createdAt', '>=', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).count().get(),
+        ]);
+
+        const totalOrgs = orgsSnap.status === 'fulfilled' ? orgsSnap.value.data().count : 0;
+        const newOrgsLast30Days = recentOrgsSnap.status === 'fulfilled' ? recentOrgsSnap.value.data().count : 0;
+
+        // Filter retention signals from email
+        const retentionEmails = ctx.emailDigest?.topEmails.filter((e: { subject: string; from: string }) =>
+            /cancel|pause|downgrade|unhappy|frustrated|issue|problem|complaint|refund|churn/i.test(e.subject + e.from)
+        ) ?? [];
+
+        const prompt = `You are Mrs. Parker, Customer Success & Retention lead for BakedBot AI, a cannabis industry SaaS platform targeting $10M ARR.
+
+CUSTOMER DATA:
+- Active customer organizations: ${totalOrgs}
+- New customers in last 30 days: ${newOrgsLast30Days}
+- Retention-risk emails today: ${retentionEmails.length > 0 ? retentionEmails.map((e: { subject: string; from: string }) => `"${e.subject}" from ${e.from}`).join('; ') : 'None flagged'}
+- Upcoming meetings: ${ctx.meetings.length > 0 ? ctx.meetings.map(m => m.title).join(', ') : 'None'}
+
+Generate 3-4 customer success action items. Focus on:
+1. Any churn/cancellation risk signals from email → immediate action
+2. New customer onboarding health (30-day cohort)
+3. Upsell/expansion opportunities with existing customers
+4. Retention campaigns to run this week
+
+Be specific and actionable. Format as a JSON array of strings.`;
+
+        const raw = await callClaude({
+            model: 'claude-haiku-4-5-20251001',
+            userMessage: prompt,
+            maxTokens: 300,
+        });
+
+        let items: string[] = [];
+        try {
+            const match = raw.match(/\[[\s\S]*\]/);
+            items = match ? JSON.parse(match[0]) : [raw];
+        } catch {
+            items = [raw];
+        }
+
+        const urgency = retentionEmails.length > 0 ? 'warning' : 'info';
+
+        return {
+            agent: 'mrs_parker',
+            title: "Mrs. Parker's Retention Priorities",
+            recommendations: items.slice(0, 4),
+            urgency,
+        };
+    } catch (e: unknown) {
+        logger.warn('[ExecProactiveCheck] Mrs. Parker brief failed', { error: String(e) });
+        return {
+            agent: 'mrs_parker',
+            title: "Mrs. Parker's Retention Priorities",
+            recommendations: [
+                'Active customers: check for 30-day churn risk',
+                'Run win-back sequence for recently churned accounts',
+                'Schedule QBR calls for top 3 accounts this week',
+            ],
+            urgency: 'info',
+        };
+    }
+}
+
 // ============================================================================
 // Inbox Poster
 // ============================================================================
@@ -419,7 +512,7 @@ async function postExecBriefToInbox(orgId: string, briefs: ExecDomainBrief[], ct
     );
 
     const bulletSummary = briefs.flatMap(b => b.recommendations.slice(0, 2)).slice(0, 6).map(r => `• ${r}`).join('\n');
-    const messageBody = `**Executive Intelligence Check — ${ctx.dateStr}**\n\n${bulletSummary}\n\n_Leo, Jack, Glenda, Linus, and Mike have reviewed calendar, email, and market intel._`;
+    const messageBody = `**Executive Intelligence Check — ${ctx.dateStr}**\n\n${bulletSummary}\n\n_Leo, Jack, Glenda, Linus, Mike, and Mrs. Parker have reviewed calendar, email, and market intel._`;
 
     await db.collection('inbox_threads').doc(threadId).collection('messages').add({
         role: 'assistant',
@@ -462,17 +555,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         });
 
         // Generate domain briefs in parallel (with independent search queries)
-        const [leoBrief, jackBrief, glendaBrief, linusBrief, mikeBrief] = await Promise.all([
+        const [leoBrief, jackBrief, glendaBrief, linusBrief, mikeBrief, mrsParkerBrief] = await Promise.all([
             generateLeoBrief(ctx),
             generateJackBrief(ctx),
             generateGlendaBrief(ctx),
             generateLinusBrief(ctx),
             generateMikeBrief(ctx),
+            generateMrsParkerBrief(ctx),
         ]);
 
         // Post consolidated brief to inbox (resolve orgId at runtime)
         const platformOrgId = await getSuperUserOrgId();
-        await postExecBriefToInbox(platformOrgId, [leoBrief, jackBrief, glendaBrief, linusBrief, mikeBrief], ctx);
+        await postExecBriefToInbox(platformOrgId, [leoBrief, jackBrief, glendaBrief, linusBrief, mikeBrief, mrsParkerBrief], ctx);
 
         logger.info('[ExecProactiveCheck] Completed', {
             leo: leoBrief.recommendations.length,
@@ -480,6 +574,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             glenda: glendaBrief.recommendations.length,
             linus: linusBrief.recommendations.length,
             mike: mikeBrief.recommendations.length,
+            mrsParker: mrsParkerBrief.recommendations.length,
         });
 
         return NextResponse.json({
@@ -492,6 +587,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
                 glendaItems: glendaBrief.recommendations.length,
                 linusItems: linusBrief.recommendations.length,
                 mikeItems: mikeBrief.recommendations.length,
+                mrsParkerItems: mrsParkerBrief.recommendations.length,
             },
         });
     } catch (error) {
