@@ -195,7 +195,7 @@ Do NOT wait for the user to say "P1" or "file a bug first" — triage, file, and
 ---
 
 **Recent work (2026-03-04):** See `memory/MEMORY.md` for full log.
-Key completed: [Exec agents proactive intelligence — Leo/Jack/Glenda + cron] (`bfcde323`), [All dispensary/brand agents proactive stance] (`3b57aec7`)
+Key completed: [Mobile responsiveness — all roles + inbox] (`4a779c13`), [Exec agents proactive intelligence + cron] (`bfcde323`)
 
 ---
 
