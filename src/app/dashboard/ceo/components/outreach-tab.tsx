@@ -21,7 +21,7 @@ import { Input } from '@/components/ui/input';
 import {
     Loader2, Mail, Search, Play, TestTube2, RefreshCcw, Users,
     AlertTriangle, CheckCircle2, XCircle, FileText, Send,
-    Pencil, ChevronDown, ChevronUp, Link2,
+    Pencil, ChevronDown, ChevronUp, Link2, Zap,
 } from 'lucide-react';
 import {
     getOutreachDashboardData,
@@ -36,8 +36,10 @@ import {
     triggerBulkNYImport,
     triggerNYLeadEnrichment,
     checkGmailConnection,
+    getApolloCreditsAction,
 } from '@/server/actions/ny-outreach-dashboard';
 import type { OutreachDraft } from '@/server/services/ny-outreach/outreach-service';
+import type { ApolloCreditStatus } from '@/server/actions/ny-outreach-dashboard';
 
 // ────────────────────────────────────────────────────────────────────────────
 // Types
@@ -376,18 +378,25 @@ export default function OutreachTab() {
     const [gmailConnected, setGmailConnected] = useState<boolean | null>(null);
     const [gmailEmail, setGmailEmail] = useState<string>();
 
+    // Apollo credits
+    const [apolloCredits, setApolloCredits] = useState<ApolloCreditStatus | null>(null);
+
     const loadData = useCallback(async () => {
         try {
             setLoading(true);
-            const [dashResult, gmailResult] = await Promise.all([
+            const [dashResult, gmailResult, apolloResult] = await Promise.all([
                 getOutreachDashboardData(),
                 checkGmailConnection(),
+                getApolloCreditsAction(),
             ]);
             if (dashResult.success && dashResult.data) {
                 setData(dashResult.data as DashboardData);
             }
             setGmailConnected(gmailResult.connected ?? false);
             setGmailEmail(gmailResult.email);
+            if (apolloResult.success && apolloResult.credits) {
+                setApolloCredits(apolloResult.credits);
+            }
         } catch (err) {
             setActionResult({ type: 'error', message: `Failed to load data: ${String(err)}` });
         } finally {
@@ -659,6 +668,41 @@ export default function OutreachTab() {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Apollo Credits Panel */}
+            {apolloCredits && (
+                <div className="rounded-lg border p-4 flex flex-col sm:flex-row sm:items-center gap-4">
+                    <div className="flex items-center gap-2 shrink-0">
+                        <Zap className="h-4 w-4 text-amber-500" />
+                        <span className="text-sm font-medium">Apollo.io Enrichment Credits</span>
+                    </div>
+                    <div className="flex-1 space-y-1.5">
+                        {/* Progress bar */}
+                        <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
+                            <div
+                                className={`h-full rounded-full transition-all ${
+                                    apolloCredits.percentUsed >= 90 ? 'bg-red-500' :
+                                    apolloCredits.percentUsed >= 70 ? 'bg-amber-500' :
+                                    'bg-green-500'
+                                }`}
+                                style={{ width: `${Math.min(apolloCredits.percentUsed, 100)}%` }}
+                            />
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>
+                                <strong className={apolloCredits.percentUsed >= 90 ? 'text-red-600' : 'text-foreground'}>
+                                    {apolloCredits.used}
+                                </strong> / {apolloCredits.limit} credits used this cycle
+                            </span>
+                            <span>{apolloCredits.remaining} remaining</span>
+                        </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground shrink-0 text-right">
+                        <div>Resets {new Date(apolloCredits.cycleEnd).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                        <div className="text-green-600 font-medium">Free tier · 195/mo</div>
+                    </div>
+                </div>
+            )}
 
             {/* Action Buttons */}
             <div className="flex flex-wrap gap-3">
