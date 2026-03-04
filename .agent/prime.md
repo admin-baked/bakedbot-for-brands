@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-03-03)
 
 **Recent work (2026-03-03):** See `memory/MEMORY.md` for full log.
-Key completed: [Playbook design unification — all roles get PlaybookCardModern] (`062eacbf`), [Super user dashboard routing + admin layout guard] (`aaa55d3d`)
+Key completed: [Google Calendar OAuth fix — consolidated to registered URI] (`801de278`), [Blog Research Pipeline — Jina+Claude CEO Content tab] (`5e12df33`)
 
 ---
 
@@ -195,7 +195,7 @@ Do NOT wait for the user to say "P1" or "file a bug first" — triage, file, and
 ---
 
 **Recent work (2026-03-03):** See `memory/MEMORY.md` for full log.
-Key completed: [Blog auth fix — session cookie mismatch] (`c43936c8`), [Blog sidebar + page auth] (`6cc21c00`)
+Key completed: [Blog research Step 3 Timestamp fix] (`94c0a7eb`), [Citations + news caching added to blog-research.ts] (linter)
 
 ---
 
