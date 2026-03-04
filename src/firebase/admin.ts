@@ -107,11 +107,6 @@ export function getAdminFirestore() {
             throw new Error('[Firebase Admin] Failed to initialize Firebase app - no apps found after initialization attempt');
         }
         const db = getFirestore(app);
-        try {
-            db.settings({ ignoreUndefinedProperties: true });
-        } catch {
-            // Settings already applied — Firestore throws on re-configure
-        }
         return db;
     } catch (error) {
         console.error('[Firebase Admin] Error in getAdminFirestore:', error);
