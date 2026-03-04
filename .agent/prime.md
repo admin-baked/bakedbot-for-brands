@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-03-04)
 
 **Recent work (2026-03-04):** See `memory/MEMORY.md` for full log.
-Key completed: [Mobile responsiveness — all roles + inbox] (`4a779c13`), [Exec context pre-warm + Timestamp serialization] (`27e4c5de`)
+Key completed: [Outreach serialization fix — getOutreachStats explicit mapping] (`5636d7c5`), [Exec context pre-warm + Timestamp fixes] (`27e4c5de`)
 
 ---
 
