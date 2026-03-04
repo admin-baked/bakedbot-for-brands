@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-03-03 (Blog research pipeline Step 3 Timestamp serialization fix; outreach TS fixes; blog-research citations + news caching)
+**Current Status:** 🟢 Passing | **Last update:** 2026-03-03 (Blog research: 24h news cache, citations pipeline, UI cache age indicator; simplify review fixes)
 
 ---
 
