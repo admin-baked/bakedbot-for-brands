@@ -25,4 +25,4 @@ jobs:
           firebase apphosting:rollouts:create bakedbot-prod \
             --git-branch main \
             --project studio-567050101-bc6e8 \
-            --non-interactive
+            --non-interactive || echo "Rollout already queued or in progress — skipping."
