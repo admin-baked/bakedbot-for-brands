@@ -206,3 +206,37 @@ export const allSharedToolDefs = [...contextOsToolDefs, ...lettaToolDefs, ...int
 
 // Extended interface with all tools
 export interface AllSharedTools extends SharedTools, IntuitionOsTools, BrowserTools, UserManagementTools {}
+
+// ============================================================================
+// EXECUTIVE CONTEXT TOOL DEFINITIONS
+// Calendar, email, and web search for Executive Boardroom agents.
+// Implementations live in default-tools.ts (defaultExecutiveBoardTools).
+// ============================================================================
+
+export const executiveContextToolDefs = [
+    {
+        name: "getCalendarContext",
+        description: "Fetch today's scheduled meetings from the BakedBot calendar and Google Calendar. Use proactively to prep for calls, identify scheduling gaps, and understand the day's agenda. Always call this when the user asks about their schedule, upcoming meetings, or what's on the agenda.",
+        schema: z.object({})
+    },
+    {
+        name: "getEmailDigest",
+        description: "Fetch unread emails from the CEO's Gmail inbox. Use proactively to spot inbound opportunities, lead inquiries, partnership proposals, and urgent follow-ups. Always call this when scanning for opportunities or reviewing what's come in.",
+        schema: z.object({
+            sinceHours: z.number().optional().describe("Hours to look back (default: 8 hours = since this morning)")
+        })
+    },
+    {
+        name: "searchOpportunities",
+        description: "Search the web for cannabis industry news, market opportunities, competitor moves, and trends relevant to your domain. Use this to surface actionable intelligence you can bring to the CEO proactively.",
+        schema: z.object({
+            query: z.string().describe("Search query (e.g., 'NY cannabis dispensary partnerships 2026', 'cannabis email marketing trends')")
+        })
+    }
+];
+
+export interface ExecutiveContextTools {
+    getCalendarContext(): Promise<any>;
+    getEmailDigest(sinceHours?: number): Promise<any>;
+    searchOpportunities(query: string): Promise<any>;
+}

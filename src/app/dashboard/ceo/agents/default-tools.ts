@@ -1683,7 +1683,72 @@ export const defaultExecutiveBoardTools = {
         } catch (e: any) {
             return { success: false, error: e.message };
         }
-    }
+    },
+
+    // =========================================================================
+    // EXECUTIVE CONTEXT TOOLS
+    // Calendar, email, and opportunity search for Executive Boardroom agents.
+    // All three are available to Leo, Jack, Glenda, Mike, and Linus.
+    // =========================================================================
+
+    /**
+     * Fetch today's meetings (BakedBot bookings + Google Calendar).
+     * Returns upcoming meetings from now if past noon, or full-day view if morning.
+     */
+    getCalendarContext: async () => {
+        try {
+            const { getMeetingsForDay, getUpcomingMeetingsToday } = await import('@/server/services/calendar-digest');
+            const now = new Date();
+            const estHour = parseInt(
+                now.toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false })
+            );
+            const meetings = estHour >= 12
+                ? await getUpcomingMeetingsToday()
+                : await getMeetingsForDay(now);
+
+            return {
+                date: now.toLocaleDateString('en-US', { timeZone: 'America/New_York', weekday: 'long', month: 'long', day: 'numeric' }),
+                meetings,
+                count: meetings.length,
+                timeZone: 'America/New_York',
+            };
+        } catch (e: any) {
+            return { error: e.message, meetings: [], count: 0 };
+        }
+    },
+
+    /**
+     * Fetch unread emails from the CEO's Gmail since the given hours ago (default 8h).
+     * Uses the super user's stored OAuth token.
+     */
+    getEmailDigest: async (sinceHours?: number) => {
+        try {
+            const { findSuperUserUid, getEmailDigest } = await import('@/server/services/email-digest');
+            const uid = await findSuperUserUid();
+            if (!uid) return { error: 'No super user account found', unreadCount: 0, topEmails: [] };
+
+            const hours = sinceHours ?? 8;
+            const sinceMs = Date.now() - hours * 60 * 60 * 1000;
+            const digest = await getEmailDigest(uid, sinceMs, 10);
+            return digest ?? { unreadCount: 0, topEmails: [], checkedAt: new Date().toISOString() };
+        } catch (e: any) {
+            return { error: e.message, unreadCount: 0, topEmails: [] };
+        }
+    },
+
+    /**
+     * Search the web for cannabis industry opportunities, news, and trends.
+     * Automatically prepends cannabis industry context to the query.
+     */
+    searchOpportunities: async (query: string) => {
+        try {
+            const { searchWeb, formatSearchResults } = await import('@/server/tools/web-search');
+            const results = await searchWeb(`cannabis industry ${query}`);
+            return await formatSearchResults(results);
+        } catch (e: any) {
+            return { error: e.message, results: [] };
+        }
+    },
 };
 
 // Export common tools for direct use in agents
