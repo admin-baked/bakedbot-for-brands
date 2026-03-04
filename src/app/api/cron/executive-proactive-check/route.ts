@@ -30,7 +30,26 @@ import { EXEC_CONTEXT_CACHE_DOC } from '@/app/api/cron/executive-context-prewarm
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 min — Claude calls + search can be slow
 
-const PLATFORM_ORG_ID = 'bakedbot_super_admin';
+// ---------------------------------------------------------------------------
+// Resolve the super-user's orgId dynamically at runtime (same logic as
+// morning-briefing getActiveOrgIds).  Falls back to 'bakedbot_super_admin'
+// if the users collection returns nothing.
+// ---------------------------------------------------------------------------
+async function getSuperUserOrgId(): Promise<string> {
+    try {
+        const db = getAdminFirestore();
+        const snap = await db.collection('users')
+            .where('role', '==', 'super_user')
+            .limit(1)
+            .get();
+        if (!snap.empty) {
+            const data = snap.docs[0].data();
+            const orgId = data.orgId || data.currentOrgId;
+            if (orgId && typeof orgId === 'string') return orgId;
+        }
+    } catch { /* fall through */ }
+    return 'bakedbot_super_admin';
+}
 
 // ============================================================================
 // Types
@@ -345,12 +364,32 @@ async function postExecBriefToInbox(orgId: string, briefs: ExecDomainBrief[], ct
         .limit(1)
         .get();
 
+    let threadId: string;
     if (threadsSnap.empty) {
-        logger.warn('[ExecProactiveCheck] No briefing thread found for org', { orgId });
-        return;
+        // Create the briefing thread on first run (same pattern as morning-briefing)
+        const newRef = db.collection('inbox_threads').doc();
+        threadId = newRef.id;
+        await newRef.set({
+            id: threadId,
+            orgId,
+            userId: 'system',
+            type: 'analytics',
+            status: 'active',
+            title: '📊 Daily Briefing',
+            preview: 'Executive intelligence briefing',
+            primaryAgent: 'leo',
+            assignedAgents: ['leo', 'jack', 'glenda', 'linus', 'mike'],
+            artifactIds: [],
+            messages: [],
+            metadata: { isBriefingThread: true },
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            lastActivityAt: new Date(),
+        });
+        logger.info('[ExecProactiveCheck] Created briefing thread', { orgId, threadId });
+    } else {
+        threadId = threadsSnap.docs[0].id;
     }
-
-    const threadId = threadsSnap.docs[0].id;
     const now = new Date();
 
     // Build artifact data
@@ -431,8 +470,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             generateMikeBrief(ctx),
         ]);
 
-        // Post consolidated brief to inbox
-        await postExecBriefToInbox(PLATFORM_ORG_ID, [leoBrief, jackBrief, glendaBrief, linusBrief, mikeBrief], ctx);
+        // Post consolidated brief to inbox (resolve orgId at runtime)
+        const platformOrgId = await getSuperUserOrgId();
+        await postExecBriefToInbox(platformOrgId, [leoBrief, jackBrief, glendaBrief, linusBrief, mikeBrief], ctx);
 
         logger.info('[ExecProactiveCheck] Completed', {
             leo: leoBrief.recommendations.length,
