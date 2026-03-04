@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-03-04)
 
 **Recent work (2026-03-04):** See `memory/MEMORY.md` for full log.
-Key completed: [Privacy Policy /privacy-policy — CCPA/SHIELD/TCPA/cannabis] (`29fa8b0e`), [/privacy redirect] (`29fa8b0e`)
+Key completed: [Complete exec proactive stance — Linus+Mike briefs, biz dev pre-warm, playbook seed] (`c0449b2c`)
 
 ---
 
