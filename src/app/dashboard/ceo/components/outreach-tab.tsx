@@ -384,18 +384,44 @@ export default function OutreachTab() {
     const loadData = useCallback(async () => {
         try {
             setLoading(true);
-            const [dashResult, gmailResult, apolloResult] = await Promise.all([
-                getOutreachDashboardData(),
-                checkGmailConnection(),
-                getApolloCreditsAction(),
-            ]);
-            if (dashResult.success && dashResult.data) {
+            // Try each action individually to isolate the error
+            let dashResult: Awaited<ReturnType<typeof getOutreachDashboardData>> | null = null;
+            let gmailResult: Awaited<ReturnType<typeof checkGmailConnection>> | null = null;
+            let apolloResult: Awaited<ReturnType<typeof getApolloCreditsAction>> | null = null;
+            let errorSource = '';
+
+            try {
+                dashResult = await getOutreachDashboardData();
+            } catch (e) {
+                errorSource = 'Outreach dashboard data';
+                console.error('[OutreachTab] getOutreachDashboardData failed:', String(e));
+            }
+
+            try {
+                gmailResult = await checkGmailConnection();
+            } catch (e) {
+                if (!errorSource) errorSource = 'Gmail connection';
+                console.error('[OutreachTab] checkGmailConnection failed:', String(e));
+            }
+
+            try {
+                apolloResult = await getApolloCreditsAction();
+            } catch (e) {
+                if (!errorSource) errorSource = 'Apollo credits';
+                console.error('[OutreachTab] getApolloCreditsAction failed:', String(e));
+            }
+
+            if (dashResult?.success && dashResult.data) {
                 setData(dashResult.data as DashboardData);
             }
-            setGmailConnected(gmailResult.connected ?? false);
-            setGmailEmail(gmailResult.email);
-            if (apolloResult.success && apolloResult.credits) {
+            setGmailConnected(gmailResult?.connected ?? false);
+            setGmailEmail(gmailResult?.email);
+            if (apolloResult?.success && apolloResult.credits) {
                 setApolloCredits(apolloResult.credits);
+            }
+
+            if (errorSource) {
+                setActionResult({ type: 'error', message: `Failed to load: ${errorSource}` });
             }
         } catch (err) {
             setActionResult({ type: 'error', message: `Failed to load data: ${String(err)}` });
