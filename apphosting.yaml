@@ -139,6 +139,13 @@ env:
     secret: GEMINI_API_KEY@5
     availability:
       - RUNTIME
+  # Z.ai DevPack - GLM models for cost reduction on high-frequency tasks
+  # Used for: news summarization, extraction, first-pass synthesis (no PII)
+  # Not used for: tool-calling, PII-containing prompts, compliance gates
+  - variable: ZAI_API_KEY
+    secret: ZAI_API_KEY@1
+    availability:
+      - RUNTIME
   - variable: FAL_API_KEY
     secret: FAL_API_KEY@1
     availability:

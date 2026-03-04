@@ -13,6 +13,7 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { Timestamp } from 'firebase-admin/firestore';
 import { jinaSearch } from '@/server/tools/jina-tools';
 import { callClaude } from '@/ai/claude';
+import { callGLM, GLM_MODELS } from '@/ai/glm';
 import { logger } from '@/lib/logger';
 
 // =============================================================================
@@ -112,11 +113,23 @@ Respond with ONLY a JSON array of ${top8.length} strings, one angle per article.
         let angles: string[] = top8.map(() => 'Explore how this affects your local dispensary customers.');
 
         try {
-            const angleResponse = await callClaude({
-                userMessage: anglePrompt,
-                temperature: 0.6,
-                maxTokens: 500,
-            });
+            // Use GLM for news angle generation (fast, cheap, no PII)
+            // Fallback to Claude if GLM not configured or fails
+            let angleResponse: string;
+            try {
+                angleResponse = await callGLM({
+                    userMessage: anglePrompt,
+                    model: GLM_MODELS.FAST_SYNTHESIS, // glm-4-flash for quick summaries
+                    maxTokens: 500,
+                });
+            } catch (glmErr) {
+                logger.warn('[IndustryPulse] GLM failed, falling back to Claude', { error: String(glmErr) });
+                angleResponse = await callClaude({
+                    userMessage: anglePrompt,
+                    temperature: 0.6,
+                    maxTokens: 500,
+                });
+            }
             const jsonMatch = angleResponse.match(/\[[\s\S]*\]/);
             if (jsonMatch) {
                 const parsed = JSON.parse(jsonMatch[0]) as string[];
