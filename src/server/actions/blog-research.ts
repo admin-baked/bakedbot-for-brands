@@ -19,6 +19,12 @@ import { callClaude } from '@/ai/claude';
 import { generateBlogDraftWithResearch } from '@/server/services/blog-generator';
 import { createBlogPostInternal } from '@/server/actions/blog';
 import { generateFromTemplate } from '@/server/services/content-engine/generator';
+import {
+    PULSE_PRESET_KEYS,
+    fetchAndCacheNewsForTopic,
+    readCachedNews,
+    type PulseTopic,
+} from '@/server/services/industry-pulse';
 import { logger } from '@/lib/logger';
 import type { BlogCategory, BlogContentType } from '@/types/blog';
 
@@ -33,6 +39,10 @@ export interface NewsIdea {
     suggestedAngle: string;
     publishedDate?: string;
 }
+
+/** Preset topic keys the UI can pass to getCannabisNewsIdeas for instant cache reads. */
+export { PULSE_PRESET_KEYS };
+export type { PulseTopic };
 
 /** An attributable quote extracted from research sources */
 export interface Citation {
@@ -69,9 +79,6 @@ export interface ContentScorecard {
 
 // ─── 1. Cannabis News Ideas ───────────────────────────────────────────────────
 
-const NEWS_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
-const NEWS_CACHE_DOC = 'news_ideas_default';
-
 export interface NewsIdeasResult {
     ideas: NewsIdea[];
     cachedAt: string | null; // ISO string — cache timestamp or fresh fetch time; null on error/empty
@@ -81,11 +88,12 @@ export interface NewsIdeasResult {
  * Fetch cannabis industry news for content ideation using Jina Search.
  * Claude adds a suggested content angle for each result.
  *
- * Results are cached in Firestore for 24 hours. Pass forceRefresh=true to
- * bypass the cache (triggered by the manual Refresh button in the UI).
+ * Preset topic keys ('regulations', 'marketing', 'products', 'trends') read
+ * from pre-warmed Firestore cache populated nightly by the industry-pulse-refresh
+ * cron (5:30 AM EST) — these load instantly.
  *
- * Topic-filtered queries are always fetched fresh (no caching) since they
- * represent interactive user intent rather than the default daily feed.
+ * Free-form text topics are always fetched live (user-interactive).
+ * Pass forceRefresh=true to bypass cache (manual Refresh button).
  */
 export async function getCannabisNewsIdeas(
     topic?: string,
@@ -93,103 +101,70 @@ export async function getCannabisNewsIdeas(
 ): Promise<NewsIdeasResult> {
     await requireSuperUser();
 
-    const query = topic
-        ? `cannabis dispensary ${topic} 2026`
-        : `cannabis industry news dispensary marketing trends 2026`;
+    // Detect if topic is one of the pre-warmed presets
+    const isPreset = topic ? (PULSE_PRESET_KEYS as readonly string[]).includes(topic) : false;
+    const pulseTopic: PulseTopic = isPreset ? (topic as PulseTopic) : 'default';
+    const useCache = !topic || isPreset;
 
-    // Only cache the default (no-topic) query — topic filters are interactive
-    const useCache = !topic;
-
+    // Try cache first for default + preset topics
     if (useCache && !forceRefresh) {
-        try {
-            const { getAdminFirestore } = await import('@/firebase/admin');
-            const firestore = getAdminFirestore();
-            const cacheDoc = await firestore
-                .collection('platform_cache')
-                .doc(NEWS_CACHE_DOC)
-                .get();
-
-            if (cacheDoc.exists) {
-                const data = cacheDoc.data() as { results: NewsIdea[]; cachedAt: { toMillis: () => number } };
-                const ageMs = Date.now() - data.cachedAt.toMillis();
-                if (ageMs < NEWS_CACHE_TTL_MS) {
-                    logger.info('[BlogResearch] Returning cached Industry Pulse', { ageMs });
-                    return {
-                        ideas: data.results,
-                        cachedAt: new Date(data.cachedAt.toMillis()).toISOString(),
-                    };
-                }
-            }
-        } catch (cacheError) {
-            // Cache read failure is non-fatal — fall through to live fetch
-            logger.warn('[BlogResearch] Cache read failed, fetching live', { error: String(cacheError) });
+        const cached = await readCachedNews(pulseTopic);
+        if (cached) {
+            logger.info('[BlogResearch] Returning cached Industry Pulse', { topic: pulseTopic });
+            return { ideas: cached.items as NewsIdea[], cachedAt: cached.cachedAt };
         }
     }
 
-    try {
-        const results = await jinaSearch(query);
-        if (results.length === 0) return { ideas: [], cachedAt: null };
+    // For free-form text topics: fetch live (no caching)
+    if (topic && !isPreset) {
+        try {
+            const query = `cannabis dispensary ${topic} 2026`;
+            const results = await jinaSearch(query);
+            if (results.length === 0) return { ideas: [], cachedAt: null };
 
-        const top8 = results.slice(0, 8);
-
-        // Single Claude call to suggest angles for all 8 results (cheap, ~100 tokens)
-        const anglePrompt = `You are a cannabis content strategist. For each of these recent cannabis industry articles, suggest a SHORT (1 sentence) unique content angle for a cannabis dispensary's blog that adds value beyond what's already in the article.
+            const top8 = results.slice(0, 8);
+            const anglePrompt = `You are a cannabis content strategist. For each of these recent cannabis industry articles, suggest a SHORT (1 sentence) unique content angle for a cannabis dispensary's blog.
 
 Articles:
 ${top8.map((r, i) => `${i + 1}. "${r.title}" — ${r.snippet}`).join('\n')}
 
-Respond with ONLY a JSON array of 8 strings, one angle per article. Example:
+Respond with ONLY a JSON array of ${top8.length} strings. Example:
 ["Angle for article 1", "Angle for article 2", ...]`;
 
-        let angles: string[] = top8.map(() => 'Explore how this affects your local dispensary customers.');
-
-        try {
-            const angleResponse = await callClaude({
-                userMessage: anglePrompt,
-                temperature: 0.6,
-                maxTokens: 500,
-            });
-
-            const jsonMatch = angleResponse.match(/\[[\s\S]*\]/);
-            if (jsonMatch) {
-                const parsed = JSON.parse(jsonMatch[0]) as string[];
-                if (Array.isArray(parsed) && parsed.length === top8.length) {
-                    angles = parsed;
+            let angles: string[] = top8.map(() => 'Explore how this affects your local dispensary customers.');
+            try {
+                const angleResponse = await callClaude({ userMessage: anglePrompt, temperature: 0.6, maxTokens: 500 });
+                const jsonMatch = angleResponse.match(/\[[\s\S]*\]/);
+                if (jsonMatch) {
+                    const parsed = JSON.parse(jsonMatch[0]) as string[];
+                    if (Array.isArray(parsed) && parsed.length === top8.length) angles = parsed;
                 }
-            }
-        } catch (e) {
-            logger.warn('[BlogResearch] Failed to get content angles from Claude', { error: String(e) });
+            } catch { /* non-fatal */ }
+
+            const ideas: NewsIdea[] = top8.map((r, i) => ({
+                title: r.title,
+                url: r.url,
+                snippet: r.snippet,
+                suggestedAngle: angles[i] ?? 'Explore how this affects your local dispensary customers.',
+            }));
+
+            return { ideas, cachedAt: new Date().toISOString() };
+        } catch (error) {
+            logger.error('[BlogResearch] getCannabisNewsIdeas live fetch failed', { topic, error });
+            return { ideas: [], cachedAt: null };
         }
+    }
 
-        const ideas: NewsIdea[] = top8.map((result, i) => ({
-            title: result.title,
-            url: result.url,
-            snippet: result.snippet,
-            suggestedAngle: angles[i] ?? 'Explore how this affects your local dispensary customers.',
-        }));
-
-        // Persist to cache (default query only) — fire-and-forget, non-blocking
-        if (useCache) {
-            setImmediate(async () => {
-                try {
-                    const { getAdminFirestore } = await import('@/firebase/admin');
-                    const { Timestamp } = await import('firebase-admin/firestore');
-                    const firestore = getAdminFirestore();
-                    await firestore.collection('platform_cache').doc(NEWS_CACHE_DOC).set({
-                        results: ideas,
-                        cachedAt: Timestamp.now(),
-                        query,
-                    });
-                    logger.info('[BlogResearch] Industry Pulse cached', { count: ideas.length });
-                } catch (writeError) {
-                    logger.warn('[BlogResearch] Cache write failed', { error: String(writeError) });
-                }
-            });
-        }
-
-        return { ideas, cachedAt: new Date().toISOString() };
+    // Cache miss for default/preset — fetch and warm the cache
+    try {
+        logger.info('[BlogResearch] Cache miss — fetching live', { topic: pulseTopic });
+        const { items } = await fetchAndCacheNewsForTopic(pulseTopic);
+        return {
+            ideas: items as NewsIdea[],
+            cachedAt: items.length > 0 ? new Date().toISOString() : null,
+        };
     } catch (error) {
-        logger.error('[BlogResearch] getCannabisNewsIdeas failed', { error, query });
+        logger.error('[BlogResearch] getCannabisNewsIdeas failed', { error, topic: pulseTopic });
         return { ideas: [], cachedAt: null };
     }
 }
