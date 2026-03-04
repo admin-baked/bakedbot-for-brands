@@ -31,12 +31,11 @@ async function getActiveOrgIds(): Promise<string[]> {
 
     for (const role of ['dispensary_admin', 'brand_admin', 'super_user']) {
         try {
-            const snap = await db
-                .collection('users')
-                .where('role', '==', role)
-                .where('status', '==', 'active')
-                .limit(50)
-                .get();
+            // super_users don't have a status field — query without it
+            const query = role === 'super_user'
+                ? db.collection('users').where('role', '==', role).limit(50)
+                : db.collection('users').where('role', '==', role).where('status', '==', 'active').limit(50);
+            const snap = await query.get();
             for (const doc of snap.docs) {
                 const data = doc.data();
                 const orgId = data.orgId || data.currentOrgId;
