@@ -27,6 +27,7 @@ import { findSuperUserUid, getEmailDigest } from '@/server/services/email-digest
 export const dynamic = 'force-dynamic';
 
 export const EXEC_CONTEXT_CACHE_DOC = 'exec_context_today';
+export const BIZ_DEV_CACHE_DOC = 'biz_dev_context_today';
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
     const authError = await requireCronSecret(request, 'executive-context-prewarm');
@@ -68,6 +69,30 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         dateStr,
     });
 
+    // Pre-warm biz dev dashboard counts (non-blocking if any query fails)
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
+    const todayStartMs = todayStart.getTime();
+
+    const [pendingDraftsSnap, queueDepthSnap, sentTodaySnap, unenrichedSnap] = await Promise.allSettled([
+        db.collection('ny_outreach_drafts').where('status', '==', 'draft').count().get(),
+        db.collection('ny_dispensary_leads').where('status', '==', 'researched').where('outreachSent', '==', false).count().get(),
+        db.collection('ny_outreach_log').where('timestamp', '>=', todayStartMs).where('emailSent', '==', true).count().get(),
+        db.collection('ny_dispensary_leads').where('enriched', '==', false).count().get(),
+    ]);
+
+    const bizDevCounts = {
+        pendingDrafts: pendingDraftsSnap.status === 'fulfilled' ? pendingDraftsSnap.value.data().count : 0,
+        queueDepth: queueDepthSnap.status === 'fulfilled' ? queueDepthSnap.value.data().count : 0,
+        sentToday: sentTodaySnap.status === 'fulfilled' ? sentTodaySnap.value.data().count : 0,
+        unenrichedLeads: unenrichedSnap.status === 'fulfilled' ? unenrichedSnap.value.data().count : 0,
+        cachedAt: now.toISOString(),
+    };
+
+    await db.collection('platform_cache').doc(BIZ_DEV_CACHE_DOC).set(bizDevCounts);
+
+    logger.info('[ExecContextPrewarm] Biz dev cache written', bizDevCounts);
+
     logger.info('[ExecContextPrewarm] Cache written', {
         meetings: meetings.length,
         emailUnread: emailDigest?.unreadCount ?? 0,
@@ -79,6 +104,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         meetings: meetings.length,
         emailUnread: emailDigest?.unreadCount ?? 0,
         cachedAt: now.toISOString(),
+        bizDev: bizDevCounts,
     });
 }
 

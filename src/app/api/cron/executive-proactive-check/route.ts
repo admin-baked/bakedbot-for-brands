@@ -37,7 +37,7 @@ const PLATFORM_ORG_ID = 'bakedbot_super_admin';
 // ============================================================================
 
 interface ExecDomainBrief {
-    agent: 'leo' | 'jack' | 'glenda';
+    agent: 'leo' | 'jack' | 'glenda' | 'linus' | 'mike';
     title: string;
     recommendations: string[];
     urgency: 'clean' | 'info' | 'warning' | 'critical';
@@ -196,6 +196,93 @@ Format as bullet points. Under 20 words each. No fluff.`;
     }
 }
 
+async function generateLinusBrief(_ctx: Awaited<ReturnType<typeof loadExecutiveContext>>): Promise<ExecDomainBrief> {
+    let techSummary = '';
+    try {
+        const results = await searchWeb('cannabis SaaS POS integrations technology stack 2026');
+        techSummary = (await formatSearchResults(results)).slice(0, 500);
+    } catch { /* non-fatal */ }
+
+    const userMessage = `You are Linus, CTO of BakedBot. You scan the cannabis tech landscape for engineering intelligence.
+
+MARKET TECH INTEL: ${techSummary || 'No recent tech intel'}
+
+Generate 3-4 proactive engineering action items. Focus on: new POS integrations to build, AI/LLM cost changes, security advisories, platform risks, Firebase or infrastructure updates.
+Format as bullet points. Under 20 words each. No fluff.`;
+
+    try {
+        const text = await callClaude({
+            model: 'claude-haiku-4-5-20251001',
+            userMessage,
+            maxTokens: 400,
+        });
+
+        const recommendations = text.split('\n').filter((l: string) => l.trim().startsWith('-') || l.trim().startsWith('•')).map((l: string) => l.replace(/^[-•]\s*/, '').trim()).filter(Boolean);
+
+        return {
+            agent: 'linus',
+            title: "Linus's Engineering Intelligence",
+            recommendations: recommendations.length > 0 ? recommendations : ['Run build health check — verify all cron endpoints are responding', 'Check Firestore index usage for cost anomalies'],
+            urgency: 'info',
+        };
+    } catch {
+        return {
+            agent: 'linus',
+            title: "Linus's Engineering Intelligence",
+            recommendations: ['Review Firebase App Hosting for any pending rollouts', 'Check agent telemetry for cost spikes in the last 24h'],
+            urgency: 'info',
+        };
+    }
+}
+
+async function generateMikeBrief(ctx: Awaited<ReturnType<typeof loadExecutiveContext>>): Promise<ExecDomainBrief> {
+    let financeSummary = '';
+    try {
+        const results = await searchWeb('cannabis industry funding investment financial 2026');
+        financeSummary = (await formatSearchResults(results)).slice(0, 500);
+    } catch { /* non-fatal */ }
+
+    const investorEmails = ctx.emailDigest?.topEmails.filter((e: { subject: string; from: string }) =>
+        /investor|fund|vc|capital|audit|due.diligence|invoice|payment|subscription/i.test(e.subject + e.from)
+    ) ?? [];
+
+    const userMessage = `You are Mike, CFO of BakedBot. Today is ${ctx.dateStr}.
+
+FINANCIAL EMAIL SIGNALS: ${investorEmails.length > 0 ? investorEmails.map((e: { subject: string; from: string }) => `"${e.subject}" from ${e.from}`).join('; ') : 'None flagged'}
+
+CANNABIS FINANCIAL NEWS: ${financeSummary || 'No recent financial intel'}
+
+Generate 3-4 proactive financial action items for today. Focus on: investor outreach, burn rate review, MRR opportunities, fundraising signals.
+Format as bullet points. Under 20 words each. No fluff.`;
+
+    try {
+        const text = await callClaude({
+            model: 'claude-haiku-4-5-20251001',
+            userMessage,
+            maxTokens: 400,
+        });
+
+        const recommendations = text.split('\n').filter((l: string) => l.trim().startsWith('-') || l.trim().startsWith('•')).map((l: string) => l.replace(/^[-•]\s*/, '').trim()).filter(Boolean);
+
+        return {
+            agent: 'mike',
+            title: "Mike's Financial Intelligence",
+            recommendations: recommendations.length > 0 ? recommendations : ['Review this week\'s MRR against burn rate target', 'Check outstanding AR for any overdue invoices'],
+            urgency: investorEmails.length > 0 ? 'warning' : 'info',
+        };
+    } catch {
+        return {
+            agent: 'mike',
+            title: "Mike's Financial Intelligence",
+            recommendations: [
+                investorEmails.length > 0 ? `${investorEmails.length} financial email(s) in inbox — review and prioritize` : 'Review monthly burn rate and runway estimate',
+                'Check CRM for any subscription cancellations to triage with Mrs. Parker',
+            ],
+            urgency: investorEmails.length > 0 ? 'warning' : 'info',
+        };
+    }
+}
+
 async function generateGlendaBrief(ctx: Awaited<ReturnType<typeof loadExecutiveContext>>): Promise<ExecDomainBrief> {
     let trendingSummary = '';
     try {
@@ -293,7 +380,7 @@ async function postExecBriefToInbox(orgId: string, briefs: ExecDomainBrief[], ct
     );
 
     const bulletSummary = briefs.flatMap(b => b.recommendations.slice(0, 2)).slice(0, 6).map(r => `• ${r}`).join('\n');
-    const messageBody = `**Executive Intelligence Check — ${ctx.dateStr}**\n\n${bulletSummary}\n\n_Leo, Jack, and Glenda have reviewed calendar, email, and market intel._`;
+    const messageBody = `**Executive Intelligence Check — ${ctx.dateStr}**\n\n${bulletSummary}\n\n_Leo, Jack, Glenda, Linus, and Mike have reviewed calendar, email, and market intel._`;
 
     await db.collection('inbox_threads').doc(threadId).collection('messages').add({
         role: 'assistant',
@@ -336,19 +423,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         });
 
         // Generate domain briefs in parallel (with independent search queries)
-        const [leoBrief, jackBrief, glendaBrief] = await Promise.all([
+        const [leoBrief, jackBrief, glendaBrief, linusBrief, mikeBrief] = await Promise.all([
             generateLeoBrief(ctx),
             generateJackBrief(ctx),
             generateGlendaBrief(ctx),
+            generateLinusBrief(ctx),
+            generateMikeBrief(ctx),
         ]);
 
         // Post consolidated brief to inbox
-        await postExecBriefToInbox(PLATFORM_ORG_ID, [leoBrief, jackBrief, glendaBrief], ctx);
+        await postExecBriefToInbox(PLATFORM_ORG_ID, [leoBrief, jackBrief, glendaBrief, linusBrief, mikeBrief], ctx);
 
         logger.info('[ExecProactiveCheck] Completed', {
             leo: leoBrief.recommendations.length,
             jack: jackBrief.recommendations.length,
             glenda: glendaBrief.recommendations.length,
+            linus: linusBrief.recommendations.length,
+            mike: mikeBrief.recommendations.length,
         });
 
         return NextResponse.json({
@@ -359,6 +450,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
                 leoItems: leoBrief.recommendations.length,
                 jackItems: jackBrief.recommendations.length,
                 glendaItems: glendaBrief.recommendations.length,
+                linusItems: linusBrief.recommendations.length,
+                mikeItems: mikeBrief.recommendations.length,
             },
         });
     } catch (error) {
