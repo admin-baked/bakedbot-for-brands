@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-03-04 (AI-native CRM: Jack insights, test accounts, cascade delete, NY data quality)
+**Current Status:** 🟢 Passing | **Last update:** 2026-03-04 (Andrews Developments WP site on Cloud Run + Next.js proxy at /andrewsdevelopments)
 
 ---
 
