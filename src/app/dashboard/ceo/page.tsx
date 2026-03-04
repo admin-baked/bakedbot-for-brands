@@ -12,6 +12,7 @@ import { useEffect, useState, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import nextDynamic from 'next/dynamic';
 import { getChatSessions } from '@/server/actions/chat-persistence'; // Added for global hydration
+import { getSuperUserStatusCounts, type SuperUserStatusCounts } from '@/server/actions/ny-outreach-dashboard';
 
 const TabLoader = () => <div className="flex h-[400px] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
 
@@ -75,6 +76,9 @@ function CeoDashboardContent() {
     const { user, isLoading: isAuthLoading, isSuperUser } = useUserRole();
     const { clearCurrentSession } = useAgentChatStore();
 
+    // Proactive status counts for the dashboard banner
+    const [statusCounts, setStatusCounts] = useState<SuperUserStatusCounts | null>(null);
+
     // Server-side layout already enforces `requireSuperUser()`, but we keep
     // a client-side guard to handle expired sessions / client-only navigation.
     const canAccessCeo = Boolean(isSuperUser || isSuperAdminEmail(user?.email));
@@ -105,6 +109,13 @@ function CeoDashboardContent() {
                 }).catch(err => {
                     console.error("Failed to hydrate sessions (client):", err);
                 });
+
+                // Load proactive status counts (non-blocking — banner appears after auth)
+                getSuperUserStatusCounts().then(result => {
+                    if (result.success && result.counts) {
+                        setStatusCounts(result.counts);
+                    }
+                }).catch(() => { /* non-critical — banner just stays hidden */ });
             }
         }
     }, [canAccessCeo, clearCurrentSession, user]);
@@ -165,6 +176,14 @@ function CeoDashboardContent() {
         return null; // Don't render anything while redirecting
     }
 
+    // Proactive status chip row — shown only when there are items needing attention
+    const hasStatusItems = statusCounts && (
+        statusCounts.pendingOutreachDrafts > 0 ||
+        statusCounts.pendingBlogDrafts > 0 ||
+        statusCounts.unenrichedLeads > 0 ||
+        statusCounts.apolloCreditsRemaining < 25
+    );
+
     // Authorized - show CEO dashboard
     const renderContent = () => {
         switch (currentTab) {
@@ -221,16 +240,17 @@ function CeoDashboardContent() {
     return (
         <div className="space-y-6">
             {/* Super Admin Header */}
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 rounded-lg border border-green-200 bg-green-50 p-4">
-                <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
-                        <Shield className="h-5 w-5 text-green-600" />
+            <div className="rounded-lg border border-green-200 bg-green-50 p-4 flex flex-col gap-3">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
+                            <Shield className="h-5 w-5 text-green-600" />
+                        </div>
+                        <div>
+                            <p className="font-display text-xl font-bold text-green-900">Super User Mode</p>
+                            <p className="text-sm text-green-700">{user?.email || 'Authenticated'}</p>
+                        </div>
                     </div>
-                    <div>
-                        <p className="font-display text-xl font-bold text-green-900">Super User Mode</p>
-                        <p className="text-sm text-green-700">{user?.email || 'Authenticated'}</p>
-                    </div>
-                </div>
                 <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
                     <Link href="?tab=dev-console">
                         <Button variant="ghost" size="sm" className="w-full sm:w-auto">Dev Console</Button>
@@ -260,7 +280,40 @@ function CeoDashboardContent() {
                     {process.env.NODE_ENV !== 'production' && <MockDataToggle />}
                     {process.env.NODE_ENV !== 'production' && <RoleSwitcher />}
                 </div>
-            </div>
+                </div>{/* end inner flex row */}
+
+                {/* Proactive Status Banner — loads async after auth, shows items needing attention */}
+                {hasStatusItems && (
+                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-green-200">
+                        <span className="text-xs font-medium text-green-700">Ready for you:</span>
+                        {statusCounts!.pendingOutreachDrafts > 0 && (
+                            <Link href="?tab=outreach" className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-200 transition-colors">
+                                ✉ {statusCounts!.pendingOutreachDrafts} outreach draft{statusCounts!.pendingOutreachDrafts !== 1 ? 's' : ''} to review
+                            </Link>
+                        )}
+                        {statusCounts!.pendingBlogDrafts > 0 && (
+                            <Link href="?tab=content" className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200 transition-colors">
+                                📝 {statusCounts!.pendingBlogDrafts} blog draft{statusCounts!.pendingBlogDrafts !== 1 ? 's' : ''} ready
+                            </Link>
+                        )}
+                        {statusCounts!.unenrichedLeads > 0 && (
+                            <Link href="?tab=outreach" className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 border border-purple-200 hover:bg-purple-200 transition-colors">
+                                🔍 {statusCounts!.unenrichedLeads} leads need enrichment
+                            </Link>
+                        )}
+                        {statusCounts!.leadQueueDepth > 0 && (
+                            <Link href="?tab=outreach" className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800 border border-green-300 hover:bg-green-200 transition-colors">
+                                ✅ {statusCounts!.leadQueueDepth} leads queued
+                            </Link>
+                        )}
+                        {statusCounts!.apolloCreditsRemaining < 25 && (
+                            <Link href="?tab=outreach" className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-red-100 text-red-700 border border-red-200 hover:bg-red-200 transition-colors">
+                                ⚡ {statusCounts!.apolloCreditsRemaining} Apollo credits left
+                            </Link>
+                        )}
+                    </div>
+                )}
+            </div>{/* end outer header */}
 
             {/* CEO Dashboard Content (URL Driven) */}
             <div className="mt-6">

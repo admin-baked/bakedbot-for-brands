@@ -155,6 +155,30 @@ interface OutreachStatsRow {
     totalBadEmails: number;
 }
 
+interface PendingReviewCounts {
+    pendingOutreachDrafts: number;
+    pendingBlogDrafts: number;
+    unenrichedLeads: number;
+}
+
+/**
+ * Load counts of items awaiting super user review.
+ * Added to the morning briefing so the inbox artifact surfaces actionable items.
+ */
+async function loadPendingCounts(): Promise<PendingReviewCounts> {
+    const db = getAdminFirestore();
+    const [draftsSnap, blogSnap, leadsSnap] = await Promise.all([
+        db.collection('ny_outreach_drafts').where('status', '==', 'draft').count().get(),
+        db.collection('blog_posts').where('status', '==', 'draft').count().get(),
+        db.collection('ny_dispensary_leads').where('enriched', '==', false).count().get(),
+    ]);
+    return {
+        pendingOutreachDrafts: draftsSnap.data().count,
+        pendingBlogDrafts: blogSnap.data().count,
+        unenrichedLeads: leadsSnap.data().count,
+    };
+}
+
 function buildMetrics(
     yesterdayOrders: OrderRow[],
     last7Orders: OrderRow[],
@@ -162,6 +186,7 @@ function buildMetrics(
     benchmarks: Awaited<ReturnType<typeof getMarketBenchmarks>>,
     greenledger?: GreenLedgerSummaryRow | null,
     outreachStats?: OutreachStatsRow | null,
+    pendingCounts?: PendingReviewCounts | null,
 ): BriefingMetric[] {
     const metrics: BriefingMetric[] = [];
 
@@ -293,19 +318,42 @@ function buildMetrics(
         });
     }
 
+    // 8. Pending Review Items — surface actionable queue to super user each morning
+    if (pendingCounts && (pendingCounts.pendingOutreachDrafts > 0 || pendingCounts.pendingBlogDrafts > 0)) {
+        const items: string[] = [];
+        if (pendingCounts.pendingOutreachDrafts > 0) {
+            items.push(`${pendingCounts.pendingOutreachDrafts} outreach draft${pendingCounts.pendingOutreachDrafts !== 1 ? 's' : ''}`);
+        }
+        if (pendingCounts.pendingBlogDrafts > 0) {
+            items.push(`${pendingCounts.pendingBlogDrafts} blog draft${pendingCounts.pendingBlogDrafts !== 1 ? 's' : ''}`);
+        }
+        const leadsNote = pendingCounts.unenrichedLeads > 0
+            ? ` · ${pendingCounts.unenrichedLeads} leads need enrichment`
+            : '';
+        metrics.push({
+            title: 'Action Required Today',
+            value: items.join(' · '),
+            trend: 'flat',
+            vsLabel: `awaiting review${leadsNote}`,
+            status: 'warning',
+            actionable: 'Open Outreach and Content tabs to review and approve',
+        });
+    }
+
     return metrics;
 }
 
 // ============ Core generation function ============
 
 export async function generateMorningBriefing(orgId: string): Promise<AnalyticsBriefing> {
-    const [benchmarks, products, yesterdayOrders, last7Orders, greenledgerSummary, outreachStatsResult] = await Promise.allSettled([
+    const [benchmarks, products, yesterdayOrders, last7Orders, greenledgerSummary, outreachStatsResult, pendingCountsResult] = await Promise.allSettled([
         getMarketBenchmarks(orgId),
         loadOrgProducts(orgId),
         loadYesterdayOrders(orgId),
         loadLast7DaysOrders(orgId),
         getDispensaryGreenLedgerSummary(orgId),
         getOutreachStats(Date.now() - 24 * 60 * 60 * 1000),
+        loadPendingCounts(),
     ]);
 
     const bm = benchmarks.status === 'fulfilled' ? benchmarks.value : await getMarketBenchmarks('');
@@ -314,9 +362,10 @@ export async function generateMorningBriefing(orgId: string): Promise<AnalyticsB
     const last7Ords = last7Orders.status === 'fulfilled' ? last7Orders.value : [];
     const glSummary = greenledgerSummary.status === 'fulfilled' ? greenledgerSummary.value : null;
     const outreachStats = outreachStatsResult.status === 'fulfilled' ? outreachStatsResult.value : null;
+    const pendingCounts = pendingCountsResult.status === 'fulfilled' ? pendingCountsResult.value : null;
 
     // Build metrics
-    const metrics = buildMetrics(yesterdayOrds, last7Ords, prods, bm, glSummary, outreachStats);
+    const metrics = buildMetrics(yesterdayOrds, last7Ords, prods, bm, glSummary, outreachStats, pendingCounts);
 
     // Fetch cannabis news (top 3, non-blocking)
     let newsItems: BriefingNewsItem[] = [];
