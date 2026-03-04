@@ -428,6 +428,14 @@ env:
     secret: QUICKEMAILVERIFICATION_API_KEY@1
     availability:
       - RUNTIME
+  # Apollo.io — B2B contact enrichment for NY outreach (195 credits/mo free tier, 2026-03-03)
+  # Cycle: Mar 03 – Apr 03, 2026 | Credits tracked in Firestore: system_config/apollo_credits
+  # Setup: echo -n "KEY" | gcloud secrets create APOLLO_API_KEY --data-file=- --project=studio-567050101-bc6e8
+  #        gcloud secrets add-iam-policy-binding APOLLO_API_KEY ... roles/secretmanager.secretAccessor
+  - variable: APOLLO_API_KEY
+    secret: APOLLO_API_KEY@1
+    availability:
+      - RUNTIME
 
 runConfig:
   minInstances: 0
