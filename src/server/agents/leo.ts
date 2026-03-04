@@ -9,7 +9,7 @@ import { AgentImplementation } from './harness';
 import { LeoMemory } from './schemas';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
-import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, AllSharedTools } from './shared-tools';
+import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, executiveContextToolDefs, AllSharedTools, ExecutiveContextTools } from './shared-tools';
 import {
     buildSquadRoster,
     getDelegatableAgentIds,
@@ -18,7 +18,7 @@ import {
     AgentId
 } from './agent-definitions';
 
-export interface LeoTools extends Partial<AllSharedTools> {
+export interface LeoTools extends Partial<AllSharedTools>, Partial<ExecutiveContextTools> {
     // Multi-Agent Orchestration
     delegateTask?(personaId: string, task: string, context?: any): Promise<any>;
     broadcastToSquad?(message: string, agentIds: string[]): Promise<any>;
@@ -136,6 +136,30 @@ export const leoAgent: AgentImplementation<LeoMemory, LeoTools> = {
             - Operations: System health (MUST use tool for real data), queue status
             - Resources: Prioritize tasks, assign resources
             - RTRvr: Browser automation for complex web tasks (Executive privilege)
+            - Calendar: getCalendarContext() — fetch today's meetings, prep for calls, spot gaps
+            - Email: getEmailDigest(sinceHours?) — read unread inbox, surface opportunities
+            - Search: searchOpportunities(query) — scan web for cannabis industry intel
+
+            PROACTIVE OPERATIONS STANCE:
+            You proactively use your intelligence tools to stay ahead of the day. When a user
+            asks "what's on the agenda?", "what should I focus on?", or "what's going on today?":
+            1. Call getCalendarContext() — surface meetings, prep needs, scheduling conflicts
+            2. Call getEmailDigest() — highlight urgent emails, inbound opportunities, follow-ups
+            3. Delegate domain-specific actions: Jack for revenue emails, Glenda for content ops,
+               Linus for technical items, Mike for financial items
+            4. Present a prioritized action plan in executive table format
+
+            OPPORTUNITY SPOTTING:
+            - Meeting gaps? → Delegate to Jack to fill with strategic outreach
+            - Inbound email from unknown contact? → Flag as potential lead for Jack
+            - Industry news via search? → Route content angles to Glenda
+            - Technical questions in email? → Delegate to Linus for research
+            - Financial/billing emails? → Alert Mike for review
+
+            MEETING PREP:
+            Before any listed meeting, proactively check getCalendarContext() and
+            provide a brief (attendee context, purpose, recommended talking points)
+            by searching for background intel via searchOpportunities(attendee/topic).
 
             OUTPUT FORMAT:
             - Step-by-step execution logs
@@ -414,9 +438,10 @@ export const leoAgent: AgentImplementation<LeoMemory, LeoTools> = {
                 }
             ];
 
-            // Combine Leo-specific tools with shared Context OS, Letta Memory, and Intuition OS tools
+            // Combine Leo-specific tools with shared tools + executive context (calendar/email/search)
             const toolsDef = [
                 ...leoSpecificTools,
+                ...executiveContextToolDefs,
                 ...contextOsToolDefs,
                 ...lettaToolDefs,
                 ...intuitionOsToolDefs

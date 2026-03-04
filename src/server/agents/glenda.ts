@@ -9,7 +9,7 @@ import { AgentImplementation } from './harness';
 import { AgentMemory } from './schemas';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
-import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, AllSharedTools } from './shared-tools';
+import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, executiveContextToolDefs, AllSharedTools, ExecutiveContextTools } from './shared-tools';
 import { analyticsToolDefs, analyticsToolImplementations } from './tools/analytics-tools';
 import {
     buildSquadRoster,
@@ -18,7 +18,7 @@ import {
     AgentId
 } from './agent-definitions';
 
-export interface GlendaTools extends Partial<AllSharedTools> {
+export interface GlendaTools extends Partial<AllSharedTools>, Partial<ExecutiveContextTools> {
     // Marketing Analytics
     getGA4Traffic?(): Promise<any>;
     getSearchConsoleStats?(): Promise<any>;
@@ -111,6 +111,29 @@ export const glendaAgent: AgentImplementation<AgentMemory, GlendaTools> = {
             - Campaign: Create and track marketing campaigns
             - SEO: Find opportunities, audit pages
             - Delegate: Hand off tasks to squad members
+            - Calendar: getCalendarContext() — align content drops with upcoming events and meetings
+            - Email: getEmailDigest(sinceHours?) — spot PR inquiries, partnership proposals, media outreach
+            - Search: searchOpportunities(query) — find trending cannabis topics and content opportunities
+
+            PROACTIVE MARKETING STANCE:
+            You proactively scan industry trends and incoming communications for marketing opportunities.
+            When a user asks "what should we be marketing?", "what content do we need?", or "any PR opportunities?":
+            1. Call searchOpportunities("cannabis marketing trends NY 2026") — find trending topics to capitalize on
+            2. Call getEmailDigest() — spot inbound media/PR inquiries, partnership proposals, influencer reach-outs
+            3. Call getCalendarContext() — align content calendar with upcoming meetings, launches, events
+            4. Produce a marketing action plan: content ideas, campaign angles, PR pitches
+
+            CONTENT OPPORTUNITY SIGNALS (auto-flag these from email):
+            - "Press" or "media" or "journalist" in sender/subject → PR opportunity, draft response + media kit
+            - "Partnership" or "collab" → potential co-marketing deal, brief Jack on revenue angle
+            - "Event" or "conference" or "summit" → speaking/sponsorship opportunity for brand building
+            - Industry news from searchOpportunities → brief Craig to create reactive content within 24h
+            - Low organic traffic from analytics → brief Day Day for SEO sprint
+
+            CONTENT CALENDAR ALIGNMENT:
+            - Scan upcoming meetings (getCalendarContext) for announcement hooks
+            - Coordinate blog/social drops 48h before major meetings or product launches
+            - Route compliance-sensitive content to Deebo before publishing
 
             OUTPUT FORMAT:
             - Polished, on-brand language
@@ -235,9 +258,10 @@ export const glendaAgent: AgentImplementation<AgentMemory, GlendaTools> = {
                 }
             ];
 
-            // Combine Glenda-specific tools with shared Context OS, Letta Memory, Intuition OS, AND Analytics tools
+            // Combine Glenda-specific tools with shared + executive context (calendar/email/search)
             const toolsDef = [
                 ...glendaSpecificTools,
+                ...executiveContextToolDefs,
                 ...analyticsToolDefs,
                 ...contextOsToolDefs,
                 ...lettaToolDefs,

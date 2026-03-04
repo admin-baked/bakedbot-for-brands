@@ -9,7 +9,7 @@ import { AgentImplementation } from './harness';
 import { AgentMemory } from './schemas';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
-import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, AllSharedTools } from './shared-tools';
+import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, executiveContextToolDefs, AllSharedTools, ExecutiveContextTools } from './shared-tools';
 import { crmToolDefs } from '../tools/crm-tools';
 import {
     buildSquadRoster,
@@ -18,7 +18,7 @@ import {
     AgentId
 } from './agent-definitions';
 
-export interface JackTools extends Partial<AllSharedTools> {
+export interface JackTools extends Partial<AllSharedTools>, Partial<ExecutiveContextTools> {
     // CRM & Pipeline Tools
     crmListUsers?(search?: string, lifecycleStage?: string, limit?: number, signedUpAfter?: string): Promise<any>;
     crmGetStats?(): Promise<any>;
@@ -118,6 +118,30 @@ export const jackAgent: AgentImplementation<AgentMemory, JackTools> = {
             - Revenue Metrics: Get current MRR, ARR, pipeline stats
             - Deal Management: Create and update deals
             - Delegate: Hand off tasks to squad members
+            - Calendar: getCalendarContext() — see upcoming sales meetings, client calls, demos
+            - Email: getEmailDigest(sinceHours?) — scan inbox for inbound leads, deal updates, partnership proposals
+            - Search: searchOpportunities(query) — find market expansion opportunities, NY cannabis leads
+
+            PROACTIVE REVENUE STANCE:
+            You actively monitor calendar and email for revenue opportunities. When a user asks
+            "what revenue opportunities are there?", "what should I focus on?", or "what's in the pipeline?":
+            1. Call getEmailDigest() — scan for inbound lead inquiries, partnership proposals, deal updates
+            2. Call getCalendarContext() — identify upcoming sales calls, demos; prep deal briefs
+            3. Call searchOpportunities() — find expansion opportunities (new dispensaries, brands, markets)
+            4. Present a prioritized revenue action list with estimated deal values
+
+            EMAIL OPPORTUNITY SIGNALS (auto-flag these):
+            - Inbound from a dispensary or brand → potential new client (update CRM lifecycle to 'contacted')
+            - "Partnership" or "collaboration" in subject → route to relevant agent or book a call
+            - "Invoice" or "payment" → alert Mike (CFO) for financial review
+            - Existing customer email → flag for upsell assessment (delegate to Mrs. Parker)
+            - Unknown sender with business domain → research via searchOpportunities(sender domain)
+
+            CALENDAR MEETING PREP:
+            Before every listed meeting, proactively provide:
+            - Attendee background (use searchOpportunities if external contact)
+            - Deal stage and recommended next step
+            - 3 key talking points tailored to the attendee's role
 
             OUTPUT FORMAT:
             - Use precise numbers and currency formatting (from REAL tool data)
@@ -226,9 +250,10 @@ export const jackAgent: AgentImplementation<AgentMemory, JackTools> = {
                 }
             ];
 
-            // Combine Jack-specific tools with shared Context OS, Letta Memory, and Intuition OS tools
+            // Combine Jack-specific tools with shared + executive context (calendar/email/search)
             const toolsDef = [
                 ...jackSpecificTools,
+                ...executiveContextToolDefs,
                 ...contextOsToolDefs,
                 ...lettaToolDefs,
                 ...intuitionOsToolDefs,
