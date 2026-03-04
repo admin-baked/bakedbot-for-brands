@@ -1,0 +1,7 @@
+# Ignore everything except what the Dockerfile needs
+.gcloudignore
+!Dockerfile.andrews
+!cloudbuild.yaml
+!entrypoint.sh
+!inclub/
+!plugins/

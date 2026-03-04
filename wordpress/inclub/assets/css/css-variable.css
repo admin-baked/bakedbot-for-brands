@@ -1,0 +1,15 @@
+body{
+	--e-global-color-primary					: #191A1F;
+	--e-global-color-secondary					: #F9F9F9;
+	--e-global-color-text						: #808080;
+	--e-global-color-accent						: #ED6325;
+	--e-global-color-accentsecondary			: transparent;
+	--e-global-color-white						: #FFFFFF;
+	--e-global-color-black						: #000000;
+	--e-global-color-divider					: #80808024;
+	--e-global-color-darkdivider				: #FFFFFF1F;
+	--e-global-typography-primary-font-family	: "Jost", serif;
+	--e-global-typography-secondary-font-family	: "Jost", serif;
+	--e-global-typography-text-font-family		: "Jost", serif;
+	--e-global-typography-accent-font-family    : "Jost", serif;
+}
