@@ -240,3 +240,20 @@ export interface ExecutiveContextTools {
     getEmailDigest(sinceHours?: number): Promise<any>;
     searchOpportunities(query: string): Promise<any>;
 }
+
+// ============================================================================
+// PROACTIVE SEARCH TOOL — shared by dispensary/brand/grower support agents
+// (searchOpportunities only — no CEO email/calendar access)
+// ============================================================================
+
+export const proactiveSearchToolDef = {
+    name: "searchOpportunities",
+    description: "Search the web for cannabis industry trends, competitor moves, market opportunities, and relevant news to inform proactive recommendations. Use this to bring real intelligence to users without being asked.",
+    schema: z.object({
+        query: z.string().describe("Specific search query — e.g., 'cannabis dispensary retention strategies NY 2026', 'cannabis pricing trends Q1 2026'")
+    })
+};
+
+export interface ProactiveSearchTool {
+    searchOpportunities(query: string): Promise<any>;
+}
