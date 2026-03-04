@@ -28,7 +28,7 @@ import { callClaude } from '@/ai/claude';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 min — Claude calls + search can be slow
 
-const PLATFORM_ORG_ID = 'org_bakedbot_platform';
+const PLATFORM_ORG_ID = 'bakedbot_super_admin';
 
 // ============================================================================
 // Types
