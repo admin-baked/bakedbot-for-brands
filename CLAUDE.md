@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-03-03 (Gmail connection check fix; blog research cache + citations + exec_calendar OAuth token save fix)
+**Current Status:** 🟢 Passing | **Last update:** 2026-03-03 (Apollo.io enrichment + credits panel; BakedBot brand guide seeded)
 
 ---
 
