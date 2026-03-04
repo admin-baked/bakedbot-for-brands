@@ -163,6 +163,71 @@ interface PendingReviewCounts {
     unenrichedLeads: number;
 }
 
+interface PlatformGrowthStats {
+    activeCustomers: number;
+    estimatedMrr: number;
+    newLast30Days: number;
+}
+
+interface OutreachFunnel {
+    totalLeads: number;
+    researched: number;
+    sent: number;
+    pendingDrafts: number;
+    responded: number;
+}
+
+/**
+ * P1: Load platform-level growth stats (MRR + customer count) from claims.
+ * Super-user only — queries cross-org claims collection.
+ */
+async function loadPlatformGrowthStats(): Promise<PlatformGrowthStats> {
+    const db = getAdminFirestore();
+    try {
+        const [activeClaimsSnap, newClaimsSnap] = await Promise.allSettled([
+            db.collection('claims').where('status', 'in', ['active', 'verified', 'pending_verification']).get(),
+            db.collection('claims')
+                .where('status', 'in', ['active', 'verified', 'pending_verification'])
+                .where('createdAt', '>=', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
+                .get(),
+        ]);
+        const activeClaims = activeClaimsSnap.status === 'fulfilled' ? activeClaimsSnap.value.docs : [];
+        const newClaims = newClaimsSnap.status === 'fulfilled' ? newClaimsSnap.value.docs : [];
+        const estimatedMrr = activeClaims.reduce((sum, d) => {
+            const price = d.data().planPrice as number | undefined;
+            return sum + (typeof price === 'number' ? price : 0);
+        }, 0);
+        return {
+            activeCustomers: activeClaims.length,
+            estimatedMrr,
+            newLast30Days: newClaims.length,
+        };
+    } catch {
+        return { activeCustomers: 0, estimatedMrr: 0, newLast30Days: 0 };
+    }
+}
+
+/**
+ * P4: Load NY outreach funnel counts — stages from discovery to response.
+ */
+async function loadOutreachFunnel(): Promise<OutreachFunnel> {
+    const db = getAdminFirestore();
+    const [totalSnap, researchedSnap, sentSnap, draftsSnap, respondedSnap] = await Promise.allSettled([
+        db.collection('ny_dispensary_leads').count().get(),
+        db.collection('ny_dispensary_leads').where('status', '==', 'researched').where('outreachSent', '==', false).count().get(),
+        db.collection('ny_dispensary_leads').where('outreachSent', '==', true).count().get(),
+        db.collection('ny_outreach_drafts').where('status', '==', 'draft').count().get(),
+        db.collection('ny_dispensary_leads').where('status', '==', 'responded').count().get(),
+    ]);
+    return {
+        totalLeads: totalSnap.status === 'fulfilled' ? totalSnap.value.data().count : 0,
+        researched: researchedSnap.status === 'fulfilled' ? researchedSnap.value.data().count : 0,
+        sent: sentSnap.status === 'fulfilled' ? sentSnap.value.data().count : 0,
+        pendingDrafts: draftsSnap.status === 'fulfilled' ? draftsSnap.value.data().count : 0,
+        responded: respondedSnap.status === 'fulfilled' ? respondedSnap.value.data().count : 0,
+    };
+}
+
 /**
  * Load today's meetings from BakedBot + Google Calendar.
  */
@@ -231,6 +296,8 @@ function buildMetrics(
     greenledger?: GreenLedgerSummaryRow | null,
     outreachStats?: OutreachStatsRow | null,
     pendingCounts?: PendingReviewCounts | null,
+    platformGrowth?: PlatformGrowthStats | null,
+    outreachFunnel?: OutreachFunnel | null,
 ): BriefingMetric[] {
     const metrics: BriefingMetric[] = [];
 
@@ -384,13 +451,62 @@ function buildMetrics(
         });
     }
 
+    // P1 — 9. Platform Growth (MRR + customer count) — super user only
+    if (platformGrowth && (platformGrowth.activeCustomers > 0 || platformGrowth.estimatedMrr > 0)) {
+        const mrrLabel = platformGrowth.estimatedMrr > 0
+            ? `$${Math.round(platformGrowth.estimatedMrr).toLocaleString()}/mo`
+            : 'Calculating…';
+        const arrLabel = platformGrowth.estimatedMrr > 0
+            ? ` · ARR $${Math.round(platformGrowth.estimatedMrr * 12 / 1000).toLocaleString()}k`
+            : '';
+        const newLabel = platformGrowth.newLast30Days > 0
+            ? ` · +${platformGrowth.newLast30Days} new (30d)`
+            : '';
+        const toGoalPct = platformGrowth.estimatedMrr > 0
+            ? Math.min(100, (platformGrowth.estimatedMrr / 833_333 * 100)).toFixed(1) // $10M ARR = $833k MRR
+            : null;
+        metrics.push({
+            title: 'Platform MRR',
+            value: mrrLabel,
+            trend: platformGrowth.newLast30Days > 0 ? 'up' : 'flat',
+            vsLabel: `${platformGrowth.activeCustomers} active customers${arrLabel}${newLabel}`,
+            status: 'good',
+            actionable: toGoalPct !== null
+                ? `${toGoalPct}% to $10M ARR goal — need $${Math.round((833_333 - platformGrowth.estimatedMrr) / 1000).toLocaleString()}k more MRR`
+                : undefined,
+        });
+    }
+
+    // P4 — 10. Outreach Conversion Funnel — super user only
+    if (outreachFunnel && outreachFunnel.totalLeads > 0) {
+        const conversionRate = outreachFunnel.sent > 0 && outreachFunnel.totalLeads > 0
+            ? ((outreachFunnel.sent / outreachFunnel.totalLeads) * 100).toFixed(1)
+            : '0';
+        const responseRate = outreachFunnel.sent > 0 && outreachFunnel.responded > 0
+            ? ` · ${((outreachFunnel.responded / outreachFunnel.sent) * 100).toFixed(1)}% reply rate`
+            : '';
+        const hasPendingDrafts = outreachFunnel.pendingDrafts > 0;
+        metrics.push({
+            title: 'NY Outreach Funnel',
+            value: `${outreachFunnel.totalLeads.toLocaleString()} leads → ${outreachFunnel.sent} sent`,
+            trend: outreachFunnel.sent > 0 ? 'up' : 'flat',
+            vsLabel: `${outreachFunnel.researched} ready · ${conversionRate}% contacted${responseRate}`,
+            status: hasPendingDrafts ? 'warning' : 'good',
+            actionable: hasPendingDrafts
+                ? `${outreachFunnel.pendingDrafts} draft${outreachFunnel.pendingDrafts !== 1 ? 's' : ''} awaiting approval — approve to advance pipeline`
+                : outreachFunnel.researched > 10
+                ? `${outreachFunnel.researched} researched leads ready — run outreach to advance pipeline`
+                : undefined,
+        });
+    }
+
     return metrics;
 }
 
 // ============ Core generation function ============
 
 export async function generateMorningBriefing(orgId: string): Promise<AnalyticsBriefing> {
-    const [benchmarks, products, yesterdayOrders, last7Orders, greenledgerSummary, outreachStatsResult, pendingCountsResult, meetingsResult, emailDigestResult] = await Promise.allSettled([
+    const [benchmarks, products, yesterdayOrders, last7Orders, greenledgerSummary, outreachStatsResult, pendingCountsResult, meetingsResult, emailDigestResult, platformGrowthResult, outreachFunnelResult] = await Promise.allSettled([
         getMarketBenchmarks(orgId),
         loadOrgProducts(orgId),
         loadYesterdayOrders(orgId),
@@ -400,6 +516,8 @@ export async function generateMorningBriefing(orgId: string): Promise<AnalyticsB
         loadPendingCounts(),
         loadTodaysMeetings(),
         loadEmailDigest(), // emails since midnight
+        loadPlatformGrowthStats(), // P1: MRR + customer count
+        loadOutreachFunnel(),      // P4: outreach pipeline funnel
     ]);
 
     const bm = benchmarks.status === 'fulfilled' ? benchmarks.value : await getMarketBenchmarks('');
@@ -411,9 +529,11 @@ export async function generateMorningBriefing(orgId: string): Promise<AnalyticsB
     const pendingCounts = pendingCountsResult.status === 'fulfilled' ? pendingCountsResult.value : null;
     const meetings = meetingsResult.status === 'fulfilled' ? meetingsResult.value : [];
     const emailDigest = emailDigestResult.status === 'fulfilled' ? emailDigestResult.value : null;
+    const platformGrowth = platformGrowthResult.status === 'fulfilled' ? platformGrowthResult.value : null;
+    const outreachFunnel = outreachFunnelResult.status === 'fulfilled' ? outreachFunnelResult.value : null;
 
     // Build metrics
-    const metrics = buildMetrics(yesterdayOrds, last7Ords, prods, bm, glSummary, outreachStats, pendingCounts);
+    const metrics = buildMetrics(yesterdayOrds, last7Ords, prods, bm, glSummary, outreachStats, pendingCounts, platformGrowth, outreachFunnel);
 
     // Read industry news from pre-warmed cache (written at 5:30 AM by industry-pulse-refresh cron)
     let newsItems: BriefingNewsItem[] = [];

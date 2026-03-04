@@ -43,6 +43,7 @@ import { InboxIntegrationCard } from './artifacts/integration-card';
 import { AnalyticsChartArtifact } from './artifacts/analytics-chart-artifact';
 import { AnalyticsBriefingArtifact } from './artifacts/analytics-briefing-artifact';
 import { OutreachDraftCard } from './artifacts/outreach-draft-card';
+import { ExecutiveProactiveCheckArtifact, type ExecProactiveCheckData } from './artifacts/executive-proactive-check-artifact';
 
 // ============ Props ============
 
@@ -60,6 +61,7 @@ const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
     analytics_chart: BarChart2,
     analytics_briefing: Newspaper,
     outreach_draft: Mail,
+    executive_proactive_check: Sparkles,
 };
 
 // ============ Detail Views ============
@@ -381,6 +383,9 @@ export function InboxArtifactPanel({ artifacts, className }: InboxArtifactPanelP
                                     {selectedArtifact.type === 'outreach_draft' && (
                                         <OutreachDraftCard artifact={selectedArtifact} />
                                     )}
+                                    {selectedArtifact.type === 'executive_proactive_check' && (
+                                        <ExecutiveProactiveCheckArtifact data={selectedArtifact.data as unknown as ExecProactiveCheckData} />
+                                    )}
                                 </motion.div>
                             </AnimatePresence>
                         </>
@@ -394,8 +399,8 @@ export function InboxArtifactPanel({ artifacts, className }: InboxArtifactPanelP
             </ScrollArea>
 
             {/* Actions - HitL Approval Workflow */}
-            {/* outreach_draft has its own inline Send/Schedule/Playbook actions — skip generic workflow */}
-            {selectedArtifact && selectedArtifact.status !== 'published' && selectedArtifact.type !== 'outreach_draft' && (
+            {/* outreach_draft and executive_proactive_check are informational — skip generic publish workflow */}
+            {selectedArtifact && selectedArtifact.status !== 'published' && selectedArtifact.type !== 'outreach_draft' && selectedArtifact.type !== 'executive_proactive_check' && (
                 <div className="p-4 border-t border-white/5 space-y-3">
                     {/* Primary Approve Button - Green Check EMPHASIZED per Technical Brief */}
                     {(selectedArtifact.status === 'draft' || selectedArtifact.status === 'pending_review') && (
