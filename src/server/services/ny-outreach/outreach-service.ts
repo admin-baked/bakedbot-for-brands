@@ -290,10 +290,20 @@ export async function getOutreachStats(since?: number): Promise<{
         .limit(100)
         .get();
 
-    const results = snapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) => ({
-        leadId: doc.id,
-        ...doc.data(),
-    })) as OutreachResult[];
+    const results = snapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot): OutreachResult => {
+        const d = doc.data();
+        return {
+            leadId: doc.id,
+            dispensaryName: typeof d.dispensaryName === 'string' ? d.dispensaryName : '',
+            email: typeof d.email === 'string' ? d.email : '',
+            templateId: typeof d.templateId === 'string' ? d.templateId : '',
+            emailVerified: d.emailVerified === true,
+            verificationResult: typeof d.verificationResult === 'string' ? d.verificationResult : undefined,
+            emailSent: d.emailSent === true,
+            sendError: typeof d.sendError === 'string' ? d.sendError : undefined,
+            timestamp: typeof d.timestamp === 'number' ? d.timestamp : Date.now(),
+        };
+    });
 
     return {
         totalSent: results.filter(r => r.emailSent).length,
