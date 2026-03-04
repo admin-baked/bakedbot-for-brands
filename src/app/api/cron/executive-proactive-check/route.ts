@@ -161,6 +161,7 @@ Format as bullet points. Keep each under 20 words. No fluff.`;
 }
 
 async function generateJackBrief(ctx: Awaited<ReturnType<typeof loadExecutiveContext>>): Promise<ExecDomainBrief> {
+    try {
     // Search for NY cannabis opportunities
     let searchSummary = '';
     try {
@@ -173,7 +174,7 @@ async function generateJackBrief(ctx: Awaited<ReturnType<typeof loadExecutiveCon
     ) ?? [];
 
     const salesMeetings = ctx.meetings.filter(m =>
-        /demo|discovery|call|meeting|sync/i.test(m.title)
+        /demo|discovery|call|meeting|sync/i.test(m.title ?? '')
     );
 
     // Load CRM pipeline counts from Firestore
@@ -207,30 +208,31 @@ Generate 3-4 revenue action items focused on moving these leads through the pipe
 Flag if pendingDrafts > 0 — CEO needs to approve before emails can send.
 Format as bullet points. Under 20 words each. No fluff.`;
 
-    try {
-        const text = await callClaude({
-            model: 'claude-haiku-4-5-20251001',
-            userMessage,
-            maxTokens: 400,
-        });
+    const text = await callClaude({
+        model: 'claude-haiku-4-5-20251001',
+        userMessage,
+        maxTokens: 400,
+    });
 
-        const recommendations = text.split('\n').filter((l: string) => l.trim().startsWith('-') || l.trim().startsWith('•')).map((l: string) => l.replace(/^[-•]\s*/, '').trim()).filter(Boolean);
+    const recommendations = text.split('\n').filter((l: string) => l.trim().startsWith('-') || l.trim().startsWith('•')).map((l: string) => l.replace(/^[-•]\s*/, '').trim()).filter(Boolean);
 
-        return {
-            agent: 'jack',
-            title: "Jack's Revenue Opportunities",
-            recommendations: recommendations.length > 0 ? recommendations : ['Review CRM for deals stalled in negotiation stage', 'Follow up on NY dispensary leads from last week'],
-            urgency: emailLeads.length > 0 ? 'warning' : 'info',
-        };
-    } catch {
+    return {
+        agent: 'jack',
+        title: "Jack's Revenue Opportunities",
+        recommendations: recommendations.length > 0 ? recommendations : ['Review CRM for deals stalled in negotiation stage', 'Follow up on NY dispensary leads from last week'],
+        urgency: emailLeads.length > 0 ? 'warning' : 'info',
+    };
+    } catch (e: unknown) {
+        logger.warn('[ExecProactiveCheck] Jack brief failed', { error: String(e) });
         return {
             agent: 'jack',
             title: "Jack's Revenue Opportunities",
             recommendations: [
-                emailLeads.length > 0 ? `${emailLeads.length} potential lead email(s) in inbox — review and qualify` : 'Run CRM search for warm prospects to contact today',
-                salesMeetings.length > 0 ? `Prep for ${salesMeetings.length} sales meeting(s) today` : 'Identify 3 dispensaries to cold outreach this week',
+                'Approve pending outreach drafts in CEO dashboard to unblock pipeline',
+                'Follow up on NY dispensary leads from last week',
+                'Identify 3 new dispensaries to target this week',
             ],
-            urgency: emailLeads.length > 0 ? 'warning' : 'info',
+            urgency: 'info',
         };
     }
 }
@@ -591,8 +593,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             },
         });
     } catch (error) {
-        logger.error('[ExecProactiveCheck] Failed', { error: String(error) });
-        return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger.error('[ExecProactiveCheck] Failed', {
+            error: err.message,
+            stack: err.stack?.split('\n').slice(0, 5).join(' | '),
+        });
+        return NextResponse.json({ success: false, error: err.message }, { status: 500 });
     }
 }
 
