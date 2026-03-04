@@ -115,6 +115,9 @@ function getDefaultFavoritesForRole(role: string | null): string[] {
     return ['new-carousel', 'new-bundle', 'new-creative', 'new-campaign', 'review-performance', 'customer-blast'];
 }
 
+// Thread types with dedicated inline generators — no need to pre-populate input
+const GENERATOR_THREAD_TYPES = new Set(['carousel', 'bundle', 'qr_code', 'hero', 'social_post', 'dynamic_pricing']);
+
 // ============ Props ============
 
 interface InboxSidebarProps {
@@ -125,7 +128,7 @@ interface InboxSidebarProps {
 // ============ Quick Action Button ============
 
 function QuickActionButton({ action, collapsed }: { action: InboxQuickAction; collapsed?: boolean }) {
-    const { createThread, deleteThread, markThreadPending, markThreadPersisted, currentOrgId, threadFilter } = useInboxStore();
+    const { createThread, deleteThread, markThreadPending, markThreadPersisted, currentOrgId, threadFilter, setActiveThread } = useInboxStore();
     const [isCreating, setIsCreating] = useState(false);
     const { toast } = useToast();
     const Icon = getIcon(action.icon);
@@ -176,6 +179,12 @@ function QuickActionButton({ action, collapsed }: { action: InboxQuickAction; co
 
             // Mark thread as persisted (safe to use now)
             markThreadPersisted(localThread.id);
+
+            // Pre-populate chat input and navigate to the thread
+            if (action.promptTemplate && !GENERATOR_THREAD_TYPES.has(action.threadType)) {
+                _pendingInputs.set(localThread.id, action.promptTemplate);
+            }
+            setActiveThread(localThread.id);
         } catch (error) {
             console.error('[QuickActionButton] Error creating thread:', error);
             // Clean up local thread on error
@@ -467,9 +476,6 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
         [favoriteQuickActions, quickActions]
     );
 
-    // Thread types with dedicated inline generators — no need to pre-populate input
-    const GENERATOR_THREAD_TYPES = new Set(['carousel', 'bundle', 'qr_code', 'hero', 'social_post', 'dynamic_pricing']);
-
     const handleQuickActionSelect = useCallback((action: InboxQuickAction) => {
         // Create thread via the action
         const projectId = threadFilter.projectId && threadFilter.projectId !== 'all'
@@ -502,7 +508,10 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
                 deleteThread(thread.id);
             }
         });
-    }, [createThread, deleteThread, markThreadPending, markThreadPersisted, threadFilter.projectId]);
+
+        // Navigate to the new thread immediately (optimistic)
+        setActiveThread(thread.id);
+    }, [createThread, deleteThread, markThreadPending, markThreadPersisted, setActiveThread, threadFilter.projectId]);
 
     // Load quick actions when role changes
     useEffect(() => {
