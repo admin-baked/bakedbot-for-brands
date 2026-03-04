@@ -195,7 +195,7 @@ Do NOT wait for the user to say "P1" or "file a bug first" — triage, file, and
 ---
 
 **Recent work (2026-03-03):** See `memory/MEMORY.md` for full log.
-Key completed: [Blog research Step 3 Timestamp fix] (`94c0a7eb`), [Citations + news caching added to blog-research.ts] (linter)
+Key completed: [Gmail connection check fix — refreshTokenEncrypted field] (`8a22b505`), [Blog research cache + citations + OAuth] (`7add3b3e`, `dbd6a8f7`)
 
 ---
 
