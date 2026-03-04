@@ -80,7 +80,7 @@ async function loadExecutiveContext() {
             if (ageMs < 4 * 60 * 60 * 1000) { // 4-hour TTL
                 const meetings = (data.meetings as Array<Record<string, unknown>> || []).map(m => ({
                     ...m,
-                    startTime: new Date(m.startTime as string),
+                    startTime: m.startTime as string, // keep as string, e.g. "9:00 AM"
                 })) as unknown as BriefingMeeting[];
                 logger.info('[ExecProactiveCheck] Using pre-warmed context', { ageMinutes: Math.round(ageMs / 60000) });
                 return { meetings, emailDigest: data.emailDigest ?? null, dateStr: (data.dateStr as string) || dateStr };
@@ -501,7 +501,7 @@ async function postExecBriefToInbox(orgId: string, briefs: ExecDomainBrief[], ct
             date: now.toISOString().split('T')[0],
             dateLabel: ctx.dateStr,
             meetings: ctx.meetings,
-            emailDigest: ctx.emailDigest ?? undefined,
+            emailDigest: ctx.emailDigest ?? null,
             executiveRecommendations,
             generatedAt: now.toISOString(),
         },
