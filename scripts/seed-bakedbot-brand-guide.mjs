@@ -55,7 +55,7 @@ const brandGuide = {
   // ---- Visual Identity ----
   visualIdentity: {
     logo: {
-      primary: '', // Will be set when logo is uploaded to Firebase Storage
+      primary: 'https://bakedbot.ai/bakedbot-logo-horizontal.png',
       specifications: {
         minWidth: 120,
         clearSpace: 16,
