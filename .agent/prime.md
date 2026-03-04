@@ -195,7 +195,7 @@ Do NOT wait for the user to say "P1" or "file a bug first" — triage, file, and
 ---
 
 **Recent work (2026-03-04):** See `memory/MEMORY.md` for full log.
-Key completed: [Mobile responsiveness — all roles + inbox] (`4a779c13`), [Exec agents proactive intelligence + cron] (`bfcde323`)
+Key completed: [Exec context pre-warm cron + Timestamp serialization fixes] (`27e4c5de`), [Mobile responsiveness — all roles + inbox] (`4a779c13`)
 
 ---
 
