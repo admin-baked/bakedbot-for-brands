@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-03-04)
 
 **Recent work (2026-03-04):** See `memory/MEMORY.md` for full log.
-Key completed: [Outreach serialization fix — getOutreachStats explicit mapping] (`5636d7c5`), [Exec context pre-warm + Timestamp fixes] (`27e4c5de`)
+Key completed: [Proactive searchOpportunities — Craig/Parker/Pops/Smokey] (`8dc3d340`), [Andrews Development user onboarding — Ripon added to brand_XHmqB7RY] (Firestore/Auth)
 
 ---
 
