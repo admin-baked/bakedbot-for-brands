@@ -20,4 +20,21 @@ define('FORCE_SSL_ADMIN', false);
 define('DISALLOW_FILE_MODS', false);
 "
 
+# Run WP-CLI plugin activation after WordPress files are in place (background, after docker-entrypoint copies files)
+activate_plugins() {
+  echo "[entrypoint] Waiting for WordPress files to be available..."
+  for i in $(seq 1 60); do
+    if [ -f /var/www/html/wp-load.php ]; then
+      break
+    fi
+    sleep 2
+  done
+  echo "[entrypoint] WordPress files ready. Activating plugins via WP-CLI..."
+  wp plugin activate elementor elementskit-lite elementskit inclub-theme-addons contact-form-7 \
+    --allow-root --path=/var/www/html 2>&1 | sed 's/^/[wp-cli] /' || true
+  echo "[entrypoint] Plugin activation complete."
+}
+
+activate_plugins &
+
 exec docker-entrypoint.sh apache2-foreground
