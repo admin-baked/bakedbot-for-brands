@@ -438,9 +438,10 @@ env:
       - RUNTIME
 
   # Andrews Developments WordPress proxy URL (Cloud Run service)
+  # Must be BUILD+RUNTIME so next.config.js rewrites() can read it at build time
   - variable: ANDREWS_WP_URL
     secret: ANDREWS_WP_URL@1
-    availability: [ RUNTIME ]
+    availability: [ BUILD, RUNTIME ]
 
 runConfig:
   minInstances: 0
