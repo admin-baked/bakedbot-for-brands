@@ -277,19 +277,21 @@ const nextConfig = {
   },
   async rewrites() {
     // Andrews Developments WordPress site proxied from Cloud Run
-    // Set ANDREWS_WP_URL env var to the Cloud Run service URL
+    // Use beforeFiles so this takes priority over the [brand] dynamic route
     const andrewsWpUrl = process.env.ANDREWS_WP_URL;
     if (!andrewsWpUrl) return [];
-    return [
-      {
-        source: '/andrewsdevelopments',
-        destination: `${andrewsWpUrl}/`,
-      },
-      {
-        source: '/andrewsdevelopments/:path*',
-        destination: `${andrewsWpUrl}/:path*`,
-      },
-    ];
+    return {
+      beforeFiles: [
+        {
+          source: '/andrewsdevelopments',
+          destination: `${andrewsWpUrl}/`,
+        },
+        {
+          source: '/andrewsdevelopments/:path*',
+          destination: `${andrewsWpUrl}/:path*`,
+        },
+      ],
+    };
   },
 };
 // Cache invalidate: Force rebuild for new secret v7. 2025-12-04 14:51:51
