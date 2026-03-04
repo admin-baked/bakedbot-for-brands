@@ -174,21 +174,35 @@ export async function bulkImportAllNYLeads(): Promise<{
 
     logger.info('[ContactResearch] NY API returned records', { count: nyRecords.length });
 
-    // Fetch all existing license numbers from Firestore in one query
+    // Fetch all existing leads to build dedup sets (license number + name+city)
     const existingSnap = await db.collection('ny_dispensary_leads')
-        .where('source', '==', 'ny-state-api')
-        .select('licenseNumber')
+        .select('licenseNumber', 'dispensaryName', 'city')
         .get();
-    const existingLicenses = new Set(
-        existingSnap.docs.map(d => d.data().licenseNumber as string).filter(Boolean)
-    );
 
-    logger.info('[ContactResearch] Existing NY API leads in Firestore', { count: existingLicenses.size });
+    const existingLicenses = new Set<string>();
+    const existingNameCities = new Set<string>();
+    for (const doc of existingSnap.docs) {
+        const d = doc.data();
+        if (d.licenseNumber) existingLicenses.add(String(d.licenseNumber));
+        const name = String(d.dispensaryName || '').toLowerCase().trim();
+        const city = String(d.city || '').toLowerCase().trim();
+        if (name) existingNameCities.add(`${name}|${city}`);
+    }
 
-    // Filter to only new records
+    logger.info('[ContactResearch] Existing NY leads in Firestore', {
+        byLicense: existingLicenses.size,
+        byNameCity: existingNameCities.size,
+    });
+
+    // Filter to only new records — dedupe by license number first, then name+city fallback
     const newRecords = nyRecords.filter(r => {
-        if (!r.license_number) return true; // Save if no license number
-        return !existingLicenses.has(r.license_number);
+        // Primary: license number match
+        if (r.license_number && existingLicenses.has(r.license_number)) return false;
+        // Secondary: dispensaryName+city match (catches records without license numbers)
+        const name = (r.dba || r.entity_name || '').toLowerCase().trim();
+        const city = (r.city || '').toLowerCase().trim();
+        if (name && existingNameCities.has(`${name}|${city}`)) return false;
+        return true;
     });
 
     if (newRecords.length === 0) {
@@ -209,7 +223,6 @@ export async function bulkImportAllNYLeads(): Promise<{
             if (!dispensaryName) continue;
 
             const licenseNumber = record.license_number || '';
-            const domain = dispensaryName.toLowerCase().replace(/[^a-z0-9]/g, '-');
 
             const docRef = db.collection('ny_dispensary_leads').doc();
             batch.set(docRef, {
