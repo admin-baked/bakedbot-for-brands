@@ -1,5 +1,10 @@
 # Build Optimization & Orphaned Module Cleanup - Memory Document
 
+## Session: 2026-03-05
+- **Claude Code Settings Bloat**: Fixed an issue where Claude Code's `.claude/settings.local.json` and global `~/.claude/settings.json` became bloated with 273 lines of multi-line git commit messages and invalid `:*` glob patterns that broken startup. Cleared settings and replaced with clean allowlist.
+- **Claude Code GLM Proxy Auth**: Fixed 401 unresponsiveness by restoring the `ANTHROPIC_AUTH_TOKEN` in `~/.claude/settings.json`, required for the custom `https://api.z.ai/api/anthropic` proxy.
+- **Commit Reference**: `[no-code-changes]` (environment configuration only).
+
 ## Problem Context
 
 After extracting lead magnets and academy features to a separate app (commit `72e6549c`), the main application experienced:
