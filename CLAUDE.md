@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-03-04 (Andrews Developments WP site on Cloud Run + Next.js proxy at /andrewsdevelopments)
+**Current Status:** 🟢 Passing | **Last update:** 2026-03-05 (Fixed Claude Code API proxy auth and settings file bloat)
 
 ---
 

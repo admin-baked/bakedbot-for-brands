@@ -199,8 +199,8 @@ Do NOT wait for the user to say "P1" or "file a bug first" — triage, file, and
 
 ---
 
-**Recent work (2026-03-04):** See `memory/MEMORY.md` for full log.
-Key completed: [Coupon manager — FOUNDER50/LAUNCH25 + Timestamp fixes] (`a981a0fb`), [Exec context pre-warm cron] (`27e4c5de`)
+**Recent work (2026-03-05):** See `memory/MEMORY.md` for full log.
+Key completed: [Claude Code proxy auth & settings fix] (`[no-code-changes]`), [Coupon manager — FOUNDER50/LAUNCH25 + Timestamp fixes] (`a981a0fb`)
 
 ---
 
