@@ -70,6 +70,11 @@ export const CLAUDE_REASONING_MODEL = process.env.CLAUDE_REASONING_MODEL || 'cla
 // Maximum iterations to prevent infinite loops
 const MAX_ITERATIONS = 10;
 
+// Test mode flag - use GLM mocks in unit/integration tests
+// When true, `callGLM()` uses mocked implementation (fast, reliable)
+// When false or undefined, production uses real GLM with Claude fallback
+export const USE_GLM_IN_TESTS = process.env.NODE_ENV === 'test';
+
 // === AUTOMATIC MODEL ROUTING ===
 
 export type TaskComplexity = 'simple' | 'standard' | 'complex' | 'strategic';

@@ -514,6 +514,8 @@ export function PuffChat({
             "Run competitive analysis",
             "Generate revenue forecast",
             "Check compliance across listings",
+            // Proactive Intelligence
+            "What proactive intel is available?",
         ];
     const rotatedDefaults = useRotatingPrompts(defaultPool, 4);
     const rotatedCustom = useRotatingPrompts(promptSuggestions ?? [], 4);
