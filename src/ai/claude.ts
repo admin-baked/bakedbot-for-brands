@@ -61,11 +61,11 @@ export interface ClaudeResult {
 // Default model for tool calling - Claude Sonnet 4.5 (optimized for agentic workflows)
 // Sonnet is 5x cheaper than Opus and excels at structured tool use
 // Use CLAUDE_REASONING_MODEL for complex one-shot reasoning tasks
-export const CLAUDE_TOOL_MODEL = 'claude-sonnet-4-5-20250929';
+export const CLAUDE_TOOL_MODEL = process.env.CLAUDE_TOOL_MODEL || 'claude-sonnet-4-5-20250929';
 
 // Premium model for complex reasoning tasks (use sparingly)
 // Best for: strategic decisions, long document synthesis, novel problem solving
-export const CLAUDE_REASONING_MODEL = 'claude-opus-4-5-20251101';
+export const CLAUDE_REASONING_MODEL = process.env.CLAUDE_REASONING_MODEL || 'claude-opus-4-5-20251101';
 
 // Maximum iterations to prevent infinite loops
 const MAX_ITERATIONS = 10;
@@ -226,10 +226,16 @@ let anthropicClient: Anthropic | null = null;
 function getClient(): Anthropic {
     if (!anthropicClient) {
         const apiKey = process.env.CLAUDE_API_KEY;
+        const baseURL = process.env.ANTHROPIC_BASE_URL;
+
         if (!apiKey) {
             throw new Error('CLAUDE_API_KEY environment variable is required for Claude tool calling');
         }
-        anthropicClient = new Anthropic({ apiKey });
+
+        anthropicClient = new Anthropic({
+            apiKey,
+            ...(baseURL ? { baseURL } : {})
+        });
     }
     return anthropicClient;
 }
@@ -293,47 +299,47 @@ export async function executeWithTools(
                 }
             ],
         });
-        
+
         totalInputTokens += response.usage.input_tokens;
         totalOutputTokens += response.usage.output_tokens;
-        
+
         // Check if we have tool use blocks
         const toolUseBlocks = response.content.filter(
             (block): block is ToolUseBlock => block.type === 'tool_use'
         );
-        
+
         // Extract text content - filter then access text property safely
         const textBlocks = response.content.filter(block => block.type === 'text');
-        
+
         if (textBlocks.length > 0) {
             finalContent = textBlocks
                 .map(b => (b as { type: 'text'; text: string }).text)
                 .join('\n');
         }
 
-        
+
         // If no tool calls, we're done
         if (toolUseBlocks.length === 0 || response.stop_reason === 'end_turn') {
             break;
         }
-        
+
         // Execute tools and collect results
         const toolResults: ToolResultBlockParam[] = [];
-        
+
         for (const toolUse of toolUseBlocks) {
             const startTime = Date.now();
             let output: unknown;
             let status: 'success' | 'error' = 'success';
-            
+
             try {
                 output = await executor(toolUse.name, toolUse.input as Record<string, unknown>);
             } catch (error) {
                 status = 'error';
                 output = error instanceof Error ? error.message : 'Unknown error';
             }
-            
+
             const durationMs = Date.now() - startTime;
-            
+
             toolExecutions.push({
                 id: toolUse.id,
                 name: toolUse.name,
@@ -342,7 +348,7 @@ export async function executeWithTools(
                 status,
                 durationMs,
             });
-            
+
             toolResults.push({
                 type: 'tool_result',
                 tool_use_id: toolUse.id,
@@ -350,7 +356,7 @@ export async function executeWithTools(
                 is_error: status === 'error',
             });
         }
-        
+
         // Add assistant's response and tool results to conversation
         messages.push({ role: 'assistant', content: response.content });
 
@@ -371,7 +377,7 @@ export async function executeWithTools(
 
         messages.push({ role: 'user', content: toolResults });
     }
-    
+
     const result: ClaudeResult = {
         content: finalContent,
         toolExecutions,
@@ -398,7 +404,7 @@ export async function executeWithTools(
             availableToolCount: tools.length,
         });
         // Don't await — fire and forget to avoid slowing down agent responses
-        recordAgentTelemetry(telemetryEvent).catch(() => {});
+        recordAgentTelemetry(telemetryEvent).catch(() => { });
     }
 
     return result;
