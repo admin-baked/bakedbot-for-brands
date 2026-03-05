@@ -19,10 +19,10 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing (verified 2026-03-04)
+**Current Status:** 🟢 Passing (verified 2026-03-05)
 
-**Recent work (2026-03-04):** See `memory/MEMORY.md` for full log.
-Key completed: [Andrews Dev WordPress on Cloud Run + /andrewsdevelopments proxy] (`82b75eb68`)
+**Recent work (2026-03-05):** See `memory/MEMORY.md` for full log.
+Key completed: [z.ai DevPack GLM integration + Model Switcher] (`911cb50b0`)
 
 ---
 
