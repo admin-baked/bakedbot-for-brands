@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-03-05)
 
 **Recent work (2026-03-05):** See `memory/MEMORY.md` for full log.
-Key completed: [z.ai DevPack GLM integration + Model Switcher] (`911cb50b0`)
+Key completed: [Proactive search chips for brand/dispensary/CEO] (`360ff2bc`)
 
 ---
 
