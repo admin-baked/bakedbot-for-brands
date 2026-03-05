@@ -21,8 +21,13 @@ npm run check:types
 
 **Current Status:** 🟢 Passing (verified 2026-03-05)
 
-**Recent work (2026-03-05):** See `memory/MEMORY.md` for full log.
-Key completed: [Proactive search chips for brand/dispensary/CEO] (`360ff2bc`)
+## Session 2026-03-05 (Firestore undefined handling fixes)
+- **Exec proactive check** — Fixed Firestore undefined value errors (`emailDigest ?? undefined` → `null`, `startTime` as string not Date)
+- **Morning briefing** — Added Error message handling for rejected promises (`result.reason instanceof Error` extraction)
+- **Firestore settings** — Enabled `ignoreUndefinedProperties: true` to skip undefined fields globally
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Status: 🟢 Both crons deployed and working
 
 ---
 
