@@ -344,6 +344,7 @@ type ChatbotProps = {
   brandId?: string;
   dispensaryId?: string; // CannMenus dispensary ID for context
   entityName?: string; // Name of current brand/dispensary for personalization
+  state?: string;
   initialOpen?: boolean;
   positionStrategy?: 'fixed' | 'absolute' | 'relative';
   className?: string; // For the trigger button container
@@ -358,7 +359,7 @@ type ChatbotProps = {
   };
 };
 
-export default function Chatbot({ products = [], brandId = "", dispensaryId, entityName, initialOpen = false, positionStrategy = 'fixed', className, windowClassName, isSuperAdmin = false, chatbotConfig }: ChatbotProps) {
+export default function Chatbot({ products = [], brandId = "", dispensaryId, entityName, state, initialOpen = false, positionStrategy = 'fixed', className, windowClassName, isSuperAdmin = false, chatbotConfig }: ChatbotProps) {
   // If chatbot is explicitly disabled, don't render (Moved to bottom)
   // if (chatbotConfig?.enabled === false) return null;
   const [isOpen, setIsOpen] = useState(initialOpen);
@@ -377,6 +378,7 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
   const effectiveDispensaryId = dispensaryId || pageContext.dispensaryId;
   const effectiveBrandId = brandId || pageContext.brandId;
   const effectiveEntityName = entityName || pageContext.entityName;
+  const effectiveState = state || pageContext.state || 'Illinois';
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -484,7 +486,7 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
         userId,
         sessionId,
         brandId: effectiveDispensaryId || effectiveBrandId || undefined,
-        state: 'Illinois',
+        state: effectiveState,
         isOnboarding: true,
         products: products, // Pass products for context
       };
@@ -546,7 +548,7 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
       setIsBotTyping(false);
     }
 
-  }, [effectiveBrandId, effectiveDispensaryId, sessionId, userId]);
+  }, [effectiveBrandId, effectiveDispensaryId, effectiveState, sessionId, userId]);
 
   const handleSendMessage = useCallback(async (e: FormEvent) => {
     e.preventDefault();
@@ -572,7 +574,7 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
         sessionId,
         brandId: effectiveDispensaryId || effectiveBrandId || undefined, // Use page context, props, or undefined
         entityName: effectiveEntityName, // Pass entity name for personalization
-        state: 'Illinois',
+        state: effectiveState,
         products: products, // Pass active products for personalization
       };
 
@@ -649,7 +651,7 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
       setIsBotTyping(false);
     }
 
-  }, [inputValue, isBotTyping, hasStartedChat, brandId, sessionId, userId]);
+  }, [effectiveBrandId, effectiveDispensaryId, effectiveEntityName, effectiveState, hasStartedChat, inputValue, isBotTyping, sessionId, userId]);
 
   const handleFeedback = (productId: string, type: 'like' | 'dislike') => {
     startTransition(async () => {
@@ -715,7 +717,7 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
           sessionId,
           brandId: effectiveDispensaryId || effectiveBrandId || undefined,
           entityName: effectiveEntityName,
-          state: 'Illinois',
+          state: effectiveState,
         };
 
         const response = await fetch('/api/chat', {
