@@ -19,7 +19,15 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing (verified 2026-03-05)
+**Current Status:** Passing (verified 2026-03-06)
+
+## Session 2026-03-06 (GLM controls, security docs, and proxy hardening)
+- **Claude allowlists** - Normalized local Claude settings allowlists to remove bloated startup state and keep tool permissions deterministic (`6f04200ee`)
+- **Security Soren registration** - Added security agent guidance, golden set references, and server security docs (`2ae78a0b4`)
+- **CEO GLM controls** - Added GLM usage controls and tracking in the CEO dashboard (`17186202a`, `360cabc76`)
+- **WordPress proxy hardening** - Locked the public proxy to the configured Andrews origin and removed debug leakage from public errors (`1aa587cb2`)
+
+Status: Shippable subset committed locally
 
 ## Session 2026-03-05 (Firestore undefined handling fixes)
 - **Exec proactive check** — Fixed Firestore undefined value errors (`emailDigest ?? undefined` → `null`, `startTime` as string not Date)
@@ -194,13 +202,13 @@ Do NOT wait for the user to say "P1" or "file a bug first" — triage, file, and
 | `.agent/review-checklist.md` | Self-review gates | After implementation, before commit |
 | `.agent/golden-sets/*.json` | Eval datasets for LLM changes | When code touches agent prompts/behavior |
 | `.agent/constitution.md` | Full engineering principles | Reference for edge cases and disputes |
-| `memory/MEMORY.md` | Detailed session memory | On demand (not auto-loaded) |
+| `MEMORY.md` | Detailed session memory | On demand (not auto-loaded) |
 | `memory/*.md` topic files | Domain-specific deep context | On demand by topic |
 
 ---
 
-**Recent work (2026-03-05):** See `memory/MEMORY.md` for full log.
-Key completed: [Claude Code proxy auth & settings fix] (`[no-code-changes]`), [Coupon manager — FOUNDER50/LAUNCH25 + Timestamp fixes] (`a981a0fb`)
+**Recent work (2026-03-06):** See `MEMORY.md` for full log.
+Key completed: [Claude allowlist normalization] (`6f04200ee`), [Security Soren guidance registration] (`2ae78a0b4`), [CEO GLM controls] (`17186202a`, `360cabc76`), [WordPress proxy hardening] (`1aa587cb2`)
 
 ---
 

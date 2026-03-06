@@ -1,5 +1,12 @@
 # Build Optimization & Orphaned Module Cleanup - Memory Document
 
+## Session: 2026-03-06
+- **Claude settings normalization**: Cleaned the repo-local Claude settings allowlists and removed startup-bloat regressions. Commit: `6f04200ee`.
+- **Security Soren guidance**: Registered the new security agent docs, memory, and server security guidance. Commit: `2ae78a0b4`.
+- **CEO GLM controls**: Added GLM settings and usage controls for the CEO dashboard. Commits: `17186202a`, `360cabc76`.
+- **WordPress proxy hardening**: Restricted the public WordPress proxy to the configured Andrews origin and removed public debug leakage. Commit: `1aa587cb2`.
+- **Release note**: Left the Andrews WordPress scratch files unshipped until the tracked runtime and deploy path are coherent and safe.
+
 ## Session: 2026-03-05
 - **Claude Code Settings Bloat**: Fixed an issue where Claude Code's `.claude/settings.local.json` and global `~/.claude/settings.json` became bloated with 273 lines of multi-line git commit messages and invalid `:*` glob patterns that broken startup. Cleared settings and replaced with clean allowlist.
 - **Claude Code GLM Proxy Auth**: Fixed 401 unresponsiveness by restoring the `ANTHROPIC_AUTH_TOKEN` in `~/.claude/settings.json`, required for the custom `https://api.z.ai/api/anthropic` proxy.
