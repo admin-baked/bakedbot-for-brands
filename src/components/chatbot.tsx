@@ -17,9 +17,9 @@ import { ChatbotIcon } from './chatbot-icon';
 import OnboardingFlow from './chatbot/onboarding-flow';
 import ChatMessages from './chatbot/chat-messages';
 import ChatProductCarousel from './chatbot/chat-product-carousel';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAuth } from '@/hooks/use-auth';
 import { useChatbotContext } from '@/contexts/chatbot-context';
+import { getSafeProductImageUrl, normalizeCategoryName } from '@/lib/utils/product-image';
 
 import { logger } from '@/lib/logger';
 
@@ -78,12 +78,13 @@ const DEMO_PRODUCTS: Product[] = [
 ];
 
 type UpsellProduct = Product & { reasoning: string; upsellReason?: string; upsellSavings?: string };
+type SuggestedProduct = Product & { reasoning: string; url?: string };
 
 type Message = {
   id: number;
   text: string;
   sender: 'user' | 'bot';
-  productSuggestions?: (Product & { reasoning: string })[];
+  productSuggestions?: SuggestedProduct[];
   upsellSuggestions?: UpsellProduct[];
   imageUrl?: string;
 };
@@ -96,16 +97,33 @@ function parseUpsells(data: any): UpsellProduct[] | undefined {
     name: p.name,
     category: p.category,
     price: p.price,
-    imageUrl: p.imageUrl,
+    imageUrl: getSafeProductImageUrl(p.imageUrl || p.image_url),
     imageHint: '',
-    description: p.description || p.name,
+    description: p.description || p.name || p.product_name,
     brandId: '',
-    thcPercent: p.thcPercent,
-    cbdPercent: p.cbdPercent,
+    thcPercent: p.thcPercent ?? p.thc ?? p.percentage_thc,
+    cbdPercent: p.cbdPercent ?? p.cbd ?? p.percentage_cbd,
     reasoning: p.upsellReason || 'Pairs well with your selection',
     upsellReason: p.upsellReason,
     upsellSavings: p.upsellSavings,
   }));
+}
+
+function normalizeSuggestedProduct(product: any, reasoning: string): SuggestedProduct {
+  return {
+    id: String(product.id || product.cann_sku_id || product.sku_id || product.externalId || product.name || product.product_name),
+    name: product.name || product.product_name || 'Unknown Product',
+    category: normalizeCategoryName(product.category),
+    price: Number(product.price ?? product.latest_price ?? 0),
+    imageUrl: getSafeProductImageUrl(product.imageUrl || product.image_url || product.primary_image),
+    imageHint: product.imageHint || '',
+    description: product.description || product.name || product.product_name || '',
+    thcPercent: product.thcPercent ?? product.thc ?? product.percentage_thc,
+    cbdPercent: product.cbdPercent ?? product.cbd ?? product.percentage_cbd,
+    brandId: product.brandId || product.brand_id || '',
+    reasoning,
+    url: product.url || '',
+  };
 }
 
 type OnboardingAnswers = {
@@ -246,16 +264,12 @@ const ChatWindow = ({
                 </div>
               )}
 
-              <Collapsible className="mt-4">
-                <CollapsibleTrigger asChild>
-                  <Button variant="link" className="text-xs text-muted-foreground">Discover Products</Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <div className="pt-2">
-                    <ChatProductCarousel products={products} onAskSmokey={onAskSmokey} isCompact={true} onFeedback={onFeedback} />
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
+              {products.length > 0 && (
+                <div className="mt-5 border-t pt-4">
+                  <p className="mb-2 text-xs font-medium text-muted-foreground">Discover Products</p>
+                  <ChatProductCarousel products={products} onAskSmokey={onAskSmokey} isCompact={true} onFeedback={onFeedback} />
+                </div>
+              )}
             </div>
           ) : isOnboarding ? (
             <OnboardingFlow onComplete={onOnboardingComplete} />
@@ -488,18 +502,9 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
       }
 
       if (data.ok && data.products && data.products.length > 0) {
-        const productSuggestions = data.products.map((p: any) => ({
-          id: p.id,
-          name: p.name,
-          category: p.category,
-          price: p.price,
-          imageUrl: p.imageUrl,
-          description: p.description,
-          thcPercent: p.thcPercent,
-          cbdPercent: p.cbdPercent,
-          url: p.url,
-          reasoning: p.reasoning || `Great for a ${answers.mood} experience.`,
-        }));
+        const productSuggestions = data.products.map((p: any) =>
+          normalizeSuggestedProduct(p, p.reasoning || `Great for a ${answers.mood} experience.`)
+        );
 
         const botMessage: Message = {
           id: Date.now() + 1,
@@ -507,6 +512,18 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
           sender: 'bot',
           productSuggestions,
           upsellSuggestions: parseUpsells(data),
+        };
+        setMessages(prev => [...prev, botMessage]);
+      } else if (products.length > 0) {
+        const productSuggestions = products.slice(0, 5).map((p) =>
+          normalizeSuggestedProduct(p, `A strong starting point for a ${answers.mood} experience.`)
+        );
+
+        const botMessage: Message = {
+          id: Date.now() + 1,
+          text: data.message || `Based on your preferences for a ${answers.mood} vibe, here are a few menu picks to start with.`,
+          sender: 'bot',
+          productSuggestions,
         };
         setMessages(prev => [...prev, botMessage]);
       } else {
@@ -584,15 +601,8 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
         if (data.clientAction.products && Array.isArray(data.clientAction.products)) {
           data.clientAction.products.forEach((p: any) => {
             addToCart({
-              id: p.id || p.cann_sku_id,
-              name: p.name || p.product_name,
-              price: p.price || p.latest_price,
-              imageUrl: p.imageUrl || p.image_url,
-              category: p.category,
+              ...normalizeSuggestedProduct(p, ''),
               brandId: p.brandId || effectiveBrandId || 'unknown',
-              description: p.description,
-              thcPercent: p.thcPercent,
-              cbdPercent: p.cbdPercent,
             } as Product, effectiveDispensaryId || 'unknown');
           });
         }
@@ -603,18 +613,12 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
 
       if (data.ok && data.products && data.products.length > 0) {
         // Convert products to the format expected by the chatbot
-        const productSuggestions = data.products.map((p: any) => ({
-          id: p.id,
-          name: p.name,
-          category: p.category,
-          price: p.price,
-          imageUrl: p.imageUrl,
-          description: p.description,
-          thcPercent: p.thcPercent,
-          cbdPercent: p.cbdPercent,
-          url: p.url,
-          reasoning: p.reasoning || `A great ${p.category.toLowerCase()} option that matches your request.`,
-        }));
+        const productSuggestions = data.products.map((p: any) =>
+          normalizeSuggestedProduct(
+            p,
+            p.reasoning || `A great ${normalizeCategoryName(p.category).toLowerCase()} option that matches your request.`
+          )
+        );
 
         const botMessage: Message = {
           id: Date.now() + 1,
@@ -725,18 +729,9 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
         if (data.sessionId) setSessionId(data.sessionId);
 
         if (data.ok && data.products && data.products.length > 0) {
-          const productSuggestions = data.products.map((p: any) => ({
-            id: p.id,
-            name: p.name,
-            category: p.category,
-            price: p.price,
-            imageUrl: p.imageUrl,
-            description: p.description,
-            thcPercent: p.thcPercent,
-            cbdPercent: p.cbdPercent,
-            url: p.url,
-            reasoning: p.reasoning
-          }));
+          const productSuggestions = data.products.map((p: any) =>
+            normalizeSuggestedProduct(p, p.reasoning || 'Recommended based on your question.')
+          );
           setMessages(prev => [...prev, {
             id: Date.now() + 1,
             text: data.message,

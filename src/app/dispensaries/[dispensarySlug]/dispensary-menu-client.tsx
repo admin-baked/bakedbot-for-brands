@@ -14,6 +14,7 @@
  */
 
 import { useState, useMemo, useEffect } from 'react';
+import { normalizeCategoryName, getSafeProductImageUrl } from '@/lib/utils/product-image';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -63,7 +64,8 @@ const DEFAULT_PRIMARY_COLOR = '#16a34a';
 export function DispensaryMenuClient({ dispensary, products, bundles = [], publicMenuSettings }: DispensaryMenuClientProps) {
   // URL params for all filtering
   const searchParams = useSearchParams();
-  const urlCategory = searchParams.get('category') || 'all';
+  const rawUrlCategory = searchParams.get('category') || 'all';
+  const urlCategory = rawUrlCategory === 'all' ? 'all' : normalizeCategoryName(rawUrlCategory);
   const urlSort = searchParams.get('sort') || 'popular';
   const urlSearch = searchParams.get('q') || '';
   const urlEffect = searchParams.get('effect') || null;
@@ -103,6 +105,12 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [], publi
   const primaryColor = dispensary.primaryColor || DEFAULT_PRIMARY_COLOR;
   const secondaryColor = dispensary.secondaryColor || '#064e3b';
   const brandColors = { primary: primaryColor, secondary: secondaryColor };
+
+  const allProducts = useMemo(() => products.map((product) => ({
+    ...product,
+    category: normalizeCategoryName(product.category),
+    imageUrl: getSafeProductImageUrl(product.imageUrl),
+  })), [products]);
 
   // Load favorites from localStorage on mount
   useEffect(() => {
@@ -163,14 +171,14 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [], publi
   // All unique effects across the menu (for filter pills)
   const allEffects = useMemo(() => {
     const effectSet = new Set<string>();
-    products.forEach(p => p.effects?.forEach(e => effectSet.add(e)));
+    allProducts.forEach(p => p.effects?.forEach(e => effectSet.add(e)));
     return Array.from(effectSet).slice(0, 8);
-  }, [products]);
+  }, [allProducts]);
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
     const { strainTypes, weights, brands, terpenes, priceRange } = sidebarFilters;
-    return products
+    return allProducts
       .filter(product => {
         const matchesSearch = (product.name ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
           product.description?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -204,32 +212,32 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [], publi
           default: return a.name.localeCompare(b.name);
         }
       });
-  }, [products, searchQuery, categoryFilter, sortBy, effectFilter, sidebarFilters]);
+  }, [allProducts, searchQuery, categoryFilter, sortBy, effectFilter, sidebarFilters]);
 
   // Group products by category
   const productsByCategory = useMemo(() => {
     const grouped: Record<string, Product[]> = {};
-    products.forEach(product => {
+    allProducts.forEach(product => {
       if (!grouped[product.category]) {
         grouped[product.category] = [];
       }
       grouped[product.category].push(product);
     });
     return grouped;
-  }, [products]);
+  }, [allProducts]);
 
   // Get unique categories (normalized)
   const categories = useMemo(() => {
-    const cats = Array.from(new Set(products.map(p => p.category)));
+    const cats = Array.from(new Set(allProducts.map(p => p.category)));
     // Include any categories not in CATEGORY_ORDER (e.g., Seeds, Capsules, Beverages)
     const extra = cats.filter(c => !CATEGORY_ORDER.includes(c)).sort();
     return [...CATEGORY_ORDER.filter(c => cats.includes(c)), ...extra];
-  }, [products]);
+  }, [allProducts]);
 
   // Build category grid data with actual counts from products (dynamic, not hardcoded)
   const categoryGridData = useMemo(() => {
     const categoryCounts: Record<string, number> = {};
-    products.forEach(p => {
+    allProducts.forEach(p => {
       if (p.category) {
         categoryCounts[p.category] = (categoryCounts[p.category] || 0) + 1;
       }
@@ -268,19 +276,19 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [], publi
         if (bIndex !== -1) return 1;
         return a.name.localeCompare(b.name);
       });
-  }, [products]);
+  }, [allProducts]);
 
   // Featured products (highest likes or first 8)
   const featuredProducts = useMemo(() => {
-    return [...products]
+    return [...allProducts]
       .sort((a, b) => (b.likes || 0) - (a.likes || 0))
       .slice(0, 8);
-  }, [products]);
+  }, [allProducts]);
 
   // Deal products (products under $30)
   const dealProducts = useMemo(() => {
-    return products.filter(p => p.price < 30).slice(0, 8);
-  }, [products]);
+    return allProducts.filter(p => p.price < 30).slice(0, 8);
+  }, [allProducts]);
 
   // Deal badge helper
   const getDealBadge = (product: Product): string | undefined => {
@@ -317,8 +325,9 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [], publi
   };
 
   const handleCategorySelect = (category: string) => {
-    setCategoryFilter(category);
-    updateUrlParams({ category });
+    const normalizedCategory = category === 'all' ? 'all' : normalizeCategoryName(category);
+    setCategoryFilter(normalizedCategory);
+    updateUrlParams({ category: normalizedCategory });
     document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
   };
 
@@ -531,7 +540,7 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [], publi
                     </SheetHeader>
                     <div className="mt-4">
                       <MenuFilterSidebar
-                        products={products}
+                        products={allProducts}
                         filters={sidebarFilters}
                         onChange={handleSidebarFilterChange}
                         primaryColor={primaryColor}
@@ -582,7 +591,7 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [], publi
               <aside className="hidden lg:block w-52 shrink-0">
                 <div className="sticky top-4">
                   <MenuFilterSidebar
-                    products={products}
+                    products={allProducts}
                     filters={sidebarFilters}
                     onChange={handleSidebarFilterChange}
                     primaryColor={primaryColor}
@@ -738,8 +747,9 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [], publi
 
       {/* Smokey AI Chatbot */}
       <Chatbot
-        products={products}
-        brandId={dispensary.id}
+        products={allProducts}
+        dispensaryId={dispensary.id}
+        entityName={dispensary.name}
         initialOpen={false}
       />
     </div>

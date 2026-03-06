@@ -37,6 +37,26 @@ export function normalizeCategoryName(rawCategory?: string): string {
     return base.charAt(0).toUpperCase() + base.slice(1);
 }
 
+/**
+ * Returns true when the URL looks like a real product image and not one of our
+ * placeholders or old stock-photo artifacts.
+ */
+export function isRenderableProductImage(url?: string): boolean {
+    if (!url || url.trim() === '') return false;
+    if (url.includes('unsplash.com')) return false;
+    if (url.includes('placeholder')) return false;
+    if (url.startsWith('/icon') || url.startsWith('/bakedbot')) return false;
+    return true;
+}
+
+/**
+ * Normalizes product imagery to a stable fallback so menus and chat widgets do
+ * not render broken or empty cards when a POS image is missing.
+ */
+export function getSafeProductImageUrl(url?: string, fallback = '/icon-192.png'): string {
+    return isRenderableProductImage(url) ? url! : fallback;
+}
+
 export type ProductCategory =
     | 'flower'
     | 'pre-roll'

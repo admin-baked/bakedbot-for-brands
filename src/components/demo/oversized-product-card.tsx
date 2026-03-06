@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Minus, Heart, ShoppingCart, Leaf, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getSafeProductImageUrl } from '@/lib/utils/product-image';
 import type { Product } from '@/types/domain';
 
 interface OversizedProductCardProps {
@@ -38,6 +39,7 @@ export function OversizedProductCard({
 }: OversizedProductCardProps) {
   const [quantity, setQuantity] = useState(1);
   const [isHovered, setIsHovered] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
 
   const handleAddToCart = () => {
     onAddToCart?.(product, quantity);
@@ -77,6 +79,7 @@ export function OversizedProductCard({
   };
 
   const strainColor = product.strainType ? strainColors[product.strainType] || primaryColor : primaryColor;
+  const imageUrl = imageFailed ? '/icon-192.png' : getSafeProductImageUrl(product.imageUrl);
 
   return (
     <Card
@@ -90,9 +93,9 @@ export function OversizedProductCard({
     >
       {/* Image Container */}
       <div className={cn('relative bg-muted overflow-hidden', imageSizeClasses[size])}>
-        {(product.imageUrl && !product.imageUrl.includes('unsplash.com') && !product.imageUrl.includes('placeholder')) ? (
+        {imageUrl ? (
           <Image
-            src={product.imageUrl}
+            src={imageUrl}
             alt={product.name}
             fill
             className={cn(
@@ -100,6 +103,7 @@ export function OversizedProductCard({
               isHovered && 'scale-110'
             )}
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            onError={() => setImageFailed(true)}
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-green-50/50">

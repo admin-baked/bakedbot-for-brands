@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { Bot, Share2, ThumbsDown, ThumbsUp, ChevronDown, Sparkles, Zap, Plus } from 'lucide-react';
+import { Bot, Share2, ThumbsDown, ThumbsUp, Sparkles, Zap, Plus } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -12,83 +12,72 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { getSafeProductImageUrl } from '@/lib/utils/product-image';
 import type { Product } from '@/types/domain';
 
 type UpsellProduct = Product & { reasoning: string; upsellReason?: string; upsellSavings?: string };
+type SuggestedProduct = Product & { reasoning: string; url?: string };
 
 type Message = {
     id: number;
     text: string;
     sender: 'user' | 'bot';
-    productSuggestions?: (Product & { reasoning: string })[];
+    productSuggestions?: SuggestedProduct[];
     upsellSuggestions?: UpsellProduct[];
     imageUrl?: string;
 };
 
-const ExpandableProductCard = ({ product, onAskSmokey, onAddToCart, isExpanded, onExpand, onFeedback }: { product: any, onAskSmokey: (p: any) => void, onAddToCart: (p: any) => void, isExpanded: boolean, onExpand: (p: any) => void, onFeedback: (productId: string, type: 'like' | 'dislike') => void }) => {
+const ProductSuggestionCard = ({ product, onAskSmokey, onAddToCart, onFeedback }: { product: SuggestedProduct, onAskSmokey: (p: Product) => void, onAddToCart: (p: Product) => void, onFeedback: (productId: string, type: 'like' | 'dislike') => void }) => {
+    const [imageFailed, setImageFailed] = useState(false);
+    const imageUrl = imageFailed ? '/icon-192.png' : getSafeProductImageUrl(product.imageUrl);
+
     const handleFeedbackClick = (e: React.MouseEvent, type: 'like' | 'dislike') => {
         e.stopPropagation();
         onFeedback(product.id, type);
     };
 
-    if (isExpanded) {
-        return (
-            <div className="w-full rounded-md border bg-background p-2 text-foreground cursor-pointer" onClick={() => onExpand(product)}>
-                <div className="flex gap-3">
-                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md">
-                        <Image src={product.imageUrl} alt={product.name} fill className="object-cover" />
-                    </div>
-                    <div className="flex-1 overflow-hidden">
-                        <p className="font-semibold truncate">{product.name}</p>
-                        <p className="text-sm text-muted-foreground">${product.price.toFixed(2)}</p>
-                        {(product.thcPercent || product.cbdPercent) && (
-                            <div className="flex gap-2 text-xs text-muted-foreground mt-1">
-                                {product.thcPercent && <span>THC: {product.thcPercent}%</span>}
-                                {product.cbdPercent && <span>CBD: {product.cbdPercent}%</span>}
-                            </div>
-                        )}
-                        <div className="flex gap-1 mt-1">
-                            <Button variant="outline" size="icon" className="h-6 w-6" onClick={(e) => handleFeedbackClick(e, 'like')}><ThumbsUp className="h-3 w-3 text-green-500" /></Button>
-                            <Button variant="outline" size="icon" className="h-6 w-6" onClick={(e) => handleFeedbackClick(e, 'dislike')}><ThumbsDown className="h-3 w-3 text-red-500" /></Button>
-                        </div>
-                    </div>
-                </div>
-                <p className="text-xs text-muted-foreground mt-2 p-1">{product.reasoning}</p>
-                <div className="flex gap-2 mt-1">
-                    {product.url ? (
-                        <Button size="sm" variant="outline" className="flex-1 h-8" asChild>
-                            <a href={product.url} target="_blank" rel="noopener noreferrer">View</a>
-                        </Button>
-                    ) : (
-                        <Button size="sm" variant="outline" className="flex-1 h-8" onClick={(e) => { e.stopPropagation(); onAskSmokey(product); }}>Ask</Button>
-                    )}
-                    <Button size="sm" className="flex-1 h-8" onClick={(e) => { e.stopPropagation(); onAddToCart(product); }}>Add to Cart</Button>
-                </div>
-            </div>
-        )
-    }
-
     return (
-        <div className="w-full flex items-center gap-2 rounded-md border bg-background p-2 text-foreground cursor-pointer hover:bg-muted" onClick={() => onExpand(product)}>
-            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md">
-                <Image src={product.imageUrl} alt={product.name} fill className="object-cover" />
+        <div className="w-40 shrink-0 rounded-md border bg-background p-2 text-foreground">
+            <div className="relative mb-2 aspect-square overflow-hidden rounded-md bg-muted">
+                <Image src={imageUrl} alt={product.name} fill className="object-cover" onError={() => setImageFailed(true)} />
             </div>
-            <div className="flex-1 overflow-hidden">
-                <p className="text-sm font-semibold truncate">{product.name}</p>
-                <p className="text-xs text-muted-foreground">${product.price.toFixed(2)}</p>
+            <p className="truncate text-sm font-semibold">{product.name}</p>
+            <p className="text-xs text-muted-foreground">${product.price.toFixed(2)}</p>
+            {(product.thcPercent || product.cbdPercent) && (
+                <div className="mt-1 flex gap-2 text-[11px] text-muted-foreground">
+                    {product.thcPercent ? <span>THC {product.thcPercent}%</span> : null}
+                    {product.cbdPercent ? <span>CBD {product.cbdPercent}%</span> : null}
+                </div>
+            )}
+            <p className="mt-2 line-clamp-2 text-[11px] text-muted-foreground">{product.reasoning}</p>
+            <div className="mt-2 flex gap-1">
+                <Button variant="outline" size="icon" className="h-6 w-6" onClick={(e) => handleFeedbackClick(e, 'like')}><ThumbsUp className="h-3 w-3 text-green-500" /></Button>
+                <Button variant="outline" size="icon" className="h-6 w-6" onClick={(e) => handleFeedbackClick(e, 'dislike')}><ThumbsDown className="h-3 w-3 text-red-500" /></Button>
             </div>
-            <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+            <div className="mt-2 flex gap-2">
+                {product.url ? (
+                    <Button size="sm" variant="outline" className="h-8 flex-1 text-xs" asChild>
+                        <a href={product.url} target="_blank" rel="noopener noreferrer">View</a>
+                    </Button>
+                ) : (
+                    <Button size="sm" variant="outline" className="h-8 flex-1 text-xs" onClick={() => onAskSmokey(product)}>Ask</Button>
+                )}
+                <Button size="sm" className="h-8 flex-1 text-xs" onClick={() => onAddToCart(product)}>Add</Button>
+            </div>
         </div>
-    )
+    );
 };
 
 
 const UpsellSuggestionCard = ({ product, onAddToCart }: { product: UpsellProduct; onAddToCart: (p: Product) => void }) => {
+    const [imageFailed, setImageFailed] = useState(false);
+    const imageUrl = imageFailed ? '/icon-192.png' : getSafeProductImageUrl(product.imageUrl);
+
     return (
         <div className="w-full flex items-center gap-2 rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/30 p-2 text-foreground">
             <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md">
-                {product.imageUrl ? (
-                    <Image src={product.imageUrl} alt={product.name} fill className="object-cover" />
+                {imageUrl ? (
+                    <Image src={imageUrl} alt={product.name} fill className="object-cover" onError={() => setImageFailed(true)} />
                 ) : (
                     <div className="h-full w-full bg-muted flex items-center justify-center">
                         <Zap className="h-4 w-4 text-amber-500" />
@@ -121,7 +110,6 @@ const UpsellSuggestionCard = ({ product, onAddToCart }: { product: UpsellProduct
 
 const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey, onAddToCart, className, onFeedback }: { messages: Message[], isBotTyping: boolean, messagesEndRef: React.RefObject<HTMLDivElement>, onAskSmokey: (p: Product) => void, onAddToCart: (p: Product) => void, className?: string, onFeedback: (productId: string, type: 'like' | 'dislike') => void }) => {
     const { toast } = useToast();
-    const [expandedProduct, setExpandedProduct] = useState<(Product & { reasoning: string }) | null>(null);
 
     const handleShare = async (message: Message) => {
         if (!message.imageUrl) return;
@@ -155,15 +143,6 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey, onAd
             });
         }
     };
-
-    const handleExpand = (product: Product & { reasoning: string }) => {
-        if (expandedProduct?.id === product.id) {
-            setExpandedProduct(null);
-        } else {
-            setExpandedProduct(product);
-        }
-    }
-
 
     return (
         <ScrollArea className={className}>
@@ -232,18 +211,19 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey, onAd
                                 </div>
                             )}
                             {message.productSuggestions && (
-                                <div className="mt-2 flex flex-col gap-2">
-                                    {message.productSuggestions.slice(0, 3).map(p => (
-                                        <ExpandableProductCard
-                                            key={p.id}
-                                            product={p}
-                                            onAskSmokey={onAskSmokey}
-                                            onAddToCart={onAddToCart}
-                                            isExpanded={expandedProduct?.id === p.id}
-                                            onExpand={handleExpand}
-                                            onFeedback={onFeedback}
-                                        />
-                                    ))}
+                                <div className="mt-2">
+                                    <div className="mb-2 text-xs font-medium text-muted-foreground">Recommended for you</div>
+                                    <div className="flex gap-2 overflow-x-auto pb-2">
+                                        {message.productSuggestions.slice(0, 5).map(p => (
+                                            <ProductSuggestionCard
+                                                key={p.id}
+                                                product={p}
+                                                onAskSmokey={onAskSmokey}
+                                                onAddToCart={onAddToCart}
+                                                onFeedback={onFeedback}
+                                            />
+                                        ))}
+                                    </div>
                                 </div>
                             )}
                             {message.upsellSuggestions && message.upsellSuggestions.length > 0 && (

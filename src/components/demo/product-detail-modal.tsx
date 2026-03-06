@@ -7,7 +7,8 @@ import { Heart, ShoppingCart, Leaf, Share2, Info } from 'lucide-react';
 import Image from 'next/image';
 import { Product } from '@/types/domain';
 import { cn } from '@/lib/utils';
-import { useState, useCallback } from 'react';
+import { getSafeProductImageUrl } from '@/lib/utils/product-image';
+import { useState, useCallback, useEffect } from 'react';
 import { ProductUpsellRow } from '@/components/upsell/product-upsell-row';
 import { fetchProductUpsells } from '@/server/actions/upsell';
 
@@ -33,6 +34,11 @@ export function ProductDetailModal({
   orgId,
 }: ProductDetailModalProps) {
   const [quantity, setQuantity] = useState(1);
+  const [imageFailed, setImageFailed] = useState(false);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [product?.id, product?.imageUrl]);
 
   const fetchUpsells = useCallback(() => {
     if (!product || !orgId) {
@@ -45,6 +51,7 @@ export function ProductDetailModal({
 
   // Use product effects if available, otherwise show decent defaults for the demo
   const effects = product.effects?.length ? product.effects : ['Relaxed', 'Happy', 'Euphoric'];
+  const imageUrl = imageFailed ? '/icon-192.png' : getSafeProductImageUrl(product.imageUrl);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -52,13 +59,14 @@ export function ProductDetailModal({
         <div className="grid md:grid-cols-2 h-full max-h-[90vh] overflow-y-auto">
           {/* Image Side */}
           <div className="relative bg-muted h-[300px] md:h-full md:min-h-[500px]">
-            {product.imageUrl ? (
+            {imageUrl ? (
               <Image
-                src={product.imageUrl}
+                src={imageUrl}
                 alt={product.name}
                 fill
                 className="object-cover"
                 sizes="(max-width: 768px) 100vw, 50vw"
+                onError={() => setImageFailed(true)}
               />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center">
