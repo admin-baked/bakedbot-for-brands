@@ -278,8 +278,7 @@ const nextConfig = {
   async rewrites() {
     // Andrews Developments WordPress site proxied from Cloud Run
     // Use beforeFiles so this takes priority over the [brand] dynamic route
-    const andrewsWpUrl = process.env.ANDREWS_WP_URL;
-    if (!andrewsWpUrl) return [];
+    const andrewsWpUrl = process.env.ANDREWS_WP_URL || 'https://andrews-wp-lo74oftdza-uc.a.run.app';
     return {
       beforeFiles: [
         {
