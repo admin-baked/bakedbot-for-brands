@@ -7,6 +7,7 @@ import { searchWeb, formatSearchResults } from '@/server/tools/web-search';
 import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
 import { makeProductRepo } from '@/server/repos/productRepo';
+import { normalizeCategoryName, getSafeProductImageUrl } from '@/lib/utils/product-image';
 import { superUserTools } from '@/app/dashboard/ceo/agents/super-user-tools-impl';
 import { requestPermission } from '@/server/tools/permissions';
 import {
@@ -485,6 +486,32 @@ export const defaultSmokeyTools = {
     },
     searchMenu: async (query: string) => {
         try {
+            const mapSearchProduct = (product: any) => {
+                const imageUrl = getSafeProductImageUrl(
+                    product.imageUrl || product.image_url || product.primary_image
+                );
+                const stock = typeof product.stock === 'number'
+                    ? product.stock
+                    : product.in_stock === false || product.inStock === false
+                        ? 0
+                        : 100;
+
+                return {
+                    id: String(product.id || product.sku_id || product.cann_sku_id || product.externalId || product.name),
+                    name: product.name || product.product_name || 'Unknown Product',
+                    brand: product.brandName || product.brand_name || product.brandId || product.brand_id || '',
+                    price: Number(product.price ?? product.latest_price ?? 0),
+                    thc: product.thcPercent ?? product.percentage_thc ?? null,
+                    cbd: product.cbdPercent ?? product.percentage_cbd ?? null,
+                    stock,
+                    category: normalizeCategoryName(product.category),
+                    description: product.description || '',
+                    imageUrl,
+                    image_url: imageUrl,
+                    url: product.url || product.menu_url || '',
+                };
+            };
+
             const { firestore } = await createServerClient();
             const user = await requireUser().catch(() => null); // Allow guest users
 
@@ -540,19 +567,11 @@ export const defaultSmokeyTools = {
 
                     const cmResult = await cms.searchProducts(searchParams);
                     if (cmResult.products) {
-                        // Transform to simple shape
+                        const menuProducts = cmResult.products.map(mapSearchProduct);
                         return {
                             success: true,
-                            count: cmResult.products.length,
-                            products: cmResult.products.map(p => ({
-                                name: p.product_name,
-                                brand: p.brand_name,
-                                price: p.latest_price,
-                                thc: p.percentage_thc,
-                                stock: 100, // Assumed in stock if listed
-                                category: p.category,
-                                url: p.url
-                            }))
+                            count: menuProducts.length,
+                            products: menuProducts,
                         };
                     }
                 } catch (cmsError) {
@@ -567,21 +586,19 @@ export const defaultSmokeyTools = {
             // In-memory simplistic fuzzy search for Firestore results
             const lowerQ = query.toLowerCase();
             const results = products.filter(p => {
-                const content = `${p.name} ${p.brandId} ${p.category} ${p.description || ''}`.toLowerCase();
-                return content.includes(lowerQ) && (p.stock === undefined || p.stock > 0);
+                const content = `${p.name || ''} ${p.brandName || ''} ${p.brandId || ''} ${p.category || ''} ${p.description || ''}`.toLowerCase();
+                const inStock = typeof p.stock === 'number'
+                    ? p.stock > 0
+                    : p.in_stock !== false && p.inStock !== false;
+                return content.includes(lowerQ) && inStock;
             }).slice(0, 15);
+
+            const menuProducts = results.map(mapSearchProduct);
 
             return {
                 success: true,
-                count: results.length,
-                products: results.map(p => ({
-                    name: p.name,
-                    brand: p.brandId,
-                    price: p.price,
-                    thc: p.thcPercent,
-                    stock: p.stock,
-                    category: p.category
-                }))
+                count: menuProducts.length,
+                products: menuProducts,
             };
         } catch (e: any) {
             return { success: false, error: e.message };

@@ -6,6 +6,14 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
+class ResizeObserverMock {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+}
+
+(globalThis as any).ResizeObserver = ResizeObserverMock;
+
 const mockPush = jest.fn();
 let mockSearchParams = new URLSearchParams();
 
@@ -59,7 +67,7 @@ jest.mock('@/components/demo/category-grid', () => ({
             <button data-testid="category-grid-flower-btn" onClick={() => onCategoryClick('flower')}>
                 Flower
             </button>
-            <button data-testid="category-grid-pre-roll-btn" onClick={() => onCategoryClick('pre-roll')}>
+            <button data-testid="category-grid-pre-roll-btn" onClick={() => onCategoryClick('pre-rolls')}>
                 Pre-roll
             </button>
         </div>
@@ -482,7 +490,7 @@ describe('DispensaryMenuClient - URL Filters (Phase 5A/5B)', () => {
         fireEvent.click(screen.getByTestId('category-grid-pre-roll-btn'));
 
         expect(mockPush).toHaveBeenCalledWith(
-            expect.stringContaining('category=Pre-roll'),
+            expect.stringContaining('category=Pre-Rolls'),
             { scroll: false }
         );
         expect(screen.getByText('1 products available')).toBeInTheDocument();

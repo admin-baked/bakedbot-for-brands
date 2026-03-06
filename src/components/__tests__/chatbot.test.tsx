@@ -286,6 +286,19 @@ describe('Chatbot Component', () => {
             // This is verified by the component rendering without errors
             expect(screen.getByText(/Hi, I'm Smokey/i)).toBeInTheDocument();
         });
+
+        it('shows the discover products row immediately on retail zero state', () => {
+            render(
+                <Chatbot
+                    products={mockProducts as any}
+                    brandId="brand_ecstatic_edibles"
+                    initialOpen={true}
+                    chatbotConfig={{ enabled: true }}
+                />
+            );
+
+            expect(screen.getByTestId('product-carousel')).toBeInTheDocument();
+        });
     });
 });
 

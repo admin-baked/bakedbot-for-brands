@@ -22,6 +22,10 @@ jest.mock('@/ai/genkit', () => ({
     }
 }));
 
+jest.mock('genkit', () => ({
+    tool: jest.fn((_config, impl) => impl),
+}));
+
 jest.mock('@/server/agents/deebo', () => ({
     deebo: {
         checkContent: jest.fn()
@@ -51,7 +55,8 @@ jest.mock('@/server/tools/browser', () => ({
 }));
 
 // Mock Firebase & Auth & Repos for Smokey
-const mockGetAllByLocation = jest.fn();
+var mockGetAllByLocation = jest.fn();
+var mockGetAllByBrand = jest.fn();
 jest.mock('@/firebase/server-client', () => ({
     createServerClient: jest.fn().mockResolvedValue({ firestore: { collection: jest.fn() } })
 }));
@@ -62,7 +67,8 @@ jest.mock('@/server/auth/auth', () => ({
 
 jest.mock('@/server/repos/productRepo', () => ({
     makeProductRepo: jest.fn().mockReturnValue({
-        getAllByLocation: mockGetAllByLocation
+        getAllByLocation: (...args: any[]) => mockGetAllByLocation(...args),
+        getAllByBrand: (...args: any[]) => mockGetAllByBrand(...args),
     })
 }));
 
@@ -150,7 +156,6 @@ describe('defaultEzalTools', () => {
             expect(result.error).toBe('Timeout');
         });
     });
-    });
 });
 
 describe('defaultSmokeyTools', () => {
@@ -161,7 +166,7 @@ describe('defaultSmokeyTools', () => {
     describe('searchMenu', () => {
         it('should search products by name/brand/category and return top results', async () => {
             mockGetAllByLocation.mockResolvedValue([
-                { name: 'Sativa Gummies', brandName: 'Wana', category: 'Edibles', inStock: true, price: 20, description: 'Yummy' },
+                { id: 'prod-1', name: 'Sativa Gummies', brandName: 'Wana', category: 'Edibles', inStock: true, price: 20, description: 'Yummy', imageUrl: '' },
                 { name: 'Indica Gummies', brandName: 'Kiva', category: 'Edibles', inStock: false, price: 22 },
                 { name: 'Sleep Vape', brandName: 'Pax', category: 'Vape', inStock: true, price: 50 },
                 { name: 'Blue Dream', brandName: 'Wana', category: 'Flower', inStock: true, price: 35 }
@@ -173,6 +178,12 @@ describe('defaultSmokeyTools', () => {
             expect(result.success).toBe(true);
             expect(result.count).toBe(1);
             expect(result.products[0].name).toBe('Sativa Gummies');
+            expect(result.products[0]).toMatchObject({
+                id: 'prod-1',
+                imageUrl: '/icon-192.png',
+                description: 'Yummy',
+                category: 'Edibles',
+            });
         });
 
         it('should return empty result if no matches', async () => {

@@ -1,6 +1,7 @@
 import { runAgentCore } from '@/server/agents/agent-runner';
 import type { ChatbotProduct } from '@/types/cannmenus';
 import { logger } from '@/lib/logger';
+import { getSafeProductImageUrl, normalizeCategoryName } from '@/lib/utils/product-image';
 
 /**
  * Adapter to bridge the Consumer Chat API (/api/chat) with the central Agent Runner.
@@ -25,6 +26,36 @@ export async function runConsumerAgent(
 ) {
     const { userId, sessionId, brandId, products: contextProducts } = context;
     const jobId = `chat-${sessionId || Date.now()}`;
+
+    const normalizeToolProduct = (product: any): ChatbotProduct => ({
+        id: String(product.id || product.cann_sku_id || product.sku_id || product.externalId || product.name),
+        name: product.name || product.product_name || 'Unknown Product',
+        category: normalizeCategoryName(product.category),
+        price: Number(product.price ?? product.latest_price ?? 0),
+        imageUrl: getSafeProductImageUrl(product.imageUrl || product.image_url || product.primary_image),
+        thcPercent: product.thcPercent ?? product.thc ?? product.percentage_thc ?? null,
+        cbdPercent: product.cbdPercent ?? product.cbd ?? product.percentage_cbd ?? null,
+        description: product.description || product.name || product.product_name,
+        url: product.url || '',
+        reasoning: product.reasoning,
+    });
+
+    const findContextProduct = (productId: string) => {
+        if (!contextProducts) return null;
+
+        return contextProducts.find((product: any) => {
+            const ids = [
+                product.id,
+                product.cann_sku_id,
+                product.sku_id,
+                product.externalId,
+            ]
+                .filter(Boolean)
+                .map(String);
+
+            return ids.includes(String(productId));
+        }) || null;
+    };
 
     // 1. Trigger streak update (gamification) - background fire-and-forget
     import('@/app/actions/gamification').then(({ updateStreakAction }) => {
@@ -70,17 +101,9 @@ export async function runConsumerAgent(
                     }
 
                     if (resultData && resultData.products && Array.isArray(resultData.products)) {
-                        // Map to ChatbotProduct
-                        const toolsProducts = resultData.products.slice(0, 5).map((p: any) => ({
-                            id: p.id || p.cann_sku_id || `temp-${Math.random()}`, // Fallback ID
-                            name: p.name,
-                            category: p.category,
-                            price: p.price,
-                            imageUrl: p.image_url || '',
-                            thcPercent: p.thc || p.thcPercent,
-                            description: p.description || p.name,
-                            url: p.url || ''
-                        }));
+                        const toolsProducts = resultData.products
+                            .slice(0, 5)
+                            .map((p: any) => normalizeToolProduct(p));
                         products = toolsProducts;
                     }
                 } catch (e) {
@@ -90,7 +113,32 @@ export async function runConsumerAgent(
                 }
             }
 
-            // B. Checkout Trigger (triggerCheckout)
+            // B. Ranked Product Results (rankProductsForSegment)
+            if (call.name === 'rankProductsForSegment' && call.status === 'success') {
+                try {
+                    const resultData = typeof call.result === 'string' ? JSON.parse(call.result) : call.result;
+                    if (Array.isArray(resultData) && resultData.length > 0) {
+                        const rankedProducts = resultData
+                            .map((productId: string) => findContextProduct(String(productId)))
+                            .filter(Boolean)
+                            .slice(0, 5)
+                            .map((product: any) => ({
+                                ...normalizeToolProduct(product),
+                                reasoning: product.reasoning || 'Picked for your stated preferences.',
+                            }));
+
+                        if (rankedProducts.length > 0) {
+                            products = rankedProducts;
+                        }
+                    }
+                } catch (e) {
+                    logger.warn('[ConsumerAdapter] Failed to parse rankProductsForSegment results', {
+                        error: e instanceof Error ? e.message : String(e),
+                    });
+                }
+            }
+
+            // C. Checkout Trigger (triggerCheckout)
             if (call.name === 'triggerCheckout' && call.status === 'success') {
                 try {
                     const resultData = typeof call.result === 'string' ? JSON.parse(call.result) : call.result;
