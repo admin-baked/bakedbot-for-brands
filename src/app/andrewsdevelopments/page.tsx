@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 
 export default function AndrewsPage() {
-  // Set age verification cookie and redirect to verify-age page
-  // This should allow the subsequent redirect to WordPress to work
-  redirect('/verify-age?age_verified=true&return_to=/andrewsdevelopments');
+  // Direct redirect to WordPress Cloud Run service
+  // This bypasses Next.js entirely and goes straight to WordPress
+  redirect('https://andrews-wp-lo74oftdza-uc.a.run.app/');
 }
