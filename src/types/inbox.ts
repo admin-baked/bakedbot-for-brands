@@ -87,6 +87,8 @@ export const INLINE_GENERATOR_THREAD_TYPES = new Set<InboxThreadType>([
     'carousel',
     'hero',
     'bundle',
+    'launch',
+    'launch_campaign',
     'creative',
     'image',
     'inventory_promo',
@@ -96,6 +98,9 @@ export const INLINE_GENERATOR_THREAD_TYPES = new Set<InboxThreadType>([
     'outreach',
     'event',
     'qr_code',
+    'crm_customer',
+    'product_discovery',
+    'wholesale_inventory',
 ]);
 
 /**

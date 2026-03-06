@@ -7,10 +7,12 @@ import { requireUser } from '@/server/auth/auth';
 import { makeBrandRepo } from '@/server/repos/brandRepo';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logger } from '@/lib/logger';
+import { findPricingPlan } from '@/lib/config/pricing';
 
 // Define the schema for the form data
 const OnboardingSchema = z.object({
   role: z.enum(['brand', 'dispensary', 'customer', 'skip']),
+  planId: z.string().optional(),
   // Market/Location selection (state code like 'IL', 'CA')
   marketState: z.string().optional(),
   // CannMenus selection
@@ -70,13 +72,14 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
     }
 
     const {
-      role, marketState, locationId, brandId, brandName,
+      role, planId, marketState, locationId, brandId, brandName,
       manualBrandName, manualProductName, manualDispensaryName,
       slug, zipCode,
       chatbotPersonality, chatbotTone, chatbotSellingPoints,
       posProvider, posApiKey, posDispensaryId,
       competitors, selectedCompetitors
     } = validatedFields.data;
+    const selectedPlan = planId ? findPricingPlan(planId) : undefined;
 
     // Proceed with Firestore logic...
 
@@ -105,6 +108,11 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
       },
       features
     };
+
+    if (selectedPlan) {
+      userProfileData.selectedPlanId = selectedPlan.id;
+      userProfileData.selectedPlanName = selectedPlan.name;
+    }
 
     // Determine Final Names and IDs
     let finalBrandId = brandId;
@@ -183,15 +191,26 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
             hipaaMode: false
           },
           billing: {
-            subscriptionStatus: 'trial'
+            subscriptionStatus: 'trial',
+            selectedPlanId: selectedPlan?.id || null,
+            selectedPlanName: selectedPlan?.name || null,
           }
         });
-      } else if (marketState) {
-        // Update existing org with market if provided
-        await orgRef.update({
-          marketState,
+      } else if (marketState || selectedPlan) {
+        const orgUpdate: Record<string, any> = {
           updatedAt: FieldValue.serverTimestamp()
-        });
+        };
+
+        if (marketState) {
+          orgUpdate.marketState = marketState;
+        }
+
+        if (selectedPlan) {
+          orgUpdate['billing.selectedPlanId'] = selectedPlan.id;
+          orgUpdate['billing.selectedPlanName'] = selectedPlan.name;
+        }
+
+        await orgRef.update(orgUpdate);
       }
 
       // --- HANDLE SELECTED COMPETITORS ---

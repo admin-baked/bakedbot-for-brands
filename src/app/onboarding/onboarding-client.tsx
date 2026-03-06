@@ -27,6 +27,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { findPricingPlan } from '@/lib/config/pricing';
 
 type BrandResult = {
   id: string;
@@ -84,6 +85,10 @@ export default function OnboardingPage() {
 
   // Handle URL params for pre-filling (e.g. coming from Claim Page)
   const searchParams = useSearchParams();
+  const selectedPlanId = searchParams?.get('plan')?.trim() || '';
+  const selectedPlan = selectedPlanId ? findPricingPlan(selectedPlanId) : undefined;
+  const selectedPlanLabel = selectedPlan?.name || selectedPlanId;
+
   useEffect(() => {
     const roleParam = searchParams?.get('role');
     const brandIdParam = searchParams?.get('brandId');
@@ -113,7 +118,7 @@ export default function OnboardingPage() {
       // Just setting role
       if (roleParam === 'brand' || roleParam === 'dispensary' || roleParam === 'customer') {
         setRole(roleParam as any);
-        setStep('brand-search');
+        setStep(roleParam === 'customer' ? 'review' : 'brand-search');
       }
     }
   }, [searchParams, toast]);
@@ -491,10 +496,17 @@ export default function OnboardingPage() {
               <span className="font-semibold">{selectedName}</span>
             </div>
           )}
+          {selectedPlanLabel && (
+            <div className="flex justify-between items-center py-2 border-t border-dashed">
+              <span className="text-muted-foreground">Selected Plan</span>
+              <span className="font-semibold">{selectedPlanLabel}</span>
+            </div>
+          )}
         </div>
 
         <form action={formAction} ref={formRef} className="flex flex-col gap-4">
           <input type="hidden" name="role" value={role || ''} />
+          <input type="hidden" name="planId" value={selectedPlanId} />
           {role === 'brand' && <input type="hidden" name="brandId" value={selectedCannMenusEntity?.id || ''} />}
           {role === 'brand' && <input type="hidden" name="brandName" value={selectedCannMenusEntity?.name || ''} />}
           {role === 'dispensary' && <input type="hidden" name="locationId" value={selectedCannMenusEntity?.id || ''} />}

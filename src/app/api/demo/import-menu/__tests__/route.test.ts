@@ -22,14 +22,23 @@ jest.mock('next/server', () => ({
 
 import { POST } from '../route';
 import { discovery } from '@/server/services/firecrawl';
+import { extractMenuDataFromUrl } from '@/server/services/menu-import';
+import { requireUser } from '@/server/auth/auth';
 import { NextRequest } from 'next/server';
 
 // Mock dependencies
 jest.mock('@/server/services/firecrawl', () => ({
   discovery: {
     isConfigured: jest.fn(),
-    extractData: jest.fn(),
   },
+}));
+
+jest.mock('@/server/services/menu-import', () => ({
+  extractMenuDataFromUrl: jest.fn(),
+}));
+
+jest.mock('@/server/auth/auth', () => ({
+  requireUser: jest.fn(),
 }));
 
 jest.mock('@/lib/logger', () => ({
@@ -42,6 +51,7 @@ jest.mock('@/lib/logger', () => ({
 describe('Menu Import API', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (requireUser as jest.Mock).mockResolvedValue({ uid: 'user-123' });
   });
 
   it('should return 503 if discovery is not configured', async () => {
@@ -60,14 +70,14 @@ describe('Menu Import API', () => {
 
   it('should successfully extract and normalize menu data', async () => {
     (discovery.isConfigured as jest.Mock).mockReturnValue(true);
-    (discovery.extractData as jest.Mock).mockResolvedValue({
+    (extractMenuDataFromUrl as jest.Mock).mockResolvedValue({
       dispensary: {
         name: 'Quality Roots Mock',
         primaryColor: '#ff0000'
       },
       products: [
-        { name: 'Red velvet', category: 'flower', price: 35 },
-        { name: 'Gummy bear', category: 'edible', price: 20 }
+        { name: 'Red velvet', category: 'Flower', price: 35 },
+        { name: 'Gummy bear', category: 'Edibles', price: 20 }
       ],
       promotions: [
         { title: 'BOGO' }
@@ -85,15 +95,14 @@ describe('Menu Import API', () => {
     const json = await response.json();
     expect(json.success).toBe(true);
     expect(json.data.dispensary.name).toBe('Quality Roots Mock');
-    // Verify normalization
-    expect(json.data.products[0].category).toBe('Flower'); // flower -> Flower
-    expect(json.data.products[1].category).toBe('Edibles'); // edible -> Edibles
+    expect(json.data.products[0].category).toBe('Flower');
+    expect(json.data.products[1].category).toBe('Edibles');
     expect(json.meta.productCount).toBe(2);
   });
 
   it('should return 422 if extraction fails', async () => {
     (discovery.isConfigured as jest.Mock).mockReturnValue(true);
-    (discovery.extractData as jest.Mock).mockResolvedValue(null);
+    (extractMenuDataFromUrl as jest.Mock).mockRejectedValue(new Error('Failed to extract menu data'));
 
     const req = new NextRequest('http://localhost/api/demo/import-menu', {
       method: 'POST',
