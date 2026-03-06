@@ -21,6 +21,7 @@ export * from './discovery-scheduler';
 export * from './discovery-fetcher';
 export * from './parser-engine';
 export * from './diff-engine';
+export { lancedbStore } from './lancedb-store';
 
 // Import for orchestration
 import {
@@ -28,6 +29,11 @@ import {
     quickSetupCompetitor,
     searchCompetitors,
 } from './competitor-manager';
+import {
+    searchProducts as lanceSearchProducts,
+    searchInsights as lanceSearchInsights,
+    getStoreStats as lanceGetStoreStats,
+} from './lancedb-store';
 import {
     createDiscoveryJob,
     runScheduler,
@@ -325,6 +331,78 @@ export const EzalAgent = {
                 gap: `${g.gapPercent > 0 ? '+' : ''}${g.gapPercent.toFixed(1)}%`,
             })),
         };
+    },
+
+    /**
+     * Semantic search across competitive product catalog (LanceDB)
+     */
+    async semanticSearch(
+        tenantId: string,
+        params: {
+            query: string;
+            category?: string;
+            competitorId?: string;
+            inStockOnly?: boolean;
+            limit?: number;
+        }
+    ) {
+        const results = await lanceSearchProducts(tenantId, params.query, {
+            category: params.category,
+            competitorId: params.competitorId,
+            inStockOnly: params.inStockOnly,
+            limit: params.limit || 10,
+        });
+
+        return {
+            count: results.length,
+            products: results.map(r => ({
+                brand: r.brandName,
+                product: r.productName,
+                category: r.category,
+                price: `$${r.priceCurrent.toFixed(2)}`,
+                inStock: r.inStock,
+                relevance: `${(r.score * 100).toFixed(0)}%`,
+            })),
+        };
+    },
+
+    /**
+     * Semantic search across competitive insights (LanceDB)
+     */
+    async searchIntel(
+        tenantId: string,
+        params: {
+            query: string;
+            severity?: string;
+            type?: string;
+            limit?: number;
+        }
+    ) {
+        const results = await lanceSearchInsights(tenantId, params.query, {
+            severity: params.severity as 'low' | 'medium' | 'high' | 'critical',
+            type: params.type as any,
+            limit: params.limit || 10,
+        });
+
+        return {
+            count: results.length,
+            insights: results.map(i => ({
+                type: i.type,
+                brand: i.brandName,
+                severity: i.severity,
+                delta: i.deltaPercentage ? `${i.deltaPercentage.toFixed(1)}%` : undefined,
+                date: i.createdAt,
+                summary: i.summary,
+                relevance: `${(i.score * 100).toFixed(0)}%`,
+            })),
+        };
+    },
+
+    /**
+     * Get LanceDB store stats for this tenant
+     */
+    async getVectorStoreStats(tenantId: string) {
+        return lanceGetStoreStats(tenantId);
     },
 
     /**
