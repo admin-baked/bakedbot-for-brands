@@ -5,13 +5,7 @@ import { z } from 'zod';
 import { discovery } from '@/server/services/firecrawl';
 import { logger } from '@/lib/logger';
 import { requireUser } from '@/server/auth/auth';
-import {
-  extractMenuDataFromUrl,
-  type ExtractedBrand,
-  type ExtractedProduct,
-  type ExtractedPromo,
-  type MenuExtraction,
-} from '@/server/services/menu-import';
+import { extractMenuDataFromUrl } from '@/server/services/menu-import';
 
 /**
  * Menu Import API for Demo Experience
@@ -21,8 +15,6 @@ import {
  *
  * SECURITY: Requires authentication to prevent abuse of per-page billed Firecrawl API.
  */
-
-export type { ExtractedProduct, ExtractedBrand, ExtractedPromo, MenuExtraction };
 
 // Request body schema
 const RequestSchema = z.object({

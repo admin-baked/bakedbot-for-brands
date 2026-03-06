@@ -55,7 +55,7 @@ import { DispensaryLocatorFlow } from '@/components/demo/dispensary-locator-flow
 import { BrandCheckoutFlow } from '@/components/demo/brand-checkout-flow';
 import { DispensaryClaimCTA } from '@/components/demo/dispensary-claim-cta';
 
-import type { MenuExtraction, ExtractedProduct } from '@/app/api/demo/import-menu/route';
+import type { MenuExtraction, ExtractedProduct } from '@/types/menu-import';
 
 // Dynamic import to prevent Firebase initialization during prerender
 const Chatbot = dynamicImport(() => import('@/components/chatbot'), { ssr: false });
