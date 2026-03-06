@@ -6,7 +6,7 @@ import { Product } from '@/types/domain';
 import { logger } from '@/lib/logger';
 import { CannMenusService } from '@/server/services/cannmenus';
 import { FREE_ACCOUNT_LIMITS } from '@/lib/config/limits';
-import type { ExtractedProduct } from '@/app/api/demo/import-menu/route';
+import type { ExtractedProduct } from '@/types/menu-import';
 
 /**
  * Save products imported from URL to the user's catalog

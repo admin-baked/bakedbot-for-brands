@@ -27,7 +27,7 @@ import {
   Sparkles,
   ArrowRight,
 } from 'lucide-react';
-import type { MenuExtraction, ExtractedProduct } from '@/app/api/demo/import-menu/route';
+import type { MenuExtraction, ExtractedProduct } from '@/types/menu-import';
 
 interface MenuImportDialogProps {
   onImportComplete: (data: MenuExtraction) => void;

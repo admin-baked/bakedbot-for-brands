@@ -32,7 +32,7 @@ import {
     Import,
 } from 'lucide-react';
 import Link from 'next/link';
-import type { MenuExtraction, ExtractedProduct } from '@/app/api/demo/import-menu/route';
+import type { MenuExtraction, ExtractedProduct } from '@/types/menu-import';
 import { saveImportedProducts } from '../actions';
 
 type ImportStatus = 'idle' | 'validating' | 'extracting' | 'processing' | 'complete' | 'saving' | 'error';
