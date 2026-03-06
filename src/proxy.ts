@@ -240,8 +240,7 @@ export async function proxy(request: NextRequest) {
         !pathname.startsWith('/signin') &&
         !pathname.startsWith('/verify-age') &&
         !pathname.startsWith('/_next/') &&
-        !pathname.startsWith('/andrewsdevelopments') && // Exclude WordPress proxy route
-        (
+                (
             pathname.match(/^\/[^/]+$/) || // Brand pages like /thrivesyracuse
             pathname.startsWith('/dispensaries/') ||
             (pathname === '/' && isCustomDomain) // Only custom domains at root (brand menus)
