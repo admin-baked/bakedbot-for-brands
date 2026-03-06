@@ -12,15 +12,5 @@ RUN sed -i 's/Listen 80/Listen 8080/' /etc/apache2/ports.conf && \
     a2enmod rewrite && \
     sed -i '/<Directory \/var\/www\/>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
 
-# Copy InClub theme and bundled plugins
-COPY inclub/ /var/www/html/wp-content/themes/inclub/
-COPY plugins/ /var/www/html/wp-content/plugins/
-
-# Install and activate plugins and theme after WordPress is initialized
-COPY wp-init.sh /wp-init.sh
-RUN chmod +x /wp-init.sh
-
 # Cloud Run expects port 8080
 EXPOSE 8080
-
-ENTRYPOINT ["/bin/sh", "/wp-init.sh"]
