@@ -464,6 +464,7 @@ BakedBot AI utilizes the **Gemini 2.5** family for all core reasoning and creati
 | **Loyalty Luis** | Loyalty dashboard, points engine, tier advancement, spending index | `src/app/dashboard/loyalty/` | `.agent/engineering-agents/loyalty-luis/` |
 | **Intel Ivan** | Competitive intelligence, Ezal, CannMenus, Jina tools, weekly CI reports | `src/app/dashboard/intelligence/` | `.agent/engineering-agents/intel-ivan/` |
 | **Platform Pat** | All 47+ cron endpoints, heartbeat, auto-escalation, Firebase App Hosting, secrets | `src/app/api/cron/` | `.agent/engineering-agents/platform-pat/` |
+| **Security Soren** | Security hardening, auth/RBAC, prompt guards, secret hygiene, vulnerability response | `src/server/security/` | `.agent/engineering-agents/security-soren/` |
 | **Playbook Pablo** | Playbook templates (23), Zapier trigger editor, execution cron, cron utilities | `src/app/dashboard/playbooks/` | `.agent/engineering-agents/playbook-pablo/` |
 | **Drive Dana** | BakedBot Drive UI, file viewer/editor, AI Magic Button, Drive-inbox bridge | `src/app/dashboard/drive/` | `.agent/engineering-agents/drive-dana/` |
 | **Delivery Dante** | Delivery dashboard, driver app, QR check-in, ETA calc, NY OCM compliance | `src/app/dashboard/delivery/` | `.agent/engineering-agents/delivery-dante/` |
