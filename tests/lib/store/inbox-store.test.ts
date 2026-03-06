@@ -25,6 +25,8 @@ jest.mock('@/types/inbox', () => ({
             carousel: 'smokey',
             bundle: 'money_mike',
             creative: 'craig',
+            image: 'craig',
+            video: 'craig',
             campaign: 'glenda',
             retail_partner: 'glenda',
             launch: 'glenda',
@@ -53,6 +55,8 @@ jest.mock('@/types/inbox', () => ({
             carousel: ['ezal', 'pops'],
             bundle: ['smokey', 'pops'],
             creative: ['deebo', 'ezal'],
+            image: ['deebo', 'ezal'],
+            video: ['deebo'],
             campaign: ['craig', 'money_mike', 'pops'],
             retail_partner: ['craig', 'money_mike'],
             launch: ['smokey', 'money_mike', 'craig'],
@@ -81,6 +85,8 @@ jest.mock('@/types/inbox', () => ({
                 { id: 'new-carousel', label: 'New Carousel', threadType: 'carousel' },
                 { id: 'new-bundle', label: 'New Bundle', threadType: 'bundle' },
                 { id: 'new-creative', label: 'Create Post', threadType: 'creative' },
+                { id: 'create-image', label: 'Create Image', threadType: 'image' },
+                { id: 'create-video', label: 'Create Video', threadType: 'video' },
                 { id: 'new-campaign', label: 'Plan Campaign', threadType: 'campaign' },
                 { id: 'product-launch', label: 'Product Launch', threadType: 'launch' },
                 { id: 'review-performance', label: 'Review Performance', threadType: 'performance' },
@@ -92,6 +98,8 @@ jest.mock('@/types/inbox', () => ({
         if (role === 'super_user') {
             return [
                 { id: 'growth-review', label: 'Growth Review', threadType: 'growth_review' },
+                { id: 'create-image', label: 'Create Image', threadType: 'image' },
+                { id: 'create-video', label: 'Create Video', threadType: 'video' },
                 { id: 'churn-analysis', label: 'Churn Analysis', threadType: 'churn_risk' },
                 { id: 'revenue-forecast', label: 'Revenue Forecast', threadType: 'revenue_forecast' },
                 { id: 'pipeline-review', label: 'Pipeline Review', threadType: 'pipeline' },
@@ -109,6 +117,8 @@ jest.mock('@/types/inbox', () => ({
                 { id: 'new-carousel', label: 'New Carousel', threadType: 'carousel' },
                 { id: 'new-bundle', label: 'New Bundle', threadType: 'bundle' },
                 { id: 'new-creative', label: 'Create Post', threadType: 'creative' },
+                { id: 'create-image', label: 'Create Image', threadType: 'image' },
+                { id: 'create-video', label: 'Create Video', threadType: 'video' },
                 { id: 'new-campaign', label: 'Plan Campaign', threadType: 'campaign' },
                 { id: 'product-launch', label: 'Product Launch', threadType: 'launch' },
                 { id: 'review-performance', label: 'Review Performance', threadType: 'performance' },
@@ -120,6 +130,8 @@ jest.mock('@/types/inbox', () => ({
         if (role === 'super_user') {
             return [
                 { id: 'growth-review', label: 'Growth Review', threadType: 'growth_review' },
+                { id: 'create-image', label: 'Create Image', threadType: 'image' },
+                { id: 'create-video', label: 'Create Video', threadType: 'video' },
                 { id: 'churn-analysis', label: 'Churn Analysis', threadType: 'churn_risk' },
                 { id: 'revenue-forecast', label: 'Revenue Forecast', threadType: 'revenue_forecast' },
                 { id: 'pipeline-review', label: 'Pipeline Review', threadType: 'pipeline' },
@@ -184,6 +196,16 @@ describe('Inbox Store', () => {
                 const thread = store.createThread('bundle', { title: 'Weekend Deals' });
 
                 expect(thread.title).toBe('Weekend Deals');
+            });
+
+            it('should create image threads with Craig as the default agent', () => {
+                const store = useInboxStore.getState();
+
+                const thread = store.createThread('image');
+
+                expect(thread.type).toBe('image');
+                expect(thread.primaryAgent).toBe('craig');
+                expect(thread.assignedAgents).toContain('deebo');
             });
 
             it('should create thread with initial message', () => {

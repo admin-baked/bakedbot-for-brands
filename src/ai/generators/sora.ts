@@ -76,7 +76,7 @@ export async function generateSoraVideo(
         intervalMs: options?.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS,
         maxAttempts: options?.maxPollAttempts ?? DEFAULT_MAX_POLL_ATTEMPTS,
     };
-    const result = await pollForCompletion(apiKey, jobId, pollOptions);
+    const result = await pollForCompletion(apiKey, jobId, pollOptions, model);
     console.log(`[SoraGenerator] Job completed. Video URL: ${result.videoUrl}`);
 
     return result;
@@ -147,7 +147,8 @@ async function createVideoJob(
 async function pollForCompletion(
     apiKey: string, 
     jobId: string,
-    options: { intervalMs: number; maxAttempts: number }
+    options: { intervalMs: number; maxAttempts: number },
+    model: string
 ): Promise<GenerateVideoOutput> {
     console.log(`[SoraGenerator] Starting to poll job ${jobId}...`);
 
@@ -228,6 +229,8 @@ async function pollForCompletion(
                     videoUrl: publicUrl,
                     thumbnailUrl: undefined,
                     duration: parseInt(job.seconds as string || '5', 10) || 5,
+                    provider: model === 'sora-2-pro' ? 'sora-pro' : 'sora',
+                    model,
                 };
 
             case 'failed':

@@ -33,7 +33,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useInboxStore } from '@/lib/store/inbox-store';
 import { useContextualPresets } from '@/hooks/use-contextual-presets';
 import { useUserRole } from '@/hooks/use-user-role';
-import type { InboxQuickAction } from '@/types/inbox';
+import { INLINE_GENERATOR_THREAD_TYPES, type InboxQuickAction } from '@/types/inbox';
 import { createInboxThread } from '@/server/actions/inbox';
 import { useToast } from '@/hooks/use-toast';
 import { InsightCardsGrid } from './insight-cards-grid';
@@ -180,10 +180,7 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
 
             // Thread types with dedicated inline generators — auto-submit not needed
             // (the generator UI handles the prompt; same set as inbox-sidebar.tsx)
-            const GENERATOR_THREAD_TYPES = new Set([
-                'carousel', 'bundle', 'qr_code', 'hero', 'social_post', 'dynamic_pricing',
-            ]);
-            const isGeneratorThread = GENERATOR_THREAD_TYPES.has(action.threadType);
+            const isGeneratorThread = INLINE_GENERATOR_THREAD_TYPES.has(action.threadType);
 
             // Determine message to auto-send when InboxConversation mounts
             let pendingMessage: string | null = null;

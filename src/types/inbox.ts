@@ -13,6 +13,7 @@ import type { QRCode } from './qr-code';
 import type { IntegrationRequest } from './service-integrations';
 import type { ChatMessage } from '@/lib/store/agent-chat-store';
 import type { CustomerSegment } from './customers';
+import { ALL_ROLES } from './roles';
 
 // ============ Thread Types ============
 
@@ -26,6 +27,7 @@ export type InboxThreadType =
     | 'hero'              // Hero banner creation
     | 'bundle'            // Bundle deal creation
     | 'creative'          // Social media content
+    | 'image'             // Image content generation
     | 'video'             // Video content generation
     | 'campaign'          // Multi-channel campaign
     | 'qr_code'           // Trackable QR code generation
@@ -80,6 +82,21 @@ export type InboxThreadType =
     | 'market_research'   // Strategic market analysis
     // ---- CRM / Customer Intelligence ----
     | 'crm_customer';    // CRM customer relationship management
+
+export const INLINE_GENERATOR_THREAD_TYPES = new Set<InboxThreadType>([
+    'carousel',
+    'hero',
+    'bundle',
+    'creative',
+    'image',
+    'inventory_promo',
+    'video',
+    'campaign',
+    'performance',
+    'outreach',
+    'event',
+    'qr_code',
+]);
 
 /**
  * Thread lifecycle status
@@ -441,6 +458,7 @@ export interface InboxQuickAction {
 const BRAND_ROLES = ['brand', 'brand_admin', 'brand_member'];
 const DISPENSARY_ROLES = ['dispensary', 'dispensary_admin', 'dispensary_staff'];
 const ALL_BUSINESS_ROLES = [...BRAND_ROLES, ...DISPENSARY_ROLES];
+const ALL_MEDIA_ROLES = [...ALL_ROLES];
 
 /**
  * Default quick actions by role
@@ -512,10 +530,10 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         label: 'Create Image',
         description: 'Generate AI product or lifestyle images for marketing',
         icon: 'ImagePlus',
-        threadType: 'creative',
+        threadType: 'image',
         defaultAgent: 'craig',
         promptTemplate: 'Help me create marketing images. I need product photography or lifestyle imagery for my dispensary.',
-        roles: ALL_BUSINESS_ROLES,
+        roles: ALL_MEDIA_ROLES,
     },
     {
         id: 'create-video',
@@ -525,7 +543,7 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         threadType: 'video',
         defaultAgent: 'craig',
         promptTemplate: 'Help me create video content for social media. I need engaging short-form videos for TikTok or Instagram Reels.',
-        roles: ALL_BUSINESS_ROLES,
+        roles: ALL_MEDIA_ROLES,
     },
 
     // ============ Product Launch (Brand + Dispensary) ============
@@ -1070,6 +1088,10 @@ export const THREAD_AGENT_MAPPING: Record<InboxThreadType, {
         primary: 'craig',
         supporting: ['deebo', 'ezal'],
     },
+    image: {
+        primary: 'craig',
+        supporting: ['deebo', 'ezal'],
+    },
     video: {
         primary: 'craig',
         supporting: ['deebo'],
@@ -1291,6 +1313,7 @@ export const InboxThreadTypeSchema = z.enum([
     'hero',
     'bundle',
     'creative',
+    'image',
     'video',
     'campaign',
     'qr_code',
@@ -1471,6 +1494,16 @@ export async function getQuickActionsForRoleAsync(
                 roles: preset.roles,
             })) as InboxQuickAction[];
 
+            const fallbackMediaActions = INBOX_QUICK_ACTIONS.filter((action) =>
+                ['create-image', 'create-video'].includes(action.id) && action.roles.includes(role)
+            );
+            const mergedActions = [...actions];
+            for (const action of fallbackMediaActions) {
+                if (!mergedActions.some((existing) => existing.id === action.id)) {
+                    mergedActions.push(action);
+                }
+            }
+
             // Guardrail: if DB presets were migrated incorrectly, Super Users can end up
             // with brand/dispensary quick actions. Filter to executive thread types and
             // fall back to hardcoded presets when none remain.
@@ -1513,16 +1546,20 @@ export async function getQuickActionsForRoleAsync(
                     'deep_research',
                     'compliance_research',
                     'market_research',
+
+                    // Cross-role media tools
+                    'image',
+                    'video',
                 ]);
 
-                const filtered = actions.filter((a) => allowed.has(a.threadType as InboxThreadType));
+                const filtered = mergedActions.filter((a) => allowed.has(a.threadType as InboxThreadType));
                 if (filtered.length > 0) {
                     return filtered;
                 }
                 return getQuickActionsForRole(role);
             }
 
-            return actions;
+            return mergedActions;
         }
 
         // Fallback to hardcoded if database load fails
@@ -1580,6 +1617,7 @@ export function getThreadTypeIcon(type: InboxThreadType): string {
         hero: 'ImagePlus',
         bundle: 'PackagePlus',
         creative: 'Palette',
+        image: 'ImagePlus',
         video: 'Video',
         campaign: 'Megaphone',
         qr_code: 'QrCode',
@@ -1649,6 +1687,7 @@ export function getThreadTypeLabel(type: InboxThreadType): string {
         hero: 'Hero Banner',
         bundle: 'Bundle',
         creative: 'Creative',
+        image: 'Image',
         video: 'Video',
         campaign: 'Campaign',
         qr_code: 'QR Code',
@@ -1718,6 +1757,7 @@ export function getArtifactTypesForThreadType(type: InboxThreadType): InboxArtif
         hero: ['creative_content'],
         bundle: ['bundle'],
         creative: ['creative_content'],
+        image: ['creative_content'],
         video: ['creative_content'],
         campaign: ['carousel', 'bundle', 'creative_content'],
         qr_code: ['qr_code'],

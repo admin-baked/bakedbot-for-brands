@@ -174,6 +174,7 @@ describe('InboxConversation - BundleGeneratorInline Integration', () => {
                 'HeroGeneratorInline',
                 'CarouselGeneratorInline',
                 'BundleGeneratorInline',
+                'ImageGeneratorInline',
                 'SocialPostGeneratorInline',
             ];
 

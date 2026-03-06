@@ -17,6 +17,7 @@ import type { InboxArtifact } from '@/types/inbox';
 import type { CreativeContent } from '@/types/creative-content';
 import { approveAndPublishArtifact, updateInboxArtifactStatus } from '@/server/actions/inbox';
 import { useRouter } from 'next/navigation';
+import { CreativeMediaPreview } from './creative-media-preview';
 
 interface InboxCreativeCardProps {
     artifact: InboxArtifact;
@@ -84,7 +85,7 @@ export function InboxCreativeCard({ artifact, className }: InboxCreativeCardProp
                             <PlatformIcon className="h-4 w-4" />
                         </div>
                         <div>
-                            <h4 className="font-medium text-sm capitalize">{contentData.platform} Post</h4>
+                            <h4 className="font-medium text-sm capitalize">{contentData.platform} {contentData.mediaType === 'video' ? 'Video' : 'Post'}</h4>
                             <p className="text-xs text-muted-foreground">
                                 {contentData.mediaType || 'image'}
                             </p>
@@ -98,23 +99,11 @@ export function InboxCreativeCard({ artifact, className }: InboxCreativeCardProp
 
             <CardContent className="p-3 pt-0">
                 {/* Media Preview */}
-                {contentData.thumbnailUrl || contentData.mediaUrls?.[0] ? (
-                    <div className="relative aspect-square rounded-lg overflow-hidden bg-muted mb-2">
-                        <img
-                            src={contentData.thumbnailUrl || contentData.mediaUrls?.[0]}
-                            alt="Content preview"
-                            className="w-full h-full object-cover"
-                        />
-                    </div>
-                ) : (
-                    <div className="aspect-square rounded-lg bg-muted flex items-center justify-center mb-2">
-                        <Palette className="h-8 w-8 text-muted-foreground/50" />
-                    </div>
-                )}
+                <CreativeMediaPreview content={contentData} className="mb-2" />
 
                 {/* Caption Preview */}
                 <p className="text-xs line-clamp-2 mb-2">
-                    {contentData.caption}
+                    {contentData.caption || contentData.generationPrompt}
                 </p>
 
                 {/* Hashtags */}

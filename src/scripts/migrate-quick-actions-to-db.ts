@@ -108,7 +108,7 @@ function inferCategory(action: InboxQuickAction): string {
     }
 
     // Brand/Dispensary categorization
-    if (['carousel', 'bundle', 'creative', 'campaign', 'qr_code'].includes(action.threadType)) {
+    if (['carousel', 'bundle', 'creative', 'image', 'video', 'campaign', 'qr_code'].includes(action.threadType)) {
         return 'marketing';
     }
     if (['launch'].includes(action.threadType)) {

@@ -59,7 +59,7 @@ export async function generateVeoVideo(
         intervalMs: options?.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS,
         maxAttempts: options?.maxPollAttempts ?? DEFAULT_MAX_POLL_ATTEMPTS,
     };
-    const result = await pollForCompletion(apiKey, operationName, pollOptions, input.duration || '5');
+    const result = await pollForCompletion(apiKey, operationName, pollOptions, input.duration || '5', model);
     console.log(`[VeoGenerator] Job completed. Video URL: ${result.videoUrl}`);
 
     return result;
@@ -135,7 +135,8 @@ async function pollForCompletion(
     apiKey: string, 
     operationName: string,
     options: { intervalMs: number; maxAttempts: number },
-    duration: string
+    duration: string,
+    model: string
 ): Promise<GenerateVideoOutput> {
     console.log(`[VeoGenerator] Starting to poll operation ${operationName}...`);
 
@@ -172,6 +173,8 @@ async function pollForCompletion(
                 videoUrl: videoUri,
                 thumbnailUrl: undefined,
                 duration: parseInt(duration, 10),
+                provider: 'veo',
+                model,
             };
         }
 

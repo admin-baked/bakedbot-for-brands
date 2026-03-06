@@ -14,6 +14,8 @@ export const GenerateVideoOutputSchema = z.object({
     videoUrl: z.string().describe('URL of the generated video.'),
     thumbnailUrl: z.string().optional().describe('URL of the video thumbnail.'),
     duration: z.number().describe('Actual duration in seconds.'),
+    provider: z.enum(['veo', 'sora', 'sora-pro']).optional().describe('Provider that successfully rendered the video.'),
+    model: z.string().optional().describe('Concrete provider model used for rendering.'),
 });
 
 export type GenerateVideoOutput = z.infer<typeof GenerateVideoOutputSchema>;

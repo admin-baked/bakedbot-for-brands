@@ -90,6 +90,54 @@
     ]
   },
   {
+    "id": "create-image",
+    "label": "Create Image",
+    "description": "Generate AI product or lifestyle images for marketing",
+    "icon": "ImagePlus",
+    "threadType": "image",
+    "defaultAgent": "craig",
+    "promptTemplate": "Help me create marketing images. I need product photography or lifestyle imagery for my dispensary.",
+    "roles": [
+      "super_user",
+      "super_admin",
+      "brand_admin",
+      "brand_member",
+      "brand",
+      "dispensary_admin",
+      "dispensary_staff",
+      "dispensary",
+      "budtender",
+      "customer",
+      "intern",
+      "grower",
+      "delivery_driver"
+    ]
+  },
+  {
+    "id": "create-video",
+    "label": "Create Video",
+    "description": "Generate short-form video content for social media",
+    "icon": "Video",
+    "threadType": "video",
+    "defaultAgent": "craig",
+    "promptTemplate": "Help me create video content for social media. I need engaging short-form videos for TikTok or Instagram Reels.",
+    "roles": [
+      "super_user",
+      "super_admin",
+      "brand_admin",
+      "brand_member",
+      "brand",
+      "dispensary_admin",
+      "dispensary_staff",
+      "dispensary",
+      "budtender",
+      "customer",
+      "intern",
+      "grower",
+      "delivery_driver"
+    ]
+  },
+  {
     "id": "product-launch",
     "label": "Product Launch",
     "description": "Create a full launch package with carousel, bundle, and social",

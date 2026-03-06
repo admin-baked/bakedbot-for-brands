@@ -1252,6 +1252,11 @@ Use the createCreativeArtifact tool to generate platform-specific content.
 Return structured artifacts using the :::artifact:creative_post:Title format.
 Always consider cannabis advertising compliance rules.`,
 
+        image: `You are helping create compliant marketing images for a cannabis brand or dispensary.
+Focus on visual direction, product/lifestyle framing, and safe marketing positioning.
+Avoid drifting into social copy unless the user explicitly asks for caption help.
+Keep all image direction compliant with cannabis advertising regulations.`,
+
         video: `You are helping create video content for a cannabis brand.
 Plan video concepts, scripts, and visual direction.
 Ensure all content complies with cannabis advertising regulations.`,
@@ -1581,6 +1586,12 @@ function getArtifactTitle(artifact: InboxArtifact): string {
             return (artifact.data as BundleDeal).name;
         case 'creative_content': {
             const content = artifact.data as CreativeContent;
+            if (content.mediaType === 'video') {
+                return `${content.platform} Video`;
+            }
+            if (content.mediaType === 'image') {
+                return `${content.platform} Image`;
+            }
             return `${content.platform} Post`;
         }
         default:

@@ -25,8 +25,12 @@ const FALLBACK_VIDEO_URL = 'https://commondatastorage.googleapis.com/gtv-videos-
  * Generates a marketing video using Veo 3.1 or Sora based on system settings.
  */
 export async function generateMarketingVideo(
-    input: z.infer<typeof GenerateVideoInputSchema>
+    input: z.infer<typeof GenerateVideoInputSchema>,
+    options?: { allowFallbackDemo?: boolean }
 ): Promise<z.infer<typeof GenerateVideoOutputSchema>> {
+    if (options?.allowFallbackDemo === false) {
+        return runVideoGeneration(input, options);
+    }
     return generateVideoFlow(input);
 }
 
@@ -36,71 +40,77 @@ const generateVideoFlow = ai.defineFlow(
         inputSchema: GenerateVideoInputSchema,
         outputSchema: GenerateVideoOutputSchema,
     },
-    async (input) => {
-        let provider = 'veo';
+    async (input) => runVideoGeneration(input, { allowFallbackDemo: true })
+);
+
+async function runVideoGeneration(
+    input: z.infer<typeof GenerateVideoInputSchema>,
+    options?: { allowFallbackDemo?: boolean }
+): Promise<z.infer<typeof GenerateVideoOutputSchema>> {
+    let provider = 'veo';
+    try {
+        provider = await getSafeVideoProviderAction();
+    } catch (e) {
+        console.warn('[generateVideoFlow] Failed to fetch provider setting, defaulting to Veo.');
+    }
+
+    console.log(`[generateVideoFlow] ========================================`);
+    console.log(`[generateVideoFlow] Primary Provider: ${provider.toUpperCase()}`);
+    console.log(`[generateVideoFlow] Input: ${JSON.stringify(input)}`);
+    console.log(`[generateVideoFlow] ========================================`);
+
+    if (provider === 'sora' || provider === 'sora-pro') {
+        const isPro = provider === 'sora-pro';
+        const modelId = isPro ? 'sora-2-pro' : 'sora-2';
+
         try {
-            provider = await getSafeVideoProviderAction();
-        } catch (e) {
-            console.warn('[generateVideoFlow] Failed to fetch provider setting, defaulting to Veo.');
-        }
+            console.log(`[generateVideoFlow] Attempting Sora (${isPro ? 'Pro' : 'Standard'})...`);
+            return await generateSoraVideo(input, { model: modelId });
+        } catch (soraError: unknown) {
+            const err = soraError as Error;
+            console.error('[generateVideoFlow] Sora Failed:', err.message);
+            console.error('[generateVideoFlow] Sora Error Details:', JSON.stringify(err, Object.getOwnPropertyNames(err)));
 
-        console.log(`[generateVideoFlow] ========================================`);
-        console.log(`[generateVideoFlow] Primary Provider: ${provider.toUpperCase()}`);
-        console.log(`[generateVideoFlow] Input: ${JSON.stringify(input)}`);
-        console.log(`[generateVideoFlow] ========================================`);
-
-        if (provider === 'sora' || provider === 'sora-pro') {
-            const isPro = provider === 'sora-pro';
-            const modelId = isPro ? 'sora-2-pro' : 'sora-2';
-
-            // Priority: Sora (Standard or Pro) -> Veo -> Fallback
             try {
-                console.log(`[generateVideoFlow] Attempting Sora (${isPro ? 'Pro' : 'Standard'})...`);
-                return await generateSoraVideo(input, { model: modelId });
-            } catch (soraError: unknown) {
-                const err = soraError as Error;
-                console.error('[generateVideoFlow] Sora Failed:', err.message);
-                console.error('[generateVideoFlow] Sora Error Details:', JSON.stringify(err, Object.getOwnPropertyNames(err)));
-                
-                try {
-                    console.log('[generateVideoFlow] Fallback to Veo 3.1...');
-                    return await generateVeoVideo(input);
-                } catch (veoError: unknown) {
-                    const veoErr = veoError as Error;
-                    console.error('[generateVideoFlow] Veo 3.1 Fallback Failed:', veoErr.message);
-                    console.error('[generateVideoFlow] Veo Error Details:', JSON.stringify(veoErr, Object.getOwnPropertyNames(veoErr)));
-                }
-            }
-        } else {
-            // Priority: Veo -> Sora -> Fallback (Default)
-            try {
-                console.log('[generateVideoFlow] Attempting Veo 3.1...');
+                console.log('[generateVideoFlow] Fallback to Veo 3.1...');
                 return await generateVeoVideo(input);
             } catch (veoError: unknown) {
                 const veoErr = veoError as Error;
-                console.error('[generateVideoFlow] Veo 3.1 Failed:', veoErr.message);
+                console.error('[generateVideoFlow] Veo 3.1 Fallback Failed:', veoErr.message);
                 console.error('[generateVideoFlow] Veo Error Details:', JSON.stringify(veoErr, Object.getOwnPropertyNames(veoErr)));
             }
-
-            try {
-                console.log('[generateVideoFlow] Fallback to Sora 2...');
-                return await generateSoraVideo(input, { model: 'sora-2' });
-            } catch (soraError: unknown) {
-                const soraErr = soraError as Error;
-                console.error('[generateVideoFlow] Sora Fallback Failed:', soraErr.message);
-                console.error('[generateVideoFlow] Sora Error Details:', JSON.stringify(soraErr, Object.getOwnPropertyNames(soraErr)));
-            }
+        }
+    } else {
+        try {
+            console.log('[generateVideoFlow] Attempting Veo 3.1...');
+            return await generateVeoVideo(input);
+        } catch (veoError: unknown) {
+            const veoErr = veoError as Error;
+            console.error('[generateVideoFlow] Veo 3.1 Failed:', veoErr.message);
+            console.error('[generateVideoFlow] Veo Error Details:', JSON.stringify(veoErr, Object.getOwnPropertyNames(veoErr)));
         }
 
-        // Ultimate Fallback
-        console.warn('[generateVideoFlow] All providers failed. Using Fallback Demo.');
-        return {
-            videoUrl: FALLBACK_VIDEO_URL,
-            thumbnailUrl: undefined,
-            duration: parseInt(input.duration || '5', 10),
-        };
+        try {
+            console.log('[generateVideoFlow] Fallback to Sora 2...');
+            return await generateSoraVideo(input, { model: 'sora-2' });
+        } catch (soraError: unknown) {
+            const soraErr = soraError as Error;
+            console.error('[generateVideoFlow] Sora Fallback Failed:', soraErr.message);
+            console.error('[generateVideoFlow] Sora Error Details:', JSON.stringify(soraErr, Object.getOwnPropertyNames(soraErr)));
+        }
     }
-);
+
+    if (options?.allowFallbackDemo === false) {
+        throw new Error('All video providers failed. Demo fallback disabled.');
+    }
+
+    console.warn('[generateVideoFlow] All providers failed. Using Fallback Demo.');
+    return {
+        videoUrl: FALLBACK_VIDEO_URL,
+        thumbnailUrl: undefined,
+        duration: parseInt(input.duration || '5', 10),
+    };
+}
 
 /**
  * Simple wrapper for chat-based video generation.
@@ -108,13 +118,18 @@ const generateVideoFlow = ai.defineFlow(
  */
 export async function generateVideoFromPrompt(
     prompt: string, 
-    options?: { duration?: '5' | '10'; aspectRatio?: '16:9' | '9:16' | '1:1'; brandName?: string }
+    options?: {
+        duration?: '5' | '10';
+        aspectRatio?: '16:9' | '9:16' | '1:1';
+        brandName?: string;
+        allowFallbackDemo?: boolean;
+    }
 ): Promise<string> {
     const result = await generateMarketingVideo({
         prompt,
         duration: options?.duration || '5',
         aspectRatio: options?.aspectRatio || '16:9',
         brandName: options?.brandName,
-    });
+    }, { allowFallbackDemo: options?.allowFallbackDemo });
     return result.videoUrl;
 }
