@@ -127,7 +127,30 @@ export interface CreativeContentBase {
     mediaType: MediaType;
 
     /** AI model used for generation */
-    generatedBy: 'nano-banana' | 'nano-banana-pro' | 'flux-schnell' | 'flux-pro' | 'manual';
+    generatedBy:
+        | 'nano-banana'
+        | 'nano-banana-pro'
+        | 'flux-schnell'
+        | 'flux-pro'
+        | 'veo'
+        | 'sora'
+        | 'sora-pro'
+        | 'manual';
+
+    /** Render aspect ratio */
+    aspectRatio?: '1:1' | '4:3' | '4:5' | '16:9' | '9:16';
+
+    /** Video duration in seconds */
+    durationSeconds?: number;
+
+    /** Optional creative direction metadata */
+    creativeDirection?: {
+        title?: string;
+        hook?: string;
+        visuals?: string;
+        audio?: string;
+        script?: string;
+    };
 
     /** Prompt used to generate content */
     generationPrompt?: string;
@@ -321,8 +344,6 @@ export interface InstagramContent extends CreativeContentBase {
     platform: 'instagram';
     /** Post type: feed, story, reel */
     postType: 'feed' | 'story' | 'reel';
-    /** Aspect ratio for display */
-    aspectRatio?: '1:1' | '4:5' | '9:16';
 }
 
 /**

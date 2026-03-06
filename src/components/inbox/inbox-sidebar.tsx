@@ -11,12 +11,15 @@ import {
     Plus,
     Search,
     Images,
+    ImagePlus,
     PackagePlus,
     Palette,
     Megaphone,
     HelpCircle,
     Calendar,
+    CalendarDays,
     MessageSquare,
+    Package,
     ChevronLeft,
     ChevronRight,
     Filter,
@@ -28,6 +31,11 @@ import {
     FolderKanban,
     Star,
     MoreHorizontal as MoreHorizontalIcon,
+    QrCode,
+    Rocket,
+    Send,
+    TrendingUp,
+    Video,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -49,7 +57,7 @@ import type {
     InboxThreadType,
     InboxQuickAction,
 } from '@/types/inbox';
-import { getThreadTypeIcon, getThreadTypeLabel } from '@/types/inbox';
+import { getThreadTypeIcon, getThreadTypeLabel, INLINE_GENERATOR_THREAD_TYPES } from '@/types/inbox';
 import { formatSmartTime } from '@/lib/utils/format-time';
 import { createInboxThread } from '@/server/actions/inbox';
 import { useToast } from '@/hooks/use-toast';
@@ -63,13 +71,21 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
     Images,
+    ImagePlus,
     PackagePlus,
     Palette,
     Megaphone,
     HelpCircle,
     Calendar,
+    CalendarDays,
     Search,
     MessageSquare,
+    Package,
+    QrCode,
+    Rocket,
+    Send,
+    TrendingUp,
+    Video,
 };
 
 function getIcon(iconName: string) {
@@ -79,7 +95,7 @@ function getIcon(iconName: string) {
 // ============ Quick Action Categories ============
 
 const QUICK_ACTION_CATEGORIES = {
-    marketing: ['new-carousel', 'new-bundle', 'new-creative', 'new-campaign', 'create-qr', 'customer-blast', 'plan-event'],
+    marketing: ['new-carousel', 'new-bundle', 'new-creative', 'create-image', 'create-video', 'new-campaign', 'create-qr', 'customer-blast', 'plan-event'],
     operations: ['product-launch', 'review-performance', 'move-inventory'],
     growth: ['growth-review', 'churn-analysis', 'revenue-forecast', 'pipeline-review', 'customer-health', 'market-intel', 'bizdev-outreach', 'growth-experiment'],
     company: ['daily-standup', 'sprint-planning', 'incident-response', 'release-prep', 'customer-onboarding', 'customer-pulse', 'content-brief', 'weekly-sync', 'cash-flow', 'board-update', 'compliance-audit', 'hiring-review'],
@@ -116,7 +132,6 @@ function getDefaultFavoritesForRole(role: string | null): string[] {
 }
 
 // Thread types with dedicated inline generators — no need to pre-populate input
-const GENERATOR_THREAD_TYPES = new Set(['carousel', 'bundle', 'qr_code', 'hero', 'social_post', 'dynamic_pricing']);
 
 // ============ Props ============
 
@@ -181,7 +196,7 @@ function QuickActionButton({ action, collapsed }: { action: InboxQuickAction; co
             markThreadPersisted(localThread.id);
 
             // Pre-populate chat input and navigate to the thread
-            if (action.promptTemplate && !GENERATOR_THREAD_TYPES.has(action.threadType)) {
+            if (action.promptTemplate && !INLINE_GENERATOR_THREAD_TYPES.has(action.threadType)) {
                 _pendingInputs.set(localThread.id, action.promptTemplate);
             }
             setActiveThread(localThread.id);
@@ -349,6 +364,7 @@ function FilterButton({ collapsed }: { collapsed?: boolean }) {
         hero: 'Hero Banners',
         bundle: 'Bundles',
         creative: 'Creative',
+        image: 'Images',
         campaign: 'Campaigns',
         qr_code: 'QR Codes',
         blog: 'Blog Posts',
@@ -489,7 +505,7 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
         });
 
         // Pre-populate the chat input with the action's prompt template for non-generator threads
-        if (action.promptTemplate && !GENERATOR_THREAD_TYPES.has(action.threadType)) {
+        if (action.promptTemplate && !INLINE_GENERATOR_THREAD_TYPES.has(action.threadType)) {
             _pendingInputs.set(thread.id, action.promptTemplate);
         }
 

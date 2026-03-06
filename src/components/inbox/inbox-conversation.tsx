@@ -59,7 +59,7 @@ import { useInboxStore } from '@/lib/store/inbox-store';
 import { useIsMobile } from '@/hooks/use-mobile';
 import type { ChatMessage } from '@/lib/store/agent-chat-store';
 import type { InboxThread, InboxArtifact, InboxAgentPersona } from '@/types/inbox';
-import { getThreadTypeLabel, getThreadTypeIcon } from '@/types/inbox';
+import { getThreadTypeLabel, getThreadTypeIcon, INLINE_GENERATOR_THREAD_TYPES } from '@/types/inbox';
 import { InboxCarouselCard } from './artifacts/carousel-card';
 import { InboxBundleCard } from './artifacts/bundle-card';
 import { InboxCreativeCard } from './artifacts/creative-card';
@@ -71,6 +71,7 @@ import { QRCodeGeneratorInline } from './qr-code-generator-inline';
 import { CarouselGeneratorInline } from './carousel-generator-inline';
 import { HeroGeneratorInline } from './hero-generator-inline';
 import { BundleGeneratorInline } from './bundle-generator-inline';
+import { ImageGeneratorInline } from './image-generator-inline';
 import { SocialPostGeneratorInline } from './social-post-generator-inline';
 import { DynamicPricingGeneratorInline } from './dynamic-pricing-generator-inline';
 import { VideoGeneratorInline } from './video-generator-inline';
@@ -78,14 +79,16 @@ import { CampaignPlannerInline } from './campaign-planner-inline';
 import { PerformanceReviewInline } from './performance-review-inline';
 import { OutreachGeneratorInline } from './outreach-generator-inline';
 import { EventPlannerInline } from './event-planner-inline';
+import { ChatMediaPreview } from '@/components/chat/chat-media-preview';
 import { formatDistanceToNow } from 'date-fns';
-import { runInboxAgentChat, addMessageToInboxThread } from '@/server/actions/inbox';
+import { runInboxAgentChat, addMessageToInboxThread, createInboxArtifact } from '@/server/actions/inbox';
 import { generateQRCode } from '@/server/actions/qr-code';
 import { toggleHeroActive } from '@/app/actions/heroes';
 import { getBrandSlug } from '@/server/actions/slug-management';
 import { useJobPoller } from '@/hooks/use-job-poller';
 import { AttachmentPreviewList, type AttachmentItem } from '@/components/ui/attachment-preview';
 import { useToast } from '@/hooks/use-toast';
+import type { CreativeContent } from '@/types/creative-content';
 
 // ============ Pending Input Store ============
 // Module-level map so other components (empty state, sidebar) can pre-populate
@@ -335,6 +338,18 @@ function MessageBubble({
                             ))}
                         </div>
                     )}
+
+                    {message.metadata?.media && (
+                        <div className="mt-3">
+                            <ChatMediaPreview
+                                type={message.metadata.media.type}
+                                url={message.metadata.media.url}
+                                prompt={message.metadata.media.prompt}
+                                duration={message.metadata.media.duration}
+                                model={message.metadata.media.model}
+                            />
+                        </div>
+                    )}
                 </div>
 
                 {/* Inline Artifact Cards */}
@@ -509,7 +524,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     const hasPendingAutoSubmit = useRef(false);
     const [input, setInput] = useState<string>(() => {
         const pending = _pendingInputs.get(thread.id);
-        if (pending) {
+        if (pending && !INLINE_GENERATOR_THREAD_TYPES.has(thread.type)) {
             _pendingInputs.delete(thread.id);
             hasPendingAutoSubmit.current = true; // auto-submit on mount
             return pending;
@@ -523,6 +538,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     const [showCarouselGenerator, setShowCarouselGenerator] = useState(false);
     const [showHeroGenerator, setShowHeroGenerator] = useState(false);
     const [showBundleGenerator, setShowBundleGenerator] = useState(false);
+    const [showImageGenerator, setShowImageGenerator] = useState(false);
     const [showSocialPostGenerator, setShowSocialPostGenerator] = useState(false);
     const [showPricingGenerator, setShowPricingGenerator] = useState(false);
     const [showVideoGenerator, setShowVideoGenerator] = useState(false);
@@ -534,6 +550,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     const [carouselInitialPrompt, setCarouselInitialPrompt] = useState('');
     const [heroInitialPrompt, setHeroInitialPrompt] = useState('');
     const [bundleInitialPrompt, setBundleInitialPrompt] = useState('');
+    const [imageInitialPrompt, setImageInitialPrompt] = useState('');
     const [socialPostInitialPrompt, setSocialPostInitialPrompt] = useState('');
     const [pricingInitialPrompt, setPricingInitialPrompt] = useState('');
     const [videoInitialPrompt, setVideoInitialPrompt] = useState('');
@@ -550,6 +567,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     const hasAutoShownCarousel = useRef<boolean>(false);
     const hasAutoShownHero = useRef<boolean>(false);
     const hasAutoShownBundle = useRef<boolean>(false);
+    const hasAutoShownImage = useRef<boolean>(false);
     const hasAutoShownSocialPost = useRef<boolean>(false);
     const hasAutoShownPricing = useRef<boolean>(false);
     const hasAutoShownVideo = useRef<boolean>(false);
@@ -558,12 +576,80 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     const hasAutoShownOutreach = useRef<boolean>(false);
     const hasAutoShownEvent = useRef<boolean>(false);
 
-    const { addMessageToThread, addArtifacts, isThreadPending } = useInboxStore();
+    const {
+        addMessageToThread,
+        addArtifacts,
+        isThreadPending,
+        setSelectedArtifact,
+        setArtifactPanelOpen,
+        updateThread,
+    } = useInboxStore();
     const isPending = isThreadPending(thread.id);
     const { toast } = useToast();
 
     // Use Firestore real-time job polling instead of broken HTTP polling
     const { job, isComplete, error: jobError } = useJobPoller(currentJobId ?? undefined);
+
+    useEffect(() => {
+        const pending = _pendingInputs.get(thread.id);
+        if (!pending || !INLINE_GENERATOR_THREAD_TYPES.has(thread.type)) {
+            return;
+        }
+
+        _pendingInputs.delete(thread.id);
+
+        switch (thread.type) {
+            case 'carousel':
+                setCarouselInitialPrompt(pending);
+                setShowCarouselGenerator(true);
+                break;
+            case 'hero':
+                setHeroInitialPrompt(pending);
+                setShowHeroGenerator(true);
+                break;
+            case 'bundle':
+                setBundleInitialPrompt(pending);
+                setShowBundleGenerator(true);
+                break;
+            case 'creative':
+                setSocialPostInitialPrompt(pending);
+                setShowSocialPostGenerator(true);
+                break;
+            case 'image':
+                setImageInitialPrompt(pending);
+                setShowImageGenerator(true);
+                break;
+            case 'inventory_promo':
+                setPricingInitialPrompt(pending);
+                setShowPricingGenerator(true);
+                break;
+            case 'video':
+                setVideoInitialPrompt(pending);
+                setShowVideoGenerator(true);
+                break;
+            case 'campaign':
+                setCampaignInitialPrompt(pending);
+                setShowCampaignPlanner(true);
+                break;
+            case 'performance':
+                setPerformanceInitialPrompt(pending);
+                setShowPerformanceReview(true);
+                break;
+            case 'outreach':
+                setOutreachInitialPrompt(pending);
+                setShowOutreachGenerator(true);
+                break;
+            case 'event':
+                setEventInitialPrompt(pending);
+                setShowEventPlanner(true);
+                break;
+            case 'qr_code':
+                setShowQRGenerator(true);
+                break;
+            default:
+                break;
+        }
+    }, [thread.id, thread.type]);
 
     // Auto-scroll to bottom on new messages
     useEffect(() => {
@@ -745,6 +831,21 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         }
     }, [thread.id, thread.type, showBundleGenerator]);
 
+    // Auto-open Image generator for image threads
+    useEffect(() => {
+        if (thread.type === 'image') {
+            if (!showImageGenerator) {
+                setShowImageGenerator(true);
+            }
+            hasAutoShownImage.current = true;
+        } else {
+            if (showImageGenerator) {
+                setShowImageGenerator(false);
+            }
+            hasAutoShownImage.current = false;
+        }
+    }, [thread.id, thread.type, showImageGenerator]);
+
     // Auto-open Social Post generator for creative threads
     useEffect(() => {
         if (thread.type === 'creative') {
@@ -883,6 +984,40 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             addMessageToThread(thread.id, userMessage);
             setHeroInitialPrompt(input.trim());
             setShowHeroGenerator(true);
+            setInput('');
+            return;
+        }
+
+        const imageKeywords = ['create image', 'generate image', 'make image', 'product photo', 'lifestyle image', 'marketing image'];
+        const isImageRequest = imageKeywords.some((keyword) => lowerInput.includes(keyword));
+
+        if (isImageRequest) {
+            const userMessage: ChatMessage = {
+                id: `msg-${Date.now()}`,
+                type: 'user',
+                content: input.trim(),
+                timestamp: new Date(),
+            };
+            addMessageToThread(thread.id, userMessage);
+            setImageInitialPrompt(input.trim());
+            setShowImageGenerator(true);
+            setInput('');
+            return;
+        }
+
+        const videoKeywords = ['create video', 'generate video', 'make video', 'video ad', 'reel', 'tiktok', 'instagram video'];
+        const isVideoRequest = videoKeywords.some((keyword) => lowerInput.includes(keyword));
+
+        if (isVideoRequest) {
+            const userMessage: ChatMessage = {
+                id: `msg-${Date.now()}`,
+                type: 'user',
+                content: input.trim(),
+                timestamp: new Date(),
+            };
+            addMessageToThread(thread.id, userMessage);
+            setVideoInitialPrompt(input.trim());
+            setShowVideoGenerator(true);
             setInput('');
             return;
         }
@@ -1203,7 +1338,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         setPricingInitialPrompt('');
     };
 
-    const handleCompleteVideo = async (videoData: any) => {
+    /* const handleCompleteVideo = async (videoData: any) => {
         setShowVideoGenerator(false);
         const confirmationMessage: ChatMessage = {
             id: `msg-${Date.now()}`,
@@ -1212,6 +1347,90 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             timestamp: new Date(),
         };
         addMessageToThread(thread.id, confirmationMessage);
+        setVideoInitialPrompt('');
+    }; */
+
+    const persistGeneratedCreativeDraft = async (
+        draft: CreativeContent,
+        media: {
+            type: 'image' | 'video';
+            url: string;
+            prompt: string;
+            duration?: number;
+            model: string;
+        },
+        content: string,
+        rationale: string,
+    ) => {
+        const result = await createInboxArtifact({
+            threadId: thread.id,
+            type: 'creative_content',
+            data: draft,
+            rationale,
+        });
+
+        if (!result.success || !result.artifact) {
+            throw new Error(result.error || 'Failed to save creative draft.');
+        }
+
+        addArtifacts([result.artifact]);
+        updateThread(thread.id, {
+            artifactIds: [...thread.artifactIds, result.artifact.id],
+            status: 'draft',
+        });
+        setSelectedArtifact(result.artifact.id);
+        setArtifactPanelOpen(true);
+
+        const confirmationMessage: ChatMessage = {
+            id: `msg-${Date.now()}`,
+            type: 'agent',
+            content,
+            timestamp: new Date(),
+            metadata: {
+                agentName: AGENT_NAMES[thread.primaryAgent]?.name,
+                model: media.model,
+                media,
+            },
+        };
+        addMessageToThread(thread.id, confirmationMessage);
+    };
+
+    const handleCompleteImage = async (imageData: {
+        draft: CreativeContent;
+        media: {
+            type: 'image';
+            url: string;
+            prompt: string;
+            model: string;
+        };
+    }) => {
+        await persistGeneratedCreativeDraft(
+            imageData.draft,
+            imageData.media,
+            `🖼️ **Image Draft Saved!**\n\nYour marketing image is ready in the artifact panel and previewed inline here for review.`,
+            'Generated inline with the inbox image tool.',
+        );
+        setShowImageGenerator(false);
+        setImageInitialPrompt('');
+    };
+
+    const handleSaveVideoDraft = async (videoData: {
+        draft: CreativeContent;
+        media: {
+            type: 'video';
+            url: string;
+            prompt: string;
+            duration: number;
+            model: string;
+        };
+    }) => {
+        await persistGeneratedCreativeDraft(
+            videoData.draft,
+            videoData.media,
+            `🎬 **Video Draft Saved!**\n\nYour rendered video is ready in the artifact panel and previewed inline here for review.`,
+            'Generated inline with the inbox video tool.',
+        );
+        setShowVideoGenerator(false);
         setVideoInitialPrompt('');
     };
 
@@ -1319,7 +1538,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                 <div className="max-w-3xl mx-auto py-4">
                     {thread.messages.length === 0 ? (
                         <>
-                            {!showQRGenerator && !showCarouselGenerator && !showHeroGenerator && !showBundleGenerator && !showSocialPostGenerator && !showPricingGenerator && !showVideoGenerator && !showCampaignPlanner && !showPerformanceReview && !showOutreachGenerator && !showEventPlanner && (
+                            {!showQRGenerator && !showCarouselGenerator && !showHeroGenerator && !showBundleGenerator && !showImageGenerator && !showSocialPostGenerator && !showPricingGenerator && !showVideoGenerator && !showCampaignPlanner && !showPerformanceReview && !showOutreachGenerator && !showEventPlanner && (
                                 <div className="text-center py-12">
                                     <Sparkles className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
                                     <h3 className="font-medium text-lg mb-2">Start the conversation</h3>
@@ -1382,6 +1601,16 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                                 </div>
                             )}
 
+                            {showImageGenerator && (
+                                <div className="mt-4">
+                                    <ImageGeneratorInline
+                                        orgId={thread.orgId}
+                                        onComplete={handleCompleteImage}
+                                        initialPrompt={imageInitialPrompt}
+                                    />
+                                </div>
+                            )}
+
                             {/* Show Social Post Generator inline for empty social post threads */}
                             {showSocialPostGenerator && (
                                 <div className="mt-4">
@@ -1405,7 +1634,8 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                             {showVideoGenerator && (
                                 <div className="mt-4">
                                     <VideoGeneratorInline
-                                        onComplete={handleCompleteVideo}
+                                        orgId={thread.orgId}
+                                        onComplete={handleSaveVideoDraft}
                                         initialPrompt={videoInitialPrompt}
                                     />
                                 </div>
@@ -1499,6 +1729,16 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                                 </div>
                             )}
 
+                            {showImageGenerator && (
+                                <div className="mt-4">
+                                    <ImageGeneratorInline
+                                        orgId={thread.orgId}
+                                        onComplete={handleCompleteImage}
+                                        initialPrompt={imageInitialPrompt}
+                                    />
+                                </div>
+                            )}
+
                             {/* Show Social Post Generator inline after messages */}
                             {showSocialPostGenerator && (
                                 <div className="mt-4">
@@ -1522,7 +1762,8 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                             {showVideoGenerator && (
                                 <div className="mt-4">
                                     <VideoGeneratorInline
-                                        onComplete={handleCompleteVideo}
+                                        orgId={thread.orgId}
+                                        onComplete={handleSaveVideoDraft}
                                         initialPrompt={videoInitialPrompt}
                                     />
                                 </div>

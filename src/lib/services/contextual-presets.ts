@@ -31,6 +31,14 @@ function isSuperRole(role: string): boolean {
     return role === 'super_user' || role === 'super_admin' || role === 'owner';
 }
 
+function isSuperContextualPreset(preset: InboxQuickAction): boolean {
+    return (
+        (preset.roles.length === 1 && preset.roles[0] === 'super_user') ||
+        preset.id === 'create-image' ||
+        preset.id === 'create-video'
+    );
+}
+
 /**
  * Determine time of day bucket
  */
@@ -260,7 +268,7 @@ export function generateContextualPresets(options: ContextualPresetOptions): Con
     // For Super Users, prefer "super_user only" presets so they don't see brand/dispensary defaults.
     const allPresets = getQuickActionsForRole(role);
     const superOnlyPresets = roleIsSuper
-        ? allPresets.filter((p) => p.roles.length === 1 && p.roles[0] === 'super_user')
+        ? allPresets.filter(isSuperContextualPreset)
         : [];
     const rolePresets = roleIsSuper && superOnlyPresets.length > 0 ? superOnlyPresets : allPresets;
     const isGrower = role === 'grower';
@@ -357,7 +365,7 @@ export function getRotatingPresets(
     const { role } = options;
     const allPresets = getQuickActionsForRole(role);
     const rolePresets = isSuperRole(role)
-        ? allPresets.filter((p) => p.roles.length === 1 && p.roles[0] === 'super_user')
+        ? allPresets.filter(isSuperContextualPreset)
         : allPresets;
 
     // Shuffle and return 4 that aren't in exclude list

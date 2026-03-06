@@ -28,6 +28,7 @@ import { verifyEmail } from '@/server/services/email-verification';
 import { sendGenericEmail } from '@/lib/email/dispatcher';
 import { apolloSearchPeople, apolloEnrichByDomain, getApolloCreditStatus, type ApolloCreditStatus } from '@/server/services/ny-outreach/apollo-enrichment';
 import { enrichLeadBatch } from '@/server/services/ny-outreach/lead-enrichment';
+import { getGLMUsageStatus } from '@/server/services/glm-usage';
 import { logger } from '@/lib/logger';
 
 // Re-export Apollo credit type for UI
@@ -1027,6 +1028,9 @@ export interface SuperUserStatusCounts {
     pendingBlogDrafts: number;      // blog_posts where status='draft'
     leadQueueDepth: number;         // researched leads ready for outreach
     apolloCreditsRemaining: number; // Apollo.io credits left this cycle
+    glmPercentUsed?: number;        // GLM usage percentage (0-100)
+    glmProvider?: 'glm' | 'anthropic';  // Current AI provider preference
+    glmCycleEnd?: number;            // Timestamp when GLM cycle resets
 }
 
 // Matches BIZ_DEV_CACHE_DOC in executive-context-prewarm/route.ts
@@ -1066,6 +1070,9 @@ export async function getSuperUserStatusCounts(): Promise<{
                         getApolloCreditStatus(),
                     ]);
                     logger.info('[OutreachDashboard] Status counts served from cache', { ageMinutes: Math.round(ageMs / 60000) });
+                    // Also fetch GLM status (not cached, always live)
+                    const glmStatus = await getGLMUsageStatus();
+
                     return {
                         success: true,
                         counts: {
@@ -1074,6 +1081,9 @@ export async function getSuperUserStatusCounts(): Promise<{
                             pendingBlogDrafts: blogDraftsSnap.data().count,
                             leadQueueDepth: (d.queueDepth as number) ?? 0,
                             apolloCreditsRemaining: apolloCredits.remaining,
+                            glmPercentUsed: glmStatus.percentUsed,
+                            glmProvider: glmStatus.provider,
+                            glmCycleEnd: glmStatus.cycleEnd,
                         },
                     };
                 }
@@ -1089,6 +1099,7 @@ export async function getSuperUserStatusCounts(): Promise<{
             blogDraftsSnap,
             leadQueueSnap,
             apolloCredits,
+            glmStatus,
         ] = await Promise.all([
             db.collection('ny_outreach_drafts').where('status', '==', 'draft').count().get(),
             db.collection('ny_dispensary_leads').where('enriched', '==', false).count().get(),
@@ -1099,6 +1110,7 @@ export async function getSuperUserStatusCounts(): Promise<{
                 .count()
                 .get(),
             getApolloCreditStatus(),
+            getGLMUsageStatus(),
         ]);
 
         return {
@@ -1109,6 +1121,9 @@ export async function getSuperUserStatusCounts(): Promise<{
                 pendingBlogDrafts: blogDraftsSnap.data().count,
                 leadQueueDepth: leadQueueSnap.data().count,
                 apolloCreditsRemaining: apolloCredits.remaining,
+                glmPercentUsed: glmStatus.percentUsed,
+                glmProvider: glmStatus.provider,
+                glmCycleEnd: glmStatus.cycleEnd,
             },
         };
     } catch (err) {

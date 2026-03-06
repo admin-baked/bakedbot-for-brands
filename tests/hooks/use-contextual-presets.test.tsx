@@ -414,4 +414,39 @@ describe('useContextualPresets', () => {
             });
         });
     });
+
+    describe('media presets', () => {
+        it('can surface the cross-role create-image preset', async () => {
+            mockGenerateContextualPresets.mockReturnValue({
+                presets: [
+                    {
+                        id: 'create-image',
+                        label: 'Create Image',
+                        description: 'Generate AI product or lifestyle images for marketing',
+                        icon: 'ImagePlus',
+                        threadType: 'image',
+                        defaultAgent: 'craig',
+                        promptTemplate: 'Help me create marketing images',
+                        category: 'marketing',
+                        roles: ['super_user', 'brand_admin'],
+                    },
+                ],
+                greeting: 'Good afternoon',
+                suggestion: 'Create fresh media.',
+            });
+
+            const { result } = renderHook(() =>
+                useContextualPresets({ role: 'super_user', orgId: 'org-123' })
+            );
+
+            await waitFor(() => {
+                expect(result.current.isLoading).toBe(false);
+            });
+
+            expect(result.current.presets[0]).toMatchObject({
+                id: 'create-image',
+                threadType: 'image',
+            });
+        });
+    });
 });

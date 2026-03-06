@@ -7,7 +7,8 @@ describe('InboxThreadTypeSchema', () => {
         }
     });
 
-    it('accepts video and grower thread types', () => {
+    it('accepts image, video, and grower thread types', () => {
+        expect(InboxThreadTypeSchema.parse('image')).toBe('image');
         expect(InboxThreadTypeSchema.parse('video')).toBe('video');
         expect(InboxThreadTypeSchema.parse('yield_analysis')).toBe('yield_analysis');
         expect(InboxThreadTypeSchema.parse('wholesale_inventory')).toBe('wholesale_inventory');

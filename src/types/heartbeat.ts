@@ -25,6 +25,8 @@ export type HeartbeatCheckId =
     | 'calendar_upcoming'
     | 'competitive_intel'
     | 'platform_health'
+    | 'glm_usage_90'
+    | 'glm_cycle_reset'
     | 'ny_outreach_pipeline'
     | 'blog_pipeline'
     | 'apollo_credits'
@@ -309,6 +311,26 @@ export const HEARTBEAT_CHECKS: HeartbeatCheckDefinition[] = [
         id: 'platform_health',
         name: 'Platform Health',
         description: 'Overall platform health metrics',
+        agent: 'linus',
+        category: 'system',
+        defaultEnabled: true,
+        defaultPriority: 'medium',
+        roles: ['super_user'],
+    },
+    {
+        id: 'glm_usage_90',
+        name: 'GLM Usage Threshold',
+        description: 'Alert when GLM usage reaches the 90% threshold',
+        agent: 'linus',
+        category: 'system',
+        defaultEnabled: true,
+        defaultPriority: 'high',
+        roles: ['super_user'],
+    },
+    {
+        id: 'glm_cycle_reset',
+        name: 'GLM Cycle Reset',
+        description: 'Notify when the GLM billing cycle resets and GLM can be re-enabled',
         agent: 'linus',
         category: 'system',
         defaultEnabled: true,

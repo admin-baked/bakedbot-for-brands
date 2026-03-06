@@ -267,6 +267,19 @@ describe('Super User Inbox Types', () => {
             expect(action?.defaultAgent).toBe('deebo');
             expect(action?.threadType).toBe('compliance_audit');
         });
+
+        it('should expose cross-role media quick actions for super users', () => {
+            const imageAction = INBOX_QUICK_ACTIONS.find((action) => action.id === 'create-image');
+            const videoAction = INBOX_QUICK_ACTIONS.find((action) => action.id === 'create-video');
+
+            expect(imageAction).toBeDefined();
+            expect(imageAction?.threadType).toBe('image');
+            expect(imageAction?.roles).toContain('super_user');
+
+            expect(videoAction).toBeDefined();
+            expect(videoAction?.threadType).toBe('video');
+            expect(videoAction?.roles).toContain('super_user');
+        });
     });
 
     // ============ Agent Routing Tests ============
