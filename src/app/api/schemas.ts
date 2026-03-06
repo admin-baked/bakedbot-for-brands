@@ -276,6 +276,43 @@ export const ezalCreateCompetitorSchema = z.object({
 export type EzalCreateCompetitorRequest = z.infer<typeof ezalCreateCompetitorSchema>;
 
 // ============================================================================
+// EZAL VECTOR SEARCH SCHEMAS (LanceDB)
+// ============================================================================
+
+export const ezalVectorSearchSchema = z.object({
+  tenantId: z.string().min(1, 'Tenant ID is required'),
+  query: z.string().min(1, 'Search query is required').max(500, 'Query too long'),
+  competitorId: z.string().optional(),
+  category: z.string().optional(),
+  inStockOnly: z.boolean().optional().default(false),
+  limit: z.number().int().positive().max(50).optional().default(20),
+});
+
+export type EzalVectorSearchRequest = z.infer<typeof ezalVectorSearchSchema>;
+
+export const ezalInsightSearchSchema = z.object({
+  tenantId: z.string().min(1, 'Tenant ID is required'),
+  query: z.string().min(1, 'Search query is required').max(500, 'Query too long'),
+  severity: z.enum(['low', 'medium', 'high', 'critical']).optional(),
+  type: z.enum([
+    'price_drop', 'price_increase', 'price_gap',
+    'out_of_stock', 'back_in_stock', 'new_product', 'discontinued',
+  ]).optional(),
+  limit: z.number().int().positive().max(50).optional().default(20),
+});
+
+export type EzalInsightSearchRequest = z.infer<typeof ezalInsightSearchSchema>;
+
+export const ezalPriceHistorySchema = z.object({
+  tenantId: z.string().min(1, 'Tenant ID is required'),
+  productId: z.string().min(1, 'Product ID is required'),
+  days: z.number().int().positive().max(365).optional().default(30),
+  limit: z.number().int().positive().max(1000).optional().default(500),
+});
+
+export type EzalPriceHistoryRequest = z.infer<typeof ezalPriceHistorySchema>;
+
+// ============================================================================
 // TICKET SCHEMAS
 // ============================================================================
 
