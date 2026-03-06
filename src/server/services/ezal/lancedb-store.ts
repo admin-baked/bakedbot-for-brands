@@ -33,17 +33,35 @@ import type {
 // CONNECTION MANAGEMENT
 // =============================================================================
 
+// Local dev: /tmp/bakedbot-lancedb
+// Production: gs://bakedbot-lancedb/ezal (set via LANCEDB_URI env var)
 const LANCEDB_URI = process.env.LANCEDB_URI || '/tmp/bakedbot-lancedb';
 
 let _connection: lancedb.Connection | null = null;
+
+function buildStorageOptions(): Record<string, string> | undefined {
+  // GCS paths (gs://) need service account credentials in production
+  if (!LANCEDB_URI.startsWith('gs://')) return undefined;
+
+  // Firebase App Hosting provides GOOGLE_APPLICATION_CREDENTIALS automatically.
+  // LanceDB's object_store crate reads ADC (Application Default Credentials)
+  // from the environment. No explicit key needed on App Hosting / Cloud Run.
+  //
+  // For local GCS dev, set GOOGLE_APPLICATION_CREDENTIALS to a service account
+  // key file, or use `gcloud auth application-default login`.
+  return {
+    timeout: '30s',
+  };
+}
 
 async function getConnection(): Promise<lancedb.Connection> {
   if (_connection && _connection.isOpen()) {
     return _connection;
   }
 
-  _connection = await lancedb.connect(LANCEDB_URI);
-  logger.info('[LanceDB] Connected', { uri: LANCEDB_URI });
+  const storageOptions = buildStorageOptions();
+  _connection = await lancedb.connect(LANCEDB_URI, storageOptions ? { storageOptions } : undefined);
+  logger.info('[LanceDB] Connected', { uri: LANCEDB_URI, gcs: LANCEDB_URI.startsWith('gs://') });
   return _connection;
 }
 
