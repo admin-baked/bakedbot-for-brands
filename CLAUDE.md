@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-03-05 (Fixed Claude Code API proxy auth and settings file bloat)
+**Current Status:** 🟢 Passing | **Last update:** 2026-03-06 (Shipped GLM controls, Security Soren guidance, and hardened WordPress proxy handling)
 
 ---
 
