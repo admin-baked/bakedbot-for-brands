@@ -1,59 +1,100 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
+
+function normalizeProxyPath(path: string): string {
+  return path
+    .split('/')
+    .map(segment => segment.trim())
+    .filter(Boolean)
+    .join('/');
+}
+
+function resolveTargetUrl(configuredTarget: string, override: string | null): { ok: true; targetUrl: string } | { ok: false; response: NextResponse } {
+  if (!override) {
+    return { ok: true, targetUrl: configuredTarget };
+  }
+
+  try {
+    const configuredOrigin = new URL(configuredTarget).origin;
+    const overrideUrl = new URL(override);
+
+    if (overrideUrl.origin !== configuredOrigin) {
+      logger.warn('[WordPress Proxy] Rejected wpUrl override', {
+        requestedOrigin: overrideUrl.origin,
+        allowedOrigin: configuredOrigin,
+      });
+      return {
+        ok: false,
+        response: NextResponse.json({ error: 'Invalid WordPress target.' }, { status: 400 }),
+      };
+    }
+
+    return { ok: true, targetUrl: overrideUrl.toString().replace(/\/+$/, '') };
+  } catch (error) {
+    logger.warn('[WordPress Proxy] Invalid wpUrl override', {
+      override,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return {
+      ok: false,
+      response: NextResponse.json({ error: 'Invalid WordPress target.' }, { status: 400 }),
+    };
+  }
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const path = searchParams.get('path') || '';
+  const path = normalizeProxyPath(searchParams.get('path') || '');
+  const configuredTarget = process.env.ANDREWS_WP_URL?.trim();
 
-  // Debug logging
-  console.log('WordPress Proxy - Request path:', path);
-  console.log('WordPress Proxy - ANDREWS_WP_URL:', process.env.ANDREWS_WP_URL);
-
-  // Get the WordPress URL from environment
-  const andrewsWpUrl = process.env.ANDREWS_WP_URL;
-  if (!andrewsWpUrl) {
-    return NextResponse.json({
-      error: 'WordPress URL not configured',
-      debug: {
-        path,
-        env: {
-          ANDREWS_WP_URL: process.env.ANDREWS_WP_URL,
-        }
-      }
-    }, { status: 500 });
+  if (!configuredTarget) {
+    logger.error('[WordPress Proxy] ANDREWS_WP_URL is not configured');
+    return NextResponse.json({ error: 'WordPress proxy is not configured.' }, { status: 500 });
   }
 
-  // Construct the WordPress URL
-  const wpUrl = `${andrewsWpUrl}${path ? '/' + path : ''}`;
-  console.log('WordPress Proxy - Target URL:', wpUrl);
+  const targetResult = resolveTargetUrl(configuredTarget, searchParams.get('wpUrl'));
+  if (!targetResult.ok) {
+    return targetResult.response;
+  }
+
+  const fullUrl = new URL(path || '', `${targetResult.targetUrl.replace(/\/+$/, '')}/`).toString();
+  logger.info('[WordPress Proxy] Proxying request', {
+    path,
+    targetOrigin: new URL(targetResult.targetUrl).origin,
+  });
 
   try {
-    // Forward the request to WordPress
-    const response = await fetch(wpUrl, {
+    const response = await fetch(fullUrl, {
       method: request.method,
       headers: {
-        'Host': new URL(andrewsWpUrl).hostname,
+        Host: new URL(targetResult.targetUrl).hostname,
         'User-Agent': request.headers.get('user-agent') || '',
+        Accept: '*/*',
       },
     });
 
-    console.log('WordPress Proxy - Response status:', response.status);
+    logger.info('[WordPress Proxy] Received response', {
+      status: response.status,
+      path,
+    });
 
-    // Return the response from WordPress
+    const headers = new Headers();
+    for (const [key, value] of response.headers.entries()) {
+      if (!key.toLowerCase().startsWith('x-nextjs-')) {
+        headers.set(key, value);
+      }
+    }
+
     return new Response(response.body, {
       status: response.status,
-      headers: {
-        'Content-Type': response.headers.get('content-type') || 'text/html',
-      },
+      headers,
     });
   } catch (error) {
-    console.error('WordPress Proxy - Error:', error);
-    return NextResponse.json({
-      error: 'Failed to fetch WordPress',
-      debug: {
-        path,
-        wpUrl,
-        error: error instanceof Error ? error.message : String(error)
-      }
-    }, { status: 500 });
+    logger.error('[WordPress Proxy] Failed to fetch WordPress', {
+      path,
+      fullUrl,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return NextResponse.json({ error: 'Failed to fetch WordPress.' }, { status: 502 });
   }
 }
