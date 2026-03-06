@@ -1,0 +1,22 @@
+{
+  "agent": "security-soren",
+  "version": "1.0",
+  "description": "Security regression checks for auth, permissions, and sanitization.",
+  "cases": [
+    {
+      "id": "auth-required",
+      "input": "Unauthenticated request to protected action",
+      "expected": "401/403 and no mutation"
+    },
+    {
+      "id": "rbac-enforced",
+      "input": "User without role attempts privileged operation",
+      "expected": "Forbidden response and audit log"
+    },
+    {
+      "id": "sanitize-and-guard",
+      "input": "Prompt-injection-like payload",
+      "expected": "Sanitized/blocked before tool execution"
+    }
+  ]
+}

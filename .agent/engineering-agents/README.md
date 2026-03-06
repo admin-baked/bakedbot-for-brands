@@ -39,6 +39,7 @@ Claude Code auto-loads CLAUDE.md files up the directory tree. Each engineering a
 | Loyalty Luis | `src/app/dashboard/loyalty/**` |
 | Intel Ivan | `src/app/dashboard/intelligence/**` |
 | Platform Pat | `src/app/api/cron/**` |
+| Security Soren | `src/server/security/**` |
 | Playbook Pablo | `src/app/dashboard/playbooks/**` |
 | Drive Dana | `src/app/dashboard/drive/**` |
 | Delivery Dante | `src/app/dashboard/delivery/**` |
@@ -60,10 +61,11 @@ Claude Code auto-loads CLAUDE.md files up the directory tree. Each engineering a
 | 8 | **Loyalty Luis** | Loyalty dashboard, points engine, tier advancement, spending index | `src/app/dashboard/loyalty/` | `loyalty-luis/` | ✅ Active |
 | 9 | **Intel Ivan** | Competitive intelligence, Ezal, CannMenus, Jina tools, weekly CI reports | `src/app/dashboard/intelligence/` | `intel-ivan/` | ✅ Active |
 | 10 | **Platform Pat** | Crons (47+), heartbeat, auto-escalation, Firebase App Hosting, secrets | `src/app/api/cron/` | `platform-pat/` | ✅ Active |
-| 11 | **Playbook Pablo** | Playbook templates (23), trigger editor, execution cron, cron utilities | `src/app/dashboard/playbooks/` | `playbook-pablo/` | ✅ Active |
-| 12 | **Drive Dana** | BakedBot Drive UI, file viewer/editor, AI Magic Button, Drive-inbox bridge | `src/app/dashboard/drive/` | `drive-dana/` | ✅ Active |
-| 13 | **Delivery Dante** | Delivery dashboard, driver app, QR check-in, ETA calc, NY OCM compliance | `src/app/dashboard/delivery/` | `delivery-dante/` | ✅ Active |
-| 14 | **Boardroom Bob** | CEO boardroom, executive agents (Leo/Linus/Jack), CRM, QA, morning briefing | `src/app/dashboard/ceo/` | `boardroom-bob/` | ✅ Active |
+| 11 | **Security Soren** | Security hardening, auth/RBAC, prompt guards, secret hygiene, vulnerability response | `src/server/security/` | `security-soren/` | ✅ Active |
+| 12 | **Playbook Pablo** | Playbook templates (23), trigger editor, execution cron, cron utilities | `src/app/dashboard/playbooks/` | `playbook-pablo/` | ✅ Active |
+| 13 | **Drive Dana** | BakedBot Drive UI, file viewer/editor, AI Magic Button, Drive-inbox bridge | `src/app/dashboard/drive/` | `drive-dana/` | ✅ Active |
+| 14 | **Delivery Dante** | Delivery dashboard, driver app, QR check-in, ETA calc, NY OCM compliance | `src/app/dashboard/delivery/` | `delivery-dante/` | ✅ Active |
+| 15 | **Boardroom Bob** | CEO boardroom, executive agents (Leo/Linus/Jack), CRM, QA, morning briefing | `src/app/dashboard/ceo/` | `boardroom-bob/` | ✅ Active |
 
 ---
 
@@ -128,4 +130,4 @@ Linus reviews cross-domain changes (e.g., Inbox Mike changing `agent-runner.ts` 
 
 ---
 
-*Owned by: Linus (CTO) | Governed by: prime.md | Last updated: 2026-02-26*
+*Owned by: Linus (CTO) | Governed by: prime.md | Last updated: 2026-03-05*
