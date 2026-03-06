@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 // Mock all the heavy dependencies before importing the component
@@ -80,6 +80,7 @@ jest.mock('@/contexts/chatbot-context', () => ({
         dispensaryId: null,
         brandId: null,
         entityName: null,
+        state: null,
     }),
 }));
 
@@ -89,7 +90,19 @@ jest.mock('@/components/chatbot-icon', () => ({
 
 jest.mock('@/components/chatbot/onboarding-flow', () => ({
     __esModule: true,
-    default: () => <div data-testid="onboarding-flow">Onboarding</div>,
+    default: ({ onComplete }: any) => (
+        <button
+            type="button"
+            data-testid="onboarding-flow"
+            onClick={() => onComplete({
+                mood: 'social',
+                experience: 'comfortable',
+                social: 'with friends',
+            })}
+        >
+            Onboarding
+        </button>
+    ),
 }));
 
 jest.mock('@/components/chatbot/chat-messages', () => ({
@@ -125,6 +138,21 @@ describe('Chatbot Component', () => {
             brandId: 'brand_ecstatic_edibles',
         },
     ];
+
+    beforeEach(() => {
+        global.fetch = jest.fn().mockResolvedValue({
+            json: async () => ({
+                ok: true,
+                message: 'Here are a few ideas for you.',
+                products: [],
+                sessionId: 'session_ny',
+            }),
+        } as any);
+    });
+
+    afterEach(() => {
+        jest.clearAllMocks();
+    });
 
     describe('Rendering', () => {
         it('renders chatbot button when enabled', () => {
@@ -298,6 +326,31 @@ describe('Chatbot Component', () => {
             );
 
             expect(screen.getByTestId('product-carousel')).toBeInTheDocument();
+        });
+
+        it('sends the dispensary state during onboarding requests', async () => {
+            render(
+                <Chatbot
+                    products={mockProducts as any}
+                    dispensaryId="disp_thrive"
+                    entityName="Thrive Syracuse"
+                    state="NY"
+                    initialOpen={true}
+                    chatbotConfig={{ enabled: true }}
+                />
+            );
+
+            fireEvent.click(screen.getByRole('button', { name: /find product recommendations/i }));
+            fireEvent.click(screen.getByTestId('onboarding-flow'));
+
+            await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+
+            const [, options] = (global.fetch as jest.Mock).mock.calls[0];
+            const payload = JSON.parse(String((options as RequestInit).body));
+
+            expect(payload.brandId).toBe('disp_thrive');
+            expect(payload.state).toBe('NY');
+            expect(payload.isOnboarding).toBe(true);
         });
     });
 });

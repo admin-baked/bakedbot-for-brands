@@ -750,6 +750,7 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [], publi
         products={allProducts}
         dispensaryId={dispensary.id}
         entityName={dispensary.name}
+        state={dispensary.state}
         initialOpen={false}
       />
     </div>

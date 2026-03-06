@@ -14,6 +14,7 @@ interface ChatbotContextType {
     dispensaryId?: string;
     brandId?: string;
     entityName?: string;
+    state?: string;
     entityType?: 'dispensary' | 'brand' | 'zip' | 'general';
 
     // Products available on current page
@@ -65,5 +66,5 @@ export function useSetChatbotContext(context: Partial<Omit<ChatbotContextType, '
     React.useEffect(() => {
         setPageContext(context);
         return () => clearPageContext();
-    }, [context.dispensaryId, context.brandId, context.entityName, context.entityType]);
+    }, [context.dispensaryId, context.brandId, context.entityName, context.state, context.entityType]);
 }
