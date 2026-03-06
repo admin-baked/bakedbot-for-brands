@@ -38,7 +38,7 @@ jest.mock('@/components/chat/project-selector', () => ({
 }));
 jest.mock('../model-selector', () => ({
     ModelSelector: () => <div data-testid="model-selector">Model Selector</div>,
-    ThinkingLevel: {} 
+    ThinkingLevel: {}
 }));
 jest.mock('@/components/artifacts/artifact-panel', () => ({
     ArtifactPanel: () => <div data-testid="artifact-panel">Artifact Panel</div>
@@ -116,7 +116,7 @@ describe('PuffChat Component', () => {
     const mockSubmitMessage = jest.fn();
     const mockSetInput = jest.fn();
     const mockSetPersona = jest.fn();
-    
+
     const defaultHookValues = {
         state: { title: 'Test Chat', isConnected: true, permissions: [], triggers: [] },
         input: '',
@@ -210,25 +210,44 @@ describe('PuffChat Component', () => {
             ...defaultHookValues,
             isProcessing: true
         });
-        
+
         render(<PuffChat />);
         expect(screen.getByTitle('Stop Generation')).toBeInTheDocument();
     });
-    
+
     it('handles permission card grant', () => {
         const mockGrant = jest.fn();
         (usePuffChatLogic as jest.Mock).mockReturnValue({
             ...defaultHookValues,
-            state: { 
-                ...defaultHookValues.state, 
-                permissions: [{ id: 'gmail', name: 'Gmail', status: 'pending', description: 'Access', icon: 'mail', tools: [] }] 
+            state: {
+                ...defaultHookValues.state,
+                permissions: [{ id: 'gmail', name: 'Gmail', status: 'pending', description: 'Access', icon: 'mail', tools: [] }]
             },
             handleGrantPermission: mockGrant
         });
-        
+
         render(<PuffChat />);
         const connectBtn = screen.getByText('Connect');
         fireEvent.click(connectBtn);
         expect(mockGrant).toHaveBeenCalledWith('gmail');
+    });
+
+    it('auto-submits when a prompt suggestion is clicked', () => {
+        (usePuffChatLogic as jest.Mock).mockReturnValue({
+            ...defaultHookValues,
+            submitMessage: mockSubmitMessage
+        });
+
+        render(<PuffChat promptSuggestions={['Audit my Brand']} isAuthenticated={false} />);
+
+        // Find the suggestion button
+        const suggestionButton = screen.getByText('Audit my Brand');
+        expect(suggestionButton).toBeInTheDocument();
+
+        // Click it
+        fireEvent.click(suggestionButton);
+
+        // Verify it called submitMessage immediately
+        expect(mockSubmitMessage).toHaveBeenCalledWith('Audit my Brand');
     });
 });

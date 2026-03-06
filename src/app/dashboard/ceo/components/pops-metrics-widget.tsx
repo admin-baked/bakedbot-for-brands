@@ -7,6 +7,7 @@ import { Activity, DollarSign, Users, TrendingUp, TrendingDown, Loader2 } from '
 import { cn } from '@/lib/utils';
 import { getPlatformAnalytics } from '../actions/data-actions';
 import type { PlatformAnalyticsData } from '../actions/types';
+import { logger } from '@/lib/logger';
 
 function formatMoney(amount: number): string {
     return amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
@@ -25,7 +26,9 @@ export function PopsMetricsWidget() {
                 setData(res);
             })
             .catch((e) => {
-                console.error('[PopsMetricsWidget] Failed to load platform analytics', e);
+                logger.error('[PopsMetricsWidget] Failed to load platform analytics', {
+                    error: e instanceof Error ? e.message : String(e),
+                });
                 if (cancelled) return;
                 setError('Analytics unavailable');
             });
