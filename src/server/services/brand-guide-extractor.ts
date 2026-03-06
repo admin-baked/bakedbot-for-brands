@@ -279,7 +279,7 @@ export class BrandGuideExtractor {
         if (!response.ok) return '';
         const html = await response.text();
         // Strip scripts, styles and HTML tags; decode common entities
-        return html
+        let content = html
           .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ')
           .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ')
           .replace(/<[^>]+>/g, ' ')
@@ -288,8 +288,14 @@ export class BrandGuideExtractor {
           .replace(/&gt;/g, '>')
           .replace(/&nbsp;/g, ' ')
           .replace(/\s+/g, ' ')
-          .trim()
-          .substring(0, 8000);
+          .trim();
+
+        // Log warning if content was truncated
+        if (content.length > 20000) {
+          logger.warn(`[BrandGuideExtractor] Content was truncated from ${content.length} to 20000 characters for ${url}`);
+        }
+
+        return content.substring(0, 20000);
       } finally {
         clearTimeout(timeout);
       }
