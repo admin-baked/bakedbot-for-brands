@@ -56,20 +56,7 @@ export function MenuImportStep({ onComplete, onSkip }: MenuImportStepProps) {
 
             // 3. Success
             setStatus('Complete!');
-            
-            // Derive name from URL if extraction name is missing (though startMenuImport likely handled it)
-            // For now, we assume importResult didn't return name explicitly, so we rely on user flow or update action to return it.
-            // Let's assume we extract a name or fallback to a placeholder.
-            // Ideally startMenuImport returns the extracted name. I should have updated it to return { success, importId, stats, extractedName? }.
-            // I'll assume we can ask the user to confirm/edit the name in the next step (Review) if needed.
-            // Or I can parse the domain.
-            let name = 'Dispensary';
-            try {
-                const urlObj = new URL(url);
-                name = urlObj.hostname.replace('www.', '').split('.')[0];
-                name = name.charAt(0).toUpperCase() + name.slice(1);
-            } catch (e) {}
-
+            const name = importResult.importedName || 'Dispensary';
             const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
             setSuccessData({

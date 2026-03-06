@@ -61,7 +61,7 @@ export function UnifiedInbox({ className }: UnifiedInboxProps) {
     // Handle URL params for type filter (e.g., /inbox?type=carousel)
     useEffect(() => {
         const typeParam = searchParams.get('type');
-        if (typeParam && ['carousel', 'bundle', 'creative', 'image', 'video', 'campaign', 'general', 'product_discovery', 'support'].includes(typeParam)) {
+        if (typeParam && ['carousel', 'bundle', 'creative', 'image', 'video', 'campaign', 'launch', 'crm_customer', 'general', 'product_discovery', 'wholesale_inventory', 'support'].includes(typeParam)) {
             setThreadFilter({ type: typeParam as InboxThreadType });
         }
     }, [searchParams, setThreadFilter]);

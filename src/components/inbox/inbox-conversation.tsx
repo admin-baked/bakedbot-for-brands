@@ -71,6 +71,7 @@ import { QRCodeGeneratorInline } from './qr-code-generator-inline';
 import { CarouselGeneratorInline } from './carousel-generator-inline';
 import { HeroGeneratorInline } from './hero-generator-inline';
 import { BundleGeneratorInline } from './bundle-generator-inline';
+import { LaunchCoordinatorInline } from './launch-coordinator-inline';
 import { ImageGeneratorInline } from './image-generator-inline';
 import { SocialPostGeneratorInline } from './social-post-generator-inline';
 import { DynamicPricingGeneratorInline } from './dynamic-pricing-generator-inline';
@@ -79,6 +80,9 @@ import { CampaignPlannerInline } from './campaign-planner-inline';
 import { PerformanceReviewInline } from './performance-review-inline';
 import { OutreachGeneratorInline } from './outreach-generator-inline';
 import { EventPlannerInline } from './event-planner-inline';
+import { CrmCampaignInline } from './crm-campaign-inline';
+import { ProductDiscoveryInline } from './product-discovery-inline';
+import { WholesaleInventoryInline } from './wholesale-inventory-inline';
 import { ChatMediaPreview } from '@/components/chat/chat-media-preview';
 import { formatDistanceToNow } from 'date-fns';
 import { runInboxAgentChat, addMessageToInboxThread, createInboxArtifact } from '@/server/actions/inbox';
@@ -538,6 +542,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     const [showCarouselGenerator, setShowCarouselGenerator] = useState(false);
     const [showHeroGenerator, setShowHeroGenerator] = useState(false);
     const [showBundleGenerator, setShowBundleGenerator] = useState(false);
+    const [showLaunchCoordinator, setShowLaunchCoordinator] = useState(false);
     const [showImageGenerator, setShowImageGenerator] = useState(false);
     const [showSocialPostGenerator, setShowSocialPostGenerator] = useState(false);
     const [showPricingGenerator, setShowPricingGenerator] = useState(false);
@@ -546,10 +551,14 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     const [showPerformanceReview, setShowPerformanceReview] = useState(false);
     const [showOutreachGenerator, setShowOutreachGenerator] = useState(false);
     const [showEventPlanner, setShowEventPlanner] = useState(false);
+    const [showCrmCoordinator, setShowCrmCoordinator] = useState(false);
+    const [showProductDiscovery, setShowProductDiscovery] = useState(false);
+    const [showWholesaleInventory, setShowWholesaleInventory] = useState(false);
 
     const [carouselInitialPrompt, setCarouselInitialPrompt] = useState('');
     const [heroInitialPrompt, setHeroInitialPrompt] = useState('');
     const [bundleInitialPrompt, setBundleInitialPrompt] = useState('');
+    const [launchInitialPrompt, setLaunchInitialPrompt] = useState('');
     const [imageInitialPrompt, setImageInitialPrompt] = useState('');
     const [socialPostInitialPrompt, setSocialPostInitialPrompt] = useState('');
     const [pricingInitialPrompt, setPricingInitialPrompt] = useState('');
@@ -558,6 +567,9 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     const [performanceInitialPrompt, setPerformanceInitialPrompt] = useState('');
     const [outreachInitialPrompt, setOutreachInitialPrompt] = useState('');
     const [eventInitialPrompt, setEventInitialPrompt] = useState('');
+    const [crmInitialPrompt, setCrmInitialPrompt] = useState('');
+    const [productDiscoveryInitialPrompt, setProductDiscoveryInitialPrompt] = useState('');
+    const [wholesaleInventoryInitialPrompt, setWholesaleInventoryInitialPrompt] = useState('');
     const [lastCreatedHeroId, setLastCreatedHeroId] = useState<string | null>(null);
     const [lastCreatedHeroOrgId, setLastCreatedHeroOrgId] = useState<string | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -567,6 +579,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     const hasAutoShownCarousel = useRef<boolean>(false);
     const hasAutoShownHero = useRef<boolean>(false);
     const hasAutoShownBundle = useRef<boolean>(false);
+    const hasAutoShownLaunch = useRef<boolean>(false);
     const hasAutoShownImage = useRef<boolean>(false);
     const hasAutoShownSocialPost = useRef<boolean>(false);
     const hasAutoShownPricing = useRef<boolean>(false);
@@ -575,6 +588,9 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     const hasAutoShownPerformance = useRef<boolean>(false);
     const hasAutoShownOutreach = useRef<boolean>(false);
     const hasAutoShownEvent = useRef<boolean>(false);
+    const hasAutoShownCrm = useRef<boolean>(false);
+    const hasAutoShownProductDiscovery = useRef<boolean>(false);
+    const hasAutoShownWholesaleInventory = useRef<boolean>(false);
 
     const {
         addMessageToThread,
@@ -611,6 +627,14 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                 setBundleInitialPrompt(pending);
                 setShowBundleGenerator(true);
                 break;
+            case 'launch':
+                setLaunchInitialPrompt(pending);
+                setShowLaunchCoordinator(true);
+                break;
+            case 'launch_campaign':
+                setLaunchInitialPrompt(pending);
+                setShowLaunchCoordinator(true);
+                break;
             case 'creative':
                 setSocialPostInitialPrompt(pending);
                 setShowSocialPostGenerator(true);
@@ -642,6 +666,18 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             case 'event':
                 setEventInitialPrompt(pending);
                 setShowEventPlanner(true);
+                break;
+            case 'crm_customer':
+                setCrmInitialPrompt(pending);
+                setShowCrmCoordinator(true);
+                break;
+            case 'product_discovery':
+                setProductDiscoveryInitialPrompt(pending);
+                setShowProductDiscovery(true);
+                break;
+            case 'wholesale_inventory':
+                setWholesaleInventoryInitialPrompt(pending);
+                setShowWholesaleInventory(true);
                 break;
             case 'qr_code':
                 setShowQRGenerator(true);
@@ -831,6 +867,21 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         }
     }, [thread.id, thread.type, showBundleGenerator]);
 
+    // Auto-open Launch coordinator for launch threads
+    useEffect(() => {
+        if (thread.type === 'launch' || thread.type === 'launch_campaign') {
+            if (!showLaunchCoordinator) {
+                setShowLaunchCoordinator(true);
+            }
+            hasAutoShownLaunch.current = true;
+        } else {
+            if (showLaunchCoordinator) {
+                setShowLaunchCoordinator(false);
+            }
+            hasAutoShownLaunch.current = false;
+        }
+    }, [thread.id, thread.type, showLaunchCoordinator]);
+
     // Auto-open Image generator for image threads
     useEffect(() => {
         if (thread.type === 'image') {
@@ -931,6 +982,39 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         }
     }, [thread.id, thread.type, showEventPlanner]);
 
+    // Auto-open CRM coordinator for crm_customer threads
+    useEffect(() => {
+        if (thread.type === 'crm_customer') {
+            if (!showCrmCoordinator) setShowCrmCoordinator(true);
+            hasAutoShownCrm.current = true;
+        } else {
+            if (showCrmCoordinator) setShowCrmCoordinator(false);
+            hasAutoShownCrm.current = false;
+        }
+    }, [thread.id, thread.type, showCrmCoordinator]);
+
+    // Auto-open Product Discovery for product_discovery threads
+    useEffect(() => {
+        if (thread.type === 'product_discovery') {
+            if (!showProductDiscovery) setShowProductDiscovery(true);
+            hasAutoShownProductDiscovery.current = true;
+        } else {
+            if (showProductDiscovery) setShowProductDiscovery(false);
+            hasAutoShownProductDiscovery.current = false;
+        }
+    }, [thread.id, thread.type, showProductDiscovery]);
+
+    // Auto-open Wholesale Inventory for wholesale_inventory threads
+    useEffect(() => {
+        if (thread.type === 'wholesale_inventory') {
+            if (!showWholesaleInventory) setShowWholesaleInventory(true);
+            hasAutoShownWholesaleInventory.current = true;
+        } else {
+            if (showWholesaleInventory) setShowWholesaleInventory(false);
+            hasAutoShownWholesaleInventory.current = false;
+        }
+    }, [thread.id, thread.type, showWholesaleInventory]);
+
     const handleSubmit = async () => {
         if ((!input.trim() && attachments.length === 0) || isSubmitting || isPending) return;
 
@@ -966,6 +1050,23 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             addMessageToThread(thread.id, userMessage);
             setCarouselInitialPrompt(input.trim());
             setShowCarouselGenerator(true);
+            setInput('');
+            return;
+        }
+
+        const launchKeywords = ['product launch', 'launch package', 'launch plan', 'launch brief', 'go to market', 'new sku launch', 'new product drop'];
+        const isLaunchRequest = launchKeywords.some((keyword) => lowerInput.includes(keyword));
+
+        if (isLaunchRequest) {
+            const userMessage: ChatMessage = {
+                id: `msg-${Date.now()}`,
+                type: 'user',
+                content: input.trim(),
+                timestamp: new Date(),
+            };
+            addMessageToThread(thread.id, userMessage);
+            setLaunchInitialPrompt(input.trim());
+            setShowLaunchCoordinator(true);
             setInput('');
             return;
         }
@@ -1018,6 +1119,77 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             addMessageToThread(thread.id, userMessage);
             setVideoInitialPrompt(input.trim());
             setShowVideoGenerator(true);
+            setInput('');
+            return;
+        }
+
+        const crmKeywords = ['win back customers', 'birthday campaign', 'vip appreciation', 'segment analysis', 'restock alert', 'customer retention', 'crm campaign', 'customer lifecycle'];
+        const isCrmRequest = crmKeywords.some((keyword) => lowerInput.includes(keyword));
+
+        if (isCrmRequest) {
+            const userMessage: ChatMessage = {
+                id: `msg-${Date.now()}`,
+                type: 'user',
+                content: input.trim(),
+                timestamp: new Date(),
+            };
+            addMessageToThread(thread.id, userMessage);
+            setCrmInitialPrompt(input.trim());
+            setShowCrmCoordinator(true);
+            setInput('');
+            return;
+        }
+
+        const productDiscoveryKeywords = [
+            'find product',
+            'find products',
+            'recommend product',
+            'recommend products',
+            'product recommendation',
+            'what should i buy',
+            'menu recommendation',
+            'suggest bundles',
+            'bundle ideas',
+            'product pairings',
+            'pair products',
+            'entourage effect',
+        ];
+        const isProductDiscoveryRequest = productDiscoveryKeywords.some((keyword) => lowerInput.includes(keyword));
+
+        if (isProductDiscoveryRequest) {
+            const userMessage: ChatMessage = {
+                id: `msg-${Date.now()}`,
+                type: 'user',
+                content: input.trim(),
+                timestamp: new Date(),
+            };
+            addMessageToThread(thread.id, userMessage);
+            setProductDiscoveryInitialPrompt(input.trim());
+            setShowProductDiscovery(true);
+            setInput('');
+            return;
+        }
+
+        const wholesaleKeywords = [
+            'wholesale inventory',
+            'wholesale availability',
+            'availability list',
+            'retail buyers',
+            'wholesale stock',
+            'leaflink inventory',
+        ];
+        const isWholesaleInventoryRequest = wholesaleKeywords.some((keyword) => lowerInput.includes(keyword));
+
+        if (isWholesaleInventoryRequest) {
+            const userMessage: ChatMessage = {
+                id: `msg-${Date.now()}`,
+                type: 'user',
+                content: input.trim(),
+                timestamp: new Date(),
+            };
+            addMessageToThread(thread.id, userMessage);
+            setWholesaleInventoryInitialPrompt(input.trim());
+            setShowWholesaleInventory(true);
             setInput('');
             return;
         }
@@ -1414,6 +1586,118 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         setImageInitialPrompt('');
     };
 
+    const handleOpenLaunchAsset = (
+        asset: 'carousel' | 'bundle' | 'image' | 'video' | 'campaign',
+        assetPrompt: string,
+    ) => {
+        switch (asset) {
+            case 'carousel':
+                setCarouselInitialPrompt(assetPrompt);
+                setShowCarouselGenerator(true);
+                break;
+            case 'bundle':
+                setBundleInitialPrompt(assetPrompt);
+                setShowBundleGenerator(true);
+                break;
+            case 'image':
+                setImageInitialPrompt(assetPrompt);
+                setShowImageGenerator(true);
+                break;
+            case 'video':
+                setVideoInitialPrompt(assetPrompt);
+                setShowVideoGenerator(true);
+                break;
+            case 'campaign':
+                setCampaignInitialPrompt(assetPrompt);
+                setShowCampaignPlanner(true);
+                break;
+            default:
+                break;
+        }
+
+        const confirmationMessage: ChatMessage = {
+            id: `msg-${Date.now()}`,
+            type: 'agent',
+            content: `🚀 **Launch Asset Ready**\n\nOpening the ${asset} workflow with a coordinated prompt from your launch brief.`,
+            timestamp: new Date(),
+        };
+        addMessageToThread(thread.id, confirmationMessage);
+    };
+
+    const handleOpenCrmAction = (
+        action: 'campaign' | 'outreach' | 'performance',
+        actionPrompt: string,
+    ) => {
+        switch (action) {
+            case 'campaign':
+                setCampaignInitialPrompt(actionPrompt);
+                setShowCampaignPlanner(true);
+                break;
+            case 'outreach':
+                setOutreachInitialPrompt(actionPrompt);
+                setShowOutreachGenerator(true);
+                break;
+            case 'performance':
+                setPerformanceInitialPrompt(actionPrompt);
+                setShowPerformanceReview(true);
+                break;
+            default:
+                break;
+        }
+
+        const confirmationMessage: ChatMessage = {
+            id: `msg-${Date.now()}`,
+            type: 'agent',
+            content: `📬 **CRM Action Ready**\n\nOpening the ${action} workflow with prompts grounded in your CRM data.`,
+            timestamp: new Date(),
+        };
+        addMessageToThread(thread.id, confirmationMessage);
+    };
+
+    const handleOpenProductDiscoveryAction = (
+        action: 'bundle',
+        actionPrompt: string,
+    ) => {
+        switch (action) {
+            case 'bundle':
+                setBundleInitialPrompt(actionPrompt);
+                setShowBundleGenerator(true);
+                break;
+            default:
+                break;
+        }
+
+        const confirmationMessage: ChatMessage = {
+            id: `msg-${Date.now()}`,
+            type: 'agent',
+            content: `🔎 **Product Discovery Action Ready**\n\nOpening the ${action} workflow with prompts grounded in your current catalog.`,
+            timestamp: new Date(),
+        };
+        addMessageToThread(thread.id, confirmationMessage);
+    };
+
+    const handleOpenWholesaleInventoryAction = (
+        action: 'outreach',
+        actionPrompt: string,
+    ) => {
+        switch (action) {
+            case 'outreach':
+                setOutreachInitialPrompt(actionPrompt);
+                setShowOutreachGenerator(true);
+                break;
+            default:
+                break;
+        }
+
+        const confirmationMessage: ChatMessage = {
+            id: `msg-${Date.now()}`,
+            type: 'agent',
+            content: `📦 **Wholesale Action Ready**\n\nOpening the ${action} workflow with prompts grounded in your live inventory snapshot.`,
+            timestamp: new Date(),
+        };
+        addMessageToThread(thread.id, confirmationMessage);
+    };
+
     const handleSaveVideoDraft = async (videoData: {
         draft: CreativeContent;
         media: {
@@ -1538,7 +1822,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                 <div className="max-w-3xl mx-auto py-4">
                     {thread.messages.length === 0 ? (
                         <>
-                            {!showQRGenerator && !showCarouselGenerator && !showHeroGenerator && !showBundleGenerator && !showImageGenerator && !showSocialPostGenerator && !showPricingGenerator && !showVideoGenerator && !showCampaignPlanner && !showPerformanceReview && !showOutreachGenerator && !showEventPlanner && (
+                            {!showQRGenerator && !showCarouselGenerator && !showHeroGenerator && !showBundleGenerator && !showLaunchCoordinator && !showImageGenerator && !showSocialPostGenerator && !showPricingGenerator && !showVideoGenerator && !showCampaignPlanner && !showPerformanceReview && !showOutreachGenerator && !showEventPlanner && !showCrmCoordinator && !showProductDiscovery && !showWholesaleInventory && (
                                 <div className="text-center py-12">
                                     <Sparkles className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
                                     <h3 className="font-medium text-lg mb-2">Start the conversation</h3>
@@ -1597,6 +1881,16 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                                         orgId={thread.orgId}
                                         onComplete={handleCompleteBundle}
                                         initialPrompt={bundleInitialPrompt}
+                                    />
+                                </div>
+                            )}
+
+                            {showLaunchCoordinator && (
+                                <div className="mt-4">
+                                    <LaunchCoordinatorInline
+                                        orgId={thread.orgId}
+                                        initialPrompt={launchInitialPrompt}
+                                        onOpenAsset={handleOpenLaunchAsset}
                                     />
                                 </div>
                             )}
@@ -1676,6 +1970,38 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                                     />
                                 </div>
                             )}
+
+                            {showCrmCoordinator && (
+                                <div className="mt-4">
+                                    <CrmCampaignInline
+                                        orgId={thread.orgId}
+                                        initialPrompt={crmInitialPrompt}
+                                        customerId={thread.customerId}
+                                        customerEmail={thread.customerEmail}
+                                        onOpenAction={handleOpenCrmAction}
+                                    />
+                                </div>
+                            )}
+
+                            {showProductDiscovery && (
+                                <div className="mt-4">
+                                    <ProductDiscoveryInline
+                                        orgId={thread.orgId}
+                                        initialPrompt={productDiscoveryInitialPrompt}
+                                        onOpenAction={handleOpenProductDiscoveryAction}
+                                    />
+                                </div>
+                            )}
+
+                            {showWholesaleInventory && (
+                                <div className="mt-4">
+                                    <WholesaleInventoryInline
+                                        orgId={thread.orgId}
+                                        initialPrompt={wholesaleInventoryInitialPrompt}
+                                        onOpenAction={handleOpenWholesaleInventoryAction}
+                                    />
+                                </div>
+                            )}
                         </>
                     ) : (
                         <>
@@ -1725,6 +2051,16 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                                         orgId={thread.orgId}
                                         onComplete={handleCompleteBundle}
                                         initialPrompt={bundleInitialPrompt}
+                                    />
+                                </div>
+                            )}
+
+                            {showLaunchCoordinator && (
+                                <div className="mt-4">
+                                    <LaunchCoordinatorInline
+                                        orgId={thread.orgId}
+                                        initialPrompt={launchInitialPrompt}
+                                        onOpenAsset={handleOpenLaunchAsset}
                                     />
                                 </div>
                             )}
@@ -1801,6 +2137,38 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                                     <EventPlannerInline
                                         onComplete={handleCompleteEvent}
                                         initialPrompt={eventInitialPrompt}
+                                    />
+                                </div>
+                            )}
+
+                            {showCrmCoordinator && (
+                                <div className="mt-4">
+                                    <CrmCampaignInline
+                                        orgId={thread.orgId}
+                                        initialPrompt={crmInitialPrompt}
+                                        customerId={thread.customerId}
+                                        customerEmail={thread.customerEmail}
+                                        onOpenAction={handleOpenCrmAction}
+                                    />
+                                </div>
+                            )}
+
+                            {showProductDiscovery && (
+                                <div className="mt-4">
+                                    <ProductDiscoveryInline
+                                        orgId={thread.orgId}
+                                        initialPrompt={productDiscoveryInitialPrompt}
+                                        onOpenAction={handleOpenProductDiscoveryAction}
+                                    />
+                                </div>
+                            )}
+
+                            {showWholesaleInventory && (
+                                <div className="mt-4">
+                                    <WholesaleInventoryInline
+                                        orgId={thread.orgId}
+                                        initialPrompt={wholesaleInventoryInitialPrompt}
+                                        onOpenAction={handleOpenWholesaleInventoryAction}
                                     />
                                 </div>
                             )}

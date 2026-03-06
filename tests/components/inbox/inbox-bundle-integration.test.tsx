@@ -174,8 +174,12 @@ describe('InboxConversation - BundleGeneratorInline Integration', () => {
                 'HeroGeneratorInline',
                 'CarouselGeneratorInline',
                 'BundleGeneratorInline',
+                'LaunchCoordinatorInline',
                 'ImageGeneratorInline',
                 'SocialPostGeneratorInline',
+                'CrmCampaignInline',
+                'ProductDiscoveryInline',
+                'WholesaleInventoryInline',
             ];
 
             for (const generator of generators) {

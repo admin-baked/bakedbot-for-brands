@@ -31,6 +31,11 @@ import { useToast } from '@/hooks/use-toast';
 import { useSearchParams } from 'next/navigation';
 import { signInWithPopup, createUserWithEmailAndPassword } from 'firebase/auth';
 
+jest.mock('react', () => ({
+    ...jest.requireActual('react'),
+    useActionState: jest.fn(() => [{ message: '', error: false }, '/mock-action']),
+}));
+
 // Mocks MUST be before any imports that might use them
 jest.mock('@/firebase/provider', () => ({
     useFirebase: jest.fn(),
@@ -78,10 +83,16 @@ jest.mock('@/server/actions/cannmenus', () => ({
     searchCannMenusRetailers: jest.fn(),
 }));
 
-// Mock react-dom
-jest.mock('react-dom', () => ({
-    ...jest.requireActual('react-dom'),
-    useFormState: () => [{ message: '', error: false }, jest.fn()],
+jest.mock('@/app/onboarding/components/competitor-onboarding-step', () => ({
+    CompetitorOnboardingStep: () => null,
+}));
+
+jest.mock('@/app/dashboard/settings/link/components/wiring-screen', () => ({
+    WiringScreen: () => null,
+}));
+
+jest.mock('@/app/onboarding/components/menu-import-step', () => ({
+    MenuImportStep: () => null,
 }));
 
 // Now import the component
@@ -93,6 +104,10 @@ describe('OnboardingClient Signup Flow', () => {
     };
     const mockToast = jest.fn();
 
+    beforeAll(() => {
+        HTMLFormElement.prototype.requestSubmit = jest.fn();
+    });
+
     beforeEach(() => {
         jest.clearAllMocks();
         (useFirebase as jest.Mock).mockReturnValue({ auth: mockAuth });
@@ -103,10 +118,6 @@ describe('OnboardingClient Signup Flow', () => {
             ok: true,
             json: async () => ({ success: true }),
         });
-
-        // Default window.location mock
-        delete (window as any).location;
-        window.location = { ...window.location, assign: jest.fn(), reload: jest.fn() } as any;
     });
 
     it('shows signup modal when unauthenticated user attempts to finish', async () => {
@@ -169,5 +180,18 @@ describe('OnboardingClient Signup Flow', () => {
                 body: JSON.stringify({ idToken: 'fake-email-token' }),
             }));
         });
+    });
+
+    it('preserves the selected pricing plan through the review step', () => {
+        (useSearchParams as jest.Mock).mockReturnValue(new URLSearchParams('plan=empire'));
+
+        render(<OnboardingPage />);
+
+        fireEvent.click(screen.getByText('A Customer'));
+
+        expect(screen.getByText('Selected Plan')).toBeInTheDocument();
+        expect(screen.getByText('Empire')).toBeInTheDocument();
+        const planInput = document.querySelector('input[name="planId"]') as HTMLInputElement | null;
+        expect(planInput?.value).toBe('empire');
     });
 });

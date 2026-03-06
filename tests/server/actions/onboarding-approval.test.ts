@@ -23,6 +23,9 @@ jest.mock('@/lib/notifications/email-service', () => ({
         notifyAdminNewUser: jest.fn().mockResolvedValue(true),
     },
 }));
+jest.mock('@/server/actions/platform-signup', () => ({
+    handlePlatformSignup: jest.fn().mockResolvedValue({ success: true }),
+}));
 
 describe('Onboarding Approval Status', () => {
     let mockFirestore: any;
@@ -35,7 +38,7 @@ describe('Onboarding Approval Status', () => {
         mockUserDoc = {
             set: jest.fn(),
             update: jest.fn(),
-            get: jest.fn().mockResolvedValue({ exists: false }), // Mock org logic
+            get: jest.fn().mockResolvedValue({ exists: false, data: () => ({}) }), // Mock org logic
         };
 
         mockFirestore = {
@@ -116,5 +119,34 @@ describe('Onboarding Approval Status', () => {
         const { emailService } = require('@/lib/notifications/email-service');
         expect(emailService.sendWelcomeEmail).toHaveBeenCalled();
         expect(emailService.notifyAdminNewUser).not.toHaveBeenCalled();
+    });
+
+    it('stores the selected plan as onboarding metadata without activating it', async () => {
+        const formData = new FormData();
+        formData.append('role', 'dispensary');
+        formData.append('planId', 'empire');
+        formData.append('manualDispensaryName', 'Test Dispensary');
+
+        const result = await completeOnboarding(null, formData);
+
+        expect(result.error).toBe(false);
+
+        const setPayloads = mockUserDoc.set.mock.calls.map(([payload]) => payload);
+
+        expect(setPayloads).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    selectedPlanId: 'empire',
+                    selectedPlanName: 'Empire',
+                }),
+                expect.objectContaining({
+                    billing: expect.objectContaining({
+                        subscriptionStatus: 'trial',
+                        selectedPlanId: 'empire',
+                        selectedPlanName: 'Empire',
+                    }),
+                }),
+            ])
+        );
     });
 });
