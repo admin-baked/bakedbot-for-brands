@@ -18,6 +18,7 @@
 
 import OpenAI from 'openai';
 import { logger } from '@/lib/logger';
+import { incrementGLMUsage } from '@/server/services/glm-usage';
 
 // Z.ai Anthropic-compatible endpoint
 const ZAI_BASE_URL = 'https://api.z.ai/api/anthropic';
@@ -117,6 +118,13 @@ export async function callGLM({
       inputTokens: response.usage?.prompt_tokens,
       outputTokens: response.usage?.completion_tokens,
       durationMs: duration,
+    });
+
+    // Track usage (non-blocking)
+    // Use actual token count if available, otherwise count as 1 call
+    const tokensUsed = (response.usage?.prompt_tokens || 0) + (response.usage?.completion_tokens || 0);
+    incrementGLMUsage(tokensUsed).catch(err => {
+      logger.warn('[GLM] Failed to track usage', { error: String(err) });
     });
 
     return content;

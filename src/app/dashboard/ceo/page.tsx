@@ -33,6 +33,7 @@ const CRMTab = nextDynamic(() => import("./components/crm-tab"), { loading: TabL
 const AccountManagementTab = nextDynamic(() => import("@/components/admin/account-management-tab").then(mod => mod.AccountManagementTab), { loading: TabLoader });
 const SystemKnowledgeBase = nextDynamic(() => import("./components/system-knowledge-base").then(mod => mod.SystemKnowledgeBase), { loading: TabLoader, ssr: false });
 const CeoSettingsTab = nextDynamic(() => import("./components/ceo-settings-tab"), { loading: TabLoader });
+const GLMSettingsTab = nextDynamic(() => import("./components/glm-settings-tab"), { loading: TabLoader });
 const AgentSandbox = nextDynamic(() => import("./components/agent-sandbox").then(mod => mod.AgentSandbox), { loading: TabLoader, ssr: false });
 const EmailTesterTab = nextDynamic(() => import("./components/email-tester-tab"), { loading: TabLoader });
 const BoardroomTab = nextDynamic(() => import("./components/boardroom-tab"), { loading: TabLoader, ssr: false });
@@ -234,6 +235,7 @@ function CeoDashboardContent() {
             case 'ny-pilot': return <NYPilotTab />;
             case 'outreach': return <OutreachTab />;
             case 'content': return <ContentCeoTab />;
+            case 'ai-settings': return <GLMSettingsTab />;
             default: return <SuperUserPlaybooksPage />;
         }
     };
@@ -273,6 +275,7 @@ function CeoDashboardContent() {
                                 <Link href="?tab=calendar"><Button variant="outline" size="sm" className="w-full justify-start">📅 Calendar</Button></Link>
                                 <Link href="?tab=ny-pilot"><Button variant="outline" size="sm" className="w-full justify-start">NY Pilot</Button></Link>
                                 <Link href="?tab=outreach"><Button variant="outline" size="sm" className="w-full justify-start">Outreach</Button></Link>
+                                <Link href="?tab=ai-settings"><Button variant="outline" size="sm" className="w-full justify-start">AI Settings</Button></Link>
                                 <Link href="?tab=content"><Button variant="outline" size="sm" className="w-full justify-start">📝 Content</Button></Link>
                             </div>
                         </SheetContent>
@@ -303,6 +306,9 @@ function CeoDashboardContent() {
                     </Link>
                     <Link href="?tab=outreach">
                         <Button variant="ghost" size="sm">Outreach</Button>
+                    </Link>
+                    <Link href="?tab=ai-settings">
+                        <Button variant="ghost" size="sm">AI Settings</Button>
                     </Link>
                     <Link href="?tab=content">
                         <Button variant="ghost" size="sm">📝 Content</Button>
