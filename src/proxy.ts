@@ -3,6 +3,104 @@ import type { NextRequest } from 'next/server';
 import { getCorsHeaders, CORS_PREFLIGHT_HEADERS, isOriginAllowed } from './lib/cors';
 import { checkRateLimit } from './middleware/rate-limit';
 
+type HostResolveResult = {
+    success: boolean;
+    path?: string;
+    tenantId?: string;
+    targetType?: string;
+};
+
+const HOST_RESOLVE_CACHE_TTL_MS = 60_000;
+const hostResolveCache = new Map<string, { expiry: number; value: HostResolveResult | null }>();
+const DEFAULT_DOMAIN_RESOLVE_ORIGIN = 'https://bakedbot.ai';
+
+function getCachedHostResolve(cacheKey: string): HostResolveResult | null | undefined {
+    const cached = hostResolveCache.get(cacheKey);
+    if (!cached) return undefined;
+    if (cached.expiry < Date.now()) {
+        hostResolveCache.delete(cacheKey);
+        return undefined;
+    }
+    return cached.value;
+}
+
+function setCachedHostResolve(cacheKey: string, value: HostResolveResult | null): void {
+    if (hostResolveCache.size > 500) {
+        const staleKeys = Array.from(hostResolveCache.keys()).slice(0, 100);
+        staleKeys.forEach((key) => hostResolveCache.delete(key));
+    }
+    hostResolveCache.set(cacheKey, {
+        expiry: Date.now() + HOST_RESOLVE_CACHE_TTL_MS,
+        value,
+    });
+}
+
+async function resolveMappedHostname(request: NextRequest, hostname: string, pathname: string): Promise<HostResolveResult | null> {
+    const cacheKey = `${hostname.toLowerCase()}|${pathname}`;
+    const cached = getCachedHostResolve(cacheKey);
+    if (cached !== undefined) {
+        return cached;
+    }
+
+    const resolveOrigin = getDomainResolveOrigin(request, hostname);
+    const resolveUrl = `${resolveOrigin}/api/domain/resolve`;
+
+    try {
+        const resolveResponse = await fetch(resolveUrl, {
+            headers: {
+                'x-resolve-hostname': hostname,
+                'x-resolve-path': pathname,
+            },
+        });
+
+        if (!resolveResponse.ok) {
+            setCachedHostResolve(cacheKey, null);
+            return null;
+        }
+
+        const data = await resolveResponse.json() as HostResolveResult;
+        const resolved = data.success && data.path ? data : null;
+        setCachedHostResolve(cacheKey, resolved);
+        return resolved;
+    } catch {
+        return null;
+    }
+}
+
+export function getDomainResolveOrigin(request: NextRequest, hostname: string): string {
+    const configuredOrigin = process.env.NEXT_PUBLIC_APP_URL?.trim();
+    if (configuredOrigin) {
+        return configuredOrigin.replace(/\/+$/, '');
+    }
+
+    const protocol = request.headers.get('x-forwarded-proto') || 'https';
+    const requestHost = request.headers.get('host') || hostname;
+
+    if (requestHost.includes('localhost') || requestHost.includes('127.0.0.1')) {
+        return `${protocol}://${requestHost}`;
+    }
+
+    return DEFAULT_DOMAIN_RESOLVE_ORIGIN;
+}
+
+function rewriteToResolvedPath(request: NextRequest, resolvedPath: string, metadata?: HostResolveResult): NextResponse {
+    const rewriteUrl = new URL(resolvedPath, request.url);
+    request.nextUrl.searchParams.forEach((value, key) => {
+        if (!rewriteUrl.searchParams.has(key)) {
+            rewriteUrl.searchParams.set(key, value);
+        }
+    });
+
+    const response = NextResponse.rewrite(rewriteUrl);
+    if (metadata?.tenantId) {
+        response.headers.set('x-tenant-id', metadata.tenantId);
+    }
+    if (metadata?.targetType) {
+        response.headers.set('x-domain-target', metadata.targetType);
+    }
+    return response;
+}
+
 /**
  * Proxy for route protection, authentication, CORS, CSRF, and custom domain routing.
  * This runs on the Edge runtime before the request reaches the page.
@@ -84,6 +182,11 @@ export async function proxy(request: NextRequest) {
             // Skip reserved subdomains (including lead magnets with custom backends)
             const reservedSubdomains = ['www', 'api', 'app', 'dashboard', 'admin', 'mail', 'cdn', 'static', 'academy', 'vibe', 'training'];
             if (!reservedSubdomains.includes(subdomain)) {
+                const resolvedDomainRoute = await resolveMappedHostname(request, hostname, pathname);
+                if (resolvedDomainRoute?.path) {
+                    return rewriteToResolvedPath(request, resolvedDomainRoute.path, resolvedDomainRoute);
+                }
+
                 // For subdomain requests, resolve to the brand's storefront
                 // If hitting root, rewrite to /{subdomain}
                 if (pathname === '/') {
@@ -122,44 +225,15 @@ export async function proxy(request: NextRequest) {
         !hostname.includes('appspot.com') &&
         hostname.includes('.'); // Has a dot = is a domain
 
-    if (isCustomDomain && pathname === '/') {
-        // For custom domains hitting root path, we need to look up the tenant
-        // We can't use Firestore in Edge, so we call an internal API
-        try {
-            const protocol = request.headers.get('x-forwarded-proto') || 'https';
-            const internalHost = request.headers.get('host') || hostname;
-            const resolveUrl = `${protocol}://${internalHost}/api/domain/resolve`;
-
-            const resolveResponse = await fetch(resolveUrl, {
-                headers: {
-                    'x-resolve-hostname': hostname,
-                    'x-resolve-path': pathname,
-                },
-            });
-
-            if (resolveResponse.ok) {
-                const data = await resolveResponse.json();
-                if (data.success && data.path) {
-                    // Rewrite to the resolved path
-                    const url = request.nextUrl.clone();
-                    url.pathname = data.path;
-                    return NextResponse.rewrite(url);
-                }
-            }
-
-            // If resolution failed, redirect to 404
-            return NextResponse.redirect(new URL('https://bakedbot.ai/404'));
-        } catch (error) {
-            console.error('[Proxy] Custom domain resolution failed:', error);
-            return NextResponse.redirect(new URL('https://bakedbot.ai/404'));
-        }
-    }
-
-    // For custom domains on other paths, pass through with hostname header
     if (isCustomDomain) {
-        const response = NextResponse.next();
-        response.headers.set('x-custom-domain', hostname);
-        return response;
+        const resolvedDomainRoute = await resolveMappedHostname(request, hostname, pathname);
+        if (resolvedDomainRoute?.path) {
+            const response = rewriteToResolvedPath(request, resolvedDomainRoute.path, resolvedDomainRoute);
+            response.headers.set('x-custom-domain', hostname);
+            return response;
+        }
+
+        return NextResponse.redirect(new URL('https://bakedbot.ai/404'));
     }
 
     // Handle CORS preflight requests for API routes

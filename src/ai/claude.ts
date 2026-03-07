@@ -58,14 +58,14 @@ export interface ClaudeResult {
     outputTokens: number;
 }
 
-// Default model for tool calling - Claude Sonnet 4.5 (optimized for agentic workflows)
+// Default model for tool calling - Claude Sonnet 4.6 (optimized for agentic workflows)
 // Sonnet is 5x cheaper than Opus and excels at structured tool use
 // Use CLAUDE_REASONING_MODEL for complex one-shot reasoning tasks
-export const CLAUDE_TOOL_MODEL = process.env.CLAUDE_TOOL_MODEL || 'claude-sonnet-4-5-20250929';
+export const CLAUDE_TOOL_MODEL = process.env.CLAUDE_TOOL_MODEL || 'claude-sonnet-4-6';
 
 // Premium model for complex reasoning tasks (use sparingly)
 // Best for: strategic decisions, long document synthesis, novel problem solving
-export const CLAUDE_REASONING_MODEL = process.env.CLAUDE_REASONING_MODEL || 'claude-opus-4-5-20251101';
+export const CLAUDE_REASONING_MODEL = process.env.CLAUDE_REASONING_MODEL || 'claude-opus-4-6';
 
 // Maximum iterations to prevent infinite loops
 const MAX_ITERATIONS = 10;

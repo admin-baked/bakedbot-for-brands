@@ -85,9 +85,15 @@ const TARGET_TYPES = [
   },
   {
     value: 'vibe_site' as DomainTargetType,
-    label: 'Vibe Builder Site',
+    label: 'Headless Site',
     description: 'Point to a website built with Vibe Builder',
     icon: Palette,
+  },
+  {
+    value: 'wordpress_site' as DomainTargetType,
+    label: 'WordPress Site',
+    description: 'Proxy a WordPress-backed website through BakedBot',
+    icon: Globe,
   },
   {
     value: 'hybrid' as DomainTargetType,
@@ -143,6 +149,7 @@ export default function DomainsPage() {
   const [newDomain, setNewDomain] = useState('');
   const [newTargetType, setNewTargetType] = useState<DomainTargetType>('menu');
   const [newTargetId, setNewTargetId] = useState('');
+  const [newTargetUpstreamUrl, setNewTargetUpstreamUrl] = useState('');
   const [adding, setAdding] = useState(false);
 
   // Processing states
@@ -199,10 +206,19 @@ export default function DomainsPage() {
   const handleAddDomain = async () => {
     if (!tenantId || !user || !newDomain) return;
 
-    if (newTargetType !== 'menu' && !newTargetId) {
+    if ((newTargetType === 'vibe_site' || newTargetType === 'hybrid') && !newTargetId) {
       toast({
         title: 'Select a Project',
         description: 'Please select a Vibe Builder project for this domain.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (newTargetType === 'wordpress_site' && !newTargetUpstreamUrl.trim()) {
+      toast({
+        title: 'WordPress Origin Required',
+        description: 'Enter the canonical WordPress site origin, for example https://andrews-wp.example.com.',
         variant: 'destructive',
       });
       return;
@@ -221,8 +237,11 @@ export default function DomainsPage() {
         newDomain,
         detectedConnectionType,
         newTargetType,
-        newTargetType !== 'menu' ? newTargetId : undefined,
+        newTargetType === 'vibe_site' || newTargetType === 'hybrid' ? newTargetId : undefined,
         selectedProject?.name,
+        newTargetType === 'wordpress_site'
+          ? { upstreamUrl: newTargetUpstreamUrl.trim() }
+          : undefined,
         newTargetType === 'hybrid'
           ? { rootPath: 'vibe', menuPath: '/shop' }
           : undefined,
@@ -238,6 +257,7 @@ export default function DomainsPage() {
         setNewDomain('');
         setNewTargetType('menu');
         setNewTargetId('');
+        setNewTargetUpstreamUrl('');
         loadDomains();
       } else {
         throw new Error(result.error || 'Failed to add domain');
@@ -320,6 +340,8 @@ export default function DomainsPage() {
         return <ShoppingBag className="w-4 h-4" />;
       case 'vibe_site':
         return <Palette className="w-4 h-4" />;
+      case 'wordpress_site':
+        return <Globe className="w-4 h-4" />;
       case 'hybrid':
         return <Layers className="w-4 h-4" />;
       default:
@@ -332,7 +354,9 @@ export default function DomainsPage() {
       case 'menu':
         return 'Product Menu';
       case 'vibe_site':
-        return d.targetName || 'Vibe Site';
+        return d.targetName || 'Headless Site';
+      case 'wordpress_site':
+        return d.targetName || 'WordPress Site';
       case 'hybrid':
         return `Hybrid: ${d.targetName || 'Site'} + Menu`;
       default:
@@ -529,9 +553,9 @@ export default function DomainsPage() {
             </div>
 
             {/* Project Selector (for vibe_site and hybrid) */}
-            {newTargetType !== 'menu' && (
+            {(newTargetType === 'vibe_site' || newTargetType === 'hybrid') && (
               <div>
-                <Label>Select Vibe Builder Project</Label>
+                <Label>Select Headless Site Project</Label>
                 <Select value={newTargetId} onValueChange={setNewTargetId}>
                   <SelectTrigger className="mt-1">
                     <SelectValue placeholder="Choose a published project..." />
@@ -555,6 +579,22 @@ export default function DomainsPage() {
                     You need to publish a Vibe Builder project first.
                   </p>
                 )}
+              </div>
+            )}
+
+            {newTargetType === 'wordpress_site' && (
+              <div>
+                <Label htmlFor="wordpress-upstream-url">WordPress Site Origin</Label>
+                <Input
+                  id="wordpress-upstream-url"
+                  placeholder="https://andrews-wp-lo74oftdza-uc.a.run.app"
+                  value={newTargetUpstreamUrl}
+                  onChange={(e) => setNewTargetUpstreamUrl(e.target.value)}
+                  className="mt-1"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Use the canonical upstream origin for the WordPress runtime. The domain router will proxy requests through BakedBot.
+                </p>
               </div>
             )}
 
@@ -700,13 +740,13 @@ export default function DomainsPage() {
                         </div>
                         <div className="font-mono break-all flex items-center gap-1">
                           {d.connectionType === 'cname'
-                            ? 'cname.bakedbot.ai'
+                            ? 'bakedbot.ai'
                             : 'ns1.bakedbot.ai'}
                           <button
                             onClick={() =>
                               copyToClipboard(
                                 d.connectionType === 'cname'
-                                  ? 'cname.bakedbot.ai'
+                                  ? 'bakedbot.ai'
                                   : 'ns1.bakedbot.ai'
                               )
                             }

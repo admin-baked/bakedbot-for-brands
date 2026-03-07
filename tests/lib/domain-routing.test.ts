@@ -196,6 +196,26 @@ describe('domain-routing', () => {
         menuPath: '/menu',
       });
     });
+
+    it('should include targetConfig for wordpress sites', async () => {
+      (getCachedTenant as jest.Mock).mockReturnValue(undefined);
+
+      mockGet.mockResolvedValue({
+        exists: true,
+        data: () => ({
+          tenantId: 'org_wp',
+          targetType: 'wordpress_site',
+          targetConfig: { upstreamUrl: 'https://andrews-wp.example.com' },
+        }),
+      });
+
+      const result = await getDomainMapping('www.andrews.example.com');
+
+      expect(result!.targetType).toBe('wordpress_site');
+      expect(result!.targetConfig).toEqual({
+        upstreamUrl: 'https://andrews-wp.example.com',
+      });
+    });
   });
 
   // ─── resolveRoute ────────────────────────────────────────────────────────
@@ -398,6 +418,45 @@ describe('domain-routing', () => {
         });
 
         const result = await resolveRoute('broken.hybrid.com', '/');
+
+        expect(result).toBeNull();
+      });
+    });
+
+    describe('wordpress_site target', () => {
+      it('should route WordPress sites through the shared proxy', async () => {
+        setupMapping({
+          tenantId: 'org_wp',
+          targetType: 'wordpress_site',
+          targetConfig: { upstreamUrl: 'https://andrews-wp.example.com' },
+        });
+
+        const result = await resolveRoute('www.andrews.example.com', '/');
+
+        expect(result).not.toBeNull();
+        expect(result!.path).toBe('/api/wordpress/proxy');
+        expect(result!.targetType).toBe('wordpress_site');
+      });
+
+      it('should preserve nested WordPress paths in the proxy query', async () => {
+        setupMapping({
+          tenantId: 'org_wp',
+          targetType: 'wordpress_site',
+          targetConfig: { upstreamUrl: 'https://andrews-wp.example.com' },
+        });
+
+        const result = await resolveRoute('www.andrews.example.com', '/wp-json/posts');
+
+        expect(result!.path).toBe('/api/wordpress/proxy?path=wp-json%2Fposts');
+      });
+
+      it('should return null when wordpress_site is missing upstreamUrl', async () => {
+        setupMapping({
+          tenantId: 'org_wp',
+          targetType: 'wordpress_site',
+        });
+
+        const result = await resolveRoute('broken-wordpress.example.com', '/');
 
         expect(result).toBeNull();
       });

@@ -13,9 +13,14 @@ import {
   getTenantByDomain,
 } from '@/server/actions/domain-management';
 import { createServerClient } from '@/firebase/server-client';
+import { requireUser } from '@/server/auth/auth';
 
 jest.mock('@/firebase/server-client', () => ({
   createServerClient: jest.fn(),
+}));
+
+jest.mock('@/server/auth/auth', () => ({
+  requireUser: jest.fn(),
 }));
 
 jest.mock('@/lib/dns-verify', () => ({
@@ -31,7 +36,7 @@ jest.mock('@/lib/dns-verify', () => ({
   }),
   isSubdomain: jest.fn((domain) => domain.split('.').length > 2),
   getVerificationTxtHost: jest.fn((domain) => `_bakedbot.${domain}`),
-  BAKEDBOT_CNAME_TARGET: 'cname.bakedbot.ai',
+  BAKEDBOT_CNAME_TARGET: 'bakedbot.ai',
   BAKEDBOT_NAMESERVERS: ['ns1.bakedbot.ai', 'ns2.bakedbot.ai'],
 }));
 
@@ -54,6 +59,13 @@ describe('unified-domain-management', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'test-user',
+      email: 'owner@bakedbot.ai',
+      role: 'super_user',
+      tenantId: 'org_thrive',
+    });
 
     mockDoc.mockReturnValue({
       get: mockGet,
@@ -98,9 +110,9 @@ describe('unified-domain-management', () => {
           data: () => ({
             domain: 'www.mysite.com',
             connectionType: 'cname',
-            targetType: 'vibe_site',
-            targetId: 'proj_abc',
-            targetName: 'My Marketing Site',
+            targetType: 'wordpress_site',
+            targetConfig: { upstreamUrl: 'https://andrews-wp.example.com' },
+            targetName: 'My WordPress Site',
             verificationStatus: 'pending',
           }),
         },
@@ -116,8 +128,10 @@ describe('unified-domain-management', () => {
       expect(result.domains).toHaveLength(2);
       expect(result.domains![0].domain).toBe('shop.mybrand.com');
       expect(result.domains![0].targetType).toBe('menu');
-      expect(result.domains![1].targetType).toBe('vibe_site');
-      expect(result.domains![1].targetId).toBe('proj_abc');
+      expect(result.domains![1].targetType).toBe('wordpress_site');
+      expect(result.domains![1].targetConfig).toEqual({
+        upstreamUrl: 'https://andrews-wp.example.com',
+      });
     });
 
     it('should fallback to legacy customDomain when subcollection empty', async () => {
@@ -313,6 +327,32 @@ describe('unified-domain-management', () => {
       });
 
       expect(result.success).toBe(true);
+    });
+
+    it('should reject wordpress_site without upstreamUrl', async () => {
+      const result = await updateDomainTarget('org_thrive', 'wordpress.example.com', {
+        targetType: 'wordpress_site',
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('WordPress site origin');
+    });
+
+    it('should include targetConfig when updating wordpress_site', async () => {
+      mockUpdate.mockResolvedValue(undefined);
+      mockGet.mockResolvedValue({ exists: false });
+
+      await updateDomainTarget('org_thrive', 'wordpress.example.com', {
+        targetType: 'wordpress_site',
+        targetConfig: { upstreamUrl: 'https://andrews-wp.example.com' },
+      });
+
+      expect(mockUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          targetType: 'wordpress_site',
+          targetConfig: { upstreamUrl: 'https://andrews-wp.example.com' },
+        })
+      );
     });
 
     it('should include routingConfig when provided', async () => {

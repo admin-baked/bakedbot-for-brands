@@ -35,7 +35,7 @@ jest.mock('@/lib/dns-verify', () => ({
     }),
     isSubdomain: jest.fn((domain) => domain.split('.').length > 2),
     getVerificationTxtHost: jest.fn((domain) => `_bakedbot.${domain}`),
-    BAKEDBOT_CNAME_TARGET: 'cname.bakedbot.ai',
+    BAKEDBOT_CNAME_TARGET: 'bakedbot.ai',
     BAKEDBOT_NAMESERVERS: ['ns1.bakedbot.ai', 'ns2.bakedbot.ai'],
 }));
 

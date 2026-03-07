@@ -6,9 +6,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
 import { getCachedTenant, setCachedTenant } from '@/lib/domain-cache';
+import { resolveRoute } from '@/lib/domain-routing';
+import { createServerClient } from '@/firebase/server-client';
 import type { DomainMapping } from '@/types/tenant';
 
 export const dynamic = 'force-dynamic';
@@ -81,66 +82,28 @@ export async function GET(request: NextRequest) {
             return NextResponse.redirect(new URL('https://bakedbot.ai/404'));
         }
 
-        // Get full domain mapping for target routing
-        const { firestore } = await createServerClient();
-        const mappingDoc = await firestore
-            .collection('domain_mappings')
-            .doc(normalizedHostname)
-            .get();
-
-        const mappingData = mappingDoc.exists
-            ? (mappingDoc.data() as DomainMapping)
-            : null;
-
-        const targetType = mappingData?.targetType || 'menu';
-
-        // Route based on target type
-        let redirectPath: string;
-
-        if (targetType === 'vibe_site' && mappingData?.targetId) {
-            // Vibe site - serve published project
-            redirectPath = `/api/vibe/site/${mappingData.targetId}${originalPath === '/' ? '' : originalPath}`;
-        } else if (targetType === 'hybrid' && mappingData?.targetId) {
-            // Hybrid - path-based routing
-            const menuPath = mappingData.routingConfig?.menuPath || '/shop';
-            if (originalPath.startsWith(menuPath)) {
-                // Menu path - route to tenant menu
-                const tenantDoc = await firestore.collection('tenants').doc(tenantId).get();
-                const tenant = tenantDoc.data();
-                const tenantType = tenant?.type || 'brand';
-                const strippedPath = originalPath.replace(menuPath, '') || '';
-                redirectPath = tenantType === 'dispensary'
-                    ? `/dispensaries/${tenantId}${strippedPath}`
-                    : `/${tenantId}${strippedPath}`;
-            } else {
-                // Root/other paths - route to Vibe site
-                redirectPath = `/api/vibe/site/${mappingData.targetId}`;
-            }
-        } else {
-            // Menu (default) - route to tenant page
-            const tenantDoc = await firestore.collection('tenants').doc(tenantId).get();
-            const tenant = tenantDoc.data();
-            const tenantType = tenant?.type || 'brand';
-            redirectPath = tenantType === 'dispensary'
-                ? `/dispensaries/${tenantId}${originalPath === '/' ? '' : originalPath}`
-                : `/${tenantId}${originalPath === '/' ? '' : originalPath}`;
+        const resolvedRoute = await resolveRoute(normalizedHostname, originalPath);
+        if (!resolvedRoute) {
+            logger.warn('[Domain] Domain mapping exists but could not be resolved', {
+                hostname: normalizedHostname,
+                originalPath,
+            });
+            return NextResponse.redirect(new URL('https://bakedbot.ai/404'));
         }
 
         logger.info('[Domain] Resolved custom domain', {
             hostname: normalizedHostname,
-            tenantId,
-            targetType,
-            targetId: mappingData?.targetId,
-            redirect: redirectPath,
+            tenantId: resolvedRoute.tenantId,
+            targetType: resolvedRoute.targetType,
+            redirect: resolvedRoute.path,
         });
 
         // Return JSON with resolved path - middleware will handle the actual rewrite
         return NextResponse.json({
             success: true,
-            tenantId,
-            targetType,
-            targetId: mappingData?.targetId,
-            path: redirectPath,
+            tenantId: resolvedRoute.tenantId,
+            targetType: resolvedRoute.targetType,
+            path: resolvedRoute.path,
         });
     } catch (error) {
         logger.error('[Domain] Resolution error', { hostname: normalizedHostname, error });

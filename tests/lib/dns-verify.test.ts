@@ -135,7 +135,7 @@ describe('dns-verify', () => {
             expect(instructions.txtRecord.value).toBe('bb_verify_abc123');
             expect(instructions.connectionRecord.type).toBe('CNAME');
             expect(instructions.connectionRecord.host).toBe('shop');
-            expect(instructions.connectionRecord.value).toBe('cname.bakedbot.ai');
+            expect(instructions.connectionRecord.value).toBe('bakedbot.ai');
         });
 
         it('should return nameserver instructions for root domain', () => {
@@ -157,7 +157,7 @@ describe('dns-verify', () => {
 
     describe('constants', () => {
         it('should export valid CNAME target', () => {
-            expect(BAKEDBOT_CNAME_TARGET).toBe('cname.bakedbot.ai');
+            expect(BAKEDBOT_CNAME_TARGET).toBe('bakedbot.ai');
         });
 
         it('should export valid nameservers', () => {
