@@ -17,14 +17,13 @@ export interface DayDayTools {
     getSearchConsoleStats(): Promise<any>;
     getGA4Traffic(): Promise<any>;
     findSEOOpportunities(): Promise<any>;
+    refreshSitemap(): Promise<any>;
 }
 
-// ... imports
 import { searchConsoleService } from '@/server/services/growth/search-console';
 import { googleAnalyticsService } from '@/server/services/growth/google-analytics';
 import { sitemapManager } from '@/server/services/growth/sitemap-manager';
 
-// ... DayDayTools interface ...
 
 export const dayDayAgent: AgentImplementation<AgentMemory, DayDayTools> = {
     agentName: 'day_day',
@@ -95,7 +94,7 @@ export const dayDayAgent: AgentImplementation<AgentMemory, DayDayTools> = {
         // === HIVE MIND INIT ===
         try {
             const { lettaBlockManager } = await import('@/server/services/letta/block-manager');
-            const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
+            const brandId = (brandMemory.brand_profile as any)?.id || (brandMemory.brand_profile as any)?.orgId || 'unknown';
             await lettaBlockManager.attachBlocksForRole(brandId, agentMemory.agent_id as string, 'brand');
             logger.info(`[DayDay:HiveMind] Connected to shared SEO blocks.`);
         } catch (e) {
@@ -111,6 +110,8 @@ export const dayDayAgent: AgentImplementation<AgentMemory, DayDayTools> = {
     },
 
     async act(brandMemory, agentMemory, targetId, tools, stimulus) {
+        const semanticSearchEntityId = (brandMemory.brand_profile as any)?.id || (brandMemory.brand_profile as any)?.orgId || 'unknown';
+
         if (targetId === 'user_request' && stimulus) {
             const userQuery = stimulus;
 
@@ -188,7 +189,7 @@ export const dayDayAgent: AgentImplementation<AgentMemory, DayDayTools> = {
             const allTools = {
                 ...tools,
                 ...specificImplementations,
-                ...makeSemanticSearchToolsImpl(brandId),
+                ...makeSemanticSearchToolsImpl(semanticSearchEntityId),
                 searchOpportunities: async (query: string) => {
                     try {
                         const { searchWeb, formatSearchResults } = await import('@/server/tools/web-search');

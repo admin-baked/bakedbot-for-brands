@@ -225,6 +225,20 @@ export function UnifiedLoginForm() {
         }
     };
 
+
+    if (!auth) {
+        return (
+            <Card className="glass-card w-full max-w-md border-white/10 shadow-2xl">
+                <CardHeader className="text-center space-y-2">
+                    <CardTitle className="text-2xl font-bold font-teko tracking-wide">Authentication unavailable</CardTitle>
+                    <CardDescription>
+                        Firebase client credentials are missing or invalid in this environment. Add a valid <code>NEXT_PUBLIC_FIREBASE_API_KEY</code> to enable sign-in.
+                    </CardDescription>
+                </CardHeader>
+            </Card>
+        );
+    }
+
     return (
         <Card className="glass-card w-full max-w-md border-white/10 shadow-2xl">
             <CardHeader className="text-center space-y-2">
