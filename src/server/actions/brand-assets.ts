@@ -35,9 +35,13 @@ function isPrivateOrLocalHostname(hostname: string): boolean {
   }
 
   if (ipVersion === 6) {
-    // IPv4-mapped IPv6 (::ffff:127.0.0.1, etc.)
-    const mapped = normalized.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i);
-    if (mapped?.[1] && isPrivateIpv4(mapped[1])) return true;
+    // IPv4-mapped IPv6 (::ffff:127.0.0.1 or ::ffff:7f00:1, etc.)
+    if (normalized.startsWith('::ffff:')) {
+      const mapped = normalized.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i);
+      if (mapped?.[1] && isPrivateIpv4(mapped[1])) return true;
+      // Conservative: block mapped IPv6 forms we cannot reliably decode here.
+      return true;
+    }
 
     // Unique local addresses fc00::/7 and link-local fe80::/10
     if (/^(fc|fd)/i.test(normalized)) return true;
