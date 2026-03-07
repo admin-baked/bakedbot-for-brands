@@ -186,6 +186,11 @@ export interface MultiStepContext {
     agentId?: string;
     /** Maximum remediation attempts before failing */
     maxRemediationAttempts?: number;
+    /**
+     * Use GLM for final synthesis instead of Claude (cost savings for non-PII Slack responses).
+     * Only applies to the hybrid execution path.
+     */
+    useGLMSynthesis?: boolean;
 
     // === EXISTING CALLBACKS ===
     onStepComplete?: (step: number, toolName: string, result: any) => Promise<void>;
@@ -371,19 +376,30 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
             const decision = plan.output as MultiStepPlan;
 
             if (decision.status === 'COMPLETE' || decision.status === 'BLOCKED') {
-                // Synthesize final response with Claude 4.5 Opus
-                const { executeWithTools: claudeSynthesize } = await import('@/ai/claude');
-                const synthesisResult = await claudeSynthesize(
-                    `${wrapUserData(sanitizedQuery, 'original_request', false)}
+                // Synthesize final response — use GLM for cost savings when no PII involved
+                const synthesisPrompt = `${wrapUserData(sanitizedQuery, 'original_request', false)}
                     Steps Taken: ${steps.length}
                     Final Thought: ${decision.thought}
                     All Results: ${sanitizeForPrompt(JSON.stringify(steps.map(s => s.result)), 2000)}
 
-                    Synthesize a comprehensive response for the user based on the original request.`,
-                    [], // No tools for synthesis
-                    async () => ({}), // Dummy executor
-                    { maxIterations: 1 }
-                );
+                    Synthesize a comprehensive response for the user based on the original request. Format for Slack: use *bold* for emphasis, avoid markdown tables and ## headers.`;
+
+                let synthesisContent: string;
+                const shouldUseGLM = context.useGLMSynthesis ?? (global as any).useGLMSynthesis ?? false;
+                if (shouldUseGLM) {
+                    const { callGLM } = await import('@/ai/glm');
+                    synthesisContent = await callGLM({ userMessage: synthesisPrompt });
+                } else {
+                    const { executeWithTools: claudeSynthesize } = await import('@/ai/claude');
+                    const synthesisResult = await claudeSynthesize(
+                        synthesisPrompt,
+                        [], // No tools for synthesis
+                        async () => ({}), // Dummy executor
+                        { maxIterations: 1 }
+                    );
+                    synthesisContent = synthesisResult.content;
+                }
+                const synthesisResult = { content: synthesisContent };
 
                 // === PROCEDURAL MEMORY: Persist successful workflows ===
                 if (steps.length >= 2 && context.agentId && decision.status === 'COMPLETE') {

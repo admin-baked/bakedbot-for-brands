@@ -258,7 +258,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
 
         let result;
         try {
-            const extraOptions = attachments ? { attachments } : {};
+            const extraOptions = { ...(attachments ? { attachments } : {}), source: 'slack' };
             result = await Promise.race([
                 runAgentCore(enrichedText, personaId, extraOptions, SLACK_SYSTEM_USER),
                 new Promise((_, reject) =>

@@ -18,8 +18,8 @@ import { logger } from '@/lib/logger';
 
 // === Pricing (per 1M tokens, as of Feb 2026) ===
 const MODEL_PRICING: Record<string, { inputPer1M: number; outputPer1M: number }> = {
-    'claude-sonnet-4-5-20250929': { inputPer1M: 3.0, outputPer1M: 15.0 },
-    'claude-opus-4-5-20251101': { inputPer1M: 15.0, outputPer1M: 75.0 },
+    'claude-sonnet-4-6': { inputPer1M: 3.0, outputPer1M: 15.0 },
+    'claude-opus-4-6': { inputPer1M: 15.0, outputPer1M: 75.0 },
 };
 const DEFAULT_PRICING = { inputPer1M: 3.0, outputPer1M: 15.0 };
 

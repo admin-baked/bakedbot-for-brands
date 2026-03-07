@@ -25,8 +25,8 @@
  * Claude Sonnet 4.5 is optimized for agentic tool-use workflows (5x cheaper than Opus)
  * Use CLAUDE_REASONING_MODEL only for complex one-shot reasoning tasks
  */
-export const CLAUDE_TOOL_MODEL = 'claude-sonnet-4-5-20250929';
-export const CLAUDE_REASONING_MODEL = 'claude-opus-4-5-20251101';
+export const CLAUDE_TOOL_MODEL = 'claude-sonnet-4-6';
+export const CLAUDE_REASONING_MODEL = 'claude-opus-4-6';
 
 /**
  * Check if Claude should be preferred for a given task type

@@ -139,7 +139,7 @@ export const mikeAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools> = {
                     systemInstructions: (agentMemory.system_instructions as string) || '',
                     toolsDef,
                     tools,
-                    model: 'claude-sonnet-4-5-20250929',
+                    model: 'claude-sonnet-4-6',
                     maxIterations: 5,
                 });
 
