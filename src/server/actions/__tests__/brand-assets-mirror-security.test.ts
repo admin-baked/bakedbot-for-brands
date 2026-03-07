@@ -1,5 +1,10 @@
 import { mirrorBrandAssetFromUrl } from '../brand-assets';
 import { getBrandAssetUploader } from '@/server/services/brand-asset-uploader';
+import { lookup } from 'node:dns/promises';
+
+jest.mock('node:dns/promises', () => ({
+  lookup: jest.fn(),
+}));
 
 jest.mock('@/server/services/brand-asset-uploader', () => ({
   getBrandAssetUploader: jest.fn(),
@@ -42,6 +47,7 @@ describe('mirrorBrandAssetFromUrl security', () => {
     (getBrandAssetUploader as jest.Mock).mockReturnValue({ uploadAsset });
     uploadAsset.mockResolvedValue({ success: true, asset: { url: 'https://cdn.example/logo.png' } });
     (global as any).fetch = jest.fn();
+    (lookup as jest.Mock).mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
   });
 
   it('blocks IPv4-mapped IPv6 loopback hosts', async () => {
@@ -99,6 +105,47 @@ describe('mirrorBrandAssetFromUrl security', () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/File too large/i);
+    expect(uploadAsset).not.toHaveBeenCalled();
+  });
+
+  it('rejects hostnames that resolve to private addresses', async () => {
+    (lookup as jest.Mock).mockResolvedValue([{ address: '127.0.0.1', family: 4 }]);
+
+    const result = await mirrorBrandAssetFromUrl('brand-1', {
+      sourceUrl: 'https://example.com/private.png',
+      category: 'image',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/resolves to a private or local address/i);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('blocks redirects to private hosts', async () => {
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        status: 302,
+        headers: { get: (name: string) => (name.toLowerCase() === 'location' ? 'http://127.0.0.1/secret.png' : null) },
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: {
+          get: (name: string) => {
+            if (name.toLowerCase() === 'content-type') return 'image/png';
+            return null;
+          },
+        },
+        body: { getReader: () => makeReader([10]) },
+      });
+
+    const result = await mirrorBrandAssetFromUrl('brand-1', {
+      sourceUrl: 'https://example.com/logo.png',
+      category: 'image',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/private or local/i);
     expect(uploadAsset).not.toHaveBeenCalled();
   });
 });

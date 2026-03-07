@@ -10,10 +10,14 @@ import { getBrandAssetUploader, validateAssetType, validateFileSize } from '@/se
 import type { BrandAsset } from '@/types/brand-guide';
 import { logger } from '@/lib/logger';
 import { isIP } from 'node:net';
+import { lookup } from 'node:dns/promises';
+
+const MAX_FETCH_REDIRECTS = 3;
 
 function isPrivateIpv4(hostname: string): boolean {
   const lower = hostname.toLowerCase();
   if (lower === '127.0.0.1' || lower === '0.0.0.0') return true;
+  if (/^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(lower)) return true;
   if (/^10\./.test(lower)) return true;
   if (/^192\.168\./.test(lower)) return true;
   if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(lower)) return true;
@@ -51,6 +55,59 @@ function isPrivateOrLocalHostname(hostname: string): boolean {
   return false;
 }
 
+async function assertHostIsPublic(hostname: string): Promise<string | null> {
+  if (isPrivateOrLocalHostname(hostname)) {
+    return 'Private or local source URLs are not allowed';
+  }
+
+  if (isIP(hostname)) {
+    return null;
+  }
+
+  try {
+    const records = await lookup(hostname, { all: true, verbatim: true });
+    if (records.some((record) => isPrivateOrLocalHostname(record.address))) {
+      return 'Source hostname resolves to a private or local address';
+    }
+  } catch {
+    return 'Failed to resolve source hostname';
+  }
+
+  return null;
+}
+
+async function fetchImageWithValidatedRedirects(sourceUrl: URL): Promise<Response | { error: string }> {
+  let currentUrl = sourceUrl;
+
+  for (let redirectCount = 0; redirectCount <= MAX_FETCH_REDIRECTS; redirectCount += 1) {
+    const hostValidationError = await assertHostIsPublic(currentUrl.hostname);
+    if (hostValidationError) {
+      return { error: hostValidationError };
+    }
+
+    const response = await fetch(currentUrl.toString(), { redirect: 'manual' });
+
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get('location');
+      if (!location) {
+        return { error: 'Redirect response did not include a Location header' };
+      }
+
+      const nextUrl = new URL(location, currentUrl);
+      if (!['http:', 'https:'].includes(nextUrl.protocol)) {
+        return { error: 'Only HTTP(S) source URLs are supported' };
+      }
+
+      currentUrl = nextUrl;
+      continue;
+    }
+
+    return response;
+  }
+
+  return { error: `Too many redirects (max ${MAX_FETCH_REDIRECTS})` };
+}
+
 export async function mirrorBrandAssetFromUrl(
   brandId: string,
   input: {
@@ -75,11 +132,17 @@ export async function mirrorBrandAssetFromUrl(
       return { success: false, error: 'Only HTTP(S) source URLs are supported' };
     }
 
-    if (isPrivateOrLocalHostname(parsedUrl.hostname)) {
-      return { success: false, error: 'Private or local source URLs are not allowed' };
+    const hostValidationError = await assertHostIsPublic(parsedUrl.hostname);
+    if (hostValidationError) {
+      return { success: false, error: hostValidationError };
     }
 
-    const response = await fetch(parsedUrl.toString());
+    const fetchResult = await fetchImageWithValidatedRedirects(parsedUrl);
+    if ('error' in fetchResult) {
+      return { success: false, error: fetchResult.error };
+    }
+
+    const response = fetchResult;
     if (!response.ok) {
       return { success: false, error: `Failed to fetch source image (${response.status})` };
     }
