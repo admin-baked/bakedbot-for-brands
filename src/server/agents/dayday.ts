@@ -114,6 +114,7 @@ export const dayDayAgent: AgentImplementation<AgentMemory, DayDayTools> = {
         const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
         if (targetId === 'user_request' && stimulus) {
             const userQuery = stimulus;
+            const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
 
             // Tool Definitions (Agent-specific + Shared Context OS & Letta tools)
             const dayDaySpecificTools = [

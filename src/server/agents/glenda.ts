@@ -186,6 +186,7 @@ export const glendaAgent: AgentImplementation<AgentMemory, GlendaTools> = {
         const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
         if (targetId === 'user_request' && stimulus) {
             const userQuery = stimulus;
+            const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
 
             // Get delegatable agent IDs dynamically from registry
             const delegatableAgents = getDelegatableAgentIds('glenda');

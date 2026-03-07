@@ -38,7 +38,7 @@ import {
   ShieldAlert,
   TrendingUp as StrategyIcon,
 } from 'lucide-react';
-import type { BrandGuide } from '@/types/brand-guide';
+import type { BrandGuide, BrandGuideCompetitorSuggestion } from '@/types/brand-guide';
 import { VisualIdentityTab } from './components/visual-identity-tab';
 import { BrandVoiceTab } from './components/brand-voice-tab';
 import { MessagingTab } from './components/messaging-tab';
@@ -261,6 +261,7 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [currentStep, setCurrentStep] = useState<number | null>(null);
+  const [suggestedCompetitors, setSuggestedCompetitors] = useState<BrandGuideCompetitorSuggestion[]>([]);
 
   // Collected data from steps
   const [step1Data, setStep1Data] = useState<any>(null);
@@ -336,7 +337,9 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
 
     try {
       const result = await extractBrandGuideFromUrl({
+        brandId,
         url: websiteUrl,
+        includeCompetitorAnalysis: true,
         // Include social handles from Step 4 if already filled (e.g. re-scan after advanced setup)
         ...(step4Data?.instagramHandle || step4Data?.facebookHandle
           ? {
@@ -351,6 +354,8 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
       if (!result.success) {
         throw new Error(result.error || 'Failed to scan website');
       }
+
+      setSuggestedCompetitors(result.competitorSuggestions || []);
 
       // Step 1 — derive brand name from extracted data, website title, or URL domain
       // Priority: AI-extracted brandName → website page title → URL domain fallback
@@ -458,7 +463,9 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
 
       toast({
         title: 'Website Scanned',
-        description: `Brand data extracted from ${websiteUrl}. Review and confirm the steps below.`,
+        description: result.competitorSuggestions?.length
+          ? `Brand data extracted from ${websiteUrl}. Found ${result.competitorSuggestions.length} competitor suggestions.`
+          : `Brand data extracted from ${websiteUrl}. Review and confirm the steps below.`,
       });
     } catch (error) {
       toast({
@@ -684,6 +691,55 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
               </Button>
             </div>
           </Card>
+
+          {suggestedCompetitors.length > 0 && (
+            <Card className="p-6 border-gray-100">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center">
+                  <Search className="w-5 h-5 text-baked-green" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-gray-800">Suggested Competitors</h2>
+                  <p className="text-sm text-gray-500">
+                    Pulled automatically from your website and market context.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {suggestedCompetitors.map((competitor) => (
+                  <div
+                    key={competitor.id}
+                    className="rounded-xl border border-gray-100 bg-gray-50/80 p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-gray-900 truncate">{competitor.name}</p>
+                        <p className="text-sm text-gray-500 truncate">
+                          {[competitor.city, competitor.state].filter(Boolean).join(', ') || competitor.url}
+                        </p>
+                        {competitor.description && (
+                          <p className="text-sm text-gray-600 mt-2 line-clamp-2">{competitor.description}</p>
+                        )}
+                      </div>
+                      <Badge variant="outline" className="capitalize shrink-0">
+                        {competitor.type}
+                      </Badge>
+                    </div>
+                    <a
+                      href={competitor.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-sm text-baked-green font-medium mt-3"
+                    >
+                      Visit site
+                      <ChevronRight className="w-4 h-4 ml-1" />
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
 
           {/* Manual Setup Steps */}
           <div className="space-y-3">
