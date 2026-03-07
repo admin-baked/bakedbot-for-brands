@@ -26,6 +26,15 @@ const PASSTHROUGH_RESPONSE_HEADERS = new Set([
   'link',
   'location',
 ]);
+const PASSTHROUGH_REQUEST_HEADERS = new Set([
+  'accept',
+  'accept-language',
+  'authorization',
+  'content-type',
+  'cookie',
+  'origin',
+  'referer',
+]);
 
 function normalizeProxyPath(path: string): string {
   return path
@@ -91,6 +100,29 @@ function normalizeHostname(request: NextRequest): string {
   return host || forwardedHost;
 }
 
+function getForwardedWordPressPath(request: NextRequest): string {
+  const headerPath = request.headers.get('x-bb-wordpress-path') || '';
+  return normalizeProxyPath(headerPath);
+}
+
+function buildUpstreamQueryString(request: NextRequest): string {
+  const { searchParams } = new URL(request.url);
+  const upstreamSearchParams = new URLSearchParams();
+
+  for (const [key, value] of searchParams.entries()) {
+    if (key === 'path' || key === 'wpUrl') {
+      continue;
+    }
+    upstreamSearchParams.append(key, value);
+  }
+
+  if (upstreamSearchParams.toString()) {
+    return upstreamSearchParams.toString();
+  }
+
+  return request.headers.get('x-bb-wordpress-query') || '';
+}
+
 function rewriteLocationHeader(
   location: string,
   targetUrl: string,
@@ -139,9 +171,10 @@ async function resolveMappedWordPressTarget(request: NextRequest): Promise<strin
   return upstreamUrl;
 }
 
-export async function GET(request: NextRequest) {
+async function handleProxyRequest(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const path = normalizeProxyPath(searchParams.get('path') || '');
+  const path = normalizeProxyPath(searchParams.get('path') || '') || getForwardedWordPressPath(request);
+  const upstreamQueryString = buildUpstreamQueryString(request);
   const publicHostname = normalizeHostname(request);
   const protocol = request.headers.get('x-forwarded-proto') || 'https';
   const mappedTarget = await resolveMappedWordPressTarget(request);
@@ -165,23 +198,47 @@ export async function GET(request: NextRequest) {
     targetUrl = targetResult.targetUrl;
   }
 
-  const fullUrl = new URL(path || '', `${targetUrl.replace(/\/+$/, '')}/`).toString();
+  const fullUrl = new URL(path || '', `${targetUrl.replace(/\/+$/, '')}/`);
+  if (upstreamQueryString) {
+    fullUrl.search = upstreamQueryString;
+  }
   logger.info('[WordPress Proxy] Proxying request', {
     path,
     targetOrigin: new URL(targetUrl).origin,
   });
 
+  const upstreamHeaders: Record<string, string> = {
+    Host: new URL(targetUrl).hostname,
+    'User-Agent': request.headers.get('user-agent') || '',
+    Accept: request.headers.get('accept') || '*/*',
+    'X-Forwarded-Host': publicHostname,
+    'X-Forwarded-Proto': protocol,
+  };
+
+  for (const [key, value] of request.headers.entries()) {
+    const lowerKey = key.toLowerCase();
+    if (!PASSTHROUGH_REQUEST_HEADERS.has(lowerKey)) {
+      continue;
+    }
+    if (lowerKey === 'accept') {
+      continue;
+    }
+    upstreamHeaders[key] = value;
+  }
+
   try {
-    const response = await fetch(fullUrl, {
+    const requestBody = (
+      request.method === 'GET'
+      || request.method === 'HEAD'
+    )
+      ? undefined
+      : await request.arrayBuffer();
+
+    const response = await fetch(fullUrl.toString(), {
       method: request.method,
       redirect: 'manual',
-      headers: {
-        Host: new URL(targetUrl).hostname,
-        'User-Agent': request.headers.get('user-agent') || '',
-        Accept: '*/*',
-        'X-Forwarded-Host': publicHostname,
-        'X-Forwarded-Proto': protocol,
-      },
+      headers: upstreamHeaders,
+      body: requestBody,
     });
 
     logger.info('[WordPress Proxy] Received response', {
@@ -222,9 +279,17 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logger.error('[WordPress Proxy] Failed to fetch WordPress', {
       path,
-      fullUrl,
+      fullUrl: fullUrl.toString(),
       error: error instanceof Error ? error.message : String(error),
     });
     return NextResponse.json({ error: 'Failed to fetch WordPress.' }, { status: 502 });
   }
+}
+
+export async function GET(request: NextRequest) {
+  return handleProxyRequest(request);
+}
+
+export async function POST(request: NextRequest) {
+  return handleProxyRequest(request);
 }

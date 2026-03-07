@@ -23,7 +23,7 @@ jest.mock('next/server', () => ({
 }));
 
 import { NextRequest } from 'next/server';
-import { GET } from '../route';
+import { GET, POST } from '../route';
 
 jest.mock('@/lib/domain-routing', () => ({
   getDomainMapping: jest.fn(),
@@ -224,5 +224,100 @@ describe('WordPress proxy route', () => {
 
     expect(response.status).toBe(301);
     expect(response.headers.get('location')).toBe('https://andrewsdevelopments.bakedbot.ai/wp-admin');
+  });
+
+  it('falls back to the forwarded wordpress asset path and preserves upstream query params', async () => {
+    (getDomainMapping as jest.Mock).mockResolvedValue({
+      tenantId: 'org_andrews',
+      targetType: 'wordpress_site',
+      targetConfig: {
+        upstreamUrl: 'https://mapped-wordpress.example.com',
+      },
+    });
+
+    global.fetch = jest.fn().mockResolvedValue(
+      new Response('body { color: red; }', {
+        status: 200,
+        headers: {
+          'content-type': 'text/css',
+        },
+      })
+    );
+
+    const request = new NextRequest(
+      'https://andrewsdevelopments.bakedbot.ai/api/wordpress/proxy?ver=1.0.3',
+      {
+        headers: {
+          host: 'andrewsdevelopments.bakedbot.ai',
+          'x-forwarded-proto': 'https',
+          'x-bb-wordpress-path': '/wp-content/themes/inclub/style.css',
+          'x-bb-wordpress-query': 'ver=1.0.3',
+        },
+      }
+    );
+    const response = await GET(request);
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://mapped-wordpress.example.com/wp-content/themes/inclub/style.css?ver=1.0.3',
+      expect.objectContaining({
+        redirect: 'manual',
+        headers: expect.objectContaining({
+          'X-Forwarded-Host': 'andrewsdevelopments.bakedbot.ai',
+          'X-Forwarded-Proto': 'https',
+        }),
+      })
+    );
+    await expect(response.text()).resolves.toBe('body { color: red; }');
+  });
+
+  it('proxies post requests with body, content-type, and cookies intact', async () => {
+    (getDomainMapping as jest.Mock).mockResolvedValue({
+      tenantId: 'org_andrews',
+      targetType: 'wordpress_site',
+      targetConfig: {
+        upstreamUrl: 'https://mapped-wordpress.example.com',
+      },
+    });
+
+    global.fetch = jest.fn().mockResolvedValue(
+      new Response('<methodResponse />', {
+        status: 200,
+        headers: {
+          'content-type': 'text/xml',
+          'set-cookie': 'wordpress_logged_in=test; Path=/',
+        },
+      })
+    );
+
+    const request = new NextRequest(
+      'https://andrewsdevelopments.bakedbot.ai/api/wordpress/proxy?path=xmlrpc.php',
+      {
+        method: 'POST',
+        headers: {
+          host: 'andrewsdevelopments.bakedbot.ai',
+          'content-type': 'text/xml',
+          cookie: 'wordpress_test_cookie=1',
+        },
+      }
+    ) as NextRequest & { arrayBuffer: () => Promise<ArrayBuffer> };
+
+    request.arrayBuffer = async () => new TextEncoder().encode('<methodCall />').buffer;
+
+    const response = await POST(request);
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://mapped-wordpress.example.com/xmlrpc.php',
+      expect.objectContaining({
+        method: 'POST',
+        redirect: 'manual',
+        headers: expect.objectContaining({
+          'content-type': 'text/xml',
+          cookie: 'wordpress_test_cookie=1',
+        }),
+        body: expect.anything(),
+      })
+    );
+    expect(response.headers.get('set-cookie')).toBe('wordpress_logged_in=test; Path=/');
+    await expect(response.text()).resolves.toBe('<methodResponse />');
   });
 });
