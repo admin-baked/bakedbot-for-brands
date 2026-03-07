@@ -108,7 +108,7 @@ export const dayDayAgent: AgentImplementation<AgentMemory, DayDayTools> = {
         return null;
     },
 
-    async act(brandMemory, agentMemory, targetId, tools: DayDayTools, stimulus) {
+    async act(brandMemory, agentMemory, targetId, tools: DayDayTools, stimulus?: string) {
         const semanticSearchEntityId = (brandMemory.brand_profile as any)?.id || (brandMemory.brand_profile as any)?.orgId || 'unknown';
 
         if (targetId === 'user_request' && stimulus) {

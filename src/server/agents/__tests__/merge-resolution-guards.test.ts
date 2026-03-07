@@ -32,7 +32,7 @@ describe('agent merge-resolution guards', () => {
     const filePath = path.join(process.cwd(), 'src/server/agents', 'dayday.ts');
     const source = fs.readFileSync(filePath, 'utf8');
 
-    expect(source).toContain('async act(brandMemory, agentMemory, targetId, tools: DayDayTools, stimulus)');
+    expect(source).toContain('async act(brandMemory, agentMemory, targetId, tools: DayDayTools, stimulus?: string)');
     expect(source).toContain('const semanticSearchEntityId =');
     expect(source).not.toContain("const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';");
   });
