@@ -95,7 +95,22 @@ function rewriteToResolvedPath(request: NextRequest, resolvedPath: string, metad
         }
     });
 
-    const response = NextResponse.rewrite(rewriteUrl);
+    const requestHeaders = new Headers(request.headers);
+    if (metadata?.targetType === 'wordpress_site') {
+        requestHeaders.set('x-bb-wordpress-path', request.nextUrl.pathname);
+        const upstreamQuery = request.nextUrl.searchParams.toString();
+        if (upstreamQuery) {
+            requestHeaders.set('x-bb-wordpress-query', upstreamQuery);
+        } else {
+            requestHeaders.delete('x-bb-wordpress-query');
+        }
+    }
+
+    const response = NextResponse.rewrite(rewriteUrl, {
+        request: {
+            headers: requestHeaders,
+        },
+    });
     if (metadata?.tenantId) {
         response.headers.set('x-tenant-id', metadata.tenantId);
     }
