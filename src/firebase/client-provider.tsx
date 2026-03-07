@@ -4,6 +4,7 @@
 import React, { useMemo, type ReactNode, useEffect, useState } from 'react';
 import { FirebaseProvider } from '@/firebase/provider';
 import { initializeFirebase, type FirebaseSdks } from '@/firebase';
+import { firebaseConfig } from '@/firebase/config';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 
@@ -12,11 +13,20 @@ interface FirebaseClientProviderProps {
   children: ReactNode;
 }
 
+function hasUsableFirebaseApiKey(apiKey: unknown): apiKey is string {
+  if (typeof apiKey !== 'string') return false;
+  const trimmed = apiKey.trim();
+  return trimmed.length >= 20 && trimmed.startsWith('AIza');
+}
+
 export function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
   // Initialize Firebase synchronously on first client render.
   // This avoids an auth race where `auth` is null on initial mount and protected routes redirect.
   const [firebaseServices] = useState<FirebaseSdks | null>(() => {
     try {
+      if (!hasUsableFirebaseApiKey(firebaseConfig.apiKey)) {
+        throw new Error('[FirebaseClientProvider] Missing or invalid NEXT_PUBLIC_FIREBASE_API_KEY.');
+      }
       // CRITICAL: Set App Check debug token BEFORE any Firebase initialization
       // if (process.env.NODE_ENV === 'development') {
       //   (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
@@ -78,7 +88,7 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
       auth={firebaseServices?.auth || null}
       firestore={firebaseServices?.firestore || null}
     >
-      <FirebaseErrorListener />
+      {firebaseServices?.auth ? <FirebaseErrorListener /> : null}
       {children}
     </FirebaseProvider>
   );
