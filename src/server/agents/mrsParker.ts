@@ -129,6 +129,7 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
   },
 
   async act(brandMemory, agentMemory, targetId, tools: MrsParkerTools, stimulus?: string) {
+    const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || 'unknown';
     // === SCENARIO A: User Request (The "Planner" Flow) ===
     if (targetId === 'user_request' && stimulus) {
         const userQuery = stimulus;

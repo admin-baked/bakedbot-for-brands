@@ -111,6 +111,7 @@ export const dayDayAgent: AgentImplementation<AgentMemory, DayDayTools> = {
     },
 
     async act(brandMemory, agentMemory, targetId, tools, stimulus) {
+        const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
         if (targetId === 'user_request' && stimulus) {
             const userQuery = stimulus;
 
