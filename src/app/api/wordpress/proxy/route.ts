@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDomainMapping } from '@/lib/domain-routing';
 import { logger } from '@/lib/logger';
+import { getResponseSetCookies } from './cookies';
 
 const INTERNAL_HOST_SUFFIXES = [
   '.run.app',
@@ -22,7 +23,6 @@ const HOP_BY_HOP_HEADERS = new Set([
 const PASSTHROUGH_RESPONSE_HEADERS = new Set([
   'content-type',
   'cache-control',
-  'set-cookie',
   'link',
   'location',
 ]);
@@ -268,11 +268,16 @@ async function handleProxyRequest(request: NextRequest) {
     });
 
     const headers = new Headers();
+    for (const value of getResponseSetCookies(response.headers)) {
+      headers.append('set-cookie', value);
+    }
+
     for (const [key, value] of response.headers.entries()) {
       const lowerKey = key.toLowerCase();
       if (
         lowerKey.startsWith('x-nextjs-')
         || HOP_BY_HOP_HEADERS.has(lowerKey)
+        || lowerKey === 'set-cookie'
         || !PASSTHROUGH_RESPONSE_HEADERS.has(lowerKey)
       ) {
         continue;

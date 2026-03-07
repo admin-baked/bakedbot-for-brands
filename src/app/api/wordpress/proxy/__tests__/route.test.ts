@@ -24,6 +24,7 @@ jest.mock('next/server', () => ({
 
 import { NextRequest } from 'next/server';
 import { GET, POST } from '../route';
+import { getResponseSetCookies } from '../cookies';
 
 jest.mock('@/lib/domain-routing', () => ({
   getDomainMapping: jest.fn(),
@@ -386,5 +387,20 @@ describe('WordPress proxy route', () => {
     );
     expect(response.headers.get('set-cookie')).toBe('wordpress_logged_in=test; Path=/');
     await expect(response.text()).resolves.toBe('<methodResponse />');
+  });
+
+  it('extracts multiple upstream set-cookie headers for wordpress auth flows', () => {
+    const headers = {
+      getSetCookie: () => [
+        'wordpress_sec=test-sec; Path=/; Secure; HttpOnly',
+        'wordpress_logged_in=test-login; Path=/; Secure; HttpOnly',
+      ],
+      get: () => null,
+    } as unknown as Headers;
+
+    expect(getResponseSetCookies(headers)).toEqual([
+      'wordpress_sec=test-sec; Path=/; Secure; HttpOnly',
+      'wordpress_logged_in=test-login; Path=/; Secure; HttpOnly',
+    ]);
   });
 });
