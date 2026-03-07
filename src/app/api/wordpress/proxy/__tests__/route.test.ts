@@ -147,4 +147,74 @@ describe('WordPress proxy route', () => {
     );
     await expect(response.text()).resolves.toBe('mapped');
   });
+
+  it('prefers the public host over an internal forwarded host', async () => {
+    (getDomainMapping as jest.Mock).mockResolvedValue({
+      tenantId: 'org_andrews',
+      targetType: 'wordpress_site',
+      targetConfig: {
+        upstreamUrl: 'https://mapped-wordpress.example.com',
+      },
+    });
+
+    global.fetch = jest.fn().mockResolvedValue(
+      new Response('mapped', {
+        status: 200,
+        headers: {
+          'content-type': 'text/html',
+        },
+      })
+    );
+
+    const request = new NextRequest('https://andrewsdevelopments.bakedbot.ai/api/wordpress/proxy', {
+      headers: {
+        host: 'andrewsdevelopments.bakedbot.ai',
+        'x-forwarded-host': 't-3016106336---bakedbot-prod-lo74oftdza-uc.a.run.app',
+        'x-forwarded-proto': 'https',
+      },
+    });
+    await GET(request);
+
+    expect(getDomainMapping).toHaveBeenCalledWith('andrewsdevelopments.bakedbot.ai');
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://mapped-wordpress.example.com/',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-Forwarded-Host': 'andrewsdevelopments.bakedbot.ai',
+          'X-Forwarded-Proto': 'https',
+        }),
+      })
+    );
+  });
+
+  it('rewrites upstream absolute redirects back onto the public host', async () => {
+    (getDomainMapping as jest.Mock).mockResolvedValue({
+      tenantId: 'org_andrews',
+      targetType: 'wordpress_site',
+      targetConfig: {
+        upstreamUrl: 'https://mapped-wordpress.example.com',
+      },
+    });
+
+    global.fetch = jest.fn().mockResolvedValue(
+      new Response(null, {
+        status: 301,
+        headers: {
+          location: 'https://t-3016106336---bakedbot-prod-lo74oftdza-uc.a.run.app/wp-admin',
+        },
+      })
+    );
+
+    const request = new NextRequest('https://andrewsdevelopments.bakedbot.ai/api/wordpress/proxy', {
+      headers: {
+        host: 'andrewsdevelopments.bakedbot.ai',
+        'x-forwarded-host': 't-3016106336---bakedbot-prod-lo74oftdza-uc.a.run.app',
+        'x-forwarded-proto': 'https',
+      },
+    });
+    const response = await GET(request);
+
+    expect(response.status).toBe(301);
+    expect(response.headers.get('location')).toBe('https://andrewsdevelopments.bakedbot.ai/wp-admin');
+  });
 });

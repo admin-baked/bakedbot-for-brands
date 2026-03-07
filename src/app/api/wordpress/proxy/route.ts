@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDomainMapping } from '@/lib/domain-routing';
 import { logger } from '@/lib/logger';
 
+const INTERNAL_HOST_SUFFIXES = [
+  '.run.app',
+  '.hosted.app',
+  '.web.app',
+  '.firebaseapp.com',
+  '.appspot.com',
+];
+
 function normalizeProxyPath(path: string): string {
   return path
     .split('/')
@@ -43,12 +51,57 @@ function resolveTargetUrl(configuredTarget: string, override: string | null): { 
   }
 }
 
+function stripPort(hostname: string | null): string {
+  return (hostname || '').replace(/:\d+$/, '').toLowerCase();
+}
+
+function isInternalHostingHostname(hostname: string): boolean {
+  return INTERNAL_HOST_SUFFIXES.some(suffix => hostname.endsWith(suffix));
+}
+
 function normalizeHostname(request: NextRequest): string {
-  return (
-    request.headers.get('x-forwarded-host')
-    || request.headers.get('host')
-    || ''
-  ).replace(/:\d+$/, '').toLowerCase();
+  const host = stripPort(request.headers.get('host'));
+  const forwardedHost = stripPort(request.headers.get('x-forwarded-host'));
+
+  if (host && !isInternalHostingHostname(host)) {
+    return host;
+  }
+
+  if (forwardedHost && !isInternalHostingHostname(forwardedHost)) {
+    return forwardedHost;
+  }
+
+  return host || forwardedHost;
+}
+
+function rewriteLocationHeader(
+  location: string,
+  targetUrl: string,
+  publicHostname: string,
+  protocol: string
+): string {
+  if (!location || !publicHostname) {
+    return location;
+  }
+
+  try {
+    const parsedLocation = new URL(location);
+    const targetOrigin = new URL(targetUrl).origin;
+
+    if (
+      parsedLocation.origin !== targetOrigin
+      && !isInternalHostingHostname(parsedLocation.hostname.toLowerCase())
+    ) {
+      return location;
+    }
+
+    return new URL(
+      `${parsedLocation.pathname}${parsedLocation.search}${parsedLocation.hash}`,
+      `${protocol}://${publicHostname}/`
+    ).toString();
+  } catch {
+    return location;
+  }
 }
 
 async function resolveMappedWordPressTarget(request: NextRequest): Promise<string | null> {
@@ -72,6 +125,8 @@ async function resolveMappedWordPressTarget(request: NextRequest): Promise<strin
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const path = normalizeProxyPath(searchParams.get('path') || '');
+  const publicHostname = normalizeHostname(request);
+  const protocol = request.headers.get('x-forwarded-proto') || 'https';
   const mappedTarget = await resolveMappedWordPressTarget(request);
   let targetUrl = mappedTarget;
 
@@ -80,7 +135,7 @@ export async function GET(request: NextRequest) {
 
     if (!configuredTarget) {
       logger.error('[WordPress Proxy] No mapped WordPress target or ANDREWS_WP_URL configured', {
-        hostname: normalizeHostname(request),
+        hostname: publicHostname,
       });
       return NextResponse.json({ error: 'WordPress proxy is not configured.' }, { status: 500 });
     }
@@ -106,8 +161,8 @@ export async function GET(request: NextRequest) {
         Host: new URL(targetUrl).hostname,
         'User-Agent': request.headers.get('user-agent') || '',
         Accept: '*/*',
-        'X-Forwarded-Host': normalizeHostname(request),
-        'X-Forwarded-Proto': request.headers.get('x-forwarded-proto') || 'https',
+        'X-Forwarded-Host': publicHostname,
+        'X-Forwarded-Proto': protocol,
       },
     });
 
@@ -118,9 +173,17 @@ export async function GET(request: NextRequest) {
 
     const headers = new Headers();
     for (const [key, value] of response.headers.entries()) {
-      if (!key.toLowerCase().startsWith('x-nextjs-')) {
-        headers.set(key, value);
+      const lowerKey = key.toLowerCase();
+      if (lowerKey.startsWith('x-nextjs-')) {
+        continue;
       }
+
+      if (lowerKey === 'location') {
+        headers.set(key, rewriteLocationHeader(value, targetUrl, publicHostname, protocol));
+        continue;
+      }
+
+      headers.set(key, value);
     }
 
     return new Response(response.body, {
