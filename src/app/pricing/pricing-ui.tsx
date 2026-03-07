@@ -67,7 +67,7 @@ export function PricingUI() {
                                         <Check className="w-4 h-4 text-emerald-500" /> Growth includes 10 ZIPs
                                     </div>
                                     <div className="flex items-center gap-2 text-sm text-slate-400">
-                                        <Sparkles className="w-4 h-4 text-yellow-400" /> Excess ZIPs just $15/mo
+                                        <Sparkles className="w-4 h-4 text-yellow-400" /> Excess ZIPs from $10/mo (Pro) · $8/mo (Growth)
                                     </div>
                                 </div>
                                 <div className="mt-8">
@@ -80,16 +80,16 @@ export function PricingUI() {
                                 <h4 className="font-semibold text-slate-200 mb-4 uppercase tracking-wider text-sm">Territory Expansion Packs</h4>
                                 <div className="space-y-4">
                                     <div className="flex justify-between items-center border-b border-slate-700 pb-3">
-                                        <span>Single ZIP</span>
-                                        <span className="font-mono text-emerald-400">$15<span className="text-slate-500 text-xs">/mo</span></span>
+                                        <span>Single ZIP (Pro)</span>
+                                        <span className="font-mono text-emerald-400">$10<span className="text-slate-500 text-xs">/mo</span></span>
                                     </div>
                                     <div className="flex justify-between items-center border-b border-slate-700 pb-3">
-                                        <span>Metro Pack (Chicago)</span>
-                                        <span className="font-mono text-emerald-400">$199<span className="text-slate-500 text-xs">/mo</span></span>
+                                        <span>Single ZIP (Growth)</span>
+                                        <span className="font-mono text-emerald-400">$8<span className="text-slate-500 text-xs">/mo</span></span>
                                     </div>
                                      <div className="flex justify-between items-center border-b border-slate-700 pb-3">
-                                        <span>Metro Pack (Detroit)</span>
-                                        <span className="font-mono text-emerald-400">$149<span className="text-slate-500 text-xs">/mo</span></span>
+                                        <span>Empire</span>
+                                        <span className="font-mono text-emerald-400 text-sm">Included</span>
                                     </div>
                                     <p className="text-xs text-slate-500 italic mt-2">
                                         *Metro packs include 50-100 strategic ZIP codes for complete city dominance.
@@ -124,7 +124,7 @@ export function PricingUI() {
                             </ul>
                             <div className="bg-background rounded-lg p-3 border text-sm flex justify-between items-center">
                                 <span>Extra Assets</span>
-                                <span className="font-mono font-medium">$5.00 / piece</span>
+                                <span className="font-mono font-medium">$2.00 / asset (Pro) · $1.50 (Growth)</span>
                             </div>
                         </div>
 
