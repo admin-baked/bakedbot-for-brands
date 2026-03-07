@@ -10,9 +10,10 @@ import { createServerClient } from '@/firebase/server-client';
 import { ALLeavesClient, type ALLeavesConfig } from '@/lib/pos/adapters/alleaves';
 import { posCache, cacheKeys } from '@/lib/cache/pos-cache';
 import { logger } from '@/lib/logger';
-import { invalidateCache, CachePrefix } from '@/lib/cache';
+import { invalidateCache, CachePrefix, setCached, CacheTTL } from '@/lib/cache';
 import { recordProductSale } from '@/server/services/order-analytics';
 import { syncPOSProducts } from '@/server/actions/pos-sync';
+import { upsertOwnProducts } from '@/server/services/ezal/lancedb-store';
 
 export interface SyncResult {
     success: boolean;
@@ -390,14 +391,41 @@ export async function syncOrgPOSData(orgId: string): Promise<SyncResult> {
 
         const client = new ALLeavesClient(alleavesConfig);
 
+        // ── Incremental sync: only fetch orders since last successful sync ──
+        const posIntegrationDoc = await firestore
+            .collection('tenants').doc(orgId)
+            .collection('integrations').doc('pos')
+            .get();
+        const lastSyncAt = posIntegrationDoc.exists
+            ? posIntegrationDoc.data()?.lastSyncAt?.toDate?.()
+            : null;
+
+        // If we have a previous sync, only fetch from that date minus 1 day buffer
+        // First sync ever: fetch last 90 days (not all history since 2020)
+        let orderStartDate: string;
+        if (lastSyncAt instanceof Date && !isNaN(lastSyncAt.getTime())) {
+            const buffer = new Date(lastSyncAt);
+            buffer.setDate(buffer.getDate() - 1); // 1 day overlap for safety
+            orderStartDate = buffer.toISOString().split('T')[0];
+        } else {
+            const ninety = new Date();
+            ninety.setDate(ninety.getDate() - 90);
+            orderStartDate = ninety.toISOString().split('T')[0];
+        }
+
+        logger.info('[POS_SYNC] Incremental sync', {
+            orgId,
+            orderStartDate,
+            isFirstSync: !lastSyncAt,
+        });
+
         // Fetch customers and orders in parallel
-        // Fetch up to 10k orders to capture full history on each sync
         const [customers, orders] = await Promise.all([
             client.getAllCustomersPaginated(30).catch(err => {
                 logger.error('[POS_SYNC] Failed to fetch customers', { orgId, error: err.message });
                 return [];
             }),
-            client.getAllOrders(10000).catch(err => {
+            client.getAllOrders(10000, orderStartDate).catch(err => {
                 logger.error('[POS_SYNC] Failed to fetch orders', { orgId, error: err.message });
                 return [];
             }),
@@ -434,6 +462,50 @@ export async function syncOrgPOSData(orgId: string): Promise<SyncResult> {
             });
         }
 
+        // ── Index own products in LanceDB for semantic search ──
+        // This lets agents search the tenant's own catalog alongside competitor data
+        try {
+            const { firestore: fs } = await createServerClient();
+            const productsSnap = await fs
+                .collection('tenants').doc(orgId)
+                .collection('publicViews').doc('products')
+                .collection('items')
+                .limit(500)
+                .get();
+
+            if (!productsSnap.empty) {
+                const ownProducts = productsSnap.docs.map(doc => {
+                    const d = doc.data();
+                    return {
+                        externalProductId: d.externalId || doc.id,
+                        brandName: d.brandName || '',
+                        productName: d.name || '',
+                        category: (d.category || 'other') as import('@/types/ezal-discovery').ProductCategory,
+                        strainType: (d.strainType || 'unknown') as import('@/types/ezal-discovery').StrainType,
+                        thcPct: d.thcPercent ?? d.thc ?? null,
+                        cbdPct: d.cbdPercent ?? d.cbd ?? null,
+                        price: d.price ?? 0,
+                        regularPrice: d.originalPrice ?? d.price ?? null,
+                        inStock: d.inStock !== false,
+                    };
+                });
+
+                const runId = `pos_sync_${Date.now()}`;
+                const lanceResult = await upsertOwnProducts(orgId, runId, ownProducts);
+                logger.info('[POS_SYNC] LanceDB own-product index updated', {
+                    orgId,
+                    upserted: lanceResult.upserted,
+                    errors: lanceResult.errors,
+                });
+            }
+        } catch (lanceErr) {
+            // Non-fatal — LanceDB indexing failure should not break POS sync
+            logger.warn('[POS_SYNC] LanceDB indexing failed (non-fatal)', {
+                orgId,
+                error: lanceErr instanceof Error ? lanceErr.message : String(lanceErr),
+            });
+        }
+
         // Invalidate existing cache to force refresh on next request
         posCache.invalidate(cacheKeys.customers(orgId));
         posCache.invalidate(cacheKeys.orders(orgId));
@@ -445,6 +517,15 @@ export async function syncOrgPOSData(orgId: string): Promise<SyncResult> {
             customersCount: customers.length,
             ordersCount: orders.length,
         });
+
+        // Cache sync summary in Redis for fast dashboard reads
+        const syncSummary = {
+            customersCount: customers.length,
+            ordersCount: orders.length,
+            menuProductsCount,
+            lastSyncAt: new Date().toISOString(),
+        };
+        await setCached(CachePrefix.POS_SYNC, orgId, syncSummary, CacheTTL.POS_SYNC).catch(() => {});
 
         logger.info('[POS_SYNC] Successfully synced POS data', {
             orgId,

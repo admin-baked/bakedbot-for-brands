@@ -444,6 +444,16 @@ env:
     availability:
       - RUNTIME
 
+  # LanceDB — Competitive intel vector store (Ezal)
+  # Local dev: /tmp/bakedbot-lancedb (default, no env needed)
+  # Production: gs://bakedbot-lancedb/ezal
+  # Setup: gsutil mb -l us-central1 gs://bakedbot-lancedb
+  #        gsutil iam ch serviceAccount:SERVICE_ACCOUNT@PROJECT.iam.gserviceaccount.com:roles/storage.objectAdmin gs://bakedbot-lancedb
+  - variable: LANCEDB_URI
+    value: "gs://bakedbot-lancedb/ezal"
+    availability:
+      - RUNTIME
+
   # Andrews Developments WordPress proxy URL (Cloud Run service)
   # Must be BUILD+RUNTIME so next.config.js rewrites() can read it at build time
   - variable: ANDREWS_WP_URL

@@ -17,6 +17,11 @@ import {
 } from '@/types/ezal-discovery';
 import { ParsedProduct } from './parser-engine';
 import { FieldValue } from 'firebase-admin/firestore';
+import {
+    upsertCompetitiveProducts,
+    appendPricePoints,
+    storeInsight,
+} from './lancedb-store';
 
 const COLLECTION_PRODUCTS = 'products_competitive';
 const COLLECTION_PRICE_POINTS = 'price_points_competitive';
@@ -236,6 +241,46 @@ export async function processParsedProducts(
     }
 
     results.insightsGenerated = insights.length;
+
+    // ── LanceDB dual-write (fire-and-forget, non-blocking) ──
+    // Mirrors data to LanceDB for semantic search + cheap time-series storage.
+    // Failures here do NOT affect the primary Firestore pipeline.
+    try {
+        await upsertCompetitiveProducts(tenantId, competitorId, runId, parsedProducts);
+
+        // Append price points for any products with price changes
+        const pricePointRecords = parsedProducts
+            .filter(p => {
+                // Only append price points for products that had price changes or are new
+                return true; // Append all for time-series completeness
+            })
+            .map(p => ({
+                productId: `${competitorId}__${p.externalProductId}`,
+                competitorId,
+                brandName: p.brandName,
+                productName: p.productName,
+                price: p.price,
+                regularPrice: p.regularPrice,
+                isPromo: p.regularPrice ? p.price < p.regularPrice : false,
+                runId,
+            }));
+        await appendPricePoints(tenantId, pricePointRecords);
+
+        // Store insights in LanceDB for semantic search
+        for (const insight of insights) {
+            await storeInsight(tenantId, insight);
+        }
+
+        logger.info('[Ezal Diff] LanceDB dual-write complete', {
+            tenantId, competitorId, products: parsedProducts.length, insights: insights.length,
+        });
+    } catch (lanceErr) {
+        // Non-fatal: log and continue
+        logger.warn('[Ezal Diff] LanceDB dual-write failed (non-fatal)', {
+            tenantId, competitorId,
+            error: lanceErr instanceof Error ? lanceErr.message : String(lanceErr),
+        });
+    }
 
     logger.info('[Ezal Diff] Processing complete:', {
         tenantId,
