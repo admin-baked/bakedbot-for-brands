@@ -13,8 +13,13 @@ export const BAKEDBOT_NAMESERVERS = [
     'ns2.bakedbot.ai',
 ];
 
-/** CNAME target for subdomain routing */
-export const BAKEDBOT_CNAME_TARGET = 'cname.bakedbot.ai';
+/**
+ * CNAME target for subdomain routing.
+ *
+ * Use the public apex because it already resolves to App Hosting. The previous
+ * `cname.bakedbot.ai` helper target was documented but never published in DNS.
+ */
+export const BAKEDBOT_CNAME_TARGET = 'bakedbot.ai';
 
 /** Prefix for TXT verification records */
 export const VERIFICATION_TXT_PREFIX = '_bakedbot';
