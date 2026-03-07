@@ -28,6 +28,17 @@ describe('agent merge-resolution guards', () => {
     expect(source).toContain('makeSemanticSearchToolsImpl(semanticSearchEntityId)');
   });
 
+
+
+  it('executive uses semanticSearchEntityId and not local brandId fallback in act()', () => {
+    const filePath = path.join(process.cwd(), 'src/server/agents', 'executive.ts');
+    const source = fs.readFileSync(filePath, 'utf8');
+
+    expect(source).toContain('const semanticSearchEntityId =');
+    expect(source).toContain('tools: { ...tools, ...makeSemanticSearchToolsImpl(semanticSearchEntityId) }');
+    expect(source).not.toContain("const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';");
+  });
+
   it('dayday uses typed tools and semanticSearchEntityId in act()', () => {
     const filePath = path.join(process.cwd(), 'src/server/agents', 'dayday.ts');
     const source = fs.readFileSync(filePath, 'utf8');
