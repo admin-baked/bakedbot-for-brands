@@ -205,13 +205,46 @@ export class SlackService {
         }
     }
 
+    /**
+     * Convert markdown to Slack mrkdwn format.
+     * Slack does not render ## headers or pipe tables natively — convert them.
+     */
+    static toSlackMrkdwn(text: string): string {
+        // Convert markdown tables to plain-text key:value lines
+        text = text.replace(/\|(.+)\|\n\|[-| :]+\|\n((?:\|.+\|\n?)*)/g, (_match, header, rows) => {
+            const headers = header.split('|').map((h: string) => h.trim()).filter(Boolean);
+            const rowLines = rows.trim().split('\n').map((row: string) => {
+                const cells = row.split('|').map((c: string) => c.trim()).filter(Boolean);
+                return cells.map((cell: string, i: number) => `*${headers[i] ?? ''}:* ${cell}`).join('  ·  ');
+            });
+            return rowLines.join('\n');
+        });
+
+        // Convert ## / # headers to Slack bold
+        text = text.replace(/^#{1,3}\s+(.+)$/gm, '*$1*');
+
+        // Convert **bold** to Slack *bold*
+        text = text.replace(/\*\*(.+?)\*\*/g, '*$1*');
+
+        // Remove horizontal rules
+        text = text.replace(/^---+$/gm, '');
+
+        // Collapse excessive blank lines
+        text = text.replace(/\n{3,}/g, '\n\n');
+
+        return text.trim();
+    }
+
     static formatAgentResponse(content: string, personaId: string): any[] {
         const meta = PERSONA_META[personaId] ?? PERSONA_META['puff'];
         const agentLabel = `${meta.emoji} ${meta.role}`;
 
+        // Convert markdown to Slack-native mrkdwn (tables → lists, ## → bold, etc.)
+        const slackContent = SlackService.toSlackMrkdwn(content);
+
         // Split long content into ≤3000-char sections (Slack block text limit)
         const chunks: string[] = [];
-        let remaining = content;
+        let remaining = slackContent;
         while (remaining.length > 3000) {
             // Try to break at a paragraph boundary
             const breakAt = remaining.lastIndexOf('\n\n', 3000);
