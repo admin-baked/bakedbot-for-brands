@@ -385,12 +385,20 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
 
                     Synthesize a comprehensive response for the user based on the original request. Format for Slack: use *bold* for emphasis, avoid markdown tables and ## headers.`;
 
-                let synthesisContent: string;
+                let synthesisContent = '';
                 const shouldUseGLM = context.useGLMSynthesis ?? getRequestContext().useGLMSynthesis ?? false;
+                let glmFailed = false;
                 if (shouldUseGLM) {
-                    const { callGLM } = await import('@/ai/glm');
-                    synthesisContent = await callGLM({ userMessage: synthesisPrompt });
-                } else {
+                    try {
+                        const { callGLM } = await import('@/ai/glm');
+                        synthesisContent = await callGLM({ userMessage: synthesisPrompt });
+                    } catch (glmErr: any) {
+                        logger.warn('[Harness] GLM synthesis failed, falling back to Claude:', glmErr?.message ?? glmErr);
+                        glmFailed = true;
+                        synthesisContent = ''; // will be overwritten by fallback below
+                    }
+                }
+                if (!shouldUseGLM || glmFailed) {
                     const { executeWithTools: claudeSynthesize } = await import('@/ai/claude');
                     const synthesisResult = await claudeSynthesize(
                         synthesisPrompt,
