@@ -157,8 +157,13 @@ export async function mirrorBrandAssetFromUrl(
       }
     }
 
-    const mimeType = response.headers.get('content-type') || 'image/png';
-    if (!mimeType.startsWith('image/')) {
+    const contentTypeHeader = response.headers.get('content-type');
+    if (!contentTypeHeader) {
+      return { success: false, error: 'Source URL must include a Content-Type header' };
+    }
+
+    const mimeType = contentTypeHeader.split(';')[0]?.trim().toLowerCase();
+    if (!mimeType || !mimeType.startsWith('image/')) {
       return { success: false, error: 'Source URL did not return an image' };
     }
 
