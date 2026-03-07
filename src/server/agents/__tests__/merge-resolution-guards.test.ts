@@ -39,6 +39,44 @@ describe('agent merge-resolution guards', () => {
     expect(source).not.toContain("const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';");
   });
 
+
+
+  it('glenda uses semanticSearchEntityId and not local brandId fallback in act()', () => {
+    const filePath = path.join(process.cwd(), 'src/server/agents', 'glenda.ts');
+    const source = fs.readFileSync(filePath, 'utf8');
+
+    expect(source).toContain('const semanticSearchEntityId =');
+    expect(source).toContain('makeSemanticSearchToolsImpl(semanticSearchEntityId)');
+    expect(source).not.toContain("const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';");
+  });
+
+  it('jack uses semanticSearchEntityId and not local brandId fallback in act()', () => {
+    const filePath = path.join(process.cwd(), 'src/server/agents', 'jack.ts');
+    const source = fs.readFileSync(filePath, 'utf8');
+
+    expect(source).toContain('const semanticSearchEntityId =');
+    expect(source).toContain('makeSemanticSearchToolsImpl(semanticSearchEntityId)');
+    expect(source).not.toContain("const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';");
+  });
+
+  it('leo uses semanticSearchEntityId and not local brandId fallback in act()', () => {
+    const filePath = path.join(process.cwd(), 'src/server/agents', 'leo.ts');
+    const source = fs.readFileSync(filePath, 'utf8');
+
+    expect(source).toContain('const semanticSearchEntityId =');
+    expect(source).toContain('makeSemanticSearchToolsImpl(semanticSearchEntityId)');
+    expect(source).not.toContain("const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';");
+  });
+
+  it('mrsParker uses semanticSearchEntityId and not local orgId fallback in act()', () => {
+    const filePath = path.join(process.cwd(), 'src/server/agents', 'mrsParker.ts');
+    const source = fs.readFileSync(filePath, 'utf8');
+
+    expect(source).toContain('const semanticSearchEntityId =');
+    expect(source).toContain('makeSemanticSearchToolsImpl(semanticSearchEntityId)');
+    expect(source).not.toContain("const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || 'unknown';");
+  });
+
   it('dayday uses typed tools and semanticSearchEntityId in act()', () => {
     const filePath = path.join(process.cwd(), 'src/server/agents', 'dayday.ts');
     const source = fs.readFileSync(filePath, 'utf8');
