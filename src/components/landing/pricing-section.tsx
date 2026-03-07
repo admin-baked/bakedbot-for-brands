@@ -10,7 +10,7 @@ export async function PricingSection() {
     const totalSlots = 75; // Per user request
     const remainingSlots = Math.max(0, totalSlots - foundersCount);
     const getPlanCtaHref = (planId: string) => {
-        if (planId === 'free') return '/get-started?plan=free';
+        if (planId === 'scout') return '/get-started?plan=scout';
         if (planId === 'empire') return '/contact';
         return `/get-started?plan=${planId}`;
     };
@@ -125,13 +125,13 @@ export async function PricingSection() {
                             marginTop: 'auto'
                         }}>
                             {/* Use logic to display specific button text for free vs paid  */}
-                            {plan.id === 'free' ? 'Hire a Scout' :
+                            {plan.id === 'scout' ? 'Hire a Scout' :
                                 plan.id === 'founders_claim' ? 'Get Founders Pricing' :
                                     `Start ${plan.name}`}
                         </Link>
 
                         {/* Special Toggle for Claim Pro to show Founders Option */}
-                        {plan.id === 'claim_pro' && remainingSlots > 0 && (
+                        {plan.id === 'pro' && remainingSlots > 0 && (
                             <div style={{ marginTop: '10px', fontSize: '11px', color: '#16a34a', textAlign: 'center', background: '#f0fdf4', padding: '6px', borderRadius: '6px' }}>
                                 Founders: $79/mo locked-in ({remainingSlots} left)
                             </div>
