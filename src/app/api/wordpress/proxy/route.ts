@@ -44,6 +44,22 @@ function normalizeProxyPath(path: string): string {
     .join('/');
 }
 
+function normalizeUpstreamWordPressPath(path: string): string {
+  if (path === 'wp-admin') {
+    return 'wp-admin/';
+  }
+
+  return path;
+}
+
+function normalizePublicWordPressPath(pathname: string): string {
+  if (pathname === '/wp-admin/') {
+    return '/wp-admin';
+  }
+
+  return pathname;
+}
+
 function resolveTargetUrl(configuredTarget: string, override: string | null): { ok: true; targetUrl: string } | { ok: false; response: NextResponse } {
   if (!override) {
     return { ok: true, targetUrl: configuredTarget };
@@ -134,8 +150,8 @@ function rewriteLocationHeader(
   }
 
   try {
-    const parsedLocation = new URL(location);
     const targetOrigin = new URL(targetUrl).origin;
+    const parsedLocation = new URL(location, `${targetOrigin}/`);
 
     if (
       parsedLocation.origin !== targetOrigin
@@ -144,10 +160,12 @@ function rewriteLocationHeader(
       return location;
     }
 
-    return new URL(
+    const publicUrl = new URL(
       `${parsedLocation.pathname}${parsedLocation.search}${parsedLocation.hash}`,
       `${protocol}://${publicHostname}/`
-    ).toString();
+    );
+    publicUrl.pathname = normalizePublicWordPressPath(publicUrl.pathname);
+    return publicUrl.toString();
   } catch {
     return location;
   }
@@ -198,7 +216,10 @@ async function handleProxyRequest(request: NextRequest) {
     targetUrl = targetResult.targetUrl;
   }
 
-  const fullUrl = new URL(path || '', `${targetUrl.replace(/\/+$/, '')}/`);
+  const fullUrl = new URL(
+    normalizeUpstreamWordPressPath(path || ''),
+    `${targetUrl.replace(/\/+$/, '')}/`
+  );
   if (upstreamQueryString) {
     fullUrl.search = upstreamQueryString;
   }

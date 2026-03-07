@@ -226,6 +226,73 @@ describe('WordPress proxy route', () => {
     expect(response.headers.get('location')).toBe('https://andrewsdevelopments.bakedbot.ai/wp-admin');
   });
 
+  it('normalizes wp-admin root redirects back to the public no-slash URL', async () => {
+    (getDomainMapping as jest.Mock).mockResolvedValue({
+      tenantId: 'org_andrews',
+      targetType: 'wordpress_site',
+      targetConfig: {
+        upstreamUrl: 'https://mapped-wordpress.example.com',
+      },
+    });
+
+    global.fetch = jest.fn().mockResolvedValue(
+      new Response(null, {
+        status: 301,
+        headers: {
+          location: 'https://mapped-wordpress.example.com/wp-admin/',
+        },
+      })
+    );
+
+    const request = new NextRequest('https://andrewsdevelopments.bakedbot.ai/api/wordpress/proxy', {
+      headers: {
+        host: 'andrewsdevelopments.bakedbot.ai',
+        'x-forwarded-proto': 'https',
+      },
+    });
+    const response = await GET(request);
+
+    expect(response.status).toBe(301);
+    expect(response.headers.get('location')).toBe('https://andrewsdevelopments.bakedbot.ai/wp-admin');
+  });
+
+  it('fetches the wordpress admin root with a trailing slash upstream', async () => {
+    (getDomainMapping as jest.Mock).mockResolvedValue({
+      tenantId: 'org_andrews',
+      targetType: 'wordpress_site',
+      targetConfig: {
+        upstreamUrl: 'https://mapped-wordpress.example.com',
+      },
+    });
+
+    global.fetch = jest.fn().mockResolvedValue(
+      new Response('<html>admin</html>', {
+        status: 200,
+        headers: {
+          'content-type': 'text/html',
+        },
+      })
+    );
+
+    const request = new NextRequest('https://andrewsdevelopments.bakedbot.ai/api/wordpress/proxy', {
+      headers: {
+        host: 'andrewsdevelopments.bakedbot.ai',
+        'x-forwarded-proto': 'https',
+        'x-bb-wordpress-path': '/wp-admin',
+      },
+    });
+    const response = await GET(request);
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://mapped-wordpress.example.com/wp-admin/',
+      expect.objectContaining({
+        method: 'GET',
+        redirect: 'manual',
+      })
+    );
+    await expect(response.text()).resolves.toBe('<html>admin</html>');
+  });
+
   it('falls back to the forwarded wordpress asset path and preserves upstream query params', async () => {
     (getDomainMapping as jest.Mock).mockResolvedValue({
       tenantId: 'org_andrews',
