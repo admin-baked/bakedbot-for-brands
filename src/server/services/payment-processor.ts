@@ -31,9 +31,7 @@ function getStripeClient(): Stripe | null {
     return null;
   }
 
-  return new Stripe(apiKey, {
-    apiVersion: '2026-02-25.clover',
-  });
+  return new Stripe(apiKey);
 }
 
 export type PaymentProvider = 'authorize_net' | 'stripe' | 'square';
