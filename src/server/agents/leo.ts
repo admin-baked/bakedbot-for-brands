@@ -274,6 +274,7 @@ export const leoAgent: AgentImplementation<LeoMemory, LeoTools> = {
     },
 
     async act(brandMemory, agentMemory, targetId, tools: LeoTools, stimulus?: string) {
+        const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
         if (targetId === 'user_request' && stimulus) {
             let userQuery = stimulus;
 

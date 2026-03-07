@@ -18,28 +18,8 @@ import SmokeySupportPanel from './smokey-support-panel';
 import HelpSearchEnhanced from '@/components/help/help-search-enhanced';
 import MessageSupportDialog from './message-support-dialog';
 
-// Routes where FAB should NOT appear (interactive/form-heavy pages where it would block UI)
-const BLOCKED_ROUTES = [
-  '/dashboard/inbox',
-  '/dashboard/campaigns/new',
-  '/dashboard/campaigns/edit',
-  '/dashboard/creative',
-  '/dashboard/craig/campaigns',
-  '/dashboard/products',
-  '/dashboard/menu',
-  '/dashboard/apps',
-  '/dashboard/settings',
-  '/dashboard/brand-page',
-  '/dashboard/brand-guide',
-  '/dashboard/playbooks',
-  '/dashboard/drive',
-  '/dashboard/loyalty-settings',
-  '/dashboard/email-warmup',
-  '/dashboard/orders',
-  '/dashboard/audience',
-  '/dashboard/delivery',
-  '/dashboard/dispensary',
-];
+// Keep Help Modal on all dashboard pages except Menu, where Smokey testing is primary.
+const BLOCKED_ROUTES = ['/dashboard/menu'];
 
 export function SmokeyFloatingButton() {
   const [open, setOpen] = useState(false);
