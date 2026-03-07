@@ -10,6 +10,102 @@ import { getBrandAssetUploader, validateAssetType, validateFileSize } from '@/se
 import type { BrandAsset } from '@/types/brand-guide';
 import { logger } from '@/lib/logger';
 
+function isPrivateOrLocalHostname(hostname: string): boolean {
+  const lower = hostname.toLowerCase();
+  if (lower === 'localhost' || lower.endsWith('.localhost')) return true;
+  if (lower === '127.0.0.1' || lower === '0.0.0.0' || lower === '::1') return true;
+
+  // IPv4 private ranges
+  if (/^10\./.test(lower)) return true;
+  if (/^192\.168\./.test(lower)) return true;
+  if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(lower)) return true;
+  if (/^169\.254\./.test(lower)) return true;
+
+  return false;
+}
+
+export async function mirrorBrandAssetFromUrl(
+  brandId: string,
+  input: {
+    sourceUrl: string;
+    category?: 'logo' | 'image';
+    preferredName?: string;
+  }
+  ): Promise<{ success: boolean; assetUrl?: string; error?: string }> {
+  try {
+    if (!input.sourceUrl) {
+      return { success: false, error: 'Source URL is required' };
+    }
+
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(input.sourceUrl);
+    } catch {
+      return { success: false, error: 'Invalid source URL' };
+    }
+
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+      return { success: false, error: 'Only HTTP(S) source URLs are supported' };
+    }
+
+    if (isPrivateOrLocalHostname(parsedUrl.hostname)) {
+      return { success: false, error: 'Private or local source URLs are not allowed' };
+    }
+
+    const response = await fetch(parsedUrl.toString());
+    if (!response.ok) {
+      return { success: false, error: `Failed to fetch source image (${response.status})` };
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const mimeType = response.headers.get('content-type') || 'image/png';
+
+    if (!mimeType.startsWith('image/')) {
+      return { success: false, error: 'Source URL did not return an image' };
+    }
+
+    const extension = mimeType.includes('svg')
+      ? 'svg'
+      : mimeType.includes('jpeg')
+        ? 'jpg'
+        : mimeType.includes('webp')
+          ? 'webp'
+          : 'png';
+
+    const originalName = `${input.preferredName || (input.category === 'logo' ? 'logo' : 'featured-image')}.${extension}`;
+
+    const uploader = getBrandAssetUploader();
+    const result = await uploader.uploadAsset({
+      brandId,
+      file: {
+        buffer,
+        originalName,
+        mimeType,
+        size: buffer.byteLength,
+      },
+      category: input.category || 'image',
+      makePublic: true,
+      tags: ['brand-guide', 'mirrored'],
+      metadata: {
+        sourceUrl: input.sourceUrl,
+      },
+    });
+
+    if (!result.success || !result.asset) {
+      return { success: false, error: result.error || 'Failed to mirror image' };
+    }
+
+    return { success: true, assetUrl: result.asset.url };
+  } catch (error) {
+    logger.error('Failed to mirror brand asset from URL', { error, brandId, sourceUrl: input.sourceUrl });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to mirror image',
+    };
+  }
+}
+
 // ============================================================================
 // ASSET UPLOAD ACTIONS
 // ============================================================================

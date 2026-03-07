@@ -111,6 +111,8 @@ export const dayDayAgent: AgentImplementation<AgentMemory, DayDayTools> = {
     },
 
     async act(brandMemory, agentMemory, targetId, tools, stimulus) {
+        const semanticSearchEntityId = (brandMemory.brand_profile as any)?.id || (brandMemory.brand_profile as any)?.orgId || 'unknown';
+
         if (targetId === 'user_request' && stimulus) {
             const userQuery = stimulus;
 
@@ -188,7 +190,7 @@ export const dayDayAgent: AgentImplementation<AgentMemory, DayDayTools> = {
             const allTools = {
                 ...tools,
                 ...specificImplementations,
-                ...makeSemanticSearchToolsImpl(brandId),
+                ...makeSemanticSearchToolsImpl(semanticSearchEntityId),
                 searchOpportunities: async (query: string) => {
                     try {
                         const { searchWeb, formatSearchResults } = await import('@/server/tools/web-search');

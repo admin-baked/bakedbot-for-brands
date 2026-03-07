@@ -183,6 +183,8 @@ export const glendaAgent: AgentImplementation<AgentMemory, GlendaTools> = {
     },
 
     async act(brandMemory, agentMemory, targetId, tools: GlendaTools, stimulus?: string) {
+        const semanticSearchEntityId = (brandMemory.brand_profile as any)?.id || (brandMemory.brand_profile as any)?.orgId || 'unknown';
+
         if (targetId === 'user_request' && stimulus) {
             const userQuery = stimulus;
 
@@ -270,7 +272,7 @@ export const glendaAgent: AgentImplementation<AgentMemory, GlendaTools> = {
             ];
             
             // Merge implementations
-            const allTools = { ...tools, ...analyticsToolImplementations, ...makeSemanticSearchToolsImpl(brandId) };
+            const allTools = { ...tools, ...analyticsToolImplementations, ...makeSemanticSearchToolsImpl(semanticSearchEntityId) };
 
             try {
                 const { runMultiStepTask } = await import('./harness');

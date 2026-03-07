@@ -129,6 +129,8 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
   },
 
   async act(brandMemory, agentMemory, targetId, tools: MrsParkerTools, stimulus?: string) {
+        const semanticSearchEntityId = (brandMemory.brand_profile as any)?.id || (brandMemory.brand_profile as any)?.orgId || 'unknown';
+
     // === SCENARIO A: User Request (The "Planner" Flow) ===
     if (targetId === 'user_request' && stimulus) {
         const userQuery = stimulus;
@@ -172,7 +174,7 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
                 toolsDef,
                 tools: {
                     ...tools,
-                    ...makeSemanticSearchToolsImpl(orgId),
+                    ...makeSemanticSearchToolsImpl(semanticSearchEntityId),
                     searchOpportunities: async (query: string) => {
                         try {
                             const { searchWeb, formatSearchResults } = await import('@/server/tools/web-search');

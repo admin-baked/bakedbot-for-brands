@@ -274,6 +274,8 @@ export const leoAgent: AgentImplementation<LeoMemory, LeoTools> = {
     },
 
     async act(brandMemory, agentMemory, targetId, tools: LeoTools, stimulus?: string) {
+        const semanticSearchEntityId = (brandMemory.brand_profile as any)?.id || (brandMemory.brand_profile as any)?.orgId || 'unknown';
+
         if (targetId === 'user_request' && stimulus) {
             let userQuery = stimulus;
 
@@ -455,7 +457,7 @@ export const leoAgent: AgentImplementation<LeoMemory, LeoTools> = {
                     userQuery,
                     systemInstructions: (agentMemory.system_instructions as string) || '',
                     toolsDef,
-                    tools: { ...tools, ...makeSemanticSearchToolsImpl(brandId) },
+                    tools: { ...tools, ...makeSemanticSearchToolsImpl(semanticSearchEntityId) },
                     model: 'claude-sonnet-4-6', // Use Claude Sonnet 4 for orchestration
                     maxIterations: 7, // Leo gets more iterations for complex orchestration
                     onStepComplete: async (step, toolName, result) => {

@@ -139,6 +139,8 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
   },
 
   async act(brandMemory, agentMemory, targetId, tools: ExecutiveTools, stimulus?: string) {
+        const semanticSearchEntityId = (brandMemory.brand_profile as any)?.id || (brandMemory.brand_profile as any)?.orgId || 'unknown';
+
     // === SCENARIO A: User Request (The "Planner" Flow) ===
     if (targetId === 'user_request' && stimulus) {
         const userQuery = stimulus;
@@ -318,7 +320,7 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
                 userQuery,
                 systemInstructions: (agentMemory.system_instructions as string) || '',
                 toolsDef,
-                tools: { ...tools, ...makeSemanticSearchToolsImpl(brandId) },
+                tools: { ...tools, ...makeSemanticSearchToolsImpl(semanticSearchEntityId) },
                 model: 'claude-sonnet-4-6', // Triggers harness routing to Claude 4.5 Opus
                 maxIterations: 5,
                 onStepComplete: async (step, toolName, result) => {

@@ -185,6 +185,8 @@ export const jackAgent: AgentImplementation<AgentMemory, JackTools> = {
     },
 
     async act(brandMemory, agentMemory, targetId, tools: JackTools, stimulus?: string) {
+        const semanticSearchEntityId = (brandMemory.brand_profile as any)?.id || (brandMemory.brand_profile as any)?.orgId || 'unknown';
+
         if (targetId === 'user_request' && stimulus) {
             const userQuery = stimulus;
 
@@ -268,7 +270,7 @@ export const jackAgent: AgentImplementation<AgentMemory, JackTools> = {
                     userQuery,
                     systemInstructions: (agentMemory.system_instructions as string) || '',
                     toolsDef,
-                    tools: { ...tools, ...makeSemanticSearchToolsImpl(brandId) },
+                    tools: { ...tools, ...makeSemanticSearchToolsImpl(semanticSearchEntityId) },
                     model: 'claude-sonnet-4-6',
                     maxIterations: 5
                 });
