@@ -44,6 +44,7 @@ const nextConfig = {
     'archiver',
     'jszip',
     'xlsx',
+    '@lancedb/lancedb',
     'fs',
     'path',
     'os',
