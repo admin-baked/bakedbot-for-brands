@@ -6,9 +6,10 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -62,6 +63,7 @@ import {
   type Step7Data,
 } from './components/setup-step-dialogs';
 import { extractBrandGuideFromUrl, createBrandGuide } from '@/server/actions/brand-guide';
+import { mirrorBrandAssetFromUrl } from '@/server/actions/brand-assets';
 import { generateBrandImagesForNewAccount } from '@/server/actions/brand-images';
 import { createOrgProfileFromWizard } from '@/server/actions/org-profile';
 import type { OrgProfile } from '@/types/org-profile';
@@ -82,6 +84,15 @@ export function BrandGuideClient({
     initialBrandGuide
   );
   const [activeTab, setActiveTab] = useState('visual');
+  const [showCompletionReminder, setShowCompletionReminder] = useState(false);
+  const isGuideComplete = useMemo(() => (brandGuide?.completenessScore || 0) >= 100, [brandGuide]);
+
+  useEffect(() => {
+    if (!brandGuide) return;
+    if (!isGuideComplete) {
+      setShowCompletionReminder(true);
+    }
+  }, [brandGuide, isGuideComplete]);
 
   // Show create dialog if no brand guide exists
   if (!brandGuide) {
@@ -90,6 +101,24 @@ export function BrandGuideClient({
 
   return (
     <div className="space-y-6">
+      <Dialog open={showCompletionReminder && !isGuideComplete} onOpenChange={setShowCompletionReminder}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Finish your Brand Guide setup</DialogTitle>
+            <DialogDescription>
+              Your Brand Guide is not complete yet. We'll keep reminding your team at login until required setup is finished so BakedBot can generate stronger content and visuals.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCompletionReminder(false)}>
+              Remind me later
+            </Button>
+            <Button className="bg-baked-green hover:bg-baked-green/90" onClick={() => setShowCompletionReminder(false)}>
+              Continue setup
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {/* Page Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Brand Guide</h1>
@@ -440,11 +469,18 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
       // Step 2 — visual identity + logo preview from OG image / favicon
       if (result.visualIdentity) {
         const detectedLogo = result.visualIdentity.logo?.primary;
+        const detectedFeaturedImage =
+          (result as any).metadata?.ogImage ||
+          (result as any).metadata?.image ||
+          result.visualIdentity.logo?.secondary ||
+          undefined;
+
         setStep2Data({
           primaryColor: result.visualIdentity.colors?.primary?.hex || '#4ade80',
           secondaryColor: result.visualIdentity.colors?.secondary?.hex,
           logoUrl: detectedLogo,
           logoPreviewUrl: detectedLogo,
+          featuredImageUrl: detectedFeaturedImage,
         });
       }
 
@@ -494,6 +530,23 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
     }
 
     try {
+      const mirrorCandidate = async (sourceUrl: string | undefined, category: 'logo' | 'image') => {
+        if (!sourceUrl || !sourceUrl.startsWith('http')) return sourceUrl;
+        try {
+          const mirrored = await mirrorBrandAssetFromUrl(brandId, {
+            sourceUrl,
+            category,
+            preferredName: category === 'logo' ? 'brand-guide-logo' : 'brand-guide-featured',
+          });
+          return mirrored.success ? mirrored.assetUrl || sourceUrl : sourceUrl;
+        } catch {
+          return sourceUrl;
+        }
+      };
+
+      const persistedLogoUrl = await mirrorCandidate(step2Data.logoUrl, 'logo');
+      const persistedFeaturedImageUrl = await mirrorCandidate(step2Data.featuredImageUrl, 'image');
+
       // Create brand guide with collected data
       const result = await createBrandGuide({
         brandId,
@@ -526,9 +579,16 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
                   }
                 : undefined,
             },
-            logo: step2Data.logoUrl
+            logo: persistedLogoUrl
               ? {
-                  primary: step2Data.logoUrl,
+                  primary: persistedLogoUrl,
+                }
+              : undefined,
+            imagery: persistedFeaturedImageUrl
+              ? {
+                  style: ['Product-forward', 'Menu-ready'],
+                  mood: ['Inviting', 'Community-focused'],
+                  examples: [persistedFeaturedImageUrl],
                 }
               : undefined,
           } as any,
@@ -568,7 +628,7 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
                 ? { hex: step2Data.secondaryColor, name: 'Secondary', usage: 'Supporting color' }
                 : undefined,
             },
-            logo: step2Data?.logoUrl ? { primary: step2Data.logoUrl } : undefined,
+            logo: persistedLogoUrl ? { primary: persistedLogoUrl } : undefined,
           },
           voice: {
             tone: step3Data?.tone || [],
@@ -811,6 +871,7 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
                   const brandColor = step2Data?.primaryColor || '#1a2e1a';
                   const accentColor = step2Data?.secondaryColor || step2Data?.primaryColor || '#4ade80';
                   const logoUrl = step2Data?.logoUrl || step2Data?.logoPreviewUrl;
+                  const featuredImageUrl = step2Data?.featuredImageUrl;
                   const tagline = step1Data?.tagline || 'Where Community Comes First';
                   const shortDesc = step1Data?.description
                     ? step1Data.description.length > 90
@@ -858,6 +919,17 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
                           <span className="text-white text-[10px] font-semibold tracking-wide">📸 IG Ready</span>
                         </div>
                       </div>
+
+                      {/* Featured product image */}
+                      {featuredImageUrl && (
+                        <div className="relative z-10 px-6 pt-3">
+                          <img
+                            src={featuredImageUrl}
+                            alt="Featured product"
+                            className="w-full h-28 rounded-xl object-cover border border-white/20"
+                          />
+                        </div>
+                      )}
 
                       {/* Spacer */}
                       <div className="flex-1" />
