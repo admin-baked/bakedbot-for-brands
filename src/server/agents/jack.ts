@@ -9,7 +9,7 @@ import { AgentImplementation } from './harness';
 import { AgentMemory } from './schemas';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
-import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, executiveContextToolDefs, AllSharedTools, ExecutiveContextTools } from './shared-tools';
+import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, executiveContextToolDefs, AllSharedTools, ExecutiveContextTools, semanticSearchToolDefs, makeSemanticSearchToolsImpl } from './shared-tools';
 import { crmToolDefs } from '../tools/crm-tools';
 import {
     buildSquadRoster,
@@ -257,7 +257,8 @@ export const jackAgent: AgentImplementation<AgentMemory, JackTools> = {
                 ...contextOsToolDefs,
                 ...lettaToolDefs,
                 ...intuitionOsToolDefs,
-                ...crmToolDefs
+                ...crmToolDefs,
+                ...semanticSearchToolDefs
             ];
 
             try {
@@ -267,7 +268,7 @@ export const jackAgent: AgentImplementation<AgentMemory, JackTools> = {
                     userQuery,
                     systemInstructions: (agentMemory.system_instructions as string) || '',
                     toolsDef,
-                    tools,
+                    tools: { ...tools, ...makeSemanticSearchToolsImpl(brandId) },
                     model: 'claude-sonnet-4-6',
                     maxIterations: 5
                 });

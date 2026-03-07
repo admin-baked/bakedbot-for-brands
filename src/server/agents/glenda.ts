@@ -9,7 +9,7 @@ import { AgentImplementation } from './harness';
 import { AgentMemory } from './schemas';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
-import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, executiveContextToolDefs, AllSharedTools, ExecutiveContextTools } from './shared-tools';
+import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, executiveContextToolDefs, AllSharedTools, ExecutiveContextTools, semanticSearchToolDefs, makeSemanticSearchToolsImpl } from './shared-tools';
 import { analyticsToolDefs, analyticsToolImplementations } from './tools/analytics-tools';
 import {
     buildSquadRoster,
@@ -265,11 +265,12 @@ export const glendaAgent: AgentImplementation<AgentMemory, GlendaTools> = {
                 ...analyticsToolDefs,
                 ...contextOsToolDefs,
                 ...lettaToolDefs,
-                ...intuitionOsToolDefs
+                ...intuitionOsToolDefs,
+                ...semanticSearchToolDefs
             ];
             
             // Merge implementations
-            const allTools = { ...tools, ...analyticsToolImplementations };
+            const allTools = { ...tools, ...analyticsToolImplementations, ...makeSemanticSearchToolsImpl(brandId) };
 
             try {
                 const { runMultiStepTask } = await import('./harness');

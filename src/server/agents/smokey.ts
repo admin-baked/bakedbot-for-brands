@@ -5,7 +5,7 @@ import { computeSkuScore } from '../algorithms/smokey-algo';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { getChatbotUpsells } from '@/server/services/upsell-engine';
-import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef } from './shared-tools';
+import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef, semanticSearchToolDefs, makeSemanticSearchToolsImpl } from './shared-tools';
 import { smokeyInboxToolDefs } from '../tools/inbox-tools';
 import { smokeyCrmToolDefs } from '../tools/crm-tools';
 import { jinaToolDefs, makeJinaToolsImpl } from '@/server/tools/jina-tools';
@@ -279,7 +279,7 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
             ];
 
             // Combine agent-specific tools with shared Context OS, Letta, inbox, Jina, YouTube, and proactive search tools
-            const toolsDef = [...smokeySpecificTools, proactiveSearchToolDef, ...jinaToolDefs, ...youtubeToolDefs, ...contextOsToolDefs, ...lettaToolDefs, ...smokeyInboxToolDefs, ...smokeyCrmToolDefs];
+            const toolsDef = [...smokeySpecificTools, proactiveSearchToolDef, ...jinaToolDefs, ...youtubeToolDefs, ...contextOsToolDefs, ...lettaToolDefs, ...smokeyInboxToolDefs, ...smokeyCrmToolDefs, ...semanticSearchToolDefs];
 
             try {
                 const { runMultiStepTask } = await import('./harness');
@@ -291,6 +291,7 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                         ...tools,
                         ...makeJinaToolsImpl(),
                         ...makeYouTubeToolsImpl(orgId),
+                        ...makeSemanticSearchToolsImpl(orgId),
                         searchOpportunities: async (query: string) => {
                             try {
                                 const { searchWeb, formatSearchResults } = await import('@/server/tools/web-search');
