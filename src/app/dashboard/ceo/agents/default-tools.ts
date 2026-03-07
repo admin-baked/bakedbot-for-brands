@@ -1183,6 +1183,87 @@ export const defaultFelishaTools = {
 // ============================================================================
 
 // Standard tools available to ALL agents (no RTRvr)
+// =============================================================================
+// SEMANTIC SEARCH TOOLS (LanceDB) — Available to ALL agents + Super Users
+// Cross-catalog vector search: own products (__self__) + competitor catalogs
+// =============================================================================
+
+const commonSemanticSearchTools = {
+    semanticSearchProducts: async (query: string, competitorId?: string, category?: string, inStockOnly?: boolean, limit?: number) => {
+        try {
+            const { EzalAgent } = await import('@/server/services/ezal');
+            const tenantId = (global as any).currentTenantId;
+            if (!tenantId) return { success: false, error: 'No tenant context available' };
+
+            const results = await EzalAgent.semanticSearch(tenantId, {
+                query,
+                competitorId,
+                category,
+                inStockOnly,
+                limit: Math.min(limit || 10, 50),
+            });
+
+            return { success: true, ...results };
+        } catch (e: any) {
+            return { success: false, error: `Semantic search failed: ${e.message}` };
+        }
+    },
+
+    semanticSearchInsights: async (query: string, severity?: string, type?: string, limit?: number) => {
+        try {
+            const { EzalAgent } = await import('@/server/services/ezal');
+            const tenantId = (global as any).currentTenantId;
+            if (!tenantId) return { success: false, error: 'No tenant context available' };
+
+            const results = await EzalAgent.searchIntel(tenantId, {
+                query,
+                severity,
+                type,
+                limit: limit || 10,
+            });
+
+            return { success: true, ...results };
+        } catch (e: any) {
+            return { success: false, error: `Insight search failed: ${e.message}` };
+        }
+    },
+
+    getCompetitorPriceHistory: async (productId: string, days?: number, limit?: number) => {
+        try {
+            const { getPriceHistory } = await import('@/server/services/ezal/lancedb-store');
+            const tenantId = (global as any).currentTenantId;
+            if (!tenantId) return { success: false, error: 'No tenant context available' };
+
+            const history = await getPriceHistory(tenantId, productId, {
+                days: days || 30,
+                limit: limit || 100,
+            });
+
+            return {
+                success: true,
+                count: history.length,
+                productId,
+                history,
+            };
+        } catch (e: any) {
+            return { success: false, error: `Price history failed: ${e.message}` };
+        }
+    },
+
+    getVectorStoreStats: async () => {
+        try {
+            const { EzalAgent } = await import('@/server/services/ezal');
+            const tenantId = (global as any).currentTenantId;
+            if (!tenantId) return { success: false, error: 'No tenant context available' };
+
+            const stats = await EzalAgent.getVectorStoreStats(tenantId);
+            return { success: true, tenantId, ...stats };
+        } catch (e: any) {
+            return { success: false, error: `Stats failed: ${e.message}` };
+        }
+    },
+};
+
 export const defaultUniversalTools = {
     // Memory & Persistence
     ...commonMemoryTools,
@@ -1198,6 +1279,9 @@ export const defaultUniversalTools = {
 
     // RAG (Knowledge Base, Search)
     ...commonRAGTools,
+
+    // Semantic Search (LanceDB — own + competitor catalogs)
+    ...commonSemanticSearchTools,
 
     // Permissions
     request_permission: requestPermission,
