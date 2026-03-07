@@ -20,6 +20,13 @@ const HOP_BY_HOP_HEADERS = new Set([
   'upgrade',
 ]);
 const TEXTUAL_CONTENT_TYPE_PATTERN = /^(text\/|application\/(?:json|javascript|xml|xhtml\+xml)|image\/svg\+xml)/i;
+const PASSTHROUGH_RESPONSE_HEADERS = new Set([
+  'content-type',
+  'cache-control',
+  'set-cookie',
+  'link',
+  'location',
+]);
 
 function normalizeProxyPath(path: string): string {
   return path
@@ -186,7 +193,11 @@ export async function GET(request: NextRequest) {
     const headers = new Headers();
     for (const [key, value] of response.headers.entries()) {
       const lowerKey = key.toLowerCase();
-      if (lowerKey.startsWith('x-nextjs-') || HOP_BY_HOP_HEADERS.has(lowerKey)) {
+      if (
+        lowerKey.startsWith('x-nextjs-')
+        || HOP_BY_HOP_HEADERS.has(lowerKey)
+        || !PASSTHROUGH_RESPONSE_HEADERS.has(lowerKey)
+      ) {
         continue;
       }
 
