@@ -22,13 +22,15 @@ function serializeOrders(orders: OrderDoc[]) {
 
 export default async function OrdersPage() {
     const user = await requireUser(['brand', 'brand_admin', 'brand_member', 'dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender', 'super_user']);
-    // Ensure orgId is always a valid string - check orgId first (for dispensaries), then brandId, then uid
-    const orgId = String((user as any).locationId || (user as any).orgId || (user as any).currentOrgId || (user as any).brandId || user.uid);
+    // Keep tenant org context separate from location context.
+    // orgId drives Alleaves/tenant lookups; locationId drives retailerId order queries.
+    const tenantOrgId = String((user as any).orgId || (user as any).currentOrgId || (user as any).brandId || user.uid);
+    const locationId = (user as any).locationId ? String((user as any).locationId) : undefined;
 
     // Pre-fetch digital orders for SSR
     let initialOrders: OrderDoc[] = [];
     try {
-        const result = await getOrders({ orgId });
+        const result = await getOrders({ orgId: tenantOrgId, locationId });
         initialOrders = result.success ? result.data || [] : [];
     } catch (error) {
         logger.error('Failed to load initial orders', { error });
@@ -39,7 +41,7 @@ export default async function OrdersPage() {
 
     return (
         <div className="container mx-auto py-6">
-            <OrdersPageClient orgId={orgId} initialOrders={serializedOrders} />
+            <OrdersPageClient orgId={tenantOrgId} initialOrders={serializedOrders} />
         </div>
     );
 }
