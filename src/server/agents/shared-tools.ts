@@ -303,6 +303,34 @@ export interface SemanticSearchTools {
     getVectorStoreStats(): Promise<any>;
 }
 
+
+// ============================================================================
+// SEMANTIC SEARCH RUNTIME FACTORY
+// Returns bound implementations of semanticSearchToolDefs for a given orgId.
+// Agents must spread this into their allTools/tools object AND include
+// semanticSearchToolDefs in their toolsDef for the planner to reach them.
+// ============================================================================
+
+export function makeSemanticSearchToolsImpl(orgId: string): SemanticSearchTools {
+    return {
+        async semanticSearchProducts(query, competitorId, category, inStockOnly, limit) {
+            const { searchProducts } = await import('@/server/services/ezal/lancedb-store');
+            return searchProducts(orgId, query, { competitorId, category, inStockOnly, limit });
+        },
+        async semanticSearchInsights(query, severity, type, limit) {
+            const { searchInsights } = await import('@/server/services/ezal/lancedb-store');
+            return searchInsights(orgId, query, { severity: severity as any, type: type as any, limit });
+        },
+        async getCompetitorPriceHistory(productId, days, limit) {
+            const { getPriceHistory } = await import('@/server/services/ezal/lancedb-store');
+            return getPriceHistory(orgId, productId, { days, limit });
+        },
+        async getVectorStoreStats() {
+            const { getStoreStats } = await import('@/server/services/ezal/lancedb-store');
+            return getStoreStats(orgId);
+        },
+    };
+}
 // ============================================================================
 // ALL SHARED TOOL DEFINITIONS (must be after all individual tool blocks)
 // ============================================================================

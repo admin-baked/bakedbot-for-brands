@@ -1,7 +1,7 @@
 // src/components/landing/pricing-section.tsx
 import styles from '@/app/home.module.css';
 import Link from 'next/link';
-import { PRICING_PLANS, COVERAGE_PACKS } from '@/lib/config/pricing';
+import { PRICING_PLANS, OVERAGES_TABLE } from '@/lib/config/pricing';
 
 export function PricingSection() {
     const getPlanCtaHref = (planId: string) => {
@@ -63,18 +63,28 @@ export function PricingSection() {
                 ))}
             </div>
 
-            {/* Coverage Packs */}
+            {/* ZIP Expansion */}
             <div style={{ marginTop: '40px', padding: '24px', background: '#f8fafc', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '8px' }}>Need national coverage? Add ZIP packs.</h3>
-                <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px' }}>Claim Pro includes <strong>up to 25 ZIP pages (or 1 core zone)</strong></p>
+                <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '4px' }}>Need more ZIP coverage? Add ZIPs to any plan.</h3>
+                <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px' }}>
+                    Pro includes <strong>3 ZIPs</strong> · Growth includes <strong>10 ZIPs</strong> · Empire includes <strong>unlimited ZIPs</strong>
+                </p>
 
                 <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '16px' }}>
-                    {COVERAGE_PACKS.map(pack => (
-                        <div key={pack.id} style={{ background: 'white', padding: '12px 20px', borderRadius: '8px', border: '1px solid #cbd5e1', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <span style={{ fontWeight: 700 }}>{pack.name}</span>
-                            <span style={{ color: '#64748b' }}>{pack.priceDisplay}/mo</span>
-                        </div>
-                    ))}
+                    {(() => {
+                        const zipRow = OVERAGES_TABLE.find(r => r.k === 'Additional ZIP Codes');
+                        if (!zipRow) return null;
+                        return [
+                            { label: 'Pro', rate: zipRow.pro },
+                            { label: 'Growth', rate: zipRow.growth },
+                            { label: 'Empire', rate: zipRow.empire },
+                        ].map(({ label, rate }) => (
+                            <div key={label} style={{ background: 'white', padding: '12px 20px', borderRadius: '8px', border: '1px solid #cbd5e1', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <span style={{ fontWeight: 700 }}>{label}</span>
+                                <span style={{ color: '#64748b' }}>{rate} per ZIP</span>
+                            </div>
+                        ));
+                    })()}
                 </div>
 
                 <p style={{ fontSize: '12px', color: '#64748b', fontStyle: 'italic' }}>
