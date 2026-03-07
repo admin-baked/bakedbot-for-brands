@@ -722,12 +722,41 @@ export async function optimizeTables(tenantId: string): Promise<void> {
 }
 
 // =============================================================================
+// WRITE: Upsert tenant's OWN products (from POS sync)
+// =============================================================================
+
+/**
+ * Index the tenant's own product catalog in LanceDB.
+ * Uses competitorId = '__self__' to distinguish from competitor products.
+ * This enables semantic search across both own + competitor catalogs.
+ */
+export async function upsertOwnProducts(
+  tenantId: string,
+  runId: string,
+  products: Array<{
+    externalProductId: string;
+    brandName: string;
+    productName: string;
+    category: ProductCategory;
+    strainType: StrainType;
+    thcPct: number | null;
+    cbdPct: number | null;
+    price: number;
+    regularPrice: number | null;
+    inStock: boolean;
+  }>
+): Promise<{ upserted: number; errors: number }> {
+  return upsertCompetitiveProducts(tenantId, '__self__', runId, products);
+}
+
+// =============================================================================
 // EXPORT: Main API surface
 // =============================================================================
 
 export const lancedbStore = {
   // Write
   upsertCompetitiveProducts,
+  upsertOwnProducts,
   appendPricePoints,
   storeInsight,
 
