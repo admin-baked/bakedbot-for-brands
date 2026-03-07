@@ -17,14 +17,13 @@ export interface DayDayTools {
     getSearchConsoleStats(): Promise<any>;
     getGA4Traffic(): Promise<any>;
     findSEOOpportunities(): Promise<any>;
+    refreshSitemap(): Promise<any>;
 }
 
-// ... imports
 import { searchConsoleService } from '@/server/services/growth/search-console';
 import { googleAnalyticsService } from '@/server/services/growth/google-analytics';
 import { sitemapManager } from '@/server/services/growth/sitemap-manager';
 
-// ... DayDayTools interface ...
 
 export const dayDayAgent: AgentImplementation<AgentMemory, DayDayTools> = {
     agentName: 'day_day',
