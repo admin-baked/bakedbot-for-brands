@@ -3,6 +3,7 @@ import { getOrders } from './actions';
 import { OrderDoc } from '@/types/orders';
 import OrdersPageClient from './orders-client';
 import { logger } from '@/lib/logger';
+import { getTenantOrgId, getLocationId } from './order-context';
 
 export const metadata = {
     title: 'Order Management | BakedBot',
@@ -24,8 +25,8 @@ export default async function OrdersPage() {
     const user = await requireUser(['brand', 'brand_admin', 'brand_member', 'dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender', 'super_user']);
     // Keep tenant org context separate from location context.
     // orgId drives Alleaves/tenant lookups; locationId drives retailerId order queries.
-    const tenantOrgId = String((user as any).orgId || (user as any).currentOrgId || (user as any).brandId || user.uid);
-    const locationId = (user as any).locationId ? String((user as any).locationId) : undefined;
+    const tenantOrgId = getTenantOrgId(user as any);
+    const locationId = getLocationId(user as any);
 
     // Pre-fetch digital orders for SSR
     let initialOrders: OrderDoc[] = [];
