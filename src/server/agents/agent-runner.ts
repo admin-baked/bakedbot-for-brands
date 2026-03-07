@@ -524,22 +524,20 @@ export async function runAgentCore(
         if (isAgentStatusQuery) {
             await emitThought(jobId, 'Complete', 'Returning agent squad status.');
 
-            const agentStatusContent = `## 🤖 Agent Squad Status
+            const agentStatusContent = `*Agent Squad Status* 🟢 All Online
 
-| Agent | Role | Status |
-|-------|------|--------|
-| **Smokey** | Product Intelligence & Budtender | 🟢 Active |
-| **Craig** | Content & Campaigns | 🟢 Active |
-| **Deebo** | Compliance & Regulations | 🟢 Active |
-| **Ezal** | Research & Competitive Intel | 🟢 Active |
-| **Pops** | Analytics & Strategy | 🟢 Active |
-| **Money Mike** | Pricing & Revenue | 🟢 Active |
-| **Mrs. Parker** | Customer Journeys & Loyalty | 🟢 Active |
-| **Day Day** | SEO & Growth | 🟢 Active |
-| **Felisha** | Meetings & Operations | 🟢 Active |
-| **Linus** | Technical & Infrastructure (AI CTO) | 🟢 Active |
-| **Leo** | Operations Orchestration (COO) | 🟢 Active |
-| **Puff** | Executive Assistant | 🟢 Active |
+🌿 *Smokey* — Product Intelligence & Budtender
+📱 *Craig* — Content & Campaigns
+⚖️ *Deebo* — Compliance & Regulations
+👀 *Ezal* — Research & Competitive Intel
+📊 *Pops* — Analytics & Strategy
+💵 *Money Mike* — Pricing & Revenue
+💌 *Mrs. Parker* — Customer Journeys & Loyalty
+📈 *Day Day* — SEO & Growth
+🗂️ *Felisha* — Meetings & Operations
+🖥️ *Linus* — Technical & Infrastructure (CTO)
+🦁 *Leo* — Operations Orchestration (COO)
+🤖 *Puff* — Executive Assistant
 
 All agents are online and ready. Type an agent name or describe your task to get started.`;
 
@@ -597,6 +595,9 @@ All agents are online and ready. Type an agent name or describe your task to get
     if (extraOptions?.audioInput) {
         finalMessage += `\n\n[AUDIO INPUT RECEIVED] (Voice processing enabled)`;
     }
+
+    // Signal GLM synthesis to harness for Slack requests (cost savings for non-PII responses)
+    (global as any).useGLMSynthesis = extraOptions?.source === 'slack';
 
     userMessage = finalMessage;
 

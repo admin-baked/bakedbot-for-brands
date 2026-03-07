@@ -301,7 +301,7 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                             }
                         },
                     },
-                    model: 'claude-sonnet-4-5-20250929',
+                    model: 'claude-sonnet-4-6',
                     maxIterations: 5,
                     onStepComplete: async (step, toolName, res) => {
                         // Optional: persist if needed, though harness logs usually cover it.

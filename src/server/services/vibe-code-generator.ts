@@ -101,7 +101,7 @@ export async function generateVibeCode(
       userMessage: generateUserPrompt(vibeConfig, prompt),
       temperature: 0.7,
       maxTokens: 8000,
-      model: 'claude-sonnet-4-5-20250929',
+      model: 'claude-sonnet-4-6',
     });
 
     // Parse JSON from response
@@ -304,7 +304,7 @@ Make the requested changes and return ONLY the modified files.`;
       userMessage: userPrompt,
       temperature: 0.5,
       maxTokens: 6000,
-      model: 'claude-sonnet-4-5-20250929',
+      model: 'claude-sonnet-4-6',
     });
 
     // Parse response

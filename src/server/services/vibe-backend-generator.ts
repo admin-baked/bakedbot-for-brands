@@ -150,7 +150,7 @@ export async function generateBackend(
       userMessage: generateBackendPrompt(options),
       temperature: 0.5,
       maxTokens: 8000,
-      model: 'claude-sonnet-4-5-20250929',
+      model: 'claude-sonnet-4-6',
     });
 
     // Parse JSON response
