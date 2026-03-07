@@ -43,10 +43,24 @@ fi
 cat > "${WP_CONFIG_EXTRA}" <<EOF
 <?php
 \$bbUseForwardedHost = filter_var(getenv('WP_USE_FORWARDED_HOST') ?: 'false', FILTER_VALIDATE_BOOLEAN);
-\$bbForwardedHost = \$bbUseForwardedHost
+\$bbForwardedHostHeader = \$bbUseForwardedHost
   ? (\$_SERVER['HTTP_X_FORWARDED_HOST'] ?? \$_SERVER['HTTP_HOST'] ?? '')
   : '';
+\$bbForwardedHostParts = array_filter(array_map('trim', explode(',', \$bbForwardedHostHeader)));
+\$bbForwardedHost = \$bbForwardedHostParts ? reset(\$bbForwardedHostParts) : '';
 \$bbScheme = \$_SERVER['HTTP_X_FORWARDED_PROTO'] ?? 'https';
+\$bbHostOnly = preg_replace('/:\d+$/', '', \$bbForwardedHost);
+\$bbPort = \$bbScheme === 'https' ? '443' : '80';
+\$bbHttps = \$bbScheme === 'https' ? 'on' : 'off';
+
+if (\$bbHostOnly) {
+  \$_SERVER['HTTP_HOST'] = \$bbForwardedHost;
+  \$_SERVER['SERVER_NAME'] = \$bbHostOnly;
+  \$_SERVER['SERVER_PORT'] = \$bbPort;
+  \$_SERVER['REQUEST_SCHEME'] = \$bbScheme;
+  \$_SERVER['HTTPS'] = \$bbHttps;
+}
+
 \$bbDynamicBaseUrl = \$bbForwardedHost ? "\${bbScheme}://\${bbForwardedHost}" : '';
 \$bbHome = \$bbDynamicBaseUrl ?: (getenv('WP_HOME') ?: 'https://andrews-wp-lo74oftdza-uc.a.run.app');
 \$bbSiteUrl = \$bbDynamicBaseUrl ?: (getenv('WP_SITEURL') ?: \$bbHome);

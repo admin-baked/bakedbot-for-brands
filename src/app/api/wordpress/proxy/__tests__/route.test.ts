@@ -86,6 +86,7 @@ describe('WordPress proxy route', () => {
         headers: {
           'content-type': 'text/html',
           'x-nextjs-cache': 'hit',
+          'transfer-encoding': 'chunked',
         },
       })
     );
@@ -97,6 +98,7 @@ describe('WordPress proxy route', () => {
       'https://andrews-wp.example.com/wp-json/posts',
       expect.objectContaining({
         method: 'GET',
+        redirect: 'manual',
         headers: expect.objectContaining({
           Host: 'andrews-wp.example.com',
           Accept: '*/*',
@@ -106,6 +108,7 @@ describe('WordPress proxy route', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toBe('text/html');
     expect(response.headers.get('x-nextjs-cache')).toBeNull();
+    expect(response.headers.get('transfer-encoding')).toBeNull();
     await expect(response.text()).resolves.toBe('ok');
   });
 
@@ -138,6 +141,7 @@ describe('WordPress proxy route', () => {
     expect(global.fetch).toHaveBeenCalledWith(
       'https://mapped-wordpress.example.com/wp-json/posts',
       expect.objectContaining({
+        redirect: 'manual',
         headers: expect.objectContaining({
           Host: 'mapped-wordpress.example.com',
           'X-Forwarded-Host': 'www.andrews.com',
@@ -179,6 +183,7 @@ describe('WordPress proxy route', () => {
     expect(global.fetch).toHaveBeenCalledWith(
       'https://mapped-wordpress.example.com/',
       expect.objectContaining({
+        redirect: 'manual',
         headers: expect.objectContaining({
           'X-Forwarded-Host': 'andrewsdevelopments.bakedbot.ai',
           'X-Forwarded-Proto': 'https',
