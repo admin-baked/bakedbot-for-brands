@@ -3,7 +3,7 @@
  */
 
 import { NextRequest } from 'next/server';
-import { getDomainResolveOrigin } from '@/proxy';
+import { getDomainResolveOrigin, shouldBypassMappedDomainRewrite } from '@/proxy';
 
 function createRequest(host: string, protocol: string = 'https') {
   return new NextRequest(`https://${host}/`, {
@@ -57,5 +57,17 @@ describe('getDomainResolveOrigin', () => {
     );
 
     expect(origin).toBe('https://bakedbot.ai');
+  });
+});
+
+describe('shouldBypassMappedDomainRewrite', () => {
+  it('bypasses the internal wordpress proxy route to avoid recursive rewrites', () => {
+    expect(shouldBypassMappedDomainRewrite('/api/wordpress/proxy')).toBe(true);
+    expect(shouldBypassMappedDomainRewrite('/api/wordpress/proxy?path=home-video')).toBe(true);
+  });
+
+  it('does not bypass normal custom-domain paths', () => {
+    expect(shouldBypassMappedDomainRewrite('/')).toBe(false);
+    expect(shouldBypassMappedDomainRewrite('/home-video')).toBe(false);
   });
 });

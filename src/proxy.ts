@@ -14,6 +14,10 @@ const HOST_RESOLVE_CACHE_TTL_MS = 60_000;
 const hostResolveCache = new Map<string, { expiry: number; value: HostResolveResult | null }>();
 const DEFAULT_DOMAIN_RESOLVE_ORIGIN = 'https://bakedbot.ai';
 
+export function shouldBypassMappedDomainRewrite(pathname: string): boolean {
+    return pathname.startsWith('/api/wordpress/proxy');
+}
+
 function getCachedHostResolve(cacheKey: string): HostResolveResult | null | undefined {
     const cached = hostResolveCache.get(cacheKey);
     if (!cached) return undefined;
@@ -131,6 +135,10 @@ export async function proxy(request: NextRequest) {
     }
 
     const pathname = rawPathname;
+    if (shouldBypassMappedDomainRewrite(pathname)) {
+        return NextResponse.next();
+    }
+
     // Use x-forwarded-host in cloud environments (Firebase/Cloud Run), fall back to host
     const hostname = request.headers.get('x-forwarded-host')
         || request.headers.get('host')
