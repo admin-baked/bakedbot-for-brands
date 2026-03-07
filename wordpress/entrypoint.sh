@@ -34,8 +34,16 @@ fi
 
 cat > "${WP_CONFIG_EXTRA}" <<EOF
 <?php
-define('WP_HOME', getenv('WP_HOME') ?: 'http://localhost');
-define('WP_SITEURL', getenv('WP_SITEURL') ?: 'http://localhost');
+\$bbUseForwardedHost = filter_var(getenv('WP_USE_FORWARDED_HOST') ?: 'false', FILTER_VALIDATE_BOOLEAN);
+\$bbForwardedHost = \$bbUseForwardedHost
+  ? (\$_SERVER['HTTP_X_FORWARDED_HOST'] ?? \$_SERVER['HTTP_HOST'] ?? '')
+  : '';
+\$bbScheme = \$_SERVER['HTTP_X_FORWARDED_PROTO'] ?? 'https';
+\$bbDynamicBaseUrl = \$bbForwardedHost ? "\${bbScheme}://\${bbForwardedHost}" : '';
+\$bbHome = \$bbDynamicBaseUrl ?: (getenv('WP_HOME') ?: 'http://localhost');
+\$bbSiteUrl = \$bbDynamicBaseUrl ?: (getenv('WP_SITEURL') ?: \$bbHome);
+define('WP_HOME', \$bbHome);
+define('WP_SITEURL', \$bbSiteUrl);
 define('FORCE_SSL_ADMIN', false);
 define('DISALLOW_FILE_MODS', false);
 EOF

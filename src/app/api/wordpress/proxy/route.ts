@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getDomainMapping } from '@/lib/domain-routing';
 import { logger } from '@/lib/logger';
 
 function normalizeProxyPath(path: string): string {
@@ -42,34 +43,71 @@ function resolveTargetUrl(configuredTarget: string, override: string | null): { 
   }
 }
 
+function normalizeHostname(request: NextRequest): string {
+  return (
+    request.headers.get('x-forwarded-host')
+    || request.headers.get('host')
+    || ''
+  ).replace(/:\d+$/, '').toLowerCase();
+}
+
+async function resolveMappedWordPressTarget(request: NextRequest): Promise<string | null> {
+  const hostname = normalizeHostname(request);
+  if (!hostname) return null;
+
+  const mapping = await getDomainMapping(hostname);
+  if (mapping?.targetType !== 'wordpress_site') {
+    return null;
+  }
+
+  const upstreamUrl = mapping.targetConfig?.upstreamUrl?.trim();
+  if (!upstreamUrl) {
+    logger.error('[WordPress Proxy] Domain mapping missing upstreamUrl', { hostname });
+    return null;
+  }
+
+  return upstreamUrl;
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const path = normalizeProxyPath(searchParams.get('path') || '');
-  const configuredTarget = process.env.ANDREWS_WP_URL?.trim();
+  const mappedTarget = await resolveMappedWordPressTarget(request);
+  let targetUrl = mappedTarget;
 
-  if (!configuredTarget) {
-    logger.error('[WordPress Proxy] ANDREWS_WP_URL is not configured');
-    return NextResponse.json({ error: 'WordPress proxy is not configured.' }, { status: 500 });
+  if (!targetUrl) {
+    const configuredTarget = process.env.ANDREWS_WP_URL?.trim();
+
+    if (!configuredTarget) {
+      logger.error('[WordPress Proxy] No mapped WordPress target or ANDREWS_WP_URL configured', {
+        hostname: normalizeHostname(request),
+      });
+      return NextResponse.json({ error: 'WordPress proxy is not configured.' }, { status: 500 });
+    }
+
+    const targetResult = resolveTargetUrl(configuredTarget, searchParams.get('wpUrl'));
+    if (!targetResult.ok) {
+      return targetResult.response;
+    }
+
+    targetUrl = targetResult.targetUrl;
   }
 
-  const targetResult = resolveTargetUrl(configuredTarget, searchParams.get('wpUrl'));
-  if (!targetResult.ok) {
-    return targetResult.response;
-  }
-
-  const fullUrl = new URL(path || '', `${targetResult.targetUrl.replace(/\/+$/, '')}/`).toString();
+  const fullUrl = new URL(path || '', `${targetUrl.replace(/\/+$/, '')}/`).toString();
   logger.info('[WordPress Proxy] Proxying request', {
     path,
-    targetOrigin: new URL(targetResult.targetUrl).origin,
+    targetOrigin: new URL(targetUrl).origin,
   });
 
   try {
     const response = await fetch(fullUrl, {
       method: request.method,
       headers: {
-        Host: new URL(targetResult.targetUrl).hostname,
+        Host: new URL(targetUrl).hostname,
         'User-Agent': request.headers.get('user-agent') || '',
         Accept: '*/*',
+        'X-Forwarded-Host': normalizeHostname(request),
+        'X-Forwarded-Proto': request.headers.get('x-forwarded-proto') || 'https',
       },
     });
 

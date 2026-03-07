@@ -22,6 +22,10 @@ jest.mock('next/server', () => ({
 import { NextRequest } from 'next/server';
 import { GET } from '../route';
 
+jest.mock('@/lib/domain-routing', () => ({
+  getDomainMapping: jest.fn(),
+}));
+
 jest.mock('@/lib/logger', () => ({
   logger: {
     info: jest.fn(),
@@ -29,6 +33,8 @@ jest.mock('@/lib/logger', () => ({
     error: jest.fn(),
   },
 }));
+
+import { getDomainMapping } from '@/lib/domain-routing';
 
 describe('WordPress proxy route', () => {
   const originalTarget = process.env.ANDREWS_WP_URL;
@@ -38,6 +44,7 @@ describe('WordPress proxy route', () => {
     jest.clearAllMocks();
     process.env.ANDREWS_WP_URL = 'https://andrews-wp.example.com';
     global.fetch = jest.fn();
+    (getDomainMapping as jest.Mock).mockResolvedValue(null);
   });
 
   afterAll(() => {
@@ -100,5 +107,44 @@ describe('WordPress proxy route', () => {
     expect(response.headers.get('content-type')).toBe('text/html');
     expect(response.headers.get('x-nextjs-cache')).toBeNull();
     await expect(response.text()).resolves.toBe('ok');
+  });
+
+  it('uses the mapped wordpress upstream for verified wordpress domains', async () => {
+    (getDomainMapping as jest.Mock).mockResolvedValue({
+      tenantId: 'org_andrews',
+      targetType: 'wordpress_site',
+      targetConfig: {
+        upstreamUrl: 'https://mapped-wordpress.example.com',
+      },
+    });
+
+    global.fetch = jest.fn().mockResolvedValue(
+      new Response('mapped', {
+        status: 200,
+        headers: {
+          'content-type': 'text/html',
+        },
+      })
+    );
+
+    const request = new NextRequest('http://localhost/api/wordpress/proxy?path=wp-json/posts', {
+      headers: {
+        host: 'www.andrews.com',
+        'x-forwarded-proto': 'https',
+      },
+    });
+    const response = await GET(request);
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://mapped-wordpress.example.com/wp-json/posts',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Host: 'mapped-wordpress.example.com',
+          'X-Forwarded-Host': 'www.andrews.com',
+          'X-Forwarded-Proto': 'https',
+        }),
+      })
+    );
+    await expect(response.text()).resolves.toBe('mapped');
   });
 });

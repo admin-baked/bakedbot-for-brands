@@ -23,6 +23,10 @@ COPY plugins/ /usr/src/wordpress/wp-content/plugins/
 COPY entrypoint.sh /entrypoint-custom.sh
 RUN dos2unix /entrypoint-custom.sh && chmod +x /entrypoint-custom.sh
 
+# Ship the repeatable demo-import helper for one-off Cloud Run Jobs.
+COPY wp-demo-import.sh /usr/local/bin/wp-demo-import.sh
+RUN dos2unix /usr/local/bin/wp-demo-import.sh && chmod +x /usr/local/bin/wp-demo-import.sh
+
 # Cloud Run sends PORT at runtime.
 EXPOSE 8080
 

@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod';
+import type { AIRoutingMetadata, AISensitivityLabel } from './ai-routing';
 
 // ============ Artifact Types ============
 
@@ -54,6 +55,9 @@ export interface Artifact {
 }
 
 export interface ArtifactMetadata {
+    sensitivity?: AISensitivityLabel;
+    aiRouting?: AIRoutingMetadata;
+
     // For research artifacts
     sources?: { title: string; url: string }[];
     summary?: string;
@@ -143,6 +147,14 @@ export const ArtifactTypeSchema = z.enum([
 ]);
 
 export const ArtifactMetadataSchema = z.object({
+    sensitivity: z.enum(['public', 'internal_non_pii', 'sensitive']).optional(),
+    aiRouting: z.object({
+        sensitivity: z.enum(['public', 'internal_non_pii', 'sensitive']),
+        provider: z.enum(['glm', 'anthropic']),
+        model: z.string(),
+        task: z.enum(['extraction', 'fast_synthesis', 'standard', 'strategic']),
+        reason: z.string().optional(),
+    }).optional(),
     sources: z.array(z.object({
         title: z.string(),
         url: z.string().url()
