@@ -1,5 +1,5 @@
 import { mirrorBrandAssetFromUrl } from '../brand-assets';
-import { getBrandAssetUploader } from '@/server/services/brand-asset-uploader';
+import { getBrandAssetUploader, validateAssetType } from '@/server/services/brand-asset-uploader';
 import { lookup } from 'node:dns/promises';
 
 jest.mock('node:dns/promises', () => ({
@@ -106,6 +106,54 @@ describe('mirrorBrandAssetFromUrl security', () => {
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/File too large/i);
     expect(uploadAsset).not.toHaveBeenCalled();
+  });
+
+
+  it('rejects responses without a content-type header', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: {
+        get: (name: string) => {
+          if (name.toLowerCase() === 'content-length') return '10';
+          return null;
+        },
+      },
+      body: { getReader: () => makeReader([10]) },
+    });
+
+    const result = await mirrorBrandAssetFromUrl('brand-1', {
+      sourceUrl: 'https://example.com/no-header.png',
+      category: 'image',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/must include a Content-Type header/i);
+    expect(uploadAsset).not.toHaveBeenCalled();
+  });
+
+  it('normalizes content-type before validating asset type', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: {
+        get: (name: string) => {
+          if (name.toLowerCase() === 'content-type') return 'image/svg+xml; charset=utf-8';
+          if (name.toLowerCase() === 'content-length') return '10';
+          return null;
+        },
+      },
+      body: { getReader: () => makeReader([10]) },
+    });
+
+    const result = await mirrorBrandAssetFromUrl('brand-1', {
+      sourceUrl: 'https://example.com/logo.svg',
+      category: 'image',
+    });
+
+    expect(result.success).toBe(true);
+    expect(validateAssetType).toHaveBeenCalledWith('image/svg+xml', 'image');
+    expect(uploadAsset).toHaveBeenCalled();
   });
 
   it('rejects hostnames that resolve to private addresses', async () => {
