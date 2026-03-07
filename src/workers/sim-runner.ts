@@ -17,7 +17,7 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 8080;
 
-app.post('/pubsub/push', async (req, res) => {
+app.post('/pubsub/push', async (req: any, res: any) => {
     try {
         if (!req.body) {
             const msg = 'no Pub/Sub message received';

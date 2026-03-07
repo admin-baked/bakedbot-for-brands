@@ -20,6 +20,7 @@ import type {
     CustomDomainConfig,
     DomainMapping,
     DomainConnectionType,
+    DomainTargetConfig,
     DomainVerificationStatus,
     DomainTargetType,
     DomainRoutingConfig,
@@ -86,6 +87,15 @@ async function authorizeDomainManagement(tenantId: string): Promise<{ ok: true }
     }
 }
 
+function isValidUpstreamUrl(value: string): boolean {
+    try {
+        const parsed = new URL(value);
+        return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+    } catch {
+        return false;
+    }
+}
+
 /**
  * Add a custom domain to a tenant (unified: supports menu, vibe_site, hybrid)
  * Generates verification token and stores pending domain config
@@ -97,6 +107,7 @@ export async function addCustomDomain(
     targetType: DomainTargetType = 'menu',
     targetId?: string,
     targetName?: string,
+    targetConfig?: DomainTargetConfig,
     routingConfig?: DomainRoutingConfig,
     userId?: string
 ): Promise<DomainOperationResult & { config?: Omit<CustomDomainConfig, 'createdAt' | 'updatedAt'> }> {
@@ -128,6 +139,20 @@ export async function addCustomDomain(
             return {
                 success: false,
                 error: 'Please select a Vibe Builder project for this domain.',
+            };
+        }
+
+        if (targetType === 'wordpress_site' && !targetConfig?.upstreamUrl) {
+            return {
+                success: false,
+                error: 'Please enter the WordPress site origin for this domain.',
+            };
+        }
+
+        if (targetConfig?.upstreamUrl && !isValidUpstreamUrl(targetConfig.upstreamUrl)) {
+            return {
+                success: false,
+                error: 'WordPress site origin must be a valid http or https URL.',
             };
         }
 
@@ -172,6 +197,7 @@ export async function addCustomDomain(
             targetType,
             ...(targetId ? { targetId } : {}),
             ...(targetName ? { targetName } : {}),
+            ...(targetConfig ? { targetConfig } : {}),
             ...(routingConfig ? { routingConfig } : {}),
             verificationStatus: 'pending' as const,
             verificationToken,
@@ -214,6 +240,7 @@ export async function addCustomDomain(
             targetType,
             ...(targetId ? { targetId } : {}),
             ...(targetName ? { targetName } : {}),
+            ...(targetConfig ? { targetConfig } : {}),
             ...(routingConfig ? { routingConfig } : {}),
             verificationStatus: 'pending',
             verificationToken,
@@ -413,6 +440,9 @@ export async function verifyCustomDomain(tenantId: string, domain?: string): Pro
         if (domainConfig.targetName) {
             mapping.targetName = domainConfig.targetName;
         }
+        if (domainConfig.targetConfig) {
+            mapping.targetConfig = domainConfig.targetConfig;
+        }
         if (domainConfig.routingConfig) {
             mapping.routingConfig = domainConfig.routingConfig;
         }
@@ -431,6 +461,7 @@ export async function verifyCustomDomain(tenantId: string, domain?: string): Pro
                 ...(domainConfig.targetType ? { targetType: domainConfig.targetType } : {}),
                 ...(domainConfig.targetId ? { targetId: domainConfig.targetId } : {}),
                 ...(domainConfig.targetName ? { targetName: domainConfig.targetName } : {}),
+                ...(domainConfig.targetConfig ? { targetConfig: domainConfig.targetConfig } : {}),
                 ...(domainConfig.routingConfig ? { routingConfig: domainConfig.routingConfig } : {}),
                 verificationToken,
                 verificationStatus: 'verified',
@@ -564,6 +595,7 @@ export interface DomainListItem {
     targetType: DomainTargetType;
     targetId?: string;
     targetName?: string;
+    targetConfig?: DomainTargetConfig;
     routingConfig?: DomainRoutingConfig;
     verificationStatus: DomainVerificationStatus;
     sslStatus?: string;
@@ -603,6 +635,7 @@ export async function listDomains(
                 targetType: data.targetType || 'menu',
                 targetId: data.targetId,
                 targetName: data.targetName,
+                targetConfig: data.targetConfig,
                 routingConfig: data.routingConfig,
                 verificationStatus: data.verificationStatus || 'pending',
                 sslStatus: data.sslStatus,
@@ -622,6 +655,7 @@ export async function listDomains(
                     targetType: tenant.customDomain.targetType || 'menu',
                     targetId: tenant.customDomain.targetId,
                     targetName: tenant.customDomain.targetName,
+                    targetConfig: tenant.customDomain.targetConfig,
                     verificationStatus: tenant.customDomain.verificationStatus || 'pending',
                     sslStatus: tenant.customDomain.sslStatus,
                     createdAt: tenant.customDomain.createdAt?.toDate?.()?.toISOString?.(),
@@ -650,6 +684,7 @@ export async function updateDomainTarget(
         targetType: DomainTargetType;
         targetId?: string;
         targetName?: string;
+        targetConfig?: DomainTargetConfig;
         routingConfig?: DomainRoutingConfig;
     }
 ): Promise<DomainOperationResult> {
@@ -670,6 +705,20 @@ export async function updateDomainTarget(
             };
         }
 
+        if (newTarget.targetType === 'wordpress_site' && !newTarget.targetConfig?.upstreamUrl) {
+            return {
+                success: false,
+                error: 'Please enter the WordPress site origin.',
+            };
+        }
+
+        if (newTarget.targetConfig?.upstreamUrl && !isValidUpstreamUrl(newTarget.targetConfig.upstreamUrl)) {
+            return {
+                success: false,
+                error: 'WordPress site origin must be a valid http or https URL.',
+            };
+        }
+
         const updateData: Record<string, unknown> = {
             targetType: newTarget.targetType,
             updatedAt: FieldValue.serverTimestamp(),
@@ -680,6 +729,9 @@ export async function updateDomainTarget(
         }
         if (newTarget.targetName) {
             updateData.targetName = newTarget.targetName;
+        }
+        if (newTarget.targetConfig) {
+            updateData.targetConfig = newTarget.targetConfig;
         }
         if (newTarget.routingConfig) {
             updateData.routingConfig = newTarget.routingConfig;

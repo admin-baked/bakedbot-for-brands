@@ -8,13 +8,19 @@
 import { createServerClient } from '@/firebase/server-client';
 import { getCachedTenant, setCachedTenant } from '@/lib/domain-cache';
 import { logger } from '@/lib/logger';
-import type { DomainMapping, DomainTargetType, DomainRoutingConfig } from '@/types/tenant';
+import type {
+  DomainMapping,
+  DomainTargetConfig,
+  DomainTargetType,
+  DomainRoutingConfig,
+} from '@/types/tenant';
 
 export interface ResolvedDomain {
   tenantId: string;
   targetType: DomainTargetType;
   targetId?: string;
   targetName?: string;
+  targetConfig?: DomainTargetConfig;
   routingConfig?: DomainRoutingConfig;
 }
 
@@ -51,6 +57,7 @@ export async function getDomainMapping(hostname: string): Promise<ResolvedDomain
         targetType: mapping.targetType || 'menu',
         targetId: mapping.targetId,
         targetName: mapping.targetName,
+        targetConfig: mapping.targetConfig,
         routingConfig: mapping.routingConfig,
       };
     }
@@ -75,6 +82,7 @@ export async function getDomainMapping(hostname: string): Promise<ResolvedDomain
       targetType: mapping.targetType || 'menu',
       targetId: mapping.targetId,
       targetName: mapping.targetName,
+      targetConfig: mapping.targetConfig,
       routingConfig: mapping.routingConfig,
     };
   } catch (error) {
@@ -94,7 +102,7 @@ export async function resolveRoute(
 
   if (!mapping) return null;
 
-  const { tenantId, targetType, targetId, routingConfig } = mapping;
+  const { tenantId, targetType, targetId, targetConfig, routingConfig } = mapping;
 
   let resolvedPath: string;
 
@@ -102,6 +110,11 @@ export async function resolveRoute(
     case 'vibe_site':
       if (!targetId) return null;
       resolvedPath = `/api/vibe/site/${targetId}${pathname === '/' ? '' : pathname}`;
+      break;
+
+    case 'wordpress_site':
+      if (!targetConfig?.upstreamUrl) return null;
+      resolvedPath = buildWordPressProxyPath(pathname);
       break;
 
     case 'hybrid':
@@ -126,6 +139,20 @@ export async function resolveRoute(
     tenantId,
     targetType,
   };
+}
+
+function buildWordPressProxyPath(pathname: string): string {
+  const normalizedPath = pathname
+    .replace(/^\/+/, '')
+    .replace(/\/{2,}/g, '/');
+
+  const query = new URLSearchParams();
+  if (normalizedPath) {
+    query.set('path', normalizedPath);
+  }
+
+  const queryString = query.toString();
+  return queryString ? `/api/wordpress/proxy?${queryString}` : '/api/wordpress/proxy';
 }
 
 /**

@@ -3,6 +3,7 @@ import { PopsMemory, HypothesisSchema } from './schemas';
 import { logger } from '@/lib/logger';
 import { detectAnomaly } from '../algorithms/pops-algo';
 import { ai } from '@/ai/genkit';
+import { callGLM } from '@/ai/glm';
 import { z } from 'zod';
 import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef } from './shared-tools';
 import { analyticsToolDefs, analyticsToolImplementations } from './tools/analytics-tools';
@@ -210,7 +211,7 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
             `;
 
             const plan = await ai.generate({
-                model: 'claude-sonnet-4-5-20250929', // Triggers harness routing to Claude 4.5 Opus
+                model: 'googleai/gemini-2.5-flash',
                 prompt: planPrompt,
                 output: {
                     schema: z.object({
@@ -267,23 +268,33 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
                 output = await executeDispensaryAnalyticsTool(orgId, decision.toolName, decision.args);
             }
 
-            // 4. SYNTHESIZE
-            const final = await ai.generate({
-                model: 'claude-sonnet-4-5-20250929', // Triggers harness routing to Claude 4.5 Opus
-                prompt: `
-                    User Request: "${userQuery}"
-                    Action Taken: ${decision.thought}
-                    Tool Output: ${JSON.stringify(output)}
-                    
-                    Respond to the user with the insight. Be precise.
-                `
-            });
+            // 4. SYNTHESIZE — use GLM for cost savings on non-PII synthesis, with Claude fallback
+            const synthesisPrompt = `User Request: "${userQuery}"
+Action Taken: ${decision.thought}
+Tool Output: ${JSON.stringify(output)}
+
+Respond to the user with the insight. Be precise. Format your response for Slack using plain text with *bold* for emphasis. Avoid markdown tables and ## headers.`;
+
+            let synthesisText: string;
+            try {
+                synthesisText = await callGLM({ userMessage: synthesisPrompt });
+            } catch (glmErr: any) {
+                logger.warn('[Pops] GLM synthesis failed, falling back to Claude:', glmErr?.message ?? glmErr);
+                const { executeWithTools: claudeSynthesize } = await import('@/ai/claude');
+                const synthesisResult = await claudeSynthesize(
+                    synthesisPrompt,
+                    [],
+                    async () => ({}),
+                    { maxIterations: 1 }
+                );
+                synthesisText = synthesisResult.content;
+            }
 
             return {
                 updatedMemory: agentMemory,
                 logEntry: {
                     action: 'tool_execution',
-                    result: final.text,
+                    result: synthesisText,
                     metadata: { tool: decision.toolName, output }
                 }
             };

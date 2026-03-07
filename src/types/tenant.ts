@@ -81,7 +81,13 @@ export type DomainVerificationStatus = 'pending' | 'verified' | 'failed';
 export type DomainSSLStatus = 'pending' | 'provisioning' | 'active' | 'error';
 
 /** What content the domain points to */
-export type DomainTargetType = 'menu' | 'vibe_site' | 'hybrid';
+export type DomainTargetType = 'menu' | 'vibe_site' | 'wordpress_site' | 'hybrid';
+
+/** Extra target-specific config stored with a domain mapping */
+export interface DomainTargetConfig {
+    /** Canonical upstream origin for WordPress-backed sites */
+    upstreamUrl?: string;
+}
 
 /** Routing configuration for hybrid domains */
 export interface DomainRoutingConfig {
@@ -111,6 +117,9 @@ export interface CustomDomainConfig {
 
     /** Target display name (for UI listing) */
     targetName?: string;
+
+    /** Target-specific config (for example a WordPress upstream origin) */
+    targetConfig?: DomainTargetConfig;
 
     /** Routing config for hybrid domains */
     routingConfig?: DomainRoutingConfig;
@@ -168,6 +177,9 @@ export interface DomainMapping {
 
     /** Target display name */
     targetName?: string;
+
+    /** Target-specific config */
+    targetConfig?: DomainTargetConfig;
 
     /** Routing config for hybrid domains */
     routingConfig?: DomainRoutingConfig;

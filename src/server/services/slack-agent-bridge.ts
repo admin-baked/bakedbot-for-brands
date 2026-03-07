@@ -1,6 +1,7 @@
 import { logger } from '@/lib/logger';
 import { slackService, SlackService } from './communications/slack';
 import { runAgentCore } from '@/server/agents/agent-runner';
+import { requestContext } from '@/lib/request-context';
 import { archiveSlackResponse } from './slack-response-archive';
 import {
     detectRiskyAction,
@@ -258,13 +259,16 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
 
         let result;
         try {
-            const extraOptions = attachments ? { attachments } : {};
-            result = await Promise.race([
-                runAgentCore(enrichedText, personaId, extraOptions, SLACK_SYSTEM_USER),
-                new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error(`Agent response timeout after ${agentTimeoutSec} seconds`)), agentTimeoutMs)
-                ),
-            ]) as any;
+            const extraOptions = { ...(attachments ? { attachments } : {}), source: 'slack' };
+            result = await requestContext.run(
+                { useGLMSynthesis: true },
+                () => Promise.race([
+                    runAgentCore(enrichedText, personaId, extraOptions, SLACK_SYSTEM_USER),
+                    new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error(`Agent response timeout after ${agentTimeoutSec} seconds`)), agentTimeoutMs)
+                    ),
+                ])
+            ) as any;
         } catch (agentErr: any) {
             logger.error('[SlackBridge] Agent execution error:', agentErr.message);
             await slackService.postInThread(
