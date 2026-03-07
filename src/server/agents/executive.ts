@@ -114,7 +114,7 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
     // === HIVE MIND INIT ===
     try {
         const { lettaBlockManager } = await import('@/server/services/letta/block-manager');
-        const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
+        const brandId = (brandMemory.brand_profile as any)?.id || (brandMemory.brand_profile as any)?.orgId || 'unknown';
         await lettaBlockManager.attachBlocksForRole(brandId, agentMemory.agent_id as string, 'executive');
         logger.info(`[Executive:HiveMind] Connected ${agentMemory.agent_id} to shared executive blocks.`);
     } catch (e) {

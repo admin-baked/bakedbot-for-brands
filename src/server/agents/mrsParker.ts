@@ -110,7 +110,7 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
     // === HIVE MIND INIT ===
     try {
         const { lettaBlockManager } = await import('@/server/services/letta/block-manager');
-        const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
+        const brandId = (brandMemory.brand_profile as any)?.id || (brandMemory.brand_profile as any)?.orgId || 'unknown';
         await lettaBlockManager.attachBlocksForRole(brandId, agentMemory.agent_id as string, 'brand');
         logger.info(`[MrsParker:HiveMind] Connected to shared retention blocks.`);
     } catch (e) {

@@ -247,7 +247,7 @@ export const leoAgent: AgentImplementation<LeoMemory, LeoTools> = {
         // Connect to Hive Mind
         try {
             const { lettaBlockManager } = await import('@/server/services/letta/block-manager');
-            const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
+            const brandId = (brandMemory.brand_profile as any)?.id || (brandMemory.brand_profile as any)?.orgId || 'unknown';
             await lettaBlockManager.attachBlocksForRole(brandId, agentMemory.agent_id as string, 'executive');
             logger.info(`[Leo:HiveMind] Connected to shared executive blocks.`);
         } catch (e) {

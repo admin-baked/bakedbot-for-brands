@@ -162,7 +162,7 @@ export const jackAgent: AgentImplementation<AgentMemory, JackTools> = {
         // Connect to Hive Mind
         try {
             const { lettaBlockManager } = await import('@/server/services/letta/block-manager');
-            const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
+            const brandId = (brandMemory.brand_profile as any)?.id || (brandMemory.brand_profile as any)?.orgId || 'unknown';
             await lettaBlockManager.attachBlocksForRole(brandId, agentMemory.agent_id as string, 'executive');
             logger.info(`[Jack:HiveMind] Connected to shared executive blocks.`);
         } catch (e) {
