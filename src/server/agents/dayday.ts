@@ -8,6 +8,10 @@ import {
     buildSquadRoster,
     buildIntegrationStatusSummary
 } from './agent-definitions';
+import { searchConsoleService } from '@/server/services/growth/search-console';
+import { googleAnalyticsService } from '@/server/services/growth/google-analytics';
+import { sitemapManager } from '@/server/services/growth/sitemap-manager';
+
 
 export interface DayDayTools {
     auditPage(url: string, pageType: 'dispensary' | 'brand' | 'city' | 'zip'): Promise<any>;
@@ -19,11 +23,6 @@ export interface DayDayTools {
     findSEOOpportunities(): Promise<any>;
     refreshSitemap(): Promise<any>;
 }
-
-import { searchConsoleService } from '@/server/services/growth/search-console';
-import { googleAnalyticsService } from '@/server/services/growth/google-analytics';
-import { sitemapManager } from '@/server/services/growth/sitemap-manager';
-
 
 export const dayDayAgent: AgentImplementation<AgentMemory, DayDayTools> = {
     agentName: 'day_day',
@@ -109,7 +108,7 @@ export const dayDayAgent: AgentImplementation<AgentMemory, DayDayTools> = {
         return null;
     },
 
-    async act(brandMemory, agentMemory, targetId, tools, stimulus) {
+    async act(brandMemory, agentMemory, targetId, tools: DayDayTools, stimulus) {
         const semanticSearchEntityId = (brandMemory.brand_profile as any)?.id || (brandMemory.brand_profile as any)?.orgId || 'unknown';
 
         if (targetId === 'user_request' && stimulus) {
