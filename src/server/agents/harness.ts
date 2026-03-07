@@ -1,6 +1,7 @@
 import { logger } from '@/lib/logger';
 import { AgentMemory, AgentLogEntry, BrandDomainMemory } from './schemas';
 import { MemoryAdapter } from './persistence';
+import { getRequestContext } from '@/lib/request-context';
 
 // Define the shape of an Agent implementation
 // TTools: A specific type defining the external capabilities this agent is allowed to use.
@@ -385,7 +386,7 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
                     Synthesize a comprehensive response for the user based on the original request. Format for Slack: use *bold* for emphasis, avoid markdown tables and ## headers.`;
 
                 let synthesisContent: string;
-                const shouldUseGLM = context.useGLMSynthesis ?? (global as any).useGLMSynthesis ?? false;
+                const shouldUseGLM = context.useGLMSynthesis ?? getRequestContext().useGLMSynthesis ?? false;
                 if (shouldUseGLM) {
                     const { callGLM } = await import('@/ai/glm');
                     synthesisContent = await callGLM({ userMessage: synthesisPrompt });

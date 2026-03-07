@@ -596,9 +596,6 @@ All agents are online and ready. Type an agent name or describe your task to get
         finalMessage += `\n\n[AUDIO INPUT RECEIVED] (Voice processing enabled)`;
     }
 
-    // Signal GLM synthesis to harness for Slack requests (cost savings for non-PII responses)
-    (global as any).useGLMSynthesis = extraOptions?.source === 'slack';
-
     userMessage = finalMessage;
 
     let activePersona = personaId && PERSONAS[personaId as AgentPersona]
