@@ -27,7 +27,7 @@ const EDGE_CACHE_TTL = 60_000; // 1 minute
 interface DomainResolveResult {
   success: boolean;
   tenantId?: string;
-  targetType?: 'menu' | 'vibe_site' | 'hybrid';
+  targetType?: 'menu' | 'vibe_site' | 'wordpress_site' | 'hybrid';
   targetId?: string;
   path?: string;
 }
