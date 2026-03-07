@@ -103,7 +103,7 @@ function SubscriptionCheckoutContent() {
                 </p>
                 <div className="flex items-center justify-center gap-3">
                     <Link href="/pricing"><Button variant="outline">Back to Pricing</Button></Link>
-                    <Link href="/get-started"><Button>Contact Sales</Button></Link>
+                    <Link href="/contact"><Button>Contact Sales</Button></Link>
                 </div>
             </div>
         );

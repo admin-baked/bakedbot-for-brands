@@ -2,15 +2,10 @@
 import styles from '@/app/home.module.css';
 import Link from 'next/link';
 import { PRICING_PLANS, COVERAGE_PACKS } from '@/lib/config/pricing';
-import { getFoundersClaimCount } from '@/server/actions/createClaimSubscription';
 
-export async function PricingSection() {
-    // Dynamic Founders Slots
-    const foundersCount = await getFoundersClaimCount();
-    const totalSlots = 75; // Per user request
-    const remainingSlots = Math.max(0, totalSlots - foundersCount);
+export function PricingSection() {
     const getPlanCtaHref = (planId: string) => {
-        if (planId === 'free') return '/get-started?plan=free';
+        if (planId === 'scout') return '/get-started?plan=scout';
         if (planId === 'empire') return '/contact';
         return `/get-started?plan=${planId}`;
     };
@@ -39,71 +34,9 @@ export async function PricingSection() {
                 </div>
             </div>
 
-            {/* Founders Launch Banner */}
-            {remainingSlots > 0 && (
-                <div style={{
-                    background: 'linear-gradient(to right, #16a34a, #15803d)',
-                    color: 'white',
-                    padding: '12px 20px',
-                    borderRadius: '12px',
-                    marginBottom: '24px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    flexWrap: 'wrap',
-                    gap: '12px',
-                    boxShadow: '0 4px 12px rgba(22, 163, 74, 0.2)'
-                }}>
-                    <div>
-                        <div style={{ fontWeight: 700, fontSize: '15px' }}>Founders Claim is live — {remainingSlots} slots left.</div>
-                        <div style={{ fontSize: '13px', opacity: 0.9 }}>Lock in <strong>$79/mo for life</strong> (same features as Claim Pro).</div>
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                        <Link href="/get-started?plan=founders_claim" style={{
-                            background: 'white',
-                            color: '#16a34a',
-                            padding: '8px 16px',
-                            borderRadius: '999px',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            textDecoration: 'none'
-                        }}>
-                            Get Founders Pricing
-                        </Link>
-                        <Link href="#cards" style={{
-                            background: 'rgba(255,255,255,0.2)',
-                            color: 'white',
-                            padding: '8px 16px',
-                            borderRadius: '999px',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            textDecoration: 'none'
-                        }}>
-                            See Plans
-                        </Link>
-                    </div>
-                </div>
-            )}
-
             <div id="cards" className={styles.pricingGrid}>
                 {PRICING_PLANS.map(plan => (
-                    <div key={plan.name} className={styles.planCard} style={plan.scarcity ? { border: '2px solid #16a34a', position: 'relative', overflow: 'hidden' } : {}}>
-                        {plan.scarcity && (
-                            <div style={{
-                                background: '#16a34a',
-                                color: 'white',
-                                fontSize: '10px',
-                                fontWeight: '700',
-                                textAlign: 'center',
-                                padding: '4px',
-                                textTransform: 'uppercase',
-                                letterSpacing: '0.05em',
-                                marginBottom: '8px',
-                                borderRadius: '4px'
-                            }}>
-                                Founders Launch: {remainingSlots} Slots Left
-                            </div>
-                        )}
+                    <div key={plan.name} className={styles.planCard} style={plan.highlight ? { border: '2px solid #16a34a', position: 'relative', overflow: 'hidden' } : {}}>
                         <div className={styles.planLabel} style={{ fontSize: '12px' }}>{plan.priceDisplay} <span style={{ textTransform: 'none', color: '#6b7280', fontWeight: 400 }}>{plan.period}</span></div>
                         <div className={styles.planName} style={{ fontSize: '18px', marginBottom: '4px' }}>{plan.name}</div>
 
@@ -116,26 +49,16 @@ export async function PricingSection() {
                         </ul>
 
                         <Link href={getPlanCtaHref(plan.id)} className={styles.planCta} style={{
-                            background: plan.highlight || plan.scarcity ? '#020617' : 'transparent',
-                            color: plan.highlight || plan.scarcity ? 'white' : '#020617',
-                            border: plan.highlight || plan.scarcity ? 'none' : '1px solid #e2e8f0',
+                            background: plan.highlight ? '#020617' : 'transparent',
+                            color: plan.highlight ? 'white' : '#020617',
+                            border: plan.highlight ? 'none' : '1px solid #e2e8f0',
                             padding: '10px',
                             justifyContent: 'center',
                             borderRadius: '8px',
                             marginTop: 'auto'
                         }}>
-                            {/* Use logic to display specific button text for free vs paid  */}
-                            {plan.id === 'free' ? 'Hire a Scout' :
-                                plan.id === 'founders_claim' ? 'Get Founders Pricing' :
-                                    `Start ${plan.name}`}
+                            {plan.id === 'scout' ? 'Hire a Scout' : `Start ${plan.name}`}
                         </Link>
-
-                        {/* Special Toggle for Claim Pro to show Founders Option */}
-                        {plan.id === 'claim_pro' && remainingSlots > 0 && (
-                            <div style={{ marginTop: '10px', fontSize: '11px', color: '#16a34a', textAlign: 'center', background: '#f0fdf4', padding: '6px', borderRadius: '6px' }}>
-                                Founders: $79/mo locked-in ({remainingSlots} left)
-                            </div>
-                        )}
                     </div>
                 ))}
             </div>
@@ -155,13 +78,13 @@ export async function PricingSection() {
                 </div>
 
                 <p style={{ fontSize: '12px', color: '#64748b', fontStyle: 'italic' }}>
-                    “Perfect for brands carried across multiple metros — pay for coverage, not vague ‘visibility.’”
+                    "Perfect for brands carried across multiple metros — pay for coverage, not vague 'visibility.'"
                 </p>
             </div>
 
             {/* Tiny Print Rules */}
             <div style={{ marginTop: '24px', fontSize: '11px', color: '#94a3b8', textAlign: 'center' }}>
-                <p>• <strong>Claim Pro is included inside Growth + Scale</strong> (no double-charging to claim).</p>
+                <p>• <strong>Pro features are included inside Growth + Empire</strong> (no double-charging to claim).</p>
                 <p>• Compliance guardrails apply by market (Deebo pre-checks public copy + CTAs).</p>
             </div>
 

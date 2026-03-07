@@ -50,7 +50,7 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
                         </p>
                         <div className="flex flex-col sm:flex-row gap-3 justify-center">
                             <Link
-                                href={`/get-started?plan=free${promoCode ? `&promo=${promoCode}` : ''}`}
+                                href={`/get-started?plan=scout${promoCode ? `&promo=${promoCode}` : ''}`}
                                 className="inline-flex items-center justify-center h-12 px-8 rounded-md bg-primary text-white font-medium hover:bg-primary/90 transition-colors"
                             >
                                 Start Free (Scout)
