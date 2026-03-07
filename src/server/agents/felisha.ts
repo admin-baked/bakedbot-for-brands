@@ -3,7 +3,7 @@ import { AgentMemory } from './schemas';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { ai } from '@/ai/genkit';
-import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
+import { contextOsToolDefs, lettaToolDefs, semanticSearchToolDefs, makeSemanticSearchToolsImpl } from './shared-tools';
 
 export interface FelishaTools {
     processMeetingTranscript(transcript: string): Promise<any>;
@@ -55,7 +55,7 @@ export const felishaAgent: AgentImplementation<AgentMemory, FelishaTools> = {
             ];
 
             // Combine agent-specific tools with shared Context OS and Letta tools
-            const toolsDef = [...felishaSpecificTools, ...contextOsToolDefs, ...lettaToolDefs];
+            const toolsDef = [...felishaSpecificTools, ...contextOsToolDefs, ...lettaToolDefs, ...semanticSearchToolDefs];
 
             try {
                 // === MULTI-STEP PLANNING (Run by Harness + Claude) ===
@@ -65,7 +65,7 @@ export const felishaAgent: AgentImplementation<AgentMemory, FelishaTools> = {
                     userQuery,
                     systemInstructions: (agentMemory.system_instructions as string) || '',
                     toolsDef,
-                    tools,
+                    tools: { ...tools, ...makeSemanticSearchToolsImpl((brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || 'unknown') },
                     model: 'claude-sonnet-4-6',
                     maxIterations: 5
                 });

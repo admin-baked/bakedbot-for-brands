@@ -5,7 +5,7 @@ export type { ExecutiveMemory } from './schemas';
 import { logger } from '@/lib/logger';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, AllSharedTools } from './shared-tools';
+import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, AllSharedTools, semanticSearchToolDefs, makeSemanticSearchToolsImpl } from './shared-tools';
 import {
     buildSquadRoster,
     getDelegatableAgentIds,
@@ -305,7 +305,8 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
             ...executiveSpecificTools,
             ...contextOsToolDefs,
             ...lettaToolDefs,
-            ...intuitionOsToolDefs
+            ...intuitionOsToolDefs,
+            ...semanticSearchToolDefs
         ];
 
         try {
@@ -317,7 +318,7 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
                 userQuery,
                 systemInstructions: (agentMemory.system_instructions as string) || '',
                 toolsDef,
-                tools,
+                tools: { ...tools, ...makeSemanticSearchToolsImpl(brandId) },
                 model: 'claude-sonnet-4-6', // Triggers harness routing to Claude 4.5 Opus
                 maxIterations: 5,
                 onStepComplete: async (step, toolName, result) => {
