@@ -191,7 +191,7 @@ export async function generateMobileVibe(
             userMessage: generatePrompt(request),
             temperature: request.style === 'playful' ? 1.0 : 0.7,
             maxTokens: 6000,
-            model: 'claude-sonnet-4-5-20250929',
+            model: 'claude-sonnet-4-6',
         });
 
         // Parse JSON from response
@@ -617,7 +617,7 @@ export async function getMobileVibeSuggestions(
             userMessage: `Generate 5 unique ${platformContext} theme descriptions for ${brandName}, a cannabis dispensary. Each should be 10-15 words describing a distinct aesthetic that works well on mobile.`,
             temperature: 1.0,
             maxTokens: 500,
-            model: 'claude-sonnet-4-5-20250929',
+            model: 'claude-sonnet-4-6',
         });
 
         const match = response.match(/\[[\s\S]*\]/);
