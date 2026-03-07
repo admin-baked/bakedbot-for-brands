@@ -210,7 +210,7 @@ export async function GET(request: NextRequest) {
         ? await response.text()
         : await response.blob();
 
-    return new Response(responseBody, {
+    return new NextResponse(responseBody, {
       status: response.status,
       headers,
     });
