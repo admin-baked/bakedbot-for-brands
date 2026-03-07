@@ -12,6 +12,7 @@ type HostResolveResult = {
 
 const HOST_RESOLVE_CACHE_TTL_MS = 60_000;
 const hostResolveCache = new Map<string, { expiry: number; value: HostResolveResult | null }>();
+const DEFAULT_DOMAIN_RESOLVE_ORIGIN = 'https://bakedbot.ai';
 
 function getCachedHostResolve(cacheKey: string): HostResolveResult | null | undefined {
     const cached = hostResolveCache.get(cacheKey);
@@ -41,9 +42,8 @@ async function resolveMappedHostname(request: NextRequest, hostname: string, pat
         return cached;
     }
 
-    const protocol = request.headers.get('x-forwarded-proto') || 'https';
-    const internalHost = request.headers.get('host') || hostname;
-    const resolveUrl = `${protocol}://${internalHost}/api/domain/resolve`;
+    const resolveOrigin = getDomainResolveOrigin(request, hostname);
+    const resolveUrl = `${resolveOrigin}/api/domain/resolve`;
 
     try {
         const resolveResponse = await fetch(resolveUrl, {
@@ -65,6 +65,22 @@ async function resolveMappedHostname(request: NextRequest, hostname: string, pat
     } catch {
         return null;
     }
+}
+
+export function getDomainResolveOrigin(request: NextRequest, hostname: string): string {
+    const configuredOrigin = process.env.NEXT_PUBLIC_APP_URL?.trim();
+    if (configuredOrigin) {
+        return configuredOrigin.replace(/\/+$/, '');
+    }
+
+    const protocol = request.headers.get('x-forwarded-proto') || 'https';
+    const requestHost = request.headers.get('host') || hostname;
+
+    if (requestHost.includes('localhost') || requestHost.includes('127.0.0.1')) {
+        return `${protocol}://${requestHost}`;
+    }
+
+    return DEFAULT_DOMAIN_RESOLVE_ORIGIN;
 }
 
 function rewriteToResolvedPath(request: NextRequest, resolvedPath: string, metadata?: HostResolveResult): NextResponse {
