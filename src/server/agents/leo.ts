@@ -9,7 +9,7 @@ import { AgentImplementation } from './harness';
 import { LeoMemory } from './schemas';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
-import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, executiveContextToolDefs, AllSharedTools, ExecutiveContextTools } from './shared-tools';
+import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, executiveContextToolDefs, AllSharedTools, ExecutiveContextTools, semanticSearchToolDefs, makeSemanticSearchToolsImpl } from './shared-tools';
 import {
     buildSquadRoster,
     getDelegatableAgentIds,
@@ -444,7 +444,8 @@ export const leoAgent: AgentImplementation<LeoMemory, LeoTools> = {
                 ...executiveContextToolDefs,
                 ...contextOsToolDefs,
                 ...lettaToolDefs,
-                ...intuitionOsToolDefs
+                ...intuitionOsToolDefs,
+                ...semanticSearchToolDefs
             ];
 
             try {
@@ -454,7 +455,10 @@ export const leoAgent: AgentImplementation<LeoMemory, LeoTools> = {
                     userQuery,
                     systemInstructions: (agentMemory.system_instructions as string) || '',
                     toolsDef,
-                    tools,
+                    tools: {
+                        ...tools,
+                        ...makeSemanticSearchToolsImpl((brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || 'unknown'),
+                    },
                     model: 'claude-sonnet-4-5-20250929', // Use Claude Sonnet 4 for orchestration
                     maxIterations: 7, // Leo gets more iterations for complex orchestration
                     onStepComplete: async (step, toolName, result) => {

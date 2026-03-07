@@ -10,7 +10,7 @@ import { MoneyMikeMemory } from './schemas';
 import { deebo } from './deebo';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef } from './shared-tools';
+import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef, semanticSearchToolDefs, makeSemanticSearchToolsImpl } from './shared-tools';
 import { moneyMikeInboxToolDefs } from '../tools/inbox-tools';
 import { profitabilityToolDefs } from '../tools/profitability-tools';
 import { dispensaryAnalyticsToolDefs, makeAnalyticsToolsImpl } from '@/server/tools/analytics-tools';
@@ -184,11 +184,13 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
             ...profitabilityToolDefs,
             ...moneyMikeCrmToolDefs,
             ...dispensaryAnalyticsToolDefs,
+            ...semanticSearchToolDefs,
         ];
         // Merge dispensary analytics implementations + proactive search into tools object
         const allToolsWithAnalytics = {
             ...tools,
             ...dispensaryImpl,
+            ...makeSemanticSearchToolsImpl(orgId),
             searchOpportunities: async (query: string) => {
                 try {
                     const { searchWeb, formatSearchResults } = await import('@/server/tools/web-search');

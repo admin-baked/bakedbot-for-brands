@@ -10,7 +10,7 @@ import { runMultiStepTask } from '@/server/agents/harness';
 import type { MrsParkerMemory } from './schemas';
 import { deebo } from './deebo';
 import { z } from 'zod';
-import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef } from './shared-tools';
+import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef, semanticSearchToolDefs, makeSemanticSearchToolsImpl } from './shared-tools';
 import { mrsParkerCrmToolDefs } from '../tools/crm-tools';
 import { mrsParkerCampaignToolDefs } from '../tools/campaign-tools';
 import {
@@ -162,7 +162,7 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
         ];
 
         // Combine agent-specific tools with shared Context OS, Letta, and proactive search tools
-        const toolsDef = [...mrsParkerSpecificTools, proactiveSearchToolDef, ...contextOsToolDefs, ...lettaToolDefs, ...mrsParkerCrmToolDefs, ...mrsParkerCampaignToolDefs];
+        const toolsDef = [...mrsParkerSpecificTools, proactiveSearchToolDef, ...contextOsToolDefs, ...lettaToolDefs, ...mrsParkerCrmToolDefs, ...mrsParkerCampaignToolDefs, ...semanticSearchToolDefs];
 
         try {
             // === MULTI-STEP PLANNING (Run by Harness + Gemini 3) ===
@@ -172,6 +172,7 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
                 toolsDef,
                 tools: {
                     ...tools,
+                    ...makeSemanticSearchToolsImpl((brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || 'unknown'),
                     searchOpportunities: async (query: string) => {
                         try {
                             const { searchWeb, formatSearchResults } = await import('@/server/tools/web-search');

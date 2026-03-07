@@ -311,3 +311,68 @@ export const allSharedToolDefs = [...contextOsToolDefs, ...lettaToolDefs, ...int
 
 // Extended interface with all tools
 export interface AllSharedTools extends SharedTools, IntuitionOsTools, BrowserTools, UserManagementTools, SemanticSearchTools {}
+
+// ============================================================================
+// SEMANTIC SEARCH RUNTIME IMPLEMENTATIONS
+// Factory that returns tool implementations for backend agents (harness path).
+// The CEO dashboard uses commonSemanticSearchTools in default-tools.ts;
+// backend agents need this factory to get the same capabilities.
+// ============================================================================
+
+export function makeSemanticSearchToolsImpl(tenantId: string) {
+    return {
+        async semanticSearchProducts(query: string, competitorId?: string, category?: string, inStockOnly?: boolean, limit?: number) {
+            try {
+                const { EzalAgent } = await import('@/server/services/ezal');
+                const results = await EzalAgent.semanticSearch(tenantId, {
+                    query,
+                    competitorId,
+                    category,
+                    inStockOnly,
+                    limit: Math.min(limit || 10, 50),
+                });
+                return { success: true, ...results };
+            } catch (e: any) {
+                return { success: false, error: `Semantic search failed: ${e.message}` };
+            }
+        },
+
+        async semanticSearchInsights(query: string, severity?: string, type?: string, limit?: number) {
+            try {
+                const { EzalAgent } = await import('@/server/services/ezal');
+                const results = await EzalAgent.searchIntel(tenantId, {
+                    query,
+                    severity,
+                    type,
+                    limit: limit || 10,
+                });
+                return { success: true, ...results };
+            } catch (e: any) {
+                return { success: false, error: `Insight search failed: ${e.message}` };
+            }
+        },
+
+        async getCompetitorPriceHistory(productId: string, days?: number, limit?: number) {
+            try {
+                const { getPriceHistory } = await import('@/server/services/ezal/lancedb-store');
+                const history = await getPriceHistory(tenantId, productId, {
+                    days: days || 30,
+                    limit: limit || 100,
+                });
+                return { success: true, count: history.length, productId, history };
+            } catch (e: any) {
+                return { success: false, error: `Price history failed: ${e.message}` };
+            }
+        },
+
+        async getVectorStoreStats() {
+            try {
+                const { EzalAgent } = await import('@/server/services/ezal');
+                const stats = await EzalAgent.getVectorStoreStats(tenantId);
+                return { success: true, tenantId, ...stats };
+            } catch (e: any) {
+                return { success: false, error: `Stats failed: ${e.message}` };
+            }
+        },
+    };
+}

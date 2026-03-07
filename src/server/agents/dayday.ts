@@ -3,7 +3,7 @@ import { AgentMemory } from './schemas';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { ai } from '@/ai/genkit';
-import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef } from './shared-tools';
+import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef, semanticSearchToolDefs, makeSemanticSearchToolsImpl } from './shared-tools';
 import {
     buildSquadRoster,
     buildIntegrationStatusSummary
@@ -188,6 +188,7 @@ export const dayDayAgent: AgentImplementation<AgentMemory, DayDayTools> = {
             const allTools = {
                 ...tools,
                 ...specificImplementations,
+                ...makeSemanticSearchToolsImpl((brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || 'unknown'),
                 searchOpportunities: async (query: string) => {
                     try {
                         const { searchWeb, formatSearchResults } = await import('@/server/tools/web-search');

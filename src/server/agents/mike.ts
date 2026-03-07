@@ -10,6 +10,8 @@ import {
     executiveContextToolDefs,
     AllSharedTools,
     ExecutiveContextTools,
+    semanticSearchToolDefs,
+    makeSemanticSearchToolsImpl,
 } from './shared-tools';
 import {
     getDelegatableAgentIds,
@@ -129,6 +131,7 @@ export const mikeAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools> = {
                 ...contextOsToolDefs,
                 ...lettaToolDefs,
                 ...intuitionOsToolDefs,
+                ...semanticSearchToolDefs,
             ];
 
             try {
@@ -138,7 +141,10 @@ export const mikeAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools> = {
                     userQuery,
                     systemInstructions: (agentMemory.system_instructions as string) || '',
                     toolsDef,
-                    tools,
+                    tools: {
+                        ...tools,
+                        ...makeSemanticSearchToolsImpl((brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || 'unknown'),
+                    },
                     model: 'claude-sonnet-4-5-20250929',
                     maxIterations: 5,
                 });
