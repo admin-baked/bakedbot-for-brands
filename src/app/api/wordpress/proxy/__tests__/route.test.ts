@@ -10,12 +10,15 @@ jest.mock('next/server', () => ({
       this.headers = new Headers(init?.headers);
     }
   },
-  NextResponse: {
-    json: (data: unknown, init?: { status?: number }) => ({
-      status: init?.status || 200,
-      headers: new Headers(),
-      json: async () => data,
-    }),
+  NextResponse: class extends Response {
+    static json(data: unknown, init?: { status?: number }) {
+      return new Response(JSON.stringify(data), {
+        status: init?.status || 200,
+        headers: {
+          'content-type': 'application/json',
+        },
+      });
+    }
   },
 }));
 
