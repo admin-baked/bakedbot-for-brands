@@ -16,6 +16,7 @@ import { posCache, cacheKeys } from '@/lib/cache/pos-cache';
 import { callClaude } from '@/ai/claude';
 
 import { logger } from '@/lib/logger';
+import { getDispensaryRetailerId, shouldRetryWithOrgFallback } from './order-context';
 const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   pending: ['submitted', 'cancelled'],
   submitted: ['confirmed', 'cancelled'],
@@ -347,7 +348,7 @@ export async function getOrders(params: GetOrdersParams | string = {}): Promise<
         } else if (user.role === 'dispensary' || user.role === 'dispensary_admin' || user.role === 'dispensary_staff' || user.role === 'budtender') {
             // Dispensary roles see orders for their location.
             // Prefer locationId (actual retailerId on orders), then fall back to orgId.
-            const dispensaryId = locationId || orgId;
+            const dispensaryId = getDispensaryRetailerId({ locationId, orgId });
             if (!dispensaryId) {
                 return { success: false, error: 'Dispensary ID not found' };
             }
@@ -394,13 +395,14 @@ export async function getOrders(params: GetOrdersParams | string = {}): Promise<
         })) as OrderDoc[];
 
         // Dispensary fallback: if queried by locationId and found nothing, retry with orgId.
-        if (
-            bakedBotOrders.length === 0 &&
-            (user.role === 'dispensary' || user.role === 'dispensary_admin' || user.role === 'dispensary_staff' || user.role === 'budtender') &&
-            locationId &&
-            orgId &&
-            locationId !== orgId
-        ) {
+        const isDispensaryRole = user.role === 'dispensary' || user.role === 'dispensary_admin' || user.role === 'dispensary_staff' || user.role === 'budtender';
+
+        if (shouldRetryWithOrgFallback({
+            bakedBotOrdersCount: bakedBotOrders.length,
+            isDispensaryRole,
+            locationId,
+            orgId,
+        })) {
             logger.info('[ORDERS] No orders by locationId, retrying with orgId', { locationId, orgId });
             const fallbackQuery = firestore.collection('orders').where('retailerId', '==', orgId);
             try {
