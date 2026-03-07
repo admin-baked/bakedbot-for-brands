@@ -5,11 +5,11 @@ steps:
       - '-f'
       - 'Dockerfile.andrews'
       - '-t'
-      - 'us-central1-docker.pkg.dev/studio-567050101-bc6e8/andrews-wp/wordpress:latest'
+      - 'us-central1-docker.pkg.dev/studio-567050101-bc6e8/andrews-wp/andrews-wp:latest'
       - '.'
 
 images:
-  - 'us-central1-docker.pkg.dev/studio-567050101-bc6e8/andrews-wp/wordpress:latest'
+  - 'us-central1-docker.pkg.dev/studio-567050101-bc6e8/andrews-wp/andrews-wp:latest'
 
 options:
   machineType: E2_HIGHCPU_8

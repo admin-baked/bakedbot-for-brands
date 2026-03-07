@@ -9,6 +9,16 @@ const INTERNAL_HOST_SUFFIXES = [
   '.firebaseapp.com',
   '.appspot.com',
 ];
+const HOP_BY_HOP_HEADERS = new Set([
+  'connection',
+  'keep-alive',
+  'proxy-authenticate',
+  'proxy-authorization',
+  'te',
+  'trailer',
+  'transfer-encoding',
+  'upgrade',
+]);
 
 function normalizeProxyPath(path: string): string {
   return path
@@ -157,6 +167,7 @@ export async function GET(request: NextRequest) {
   try {
     const response = await fetch(fullUrl, {
       method: request.method,
+      redirect: 'manual',
       headers: {
         Host: new URL(targetUrl).hostname,
         'User-Agent': request.headers.get('user-agent') || '',
@@ -174,7 +185,7 @@ export async function GET(request: NextRequest) {
     const headers = new Headers();
     for (const [key, value] of response.headers.entries()) {
       const lowerKey = key.toLowerCase();
-      if (lowerKey.startsWith('x-nextjs-')) {
+      if (lowerKey.startsWith('x-nextjs-') || HOP_BY_HOP_HEADERS.has(lowerKey)) {
         continue;
       }
 
