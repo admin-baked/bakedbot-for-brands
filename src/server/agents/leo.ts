@@ -277,6 +277,7 @@ export const leoAgent: AgentImplementation<LeoMemory, LeoTools> = {
         const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
         if (targetId === 'user_request' && stimulus) {
             let userQuery = stimulus;
+            const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
 
             // === OPTION DETECTION: Check if user is selecting from a previous menu ===
             const { detectOptionSelection } = await import('./utils/option-detector');

@@ -188,6 +188,7 @@ export const jackAgent: AgentImplementation<AgentMemory, JackTools> = {
         const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
         if (targetId === 'user_request' && stimulus) {
             const userQuery = stimulus;
+            const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
 
             // Get delegatable agent IDs dynamically from registry
             const delegatableAgents = getDelegatableAgentIds('jack');

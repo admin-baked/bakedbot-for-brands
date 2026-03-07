@@ -133,6 +133,7 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
     // === SCENARIO A: User Request (The "Planner" Flow) ===
     if (targetId === 'user_request' && stimulus) {
         const userQuery = stimulus;
+        const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || 'unknown';
 
         // Tool Definitions (Agent-specific + Shared Context OS & Letta tools)
         const mrsParkerSpecificTools = [

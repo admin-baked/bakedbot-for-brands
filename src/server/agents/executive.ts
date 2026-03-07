@@ -143,6 +143,7 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
     // === SCENARIO A: User Request (The "Planner" Flow) ===
     if (targetId === 'user_request' && stimulus) {
         const userQuery = stimulus;
+        const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
         
         // Get delegatable agent IDs dynamically from registry
         const delegatableAgents = getDelegatableAgentIds();
