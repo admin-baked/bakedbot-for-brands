@@ -19,6 +19,7 @@ const HOP_BY_HOP_HEADERS = new Set([
   'transfer-encoding',
   'upgrade',
 ]);
+const TEXTUAL_CONTENT_TYPE_PATTERN = /^(text\/|application\/(?:json|javascript|xml|xhtml\+xml)|image\/svg\+xml)/i;
 
 function normalizeProxyPath(path: string): string {
   return path
@@ -197,7 +198,19 @@ export async function GET(request: NextRequest) {
       headers.set(key, value);
     }
 
-    return new Response(response.body, {
+    const responseContentType = response.headers.get('content-type') || '';
+    const responseBody = (
+      request.method === 'HEAD'
+      || (response.status >= 300 && response.status < 400)
+      || response.status === 204
+      || response.status === 304
+    )
+      ? null
+      : TEXTUAL_CONTENT_TYPE_PATTERN.test(responseContentType)
+        ? await response.text()
+        : await response.blob();
+
+    return new Response(responseBody, {
       status: response.status,
       headers,
     });
