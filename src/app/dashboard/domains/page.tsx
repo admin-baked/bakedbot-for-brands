@@ -740,13 +740,13 @@ export default function DomainsPage() {
                         </div>
                         <div className="font-mono break-all flex items-center gap-1">
                           {d.connectionType === 'cname'
-                            ? 'cname.bakedbot.ai'
+                            ? 'bakedbot.ai'
                             : 'ns1.bakedbot.ai'}
                           <button
                             onClick={() =>
                               copyToClipboard(
                                 d.connectionType === 'cname'
-                                  ? 'cname.bakedbot.ai'
+                                  ? 'bakedbot.ai'
                                   : 'ns1.bakedbot.ai'
                               )
                             }

@@ -20,6 +20,7 @@ export {
     VERIFICATION_TXT_PREFIX,
     generateVerificationToken,
     getVerificationTxtHost,
+    getDNSInstructions,
     isValidDomain,
     isSubdomain,
     getRootDomain,
@@ -103,7 +104,7 @@ export async function verifyCNAME(
             };
         }
 
-        const target = records[0].toLowerCase();
+        const target = records[0].toLowerCase().replace(/\.$/, '');
 
         // Check if it points to our CNAME target
         if (target === BAKEDBOT_CNAME_TARGET || target.endsWith('.bakedbot.ai')) {
