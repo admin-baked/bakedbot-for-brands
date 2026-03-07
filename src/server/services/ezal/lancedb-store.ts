@@ -502,6 +502,7 @@ export async function searchProducts(
         'category',
         'priceCurrent',
         'inStock',
+        '_distance',
       ])
       .toArray();
 
@@ -583,6 +584,7 @@ export async function searchInsights(
         'deltaPercentage',
         'createdAt',
         'summary',
+        '_distance',
       ])
       .toArray();
 
