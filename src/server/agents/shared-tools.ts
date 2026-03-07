@@ -198,14 +198,8 @@ export interface UserManagementTools {
     inviteUser(email: string, role: string, businessName?: string, firstName?: string, lastName?: string, sendEmail?: boolean): Promise<any>;
 }
 
-// ============================================================================
-// ALL SHARED TOOL DEFINITIONS
-// ============================================================================
-
-export const allSharedToolDefs = [...contextOsToolDefs, ...lettaToolDefs, ...intuitionOsToolDefs, ...browserToolDefs, ...userManagementToolDefs];
-
-// Extended interface with all tools
-export interface AllSharedTools extends SharedTools, IntuitionOsTools, BrowserTools, UserManagementTools {}
+// NOTE: allSharedToolDefs and AllSharedTools are defined at the bottom of the file
+// after all tool definition blocks (including semanticSearchToolDefs).
 
 // ============================================================================
 // EXECUTIVE CONTEXT TOOL DEFINITIONS
@@ -257,3 +251,63 @@ export const proactiveSearchToolDef = {
 export interface ProactiveSearchTool {
     searchOpportunities(query: string): Promise<any>;
 }
+
+// ============================================================================
+// SEMANTIC SEARCH TOOL DEFINITIONS (LanceDB)
+// Cross-catalog vector search across own + competitor products & insights
+// Available to ALL agents and Super Users
+// ============================================================================
+
+export const semanticSearchToolDefs = [
+    {
+        name: "semanticSearchProducts",
+        description: "Semantically search across both your own product catalog AND competitor catalogs using AI embeddings. Returns ranked results by relevance. Use this to find similar products, compare offerings, discover pricing gaps, or answer product-related questions. Pass competitorId='__self__' to search only your own catalog, or omit to search everything.",
+        schema: z.object({
+            query: z.string().describe("Natural language search query — e.g., 'indica flower under $50', 'high THC vape cartridges', 'edibles similar to Wyld gummies'"),
+            competitorId: z.string().optional().describe("Filter to a specific competitor ID, or '__self__' for your own catalog only. Omit to search all catalogs."),
+            category: z.string().optional().describe("Filter by product category: 'flower', 'vape', 'edible', 'concentrate', 'preroll', 'topical', 'tincture', 'accessory'"),
+            inStockOnly: z.boolean().optional().describe("Only return in-stock products (default: false)"),
+            limit: z.number().optional().describe("Max results to return (default: 10, max: 50)")
+        })
+    },
+    {
+        name: "semanticSearchInsights",
+        description: "Search competitive intelligence insights using semantic similarity. Finds relevant price changes, new products, stock changes, and market movements. Use this to understand competitor activity, inform pricing strategy, or brief executives on market dynamics.",
+        schema: z.object({
+            query: z.string().describe("Natural language search — e.g., 'recent price drops on flower', 'competitor new product launches', 'high severity market changes'"),
+            severity: z.string().optional().describe("Filter by severity: 'low', 'medium', 'high', 'critical'"),
+            type: z.string().optional().describe("Filter by insight type: 'price_drop', 'price_increase', 'new_product', 'out_of_stock', 'back_in_stock'"),
+            limit: z.number().optional().describe("Max results to return (default: 10)")
+        })
+    },
+    {
+        name: "getCompetitorPriceHistory",
+        description: "Get the price history timeline for a specific competitor product. Shows price changes over time, promotional periods, and price trends. Use this for pricing strategy, trend analysis, or executive reports.",
+        schema: z.object({
+            productId: z.string().describe("The LanceDB product ID (format: 'competitorId__externalProductId')"),
+            days: z.number().optional().describe("Number of days to look back (default: 30)"),
+            limit: z.number().optional().describe("Max data points to return (default: 100)")
+        })
+    },
+    {
+        name: "getVectorStoreStats",
+        description: "Get statistics about the competitive intelligence vector store — number of indexed products, price data points, and insights. Use this to verify data freshness and coverage.",
+        schema: z.object({})
+    }
+];
+
+export interface SemanticSearchTools {
+    semanticSearchProducts(query: string, competitorId?: string, category?: string, inStockOnly?: boolean, limit?: number): Promise<any>;
+    semanticSearchInsights(query: string, severity?: string, type?: string, limit?: number): Promise<any>;
+    getCompetitorPriceHistory(productId: string, days?: number, limit?: number): Promise<any>;
+    getVectorStoreStats(): Promise<any>;
+}
+
+// ============================================================================
+// ALL SHARED TOOL DEFINITIONS (must be after all individual tool blocks)
+// ============================================================================
+
+export const allSharedToolDefs = [...contextOsToolDefs, ...lettaToolDefs, ...intuitionOsToolDefs, ...browserToolDefs, ...userManagementToolDefs, ...semanticSearchToolDefs];
+
+// Extended interface with all tools
+export interface AllSharedTools extends SharedTools, IntuitionOsTools, BrowserTools, UserManagementTools, SemanticSearchTools {}
