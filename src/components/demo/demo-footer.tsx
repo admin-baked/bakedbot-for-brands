@@ -24,6 +24,7 @@ interface DemoFooterProps {
   brandName?: string;
   brandLogo?: string;
   primaryColor?: string;
+  brandSlug?: string;
   // E-commerce model support
   purchaseModel?: 'online_only' | 'local_pickup' | 'hybrid';
   location?: {
@@ -97,25 +98,35 @@ export function DemoFooter({
   brandName = 'BakedBot Demo',
   brandLogo,
   primaryColor = '#16a34a',
+  brandSlug,
   purchaseModel = 'local_pickup',
-  location = {
-    address: '420 Cannabis Ave',
-    city: 'San Francisco',
-    state: 'CA',
-    zip: '94102',
-    phone: '(555) 420-0420',
-    email: 'hello@bakedbot.ai',
-    hours: 'Mon-Sun: 9AM - 10PM',
-  },
+  location = {},
   customShopLinks,
   customCompanyLinks,
 }: DemoFooterProps) {
   const secondaryColor = '#064e3b';
   const isOnlineOnly = purchaseModel === 'online_only';
 
+  // Build brand-relative company links using real page paths when brandSlug is known
+  const base = brandSlug ? `/${brandSlug}` : '';
+  const brandedDispensaryCompanyLinks = [
+    { label: 'About Us', href: `${base}/about` },
+    { label: 'Careers', href: `${base}/careers` },
+    { label: 'Locations', href: `${base}/locations` },
+    { label: 'Contact', href: `${base}/contact` },
+    { label: 'Blog', href: `${base}/blog` },
+    { label: 'Press', href: `${base}/press` },
+  ];
+  const brandedOnlineCompanyLinks = [
+    { label: 'About Us', href: `${base}/about` },
+    { label: 'Contact', href: `${base}/contact` },
+    { label: 'Shipping Info', href: '#shipping' },
+    { label: 'FAQ', href: '#faq' },
+  ];
+
   // Select appropriate links based on purchase model
   const shopLinks = customShopLinks || (isOnlineOnly ? onlineShopLinks : dispensaryShopLinks);
-  const companyLinks = customCompanyLinks || (isOnlineOnly ? onlineCompanyLinks : dispensaryCompanyLinks);
+  const companyLinks = customCompanyLinks || (isOnlineOnly ? brandedOnlineCompanyLinks : brandedDispensaryCompanyLinks);
 
   return (
     <footer className="bg-[#1a1a2e] text-white">
