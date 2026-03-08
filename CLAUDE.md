@@ -69,6 +69,13 @@ npm run check:types
 | `npm run setup:monitoring` | Configure Cloud Monitoring alerts for Slack #ops |
 | `npm run audit:costs` | Analyze Firestore query costs (scans $5-15/mo, optimal $0.10-0.50/mo) |
 
+### Tier 5: Image Sync (requires CRON_SECRET)
+| Command | Purpose |
+|---------|---------|
+| `npm run backfill:images org_thrive_syracuse` | Scrape Leafly → Firebase Storage → update Firestore imageUrls |
+| `npm run backfill:images:dry org_thrive_syracuse` | Dry-run: preview matches without writing |
+| `npm run backfill:images:force org_thrive_syracuse` | Force re-scrape (ignore cached Leafly catalog) |
+
 **Details:** See `.agent/specs/` for full super powers documentation.
 
 **Linus Slack Usage Examples:**
@@ -78,6 +85,7 @@ npm run check:types
 @linus execute execute_super_power script=audit-schema options=--orgId=org_thrive_syracuse
 @linus execute execute_super_power script=setup-secrets options=--deploy
 @linus execute execute_super_power script=check-compliance options=--text="Buy weed today"
+@linus execute execute_super_power script=backfill:images options=org_thrive_syracuse
 ```
 
 ---

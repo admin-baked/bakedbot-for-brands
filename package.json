@@ -56,7 +56,10 @@
     "setup:monitoring": "node scripts/setup-monitoring.mjs",
     "audit:costs": "node scripts/audit-query-cost.mjs",
     "provision:ny-outreach": "node scripts/provision-ny-outreach.mjs",
-    "switch-model": "node scripts/switch-claude-model.mjs"
+    "switch-model": "node scripts/switch-claude-model.mjs",
+    "backfill:images": "node scripts/backfill-weedmaps-images.mjs",
+    "backfill:images:dry": "node scripts/backfill-weedmaps-images.mjs --dry-run",
+    "backfill:images:force": "node scripts/backfill-weedmaps-images.mjs --force-rebuild"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.0",
