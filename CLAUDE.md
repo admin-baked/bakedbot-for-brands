@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-03-08 (Fixed Slack agent routing — channel name resolution via API, keyword priority overhaul, thread reply routing in dedicated channels)
+**Current Status:** 🟢 Passing | **Last update:** 2026-03-08 (Codex P1 SSRF fix — full 127.0.0.0/8 loopback range; PR #27 rebase; DayDay refreshSitemap type fix)
 
 ---
 
