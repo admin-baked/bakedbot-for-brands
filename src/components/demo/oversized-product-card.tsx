@@ -1,14 +1,54 @@
 'use client';
 
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Minus, Heart, ShoppingCart, Leaf, Zap } from 'lucide-react';
+import {
+  Plus, Minus, Heart, ShoppingCart, Leaf, Zap, Wind, Cookie,
+  Droplet, Droplets, Package, Check,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getSafeProductImageUrl } from '@/lib/utils/product-image';
+import type { LucideIcon } from 'lucide-react';
 import type { Product } from '@/types/domain';
+
+function getCategoryIcon(category?: string): LucideIcon {
+  const c = (category ?? '').toLowerCase().replace(/[-_\s]/g, '');
+  if (c.includes('flower') || c.includes('bud')) return Leaf;
+  if (c.includes('preroll') || c.includes('joint')) return Wind;
+  if (c.includes('edible') || c.includes('gummy')) return Cookie;
+  if (c.includes('concentrate') || c.includes('wax')) return Droplets;
+  if (c.includes('vape') || c.includes('cart') || c.includes('pod')) return Wind;
+  if (c.includes('tincture') || c.includes('oil')) return Droplet;
+  if (c.includes('topical') || c.includes('cream')) return Leaf;
+  return Package;
+}
+
+function getCategoryBgColor(category?: string): string {
+  const c = (category ?? '').toLowerCase().replace(/[-_\s]/g, '');
+  if (c.includes('flower') || c.includes('bud')) return 'bg-green-100 dark:bg-green-900/40';
+  if (c.includes('preroll') || c.includes('joint')) return 'bg-amber-100 dark:bg-amber-900/40';
+  if (c.includes('edible') || c.includes('gummy')) return 'bg-orange-100 dark:bg-orange-900/40';
+  if (c.includes('concentrate') || c.includes('wax')) return 'bg-yellow-100 dark:bg-yellow-900/40';
+  if (c.includes('vape') || c.includes('cart') || c.includes('pod')) return 'bg-blue-100 dark:bg-blue-900/40';
+  if (c.includes('tincture') || c.includes('oil')) return 'bg-emerald-100 dark:bg-emerald-900/40';
+  if (c.includes('topical') || c.includes('cream')) return 'bg-pink-100 dark:bg-pink-900/40';
+  return 'bg-muted';
+}
+
+function getCategoryIconColor(category?: string): string {
+  const c = (category ?? '').toLowerCase().replace(/[-_\s]/g, '');
+  if (c.includes('flower') || c.includes('bud')) return 'text-green-500';
+  if (c.includes('preroll') || c.includes('joint')) return 'text-amber-500';
+  if (c.includes('edible') || c.includes('gummy')) return 'text-orange-500';
+  if (c.includes('concentrate') || c.includes('wax')) return 'text-yellow-600';
+  if (c.includes('vape') || c.includes('cart') || c.includes('pod')) return 'text-blue-500';
+  if (c.includes('tincture') || c.includes('oil')) return 'text-emerald-600';
+  if (c.includes('topical') || c.includes('cream')) return 'text-pink-500';
+  return 'text-muted-foreground';
+}
 
 interface OversizedProductCardProps {
   product: Product;
@@ -40,11 +80,20 @@ export function OversizedProductCard({
   const [quantity, setQuantity] = useState(1);
   const [isHovered, setIsHovered] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
+  const [addedToCart, setAddedToCart] = useState(false);
 
   const handleAddToCart = () => {
     onAddToCart?.(product, quantity);
     setQuantity(1);
+    setAddedToCart(true);
   };
+
+  // Auto-clear the "added" flash after 1.5s
+  useEffect(() => {
+    if (!addedToCart) return;
+    const timer = setTimeout(() => setAddedToCart(false), 1500);
+    return () => clearTimeout(timer);
+  }, [addedToCart]);
 
   const incrementQuantity = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -79,7 +128,11 @@ export function OversizedProductCard({
   };
 
   const strainColor = product.strainType ? strainColors[product.strainType] || primaryColor : primaryColor;
-  const imageUrl = imageFailed ? '/icon-192.png' : getSafeProductImageUrl(product.imageUrl);
+  const rawImageUrl = getSafeProductImageUrl(product.imageUrl);
+  // Treat /icon-192.png as "no real image" — render a category icon placeholder instead
+  const isPlaceholder = imageFailed || rawImageUrl === '/icon-192.png';
+  const imageUrl = isPlaceholder ? null : rawImageUrl;
+  const CategoryIcon = getCategoryIcon(product.category);
 
   return (
     <Card
@@ -92,7 +145,7 @@ export function OversizedProductCard({
       onClick={onClick}
     >
       {/* Image Container */}
-      <div className={cn('relative bg-muted overflow-hidden', imageSizeClasses[size])}>
+      <div className={cn('relative overflow-hidden', imageSizeClasses[size], isPlaceholder ? getCategoryBgColor(product.category) : 'bg-muted')}>
         {imageUrl ? (
           <Image
             src={imageUrl}
@@ -106,14 +159,11 @@ export function OversizedProductCard({
             onError={() => setImageFailed(true)}
           />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-green-50/50">
-            <Image
-              src="/icon-192.png"
-              alt="BakedBot"
-              width={72}
-              height={72}
-              className="opacity-50 object-contain"
-            />
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4">
+            <CategoryIcon className={cn('h-16 w-16 opacity-30', getCategoryIconColor(product.category))} />
+            <span className="text-xs text-muted-foreground/50 font-medium uppercase tracking-widest">
+              {product.category}
+            </span>
           </div>
         )}
 
@@ -211,15 +261,27 @@ export function OversizedProductCard({
 
               {/* Add to Cart */}
               <Button
-                className="flex-1 h-10 font-bold"
-                style={{ backgroundColor: primaryColor }}
+                className={cn(
+                  'flex-1 h-10 font-bold transition-all duration-300',
+                  addedToCart && 'scale-105'
+                )}
+                style={{ backgroundColor: addedToCart ? '#16a34a' : primaryColor }}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleAddToCart();
                 }}
               >
-                <ShoppingCart className="h-4 w-4 mr-2" />
-                Add to Cart
+                {addedToCart ? (
+                  <>
+                    <Check className="h-4 w-4 mr-2 animate-bounce" />
+                    Added!
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    Add to Cart
+                  </>
+                )}
               </Button>
             </div>
           </div>
