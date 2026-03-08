@@ -21,11 +21,11 @@ npm run check:types
 
 **Current Status:** Passing (verified 2026-03-08)
 
-## Session 2026-03-08 (Slack agent routing overhaul + jcodemunch MCP)
-- **Slack routing fixed** (`d6bb69f94`): channel name resolution via `getChannelInfo()` API; new `detectAgent()` priority: explicit names > channel prefix > keywords; thread replies in dedicated channels now route to channel agent
-- **jcodemunch MCP** (`another agent`): Indexed workspace (`local/bakedbot-for-brands-eb64dca6`); agent refs expanded under `.agent/refs/agents/`
+## Session 2026-03-08 (Codex SSRF fix + PR #27 rebase)
+- **SSRF P1 fix** (`2dd5ea90f`): `isPrivateIpv4` now blocks full `127.0.0.0/8` range; PR #27 rebase (secure asset mirroring, Brand Guide UI, agent semantic-search)
+- **DayDay tools** (`2dd5ea90f`): added `refreshSitemap` to `defaultDayDayTools` — fixed TS2345 introduced by PR #27
 
-Status: Local docs + tooling updates verified, `npm run check:types` passing
+Status: Build passing, pushed to production
 
 ## Session 2026-03-06 (GLM controls, security docs, and proxy hardening)
 - **Claude allowlists** - Normalized local Claude settings allowlists to remove bloated startup state and keep tool permissions deterministic (`6f04200ee`)
