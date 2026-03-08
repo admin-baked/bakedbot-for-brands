@@ -39,6 +39,56 @@ Status: 🟢 Both crons deployed and working
 
 ---
 
+## 🔍 Code Exploration Strategy by Agent/Environment
+
+Use the right exploration tool for your context. Wrong choice = wasted tokens or missed symbols.
+
+### Claude Code (Browser) — jcodemunch by Default
+
+When running in **Claude Code on the web**, use jcodemunch MCP tools as the default strategy for code exploration — before falling back to Read/Grep on large files.
+
+**Why:** jcodemunch indexes the repo via AST parsing and returns only the symbols you need, rather than loading entire files.
+
+| Approach | Tokens Used | Example |
+|----------|------------|---------|
+| `Read` entire service file | ~3,800 tokens | Reading all of `linus.ts` to find one function |
+| `mcp__jcodemunch__get_symbol` | ~700 tokens | Fetching just `LinusAgent.evaluateCode` |
+| **Savings** | **~80% fewer tokens** | 5.5× improvement per lookup |
+
+**Session startup:** Call `index_repo` once at the start of a browser session (index is **not** cached across sessions like it is in local CLI).
+
+```
+mcp__jcodemunch__index_repo → then search_symbols / get_symbol / get_file_outline
+```
+
+**Fallback to Read/Grep** only for: config files, small files (<100 lines), or when you need full file context.
+
+### Claude Code (IDE / Local CLI) — jcodemunch, Skip Re-index
+
+Same MCP tools are available. Key difference: **the index persists across sessions** — do not call `index_repo` at session start unless files have changed significantly (e.g., after a large merge or scaffold run).
+
+```
+# Only re-index when needed:
+mcp__jcodemunch__invalidate_cache → mcp__jcodemunch__index_repo
+# Otherwise go straight to:
+search_symbols / get_symbol / get_file_outline
+```
+
+### Codex / Gemini / Other Agents (No jcodemunch)
+
+These agents do not have jcodemunch MCP access. Use native search tools with discipline:
+
+| Task | Tool | Rule |
+|------|------|------|
+| Find a symbol/function | `Grep` with class/function pattern | e.g., `grep -r "evaluateCode" src/` |
+| Understand a file's shape | `Read` with `offset` + `limit` | Read first 60 lines for imports/exports, then jump to the function |
+| Explore a directory | `Glob` | Prefer over `ls -R` |
+| Avoid | `Read` on files >200 lines without offset | Loads entire file — wasteful |
+
+**Rule of thumb:** Never read a file >200 lines in full without a targeted offset. Use Grep first to find the line, then Read ±30 lines around it.
+
+---
+
 ## 🦸 SUPER POWERS — ALWAYS AVAILABLE, USE THESE FIRST
 
 > **Before spending 5+ tool calls investigating an issue, check if a super power solves it in ONE step.**
