@@ -1562,7 +1562,7 @@ const LINUS_TOOLS: ClaudeTool[] = [
     // ========================================================================
     {
         name: 'execute_super_power',
-        description: 'Execute developer super power scripts (automated audits, generators, fixers). Use to run productivity scripts: audit-indexes, setup-secrets, audit-schema, seed-test, generate, fix-build, test-security, check-compliance, audit-consistency, setup-monitoring, audit-query-cost.',
+        description: 'Execute developer super power scripts (automated audits, generators, fixers). Use to run productivity scripts: audit-indexes, setup-secrets, audit-schema, seed-test, generate, fix-build, test-security, check-compliance, audit-consistency, setup-monitoring, audit-query-cost, backfill-images.',
         input_schema: {
             type: 'object' as const,
             properties: {
@@ -1580,7 +1580,8 @@ const LINUS_TOOLS: ClaudeTool[] = [
                         'check-compliance',
                         'audit-consistency',
                         'setup-monitoring',
-                        'audit-query-cost'
+                        'audit-query-cost',
+                        'backfill-images'
                     ]
                 },
                 options: {
@@ -3274,7 +3275,8 @@ test('${scenario.slice(0, 50)}', async ({ page }) => {
                 'check-compliance',
                 'audit-consistency',
                 'setup-monitoring',
-                'audit-query-cost'
+                'audit-query-cost',
+                'backfill-images'
             ];
 
             if (!validScripts.includes(script)) {
@@ -3297,7 +3299,8 @@ test('${scenario.slice(0, 50)}', async ({ page }) => {
                 'check-compliance': 'npm run check:compliance',
                 'audit-consistency': 'npm run audit:consistency',
                 'setup-monitoring': 'npm run setup:monitoring',
-                'audit-query-cost': 'npm run audit:costs'
+                'audit-query-cost': 'npm run audit:costs',
+                'backfill-images': 'npm run backfill:images'
             };
 
             let command = scriptMap[script];
