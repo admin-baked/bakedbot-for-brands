@@ -304,6 +304,15 @@ async function runImportPipeline(
     let viewOps = 0;
 
     for (const product of createdProducts) {
+        // Don't overwrite a real image (from a previous image sync) with a placeholder.
+        // Firestore merge:true skips undefined fields, so omitting imageUrl preserves the
+        // existing value scraped by weedmaps-image-sync / brand-website-image-sync.
+        const incomingImageUrl = product.images?.[0]?.url;
+        const isPlaceholderImage = !incomingImageUrl ||
+            incomingImageUrl === '/icon-192.png' ||
+            incomingImageUrl.includes('unsplash.com') ||
+            incomingImageUrl.includes('picsum.photos');
+
         const publicView = {
             id: product.id,
             tenantId: product.tenantId,
@@ -314,8 +323,10 @@ async function runImportPipeline(
             description: product.shortDescription || product.description,
             thcPercent: product.potency?.thc?.unit === 'percent' ? product.potency.thc.value : undefined,
             cbdPercent: product.potency?.cbd?.unit === 'percent' ? product.potency.cbd.value : undefined,
-            imageUrl: product.images?.[0]?.url,
-            imageUrls: product.images?.map(i => i.url),
+            // Only write imageUrl/imageUrls if incoming is a real image — otherwise
+            // leave the field undefined so merge:true preserves the scraped value.
+            imageUrl: isPlaceholderImage ? undefined : incomingImageUrl,
+            imageUrls: isPlaceholderImage ? undefined : product.images?.map(i => i.url),
             price: productPrices.get(product.id) || 0, // Default to $0 for products without pricing
             currency: 'USD',
             viewBuiltAt: new Date() as any,
