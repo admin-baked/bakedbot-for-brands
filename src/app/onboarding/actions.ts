@@ -153,7 +153,10 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
     if (finalRole === 'dispensary' && posProvider && posProvider !== 'none') {
       userProfileData.posConfig = {
         provider: posProvider,
-        apiKey: posApiKey || null, // Encrypt in production!
+        // SECURITY: posApiKey is stored in plaintext. Must be encrypted via
+        // GCP Secret Manager before this ships to production. See refs/backend.md.
+        // TODO(security): Replace with Secret Manager write + store only the secret ref.
+        apiKey: posApiKey || null,
         dispensaryId: posDispensaryId || null,
         sourceOfTruth: 'pos',
         backupSource: 'cannmenus',
@@ -421,7 +424,9 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
     }
 
     // --- QUEUE COMPETITOR DISCOVERY (NON-BLOCKING) ---
-    if ((finalRole === 'brand' || finalRole === 'dispensary') && orgId && marketState) {
+    // Dispensaries already get a competitor_discovery job in the dispensary block above,
+    // so only queue the org-level job for brands here to avoid duplicates.
+    if (finalRole === 'brand' && orgId && marketState) {
       await firestore.collection('data_jobs').add({
         type: 'competitor_discovery',
         entityId: orgId,
