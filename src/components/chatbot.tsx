@@ -686,8 +686,8 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
     setMessages(prev => [...prev, userMessage]);
     setInputValue(''); // Clear input if it was typed
 
-    // Detect Preset / Intercept Logic (Client-Side Demo Optimization)
-    const demoIntercept = PRESET_WIDGET_RESPONSES[text.trim()];
+    // Detect Preset / Intercept Logic (Client-Side Demo Optimization — homepage only)
+    const demoIntercept = pathname === '/' ? PRESET_WIDGET_RESPONSES[text.trim()] : undefined;
 
     if (demoIntercept) {
       setIsBotTyping(true);

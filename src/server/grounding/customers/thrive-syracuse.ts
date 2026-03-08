@@ -21,7 +21,7 @@ export const thriveGroundTruth: GroundTruthQASet = {
         address: '3065 Erie Blvd E, Syracuse, NY 13224',
         version: '1.0',
         created: '2026-01-22',
-        last_updated: '2026-02-11',
+        last_updated: '2026-03-08',
         total_qa_pairs: 39,
         author: 'BakedBot AI',
     },
@@ -414,10 +414,10 @@ export const thriveGroundTruth: GroundTruthQASet = {
                 {
                     id: 'OD-002',
                     question: 'Do you offer delivery?',
-                    ideal_answer: 'Delivery is coming to Thrive Syracuse in Spring 2026! We are finalizing our delivery zone which will cover Syracuse and surrounding areas within 15 miles. Sign up for our text alerts to be notified when delivery launches.',
+                    ideal_answer: 'Delivery is being finalized at Thrive Syracuse and will cover Syracuse and surrounding areas within 15 miles. Sign up for our text alerts to be first to know when delivery launches.',
                     context: 'Delivery service',
                     intent: 'Get delivery',
-                    keywords: ['delivery', 'Spring 2026', '15 miles', 'text alerts'],
+                    keywords: ['delivery', '15 miles', 'text alerts', 'launching soon'],
                     priority: 'high',
                 },
                 {

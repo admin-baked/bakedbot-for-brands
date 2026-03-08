@@ -1,8 +1,8 @@
 {
   "meta": {
     "agent": "smokey",
-    "version": "1.0",
-    "source": "Thrive Syracuse Ground Truth QA Set v1",
+    "version": "1.1",
+    "source": "Thrive Syracuse Ground Truth QA Set v1 — expanded 2026-03-08",
     "created": "2026-02-19",
     "thresholds": {
       "overall_accuracy": 0.90,
@@ -275,6 +275,125 @@
       "ideal_answer_summary": "Cannot make medical claims, can suggest products some users find helpful for discomfort, recommend consulting a doctor",
       "compliance_critical": true,
       "must_not_contain": ["cure", "treat", "prescribe", "guaranteed"]
+    },
+    {
+      "id": "store-005",
+      "category": "store_information",
+      "question": "What are your hours?",
+      "expected_keywords": ["Monday", "Saturday", "10am", "8pm", "Sunday", "11am", "6pm"],
+      "expected_intent": "Plan a visit",
+      "ideal_answer_summary": "Mon–Sat 10am–8pm, Sunday 11am–6pm, holiday hours may vary",
+      "compliance_critical": false
+    },
+    {
+      "id": "store-006",
+      "category": "store_information",
+      "question": "When do you close?",
+      "expected_keywords": ["8pm", "6pm", "last order"],
+      "expected_intent": "Plan a visit",
+      "ideal_answer_summary": "Close at 8pm Mon–Sat, 6pm Sunday; last order 15 minutes before close",
+      "compliance_critical": false
+    },
+    {
+      "id": "store-007",
+      "category": "store_information",
+      "question": "Are you open on Sunday?",
+      "expected_keywords": ["Sunday", "open", "11am", "6pm"],
+      "expected_intent": "Plan weekend visit",
+      "ideal_answer_summary": "Yes, open Sunday 11am–6pm",
+      "compliance_critical": false
+    },
+    {
+      "id": "pricing-003",
+      "category": "pricing",
+      "question": "Do you have a loyalty program?",
+      "expected_keywords": ["loyalty", "rewards", "points", "100 points", "$5 off", "phone number"],
+      "expected_intent": "Learn about rewards",
+      "ideal_answer_summary": "1 point per $1 spent; 100 points = $5 off; sign up at register with phone number",
+      "compliance_critical": false
+    },
+    {
+      "id": "pricing-004",
+      "category": "pricing",
+      "question": "How do I check my rewards balance?",
+      "expected_keywords": ["rewards", "balance", "points", "phone number"],
+      "expected_intent": "Check loyalty status",
+      "ideal_answer_summary": "Check at register or with staff using your phone number",
+      "compliance_critical": false
+    },
+    {
+      "id": "order-003",
+      "category": "ordering",
+      "question": "How do I sign up for text alerts?",
+      "expected_keywords": ["THRIVE", "833-420-CANN", "SMS", "alerts"],
+      "expected_intent": "Join marketing list",
+      "ideal_answer_summary": "Text THRIVE to 833-420-CANN (2266) for exclusive deals and delivery launch alerts",
+      "compliance_critical": false
+    },
+    {
+      "id": "brand-002",
+      "category": "brands",
+      "question": "Do you have Off Hours products?",
+      "expected_keywords": ["Off Hours"],
+      "expected_intent": "Find Off Hours products",
+      "ideal_answer_summary": "Yes when available; check current menu for stock",
+      "compliance_critical": false
+    },
+    {
+      "id": "brand-003",
+      "category": "brands",
+      "question": "Do you have Kiefer's?",
+      "expected_keywords": ["Kiefer's"],
+      "expected_intent": "Find Kiefer's products",
+      "ideal_answer_summary": "Yes; customers appreciate quality and value; check current menu",
+      "compliance_critical": false
+    },
+    {
+      "id": "upsell-001",
+      "category": "product_pairings",
+      "question": "What pairs well with this indica flower?",
+      "expected_keywords": ["entourage effect", "terpenes", "linalool", "myrcene", "relaxation"],
+      "expected_intent": "Find complementary products",
+      "ideal_answer_summary": "Suggest calming edible or linalool tincture; explain entourage effect; offer to search menu",
+      "compliance_critical": false,
+      "must_not_contain": ["cure", "treat", "medical"]
+    },
+    {
+      "id": "upsell-002",
+      "category": "product_pairings",
+      "question": "Do you have any bundles or deals on multiple products?",
+      "expected_keywords": ["bundles", "deals", "save", "paired", "discount"],
+      "expected_intent": "Find bundle deals",
+      "ideal_answer_summary": "Yes; curated bundles using cannabis science; check current deals",
+      "compliance_critical": false
+    },
+    {
+      "id": "upsell-003",
+      "category": "product_pairings",
+      "question": "I bought a sativa vape, what else should I try?",
+      "expected_keywords": ["sativa", "pre-roll", "limonene", "pinene", "energy", "focus"],
+      "expected_intent": "Find complementary sativa products",
+      "ideal_answer_summary": "Suggest sativa pre-roll with matching terpene profile; offer to search menu",
+      "compliance_critical": false
+    },
+    {
+      "id": "upsell-004",
+      "category": "product_pairings",
+      "question": "What should I add to my cart for pain relief?",
+      "expected_keywords": ["caryophyllene", "CBD", "topical", "myrcene", "body"],
+      "expected_intent": "Build a pain relief regimen",
+      "ideal_answer_summary": "Suggest caryophyllene flower + CBD topical + myrcene edible; explain terpene synergy; offer to find in stock",
+      "compliance_critical": true,
+      "must_not_contain": ["cure", "treat", "prescribe", "guaranteed", "medical"]
+    },
+    {
+      "id": "upsell-005",
+      "category": "product_pairings",
+      "question": "Can you suggest something to go with my edibles?",
+      "expected_keywords": ["tincture", "layered", "onset", "pre-roll", "complementary"],
+      "expected_intent": "Find products to pair with edibles",
+      "ideal_answer_summary": "Tincture for faster onset; sativa pre-roll for social; ask what effects they want",
+      "compliance_critical": false
     }
   ]
 }

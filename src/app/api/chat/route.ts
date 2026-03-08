@@ -83,7 +83,8 @@ export const POST = withProtection(
                 sessionId: currentSessionId!,
                 brandId,
                 state,
-                products: contextProducts
+                products: contextProducts,
+                conversationHistory: conversationContext,
             });
 
             const safeMessage = agentResponse.message;
