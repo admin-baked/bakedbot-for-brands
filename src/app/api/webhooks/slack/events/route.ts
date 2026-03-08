@@ -163,8 +163,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
                 try {
                     const info = await slackService.getChannelInfo(channel);
                     channelName = info?.name ?? '';
-                } catch {
-                    // Non-fatal — routing falls back to keyword detection
+                    logger.info(`[Slack/Events] Resolved channelName="${channelName}" for channel=${channel}`);
+                } catch (e: any) {
+                    logger.warn(`[Slack/Events] getChannelInfo failed — routing without channel name: ${e.message}`);
                 }
             }
 

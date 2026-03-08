@@ -169,6 +169,7 @@ export function detectAgent(text: string, channelName: string, isDm: boolean): s
     // 1. Check for explicit agent name in text (highest priority)
     for (const { keywords, personaId } of KEYWORD_MAP) {
         if (keywords.some(kw => EXPLICIT_NAMES.includes(kw) && lower.includes(kw))) {
+            logger.info(`[SlackBridge] detectAgent → Tier1(explicit name) → ${personaId} | channel="${channelName}"`);
             return personaId;
         }
     }
@@ -177,6 +178,7 @@ export function detectAgent(text: string, channelName: string, isDm: boolean): s
     const channelLower = (channelName || '').toLowerCase();
     for (const { prefix, personaId } of CHANNEL_MAP) {
         if (channelLower.startsWith(prefix)) {
+            logger.info(`[SlackBridge] detectAgent → Tier2(channel prefix "${prefix}") → ${personaId} | channel="${channelName}"`);
             return personaId;
         }
     }
@@ -194,13 +196,17 @@ export function detectAgent(text: string, channelName: string, isDm: boolean): s
     ];
 
     for (const { keywords, personaId } of KEYWORD_MAP) {
-        if (keywords.some(kw => GENERIC_KEYWORDS.includes(kw) && lower.includes(kw))) {
+        const matchedKw = keywords.find(kw => GENERIC_KEYWORDS.includes(kw) && lower.includes(kw));
+        if (matchedKw) {
+            logger.info(`[SlackBridge] detectAgent → Tier3(keyword "${matchedKw}") → ${personaId} | channel="${channelName}"`);
             return personaId;
         }
     }
 
     // 4. Default: Leo for DMs (trusted direct channel), puff for general channels
-    return isDm ? 'leo' : 'puff';
+    const defaultAgent = isDm ? 'leo' : 'puff';
+    logger.info(`[SlackBridge] detectAgent → Tier4(default) → ${defaultAgent} | channel="${channelName}" isDm=${isDm}`);
+    return defaultAgent;
 }
 
 // ---------------------------------------------------------------------------
