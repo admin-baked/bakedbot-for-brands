@@ -178,6 +178,31 @@ export class SlackService {
         }
     }
 
+    /**
+     * Get channel info by ID. Returns the channel name (needed for agent routing
+     * since Slack Events API does not include channel_name in event payloads).
+     */
+    async getChannelInfo(channelId: string): Promise<{ id: string; name: string } | null> {
+        if (!this.client) {
+            return null;
+        }
+
+        try {
+            const result = await this.client.conversations.info({ channel: channelId });
+            if (result.channel) {
+                return {
+                    id: result.channel.id || channelId,
+                    name: result.channel.name || '',
+                };
+            }
+            return null;
+        } catch (e: any) {
+            // DMs and some private channels may fail — non-fatal
+            logger.warn(`[Slack] getChannelInfo failed for ${channelId}: ${e.message}`);
+            return null;
+        }
+    }
+
     async getUserInfo(slackUserId: string): Promise<{ id: string; name: string; email: string } | null> {
         if (!this.client) {
             logger.warn('[Slack] Get user info skipped (No Token)');
