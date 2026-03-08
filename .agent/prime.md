@@ -19,7 +19,13 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** Passing (verified 2026-03-06)
+**Current Status:** Passing (verified 2026-03-08)
+
+## Session 2026-03-08 (Slack agent routing overhaul + jcodemunch MCP)
+- **Slack routing fixed** (`d6bb69f94`): channel name resolution via `getChannelInfo()` API; new `detectAgent()` priority: explicit names > channel prefix > keywords; thread replies in dedicated channels now route to channel agent
+- **jcodemunch MCP** (`another agent`): Indexed workspace (`local/bakedbot-for-brands-eb64dca6`); agent refs expanded under `.agent/refs/agents/`
+
+Status: Local docs + tooling updates verified, `npm run check:types` passing
 
 ## Session 2026-03-06 (GLM controls, security docs, and proxy hardening)
 - **Claude allowlists** - Normalized local Claude settings allowlists to remove bloated startup state and keep tool permissions deterministic (`6f04200ee`)
@@ -247,8 +253,9 @@ Do NOT wait for the user to say "P1" or "file a bug first" — triage, file, and
 | File | Purpose | When to read |
 |---|---|---|
 | `.agent/prime.md` | Startup context + workflow protocol | Every session (auto-loaded) |
+| `.agent/refs/agents/README.md` | Detailed agent roster + per-agent entrypoints | Before touching any agent-owned area |
 | `.agent/spec-template.md` | Structured spec format (task-level) | Before any implementation |
-| `.agent/specs/` | **Production specs** — acceptance criteria, known gaps per feature | Before touching a major feature |
+| `.agent/specs/` | **Production specs** - acceptance criteria, known gaps per feature | Before touching a major feature |
 | `.agent/review-checklist.md` | Self-review gates | After implementation, before commit |
 | `.agent/golden-sets/*.json` | Eval datasets for LLM changes | When code touches agent prompts/behavior |
 | `.agent/constitution.md` | Full engineering principles | Reference for edge cases and disputes |
@@ -257,8 +264,8 @@ Do NOT wait for the user to say "P1" or "file a bug first" — triage, file, and
 
 ---
 
-**Recent work (2026-03-06):** See `MEMORY.md` for full log.
-Key completed: [Claude allowlist normalization] (`6f04200ee`), [Security Soren guidance registration] (`2ae78a0b4`), [CEO GLM controls] (`17186202a`, `360cabc76`), [WordPress proxy hardening] (`1aa587cb2`)
+**Recent work (2026-03-08):** See `MEMORY.md` for full log.
+Key completed: [Codex `jcodemunch` MCP activation], [repo indexing for symbol-first exploration], [detailed agent refs under `refs/agents/`], [prime `jcodemunch` workflow update], [Playbook action trace]
 
 ---
 
@@ -356,8 +363,8 @@ node scripts/promote-super-user-by-email.mjs <EMAIL>
 | Billing (Phases 1-10) | ✅ Tests passing | `refs/` (various) | `specs/tier1-billing.md` |
 | Creative Studio (Canva-style) | ✅ 3-panel layout | `src/app/dashboard/creative/` | — |
 | Help Center (50 articles) | ✅ Feb 2026 | `src/app/help/` | — |
-| Campaign System (Craig) | ✅ SMS+Email+Deebo gate | `refs/agents.md` | `specs/tier1-campaign-system.md` |
-| Compliance (Deebo) | ✅ NY/CA/IL rules + monitor | `refs/agents.md` | `specs/tier1-compliance-deebo.md` |
+| Campaign System (Craig) | ✅ SMS+Email+Deebo gate | `refs/agents/behavioral-agents.md` | `specs/tier1-campaign-system.md` |
+| Compliance (Deebo) | ✅ NY/CA/IL rules + monitor | `refs/agents/behavioral-agents.md` | `specs/tier1-compliance-deebo.md` |
 | Public Menu Pages | ✅ Brand + Dispensary + ISR | `refs/pages-brand.md` | `specs/tier1-public-menu-pages.md` |
 | Pilot Customers | ✅ Thrive (US) + Herbalist Samui (🇹🇭 INT'L) | `memory/customers.md` + `HERBALIST_SAMUI_SETUP.md` | — |
 | International ISR Pages | ✅ Thailand/Koh Samui live | `src/app/destination/` | — |
@@ -366,11 +373,37 @@ node scripts/promote-super-user-by-email.mjs <EMAIL>
 
 ## 🧭 Core Principles
 
-1. **Build Health First** — A failing build blocks everything. Fix it immediately.
-2. **Read Before Write** — Never modify code you haven't read. Use `Read` tool first.
-3. **Small Changes** — One logical change at a time. Test after each.
-4. **Plan Complex Work** — For multi-file changes, write a plan and get approval.
-5. **Archive Decisions** — Record why, not just what. Future you will thank you.
+1. **Build Health First** - A failing build blocks everything. Fix it immediately.
+2. **Read Before Write** - Never modify code you haven't read. Use `Read` tool first.
+3. **Small Changes** - One logical change at a time. Test after each.
+4. **Plan Complex Work** - For multi-file changes, write a plan and get approval.
+5. **Archive Decisions** - Record why, not just what. Future you will thank you.
+
+---
+
+## Code Exploration Protocol (jcodemunch)
+
+When Codex/Antigravity has `jcodemunch` available, prefer symbol-first exploration over broad file reads:
+
+1. `get_repo_outline` if the area is unfamiliar.
+2. `search_symbols` for named code (functions, classes, actions, routes, helpers).
+3. `get_file_outline` before opening a large file.
+4. `get_symbol` for the exact implementation you need.
+5. `search_text` for strings, collection names, env vars, routes, and non-symbol clues.
+6. `get_file_content` only when symbol-level context is not enough.
+
+**Start with docs, then code:**
+- Read `.agent/refs/agents/README.md` to find the right agent/domain owner.
+- Load that agent's linked `IDENTITY.md`, `memory/architecture.md`, and `memory/patterns.md`.
+- Use `jcodemunch` against the agent's primary path before reading whole files.
+
+**Playbook actions example:**
+- `search_symbols(query="createPlaybook")` -> `src/server/actions/playbooks.ts::createPlaybook#function`
+- `search_symbols(query="updatePlaybookAssignmentConfig")` -> `src/server/actions/dispensary-playbooks.ts::updatePlaybookAssignmentConfig#function`
+- `search_symbols(query="executePlaybook")` -> `src/app/api/cron/playbook-runner/route.ts::executePlaybook#function`
+- Then load each implementation with `get_symbol(...)` instead of reading entire files.
+
+If the repo is not indexed yet, run `index_folder` once, then follow the flow above.
 
 ---
 
@@ -379,11 +412,11 @@ node scripts/promote-super-user-by-email.mjs <EMAIL>
 | Situation | Action |
 |-----------|--------|
 | Simple bug fix in one file | Read the file, fix it, test |
-| Touching agent code | Read `refs/agents.md` first |
+| Touching agent code | Read `refs/agents/README.md` first, then load the relevant agent section |
 | Touching auth/session | Read `refs/authentication.md` + `refs/roles.md` |
 | Adding new integration | Read `refs/integrations.md` |
 | Multi-file feature | Read relevant refs + `query_work_history` |
-| Unsure where code lives | Use Explore agent or search tools |
+| Unsure where code lives | Use `jcodemunch` (`get_repo_outline` -> `search_symbols` -> `get_symbol`) |
 
 **Rule of Thumb:** If you're about to touch a subsystem for the first time in a session, read its ref file.
 
@@ -425,7 +458,7 @@ Only load these when needed to conserve context:
 
 | When Working On... | Read This First |
 |--------------------|-----------------|
-| Agent logic | `refs/agents.md` |
+| Agent logic | `refs/agents/README.md` |
 | Memory/Letta | `refs/bakedbot-intelligence.md` |
 | Browser automation | `refs/autonomous-browsing.md` |
 | Auth/sessions | `refs/authentication.md` |
@@ -498,7 +531,7 @@ BakedBot AI utilizes the **Gemini 2.5** family for all core reasoning and creati
 - Mrs. Parker (Retention) — CRM, win-back campaigns, loyalty, churn prevention
 - Money Mike (CFO) — Profitability, campaign ROI, pricing strategy
 
-> Full details: `refs/agents.md`
+> Full details: `refs/agents/README.md`
 
 ---
 
@@ -528,7 +561,7 @@ BakedBot AI utilizes the **Gemini 2.5** family for all core reasoning and creati
 | **Delivery Dante** | Delivery dashboard, driver app, QR check-in, ETA calc, NY OCM compliance | `src/app/dashboard/delivery/` | `.agent/engineering-agents/delivery-dante/` |
 | **Boardroom Bob** | CEO boardroom, executive agents (Leo/Linus/Jack), CRM, QA, morning briefing | `src/app/dashboard/ceo/` | `.agent/engineering-agents/boardroom-bob/` |
 
-**Full roster + details:** `.agent/engineering-agents/README.md`
+**Full roster + details:** `.agent/refs/agents/engineering-agents.md`
 
 **Critical cross-domain rule:** Any change touching 2+ engineering agent domains requires Linus arbitration before implementation. File it as a cross-domain spec and tag both agents.
 
