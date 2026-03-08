@@ -71,7 +71,7 @@ export function UnifiedLoginForm() {
             await createSession(userCredential.user);
             await routeUser(userCredential);
         } catch (error) {
-            console.error('Auth success handling failed:', error);
+            logger.error('Auth success handling failed', { error });
             setIsLoading(false);
         }
     };
