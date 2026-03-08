@@ -39,6 +39,28 @@ Status: 🟢 Both crons deployed and working
 
 ---
 
+## 🔍 Browser Sessions: Use jcodemunch by Default
+
+When running in **Claude Code on the web**, use jcodemunch MCP tools as the default strategy for code exploration — before falling back to Read/Grep on large files.
+
+**Why:** jcodemunch indexes the repo via AST parsing and returns only the symbols you need, rather than loading entire files.
+
+| Approach | Tokens Used | Example |
+|----------|------------|---------|
+| `Read` entire service file | ~3,800 tokens | Reading all of `linus.ts` to find one function |
+| `mcp__jcodemunch__get_symbol` | ~700 tokens | Fetching just `LinusAgent.evaluateCode` |
+| **Savings** | **~80% fewer tokens** | 5.5× improvement per lookup |
+
+**Session startup:** Call `index_repo` once at the start of a browser session (index is not cached across sessions like it is in local CLI).
+
+```
+mcp__jcodemunch__index_repo → then search_symbols / get_symbol / get_file_outline
+```
+
+**Fallback to Read/Grep** only for: config files, small files (<100 lines), or when you need full file context.
+
+---
+
 ## 🦸 SUPER POWERS — ALWAYS AVAILABLE, USE THESE FIRST
 
 > **Before spending 5+ tool calls investigating an issue, check if a super power solves it in ONE step.**
