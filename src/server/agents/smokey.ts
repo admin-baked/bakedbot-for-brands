@@ -9,7 +9,6 @@ import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef, semanticSearc
 import { smokeyInboxToolDefs } from '../tools/inbox-tools';
 import { smokeyCrmToolDefs } from '../tools/crm-tools';
 import { jinaToolDefs, makeJinaToolsImpl } from '@/server/tools/jina-tools';
-import { youtubeToolDefs, makeYouTubeToolsImpl } from '@/server/tools/youtube-tools';
 import {
     buildSquadRoster,
     getDelegatableAgentIds,
@@ -114,7 +113,7 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
             2. **Strain Science**: Know your terps and cannabinoids.
             3. **Inventory Aware**: Don't recommend out-of-stock items.
             4. **Team Player**: Delegate tasks to specialists (see squad below).
-            5. **Carousel Creator**: When asked to create featured product carousels, use the createCarouselArtifact tool to generate a structured artifact for user approval.
+            5. **Carousel Creator**: When asked to create featured product carousels, use searchMenu to find the products, then present a numbered list the customer can review and approve.
             ${goalDirectives}
             ${marginProductContext}
 
@@ -278,8 +277,9 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                 }
             ];
 
-            // Combine agent-specific tools with shared Context OS, Letta, inbox, Jina, YouTube, and proactive search tools
-            const toolsDef = [...smokeySpecificTools, proactiveSearchToolDef, ...jinaToolDefs, ...youtubeToolDefs, ...contextOsToolDefs, ...lettaToolDefs, ...smokeyInboxToolDefs, ...smokeyCrmToolDefs, ...semanticSearchToolDefs];
+            // Combine agent-specific tools with shared Context OS, Letta, inbox, Jina, and proactive search tools
+            // NOTE: YouTube tools removed from consumer chat — not relevant for budtender context
+            const toolsDef = [...smokeySpecificTools, proactiveSearchToolDef, ...jinaToolDefs, ...contextOsToolDefs, ...lettaToolDefs, ...smokeyInboxToolDefs, ...smokeyCrmToolDefs, ...semanticSearchToolDefs];
 
             try {
                 const { runMultiStepTask } = await import('./harness');
@@ -290,7 +290,6 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                     tools: {
                         ...tools,
                         ...makeJinaToolsImpl(),
-                        ...makeYouTubeToolsImpl(orgId),
                         ...makeSemanticSearchToolsImpl(orgId),
                         searchOpportunities: async (query: string) => {
                             try {
@@ -303,7 +302,7 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                         },
                     },
                     model: 'claude-sonnet-4-6',
-                    maxIterations: 5,
+                    maxIterations: 8,
                     onStepComplete: async (step, toolName, res) => {
                         // Optional: persist if needed, though harness logs usually cover it.
                         // Keeping logic simple as Smokey usually logs via result.
