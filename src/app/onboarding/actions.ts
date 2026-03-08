@@ -424,9 +424,10 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
     }
 
     // --- QUEUE COMPETITOR DISCOVERY (NON-BLOCKING) ---
-    // Dispensaries already get a competitor_discovery job in the dispensary block above,
-    // so only queue the org-level job for brands here to avoid duplicates.
-    if (finalRole === 'brand' && orgId && marketState) {
+    // CannMenus dispensaries (with locationId) already got a competitor_discovery job
+    // in the dispensary block above. Manual-entry dispensaries (no locationId) and all
+    // brands need this org-level job — it is their only competitor discovery path.
+    if ((finalRole === 'brand' || (finalRole === 'dispensary' && !locationId)) && orgId && marketState) {
       await firestore.collection('data_jobs').add({
         type: 'competitor_discovery',
         entityId: orgId,
