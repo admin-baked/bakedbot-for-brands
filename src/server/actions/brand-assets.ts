@@ -16,7 +16,7 @@ const MAX_FETCH_REDIRECTS = 3;
 
 function isPrivateIpv4(hostname: string): boolean {
   const lower = hostname.toLowerCase();
-  if (lower === '127.0.0.1' || lower === '0.0.0.0') return true;
+  if (/^127\./.test(lower) || lower === '0.0.0.0') return true;
   if (/^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(lower)) return true;
   if (/^10\./.test(lower)) return true;
   if (/^192\.168\./.test(lower)) return true;
