@@ -2,6 +2,7 @@
 
 import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
+import { logger } from '@/lib/logger';
 
 export async function checkOnboardingStatus() {
     try {
@@ -41,7 +42,7 @@ export async function checkOnboardingStatus() {
         // 3. Count Competitors (if applicable)
         let competitorCount = 0;
         if (orgId) {
-            const competitorsSnap = await firestore.collection('tenants').doc(orgId).collection('competitors').count().get();
+            const competitorsSnap = await firestore.collection('organizations').doc(orgId).collection('competitors').count().get();
             competitorCount = competitorsSnap.data().count;
         }
 
@@ -72,7 +73,7 @@ export async function checkOnboardingStatus() {
         };
 
     } catch (error) {
-        console.error('Check status failed:', error);
+        logger.error('checkOnboardingStatus failed', { error });
         return { ready: true, percent: 100 }; // Fail open -> let them in
     }
 }
