@@ -19,7 +19,10 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** Passing (verified 2026-03-08)
+**Current Status:** Passing (verified 2026-03-09)
+
+## Session 2026-03-09 (Slack routing fully live)
+- **Slack routing deployed** (`d6bb69f94`, `38f20deca`, `3c687cf25`): `channels:read` scope + reinstall; `SLACK_BOT_TOKEN@4`; GCP billing linked — service accounts can now write to Secret Manager
 
 ## Session 2026-03-08 (Smokey Budtender Audit + Golden Eval 100%)
 - **Smokey audit** (`917f6deb`): P0 conv history, P0 carousel tool, P1 preset gating, P1 maxIterations, P2 YouTube tools, P2 golden set 27→41 cases
