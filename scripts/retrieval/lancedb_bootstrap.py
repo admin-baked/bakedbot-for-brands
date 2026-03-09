@@ -44,10 +44,16 @@ def build_indexes(db: lancedb.DBConnection) -> None:
     snaps.create_fts_index("summary")
 
     # Scalar indexes
-    for tbl in (knowledge, catalog, events, snaps):
+    common_scalar_indexes = (
+        (knowledge, "updated_at"),
+        (catalog, "updated_at"),
+        (events, "created_at"),
+        (snaps, "updated_at"),
+    )
+    for tbl, timestamp_column in common_scalar_indexes:
         tbl.create_scalar_index("tenant_id")
         tbl.create_scalar_index("role_scope")
-        tbl.create_scalar_index("updated_at")
+        tbl.create_scalar_index(timestamp_column)
 
     catalog.create_scalar_index("store_id")
     catalog.create_scalar_index("brand_id")
