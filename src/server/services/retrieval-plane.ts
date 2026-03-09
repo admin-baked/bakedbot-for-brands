@@ -138,6 +138,15 @@ async function rerankWithJina(query: string, results: RerankCandidate[]): Promis
     }
 }
 
+
+function uniqueTenantIds(orgIds: string[]): string[] {
+    return Array.from(new Set(orgIds.filter((orgId): orgId is string => typeof orgId === 'string' && orgId.length > 0)));
+}
+
+function sortResultsByScore<T extends { score?: number }>(results: T[]): T[] {
+    return [...results].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+}
+
 function selectStrategy(input: RetrieveContextInput): RetrievalStrategy {
     const q = input.query.toLowerCase();
     const hasExactAnchor = /\b(sku|batch|id|promo|code|store|sop|run)\b/.test(q);
@@ -166,16 +175,20 @@ function selectStrategy(input: RetrieveContextInput): RetrievalStrategy {
  */
 export async function retrieveContext(input: RetrieveContextInput): Promise<RetrieveContextOutput> {
     const strategy = selectStrategy(input);
-    const tenantId = input.tenant_scope.org_ids[0];
-    if (!tenantId) {
+    const tenantIds = uniqueTenantIds(input.tenant_scope.org_ids);
+    if (tenantIds.length === 0) {
         return { strategy_used: strategy, result_count: 0, results: [] };
     }
 
     const limit = Math.max(1, Math.min(input.top_k ?? 12, 30));
 
     if (input.domain === 'analytics' || input.domain === 'operations') {
-        const insights = await searchInsights(tenantId, input.query, { limit });
-        const rawResults: RetrieveContextOutput['results'] = insights.map((insight) => ({
+        const insightsByTenant = await Promise.all(tenantIds.map(async (tenantId) => ({
+            tenantId,
+            insights: await searchInsights(tenantId, input.query, { limit }),
+        })));
+
+        const rawResults: RetrieveContextOutput['results'] = insightsByTenant.flatMap(({ tenantId, insights }) => insights.map((insight) => ({
             id: insight.id,
             entity_type: 'insight',
             title: `${insight.type} · ${insight.brandName}`,
@@ -189,27 +202,31 @@ export async function retrieveContext(input: RetrieveContextInput): Promise<Retr
                 createdAt: insight.createdAt,
                 deltaPercentage: insight.deltaPercentage,
             },
-        }));
+        })));
 
-        const results = shouldUseJinaRerank(strategy, rawResults.length)
-            ? await rerankWithJina(input.query, rawResults)
-            : rawResults;
+        const sortedResults = sortResultsByScore(rawResults).slice(0, limit);
+        const results = shouldUseJinaRerank(strategy, sortedResults.length)
+            ? await rerankWithJina(input.query, sortedResults)
+            : sortedResults;
 
         return {
             strategy_used: strategy,
-            reranker_used: shouldUseJinaRerank(strategy, rawResults.length) ? JINA_RERANK_MODEL : strategy === 'hybrid' ? 'rrf' : undefined,
+            reranker_used: shouldUseJinaRerank(strategy, sortedResults.length) ? JINA_RERANK_MODEL : strategy === 'hybrid' ? 'rrf' : undefined,
             result_count: results.length,
             results,
         };
     }
 
-    const products = await searchProducts(tenantId, input.query, {
-        category: input.filters?.product_types?.[0],
-        inStockOnly: input.filters?.statuses?.includes('in_stock'),
-        limit,
-    });
+    const productsByTenant = await Promise.all(tenantIds.map(async (tenantId) => ({
+        tenantId,
+        products: await searchProducts(tenantId, input.query, {
+            category: input.filters?.product_types?.[0],
+            inStockOnly: input.filters?.statuses?.includes('in_stock'),
+            limit,
+        }),
+    })));
 
-    const rawResults: RetrieveContextOutput['results'] = products.map((product) => ({
+    const rawResults: RetrieveContextOutput['results'] = productsByTenant.flatMap(({ tenantId, products }) => products.map((product) => ({
         id: product.id,
         entity_type: 'product',
         title: `${product.brandName} ${product.productName}`,
@@ -222,15 +239,16 @@ export async function retrieveContext(input: RetrieveContextInput): Promise<Retr
             category: product.category,
             inStock: product.inStock,
         },
-    }));
+    })));
 
-    const results = shouldUseJinaRerank(strategy, rawResults.length)
-        ? await rerankWithJina(input.query, rawResults)
-        : rawResults;
+    const sortedResults = sortResultsByScore(rawResults).slice(0, limit);
+    const results = shouldUseJinaRerank(strategy, sortedResults.length)
+        ? await rerankWithJina(input.query, sortedResults)
+        : sortedResults;
 
     return {
         strategy_used: strategy,
-        reranker_used: shouldUseJinaRerank(strategy, rawResults.length) ? JINA_RERANK_MODEL : strategy === 'hybrid' ? 'rrf' : undefined,
+        reranker_used: shouldUseJinaRerank(strategy, sortedResults.length) ? JINA_RERANK_MODEL : strategy === 'hybrid' ? 'rrf' : undefined,
         result_count: results.length,
         results,
     };
