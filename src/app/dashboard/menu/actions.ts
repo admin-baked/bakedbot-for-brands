@@ -6,6 +6,7 @@ import { makeProductRepo } from '@/server/repos/productRepo';
 import { logger } from '@/lib/logger';
 import { CannMenusService } from '@/server/services/cannmenus';
 import { normalizeCategoryName } from '@/lib/utils/product-image';
+import { unstable_noStore as noStore } from 'next/cache';
 
 export interface MenuData {
     products: any[];
@@ -158,7 +159,7 @@ export async function getPosConfig(): Promise<PosConfigInfo> {
  * Triggers a sync with the connected POS (Dutchie or Alleaves).
  * Upserts products into the 'products' collection.
  */
-export async function syncMenu(): Promise<{ success: boolean; count?: number; error?: string; provider?: string; removed?: number }> {
+export async function syncMenu(): Promise<{ success: boolean; count?: number; error?: string; provider?: string; removed?: number; warning?: string; staleDeletionSkipped?: boolean }> {
     try {
         const { firestore } = await createServerClient();
         const user = await requireUser(['dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender', 'super_user']);
@@ -172,10 +173,31 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
             return { success: false, error: 'Location not found. User does not have a valid location linked.' };
         }
 
+        const now = new Date();
         const posConfig = locationData.posConfig;
         if (!posConfig || !posConfig.provider) {
             return { success: false, error: 'No POS integration configured for this location.' };
         }
+
+        await firestore.collection('locations').doc(locationId).update({
+            'posConfig.lastSyncAttemptAt': now,
+            'posConfig.lastSyncStatus': 'running',
+        });
+
+        const markSyncFailure = async (reason: string) => {
+            try {
+                await firestore.collection('locations').doc(locationId).update({
+                    'posConfig.lastSyncStatus': 'failed',
+                    'posConfig.lastSyncError': reason,
+                    'posConfig.lastSyncAttemptAt': now,
+                });
+            } catch (updateError) {
+                logger.warn('[SYNC_MENU] Failed to persist sync failure status', {
+                    locationId,
+                    error: updateError instanceof Error ? updateError.message : String(updateError),
+                });
+            }
+        };
 
         const provider = posConfig.provider;
         let items;
@@ -187,7 +209,9 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
             try {
                 items = await client.fetchMenu();
             } catch (e: any) {
-                return { success: false, error: `Dutchie Sync Failed: ${e.message}`, provider };
+                const errorMessage = `Dutchie Sync Failed: ${e.message}`;
+                await markSyncFailure(errorMessage);
+                return { success: false, error: errorMessage, provider };
             }
         } else if (provider === 'alleaves') {
             const { ALLeavesClient } = await import('@/lib/pos/adapters/alleaves');
@@ -202,19 +226,29 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
             try {
                 items = await client.fetchMenu();
             } catch (e: any) {
-                return { success: false, error: `Alleaves Sync Failed: ${e.message}`, provider };
+                const errorMessage = `Alleaves Sync Failed: ${e.message}`;
+                await markSyncFailure(errorMessage);
+                return { success: false, error: errorMessage, provider };
             }
         } else {
-            return { success: false, error: `Unsupported POS provider: ${provider}` };
+            const errorMessage = `Unsupported POS provider: ${provider}`;
+            await markSyncFailure(errorMessage);
+            return { success: false, error: errorMessage };
         }
 
         if (!items || items.length === 0) {
+            await firestore.collection('locations').doc(locationId).update({
+                'posConfig.syncedAt': now,
+                'posConfig.lastSyncStatus': 'success',
+                'posConfig.lastSyncCount': 0,
+                'posConfig.lastSyncError': null,
+                'posConfig.lastSyncAttemptAt': now,
+            });
             return { success: true, count: 0, provider };
         }
 
         // 4. Map & Upsert
         const productRepo = makeProductRepo(firestore);
-        const now = new Date();
 
         // Build set of external IDs returned by POS this sync
         const syncedExternalIds = new Set(items.map(item => item.externalId));
@@ -370,6 +404,51 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
             }
         }
 
+        // 4c. Keep LanceDB "own products" index fresh for semantic tooling.
+        // Non-fatal: indexing issues must never block operational menu sync.
+        if (orgId) {
+            try {
+                const tenantProductsSnap = await firestore
+                    .collection('tenants').doc(orgId)
+                    .collection('publicViews').doc('products')
+                    .collection('items')
+                    .limit(500)
+                    .get();
+
+                if (!tenantProductsSnap.empty) {
+                    const ownProducts = tenantProductsSnap.docs.map(doc => {
+                        const d = doc.data() as Record<string, any>;
+                        return {
+                            externalProductId: d.externalId || doc.id,
+                            brandName: d.brandName || '',
+                            productName: d.name || '',
+                            category: (d.category || 'other') as import('@/types/ezal-discovery').ProductCategory,
+                            strainType: (d.strainType || 'unknown') as import('@/types/ezal-discovery').StrainType,
+                            thcPct: d.thcPercent ?? d.thc ?? null,
+                            cbdPct: d.cbdPercent ?? d.cbd ?? null,
+                            price: d.price ?? 0,
+                            regularPrice: d.originalPrice ?? d.price ?? null,
+                            inStock: d.inStock !== false,
+                        };
+                    });
+
+                    const runId = `menu_sync_${Date.now()}`;
+                    const { upsertOwnProducts } = await import('@/server/services/ezal/lancedb-store');
+                    const lanceResult = await upsertOwnProducts(orgId, runId, ownProducts);
+                    logger.info('[SYNC_MENU] LanceDB own-product index updated', {
+                        orgId,
+                        upserted: lanceResult.upserted,
+                        errors: lanceResult.errors,
+                    });
+                }
+            } catch (lanceErr) {
+                logger.warn('[SYNC_MENU] LanceDB indexing failed (non-fatal)', {
+                    orgId,
+                    error: lanceErr instanceof Error ? lanceErr.message : String(lanceErr),
+                });
+            }
+        }
+
         // 5. Remove stale products — when POS is connected it is the ONLY source of truth.
         // Remove ALL products for this location not present in the current POS sync,
         // regardless of source (clears historical CannMenus imports, manual entries, etc.)
@@ -385,21 +464,42 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
             })
             .map(doc => doc.id);
 
+        const previousSyncCount = typeof locationData?.posConfig?.lastSyncCount === 'number'
+            ? locationData.posConfig.lastSyncCount
+            : null;
+        const suspiciousDropDetected = previousSyncCount !== null
+            && previousSyncCount >= 50
+            && items.length < Math.ceil(previousSyncCount * 0.2);
+
+        let staleDeletionSkipped = false;
+        let syncWarning: string | undefined;
+
         if (staleIds.length > 0) {
-            let deleteBatch = firestore.batch();
-            let deleteCount = 0;
-            for (const staleId of staleIds) {
-                deleteBatch.delete(firestore.collection('products').doc(staleId));
-                deleteCount++;
-                if (deleteCount % 400 === 0) {
-                    await deleteBatch.commit();
-                    deleteBatch = firestore.batch();
+            if (suspiciousDropDetected) {
+                staleDeletionSkipped = true;
+                syncWarning = `Skipped stale deletion due to suspicious catalog drop (${items.length} vs previous ${previousSyncCount}).`;
+                logger.warn('[SYNC_MENU] Suspicious drop detected; stale deletion skipped', {
+                    locationId,
+                    previousSyncCount,
+                    syncedCount: items.length,
+                    staleCount: staleIds.length,
+                });
+            } else {
+                let deleteBatch = firestore.batch();
+                let deleteCount = 0;
+                for (const staleId of staleIds) {
+                    deleteBatch.delete(firestore.collection('products').doc(staleId));
+                    deleteCount++;
+                    if (deleteCount % 400 === 0) {
+                        await deleteBatch.commit();
+                        deleteBatch = firestore.batch();
+                    }
                 }
+                if (deleteCount % 400 !== 0) {
+                    await deleteBatch.commit();
+                }
+                logger.info('[SYNC_MENU] Removed stale POS products', { locationId, removed: staleIds.length });
             }
-            if (deleteCount % 400 !== 0) {
-                await deleteBatch.commit();
-            }
-            logger.info('[SYNC_MENU] Removed stale POS products', { locationId, removed: staleIds.length });
         }
 
         // 6. Update Location Sync Status (including POS count — source of truth)
@@ -407,6 +507,8 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
             'posConfig.syncedAt': now,
             'posConfig.lastSyncStatus': 'success',
             'posConfig.lastSyncCount': count,   // POS authoritative product count
+            'posConfig.lastSyncError': null,
+            'posConfig.lastSyncAttemptAt': now,
         });
 
         // 7. Revalidate paths synchronously before returning to ensure fresh data on next request
@@ -417,7 +519,7 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
         // Give Next.js cache a moment to clear (prevents stale data on immediate router.refresh())
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        return { success: true, count, provider, removed: staleIds.length };
+        return { success: true, count, provider, removed: staleDeletionSkipped ? 0 : staleIds.length, warning: syncWarning, staleDeletionSkipped };
 
     } catch (e: any) {
         logger.error('[SYNC_MENU] Failed:', e);
@@ -431,6 +533,7 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
  */
 export async function getMenuData(): Promise<MenuData> {
     try {
+        noStore();
         const { firestore } = await createServerClient();
         const user = await requireUser(['brand', 'brand_admin', 'brand_member', 'dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender', 'super_user']);
 
