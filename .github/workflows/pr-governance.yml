@@ -1,0 +1,124 @@
+name: pr-governance
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, labeled, unlabeled, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  governance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate PR governance rules
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            if (!pr) core.setFailed('No pull_request payload found.');
+
+            const body = pr.body || '';
+            const labels = (pr.labels || []).map(l => l.name);
+            const riskLabels = labels.filter(l => /^risk:tier[0-3]$/.test(l));
+
+            const requiredSections = [
+              '# Summary',
+              '# Risk Tier',
+              '# Canonical Reuse',
+              '# New Abstractions',
+              '# Failure Modes',
+              '# Verification',
+              '# Observability',
+              '# Explainability',
+            ];
+
+            const missingSections = requiredSections.filter(section => !body.includes(section));
+
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+              per_page: 100,
+            });
+
+            const criticalPrefixes = [
+              'src/auth/',
+              'src/tenancy/',
+              'src/permissions/',
+              'src/billing/',
+              'src/integrations/',
+              'src/automation/',
+              'src/agents/',
+              'src/workflows/',
+              'src/jobs/',
+              'src/migrations/',
+              'packages/domain/',
+              'packages/contracts/',
+            ];
+
+            const changedFiles = files.map(f => f.filename);
+            const criticalPathChanged = changedFiles.some(file => criticalPrefixes.some(prefix => file.startsWith(prefix)));
+
+            const suppressionPattern = /(eslint-disable|@ts-ignore|@ts-expect-error|:\s*any\b)/;
+            let suppressionAdded = false;
+            for (const file of files) {
+              if (file.patch && suppressionPattern.test(file.patch)) {
+                suppressionAdded = true;
+                break;
+              }
+            }
+
+            const tier3Selected = /- \[x\] Tier 3/i.test(body) || labels.includes('risk:tier3');
+            const hasSecondReviewGate = labels.includes('gate:needs-second-review');
+
+            const errors = [];
+            const warnings = [];
+
+            if (missingSections.length > 0) {
+              errors.push(`Missing required PR template sections: ${missingSections.join(', ')}`);
+            }
+
+            if (riskLabels.length !== 1) {
+              errors.push(`Expected exactly one risk label (risk:tier0..risk:tier3); found ${riskLabels.length}.`);
+            }
+
+            if ((tier3Selected || criticalPathChanged) && !hasSecondReviewGate) {
+              errors.push('Tier 3 or critical-path PR requires `gate:needs-second-review` label.');
+            }
+
+            if (suppressionAdded && !/suppress|suppression|ts-ignore|eslint-disable/i.test(body)) {
+              errors.push('Suppression-like pattern detected in diff without explicit PR justification in body.');
+            }
+
+            if (/\[x\] Yes/i.test(body)) {
+              warnings.push('New abstraction selected. Ensure canonical reuse justification is strong.');
+            }
+
+            const summaryLines = [
+              `- Risk labels: ${riskLabels.length ? riskLabels.join(', ') : 'none'}`,
+              `- Critical path changed: ${criticalPathChanged ? 'yes' : 'no'}`,
+              `- Suppression pattern detected: ${suppressionAdded ? 'yes' : 'no'}`,
+              `- Tier 3 selected: ${tier3Selected ? 'yes' : 'no'}`,
+              `- Missing template sections: ${missingSections.length ? missingSections.join(', ') : 'none'}`,
+            ];
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body: [
+                '## PR Governance Summary',
+                ...summaryLines,
+                warnings.length ? `\nWarnings:\n${warnings.map(w => `- ${w}`).join('\n')}` : '',
+                errors.length ? `\nErrors:\n${errors.map(e => `- ${e}`).join('\n')}` : '\nNo blocking governance errors found.',
+              ].filter(Boolean).join('\n'),
+            });
+
+            if (errors.length) {
+              core.setFailed(errors.join('\n'));
+            }
