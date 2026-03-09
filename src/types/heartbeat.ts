@@ -30,6 +30,7 @@ export type HeartbeatCheckId =
     | 'ny_outreach_pipeline'
     | 'blog_pipeline'
     | 'apollo_credits'
+    | 'ai_budget_daily'
     // Dispensary Checks
     | 'low_stock_alerts'
     | 'expiring_batches'
