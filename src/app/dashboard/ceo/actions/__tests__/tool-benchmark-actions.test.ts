@@ -1,4 +1,4 @@
-import { buildAgentToolBenchmarkReport } from '../tool-benchmark-actions';
+import { buildAgentToolBenchmarkReport } from '../tool-benchmark-report';
 
 describe('buildAgentToolBenchmarkReport', () => {
     it('computes aggregate metrics and recommendations', () => {

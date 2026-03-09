@@ -1,7 +1,18 @@
 import { hydrateRecords, retrieveContext } from '../retrieval-plane';
 
 jest.mock('@/server/services/ezal/lancedb-store', () => ({
-    searchProducts: jest.fn(async () => ([
+    searchProducts: jest.fn(async (tenantId: string) => (tenantId === 'org_2' ? [
+        {
+            id: 'p3',
+            competitorId: 'comp_3',
+            brandName: 'North Star',
+            productName: 'Dream Tincture',
+            category: 'tincture',
+            priceCurrent: 32,
+            inStock: true,
+            score: 0.95,
+        },
+    ] : [
         {
             id: 'p1',
             competitorId: '__self__',
@@ -72,6 +83,25 @@ describe('retrieval-plane', () => {
 
         expect(result.result_count).toBe(2);
         expect(result.results[0].entity_type).toBe('product');
+    });
+
+
+    it('queries all authorized org IDs and merges results', async () => {
+        const result = await retrieveContext({
+            query: 'sleep support',
+            intent: 'recommend',
+            domain: 'catalog',
+            tenant_scope: {
+                org_ids: ['org_1', 'org_2'],
+                role_scope: 'super_user',
+                visibility: 'cross_tenant_allowed',
+            },
+            top_k: 10,
+        });
+
+        expect(result.result_count).toBe(3);
+        expect(result.results.map((row) => row.id)).toContain('p3');
+        expect(result.results.map((row) => row.source)).toContain('lancedb:org_2:competitive_products');
     });
 
     it('reranks with Jina when configured', async () => {
