@@ -21,7 +21,8 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card } from '@/components/ui/card';
 import { Loader2, Link as LinkIcon, FileText, Edit } from 'lucide-react';
-import { createBrandGuide, getBrandGuideTemplates } from '@/server/actions/brand-guide';
+import { getBrandGuideTemplates } from '@/server/actions/brand-guide';
+import { createBrandGuideViaApi } from '../create-brand-guide-client';
 import { useToast } from '@/hooks/use-toast';
 import type { BrandGuide, BrandGuideTemplate } from '@/types/brand-guide';
 
@@ -61,7 +62,7 @@ export function CreateBrandGuideDialog({
     setLoading(true);
 
     try {
-      const result = await createBrandGuide({
+      const result = await createBrandGuideViaApi({
         brandId,
         brandName: 'My Brand', // TODO: Get from user input
         method,
