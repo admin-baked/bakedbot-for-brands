@@ -11,6 +11,8 @@ import { BrandClaim } from '@/types/brand-page'; // Reusing existing type or new
 // implementation_plan calls for generic 'entity-claims.ts'.
 // Let's import the server actions we will create next.
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminClaimsPage() {
     const { firestore } = await createServerClient();
 
