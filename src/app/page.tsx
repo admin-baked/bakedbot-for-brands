@@ -165,7 +165,7 @@ export default function HomePage() {
               and convert questions into sales. Everything else layers on when you're ready.
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <Button variant="outline" asChild className="rounded-xl h-11 px-6">
               <a href="#pricing">View Pricing</a>
             </Button>
