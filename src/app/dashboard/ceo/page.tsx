@@ -48,6 +48,7 @@ const LeadsTab = nextDynamic(() => import("./components/leads-tab"), { loading: 
 const WhatsAppTab = nextDynamic(() => import("./components/whatsapp-tab"), { loading: TabLoader, ssr: false });
 const DriveTab = nextDynamic(() => import("./components/drive-tab"), { loading: TabLoader, ssr: false });
 const CostsTab = nextDynamic(() => import("./components/costs-tab"), { loading: TabLoader, ssr: false });
+const AIEconomicsTab = nextDynamic(() => import("./components/ai-economics-tab"), { loading: TabLoader, ssr: false });
 const SystemHealthTab = nextDynamic(() => import("./components/system-health-tab"), { loading: TabLoader, ssr: false });
 const GoalsCeoTab = nextDynamic(() => import("./components/goals-ceo-tab"), { loading: TabLoader, ssr: false });
 const QATab = nextDynamic(() => import("./components/qa-tab"), { loading: TabLoader, ssr: false });
@@ -228,6 +229,7 @@ function CeoDashboardContent() {
             case 'whatsapp': return <WhatsAppTab />;
             case 'drive': return <DriveTab />;
             case 'costs': return <CostsTab />;
+            case 'ai-economics': return <AIEconomicsTab />;
             case 'health': return <SystemHealthTab />;
             case 'goals': return <GoalsCeoTab />;
             case 'qa': return <QATab />;

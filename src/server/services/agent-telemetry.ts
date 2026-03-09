@@ -36,6 +36,8 @@ export interface AgentTelemetryEvent {
     invocationId: string;
     timestamp: Date;
     model: string;
+    orgId?: string;   // org that triggered this invocation (for per-customer cost tracking)
+    brandId?: string; // brand context if applicable
     inputTokens: number;
     outputTokens: number;
     totalTokens: number;
@@ -75,6 +77,7 @@ export async function recordAgentTelemetry(event: AgentTelemetryEvent): Promise<
             _agentName: event.agentName,
             _date: event.timestamp.toISOString().split('T')[0], // YYYY-MM-DD for daily aggregation
             _model: event.model,
+            _orgId: event.orgId ?? null,
         });
 
         logger.info(`[AgentTelemetry] Recorded: agent=${event.agentName} tools=${event.toolCallCount} tokens=${event.totalTokens} cost=$${event.costEstimateUsd.toFixed(4)} latency=${event.totalLatencyMs}ms`);
@@ -92,6 +95,8 @@ export async function recordAgentTelemetry(event: AgentTelemetryEvent): Promise<
 export function buildTelemetryEvent(params: {
     agentName: string;
     model: string;
+    orgId?: string;
+    brandId?: string;
     inputTokens: number;
     outputTokens: number;
     toolExecutions: Array<{ name: string; durationMs: number; status: 'success' | 'error' }>;
@@ -119,6 +124,8 @@ export function buildTelemetryEvent(params: {
         invocationId: `${params.agentName}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         timestamp: new Date(),
         model: params.model,
+        orgId: params.orgId,
+        brandId: params.brandId,
         inputTokens: params.inputTokens,
         outputTokens: params.outputTokens,
         totalTokens: params.inputTokens + params.outputTokens,
