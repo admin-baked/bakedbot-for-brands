@@ -45,11 +45,46 @@ export interface DispensaryPlaybookData {
     customConfigs: Record<string, PlaybookCustomConfig>;
 }
 
+function isUserAuthorizedForOrg(session: Record<string, unknown>, orgId: string): boolean {
+    const directOrgId = typeof session.orgId === 'string' ? session.orgId : null;
+    const currentOrgId = typeof session.currentOrgId === 'string' ? session.currentOrgId : null;
+    const brandId = typeof session.brandId === 'string' ? session.brandId : null;
+    const orgIds = Array.isArray(session.orgIds) ? session.orgIds.filter((v): v is string => typeof v === 'string') : [];
+
+    return directOrgId === orgId || currentOrgId === orgId || brandId === orgId || orgIds.includes(orgId);
+}
+
+function sanitizePlaybookCustomConfig(config: PlaybookCustomConfig): PlaybookCustomConfig {
+    const sanitized: PlaybookCustomConfig = {};
+
+    if (config.schedule?.cron && config.schedule?.timezone) {
+        sanitized.schedule = {
+            cron: config.schedule.cron,
+            timezone: config.schedule.timezone,
+        };
+    }
+
+    if (config.delivery?.channels?.length) {
+        sanitized.delivery = {
+            channels: config.delivery.channels,
+            reportFormat: config.delivery.reportFormat,
+            ...(config.delivery.emailTo ? { emailTo: config.delivery.emailTo.trim() } : {}),
+            ...(config.delivery.phoneNumber ? { phoneNumber: config.delivery.phoneNumber.trim() } : {}),
+        };
+    }
+
+    return sanitized;
+}
+
 /**
  * Get all playbook assignment statuses for an org.
  */
 export async function getDispensaryPlaybookAssignments(orgId: string): Promise<DispensaryPlaybookData> {
-    await requireUser();
+    const session = await requireUser();
+    if (!isUserAuthorizedForOrg(session as unknown as Record<string, unknown>, orgId)) {
+        throw new Error('Forbidden: You do not have access to this organization');
+    }
+
     const db = getAdminFirestore();
 
     // Query by orgId (composite index: orgId ASC, status ASC)
@@ -118,10 +153,15 @@ export async function updatePlaybookAssignmentConfig(
     playbookId: string,
     config: PlaybookCustomConfig
 ): Promise<{ success: boolean; error?: string }> {
-    await requireUser();
+    const session = await requireUser();
+    if (!isUserAuthorizedForOrg(session as unknown as Record<string, unknown>, orgId)) {
+        return { success: false, error: 'Forbidden: You do not have access to this organization' };
+    }
+
     const db = getAdminFirestore();
 
     try {
+        const sanitizedConfig = sanitizePlaybookCustomConfig(config);
         const existing = await db
             .collection('playbook_assignments')
             .where('orgId', '==', orgId)
@@ -131,7 +171,7 @@ export async function updatePlaybookAssignmentConfig(
 
         if (!existing.empty) {
             await existing.docs[0].ref.update({
-                customConfig: config,
+                customConfig: sanitizedConfig,
                 updatedAt: Timestamp.now(),
             });
         } else {
@@ -141,7 +181,7 @@ export async function updatePlaybookAssignmentConfig(
                 orgId,
                 playbookId,
                 status: 'paused',
-                customConfig: config,
+                customConfig: sanitizedConfig,
                 lastTriggered: null,
                 triggerCount: 0,
                 createdAt: Timestamp.now(),
@@ -166,7 +206,11 @@ export async function toggleDispensaryPlaybookAssignment(
     playbookId: string,
     active: boolean
 ): Promise<{ success: boolean; error?: string }> {
-    await requireUser();
+    const session = await requireUser();
+    if (!isUserAuthorizedForOrg(session as unknown as Record<string, unknown>, orgId)) {
+        return { success: false, error: 'Forbidden: You do not have access to this organization' };
+    }
+
     const db = getAdminFirestore();
 
     try {
@@ -213,7 +257,11 @@ export async function activateAllTierPlaybooks(
     orgId: string,
     tierId: TierId = 'empire'
 ): Promise<{ success: boolean; activated: number; error?: string }> {
-    await requireUser();
+    const session = await requireUser();
+    if (!isUserAuthorizedForOrg(session as unknown as Record<string, unknown>, orgId)) {
+        return { success: false, activated: 0, error: 'Forbidden: You do not have access to this organization' };
+    }
+
     const db = getAdminFirestore();
 
     try {
