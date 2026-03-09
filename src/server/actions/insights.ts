@@ -17,6 +17,7 @@ import type {
     InsightsResponse,
 } from '@/types/insight-cards';
 import { getAdminFirestore } from '@/firebase/admin';
+import { getActiveCustomerCount } from '@/server/services/insights/customer-metrics';
 
 // ============ Dispensary Insights ============
 
@@ -192,14 +193,7 @@ async function getDispensaryInsights(orgId: string): Promise<DispensaryInsights>
             insights.customer.push(...customerProactive);
         } else {
             try {
-                const db = getAdminFirestore();
-                const customersSnap = await db
-                    .collection('customers')
-                    .where('orgId', '==', orgId)
-                    .where('archived', '!=', true)
-                    .count()
-                    .get();
-                const count = customersSnap.data().count;
+                const count = await getActiveCustomerCount(orgId);
                 const enrolled = count > 0;
 
                 insights.customer.push({
