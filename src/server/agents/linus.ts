@@ -4090,6 +4090,8 @@ export interface LinusRequest {
     context?: {
         userId?: string;
         sessionId?: string;
+        orgId?: string;
+        brandId?: string;
     };
 }
 

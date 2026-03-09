@@ -67,7 +67,9 @@ export type HeartbeatCheckId =
     | 'failed_playbooks'
     | 'stalled_playbook_executions'
     | 'pending_playbook_approvals'
-    | 'upcoming_playbooks';
+    | 'upcoming_playbooks'
+    // Usage & Budget Checks
+    | 'ai_budget_daily';
 
 export type HeartbeatPriority = 'low' | 'medium' | 'high' | 'urgent';
 
