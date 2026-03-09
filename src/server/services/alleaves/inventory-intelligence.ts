@@ -5,29 +5,10 @@
  * Foundation for clearance pricing strategies.
  */
 
-import { ALLeavesClient, type ALLeavesConfig, type ALLeavesInventoryItem } from '@/lib/pos/adapters/alleaves';
+import type { ALLeavesInventoryItem } from '@/lib/pos/adapters/alleaves';
 import type { InventoryAgeData } from '@/types/dynamic-pricing';
 import { logger } from '@/lib/logger';
-
-// ============ Client Factory ============
-
-/**
- * Create an Alleaves client for an organization
- * Uses environment variables for Thrive Syracuse, can be extended for multi-tenant
- */
-function createAlleavesClient(orgId: string): ALLeavesClient {
-    // For now, use environment variables (single-tenant)
-    // TODO: Fetch credentials from tenant config in Firestore
-    const config: ALLeavesConfig = {
-        username: process.env.ALLEAVES_USERNAME || '',
-        password: process.env.ALLEAVES_PASSWORD || '',
-        pin: process.env.ALLEAVES_PIN,
-        storeId: process.env.ALLEAVES_LOCATION_ID || '1',
-        locationId: process.env.ALLEAVES_LOCATION_ID || '1',
-    };
-
-    return new ALLeavesClient(config);
-}
+import { getAlleavesClientForOrg } from '@/server/services/alleaves/client';
 
 // ============ Core Functions ============
 
@@ -43,7 +24,11 @@ export async function getInventoryAge(
     orgId: string
 ): Promise<InventoryAgeData | null> {
     try {
-        const client = createAlleavesClient(orgId);
+        const client = await getAlleavesClientForOrg(orgId);
+        if (!client) {
+            logger.warn('[INVENTORY_INTEL] Alleaves client unavailable', { orgId });
+            return null;
+        }
 
         // Fetch the product's batch info
         const batchId = parseInt(productId, 10);
@@ -123,7 +108,11 @@ export async function getSlowMovingInventory(
     minDays: number = 30
 ): Promise<{ productId: string; daysInInventory: number; stockLevel: number; expiryDate?: Date }[]> {
     try {
-        const client = createAlleavesClient(orgId);
+        const client = await getAlleavesClientForOrg(orgId);
+        if (!client) {
+            logger.warn('[INVENTORY_INTEL] Alleaves client unavailable', { orgId });
+            return [];
+        }
 
         // Fetch all products
         const products = await client.fetchMenu();
@@ -189,7 +178,11 @@ export async function getExpiringInventory(
     recommendedDiscount: number;
 }[]> {
     try {
-        const client = createAlleavesClient(orgId);
+        const client = await getAlleavesClientForOrg(orgId);
+        if (!client) {
+            logger.warn('[INVENTORY_INTEL] Alleaves client unavailable', { orgId });
+            return [];
+        }
 
         // Use batch search for expiration data
         const expiringBatches = await client.searchBatches({
@@ -490,7 +483,16 @@ export async function getInventoryVelocityReport(orgId: string): Promise<{
     try {
         // This would require order history analysis
         // For now, return based on stock levels relative to typical
-        const client = createAlleavesClient(orgId);
+        const client = await getAlleavesClientForOrg(orgId);
+        if (!client) {
+            logger.warn('[INVENTORY_INTEL] Alleaves client unavailable', { orgId });
+            return {
+                increasing: [],
+                stable: [],
+                decreasing: [],
+            };
+        }
+
         const products = await client.fetchMenu();
 
         // Simple heuristic: low stock = increasing velocity, high stock = decreasing
