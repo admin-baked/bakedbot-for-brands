@@ -663,6 +663,47 @@ export async function getPriceHistory(
   }
 }
 
+
+
+// =============================================================================
+// READ: Hydrate products by IDs
+// =============================================================================
+
+export async function getProductsByIds(
+  tenantId: string,
+  ids: string[]
+): Promise<Array<Record<string, unknown>>> {
+  if (ids.length === 0) return [];
+
+  const db = await getConnection();
+  const tableName = productsTable(tenantId);
+  const existing = await db.tableNames();
+  if (!existing.includes(tableName)) {
+    return [];
+  }
+
+  const uniqueIds = Array.from(new Set(ids));
+
+  try {
+    const table = await db.openTable(tableName);
+    const escaped = uniqueIds.map((id) => `'${id.replace(/'/g, "\\'")}'`).join(', ');
+    const rows = await table
+      .query()
+      .where(`id IN (${escaped})`)
+      .limit(uniqueIds.length)
+      .toArray();
+
+    return rows.map((row: Record<string, unknown>) => ({ ...row }));
+  } catch (err) {
+    logger.error('[LanceDB] Hydrate products by IDs failed', {
+      tenantId,
+      count: uniqueIds.length,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return [];
+  }
+}
+
 // =============================================================================
 // READ: Aggregate stats for a tenant's competitive data
 // =============================================================================
@@ -764,6 +805,7 @@ export const lancedbStore = {
   searchProducts,
   searchInsights,
   getPriceHistory,
+  getProductsByIds,
 
   // Admin
   getStoreStats,
