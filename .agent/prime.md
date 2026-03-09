@@ -21,9 +21,9 @@ npm run check:types
 
 **Current Status:** Passing (verified 2026-03-08)
 
-## Session 2026-03-08 (Codex SSRF fix + PR #27 rebase)
-- **SSRF P1 fix** (`2dd5ea90f`): `isPrivateIpv4` now blocks full `127.0.0.0/8` range; PR #27 rebase (secure asset mirroring, Brand Guide UI, agent semantic-search)
-- **DayDay tools** (`2dd5ea90f`): added `refreshSitemap` to `defaultDayDayTools` — fixed TS2345 introduced by PR #27
+## Session 2026-03-08 (Smokey Budtender Audit + Golden Eval 100%)
+- **Smokey audit** (`917f6deb`): P0 conv history, P0 carousel tool, P1 preset gating, P1 maxIterations, P2 YouTube tools, P2 golden set 27→41 cases
+- **Golden eval** (`cf822b224`): 41/41 pass (100%) — eval system prompt, retry logic, compliance rule templates (`4e7ae5e83`)
 
 Status: Build passing, pushed to production
 

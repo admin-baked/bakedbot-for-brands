@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-03-08 (Codex P1 SSRF fix — full 127.0.0.0/8 loopback range; PR #27 rebase; DayDay refreshSitemap type fix)
+**Current Status:** 🟢 Passing | **Last update:** 2026-03-08 (Smokey audit — P0/P1/P2 fixes; golden eval 100% (41/41); compliance rules added to production)
 
 ---
 
