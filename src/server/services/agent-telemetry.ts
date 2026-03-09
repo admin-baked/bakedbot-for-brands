@@ -31,6 +31,22 @@ export interface ToolCallRecord {
     status: 'success' | 'error';
 }
 
+export interface RetrievalCallMetric {
+    retrieval_domain: string;
+    retrieval_strategy: 'fts' | 'vector' | 'hybrid' | 'multivector';
+    reranker_used?: string;
+    applied_filters: string[];
+    filter_selectivity?: number;
+    top_k_requested: number;
+    top_k_returned: number;
+    hydrated_record_count: number;
+    retrieval_latency_ms: number;
+    result_payload_tokens: number;
+    zero_result: boolean;
+    user_followup_needed: boolean;
+    citation_hit_rate?: number;
+}
+
 export interface AgentTelemetryEvent {
     agentName: string;
     invocationId: string;
@@ -41,6 +57,8 @@ export interface AgentTelemetryEvent {
     totalTokens: number;
     toolCalls: ToolCallRecord[];
     toolCallCount: number;
+    toolErrorCount: number;
+    toolErrorRate: number; // percent, 0-100
     uniqueToolsUsed: string[];
     totalLatencyMs: number;
     success: boolean;
@@ -49,6 +67,28 @@ export interface AgentTelemetryEvent {
     // Capability utilization: ratio of unique tools used vs available tools
     availableToolCount?: number;
     capabilityUtilization?: number; // 0.0 to 1.0
+    // Optional advanced tool quality metrics for benchmark audits
+    toolRetryCount?: number;
+    toolSelectionMisses?: number;
+    toolParamValidationErrors?: number;
+    deadEndLoopCount?: number;
+    // Optional token-segmentation metrics for orchestration tuning
+    toolDefinitionTokens?: number;
+    toolResultTokens?: number;
+    cacheReadTokens?: number;
+    cacheWriteTokens?: number;
+    retrievalMetrics?: RetrievalCallMetric[];
+
+    // Optional LanceDB retrieval benchmarking fields
+    lancedbQueryCount?: number;
+    lancedbVectorQueryCount?: number;
+    lancedbFtsQueryCount?: number;
+    lancedbHybridQueryCount?: number;
+    lancedbRerankCount?: number;
+    lancedbEmptyResultCount?: number;
+    lancedbRetrievedCandidateCount?: number;
+    lancedbConsumedCandidateCount?: number;
+    lancedbFilterSelectivityAvg?: number; // 0.0-1.0
 }
 
 // === Cost Estimation ===
@@ -99,6 +139,26 @@ export function buildTelemetryEvent(params: {
     success: boolean;
     errorType?: string;
     availableToolCount?: number;
+    toolRetryCount?: number;
+    toolSelectionMisses?: number;
+    toolParamValidationErrors?: number;
+    deadEndLoopCount?: number;
+    toolDefinitionTokens?: number;
+    toolResultTokens?: number;
+    cacheReadTokens?: number;
+    cacheWriteTokens?: number;
+    retrievalMetrics?: RetrievalCallMetric[];
+
+    // Optional LanceDB retrieval benchmarking fields
+    lancedbQueryCount?: number;
+    lancedbVectorQueryCount?: number;
+    lancedbFtsQueryCount?: number;
+    lancedbHybridQueryCount?: number;
+    lancedbRerankCount?: number;
+    lancedbEmptyResultCount?: number;
+    lancedbRetrievedCandidateCount?: number;
+    lancedbConsumedCandidateCount?: number;
+    lancedbFilterSelectivityAvg?: number; // 0.0-1.0
 }): AgentTelemetryEvent {
     const toolCalls: ToolCallRecord[] = params.toolExecutions.map(t => ({
         name: t.name,
@@ -108,6 +168,10 @@ export function buildTelemetryEvent(params: {
 
     const uniqueToolsUsed = [...new Set(params.toolExecutions.map(t => t.name))];
     const costEstimateUsd = estimateCost(params.model, params.inputTokens, params.outputTokens);
+    const toolErrorCount = params.toolExecutions.filter(t => t.status === 'error').length;
+    const toolErrorRate = params.toolExecutions.length > 0
+        ? (toolErrorCount / params.toolExecutions.length) * 100
+        : 0;
 
     let capabilityUtilization: number | undefined;
     if (params.availableToolCount && params.availableToolCount > 0) {
@@ -124,6 +188,8 @@ export function buildTelemetryEvent(params: {
         totalTokens: params.inputTokens + params.outputTokens,
         toolCalls,
         toolCallCount: toolCalls.length,
+        toolErrorCount,
+        toolErrorRate,
         uniqueToolsUsed,
         totalLatencyMs: params.totalLatencyMs,
         success: params.success,
@@ -131,5 +197,24 @@ export function buildTelemetryEvent(params: {
         costEstimateUsd,
         availableToolCount: params.availableToolCount,
         capabilityUtilization,
+        toolRetryCount: params.toolRetryCount,
+        toolSelectionMisses: params.toolSelectionMisses,
+        toolParamValidationErrors: params.toolParamValidationErrors,
+        deadEndLoopCount: params.deadEndLoopCount,
+        toolDefinitionTokens: params.toolDefinitionTokens,
+        toolResultTokens: params.toolResultTokens,
+        cacheReadTokens: params.cacheReadTokens,
+        cacheWriteTokens: params.cacheWriteTokens,
+        retrievalMetrics: params.retrievalMetrics,
+
+        lancedbQueryCount: params.lancedbQueryCount,
+        lancedbVectorQueryCount: params.lancedbVectorQueryCount,
+        lancedbFtsQueryCount: params.lancedbFtsQueryCount,
+        lancedbHybridQueryCount: params.lancedbHybridQueryCount,
+        lancedbRerankCount: params.lancedbRerankCount,
+        lancedbEmptyResultCount: params.lancedbEmptyResultCount,
+        lancedbRetrievedCandidateCount: params.lancedbRetrievedCandidateCount,
+        lancedbConsumedCandidateCount: params.lancedbConsumedCandidateCount,
+        lancedbFilterSelectivityAvg: params.lancedbFilterSelectivityAvg,
     };
 }
