@@ -169,7 +169,6 @@
     "square": "^44.0.0",
     "stripe": "^20.3.1",
     "tailwind-merge": "^2.4.0",
-    "typescript": "^5.9.3",
     "uuid": "^13.0.0",
     "ws": "^8.18.3",
     "xlsx": "^0.18.5",
@@ -208,7 +207,8 @@
     "tailwindcss": "^3.4.1",
     "tailwindcss-animate": "^1.0.7",
     "tsup": "^8.5.1",
-    "tsx": "^4.16.2"
+    "tsx": "^4.16.2",
+    "typescript": "^5.9.3"
   },
   "overrides": {
     "google-auth-library": "^9.15.1"
