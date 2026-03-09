@@ -1,0 +1,30 @@
+FROM wordpress:php8.2-apache
+
+# Install WP-CLI, unzip, dos2unix
+RUN apt-get update && apt-get install -y wget unzip less default-mysql-client curl dos2unix && \
+    wget -q https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -O /usr/local/bin/wp && \
+    chmod +x /usr/local/bin/wp && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Enable Apache mod_rewrite for WordPress permalinks
+RUN a2enmod rewrite
+
+# Allow .htaccess overrides (needed for WP permalinks)
+RUN sed -i '/<Directory \/var\/www\/>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
+
+# Copy InClub theme into image
+COPY inclub/ /var/www/html/wp-content/themes/inclub/
+
+# Copy bundled plugins to temp location (entrypoint will copy them after WordPress is set up)
+COPY plugins/ /tmp/bundled-plugins/
+
+# Copy + fix line endings on entrypoint scripts (Windows CRLF → Unix LF)
+COPY entrypoint.sh /entrypoint-custom.sh
+COPY wp-cli-setup.sh /wp-cli-setup.sh
+RUN dos2unix /entrypoint-custom.sh /wp-cli-setup.sh && \
+    chmod +x /entrypoint-custom.sh /wp-cli-setup.sh
+
+# Cloud Run sends PORT env var at runtime
+EXPOSE 8080
+
+ENTRYPOINT ["/entrypoint-custom.sh"]

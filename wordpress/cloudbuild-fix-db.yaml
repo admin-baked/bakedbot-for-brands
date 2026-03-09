@@ -1,0 +1,36 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-f'
+      - 'Dockerfile.andrews'
+      - '-t'
+      - 'gcr.io/studio-567050101-bc6e8/andrews-wp:fix-db'
+      - '.'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/studio-567050101-bc6e8/andrews-wp:fix-db']
+
+  - name: 'gcr.io/google.com/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud run services update andrews-wp \
+          --platform managed \
+          --region us-central1 \
+          --image gcr.io/studio-567050101-bc6e8/andrews-wp:fix-db \
+          --port 8080 \
+          --set-env-vars=PHP_UPLOAD_LIMIT=64M,WP_HOME=https://andrews-wp-1016399212569.us-central1.run.app,WP_SITEURL=https://andrews-wp-1016399212569.us-central1.run.app \
+          --memory=1Gi \
+          --cpu=1 \
+          --min-instances=1 \
+          --max-instances=3 \
+          --timeout=300s \
+          --set-env-vars=WORDPRESS_DB_HOST=cloudsql-proxy:3306,WORDPRESS_DB_NAME=andrews-wp-db,WORDPRESS_DB_USER=wpadmin,WORDPRESS_DB_PASSWORD=${_DB_PASSWORD}
+
+images:
+  - 'gcr.io/studio-567050101-bc6e8/andrews-wp:fix-db'
+
+secrets:
+  - 'projects/studio-567050101-bc6e8/secrets/ANDREWS_WP_DB_PASSWORD/versions/latest'

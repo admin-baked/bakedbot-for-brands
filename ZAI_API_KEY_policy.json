@@ -1,0 +1,9 @@
+bindings:
+- members:
+  - serviceAccount:firebase-app-hosting-compute@studio-567050101-bc6e8.iam.gserviceaccount.com
+  - serviceAccount:service-1016399212569@gcp-sa-firebaseapphosting.iam.gserviceaccount.com
+  - serviceAccount:firebase-adminsdk-fbsvc@studio-567050101-bc6e8.iam.gserviceaccount.com
+  role: roles/secretmanager.secretAccessor
+- members:
+  - serviceAccount:firebase-app-hosting-compute@studio-567050101-bc6e8.iam.gserviceaccount.com
+  role: roles/secretmanager.secretVersionManager

@@ -1,66 +1,126 @@
-## BakedBot PR Header (Required)
+# Summary
 
-### Summary
+Describe the user-visible or system-visible behavior change.
 
-- What changed in user-visible or system-visible terms?
+# Risk Tier
 
-### Risk Tier
+Choose one:
 
 - [ ] Tier 0 — Low Risk
 - [ ] Tier 1 — Moderate Risk
 - [ ] Tier 2 — High Risk
 - [ ] Tier 3 — Critical Risk
 
-### Canonical Reuse
+Why is this the correct tier?
 
-- Existing types/services/utilities/adapters/schemas/UI patterns/workflows/tools/modules reused:
+# Canonical Reuse
 
-### New Abstractions
+List the existing types, services, utilities, adapters, schemas, UI patterns, workflows, tools, or modules this change reuses.
 
-- Any new abstraction introduced? If yes, why was reuse insufficient?
+- Reused modules/patterns:
+- Canonical source(s) of truth:
 
-### Failure Modes
+# New Abstractions
 
-- Behavior on missing data, timeout, retry, duplicate event, stale state, third-party failure, permission failure:
+Does this PR introduce a new abstraction?
 
-### Verification
+- [ ] No
+- [ ] Yes
 
-- [ ] Unit
-- [ ] Integration
-- [ ] Contract
-- [ ] E2E
+If yes, explain why reuse or extension of an existing pattern was insufficient.
+
+# Failure Modes
+
+Explain what happens in the following conditions, if applicable:
+
+- missing data
+- null or undefined state
+- timeout
+- retry
+- duplicate event
+- stale state
+- third-party failure
+- permission failure
+- tenant boundary mismatch
+- partial execution
+
+# Verification
+
+What verification was completed?
+
+- [ ] Unit tests
+- [ ] Integration tests
+- [ ] Contract tests
+- [ ] End-to-end tests
 - [ ] Manual verification
-- Commands and outputs:
+- [ ] Existing tests remain green
 
-### Observability
+Notes:
 
-- How this change will be debugged in production:
+# Observability
 
-### Explainability
+How will this be debugged in production?
 
-- [ ] I can explain the full flow without AI comments, prompt history, or generated annotations.
+- logs:
+- metrics:
+- traces:
+- audit trail:
+- correlation identifiers:
 
----
+# Explainability
 
-## BakedBot System-Safety Checklist
+- [ ] I can explain this change end-to-end without AI comments, prompt history, or generated annotations.
+- [ ] I can explain the main assumptions.
+- [ ] I can explain the failure path.
+- [ ] I can explain why this logic belongs in this module.
 
-### Reuse
+# Reviewer Checklist
 
-- [ ] This extends/reuses canonical modules and does not create parallel ownership.
+## Reuse
 
-### Conventions
+- [ ] This PR reuses or extends a canonical type, service, utility, schema, component, tool, or adapter.
+- [ ] No duplicate domain type or helper was introduced.
+- [ ] No parallel business logic was introduced across roles or surfaces.
 
-- [ ] Naming, placement, error handling, logging, permission, tenancy, and retry/idempotency conventions are preserved.
+## Conventions
 
-### Correctness
+- [ ] Naming matches domain conventions.
+- [ ] Module placement matches architecture boundaries.
+- [ ] Error handling matches existing patterns.
+- [ ] Logging and telemetry match existing patterns.
+- [ ] Permission checks happen in the correct layer.
+- [ ] Tenant scoping follows canonical rules.
 
-- [ ] No unjustified `eslint-disable`, `any`, unsafe cast, or silent catch added.
-- [ ] Edge/failure behavior is explicit.
+## Correctness
 
-### Observability
+- [ ] No unjustified `eslint-disable`, `any`, unsafe cast, ignored validation, or silent catch was added.
+- [ ] Assumptions are explicit.
+- [ ] Missing, stale, or invalid data is handled intentionally.
+- [ ] Side effects are bounded and predictable.
 
-- [ ] Logs/metrics/traces are sufficient for production debugging.
+## Workflow Safety
 
-### Human Review
+- [ ] Retry behavior is correct.
+- [ ] Duplicate events are handled intentionally.
+- [ ] Partial failure behavior is known.
+- [ ] Third-party failure behavior is known.
+- [ ] Async or background behavior is observable.
 
-- [ ] Reviewer confirms they understand system impact and failure behavior.
+## Testing
+
+- [ ] Tests match the selected risk tier.
+- [ ] Critical logic is not validated only through shallow mocks.
+- [ ] Failure paths are tested where relevant.
+- [ ] Repeated execution or idempotency is tested where relevant.
+
+## Explainability
+
+- [ ] The author can explain the code without AI help.
+- [ ] I understand why this implementation is safe enough to merge.
+
+## Outcome
+
+- [ ] Approve
+- [ ] Approve with follow-up
+- [ ] Request changes
+- [ ] Escalate for deeper review

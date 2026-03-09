@@ -21,6 +21,12 @@ npm run check:types
 
 **Current Status:** Passing (verified 2026-03-09)
 
+## Session 2026-03-09 (Homepage split: BakedBot root restored, Andrews themed)
+- **Domain-aware homepage routing** (`4ae23a8b1`): restored the original mobile-optimized BakedBot homepage on `bakedbot.ai`; routed `andrewsdevelopments.bakedbot.ai/` to the Andrews-themed landing page while preserving the Andrews WordPress proxy for `wp-admin` and other proxied paths
+- **Andrews host isolation** (`704d584e3`): made root layout metadata and shared shell host-aware so Andrews now renders with the correct title and without BakedBot chatbot/platform chrome
+
+Status: Build passing, pushed to production
+
 ## Session 2026-03-09 (Slack routing fully live)
 - **Slack routing deployed** (`d6bb69f94`, `38f20deca`, `3c687cf25`): `channels:read` scope + reinstall; `SLACK_BOT_TOKEN@4`; GCP billing linked — service accounts can now write to Secret Manager
 
@@ -267,8 +273,8 @@ Do NOT wait for the user to say "P1" or "file a bug first" — triage, file, and
 
 ---
 
-**Recent work (2026-03-08):** See `MEMORY.md` for full log.
-Key completed: [Codex `jcodemunch` MCP activation], [repo indexing for symbol-first exploration], [detailed agent refs under `refs/agents/`], [prime `jcodemunch` workflow update], [Playbook action trace]
+**Recent work (2026-03-09):** See `MEMORY.md` for full log.
+Key completed: [BakedBot root restored on `bakedbot.ai`], [Andrews-themed homepage routed to `andrewsdevelopments.bakedbot.ai`], [Andrews host metadata + shell isolation], [Slack routing live], [GCP billing recovered for App Hosting rollouts]
 
 ---
 
