@@ -3,13 +3,34 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { ThumbsUp, ThumbsDown } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, Leaf, Cookie, Cigarette, Wind, Droplet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { cn } from '@/lib/utils';
-import { getSafeProductImageUrl } from '@/lib/utils/product-image';
+import { isRenderableProductImage, getCategoryIconColor } from '@/lib/utils/product-image';
 import type { Product } from '@/types/domain';
+
+const CATEGORY_ICON_MAP: Record<string, React.ElementType> = {
+  flower: Leaf,
+  preroll: Cigarette,
+  'pre-roll': Cigarette,
+  prerolls: Cigarette,
+  edible: Cookie,
+  edibles: Cookie,
+  vape: Wind,
+  vapes: Wind,
+  tincture: Droplet,
+  tinctures: Droplet,
+};
+
+function getCategoryIcon(category?: string): React.ElementType {
+  const key = (category ?? '').toLowerCase().replace(/[-_\s]/g, '');
+  for (const [k, Icon] of Object.entries(CATEGORY_ICON_MAP)) {
+    if (key.includes(k.replace(/[-_]/g, ''))) return Icon;
+  }
+  return Leaf;
+}
 
 const ChatProductCard = ({
   product,
@@ -21,18 +42,26 @@ const ChatProductCard = ({
   onFeedback: (productId: string, type: 'like' | 'dislike') => void;
 }) => {
   const [imageFailed, setImageFailed] = useState(false);
-  const imageUrl = imageFailed ? '/icon-192.png' : getSafeProductImageUrl(product.imageUrl);
+  const hasValidImage = !imageFailed && isRenderableProductImage(product.imageUrl);
+  const CategoryIcon = getCategoryIcon(product.category);
+  const iconColor = getCategoryIconColor(product.category);
 
   return (
     <div className="group relative aspect-square w-full overflow-hidden rounded-lg border bg-muted">
-      <Image
-        src={imageUrl}
-        alt={product.name}
-        fill
-        data-ai-hint={product.imageHint}
-        className="object-cover"
-        onError={() => setImageFailed(true)}
-      />
+      {hasValidImage ? (
+        <Image
+          src={product.imageUrl!}
+          alt={product.name}
+          fill
+          data-ai-hint={product.imageHint}
+          className="object-cover"
+          onError={() => setImageFailed(true)}
+        />
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-muted to-muted/70">
+          <CategoryIcon className={cn('h-14 w-14', iconColor)} />
+        </div>
+      )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
       <div className="absolute top-1 right-1 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
