@@ -1528,6 +1528,21 @@
                 { "fieldPath": "outreachSent", "order": "ASCENDING" },
                 { "fieldPath": "createdAt", "order": "ASCENDING" }
             ]
+        },
+        {
+            "collectionGroup": "agent_telemetry",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "timestamp", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "agent_telemetry",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "_date", "order": "ASCENDING" },
+                { "fieldPath": "costEstimateUsd", "order": "DESCENDING" }
+            ]
         }
     ],
     "fieldOverrides": []

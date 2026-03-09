@@ -21,7 +21,13 @@ import { createServerClient } from '@/firebase/server-client';
 import { TIERS, type TierId } from '@/config/tiers';
 import { notifyUsage80Percent, type UsageAlertMetric } from '@/server/services/billing-notifications';
 import { logger } from '@/lib/logger';
-import { FieldValue } from 'firebase-admin/firestore';
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { dispatchNotifications } from '@/server/services/heartbeat/notifier';
+import type { HeartbeatCheckResult } from '@/types/heartbeat';
+
+const DAILY_BUDGET_USD = 200;
+const PER_AGENT_ALERT_USD = 50;
+const AI_BUDGET_ALERT_PATH = 'system_config/ai_budget_alerts/alert_history';
 
 export const dynamic = 'force-dynamic';
 
@@ -239,15 +245,85 @@ export async function POST(req: NextRequest) {
 
     const alertsSent = results.filter((r) => r.sentEmail).length;
 
+    // === 4. Agent Telemetry Budget Check ===
+    let aiBudgetAlertSent = false;
+    try {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const telSnapshot = await firestore
+        .collection('agent_telemetry')
+        .where('_date', '==', todayStr)
+        .get();
+
+      const byAgent: Record<string, number> = {};
+      let todayCostUsd = 0;
+      for (const doc of telSnapshot.docs) {
+        const agentName = (doc.data().agentName as string) || 'unknown';
+        const cost = (doc.data().costEstimateUsd as number) || 0;
+        todayCostUsd += cost;
+        byAgent[agentName] = (byAgent[agentName] ?? 0) + cost;
+      }
+
+      const agentsOver = Object.entries(byAgent)
+        .filter(([, cost]) => cost >= PER_AGENT_ALERT_USD)
+        .map(([name, cost]) => `${name} ($${cost.toFixed(2)})`);
+
+      const shouldFireAlert = todayCostUsd >= DAILY_BUDGET_USD || agentsOver.length > 0;
+
+      if (shouldFireAlert) {
+        // Dedup: only one alert per day
+        const alertKey = `ai_budget_${todayStr}`;
+        const historyRef = firestore.collection(AI_BUDGET_ALERT_PATH);
+        const existing = await historyRef.doc(alertKey).get();
+
+        if (!existing.exists) {
+          await historyRef.doc(alertKey).set({ sentAt: Timestamp.now() });
+
+          const budgetAlerts: HeartbeatCheckResult[] = [{
+            checkId: 'ai_budget_daily',
+            agent: 'linus',
+            title: `AI Budget Alert: $${todayCostUsd.toFixed(2)} today`,
+            message: [
+              `Today's agent AI spend is $${todayCostUsd.toFixed(2)} / $${DAILY_BUDGET_USD} budget.`,
+              agentsOver.length > 0 ? `Agents over $${PER_AGENT_ALERT_USD} threshold: ${agentsOver.join(', ')}.` : '',
+            ].filter(Boolean).join(' '),
+            status: 'alert' as const,
+            priority: 'high' as const,
+            actionUrl: '/dashboard/ceo?tab=ai-economics',
+            actionLabel: 'View AI Economics',
+            timestamp: new Date(),
+          }];
+
+          // Get super user for notification routing
+          const orgDoc = await firestore.collection('orgs').doc('bakedbot_super_admin').get();
+          const orgData = orgDoc.data();
+          if (orgData?.ownerId) {
+            await dispatchNotifications(
+              'bakedbot_super_admin',
+              orgData.ownerId as string,
+              `ai_budget_${Date.now()}`,
+              budgetAlerts,
+              ['dashboard'],
+              orgData.slackWebhookUrl as string | undefined,
+            );
+            aiBudgetAlertSent = true;
+          }
+        }
+      }
+    } catch (err) {
+      logger.error('[usage-alerts] AI budget check failed', { error: String(err) });
+    }
+
     logger.info('[usage-alerts] Cron completed', {
       subscriptionsChecked: subscriptionsSnapshot.size,
       alertsSent,
+      aiBudgetAlertSent,
       durationMs: Date.now() - startTime,
     });
 
     return NextResponse.json({
       success: true,
       alertsSent,
+      aiBudgetAlertSent,
       subscriptionsChecked: subscriptionsSnapshot.size,
       results,
       timestamp: new Date().toISOString(),
