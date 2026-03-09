@@ -201,9 +201,9 @@ npm run test:e2e
 
 This repo is deployed via **Firebase App Hosting**:
 
-* Backend ID: `studio`
-* Repository: `admin-baked/bakedbot-for-brands`
-* Branch: `main`
+- Backend ID: `studio`
+- Repository: `admin-baked/bakedbot-for-brands`
+- Branch: `main`
 
 Deployment flow:
 
@@ -218,9 +218,8 @@ Deployment flow:
    ```
 
 4. App Hosting backend `studio` automatically builds & rolls out the new version using:
-
-   * `apphosting.yaml` for runtime env & secrets
-   * `npm run build` as the framework build command
+   - `apphosting.yaml` for runtime env & secrets
+   - `npm run build` as the framework build command
 
 You can inspect builds and rollouts in the Firebase console under:
 
@@ -230,18 +229,30 @@ You can inspect builds and rollouts in the Firebase console under:
 
 ## 8. Conventions & Notes
 
-* **Routing:** All Next.js routes belong in `src/app`. Avoid multiple app trees.
-* **Types:** Domain types live in `src/types/domain.ts`. UI code (especially dashboards) may use looser types (`any[]`) while flows and repos stay strict.
-* **Secrets:** Never commit raw service account JSON. Use:
+- **Routing:** All Next.js routes belong in `src/app`. Avoid multiple app trees.
+- **Types:** Domain types live in `src/types/domain.ts`. UI code (especially dashboards) may use looser types (`any[]`) while flows and repos stay strict.
+- **Secrets:** Never commit raw service account JSON. Use:
+  - `.env.local` for local dev (gitignored)
+  - Secret Manager + `apphosting.yaml` for App Hosting
 
-  * `.env.local` for local dev (gitignored)
-  * Secret Manager + `apphosting.yaml` for App Hosting
-* **Agents:** Each agent (Smokey, Craig, Pops, Ezal, Money Mike, Mrs. Parker, Deebo) should have:
-
-  * A Genkit flow definition in `src/ai/flows/`
-  * Server-side handlers in `src/server/agents/`
-  * UI entry points in `src/app/dashboard/*` where relevant
+- **Agents:** Each agent (Smokey, Craig, Pops, Ezal, Money Mike, Mrs. Parker, Deebo) should have:
+  - A Genkit flow definition in `src/ai/flows/`
+  - Server-side handlers in `src/server/agents/`
+  - UI entry points in `src/app/dashboard/*` where relevant
 
 This README is meant as a **practical onboarding guide**. Detailed documentation can be found in the `docs/` directory.
 
 If you’re adding new features or agents, update this document so the next engineer doesn’t have to reverse-engineer the architecture from the codebase.
+
+---
+
+## 9. AI Engineering Governance
+
+BakedBot standards and review guardrails are defined in:
+
+- `AI_CODING_STANDARD.md`
+- `AGENTS.md`
+- `.github/PULL_REQUEST_TEMPLATE.md`
+- `docs/engineering/RISK_TIERS.md`
+
+Use these documents together for risk-tier selection, PR review depth, and AI-assisted coding expectations.
