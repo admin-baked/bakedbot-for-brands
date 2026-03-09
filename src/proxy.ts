@@ -191,6 +191,12 @@ export async function proxy(request: NextRequest) {
         if (hasSubdomain) {
             const subdomain = hostParts[0].toLowerCase();
 
+            if (subdomain === 'andrewsdevelopments' && pathname === '/') {
+                const response = NextResponse.next();
+                response.headers.set('x-subdomain', subdomain);
+                return response;
+            }
+
             // meet.bakedbot.ai/{roomId} → /meet/{roomId}  (executive video rooms)
             if (subdomain === 'meet') {
                 if (pathname !== '/') {

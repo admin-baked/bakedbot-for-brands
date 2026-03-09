@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Jost } from 'next/font/google';
+import { headers } from 'next/headers';
 import type { LucideIcon } from 'lucide-react';
 import {
   ArrowUpRight,
@@ -9,7 +10,6 @@ import {
   Building2,
   CarFront,
   ChevronRight,
-  Clock3,
   Dumbbell,
   Facebook,
   Handshake,
@@ -28,6 +28,8 @@ import {
   Users,
   Waves,
 } from 'lucide-react';
+
+import { BakedBotHome } from '@/components/landing/bakedbot-home';
 
 import styles from './inclub-home.module.css';
 
@@ -65,10 +67,10 @@ type StoryCard = {
 
 const navItems = [
   { label: 'Overview', href: '#overview' },
-  { label: 'Residences', href: '#residences' },
-  { label: 'Amenities', href: '#amenities' },
+  { label: 'Homes', href: '#residences' },
+  { label: 'Features', href: '#amenities' },
   { label: 'Team', href: '#team' },
-  { label: 'Stories', href: '#stories' },
+  { label: 'Contact', href: '#contact' },
 ];
 
 const heroPoster =
@@ -77,164 +79,161 @@ const heroVideo = 'https://demo.awaikenthemes.com/assets/videos/inclub-video.mp4
 
 const residenceCards: ResidenceCard[] = [
   {
-    name: 'Urban Loft',
-    details: '01 Bed / 01 Bath',
+    name: 'Design One',
+    details: '3 Bed | 2 Bath | 1,588 sq. ft.',
     image:
-      'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80',
-    tag: 'From 905 sq. ft.',
+      'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1200&q=80',
+    tag: 'Open-concept ranch plan',
   },
   {
-    name: 'Sky Villa',
-    details: '02 Bed / 02 Bath',
+    name: 'Design Two',
+    details: '3 Bed | 2 Bath | 1,588 sq. ft.',
     image:
-      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80',
-    tag: 'Panoramic terrace',
+      'https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&w=1200&q=80',
+    tag: 'Built for everyday living',
   },
   {
-    name: 'Penthouse',
-    details: '03 Bed / 03 Bath',
+    name: 'Design Three',
+    details: '3 Bed | 2 Bath | 1,588 sq. ft.',
     image:
-      'https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1200&q=80',
-    tag: 'Double-height salon',
-  },
-  {
-    name: 'Town Home',
-    details: '04 Bed / 04 Bath',
-    image:
-      'https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80',
-    tag: 'Private arrival court',
+      'https://images.unsplash.com/photo-1570129477492-45c003edd2be?auto=format&fit=crop&w=1200&q=80',
+    tag: 'Flexible family-ready layout',
   },
 ];
 
 const amenityCards: IconCard[] = [
   {
-    icon: ShieldCheck,
-    title: 'Private security',
-    text: 'Discreet entry control, on-site response, and protected resident access around the clock.',
-  },
-  {
-    icon: Dumbbell,
-    title: 'Wellness club',
-    text: 'A light-filled training studio, stretch room, recovery lounge, and morning coaching schedule.',
+    icon: Sparkles,
+    title: 'Enhanced indoor air quality',
+    text: 'Advanced air filtration reduces pollutants and allergens for healthier day-to-day living.',
   },
   {
     icon: Waves,
-    title: 'Resort pool',
-    text: 'Sun shelf, lap lane, shaded cabanas, and evening illumination designed for private events.',
+    title: 'Optimized ventilation and airflow',
+    text: 'Balanced circulation keeps each home feeling fresher, calmer, and more comfortable year-round.',
   },
   {
-    icon: Trees,
-    title: 'Garden promenade',
-    text: 'Layered planting, sculptural lighting, and walkable outdoor rooms that slow the pace down.',
+    icon: Dumbbell,
+    title: 'Energy-efficient climate control',
+    text: 'High-efficiency heating and cooling support comfort while helping reduce long-term utility costs.',
   },
   {
     icon: Landmark,
-    title: 'Signature lobby',
-    text: 'Hotel-inspired arrival with concierge reception, artwork walls, and elevated material detail.',
+    title: 'Smart water conservation',
+    text: 'Sustainable water systems minimize waste without sacrificing reliability for everyday use.',
   },
   {
-    icon: Handshake,
-    title: 'Resident services',
-    text: 'Move-in coordination, housekeeping referrals, pet support, and white-glove delivery handling.',
+    icon: KeyRound,
+    title: 'Advanced water filtration',
+    text: 'State-of-the-art filtration improves drinking water quality and supports peace of mind at home.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Built-in security and smart safety',
+    text: 'Reinforced construction and modern safety features help households feel protected from day one.',
   },
 ];
 
 const comfortSteps: IconCard[] = [
   {
     icon: Building2,
-    title: 'Architectural presence',
-    text: 'Bold massing, softened edges, and a facade calibrated to feel timeless in every season.',
+    title: 'New homes for sale',
+    text: 'Own a thoughtfully designed single-family home in Robbins, IL at an accessible price point.',
   },
   {
-    icon: Sparkles,
-    title: 'Tailored finishes',
-    text: 'Warm stone, brushed metal, and muted textures selected to age with confidence.',
+    icon: Handshake,
+    title: 'Smart community planning',
+    text: 'Homes are positioned for access to schools, parks, shopping, and major highways.',
   },
   {
-    icon: KeyRound,
-    title: 'Seamless access',
-    text: 'Smart entry, valet-ready drop-off, and guest arrival moments that never feel chaotic.',
+    icon: Square,
+    title: 'Built-in smart storage',
+    text: 'Thoughtful storage keeps interiors organized, functional, and easy to live with.',
   },
   {
     icon: Users,
-    title: 'Human-centered planning',
-    text: 'Circulation, privacy, and shared spaces balanced for day-to-day life instead of brochure fiction.',
+    title: 'Safe, family-friendly neighborhoods',
+    text: 'Walkable surroundings and room for children and families to thrive support long-term ownership.',
   },
   {
-    icon: Clock3,
-    title: 'Always-on support',
-    text: 'Responsive management backed by resident communication that is clear, fast, and accountable.',
+    icon: Trees,
+    title: 'Modern architecture and design',
+    text: 'Open layouts and durable finishes balance style, function, and straightforward livability.',
   },
   {
     icon: Star,
-    title: 'Premium lifestyle',
-    text: 'Every touchpoint is refined to feel effortless, from first tour to long-term ownership.',
+    title: 'Quality and long-term value',
+    text: 'Energy-efficient systems and durable construction make every home a stronger long-term investment.',
   },
 ];
 
 const team: TeamMember[] = [
   {
-    name: 'Camila Ross',
-    role: 'Sales Director',
+    name: 'Marcus Andrews',
+    role: 'Founder & CEO',
     image:
-      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=900&q=80',
+      'https://bakedbot.ai/wordpress/andrews/marcus-andrews.jpg',
   },
   {
-    name: 'Grace Chen',
-    role: 'Design Lead',
+    name: 'Kiki Andrews',
+    role: 'Operations & Community',
     image:
-      'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=900&q=80',
+      'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=900&q=80',
   },
   {
-    name: 'Aiden Cole',
-    role: 'Development Advisor',
-    image:
-      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=900&q=80',
-  },
-  {
-    name: 'Samuel Park',
-    role: 'Resident Experience',
+    name: 'Dennis Coleman',
+    role: 'Legal & Development',
     image:
       'https://images.unsplash.com/photo-1506794778202-cad84cf45f3d?auto=format&fit=crop&w=900&q=80',
+  },
+  {
+    name: 'Tayser Muhammad',
+    role: 'Real Estate Advisor',
+    image:
+      'https://bakedbot.ai/wordpress/andrews/tayser-muhammad.jpg',
   },
 ];
 
 const stories: StoryCard[] = [
   {
-    title: 'A closer look at the arrival sequence',
-    description: 'How the lobby, canopy, and street edge work together to create a stronger first impression.',
-    image:
-      'https://images.unsplash.com/photo-1460317442991-0ec209397118?auto=format&fit=crop&w=1200&q=80',
-    meta: 'Design journal',
-  },
-  {
-    title: 'Crafting residences around natural light',
-    description: 'Why orientation, glazing, and layered finishes matter more than oversized square footage.',
+    title: 'How the Robbins buildout creates neighborhood momentum',
+    description: 'Andrews Developments is focused on long-term neighborhood value, not just isolated housing inventory.',
     image:
       'https://images.unsplash.com/photo-1511818966892-d7d671e672a2?auto=format&fit=crop&w=1200&q=80',
-    meta: 'Architecture',
+    meta: 'Community vision',
   },
   {
-    title: 'Evening amenity spaces that actually get used',
-    description: 'Programming social rooms, terraces, and wellness zones for real resident behavior.',
+    title: 'Financing support for first-step ownership',
+    description: 'Eligible buyers can access financing help, including up to $7.5K in down payment assistance.',
+    image:
+      'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=1200&q=80',
+    meta: 'Buyer support',
+  },
+  {
+    title: 'From walkthrough to customization decisions',
+    description: 'The team helps buyers move from tour scheduling to finishes and layout decisions without friction.',
     image:
       'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80',
-    meta: 'Lifestyle',
+    meta: 'Ownership path',
   },
 ];
 
 const faqItems = [
   {
-    title: 'What residence types are available?',
-    body: 'Studios, lofts, two-bedroom layouts, and signature penthouses are available in limited release phases.',
+    title: 'How can I contact your team?',
+    body: 'Email info@andrewsdevelopments.com or call 708-529-5173 and the team will walk you through availability and next steps.',
   },
   {
-    title: 'Can I book a private presentation?',
-    body: 'Yes. We offer one-on-one tours, virtual walkthroughs, and curated visits for overseas buyers.',
+    title: 'Can I book a viewing?',
+    body: 'Yes. Contact the team directly by phone or email and they will coordinate the next available tour window.',
   },
   {
-    title: 'Are services included for residents?',
-    body: 'Concierge support, amenity reservations, and a resident communication desk are included with ownership.',
+    title: 'Is financing support available?',
+    body: 'Yes. Financing support includes up to $7.5K in down payment assistance for eligible buyers. Details apply.',
+  },
+  {
+    title: 'Can I customize my home?',
+    body: 'Yes. Andrews Developments offers customization options to match your style and needs, from layout decisions to finish selections.',
   },
 ];
 
@@ -256,7 +255,15 @@ function SectionLead({
   );
 }
 
-export default function HomePage() {
+export default async function HomePage() {
+  const headersList = await headers();
+  const hostname =
+    (headersList.get('x-forwarded-host') || headersList.get('host') || '').replace(/:\d+$/, '').toLowerCase();
+
+  if (hostname !== 'andrewsdevelopments.bakedbot.ai') {
+    return <BakedBotHome />;
+  }
+
   const year = new Date().getFullYear();
 
   return (
@@ -265,7 +272,7 @@ export default function HomePage() {
         <div className={styles.heroMedia}>
           <Image
             src={heroPoster}
-            alt="Luxury residential exterior"
+            alt="Andrews Developments hero poster"
             fill
             priority
             sizes="100vw"
@@ -293,7 +300,7 @@ export default function HomePage() {
                 <span className={styles.brandMark}>
                   <Building2 size={18} strokeWidth={2.3} />
                 </span>
-                <span className={styles.brandText}>INCLUB</span>
+                <span className={styles.brandText}>ANDREWS</span>
               </Link>
 
               <nav className={styles.navLinks} aria-label="Primary">
@@ -306,7 +313,7 @@ export default function HomePage() {
 
               <div className={styles.headerActions}>
                 <a href="#contact" className={styles.headerButton}>
-                  Book a visit
+                  Book a viewing
                 </a>
                 <button type="button" className={styles.menuButton} aria-label="Open navigation">
                   <Menu size={20} />
@@ -318,53 +325,54 @@ export default function HomePage() {
 
         <div className={`${styles.container} ${styles.heroInner}`}>
           <div className={styles.heroCopy}>
-            <p className={styles.heroKicker}>Luxury living</p>
+            <p className={styles.heroKicker}>Andrews Developments</p>
             <h1 className={styles.heroTitle}>
-              Discover unmatched
+              Step into a new
               <br />
-              style &amp; <span className={styles.highlight}>sophistication</span>
+              era of <span className={styles.highlight}>Robbins, IL</span>
             </h1>
             <p className={styles.heroText}>
-              A residential address shaped around quiet confidence, warm materials, and a hotel-grade arrival
-              experience from the very first step inside.
+              Modern homes. Strong community. A brighter future. Andrews Developments is building 26 beautifully
+              designed single-family homes with quality craftsmanship, energy efficiency, and affordability at the
+              core.
             </p>
 
             <div className={styles.heroActionsRow}>
               <a href="#residences" className={styles.primaryButton}>
-                View gallery
+                Explore homes
                 <ArrowUpRight size={16} />
               </a>
-              <a href="#overview" className={styles.secondaryButton}>
-                Explore details
+              <a href="#contact" className={styles.secondaryButton}>
+                Talk with the team
               </a>
             </div>
           </div>
 
           <aside className={styles.heroPanel}>
             <div className={styles.heroPanelBlock}>
-              <p className={styles.panelLabel}>Liveability score</p>
+              <p className={styles.panelLabel}>Project snapshot</p>
               <div className={styles.panelMetricRow}>
-                <span className={styles.panelMetric}>97%</span>
-                <span className={styles.panelHint}>Resident-first planning</span>
+                <span className={styles.panelMetric}>26</span>
+                <span className={styles.panelHint}>Single-family homes planned</span>
               </div>
             </div>
 
             <div className={styles.heroPanelGrid}>
               <div className={styles.panelCard}>
-                <span className={styles.panelCardLabel}>Neighborhood investment</span>
-                <strong>$37M</strong>
+                <span className={styles.panelCardLabel}>Home layout</span>
+                <strong>3 Bed / 2 Bath</strong>
               </div>
               <div className={styles.panelCard}>
-                <span className={styles.panelCardLabel}>Projected yield</span>
-                <strong>6.9%</strong>
+                <span className={styles.panelCardLabel}>Interior area</span>
+                <strong>1,588 sq. ft.</strong>
               </div>
               <div className={styles.panelCard}>
-                <span className={styles.panelCardLabel}>Signature residences</span>
-                <strong>73</strong>
+                <span className={styles.panelCardLabel}>Buyer support</span>
+                <strong>Up to $7.5K</strong>
               </div>
               <div className={styles.panelCard}>
-                <span className={styles.panelCardLabel}>Concierge coverage</span>
-                <strong>24/7</strong>
+                <span className={styles.panelCardLabel}>Community focus</span>
+                <strong>Robbins, IL</strong>
               </div>
             </div>
           </aside>
@@ -415,40 +423,39 @@ export default function HomePage() {
 
             <div className={styles.introCopy}>
               <SectionLead
-                eyebrow="About the address"
+                eyebrow="About Andrews"
                 title={
                   <>
-                    Bringing innovation and
+                    Crafting every home with
                     <br />
-                    heart to <span className={styles.highlight}>every detail</span>
+                    precision and <span className={styles.highlight}>passion</span>
                   </>
                 }
-                description="Every residence is tuned for modern rituals: calm arrival, generous natural light, deliberate storage, and amenities designed to feel lived in rather than staged."
+                description="Our goal is clear: 26 beautifully designed single-family homes that redefine modern living in Robbins. Andrews Developments is not just building houses. It is building long-term neighborhood value, comfort, and ownership opportunities for local families."
               />
 
               <div className={styles.inlineFacts}>
                 <div>
-                  <span>Prime district</span>
-                  <strong>Blue Ridge Summit</strong>
+                  <span>Location</span>
+                  <strong>Robbins, IL</strong>
                 </div>
                 <div>
-                  <span>Completion target</span>
-                  <strong>Q4 2027</strong>
+                  <span>Homes planned</span>
+                  <strong>26 New Builds</strong>
                 </div>
                 <div>
-                  <span>Starting from</span>
-                  <strong>$890K</strong>
+                  <span>Buyer assistance</span>
+                  <strong>Up to $7.5K</strong>
                 </div>
               </div>
 
               <div className={styles.copyCard}>
                 <p>
-                  <strong>Designed for people who notice the difference.</strong> The material palette balances
-                  crisp architecture with quieter interior warmth, letting light, volume, and proportion carry the
-                  space.
+                  <strong>Designed around vision, style, and real-world living.</strong> From practical layouts to
+                  finish selections, each home is planned for comfort, durability, and modern day-to-day use.
                 </p>
                 <a href="#contact" className={styles.textLink}>
-                  Request the brochure
+                  Request project details
                   <ChevronRight size={16} />
                 </a>
               </div>
@@ -459,15 +466,15 @@ export default function HomePage() {
         <section id="residences" className={styles.section}>
           <div className={styles.container}>
             <SectionLead
-              eyebrow="Available layouts"
+              eyebrow="Home designs"
               title={
                 <>
-                  Apartment styles to fit
+                  Three home designs, built
                   <br />
-                  <span className={styles.highlight}>your lifestyle</span>
+                  for <span className={styles.highlight}>every lifestyle</span>
                 </>
               }
-              description="From compact city-ready layouts to family-scale residences, each plan keeps the same design language: volume, privacy, and a strong connection to natural light."
+              description="Each plan is rooted in the same essentials: 3 bedrooms, 2 baths, approximately 1,588 square feet, open layouts, and modern ranch-style living that balances comfort, convenience, and long-term value."
             />
 
             <div className={styles.residenceGrid}>
@@ -509,15 +516,15 @@ export default function HomePage() {
 
               <div className={styles.floorCopy}>
                 <SectionLead
-                  eyebrow="Floor plan preview"
+                  eyebrow="Home features"
                   title={
                     <>
-                      All you need to know
+                      Everything you need
                       <br />
-                      about this <span className={styles.highlight}>property</span>
+                      in <span className={styles.highlight}>one place</span>
                     </>
                   }
-                  description="A balanced two-bedroom plan with open entertaining space, private sleeping quarters, and a terrace wide enough for dining and evening hosting."
+                  description="These spacious ranch homes keep residents close to everyday essentials while offering modern layouts, outdoor access, nearby schools, and the kind of straightforward livability that supports long-term homeownership."
                 />
 
                 <div className={styles.specGrid}>
@@ -525,34 +532,34 @@ export default function HomePage() {
                     <BedDouble size={18} />
                     <div>
                       <span>Bedrooms</span>
-                      <strong>2 Suites</strong>
+                      <strong>3 Bedrooms</strong>
                     </div>
                   </div>
                   <div className={styles.specCard}>
                     <Bath size={18} />
                     <div>
                       <span>Bathrooms</span>
-                      <strong>2.5 Baths</strong>
+                      <strong>2 Bathrooms</strong>
                     </div>
                   </div>
                   <div className={styles.specCard}>
                     <Square size={18} />
                     <div>
                       <span>Interior area</span>
-                      <strong>1,985 sq. ft.</strong>
+                      <strong>1,588 sq. ft.</strong>
                     </div>
                   </div>
                   <div className={styles.specCard}>
                     <CarFront size={18} />
                     <div>
-                      <span>Parking</span>
-                      <strong>2 Reserved</strong>
+                      <span>Storage</span>
+                      <strong>Smart built-in</strong>
                     </div>
                   </div>
                 </div>
 
                 <a href="#contact" className={styles.primaryButton}>
-                  Schedule a presentation
+                  Schedule a walkthrough
                   <ArrowUpRight size={16} />
                 </a>
               </div>
@@ -564,15 +571,15 @@ export default function HomePage() {
           <div className={`${styles.container} ${styles.darkGrid}`}>
             <div>
               <SectionLead
-                eyebrow="Amenities"
+                eyebrow="Smart home features"
                 title={
                   <>
-                    Apartment tailored to
+                    Designed for comfort
                     <br />
-                    your <span className={styles.highlight}>highest standards</span>
+                    and <span className={styles.highlight}>sustainability</span>
                   </>
                 }
-                description="The amenity program is built to support the whole day, from structured wellness and private hosting to concierge-backed convenience that removes daily friction."
+                description="Every home is planned for better indoor comfort, healthier living, lower waste, and stronger day-to-day reliability. These are practical upgrades that improve how a home feels and performs."
               />
             </div>
 
@@ -597,15 +604,15 @@ export default function HomePage() {
         <section className={`${styles.section} ${styles.patternSection}`}>
           <div className={styles.container}>
             <SectionLead
-              eyebrow="Why residents choose it"
+              eyebrow="Why families choose Andrews"
               title={
                 <>
-                  Unmatched comfort, every
+                  Unrivaled comfort, every
                   <br />
-                  step of the <span className={styles.highlight}>way</span>
+                  step of the <span className={styles.highlight}>journey</span>
                 </>
               }
-              description="From the architectural shell to the resident communication layer, the project is designed to feel coherent, calm, and operationally sharp."
+              description="Andrews Developments is focused on more than the house itself. The broader experience matters too: neighborhood quality, smart planning, convenience, and a layout that supports modern households."
             />
 
             <div className={styles.comfortGrid}>
@@ -631,8 +638,8 @@ export default function HomePage() {
             <div className={styles.experienceVisual}>
               <div className={styles.experienceBuilding}>
                 <Image
-                  src="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1400&q=80"
-                  alt="Residential tower with consultant portrait"
+                  src="https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1400&q=80"
+                  alt="Modern single-family home exterior"
                   fill
                   sizes="(max-width: 1100px) 100vw, 45vw"
                   className={styles.coverImage}
@@ -642,17 +649,17 @@ export default function HomePage() {
               <div className={styles.consultantCard}>
                 <div className={styles.consultantPortrait}>
                   <Image
-                    src="https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=900&q=80"
-                    alt="Senior property consultant"
+                    src="https://bakedbot.ai/wordpress/andrews/marcus-andrews.jpg"
+                    alt="Marcus Andrews portrait"
                     fill
                     sizes="140px"
                     className={styles.coverImage}
                   />
                 </div>
                 <div className={styles.consultantBody}>
-                  <p className={styles.eyebrow}>Lead consultant</p>
-                  <strong>Sophia Bennett</strong>
-                  <span>12+ years in luxury residential advisory and off-market buyer strategy.</span>
+                  <p className={styles.eyebrow}>Founder & CEO</p>
+                  <strong>Marcus Andrews</strong>
+                  <span>Focused on revitalizing Robbins through strategic, high-quality homebuilding.</span>
                 </div>
               </div>
             </div>
@@ -662,36 +669,36 @@ export default function HomePage() {
                 eyebrow="Experience matters"
                 title={
                   <>
-                    50 years&apos; experience in
+                    Meet Marcus Andrews:
                     <br />
-                    the <span className={styles.highlight}>real estate</span> sector
+                    the developer behind the <span className={styles.highlight}>vision</span>
                   </>
                 }
-                description="The team behind the address combines sales, development, hospitality, and resident operations so the project performs after launch, not just during marketing."
+                description="With more than 10 years of experience in real estate development, Marcus Andrews is dedicated to revitalizing Robbins through strategic, high-quality homebuilding that supports community pride, long-term value, and attainable ownership."
               />
 
               <div className={styles.inlineMetricsWide}>
                 <div>
-                  <span>Transactions led</span>
-                  <strong>320+</strong>
+                  <span>Homes planned</span>
+                  <strong>26</strong>
                 </div>
                 <div>
-                  <span>Projects delivered</span>
-                  <strong>58</strong>
+                  <span>Years in development</span>
+                  <strong>10+</strong>
                 </div>
                 <div>
-                  <span>Resident satisfaction</span>
-                  <strong>96%</strong>
+                  <span>Buyer assistance</span>
+                  <strong>$7.5K</strong>
                 </div>
               </div>
 
               <div className={styles.copyCard}>
                 <p>
-                  The sales process is intentionally direct: private briefing, honest unit guidance, and fast
-                  answers on availability, pricing, finishes, and projected ownership costs.
+                  Talk with the team, schedule a walkthrough, and learn about current availability, financing
+                  support, and next steps toward ownership.
                 </p>
                 <a href="#contact" className={styles.textLink}>
-                  Speak with the team
+                  Contact Andrews Developments
                   <ChevronRight size={16} />
                 </a>
               </div>
@@ -703,32 +710,32 @@ export default function HomePage() {
           <div className={styles.container}>
             <div className={styles.statsHeader}>
               <div>
-                <p className={styles.eyebrow}>The residence</p>
+                <p className={styles.eyebrow}>Project highlights</p>
                 <h2 className={styles.bandTitle}>
-                  The residences at Blue
+                  Building long-term value
                   <br />
-                  <span className={styles.highlight}>Ridge Summit</span>
+                  in <span className={styles.highlight}>Robbins</span>
                 </h2>
               </div>
-              <div className={styles.bandBadge}>Since 1975</div>
+              <div className={styles.bandBadge}>26 Homes</div>
             </div>
 
             <div className={styles.statsGrid}>
               <div>
-                <strong>4,385 sq. ft.</strong>
-                <span>Largest private penthouse with wraparound entertaining terrace and skyline outlook.</span>
+                <strong>26</strong>
+                <span>Single-family homes designed to create ownership opportunities and neighborhood momentum.</span>
               </div>
               <div>
-                <strong>37M</strong>
-                <span>District investment fueling retail, mobility, and new hospitality activity nearby.</span>
+                <strong>3 Bed / 2 Bath</strong>
+                <span>Every plan is centered around straightforward ranch-style living that works for families.</span>
               </div>
               <div>
-                <strong>6.9%</strong>
-                <span>Projected premium rental yield for select residences in the current launch phase.</span>
+                <strong>1,588 sq. ft.</strong>
+                <span>Open layouts, smart storage, and durable finishes balance comfort and long-term value.</span>
               </div>
               <div>
-                <strong>24/7</strong>
-                <span>Concierge and resident support coverage for arrivals, deliveries, and daily requests.</span>
+                <strong>$7.5K</strong>
+                <span>Eligible buyers can access down payment assistance that makes ownership more achievable.</span>
               </div>
             </div>
           </div>
@@ -740,12 +747,12 @@ export default function HomePage() {
               eyebrow="Our team"
               title={
                 <>
-                  The professionals behind
+                  The team that makes
                   <br />
-                  every <span className={styles.highlight}>success</span>
+                  vision into <span className={styles.highlight}>reality</span>
                 </>
               }
-              description="A compact senior team handles sales, design, development, and resident experience so the message and the product stay aligned."
+              description="Behind every Andrews Developments home is a focused, accountable team covering development, operations, legal structure, and in-market real estate support."
             />
 
             <div className={styles.teamGrid}>
@@ -773,25 +780,24 @@ export default function HomePage() {
         <section className={`${styles.section} ${styles.quoteSection}`}>
           <div className={styles.container}>
             <div className={styles.quoteCard}>
-              <p className={styles.eyebrow}>Hear it from residents</p>
+              <p className={styles.eyebrow}>Insights from those who know us best</p>
               <blockquote>
-                &ldquo;The material quality, lobby arrival, and day-to-day service all feel considered. It reads as
-                premium because the operational details are premium too.&rdquo;
+                &ldquo;Robbins, IL has gained new life thanks to Marcus Andrews and his development team.&rdquo;
               </blockquote>
 
               <div className={styles.quoteAuthor}>
                 <div className={styles.quoteAvatar}>
                   <Image
-                    src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80"
-                    alt="Resident portrait"
+                    src="https://bakedbot.ai/wordpress/andrews/marcus-andrews.jpg"
+                    alt="Andrews Developments community testimonial"
                     fill
                     sizes="56px"
                     className={styles.coverImage}
                   />
                 </div>
                 <div>
-                  <strong>Janelle Morris</strong>
-                  <span>Resident owner since 2024</span>
+                  <strong>Community supporter</strong>
+                  <span>Robbins, Illinois</span>
                 </div>
               </div>
             </div>
@@ -802,18 +808,18 @@ export default function HomePage() {
           <div className={`${styles.container} ${styles.faqGrid}`}>
             <div className={styles.faqImageWrap}>
               <Image
-                src="https://images.unsplash.com/photo-1511818966892-d7d671e672a2?auto=format&fit=crop&w=1400&q=80"
-                alt="Elegant residential facade"
+                src="https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1400&q=80"
+                alt="Andrews Developments home exterior"
                 fill
                 sizes="(max-width: 1100px) 100vw, 45vw"
                 className={styles.coverImage}
               />
               <div className={styles.faqImageOverlay}>
                 <div>
-                  <p>Private brochure available</p>
+                  <p>Financing support available</p>
                 </div>
                 <a href="#contact" className={styles.primaryButton}>
-                  Download now
+                  Book a viewing
                   <ArrowUpRight size={16} />
                 </a>
               </div>
@@ -821,15 +827,15 @@ export default function HomePage() {
 
             <div className={styles.faqPanel}>
               <SectionLead
-                eyebrow="Any questions?"
+                eyebrow="Quick answers"
                 title={
                   <>
-                    A smarter, clearer
+                    Important details before
                     <br />
-                    path to <span className={styles.highlight}>ownership</span>
+                    your next <span className={styles.highlight}>step</span>
                   </>
                 }
-                description="You should not have to decode the buying process. The answers below cover the questions serious buyers ask first."
+                description="You should not have to decode the buying process. These answers cover the questions Andrews buyers ask first."
               />
 
               <div className={styles.faqList}>
@@ -850,15 +856,15 @@ export default function HomePage() {
         <section id="stories" className={`${styles.section} ${styles.patternSection}`}>
           <div className={styles.container}>
             <SectionLead
-              eyebrow="Stories & insights"
+              eyebrow="Get started today"
               title={
                 <>
-                  Strategic updates from
+                  Clear next steps toward
                   <br />
-                  the <span className={styles.highlight}>studio</span>
+                  your <span className={styles.highlight}>new home</span>
                 </>
               }
-              description="A mix of design notes, planning rationale, and market perspective behind the project."
+              description="Ownership conversations at Andrews Developments are direct: timeline, financing support, customization, and walkthrough scheduling."
             />
 
             <div className={styles.storyGrid}>
@@ -878,7 +884,7 @@ export default function HomePage() {
                     <h3>{story.title}</h3>
                     <p>{story.description}</p>
                     <a href="#contact" className={styles.textLink}>
-                      Read more
+                      Learn more
                       <ChevronRight size={16} />
                     </a>
                   </div>
@@ -897,26 +903,26 @@ export default function HomePage() {
                 <span className={styles.brandMark}>
                   <Building2 size={18} strokeWidth={2.3} />
                 </span>
-                <span className={styles.brandText}>INCLUB</span>
+                <span className={styles.brandText}>ANDREWS</span>
               </Link>
-              <h2 className={styles.footerHeading}>info@domainname.com</h2>
-              <a href="tel:+1654787235" className={styles.footerPhone}>
-                +1 (654) 787 235
+              <h2 className={styles.footerHeading}>info@andrewsdevelopments.com</h2>
+              <a href="tel:+17085295173" className={styles.footerPhone}>
+                (708) 529-5173
               </a>
             </div>
 
             <div className={styles.footerMeta}>
               <div className={styles.footerMetaItem}>
                 <PhoneCall size={18} />
-                <span>Monday to Saturday, 9:00 AM to 7:00 PM</span>
+                <span>Schedule a walkthrough or buyer consultation with the Andrews team</span>
               </div>
               <div className={styles.footerMetaItem}>
                 <Mail size={18} />
-                <span>Private presentations, brochure requests, and investor briefings</span>
+                <span>Availability, financing support, and customization questions answered directly</span>
               </div>
               <div className={styles.footerMetaItem}>
                 <MapPin size={18} />
-                <span>1450 Westlake Avenue, Blue Ridge Summit, USA</span>
+                <span>Robbins, Illinois</span>
               </div>
             </div>
           </div>
@@ -929,15 +935,15 @@ export default function HomePage() {
               <a href="https://instagram.com" aria-label="Visit Instagram">
                 <Instagram size={16} />
               </a>
-              <a href="mailto:info@domainname.com" aria-label="Send email">
+              <a href="mailto:info@andrewsdevelopments.com" aria-label="Send email">
                 <Mail size={16} />
               </a>
             </div>
 
             <div className={styles.footerLinks}>
-              <a href="#overview">About Us</a>
-              <a href="#amenities">Amenities</a>
-              <a href="#stories">Resources</a>
+              <a href="#overview">About</a>
+              <a href="#residences">Homes</a>
+              <a href="#amenities">Features</a>
             </div>
 
             <p className={styles.copyright}>Copyright {year}. All rights reserved.</p>
