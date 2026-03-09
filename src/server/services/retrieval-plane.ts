@@ -121,18 +121,18 @@ async function rerankWithJina(query: string, results: RerankCandidate[]): Promis
             return results;
         }
 
-        return payload.results
-            .map((item) => {
-                const candidate = results[item.index];
-                if (!candidate) {
-                    return null;
-                }
-                return {
-                    ...candidate,
-                    score: item.relevance_score ?? candidate.score,
-                };
-            })
-            .filter((item): item is RerankCandidate => item !== null);
+        const reranked: RerankCandidate[] = [];
+        for (const item of payload.results) {
+            const candidate = results[item.index];
+            if (!candidate) {
+                continue;
+            }
+            reranked.push({
+                ...candidate,
+                ...(item.relevance_score !== undefined ? { score: item.relevance_score } : {}),
+            });
+        }
+        return reranked.length > 0 ? reranked : results;
     } catch {
         return results;
     }
