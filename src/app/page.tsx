@@ -71,6 +71,10 @@ const navItems = [
   { label: 'Stories', href: '#stories' },
 ];
 
+const heroPoster =
+  'https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1800&q=80';
+const heroVideo = 'https://demo.awaikenthemes.com/assets/videos/inclub-video.mp4';
+
 const residenceCards: ResidenceCard[] = [
   {
     name: 'Urban Loft',
@@ -260,13 +264,25 @@ export default function HomePage() {
       <section id="home" className={styles.hero}>
         <div className={styles.heroMedia}>
           <Image
-            src="https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1800&q=80"
+            src={heroPoster}
             alt="Luxury residential exterior"
             fill
             priority
             sizes="100vw"
-            className={styles.heroImage}
+            className={styles.heroPoster}
           />
+          <video
+            className={styles.heroVideo}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            poster={heroPoster}
+            aria-hidden="true"
+          >
+            <source src={heroVideo} type="video/mp4" />
+          </video>
         </div>
         <div className={styles.heroOverlay} />
 
