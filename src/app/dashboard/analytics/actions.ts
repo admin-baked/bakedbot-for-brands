@@ -6,6 +6,8 @@ import { requireUser } from '@/server/auth/auth';
 import { logger } from '@/lib/logger';
 import { unstable_noStore as noStore } from 'next/cache';
 
+const ANALYTICS_ALLOWED_ROLES = ['brand', 'brand_admin', 'brand_member', 'dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender', 'super_user', 'super_admin'] as const;
+
 export interface DailyAnalytics {
   date: string;
   gmv: number;
@@ -113,7 +115,7 @@ function getOrderTotal(order: OrderDoc): number {
 export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> {
   noStore();
 
-  const user = await requireUser(['brand', 'brand_admin', 'brand_member', 'dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender', 'super_user']);
+  const user = await requireUser([...ANALYTICS_ALLOWED_ROLES]);
   if (!userCanAccessEntity(user as unknown as Record<string, unknown>, brandId)) {
     throw new Error('Forbidden: You do not have permission to access this data.');
   }

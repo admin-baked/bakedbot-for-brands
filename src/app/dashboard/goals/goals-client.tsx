@@ -29,14 +29,20 @@ export function GoalsClient({ orgId, initialGoals }: GoalsClientProps) {
   const [suggestedGoals, setSuggestedGoals] = useState<SuggestedGoal[]>([]);
   const [isSuggestingGoals, setIsSuggestingGoals] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestionMeta, setSuggestionMeta] = useState<{
+    source?: 'cache' | 'ai';
+    generatedAt?: string;
+    expiresAt?: string;
+  } | null>(null);
   const hasFetchedRef = useRef(false);
 
-  const handleSuggestGoals = useCallback(async () => {
+  const handleSuggestGoals = useCallback(async (forceRefresh = false) => {
     setIsSuggestingGoals(true);
     try {
       const response = await fetch('/api/goals/suggest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ forceRefresh }),
       });
 
       if (!response.ok) {
@@ -46,11 +52,16 @@ export function GoalsClient({ orgId, initialGoals }: GoalsClientProps) {
       const data = await response.json();
       if (data.success && data.suggestions) {
         setSuggestedGoals(data.suggestions);
+        setSuggestionMeta(data.meta ?? null);
         setShowSuggestions(true);
-        logger.info('Goal suggestions received', { count: data.suggestions.length });
+        logger.info('Goal suggestions received', {
+          count: data.suggestions.length,
+          source: data.meta?.source,
+          forceRefresh,
+        });
       }
     } catch (error: unknown) {
-      logger.error('Error suggesting goals:', error instanceof Error ? { message: error.message, stack: error.stack } : { error });
+      logger.error('Error suggesting goals:', error instanceof Error ? { message: error.message, stack: error.stack, forceRefresh } : { error, forceRefresh });
     } finally {
       setIsSuggestingGoals(false);
     }
@@ -221,6 +232,13 @@ export function GoalsClient({ orgId, initialGoals }: GoalsClientProps) {
               <p className="text-sm text-muted-foreground mt-0.5">
                 Based on your customers, revenue, and inventory data
               </p>
+              {suggestionMeta?.generatedAt && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {suggestionMeta.source === 'cache' ? 'Cached analysis' : 'Fresh analysis'} · Generated{' '}
+                  {new Date(suggestionMeta.generatedAt).toLocaleString()}
+                  {suggestionMeta.expiresAt ? ` · Expires ${new Date(suggestionMeta.expiresAt).toLocaleString()}` : ''}
+                </p>
+              )}
             </div>
             <Button
               variant="ghost"
@@ -228,6 +246,7 @@ export function GoalsClient({ orgId, initialGoals }: GoalsClientProps) {
               onClick={() => {
                 setShowSuggestions(false);
                 setSuggestedGoals([]);
+                setSuggestionMeta(null);
               }}
             >
               ✕ Dismiss
@@ -261,6 +280,7 @@ export function GoalsClient({ orgId, initialGoals }: GoalsClientProps) {
                   });
                   setShowSuggestions(false);
                   setSuggestedGoals([]);
+                  setSuggestionMeta(null);
                 }}
               />
             ))}
@@ -312,11 +332,11 @@ export function GoalsClient({ orgId, initialGoals }: GoalsClientProps) {
 
       {/* Refresh recommendations when goals already exist */}
       {hasAnyGoals && !showSuggestions && (
-        <div className="flex justify-center pt-2">
+        <div className="flex justify-center gap-2 pt-2">
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleSuggestGoals}
+            onClick={() => handleSuggestGoals()}
             disabled={isSuggestingGoals}
             className="text-muted-foreground"
           >
@@ -329,6 +349,16 @@ export function GoalsClient({ orgId, initialGoals }: GoalsClientProps) {
                 <RefreshCw className="h-4 w-4 mr-2" /> Refresh AI Recommendations
               </>
             )}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleSuggestGoals(true)}
+            disabled={isSuggestingGoals}
+            className="text-muted-foreground"
+            title="Force refresh (bypasses cache)"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" /> Force Refresh
           </Button>
         </div>
       )}
