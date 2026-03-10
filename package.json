@@ -56,7 +56,8 @@
     "setup:monitoring": "node scripts/setup-monitoring.mjs",
     "audit:costs": "node scripts/audit-query-cost.mjs",
     "provision:ny-outreach": "node scripts/provision-ny-outreach.mjs",
-    "switch-model": "node scripts/switch-claude-model.mjs"
+    "switch-model": "node scripts/switch-claude-model.mjs",
+    "audit:agent-tools": "node scripts/audit-agent-tools.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.0",

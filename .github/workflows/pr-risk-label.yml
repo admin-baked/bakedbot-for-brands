@@ -1,0 +1,46 @@
+name: PR Risk Label
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  apply-risk-label:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Apply exactly one risk tier label from PR body
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const body = pr.body || '';
+            const tiers = ['risk:tier0', 'risk:tier1', 'risk:tier2', 'risk:tier3'];
+            const matches = [...new Set((body.match(/risk:tier[0-3]/g) || []).map((v) => v.toLowerCase()))];
+
+            if (matches.length !== 1) {
+              core.setFailed(`Expected exactly one risk tier in PR body, found ${matches.length}.`);
+              return;
+            }
+
+            const selected = matches[0];
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = pr.number;
+
+            const { data: current } = await github.rest.issues.listLabelsOnIssue({ owner, repo, issue_number });
+            const currentRiskLabels = current.map((l) => l.name).filter((n) => tiers.includes(n));
+
+            for (const label of currentRiskLabels) {
+              if (label !== selected) {
+                await github.rest.issues.removeLabel({ owner, repo, issue_number, name: label });
+              }
+            }
+
+            const hasSelected = currentRiskLabels.includes(selected);
+            if (!hasSelected) {
+              await github.rest.issues.addLabels({ owner, repo, issue_number, labels: [selected] });
+            }
