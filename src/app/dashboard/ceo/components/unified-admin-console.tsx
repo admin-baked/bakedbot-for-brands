@@ -32,6 +32,7 @@ import {
     Bot,
     Chrome,
     Rocket,
+    BarChart3,
 } from 'lucide-react';
 import { InviteUserDialog } from '@/components/invitations/invite-user-dialog';
 import { InvitationsList } from '@/components/invitations/invitations-list';
@@ -94,6 +95,11 @@ const BakedBotBrowserTab = dynamic(
     { loading: TabLoader, ssr: false }
 );
 
+const AgentToolBenchmarkTab = dynamic(
+    () => import('./agent-tool-benchmark-tab'),
+    { loading: TabLoader }
+);
+
 const PilotSetupTab = dynamic(
     () => import('./pilot-setup-tab'),
     { loading: TabLoader, ssr: false }
@@ -109,7 +115,7 @@ type AdminSection = 'users' | 'data' | 'integrations' | 'devtools' | 'settings';
 type UsersSubTab = 'accounts' | 'invites' | 'tickets';
 type DataSubTab = 'manager' | 'search' | 'knowledge';
 type IntegrationsSubTab = 'cannmenus' | 'coupons' | 'embed';
-type DevToolsSubTab = 'sandbox' | 'browser';
+type DevToolsSubTab = 'sandbox' | 'browser' | 'benchmark';
 type SettingsSubTab = 'system' | 'pilot';
 
 export default function UnifiedAdminConsole() {
@@ -296,6 +302,10 @@ export default function UnifiedAdminConsole() {
                                 <Chrome className="h-4 w-4" />
                                 Browser Automation
                             </TabsTrigger>
+                            <TabsTrigger value="benchmark" className="flex items-center gap-2">
+                                <BarChart3 className="h-4 w-4" />
+                                Benchmarking
+                            </TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="sandbox">
@@ -303,6 +313,9 @@ export default function UnifiedAdminConsole() {
                         </TabsContent>
                         <TabsContent value="browser">
                             <BakedBotBrowserTab />
+                        </TabsContent>
+                        <TabsContent value="benchmark">
+                            <AgentToolBenchmarkTab />
                         </TabsContent>
                     </Tabs>
                 </TabsContent>

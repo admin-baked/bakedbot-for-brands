@@ -1,0 +1,77 @@
+{
+  "fixtures": [
+    {
+      "name": "thrive-promotions-weekend",
+      "role": "dispensary",
+      "domain": "catalog",
+      "intent": "recommend",
+      "query": "Which edible gummies should Thrive feature this weekend for sleep shoppers?",
+      "tenant_scope": {
+        "org_ids": ["thrive-syracuse"],
+        "role_scope": "dispensary",
+        "visibility": "tenant_only"
+      },
+      "filters": {
+        "store_ids": ["thrive-syracuse-main"],
+        "product_types": ["gummy", "edible"],
+        "statuses": ["active", "in_stock"]
+      },
+      "top_k": 12
+    },
+    {
+      "name": "superuser-root-cause-sync-failure",
+      "role": "super_user",
+      "domain": "operations",
+      "intent": "diagnose",
+      "query": "What failed in yesterday's product sync and what changed before failure?",
+      "tenant_scope": {
+        "org_ids": ["thrive-syracuse", "ecstatic-edibles"],
+        "role_scope": "super_user",
+        "visibility": "cross_tenant_allowed"
+      },
+      "filters": {
+        "time_range": {
+          "start": "2026-03-06",
+          "end": "2026-03-07"
+        }
+      },
+      "top_k": 16
+    },
+    {
+      "name": "ecstatic-retailer-fit",
+      "role": "brand",
+      "domain": "marketing",
+      "intent": "compare",
+      "query": "Which retailers best fit Ecstatic Edibles sleep SKU messaging?",
+      "tenant_scope": {
+        "org_ids": ["ecstatic-edibles"],
+        "role_scope": "brand",
+        "visibility": "tenant_only"
+      },
+      "filters": {
+        "tags": ["sleep", "edible", "retail-fit"]
+      },
+      "top_k": 12
+    },
+    {
+      "name": "native-batch-room-issue",
+      "role": "grower",
+      "domain": "cultivation",
+      "intent": "diagnose",
+      "query": "Find batch and room issues linked to yield variance in room 3 this month.",
+      "tenant_scope": {
+        "org_ids": ["native-cannabis-al"],
+        "role_scope": "grower",
+        "visibility": "tenant_only"
+      },
+      "filters": {
+        "facility_ids": ["native-main-facility"],
+        "time_range": {
+          "start": "2026-03-01",
+          "end": "2026-03-31"
+        }
+      },
+      "top_k": 15
+    }
+  ]
+}
