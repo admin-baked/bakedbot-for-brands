@@ -511,6 +511,14 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
             currentSyncCount: count,
         });
 
+        if (staleDeletionSkipped && previousSyncCount !== null) {
+            logger.warn('[SYNC_MENU] Preserving trusted sync baseline after suspicious drop', {
+                locationId,
+                previousSyncCount,
+                currentSyncCount: count,
+            });
+        }
+
         await firestore.collection('locations').doc(locationId).update({
             'posConfig.syncedAt': now,
             'posConfig.lastSyncStatus': 'success',
