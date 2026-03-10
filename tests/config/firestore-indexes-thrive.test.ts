@@ -24,6 +24,23 @@ function hasCustomersComposite(indexes: FirestoreIndex[], targetField: string): 
     });
 }
 
+function hasInsightsComposite(indexes: FirestoreIndex[]): boolean {
+    return indexes.some((index) => {
+        if (index.collectionGroup !== 'insights') return false;
+        const fields = index.fields;
+        return (
+            fields.length >= 4 &&
+            fields[0]?.fieldPath === 'severity' &&
+            fields[0]?.order === 'ASCENDING' &&
+            fields[1]?.fieldPath === 'generatedAt' &&
+            fields[1]?.order === 'DESCENDING' &&
+            fields[2]?.fieldPath === 'expiresAt' &&
+            fields[2]?.order === 'DESCENDING' &&
+            fields[3]?.fieldPath === '__name__'
+        );
+    });
+}
+
 describe('firestore.indexes.json (Thrive/Loyalty additions)', () => {
     const indexesPath = path.join(process.cwd(), 'firestore.indexes.json');
     const indexesFile = JSON.parse(fs.readFileSync(indexesPath, 'utf-8')) as {
@@ -38,5 +55,9 @@ describe('firestore.indexes.json (Thrive/Loyalty additions)', () => {
     it('contains customers indexes for lifecycle scoring fields', () => {
         expect(hasCustomersComposite(indexesFile.indexes, 'tierUpdatedAt')).toBe(true);
         expect(hasCustomersComposite(indexesFile.indexes, 'daysSinceLastOrder')).toBe(true);
+    });
+
+    it('contains the insights composite needed by the inbox proactive briefing query', () => {
+        expect(hasInsightsComposite(indexesFile.indexes)).toBe(true);
     });
 });
