@@ -16,6 +16,8 @@ import {
 } from '@/server/actions/brand-guide';
 import { Timestamp } from '@google-cloud/firestore';
 import { getBrandGuideExtractor } from '@/server/services/brand-guide-extractor';
+import { discoverCompetitorsByLocation } from '@/server/services/ezal/competitor-discovery';
+import { searchEntities } from '@/server/actions/discovery-search';
 import { createMockBrandGuideRepo, type MockBrandGuideRepo } from '../../__mocks__/brandGuideRepo';
 
 // Mock dependencies
@@ -28,6 +30,18 @@ jest.mock('@/server/repos/brandGuideRepo', () => ({
 }));
 
 jest.mock('@/server/services/brand-guide-extractor');
+jest.mock('@/server/services/brand-guide-enricher', () => ({
+  enrichBrandGuide: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock('@/server/actions/brand-images', () => ({
+  generateBrandImagesForNewAccount: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock('@/server/services/ezal/competitor-discovery', () => ({
+  discoverCompetitorsByLocation: jest.fn(),
+}));
+jest.mock('@/server/actions/discovery-search', () => ({
+  searchEntities: jest.fn(),
+}));
 
 jest.mock('@/lib/logger', () => ({
   logger: {
@@ -381,6 +395,124 @@ describe('Brand Guide Server Actions', () => {
       await extractBrandGuideFromUrl(input);
 
       expect(mockExtractor.extractFromUrl).toHaveBeenCalledWith(input);
+    });
+
+    it('should return dispensary competitor suggestions from the website scan', async () => {
+      const mockExtractor = {
+        extractFromUrl: jest.fn().mockResolvedValue({
+          visualIdentity: {},
+          voice: {},
+          messaging: {
+            brandName: 'Thrive Syracuse',
+            city: 'Syracuse',
+            state: 'New York',
+            dispensaryType: 'recreational',
+          },
+          source: { method: 'url_extraction' },
+          confidence: 91,
+          websiteTitle: 'Thrive Syracuse Dispensary',
+        }),
+      };
+
+      (getBrandGuideExtractor as jest.Mock).mockReturnValue(mockExtractor);
+      (discoverCompetitorsByLocation as jest.Mock).mockResolvedValue({
+        discovered: [
+          {
+            name: 'Thrive Syracuse',
+            url: 'https://thrivesyracuse.com',
+            domain: 'thrivesyracuse.com',
+            snippet: 'Self result',
+            relevanceScore: 0.99,
+            isDirect: true,
+            isPosStorefront: false,
+            alreadyTracked: false,
+          },
+          {
+            name: 'FlynnStoned Cannabis Company',
+            url: 'https://flynnstoned.com',
+            domain: 'flynnstoned.com',
+            snippet: 'Adult-use dispensary in Syracuse',
+            relevanceScore: 0.88,
+            isDirect: true,
+            isPosStorefront: false,
+            alreadyTracked: false,
+          },
+        ],
+      });
+
+      const result = await extractBrandGuideFromUrl({
+        brandId: 'brand123',
+        url: 'https://thrivesyracuse.com',
+        includeCompetitorAnalysis: true,
+      });
+
+      expect(discoverCompetitorsByLocation).toHaveBeenCalledWith('brand123', expect.objectContaining({
+        city: 'Syracuse',
+        state: 'NY',
+        orgName: 'Thrive Syracuse',
+      }));
+      expect(result.success).toBe(true);
+      expect(result.competitorSuggestions).toEqual([
+        expect.objectContaining({
+          name: 'FlynnStoned Cannabis Company',
+          url: 'https://flynnstoned.com',
+          type: 'dispensary',
+          source: 'website_scan',
+        }),
+      ]);
+    });
+
+    it('should return brand competitor suggestions when the scan looks like a brand site', async () => {
+      const mockExtractor = {
+        extractFromUrl: jest.fn().mockResolvedValue({
+          visualIdentity: {},
+          voice: {},
+          messaging: {
+            brandName: 'Hudson Cannabis',
+            city: 'Hudson',
+            state: 'New York',
+          },
+          source: { method: 'url_extraction' },
+          confidence: 81,
+          websiteTitle: 'Hudson Cannabis',
+        }),
+      };
+
+      (getBrandGuideExtractor as jest.Mock).mockReturnValue(mockExtractor);
+      (searchEntities as jest.Mock).mockResolvedValue({
+        success: true,
+        data: [
+          {
+            id: 'self',
+            name: 'Hudson Cannabis',
+            url: 'https://hudsoncannabis.com',
+            description: 'Original site',
+            type: 'brand',
+          },
+          {
+            id: 'brand-2',
+            name: 'MFNY',
+            url: 'https://mfnycannabis.com',
+            description: 'New York craft cannabis brand',
+            type: 'brand',
+          },
+        ],
+      });
+
+      const result = await extractBrandGuideFromUrl({
+        url: 'https://hudsoncannabis.com',
+        includeCompetitorAnalysis: true,
+      });
+
+      expect(searchEntities).toHaveBeenCalledWith('Hudson Cannabis Hudson New York', 'brand');
+      expect(result.success).toBe(true);
+      expect(result.competitorSuggestions).toEqual([
+        expect.objectContaining({
+          name: 'MFNY',
+          type: 'brand',
+          url: 'https://mfnycannabis.com',
+        }),
+      ]);
     });
 
     it('should handle extraction errors', async () => {

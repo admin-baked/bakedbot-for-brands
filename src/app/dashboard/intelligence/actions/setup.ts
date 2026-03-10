@@ -10,28 +10,36 @@ import { logger } from '@/lib/logger';
 import { searchEntities } from '@/server/actions/discovery-search';
 import { getEzalLimits } from '@/lib/plan-limits';
 
-export async function searchLocalCompetitors(zip: string) {
+type CompetitorSearchType = 'dispensary' | 'brand';
+
+function mapDiscoveryResult(
+    result: { id: string; name: string; url: string; description?: string },
+    fallback: { city?: string; state?: string; zip?: string }
+) {
+    return {
+        id: result.id,
+        name: result.name,
+        address: result.description || '',
+        city: fallback.city || '',
+        state: fallback.state || '',
+        zip: fallback.zip || '',
+        menuUrl: result.url,
+        logo: ''
+    };
+}
+
+export async function searchLocalCompetitors(zip: string, type: CompetitorSearchType = 'dispensary') {
     await requireUser();
     
     try {
-        // Use BakedBot Discovery (FireCrawl) instead of CannMenus
-        // We search for "dispensaries" in the given ZIP
-        const result = await searchEntities('dispensaries', 'dispensary', zip);
+        const result = await searchEntities(type === 'brand' ? 'brands' : 'dispensaries', type, zip);
         
         if (!result.success || !result.data) {
             console.error("Discovery search failed:", result.error);
             return [];
         }
         
-        return result.data.map((r: any) => ({
-            name: r.name,
-            address: r.description || '', // FireCrawl might not parse address perfectly in search mode, use desc as fallback
-            city: '', // Discovery search result might not have structured city
-            state: '', 
-            zip: zip,
-            menuUrl: r.url,
-            logo: ''
-        }));
+        return result.data.map((r: any) => mapDiscoveryResult(r, { zip }));
     } catch (e) {
         console.error("Discovery search failed", e);
         return [];
@@ -98,9 +106,23 @@ export async function finalizeCompetitorSetup(competitors: any[]) {
     return { success: true };
 }
 
-export async function searchLeaflyCompetitors(city: string, state: string) {
+export async function searchLeaflyCompetitors(
+    city: string,
+    state: string,
+    type: CompetitorSearchType = 'dispensary'
+) {
     await requireUser();
     try {
+        if (type === 'brand') {
+            const result = await searchEntities(`${city} ${state}`, 'brand');
+            if (!result.success || !result.data) {
+                console.error("Discovery brand search failed:", result.error);
+                return [];
+            }
+
+            return result.data.map((r: any) => mapDiscoveryResult(r, { city, state }));
+        }
+
         const { LeaflyService } = await import('@/server/services/integrations/leafly');
         const service = new LeaflyService();
         const results = await service.searchDispensaries(city, state);

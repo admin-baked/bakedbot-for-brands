@@ -227,12 +227,14 @@ interface Step2DialogProps {
     primaryColor: string;
     secondaryColor?: string;
     logoUrl?: string;
+    featuredImageUrl?: string;
   }) => void;
   initialData?: {
     primaryColor?: string;
     secondaryColor?: string;
     logoUrl?: string;
     logoPreviewUrl?: string;
+    featuredImageUrl?: string;
   };
 }
 
@@ -240,6 +242,7 @@ export function Step2Dialog({ open, onOpenChange, onComplete, initialData }: Ste
   const [primaryColor, setPrimaryColor] = useState(initialData?.primaryColor || '#4ade80');
   const [secondaryColor, setSecondaryColor] = useState(initialData?.secondaryColor || '#1f3324');
   const [logoUrl, setLogoUrl] = useState(initialData?.logoUrl || '');
+  const [featuredImageUrl, setFeaturedImageUrl] = useState(initialData?.featuredImageUrl || '');
 
   // Pre-fill when dialog opens with extracted data
   useEffect(() => {
@@ -247,6 +250,7 @@ export function Step2Dialog({ open, onOpenChange, onComplete, initialData }: Ste
       if ('primaryColor' in initialData && initialData.primaryColor) setPrimaryColor(initialData.primaryColor);
       if ('secondaryColor' in initialData && initialData.secondaryColor) setSecondaryColor(initialData.secondaryColor);
       if ('logoUrl' in initialData && initialData.logoUrl) setLogoUrl(initialData.logoUrl);
+      if ('featuredImageUrl' in initialData && initialData.featuredImageUrl) setFeaturedImageUrl(initialData.featuredImageUrl);
     }
   }, [open, initialData]);
 
@@ -255,6 +259,7 @@ export function Step2Dialog({ open, onOpenChange, onComplete, initialData }: Ste
       primaryColor,
       secondaryColor: secondaryColor || undefined,
       logoUrl: logoUrl || undefined,
+      featuredImageUrl: featuredImageUrl || undefined,
     });
     onOpenChange(false);
   };
@@ -347,6 +352,21 @@ export function Step2Dialog({ open, onOpenChange, onComplete, initialData }: Ste
               </div>
             </div>
           )}
+
+          <div>
+            <Label htmlFor="featuredImageUrl">Featured Product/Menu Image URL (Optional)</Label>
+            <Input
+              id="featuredImageUrl"
+              type="url"
+              placeholder="https://yoursite.com/menu-featured.jpg"
+              value={featuredImageUrl}
+              onChange={(e) => setFeaturedImageUrl(e.target.value)}
+              className="mt-1.5"
+            />
+            <p className="text-xs text-muted-foreground mt-1.5">
+              Used in the live preview below the logo and before the headline.
+            </p>
+          </div>
 
           <div>
             <Label htmlFor="logoUrl">Logo URL {logoPreview ? '(or enter a different URL)' : '(Optional)'}</Label>
@@ -624,6 +644,12 @@ export function Step3Dialog({ open, onOpenChange, onComplete, initialData }: Ste
 // ============================================================================
 
 interface Step4DialogProps {
+  brandContext?: {
+    brandName?: string;
+    city?: string;
+    state?: string;
+    dispensaryType?: 'recreational' | 'medical' | 'both';
+  };
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onComplete: (data: {
@@ -642,7 +668,7 @@ interface Step4DialogProps {
   };
 }
 
-export function Step4Dialog({ open, onOpenChange, onComplete, initialData }: Step4DialogProps) {
+export function Step4Dialog({ open, onOpenChange, onComplete, initialData, brandContext }: Step4DialogProps) {
   const [targetAudience, setTargetAudience] = useState(initialData?.targetAudience || '');
   const [competitorUrls, setCompetitorUrls] = useState(
     initialData?.competitorUrls?.join('\n') || ''
@@ -652,6 +678,29 @@ export function Step4Dialog({ open, onOpenChange, onComplete, initialData }: Ste
   );
   const [instagramHandle, setInstagramHandle] = useState(initialData?.instagramHandle || '');
   const [facebookHandle, setFacebookHandle] = useState(initialData?.facebookHandle || '');
+
+  const applyAudienceMagic = () => {
+    const location = [brandContext?.city, brandContext?.state].filter(Boolean).join(', ') || 'your local market';
+    const channelHint = brandContext?.dispensaryType === 'medical'
+      ? 'wellness seekers and patients'
+      : brandContext?.dispensaryType === 'both'
+        ? 'adult-use shoppers and medical patients'
+        : 'adult-use cannabis shoppers';
+
+    setTargetAudience(
+      `${brandContext?.brandName || 'Our dispensary'} serves ${channelHint} in ${location}. Focus on ages 25-44, value-conscious regulars, and curious first-time visitors looking for trusted guidance, quality flower, pre-rolls, edibles, and fast pickup.`
+    );
+  };
+
+  const applyCompetitorMagic = () => {
+    const citySlug = (brandContext?.city || 'city').toLowerCase().replace(/\s+/g, '-');
+    const stateSlug = (brandContext?.state || 'state').toLowerCase().replace(/\s+/g, '-');
+    setCompetitorUrls([
+      `https://www.leafly.com/dispensaries/${stateSlug}/${citySlug}`,
+      `https://www.weedmaps.com/dispensaries/in/united-states/${stateSlug}/${citySlug}`,
+      `https://www.google.com/search?q=${encodeURIComponent(`best dispensary in ${brandContext?.city || 'your city'} ${brandContext?.state || ''}`)}`
+    ].join('\n'));
+  };
 
   useEffect(() => {
     if (open && initialData) {
@@ -721,7 +770,12 @@ export function Step4Dialog({ open, onOpenChange, onComplete, initialData }: Ste
           </div>
 
           <div>
-            <Label htmlFor="targetAudience">Target Audience</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="targetAudience">Target Audience</Label>
+              <Button type="button" variant="outline" size="sm" onClick={applyAudienceMagic} className="h-7">
+                <Sparkles className="w-3.5 h-3.5 mr-1" /> Magic Fill
+              </Button>
+            </div>
             <Textarea
               id="targetAudience"
               placeholder="Describe your ideal customer (age, interests, needs)..."
@@ -732,7 +786,12 @@ export function Step4Dialog({ open, onOpenChange, onComplete, initialData }: Ste
           </div>
 
           <div>
-            <Label htmlFor="competitors">Competitor URLs (One per line)</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="competitors">Competitor URLs (One per line)</Label>
+              <Button type="button" variant="outline" size="sm" onClick={applyCompetitorMagic} className="h-7">
+                <Sparkles className="w-3.5 h-3.5 mr-1" /> Magic Fill
+              </Button>
+            </div>
             <Textarea
               id="competitors"
               placeholder="https://competitor1.com&#10;https://competitor2.com"
