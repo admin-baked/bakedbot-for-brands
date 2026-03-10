@@ -49,11 +49,15 @@ export function isRenderableProductImage(url?: string): boolean {
     return true;
 }
 
+/** Path to the Smokey mascot used as the default product image fallback. */
+export const SMOKEY_FALLBACK_IMAGE = '/assets/agents/smokey-main.png';
+
 /**
  * Normalizes product imagery to a stable fallback so menus and chat widgets do
  * not render broken or empty cards when a POS image is missing.
+ * Defaults to the Smokey mascot — never use Unsplash as a fallback.
  */
-export function getSafeProductImageUrl(url?: string, fallback = '/icon-192.png'): string {
+export function getSafeProductImageUrl(url?: string, fallback = SMOKEY_FALLBACK_IMAGE): string {
     return isRenderableProductImage(url) ? url! : fallback;
 }
 
