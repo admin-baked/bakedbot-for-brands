@@ -18,6 +18,16 @@ import type {
 } from '@/types/insight-cards';
 import { getAdminFirestore } from '@/firebase/admin';
 import { getActiveCustomerCount } from '@/server/services/insights/customer-metrics';
+import { normalizePersistedInsightCard } from '@/server/services/insights/normalize-persisted-insight';
+
+function getActorOrgId(user: {
+    currentOrgId?: string | null;
+    orgId?: string | null;
+    brandId?: string | null;
+    locationId?: string | null;
+}): string | null {
+    return user.currentOrgId ?? user.orgId ?? user.brandId ?? user.locationId ?? null;
+}
 
 // ============ Dispensary Insights ============
 
@@ -787,13 +797,8 @@ export async function getInsightsForOrg(
         // Deserialize Firestore documents
         const insights = snapshot.docs
             .map((doc) => {
-                const data = doc.data() as any;
-                const generatedAt = data.generatedAt?.toDate ? data.generatedAt.toDate() : new Date();
-                return {
-                    ...data,
-                    id: doc.id,
-                    lastUpdated: generatedAt,
-                } as unknown as InsightCard;
+                const data = doc.data() as Record<string, unknown>;
+                return normalizePersistedInsightCard(doc.id, data);
             });
 
         // De-duplicate by category (keep most recent per category)
@@ -874,12 +879,12 @@ export async function getInsights(): Promise<{
 
         // Determine role and orgId from user claims
         const role = (user as any).role as string | undefined;
-        const orgId =
-            (user as any).orgId ||
-            (user as any).brandId ||
-            (user as any).locationId ||
-            (user as any).currentOrgId ||
-            user.uid;
+        const orgId = getActorOrgId(user as {
+            currentOrgId?: string | null;
+            orgId?: string | null;
+            brandId?: string | null;
+            locationId?: string | null;
+        }) || user.uid;
 
         // Check if dispensary or brand role
         const isDispensary =
@@ -893,7 +898,7 @@ export async function getInsights(): Promise<{
             role === 'brand_admin' ||
             role === 'brand_member';
 
-        const isSuperUser = role === 'super_user';
+        const isSuperUser = role === 'super_user' || role === 'super_admin';
 
         if (isSuperUser) {
             const data = await getSuperUserInsights();

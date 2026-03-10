@@ -62,7 +62,7 @@ import {
   type Step6Data,
   type Step7Data,
 } from './components/setup-step-dialogs';
-import { extractBrandGuideFromUrl } from '@/server/actions/brand-guide';
+import { extractBrandGuideFromUrl, createBrandGuide } from '@/server/actions/brand-guide';
 import { mirrorBrandAssetFromUrl } from '@/server/actions/brand-assets';
 import { generateBrandImagesForNewAccount } from '@/server/actions/brand-images';
 import { createOrgProfileFromWizard } from '@/server/actions/org-profile';
