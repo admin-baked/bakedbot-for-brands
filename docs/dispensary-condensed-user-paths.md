@@ -150,3 +150,10 @@ Examples:
    - analytics empty state
    - playbook “enabled but not running” confusion
 4. Weekly active usage of goals + playbooks in the same session.
+
+## Update Note
+This document now explicitly captures:
+- ideal Thrive-style user paths (daily operator, weekly growth, setup/admin),
+- a 4-workspace IA condense model,
+- immediate P0/P1/P2 backlog priorities,
+- measurable success metrics aimed at reducing perceived bloat and tightening workflow focus around Menu OS + automation + intelligence.
