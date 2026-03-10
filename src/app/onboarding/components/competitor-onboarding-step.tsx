@@ -46,9 +46,9 @@ export function CompetitorOnboardingStep({
         try {
             let competitors = [];
             if (mode === 'zip') {
-                competitors = await searchLocalCompetitors(zip);
+                competitors = await searchLocalCompetitors(zip, searchType);
             } else {
-                competitors = await searchLeaflyCompetitors(city, state);
+                competitors = await searchLeaflyCompetitors(city, state, searchType);
             }
             setResults(competitors);
         } catch (error) {

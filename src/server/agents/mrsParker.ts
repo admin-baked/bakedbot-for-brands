@@ -110,7 +110,7 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
     // === HIVE MIND INIT ===
     try {
         const { lettaBlockManager } = await import('@/server/services/letta/block-manager');
-        const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
+        const brandId = (brandMemory.brand_profile as any)?.id || (brandMemory.brand_profile as any)?.orgId || 'unknown';
         await lettaBlockManager.attachBlocksForRole(brandId, agentMemory.agent_id as string, 'brand');
         logger.info(`[MrsParker:HiveMind] Connected to shared retention blocks.`);
     } catch (e) {
@@ -129,9 +129,12 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
   },
 
   async act(brandMemory, agentMemory, targetId, tools: MrsParkerTools, stimulus?: string) {
+    const semanticSearchEntityId = (brandMemory.brand_profile as any)?.id || (brandMemory.brand_profile as any)?.orgId || 'unknown';
+
     // === SCENARIO A: User Request (The "Planner" Flow) ===
     if (targetId === 'user_request' && stimulus) {
         const userQuery = stimulus;
+        const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || 'unknown';
 
         // Tool Definitions (Agent-specific + Shared Context OS & Letta tools)
         const mrsParkerSpecificTools = [
@@ -172,7 +175,7 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
                 toolsDef,
                 tools: {
                     ...tools,
-                    ...makeSemanticSearchToolsImpl(orgId),
+                    ...makeSemanticSearchToolsImpl(semanticSearchEntityId),
                     searchOpportunities: async (query: string) => {
                         try {
                             const { searchWeb, formatSearchResults } = await import('@/server/tools/web-search');

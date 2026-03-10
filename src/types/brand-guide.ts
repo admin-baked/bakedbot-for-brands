@@ -451,6 +451,17 @@ export interface BrandCompetitorAnalysis {
   lastUpdated: Date;
 }
 
+export interface BrandGuideCompetitorSuggestion {
+  id: string;
+  name: string;
+  url: string;
+  type: 'dispensary' | 'brand';
+  city?: string;
+  state?: string;
+  description?: string;
+  source: 'website_scan';
+}
+
 // ============================================================================
 // AI SUGGESTIONS & INTELLIGENCE
 // ============================================================================
@@ -752,6 +763,7 @@ export interface UpdateBrandGuideInput {
 }
 
 export interface ExtractBrandGuideFromUrlInput {
+  brandId?: string;
   url: string;
   socialHandles?: {
     instagram?: string;

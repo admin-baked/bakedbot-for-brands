@@ -48,16 +48,16 @@ export function CompetitorSetupWizard({ hasCompetitors, overrideRole, maxCompeti
         try {
             let competitors = [];
             if (mode === 'zip') {
-                competitors = await searchLocalCompetitors(zip);
+                competitors = await searchLocalCompetitors(zip, searchType);
             } else {
-                competitors = await searchLeaflyCompetitors(city, state);
+                competitors = await searchLeaflyCompetitors(city, state, searchType);
             }
             setResults(competitors);
             setStep(2);
         } catch (error) {
             toast({
                 title: "Search failed",
-                description: "Could not find local dispensaries. Please try again.",
+                description: `Could not find ${searchType === 'brand' ? 'brands' : 'dispensaries'}. Please try again.`,
                 variant: "destructive"
             });
         } finally {

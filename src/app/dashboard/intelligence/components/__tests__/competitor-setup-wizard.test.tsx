@@ -98,8 +98,12 @@ describe('CompetitorSetupWizard', () => {
         fireEvent.change(stateInput, { target: { value: 'IL' } });
         
         // Find search button via aria-label
-        const searchButton = screen.getByRole('button', { name: /search/i });
+        const searchButton = screen.getByText('Find Competitors');
         fireEvent.click(searchButton);
+
+        await waitFor(() => {
+            expect(searchLeaflyCompetitors).toHaveBeenCalledWith('Chicago', 'IL', 'brand');
+        });
         
         // Wait for step 2
         const nextTitle = await screen.findByText(/Select brands to track/i);
@@ -130,8 +134,12 @@ describe('CompetitorSetupWizard', () => {
         fireEvent.input(stateInput, { target: { value: 'IL' } });
         fireEvent.change(stateInput, { target: { value: 'IL' } });
         
-        const searchButton = screen.getByRole('button', { name: /search/i });
+        const searchButton = screen.getByText('Find Competitors');
         fireEvent.click(searchButton);
+
+        await waitFor(() => {
+            expect(searchLeaflyCompetitors).toHaveBeenCalledWith('Chicago', 'IL', 'dispensary');
+        });
         
         // Wait for step 2
         const nextTitle = await screen.findByText(/Select dispensaries to track/i);

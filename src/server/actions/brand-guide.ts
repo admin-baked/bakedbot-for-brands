@@ -17,6 +17,7 @@ import { getTemplateById, getAllTemplates } from '@/lib/brand-guide-templates';
 import { validateBrandPalette } from '@/lib/accessibility-checker';
 import type {
   BrandGuide,
+  BrandGuideCompetitorSuggestion,
   CreateBrandGuideInput,
   UpdateBrandGuideInput,
   ExtractBrandGuideFromUrlInput,
@@ -26,6 +27,198 @@ import type {
 } from '@/types/brand-guide';
 import { BRAND_ARCHETYPES, type ArchetypeId } from '@/constants/brand-archetypes';
 import { logger } from '@/lib/logger';
+import { discoverCompetitorsByLocation } from '@/server/services/ezal/competitor-discovery';
+import { searchEntities } from '@/server/actions/discovery-search';
+
+const STATE_ABBREVIATIONS: Record<string, string> = {
+  Alabama: 'AL',
+  Alaska: 'AK',
+  Arizona: 'AZ',
+  California: 'CA',
+  Colorado: 'CO',
+  Connecticut: 'CT',
+  'District of Columbia': 'DC',
+  Illinois: 'IL',
+  Maine: 'ME',
+  Maryland: 'MD',
+  Massachusetts: 'MA',
+  Michigan: 'MI',
+  Missouri: 'MO',
+  Montana: 'MT',
+  Nevada: 'NV',
+  'New Jersey': 'NJ',
+  'New Mexico': 'NM',
+  'New York': 'NY',
+  Oklahoma: 'OK',
+  Oregon: 'OR',
+  Pennsylvania: 'PA',
+  'Rhode Island': 'RI',
+  Virginia: 'VA',
+  Vermont: 'VT',
+  Washington: 'WA',
+};
+
+const scheduleBackgroundTask = (callback: () => void) => {
+  if (typeof setImmediate === 'function') {
+    setImmediate(callback);
+    return;
+  }
+
+  setTimeout(callback, 0);
+};
+
+function cleanString(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed || undefined;
+}
+
+function normalizeStateAbbreviation(state?: string): string | undefined {
+  const cleaned = cleanString(state);
+  if (!cleaned) return undefined;
+  if (/^[A-Za-z]{2}$/.test(cleaned)) return cleaned.toUpperCase();
+  return STATE_ABBREVIATIONS[cleaned] || cleaned;
+}
+
+function getHostname(url: string): string | null {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '').toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+function inferCompetitorType({
+  websiteTitle,
+  messaging,
+}: {
+  websiteTitle?: string;
+  messaging?: Record<string, unknown>;
+}): 'dispensary' | 'brand' {
+  const dispensaryType = cleanString(messaging?.dispensaryType);
+  if (dispensaryType) return 'dispensary';
+
+  const titleBlob = `${websiteTitle || ''} ${cleanString(messaging?.positioning) || ''}`.toLowerCase();
+  if (/(dispensary|adult-use|recreational|medical cannabis|cannabis menu|shop weed|dispensary menu)/.test(titleBlob)) {
+    return 'dispensary';
+  }
+
+  return 'brand';
+}
+
+function dedupeSuggestions(
+  suggestions: BrandGuideCompetitorSuggestion[],
+  ownHost: string | null,
+  limit: number
+): BrandGuideCompetitorSuggestion[] {
+  const seen = new Set<string>();
+
+  return suggestions.filter((suggestion) => {
+    const suggestionHost = getHostname(suggestion.url);
+    if (!suggestionHost || suggestionHost === ownHost) return false;
+    if (seen.has(suggestionHost)) return false;
+    seen.add(suggestionHost);
+    return true;
+  }).slice(0, limit);
+}
+
+async function buildBrandCompetitorSuggestions(params: {
+  url: string;
+  brandName?: string;
+  city?: string;
+  state?: string;
+  limit: number;
+}): Promise<BrandGuideCompetitorSuggestion[]> {
+  const { url, brandName, city, state, limit } = params;
+  const ownHost = getHostname(url);
+  const query = [brandName, city, state].filter(Boolean).join(' ').trim() || ownHost || 'cannabis brand';
+  const result = await searchEntities(query, 'brand');
+
+  if (!result.success) {
+    logger.warn('[extractBrandGuideFromUrl] Brand competitor search failed', { query, error: result.error });
+    return [];
+  }
+
+  return dedupeSuggestions(
+    result.data.map((entity) => ({
+      id: entity.id,
+      name: entity.name,
+      url: entity.url,
+      type: 'brand' as const,
+      city,
+      state,
+      description: entity.description,
+      source: 'website_scan' as const,
+    })),
+    ownHost,
+    limit
+  );
+}
+
+async function buildDispensaryCompetitorSuggestions(params: {
+  brandId?: string;
+  url: string;
+  brandName?: string;
+  city?: string;
+  state?: string;
+  limit: number;
+}): Promise<BrandGuideCompetitorSuggestion[]> {
+  const { brandId, url, brandName, city, state, limit } = params;
+  const ownHost = getHostname(url);
+  const normalizedCity = cleanString(city);
+  const normalizedState = normalizeStateAbbreviation(state);
+
+  if (normalizedCity && normalizedState) {
+    const discovery = await discoverCompetitorsByLocation(brandId || 'brand-guide-scan', {
+      city: normalizedCity,
+      state: normalizedState,
+      orgName: brandName,
+      maxResults: Math.max(limit * 2, limit),
+    });
+
+    const directSuggestions = discovery.discovered
+      .filter((candidate) => candidate.isDirect)
+      .map((candidate) => ({
+        id: candidate.existingId || candidate.domain,
+        name: candidate.name,
+        url: candidate.url,
+        type: 'dispensary' as const,
+        city: normalizedCity,
+        state: normalizedState,
+        description: candidate.snippet,
+        source: 'website_scan' as const,
+      }));
+
+    const deduped = dedupeSuggestions(directSuggestions, ownHost, limit);
+    if (deduped.length > 0) return deduped;
+  }
+
+  const fallbackQuery = [brandName, normalizedCity, normalizedState].filter(Boolean).join(' ').trim() || ownHost || 'dispensary';
+  const fallback = await searchEntities(fallbackQuery, 'dispensary');
+
+  if (!fallback.success) {
+    logger.warn('[extractBrandGuideFromUrl] Dispensary fallback competitor search failed', {
+      fallbackQuery,
+      error: fallback.error,
+    });
+    return [];
+  }
+
+  return dedupeSuggestions(
+    fallback.data.map((entity) => ({
+      id: entity.id,
+      name: entity.name,
+      url: entity.url,
+      type: 'dispensary' as const,
+      city: normalizedCity,
+      state: normalizedState,
+      description: entity.description,
+      source: 'website_scan' as const,
+    })),
+    ownHost,
+    limit
+  );
+}
 
 // ============================================================================
 // CORE CRUD OPERATIONS
@@ -136,7 +329,7 @@ export async function createBrandGuide(
 
     // Kick off async enrichment (voice samples, audience, archetype, compliance)
     // Non-blocking — user doesn't wait; completes in background ~10-30s
-    setImmediate(() => {
+    scheduleBackgroundTask(() => {
       enrichBrandGuide(input.brandId).catch(err =>
         logger.warn('[BrandGuide] Post-create enrichment failed', { error: (err as Error).message })
       );
@@ -144,7 +337,7 @@ export async function createBrandGuide(
 
     // Pre-generate brand kit images (hero, product_bg, ambient, texture)
     // Only on first creation — idempotent, fire-and-forget
-    setImmediate(() => {
+    scheduleBackgroundTask(() => {
       generateBrandImagesForNewAccount(input.brandId, brandGuide).catch(err =>
         logger.warn('[BrandGuide] Brand image pre-generation failed', { error: (err as Error).message })
       );
@@ -234,7 +427,7 @@ export async function updateBrandGuide(
     }
 
     // Re-run enrichment whenever the guide is updated (catches new fields from manual edits)
-    setImmediate(() => {
+    scheduleBackgroundTask(() => {
       enrichBrandGuide(input.brandId).catch(err =>
         logger.warn('[BrandGuide] Post-update enrichment failed', { error: (err as Error).message })
       );
@@ -290,11 +483,48 @@ export async function extractBrandGuideFromUrl(
   confidence?: number;
   websiteTitle?: string;
   suggestedArchetype?: ArchetypeId;
+  competitorSuggestions?: BrandGuideCompetitorSuggestion[];
   error?: string;
 }> {
   try {
     const extractor = getBrandGuideExtractor();
     const result = await extractor.extractFromUrl(input);
+    const messaging = (result.messaging || {}) as Record<string, unknown>;
+    let competitorSuggestions: BrandGuideCompetitorSuggestion[] = [];
+
+    if (input.includeCompetitorAnalysis) {
+      try {
+        const competitorType = inferCompetitorType({
+          websiteTitle: result.websiteTitle,
+          messaging,
+        });
+        const brandName = cleanString(messaging.brandName);
+        const city = cleanString(messaging.city);
+        const state = cleanString(messaging.state);
+
+        competitorSuggestions = competitorType === 'dispensary'
+          ? await buildDispensaryCompetitorSuggestions({
+              brandId: input.brandId,
+              url: input.url,
+              brandName,
+              city,
+              state,
+              limit: 5,
+            })
+          : await buildBrandCompetitorSuggestions({
+              url: input.url,
+              brandName,
+              city,
+              state,
+              limit: 5,
+            });
+      } catch (competitorError) {
+        logger.warn('[extractBrandGuideFromUrl] Competitor suggestion lookup failed', {
+          url: input.url,
+          error: competitorError instanceof Error ? competitorError.message : String(competitorError),
+        });
+      }
+    }
 
     logger.info('[extractBrandGuideFromUrl] Extraction result', {
       url: input.url,
@@ -305,6 +535,7 @@ export async function extractBrandGuideFromUrl(
       metadataDescription: (result.metadata?.description || '').substring(0, 120) || '(none)',
       websiteTitle: result.websiteTitle || '(none)',
       suggestedArchetype: result.suggestedArchetype || '(none)',
+      competitorSuggestions: competitorSuggestions.length,
     });
 
     return {
@@ -316,6 +547,7 @@ export async function extractBrandGuideFromUrl(
       confidence: result.confidence,
       websiteTitle: result.websiteTitle,
       suggestedArchetype: result.suggestedArchetype,
+      competitorSuggestions,
     };
   } catch (error) {
     logger.error('Failed to extract brand guide from URL', { error, input });
