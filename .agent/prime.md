@@ -268,7 +268,7 @@ Do NOT wait for the user to say "P1" or "file a bug first" — triage, file, and
 ---
 
 **Recent work (2026-03-09):** See `MEMORY.md` for full log.
-Key completed: [AI Economics dashboard `?tab=ai-economics`] (`09f789f66`), [orgId threaded into agent telemetry; HeartbeatCheckId + LinusRequest.context fixes] (`HEAD`)
+Key completed: [Slack routing — channels:read scope + detectAgent overhaul] (`d6bb69f94`), [SLACK_BOT_TOKEN@4 + GCP billing unblocked for SA writes] (`3c687cf25`)
 
 ---
 
