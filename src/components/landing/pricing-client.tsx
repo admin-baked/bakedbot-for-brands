@@ -21,13 +21,13 @@ function PricingTabs({
     return (
         <div>
             <div className="flex justify-center mb-8">
-                <div className="inline-flex items-center rounded-2xl border border-border bg-muted/30 p-1.5 backdrop-blur-sm">
+                <div className="inline-flex items-center rounded-2xl border border-border bg-muted/30 p-1 sm:p-1.5 backdrop-blur-sm max-w-full">
                     {tabs.map((t) => (
                         <button
                             key={t.key}
                             onClick={() => setActive(t.key)}
                             className={
-                                "px-6 py-2 text-sm font-medium rounded-xl transition-all duration-200 " +
+                                "px-3 py-2 text-xs sm:px-6 sm:text-sm font-medium rounded-xl transition-all duration-200 " +
                                 (t.key === active
                                     ? "bg-background text-foreground shadow-sm"
                                     : "text-muted-foreground hover:text-foreground hover:bg-muted/60")
@@ -148,7 +148,7 @@ export function PricingClient() {
                                             }`}
                                             asChild
                                         >
-                                            <a href={t.id === "empire" ? "/get-started?plan=empire" : t.id === "scout" ? "/get-started" : `/get-started?plan=${t.id}`}>
+                                            <a href={`/onboarding?plan=${t.id}`}>
                                                 {t.pill}
                                             </a>
                                         </Button>

@@ -12,6 +12,7 @@ import { findPricingPlan } from '@/lib/config/pricing';
 // Define the schema for the form data
 const OnboardingSchema = z.object({
   role: z.enum(['brand', 'dispensary', 'customer', 'skip']),
+  orgSubtype: z.string().optional(), // e.g. 'grower' for brand subtypes
   planId: z.string().optional(),
   // Market/Location selection (state code like 'IL', 'CA')
   marketState: z.string().optional(),
@@ -72,7 +73,7 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
     }
 
     const {
-      role, planId, marketState, locationId, brandId, brandName,
+      role, orgSubtype, planId, marketState, locationId, brandId, brandName,
       manualBrandName, manualProductName, manualDispensaryName,
       slug, zipCode,
       chatbotPersonality, chatbotTone, chatbotSellingPoints,
@@ -98,6 +99,7 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
       // Only set createdAt if it doesn't exist (preserve original creation time)
       createdAt: existingData?.createdAt || FieldValue.serverTimestamp(),
       role: role === 'skip' ? 'customer' : role, // Default to customer if skipped
+      ...(orgSubtype ? { orgSubtype } : {}), // e.g. 'grower' for brand sub-type
       // Approval Status: Customers auto-approve, Brands/Dispensaries pending
       approvalStatus: (role === 'customer' || role === 'skip') ? 'approved' : 'pending',
       // Store raw preferences
