@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-03-09 (Slack routing live — channels:read scope, SLACK_BOT_TOKEN@4, GCP billing unblocked for service accounts)
+**Current Status:** 🟢 Passing | **Last update:** 2026-03-09 (AI Economics dashboard — orgId telemetry, platform spend tab, dev savings, usage-alerts cron budget check)
 
 ---
 
