@@ -78,7 +78,7 @@ export function HeroClient() {
                             transition={{ duration: 0.3 }}
                             className="space-y-6"
                         >
-                            <Badge variant="outline" className="mb-4 bg-emerald-500/5 text-emerald-600 border-emerald-500/20 px-4 py-1.5 text-sm uppercase tracking-wider backdrop-blur-sm">
+                            <Badge variant="outline" className="mb-4 max-w-[90vw] whitespace-normal text-center leading-snug bg-emerald-500/5 text-emerald-600 border-emerald-500/20 px-3 py-1.5 text-xs sm:text-sm sm:px-4 uppercase tracking-wide sm:tracking-wider backdrop-blur-sm">
                                 {userType === 'dispensary' ? 'Automate Your Retail Operations' : 'Scale Your Wholesale Distribution'}
                             </Badge>
 
@@ -86,7 +86,7 @@ export function HeroClient() {
                                 {userType === 'dispensary' ? (
                                     <>
                                         Turn Your Menu Into A{' '}
-                                        <span className="inline sm:block">
+                                        <span className="block">
                                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-400">
                                                 Revenue Engine
                                             </span>
@@ -95,7 +95,7 @@ export function HeroClient() {
                                 ) : (
                                     <>
                                         Hire An AI Squad To{' '}
-                                        <span className="inline sm:block">
+                                        <span className="block">
                                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-indigo-400">
                                                 Run Your Brand
                                             </span>
