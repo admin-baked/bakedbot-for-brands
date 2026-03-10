@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { cn } from '@/lib/utils';
-import { getSafeProductImageUrl } from '@/lib/utils/product-image';
+import { getSafeProductImageUrl, isRenderableProductImage } from '@/lib/utils/product-image';
 import type { Product } from '@/types/domain';
 
 const ChatProductCard = ({
@@ -21,16 +21,22 @@ const ChatProductCard = ({
   onFeedback: (productId: string, type: 'like' | 'dislike') => void;
 }) => {
   const [imageFailed, setImageFailed] = useState(false);
-  const imageUrl = imageFailed ? '/icon-192.png' : getSafeProductImageUrl(product.imageUrl);
+  const hasValidProductImage = !imageFailed && isRenderableProductImage(product.imageUrl);
+  // Falls back to Smokey mascot when no valid product image is available
+  const src = hasValidProductImage ? product.imageUrl! : getSafeProductImageUrl(undefined);
 
   return (
     <div className="group relative aspect-square w-full overflow-hidden rounded-lg border bg-muted">
       <Image
-        src={imageUrl}
+        src={src}
         alt={product.name}
         fill
         data-ai-hint={product.imageHint}
-        className="object-cover"
+        className={cn(
+          hasValidProductImage
+            ? 'object-cover'
+            : 'object-contain p-3 opacity-80'
+        )}
         onError={() => setImageFailed(true)}
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
