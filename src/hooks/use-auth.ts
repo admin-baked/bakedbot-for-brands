@@ -5,25 +5,19 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
-import { User, onAuthStateChanged, getAuth } from 'firebase/auth';
-import { initializeFirebase } from '@/firebase';
+import { useContext } from 'react';
+import { FirebaseContext } from '@/firebase/provider';
 
 export function useAuth() {
-    const [user, setUser] = useState<User | null>(null);
-    const [loading, setLoading] = useState(true);
+    const firebase = useContext(FirebaseContext);
 
-    useEffect(() => {
-        const { firebaseApp } = initializeFirebase();
-        const auth = getAuth(firebaseApp);
+    // Graceful fallback for surfaces rendered outside FirebaseClientProvider.
+    if (!firebase) {
+        return { user: null, loading: false };
+    }
 
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            setUser(user);
-            setLoading(false);
-        });
-
-        return () => unsubscribe();
-    }, []);
-
-    return { user, loading };
+    return {
+        user: firebase.user,
+        loading: firebase.isUserLoading,
+    };
 }
