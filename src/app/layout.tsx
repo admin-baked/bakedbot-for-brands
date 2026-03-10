@@ -8,7 +8,7 @@ import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import { Providers } from './providers';
 import { AppLayout } from '@/components/AppLayout';
-import Chatbot from '@/components/chatbot';
+import GlobalChatbot from '@/components/global-chatbot';
 import { demoProducts } from '@/lib/demo/demo-data';
 import { SimulationBanner } from '@/components/debug/simulation-banner';
 import { GoogleAnalytics } from '@/components/analytics/google-analytics';
@@ -109,8 +109,8 @@ export default async function RootLayout({
             <GoogleAnalytics />
             {children}
           </AppLayout>
-          {/* Global chatbot - context-aware, no default brandId */}
-          <Chatbot products={products} />
+          {/* Global chatbot - disabled on dashboard, which owns its own support/test surfaces */}
+          <GlobalChatbot products={products} />
           <SimulationBanner />
         </Providers>
       </body>
