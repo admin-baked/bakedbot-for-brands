@@ -7,10 +7,10 @@
 
 import { InsightGeneratorBase } from '../insight-generator-base';
 import { getExpiringInventory, getSlowMovingInventory } from '../../alleaves/inventory-intelligence';
-import { ALLeavesClient, type ALLeavesConfig } from '@/lib/pos/adapters/alleaves';
-import { getAdminFirestore } from '@/firebase/admin';
+import { ALLeavesClient } from '@/lib/pos/adapters/alleaves';
 import { logger } from '@/lib/logger';
 import type { InsightCard } from '@/types/insight-cards';
+import { getAlleavesClientForOrg } from '@/server/services/alleaves/client';
 
 // ============ Types ============
 
@@ -23,14 +23,6 @@ interface ProductSalesData {
   price: number | null;
   cost: number | null;
   marginPercent: number | null; // gross margin % or null if no COGS data
-}
-
-interface ALLeavesConfig_ {
-  username: string;
-  password: string;
-  pin?: string;
-  storeId: string;
-  locationId: string;
 }
 
 // ============ Generator ============
@@ -218,40 +210,12 @@ export class InventoryVelocityGenerator extends InsightGeneratorBase {
         return this.alleaveClient;
       }
 
-      // Fetch tenant config to get POS credentials
-      const db = getAdminFirestore();
-      const tenantDoc = await db.collection('tenants').doc(this.orgId).get();
-
-      if (!tenantDoc.exists) {
-        logger.warn('[InventoryVelocity] Tenant not found', { orgId: this.orgId });
+      const client = await getAlleavesClientForOrg(this.orgId);
+      if (!client) {
         return null;
       }
 
-      const tenantData = tenantDoc.data();
-      const posConfig = tenantData?.pos_config;
-
-      if (!posConfig || posConfig.provider !== 'alleaves') {
-        logger.warn('[InventoryVelocity] Alleaves not configured', { orgId: this.orgId });
-        return null;
-      }
-
-      // Use environment variables for now (hardcoded for Thrive)
-      const config: ALLeavesConfig = {
-        username: process.env.ALLEAVES_USERNAME || '',
-        password: process.env.ALLEAVES_PASSWORD || '',
-        pin: process.env.ALLEAVES_PIN,
-        storeId: process.env.ALLEAVES_LOCATION_ID || '1',
-        locationId: process.env.ALLEAVES_LOCATION_ID || '1',
-      };
-
-      if (!config.username || !config.password) {
-        logger.warn('[InventoryVelocity] Alleaves credentials not configured', {
-          orgId: this.orgId,
-        });
-        return null;
-      }
-
-      this.alleaveClient = new ALLeavesClient(config);
+      this.alleaveClient = client;
       return this.alleaveClient;
     } catch (error) {
       logger.error('[InventoryVelocity] Error initializing Alleaves client', {

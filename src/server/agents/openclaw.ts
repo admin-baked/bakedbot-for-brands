@@ -351,7 +351,7 @@ export const openclawAgent: OpenClawAgent = {
             async (toolName: string, toolInput: Record<string, unknown>) => {
                 return executeOpenClawTool(toolName, toolInput, context);
             },
-            { maxIterations: 5 }
+            { maxIterations: 5, orgId: context.tenantId ?? undefined }
         );
 
         logger.info('[OpenClaw] Request completed', {

@@ -22,9 +22,10 @@ export async function runConsumerAgent(
         brandId: string;
         state: string; // User's location state
         products?: any[]; // Products currently in view (from frontend context)
+        conversationHistory?: Array<{ role: string; content: string }>; // Prior turns for multi-turn memory
     }
 ) {
-    const { userId, sessionId, brandId, products: contextProducts } = context;
+    const { userId, sessionId, brandId, products: contextProducts, conversationHistory } = context;
     const jobId = `chat-${sessionId || Date.now()}`;
 
     const normalizeToolProduct = (product: any): ChatbotProduct => ({
@@ -73,7 +74,8 @@ export async function runConsumerAgent(
             modelLevel: 'standard', // Use standard model for consumers
             source: 'consumer_chat',
             context: {
-                products: contextProducts // Pass current view context to agent
+                products: contextProducts, // Pass current view context to agent
+                conversationHistory,       // Pass prior turns for multi-turn memory
             }
         },
         null, // Injected user - we let runner resolve it or use anonymous context

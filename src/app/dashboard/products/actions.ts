@@ -370,7 +370,7 @@ export async function getBrandStatus() {
 import { syncMenu, getPosConfig as _getPosConfig } from '@/app/dashboard/menu/actions';
 import { generateProductDescription as aiGenerateDescription } from '@/ai/flows/generate-product-description';
 import { getPriceTier, TIER_CONFIG, type PriceTier } from '@/lib/product-tiers';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, unstable_noStore as noStore } from 'next/cache';
 
 export interface ProductWithTier extends Product {
     priceTier: PriceTier;
@@ -388,6 +388,7 @@ export interface ProductsDataWithTiers {
  */
 export async function getProductsWithTiers(): Promise<ProductsDataWithTiers> {
     try {
+        noStore();
         const { firestore } = await createServerClient();
         const user = await requireUser(['dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender', 'super_user']);
 
@@ -421,6 +422,13 @@ export async function getProductsWithTiers(): Promise<ProductsDataWithTiers> {
             products = await productRepo.getAllByLocation(orgId);
         }
 
+        // Final fallback: use canonical brand/org lookup used by menu page.
+        // This allows tenant catalog reads when location-based lookup misses.
+        if (products.length === 0 && orgId) {
+            logger.info('[PRODUCTS] Trying orgId as brand fallback', { orgId });
+            products = await productRepo.getAllByBrand(orgId);
+        }
+
         // Add tier information to each product
         const productsWithTier: ProductWithTier[] = products.map(product => {
             const tier = getPriceTier(product.price || 0);
@@ -433,6 +441,14 @@ export async function getProductsWithTiers(): Promise<ProductsDataWithTiers> {
 
         const source = products.length > 0 ? 'pos' : 'none';
         const lastSyncedAt = locationData?.posConfig?.syncedAt?.toDate?.()?.toISOString() || null;
+
+        logger.info('[PRODUCTS] getProductsWithTiers resolved', {
+            orgId,
+            locationId,
+            count: products.length,
+            source,
+            lastSyncedAt,
+        });
 
         return {
             products: productsWithTier,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDomainMapping } from '@/lib/domain-routing';
 import { logger } from '@/lib/logger';
+import { getResponseSetCookies } from './cookies';
 
 const INTERNAL_HOST_SUFFIXES = [
   '.run.app',
@@ -22,7 +23,6 @@ const HOP_BY_HOP_HEADERS = new Set([
 const PASSTHROUGH_RESPONSE_HEADERS = new Set([
   'content-type',
   'cache-control',
-  'set-cookie',
   'link',
   'location',
 ]);
@@ -42,6 +42,22 @@ function normalizeProxyPath(path: string): string {
     .map(segment => segment.trim())
     .filter(Boolean)
     .join('/');
+}
+
+function normalizeUpstreamWordPressPath(path: string): string {
+  if (path === 'wp-admin') {
+    return 'wp-admin/';
+  }
+
+  return path;
+}
+
+function normalizePublicWordPressPath(pathname: string): string {
+  if (pathname === '/wp-admin/') {
+    return '/wp-admin';
+  }
+
+  return pathname;
 }
 
 function resolveTargetUrl(configuredTarget: string, override: string | null): { ok: true; targetUrl: string } | { ok: false; response: NextResponse } {
@@ -134,8 +150,8 @@ function rewriteLocationHeader(
   }
 
   try {
-    const parsedLocation = new URL(location);
     const targetOrigin = new URL(targetUrl).origin;
+    const parsedLocation = new URL(location, `${targetOrigin}/`);
 
     if (
       parsedLocation.origin !== targetOrigin
@@ -144,10 +160,12 @@ function rewriteLocationHeader(
       return location;
     }
 
-    return new URL(
+    const publicUrl = new URL(
       `${parsedLocation.pathname}${parsedLocation.search}${parsedLocation.hash}`,
       `${protocol}://${publicHostname}/`
-    ).toString();
+    );
+    publicUrl.pathname = normalizePublicWordPressPath(publicUrl.pathname);
+    return publicUrl.toString();
   } catch {
     return location;
   }
@@ -198,7 +216,10 @@ async function handleProxyRequest(request: NextRequest) {
     targetUrl = targetResult.targetUrl;
   }
 
-  const fullUrl = new URL(path || '', `${targetUrl.replace(/\/+$/, '')}/`);
+  const fullUrl = new URL(
+    normalizeUpstreamWordPressPath(path || ''),
+    `${targetUrl.replace(/\/+$/, '')}/`
+  );
   if (upstreamQueryString) {
     fullUrl.search = upstreamQueryString;
   }
@@ -247,11 +268,16 @@ async function handleProxyRequest(request: NextRequest) {
     });
 
     const headers = new Headers();
+    for (const value of getResponseSetCookies(response.headers)) {
+      headers.append('set-cookie', value);
+    }
+
     for (const [key, value] of response.headers.entries()) {
       const lowerKey = key.toLowerCase();
       if (
         lowerKey.startsWith('x-nextjs-')
         || HOP_BY_HOP_HEADERS.has(lowerKey)
+        || lowerKey === 'set-cookie'
         || !PASSTHROUGH_RESPONSE_HEADERS.has(lowerKey)
       ) {
         continue;

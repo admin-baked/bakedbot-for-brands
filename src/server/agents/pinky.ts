@@ -21,7 +21,7 @@
  * - intake_customer_bug     — read an inbox thread and extract + file a bug from it
  */
 
-import { executeWithTools, isClaudeAvailable, ClaudeTool, ClaudeResult } from '@/ai/claude';
+import { executeWithTools, isClaudeAvailable, ClaudeTool, ClaudeResult, AgentContext } from '@/ai/claude';
 import { logger } from '@/lib/logger';
 import type { QABugPriority, QABugArea, QABugStatus, QATestStatus } from '@/types/qa';
 
@@ -806,6 +806,27 @@ OUTPUT FORMAT:
 - For golden set results: lead with the verdict emoji and score`;
 
 // ============================================================================
+// AGENT CONTEXT (for telemetry)
+// ============================================================================
+
+const PINKY_AGENT_CONTEXT: AgentContext = {
+    name: 'Pinky',
+    role: 'QA Engineering Director',
+    capabilities: [
+        'report_bug — File bugs with full reproduction details',
+        'update_bug_status / assign_bug / verify_fix — Bug lifecycle management',
+        'list_open_bugs / get_bug_detail / check_regression_history — Bug querying',
+        'get_test_cases / update_test_case / generate_test_cases — Test management',
+        'run_quick_smoke / get_qa_report / run_golden_set_eval — QA reporting',
+        'intake_customer_bug — Extract bugs from inbox threads',
+    ],
+    groundingRules: [
+        'Always include bug IDs in responses',
+        'State priority with emoji (🔴 P0, 🟠 P1, 🟡 P2, 🟢 P3)',
+    ],
+};
+
+// ============================================================================
 // PUBLIC API
 // ============================================================================
 
@@ -843,7 +864,9 @@ export async function runPinky(request: PinkyRequest): Promise<PinkyResponse> {
         pinkyToolExecutor,
         {
             userId: request.context?.userId,
+            orgId: request.context?.orgId,
             maxIterations: request.maxIterations ?? 10,
+            agentContext: PINKY_AGENT_CONTEXT,
         }
     );
 

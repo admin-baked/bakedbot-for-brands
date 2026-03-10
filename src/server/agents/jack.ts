@@ -162,7 +162,7 @@ export const jackAgent: AgentImplementation<AgentMemory, JackTools> = {
         // Connect to Hive Mind
         try {
             const { lettaBlockManager } = await import('@/server/services/letta/block-manager');
-            const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
+            const brandId = (brandMemory.brand_profile as any)?.id || (brandMemory.brand_profile as any)?.orgId || 'unknown';
             await lettaBlockManager.attachBlocksForRole(brandId, agentMemory.agent_id as string, 'executive');
             logger.info(`[Jack:HiveMind] Connected to shared executive blocks.`);
         } catch (e) {
@@ -185,9 +185,11 @@ export const jackAgent: AgentImplementation<AgentMemory, JackTools> = {
     },
 
     async act(brandMemory, agentMemory, targetId, tools: JackTools, stimulus?: string) {
-        const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
+        const semanticSearchEntityId = (brandMemory.brand_profile as any)?.id || (brandMemory.brand_profile as any)?.orgId || 'unknown';
+
         if (targetId === 'user_request' && stimulus) {
             const userQuery = stimulus;
+            const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
 
             // Get delegatable agent IDs dynamically from registry
             const delegatableAgents = getDelegatableAgentIds('jack');
@@ -269,7 +271,7 @@ export const jackAgent: AgentImplementation<AgentMemory, JackTools> = {
                     userQuery,
                     systemInstructions: (agentMemory.system_instructions as string) || '',
                     toolsDef,
-                    tools: { ...tools, ...makeSemanticSearchToolsImpl(brandId) },
+                    tools: { ...tools, ...makeSemanticSearchToolsImpl(semanticSearchEntityId) },
                     model: 'claude-sonnet-4-6',
                     maxIterations: 5
                 });

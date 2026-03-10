@@ -10,7 +10,7 @@ import { logger } from '@/lib/logger';
 import { InventoryVelocityGenerator } from '@/server/services/insights/generators/inventory-velocity-generator';
 import { notifySlackOnCriticalInsights } from '@/server/services/insights/insight-notifier';
 import { createThreadsFromInsights } from '@/server/actions/create-insight-thread';
-import { getAdminFirestore } from '@/firebase/admin';
+import { getInsightTargetOrgs } from '@/server/services/insights/target-orgs';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs'; // Requires Node.js runtime for Firestore
@@ -31,15 +31,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Fetch all dispensary orgs
-    const db = getAdminFirestore();
-    const tenantsSnapshot = await db.collection('tenants').where('type', '==', 'dispensary').get();
+    const targetOrgs = await getInsightTargetOrgs(['dispensary']);
 
     const results = [];
 
     // Generate insights for each org
-    for (const doc of tenantsSnapshot.docs) {
-      const orgId = doc.id;
+    for (const targetOrg of targetOrgs) {
+      const orgId = targetOrg.orgId;
 
       try {
         logger.info('[Cron] Generating velocity insights', { orgId });

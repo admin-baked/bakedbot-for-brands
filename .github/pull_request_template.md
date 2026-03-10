@@ -1,6 +1,5 @@
 # Summary
-- What changed and why.
-- User/business impact.
+- What changed in user-visible or system-visible terms?
 
 # Risk Tier
 - Select exactly one: `risk:tier0` | `risk:tier1` | `risk:tier2` | `risk:tier3`
@@ -8,25 +7,45 @@
 - Rationale for this tier.
 
 # Canonical Reuse
-- Existing modules/services/patterns reused.
+- Existing types/services/utilities/adapters/schemas/UI patterns/workflows/tools/modules reused.
 - Why reuse was preferred over new code paths.
 
 # New Abstractions
-- Any new abstractions introduced (if none, say "None").
-- Ownership and expected extension points.
+- Any new abstraction introduced? If yes, why was reuse insufficient?
 
 # Failure Modes
-- Key failure scenarios.
-- Fallback/mitigation behavior.
+- Behavior on missing data, timeout, retry, duplicate event, stale state, third-party failure, permission failure.
 
 # Verification
-- Commands run locally and results.
-- Include targeted tests and smoke checks.
+- [ ] Unit
+- [ ] Integration
+- [ ] Contract
+- [ ] E2E
+- [ ] Manual verification
+- Commands and outputs:
 
 # Observability
-- Logs/metrics/alerts added or reused.
-- How regressions will be detected post-deploy.
+- How this change will be debugged in production.
 
 # Explainability
-- Why this implementation was chosen.
-- Alternatives considered and tradeoffs.
+- [ ] I can explain the full flow without AI comments, prompt history, or generated annotations.
+
+---
+
+## BakedBot System-Safety Checklist
+
+### Reuse
+- [ ] This extends/reuses canonical modules and does not create parallel ownership.
+
+### Conventions
+- [ ] Naming, placement, error handling, logging, permission, tenancy, and retry/idempotency conventions are preserved.
+
+### Correctness
+- [ ] No unjustified `eslint-disable`, `any`, unsafe cast, or silent catch added.
+- [ ] Edge/failure behavior is explicit.
+
+### Observability
+- [ ] Logs/metrics/traces are sufficient for production debugging.
+
+### Human Review
+- [ ] Reviewer confirms they understand system impact and failure behavior.

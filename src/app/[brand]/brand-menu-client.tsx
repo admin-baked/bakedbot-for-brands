@@ -257,6 +257,12 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
     for (let i = 0; i < quantity; i++) {
       addToCart(product, selectedDispensary?.id || 'default');
     }
+    // Prominent toast confirmation so the user knows the item was added
+    toast({
+      title: `🛒 Added to cart!`,
+      description: `${quantity > 1 ? `${quantity}x ` : ''}${product.name}`,
+      duration: 2500,
+    });
   };
 
   const getCartItemQuantity = (productId: string): number => {
@@ -927,6 +933,7 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
           brandName={brand.name}
           brandLogo={brand.logoUrl}
           primaryColor={primaryColor}
+          brandSlug={brandSlug}
           location={brand.location ? {
             address: brand.location.address,
             city: brand.location.city,
@@ -934,11 +941,11 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
             zip: brand.location.zip,
             phone: brand.location.phone || brand.phone,
           } : {
-            address: brand.address || '',
-            city: brand.city || '',
-            state: brand.state || '',
-            zip: brand.zip || '',
-            phone: brand.phone,
+            address: (brand as any).address || '',
+            city: (brand as any).city || '',
+            state: (brand as any).state || '',
+            zip: (brand as any).zip || '',
+            phone: (brand as any).phone,
           }}
         />
 

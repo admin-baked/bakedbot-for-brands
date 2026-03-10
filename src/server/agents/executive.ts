@@ -114,7 +114,7 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
     // === HIVE MIND INIT ===
     try {
         const { lettaBlockManager } = await import('@/server/services/letta/block-manager');
-        const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
+        const brandId = (brandMemory.brand_profile as any)?.id || (brandMemory.brand_profile as any)?.orgId || 'unknown';
         await lettaBlockManager.attachBlocksForRole(brandId, agentMemory.agent_id as string, 'executive');
         logger.info(`[Executive:HiveMind] Connected ${agentMemory.agent_id} to shared executive blocks.`);
     } catch (e) {
@@ -139,10 +139,12 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
   },
 
   async act(brandMemory, agentMemory, targetId, tools: ExecutiveTools, stimulus?: string) {
-    const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
+    const semanticSearchEntityId = (brandMemory.brand_profile as any)?.id || (brandMemory.brand_profile as any)?.orgId || 'unknown';
+
     // === SCENARIO A: User Request (The "Planner" Flow) ===
     if (targetId === 'user_request' && stimulus) {
         const userQuery = stimulus;
+        const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
         
         // Get delegatable agent IDs dynamically from registry
         const delegatableAgents = getDelegatableAgentIds();
@@ -319,7 +321,7 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
                 userQuery,
                 systemInstructions: (agentMemory.system_instructions as string) || '',
                 toolsDef,
-                tools: { ...tools, ...makeSemanticSearchToolsImpl(brandId) },
+                tools: { ...tools, ...makeSemanticSearchToolsImpl(semanticSearchEntityId) },
                 model: 'claude-sonnet-4-6', // Triggers harness routing to Claude 4.5 Opus
                 maxIterations: 5,
                 onStepComplete: async (step, toolName, result) => {

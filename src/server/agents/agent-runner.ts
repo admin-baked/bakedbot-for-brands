@@ -596,6 +596,16 @@ All agents are online and ready. Type an agent name or describe your task to get
         finalMessage += `\n\n[AUDIO INPUT RECEIVED] (Voice processing enabled)`;
     }
 
+    // Inject conversation history for multi-turn context (consumer chat)
+    const conversationHistory = extraOptions?.context?.conversationHistory as Array<{ role: string; content: string }> | undefined;
+    if (conversationHistory && conversationHistory.length > 0) {
+        const historyBlock = conversationHistory
+            .slice(-6) // last 3 exchanges
+            .map(m => `${m.role === 'user' ? 'Customer' : 'Smokey'}: ${m.content.slice(0, 300)}`)
+            .join('\n');
+        finalMessage = `<conversation_history>\n${historyBlock}\n</conversation_history>\n\nCurrent message: ${finalMessage}`;
+    }
+
     userMessage = finalMessage;
 
     let activePersona = personaId && PERSONAS[personaId as AgentPersona]
@@ -1402,7 +1412,8 @@ All agents are online and ready. Type an agent name or describe your task to get
                 const claudeResult = await executeWithTools(
                     `${activePersona.systemPrompt}${customInstructionsBlock}\n\nUser Request: ${userMessage}${knowledgeContext}${lettaMemoryContext}`,
                     tools,
-                    executor
+                    executor,
+                    { orgId: userBrandId, brandId: userBrandId }
                 );
 
                 // Convert Claude tool executions to our format

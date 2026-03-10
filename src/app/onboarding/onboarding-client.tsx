@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { findPricingPlan } from '@/lib/config/pricing';
+import { logger } from '@/lib/logger';
 
 type BrandResult = {
   id: string;
@@ -160,7 +161,7 @@ export default function OnboardingPage() {
       toast({ title: 'Session Restored', description: 'Please submit again.' });
       setShowReloginModal(false);
     } catch (err) {
-      console.error(err);
+      logger.error('Relogin failed', { error: err });
       toast({ variant: 'destructive', title: 'Login Failed', description: 'Please try again.' });
     }
   };
@@ -177,7 +178,7 @@ export default function OnboardingPage() {
       const filtered = data.filter(r => r.type === typeFilter);
       setResults(filtered.map(r => ({ id: r.id, name: r.name, market: 'Global' })));
     } catch (e) {
-      console.error(e);
+      logger.error('CannMenus search failed', { error: e });
       setResults([]);
     } finally {
       setLoading(false);
@@ -191,7 +192,7 @@ export default function OnboardingPage() {
       setStep('market');
     } else if (r === 'skip') {
       // Just terminate immediately for 'skip'
-      window.location.assign('/');
+      window.location.assign('/dashboard');
     } else {
       setStep('review');
     }
@@ -219,7 +220,7 @@ export default function OnboardingPage() {
         }
       } catch (err) {
         // Non-fatal - continue onboarding even if pre-start fails
-        console.warn('Pre-start import failed:', err);
+        logger.warn('Pre-start import failed', { error: err });
       }
     }
 
@@ -258,7 +259,7 @@ export default function OnboardingPage() {
       setShowSignUpModal(false);
       formRef.current?.requestSubmit();
     } catch (error: any) {
-      console.error("Google Sign Up Error:", error);
+      logger.error('Google Sign Up Error', { error });
       toast({ variant: "destructive", title: "Sign Up Failed", description: error.message });
     } finally {
       setAuthLoading(false);
@@ -284,7 +285,7 @@ export default function OnboardingPage() {
       setShowSignUpModal(false);
       formRef.current?.requestSubmit();
     } catch (error: any) {
-      console.error("Email Sign Up Error:", error);
+      logger.error('Email Sign Up Error', { error });
       toast({ variant: "destructive", title: "Sign Up Failed", description: error.message });
     } finally {
       setAuthLoading(false);
@@ -512,7 +513,6 @@ export default function OnboardingPage() {
           {role === 'dispensary' && <input type="hidden" name="locationId" value={selectedCannMenusEntity?.id || ''} />}
           <input type="hidden" name="manualBrandName" value={manualBrandName} />
           <input type="hidden" name="manualProductName" value={manualProductName} />
-          <input type="hidden" name="manualDispensaryName" value={manualDispensaryName} />
           <input type="hidden" name="manualDispensaryName" value={manualDispensaryName} />
           <input type="hidden" name="marketState" value={marketState} />
           <input type="hidden" name="slug" value={slug} />
