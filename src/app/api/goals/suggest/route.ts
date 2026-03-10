@@ -13,10 +13,34 @@ import { ai } from '@/ai/genkit';
 import { logger } from '@/lib/logger';
 import type { SuggestedGoal, GoalCategory, GoalTimeframe } from '@/types/goals';
 
-export async function POST(_request: NextRequest) {
+const GOAL_SUGGESTION_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+type SuggestGoalRequestBody = {
+  forceRefresh?: boolean;
+};
+
+type GoalSuggestionCacheDoc = {
+  suggestions: SuggestedGoal[];
+  generatedAt: string;
+  expiresAt: string;
+  source: 'ai';
+};
+
+function toNumber(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
+function getRequestBody(body: unknown): SuggestGoalRequestBody {
+  if (!body || typeof body !== 'object') return {};
+  const forceRefresh = (body as { forceRefresh?: unknown }).forceRefresh;
+  return { forceRefresh: forceRefresh === true };
+}
+
+export async function POST(request: NextRequest) {
   try {
     const session = await requireUser();
     const db = getAdminFirestore();
+    const parsedBody = getRequestBody(await request.json().catch(() => ({})));
 
     // Resolve orgId from session claims (dispensary users use orgId/currentOrgId)
     const orgId = (session as any).orgId
@@ -47,7 +71,43 @@ export async function POST(_request: NextRequest) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
     }
 
-    logger.info('[goals/suggest] Resolving org data', { orgId: resolvedOrgId, uid: session.uid });
+    logger.info('[goals/suggest] Resolving org data', {
+      orgId: resolvedOrgId,
+      uid: session.uid,
+      forceRefresh: parsedBody.forceRefresh === true,
+    });
+
+    const cacheRef = db
+      .collection('orgs')
+      .doc(resolvedOrgId)
+      .collection('goalSuggestions')
+      .doc('weekly');
+
+    if (!parsedBody.forceRefresh) {
+      const cacheDoc = await cacheRef.get();
+      if (cacheDoc.exists) {
+        const cached = cacheDoc.data() as GoalSuggestionCacheDoc;
+        const expiresAtMs = Date.parse(cached.expiresAt);
+
+        if (Array.isArray(cached.suggestions) && Number.isFinite(expiresAtMs) && expiresAtMs > Date.now()) {
+          logger.info('[goals/suggest] Serving cached goal suggestions', {
+            orgId: resolvedOrgId,
+            suggestionCount: cached.suggestions.length,
+            expiresAt: cached.expiresAt,
+          });
+
+          return NextResponse.json({
+            success: true,
+            suggestions: cached.suggestions,
+            meta: {
+              source: 'cache',
+              generatedAt: cached.generatedAt,
+              expiresAt: cached.expiresAt,
+            },
+          });
+        }
+      }
+    }
 
     // 1. Load customer data from the correct collection path
     // Customers are stored in top-level 'customers' collection with orgId field
@@ -85,7 +145,7 @@ export async function POST(_request: NextRequest) {
 
     // 2. Load active goals to avoid duplicate suggestions
     const activeGoalsSnapshot = await db
-      .collection('tenants')
+      .collection('orgs')
       .doc(resolvedOrgId)
       .collection('goals')
       .where('status', '==', 'active')
@@ -95,9 +155,6 @@ export async function POST(_request: NextRequest) {
     const activeGoals = activeGoalsSnapshot.docs.map(doc => doc.data());
 
     // 3. Load recent order metrics
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
     const recentOrdersSnapshot = await db
       .collection('orders')
       .where('brandId', '==', resolvedOrgId)
@@ -105,7 +162,10 @@ export async function POST(_request: NextRequest) {
       .get();
 
     const recentOrders = recentOrdersSnapshot.docs.map(doc => doc.data());
-    const monthlyRevenue = recentOrders.reduce((sum: number, o: any) => sum + (o.totals?.total || o.total || 0), 0);
+    const monthlyRevenue = recentOrders.reduce(
+      (sum: number, order) => sum + toNumber((order as { totals?: { total?: number }; total?: number }).totals?.total ?? (order as { total?: number }).total),
+      0
+    );
 
     // 4. Check POS integration status
     const locationSnap = await db.collection('locations')
@@ -278,9 +338,30 @@ Return a JSON array of 3-5 goal objects:
       count: suggestions.length,
     });
 
+    const generatedAt = new Date();
+    const expiresAt = new Date(generatedAt.getTime() + GOAL_SUGGESTION_CACHE_TTL_MS);
+
+    await cacheRef.set({
+      suggestions,
+      generatedAt: generatedAt.toISOString(),
+      expiresAt: expiresAt.toISOString(),
+      source: 'ai',
+    } satisfies GoalSuggestionCacheDoc);
+
+    logger.info('[goals/suggest] Cached goal suggestions', {
+      orgId: resolvedOrgId,
+      suggestionCount: suggestions.length,
+      expiresAt: expiresAt.toISOString(),
+    });
+
     return NextResponse.json({
       success: true,
       suggestions,
+      meta: {
+        source: 'ai',
+        generatedAt: generatedAt.toISOString(),
+        expiresAt: expiresAt.toISOString(),
+      },
     });
 
   } catch (error) {

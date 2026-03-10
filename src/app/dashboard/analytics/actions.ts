@@ -3,6 +3,8 @@
 import { createServerClient } from '@/firebase/server-client';
 import { orderConverter, type OrderDoc } from '@/firebase/converters';
 import { requireUser } from '@/server/auth/auth';
+import { logger } from '@/lib/logger';
+import { unstable_noStore as noStore } from 'next/cache';
 
 export interface DailyAnalytics {
   date: string;
@@ -52,22 +54,74 @@ export interface CohortData {
   retention: number[]; // [Month 0 (100%), Month 1, Month 2...]
 }
 
+
+function userCanAccessEntity(user: Record<string, unknown>, entityId: string): boolean {
+  const role = typeof user.role === 'string' ? user.role : '';
+  if (role === 'super_user' || role === 'super_admin') return true;
+
+  const candidates = [
+    typeof user.brandId === 'string' ? user.brandId : null,
+    typeof user.orgId === 'string' ? user.orgId : null,
+    typeof user.currentOrgId === 'string' ? user.currentOrgId : null,
+    typeof user.locationId === 'string' ? user.locationId : null,
+  ].filter((v): v is string => Boolean(v));
+
+  const orgIds = Array.isArray(user.orgIds)
+    ? user.orgIds.filter((v): v is string => typeof v === 'string')
+    : [];
+
+  return candidates.includes(entityId) || orgIds.includes(entityId);
+}
+
+async function fetchOrdersWithFallback(firestore: FirebaseFirestore.Firestore, entityId: string): Promise<OrderDoc[]> {
+  const statuses = ['submitted', 'confirmed', 'ready', 'completed'];
+
+  const byBrandSnap = await firestore.collection('orders')
+    .where('brandId', '==', entityId)
+    .where('status', 'in', statuses)
+    .withConverter(orderConverter as any)
+    .get();
+
+  if (!byBrandSnap.empty) {
+    return byBrandSnap.docs.map((doc: any) => doc.data()) as OrderDoc[];
+  }
+
+  const byOrgSnap = await firestore.collection('orders')
+    .where('orgId', '==', entityId)
+    .where('status', 'in', statuses)
+    .withConverter(orderConverter as any)
+    .get();
+
+  if (!byOrgSnap.empty) {
+    logger.info('[Analytics] Fallback orders query by orgId used', { entityId, count: byOrgSnap.size });
+  }
+
+  return byOrgSnap.docs.map((doc: any) => doc.data()) as OrderDoc[];
+}
+
+function getOrderEmail(order: OrderDoc): string | null {
+  const email = order.customer?.email;
+  return typeof email === 'string' && email.trim().length > 0 ? email.trim().toLowerCase() : null;
+}
+
+function getOrderTotal(order: OrderDoc): number {
+  return typeof order.totals?.total === 'number' && Number.isFinite(order.totals.total)
+    ? order.totals.total
+    : 0;
+}
+
 export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> {
-  const user = await requireUser(['brand', 'super_user']);
-  if (user.brandId !== brandId && user.role !== 'super_user') {
+  noStore();
+
+  const user = await requireUser(['brand', 'brand_admin', 'brand_member', 'dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender', 'super_user', 'super_admin']);
+  if (!userCanAccessEntity(user as unknown as Record<string, unknown>, brandId)) {
     throw new Error('Forbidden: You do not have permission to access this data.');
   }
 
   const { firestore } = await createServerClient();
 
-  // Fetch orders
-  const ordersQuery = firestore.collection('orders')
-    .where('brandId', '==', brandId)
-    .where('status', 'in', ['submitted', 'confirmed', 'ready', 'completed'])
-    .withConverter(orderConverter as any);
-
-  const ordersSnap = await ordersQuery.get();
-  const orders = ordersSnap.docs.map((doc: any) => doc.data()) as OrderDoc[];
+  // Fetch orders (brandId first, orgId fallback)
+  const orders = await fetchOrdersWithFallback(firestore, brandId);
 
   // --- COHORT ANALYSIS LOGIC (Task 401) ---
   const customerFirstOrderDate = new Map<string, string>(); // email -> YYYY-MM
@@ -76,7 +130,8 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
   // 1. Determine Acquisition Month for each customer
   orders.sort((a, b) => a.createdAt.toMillis() - b.createdAt.toMillis()); // Ensure chronological
   orders.forEach(order => {
-    const email = order.customer.email;
+    const email = getOrderEmail(order);
+    if (!email) return;
     const month = order.createdAt.toDate().toISOString().substring(0, 7); // YYYY-MM
 
     if (!customerFirstOrderDate.has(email)) {
@@ -131,7 +186,7 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
   const pairCounts = new Map<string, { productA: string; productB: string; count: number }>();
 
   orders.forEach(order => {
-    totalRevenue += order.totals.total;
+    totalRevenue += getOrderTotal(order);
 
     // Sales Aggregation
     order.items.forEach(item => {
@@ -196,7 +251,7 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
   // Repeat Purchase Logic (Task 402)
   const customerOrderCounts = new Map<string, number>();
   orders.forEach(o => {
-    const email = o.customer.email;
+    const email = getOrderEmail(o);
     if (email) {
       customerOrderCounts.set(email, (customerOrderCounts.get(email) || 0) + 1);
     }
@@ -263,7 +318,7 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
     const ordersByDate = new Map<string, number>();
     orders.forEach(o => {
       const d = o.createdAt.toDate().toISOString().split('T')[0];
-      ordersByDate.set(d, (ordersByDate.get(d) || 0) + o.totals.total);
+      ordersByDate.set(d, (ordersByDate.get(d) || 0) + getOrderTotal(o));
     });
     for (let i = 0; i < 30; i++) {
       const d = new Date();

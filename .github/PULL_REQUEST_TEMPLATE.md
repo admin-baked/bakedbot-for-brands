@@ -1,10 +1,10 @@
-# Summary
+## BakedBot PR Header (Required)
 
-Describe the user-visible or system-visible behavior change.
+### Summary
 
-# Risk Tier
+- What changed in user-visible or system-visible terms?
 
-Choose one:
+### Risk Tier
 
 - [ ] Tier 0 — Low Risk
 - [ ] Tier 1 — Moderate Risk
@@ -13,53 +13,41 @@ Choose one:
 
 Why is this the correct tier?
 
-# Canonical Reuse
+### Canonical Reuse
 
-List the existing types, services, utilities, adapters, schemas, UI patterns, workflows, tools, or modules this change reuses.
-
-- Reused modules/patterns:
+- Existing types/services/utilities/adapters/schemas/UI patterns/workflows/tools/modules reused:
 - Canonical source(s) of truth:
 
-# New Abstractions
+### New Abstractions
 
-Does this PR introduce a new abstraction?
+- [ ] No new abstraction introduced
+- [ ] Yes (explain why reuse/extension was insufficient)
 
-- [ ] No
-- [ ] Yes
+### Failure Modes
 
-If yes, explain why reuse or extension of an existing pattern was insufficient.
+- Behavior on missing data:
+- null/undefined state:
+- timeout:
+- retry:
+- duplicate event:
+- stale state:
+- third-party failure:
+- permission failure:
+- tenant boundary mismatch:
+- partial execution:
 
-# Failure Modes
+### Verification
 
-Explain what happens in the following conditions, if applicable:
-
-- missing data
-- null or undefined state
-- timeout
-- retry
-- duplicate event
-- stale state
-- third-party failure
-- permission failure
-- tenant boundary mismatch
-- partial execution
-
-# Verification
-
-What verification was completed?
-
-- [ ] Unit tests
-- [ ] Integration tests
-- [ ] Contract tests
-- [ ] End-to-end tests
+- [ ] Unit
+- [ ] Integration
+- [ ] Contract
+- [ ] E2E
 - [ ] Manual verification
 - [ ] Existing tests remain green
 
-Notes:
+Commands and outputs:
 
-# Observability
-
-How will this be debugged in production?
+### Observability
 
 - logs:
 - metrics:
@@ -67,58 +55,48 @@ How will this be debugged in production?
 - audit trail:
 - correlation identifiers:
 
-# Explainability
+### Explainability
 
-- [ ] I can explain this change end-to-end without AI comments, prompt history, or generated annotations.
-- [ ] I can explain the main assumptions.
-- [ ] I can explain the failure path.
+- [ ] I can explain the full flow without AI comments, prompt history, or generated annotations.
+- [ ] I can explain key assumptions and failure behavior.
 - [ ] I can explain why this logic belongs in this module.
 
-# Reviewer Checklist
+---
 
-## Reuse
+## BakedBot System-Safety Checklist
 
-- [ ] This PR reuses or extends a canonical type, service, utility, schema, component, tool, or adapter.
+### Reuse
+
+- [ ] This extends/reuses canonical modules and does not create parallel ownership.
 - [ ] No duplicate domain type or helper was introduced.
 - [ ] No parallel business logic was introduced across roles or surfaces.
 
-## Conventions
+### Conventions
 
-- [ ] Naming matches domain conventions.
-- [ ] Module placement matches architecture boundaries.
-- [ ] Error handling matches existing patterns.
-- [ ] Logging and telemetry match existing patterns.
-- [ ] Permission checks happen in the correct layer.
-- [ ] Tenant scoping follows canonical rules.
+- [ ] Naming, placement, error handling, logging, permission, tenancy, and retry/idempotency conventions are preserved.
 
-## Correctness
+### Correctness
 
-- [ ] No unjustified `eslint-disable`, `any`, unsafe cast, ignored validation, or silent catch was added.
-- [ ] Assumptions are explicit.
-- [ ] Missing, stale, or invalid data is handled intentionally.
+- [ ] No unjustified `eslint-disable`, `any`, unsafe cast, or silent catch added.
+- [ ] Edge/failure behavior is explicit.
 - [ ] Side effects are bounded and predictable.
 
-## Workflow Safety
+### Workflow Safety
 
 - [ ] Retry behavior is correct.
 - [ ] Duplicate events are handled intentionally.
-- [ ] Partial failure behavior is known.
-- [ ] Third-party failure behavior is known.
-- [ ] Async or background behavior is observable.
+- [ ] Partial/third-party failure behavior is known.
+- [ ] Async/background behavior is observable.
 
-## Testing
+### Observability
 
-- [ ] Tests match the selected risk tier.
-- [ ] Critical logic is not validated only through shallow mocks.
-- [ ] Failure paths are tested where relevant.
-- [ ] Repeated execution or idempotency is tested where relevant.
+- [ ] Logs/metrics/traces are sufficient for production debugging.
 
-## Explainability
+### Human Review
 
-- [ ] The author can explain the code without AI help.
-- [ ] I understand why this implementation is safe enough to merge.
+- [ ] Reviewer confirms system impact and failure behavior are understood.
 
-## Outcome
+### Outcome
 
 - [ ] Approve
 - [ ] Approve with follow-up

@@ -172,9 +172,10 @@ export default function MenuPage() {
         try {
             const result = await syncMenu();
             if (result.success) {
+                const warningText = result.warning ? ` Warning: ${result.warning}` : '';
                 toast({
                     title: "Sync Complete",
-                    description: `Synced ${result.count} products from ${posConfig.displayName}.${result.removed ? ` Removed ${result.removed} stale products.` : ''}`,
+                    description: `Synced ${result.count} products from ${posConfig.displayName}.${result.removed ? ` Removed ${result.removed} stale products.` : ''}${warningText}`,
                 });
                 await loadProducts();
             } else {

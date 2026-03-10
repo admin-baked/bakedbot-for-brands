@@ -62,10 +62,11 @@ import {
   type Step6Data,
   type Step7Data,
 } from './components/setup-step-dialogs';
-import { extractBrandGuideFromUrl, createBrandGuide } from '@/server/actions/brand-guide';
+import { extractBrandGuideFromUrl } from '@/server/actions/brand-guide';
 import { mirrorBrandAssetFromUrl } from '@/server/actions/brand-assets';
 import { generateBrandImagesForNewAccount } from '@/server/actions/brand-images';
 import { createOrgProfileFromWizard } from '@/server/actions/org-profile';
+import { createBrandGuideViaApi } from './create-brand-guide-client';
 import type { OrgProfile } from '@/types/org-profile';
 import { useToast } from '@/hooks/use-toast';
 
@@ -548,7 +549,7 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
       const persistedFeaturedImageUrl = await mirrorCandidate(step2Data.featuredImageUrl, 'image');
 
       // Create brand guide with collected data
-      const result = await createBrandGuide({
+      const result = await createBrandGuideViaApi({
         brandId,
         brandName: step1Data.brandName,
         method: 'manual',
