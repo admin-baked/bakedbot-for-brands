@@ -46,6 +46,11 @@ export interface DispensaryPlaybookData {
 }
 
 function isUserAuthorizedForOrg(session: Record<string, unknown>, orgId: string): boolean {
+    const role = typeof session.role === 'string' ? session.role : null;
+    if (role === 'super_user' || role === 'super_admin') {
+        return true;
+    }
+
     const directOrgId = typeof session.orgId === 'string' ? session.orgId : null;
     const currentOrgId = typeof session.currentOrgId === 'string' ? session.currentOrgId : null;
     const brandId = typeof session.brandId === 'string' ? session.brandId : null;

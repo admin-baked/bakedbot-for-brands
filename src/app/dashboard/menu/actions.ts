@@ -503,10 +503,14 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
         }
 
         // 6. Update Location Sync Status (including POS count — source of truth)
+        const trustedSyncCount = staleDeletionSkipped && previousSyncCount !== null
+            ? previousSyncCount
+            : count;
+
         await firestore.collection('locations').doc(locationId).update({
             'posConfig.syncedAt': now,
             'posConfig.lastSyncStatus': 'success',
-            'posConfig.lastSyncCount': count,   // POS authoritative product count
+            'posConfig.lastSyncCount': trustedSyncCount,
             'posConfig.lastSyncError': null,
             'posConfig.lastSyncAttemptAt': now,
         });
