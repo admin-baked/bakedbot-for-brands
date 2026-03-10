@@ -74,6 +74,11 @@ function sanitizePlaybookCustomConfig(config: PlaybookCustomConfig): PlaybookCus
 export async function getDispensaryPlaybookAssignments(orgId: string): Promise<DispensaryPlaybookData> {
     const session = await requireUser();
     if (!isUserAuthorizedForOrg(session as unknown as Record<string, unknown>, orgId)) {
+        logger.warn('[DispensaryPlaybooks] Forbidden org access', {
+            orgId,
+            role: (session as any)?.role ?? null,
+            uid: (session as any)?.uid ?? null,
+        });
         throw new Error('Forbidden: You do not have access to this organization');
     }
 
@@ -147,6 +152,11 @@ export async function updatePlaybookAssignmentConfig(
 ): Promise<{ success: boolean; error?: string }> {
     const session = await requireUser();
     if (!isUserAuthorizedForOrg(session as unknown as Record<string, unknown>, orgId)) {
+        logger.warn('[DispensaryPlaybooks] Forbidden org mutation', {
+            orgId,
+            role: (session as any)?.role ?? null,
+            uid: (session as any)?.uid ?? null,
+        });
         return { success: false, error: 'Forbidden: You do not have access to this organization' };
     }
 
@@ -200,6 +210,11 @@ export async function toggleDispensaryPlaybookAssignment(
 ): Promise<{ success: boolean; error?: string }> {
     const session = await requireUser();
     if (!isUserAuthorizedForOrg(session as unknown as Record<string, unknown>, orgId)) {
+        logger.warn('[DispensaryPlaybooks] Forbidden org mutation', {
+            orgId,
+            role: (session as any)?.role ?? null,
+            uid: (session as any)?.uid ?? null,
+        });
         return { success: false, error: 'Forbidden: You do not have access to this organization' };
     }
 
