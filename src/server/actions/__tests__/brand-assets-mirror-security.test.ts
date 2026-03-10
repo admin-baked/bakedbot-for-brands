@@ -50,6 +50,19 @@ describe('mirrorBrandAssetFromUrl security', () => {
     (lookup as jest.Mock).mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
   });
 
+
+  it('blocks full IPv4 loopback range, not just 127.0.0.1', async () => {
+    const result = await mirrorBrandAssetFromUrl('brand-1', {
+      sourceUrl: 'http://127.0.0.2/internal.png',
+      category: 'image',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/Private or local source URLs are not allowed/i);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+
   it('blocks IPv4-mapped IPv6 loopback hosts', async () => {
     const result = await mirrorBrandAssetFromUrl('brand-1', {
       sourceUrl: 'http://[::ffff:127.0.0.1]:8080/private.png',

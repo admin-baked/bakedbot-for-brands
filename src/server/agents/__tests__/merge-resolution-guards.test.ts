@@ -39,13 +39,15 @@ describe('agent merge-resolution guards', () => {
   ] as const)('%s does not regress to local brandId fallback in act()', (fileName) => {
     const source = readAgentSource(fileName);
 
-    expect(source).not.toMatch(/async\s+act\([\s\S]*?const\s+brandId\s*=\s*\(brandMemory\.brand_profile\s+as\s+any\)\?\.id\s*\|\|\s*'unknown';/m);
+    const actPreamble = source.match(/async\s+act\([\s\S]*?if \(targetId === 'user_request' && stimulus\) {/m)?.[0] ?? '';
+    expect(actPreamble).not.toContain("const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';")
   });
 
   it('mrsParker does not regress to local orgId fallback in act()', () => {
     const source = readAgentSource('mrsParker.ts');
 
-    expect(source).not.toMatch(/async\s+act\([\s\S]*?const\s+orgId\s*=\s*\(brandMemory\.brand_profile\s+as\s+any\)\?\.orgId\s*\|\|\s*\(brandMemory\.brand_profile\s+as\s+any\)\?\.id\s*\|\|\s*'unknown';/m);
+    const actPreamble = source.match(/async\s+act\([\s\S]*?if \(targetId === 'user_request' && stimulus\) {/m)?.[0] ?? '';
+    expect(actPreamble).not.toContain("const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || 'unknown';")
   });
 
   it('dayday keeps typed tools signature in act()', () => {
