@@ -24,7 +24,17 @@ function AnalyticsSkeleton() {
 export default async function DashboardAnalyticsPage() {
   let user;
   try {
-    user = await requireUser(['brand', 'dispensary_admin', 'super_user']);
+    user = await requireUser([
+      'brand',
+      'brand_admin',
+      'brand_member',
+      'dispensary',
+      'dispensary_admin',
+      'dispensary_staff',
+      'budtender',
+      'super_user',
+      'super_admin',
+    ]);
   } catch (error) {
     redirect('/signin');
   }

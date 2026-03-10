@@ -138,6 +138,23 @@ function CostCell({ product, onSaved }: { product: Product; onSaved: (id: string
     );
 }
 
+
+function HealthPill({ label, value, tone = 'neutral' }: { label: string; value: string; tone?: 'neutral' | 'good' | 'warn' | 'bad' }) {
+    const toneClass = {
+        neutral: 'border-slate-300 bg-slate-50 text-slate-700',
+        good: 'border-emerald-300 bg-emerald-50 text-emerald-700',
+        warn: 'border-amber-300 bg-amber-50 text-amber-700',
+        bad: 'border-red-300 bg-red-50 text-red-700',
+    }[tone];
+
+    return (
+        <div className={`rounded-md border px-3 py-2 ${toneClass}`}>
+            <p className="text-[11px] uppercase tracking-wide opacity-80">{label}</p>
+            <p className="text-sm font-medium">{value}</p>
+        </div>
+    );
+}
+
 export default function MenuPage() {
     // ── Product data (shared across tabs) ──
     const { orgId } = useUserRole();
@@ -172,9 +189,10 @@ export default function MenuPage() {
         try {
             const result = await syncMenu();
             if (result.success) {
+                const warningText = result.warning ? ` Warning: ${result.warning}` : '';
                 toast({
                     title: "Sync Complete",
-                    description: `Synced ${result.count} products from ${posConfig.displayName}.${result.removed ? ` Removed ${result.removed} stale products.` : ''}`,
+                    description: `Synced ${result.count} products from ${posConfig.displayName}.${result.removed ? ` Removed ${result.removed} stale products.` : ''}${warningText}`,
                 });
                 await loadProducts();
             } else {
@@ -311,6 +329,36 @@ export default function MenuPage() {
     const outOfStockCount = products.filter(p => p.inStock === false).length;
 
     // ── Full-screen preview overlay ──
+
+    const posHealthTone: 'good' | 'warn' | 'bad' =
+        posConfig.status === 'active'
+            ? 'good'
+            : posConfig.provider
+              ? 'warn'
+              : 'bad';
+
+    const posHealthValue = posConfig.provider
+        ? `${posConfig.displayName} ${posConfig.status || 'configured'}`
+        : 'Not connected';
+
+    const syncDelta = posConfig.lastSyncCount !== null
+        ? products.length - posConfig.lastSyncCount
+        : null;
+
+    const syncDeltaTone: 'good' | 'warn' | 'bad' = syncDelta === null
+        ? 'warn'
+        : Math.abs(syncDelta) <= 5
+          ? 'good'
+          : Math.abs(syncDelta) <= 25
+            ? 'warn'
+            : 'bad';
+
+    const syncDeltaValue = syncDelta === null
+        ? 'Awaiting baseline sync'
+        : syncDelta === 0
+          ? '0 delta (healthy)'
+          : `${syncDelta > 0 ? '+' : ''}${syncDelta} vs POS baseline`;
+
     if (fullScreen && previewData?.brand) {
         return (
             <div className="fixed inset-0 z-50 bg-background overflow-auto">
@@ -381,6 +429,20 @@ export default function MenuPage() {
                     </Button>
                 </div>
             </div>
+
+            {/* Menu OS Health Strip (v1) */}
+            <Card>
+                <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Menu OS Health</CardTitle>
+                    <CardDescription>Daily operator snapshot for sync integrity and execution readiness.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-2 md:grid-cols-2 lg:grid-cols-4">
+                    <HealthPill label="POS Sync" value={posHealthValue} tone={posHealthTone} />
+                    <HealthPill label="Product Delta" value={syncDeltaValue} tone={syncDeltaTone} />
+                    <HealthPill label="Analytics Freshness" value="Wiring in progress" tone="warn" />
+                    <HealthPill label="Playbook Health" value="Wiring in progress" tone="warn" />
+                </CardContent>
+            </Card>
 
             {/* COGS Alert Banner */}
             {missingCOGSCount > 0 && (
