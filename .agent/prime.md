@@ -267,8 +267,8 @@ Do NOT wait for the user to say "P1" or "file a bug first" — triage, file, and
 
 ---
 
-**Recent work (2026-03-08):** See `MEMORY.md` for full log.
-Key completed: [Codex `jcodemunch` MCP activation], [repo indexing for symbol-first exploration], [detailed agent refs under `refs/agents/`], [prime `jcodemunch` workflow update], [Playbook action trace]
+**Recent work (2026-03-09):** See `MEMORY.md` for full log.
+Key completed: [AI Economics dashboard `?tab=ai-economics`] (`09f789f66`), [orgId threaded into agent telemetry; HeartbeatCheckId + LinusRequest.context fixes] (`HEAD`)
 
 ---
 
