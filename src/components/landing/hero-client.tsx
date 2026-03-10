@@ -32,11 +32,11 @@ export function HeroClient() {
 
     return (
         <section className="relative overflow-hidden min-h-[90vh] flex flex-col justify-center">
-            {/* Background Gradients */}
-            <div className="absolute inset-0 -z-10 pointer-events-none">
-                <div className="absolute -top-40 left-1/2 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-emerald-500/10 blur-[120px] opacity-60" />
-                <div className="absolute top-40 left-0 h-[500px] w-[500px] rounded-full bg-purple-500/10 blur-[100px] opacity-40" />
-                <div className="absolute bottom-0 right-0 h-[500px] w-[500px] rounded-full bg-sky-500/10 blur-[100px] opacity-40" />
+            {/* Background Gradients — clamped to viewport width to prevent horizontal scroll */}
+            <div className="absolute inset-0 -z-10 pointer-events-none overflow-hidden">
+                <div className="absolute -top-40 left-1/2 h-[400px] w-[400px] sm:h-[600px] sm:w-[600px] -translate-x-1/2 rounded-full bg-emerald-500/10 blur-[120px] opacity-60" />
+                <div className="absolute top-40 -left-20 h-[300px] w-[300px] sm:h-[500px] sm:w-[500px] rounded-full bg-purple-500/10 blur-[100px] opacity-40" />
+                <div className="absolute bottom-0 -right-20 h-[300px] w-[300px] sm:h-[500px] sm:w-[500px] rounded-full bg-sky-500/10 blur-[100px] opacity-40" />
             </div>
 
             <div className="mx-auto max-w-6xl px-4 pt-24 pb-16">
@@ -47,23 +47,23 @@ export function HeroClient() {
                         <div className="inline-flex items-center p-1 bg-muted/30 backdrop-blur-md border border-white/10 rounded-full shadow-lg">
                             <button
                                 onClick={() => setUserType('dispensary')}
-                                className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${userType === 'dispensary'
+                                className={`flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 ${userType === 'dispensary'
                                     ? 'bg-emerald-600 text-white shadow-emerald-500/25 shadow-lg scale-105'
                                     : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
                                     }`}
                             >
-                                <Store className="w-4 h-4" />
-                                For Dispensaries
+                                <Store className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                                <span>For Dispensaries</span>
                             </button>
                             <button
                                 onClick={() => setUserType('brand')}
-                                className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${userType === 'brand'
+                                className={`flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 ${userType === 'brand'
                                     ? 'bg-purple-600 text-white shadow-purple-500/25 shadow-lg scale-105'
                                     : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
                                     }`}
                             >
-                                <Building2 className="w-4 h-4" />
-                                For Brands
+                                <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                                <span>For Brands</span>
                             </button>
                         </div>
                     </div>
@@ -78,23 +78,27 @@ export function HeroClient() {
                             transition={{ duration: 0.3 }}
                             className="space-y-6"
                         >
-                            <Badge variant="outline" className="mb-4 bg-emerald-500/5 text-emerald-600 border-emerald-500/20 px-4 py-1.5 text-sm uppercase tracking-wider backdrop-blur-sm">
+                            <Badge variant="outline" className="mb-4 max-w-[90vw] whitespace-normal text-center leading-snug bg-emerald-500/5 text-emerald-600 border-emerald-500/20 px-3 py-1.5 text-xs sm:text-sm sm:px-4 uppercase tracking-wide sm:tracking-wider backdrop-blur-sm">
                                 {userType === 'dispensary' ? 'Automate Your Retail Operations' : 'Scale Your Wholesale Distribution'}
                             </Badge>
 
-                            <h1 className="text-4xl sm:text-6xl md:text-7xl font-bold tracking-tight text-foreground leading-[1.1]">
+                            <h1 className="text-[2rem] sm:text-6xl md:text-7xl font-bold tracking-tight text-foreground leading-[1.1]">
                                 {userType === 'dispensary' ? (
                                     <>
-                                        Turn Your Menu Into A<br />
-                                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-400">
-                                            Revenue Engine
+                                        Turn Your Menu Into A{' '}
+                                        <span className="block">
+                                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-400">
+                                                Revenue Engine
+                                            </span>
                                         </span>
                                     </>
                                 ) : (
                                     <>
-                                        Hire An AI Squad To<br />
-                                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-indigo-400">
-                                            Run Your Brand
+                                        Hire An AI Squad To{' '}
+                                        <span className="block">
+                                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-indigo-400">
+                                                Run Your Brand
+                                            </span>
                                         </span>
                                     </>
                                 )}
@@ -112,18 +116,19 @@ export function HeroClient() {
                     {/* One-Click Audit Search Bar */}
                     <div className="mt-10 mb-8 max-w-xl mx-auto relative group">
                         <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500 to-purple-600 rounded-full blur opacity-30 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
-                        <form onSubmit={handleAuditSubmit} className="relative flex items-center bg-background/90 backdrop-blur-xl rounded-full p-2 border border-white/10 shadow-2xl">
-                            <Search className="ml-4 w-5 h-5 text-muted-foreground shrink-0" />
+                        <form onSubmit={handleAuditSubmit} className="relative flex items-center bg-background/90 backdrop-blur-xl rounded-full p-1.5 sm:p-2 border border-white/10 shadow-2xl">
+                            <Search className="ml-3 sm:ml-4 w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground shrink-0" />
                             <input
                                 type="text"
-                                placeholder={userType === 'dispensary' ? "Find your store (e.g., 'Green Releaf Chicago')" : "Find your brand (e.g., 'Wyld Edibles')"}
-                                className="w-full bg-transparent border-none focus:ring-0 text-base px-4 py-3 placeholder:text-muted-foreground/60"
+                                placeholder={userType === 'dispensary' ? "Find your store (e.g., 'Green Releaf')" : "Find your brand (e.g., 'Wyld Edibles')"}
+                                className="w-full min-w-0 bg-transparent border-none focus:ring-0 text-sm sm:text-base px-2 sm:px-4 py-2 sm:py-3 placeholder:text-muted-foreground/60"
                                 value={auditUrl}
                                 onChange={(e) => setAuditUrl(e.target.value)}
                             />
-                            <Button size="lg" className="rounded-full px-8 shrink-0 bg-foreground text-background hover:bg-foreground/90 transition-all font-semibold">
-                                {userType === 'dispensary' ? 'Claim Store' : 'Start Audit'}
-                                <ArrowRight className="w-4 h-4 ml-2" />
+                            <Button size="sm" className="rounded-full px-4 sm:px-6 shrink-0 bg-foreground text-background hover:bg-foreground/90 transition-all font-semibold text-xs sm:text-sm">
+                                <span className="hidden sm:inline">{userType === 'dispensary' ? 'Claim Store' : 'Start Audit'}</span>
+                                <span className="sm:hidden">Go</span>
+                                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1.5" />
                             </Button>
                         </form>
                     </div>
