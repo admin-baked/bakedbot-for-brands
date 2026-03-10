@@ -4,7 +4,7 @@ import { useSearchParams } from 'next/navigation';
 import { useState, useRef, useEffect, useActionState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, LogIn, Sparkles, CheckCircle } from 'lucide-react';
+import { Search, LogIn, Sparkles, CheckCircle, Leaf, Package, Store, User } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { useToast } from '@/hooks/use-toast';
 import { completeOnboarding } from './actions';
@@ -44,6 +44,7 @@ export default function OnboardingPage() {
   const { auth } = useFirebase();
   const [step, setStep] = useState<Step>('role');
   const [role, setRole] = useState<'brand' | 'dispensary' | 'customer' | 'skip' | null>(null);
+  const [orgSubtype, setOrgSubtype] = useState<'grower' | 'brand' | null>(null);
   const [showWiring, setShowWiring] = useState(false);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -185,8 +186,9 @@ export default function OnboardingPage() {
     }
   }
 
-  function handleSelectRole(r: typeof role) {
+  function handleSelectRole(r: typeof role, subtype?: 'grower' | 'brand') {
     setRole(r);
+    setOrgSubtype(subtype ?? null);
     if (r === 'brand' || r === 'dispensary') {
       // Go to market selection first for brand/dispensary
       setStep('market');
@@ -307,27 +309,73 @@ export default function OnboardingPage() {
   // --- Render Steps ---
 
   const renderRoleSelection = () => (
-    <section className="space-y-6">
+    <section className="space-y-5">
       <h2 className="font-semibold text-xl text-center">First, who are you?</h2>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Button variant="outline" className="h-auto text-left p-6 flex-col items-start gap-2 hover:border-primary/50 transition-all shadow-sm" onClick={() => handleSelectRole('brand')}>
-          <h3 className="font-bold text-lg">A Brand</h3>
-          <p className="text-sm text-muted-foreground">Product manufacturers, growers, & extractors.</p>
-        </Button>
-        <Button variant="outline" className="h-auto text-left p-6 flex-col items-start gap-2 hover:border-primary/50 transition-all shadow-sm" onClick={() => handleSelectRole('dispensary')}>
-          <h3 className="font-bold text-lg">A Dispensary</h3>
-          <p className="text-sm text-muted-foreground">Retail locations, delivery services, & storefronts.</p>
-        </Button>
-        <Button variant="outline" className="h-auto text-left p-6 flex-col items-start gap-2 hover:border-primary/50 transition-all shadow-sm sm:col-span-2" onClick={() => handleSelectRole('customer')}>
-          <h3 className="font-bold text-lg">A Customer</h3>
-          <p className="text-sm text-muted-foreground">Looking to shop, browse deals, or find products.</p>
-        </Button>
+      <div className="grid grid-cols-2 gap-3">
+        {/* Grower */}
+        <button
+          className="text-left p-4 flex flex-col gap-2 border border-border rounded-xl hover:border-emerald-500/60 hover:bg-emerald-500/5 transition-all shadow-sm group"
+          onClick={() => handleSelectRole('brand', 'grower')}
+        >
+          <div className="p-2 w-fit bg-muted rounded-lg group-hover:bg-emerald-500/10 transition-colors">
+            <Leaf className="h-4 w-4 text-muted-foreground group-hover:text-emerald-600" />
+          </div>
+          <div>
+            <div className="font-bold text-base leading-tight">Grower</div>
+            <div className="text-xs text-muted-foreground mt-0.5 leading-snug">Cultivators & farms</div>
+          </div>
+        </button>
+
+        {/* Brand */}
+        <button
+          className="text-left p-4 flex flex-col gap-2 border border-border rounded-xl hover:border-purple-500/60 hover:bg-purple-500/5 transition-all shadow-sm group"
+          onClick={() => handleSelectRole('brand', 'brand')}
+        >
+          <div className="p-2 w-fit bg-muted rounded-lg group-hover:bg-purple-500/10 transition-colors">
+            <Package className="h-4 w-4 text-muted-foreground group-hover:text-purple-600" />
+          </div>
+          <div>
+            <div className="font-bold text-base leading-tight">Brand</div>
+            <div className="text-xs text-muted-foreground mt-0.5 leading-snug">Manufacturers & labs</div>
+          </div>
+        </button>
+
+        {/* Dispensary */}
+        <button
+          className="text-left p-4 flex flex-col gap-2 border border-border rounded-xl hover:border-emerald-500/60 hover:bg-emerald-500/5 transition-all shadow-sm group"
+          onClick={() => handleSelectRole('dispensary')}
+        >
+          <div className="p-2 w-fit bg-muted rounded-lg group-hover:bg-emerald-500/10 transition-colors">
+            <Store className="h-4 w-4 text-muted-foreground group-hover:text-emerald-600" />
+          </div>
+          <div>
+            <div className="font-bold text-base leading-tight">Dispensary</div>
+            <div className="text-xs text-muted-foreground mt-0.5 leading-snug">Retail & storefronts</div>
+          </div>
+        </button>
+
+        {/* Customer */}
+        <button
+          className="text-left p-4 flex flex-col gap-2 border border-border rounded-xl hover:border-blue-500/60 hover:bg-blue-500/5 transition-all shadow-sm group"
+          onClick={() => handleSelectRole('customer')}
+        >
+          <div className="p-2 w-fit bg-muted rounded-lg group-hover:bg-blue-500/10 transition-colors">
+            <User className="h-4 w-4 text-muted-foreground group-hover:text-blue-600" />
+          </div>
+          <div>
+            <div className="font-bold text-base leading-tight">Customer</div>
+            <div className="text-xs text-muted-foreground mt-0.5 leading-snug">Shop & browse deals</div>
+          </div>
+        </button>
       </div>
-      
-      <div className="flex justify-center pt-2">
-        <Button variant="ghost" className="text-muted-foreground hover:text-foreground" onClick={() => handleSelectRole('skip')}>
-          Skip setup for now &rarr;
-        </Button>
+
+      <div className="flex justify-center pt-1">
+        <button
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          onClick={() => handleSelectRole('skip')}
+        >
+          Skip setup for now →
+        </button>
       </div>
     </section>
   );
@@ -489,7 +537,9 @@ export default function OnboardingPage() {
         <div className="border rounded-xl p-6 space-y-4 bg-card shadow-sm">
           <div className="flex justify-between items-center py-2 border-b border-dashed">
             <span className="text-muted-foreground">Role</span>
-            <span className="font-semibold capitalize bg-primary/10 text-primary px-3 py-1 rounded-full text-xs">{role}</span>
+            <span className="font-semibold capitalize bg-primary/10 text-primary px-3 py-1 rounded-full text-xs">
+              {role === 'brand' && orgSubtype === 'grower' ? 'Grower' : role}
+            </span>
           </div>
           {hasSelection && (
             <div className="flex justify-between items-center py-2">
@@ -507,6 +557,7 @@ export default function OnboardingPage() {
 
         <form action={formAction} ref={formRef} className="flex flex-col gap-4">
           <input type="hidden" name="role" value={role || ''} />
+          <input type="hidden" name="orgSubtype" value={orgSubtype || ''} />
           <input type="hidden" name="planId" value={selectedPlanId} />
           {role === 'brand' && <input type="hidden" name="brandId" value={selectedCannMenusEntity?.id || ''} />}
           {role === 'brand' && <input type="hidden" name="brandName" value={selectedCannMenusEntity?.name || ''} />}
