@@ -221,6 +221,70 @@ async function buildDispensaryCompetitorSuggestions(params: {
 }
 
 // ============================================================================
+// HELPERS
+// ============================================================================
+
+/**
+ * Fetch the image URL of the top Flower product from a dispensary's live menu.
+ * Checks POS tenant catalog first, then falls back to the legacy products collection.
+ * Returns null if no valid Flower image is found.
+ */
+async function fetchFeaturedFlowerImage(brandId: string): Promise<string | null> {
+  try {
+    const firestore = getAdminFirestore();
+
+    // For POS-connected dispensaries: look up the tenant orgId
+    const brandDoc = await firestore.collection('brands').doc(brandId).get();
+    const orgId = brandDoc.exists ? (brandDoc.data()?.orgId as string | undefined) : undefined;
+
+    const isValidImage = (url: unknown): url is string =>
+      typeof url === 'string' &&
+      url.startsWith('http') &&
+      !url.includes('placeholder') &&
+      !url.includes('/icon');
+
+    if (orgId) {
+      // POS path: tenants/{orgId}/publicViews/products/items
+      const snap = await firestore
+        .collection('tenants').doc(orgId)
+        .collection('publicViews').doc('products')
+        .collection('items')
+        .where('category', '==', 'flower')
+        .limit(20)
+        .get();
+
+      for (const doc of snap.docs) {
+        const d = doc.data();
+        const url = d.imageUrl ?? (Array.isArray(d.imageUrls) ? d.imageUrls[0] : null);
+        if (isValidImage(url)) return url;
+      }
+    }
+
+    // Legacy / non-POS path: products collection
+    const legacySnap = await firestore
+      .collection('products')
+      .where('brandId', '==', brandId)
+      .where('category', '==', 'Flower')
+      .limit(10)
+      .get();
+
+    for (const doc of legacySnap.docs) {
+      const d = doc.data();
+      const url = d.imageUrl ?? (Array.isArray(d.images) ? d.images[0] : null);
+      if (isValidImage(url)) return url;
+    }
+
+    return null;
+  } catch (err) {
+    logger.warn('[BrandGuide] fetchFeaturedFlowerImage failed', {
+      brandId,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return null;
+  }
+}
+
+// ============================================================================
 // CORE CRUD OPERATIONS
 // ============================================================================
 
@@ -484,6 +548,7 @@ export async function extractBrandGuideFromUrl(
   websiteTitle?: string;
   suggestedArchetype?: ArchetypeId;
   competitorSuggestions?: BrandGuideCompetitorSuggestion[];
+  featuredProductImage?: string;
   error?: string;
 }> {
   try {
@@ -526,6 +591,11 @@ export async function extractBrandGuideFromUrl(
       }
     }
 
+    // Fetch featured Flower product image from the dispensary's live menu (non-blocking)
+    const featuredProductImage = input.brandId
+      ? await fetchFeaturedFlowerImage(input.brandId).catch(() => null)
+      : null;
+
     logger.info('[extractBrandGuideFromUrl] Extraction result', {
       url: input.url,
       confidence: result.confidence,
@@ -536,6 +606,7 @@ export async function extractBrandGuideFromUrl(
       websiteTitle: result.websiteTitle || '(none)',
       suggestedArchetype: result.suggestedArchetype || '(none)',
       competitorSuggestions: competitorSuggestions.length,
+      featuredProductImage: featuredProductImage ? 'found' : 'none',
     });
 
     return {
@@ -548,6 +619,7 @@ export async function extractBrandGuideFromUrl(
       websiteTitle: result.websiteTitle,
       suggestedArchetype: result.suggestedArchetype,
       competitorSuggestions,
+      featuredProductImage: featuredProductImage || undefined,
     };
   } catch (error) {
     logger.error('Failed to extract brand guide from URL', { error, input });

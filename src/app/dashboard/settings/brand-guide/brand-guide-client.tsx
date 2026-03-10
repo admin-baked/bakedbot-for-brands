@@ -471,6 +471,7 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
       if (result.visualIdentity) {
         const detectedLogo = result.visualIdentity.logo?.primary;
         const detectedFeaturedImage =
+          (result as any).featuredProductImage ||   // Flower product from live menu (most relevant for dispensaries)
           (result as any).metadata?.ogImage ||
           (result as any).metadata?.image ||
           result.visualIdentity.logo?.secondary ||

@@ -58,14 +58,23 @@ export function makeBrandGuideRepo(firestore: Firestore): BrandGuideRepo {
   const COLLECTION = 'brandGuides';
 
   /**
-   * Convert BrandGuide to Firestore format
+   * Convert BrandGuide to Firestore format.
+   * Applies deep serialization via toSerializable() to ensure ALL nested Date objects
+   * and any custom-prototype objects are converted to Firestore-compatible types.
+   * Only then set the top-level Timestamp fields explicitly.
    */
   function toFirestore(guide: BrandGuide): BrandGuideFirestore {
-    return {
+    const createdAtDate = guide.createdAt instanceof Date ? guide.createdAt : new Date();
+    const lastUpdatedAtDate = guide.lastUpdatedAt instanceof Date ? guide.lastUpdatedAt : new Date();
+
+    // Deep-serialize to handle any nested Date/custom-proto objects, then override top-level timestamps
+    const serialized = toSerializable({
       ...guide,
-      createdAt: Timestamp.fromDate(guide.createdAt instanceof Date ? guide.createdAt : new Date()),
-      lastUpdatedAt: Timestamp.fromDate(guide.lastUpdatedAt instanceof Date ? guide.lastUpdatedAt : new Date()),
-    };
+      createdAt: createdAtDate,
+      lastUpdatedAt: lastUpdatedAtDate,
+    }) as Record<string, unknown>;
+
+    return serialized as BrandGuideFirestore;
   }
 
   /**
