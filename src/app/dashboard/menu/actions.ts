@@ -4,6 +4,7 @@ import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import { logger } from '@/lib/logger';
+import { getTrustedSyncCount } from './sync-guards';
 import { CannMenusService } from '@/server/services/cannmenus';
 import { normalizeCategoryName } from '@/lib/utils/product-image';
 import { unstable_noStore as noStore } from 'next/cache';
@@ -99,6 +100,7 @@ async function resolveOrgId(
 /**
  * Get POS configuration info for the current user's location
  */
+
 export async function getPosConfig(): Promise<PosConfigInfo> {
     try {
         const { firestore } = await createServerClient();
@@ -503,10 +505,24 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
         }
 
         // 6. Update Location Sync Status (including POS count — source of truth)
+        const trustedSyncCount = getTrustedSyncCount({
+            staleDeletionSkipped,
+            previousSyncCount,
+            currentSyncCount: count,
+        });
+
+        if (staleDeletionSkipped && previousSyncCount !== null) {
+            logger.warn('[SYNC_MENU] Preserving trusted sync baseline after suspicious drop', {
+                locationId,
+                previousSyncCount,
+                currentSyncCount: count,
+            });
+        }
+
         await firestore.collection('locations').doc(locationId).update({
             'posConfig.syncedAt': now,
             'posConfig.lastSyncStatus': 'success',
-            'posConfig.lastSyncCount': count,   // POS authoritative product count
+            'posConfig.lastSyncCount': trustedSyncCount,
             'posConfig.lastSyncError': null,
             'posConfig.lastSyncAttemptAt': now,
         });
