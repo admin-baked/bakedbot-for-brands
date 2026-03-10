@@ -193,6 +193,10 @@ export interface MultiStepContext {
      */
     useGLMSynthesis?: boolean;
 
+    // === TELEMETRY ===
+    orgId?: string;   // org that triggered this task (for per-customer cost tracking)
+    brandId?: string; // brand context if applicable
+
     // === EXISTING CALLBACKS ===
     onStepComplete?: (step: number, toolName: string, result: any) => Promise<void>;
     onHITLRequired?: (params: { tool: string; args: any; reason: string }) => Promise<{ approved: boolean; reason?: string }>;
@@ -608,7 +612,7 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
             `${systemInstructions}\n\n${wrapUserData(sanitizedQuery, 'user_request', false)}`,
             claudeTools,
             executor,
-            { maxIterations }
+            { maxIterations, orgId: context.orgId, brandId: context.brandId }
         );
 
         return { finalResult: result.content, steps };

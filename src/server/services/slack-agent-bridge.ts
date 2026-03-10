@@ -146,28 +146,67 @@ export async function resolveMentions(userIds: string[], requestorSlackId: strin
 
 /**
  * Detect which agent persona to use based on message content and channel name.
- * Priority: explicit name in message > channel prefix > default.
+ *
+ * Priority order:
+ *   1. Explicit agent NAME in text (e.g., "linus", "leo", "pops") — highest confidence
+ *   2. Dedicated channel prefix (e.g., #linus-cto always routes to Linus)
+ *   3. Generic keyword match in text (e.g., "data", "code", "email") — lowest
+ *   4. Default: Leo for DMs, puff for general channels
+ *
+ * Channels like #linus-cto are "dedicated" — messages there should always reach
+ * the named agent unless the user explicitly mentions a different agent by name.
  */
 export function detectAgent(text: string, channelName: string, isDm: boolean): string {
     const lower = text.toLowerCase();
 
-    // 1. Check message text for explicit agent keywords
+    // Agent names that count as an explicit invocation (not generic keywords)
+    const EXPLICIT_NAMES = [
+        'leo', 'linus', 'jack', 'glenda', 'ezal', 'craig',
+        'pops', 'smokey', 'parker', 'deebo', 'mike', 'bigworm',
+        'day_day', 'dayday', 'felisha',
+    ];
+
+    // 1. Check for explicit agent name in text (highest priority)
     for (const { keywords, personaId } of KEYWORD_MAP) {
-        if (keywords.some(kw => lower.includes(kw))) {
+        if (keywords.some(kw => EXPLICIT_NAMES.includes(kw) && lower.includes(kw))) {
+            logger.info(`[SlackBridge] detectAgent → Tier1(explicit name) → ${personaId} | channel="${channelName}"`);
             return personaId;
         }
     }
 
-    // 2. Check channel name prefix
+    // 2. Dedicated channel prefix (e.g., #linus-cto → linus)
     const channelLower = (channelName || '').toLowerCase();
     for (const { prefix, personaId } of CHANNEL_MAP) {
         if (channelLower.startsWith(prefix)) {
+            logger.info(`[SlackBridge] detectAgent → Tier2(channel prefix "${prefix}") → ${personaId} | channel="${channelName}"`);
             return personaId;
         }
     }
 
-    // 3. Default: Leo for DMs (trusted direct channel), puff for general channels
-    return isDm ? 'leo' : 'puff';
+    // 3. Generic keyword match (lower priority — only if no channel match)
+    const GENERIC_KEYWORDS = [
+        'operations', 'ops', 'tech', 'build', 'code', 'deploy', 'bug', 'error',
+        'revenue', 'sales', 'pipeline', 'deal', 'brand', 'marketing',
+        'intel', 'competitive', 'lookout', 'competitor', 'social', 'campaign',
+        'post', 'content', 'analytics', 'data', 'report', 'metrics',
+        'products', 'menu', 'inventory', 'strains', 'loyalty', 'customers',
+        'retention', 'email', 'compliance', 'legal', 'regulation',
+        'finance', 'profitability', 'margins', 'tax', 'research', 'market',
+        'growth', 'acquisition', 'leads', 'fulfillment', 'delivery', 'driver',
+    ];
+
+    for (const { keywords, personaId } of KEYWORD_MAP) {
+        const matchedKw = keywords.find(kw => GENERIC_KEYWORDS.includes(kw) && lower.includes(kw));
+        if (matchedKw) {
+            logger.info(`[SlackBridge] detectAgent → Tier3(keyword "${matchedKw}") → ${personaId} | channel="${channelName}"`);
+            return personaId;
+        }
+    }
+
+    // 4. Default: Leo for DMs (trusted direct channel), puff for general channels
+    const defaultAgent = isDm ? 'leo' : 'puff';
+    logger.info(`[SlackBridge] detectAgent → Tier4(default) → ${defaultAgent} | channel="${channelName}" isDm=${isDm}`);
+    return defaultAgent;
 }
 
 // ---------------------------------------------------------------------------
@@ -224,10 +263,24 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             return;
         }
 
-        // For thread replies without a specific agent keyword, route to Leo (COO) for conversation
+        // For thread replies without a specific agent keyword, check if we're in a
+        // dedicated channel (e.g., #linus-cto) and route to that agent. Otherwise default to Leo.
         if (isThreadReply && personaId === 'puff') {
-            personaId = 'leo';
-            logger.info('[SlackBridge] Thread reply without keyword — routing to Leo (default thread handler)');
+            const channelLower = (channelName || '').toLowerCase();
+            let threadAgent = '';
+            for (const { prefix, personaId: chPersona } of CHANNEL_MAP) {
+                if (channelLower.startsWith(prefix)) {
+                    threadAgent = chPersona;
+                    break;
+                }
+            }
+            if (threadAgent) {
+                personaId = threadAgent;
+                logger.info(`[SlackBridge] Thread reply in dedicated channel ${channelName} — routing to ${personaId}`);
+            } else {
+                personaId = 'leo';
+                logger.info('[SlackBridge] Thread reply without keyword — routing to Leo (default thread handler)');
+            }
         }
 
         // 5. Post a "thinking" indicator so user gets immediate feedback

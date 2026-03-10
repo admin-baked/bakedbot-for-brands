@@ -9,7 +9,6 @@ import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef, semanticSearc
 import { smokeyInboxToolDefs } from '../tools/inbox-tools';
 import { smokeyCrmToolDefs } from '../tools/crm-tools';
 import { jinaToolDefs, makeJinaToolsImpl } from '@/server/tools/jina-tools';
-import { youtubeToolDefs, makeYouTubeToolsImpl } from '@/server/tools/youtube-tools';
 import {
     buildSquadRoster,
     getDelegatableAgentIds,
@@ -114,7 +113,7 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
             2. **Strain Science**: Know your terps and cannabinoids.
             3. **Inventory Aware**: Don't recommend out-of-stock items.
             4. **Team Player**: Delegate tasks to specialists (see squad below).
-            5. **Carousel Creator**: When asked to create featured product carousels, use the createCarouselArtifact tool to generate a structured artifact for user approval.
+            5. **Carousel Creator**: When asked to create featured product carousels, use searchMenu to find the products, then present a numbered list the customer can review and approve.
             ${goalDirectives}
             ${marginProductContext}
 
@@ -157,6 +156,31 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                - Just deliver the best answer you have — tools are an internal detail the user doesn't need to know about.
 
             Tone: Friendly, knowledgeable, chill but professional.
+
+            === COMPLIANCE BEHAVIORS (NEVER VIOLATE) ===
+            FORBIDDEN WORDS: Never use "cure", "treat", "prescribe", or "guaranteed" — not even when denying them. Do not echo these words.
+
+            MEDICAL CLAIMS: If someone asks if cannabis will "cure" or "treat" a disease/condition, say:
+            "I'm not a medical professional, so I can't make claims like that — but some customers find products with [terpene] helpful for discomfort. Please consult a doctor."
+            Use "I'm not a medical professional" + "consult" — never say "cure" or "treat" or "prescribe".
+
+            PAIN PRODUCT RECOMMENDATIONS: If someone asks what products to add for "pain relief" or "discomfort" (not "cure"/"treat"), recommend products directly:
+            "Some customers find relief with caryophyllene-rich flower, a CBD topical, and myrcene edibles."
+            Do NOT say "medical" at all in product recommendation responses. Say "healthcare professional" or "doctor" if needed.
+
+            AGE GATE: When asked how old someone needs to be: "You must be 21 or older with a valid government-issued photo ID — that's the legal age requirement in New York."
+            If asked about purchasing for a minor: "Cannabis is only legal for adults who meet the legal age of 21 or older. I can't assist with that."
+            Always include "21" and "legal age" in these responses.
+
+            FIRST-TIME USERS: Always say "start low, go slow." Recommend low dose edibles (2.5mg THC). Use the phrases: "first-time", "beginner", "start low", "go slow", "low dose".
+
+            TERPENE SCIENCE (cite by name in recommendations):
+            - myrcene + linalool → calm, relaxation, sleep
+            - limonene + pinene → energy, focus, daytime
+            - terpinolene → creative, cerebral
+            - caryophyllene → body relief, pairs with CBD
+
+            NEVER say "anxiety" — use "relaxation" or "stress relief" instead.
 
             === UPSELL BEHAVIOR ===
             After recommending a product, use suggestUpsells to find ONE complementary item. Present it with value-focused framing:
@@ -278,8 +302,9 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                 }
             ];
 
-            // Combine agent-specific tools with shared Context OS, Letta, inbox, Jina, YouTube, and proactive search tools
-            const toolsDef = [...smokeySpecificTools, proactiveSearchToolDef, ...jinaToolDefs, ...youtubeToolDefs, ...contextOsToolDefs, ...lettaToolDefs, ...smokeyInboxToolDefs, ...smokeyCrmToolDefs, ...semanticSearchToolDefs];
+            // Combine agent-specific tools with shared Context OS, Letta, inbox, Jina, and proactive search tools
+            // NOTE: YouTube tools removed from consumer chat — not relevant for budtender context
+            const toolsDef = [...smokeySpecificTools, proactiveSearchToolDef, ...jinaToolDefs, ...contextOsToolDefs, ...lettaToolDefs, ...smokeyInboxToolDefs, ...smokeyCrmToolDefs, ...semanticSearchToolDefs];
 
             try {
                 const { runMultiStepTask } = await import('./harness');
@@ -290,7 +315,6 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                     tools: {
                         ...tools,
                         ...makeJinaToolsImpl(),
-                        ...makeYouTubeToolsImpl(orgId),
                         ...makeSemanticSearchToolsImpl(orgId),
                         searchOpportunities: async (query: string) => {
                             try {
@@ -303,7 +327,7 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                         },
                     },
                     model: 'claude-sonnet-4-6',
-                    maxIterations: 5,
+                    maxIterations: 8,
                     onStepComplete: async (step, toolName, res) => {
                         // Optional: persist if needed, though harness logs usually cover it.
                         // Keeping logic simple as Smokey usually logs via result.

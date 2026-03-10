@@ -103,6 +103,29 @@ export function makeBrandGuideRepo(firestore: Firestore): BrandGuideRepo {
     return val;
   }
 
+
+  function toSerializable(val: unknown): unknown {
+    if (val === null || val === undefined) return val;
+    if (val instanceof Date) return Timestamp.fromDate(val);
+    if (Array.isArray(val)) return val.map(toSerializable);
+    if (typeof val === 'object') {
+      const proto = Object.getPrototypeOf(val);
+      if (proto !== Object.prototype && proto !== null) {
+        if (typeof (val as { toDate?: unknown }).toDate === 'function') {
+          return Timestamp.fromDate((val as { toDate(): Date }).toDate());
+        }
+        return JSON.parse(JSON.stringify(val));
+      }
+      const out: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
+        if (k === '__proto__' || k === 'constructor' || k === 'prototype') continue;
+        out[k] = toSerializable(v);
+      }
+      return out;
+    }
+    return val;
+  }
+
   /**
    * Convert Firestore data to BrandGuide
    */
@@ -285,6 +308,7 @@ export function makeBrandGuideRepo(firestore: Firestore): BrandGuideRepo {
       .set({
         ...version,
         timestamp: Timestamp.fromDate(version.timestamp),
+        snapshot: toSerializable(version.snapshot),
       });
 
     logger.info('Version created', { brandId, version: version.version });

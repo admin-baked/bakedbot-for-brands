@@ -160,7 +160,7 @@ export const glendaAgent: AgentImplementation<AgentMemory, GlendaTools> = {
         // Connect to Hive Mind
         try {
             const { lettaBlockManager } = await import('@/server/services/letta/block-manager');
-            const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
+            const brandId = (brandMemory.brand_profile as any)?.id || (brandMemory.brand_profile as any)?.orgId || 'unknown';
             await lettaBlockManager.attachBlocksForRole(brandId, agentMemory.agent_id as string, 'executive');
             logger.info(`[Glenda:HiveMind] Connected to shared executive blocks.`);
         } catch (e) {
@@ -183,9 +183,11 @@ export const glendaAgent: AgentImplementation<AgentMemory, GlendaTools> = {
     },
 
     async act(brandMemory, agentMemory, targetId, tools: GlendaTools, stimulus?: string) {
-        const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
+        const semanticSearchEntityId = (brandMemory.brand_profile as any)?.id || (brandMemory.brand_profile as any)?.orgId || 'unknown';
+
         if (targetId === 'user_request' && stimulus) {
             const userQuery = stimulus;
+            const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
 
             // Get delegatable agent IDs dynamically from registry
             const delegatableAgents = getDelegatableAgentIds('glenda');
@@ -271,7 +273,7 @@ export const glendaAgent: AgentImplementation<AgentMemory, GlendaTools> = {
             ];
             
             // Merge implementations
-            const allTools = { ...tools, ...analyticsToolImplementations, ...makeSemanticSearchToolsImpl(brandId) };
+            const allTools = { ...tools, ...analyticsToolImplementations, ...makeSemanticSearchToolsImpl(semanticSearchEntityId) };
 
             try {
                 const { runMultiStepTask } = await import('./harness');

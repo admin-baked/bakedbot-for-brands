@@ -33,6 +33,7 @@ export interface AgentContext {
 export interface ClaudeContext {
     userId?: string;
     brandId?: string;
+    orgId?: string;   // org that triggered this invocation (for per-customer cost tracking)
     role?: string;
     maxIterations?: number; // Default: 10
     model?: string; // Allow model override
@@ -397,6 +398,8 @@ export async function executeWithTools(
         const telemetryEvent = buildTelemetryEvent({
             agentName: context.agentContext.name,
             model: selectedModel,
+            orgId: context.orgId,
+            brandId: context.brandId,
             inputTokens: totalInputTokens,
             outputTokens: totalOutputTokens,
             toolExecutions: toolExecutions.map(t => ({

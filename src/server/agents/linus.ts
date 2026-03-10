@@ -4090,6 +4090,8 @@ export interface LinusRequest {
     context?: {
         userId?: string;
         sessionId?: string;
+        orgId?: string;
+        brandId?: string;
     };
 }
 
@@ -4323,6 +4325,8 @@ User Request: ${request.prompt}`;
         linusToolExecutor,
         {
             userId: request.context?.userId,
+            orgId: request.context?.orgId,
+            brandId: request.context?.brandId,
             maxIterations: request.maxIterations ?? 15, // Default 15; callers may lower for Slack context
             agentContext: LINUS_AGENT_CONTEXT,
         }

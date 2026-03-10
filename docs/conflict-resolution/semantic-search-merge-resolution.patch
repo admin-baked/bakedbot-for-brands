@@ -1,0 +1,132 @@
+diff --git a/src/server/agents/dayday.ts b/src/server/agents/dayday.ts
+index 72910623..69ef7ed9 100644
+--- a/src/server/agents/dayday.ts
++++ b/src/server/agents/dayday.ts
+@@ -111,6 +111,8 @@ export const dayDayAgent: AgentImplementation<AgentMemory, DayDayTools> = {
+     },
+ 
+     async act(brandMemory, agentMemory, targetId, tools, stimulus) {
++        const semanticSearchEntityId = (brandMemory.brand_profile as any)?.id || (brandMemory.brand_profile as any)?.orgId || 'unknown';
++
+         if (targetId === 'user_request' && stimulus) {
+             const userQuery = stimulus;
+ 
+@@ -188,7 +190,7 @@ export const dayDayAgent: AgentImplementation<AgentMemory, DayDayTools> = {
+             const allTools = {
+                 ...tools,
+                 ...specificImplementations,
+-                ...makeSemanticSearchToolsImpl(brandId),
++                ...makeSemanticSearchToolsImpl(semanticSearchEntityId),
+                 searchOpportunities: async (query: string) => {
+                     try {
+                         const { searchWeb, formatSearchResults } = await import('@/server/tools/web-search');
+diff --git a/src/server/agents/executive.ts b/src/server/agents/executive.ts
+index 43fc68cf..ea9f302d 100644
+--- a/src/server/agents/executive.ts
++++ b/src/server/agents/executive.ts
+@@ -139,6 +139,8 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
+   },
+ 
+   async act(brandMemory, agentMemory, targetId, tools: ExecutiveTools, stimulus?: string) {
++        const semanticSearchEntityId = (brandMemory.brand_profile as any)?.id || (brandMemory.brand_profile as any)?.orgId || 'unknown';
++
+     // === SCENARIO A: User Request (The "Planner" Flow) ===
+     if (targetId === 'user_request' && stimulus) {
+         const userQuery = stimulus;
+@@ -318,7 +320,7 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
+                 userQuery,
+                 systemInstructions: (agentMemory.system_instructions as string) || '',
+                 toolsDef,
+-                tools: { ...tools, ...makeSemanticSearchToolsImpl(brandId) },
++                tools: { ...tools, ...makeSemanticSearchToolsImpl(semanticSearchEntityId) },
+                 model: 'claude-sonnet-4-6', // Triggers harness routing to Claude 4.5 Opus
+                 maxIterations: 5,
+                 onStepComplete: async (step, toolName, result) => {
+diff --git a/src/server/agents/glenda.ts b/src/server/agents/glenda.ts
+index 6a25e4cf..04e0c9e6 100644
+--- a/src/server/agents/glenda.ts
++++ b/src/server/agents/glenda.ts
+@@ -183,6 +183,8 @@ export const glendaAgent: AgentImplementation<AgentMemory, GlendaTools> = {
+     },
+ 
+     async act(brandMemory, agentMemory, targetId, tools: GlendaTools, stimulus?: string) {
++        const semanticSearchEntityId = (brandMemory.brand_profile as any)?.id || (brandMemory.brand_profile as any)?.orgId || 'unknown';
++
+         if (targetId === 'user_request' && stimulus) {
+             const userQuery = stimulus;
+ 
+@@ -270,7 +272,7 @@ export const glendaAgent: AgentImplementation<AgentMemory, GlendaTools> = {
+             ];
+             
+             // Merge implementations
+-            const allTools = { ...tools, ...analyticsToolImplementations, ...makeSemanticSearchToolsImpl(brandId) };
++            const allTools = { ...tools, ...analyticsToolImplementations, ...makeSemanticSearchToolsImpl(semanticSearchEntityId) };
+ 
+             try {
+                 const { runMultiStepTask } = await import('./harness');
+diff --git a/src/server/agents/jack.ts b/src/server/agents/jack.ts
+index 124d5913..2cf026df 100644
+--- a/src/server/agents/jack.ts
++++ b/src/server/agents/jack.ts
+@@ -185,6 +185,8 @@ export const jackAgent: AgentImplementation<AgentMemory, JackTools> = {
+     },
+ 
+     async act(brandMemory, agentMemory, targetId, tools: JackTools, stimulus?: string) {
++        const semanticSearchEntityId = (brandMemory.brand_profile as any)?.id || (brandMemory.brand_profile as any)?.orgId || 'unknown';
++
+         if (targetId === 'user_request' && stimulus) {
+             const userQuery = stimulus;
+ 
+@@ -268,7 +270,7 @@ export const jackAgent: AgentImplementation<AgentMemory, JackTools> = {
+                     userQuery,
+                     systemInstructions: (agentMemory.system_instructions as string) || '',
+                     toolsDef,
+-                    tools: { ...tools, ...makeSemanticSearchToolsImpl(brandId) },
++                    tools: { ...tools, ...makeSemanticSearchToolsImpl(semanticSearchEntityId) },
+                     model: 'claude-sonnet-4-6',
+                     maxIterations: 5
+                 });
+diff --git a/src/server/agents/leo.ts b/src/server/agents/leo.ts
+index 27c83b11..7c7b4564 100644
+--- a/src/server/agents/leo.ts
++++ b/src/server/agents/leo.ts
+@@ -274,6 +274,8 @@ export const leoAgent: AgentImplementation<LeoMemory, LeoTools> = {
+     },
+ 
+     async act(brandMemory, agentMemory, targetId, tools: LeoTools, stimulus?: string) {
++        const semanticSearchEntityId = (brandMemory.brand_profile as any)?.id || (brandMemory.brand_profile as any)?.orgId || 'unknown';
++
+         if (targetId === 'user_request' && stimulus) {
+             let userQuery = stimulus;
+ 
+@@ -455,7 +457,7 @@ export const leoAgent: AgentImplementation<LeoMemory, LeoTools> = {
+                     userQuery,
+                     systemInstructions: (agentMemory.system_instructions as string) || '',
+                     toolsDef,
+-                    tools: { ...tools, ...makeSemanticSearchToolsImpl(brandId) },
++                    tools: { ...tools, ...makeSemanticSearchToolsImpl(semanticSearchEntityId) },
+                     model: 'claude-sonnet-4-6', // Use Claude Sonnet 4 for orchestration
+                     maxIterations: 7, // Leo gets more iterations for complex orchestration
+                     onStepComplete: async (step, toolName, result) => {
+diff --git a/src/server/agents/mrsParker.ts b/src/server/agents/mrsParker.ts
+index 1cb77862..4bc5b949 100644
+--- a/src/server/agents/mrsParker.ts
++++ b/src/server/agents/mrsParker.ts
+@@ -129,6 +129,8 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
+   },
+ 
+   async act(brandMemory, agentMemory, targetId, tools: MrsParkerTools, stimulus?: string) {
++        const semanticSearchEntityId = (brandMemory.brand_profile as any)?.id || (brandMemory.brand_profile as any)?.orgId || 'unknown';
++
+     // === SCENARIO A: User Request (The "Planner" Flow) ===
+     if (targetId === 'user_request' && stimulus) {
+         const userQuery = stimulus;
+@@ -172,7 +174,7 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
+                 toolsDef,
+                 tools: {
+                     ...tools,
+-                    ...makeSemanticSearchToolsImpl(orgId),
++                    ...makeSemanticSearchToolsImpl(semanticSearchEntityId),
+                     searchOpportunities: async (query: string) => {
+                         try {
+                             const { searchWeb, formatSearchResults } = await import('@/server/tools/web-search');

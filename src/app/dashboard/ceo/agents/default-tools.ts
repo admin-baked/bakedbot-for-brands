@@ -1,5 +1,6 @@
 
 import { ai } from '@/ai/genkit';
+import { sitemapManager } from '@/server/services/growth/sitemap-manager';
 import { deebo } from '@/server/agents/deebo';
 import { blackleafService } from '@/lib/notifications/blackleaf-service';
 import { CannMenusService } from '@/server/services/cannmenus';
@@ -1169,6 +1170,14 @@ export const defaultDayDayTools = {
             };
         } catch (e: any) {
             return { error: e.message, opportunities: [] };
+        }
+    },
+    refreshSitemap: async () => {
+        try {
+            const success = await sitemapManager.pingGoogle();
+            return { success, message: success ? 'Pinged Google' : 'Ping failed' };
+        } catch (e: any) {
+            return { success: false, message: e.message };
         }
     }
 };

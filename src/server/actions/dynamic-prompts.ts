@@ -113,6 +113,17 @@ export async function getDynamicPromptSuggestions(orgId: string, userId?: string
                     setupPrompts.push('Add competitors so I can start tracking pricing gaps and opportunities');
                 }
 
+                // Brand Guide completion reminder (all roles, including super users when viewing an org)
+                try {
+                    const brandGuideDoc = await db.collection('brandGuides').doc(orgId).get();
+                    const completeness = (brandGuideDoc.data() as any)?.completenessScore ?? 0;
+                    if (!brandGuideDoc.exists || completeness < 100) {
+                        setupPrompts.push('Complete your Brand Guide setup so AI can generate on-brand, higher-converting content');
+                    }
+                } catch (brandGuideError) {
+                    logger.warn('[DynamicPrompts] Could not load brand guide completeness', { orgId, error: brandGuideError });
+                }
+
                 // If the user has any missing setup steps, surface those first.
                 // The caller (useDynamicPrompts) will fill remaining slots from static pool.
                 if (setupPrompts.length > 0) {

@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { logger } from '@/lib/logger';
 import { processSlackMessage, welcomeNewMember } from '@/server/services/slack-agent-bridge';
+import { slackService } from '@/server/services/communications/slack';
 
 // Force dynamic - never cache webhook handlers
 export const dynamic = 'force-dynamic';
@@ -143,7 +144,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const channel: string = event.channel ?? '';
     const ts: string = event.ts ?? '';
     const threadTs: string = event.thread_ts ?? '';
-    const channelName: string = event.channel_name ?? '';
     const files: any[] = event.files ?? [];
 
     // Detect if this is a reply within a thread (thread_ts exists and differs from ts)
@@ -153,9 +153,22 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         return response;
     }
 
-    // Fire-and-forget: process asynchronously so we don't block the ACK
+    // Fire-and-forget: process asynchronously so we don't block the 3-second ACK
     Promise.resolve().then(async () => {
         try {
+            // Resolve channel name from Slack API (Events API does NOT include channel_name).
+            // Must happen inside the async block to not delay ACK.
+            let channelName = '';
+            if (!isDm && channel) {
+                try {
+                    const info = await slackService.getChannelInfo(channel);
+                    channelName = info?.name ?? '';
+                    logger.info(`[Slack/Events] Resolved channelName="${channelName}" for channel=${channel}`);
+                } catch (e: any) {
+                    logger.warn(`[Slack/Events] getChannelInfo failed — routing without channel name: ${e.message}`);
+                }
+            }
+
             await processSlackMessage({
                 text, slackUserId, channel, threadTs: threadTs || ts, channelName, isDm,
                 isChannelMsg, isThreadReply, files

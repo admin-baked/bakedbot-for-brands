@@ -118,7 +118,17 @@ export async function fetchBrandPageData(brandParam: string) {
                         logoUrl: data.logoUrl,
                         verificationStatus: 'verified',
                         claimStatus: 'claimed',
-                        type: data.type // 'brand' or 'dispensary'
+                        type: data.type, // 'brand' or 'dispensary'
+                        // Map location data so the footer and header render real address/city/state
+                        location: data.location ?? null,
+                        address: data.address ?? (data.location as any)?.address ?? null,
+                        city: data.city ?? (data.location as any)?.city ?? null,
+                        state: data.state ?? (data.location as any)?.state ?? null,
+                        zip: data.zip ?? (data.location as any)?.zip ?? null,
+                        phone: data.phone ?? (data.location as any)?.phone ?? null,
+                        email: data.email ?? null,
+                        website: data.website ?? null,
+                        useLogoInHeader: data.useLogoInHeader ?? false,
                     } as unknown as Brand; // Cast to Brand for compatibility
                     isTenant = true;
                 }

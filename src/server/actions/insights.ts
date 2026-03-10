@@ -17,6 +17,7 @@ import type {
     InsightsResponse,
 } from '@/types/insight-cards';
 import { getAdminFirestore } from '@/firebase/admin';
+import { getActiveCustomerCount } from '@/server/services/insights/customer-metrics';
 
 // ============ Dispensary Insights ============
 
@@ -192,14 +193,7 @@ async function getDispensaryInsights(orgId: string): Promise<DispensaryInsights>
             insights.customer.push(...customerProactive);
         } else {
             try {
-                const db = getAdminFirestore();
-                const customersSnap = await db
-                    .collection('customers')
-                    .where('orgId', '==', orgId)
-                    .where('archived', '!=', true)
-                    .count()
-                    .get();
-                const count = customersSnap.data().count;
+                const count = await getActiveCustomerCount(orgId);
                 const enrolled = count > 0;
 
                 insights.customer.push({
@@ -773,16 +767,16 @@ export async function getInsightsForOrg(
     try {
         const db = getAdminFirestore();
         const now = new Date();
+        const queryLimit = Math.max(maxCards * 40, 50);
 
-        // Fetch all active insights (not expired)
+        // Fetch active insights without relying on a composite index. Severity and
+        // recency are prioritized in memory below.
         const snapshot = await db
             .collection('tenants')
             .doc(orgId)
             .collection('insights')
             .where('expiresAt', '>', now)
-            .orderBy('severity')
-            .orderBy('generatedAt', 'desc')
-            .limit(50) // Get more than maxCards to de-duplicate
+            .limit(queryLimit)
             .get();
 
         if (snapshot.empty) {
@@ -815,6 +809,7 @@ export async function getInsightsForOrg(
             orgId,
             returned: result.length,
             available: insights.length,
+            queryLimit,
         });
 
         return {

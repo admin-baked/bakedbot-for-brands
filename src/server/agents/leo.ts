@@ -247,7 +247,7 @@ export const leoAgent: AgentImplementation<LeoMemory, LeoTools> = {
         // Connect to Hive Mind
         try {
             const { lettaBlockManager } = await import('@/server/services/letta/block-manager');
-            const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
+            const brandId = (brandMemory.brand_profile as any)?.id || (brandMemory.brand_profile as any)?.orgId || 'unknown';
             await lettaBlockManager.attachBlocksForRole(brandId, agentMemory.agent_id as string, 'executive');
             logger.info(`[Leo:HiveMind] Connected to shared executive blocks.`);
         } catch (e) {
@@ -274,9 +274,11 @@ export const leoAgent: AgentImplementation<LeoMemory, LeoTools> = {
     },
 
     async act(brandMemory, agentMemory, targetId, tools: LeoTools, stimulus?: string) {
-        const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
+        const semanticSearchEntityId = (brandMemory.brand_profile as any)?.id || (brandMemory.brand_profile as any)?.orgId || 'unknown';
+
         if (targetId === 'user_request' && stimulus) {
             let userQuery = stimulus;
+            const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
 
             // === OPTION DETECTION: Check if user is selecting from a previous menu ===
             const { detectOptionSelection } = await import('./utils/option-detector');
@@ -456,7 +458,7 @@ export const leoAgent: AgentImplementation<LeoMemory, LeoTools> = {
                     userQuery,
                     systemInstructions: (agentMemory.system_instructions as string) || '',
                     toolsDef,
-                    tools: { ...tools, ...makeSemanticSearchToolsImpl(brandId) },
+                    tools: { ...tools, ...makeSemanticSearchToolsImpl(semanticSearchEntityId) },
                     model: 'claude-sonnet-4-6', // Use Claude Sonnet 4 for orchestration
                     maxIterations: 7, // Leo gets more iterations for complex orchestration
                     onStepComplete: async (step, toolName, result) => {
