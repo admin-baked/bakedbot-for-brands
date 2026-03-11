@@ -1416,6 +1416,10 @@ All agents are online and ready. Type an agent name or describe your task to get
                     brandId: userBrandId,
                     role,
                     email: user?.email,
+                    approvedApprovalId:
+                        typeof extraOptions?.context?.approvedApprovalId === 'string'
+                            ? extraOptions.context.approvedApprovalId
+                            : undefined,
                 });
 
                 const claudeResult = await executeWithTools(

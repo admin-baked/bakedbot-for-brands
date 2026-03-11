@@ -304,6 +304,20 @@ export function resolveVmRunApproval(
     };
 }
 
+export function queueVmRunResume(vmRun: VmRunArtifactData, jobId: string): VmRunArtifactData {
+    const updatedAt = new Date().toISOString();
+
+    return {
+        ...vmRun,
+        jobId,
+        status: 'queued',
+        summary: 'Approval recorded. Resuming run...',
+        steps: [],
+        updatedAt,
+        completedAt: undefined,
+    };
+}
+
 export function extractVmApprovalsFromToolCalls(toolCalls?: ToolCallLike[]): VmRunApproval[] {
     if (!toolCalls || toolCalls.length === 0) {
         return [];

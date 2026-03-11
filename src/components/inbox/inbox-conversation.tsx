@@ -632,6 +632,15 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     const currentVmArtifact = currentVmArtifactId
         ? artifacts.find((artifact) => artifact.id === currentVmArtifactId)
         : undefined;
+    const resumableVmArtifact = React.useMemo(() => {
+        return artifacts
+            .filter((artifact) => artifact.type === 'vm_run')
+            .sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime())
+            .find((artifact) => {
+                const vmRun = artifact.data as VmRunArtifactData;
+                return !!vmRun.jobId && (vmRun.status === 'queued' || vmRun.status === 'running');
+            });
+    }, [artifacts]);
     const roleScope = thread.type === 'yield_analysis' || thread.type === 'wholesale_inventory' || thread.type === 'brand_outreach'
         ? 'grower'
         : normalizeRoleScope(
@@ -668,6 +677,28 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                     : existing?.completedAt,
         };
     }, [currentJobId, currentVmArtifact, thoughts, thread.id, thread.primaryAgent, roleScope]);
+
+    useEffect(() => {
+        if (currentJobId) return;
+
+        const candidateArtifact =
+            currentVmArtifact?.type === 'vm_run'
+            && ((currentVmArtifact.data as VmRunArtifactData).status === 'queued'
+                || (currentVmArtifact.data as VmRunArtifactData).status === 'running')
+                ? currentVmArtifact
+                : resumableVmArtifact;
+        if (!candidateArtifact || candidateArtifact.type !== 'vm_run') {
+            return;
+        }
+
+        const vmRun = candidateArtifact.data as VmRunArtifactData;
+        if (!vmRun.jobId || (vmRun.status !== 'queued' && vmRun.status !== 'running')) {
+            return;
+        }
+
+        setCurrentVmArtifactId(candidateArtifact.id);
+        setCurrentJobId(vmRun.jobId);
+    }, [currentJobId, currentVmArtifact, resumableVmArtifact]);
 
     useEffect(() => {
         return () => {

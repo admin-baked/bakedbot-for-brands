@@ -18,6 +18,7 @@ export async function createApprovalRequest(
         tenantId,
         createdAt: Date.now(),
         status: 'pending',
+        toolName,
         requestedBy: {
             userId: actorId,
             role: actorRole
@@ -39,6 +40,19 @@ export async function createApprovalRequest(
 
     await batch.commit();
     return request;
+}
+
+export async function getApprovalRequest(
+    tenantId: string,
+    approvalId: string
+): Promise<ApprovalRequest | null> {
+    if (!tenantId || !approvalId) {
+        return null;
+    }
+
+    const { firestore } = await createServerClient();
+    const doc = await firestore.doc(`tenants/${tenantId}/approvals/${approvalId}`).get();
+    return doc.exists ? (doc.data() as ApprovalRequest) : null;
 }
 
 function mapToolToApprovalType(toolName: string): ApprovalRequest['type'] {

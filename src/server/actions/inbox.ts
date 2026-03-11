@@ -36,8 +36,8 @@ import type { BundleDeal } from '@/types/bundles';
 import type { CreativeContent } from '@/types/creative-content';
 import type { ResearchReportArtifactData } from '@/types/inbox';
 import type { VmRunArtifactData } from '@/types/agent-vm';
-import { approveRequest } from '@/server/actions/approvals';
-import { mapVmRunStatusToInboxStatus, resolveVmRunApproval } from '@/types/agent-vm';
+import { resolveVmToolApproval } from '@/server/actions/agent-vm';
+import { mapVmRunStatusToInboxStatus, queueVmRunResume, resolveVmRunApproval } from '@/types/agent-vm';
 
 // ============ Firestore Collections ============
 
@@ -666,7 +666,7 @@ export async function resolveInboxVmRunApproval(
     artifactId: string,
     approvalIndex: number,
     decision: 'approved' | 'rejected'
-): Promise<{ success: boolean; data?: VmRunArtifactData; error?: string }> {
+): Promise<{ success: boolean; data?: VmRunArtifactData; resumeJobId?: string; error?: string }> {
     try {
         const user = await getServerSessionUser();
         if (!user) {
@@ -701,7 +701,12 @@ export async function resolveInboxVmRunApproval(
         if (!currentApproval) {
             return { success: false, error: 'Approval not found' };
         }
+        const sourceJobId = currentVmRun.jobId;
+        if (currentApproval.type === 'tool' && !sourceJobId) {
+            return { success: false, error: 'VM run is missing its source job id' };
+        }
 
+        let resumeJobId: string | undefined;
         if (currentApproval.type === 'tool') {
             if (!currentApproval.approvalId) {
                 logger.warn('VM approval missing approval id', {
@@ -712,10 +717,21 @@ export async function resolveInboxVmRunApproval(
                 return { success: false, error: 'Approval request id is missing' };
             }
 
-            await approveRequest(artifact.orgId, currentApproval.approvalId, decision === 'approved');
+            const resolution = await resolveVmToolApproval({
+                orgId: artifact.orgId,
+                approvalId: currentApproval.approvalId,
+                sourceJobId,
+                decision,
+            });
+            if (!resolution.success) {
+                return { success: false, error: resolution.error || 'Failed to resolve approval' };
+            }
+            resumeJobId = resolution.resumeJobId;
         }
 
-        const nextVmRun = resolveVmRunApproval(currentVmRun, approvalIndex, decision);
+        const nextVmRun = resumeJobId
+            ? queueVmRunResume(resolveVmRunApproval(currentVmRun, approvalIndex, decision), resumeJobId)
+            : resolveVmRunApproval(currentVmRun, approvalIndex, decision);
         const nextStatus = mapVmRunStatusToInboxStatus(nextVmRun.status);
 
         const updateData: Record<string, unknown> = {
@@ -735,10 +751,11 @@ export async function resolveInboxVmRunApproval(
             approvalIndex,
             decision,
             approvalId: currentApproval.approvalId,
+            resumeJobId,
             vmStatus: nextVmRun.status,
         });
 
-        return { success: true, data: nextVmRun };
+        return { success: true, data: nextVmRun, resumeJobId };
     } catch (error) {
         logger.error('Failed to resolve vm_run approval', { error, artifactId, approvalIndex, decision });
         return { success: false, error: 'Failed to resolve vm_run approval' };
