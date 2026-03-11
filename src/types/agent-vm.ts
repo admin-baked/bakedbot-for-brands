@@ -66,6 +66,7 @@ export interface VmRunApproval {
     status: 'pending' | 'approved' | 'rejected';
     requestedAt: string;
     resolvedAt?: string;
+    approvalId?: string;
     label?: string;
 }
 
@@ -124,6 +125,13 @@ interface ThoughtLike {
     title: string;
     detail?: string;
     timestamp?: unknown;
+}
+
+interface ToolCallLike {
+    id?: string;
+    name: string;
+    status?: string;
+    result?: string;
 }
 
 export function normalizeRoleScope(role?: string | null): AgentRoleScope {
@@ -261,25 +269,81 @@ export function resolveVmRunApproval(
     );
 
     const hasPendingApprovals = approvals.some((approval) => approval.status === 'pending');
+    const hasToolApprovals = approvals.some((approval) => approval.type === 'tool');
     const nextStatus: VmRunStatus =
         decision === 'rejected'
             ? 'cancelled'
             : hasPendingApprovals
                 ? 'awaiting_approval'
-                : vmRun.outputs.length > 0
+                : hasToolApprovals
+                    ? 'running'
+                    : vmRun.outputs.length > 0
                     ? 'completed'
                     : 'running';
+    const nextSummary =
+        decision === 'rejected'
+            ? 'Approval rejected'
+            : hasPendingApprovals
+                ? 'Waiting for approval'
+                : hasToolApprovals
+                    ? 'Approval recorded. Re-run to continue.'
+                    : vmRun.outputs.length > 0
+                    ? 'Completed'
+                    : 'Running';
 
     return {
         ...vmRun,
         approvals,
         status: nextStatus,
+        summary: nextSummary,
         updatedAt,
         completedAt:
             nextStatus === 'completed' || nextStatus === 'failed' || nextStatus === 'cancelled'
                 ? updatedAt
                 : vmRun.completedAt,
     };
+}
+
+export function extractVmApprovalsFromToolCalls(toolCalls?: ToolCallLike[]): VmRunApproval[] {
+    if (!toolCalls || toolCalls.length === 0) {
+        return [];
+    }
+
+    return toolCalls.flatMap((toolCall) => {
+        const result = toolCall.result || '';
+        const parsed = parseBlockedToolCallResult(result);
+        if (!parsed) {
+            return [];
+        }
+
+        return [{
+            type: 'tool',
+            status: 'pending',
+            requestedAt: new Date().toISOString(),
+            approvalId: parsed.approvalId,
+            label: `Tool approval: ${toolCall.name}`,
+        }];
+    });
+}
+
+function parseBlockedToolCallResult(result: string): { approvalId?: string } | null {
+    if (!result) return null;
+
+    try {
+        const parsed = JSON.parse(result) as { blocked?: boolean; approvalId?: string };
+        if (parsed.blocked) {
+            return { approvalId: parsed.approvalId };
+        }
+    } catch {
+        // Fall through to regex parse.
+    }
+
+    const match = result.match(/Approval required\. Request ID:\s*([A-Za-z0-9_-]+)/i);
+    if (!match) {
+        return null;
+    }
+
+    return { approvalId: match[1] };
 }
 
 function toIsoTimestamp(value: unknown): string | undefined {

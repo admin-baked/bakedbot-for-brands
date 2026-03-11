@@ -71,8 +71,11 @@ import { AttachmentPreviewList, AttachmentItem } from '@/components/ui/attachmen
 import { ArtifactPanel, ArtifactCard } from '@/components/artifacts';
 import { Artifact, parseArtifactsFromContent, createArtifactId } from '@/types/artifact';
 import { shareArtifact } from '@/server/actions/artifacts';
+import { approveRequest } from '@/server/actions/approvals';
+import { useToast } from '@/hooks/use-toast';
 import {
     createVmRunArtifactData,
+    extractVmApprovalsFromToolCalls,
     getDefaultRuntimeBackend,
     mapThoughtsToVmRunSteps,
     normalizeRoleScope,
@@ -529,8 +532,9 @@ export function AgentChat({
         addArtifact,
         updateArtifact,
     } = useAgentChatStore();
-    const { role } = useUserRole();
+    const { role, orgId } = useUserRole();
     const { user } = useUser(); // Get authenticated user
+    const { toast } = useToast();
     
     // Project context state
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -600,6 +604,7 @@ export function AgentChat({
             summary?: string;
             content?: string;
             finalOutput?: string;
+            approvals?: ReturnType<typeof extractVmApprovalsFromToolCalls>;
         }
     ) => {
         const existingArtifact = currentArtifacts.find((artifact) => artifact.id === artifactId);
@@ -613,6 +618,7 @@ export function AgentChat({
             status,
             summary: options?.summary ?? currentVmRun.summary,
             steps: thoughts.length > 0 ? mapThoughtsToVmRunSteps(thoughts, status) : currentVmRun.steps,
+            approvals: options?.approvals ?? currentVmRun.approvals,
             updatedAt: new Date().toISOString(),
             completedAt:
                 status === 'completed' || status === 'failed' || status === 'cancelled'
@@ -659,6 +665,8 @@ export function AgentChat({
     ) => {
         const currentVmRun = artifact.metadata?.vmRun;
         if (!currentVmRun) return;
+        const currentApproval = currentVmRun.approvals[approvalIndex];
+        if (!currentApproval) return;
 
         const nextVmRun = resolveVmRunApproval(currentVmRun, approvalIndex, decision);
         const updatedArtifact: Artifact = {
@@ -680,8 +688,36 @@ export function AgentChat({
             setSelectedArtifact(updatedArtifact);
         }
 
-        setIsResolvingVmApproval(false);
-    }, [updateArtifact, selectedArtifact]);
+        try {
+            if (currentApproval.type === 'tool') {
+                if (!currentApproval.approvalId) {
+                    throw new Error('Approval request id is missing');
+                }
+                if (!orgId) {
+                    throw new Error('Missing organization context for approval');
+                }
+
+                await approveRequest(orgId, currentApproval.approvalId, decision === 'approved');
+            }
+        } catch (error) {
+            updateArtifact(artifact.id, {
+                metadata: artifact.metadata,
+                content: artifact.content,
+            });
+
+            if (selectedArtifact?.id === artifact.id) {
+                setSelectedArtifact(artifact);
+            }
+
+            toast({
+                title: 'Approval update failed',
+                description: error instanceof Error ? error.message : 'Failed to resolve approval',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsResolvingVmApproval(false);
+        }
+    }, [orgId, updateArtifact, selectedArtifact, toast]);
 
     // Sync Async Job to UI Store
     useEffect(() => {
@@ -709,6 +745,8 @@ export function AgentChat({
         if (isComplete && job?.result) {
             const result = job.result; // AgentResult object
             const content = result.content || '**Task Completed** (No content returned)';
+            const approvalRequests = extractVmApprovalsFromToolCalls(result.toolCalls);
+            const vmStatus: VmRunStatus = approvalRequests.length > 0 ? 'awaiting_approval' : 'completed';
             
             // Parse artifacts from agent response
             const { artifacts: parsedArtifacts, cleanedContent } = parseArtifactsFromContent(content);
@@ -728,10 +766,11 @@ export function AgentChat({
                 addArtifact(fullArtifact);
             });
 
-            syncVmArtifact(activeJob.artifactId, 'completed', {
+            syncVmArtifact(activeJob.artifactId, vmStatus, {
                 content: parsedArtifacts.length > 0 ? cleanedContent : content,
                 finalOutput: content,
-                summary: 'Completed',
+                summary: approvalRequests.length > 0 ? 'Waiting for approval' : 'Completed',
+                approvals: approvalRequests,
             });
             
             // If we found artifacts, open the panel

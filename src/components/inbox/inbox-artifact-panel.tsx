@@ -47,6 +47,7 @@ import { ExecutiveProactiveCheckArtifact, type ExecProactiveCheckData } from './
 import { CreativeMediaPreview } from './artifacts/creative-media-preview';
 import { VmRunView } from '@/components/artifacts';
 import { mapVmRunStatusToInboxStatus, resolveVmRunApproval, type VmRunArtifactData } from '@/types/agent-vm';
+import { useToast } from '@/hooks/use-toast';
 
 // ============ Props ============
 
@@ -321,6 +322,7 @@ function VmRunDetail({
 
 export function InboxArtifactPanel({ artifacts, className }: InboxArtifactPanelProps) {
     const router = useRouter();
+    const { toast } = useToast();
     const {
         selectedArtifactId,
         setSelectedArtifact,
@@ -390,6 +392,11 @@ export function InboxArtifactPanel({ artifacts, className }: InboxArtifactPanelP
             updateArtifact(selectedArtifact.id, {
                 data: currentVmRun,
                 status: mapVmRunStatusToInboxStatus(currentVmRun.status),
+            });
+            toast({
+                title: 'Approval update failed',
+                description: result.error || 'Failed to resolve approval',
+                variant: 'destructive',
             });
         }
 
