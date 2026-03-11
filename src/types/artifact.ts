@@ -306,6 +306,10 @@ export function isCreativePostArtifact(artifact: Artifact): boolean {
     return artifact.type === 'creative_post';
 }
 
+export function isVmRunArtifact(artifact: Artifact): boolean {
+    return artifact.type === 'vm_run';
+}
+
 export function isInboxArtifact(artifact: Artifact): boolean {
     return ['carousel', 'bundle', 'creative_post'].includes(artifact.type);
 }

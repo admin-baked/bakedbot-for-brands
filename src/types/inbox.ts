@@ -11,6 +11,7 @@ import type { BundleDeal } from './bundles';
 import type { CreativeContent } from './creative-content';
 import type { QRCode } from './qr-code';
 import type { IntegrationRequest } from './service-integrations';
+import type { VmRunArtifactData } from './agent-vm';
 import type { ChatMessage } from '@/lib/store/agent-chat-store';
 import type { CustomerSegment } from './customers';
 import { ALL_ROLES } from './roles';
@@ -246,6 +247,7 @@ export type InboxArtifactType =
     | 'compliance_brief'  // Compliance research document
     // ---- Research Artifacts ----
     | 'research_report'   // Big Worm deep research task (live progress card + completed report)
+    | 'vm_run'            // Live VM execution trace + final output
     // ---- Integration Artifacts ----
     | 'integration_request' // Request to connect third-party service (OAuth, API key, etc.)
     // ---- Analytics Artifacts ----
@@ -422,7 +424,7 @@ export interface InboxArtifact {
     status: InboxArtifactStatus;
 
     // The actual data (polymorphic based on type)
-    data: Carousel | BundleDeal | CreativeContent | QRCode | IntegrationRequest | ResearchReportArtifactData | AnalyticsChart | AnalyticsBriefing | OutreachDraftData | Record<string, unknown>;
+    data: Carousel | BundleDeal | CreativeContent | QRCode | IntegrationRequest | ResearchReportArtifactData | VmRunArtifactData | AnalyticsChart | AnalyticsBriefing | OutreachDraftData | Record<string, unknown>;
 
     // Agent rationale for the suggestion
     rationale?: string;

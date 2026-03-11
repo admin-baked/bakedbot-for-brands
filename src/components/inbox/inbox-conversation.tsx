@@ -84,8 +84,9 @@ import { CrmCampaignInline } from './crm-campaign-inline';
 import { ProductDiscoveryInline } from './product-discovery-inline';
 import { WholesaleInventoryInline } from './wholesale-inventory-inline';
 import { ChatMediaPreview } from '@/components/chat/chat-media-preview';
+import { VmRunView } from '@/components/artifacts';
 import { formatDistanceToNow } from 'date-fns';
-import { runInboxAgentChat, addMessageToInboxThread, createInboxArtifact } from '@/server/actions/inbox';
+import { runInboxAgentChat, addMessageToInboxThread, createInboxArtifact, updateInboxVmRunArtifact } from '@/server/actions/inbox';
 import { generateQRCode } from '@/server/actions/qr-code';
 import { toggleHeroActive } from '@/app/actions/heroes';
 import { getBrandSlug } from '@/server/actions/slug-management';
@@ -93,6 +94,16 @@ import { useJobPoller } from '@/hooks/use-job-poller';
 import { AttachmentPreviewList, type AttachmentItem } from '@/components/ui/attachment-preview';
 import { useToast } from '@/hooks/use-toast';
 import type { CreativeContent } from '@/types/creative-content';
+import {
+    createVmRunArtifactData,
+    getDefaultRuntimeBackend,
+    mapThoughtsToVmRunSteps,
+    mapVmRunStatusToInboxStatus,
+    normalizeRoleScope,
+    upsertVmRunOutput,
+    type VmRunArtifactData,
+    type VmRunStatus,
+} from '@/types/agent-vm';
 
 // ============ Pending Input Store ============
 // Module-level map so other components (empty state, sidebar) can pre-populate
@@ -383,6 +394,15 @@ function ArtifactPreviewCard({ artifact }: { artifact: InboxArtifact }) {
             return <InboxIntegrationCard artifact={artifact} />;
         case 'research_report':
             return <InboxResearchCard artifact={artifact} />;
+        case 'vm_run':
+            return (
+                <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+                    <VmRunView
+                        vmRun={artifact.data as VmRunArtifactData}
+                        fallbackContent={artifact.rationale}
+                    />
+                </div>
+            );
         case 'executive_proactive_check': {
             const d = artifact.data as unknown as ExecProactiveCheckData;
             return (
@@ -572,6 +592,8 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     const [wholesaleInventoryInitialPrompt, setWholesaleInventoryInitialPrompt] = useState('');
     const [lastCreatedHeroId, setLastCreatedHeroId] = useState<string | null>(null);
     const [lastCreatedHeroOrgId, setLastCreatedHeroOrgId] = useState<string | null>(null);
+    const [currentVmArtifactId, setCurrentVmArtifactId] = useState<string | null>(null);
+    const vmPersistTimeoutRef = useRef<number | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -599,12 +621,60 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         setSelectedArtifact,
         setArtifactPanelOpen,
         updateThread,
+        updateArtifact,
     } = useInboxStore();
     const isPending = isThreadPending(thread.id);
     const { toast } = useToast();
 
     // Use Firestore real-time job polling instead of broken HTTP polling
-    const { job, isComplete, error: jobError } = useJobPoller(currentJobId ?? undefined);
+    const { job, thoughts, isComplete, error: jobError } = useJobPoller(currentJobId ?? undefined);
+    const currentVmArtifact = currentVmArtifactId
+        ? artifacts.find((artifact) => artifact.id === currentVmArtifactId)
+        : undefined;
+    const roleScope = thread.type === 'yield_analysis' || thread.type === 'wholesale_inventory' || thread.type === 'brand_outreach'
+        ? 'grower'
+        : normalizeRoleScope(
+            thread.brandId
+                ? 'brand'
+                : thread.dispensaryId
+                    ? 'dispensary'
+                    : thread.assignedToRole || undefined
+        );
+
+    const buildCurrentVmRun = React.useCallback((status: VmRunStatus): VmRunArtifactData | null => {
+        if (!currentJobId) return null;
+
+        const existing = currentVmArtifact?.data as VmRunArtifactData | undefined;
+        const nextSteps = thoughts.length > 0 ? mapThoughtsToVmRunSteps(thoughts, status) : (existing?.steps || []);
+
+        return {
+            ...(existing || createVmRunArtifactData({
+                runId: `vm-${currentJobId}`,
+                threadId: thread.id,
+                jobId: currentJobId,
+                agentId: thread.primaryAgent,
+                roleScope,
+                runtimeBackend: getDefaultRuntimeBackend(thread.primaryAgent),
+                title: `${AGENT_NAMES[thread.primaryAgent]?.name || 'Agent'} VM Run`,
+                summary: 'Starting agent work...',
+            })),
+            status,
+            steps: nextSteps,
+            updatedAt: new Date().toISOString(),
+            completedAt:
+                status === 'completed' || status === 'failed' || status === 'cancelled'
+                    ? new Date().toISOString()
+                    : existing?.completedAt,
+        };
+    }, [currentJobId, currentVmArtifact, thoughts, thread.id, thread.primaryAgent, roleScope]);
+
+    useEffect(() => {
+        return () => {
+            if (vmPersistTimeoutRef.current) {
+                window.clearTimeout(vmPersistTimeoutRef.current);
+            }
+        };
+    }, []);
 
     useEffect(() => {
         const pending = _pendingInputs.get(thread.id);
@@ -766,13 +836,71 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
 
     // Handle job completion via Firestore real-time listener (useJobPoller)
     useEffect(() => {
+        if (!currentJobId || !currentVmArtifactId) return;
+
+        const nextStatus: VmRunStatus =
+            job?.status === 'failed'
+                ? 'failed'
+                : isComplete && job?.status === 'completed'
+                    ? 'completed'
+                    : 'running';
+
+        const nextVmRun = buildCurrentVmRun(nextStatus);
+        if (!nextVmRun) return;
+
+        updateArtifact(currentVmArtifactId, {
+            data: nextVmRun,
+            status: mapVmRunStatusToInboxStatus(nextVmRun.status),
+        });
+
+        if (vmPersistTimeoutRef.current) {
+            window.clearTimeout(vmPersistTimeoutRef.current);
+        }
+
+        if (nextStatus === 'running' || nextStatus === 'awaiting_approval') {
+            vmPersistTimeoutRef.current = window.setTimeout(() => {
+                void updateInboxVmRunArtifact(currentVmArtifactId, nextVmRun);
+            }, 800);
+        }
+    }, [currentJobId, currentVmArtifactId, thoughts, isComplete, job?.status, updateArtifact, buildCurrentVmRun]);
+
+    useEffect(() => {
         if (!currentJobId || !isComplete || !job) return;
 
         // Job completed - add response message
+        if (vmPersistTimeoutRef.current) {
+            window.clearTimeout(vmPersistTimeoutRef.current);
+        }
         setCurrentJobId(null);
         setIsSubmitting(false);
 
         if (job.status === 'completed' && job.result?.content) {
+            if (currentVmArtifactId) {
+                const completedVmRun = upsertVmRunOutput(
+                    buildCurrentVmRun('completed') || createVmRunArtifactData({
+                        runId: `vm-${job.id}`,
+                        threadId: thread.id,
+                        jobId: job.id,
+                        agentId: thread.primaryAgent,
+                        roleScope,
+                        runtimeBackend: getDefaultRuntimeBackend(thread.primaryAgent),
+                        title: `${AGENT_NAMES[thread.primaryAgent]?.name || 'Agent'} VM Run`,
+                    }),
+                    {
+                        kind: 'markdown',
+                        title: 'Final Output',
+                        content: job.result.content,
+                    },
+                    'completed'
+                );
+
+                updateArtifact(currentVmArtifactId, {
+                    data: completedVmRun,
+                    status: mapVmRunStatusToInboxStatus(completedVmRun.status),
+                });
+                void updateInboxVmRunArtifact(currentVmArtifactId, completedVmRun);
+            }
+
             const agentMessage: ChatMessage = {
                 id: `msg-${Date.now()}`,
                 type: 'agent',
@@ -781,6 +909,32 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             };
             addMessageToThread(thread.id, agentMessage);
         } else if (job.status === 'failed') {
+            if (currentVmArtifactId) {
+                const failedVmRun = upsertVmRunOutput(
+                    buildCurrentVmRun('failed') || createVmRunArtifactData({
+                        runId: `vm-${job.id}`,
+                        threadId: thread.id,
+                        jobId: job.id,
+                        agentId: thread.primaryAgent,
+                        roleScope,
+                        runtimeBackend: getDefaultRuntimeBackend(thread.primaryAgent),
+                        title: `${AGENT_NAMES[thread.primaryAgent]?.name || 'Agent'} VM Run`,
+                    }),
+                    {
+                        kind: 'markdown',
+                        title: 'Failure',
+                        content: job.error || 'Unknown error',
+                    },
+                    'failed'
+                );
+
+                updateArtifact(currentVmArtifactId, {
+                    data: failedVmRun,
+                    status: mapVmRunStatusToInboxStatus(failedVmRun.status),
+                });
+                void updateInboxVmRunArtifact(currentVmArtifactId, failedVmRun);
+            }
+
             const errorMessage: ChatMessage = {
                 id: `msg-${Date.now()}`,
                 type: 'agent',
@@ -789,12 +943,43 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             };
             addMessageToThread(thread.id, errorMessage);
         }
-    }, [currentJobId, isComplete, job, thread.id, addMessageToThread]);
+
+        setCurrentVmArtifactId(null);
+    }, [currentJobId, currentVmArtifactId, isComplete, job, thread.id, thread.primaryAgent, roleScope, addMessageToThread, updateArtifact, buildCurrentVmRun]);
 
     // Handle job polling errors
     useEffect(() => {
         if (jobError && currentJobId) {
             console.error('[InboxConversation] Job polling error:', jobError);
+            if (vmPersistTimeoutRef.current) {
+                window.clearTimeout(vmPersistTimeoutRef.current);
+            }
+            if (currentVmArtifactId) {
+                const failedVmRun = upsertVmRunOutput(
+                    buildCurrentVmRun('failed') || createVmRunArtifactData({
+                        runId: `vm-${currentJobId}`,
+                        threadId: thread.id,
+                        jobId: currentJobId,
+                        agentId: thread.primaryAgent,
+                        roleScope,
+                        runtimeBackend: getDefaultRuntimeBackend(thread.primaryAgent),
+                        title: `${AGENT_NAMES[thread.primaryAgent]?.name || 'Agent'} VM Run`,
+                    }),
+                    {
+                        kind: 'markdown',
+                        title: 'Polling Error',
+                        content: jobError,
+                    },
+                    'failed'
+                );
+
+                updateArtifact(currentVmArtifactId, {
+                    data: failedVmRun,
+                    status: mapVmRunStatusToInboxStatus(failedVmRun.status),
+                });
+                void updateInboxVmRunArtifact(currentVmArtifactId, failedVmRun);
+                setCurrentVmArtifactId(null);
+            }
             setCurrentJobId(null);
             setIsSubmitting(false);
             const errorMessage: ChatMessage = {
@@ -805,7 +990,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             };
             addMessageToThread(thread.id, errorMessage);
         }
-    }, [jobError, currentJobId, thread.id, addMessageToThread]);
+    }, [jobError, currentJobId, currentVmArtifactId, thread.id, thread.primaryAgent, roleScope, addMessageToThread, updateArtifact, buildCurrentVmRun]);
 
     // Auto-open QR generator for qr_code threads
     useEffect(() => {
@@ -1369,6 +1554,37 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
 
             // If we got a job ID, start polling
             if (result.jobId) {
+                const initialVmRun = createVmRunArtifactData({
+                    runId: `vm-${result.jobId}`,
+                    threadId: thread.id,
+                    jobId: result.jobId,
+                    agentId: thread.primaryAgent,
+                    roleScope,
+                    runtimeBackend: getDefaultRuntimeBackend(thread.primaryAgent),
+                    title: `${AGENT_NAMES[thread.primaryAgent]?.name || 'Agent'} VM Run`,
+                    summary: messageContent || 'Agent is working on your request.',
+                });
+
+                const vmArtifactResult = await createInboxArtifact({
+                    threadId: thread.id,
+                    type: 'vm_run',
+                    data: initialVmRun,
+                    rationale: `${AGENT_NAMES[thread.primaryAgent]?.name || 'Agent'} is working on your request.`,
+                });
+
+                if (vmArtifactResult.success && vmArtifactResult.artifact) {
+                    addArtifacts([vmArtifactResult.artifact]);
+                    updateThread(thread.id, {
+                        artifactIds: thread.artifactIds.includes(vmArtifactResult.artifact.id)
+                            ? thread.artifactIds
+                            : [...thread.artifactIds, vmArtifactResult.artifact.id],
+                        status: 'draft',
+                    });
+                    setCurrentVmArtifactId(vmArtifactResult.artifact.id);
+                    setSelectedArtifact(vmArtifactResult.artifact.id);
+                    setArtifactPanelOpen(true);
+                }
+
                 setCurrentJobId(result.jobId);
                 return;
             }

@@ -37,7 +37,7 @@ import type { InboxArtifact } from '@/types/inbox';
 import type { Carousel } from '@/types/carousels';
 import type { BundleDeal } from '@/types/bundles';
 import type { CreativeContent } from '@/types/creative-content';
-import { approveAndPublishArtifact, deleteInboxArtifact } from '@/server/actions/inbox';
+import { approveAndPublishArtifact, deleteInboxArtifact, resolveInboxVmRunApproval } from '@/server/actions/inbox';
 import { ArtifactPipelineBar } from './artifact-pipeline-bar';
 import { InboxIntegrationCard } from './artifacts/integration-card';
 import { AnalyticsChartArtifact } from './artifacts/analytics-chart-artifact';
@@ -45,6 +45,8 @@ import { AnalyticsBriefingArtifact } from './artifacts/analytics-briefing-artifa
 import { OutreachDraftCard } from './artifacts/outreach-draft-card';
 import { ExecutiveProactiveCheckArtifact, type ExecProactiveCheckData } from './artifacts/executive-proactive-check-artifact';
 import { CreativeMediaPreview } from './artifacts/creative-media-preview';
+import { VmRunView } from '@/components/artifacts';
+import { mapVmRunStatusToInboxStatus, resolveVmRunApproval, type VmRunArtifactData } from '@/types/agent-vm';
 
 // ============ Props ============
 
@@ -63,6 +65,7 @@ const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
     analytics_briefing: Newspaper,
     outreach_draft: Mail,
     executive_proactive_check: Sparkles,
+    vm_run: Sparkles,
 };
 
 // ============ Detail Views ============
@@ -292,6 +295,28 @@ function CreativeDetail({ artifact }: { artifact: InboxArtifact }) {
     );
 }
 
+function VmRunDetail({
+    artifact,
+    onApproveApproval,
+    onRejectApproval,
+    isUpdatingApproval,
+}: {
+    artifact: InboxArtifact;
+    onApproveApproval?: (approvalIndex: number) => void | Promise<void>;
+    onRejectApproval?: (approvalIndex: number) => void | Promise<void>;
+    isUpdatingApproval?: boolean;
+}) {
+    return (
+        <VmRunView
+            vmRun={artifact.data as VmRunArtifactData}
+            fallbackContent={artifact.rationale}
+            onApproveApproval={onApproveApproval}
+            onRejectApproval={onRejectApproval}
+            isUpdatingApproval={isUpdatingApproval}
+        />
+    );
+}
+
 // ============ Main Component ============
 
 export function InboxArtifactPanel({ artifacts, className }: InboxArtifactPanelProps) {
@@ -341,6 +366,35 @@ export function InboxArtifactPanel({ artifacts, className }: InboxArtifactPanelP
     const Icon = selectedArtifact ? TYPE_ICONS[selectedArtifact.type] || Images : Images;
 
     const [isApproving, setIsApproving] = useState(false);
+    const [isResolvingVmApproval, setIsResolvingVmApproval] = useState(false);
+
+    const handleResolveVmApproval = async (approvalIndex: number, decision: 'approved' | 'rejected') => {
+        if (!selectedArtifact || selectedArtifact.type !== 'vm_run') return;
+
+        const currentVmRun = selectedArtifact.data as VmRunArtifactData;
+        const optimisticVmRun = resolveVmRunApproval(currentVmRun, approvalIndex, decision);
+
+        setIsResolvingVmApproval(true);
+        updateArtifact(selectedArtifact.id, {
+            data: optimisticVmRun,
+            status: mapVmRunStatusToInboxStatus(optimisticVmRun.status),
+        });
+
+        const result = await resolveInboxVmRunApproval(selectedArtifact.id, approvalIndex, decision);
+        if (result.success && result.data) {
+            updateArtifact(selectedArtifact.id, {
+                data: result.data,
+                status: mapVmRunStatusToInboxStatus(result.data.status),
+            });
+        } else {
+            updateArtifact(selectedArtifact.id, {
+                data: currentVmRun,
+                status: mapVmRunStatusToInboxStatus(currentVmRun.status),
+            });
+        }
+
+        setIsResolvingVmApproval(false);
+    };
 
     return (
         <div className={cn(
@@ -403,10 +457,12 @@ export function InboxArtifactPanel({ artifacts, className }: InboxArtifactPanelP
                     {selectedArtifact ? (
                         <>
                             {/* HitL Pipeline Bar */}
-                            <ArtifactPipelineBar
-                                currentStatus={selectedArtifact.status}
-                                className="mb-4"
-                            />
+                            {selectedArtifact.type !== 'vm_run' && (
+                                <ArtifactPipelineBar
+                                    currentStatus={selectedArtifact.status}
+                                    className="mb-4"
+                                />
+                            )}
 
                             {/* Type-specific detail view */}
                             <AnimatePresence mode="wait">
@@ -434,6 +490,14 @@ export function InboxArtifactPanel({ artifacts, className }: InboxArtifactPanelP
                                     {selectedArtifact.type === 'executive_proactive_check' && (
                                         <ExecutiveProactiveCheckArtifact data={selectedArtifact.data as unknown as ExecProactiveCheckData} />
                                     )}
+                                    {selectedArtifact.type === 'vm_run' && (
+                                        <VmRunDetail
+                                            artifact={selectedArtifact}
+                                            onApproveApproval={(approvalIndex) => handleResolveVmApproval(approvalIndex, 'approved')}
+                                            onRejectApproval={(approvalIndex) => handleResolveVmApproval(approvalIndex, 'rejected')}
+                                            isUpdatingApproval={isResolvingVmApproval}
+                                        />
+                                    )}
                                 </motion.div>
                             </AnimatePresence>
                         </>
@@ -448,7 +512,7 @@ export function InboxArtifactPanel({ artifacts, className }: InboxArtifactPanelP
 
             {/* Actions - HitL Approval Workflow */}
             {/* outreach_draft and executive_proactive_check are informational — skip generic publish workflow */}
-            {selectedArtifact && selectedArtifact.status !== 'published' && selectedArtifact.type !== 'outreach_draft' && selectedArtifact.type !== 'executive_proactive_check' && (
+            {selectedArtifact && selectedArtifact.status !== 'published' && selectedArtifact.type !== 'outreach_draft' && selectedArtifact.type !== 'executive_proactive_check' && selectedArtifact.type !== 'vm_run' && (
                 <div className="p-4 border-t border-white/5 space-y-3">
                     {/* Primary Approve Button - Green Check EMPHASIZED per Technical Brief */}
                     {(selectedArtifact.status === 'draft' || selectedArtifact.status === 'pending_review') && (

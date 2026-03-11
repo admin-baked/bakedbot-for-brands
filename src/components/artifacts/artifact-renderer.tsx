@@ -27,6 +27,7 @@ import {
     isDiagramArtifact, 
     isChartArtifact 
 } from '@/types/artifact';
+import { VmRunView } from './vm-run-view';
 import { 
     ExternalLink, BookOpen, FileText, Lightbulb, 
     ListOrdered, ChevronRight 
@@ -59,6 +60,8 @@ export function ArtifactRenderer({ artifact, currentSlide = 0, theme = 'dark' }:
                 return <InfographicRenderer artifact={artifact} />;
             case 'image':
                 return <ImageRenderer artifact={artifact} />;
+            case 'vm_run':
+                return <VmRunRenderer artifact={artifact} />;
             default:
                 return <MarkdownRenderer content={artifact.content} />;
         }
@@ -347,4 +350,13 @@ function ImageRenderer({ artifact }: { artifact: Artifact }) {
     );
 }
 
-export { CodeRenderer, MarkdownRenderer, ResearchRenderer, DeckRenderer, DiagramRenderer };
+function VmRunRenderer({ artifact }: { artifact: Artifact }) {
+    return (
+        <VmRunView
+            vmRun={artifact.metadata?.vmRun}
+            fallbackContent={artifact.content}
+        />
+    );
+}
+
+export { CodeRenderer, MarkdownRenderer, ResearchRenderer, DeckRenderer, DiagramRenderer, VmRunRenderer };

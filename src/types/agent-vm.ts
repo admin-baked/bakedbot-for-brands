@@ -240,6 +240,48 @@ export function upsertVmRunOutput(
     };
 }
 
+export function resolveVmRunApproval(
+    vmRun: VmRunArtifactData,
+    approvalIndex: number,
+    decision: 'approved' | 'rejected'
+): VmRunArtifactData {
+    if (!vmRun.approvals[approvalIndex]) {
+        return vmRun;
+    }
+
+    const updatedAt = new Date().toISOString();
+    const approvals = vmRun.approvals.map((approval, index) =>
+        index === approvalIndex
+            ? {
+                ...approval,
+                status: decision,
+                resolvedAt: updatedAt,
+            }
+            : approval
+    );
+
+    const hasPendingApprovals = approvals.some((approval) => approval.status === 'pending');
+    const nextStatus: VmRunStatus =
+        decision === 'rejected'
+            ? 'cancelled'
+            : hasPendingApprovals
+                ? 'awaiting_approval'
+                : vmRun.outputs.length > 0
+                    ? 'completed'
+                    : 'running';
+
+    return {
+        ...vmRun,
+        approvals,
+        status: nextStatus,
+        updatedAt,
+        completedAt:
+            nextStatus === 'completed' || nextStatus === 'failed' || nextStatus === 'cancelled'
+                ? updatedAt
+                : vmRun.completedAt,
+    };
+}
+
 function toIsoTimestamp(value: unknown): string | undefined {
     if (!value) return undefined;
     if (value instanceof Date) return value.toISOString();
