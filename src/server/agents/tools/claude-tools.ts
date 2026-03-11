@@ -136,8 +136,10 @@ export function createToolExecutor(context: {
     brandId?: string;
     role?: string;
     email?: string;
+    approvedApprovalId?: string;
 }): (toolName: string, input: Record<string, unknown>) => Promise<unknown> {
     return async (toolName: string, input: Record<string, unknown>) => {
+        const approvedApprovalId = context.approvedApprovalId;
         const response = await routeToolCall({
             toolName,
             tenantId: context.brandId || null,
@@ -147,7 +149,10 @@ export function createToolExecutor(context: {
                 email: context.email,
             },
             inputs: input as Record<string, any>,
-            idempotencyKey: `claude-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            approvedApprovalId,
+            idempotencyKey: approvedApprovalId
+                ? `claude-approved-${approvedApprovalId}-${toolName}`
+                : `claude-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         });
 
         if (response.status === 'blocked') {

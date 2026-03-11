@@ -494,6 +494,18 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
         // 1. Get User
         const { requireUser } = await import('@/server/auth/auth');
         const user = await requireUser();
+        const resolvedBrandId = (user as any).brandId || (user as any).orgId || (user as any).currentOrgId || null;
+        const resolvedModelLevel =
+            (['leo', 'jack', 'linus', 'glenda', 'mike_exec'].includes(finalPersonaId || '')
+                ? 'genius'
+                : (extraOptions?.modelLevel as any)) || 'standard';
+        const resumeOptions = {
+            modelLevel: resolvedModelLevel,
+            brandId: resolvedBrandId,
+            projectId: extraOptions?.projectId,
+            source: extraOptions?.source,
+            context: extraOptions?.context,
+        };
 
         // 2. Generate Job ID
         const jobId = crypto.randomUUID();
@@ -509,7 +521,8 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
             createdAt: FieldValue.serverTimestamp(),
             updatedAt: FieldValue.serverTimestamp(),
             persona: finalPersonaId || 'puff',
-            brandId: user.brandId || null,
+            brandId: resolvedBrandId,
+            resumeOptions,
             thoughts: [] // Initialize empty thoughts
         });
 
@@ -520,10 +533,10 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
             userInput: userMessage,
             persona: (finalPersonaId as AgentPersona) || 'puff',
             options: {
-                modelLevel: (['leo', 'jack', 'linus', 'glenda', 'mike_exec'].includes(finalPersonaId || '') ? 'genius' : (extraOptions?.modelLevel as any)) || 'standard',
+                modelLevel: resolvedModelLevel,
                 audioInput: extraOptions?.audioInput,
                 attachments: extraOptions?.attachments,
-                brandId: user.brandId,
+                brandId: resolvedBrandId || undefined,
                 projectId: extraOptions?.projectId, // Pass project context
                 source: extraOptions?.source, // Pass source identifier (e.g., 'inbox')
                 context: extraOptions?.context // Pass additional context

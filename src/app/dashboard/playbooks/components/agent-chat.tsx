@@ -71,7 +71,7 @@ import { AttachmentPreviewList, AttachmentItem } from '@/components/ui/attachmen
 import { ArtifactPanel, ArtifactCard } from '@/components/artifacts';
 import { Artifact, parseArtifactsFromContent, createArtifactId } from '@/types/artifact';
 import { shareArtifact } from '@/server/actions/artifacts';
-import { approveRequest } from '@/server/actions/approvals';
+import { resolveVmToolApproval } from '@/server/actions/agent-vm';
 import { useToast } from '@/hooks/use-toast';
 import {
     createVmRunArtifactData,
@@ -79,6 +79,7 @@ import {
     getDefaultRuntimeBackend,
     mapThoughtsToVmRunSteps,
     normalizeRoleScope,
+    queueVmRunResume,
     resolveVmRunApproval,
     upsertVmRunOutput,
     type VmRunStatus,
@@ -689,6 +690,7 @@ export function AgentChat({
         }
 
         try {
+            let resumeJobId: string | undefined;
             if (currentApproval.type === 'tool') {
                 if (!currentApproval.approvalId) {
                     throw new Error('Approval request id is missing');
@@ -697,7 +699,54 @@ export function AgentChat({
                     throw new Error('Missing organization context for approval');
                 }
 
-                await approveRequest(orgId, currentApproval.approvalId, decision === 'approved');
+                if (!currentVmRun.jobId) {
+                    throw new Error('VM run is missing its source job id');
+                }
+
+                const resolution = await resolveVmToolApproval({
+                    orgId,
+                    approvalId: currentApproval.approvalId,
+                    sourceJobId: currentVmRun.jobId,
+                    decision,
+                });
+
+                if (!resolution.success) {
+                    throw new Error(resolution.error || 'Failed to resolve approval');
+                }
+
+                resumeJobId = resolution.resumeJobId;
+            }
+
+            if (resumeJobId) {
+                const resumedVmRun = queueVmRunResume(nextVmRun, resumeJobId);
+                const resumedArtifact: Artifact = {
+                    ...artifact,
+                    updatedAt: new Date(),
+                    metadata: {
+                        ...artifact.metadata,
+                        vmRun: resumedVmRun,
+                    },
+                };
+                const resumeMessageId = `thinking-${Date.now()}`;
+
+                addMessage({
+                    id: resumeMessageId,
+                    type: 'agent',
+                    content: '',
+                    timestamp: new Date(),
+                    thinking: { isThinking: true, steps: [], plan: [] },
+                });
+
+                updateArtifact(artifact.id, {
+                    metadata: resumedArtifact.metadata,
+                    content: resumedArtifact.content,
+                });
+
+                if (selectedArtifact?.id === artifact.id) {
+                    setSelectedArtifact(resumedArtifact);
+                }
+
+                setActiveJob({ jobId: resumeJobId, messageId: resumeMessageId, artifactId: artifact.id });
             }
         } catch (error) {
             updateArtifact(artifact.id, {
@@ -717,7 +766,7 @@ export function AgentChat({
         } finally {
             setIsResolvingVmApproval(false);
         }
-    }, [orgId, updateArtifact, selectedArtifact, toast]);
+    }, [addMessage, orgId, selectedArtifact, toast, updateArtifact]);
 
     // Sync Async Job to UI Store
     useEffect(() => {

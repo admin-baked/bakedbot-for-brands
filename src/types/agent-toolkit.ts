@@ -51,6 +51,8 @@ export interface ToolRequest {
      * Clients should generate this (UUID v4 recommended).
      */
     idempotencyKey?: string;
+    /** Optional approval request that authorizes a single side-effect retry. */
+    approvedApprovalId?: string;
     /** The actual arguments for the tool. */
     inputs: Record<string, any>;
 }
@@ -129,6 +131,7 @@ export interface ApprovalRequest {
     tenantId: string;
     createdAt: number;
     status: 'pending' | 'approved' | 'rejected';
+    toolName?: string;
 
     requestedBy: {
         userId: string;

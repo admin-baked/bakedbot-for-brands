@@ -50,27 +50,39 @@ export async function routeToolCall(request: ToolRequest): Promise<ToolResponse>
 
     // 4. Side-Effect Gate
     if (definition.category === 'side-effect') {
-        // In Phase 3, we auto-create an approval request and block
-        // Unless specific "approved" override logic is generic (not yet implemented)
-        const { createApprovalRequest } = await import('../approvals/service');
-        if (!request.tenantId) throw new Error('Side-effects require tenant context.');
+        let hasApprovedOverride = false;
+        if (request.approvedApprovalId && request.tenantId) {
+            const { getApprovalRequest } = await import('../approvals/service');
+            const approval = await getApprovalRequest(request.tenantId, request.approvedApprovalId);
+            hasApprovedOverride =
+                approval?.status === 'approved'
+                && approval.toolName === toolName;
+        }
 
-        const approval = await createApprovalRequest(
-            request.tenantId,
-            toolName,
-            inputs,
-            actor.userId,
-            actor.role
-        );
+        if (hasApprovedOverride) {
+            // Continue through to actual execution for the approved tool call.
+        } else {
+            // In Phase 3, we auto-create an approval request and block
+            const { createApprovalRequest } = await import('../approvals/service');
+            if (!request.tenantId) throw new Error('Side-effects require tenant context.');
 
-        const response: ToolResponse = {
-            status: 'blocked',
-            error: `Approval required. Request ID: ${approval.id}`,
-            data: { approvalId: approval.id }
-        };
+            const approval = await createApprovalRequest(
+                request.tenantId,
+                toolName,
+                inputs,
+                actor.userId,
+                actor.role
+            );
 
-        await logAudit(request, startTime, response);
-        return response;
+            const response: ToolResponse = {
+                status: 'blocked',
+                error: `Approval required. Request ID: ${approval.id}`,
+                data: { approvalId: approval.id }
+            };
+
+            await logAudit(request, startTime, response);
+            return response;
+        }
     }
 
     // 5. Schema Validation (Placeholder)

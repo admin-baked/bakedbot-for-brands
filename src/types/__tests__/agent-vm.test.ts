@@ -1,6 +1,7 @@
 import {
     createVmRunArtifactData,
     extractVmApprovalsFromToolCalls,
+    queueVmRunResume,
     resolveVmRunApproval,
 } from '@/types/agent-vm';
 
@@ -72,5 +73,24 @@ describe('agent-vm approvals', () => {
         expect(resolved.status).toBe('running');
         expect(resolved.summary).toBe('Approval recorded. Re-run to continue.');
         expect(resolved.completedAt).toBeUndefined();
+    });
+
+    it('queues a resumed VM run with the replacement job id', () => {
+        const vmRun = createVmRunArtifactData({
+            runId: 'vm-1',
+            agentId: 'linus',
+            roleScope: 'super_user',
+            runtimeBackend: 'terminal',
+            title: 'Linus VM Run',
+            status: 'running',
+            jobId: 'job-1',
+        });
+
+        const resumed = queueVmRunResume(vmRun, 'job-2');
+
+        expect(resumed.jobId).toBe('job-2');
+        expect(resumed.status).toBe('queued');
+        expect(resumed.summary).toBe('Approval recorded. Resuming run...');
+        expect(resumed.completedAt).toBeUndefined();
     });
 });
