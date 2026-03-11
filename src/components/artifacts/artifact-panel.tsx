@@ -25,6 +25,9 @@ interface ArtifactPanelProps {
     onSelect: (artifact: Artifact | null) => void;
     onClose: () => void;
     onShare?: (artifact: Artifact) => void;
+    onApproveVmApproval?: (artifact: Artifact, approvalIndex: number) => void | Promise<void>;
+    onRejectVmApproval?: (artifact: Artifact, approvalIndex: number) => void | Promise<void>;
+    isUpdatingVmApproval?: boolean;
     isOpen: boolean;
 }
 
@@ -34,6 +37,9 @@ export function ArtifactPanel({
     onSelect, 
     onClose,
     onShare,
+    onApproveVmApproval,
+    onRejectVmApproval,
+    isUpdatingVmApproval = false,
     isOpen 
 }: ArtifactPanelProps) {
     const [width, setWidth] = useState(480);
@@ -250,6 +256,17 @@ export function ArtifactPanel({
                                 <ArtifactRenderer 
                                     artifact={selectedArtifact} 
                                     currentSlide={currentSlide}
+                                    onApproveVmApproval={
+                                        onApproveVmApproval
+                                            ? (approvalIndex) => onApproveVmApproval(selectedArtifact, approvalIndex)
+                                            : undefined
+                                    }
+                                    onRejectVmApproval={
+                                        onRejectVmApproval
+                                            ? (approvalIndex) => onRejectVmApproval(selectedArtifact, approvalIndex)
+                                            : undefined
+                                    }
+                                    isUpdatingVmApproval={isUpdatingVmApproval}
                                 />
                             </ScrollArea>
 

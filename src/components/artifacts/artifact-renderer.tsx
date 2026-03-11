@@ -37,9 +37,19 @@ interface ArtifactRendererProps {
     artifact: Artifact;
     currentSlide?: number;
     theme?: 'light' | 'dark';
+    onApproveVmApproval?: (approvalIndex: number) => void | Promise<void>;
+    onRejectVmApproval?: (approvalIndex: number) => void | Promise<void>;
+    isUpdatingVmApproval?: boolean;
 }
 
-export function ArtifactRenderer({ artifact, currentSlide = 0, theme = 'dark' }: ArtifactRendererProps) {
+export function ArtifactRenderer({
+    artifact,
+    currentSlide = 0,
+    theme = 'dark',
+    onApproveVmApproval,
+    onRejectVmApproval,
+    isUpdatingVmApproval = false,
+}: ArtifactRendererProps) {
     const renderContent = useMemo(() => {
         switch (artifact.type) {
             case 'code':
@@ -61,11 +71,18 @@ export function ArtifactRenderer({ artifact, currentSlide = 0, theme = 'dark' }:
             case 'image':
                 return <ImageRenderer artifact={artifact} />;
             case 'vm_run':
-                return <VmRunRenderer artifact={artifact} />;
+                return (
+                    <VmRunRenderer
+                        artifact={artifact}
+                        onApproveVmApproval={onApproveVmApproval}
+                        onRejectVmApproval={onRejectVmApproval}
+                        isUpdatingVmApproval={isUpdatingVmApproval}
+                    />
+                );
             default:
                 return <MarkdownRenderer content={artifact.content} />;
         }
-    }, [artifact, currentSlide, theme]);
+    }, [artifact, currentSlide, theme, onApproveVmApproval, onRejectVmApproval, isUpdatingVmApproval]);
 
     return (
         <div className="artifact-renderer">
@@ -350,11 +367,24 @@ function ImageRenderer({ artifact }: { artifact: Artifact }) {
     );
 }
 
-function VmRunRenderer({ artifact }: { artifact: Artifact }) {
+function VmRunRenderer({
+    artifact,
+    onApproveVmApproval,
+    onRejectVmApproval,
+    isUpdatingVmApproval,
+}: {
+    artifact: Artifact;
+    onApproveVmApproval?: (approvalIndex: number) => void | Promise<void>;
+    onRejectVmApproval?: (approvalIndex: number) => void | Promise<void>;
+    isUpdatingVmApproval?: boolean;
+}) {
     return (
         <VmRunView
             vmRun={artifact.metadata?.vmRun}
             fallbackContent={artifact.content}
+            onApproveApproval={onApproveVmApproval}
+            onRejectApproval={onRejectVmApproval}
+            isUpdatingApproval={isUpdatingVmApproval}
         />
     );
 }

@@ -76,6 +76,7 @@ import {
     getDefaultRuntimeBackend,
     mapThoughtsToVmRunSteps,
     normalizeRoleScope,
+    resolveVmRunApproval,
     upsertVmRunOutput,
     type VmRunStatus,
 } from '@/types/agent-vm';
@@ -537,6 +538,7 @@ export function AgentChat({
     // Artifact panel state
     const [showArtifactPanel, setShowArtifactPanel] = useState(false);
     const [selectedArtifact, setSelectedArtifact] = useState<Artifact | null>(null);
+    const [isResolvingVmApproval, setIsResolvingVmApproval] = useState(false);
 
     // Ensure store knows current role
     useEffect(() => {
@@ -649,6 +651,37 @@ export function AgentChat({
             setSelectedArtifact(updatedArtifact);
         }
     }, [currentArtifacts, thoughts, updateArtifact, selectedArtifact]);
+
+    const handleResolveVmApproval = useCallback(async (
+        artifact: Artifact,
+        approvalIndex: number,
+        decision: 'approved' | 'rejected'
+    ) => {
+        const currentVmRun = artifact.metadata?.vmRun;
+        if (!currentVmRun) return;
+
+        const nextVmRun = resolveVmRunApproval(currentVmRun, approvalIndex, decision);
+        const updatedArtifact: Artifact = {
+            ...artifact,
+            updatedAt: new Date(),
+            metadata: {
+                ...artifact.metadata,
+                vmRun: nextVmRun,
+            },
+        };
+
+        setIsResolvingVmApproval(true);
+        updateArtifact(artifact.id, {
+            metadata: updatedArtifact.metadata,
+            content: updatedArtifact.content,
+        });
+
+        if (selectedArtifact?.id === artifact.id) {
+            setSelectedArtifact(updatedArtifact);
+        }
+
+        setIsResolvingVmApproval(false);
+    }, [updateArtifact, selectedArtifact]);
 
     // Sync Async Job to UI Store
     useEffect(() => {
@@ -1485,6 +1518,9 @@ export function AgentChat({
                 setShowArtifactPanel(false);
                 setSelectedArtifact(null);
             }}
+            onApproveVmApproval={(artifact, approvalIndex) => handleResolveVmApproval(artifact, approvalIndex, 'approved')}
+            onRejectVmApproval={(artifact, approvalIndex) => handleResolveVmApproval(artifact, approvalIndex, 'rejected')}
+            isUpdatingVmApproval={isResolvingVmApproval}
             onShare={async (artifact) => {
                 try {
                     const result = await shareArtifact(
