@@ -114,7 +114,7 @@ export function CreateInternalPlaybookDialog({
                 <DialogHeader>
                     <DialogTitle>Create Internal Playbook</DialogTitle>
                     <DialogDescription>
-                        Creates a playbook under `playbooks_internal`. Steps are stored as JSON and can be executed by internal tooling.
+                        Creates an internal playbook in the shared `playbooks` collection under the BakedBot internal org. Steps are stored as JSON and can be executed by internal tooling.
                     </DialogDescription>
                 </DialogHeader>
 

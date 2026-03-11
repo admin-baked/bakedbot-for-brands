@@ -12,7 +12,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { scheduleTask } from './scheduler';
 
 export interface PlaybookStep {
-    action: 'delegate' | 'notify' | 'parallel' | 'query' | 'generate';
+    action: 'delegate' | 'notify' | 'parallel' | 'query' | 'generate' | 'run_cron';
     agent?: string;
     params?: any;
     condition?: string;
@@ -95,6 +95,146 @@ export interface ExecutePlaybookOptions {
     source?: string;
 }
 
+interface StructuredStepResult {
+    action: string;
+    message: string;
+    data?: unknown;
+}
+
+function canExecuteStructuredSteps(steps: PlaybookStep[]): boolean {
+    return steps.length > 0 && steps.every((step) => ['run_cron', 'notify'].includes(step.action));
+}
+
+async function executeCronStep(
+    playbookId: string,
+    playbook: any,
+    step: PlaybookStep
+): Promise<StructuredStepResult> {
+    const endpoint = typeof step.params?.endpoint === 'string'
+        ? step.params.endpoint.trim()
+        : '';
+
+    if (!endpoint) {
+        throw new Error('run_cron step requires params.endpoint');
+    }
+
+    const cronSecret = process.env.CRON_SECRET;
+    if (!cronSecret) {
+        throw new Error('CRON_SECRET not configured');
+    }
+
+    const baseUrl =
+        process.env.NEXT_PUBLIC_APP_URL
+        || process.env.APP_URL
+        || 'http://localhost:3000';
+
+    const response = await fetch(`${baseUrl}${endpoint}`, {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${cronSecret}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            triggeredBy: 'manual',
+            playbookId,
+            orgId: playbook.orgId || 'global',
+        }),
+    });
+
+    const contentType = response.headers.get('content-type') || '';
+    const payload = contentType.includes('application/json')
+        ? await response.json()
+        : await response.text();
+
+    if (!response.ok || (typeof payload === 'object' && payload && (payload as any).success === false)) {
+        const errorMessage =
+            typeof payload === 'object' && payload && typeof (payload as any).error === 'string'
+                ? (payload as any).error
+                : `Cron endpoint failed with status ${response.status}`;
+        throw new Error(errorMessage);
+    }
+
+    const description =
+        typeof step.params?.description === 'string' && step.params.description.trim().length > 0
+            ? step.params.description.trim()
+            : `Executed ${endpoint}`;
+
+    return {
+        action: step.action,
+        message: description,
+        data: payload,
+    };
+}
+
+async function executeNotifyStep(
+    playbookId: string,
+    playbook: any,
+    step: PlaybookStep
+): Promise<StructuredStepResult> {
+    const db = getAdminFirestore();
+    const channel =
+        typeof step.params?.channel === 'string' && step.params.channel.trim().length > 0
+            ? step.params.channel.trim()
+            : 'dashboard';
+    const description =
+        typeof step.params?.description === 'string' && step.params.description.trim().length > 0
+            ? step.params.description.trim()
+            : typeof step.params?.message === 'string' && step.params.message.trim().length > 0
+                ? step.params.message.trim()
+                : `Notification logged for ${playbook.name}`;
+
+    await db.collection('notifications').add({
+        playbookId,
+        orgId: playbook.orgId || 'global',
+        channel,
+        subject: `Playbook notification: ${playbook.name}`,
+        body: description,
+        source: 'playbook-manager',
+        sentAt: new Date(),
+    });
+
+    return {
+        action: step.action,
+        message: description,
+        data: { channel },
+    };
+}
+
+async function executeStructuredPlaybook(
+    playbookId: string,
+    playbook: any,
+    steps: PlaybookStep[],
+): Promise<{ success: boolean; message?: string; stepResults?: StructuredStepResult[]; error?: string }> {
+    try {
+        const stepResults: StructuredStepResult[] = [];
+
+        for (const step of steps) {
+            if (step.action === 'run_cron') {
+                stepResults.push(await executeCronStep(playbookId, playbook, step));
+                continue;
+            }
+
+            if (step.action === 'notify') {
+                stepResults.push(await executeNotifyStep(playbookId, playbook, step));
+                continue;
+            }
+
+            throw new Error(`Unsupported structured action: ${step.action}`);
+        }
+
+        return {
+            success: true,
+            message: stepResults.map((result) => result.message).join(' '),
+            stepResults,
+        };
+    } catch (error: any) {
+        return {
+            success: false,
+            error: error?.message || 'Structured playbook execution failed',
+        };
+    }
+}
+
 export async function executePlaybook(playbookId: string, options: ExecutePlaybookOptions = {}) {
     try {
         const playbook = await getPlaybook(playbookId);
@@ -106,7 +246,12 @@ export async function executePlaybook(playbookId: string, options: ExecutePlaybo
             throw new Error(`Playbook ${playbookId} is not active`);
         }
 
-        const stepsPrompt = playbook.steps.map((s: any, i: number) => 
+        const steps = Array.isArray(playbook.steps) ? playbook.steps : [];
+        if (canExecuteStructuredSteps(steps)) {
+            return await executeStructuredPlaybook(playbookId, playbook, steps);
+        }
+
+        const stepsPrompt = steps.map((s: any, i: number) => 
             `${i + 1}. ${s.action} ${JSON.stringify(s.params || {})}`
         ).join('\n');
 

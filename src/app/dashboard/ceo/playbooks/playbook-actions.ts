@@ -43,6 +43,111 @@ function asDate(value: any): Date | null {
     return null;
 }
 
+function extractJsonPayload(text: string): string {
+    const trimmed = text.trim();
+    const fencedMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    if (fencedMatch?.[1]) {
+        return fencedMatch[1].trim();
+    }
+    return trimmed;
+}
+
+function normalizeTrigger(trigger: any): any | null {
+    if (!trigger || typeof trigger.type !== 'string') {
+        return null;
+    }
+
+    if (trigger.type === 'manual') {
+        return { type: 'manual' };
+    }
+
+    if (trigger.type === 'schedule') {
+        const cron = typeof trigger.cron === 'string' ? trigger.cron.trim() : '';
+        if (!cron) {
+            return null;
+        }
+        return {
+            type: 'schedule',
+            cron,
+            timezone:
+                typeof trigger.timezone === 'string' && trigger.timezone.trim().length > 0
+                    ? trigger.timezone.trim()
+                    : 'America/New_York',
+        };
+    }
+
+    if (trigger.type === 'event') {
+        const eventName = typeof trigger.eventName === 'string' ? trigger.eventName.trim() : '';
+        if (!eventName) {
+            return null;
+        }
+        return {
+            type: 'event',
+            eventName,
+        };
+    }
+
+    if (trigger.type === 'calendar') {
+        return { type: 'calendar' };
+    }
+
+    return null;
+}
+
+function normalizeSteps(steps: unknown, fallback: any[]): any[] {
+    if (!Array.isArray(steps) || steps.length === 0) {
+        return fallback;
+    }
+
+    return steps
+        .filter((step) => step && typeof step === 'object' && typeof (step as any).action === 'string')
+        .map((step, index) => {
+            const raw = step as any;
+            return {
+                ...raw,
+                id:
+                    typeof raw.id === 'string' && raw.id.trim().length > 0
+                        ? raw.id.trim()
+                        : crypto.randomUUID(),
+                action: raw.action.trim(),
+                params: raw.params && typeof raw.params === 'object' ? raw.params : {},
+                label:
+                    typeof raw.label === 'string' && raw.label.trim().length > 0
+                        ? raw.label.trim()
+                        : `Step ${index + 1}`,
+            };
+        });
+}
+
+function buildUpdatedPlaybookResponse(existing: any, playbookId: string): Playbook {
+    const status = normalizeStatus(existing.status) || (existing.active === true ? 'active' : 'paused');
+    const triggers = Array.isArray(existing.triggers)
+        ? existing.triggers
+        : [{ type: 'manual' }];
+
+    return {
+        ...existing,
+        id: playbookId,
+        status,
+        triggers,
+        steps: Array.isArray(existing.steps) ? existing.steps : [],
+        agent: typeof existing.agent === 'string' ? existing.agent : (typeof existing.agentId === 'string' ? existing.agentId : 'puff'),
+        category: typeof existing.category === 'string' ? existing.category : 'operations',
+        ownerId: typeof existing.ownerId === 'string' ? existing.ownerId : (typeof existing.createdBy === 'string' ? existing.createdBy : 'system'),
+        ownerName: typeof existing.ownerName === 'string' ? existing.ownerName : 'System',
+        isCustom: existing.isCustom ?? true,
+        requiresApproval: existing.requiresApproval ?? false,
+        runCount: typeof existing.runCount === 'number' ? existing.runCount : 0,
+        successCount: typeof existing.successCount === 'number' ? existing.successCount : 0,
+        failureCount: typeof existing.failureCount === 'number' ? existing.failureCount : 0,
+        version: typeof existing.version === 'number' ? existing.version : 1,
+        createdAt: asDate(existing.createdAt) || new Date(0),
+        updatedAt: asDate(existing.updatedAt) || new Date(),
+        lastRunAt: asDate(existing.lastRunAt) || undefined,
+        orgId: typeof existing.orgId === 'string' ? existing.orgId : SUPER_USER_ORG,
+    } as Playbook;
+}
+
 /**
  * List all super user playbooks from Firestore
  */
@@ -183,7 +288,6 @@ export async function runSuperUserPlaybook(
             return { success: false, error: 'Playbook not found' };
         }
 
-        // Update run stats (manual runs still count even if playbook is paused).
         const { FieldValue } = await import('firebase-admin/firestore');
         await docRef.update({
             runCount: FieldValue.increment(1),
@@ -195,10 +299,32 @@ export async function runSuperUserPlaybook(
         const { executePlaybook } = await import('@/server/tools/playbook-manager');
         const dispatch = await executePlaybook(playbookId, { force: true });
 
+        if (!dispatch.success) {
+            await docRef.update({
+                failureCount: FieldValue.increment(1),
+                updatedAt: new Date(),
+            });
+            return {
+                success: false,
+                error: dispatch.error || 'Playbook execution failed.',
+            };
+        }
+
+        await docRef.update({
+            successCount: FieldValue.increment(1),
+            updatedAt: new Date(),
+        });
+
         const jobId = (dispatch as any)?.agentResponse?.metadata?.jobId;
+        const dispatchMessage =
+            'message' in dispatch && typeof dispatch.message === 'string'
+                ? dispatch.message
+                : undefined;
         return {
             success: true,
-            message: jobId ? `Playbook dispatched (job ${jobId}).` : 'Playbook dispatched.',
+            message: jobId
+                ? `Playbook dispatched (job ${jobId}).`
+                : dispatchMessage || 'Playbook dispatched.',
         };
     } catch (error: any) {
         console.error('[SuperUserPlaybooks] runSuperUserPlaybook failed:', error);
@@ -216,6 +342,8 @@ export async function updateSuperUserPlaybook(
         name?: string;
         description?: string;
         category?: string;
+        agent?: string;
+        steps?: any[];
     }
 ): Promise<{ success: boolean; error?: string }> {
     try {
@@ -230,15 +358,141 @@ export async function updateSuperUserPlaybook(
         }
 
         const { FieldValue } = await import('firebase-admin/firestore');
-        await docRef.update({
-            ...patch,
+        const updates: Record<string, unknown> = {
             updatedAt: new Date(),
             version: FieldValue.increment(1),
+        };
+
+        if (patch.triggers !== undefined) updates.triggers = patch.triggers;
+        if (patch.name !== undefined) updates.name = patch.name;
+        if (patch.description !== undefined) updates.description = patch.description;
+        if (patch.category !== undefined) updates.category = patch.category;
+        if (patch.agent !== undefined) {
+            updates.agent = patch.agent;
+            updates.agentId = patch.agent;
+        }
+        if (patch.steps !== undefined) updates.steps = patch.steps;
+
+        await docRef.update({
+            ...updates,
         });
 
         return { success: true };
     } catch (error: any) {
         console.error('[SuperUserPlaybooks] updateSuperUserPlaybook failed:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Revise a super user playbook from a natural-language change request.
+ */
+export async function reviseSuperUserPlaybookWithPrompt(
+    playbookId: string,
+    prompt: string,
+): Promise<{ success: boolean; playbook?: Playbook; error?: string }> {
+    try {
+        const trimmedPrompt = prompt.trim();
+        if (!trimmedPrompt) {
+            return { success: false, error: 'A prompt is required.' };
+        }
+
+        const { firestore } = await createServerClient();
+        await requireUser(['super_user']);
+
+        const docRef = firestore.collection('playbooks').doc(playbookId);
+        const snap = await docRef.get();
+
+        if (!snap.exists) {
+            return { success: false, error: 'Playbook not found' };
+        }
+
+        const existing = snap.data() as any;
+        if ((existing.orgId || SUPER_USER_ORG) !== SUPER_USER_ORG) {
+            return { success: false, error: 'Only internal playbooks can be revised here.' };
+        }
+
+        const { ai } = await import('@/ai/genkit');
+        const systemPrompt = `You revise BakedBot internal playbooks.
+
+Return ONLY valid JSON with this exact shape:
+{
+  "name": "string",
+  "description": "string",
+  "agent": "string",
+  "category": "string",
+  "triggers": [{ "type": "manual|schedule|event|calendar", "cron?": "string", "timezone?": "string", "eventName?": "string" }],
+  "steps": [{ "id?": "string", "action": "string", "agent?": "string", "label?": "string", "params": {} }]
+}
+
+Rules:
+- Preserve the current playbook intent unless the user explicitly changes it.
+- Keep the existing trigger schedule unless the prompt clearly asks to change scheduling.
+- Keep draft-first approval flows for outreach and email work unless the user explicitly asks to auto-send.
+- If the user mentions geography, encode that geography directly in the description and relevant step params/prompts.
+- If the user mentions Gmail or a connected workspace account, preserve approval-first sending through Gmail rather than direct blind sends.
+- Keep steps executable JSON; do not include prose outside the JSON object.`;
+
+        const result = await ai.generate({
+            prompt: `${systemPrompt}
+
+Current playbook:
+${JSON.stringify({
+    name: existing.name,
+    description: existing.description,
+    agent: existing.agent || existing.agentId || 'puff',
+    category: existing.category || 'operations',
+    triggers: Array.isArray(existing.triggers) ? existing.triggers : [{ type: 'manual' }],
+    steps: Array.isArray(existing.steps) ? existing.steps : [],
+}, null, 2)}
+
+User request:
+${trimmedPrompt}`,
+        });
+
+        const parsed = JSON.parse(extractJsonPayload(result.text));
+
+        const triggers = Array.isArray(parsed.triggers)
+            ? parsed.triggers.map(normalizeTrigger).filter(Boolean)
+            : [];
+
+        const normalizedPlaybook = {
+            ...existing,
+            name: typeof parsed.name === 'string' && parsed.name.trim().length > 0 ? parsed.name.trim() : existing.name,
+            description: typeof parsed.description === 'string' ? parsed.description.trim() : existing.description,
+            agent: typeof parsed.agent === 'string' && parsed.agent.trim().length > 0 ? parsed.agent.trim() : (existing.agent || existing.agentId || 'puff'),
+            agentId: typeof parsed.agent === 'string' && parsed.agent.trim().length > 0 ? parsed.agent.trim() : (existing.agentId || existing.agent || 'puff'),
+            category: typeof parsed.category === 'string' && parsed.category.trim().length > 0 ? parsed.category.trim() : (existing.category || 'operations'),
+            triggers: triggers.length > 0 ? triggers : (Array.isArray(existing.triggers) && existing.triggers.length > 0 ? existing.triggers : [{ type: 'manual' }]),
+            steps: normalizeSteps(parsed.steps, Array.isArray(existing.steps) ? existing.steps : []),
+            updatedAt: new Date(),
+        };
+
+        const { FieldValue } = await import('firebase-admin/firestore');
+        await docRef.update({
+            name: normalizedPlaybook.name,
+            description: normalizedPlaybook.description,
+            agent: normalizedPlaybook.agent,
+            agentId: normalizedPlaybook.agentId,
+            category: normalizedPlaybook.category,
+            triggers: normalizedPlaybook.triggers,
+            steps: normalizedPlaybook.steps,
+            updatedAt: normalizedPlaybook.updatedAt,
+            version: FieldValue.increment(1),
+        });
+
+        return {
+            success: true,
+            playbook: buildUpdatedPlaybookResponse(
+                {
+                    ...normalizedPlaybook,
+                    version: (typeof existing.version === 'number' ? existing.version : 1) + 1,
+                },
+                playbookId,
+            ),
+        };
+    } catch (error: any) {
+        console.error('[SuperUserPlaybooks] reviseSuperUserPlaybookWithPrompt failed:', error);
         return { success: false, error: error.message };
     }
 }

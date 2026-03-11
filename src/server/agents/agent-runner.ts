@@ -1066,7 +1066,16 @@ All agents are online and ready. Type an agent name or describe your task to get
                     return {
                         content: `I've created a playbook called "${result.playbook.name}":\n\n**Description:** ${result.playbook.description}\n**Agent:** ${result.playbook.agent}\n**Category:** ${result.playbook.category}\n**Steps:** ${result.playbook.steps.length}\n\nYou can view and edit it in the [Playbooks tab](${playbooksPath}).`,
                         toolCalls: executedTools,
-                        metadata: { ...metadata, jobId }
+                        metadata: {
+                            ...metadata,
+                            jobId,
+                            playbookMutation: {
+                                kind: 'created',
+                                playbookId: result.playbook.id,
+                                playbookName: result.playbook.name,
+                                scope: isSuperUser ? 'superuser' : 'org',
+                            },
+                        }
                     };
                 } else {
                     throw new Error(result.error || 'Failed to create playbook');

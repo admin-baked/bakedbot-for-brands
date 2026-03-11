@@ -71,6 +71,14 @@ import { AttachmentPreviewList, AttachmentItem } from '@/components/ui/attachmen
 import { ArtifactPanel, ArtifactCard } from '@/components/artifacts';
 import { Artifact, parseArtifactsFromContent, createArtifactId } from '@/types/artifact';
 import { shareArtifact } from '@/server/actions/artifacts';
+import {
+    createVmRunArtifactData,
+    getDefaultRuntimeBackend,
+    mapThoughtsToVmRunSteps,
+    normalizeRoleScope,
+    upsertVmRunOutput,
+    type VmRunStatus,
+} from '@/types/agent-vm';
 
 // ============ Types ============
 
@@ -480,6 +488,12 @@ export interface AgentChatProps {
     initialInput?: string;
     onBack?: () => void;
     onSubmit?: (message: string) => Promise<void>;
+    onPlaybookMutation?: (mutation: {
+        kind: string;
+        playbookId: string;
+        playbookName?: string;
+        scope?: string;
+    }) => void;
     // Context-aware props for brand/dispensary pages
     pageContext?: PageContext;
     // Keep standard props for compatibility if needed, but unused here
@@ -496,6 +510,7 @@ export function AgentChat({
     initialInput = '',
     onBack,
     onSubmit,
+    onPlaybookMutation,
     pageContext,
     placeholder,
     defaultThinkingLevel = 'standard',
@@ -510,7 +525,8 @@ export function AgentChat({
         currentProjectId, 
         setCurrentProject,
         currentArtifacts,
-        addArtifact 
+        addArtifact,
+        updateArtifact,
     } = useAgentChatStore();
     const { role } = useUserRole();
     const { user } = useUser(); // Get authenticated user
@@ -556,8 +572,83 @@ export function AgentChat({
     const [persona, setPersona] = useState<AgentPersona>('puff');
 
     // Async Job Polling (Added for Stop Button support)
-    const [activeJob, setActiveJob] = useState<{ jobId: string, messageId: string } | null>(null);
+    const [activeJob, setActiveJob] = useState<{ jobId: string, messageId: string, artifactId: string } | null>(null);
     const { job, thoughts, isComplete, error: jobError } = useJobPoller(activeJob?.jobId);
+    const seenPlaybookMutationsRef = React.useRef<Set<string>>(new Set());
+
+    const emitPlaybookMutation = useCallback((metadata: any) => {
+        const mutation = metadata?.playbookMutation;
+        if (!mutation || typeof mutation.playbookId !== 'string' || !onPlaybookMutation) {
+            return;
+        }
+
+        const mutationKey = `${mutation.kind || 'unknown'}:${mutation.playbookId}:${mutation.scope || 'unknown'}`;
+        if (seenPlaybookMutationsRef.current.has(mutationKey)) {
+            return;
+        }
+
+        seenPlaybookMutationsRef.current.add(mutationKey);
+        onPlaybookMutation(mutation);
+    }, [onPlaybookMutation]);
+
+    const syncVmArtifact = useCallback((
+        artifactId: string,
+        status: VmRunStatus,
+        options?: {
+            summary?: string;
+            content?: string;
+            finalOutput?: string;
+        }
+    ) => {
+        const existingArtifact = currentArtifacts.find((artifact) => artifact.id === artifactId);
+        if (!existingArtifact) return;
+
+        const currentVmRun = existingArtifact.metadata?.vmRun;
+        if (!currentVmRun) return;
+
+        const nextVmRunBase = {
+            ...currentVmRun,
+            status,
+            summary: options?.summary ?? currentVmRun.summary,
+            steps: thoughts.length > 0 ? mapThoughtsToVmRunSteps(thoughts, status) : currentVmRun.steps,
+            updatedAt: new Date().toISOString(),
+            completedAt:
+                status === 'completed' || status === 'failed' || status === 'cancelled'
+                    ? new Date().toISOString()
+                    : currentVmRun.completedAt,
+        };
+
+        const nextVmRun = options?.finalOutput
+            ? upsertVmRunOutput(
+                nextVmRunBase,
+                {
+                    kind: 'markdown',
+                    title: status === 'failed' ? 'Failure' : 'Final Output',
+                    content: options.finalOutput,
+                },
+                status
+            )
+            : nextVmRunBase;
+
+        const updatedArtifact: Artifact = {
+            ...existingArtifact,
+            content: options?.content ?? existingArtifact.content,
+            updatedAt: new Date(),
+            metadata: {
+                ...existingArtifact.metadata,
+                vmRun: nextVmRun,
+            },
+        };
+
+        updateArtifact(artifactId, {
+            content: updatedArtifact.content,
+            metadata: updatedArtifact.metadata,
+        });
+
+        if (selectedArtifact?.id === artifactId) {
+            setSelectedArtifact(updatedArtifact);
+        }
+    }, [currentArtifacts, thoughts, updateArtifact, selectedArtifact]);
 
     // Sync Async Job to UI Store
     useEffect(() => {
@@ -565,6 +656,7 @@ export function AgentChat({
 
         // 1. Update Thinking Steps from Thoughts
         if (thoughts.length > 0) {
+            syncVmArtifact(activeJob.artifactId, isComplete ? 'completed' : 'running');
             updateMessage(activeJob.messageId, {
                 thinking: {
                     isThinking: !isComplete,
@@ -602,11 +694,19 @@ export function AgentChat({
                 };
                 addArtifact(fullArtifact);
             });
+
+            syncVmArtifact(activeJob.artifactId, 'completed', {
+                content: parsedArtifacts.length > 0 ? cleanedContent : content,
+                finalOutput: content,
+                summary: 'Completed',
+            });
             
             // If we found artifacts, open the panel
             if (parsedArtifacts.length > 0) {
                 setShowArtifactPanel(true);
             }
+
+            emitPlaybookMutation(result.metadata);
             
             updateMessage(activeJob.messageId, {
                 content: parsedArtifacts.length > 0 ? cleanedContent : content,
@@ -629,6 +729,11 @@ export function AgentChat({
 
         // 3. Handle Failure
         if (job?.status === 'failed') {
+             syncVmArtifact(activeJob.artifactId, 'failed', {
+                content: `**Task Failed**: ${job.error || 'Unknown error'}`,
+                finalOutput: job.error || 'Unknown error',
+                summary: 'Failed',
+             });
              updateMessage(activeJob.messageId, {
                 content: `**Task Failed**: ${job.error || 'Unknown error'}`,
                 thinking: { isThinking: false, steps: [], plan: [] }
@@ -640,6 +745,11 @@ export function AgentChat({
 
         // 4. Handle Polling Error (e.g. Permissions)
         if (jobError) {
+             syncVmArtifact(activeJob.artifactId, 'failed', {
+                content: `**System Error**: ${jobError}. (Please verify Firestore Rules or Network)`,
+                finalOutput: jobError,
+                summary: 'Polling error',
+             });
              updateMessage(activeJob.messageId, {
                 content: `**System Error**: ${jobError}. (Please verify Firestore Rules or Network)`,
                 thinking: { isThinking: false, steps: [], plan: [] }
@@ -648,7 +758,7 @@ export function AgentChat({
             setIsProcessing(false);
             setIsTranscribing(false);
         }
-    }, [job, thoughts, isComplete, activeJob, updateMessage, jobError]);
+    }, [job, thoughts, isComplete, activeJob, updateMessage, jobError, addArtifact, syncVmArtifact, emitPlaybookMutation]);
 
     // Tool Selection State
     const [toolMode, setToolMode] = useState<ToolMode>('auto');
@@ -840,13 +950,31 @@ export function AgentChat({
 
             // Handle Async Job Response (Async Mode)
             if (response.metadata?.jobId) {
-                setActiveJob({ jobId: response.metadata.jobId, messageId: thinkingId });
-                // We rely on useJobPoller (if used) or just wait for user to stop.
-                // Note: AgentChat currently relies on 'updateMessage' from polling in separate hook? 
-                // Checks: This file uses 'useJobPoller'?
-                // NO. It seems I didn't import useJobPoller here yet!
-                // PuffChat has useJobPoller. AgentChat doesn't seem to have it?
-                // Let's check imports.
+                const artifactId = createArtifactId();
+                const vmArtifact: Artifact = {
+                    id: artifactId,
+                    type: 'vm_run',
+                    title: `${persona} VM Run`,
+                    content: response.content || 'Agent is working on your request.',
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                    metadata: {
+                        vmRun: createVmRunArtifactData({
+                            runId: `vm-${response.metadata.jobId}`,
+                            jobId: response.metadata.jobId,
+                            agentId: persona,
+                            roleScope: normalizeRoleScope(role),
+                            runtimeBackend: getDefaultRuntimeBackend(persona),
+                            title: `${persona} VM Run`,
+                            summary: userInput || 'Agent is working on your request.',
+                        }),
+                    },
+                };
+
+                addArtifact(vmArtifact);
+                setSelectedArtifact(vmArtifact);
+                setShowArtifactPanel(true);
+                setActiveJob({ jobId: response.metadata.jobId, messageId: thinkingId, artifactId });
                 return;
             }
 
@@ -919,6 +1047,8 @@ export function AgentChat({
                 }
             });
 
+            emitPlaybookMutation(response.metadata);
+
         } catch (error) {
             clearInterval(durationInterval);
             console.error(error);
@@ -934,7 +1064,7 @@ export function AgentChat({
         if (onSubmit) {
             await onSubmit(userInput);
         }
-    }, [input, isProcessing, onSubmit, addMessage, updateMessage, persona, toolMode, selectedTools, user, attachments, thinkingLevel, convertAttachments]);
+    }, [input, isProcessing, onSubmit, addMessage, updateMessage, persona, toolMode, selectedTools, user, attachments, thinkingLevel, convertAttachments, role, addArtifact, emitPlaybookMutation]);
 
     // Run commands from external triggers (e.g., quick actions).
     useEffect(() => {

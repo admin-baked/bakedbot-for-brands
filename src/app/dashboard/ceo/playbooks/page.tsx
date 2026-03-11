@@ -16,14 +16,23 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Search, Bot, Zap, TrendingUp, Mail, BarChart3, Target, Database, Loader2, CheckCircle } from 'lucide-react';
 import { SuperUserAgentChat } from './components/super-user-agent-chat';
 import { InternalPlaybooksGrid, type InternalPlaybook } from './components/internal-playbooks-grid';
 import { CreateInternalPlaybookDialog } from './components/create-internal-playbook-dialog';
 import { seedPlaybookTemplates, type SeedResult } from '@/server/actions/seed-playbooks';
 import { useToast } from '@/hooks/use-toast';
-import { listSuperUserPlaybooks, updateSuperUserPlaybook } from './playbook-actions';
+import { listSuperUserPlaybooks, reviseSuperUserPlaybookWithPrompt, updateSuperUserPlaybook } from './playbook-actions';
 import { PlaybookEditSheet } from '@/app/dashboard/playbooks/components/playbook-edit-sheet';
 import type { PlaybookTrigger } from '@/types/playbook';
 
@@ -33,6 +42,9 @@ export default function SuperUserPlaybooksPage() {
     const [isSeeding, setIsSeeding] = useState(false);
     const [seedResult, setSeedResult] = useState<SeedResult | null>(null);
     const [editingPlaybook, setEditingPlaybook] = useState<InternalPlaybook | null>(null);
+    const [refiningPlaybook, setRefiningPlaybook] = useState<InternalPlaybook | null>(null);
+    const [refinementPrompt, setRefinementPrompt] = useState('');
+    const [isRefining, setIsRefining] = useState(false);
     const { toast } = useToast();
 
     const [stats, setStats] = useState<{
@@ -109,6 +121,47 @@ export default function SuperUserPlaybooksPage() {
         }
     };
 
+    const refreshPlaybooks = () => setRefreshNonce((value) => value + 1);
+
+    const handleOpenRefineDialog = (playbook: InternalPlaybook) => {
+        setRefiningPlaybook(playbook);
+        setRefinementPrompt('');
+    };
+
+    const handleRefinePlaybook = async () => {
+        if (!refiningPlaybook || !refinementPrompt.trim() || isRefining) {
+            return;
+        }
+
+        setIsRefining(true);
+        try {
+            const result = await reviseSuperUserPlaybookWithPrompt(
+                refiningPlaybook.id,
+                refinementPrompt.trim(),
+            );
+
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to revise playbook');
+            }
+
+            toast({
+                title: 'Playbook updated',
+                description: `"${result.playbook?.name || refiningPlaybook.name}" was revised from your prompt.`,
+            });
+            setRefiningPlaybook(null);
+            setRefinementPrompt('');
+            refreshPlaybooks();
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Revision failed',
+                description: error instanceof Error ? error.message : 'Unknown error',
+            });
+        } finally {
+            setIsRefining(false);
+        }
+    };
+
     return (
         <div className="space-y-8 p-8 max-w-[1600px] mx-auto">
             {/* Header */}
@@ -120,7 +173,7 @@ export default function SuperUserPlaybooksPage() {
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <CreateInternalPlaybookDialog onCreated={() => setRefreshNonce(v => v + 1)} />
+                    <CreateInternalPlaybookDialog onCreated={refreshPlaybooks} />
                     <Button
                         variant="outline"
                         onClick={handleSeedTemplates}
@@ -208,7 +261,7 @@ export default function SuperUserPlaybooksPage() {
 
             {/* Agent Command Interface */}
             <section className="w-full">
-                <SuperUserAgentChat />
+                <SuperUserAgentChat onPlaybookMutation={refreshPlaybooks} />
             </section>
 
             {/* Quick Actions */}
@@ -257,6 +310,7 @@ export default function SuperUserPlaybooksPage() {
                     searchQuery={searchQuery}
                     refreshNonce={refreshNonce}
                     onEdit={setEditingPlaybook}
+                    onRefine={handleOpenRefineDialog}
                 />
             </section>
 
@@ -283,13 +337,64 @@ export default function SuperUserPlaybooksPage() {
                         if (result.success) {
                             toast({ title: 'Playbook updated', description: `"${editingPlaybook.name}" trigger saved.` });
                             setEditingPlaybook(null);
-                            setRefreshNonce(v => v + 1);
+                            refreshPlaybooks();
                         } else {
                             toast({ variant: 'destructive', title: 'Error', description: result.error });
                         }
                     }}
                 />
             )}
+
+            <Dialog
+                open={!!refiningPlaybook}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setRefiningPlaybook(null);
+                        setRefinementPrompt('');
+                    }
+                }}
+            >
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Refine Playbook with Prompt</DialogTitle>
+                        <DialogDescription>
+                            Describe the change you want, and BakedBot will update the existing playbook.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-3">
+                        <div className="rounded-lg border bg-muted/30 p-3">
+                            <p className="text-sm font-medium">{refiningPlaybook?.name}</p>
+                            <p className="text-sm text-muted-foreground mt-1">{refiningPlaybook?.description}</p>
+                        </div>
+                        <Textarea
+                            value={refinementPrompt}
+                            onChange={(event) => setRefinementPrompt(event.target.value)}
+                            placeholder="Example: Update this playbook to focus on New York dispensaries, proactively generate new leads, create outreach drafts for my approval, and keep sending tied to my connected Gmail account."
+                            rows={7}
+                        />
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setRefiningPlaybook(null);
+                                setRefinementPrompt('');
+                            }}
+                            disabled={isRefining}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleRefinePlaybook}
+                            disabled={!refinementPrompt.trim() || isRefining}
+                        >
+                            {isRefining ? 'Updating...' : 'Update Playbook'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
