@@ -541,7 +541,91 @@ const ALLOWED_FILE_TYPES = [
     'image/webp',
     'image/gif',
     'application/pdf',
+    'text/plain',
+    'text/csv',
+    'text/markdown',
+    'application/json',
+    'application/javascript',
+    'text/javascript',
+    'text/x-python',
+    'text/x-shellscript',
+    'application/x-yaml',
+    'text/yaml',
 ];
+const ALLOWED_FILE_EXTENSIONS = new Set([
+    'txt',
+    'md',
+    'markdown',
+    'csv',
+    'json',
+    'js',
+    'jsx',
+    'ts',
+    'tsx',
+    'py',
+    'sh',
+    'bash',
+    'yaml',
+    'yml',
+    'xml',
+    'html',
+    'css',
+]);
+
+function getAttachmentMimeType(attachment: AttachmentItem): string {
+    if (attachment.file?.type) {
+        return attachment.file.type;
+    }
+
+    if (attachment.type === 'image') {
+        return 'image/jpeg';
+    }
+
+    if (attachment.type === 'pasted') {
+        return 'text/plain';
+    }
+
+    return 'application/octet-stream';
+}
+
+function detectPastedContentName(text: string): string {
+    const trimmed = text.trim();
+
+    if (trimmed.includes(',') && trimmed.split('\n').length > 1) {
+        const lines = trimmed.split('\n');
+        const avgCommas = lines.slice(0, 5).map((line) => (line.match(/,/g) || []).length);
+        if (avgCommas.length > 0 && avgCommas.every((count) => count > 0 && count === avgCommas[0])) {
+            return 'Pasted CSV Data';
+        }
+    }
+
+    if (
+        (trimmed.startsWith('{') && trimmed.endsWith('}'))
+        || (trimmed.startsWith('[') && trimmed.endsWith(']'))
+    ) {
+        try {
+            JSON.parse(trimmed);
+            return 'Pasted JSON Data';
+        } catch {
+            // Fall through to the content heuristics below.
+        }
+    }
+
+    if (
+        trimmed.includes('function ')
+        || trimmed.includes('const ')
+        || trimmed.includes('import ')
+        || trimmed.includes('class ')
+    ) {
+        return 'Pasted Code';
+    }
+
+    if (trimmed.includes('# ') || trimmed.includes('## ') || trimmed.includes('```')) {
+        return 'Pasted Markdown';
+    }
+
+    return 'Pasted Content';
+}
 
 export function InboxConversation({ thread, artifacts, className }: InboxConversationProps) {
     // Lazy init: pick up any pending input set by the empty state or sidebar before
@@ -814,48 +898,81 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         }
     }, [input]);
 
-    // Handle file selection
-    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files;
-        if (!files) return;
+    const validateAttachmentFile = (file: File): boolean => {
+        if (file.size > MAX_FILE_SIZE) {
+            toast({
+                title: 'File too large',
+                description: `${file.name} exceeds 10MB limit`,
+                variant: 'destructive',
+            });
+            return false;
+        }
 
-        for (const file of Array.from(files)) {
-            // Validate file size
-            if (file.size > MAX_FILE_SIZE) {
-                toast({
-                    title: 'File too large',
-                    description: `${file.name} exceeds 10MB limit`,
-                    variant: 'destructive',
-                });
-                continue;
-            }
+        const extension = file.name.split('.').pop()?.toLowerCase() || '';
+        const isAllowedType = ALLOWED_FILE_TYPES.includes(file.type);
+        const isAllowedExtension = ALLOWED_FILE_EXTENSIONS.has(extension);
 
-            // Validate file type
-            if (!ALLOWED_FILE_TYPES.includes(file.type)) {
-                toast({
-                    title: 'Unsupported file type',
-                    description: `${file.type || 'Unknown type'} is not supported. Use images or PDFs.`,
-                    variant: 'destructive',
-                });
-                continue;
-            }
+        if (!isAllowedType && !isAllowedExtension) {
+            toast({
+                title: 'Unsupported file type',
+                description: `${file.name} is not supported. Use images, PDFs, text, CSV, JSON, Markdown, or code files.`,
+                variant: 'destructive',
+            });
+            return false;
+        }
 
-            // Read file as data URL
+        return true;
+    };
+
+    const createAttachmentItemFromFile = (file: File): Promise<AttachmentItem> => {
+        return new Promise((resolve, reject) => {
             const reader = new FileReader();
+
             reader.onload = () => {
                 const dataUrl = reader.result as string;
-                const newAttachment: AttachmentItem = {
+                resolve({
                     id: `att-${Date.now()}-${Math.random().toString(36).slice(2)}`,
                     file,
                     type: file.type.startsWith('image/') ? 'image' : 'file',
                     preview: file.type.startsWith('image/') ? dataUrl : undefined,
                     content: !file.type.startsWith('image/') ? dataUrl : undefined,
                     name: file.name,
-                };
-                setAttachments((prev) => [...prev, newAttachment]);
+                });
             };
+
+            reader.onerror = () => {
+                reject(new Error(`Failed to read ${file.name}`));
+            };
+
             reader.readAsDataURL(file);
+        });
+    };
+
+    const appendAttachmentFiles = async (files: File[]) => {
+        const validFiles = files.filter(validateAttachmentFile);
+        if (validFiles.length === 0) {
+            return;
         }
+
+        try {
+            const nextAttachments = await Promise.all(
+                validFiles.map((file) => createAttachmentItemFromFile(file))
+            );
+            setAttachments((prev) => [...prev, ...nextAttachments]);
+        } catch (error) {
+            toast({
+                title: 'Attachment failed',
+                description: error instanceof Error ? error.message : 'Failed to process attachment',
+                variant: 'destructive',
+            });
+        }
+    };
+
+    // Handle file selection
+    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files) return;
+        await appendAttachmentFiles(Array.from(files));
 
         // Reset input so same file can be selected again
         e.target.value = '';
@@ -864,6 +981,30 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     // Remove attachment
     const handleRemoveAttachment = (id: string) => {
         setAttachments((prev) => prev.filter((a) => a.id !== id));
+    };
+
+    const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+        const pastedText = e.clipboardData.getData('text');
+        const pastedFiles = Array.from(e.clipboardData.files || []);
+
+        if (pastedFiles.length > 0) {
+            e.preventDefault();
+            await appendAttachmentFiles(pastedFiles);
+            return;
+        }
+
+        if (pastedText && pastedText.length > 200) {
+            e.preventDefault();
+            setAttachments((prev) => [
+                ...prev,
+                {
+                    id: `att-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+                    type: 'pasted',
+                    content: pastedText,
+                    name: detectPastedContentName(pastedText),
+                },
+            ]);
+        }
     };
 
     // Handle job completion via Firestore real-time listener (useJobPoller)
@@ -1534,7 +1675,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         const messageAttachments = attachments.map((att) => ({
             id: att.id,
             name: att.file?.name || att.name || 'file',
-            type: att.file?.type || (att.type === 'image' ? 'image/jpeg' : 'application/octet-stream'),
+            type: getAttachmentMimeType(att),
             url: att.preview || att.content || '',
             preview: att.preview,
         }));
@@ -1556,7 +1697,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         // Prepare attachments for agent (base64 format)
         const agentAttachments = attachments.map((att) => ({
             name: att.file?.name || att.name || 'file',
-            type: att.file?.type || (att.type === 'image' ? 'image/jpeg' : 'application/octet-stream'),
+            type: getAttachmentMimeType(att),
             base64: att.preview || att.content || '',
         }));
 
@@ -2466,7 +2607,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                         <input
                             ref={fileInputRef}
                             type="file"
-                            accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
+                            accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,text/plain,text/csv,text/markdown,application/json,.md,.markdown,.csv,.json,.js,.jsx,.ts,.tsx,.py,.sh,.yaml,.yml,.xml,.html,.css"
                             multiple
                             onChange={handleFileSelect}
                             className="hidden"
@@ -2489,6 +2630,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                                 ref={textareaRef}
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
+                                onPaste={handlePaste}
                                 onKeyDown={handleKeyDown}
                                 placeholder={isPending
                                     ? 'Setting up conversation...'
@@ -2517,7 +2659,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                             ? 'Preparing your conversation...'
                             : attachments.length > 0
                                 ? `${attachments.length} file(s) attached. Press Enter to send.`
-                                : 'Press Enter to send, Shift+Enter for new line. Use 📎 to attach files.'}
+                                : 'Press Enter to send, Shift+Enter for new line. Use the paperclip or paste files/text to attach.'}
                     </p>
                 </div>
             </div>
