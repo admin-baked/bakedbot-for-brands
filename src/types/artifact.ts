@@ -7,6 +7,7 @@
 
 import { z } from 'zod';
 import type { AIRoutingMetadata, AISensitivityLabel } from './ai-routing';
+import type { VmRunArtifactData } from './agent-vm';
 
 // ============ Artifact Types ============
 
@@ -23,7 +24,8 @@ export type ArtifactType =
     // Inbox artifacts
     | 'carousel'       // Product carousel
     | 'bundle'         // Bundle deal
-    | 'creative_post'; // Social media content
+    | 'creative_post'  // Social media content
+    | 'vm_run';        // Agent VM execution trace + outputs
 
 export const ARTIFACT_TYPES: { type: ArtifactType; label: string; icon: string }[] = [
     { type: 'code', label: 'Code', icon: 'Code' },
@@ -39,6 +41,7 @@ export const ARTIFACT_TYPES: { type: ArtifactType; label: string; icon: string }
     { type: 'carousel', label: 'Carousel', icon: 'Images' },
     { type: 'bundle', label: 'Bundle', icon: 'PackagePlus' },
     { type: 'creative_post', label: 'Social Post', icon: 'Palette' },
+    { type: 'vm_run', label: 'Agent Run', icon: 'Cpu' },
 ];
 
 // ============ Artifact Interface ============
@@ -125,6 +128,9 @@ export interface ArtifactMetadata {
             complianceStatus?: 'active' | 'warning' | 'review_needed' | 'rejected';
         };
     };
+
+    // For VM artifacts
+    vmRun?: VmRunArtifactData;
 }
 
 // ============ Slides for Decks ============
@@ -143,7 +149,7 @@ export const ArtifactTypeSchema = z.enum([
     'code', 'markdown', 'research', 'deck', 'diagram',
     'chart', 'table', 'infographic', 'image',
     // Inbox artifacts
-    'carousel', 'bundle', 'creative_post'
+    'carousel', 'bundle', 'creative_post', 'vm_run'
 ]);
 
 export const ArtifactMetadataSchema = z.object({
@@ -208,6 +214,51 @@ export const ArtifactMetadataSchema = z.object({
             scheduledAt: z.string().optional(),
             complianceStatus: z.enum(['active', 'warning', 'review_needed', 'rejected']).optional(),
         }).optional(),
+    }).optional(),
+    vmRun: z.object({
+        runId: z.string(),
+        threadId: z.string().optional(),
+        jobId: z.string().optional(),
+        agentId: z.string(),
+        roleScope: z.enum(['super_user', 'dispensary', 'brand', 'grower']),
+        runtimeBackend: z.enum([
+            'browser',
+            'terminal',
+            'analysis_js',
+            'cloud_run_code_runner',
+            'python_sidecar_notebooklm',
+            'node_vm',
+            'python_vm',
+        ]),
+        status: z.enum(['queued', 'running', 'awaiting_approval', 'completed', 'failed', 'cancelled']),
+        title: z.string(),
+        summary: z.string().optional(),
+        plan: z.array(z.string()),
+        steps: z.array(z.object({
+            id: z.string(),
+            title: z.string(),
+            detail: z.string().optional(),
+            status: z.enum(['pending', 'running', 'completed', 'failed']),
+            startedAt: z.string().optional(),
+            completedAt: z.string().optional(),
+        })),
+        outputs: z.array(z.object({
+            kind: z.enum(['markdown', 'code', 'image', 'video', 'json', 'link', 'file']),
+            title: z.string(),
+            content: z.string().optional(),
+            url: z.string().optional(),
+            language: z.string().optional(),
+        })),
+        approvals: z.array(z.object({
+            type: z.enum(['read_only', 'internal_write', 'external_write', 'publish', 'shell', 'browser_submit', 'compliance_sensitive', 'tool']),
+            status: z.enum(['pending', 'approved', 'rejected']),
+            requestedAt: z.string(),
+            resolvedAt: z.string().optional(),
+            label: z.string().optional(),
+        })),
+        createdAt: z.string(),
+        updatedAt: z.string(),
+        completedAt: z.string().optional(),
     }).optional(),
 }).optional();
 
