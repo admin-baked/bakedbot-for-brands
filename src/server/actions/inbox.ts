@@ -36,6 +36,7 @@ import type { BundleDeal } from '@/types/bundles';
 import type { CreativeContent } from '@/types/creative-content';
 import type { ResearchReportArtifactData } from '@/types/inbox';
 import type { VmRunArtifactData } from '@/types/agent-vm';
+import { approveRequest } from '@/server/actions/approvals';
 import { mapVmRunStatusToInboxStatus, resolveVmRunApproval } from '@/types/agent-vm';
 
 // ============ Firestore Collections ============
@@ -696,6 +697,24 @@ export async function resolveInboxVmRunApproval(
         }
 
         const currentVmRun = artifact.data as VmRunArtifactData;
+        const currentApproval = currentVmRun.approvals[approvalIndex];
+        if (!currentApproval) {
+            return { success: false, error: 'Approval not found' };
+        }
+
+        if (currentApproval.type === 'tool') {
+            if (!currentApproval.approvalId) {
+                logger.warn('VM approval missing approval id', {
+                    artifactId,
+                    approvalIndex,
+                    threadId: artifact.threadId,
+                });
+                return { success: false, error: 'Approval request id is missing' };
+            }
+
+            await approveRequest(artifact.orgId, currentApproval.approvalId, decision === 'approved');
+        }
+
         const nextVmRun = resolveVmRunApproval(currentVmRun, approvalIndex, decision);
         const nextStatus = mapVmRunStatusToInboxStatus(nextVmRun.status);
 
@@ -715,6 +734,7 @@ export async function resolveInboxVmRunApproval(
             artifactId,
             approvalIndex,
             decision,
+            approvalId: currentApproval.approvalId,
             vmStatus: nextVmRun.status,
         });
 

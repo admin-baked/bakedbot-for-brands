@@ -96,6 +96,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { CreativeContent } from '@/types/creative-content';
 import {
     createVmRunArtifactData,
+    extractVmApprovalsFromToolCalls,
     getDefaultRuntimeBackend,
     mapThoughtsToVmRunSteps,
     mapVmRunStatusToInboxStatus,
@@ -876,22 +877,28 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
 
         if (job.status === 'completed' && job.result?.content) {
             if (currentVmArtifactId) {
+                const approvalRequests = extractVmApprovalsFromToolCalls(job.result.toolCalls);
+                const vmStatus: VmRunStatus = approvalRequests.length > 0 ? 'awaiting_approval' : 'completed';
                 const completedVmRun = upsertVmRunOutput(
-                    buildCurrentVmRun('completed') || createVmRunArtifactData({
-                        runId: `vm-${job.id}`,
-                        threadId: thread.id,
-                        jobId: job.id,
-                        agentId: thread.primaryAgent,
-                        roleScope,
-                        runtimeBackend: getDefaultRuntimeBackend(thread.primaryAgent),
-                        title: `${AGENT_NAMES[thread.primaryAgent]?.name || 'Agent'} VM Run`,
-                    }),
+                    {
+                        ...(buildCurrentVmRun(vmStatus) || createVmRunArtifactData({
+                            runId: `vm-${job.id}`,
+                            threadId: thread.id,
+                            jobId: job.id,
+                            agentId: thread.primaryAgent,
+                            roleScope,
+                            runtimeBackend: getDefaultRuntimeBackend(thread.primaryAgent),
+                            title: `${AGENT_NAMES[thread.primaryAgent]?.name || 'Agent'} VM Run`,
+                        })),
+                        approvals: approvalRequests,
+                        summary: approvalRequests.length > 0 ? 'Waiting for approval' : 'Completed',
+                    },
                     {
                         kind: 'markdown',
                         title: 'Final Output',
                         content: job.result.content,
                     },
-                    'completed'
+                    vmStatus
                 );
 
                 updateArtifact(currentVmArtifactId, {

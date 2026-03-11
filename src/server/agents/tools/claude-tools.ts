@@ -150,6 +150,17 @@ export function createToolExecutor(context: {
             idempotencyKey: `claude-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         });
 
+        if (response.status === 'blocked') {
+            throw new Error(JSON.stringify({
+                blocked: true,
+                toolName,
+                approvalId: typeof response.data === 'object' && response.data && 'approvalId' in response.data
+                    ? (response.data as { approvalId?: string }).approvalId
+                    : undefined,
+                error: response.error || `Tool ${toolName} is awaiting approval`,
+            }));
+        }
+
         if (response.status !== 'success') {
             throw new Error(response.error || `Tool ${toolName} failed`);
         }
