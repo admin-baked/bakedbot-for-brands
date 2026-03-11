@@ -32,6 +32,7 @@ import {
     Clock,
     Loader2,
     Play,
+    Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -66,11 +67,14 @@ const CATEGORY_CONFIG: Record<string, {
     intel: { icon: LineChart, iconBg: 'bg-purple-600', badgeBg: 'bg-purple-900/50', badgeText: 'text-purple-300', label: 'INTEL' },
     seo: { icon: FileText, iconBg: 'bg-blue-600', badgeBg: 'bg-blue-900/50', badgeText: 'text-blue-300', label: 'SEO' },
     monitoring: { icon: AlertTriangle, iconBg: 'bg-orange-600', badgeBg: 'bg-orange-900/50', badgeText: 'text-orange-300', label: 'OPS' },
+    ops: { icon: AlertTriangle, iconBg: 'bg-orange-600', badgeBg: 'bg-orange-900/50', badgeText: 'text-orange-300', label: 'OPS' },
     operations: { icon: AlertTriangle, iconBg: 'bg-orange-600', badgeBg: 'bg-orange-900/50', badgeText: 'text-orange-300', label: 'OPS' },
     compliance: { icon: ShieldAlert, iconBg: 'bg-red-600', badgeBg: 'bg-red-900/50', badgeText: 'text-red-300', label: 'COMPLIANCE' },
     reporting: { icon: Brain, iconBg: 'bg-cyan-600', badgeBg: 'bg-cyan-900/50', badgeText: 'text-cyan-300', label: 'REPORTING' },
     email: { icon: Mail, iconBg: 'bg-yellow-600', badgeBg: 'bg-yellow-900/50', badgeText: 'text-yellow-300', label: 'AUTOMATION' },
+    marketing: { icon: Mail, iconBg: 'bg-yellow-600', badgeBg: 'bg-yellow-900/50', badgeText: 'text-yellow-300', label: 'AUTOMATION' },
     research: { icon: Target, iconBg: 'bg-blue-600', badgeBg: 'bg-blue-900/50', badgeText: 'text-blue-300', label: 'INTEL' },
+    growth: { icon: Target, iconBg: 'bg-blue-600', badgeBg: 'bg-blue-900/50', badgeText: 'text-blue-300', label: 'GROWTH' },
     finance: { icon: BarChart3, iconBg: 'bg-green-600', badgeBg: 'bg-green-900/50', badgeText: 'text-green-300', label: 'FINANCE' },
     automation: { icon: Zap, iconBg: 'bg-yellow-600', badgeBg: 'bg-yellow-900/50', badgeText: 'text-yellow-300', label: 'AUTOMATION' },
     custom: { icon: Settings, iconBg: 'bg-slate-600', badgeBg: 'bg-slate-900/50', badgeText: 'text-slate-300', label: 'CUSTOM' },
@@ -123,11 +127,13 @@ function PlaybookCard({
     onToggle,
     onRun,
     onEdit,
+    onRefine,
 }: {
     playbook: InternalPlaybook;
     onToggle: (id: string, active: boolean) => void;
     onRun: (id: string) => void;
     onEdit?: (pb: InternalPlaybook) => void;
+    onRefine?: (pb: InternalPlaybook) => void;
 }) {
     const config = CATEGORY_CONFIG[playbook.category] ?? DEFAULT_CONFIG;
     const Icon = config.icon;
@@ -193,6 +199,12 @@ function PlaybookCard({
                                     Edit
                                 </DropdownMenuItem>
                             )}
+                            {!playbook.isBuiltin && onRefine && (
+                                <DropdownMenuItem onClick={() => onRefine(playbook)}>
+                                    <Sparkles className="h-3.5 w-3.5 mr-2" />
+                                    Refine with prompt
+                                </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem
                                 onClick={() => onRun(playbook.id)}
                                 disabled={!playbook.active || !!playbook.isBuiltin}
@@ -249,9 +261,10 @@ interface InternalPlaybooksGridProps {
     searchQuery: string;
     refreshNonce?: number;
     onEdit?: (playbook: InternalPlaybook) => void;
+    onRefine?: (playbook: InternalPlaybook) => void;
 }
 
-export function InternalPlaybooksGrid({ searchQuery, refreshNonce, onEdit }: InternalPlaybooksGridProps) {
+export function InternalPlaybooksGrid({ searchQuery, refreshNonce, onEdit, onRefine }: InternalPlaybooksGridProps) {
     const { toast } = useToast();
     const [playbooks, setPlaybooks] = useState<InternalPlaybook[]>([]);
     const [loading, setLoading] = useState(true);
@@ -323,7 +336,6 @@ export function InternalPlaybooksGrid({ searchQuery, refreshNonce, onEdit }: Int
             toast({ title: 'Template not installed', description: 'Use "Seed Templates" to install.' });
             return;
         }
-        toast({ title: 'Playbook Started', description: `Running ${pb?.name}…` });
         try {
             const result = await runSuperUserPlaybook(id);
             if (result.success) {
@@ -365,6 +377,7 @@ export function InternalPlaybooksGrid({ searchQuery, refreshNonce, onEdit }: Int
                     onToggle={handleToggle}
                     onRun={handleRun}
                     onEdit={onEdit}
+                    onRefine={onRefine}
                 />
             ))}
         </div>

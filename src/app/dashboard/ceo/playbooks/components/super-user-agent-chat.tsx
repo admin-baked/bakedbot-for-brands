@@ -12,7 +12,16 @@
 import { useEffect, useState } from 'react';
 import { AgentChat } from '@/app/dashboard/playbooks/components/agent-chat';
 
-export function SuperUserAgentChat() {
+export function SuperUserAgentChat({
+    onPlaybookMutation,
+}: {
+    onPlaybookMutation?: (mutation: {
+        kind: string;
+        playbookId: string;
+        playbookName?: string;
+        scope?: string;
+    }) => void;
+}) {
     const [externalInput, setExternalInput] = useState<string | undefined>();
 
     useEffect(() => {
@@ -38,6 +47,7 @@ export function SuperUserAgentChat() {
             placeholder="Try: 'Generate weekly platform report' or 'Create a welcome email playbook for new signups'"
             defaultThinkingLevel="advanced"
             externalInput={externalInput}
+            onPlaybookMutation={onPlaybookMutation}
         />
     );
 }

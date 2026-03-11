@@ -9,7 +9,7 @@
  * and enhanced cards. Preserves role-based views and AgentChat integration.
  */
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUserRole } from '@/hooks/use-user-role';
 import { useToast } from '@/hooks/use-toast';
@@ -24,10 +24,44 @@ import { PlaybooksHeader, PlaybookFilterCategory } from './components/playbooks-
 import { PlaybookCardModern } from './components/playbook-card-modern';
 import { CreatePlaybookBanner } from './components/create-playbook-banner';
 import { InboxCTABanner } from '@/components/inbox';
-import { savePlaybookDraft } from './actions';
-import type { PlaybookCategory } from '@/types/playbook';
+import { createPlaybook, listBrandPlaybooks } from '@/server/actions/playbooks';
+import type { Playbook as StoredPlaybook, PlaybookCategory } from '@/types/playbook';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
+
+function mapStoredPlaybookToCard(playbook: StoredPlaybook): Playbook {
+    const typeMap: Record<string, Playbook['type']> = {
+        intel: 'INTEL',
+        intelligence: 'INTEL',
+        marketing: 'AUTOMATION',
+        ops: 'OPS',
+        operations: 'OPS',
+        seo: 'SEO',
+        reporting: 'REPORTING',
+        compliance: 'COMPLIANCE',
+        growth: 'AUTOMATION',
+        customer_success: 'AUTOMATION',
+        custom: 'SIGNAL',
+    };
+
+    const scheduleTrigger = playbook.triggers.find((trigger) => trigger.type === 'schedule');
+    const tags = [
+        playbook.agent,
+        playbook.category,
+        scheduleTrigger ? 'scheduled' : 'manual',
+    ].filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
+
+    return {
+        id: playbook.id,
+        title: playbook.name,
+        type: typeMap[playbook.category] || 'SIGNAL',
+        description: playbook.description,
+        tags,
+        active: playbook.status === 'active',
+        status: playbook.status === 'active' ? 'active' : 'disabled',
+        prompt: `Run or refine the playbook "${playbook.name}". ${playbook.description}`,
+    };
+}
 
 export default function PlaybooksPage() {
     const router = useRouter();
@@ -41,6 +75,12 @@ export default function PlaybooksPage() {
     );
     const [customPlaybooks, setCustomPlaybooks] = useState<Playbook[]>([]);
     const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
+    const currentOrgId =
+        (user as any)?.brandId ||
+        (user as any)?.currentOrgId ||
+        (user as any)?.orgId ||
+        user?.uid ||
+        '';
 
     // Super users have their own playbooks workspace in the CEO dashboard.
     // IMPORTANT: hook must be called before any early returns — redirect happens in effect.
@@ -49,6 +89,26 @@ export default function PlaybooksPage() {
             router.replace('/dashboard/ceo?tab=playbooks');
         }
     }, [role, router]);
+
+    const refreshCustomPlaybooks = useCallback(async () => {
+        if (!currentOrgId) {
+            return;
+        }
+
+        const storedPlaybooks = await listBrandPlaybooks(currentOrgId);
+        const mappedPlaybooks = storedPlaybooks
+            .filter((playbook) => playbook.isCustom)
+            .map(mapStoredPlaybookToCard);
+
+        setCustomPlaybooks(mappedPlaybooks);
+        setPlaybookStates((prev) => {
+            const next = { ...prev };
+            for (const playbook of mappedPlaybooks) {
+                next[playbook.id] = playbook.active;
+            }
+            return next;
+        });
+    }, [currentOrgId]);
 
     // IMPORTANT: All hooks must be called before any early returns
     // Filter playbooks by search and category
@@ -139,7 +199,11 @@ export default function PlaybooksPage() {
         category: PlaybookCategory;
     }) => {
         try {
-            await savePlaybookDraft({
+            if (!currentOrgId) {
+                throw new Error('No organization context available for playbook creation.');
+            }
+
+            const result = await createPlaybook(currentOrgId, {
                 name: data.name,
                 description: data.description,
                 agent: data.agent,
@@ -148,9 +212,24 @@ export default function PlaybooksPage() {
                 triggers: [],
             });
 
+            if (!result.success || !result.playbook) {
+                throw new Error(result.error || 'Failed to create playbook');
+            }
+
+            const createdPlaybook = result.playbook;
+
+            setCustomPlaybooks((prev) => [
+                mapStoredPlaybookToCard(createdPlaybook),
+                ...prev.filter((playbook) => playbook.id !== createdPlaybook.id),
+            ]);
+            setPlaybookStates((prev) => ({
+                ...prev,
+                [createdPlaybook.id]: createdPlaybook.status === 'active',
+            }));
+
             toast({
-                title: 'Playbook Draft Created',
-                description: `"${data.name}" has been saved. Use chat to refine steps and triggers.`,
+                title: 'Playbook Created',
+                description: `"${data.name}" has been saved with your other playbooks.`,
             });
 
             setSelectedPrompt(
@@ -161,7 +240,7 @@ export default function PlaybooksPage() {
             toast({
                 variant: 'destructive',
                 title: 'Error',
-                description: error instanceof Error ? error.message : 'Failed to create playbook draft',
+                description: error instanceof Error ? error.message : 'Failed to create playbook',
             });
         }
     };
@@ -219,6 +298,25 @@ export default function PlaybooksPage() {
             description: 'Agent chat is ready to build your playbook from this description.',
         });
     };
+
+    const handlePlaybookMutation = useCallback(async (mutation: {
+        kind: string;
+        playbookId: string;
+        playbookName?: string;
+        scope?: string;
+    }) => {
+        if (mutation.kind !== 'created' || mutation.scope !== 'org') {
+            return;
+        }
+
+        await refreshCustomPlaybooks();
+        toast({
+            title: 'Playbook Saved',
+            description: mutation.playbookName
+                ? `"${mutation.playbookName}" was added to your playbooks.`
+                : 'Your new playbook was added to the list.',
+        });
+    }, [refreshCustomPlaybooks, toast]);
 
     const handleNewPlaybook = () => {
         // Scroll to AgentChat and set prompt for new playbook
@@ -282,7 +380,7 @@ export default function PlaybooksPage() {
 
             {/* Agent Builder Chat Interface */}
             <section className="w-full">
-                <AgentChat initialInput={selectedPrompt} />
+                <AgentChat initialInput={selectedPrompt} onPlaybookMutation={handlePlaybookMutation} />
             </section>
 
             {/* Activity & Usage Section */}
