@@ -35,6 +35,8 @@ import type { Carousel } from '@/types/carousels';
 import type { BundleDeal } from '@/types/bundles';
 import type { CreativeContent } from '@/types/creative-content';
 import type { ResearchReportArtifactData } from '@/types/inbox';
+import type { VmRunArtifactData } from '@/types/agent-vm';
+import { mapVmRunStatusToInboxStatus, resolveVmRunApproval } from '@/types/agent-vm';
 
 // ============ Firestore Collections ============
 
@@ -535,7 +537,7 @@ export async function deleteInboxThread(
 export async function createInboxArtifact(input: {
     threadId: string;
     type: InboxArtifactType;
-    data: Carousel | BundleDeal | CreativeContent | ResearchReportArtifactData;
+    data: Carousel | BundleDeal | CreativeContent | ResearchReportArtifactData | VmRunArtifactData;
     rationale?: string;
 }): Promise<{ success: boolean; artifact?: InboxArtifact; error?: string }> {
     try {
@@ -592,6 +594,134 @@ export async function createInboxArtifact(input: {
     } catch (error) {
         logger.error('Failed to create inbox artifact', { error });
         return { success: false, error: 'Failed to create artifact' };
+    }
+}
+
+/**
+ * Update a VM run artifact's execution payload.
+ * Phase 1 only updates vm_run data and derived inbox status.
+ */
+export async function updateInboxVmRunArtifact(
+    artifactId: string,
+    data: VmRunArtifactData
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const user = await getServerSessionUser();
+        if (!user) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        const db = getDb();
+        const artifactRef = db.collection(INBOX_ARTIFACTS_COLLECTION).doc(artifactId);
+        const artifactDoc = await artifactRef.get();
+
+        if (!artifactDoc.exists) {
+            return { success: false, error: 'Artifact not found' };
+        }
+
+        const artifact = artifactDoc.data() as InboxArtifact;
+        if (artifact.type !== 'vm_run') {
+            return { success: false, error: 'Artifact is not a vm_run' };
+        }
+
+        const threadDoc = await db.collection(INBOX_THREADS_COLLECTION).doc(artifact.threadId).get();
+        if (!threadDoc.exists) {
+            return { success: false, error: 'Thread not found' };
+        }
+
+        const thread = threadDoc.data() as InboxThread;
+        if (thread.userId !== user.uid) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        const nextStatus = mapVmRunStatusToInboxStatus(data.status);
+        const updateData: Record<string, unknown> = {
+            data,
+            status: nextStatus,
+            updatedAt: FieldValue.serverTimestamp(),
+        };
+
+        if (nextStatus === 'published') {
+            updateData.publishedAt = FieldValue.serverTimestamp();
+        }
+
+        await artifactRef.update(updateData);
+
+        logger.info('Updated vm_run artifact', {
+            artifactId,
+            jobId: data.jobId,
+            vmStatus: data.status,
+            status: nextStatus,
+        });
+
+        return { success: true };
+    } catch (error) {
+        logger.error('Failed to update vm_run artifact', { error, artifactId });
+        return { success: false, error: 'Failed to update vm_run artifact' };
+    }
+}
+
+export async function resolveInboxVmRunApproval(
+    artifactId: string,
+    approvalIndex: number,
+    decision: 'approved' | 'rejected'
+): Promise<{ success: boolean; data?: VmRunArtifactData; error?: string }> {
+    try {
+        const user = await getServerSessionUser();
+        if (!user) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        const db = getDb();
+        const artifactRef = db.collection(INBOX_ARTIFACTS_COLLECTION).doc(artifactId);
+        const artifactDoc = await artifactRef.get();
+
+        if (!artifactDoc.exists) {
+            return { success: false, error: 'Artifact not found' };
+        }
+
+        const artifact = artifactDoc.data() as InboxArtifact;
+        if (artifact.type !== 'vm_run') {
+            return { success: false, error: 'Artifact is not a vm_run' };
+        }
+
+        const threadDoc = await db.collection(INBOX_THREADS_COLLECTION).doc(artifact.threadId).get();
+        if (!threadDoc.exists) {
+            return { success: false, error: 'Thread not found' };
+        }
+
+        const thread = threadDoc.data() as InboxThread;
+        if (thread.userId !== user.uid) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        const currentVmRun = artifact.data as VmRunArtifactData;
+        const nextVmRun = resolveVmRunApproval(currentVmRun, approvalIndex, decision);
+        const nextStatus = mapVmRunStatusToInboxStatus(nextVmRun.status);
+
+        const updateData: Record<string, unknown> = {
+            data: nextVmRun,
+            status: nextStatus,
+            updatedAt: FieldValue.serverTimestamp(),
+        };
+
+        if (nextStatus === 'published') {
+            updateData.publishedAt = FieldValue.serverTimestamp();
+        }
+
+        await artifactRef.update(updateData);
+
+        logger.info('Resolved vm_run approval', {
+            artifactId,
+            approvalIndex,
+            decision,
+            vmStatus: nextVmRun.status,
+        });
+
+        return { success: true, data: nextVmRun };
+    } catch (error) {
+        logger.error('Failed to resolve vm_run approval', { error, artifactId, approvalIndex, decision });
+        return { success: false, error: 'Failed to resolve vm_run approval' };
     }
 }
 

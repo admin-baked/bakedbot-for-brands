@@ -23,9 +23,13 @@ export function ArtifactCard({ artifact, onClick, compact = false }: ArtifactCar
     const iconName = getArtifactIcon(artifact.type);
     const Icon = (LucideIcons as any)[iconName] || LucideIcons.File;
     const label = getArtifactLabel(artifact.type);
+    const vmRunStatus = artifact.metadata?.vmRun?.status;
 
     // Get a preview of the content
-    const preview = artifact.content.substring(0, 80).replace(/\n/g, ' ');
+    const previewSource = artifact.type === 'vm_run'
+        ? artifact.metadata?.vmRun?.summary || artifact.content
+        : artifact.content;
+    const preview = previewSource.substring(0, 80).replace(/\n/g, ' ');
 
     if (compact) {
         return (
@@ -82,12 +86,20 @@ export function ArtifactCard({ artifact, onClick, compact = false }: ArtifactCar
             </div>
 
             {/* Published badge */}
-            {artifact.metadata?.isPublished && (
-                <div className="mt-2 flex items-center gap-1 text-[10px] text-green-600">
-                    <div className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                    Published
-                </div>
-            )}
+            <div className="mt-2 flex items-center gap-2 text-[10px]">
+                {artifact.metadata?.isPublished && (
+                    <div className="flex items-center gap-1 text-green-600">
+                        <div className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                        Published
+                    </div>
+                )}
+                {vmRunStatus && (
+                    <div className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-primary">
+                        <div className="h-1.5 w-1.5 rounded-full bg-current" />
+                        {vmRunStatus.replace('_', ' ')}
+                    </div>
+                )}
+            </div>
         </button>
     );
 }
