@@ -59,6 +59,8 @@ export interface CustomerProfile {
     points: number;
     lifetimeValue: number;
     customTags: string[];
+    autoTags?: string[];
+    allTags?: string[];
 
     // Loyalty sync (hybrid system)
     pointsFromOrders?: number;         // Calculated from Alleaves order history
@@ -149,6 +151,9 @@ export interface SegmentSuggestion {
     filters: SegmentFilter[];
     estimatedCount: number;
     reasoning: string;
+    playbookKind?: 'welcome' | 'winback' | 'vip';
+    ctaLabel?: string;
+    statusHint?: 'missing' | 'paused' | 'active';
 }
 
 /**

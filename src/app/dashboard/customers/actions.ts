@@ -1,7 +1,6 @@
 'use server';
 
 import { createServerClient } from '@/firebase/server-client';
-import { orderConverter, type OrderDoc } from '@/firebase/converters';
 import { requireUser } from '@/server/auth/auth';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logger } from '@/lib/logger';
@@ -9,15 +8,29 @@ import { ALLeavesClient, type ALLeavesConfig } from '@/lib/pos/adapters/alleaves
 import { posCache, cacheKeys } from '@/lib/cache/pos-cache';
 import { inferPreferencesFromAlleaves } from '@/lib/analytics/customer-preferences';
 import {
+    buildAutoCustomerTags,
+    mergeCustomerTags,
+    resolveCustomerDisplayName,
+} from '@/lib/customers/profile-derivations';
+import { LIFECYCLE_PLAYBOOKS, type LifecyclePlaybookKind } from '@/lib/customers/lifecycle-playbooks';
+import {
+    getDispensaryPlaybookAssignments,
+    updatePlaybookAssignmentConfig,
+} from '@/server/actions/dispensary-playbooks';
+import {
+    createVIPPlaybook,
+    createWelcomeEmailPlaybook,
+    createWinbackEmailPlaybook,
+    type PilotEmailConfig,
+} from '@/server/actions/pilot-setup';
+import {
     CustomerProfile,
     CustomerSegment,
     CRMStats,
     calculateSegment,
-    getSegmentInfo,
     SegmentSuggestion,
-    LegacySegment,
-    segmentLegacyMap
 } from '@/types/customers';
+import { isBrandRole, isDispensaryRole } from '@/types/roles';
 
 // ==========================================
 // Types
@@ -46,10 +59,163 @@ function normalizeEmail(value: unknown): string | null {
     return normalized.length > 0 ? normalized : null;
 }
 
+function coerceNumber(value: unknown, fallback = 0): number {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return value;
+    }
+
+    if (typeof value === 'string') {
+        const parsed = Number(value);
+        if (Number.isFinite(parsed)) {
+            return parsed;
+        }
+    }
+
+    return fallback;
+}
+
+function coerceDate(value: unknown): Date | undefined {
+    if (!value) {
+        return undefined;
+    }
+
+    if (value instanceof Date && !Number.isNaN(value.getTime())) {
+        return value;
+    }
+
+    if (typeof value === 'object' && value !== null && 'toDate' in value && typeof (value as { toDate?: unknown }).toDate === 'function') {
+        const coerced = (value as { toDate: () => unknown }).toDate();
+        return coerced instanceof Date && !Number.isNaN(coerced.getTime()) ? coerced : undefined;
+    }
+
+    if (typeof value === 'string' || typeof value === 'number') {
+        const coerced = new Date(value);
+        return Number.isNaN(coerced.getTime()) ? undefined : coerced;
+    }
+
+    return undefined;
+}
+
 function isAlleavesPlaceholderEmail(email: string): boolean {
     const atIndex = email.lastIndexOf('@');
     if (atIndex <= 0) return false;
     return email.slice(atIndex + 1) === 'alleaves.local';
+}
+
+function deriveTier(totalSpent: number): CustomerProfile['tier'] {
+    if (totalSpent > 2000) return 'gold';
+    if (totalSpent > 500) return 'silver';
+    return 'bronze';
+}
+
+function decorateCustomerProfile(customer: CustomerProfile): CustomerProfile {
+    const displayName = resolveCustomerDisplayName({
+        displayName: customer.displayName,
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        email: customer.email,
+        fallbackId: customer.id,
+    });
+
+    const autoTags = buildAutoCustomerTags({
+        segment: customer.segment,
+        tier: customer.tier,
+        priceRange: customer.priceRange,
+        orderCount: customer.orderCount,
+        totalSpent: customer.totalSpent,
+        daysSinceLastOrder: customer.daysSinceLastOrder,
+        preferredCategories: customer.preferredCategories,
+        preferredProducts: customer.preferredProducts,
+    });
+
+    return {
+        ...customer,
+        displayName,
+        autoTags,
+        allTags: mergeCustomerTags(customer.customTags, autoTags),
+    };
+}
+
+async function resolveAccessibleOrgContext(requestedOrgId?: string): Promise<{ orgId: string; brandId: string; userRole: string }> {
+    const user = await requireUser([
+        'brand', 'brand_admin', 'brand_member',
+        'dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender',
+        'super_user',
+    ]);
+
+    const userRole = String((user as { role?: string }).role || '');
+    let orgId = requestedOrgId;
+
+    if (!orgId && isBrandRole(userRole)) {
+        orgId = (user as { brandId?: string }).brandId;
+    }
+
+    if (!orgId && isDispensaryRole(userRole)) {
+        const dispensaryUser = user as { orgId?: string; currentOrgId?: string; locationId?: string };
+        orgId = dispensaryUser.orgId || dispensaryUser.currentOrgId || dispensaryUser.locationId;
+    }
+
+    if (!orgId) {
+        orgId = user.uid;
+    }
+
+    if (isBrandRole(userRole) && (user as { brandId?: string }).brandId && (user as { brandId?: string }).brandId !== orgId) {
+        throw new Error('Forbidden: Cannot access another brand\'s customers');
+    }
+
+    if (isDispensaryRole(userRole)) {
+        const dispensaryUser = user as { orgId?: string; currentOrgId?: string; locationId?: string };
+        const userOrgId = dispensaryUser.orgId || dispensaryUser.currentOrgId || dispensaryUser.locationId;
+        if (userOrgId && userOrgId !== orgId) {
+            throw new Error('Forbidden: Cannot access another dispensary\'s customers');
+        }
+    }
+
+    return { orgId, brandId: orgId, userRole };
+}
+
+async function getLifecycleStatusHints(
+    orgId: string,
+    firestore: FirebaseFirestore.Firestore,
+): Promise<Record<LifecyclePlaybookKind, 'missing' | 'paused' | 'active'>> {
+    const hints: Record<LifecyclePlaybookKind, 'missing' | 'paused' | 'active'> = {
+        welcome: 'missing',
+        winback: 'missing',
+        vip: 'missing',
+    };
+
+    const playbooksSnap = await firestore.collection('playbooks')
+        .where('orgId', '==', orgId)
+        .limit(25)
+        .get();
+
+    const playbooks = playbooksSnap.docs.map((doc) => ({
+        id: doc.id,
+        templateId: typeof doc.data().templateId === 'string' ? doc.data().templateId : null,
+    }));
+
+    let activeIds = new Set<string>();
+    try {
+        const assignments = await getDispensaryPlaybookAssignments(orgId);
+        activeIds = new Set(assignments.activeIds);
+    } catch (error) {
+        logger.warn('[CUSTOMERS] Unable to load playbook assignments for suggestion hints', {
+            orgId,
+            error: error instanceof Error ? error.message : String(error),
+        });
+    }
+
+    for (const definition of LIFECYCLE_PLAYBOOKS) {
+        const playbook = playbooks.find((candidate) => candidate.templateId === definition.templateId);
+        if (!playbook) {
+            hints[definition.kind] = 'missing';
+            continue;
+        }
+
+        hints[definition.kind] = activeIds.has(playbook.id) ? 'active' : 'paused';
+    }
+
+    return hints;
 }
 
 // ==========================================
@@ -225,12 +391,18 @@ async function getCustomersFromAlleaves(orgId: string, firestore: FirebaseFirest
             const email = normalizeEmail(ac.email) || `customer_${ac.id_customer || ac.id}@alleaves.local`;
             const firstName = ac.name_first || '';
             const lastName = ac.name_last || '';
-            const displayName = [firstName, lastName].filter(Boolean).join(' ') || ac.customer_name || email;
+            const alleavesCustId = (ac.id_customer || ac.id)?.toString();
+            const displayName = resolveCustomerDisplayName({
+                displayName: ac.customer_name,
+                firstName,
+                lastName,
+                email,
+                fallbackId: alleavesCustId ? `alleaves_${alleavesCustId}` : email,
+            });
 
             // Get spending data — try email first, then 'cid_{id_customer}' fallback.
             // The spending index uses 'cid_X' keys for in-store orders with no email
             // (matches the key written by computeAndPersistSpending in pos-sync-service.ts).
-            const alleavesCustId = (ac.id_customer || ac.id)?.toString();
             const spending = customerSpending.get(email)
                 ?? (alleavesCustId ? customerSpending.get(`cid_${alleavesCustId}`) : undefined);
             const totalSpent = spending?.totalSpent || 0;
@@ -511,7 +683,13 @@ export async function getCustomers(params: GetCustomersParams | string = {}): Pr
                 email: email,
                 firstName: crmData?.firstName || order.customer?.name?.split(' ')[0],
                 lastName: crmData?.lastName || order.customer?.name?.split(' ').slice(1).join(' '),
-                displayName: crmData?.displayName || order.customer?.name || email,
+                displayName: resolveCustomerDisplayName({
+                    displayName: crmData?.displayName || order.customer?.name,
+                    firstName: crmData?.firstName || order.customer?.name?.split(' ')[0],
+                    lastName: crmData?.lastName || order.customer?.name?.split(' ').slice(1).join(' '),
+                    email,
+                    fallbackId: crmData?.id || email,
+                }),
                 phone: crmData?.phone || order.customer?.phone || '',
                 orderCount: 1,
                 totalSpent: orderTotal,
@@ -540,30 +718,47 @@ export async function getCustomers(params: GetCustomersParams | string = {}): Pr
     crmCustomers.forEach((crmData, email) => {
         // Check if this customer already exists (by ID, not email)
         if (!customerMap.has(crmData.id)) {
+            const orderCount = coerceNumber(crmData.orderCount);
+            const totalSpent = coerceNumber(crmData.totalSpent);
+            const avgOrderValue = orderCount > 0
+                ? totalSpent / orderCount
+                : coerceNumber(crmData.avgOrderValue);
+            const lastOrderDate = coerceDate(crmData.lastOrderDate);
+            const firstOrderDate = coerceDate(crmData.firstOrderDate);
+            const createdAt = coerceDate(crmData.createdAt) || firstOrderDate || new Date();
+
             customerMap.set(crmData.id, {
                 id: crmData.id,
                 orgId: orgId,
                 email: email,
                 firstName: crmData.firstName,
                 lastName: crmData.lastName,
-                displayName: crmData.displayName || email,
+                displayName: resolveCustomerDisplayName({
+                    displayName: crmData.displayName,
+                    firstName: crmData.firstName,
+                    lastName: crmData.lastName,
+                    email,
+                    fallbackId: crmData.id,
+                }),
                 phone: crmData.phone,
-                orderCount: 0,
-                totalSpent: 0,
-                avgOrderValue: 0,
+                orderCount,
+                totalSpent,
+                avgOrderValue,
+                lastOrderDate,
+                firstOrderDate,
                 preferredCategories: crmData.preferredCategories || [],
                 preferredProducts: crmData.preferredProducts || [],
                 priceRange: crmData.priceRange || 'mid',
                 segment: 'new',
                 tier: 'bronze',
                 points: crmData.points || 0,
-                lifetimeValue: 0,
+                lifetimeValue: totalSpent,
                 customTags: crmData.customTags || [],
                 birthDate: crmData.birthDate,
                 preferences: crmData.preferences,
                 source: crmData.source || 'manual',
                 notes: crmData.notes,
-                createdAt: crmData.createdAt?.toDate?.() || new Date(),
+                createdAt,
                 updatedAt: new Date(),
             });
         }
@@ -594,9 +789,7 @@ export async function getCustomers(params: GetCustomersParams | string = {}): Pr
         c.segment = calculateSegment(c);
 
         // Calculate tier
-        if (c.totalSpent > 2000) c.tier = 'gold';
-        else if (c.totalSpent > 500) c.tier = 'silver';
-        else c.tier = 'bronze';
+        c.tier = deriveTier(c.totalSpent);
 
         // Calculate points and LTV
         c.points = Math.floor(c.totalSpent);
@@ -605,7 +798,7 @@ export async function getCustomers(params: GetCustomersParams | string = {}): Pr
         // Update breakdown
         segmentBreakdown[c.segment]++;
 
-        return c;
+        return decorateCustomerProfile(c);
     }).sort((a, b) => (b.lastOrderDate?.getTime() || 0) - (a.lastOrderDate?.getTime() || 0));
 
     logger.info('[CUSTOMERS] After map and sort', {
@@ -697,13 +890,19 @@ export async function getCustomer(customerId: string): Promise<CustomerProfile |
     const doc = await firestore.collection('customers').doc(customerId).get();
     if (doc.exists && doc.data()?.orgId === orgId) {
         const data = doc.data()!;
-        return {
+        return decorateCustomerProfile({
             id: doc.id,
             orgId: data.orgId,
             email: data.email,
             firstName: data.firstName,
             lastName: data.lastName,
-            displayName: data.displayName || data.email,
+            displayName: resolveCustomerDisplayName({
+                displayName: data.displayName,
+                firstName: data.firstName,
+                lastName: data.lastName,
+                email: data.email,
+                fallbackId: doc.id,
+            }),
             phone: data.phone,
             totalSpent: data.totalSpent || 0,
             orderCount: data.orderCount || 0,
@@ -724,7 +923,7 @@ export async function getCustomer(customerId: string): Promise<CustomerProfile |
             notes: data.notes,
             createdAt: data.createdAt?.toDate?.() || new Date(),
             updatedAt: data.updatedAt?.toDate?.() || new Date(),
-        } as CustomerProfile;
+        } as CustomerProfile);
     }
 
     // If not found, try getting from orders by email
@@ -750,13 +949,19 @@ export async function upsertCustomer(
         .get();
 
     const segment = calculateSegment(profile);
+    const displayName = resolveCustomerDisplayName({
+        displayName: profile.displayName,
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        email: profile.email,
+    });
 
     const customerData = {
         orgId,
         email: profile.email.toLowerCase(),
         firstName: profile.firstName || null,
         lastName: profile.lastName || null,
-        displayName: profile.displayName || null,
+        displayName,
         phone: profile.phone || null,
         totalSpent: profile.totalSpent || 0,
         orderCount: profile.orderCount || 0,
@@ -793,6 +998,7 @@ export async function upsertCustomer(
         ...profile,
         id: docId,
         orgId,
+        displayName,
         segment,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -846,42 +1052,126 @@ export async function addCustomerNote(customerId: string, note: string): Promise
  * References Craig (campaign manager) and Mrs. Parker (email specialist) agents
  */
 export async function getSuggestedSegments(brandId: string): Promise<SegmentSuggestion[]> {
+    const { orgId } = await resolveAccessibleOrgContext(brandId);
+    const { firestore } = await createServerClient();
     const data = await getCustomers(brandId);
     const stats = data.stats;
+    const statusHints = await getLifecycleStatusHints(orgId, firestore);
     const suggestions: SegmentSuggestion[] = [];
 
-    // Always show New Customer Nurture first if there are new customers
     if (stats.newThisMonth > 0) {
         suggestions.push({
             name: 'New Customer Welcome',
-            description: 'Fresh signups ready for your welcome sequence',
+            description: 'Recurring welcome automation for newly acquired customers.',
             filters: [{ field: 'segment', operator: 'equals', value: 'new' }],
             estimatedCount: stats.newThisMonth,
-            reasoning: `Craig has automatically added these ${stats.newThisMonth} customers to your new customer welcome list. Mrs. Parker will now send personalized, segmented emails. Good stuff.`
+            reasoning: `${stats.newThisMonth} customers currently fit your welcome lifecycle. Launch or review the Welcome Email playbook to keep onboarding consistent.`,
+            playbookKind: 'welcome',
+            ctaLabel: 'Launch Playbook',
+            statusHint: statusHints.welcome,
         });
     }
 
     if (stats.atRiskCount > 3) {
         suggestions.push({
-            name: 'Win-Back Campaign',
-            description: 'Customers who haven\'t ordered recently',
+            name: 'Win-Back',
+            description: 'Recurring re-engagement for customers who have not ordered recently.',
             filters: [{ field: 'segment', operator: 'in', value: ['at_risk', 'slipping'] }],
             estimatedCount: stats.atRiskCount,
-            reasoning: `Craig spotted ${stats.atRiskCount} customers slipping away. Mrs. Parker can send them a re-engagement sequence with a special offer.`
+            reasoning: `${stats.atRiskCount} customers need a win-back touch. Launch or review the Win-Back playbook to keep re-engagement running on schedule.`,
+            playbookKind: 'winback',
+            ctaLabel: 'Launch Playbook',
+            statusHint: statusHints.winback,
         });
     }
 
     if (stats.vipCount > 0) {
         suggestions.push({
             name: 'VIP Appreciation',
-            description: 'Your top customers deserving VIP treatment',
+            description: 'Recurring VIP appreciation automation for your highest-value customers.',
             filters: [{ field: 'segment', operator: 'equals', value: 'vip' }],
             estimatedCount: stats.vipCount,
-            reasoning: `Craig flagged ${stats.vipCount} VIP customers for exclusive treatment. These high-spenders drive your revenue.`
+            reasoning: `${stats.vipCount} customers qualify for VIP treatment right now. Launch or review the VIP Appreciation playbook to keep those relationships warm.`,
+            playbookKind: 'vip',
+            ctaLabel: 'Launch Playbook',
+            statusHint: statusHints.vip,
         });
     }
 
     return suggestions;
+}
+
+export async function launchLifecyclePlaybook(
+    playbookKind: LifecyclePlaybookKind,
+    requestedOrgId?: string,
+): Promise<{
+    success: boolean;
+    playbookId?: string;
+    status?: 'paused' | 'active';
+    error?: string;
+}> {
+    try {
+        const { orgId, brandId } = await resolveAccessibleOrgContext(requestedOrgId);
+        const { firestore } = await createServerClient();
+        const definition = LIFECYCLE_PLAYBOOKS.find((candidate) => candidate.kind === playbookKind);
+
+        if (!definition) {
+            return { success: false, error: `Unsupported lifecycle playbook: ${playbookKind}` };
+        }
+
+        const playbooksSnap = await firestore.collection('playbooks')
+            .where('orgId', '==', orgId)
+            .limit(25)
+            .get();
+
+        let playbookId = playbooksSnap.docs.find((doc) => doc.data().templateId === definition.templateId)?.id;
+        const emailConfig: PilotEmailConfig = {
+            provider: 'mailjet',
+            senderEmail: 'hello@bakedbot.ai',
+            senderName: 'Mrs. Parker',
+            enableWelcomePlaybook: true,
+            enableWinbackPlaybook: true,
+            enableVIPPlaybook: true,
+        };
+
+        if (!playbookId) {
+            const createResult = playbookKind === 'welcome'
+                ? await createWelcomeEmailPlaybook(orgId, brandId, emailConfig)
+                : playbookKind === 'winback'
+                    ? await createWinbackEmailPlaybook(orgId, brandId, emailConfig)
+                    : await createVIPPlaybook(orgId, brandId, emailConfig);
+
+            if (!createResult.success || !createResult.playbookId) {
+                return { success: false, error: createResult.error || 'Failed to create lifecycle playbook' };
+            }
+
+            playbookId = createResult.playbookId;
+        }
+
+        const assignments = await getDispensaryPlaybookAssignments(orgId);
+        const existingAssignment = assignments.assignments.find((assignment) => assignment.playbookId === playbookId);
+        if (existingAssignment?.status === 'active') {
+            logger.info('[CUSTOMERS] Lifecycle playbook already active', { orgId, playbookKind, playbookId, status: 'active' });
+            return { success: true, playbookId, status: 'active' };
+        }
+
+        const updateResult = await updatePlaybookAssignmentConfig(orgId, playbookId, {});
+        if (!updateResult.success) {
+            return { success: false, error: updateResult.error || 'Failed to prepare lifecycle playbook assignment' };
+        }
+
+        logger.info('[CUSTOMERS] Lifecycle playbook ready in sandbox', { orgId, playbookKind, playbookId, status: 'paused' });
+        return { success: true, playbookId, status: 'paused' };
+    } catch (error) {
+        logger.error('[CUSTOMERS] Failed to launch lifecycle playbook', {
+            playbookKind,
+            error: error instanceof Error ? error.message : String(error),
+        });
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to launch lifecycle playbook',
+        };
+    }
 }
 
 // ==========================================

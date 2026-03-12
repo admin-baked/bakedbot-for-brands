@@ -13,6 +13,7 @@ import { z } from 'zod';
 import { getAdminFirestore } from '@/firebase/admin';
 import { ALLeavesClient, type ALLeavesConfig } from '@/lib/pos/adapters/alleaves';
 import { posCache, cacheKeys } from '@/lib/cache/pos-cache';
+import { resolveCustomerDisplayName } from '@/lib/customers/profile-derivations';
 import { calculateSegment, getSegmentInfo, type CustomerSegment } from '@/types/customers';
 import { mapSegmentToTier } from '@/lib/pricing/customer-tier-mapper';
 import { logger } from '@/lib/logger';
@@ -216,7 +217,13 @@ function formatCustomerResult(
     const segment = calculateSegment({ totalSpent, orderCount, avgOrderValue, daysSinceLastOrder, lifetimeValue: totalSpent });
     const tier = mapSegmentToTier(segment, totalSpent);
     const segInfo = getSegmentInfo(segment);
-    const displayName = data.displayName || [data.firstName, data.lastName].filter(Boolean).join(' ') || data.email || 'Unknown';
+    const displayName = resolveCustomerDisplayName({
+        displayName: data.displayName,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        fallbackId: id,
+    });
 
     const customer: Record<string, unknown> = {
         id,
@@ -509,7 +516,13 @@ export async function getAtRiskCustomers(
         if (targetSegments.includes(seg)) {
             atRiskCustomers.push({
                 id: doc.id,
-                name: data.displayName || data.firstName || data.email || 'Unknown',
+                name: resolveCustomerDisplayName({
+                    displayName: data.displayName,
+                    firstName: data.firstName,
+                    lastName: data.lastName,
+                    email: data.email,
+                    fallbackId: doc.id,
+                }),
                 email: data.email || '',
                 segment: seg,
                 totalSpent: spent,
@@ -588,7 +601,13 @@ export async function getUpcomingBirthdays(
             if (daysAway <= daysAhead) {
                 birthdays.push({
                     id: doc.id,
-                    name: data.displayName || data.firstName || data.email || 'Unknown',
+                    name: resolveCustomerDisplayName({
+                        displayName: data.displayName,
+                        firstName: data.firstName,
+                        lastName: data.lastName,
+                        email: data.email,
+                        fallbackId: doc.id,
+                    }),
                     email: data.email || '',
                     birthday: `${bdayMonth + 1}/${bdayDay}`,
                     daysAway,

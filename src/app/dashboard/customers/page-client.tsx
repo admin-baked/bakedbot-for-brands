@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { buildAutoCustomerTags, mergeCustomerTags } from '@/lib/customers/profile-derivations';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
     Users, UserPlus, AlertTriangle, Crown, Search,
-    Download, Upload, Loader2, TrendingUp, Filter, Sparkles, CheckCircle2
+    Download, Upload, Loader2, TrendingUp, Filter, Sparkles, CheckCircle2, Rocket
 } from 'lucide-react';
 import {
     Dialog,
@@ -20,7 +21,7 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { CustomerProfile, CustomerSegment, CRMStats, getSegmentInfo, SegmentSuggestion, calculateSegment } from '@/types/customers';
-import { getCustomers, getSuggestedSegments, type CustomersData } from './actions';
+import { getCustomers, getSuggestedSegments, launchLifecyclePlaybook, type CustomersData } from './actions';
 import { CustomerImport } from '@/components/crm/customer-import';
 import { SegmentChart } from '@/components/crm/segment-chart';
 
@@ -41,7 +42,18 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
     const [spendingLoading, setSpendingLoading] = useState(false);
     const [spendingLoaded, setSpendingLoaded] = useState(false);
     const [spendingCustomerCount, setSpendingCustomerCount] = useState(0);
+    const [spendingMeta, setSpendingMeta] = useState<{ cached: boolean; duration: number | null } | null>(null);
+    const [launchingPlaybook, setLaunchingPlaybook] = useState<SegmentSuggestion['playbookKind'] | null>(null);
     const spendingFetchedRef = useRef(false);
+
+    const loadSuggestions = useCallback(async () => {
+        try {
+            const segs = await getSuggestedSegments(brandId);
+            setSuggestions(segs);
+        } catch (error) {
+            console.error('Failed to load playbook suggestions:', error);
+        }
+    }, [brandId]);
 
     const loadData = useCallback(async () => {
         setLoading(true);
@@ -49,29 +61,26 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
         spendingFetchedRef.current = false;
         setSpendingLoaded(false);
         setSpendingCustomerCount(0);
+        setSpendingMeta(null);
         try {
             const result = await getCustomers({ orgId: brandId });
             setData(result);
-
-            // Load AI suggestions
-            const segs = await getSuggestedSegments(brandId);
-            setSuggestions(segs);
+            await loadSuggestions();
         } catch (error) {
             console.error('Failed to load customers:', error);
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to load customer data' });
         } finally {
             setLoading(false);
         }
-    }, [brandId, toast]);
+    }, [brandId, loadSuggestions, toast]);
 
     useEffect(() => {
         if (!initialData) {
             loadData();
         } else {
-            // Load suggestions async
-            getSuggestedSegments(brandId).then(setSuggestions).catch(console.error);
+            loadSuggestions();
         }
-    }, [initialData, brandId, loadData]);
+    }, [initialData, brandId, loadData, loadSuggestions]);
 
     // Async spending enrichment: after customer list loads, fetch spending data
     useEffect(() => {
@@ -86,6 +95,10 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
                 const res = await fetch(`/api/customers/spending?orgId=${encodeURIComponent(brandId)}`);
                 if (!res.ok) throw new Error(`Spending API returned ${res.status}`);
                 const json = await res.json();
+                setSpendingMeta({
+                    cached: Boolean(json.cached),
+                    duration: typeof json.duration === 'number' ? json.duration : null,
+                });
 
                 if (!json.success || !json.spending) return;
 
@@ -123,6 +136,16 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
                     const tier: CustomerProfile['tier'] = totalSpent > 2000 ? 'gold'
                         : totalSpent > 500 ? 'silver'
                         : 'bronze';
+                    const autoTags = buildAutoCustomerTags({
+                        segment,
+                        tier,
+                        priceRange: c.priceRange,
+                        orderCount,
+                        totalSpent,
+                        daysSinceLastOrder,
+                        preferredCategories: c.preferredCategories,
+                        preferredProducts: c.preferredProducts,
+                    });
 
                     return {
                         ...c,
@@ -136,6 +159,8 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
                         segment,
                         tier,
                         points: Math.floor(totalSpent),
+                        autoTags,
+                        allTags: mergeCustomerTags(c.customTags, autoTags),
                     };
                 });
 
@@ -169,7 +194,7 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
                 setSpendingCustomerCount(matchedCount);
 
                 // Reload AI suggestions with enriched data
-                getSuggestedSegments(brandId).then(setSuggestions).catch(() => {});
+                loadSuggestions().catch(() => {});
             } catch (err) {
                 console.error('[CRM] Failed to load spending data:', err);
                 toast({
@@ -223,11 +248,59 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
                 c.email.toLowerCase().includes(searchLower) ||
                 c.displayName?.toLowerCase().includes(searchLower) ||
                 c.firstName?.toLowerCase().includes(searchLower) ||
-                c.lastName?.toLowerCase().includes(searchLower)
+                c.lastName?.toLowerCase().includes(searchLower) ||
+                c.allTags?.some(tag => tag.toLowerCase().includes(searchLower))
             );
         }
         return true;
     }) || [];
+
+    const handleSuggestionClick = (suggestion: SegmentSuggestion) => {
+        const filter = suggestion.filters[0];
+        if (filter?.field !== 'segment') {
+            return;
+        }
+
+        const nextSegment = Array.isArray(filter.value) ? filter.value[0] : filter.value;
+        if (typeof nextSegment === 'string') {
+            setActiveSegment(nextSegment as CustomerSegment);
+        }
+    };
+
+    const handleLaunchPlaybook = async (suggestion: SegmentSuggestion) => {
+        if (!suggestion.playbookKind) {
+            return;
+        }
+
+        setLaunchingPlaybook(suggestion.playbookKind);
+        try {
+            const result = await launchLifecyclePlaybook(suggestion.playbookKind, brandId);
+            if (!result.success) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Playbook launch failed',
+                    description: result.error || 'Could not prepare the lifecycle playbook.',
+                });
+                return;
+            }
+
+            toast({
+                title: suggestion.name,
+                description: result.status === 'active'
+                    ? `${suggestion.name} is already active for this organization.`
+                    : `${suggestion.name} is ready in sandbox. Activate it from Playbooks when you are satisfied.`,
+            });
+            await loadSuggestions();
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Playbook launch failed',
+                description: error instanceof Error ? error.message : 'Could not prepare the lifecycle playbook.',
+            });
+        } finally {
+            setLaunchingPlaybook(null);
+        }
+    };
 
     if (loading) {
         return (
@@ -269,13 +342,16 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
             {spendingLoading && (
                 <div className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Loading order spending data from POS... Segments will update automatically.
+                    Loading a fresh POS spending snapshot. Segments and playbook recommendations will update automatically.
                 </div>
             )}
             {spendingLoaded && spendingCustomerCount > 0 && (
                 <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300">
                     <CheckCircle2 className="h-4 w-4" />
-                    Spending data loaded for {spendingCustomerCount} customers. Segments updated.
+                    {spendingMeta?.cached
+                        ? `Loaded cached POS spending snapshot for ${spendingCustomerCount} customers.`
+                        : `Loaded fresh POS spending snapshot for ${spendingCustomerCount} customers.`}
+                    {spendingMeta?.duration != null ? ` (${spendingMeta.duration} ms)` : ''} Segments updated.
                 </div>
             )}
 
@@ -346,20 +422,34 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
                 </Card>
             </div>
 
-            {/* AI Suggestions */}
+            {/* Playbook Suggestions */}
             {suggestions.length > 0 && (
                 <Card className="bg-primary/5 border-primary/20">
                     <CardHeader className="pb-3">
                         <CardTitle className="text-lg flex items-center gap-2">
                             <Sparkles className="h-5 w-5 text-primary" />
-                            AI Segment Suggestions
+                            Playbook Suggestions
                         </CardTitle>
+                        <CardDescription>
+                            Lifecycle playbooks you can launch or review directly from CRM.
+                        </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="grid gap-3 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
                             {suggestions.map((s, i) => (
-                                <div key={i} className="p-4 bg-background rounded-lg border">
-                                    <div className="font-medium text-lg">{s.name}</div>
+                                <div
+                                    key={i}
+                                    className="p-4 bg-background rounded-lg border cursor-pointer hover:border-primary/50 transition-colors"
+                                    onClick={() => handleSuggestionClick(s)}
+                                >
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="font-medium text-lg">{s.name}</div>
+                                        {s.statusHint && (
+                                            <Badge variant={s.statusHint === 'active' ? 'default' : 'secondary'}>
+                                                {s.statusHint === 'active' ? 'Active' : s.statusHint === 'paused' ? 'Ready' : 'Missing'}
+                                            </Badge>
+                                        )}
+                                    </div>
                                     <div className="text-sm text-muted-foreground mt-1">{s.description}</div>
                                     <div className="text-xs mt-3 font-medium text-primary">{s.estimatedCount} customers</div>
                                     {s.reasoning && (
@@ -367,6 +457,23 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
                                             {s.reasoning}
                                         </div>
                                     )}
+                                    <div className="mt-4 flex justify-end">
+                                        <Button
+                                            size="sm"
+                                            onClick={(event) => {
+                                                event.stopPropagation();
+                                                handleLaunchPlaybook(s);
+                                            }}
+                                            disabled={!s.playbookKind || launchingPlaybook === s.playbookKind}
+                                        >
+                                            {launchingPlaybook === s.playbookKind ? (
+                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                            ) : (
+                                                <Rocket className="h-4 w-4 mr-2" />
+                                            )}
+                                            {s.ctaLabel || 'Launch Playbook'}
+                                        </Button>
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -393,7 +500,7 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
                             <div className="relative">
                                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                                 <Input
-                                    placeholder="Search customers..."
+                                    placeholder="Search customers, emails, or tags..."
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
                                     className="pl-8 w-64"
@@ -443,6 +550,15 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
                                                 <div>
                                                     <div className="font-medium">{customer.displayName || customer.email}</div>
                                                     <div className="text-xs text-muted-foreground">{customer.email}</div>
+                                                    {!!customer.autoTags?.length && (
+                                                        <div className="mt-1 flex flex-wrap gap-1">
+                                                            {customer.autoTags.slice(0, 3).map((tag) => (
+                                                                <Badge key={tag} variant="secondary" className="text-[10px]">
+                                                                    {tag}
+                                                                </Badge>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </TableCell>
                                             <TableCell>

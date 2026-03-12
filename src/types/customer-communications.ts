@@ -3,7 +3,7 @@
  * Tracks all emails, SMS, and push messages sent to/from customers
  */
 
-export type CommunicationChannel = 'email' | 'sms' | 'push';
+export type CommunicationChannel = 'email' | 'sms' | 'push' | 'playbook';
 export type CommunicationDirection = 'outbound' | 'inbound';
 export type CommunicationType =
     | 'campaign'
@@ -70,4 +70,8 @@ export interface ScheduledCommunication {
     subject?: string;
     scheduledFor: Date;
     status: 'pending' | 'sent' | 'failed';
+    preview?: string | null;
+    channel?: CommunicationChannel | null;
+    playbookId?: string | null;
+    metadata?: Record<string, unknown> | null;
 }

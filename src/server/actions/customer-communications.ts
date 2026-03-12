@@ -41,6 +41,39 @@ function isValidDocId(id: string): boolean {
     return !!id && !id.includes('/');
 }
 
+function normalizeCommunicationChannel(value: unknown): CommunicationChannel | null {
+    return value === 'email' || value === 'sms' || value === 'push' || value === 'playbook'
+        ? value
+        : null;
+}
+
+function toScheduledCommunication(
+    doc: FirebaseFirestore.QueryDocumentSnapshot,
+): ScheduledCommunication | null {
+    const data = doc.data();
+    const scheduledFor =
+        data.scheduledFor?.toDate?.() ??
+        data.sendAt?.toDate?.() ??
+        null;
+
+    if (!(scheduledFor instanceof Date) || Number.isNaN(scheduledFor.getTime())) {
+        return null;
+    }
+
+    return {
+        id: doc.id,
+        customerEmail: data.email,
+        type: data.type || 'campaign',
+        subject: data.subject,
+        scheduledFor,
+        status: data.status,
+        preview: typeof data.preview === 'string' ? data.preview : null,
+        channel: normalizeCommunicationChannel(data.channel) ?? 'email',
+        playbookId: typeof data.playbookId === 'string' ? data.playbookId : null,
+        metadata: data.metadata ?? null,
+    };
+}
+
 // ==========================================
 // Log a communication (fire-and-forget safe)
 // ==========================================
@@ -189,11 +222,17 @@ export async function getCustomerCommunications(
                 preview: data.preview,
                 status: data.status,
                 sentAt: data.sentAt?.toDate?.(),
+                deliveredAt: data.deliveredAt?.toDate?.(),
                 openedAt: data.openedAt?.toDate?.(),
                 clickedAt: data.clickedAt?.toDate?.(),
+                bouncedAt: data.bouncedAt?.toDate?.(),
                 agentName: data.agentName,
                 campaignId: data.campaignId,
+                templateId: data.templateId,
+                playbookId: data.playbookId,
                 provider: data.provider,
+                providerMessageId: data.providerMessageId,
+                metadata: data.metadata ?? null,
                 createdAt: data.createdAt?.toDate?.() || new Date(),
                 updatedAt: data.updatedAt?.toDate?.() || new Date(),
             } as CustomerCommunication;
@@ -253,21 +292,14 @@ export async function getUpcomingCommunications(
             .where('email', '==', customerEmail.toLowerCase())
             .where('orgId', '==', scopedOrgId)
             .where('status', '==', 'pending')
-            .orderBy('scheduledFor', 'asc')
-            .limit(10)
+            .limit(25)
             .get();
 
-        return snap.docs.map(doc => {
-            const data = doc.data();
-            return {
-                id: doc.id,
-                customerEmail: data.email,
-                type: data.type || 'campaign',
-                subject: data.subject,
-                scheduledFor: data.scheduledFor?.toDate?.() || new Date(),
-                status: data.status,
-            };
-        });
+        return snap.docs
+            .map(toScheduledCommunication)
+            .filter((communication): communication is ScheduledCommunication => communication !== null)
+            .sort((left, right) => left.scheduledFor.getTime() - right.scheduledFor.getTime())
+            .slice(0, 10);
     } catch (error) {
         logger.error('[COMMS] Failed to fetch upcoming communications', {
             error: (error as Error).message,

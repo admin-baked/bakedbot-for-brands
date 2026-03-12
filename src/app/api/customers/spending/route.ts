@@ -3,6 +3,8 @@ import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
 import { ALLeavesClient, type ALLeavesConfig } from '@/lib/pos/adapters/alleaves';
 import { posCache } from '@/lib/cache/pos-cache';
+import { requireUser } from '@/server/auth/auth';
+import { isBrandRole, isDispensaryRole } from '@/types/roles';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +17,33 @@ interface CustomerSpending {
     avgOrderValue: number;
 }
 
+type SpendingRouteUser = {
+    uid: string;
+    role?: string;
+    currentOrgId?: string;
+    orgId?: string;
+    brandId?: string;
+    locationId?: string;
+};
+
+function isSuperRole(role: unknown): boolean {
+    return role === 'super_user' || role === 'super_admin';
+}
+
+function getActorOrgId(user: SpendingRouteUser): string | null {
+    const role = String(user.role || '');
+
+    if (isBrandRole(role)) {
+        return user.brandId || null;
+    }
+
+    if (isDispensaryRole(role)) {
+        return user.orgId || user.currentOrgId || user.locationId || null;
+    }
+
+    return user.currentOrgId || user.orgId || user.brandId || user.locationId || null;
+}
+
 /**
  * GET /api/customers/spending?orgId=xxx
  *
@@ -25,17 +54,63 @@ interface CustomerSpending {
 export async function GET(request: NextRequest) {
     const startTime = Date.now();
 
+    const { searchParams } = new URL(request.url);
+    const requestedOrgId = searchParams.get('orgId')?.trim();
+
+    if (!requestedOrgId) {
+        return NextResponse.json(
+            { error: 'Missing orgId parameter' },
+            { status: 400 }
+        );
+    }
+
+    let user: SpendingRouteUser;
     try {
-        const { searchParams } = new URL(request.url);
-        const orgId = searchParams.get('orgId');
+        user = await requireUser([
+            'brand', 'brand_admin', 'brand_member',
+            'dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender',
+            'super_user',
+        ]) as SpendingRouteUser;
+    } catch (error) {
+        logger.warn('[SPENDING] Unauthorized spending request', {
+            requestedOrgId,
+            error: error instanceof Error ? error.message : String(error),
+        });
+        return NextResponse.json(
+            { success: false, error: 'Authentication required' },
+            { status: 401 }
+        );
+    }
 
-        if (!orgId) {
-            return NextResponse.json(
-                { error: 'Missing orgId parameter' },
-                { status: 400 }
-            );
-        }
+    const isSuperUser = isSuperRole(user.role);
+    const actorOrgId = getActorOrgId(user);
+    if (!isSuperUser && (!actorOrgId || actorOrgId !== requestedOrgId)) {
+        logger.warn('[SPENDING] Forbidden spending request', {
+            userId: user.uid,
+            requestedOrgId,
+            actorOrgId,
+            role: user.role || null,
+        });
+        return NextResponse.json(
+            { success: false, error: 'Forbidden: Cannot access another organization' },
+            { status: 403 }
+        );
+    }
 
+    const orgId = isSuperUser ? requestedOrgId : actorOrgId;
+    if (!orgId) {
+        logger.warn('[SPENDING] Missing org context for spending request', {
+            userId: user.uid,
+            requestedOrgId,
+            role: user.role || null,
+        });
+        return NextResponse.json(
+            { success: false, error: 'Forbidden: Missing organization context' },
+            { status: 403 }
+        );
+    }
+
+    try {
         // Check cache first (15 minute TTL for spending data)
         const cacheKey = `spending:${orgId}`;
         const cached = posCache.get<Record<string, CustomerSpending>>(cacheKey);
