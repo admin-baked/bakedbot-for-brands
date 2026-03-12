@@ -19,7 +19,10 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** Passing (verified 2026-03-09)
+**Current Status:** Targeted outreach tests passing; full repo typecheck timed out locally (verified 2026-03-11)
+
+## Session 2026-03-11 (CRM outreach gap fixed + MI/IL expansion)
+- **Multi-state outreach deployed** (`8cf0a4b53`): synced `crm_dispensaries` into the outreach queue, hardened dashboard partial-load behavior + Gmail token status, added missing outreach indexes, and expanded proactive outreach from NY-only to CRM-first NY/MI/IL with queue enrichment + updated CEO copy/templates
 
 ## Session 2026-03-09 (Slack routing fully live)
 - **Slack routing deployed** (`d6bb69f94`, `38f20deca`, `3c687cf25`): `channels:read` scope + reinstall; `SLACK_BOT_TOKEN@4`; GCP billing linked — service accounts can now write to Secret Manager
@@ -267,8 +270,8 @@ Do NOT wait for the user to say "P1" or "file a bug first" — triage, file, and
 
 ---
 
-**Recent work (2026-03-09):** See `MEMORY.md` for full log.
-Key completed: [Slack routing — channels:read scope + detectAgent overhaul] (`d6bb69f94`), [SLACK_BOT_TOKEN@4 + GCP billing unblocked for SA writes] (`3c687cf25`)
+**Recent work (2026-03-11):** See `MEMORY.md` for full log.
+Key completed: [CRM-first outreach queue sync + NY/MI/IL expansion] (`8cf0a4b53`)
 
 ---
 

@@ -1,5 +1,11 @@
 # Build Optimization & Orphaned Module Cleanup - Memory Document
 
+## Session: 2026-03-11
+- **Outreach dashboard hardening**: Fixed the super-user outreach dashboard to degrade gracefully on missing Firestore indexes, added canonical Gmail token status checks, and added the missing outreach composite indexes. Commit: `8cf0a4b53`.
+- **CRM-first outreach workflow**: Added `crm_dispensaries` → outreach queue sync with idempotent dedupe and queue refresh behavior so CRM leads feed the draft approval flow before legacy NY research. Commit: `8cf0a4b53`.
+- **Multi-state expansion**: Expanded the proactive outreach pipeline, queue enrichment, templates, and CEO dashboard copy from NY-only to `NY`, `MI`, and `IL` while preserving the existing queue/draft/send collections and services. Commit: `8cf0a4b53`.
+- **Verification**: Targeted Jest suites passed (`tests/server/actions/ny-outreach-dashboard.test.ts`, `tests/server/ny-outreach-crm-sync.test.ts`). Full repo `npm run -s check:types` did not finish locally within a 15-minute unrestricted run, so the release note should treat repo-wide typecheck as inconclusive rather than green.
+
 ## Session: 2026-03-06
 - **Claude settings normalization**: Cleaned the repo-local Claude settings allowlists and removed startup-bloat regressions. Commit: `6f04200ee`.
 - **Security Soren guidance**: Registered the new security agent docs, memory, and server security guidance. Commit: `2ae78a0b4`.
