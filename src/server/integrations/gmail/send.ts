@@ -31,7 +31,12 @@ export async function sendGmail(options: SendEmailOptions) {
 
     // Persist refreshed token metadata so future sends don't rely on stale expiry.
     oauth2Client.on('tokens', async (tokens: { refresh_token?: string | null; access_token?: string | null; expiry_date?: number | null; scope?: string | null }) => {
-        await saveGmailToken(userId, tokens);
+        await saveGmailToken(userId, {
+            refresh_token: tokens.refresh_token ?? undefined,
+            access_token: tokens.access_token ?? undefined,
+            expiry_date: tokens.expiry_date ?? undefined,
+            scope: tokens.scope ?? undefined,
+        });
     });
 
     // Force token refresh and attach the access token explicitly.
