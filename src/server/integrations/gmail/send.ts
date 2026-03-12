@@ -4,10 +4,8 @@
  * Gmail Send Function
  *
  * Sends emails via Gmail API using stored OAuth credentials.
- * Uses googleapis library for proper OAuth token refresh handling.
  */
 
-import { google } from 'googleapis';
 import { getOAuth2ClientAsync } from './oauth';
 import { getGmailToken, saveGmailToken } from './token-storage';
 
@@ -20,7 +18,7 @@ interface SendEmailOptions {
 }
 
 export async function sendGmail(options: SendEmailOptions) {
-    const { userId, to, subject, html } = options;
+    const { userId, to, subject, html, from } = options;
 
     const credentials = await getGmailToken(userId);
     if (!credentials || !credentials.refresh_token) {
@@ -31,24 +29,36 @@ export async function sendGmail(options: SendEmailOptions) {
     const oauth2Client = await getOAuth2ClientAsync();
     oauth2Client.setCredentials(credentials);
 
-    // Listen for token refresh events to update stored tokens
-    oauth2Client.on('tokens', async (tokens: { refresh_token?: string | null; access_token?: string | null }) => {
-        if (tokens.refresh_token) {
-            await saveGmailToken(userId, tokens);
-        }
+    // Persist refreshed token metadata so future sends don't rely on stale expiry.
+    oauth2Client.on('tokens', async (tokens: { refresh_token?: string | null; access_token?: string | null; expiry_date?: number | null; scope?: string | null }) => {
+        await saveGmailToken(userId, tokens);
     });
 
-    const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+    // Force token refresh and attach the access token explicitly.
+    const accessTokenResponse = await oauth2Client.getAccessToken();
+    const accessToken = typeof accessTokenResponse === 'string'
+        ? accessTokenResponse
+        : accessTokenResponse?.token;
+
+    if (!accessToken) {
+        throw new Error('Failed to acquire Gmail access token.');
+    }
+
+    oauth2Client.setCredentials({
+        ...credentials,
+        access_token: accessToken,
+    });
 
     // Create raw email in RFC 2822 format
     const emailContent = [
+        from ? `From: ${from}` : null,
         `To: ${to.join(', ')}`,
         `Subject: ${subject}`,
         'MIME-Version: 1.0',
         'Content-Type: text/html; charset=utf-8',
         '',
         html
-    ].join('\n');
+    ].filter(Boolean).join('\n');
 
     // Base64url encode for Gmail API
     const raw = Buffer.from(emailContent)
@@ -58,11 +68,21 @@ export async function sendGmail(options: SendEmailOptions) {
         .replace(/=+$/, '');
 
     try {
-        const res = await gmail.users.messages.send({
-            userId: 'me',
-            requestBody: { raw }
+        const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ raw }),
         });
-        return res.data;
+
+        if (!response.ok) {
+            const errorBody = await response.text();
+            throw new Error(`Gmail API ${response.status}: ${errorBody}`);
+        }
+
+        return await response.json();
     } catch (e: any) {
         console.error('[sendGmail] Error:', e);
         throw new Error(`Failed to send email: ${e.message}`);

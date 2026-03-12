@@ -1,7 +1,6 @@
 import { sendGmail } from '../send';
 import { getGmailToken, saveGmailToken } from '../token-storage';
 import { getOAuth2ClientAsync } from '../oauth';
-import { google } from 'googleapis';
 
 // Mock dependencies with explicit factories
 jest.mock('server-only', () => ({}));
@@ -12,29 +11,27 @@ jest.mock('../token-storage', () => ({
 jest.mock('../oauth', () => ({
     getOAuth2ClientAsync: jest.fn()
 }));
-jest.mock('googleapis', () => ({
-    google: {
-        gmail: jest.fn()
-    }
-}));
 
 describe('Gmail Send', () => {
     const mockOAuth2Client = {
         setCredentials: jest.fn(),
-        on: jest.fn()
+        on: jest.fn(),
+        getAccessToken: jest.fn(),
     };
-    const mockGmailClient = {
-        users: {
-            messages: {
-                send: jest.fn()
-            }
-        }
-    };
+    const originalFetch = global.fetch;
 
     beforeEach(() => {
         jest.clearAllMocks();
         (getOAuth2ClientAsync as jest.Mock).mockResolvedValue(mockOAuth2Client);
-        (google.gmail as jest.Mock).mockReturnValue(mockGmailClient);
+        mockOAuth2Client.getAccessToken.mockResolvedValue({ token: 'access-123' });
+        global.fetch = jest.fn().mockResolvedValue({
+            ok: true,
+            json: jest.fn().mockResolvedValue({ id: 'msg_123' }),
+        } as any);
+    });
+
+    afterAll(() => {
+        global.fetch = originalFetch;
     });
 
     it('should throw if no token found', async () => {
@@ -45,7 +42,6 @@ describe('Gmail Send', () => {
 
     it('should configure client and send email', async () => {
         (getGmailToken as jest.Mock).mockResolvedValue({ refresh_token: 'valid_refresh' });
-        mockGmailClient.users.messages.send.mockResolvedValue({ data: { id: 'msg_123' } });
 
         const result = await sendGmail({
             userId: 'u1',
@@ -56,18 +52,27 @@ describe('Gmail Send', () => {
 
         expect(getGmailToken).toHaveBeenCalledWith('u1');
         expect(mockOAuth2Client.setCredentials).toHaveBeenCalledWith({ refresh_token: 'valid_refresh' });
-        expect(mockGmailClient.users.messages.send).toHaveBeenCalledWith(expect.objectContaining({
-            userId: 'me',
-            requestBody: expect.objectContaining({
-                raw: expect.any(String)
+        expect(mockOAuth2Client.getAccessToken).toHaveBeenCalled();
+        expect(mockOAuth2Client.setCredentials).toHaveBeenNthCalledWith(2, {
+            refresh_token: 'valid_refresh',
+            access_token: 'access-123',
+        });
+        expect(global.fetch).toHaveBeenCalledWith(
+            'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
+            expect.objectContaining({
+                method: 'POST',
+                headers: expect.objectContaining({
+                    Authorization: 'Bearer access-123',
+                    'Content-Type': 'application/json',
+                }),
+                body: expect.any(String),
             })
-        }));
+        );
         expect(result).toEqual({ id: 'msg_123' });
     });
 
     it('should set up token refresh listener', async () => {
         (getGmailToken as jest.Mock).mockResolvedValue({ refresh_token: 'valid_refresh' });
-        mockGmailClient.users.messages.send.mockResolvedValue({ data: { id: 'msg_123' } });
 
         await sendGmail({ userId: 'u1', to: ['test@test.com'], subject: 'Hi', html: '<b>Hi</b>' });
 
@@ -78,5 +83,25 @@ describe('Gmail Send', () => {
         await refreshCallback({ refresh_token: 'new_refresh_token', scope: 'new_scope' });
 
         expect(saveGmailToken).toHaveBeenCalledWith('u1', { refresh_token: 'new_refresh_token', scope: 'new_scope' });
+    });
+
+    it('should throw if access token acquisition fails', async () => {
+        (getGmailToken as jest.Mock).mockResolvedValue({ refresh_token: 'valid_refresh' });
+        mockOAuth2Client.getAccessToken.mockResolvedValue({ token: null });
+
+        await expect(sendGmail({ userId: 'u1', to: ['test@test.com'], subject: 'Hi', html: '<b>Hi</b>' }))
+            .rejects.toThrow('Failed to acquire Gmail access token.');
+    });
+
+    it('should throw when Gmail API returns a non-2xx response', async () => {
+        (getGmailToken as jest.Mock).mockResolvedValue({ refresh_token: 'valid_refresh' });
+        global.fetch = jest.fn().mockResolvedValue({
+            ok: false,
+            status: 401,
+            text: jest.fn().mockResolvedValue('Unauthorized'),
+        } as any);
+
+        await expect(sendGmail({ userId: 'u1', to: ['test@test.com'], subject: 'Hi', html: '<b>Hi</b>' }))
+            .rejects.toThrow('Failed to send email: Gmail API 401: Unauthorized');
     });
 });
