@@ -29,6 +29,8 @@ import { sendGenericEmail } from '@/lib/email/dispatcher';
 import { apolloSearchPeople, apolloEnrichByDomain, getApolloCreditStatus, type ApolloCreditStatus } from '@/server/services/ny-outreach/apollo-enrichment';
 import { enrichLeadBatch } from '@/server/services/ny-outreach/lead-enrichment';
 import { getGLMUsageStatus } from '@/server/services/glm-usage';
+import { getGmailToken } from '@/server/integrations/gmail/token-storage';
+import { syncCRMDispensariesToOutreachQueue } from '@/server/services/ny-outreach/crm-queue-sync';
 import { logger } from '@/lib/logger';
 
 // Re-export Apollo credit type for UI
@@ -38,6 +40,72 @@ const DAILY_SEND_LIMIT = parseInt(process.env.NY_OUTREACH_DAILY_LIMIT || '5', 10
 
 // Re-export for the UI
 export type { OutreachDraft } from '@/server/services/ny-outreach/outreach-service';
+
+type DashboardStats = Awaited<ReturnType<typeof getOutreachStats>>;
+
+const EMPTY_OUTREACH_STATS: DashboardStats = {
+    totalSent: 0,
+    totalFailed: 0,
+    totalBadEmails: 0,
+    totalPending: 0,
+    recentResults: [],
+};
+
+function isMissingIndexError(error: unknown): boolean {
+    if (!error || typeof error !== 'object') return false;
+
+    const code = 'code' in error ? (error as { code?: unknown }).code : undefined;
+    const message = 'message' in error ? String((error as { message?: unknown }).message) : String(error);
+
+    return code === 9 || message.includes('FAILED_PRECONDITION') || message.includes('requires an index');
+}
+
+async function getCountWithFallback(
+    query: FirebaseFirestore.Query,
+    logLabel: string
+): Promise<number> {
+    try {
+        const countSnapshot = await query.count().get();
+        return countSnapshot.data().count;
+    } catch (error) {
+        if (!isMissingIndexError(error)) {
+            throw error;
+        }
+
+        logger.warn(`[OutreachDashboard] Missing Firestore index, falling back to document scan for ${logLabel}`, {
+            error: String(error),
+        });
+        const snapshot = await query.get();
+        return snapshot.size;
+    }
+}
+
+async function getSentTodayCount(db: FirebaseFirestore.Firestore): Promise<number> {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const baseQuery = db.collection('ny_outreach_log')
+        .where('timestamp', '>=', todayStart.getTime());
+
+    try {
+        const countSnapshot = await baseQuery
+            .where('emailSent', '==', true)
+            .count()
+            .get();
+        return countSnapshot.data().count;
+    } catch (error) {
+        if (!isMissingIndexError(error)) {
+            throw error;
+        }
+
+        logger.warn('[OutreachDashboard] Missing Firestore index, falling back to client-side sent-today count', {
+            error: String(error),
+        });
+
+        const snapshot = await baseQuery.get();
+        return snapshot.docs.reduce((count, doc) => count + (doc.data().emailSent === true ? 1 : 0), 0);
+    }
+}
 
 // =============================================================================
 // Template selection (shared with cron runner)
@@ -76,6 +144,7 @@ export async function getOutreachDashboardData(): Promise<{
             dispensaryName: string;
             email?: string;
             city: string;
+            state: string;
             contactFormUrl?: string;
             source: string;
             createdAt: number;
@@ -86,6 +155,7 @@ export async function getOutreachDashboardData(): Promise<{
             email: string;
             contactName?: string;
             city: string;
+            state: string;
             status: string;
             outreachCount: number;
             lastOutreachAt: number;
@@ -103,39 +173,6 @@ export async function getOutreachDashboardData(): Promise<{
 
         const db = getAdminFirestore();
 
-        // Fetch all data in parallel
-        const [stats, queueSnap, leadsSnap, crmSnap, todaySentSnap, pendingDraftsSnap] = await Promise.all([
-            getOutreachStats(Date.now() - 24 * 60 * 60 * 1000),
-            db.collection('ny_dispensary_leads')
-                .where('status', '==', 'researched')
-                .where('outreachSent', '==', false)
-                .count()
-                .get(),
-            db.collection('ny_dispensary_leads')
-                .where('status', '==', 'researched')
-                .where('outreachSent', '==', false)
-                .orderBy('createdAt', 'asc')
-                .limit(20)
-                .get(),
-            db.collection('crm_outreach_contacts')
-                .orderBy('lastOutreachAt', 'desc')
-                .limit(50)
-                .get(),
-            (() => {
-                const todayStart = new Date();
-                todayStart.setHours(0, 0, 0, 0);
-                return db.collection('ny_outreach_log')
-                    .where('timestamp', '>=', todayStart.getTime())
-                    .where('emailSent', '==', true)
-                    .count()
-                    .get();
-            })(),
-            db.collection('ny_outreach_drafts')
-                .where('status', '==', 'draft')
-                .count()
-                .get(),
-        ]);
-
         // Helper: convert any Timestamp/Date/number to milliseconds
         const toMs = (val: unknown): number => {
             if (!val) return 0;
@@ -145,27 +182,91 @@ export async function getOutreachDashboardData(): Promise<{
             return 0;
         };
 
-        const queueLeads = leadsSnap.docs.map(doc => {
+        const queueQuery = db.collection('ny_dispensary_leads')
+            .where('status', '==', 'researched')
+            .where('outreachSent', '==', false);
+        const pendingDraftsQuery = db.collection('ny_outreach_drafts')
+            .where('status', '==', 'draft');
+
+        const results = await Promise.allSettled([
+            getOutreachStats(Date.now() - 24 * 60 * 60 * 1000),
+            getCountWithFallback(queueQuery, 'queueDepth'),
+            queueQuery
+                .orderBy('createdAt', 'asc')
+                .limit(20)
+                .get()
+                .catch(async (error) => {
+                    if (!isMissingIndexError(error)) {
+                        throw error;
+                    }
+
+                    logger.warn('[OutreachDashboard] Missing Firestore index, falling back to unsorted queue preview', {
+                        error: String(error),
+                    });
+
+                    const fallbackSnapshot = await queueQuery.limit(20).get();
+                    const sortedDocs = [...fallbackSnapshot.docs].sort(
+                        (left, right) => toMs(left.data().createdAt ?? left.data().researchedAt) - toMs(right.data().createdAt ?? right.data().researchedAt)
+                    );
+
+                    return { docs: sortedDocs } as Pick<FirebaseFirestore.QuerySnapshot, 'docs'>;
+                }),
+            db.collection('crm_outreach_contacts')
+                .orderBy('lastOutreachAt', 'desc')
+                .limit(50)
+                .get(),
+            getSentTodayCount(db),
+            getCountWithFallback(pendingDraftsQuery, 'pendingDrafts'),
+        ]);
+
+        const partialFailures = results.flatMap((result, index) => {
+            if (result.status !== 'rejected') {
+                return [];
+            }
+
+            return [{
+                index,
+                error: String(result.reason),
+            }];
+        });
+
+        if (partialFailures.length > 0) {
+            logger.warn('[OutreachDashboard] Loaded with partial data', {
+                partialFailures,
+                userId: user.uid,
+            });
+        }
+
+        const stats = results[0].status === 'fulfilled' ? results[0].value : EMPTY_OUTREACH_STATS;
+        const queueDepth = results[1].status === 'fulfilled' ? results[1].value : 0;
+        const leadsDocs = results[2].status === 'fulfilled' ? results[2].value.docs : [];
+        const crmDocs = results[3].status === 'fulfilled' ? results[3].value.docs : [];
+        const sentToday = results[4].status === 'fulfilled' ? results[4].value : 0;
+        const pendingDrafts = results[5].status === 'fulfilled' ? results[5].value : 0;
+
+        const queueLeads = leadsDocs.map(doc => {
             const d = doc.data();
             return {
                 id: doc.id,
                 dispensaryName: d.dispensaryName || 'Unknown',
                 email: d.email || undefined,
-                city: d.city || 'NY',
+                city: d.city || 'Unknown City',
+                state: d.state || 'NY',
                 contactFormUrl: d.contactFormUrl || undefined,
                 source: d.source || 'research',
                 createdAt: toMs(d.createdAt) || toMs(d.researchedAt) || Date.now(),
             };
         });
 
-        const crmContacts = crmSnap.docs.map(doc => {
+        const crmContacts = crmDocs.map(doc => {
             const d = doc.data();
             return {
                 id: doc.id,
                 dispensaryName: d.dispensaryName || 'Unknown',
                 email: d.email || '',
                 contactName: d.contactName || undefined,
-                city: d.city || 'NY',
+                city: d.city || 'Unknown City',
+                state: d.state || 'NY',
                 status: d.status || 'unknown',
                 outreachCount: d.outreachCount || 0,
                 lastOutreachAt: toMs(d.lastOutreachAt),
@@ -177,12 +278,12 @@ export async function getOutreachDashboardData(): Promise<{
             success: true,
             data: {
                 stats,
-                queueDepth: queueSnap.data().count,
+                queueDepth,
                 queueLeads,
                 crmContacts,
                 dailyLimit: DAILY_SEND_LIMIT,
-                sentToday: todaySentSnap.data().count,
-                pendingDrafts: pendingDraftsSnap.data().count,
+                sentToday,
+                pendingDrafts,
             },
         };
     } catch (err) {
@@ -243,7 +344,7 @@ export async function generateOutreachDrafts(): Promise<{
             const emailData: OutreachEmailData = {
                 dispensaryName: (data.dispensaryName as string) || 'Unknown',
                 contactName: data.contactName as string | undefined,
-                city: (data.city as string) || 'New York',
+                city: (data.city as string) || 'Unknown City',
                 state: (data.state as string) || 'NY',
                 posSystem: data.posSystem as string | undefined,
             };
@@ -270,7 +371,7 @@ export async function generateOutreachDrafts(): Promise<{
                 dispensaryName: (data.dispensaryName as string) || 'Unknown',
                 contactName: data.contactName || null,
                 email: data.email,
-                city: (data.city as string) || 'New York',
+                city: (data.city as string) || 'Unknown City',
                 state: (data.state as string) || 'NY',
                 posSystem: data.posSystem || null,
                 websiteUrl: data.websiteUrl || null,
@@ -302,7 +403,7 @@ export async function generateOutreachDrafts(): Promise<{
             const emailData: OutreachEmailData = {
                 dispensaryName: (data.dispensaryName as string) || 'Unknown',
                 contactName: data.contactName as string | undefined,
-                city: (data.city as string) || 'New York',
+                city: (data.city as string) || 'Unknown City',
                 state: (data.state as string) || 'NY',
                 posSystem: data.posSystem as string | undefined,
             };
@@ -317,7 +418,7 @@ export async function generateOutreachDrafts(): Promise<{
                 contactName: data.contactName || null,
                 email: null,
                 contactFormUrl: data.contactFormUrl,
-                city: (data.city as string) || 'New York',
+                city: (data.city as string) || 'Unknown City',
                 state: (data.state as string) || 'NY',
                 posSystem: data.posSystem || null,
                 websiteUrl: data.websiteUrl || null,
@@ -367,18 +468,43 @@ export async function getOutreachDrafts(status?: string): Promise<{
         if (!user) return { success: false, error: 'Unauthorized' };
 
         const db = getAdminFirestore();
-        let query: FirebaseFirestore.Query = db.collection('ny_outreach_drafts')
-            .orderBy('createdAt', 'desc')
-            .limit(50);
+        let snap: FirebaseFirestore.QuerySnapshot | { docs: FirebaseFirestore.QueryDocumentSnapshot[] };
 
         if (status) {
-            query = db.collection('ny_outreach_drafts')
-                .where('status', '==', status)
+            const statusQuery = db.collection('ny_outreach_drafts')
+                .where('status', '==', status);
+
+            try {
+                snap = await statusQuery
+                    .orderBy('createdAt', 'desc')
+                    .limit(50)
+                    .get();
+            } catch (error) {
+                if (!isMissingIndexError(error)) {
+                    throw error;
+                }
+
+                logger.warn('[OutreachDashboard] Missing Firestore index, falling back to client-side draft sort', {
+                    error: String(error),
+                    status,
+                });
+
+                const fallbackSnapshot = await statusQuery.limit(50).get();
+                snap = {
+                    docs: [...fallbackSnapshot.docs].sort((left, right) => {
+                        const leftCreatedAt = typeof left.data().createdAt === 'number' ? left.data().createdAt : 0;
+                        const rightCreatedAt = typeof right.data().createdAt === 'number' ? right.data().createdAt : 0;
+                        return rightCreatedAt - leftCreatedAt;
+                    }),
+                };
+            }
+        } else {
+            snap = await db.collection('ny_outreach_drafts')
                 .orderBy('createdAt', 'desc')
-                .limit(50);
+                .limit(50)
+                .get();
         }
 
-        const snap = await query.get();
         const drafts = snap.docs.map(doc => ({
             id: doc.id,
             ...doc.data(),
@@ -734,9 +860,35 @@ export async function triggerContactResearch(): Promise<{
     }
 }
 
+export async function triggerCRMLeadSync(): Promise<{
+    success: boolean;
+    created?: number;
+    updated?: number;
+    skipped?: number;
+    states?: string[];
+    error?: string;
+}> {
+    try {
+        await requireUser(['super_user']);
+
+        const result = await syncCRMDispensariesToOutreachQueue({ limit: 30 });
+
+        return {
+            success: true,
+            created: result.created,
+            updated: result.updated,
+            skipped: result.skipped,
+            states: result.states,
+        };
+    } catch (err) {
+        logger.error('[OutreachDashboard] CRM lead sync failed', { error: String(err) });
+        return { success: false, error: String(err) };
+    }
+}
+
 /**
  * Bulk import ALL active NY licensed dispensaries — fast, no enrichment.
- * Saves all 471 official records in ~5s. Run "Enrich NY Leads" afterward
+ * Saves all 471 official records in ~5s. Run "Enrich Queue" afterward
  * to add websites/emails in batches.
  */
 export async function triggerBulkNYImport(): Promise<{
@@ -759,7 +911,7 @@ export async function triggerBulkNYImport(): Promise<{
 }
 
 /**
- * Enrich NY API leads (no email yet) with targeted web search to find website/email.
+ * Enrich queue leads (including CRM-seeded records) with targeted web search.
  * Processes 20 un-enriched leads per call — call repeatedly to enrich all.
  */
 export async function triggerNYLeadEnrichment(): Promise<{
@@ -977,18 +1129,15 @@ export async function checkGmailConnection(): Promise<{
         const user = await requireUser(['super_user']);
         if (!user) return { connected: false };
 
-        const db = getAdminFirestore();
-        const tokenDoc = await db.collection('users').doc(user.uid)
-            .collection('integrations').doc('gmail').get();
-
-        if (!tokenDoc.exists) return { connected: false };
-
-        const data = tokenDoc.data();
+        const credentials = await getGmailToken(user.uid);
         return {
-            connected: !!data?.refreshTokenEncrypted,
-            email: data?.email as string | undefined,
+            connected: !!credentials?.refresh_token,
+            email: user.email || undefined,
         };
-    } catch {
+    } catch (error) {
+        logger.warn('[OutreachDashboard] Failed to check Gmail connection', {
+            error: String(error),
+        });
         return { connected: false };
     }
 }

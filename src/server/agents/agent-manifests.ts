@@ -76,19 +76,20 @@ export const AGENT_EXECUTION_PROFILES: Partial<Record<AgentPersona, AgentExecuti
     Object.fromEntries(
         VM_AGENT_IDS.map((agentId) => {
             const persona = PERSONAS[agentId];
-            const roleScopes = AGENT_ROLE_SCOPES[agentId] || ['super_user'];
+            const roleScopes: AgentRoleScope[] = AGENT_ROLE_SCOPES[agentId] ?? ['super_user'];
+            const primaryRoleScope = roleScopes[0] ?? 'super_user';
             const runtimeBackends = resolveRuntimeBackends(agentId, roleScopes);
 
             return [agentId, {
                 agentId,
                 roleScopes,
                 personaPrompt: persona?.systemPrompt,
-                memoryPolicyId: ROLE_MEMORY_POLICIES[roleScopes[0]],
+                memoryPolicyId: ROLE_MEMORY_POLICIES[primaryRoleScope],
                 defaultSkills: persona?.skills || [],
                 defaultToolGroups: persona?.tools || [],
                 runtimeBackends,
-                approvalPolicyId: ROLE_APPROVAL_POLICIES[roleScopes[0]],
-                artifactPolicyId: ROLE_ARTIFACT_POLICIES[roleScopes[0]],
+                approvalPolicyId: ROLE_APPROVAL_POLICIES[primaryRoleScope],
+                artifactPolicyId: ROLE_ARTIFACT_POLICIES[primaryRoleScope],
             } satisfies AgentExecutionProfile];
         })
     );

@@ -92,6 +92,14 @@ import { toggleHeroActive } from '@/app/actions/heroes';
 import { getBrandSlug } from '@/server/actions/slug-management';
 import { useJobPoller } from '@/hooks/use-job-poller';
 import { AttachmentPreviewList, type AttachmentItem } from '@/components/ui/attachment-preview';
+import {
+    createAttachmentItemFromFile,
+    createPastedTextAttachment,
+    shouldConvertPastedTextToAttachment,
+    toAgentAttachmentPayloads,
+    toChatMessageAttachment,
+    validateComposerAttachmentFile,
+} from '@/components/ui/chat-attachments';
 import { useToast } from '@/hooks/use-toast';
 import type { CreativeContent } from '@/types/creative-content';
 import {
@@ -533,100 +541,6 @@ function ThreadHeader({ thread }: { thread: InboxThread }) {
 
 // ============ Main Component ============
 
-// File upload constants
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const ALLOWED_FILE_TYPES = [
-    'image/jpeg',
-    'image/png',
-    'image/webp',
-    'image/gif',
-    'application/pdf',
-    'text/plain',
-    'text/csv',
-    'text/markdown',
-    'application/json',
-    'application/javascript',
-    'text/javascript',
-    'text/x-python',
-    'text/x-shellscript',
-    'application/x-yaml',
-    'text/yaml',
-];
-const ALLOWED_FILE_EXTENSIONS = new Set([
-    'txt',
-    'md',
-    'markdown',
-    'csv',
-    'json',
-    'js',
-    'jsx',
-    'ts',
-    'tsx',
-    'py',
-    'sh',
-    'bash',
-    'yaml',
-    'yml',
-    'xml',
-    'html',
-    'css',
-]);
-
-function getAttachmentMimeType(attachment: AttachmentItem): string {
-    if (attachment.file?.type) {
-        return attachment.file.type;
-    }
-
-    if (attachment.type === 'image') {
-        return 'image/jpeg';
-    }
-
-    if (attachment.type === 'pasted') {
-        return 'text/plain';
-    }
-
-    return 'application/octet-stream';
-}
-
-function detectPastedContentName(text: string): string {
-    const trimmed = text.trim();
-
-    if (trimmed.includes(',') && trimmed.split('\n').length > 1) {
-        const lines = trimmed.split('\n');
-        const avgCommas = lines.slice(0, 5).map((line) => (line.match(/,/g) || []).length);
-        if (avgCommas.length > 0 && avgCommas.every((count) => count > 0 && count === avgCommas[0])) {
-            return 'Pasted CSV Data';
-        }
-    }
-
-    if (
-        (trimmed.startsWith('{') && trimmed.endsWith('}'))
-        || (trimmed.startsWith('[') && trimmed.endsWith(']'))
-    ) {
-        try {
-            JSON.parse(trimmed);
-            return 'Pasted JSON Data';
-        } catch {
-            // Fall through to the content heuristics below.
-        }
-    }
-
-    if (
-        trimmed.includes('function ')
-        || trimmed.includes('const ')
-        || trimmed.includes('import ')
-        || trimmed.includes('class ')
-    ) {
-        return 'Pasted Code';
-    }
-
-    if (trimmed.includes('# ') || trimmed.includes('## ') || trimmed.includes('```')) {
-        return 'Pasted Markdown';
-    }
-
-    return 'Pasted Content';
-}
-
 export function InboxConversation({ thread, artifacts, className }: InboxConversationProps) {
     // Lazy init: pick up any pending input set by the empty state or sidebar before
     // activating this thread, then immediately clear it from the map.
@@ -898,58 +812,22 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         }
     }, [input]);
 
-    const validateAttachmentFile = (file: File): boolean => {
-        if (file.size > MAX_FILE_SIZE) {
-            toast({
-                title: 'File too large',
-                description: `${file.name} exceeds 10MB limit`,
-                variant: 'destructive',
-            });
-            return false;
-        }
-
-        const extension = file.name.split('.').pop()?.toLowerCase() || '';
-        const isAllowedType = ALLOWED_FILE_TYPES.includes(file.type);
-        const isAllowedExtension = ALLOWED_FILE_EXTENSIONS.has(extension);
-
-        if (!isAllowedType && !isAllowedExtension) {
-            toast({
-                title: 'Unsupported file type',
-                description: `${file.name} is not supported. Use images, PDFs, text, CSV, JSON, Markdown, or code files.`,
-                variant: 'destructive',
-            });
-            return false;
-        }
-
-        return true;
-    };
-
-    const createAttachmentItemFromFile = (file: File): Promise<AttachmentItem> => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-
-            reader.onload = () => {
-                const dataUrl = reader.result as string;
-                resolve({
-                    id: `att-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-                    file,
-                    type: file.type.startsWith('image/') ? 'image' : 'file',
-                    preview: file.type.startsWith('image/') ? dataUrl : undefined,
-                    content: !file.type.startsWith('image/') ? dataUrl : undefined,
-                    name: file.name,
-                });
-            };
-
-            reader.onerror = () => {
-                reject(new Error(`Failed to read ${file.name}`));
-            };
-
-            reader.readAsDataURL(file);
-        });
-    };
-
     const appendAttachmentFiles = async (files: File[]) => {
-        const validFiles = files.filter(validateAttachmentFile);
+        const validFiles = files.filter((file) => {
+            const error = validateComposerAttachmentFile(file);
+            if (!error) {
+                return true;
+            }
+
+            toast({
+                title: error.title,
+                description: error.description,
+                variant: 'destructive',
+            });
+
+            return false;
+        });
+
         if (validFiles.length === 0) {
             return;
         }
@@ -993,17 +871,9 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             return;
         }
 
-        if (pastedText && pastedText.length > 200) {
+        if (pastedText && shouldConvertPastedTextToAttachment(pastedText)) {
             e.preventDefault();
-            setAttachments((prev) => [
-                ...prev,
-                {
-                    id: `att-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-                    type: 'pasted',
-                    content: pastedText,
-                    name: detectPastedContentName(pastedText),
-                },
-            ]);
+            setAttachments((prev) => [...prev, createPastedTextAttachment(pastedText)]);
         }
     };
 
@@ -1030,7 +900,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             window.clearTimeout(vmPersistTimeoutRef.current);
         }
 
-        if (nextStatus === 'running' || nextStatus === 'awaiting_approval') {
+        if (nextStatus === 'running') {
             vmPersistTimeoutRef.current = window.setTimeout(() => {
                 void updateInboxVmRunArtifact(currentVmArtifactId, nextVmRun);
             }, 800);
@@ -1672,13 +1542,8 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         }
 
         // Prepare attachments for the message
-        const messageAttachments = attachments.map((att) => ({
-            id: att.id,
-            name: att.file?.name || att.name || 'file',
-            type: getAttachmentMimeType(att),
-            url: att.preview || att.content || '',
-            preview: att.preview,
-        }));
+        const pendingAttachments = attachments;
+        const messageAttachments = pendingAttachments.map((att) => toChatMessageAttachment(att));
 
         const userMessage: ChatMessage = {
             id: `msg-${Date.now()}`,
@@ -1695,12 +1560,6 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         await addMessageToInboxThread(thread.id, userMessage);
 
         // Prepare attachments for agent (base64 format)
-        const agentAttachments = attachments.map((att) => ({
-            name: att.file?.name || att.name || 'file',
-            type: getAttachmentMimeType(att),
-            base64: att.preview || att.content || '',
-        }));
-
         const messageContent = input.trim();
         setInput('');
         if (textareaRef.current) {
@@ -1712,6 +1571,8 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         setTimeout(() => setIsSubmitting(true), 10);
 
         try {
+            const agentAttachments = await toAgentAttachmentPayloads(pendingAttachments);
+
             // Call the inbox agent chat with attachments
             const result = await runInboxAgentChat(
                 thread.id,

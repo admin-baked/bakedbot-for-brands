@@ -1,5 +1,5 @@
 /**
- * NY Dispensary Outreach Email Templates
+ * Multi-State Dispensary Outreach Email Templates
  *
  * Professional outreach emails from Martez, Founder of BakedBot AI.
  * Each template targets a different angle based on the lead magnet funnel.
@@ -72,9 +72,9 @@ export function generateOutreachEmails(data: OutreachEmailData): OutreachEmail[]
 
 <p>No strings attached — I just want to show you what our tool does.</p>
 
-<p><a href="https://bakedbot.ai/ny/competitive-report" style="display: inline-block; background-color: #059669; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Get Your Free Report</a></p>
+<p>If you want, I&apos;ll walk you through the report in 15 minutes and show you where ${dispensary} stands in-market.</p>
 
-<p>Takes 30 seconds to request. Happy to walk you through it on a quick call if you prefer.</p>
+<p><a href="https://bakedbot.ai/meet" style="display: inline-block; background-color: #059669; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Book a Quick Walkthrough</a></p>
 ${WRAPPER_END}`,
             textBody: `Hi ${name},
 
@@ -82,9 +82,7 @@ I built an AI that tracks every dispensary menu in ${city} in real time — pric
 
 I pulled a free competitive landscape report for ${dispensary}. It shows how your pricing compares to ${data.competitorCount || '5+'} nearby dispensaries, categories where you may be leaving margin, and new products competitors added recently.
 
-No strings attached — get your free report at: https://bakedbot.ai/ny/competitive-report
-
-Takes 30 seconds. Happy to walk you through it on a quick call.
+No strings attached. If you want, I'll walk you through the report live: https://bakedbot.ai/meet
 
 Martez
 Founder, BakedBot AI
@@ -100,7 +98,7 @@ martez@bakedbot.ai`,
             htmlBody: `${WRAPPER_START}
 <p>Hi ${name},</p>
 
-<p>We&apos;re selecting <strong>10 New York dispensaries</strong> as founding partners for BakedBot AI — an AI-powered operations platform built specifically for cannabis retail.</p>
+<p>We&apos;re opening a small <strong>founding partner cohort</strong> for BakedBot AI — an AI-powered operations platform built specifically for cannabis retail.</p>
 
 <p>What founding partners get:</p>
 
@@ -113,19 +111,19 @@ martez@bakedbot.ai`,
 
 <p>In exchange, we ask for a case study and honest testimonial after your pilot.</p>
 
-<p>We&apos;re already live with dispensaries in Syracuse. Spots are limited — I&apos;d love to have ${dispensary} in the cohort.</p>
+<p>We&apos;re already live with Thrive Syracuse and expanding with a handful of operators across NY, Michigan, and Illinois. I&apos;d love to have ${dispensary} in the cohort.</p>
 
-<p><a href="https://bakedbot.ai/ny/founding-partner" style="display: inline-block; background-color: #059669; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Apply for Your Spot</a></p>
+<p><a href="https://bakedbot.ai/meet" style="display: inline-block; background-color: #059669; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">See If There&apos;s a Fit</a></p>
 ${WRAPPER_END}`,
             textBody: `Hi ${name},
 
-We're selecting 10 New York dispensaries as founding partners for BakedBot AI — an AI-powered operations platform for cannabis retail.
+We're opening a small founding partner cohort for BakedBot AI — an AI-powered operations platform for cannabis retail.
 
 Founding partners get 50% off for 60 days, 30% off for 6 months, direct engineering access, and product roadmap influence. In exchange: a case study + testimonial.
 
-We're already live in Syracuse. Spots are limited.
+We're already live with Thrive Syracuse and expanding with operators across NY, Michigan, and Illinois. Spots are limited.
 
-Apply: https://bakedbot.ai/ny/founding-partner
+See if there's a fit: https://bakedbot.ai/meet
 
 Martez
 Founder, BakedBot AI`,
@@ -261,22 +259,22 @@ Founder, BakedBot AI`,
   <li><strong>AI Budtender</strong> — trained on your actual menu, not generic cannabis data</li>
   <li><strong>Competitive Intel</strong> — daily pricing comparisons across your market</li>
   <li><strong>Marketing Automation</strong> — SMS + email campaigns that write themselves</li>
-  <li><strong>Compliance Monitor</strong> — NY OCM rules enforced automatically</li>
+  <li><strong>Compliance Monitor</strong> — state-specific cannabis rules enforced automatically</li>
 </ul>
 
 <p>No data migration. No staff retraining. Your POS data flows in and the AI starts working immediately.</p>
 
-<p><a href="https://bakedbot.ai/ny/founding-partner" style="display: inline-block; background-color: #059669; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Start Your Free Pilot</a></p>
+<p><a href="https://bakedbot.ai/meet" style="display: inline-block; background-color: #059669; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Book a Live Demo</a></p>
 ${WRAPPER_END}`,
             textBody: `Hi ${name},
 
 ${dispensary} runs ${data.posSystem || 'a cannabis POS'} — BakedBot integrates directly, so you're up in under an hour.
 
-Day one: AI Budtender trained on your menu, daily competitive pricing intel, automated marketing campaigns, and NY OCM compliance monitoring.
+Day one: AI Budtender trained on your menu, daily competitive pricing intel, automated marketing campaigns, and state-specific compliance monitoring.
 
 No data migration. No retraining. Your POS data flows in and the AI starts immediately.
 
-Start free: https://bakedbot.ai/ny/founding-partner
+Book a live demo: https://bakedbot.ai/meet
 
 Martez
 Founder, BakedBot AI`,
@@ -362,39 +360,39 @@ Founder, BakedBot AI`,
         {
             id: 'social-proof',
             name: 'Thrive Syracuse Case Study',
-            angle: 'Social proof: real NY dispensary already using it',
+            angle: 'Social proof: live dispensary partner already using it',
             subject: `How a Syracuse dispensary is using AI to outprice competitors`,
             htmlBody: `${WRAPPER_START}
 <p>Hi ${name},</p>
 
-<p>Thrive Syracuse — a dispensary right here in NY — has been using BakedBot AI for competitive intelligence, marketing automation, and dynamic pricing.</p>
+<p>Thrive Syracuse — one of our live dispensary partners — has been using BakedBot AI for competitive intelligence, marketing automation, and dynamic pricing.</p>
 
 <p>A few results worth noting:</p>
 
 <ul style="color: #334155;">
   <li>Daily competitive pricing updates across 8+ Syracuse dispensaries</li>
-  <li>Automated SMS + email campaigns (compliant with NY OCM rules)</li>
+  <li>Automated SMS + email campaigns with state-specific compliance guardrails</li>
   <li>AI budtender trained on their full Alleaves menu</li>
   <li>Zero additional staff time — the AI handles the work</li>
 </ul>
 
-<p>I&apos;m looking for 9 more NY dispensaries to join the founding cohort. ${dispensary} would be a great fit.</p>
+<p>I&apos;m opening a few more partner slots across NY, Michigan, and Illinois. ${dispensary} would be a great fit.</p>
 
 <p>Would you be open to a quick conversation about what this could look like for your operation?</p>
 
-<p><a href="https://bakedbot.ai/ny/founding-partner" style="display: inline-block; background-color: #059669; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Learn More</a></p>
+<p><a href="https://bakedbot.ai/meet" style="display: inline-block; background-color: #059669; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Book a Quick Walkthrough</a></p>
 ${WRAPPER_END}`,
             textBody: `Hi ${name},
 
-Thrive Syracuse — a dispensary right here in NY — uses BakedBot AI for competitive intelligence, marketing automation, and dynamic pricing.
+Thrive Syracuse — one of our live dispensary partners — uses BakedBot AI for competitive intelligence, marketing automation, and dynamic pricing.
 
 Results: daily competitive pricing across 8+ dispensaries, automated compliant campaigns, AI budtender trained on their menu, zero additional staff time.
 
-I'm looking for 9 more NY dispensaries. ${dispensary} would be a great fit.
+I'm opening a few more partner slots across NY, Michigan, and Illinois. ${dispensary} would be a great fit.
 
 Open to a quick conversation?
 
-Learn more: https://bakedbot.ai/ny/founding-partner
+Book time: https://bakedbot.ai/meet
 
 Martez
 Founder, BakedBot AI`,
@@ -415,7 +413,7 @@ Founder, BakedBot AI`,
 
 <p>It&apos;s not another POS. It <strong>sits on top</strong> of whatever POS you&apos;re already running and makes it smarter.</p>
 
-<p>We&apos;re already live in NY with Thrive Syracuse, and I&apos;m looking for a small group of dispensaries to partner with as we expand across the state.</p>
+<p>We&apos;re already live with Thrive Syracuse, and I&apos;m looking for a small group of dispensaries in NY, Michigan, and Illinois to partner with next.</p>
 
 <p>If any of this sounds useful for ${dispensary}, I&apos;d love to connect — even just a 10-minute call to see if there&apos;s a fit.</p>
 
@@ -427,7 +425,7 @@ I'm Martez, founder of BakedBot AI. I'll keep this short.
 
 I built an AI platform that handles competitor tracking, marketing campaigns, compliance monitoring, and staff training. It sits on top of whatever POS you're already running.
 
-We're live in NY with Thrive Syracuse, and I'm looking for a small group of dispensaries to partner with statewide.
+We're live with Thrive Syracuse, and I'm looking for a small group of dispensaries in NY, Michigan, and Illinois to partner with next.
 
 If this sounds useful for ${dispensary}, I'd love a 10-minute call.
 

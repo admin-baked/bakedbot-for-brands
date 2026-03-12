@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * CEO Outreach Tab — NY Dispensary Outreach Command Center
+ * CEO Outreach Tab — Multi-State Dispensary Outreach Command Center
  *
  * Draft-first approval flow:
  * - Pipeline status (queue depth, daily limit, pending drafts)
@@ -32,6 +32,7 @@ import {
     approveAndSendAllDrafts,
     rejectDraft,
     triggerTestBatch,
+    triggerCRMLeadSync,
     triggerContactResearch,
     triggerBulkNYImport,
     triggerNYLeadEnrichment,
@@ -66,6 +67,7 @@ interface QueueLead {
     dispensaryName: string;
     email?: string;
     city: string;
+    state: string;
     contactFormUrl?: string;
     source: string;
     createdAt: number;
@@ -77,6 +79,7 @@ interface CRMContact {
     email: string;
     contactName?: string;
     city: string;
+    state: string;
     status: string;
     outreachCount: number;
     lastOutreachAt: number;
@@ -534,6 +537,31 @@ export default function OutreachTab() {
         }
     };
 
+    const handleCRMLeadSync = async () => {
+        setActionLoading('crm-sync');
+        setActionResult(null);
+        try {
+            const result = await triggerCRMLeadSync();
+            if (result.success) {
+                const synced = (result.created || 0) + (result.updated || 0);
+                const stateLabel = result.states?.join(' / ') || 'NY / MI / IL';
+                setActionResult({
+                    type: 'success',
+                    message: synced > 0
+                        ? `CRM sync complete for ${stateLabel}: ${result.created || 0} new leads queued, ${result.updated || 0} existing leads refreshed.`
+                        : `CRM sync complete for ${stateLabel}: no new queue changes (${result.skipped || 0} already covered).`,
+                });
+                await loadData();
+            } else {
+                setActionResult({ type: 'error', message: result.error || 'CRM sync failed' });
+            }
+        } catch (err) {
+            setActionResult({ type: 'error', message: String(err) });
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
     const handleBulkNYImport = async () => {
         setActionLoading('nyapi-bulk');
         setActionResult(null);
@@ -542,7 +570,7 @@ export default function OutreachTab() {
             if (result.success) {
                 setActionResult({
                     type: 'success',
-                    message: `NY import: ${result.imported || 0} new leads saved (${result.skipped || 0} already existed). Now click "Enrich NY Leads" to find emails.`,
+                    message: `NY import: ${result.imported || 0} new leads saved (${result.skipped || 0} already existed). Now click "Enrich Queue" to find emails.`,
                 });
                 await loadData();
             } else {
@@ -562,8 +590,8 @@ export default function OutreachTab() {
             const result = await triggerNYLeadEnrichment();
             if (result.success) {
                 const msg = result.enriched === 0
-                    ? 'All NY leads already enriched.'
-                    : `Enriched ${result.enriched} leads — ${result.withEmail || 0} emails found. Click again for next batch.`;
+                    ? 'The outreach queue is already enriched.'
+                    : `Enriched ${result.enriched} queue leads — ${result.withEmail || 0} emails found. Click again for next batch.`;
                 setActionResult({ type: 'success', message: msg });
                 await loadData();
             } else {
@@ -595,8 +623,8 @@ export default function OutreachTab() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold">NY Dispensary Outreach</h2>
-                    <p className="text-muted-foreground">Draft-first approval flow — preview and edit before sending</p>
+                    <h2 className="text-2xl font-bold">Multi-State Dispensary Outreach</h2>
+                    <p className="text-muted-foreground">CRM-first draft approval flow for NY / MI / IL — preview and edit before sending</p>
                 </div>
                 <Button variant="outline" size="sm" onClick={() => { loadData(); loadDrafts(); }} disabled={!!actionLoading}>
                     <RefreshCcw className="h-4 w-4 mr-2" />
@@ -761,6 +789,20 @@ export default function OutreachTab() {
 
                 <Button
                     variant="outline"
+                    onClick={handleCRMLeadSync}
+                    disabled={!!actionLoading}
+                    className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                >
+                    {actionLoading === 'crm-sync' ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                        <Users className="h-4 w-4 mr-2" />
+                    )}
+                    Sync CRM Leads (NY / MI / IL)
+                </Button>
+
+                <Button
+                    variant="outline"
                     onClick={handleResearch}
                     disabled={!!actionLoading}
                 >
@@ -769,7 +811,7 @@ export default function OutreachTab() {
                     ) : (
                         <Search className="h-4 w-4 mr-2" />
                     )}
-                    Research New Leads
+                    Research NY Leads
                 </Button>
 
                 <Button
@@ -797,7 +839,7 @@ export default function OutreachTab() {
                     ) : (
                         <Search className="h-4 w-4 mr-2" />
                     )}
-                    Enrich NY Leads (20/batch)
+                    Enrich Queue (20/batch)
                 </Button>
             </div>
 
@@ -937,7 +979,7 @@ export default function OutreachTab() {
                                         <div>
                                             <div className="font-medium text-sm">{lead.dispensaryName}</div>
                                             <div className="text-xs text-muted-foreground">
-                                                {lead.city} &middot; {lead.email ? 'Has email' : lead.contactFormUrl ? 'Has form' : 'No contact'}
+                                                {lead.city}, {lead.state} &middot; {lead.email ? 'Has email' : lead.contactFormUrl ? 'Has form' : 'Needs enrichment'}
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
@@ -954,7 +996,7 @@ export default function OutreachTab() {
                         ) : (
                             <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
                                 <Search className="h-8 w-8 mb-2 opacity-50" />
-                                <p>Queue empty. Click &ldquo;Research New Leads&rdquo; to discover dispensaries.</p>
+                                <p>Queue empty. Click &ldquo;Sync CRM Leads&rdquo; to seed NY / MI / IL dispensaries into outreach.</p>
                             </div>
                         )}
                     </CardContent>
@@ -977,7 +1019,7 @@ export default function OutreachTab() {
                                         <div>
                                             <div className="font-medium text-sm">{contact.dispensaryName}</div>
                                             <div className="text-xs text-muted-foreground">
-                                                {contact.email} &middot; {contact.city}
+                                                {contact.email} &middot; {contact.city}, {contact.state}
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">

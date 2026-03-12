@@ -67,7 +67,16 @@ import { ModelSelector, ThinkingLevel } from '../../ceo/components/model-selecto
 import { useJobPoller } from '@/hooks/use-job-poller';
 import { ProjectSelector } from '@/components/dashboard/project-selector';
 import type { Project } from '@/types/project';
+import type { ChatMessageAttachment } from '@/lib/store/agent-chat-store';
 import { AttachmentPreviewList, AttachmentItem } from '@/components/ui/attachment-preview';
+import {
+    createAttachmentItemFromFile,
+    createPastedTextAttachment,
+    shouldConvertPastedTextToAttachment,
+    toAgentAttachmentPayloads,
+    toChatMessageAttachment,
+    validateComposerAttachmentFile,
+} from '@/components/ui/chat-attachments';
 import { ArtifactPanel, ArtifactCard } from '@/components/artifacts';
 import { Artifact, parseArtifactsFromContent, createArtifactId } from '@/types/artifact';
 import { shareArtifact } from '@/server/actions/artifacts';
@@ -129,6 +138,7 @@ export interface PuffMessage {
     role: 'user' | 'assistant';
     content: string;
     timestamp: Date;
+    attachments?: ChatMessageAttachment[];
     isThinking?: boolean;
     workDuration?: number; // seconds
     steps?: ToolCallStep[];
@@ -192,6 +202,7 @@ function PersonaSelector({ value, onChange }: { value: AgentPersona, onChange: (
         mike_exec: { label: 'Mike', desc: 'CFO & Finance', icon: DollarSign },
         bigworm: { label: 'Big Worm', desc: 'Deep Research', icon: Search },
         big_worm: { label: 'Big Worm', desc: 'Deep Research', icon: Search },
+        roach: { label: 'Roach', desc: 'Research Librarian', icon: Search },
         openclaw: { label: 'OpenClaw', desc: 'WhatsApp & Comms', icon: Globe },
         // Legacy
         wholesale_analyst: { label: 'Wholesale', desc: 'LeafLink & Inventory', icon: Briefcase },
@@ -896,16 +907,44 @@ export function AgentChat({
     };
 
     // --- File Handling ---
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
-            const newAttachments = Array.from(e.target.files).map(file => ({
-                id: Math.random().toString(36).substr(2, 9),
-                file,
-                type: file.type.startsWith('image/') ? 'image' as const : 'file' as const,
-                preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined
-            }));
-            setAttachments(prev => [...prev, ...newAttachments]);
+    const appendAttachmentFiles = async (files: File[]) => {
+        const validFiles = files.filter((file) => {
+            const error = validateComposerAttachmentFile(file);
+            if (!error) {
+                return true;
+            }
+
+            toast({
+                title: error.title,
+                description: error.description,
+                variant: 'destructive',
+            });
+
+            return false;
+        });
+
+        if (validFiles.length === 0) {
+            return;
         }
+
+        try {
+            const newAttachments = await Promise.all(validFiles.map((file) => createAttachmentItemFromFile(file)));
+            setAttachments((prev) => [...prev, ...newAttachments]);
+        } catch (error) {
+            toast({
+                title: 'Attachment failed',
+                description: error instanceof Error ? error.message : 'Failed to process attachment',
+                variant: 'destructive',
+            });
+        }
+    };
+
+    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files) return;
+
+        await appendAttachmentFiles(Array.from(files));
+        e.target.value = '';
     };
 
     const removeAttachment = (id: string) => {
@@ -913,71 +952,22 @@ export function AgentChat({
     };
 
     // Detect large pasted content and convert to attachment card (Claude-style)
-    const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
         const pastedText = e.clipboardData.getData('text');
         const pastedFiles = Array.from(e.clipboardData.files || []);
         
         // Handle pasted files (images, PDFs, etc.)
         if (pastedFiles.length > 0) {
             e.preventDefault();
-            const newAttachments = pastedFiles.map(file => ({
-                id: Math.random().toString(36).substr(2, 9),
-                file,
-                type: file.type.startsWith('image/') ? 'image' as const : 'file' as const,
-                preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
-                name: file.name
-            }));
-            setAttachments(prev => [...prev, ...newAttachments]);
+            await appendAttachmentFiles(pastedFiles);
             return;
         }
         
         // For large text content (> 200 chars), convert to attachment card
-        if (pastedText && pastedText.length > 200) {
+        if (pastedText && shouldConvertPastedTextToAttachment(pastedText)) {
             e.preventDefault();
-            const attachment: AttachmentItem = {
-                id: Math.random().toString(36).substr(2, 9),
-                type: 'pasted',
-                content: pastedText,
-                name: detectPastedContentName(pastedText)
-            };
-            setAttachments(prev => [...prev, attachment]);
+            setAttachments(prev => [...prev, createPastedTextAttachment(pastedText)]);
         }
-    };
-
-    // Detect content type from pasted text
-    const detectPastedContentName = (text: string): string => {
-        const trimmed = text.trim();
-        
-        // Check for CSV format
-        if (trimmed.includes(',') && trimmed.split('\n').length > 1) {
-            const lines = trimmed.split('\n');
-            const avgCommas = lines.slice(0, 5).map(l => (l.match(/,/g) || []).length);
-            if (avgCommas.length > 0 && avgCommas.every(c => c > 0 && c === avgCommas[0])) {
-                return 'Pasted CSV Data';
-            }
-        }
-        
-        // Check for JSON
-        if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || 
-            (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
-            try {
-                JSON.parse(trimmed);
-                return 'Pasted JSON Data';
-            } catch { /* not valid JSON */ }
-        }
-        
-        // Check for code-like content
-        if (trimmed.includes('function ') || trimmed.includes('const ') || 
-            trimmed.includes('import ') || trimmed.includes('class ')) {
-            return 'Pasted Code';
-        }
-        
-        // Check for markdown
-        if (trimmed.includes('# ') || trimmed.includes('## ') || trimmed.includes('```')) {
-            return 'Pasted Markdown';
-        }
-        
-        return 'Pasted Content';
     };
 
     const handleAudioComplete = async (audioBlob: Blob) => {
@@ -989,42 +979,14 @@ export function AgentChat({
         };
     };
 
-    const convertAttachments = async () => {
-        return Promise.all(attachments.map(async (a) => {
-            // Handle pasted text content
-            if (a.type === 'pasted' && a.content) {
-                return {
-                    name: a.name || 'pasted-content.txt',
-                    type: 'text/plain',
-                    base64: `data:text/plain;base64,${btoa(a.content)}`
-                };
-            }
-            
-            // Handle file attachments
-            if (!a.file) {
-                return { name: 'unknown', type: 'unknown', base64: '' };
-            }
-            
-            return new Promise<{ name: string, type: string, base64: string }>((resolve) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(a.file!);
-                reader.onloadend = () => {
-                    resolve({
-                        name: a.file!.name,
-                        type: a.file!.type,
-                        base64: reader.result as string
-                    });
-                };
-            });
-        }));
-    };
-
 // ... (skip down to submitMessage)
 
     const submitMessage = useCallback(async (textInput: string, audioBase64?: string) => {
         if ((!textInput.trim() && !audioBase64 && attachments.length === 0) || isProcessing) return;
 
         const userInput = textInput;
+        const pendingAttachments = attachments;
+        const messageAttachments = pendingAttachments.map((attachment) => toChatMessageAttachment(attachment));
         const displayContent = audioBase64 ? 'ðŸŽ¤ Voice Message' : (userInput || (attachments.length > 0 ? `Sent ${attachments.length} attachment(s)` : ''));
 
         const userMsgId = `user-${Date.now()}`;
@@ -1032,7 +994,8 @@ export function AgentChat({
             id: userMsgId,
             type: 'user',
             content: displayContent,
-            timestamp: new Date()
+            timestamp: new Date(),
+            attachments: messageAttachments.length > 0 ? messageAttachments : undefined,
         });
 
         setInput('');
@@ -1054,7 +1017,7 @@ export function AgentChat({
         }, 1000);
 
         try {
-            const processedAttachments = await convertAttachments();
+            const processedAttachments = await toAgentAttachmentPayloads(pendingAttachments);
 
             // Call the real AI backend
             const response = await runAgentChat(
@@ -1185,7 +1148,7 @@ export function AgentChat({
         if (onSubmit) {
             await onSubmit(userInput);
         }
-    }, [input, isProcessing, onSubmit, addMessage, updateMessage, persona, toolMode, selectedTools, user, attachments, thinkingLevel, convertAttachments, role, addArtifact, emitPlaybookMutation]);
+    }, [input, isProcessing, onSubmit, addMessage, updateMessage, persona, toolMode, selectedTools, user, attachments, thinkingLevel, role, addArtifact, emitPlaybookMutation]);
 
     // Run commands from external triggers (e.g., quick actions).
     useEffect(() => {
@@ -1215,6 +1178,7 @@ export function AgentChat({
         role: m.type === 'agent' ? 'assistant' : 'user',
         content: m.content,
         timestamp: new Date(m.timestamp),
+        attachments: m.attachments,
         isThinking: m.thinking?.isThinking,
         steps: m.thinking?.steps,
         metadata: m.metadata,
@@ -1437,6 +1401,32 @@ export function AgentChat({
                                         </Button>
                                         <div className="bg-primary text-primary-foreground rounded-lg px-4 py-2 max-w-[80%]">
                                             <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                            {message.attachments && message.attachments.length > 0 && (
+                                                <div
+                                                    data-testid="agent-chat-message-attachments"
+                                                    className="mt-3 grid grid-cols-1 gap-2"
+                                                >
+                                                    {message.attachments.map((attachment) => (
+                                                        <div
+                                                            key={attachment.id}
+                                                            className="rounded-lg border border-primary-foreground/20 bg-primary-foreground/10 px-3 py-2"
+                                                        >
+                                                            {attachment.type.startsWith('image/') ? (
+                                                                <img
+                                                                    src={attachment.url || attachment.preview}
+                                                                    alt={attachment.name}
+                                                                    className="max-h-40 rounded-md object-cover"
+                                                                />
+                                                            ) : (
+                                                                <div className="flex items-center gap-2">
+                                                                    <FileText className="h-4 w-4 shrink-0" />
+                                                                    <span className="text-xs truncate">{attachment.name}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 ) : (

@@ -109,10 +109,15 @@ async function launchResumeJob(
     });
 
     const isDevelopment = process.env.NODE_ENV === 'development';
-    let dispatch = {
-        success: !isDevelopment,
-        error: isDevelopment ? 'Development mode - using synchronous fallback' : undefined,
-    };
+    let dispatch: Awaited<ReturnType<typeof dispatchAgentJob>> = isDevelopment
+        ? {
+            success: false,
+            error: 'Development mode - using synchronous fallback',
+        }
+        : {
+            success: true,
+            taskId: 'sync-fallback',
+        };
 
     if (!isDevelopment) {
         dispatch = await dispatchAgentJob(payload);

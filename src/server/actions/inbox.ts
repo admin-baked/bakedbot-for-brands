@@ -701,13 +701,12 @@ export async function resolveInboxVmRunApproval(
         if (!currentApproval) {
             return { success: false, error: 'Approval not found' };
         }
-        const sourceJobId = currentVmRun.jobId;
-        if (currentApproval.type === 'tool' && !sourceJobId) {
-            return { success: false, error: 'VM run is missing its source job id' };
-        }
-
         let resumeJobId: string | undefined;
         if (currentApproval.type === 'tool') {
+            const sourceJobId = currentVmRun.jobId;
+            if (!sourceJobId) {
+                return { success: false, error: 'VM run is missing its source job id' };
+            }
             if (!currentApproval.approvalId) {
                 logger.warn('VM approval missing approval id', {
                     artifactId,

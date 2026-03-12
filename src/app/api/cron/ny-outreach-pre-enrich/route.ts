@@ -1,9 +1,9 @@
 /**
- * NY Outreach Pre-Enrich Cron
+ * Outreach Pre-Enrich Cron
  *
  * Runs daily at 6 AM EST (11 AM UTC), 2 hours before the morning briefing.
- * Enriches the next batch of unenriched NY leads with email/website data via
- * Jina web scraping + Apollo.io fallback.
+ * Seeds CRM dispensaries into the queue, then enriches the next batch of
+ * unenriched outreach leads with email/website data via Jina + Apollo fallback.
  *
  * Goal: by the time the super user opens their dashboard at 8–9 AM,
  * enriched leads are already waiting in the queue, ready for draft generation.
@@ -22,6 +22,7 @@ import { logger } from '@/lib/logger';
 import { getAdminFirestore } from '@/firebase/admin';
 import { enrichLeadBatch } from '@/server/services/ny-outreach/lead-enrichment';
 import { getApolloCreditStatus } from '@/server/services/ny-outreach/apollo-enrichment';
+import { syncCRMDispensariesToOutreachQueue } from '@/server/services/ny-outreach/crm-queue-sync';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,7 +41,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     try {
         const db = getAdminFirestore();
 
-        // Step 1: Check how many unenriched leads exist
+        // Step 1: Seed CRM leads into the queue before enrichment
+        let crmSeeded = 0;
+        let crmLeadRefreshes = 0;
+        try {
+            const crmSync = await syncCRMDispensariesToOutreachQueue({ limit: BATCH_SIZE });
+            crmSeeded = crmSync.created;
+            crmLeadRefreshes = crmSync.updated;
+            logger.info('[PreEnrich] Seeded CRM leads into queue before enrichment', {
+                created: crmSync.created,
+                updated: crmSync.updated,
+                states: crmSync.states,
+            });
+        } catch (error) {
+            logger.warn('[PreEnrich] CRM lead sync failed before enrichment', { error: String(error) });
+        }
+
+        // Step 2: Check how many unenriched leads exist
         const unenrichedSnap = await db.collection('ny_dispensary_leads')
             .where('enriched', '==', false)
             .count()
@@ -51,11 +68,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             logger.info('[PreEnrich] No unenriched leads — queue is fully enriched');
             return NextResponse.json({
                 success: true,
-                summary: { totalUnenriched: 0, enriched: 0, withEmail: 0, message: 'Queue already enriched' },
+                summary: {
+                    totalUnenriched: 0,
+                    crmSeeded,
+                    crmLeadRefreshes,
+                    enriched: 0,
+                    withEmail: 0,
+                    message: 'Queue already enriched',
+                },
             });
         }
 
-        // Step 2: Guard Apollo credits
+        // Step 3: Guard Apollo credits
         const credits = await getApolloCreditStatus();
         if (credits.remaining <= MIN_APOLLO_CREDITS) {
             logger.warn('[PreEnrich] Apollo credits too low — skipping enrichment', {
@@ -66,6 +90,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
                 success: true,
                 summary: {
                     totalUnenriched,
+                    crmSeeded,
+                    crmLeadRefreshes,
                     enriched: 0,
                     withEmail: 0,
                     message: `Apollo credits too low (${credits.remaining} remaining) — skipped enrichment`,
@@ -74,7 +100,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             });
         }
 
-        // Step 3: Run enrichment batch
+        // Step 4: Run enrichment batch
         const result = await enrichLeadBatch(BATCH_SIZE);
 
         logger.info('[PreEnrich] Enrichment complete', {
@@ -88,6 +114,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             success: true,
             summary: {
                 totalUnenriched,
+                crmSeeded,
+                crmLeadRefreshes,
                 enriched: result.enriched,
                 withEmail: result.withEmail,
                 emailRate: result.enriched > 0
