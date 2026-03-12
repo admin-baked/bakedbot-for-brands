@@ -6,6 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Clock, RefreshCw, AlertCircle, Zap } from 'lucide-react';
 
+// This page performs a full Firestore aggregation and cannot finish within static build limits.
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export const metadata: Metadata = {
     title: 'Market Freshness Index | BakedBot Research',
     description: 'Real-time data on how often cannabis dispensary menus are updated by market. Identify active vs stale markets.',

@@ -6,6 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertTriangle, CheckCircle, MapPin, TrendingDown, TrendingUp } from 'lucide-react';
 
+// This page performs a full Firestore aggregation and cannot finish within static build limits.
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export const metadata: Metadata = {
     title: 'Cannabis Desert Index | BakedBot Research',
     description: 'ZIP-level cannabis access data revealing underserved markets across the US. Free to cite with attribution.',
