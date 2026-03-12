@@ -282,16 +282,27 @@ const commonDigitalWorkerTools = {
         }
     },
 
-    // Mailjet Email
+    async getPreferredEmailUserId() {
+        try {
+            const user = await requireUser();
+            return user.uid;
+        } catch {
+            return undefined;
+        }
+    },
+
+    // Connected Gmail first, platform provider fallback
     sendEmailMailjet: async (to: string, subject: string, htmlBody: string, fromEmail?: string, fromName?: string) => {
         try {
-            const { sendGenericEmail } = await import('@/lib/email/mailjet');
+            const { sendGenericEmail } = await import('@/lib/email/dispatcher');
+            const userId = await commonDigitalWorkerTools.getPreferredEmailUserId();
             const result = await sendGenericEmail({
                 to,
                 subject,
                 htmlBody,
                 fromEmail,
-                fromName
+                fromName,
+                userId,
             });
             return result;
         } catch (e: any) {
@@ -321,7 +332,8 @@ const commonDigitalWorkerTools = {
     sendMarketingEmail: async (to: string, subject: string, htmlBody: string) => {
         try {
             const { sendGenericEmail } = await import('@/lib/email/dispatcher');
-            const result = await sendGenericEmail({ to, subject, htmlBody });
+            const userId = await commonDigitalWorkerTools.getPreferredEmailUserId();
+            const result = await sendGenericEmail({ to, subject, htmlBody, userId });
             return result;
         } catch (e: any) {
             return { success: false, error: e.message };

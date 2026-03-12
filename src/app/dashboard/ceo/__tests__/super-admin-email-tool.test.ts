@@ -1,6 +1,6 @@
 
 import { testEmailDispatch } from '../actions/system-actions';
-import { requireUser, isSuperUser } from '@/server/auth/auth';
+import { requireUser } from '@/server/auth/auth';
 import { sendGenericEmail } from '@/lib/email/dispatcher';
 
 jest.mock('firebase-admin', () => ({
@@ -60,7 +60,6 @@ jest.mock('@/lib/mrr-ladder', () => ({
 // Mock auth and email
 jest.mock('@/server/auth/auth', () => ({
     requireUser: jest.fn(),
-    isSuperUser: jest.fn(),
 }));
 
 jest.mock('@/lib/email/dispatcher', () => ({
@@ -73,8 +72,7 @@ describe('Super User Email Tool', () => {
     });
 
     it('should deny access if user is not a super admin', async () => {
-        (requireUser as jest.Mock).mockResolvedValue({ uid: 'test-user' });
-        (isSuperUser as jest.Mock).mockResolvedValue(false);
+        (requireUser as jest.Mock).mockRejectedValue(new Error('Unauthorized'));
 
         const result = await testEmailDispatch({
             to: 'test@example.com',
@@ -89,7 +87,6 @@ describe('Super User Email Tool', () => {
 
     it('should send email successfully if authorized', async () => {
         (requireUser as jest.Mock).mockResolvedValue({ uid: 'admin-user' });
-        (isSuperUser as jest.Mock).mockResolvedValue(true);
         (sendGenericEmail as jest.Mock).mockResolvedValue({ success: true });
 
         const result = await testEmailDispatch({
@@ -104,13 +101,15 @@ describe('Super User Email Tool', () => {
             to: 'test@example.com',
             subject: 'Test Subject',
             htmlBody: '<p>Test Body</p>',
-            textBody: 'Test Body' // stripped tags
+            textBody: 'Test Body',
+            fromEmail: undefined,
+            fromName: undefined,
+            userId: 'admin-user',
         });
     });
 
     it('should pass custom sender details', async () => {
         (requireUser as jest.Mock).mockResolvedValue({ uid: 'admin-user' });
-        (isSuperUser as jest.Mock).mockResolvedValue(true);
         (sendGenericEmail as jest.Mock).mockResolvedValue({ success: true });
 
         const result = await testEmailDispatch({
@@ -128,13 +127,13 @@ describe('Super User Email Tool', () => {
             htmlBody: '<p>Test Body</p>',
             textBody: 'Test Body',
             fromEmail: 'team@bakedbot.ai',
-            fromName: 'Team BakedBot'
+            fromName: 'Team BakedBot',
+            userId: 'admin-user',
         });
     });
 
     it('should handle dispatcher failure', async () => {
         (requireUser as jest.Mock).mockResolvedValue({ uid: 'admin-user' });
-        (isSuperUser as jest.Mock).mockResolvedValue(true);
         (sendGenericEmail as jest.Mock).mockResolvedValue({ success: false, error: 'Mocked Failure' });
 
         const result = await testEmailDispatch({
@@ -144,12 +143,11 @@ describe('Super User Email Tool', () => {
         });
 
         expect(result.error).toBe(true);
-        expect(result.message).toContain('Failed to dispatch');
+        expect(result.message).toContain('Failed to dispatch email');
     });
 
     it('should handle errors gracefully', async () => {
         (requireUser as jest.Mock).mockResolvedValue({ uid: 'admin-user' });
-        (isSuperUser as jest.Mock).mockResolvedValue(true);
         (sendGenericEmail as jest.Mock).mockRejectedValue(new Error('Mailjet Error'));
 
         const result = await testEmailDispatch({

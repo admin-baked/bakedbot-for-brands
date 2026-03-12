@@ -1,14 +1,15 @@
 /**
- * Email Tool - Mailjet Integration
+ * Email Tool - Connected Gmail First
  *
  * Production email sending capability for Agent Chat.
- * Uses Mailjet API for reliable email delivery.
+ * Uses the canonical dispatcher so connected Gmail/Workspace
+ * is preferred per-user, with platform providers as fallback.
  */
 
 import { BaseTool } from './base-tool';
 import type { ToolContext, ToolResult, ToolAuthType } from '@/types/tool';
 import { logger } from '@/lib/logger';
-import { sendGenericEmail } from '@/lib/email/mailjet';
+import { sendGenericEmail } from '@/lib/email/dispatcher';
 
 // --- Types ---
 
@@ -39,7 +40,7 @@ export interface EmailSendOutput {
 export class EmailTool extends BaseTool<EmailSendInput, EmailSendOutput> {
     readonly id = 'email.send';
     readonly name = 'Send Email';
-    readonly description = 'Send emails via Mailjet. Supports HTML content and multiple recipients.';
+    readonly description = 'Send emails via connected Gmail when available, with platform provider fallback.';
     readonly category = 'communication' as const;
     readonly version = '1.1.0';
 
@@ -84,7 +85,7 @@ export class EmailTool extends BaseTool<EmailSendInput, EmailSendOutput> {
     readonly outputSchema = {
         type: 'object' as const,
         properties: {
-            messageId: { type: 'string', description: 'Mailjet message ID' },
+            messageId: { type: 'string', description: 'Provider message ID' },
             sent: { type: 'boolean', description: 'Whether email was sent' },
             recipients: { type: 'array', description: 'List of recipients' },
             timestamp: { type: 'string', description: 'Send timestamp' }
@@ -104,24 +105,19 @@ export class EmailTool extends BaseTool<EmailSendInput, EmailSendOutput> {
                 throw this.createError('INVALID_INPUT', 'Missing required fields: to, subject, body', false);
             }
 
-            // Check Mailjet API keys from environment
-            const apiKey = process.env.MAILJET_API_KEY;
-            const secretKey = process.env.MAILJET_SECRET_KEY;
-            if (!apiKey || !secretKey) {
-                throw this.createError('CONFIG_ERROR', 'MAILJET_API_KEY or MAILJET_SECRET_KEY not configured', false);
-            }
-
-            // Normalize recipients - Mailjet sendGenericEmail handles single recipient
+            // Normalize recipients - the dispatcher handles one recipient per call.
             const recipients = Array.isArray(input.to) ? input.to : [input.to];
 
-            // Send to each recipient via Mailjet
+            // Send to each recipient through the canonical dispatcher.
+            // If the user has Gmail connected, it will be used first.
             const results = await Promise.all(
                 recipients.map(async (email) => {
                     const result = await sendGenericEmail({
                         to: email,
                         subject: input.subject,
                         htmlBody: input.bodyType === 'html' ? input.body : `<pre>${input.body}</pre>`,
-                        textBody: input.bodyType === 'text' ? input.body : undefined
+                        textBody: input.bodyType === 'text' ? input.body : undefined,
+                        userId: context.userId,
                     });
                     return { email, success: result.success, error: result.error };
                 })
@@ -132,15 +128,16 @@ export class EmailTool extends BaseTool<EmailSendInput, EmailSendOutput> {
 
             if (successCount === 0) {
                 logger.error('All emails failed to send', { results });
-                throw this.createError('API_ERROR', `Mailjet error: ${failedRecipients[0]?.error}`, true);
+                throw this.createError('API_ERROR', `Email delivery error: ${failedRecipients[0]?.error}`, true);
             }
 
             const messageId = `mj_${Date.now()}`;
 
-            logger.info('Email sent successfully via Mailjet', {
+            logger.info('Email sent successfully via dispatcher', {
                 messageId,
                 recipients: successCount,
-                subject: input.subject
+                subject: input.subject,
+                userId: context.userId,
             });
 
             const output: EmailSendOutput = {

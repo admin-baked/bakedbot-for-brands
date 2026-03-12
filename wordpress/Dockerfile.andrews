@@ -18,6 +18,7 @@ RUN a2enmod rewrite && \
 # Keep bundled assets in the image source tree so the entrypoint can sync them on boot.
 COPY inclub/ /usr/src/wordpress/wp-content/themes/inclub/
 COPY plugins/ /usr/src/wordpress/wp-content/plugins/
+COPY mu-plugins/ /usr/src/wordpress/wp-content/mu-plugins/
 
 # Copy and normalize the tracked runtime entrypoint.
 COPY entrypoint.sh /entrypoint-custom.sh

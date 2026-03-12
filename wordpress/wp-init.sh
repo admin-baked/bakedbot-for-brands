@@ -1,6 +1,12 @@
 #!/bin/bash
 set -e
 
+WP_URL="${WP_HOME:-https://bakedbot.ai/andrewsdevelopments}"
+WP_SITE_TITLE="${WP_SITE_TITLE:-Andrews Developments}"
+WP_ADMIN_USER="${WP_ADMIN_USER:-marcus_admin}"
+WP_ADMIN_EMAIL="${WP_ADMIN_EMAIL:-marcus@andrewsdevelopments.com}"
+WP_ADMIN_PASSWORD="${WP_ADMIN_PASSWORD:-}"
+
 echo "[init] Starting WordPress initialization..."
 
 # Wait for database to be ready
@@ -15,13 +21,18 @@ echo "[init] Database connection established."
 if ! wp core is-installed --allow-root --path=/var/www/html; then
     echo "[init] Installing WordPress..."
 
+    if [ -z "${WP_ADMIN_PASSWORD}" ]; then
+        echo "[init] WP_ADMIN_PASSWORD must be set before installing WordPress." >&2
+        exit 1
+    fi
+
     # Install WordPress
     wp core install \
-        --url=https://bakedbot.ai/andrewsdevelopments \
-        --title="Andrews Developments" \
-        --admin_user=marcus_admin \
-        --admin_password=AndrewsDev2026! \
-        --admin_email=marcus@andrewsdevelopments.com \
+        --url="${WP_URL}" \
+        --title="${WP_SITE_TITLE}" \
+        --admin_user="${WP_ADMIN_USER}" \
+        --admin_password="${WP_ADMIN_PASSWORD}" \
+        --admin_email="${WP_ADMIN_EMAIL}" \
         --allow-root \
         --path=/var/www/html \
         --skip-email

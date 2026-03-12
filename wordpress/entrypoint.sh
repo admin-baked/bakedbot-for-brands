@@ -18,6 +18,7 @@ if ! grep -q "^ServerName localhost$" /etc/apache2/apache2.conf; then
 fi
 
 mkdir -p "${DOCROOT}/wp-content/themes" "${DOCROOT}/wp-content/plugins"
+mkdir -p "${DOCROOT}/wp-content/mu-plugins"
 
 if [ ! -f "${DOCROOT}/index.php" ] && [ -d "${WP_SOURCE}" ]; then
   echo "[entrypoint] Copying WordPress core files into ${DOCROOT}"
@@ -30,6 +31,10 @@ fi
 
 if [ -d "${WP_SOURCE}/wp-content/plugins" ]; then
   cp -a "${WP_SOURCE}/wp-content/plugins/." "${DOCROOT}/wp-content/plugins/"
+fi
+
+if [ -d "${WP_SOURCE}/wp-content/mu-plugins" ]; then
+  cp -a "${WP_SOURCE}/wp-content/mu-plugins/." "${DOCROOT}/wp-content/mu-plugins/"
 fi
 
 cat > "${WP_CONFIG_EXTRA}" <<EOF
