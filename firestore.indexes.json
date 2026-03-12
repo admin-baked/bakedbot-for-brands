@@ -1552,6 +1552,22 @@
             ]
         },
         {
+            "collectionGroup": "ny_outreach_drafts",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "status", "order": "ASCENDING" },
+                { "fieldPath": "createdAt", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "ny_outreach_log",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "emailSent", "order": "ASCENDING" },
+                { "fieldPath": "timestamp", "order": "ASCENDING" }
+            ]
+        },
+        {
             "collectionGroup": "agent_telemetry",
             "queryScope": "COLLECTION",
             "fields": [

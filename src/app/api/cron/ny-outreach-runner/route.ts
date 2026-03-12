@@ -1,12 +1,13 @@
 /**
- * NY Outreach Runner Cron
+ * Outreach Runner Cron
  *
  * Daily automated outreach pipeline (draft-first approval flow):
  * 1. Check if there are enough researched leads in the queue
- * 2. If below threshold, research new dispensaries via Jina web scraping
- * 3. Pick next N uncontacted leads (default 5/day for testing)
- * 4. Generate personalized email drafts (NOT send immediately)
- * 5. User reviews + approves drafts in CEO dashboard or Inbox
+ * 2. Seed NY / MI / IL dispensaries from CRM first and enrich the queue
+ * 3. Fall back to legacy NY research only if the queue is still short
+ * 4. Pick next N uncontacted leads (default 5/day for testing)
+ * 5. Generate personalized email drafts (NOT send immediately)
+ * 6. User reviews + approves drafts in CEO dashboard or Inbox
  *
  * Cloud Scheduler:
  *   Name:     ny-outreach-runner
@@ -22,6 +23,8 @@ import { logger } from '@/lib/logger';
 import { getAdminFirestore } from '@/firebase/admin';
 import { researchNewLeads } from '@/server/services/ny-outreach/contact-research';
 import { generateOutreachEmails, type OutreachEmailData } from '@/server/services/ny-outreach/email-templates';
+import { enrichLeadBatch } from '@/server/services/ny-outreach/lead-enrichment';
+import { syncCRMDispensariesToOutreachQueue } from '@/server/services/ny-outreach/crm-queue-sync';
 import { verifyEmail } from '@/server/services/email-verification';
 
 export const dynamic = 'force-dynamic';
@@ -31,6 +34,8 @@ const DAILY_SEND_LIMIT = parseInt(process.env.NY_OUTREACH_DAILY_LIMIT || '5', 10
 
 /** Minimum leads in queue before triggering research */
 const MIN_LEAD_QUEUE = 10;
+const CRM_SYNC_LIMIT = 30;
+const ENRICH_BATCH_SIZE = 20;
 
 /** Template selection based on lead characteristics */
 function selectTemplate(lead: { posSystem?: string; contactFormUrl?: string; email?: string }): string {
@@ -111,7 +116,7 @@ async function getNextLeadBatch(limit: number): Promise<Array<{
                 email: data.email,
                 contactName: data.contactName || undefined,
                 phone: data.phone || undefined,
-                city: data.city || 'New York',
+                city: data.city || 'Unknown City',
                 state: data.state || 'NY',
                 posSystem: data.posSystem || undefined,
                 websiteUrl: data.websiteUrl || undefined,
@@ -130,6 +135,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     try {
         const db = getAdminFirestore();
+        let crmSeedAttempted = false;
 
         // Step 1: Check lead queue depth
         const queueSnap = await db.collection('ny_dispensary_leads')
@@ -141,30 +147,120 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
         logger.info('[NYOutreachRunner] Lead queue depth', { queueDepth, threshold: MIN_LEAD_QUEUE });
 
-        // Step 2: Research new leads if queue is low
+        // Step 2: Seed CRM leads first if queue is low
         let newLeadsResearched = 0;
+        let crmSeeded = 0;
+        let crmLeadRefreshes = 0;
+        let enrichedLeads = 0;
+        let enrichedWithEmail = 0;
         if (queueDepth < MIN_LEAD_QUEUE) {
             try {
-                const researched = await researchNewLeads(10);
-                newLeadsResearched = researched.length;
-                logger.info('[NYOutreachRunner] Researched new leads', { count: newLeadsResearched });
+                crmSeedAttempted = true;
+                const crmSync = await syncCRMDispensariesToOutreachQueue({ limit: CRM_SYNC_LIMIT });
+                crmSeeded += crmSync.created;
+                crmLeadRefreshes += crmSync.updated;
+                logger.info('[NYOutreachRunner] Seeded CRM leads into queue', {
+                    created: crmSync.created,
+                    updated: crmSync.updated,
+                    states: crmSync.states,
+                });
             } catch (err) {
-                logger.warn('[NYOutreachRunner] Lead research failed (continuing with existing queue)', {
+                logger.warn('[NYOutreachRunner] CRM lead sync failed (continuing with existing queue)', {
+                    error: String(err),
+                });
+            }
+
+            try {
+                const enrichment = await enrichLeadBatch(ENRICH_BATCH_SIZE);
+                enrichedLeads += enrichment.enriched;
+                enrichedWithEmail += enrichment.withEmail;
+                logger.info('[NYOutreachRunner] Enriched queue after CRM sync', {
+                    enriched: enrichment.enriched,
+                    withEmail: enrichment.withEmail,
+                });
+            } catch (err) {
+                logger.warn('[NYOutreachRunner] Queue enrichment failed after CRM sync', {
                     error: String(err),
                 });
             }
         }
 
         // Step 3: Get next batch of leads
-        const leads = await getNextLeadBatch(DAILY_SEND_LIMIT);
+        let leads = await getNextLeadBatch(DAILY_SEND_LIMIT);
+
+        if (leads.length === 0) {
+            if (!crmSeedAttempted) {
+                try {
+                    crmSeedAttempted = true;
+                    const crmSync = await syncCRMDispensariesToOutreachQueue({ limit: CRM_SYNC_LIMIT });
+                    crmSeeded += crmSync.created;
+                    crmLeadRefreshes += crmSync.updated;
+                    logger.info('[NYOutreachRunner] Seeded CRM leads after empty actionable queue', {
+                        created: crmSync.created,
+                        updated: crmSync.updated,
+                        states: crmSync.states,
+                    });
+                } catch (err) {
+                    logger.warn('[NYOutreachRunner] CRM lead sync failed after empty actionable queue', {
+                        error: String(err),
+                    });
+                }
+
+                try {
+                    const enrichment = await enrichLeadBatch(ENRICH_BATCH_SIZE);
+                    enrichedLeads += enrichment.enriched;
+                    enrichedWithEmail += enrichment.withEmail;
+                    logger.info('[NYOutreachRunner] Enriched queue after empty actionable queue', {
+                        enriched: enrichment.enriched,
+                        withEmail: enrichment.withEmail,
+                    });
+                } catch (err) {
+                    logger.warn('[NYOutreachRunner] Queue enrichment failed after empty actionable queue', {
+                        error: String(err),
+                    });
+                }
+            }
+
+            try {
+                const researched = await researchNewLeads(10);
+                newLeadsResearched = researched.length;
+                logger.info('[NYOutreachRunner] Researched legacy NY leads', { count: newLeadsResearched });
+            } catch (err) {
+                logger.warn('[NYOutreachRunner] Legacy NY lead research failed', {
+                    error: String(err),
+                });
+            }
+
+            if (newLeadsResearched > 0) {
+                try {
+                    const enrichment = await enrichLeadBatch(ENRICH_BATCH_SIZE);
+                    enrichedLeads += enrichment.enriched;
+                    enrichedWithEmail += enrichment.withEmail;
+                    logger.info('[NYOutreachRunner] Enriched queue after legacy research', {
+                        enriched: enrichment.enriched,
+                        withEmail: enrichment.withEmail,
+                    });
+                } catch (err) {
+                    logger.warn('[NYOutreachRunner] Queue enrichment failed after legacy research', {
+                        error: String(err),
+                    });
+                }
+            }
+
+            leads = await getNextLeadBatch(DAILY_SEND_LIMIT);
+        }
 
         if (leads.length === 0) {
             logger.info('[NYOutreachRunner] No leads to contact (limit reached or queue empty)');
             return NextResponse.json({
                 success: true,
                 summary: {
-                    leadsInQueue: queueDepth,
+                    leadsInQueue: queueDepth + crmSeeded + newLeadsResearched,
+                    crmSeeded,
+                    crmLeadRefreshes,
                     newLeadsResearched,
+                    enrichedLeads,
+                    enrichedWithEmail,
                     draftsCreated: 0,
                     draftsFailed: 0,
                     dailyLimit: DAILY_SEND_LIMIT,
@@ -274,14 +370,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         logger.info('[NYOutreachRunner] Daily draft generation complete', {
             draftsCreated,
             draftsFailed,
+            crmSeeded,
+            crmLeadRefreshes,
             newLeadsResearched,
+            enrichedLeads,
+            enrichedWithEmail,
         });
 
         return NextResponse.json({
             success: true,
             summary: {
-                leadsInQueue: queueDepth + newLeadsResearched - leads.length,
+                leadsInQueue: queueDepth + crmSeeded + newLeadsResearched - leads.length,
+                crmSeeded,
+                crmLeadRefreshes,
                 newLeadsResearched,
+                enrichedLeads,
+                enrichedWithEmail,
                 draftsCreated,
                 draftsFailed,
                 dailyLimit: DAILY_SEND_LIMIT,

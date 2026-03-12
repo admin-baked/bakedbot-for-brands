@@ -35,7 +35,7 @@ export interface LeadEnrichmentBatchResult {
 // =============================================================================
 
 /**
- * Enrich up to `limit` unenriched NY leads with email/website data.
+ * Enrich up to `limit` unenriched outreach leads with email/website data.
  *
  * Strategy:
  *   1. Jina web search to find the dispensary's own website
@@ -64,35 +64,46 @@ export async function enrichLeadBatch(limit: number = 20): Promise<LeadEnrichmen
     for (const doc of snap.docs) {
         const data = doc.data();
         const dispensaryName = data.dispensaryName as string;
-        const city = (data.city as string) || 'New York';
+        const city = (data.city as string) || 'local market';
+        const state = (data.state as string) || 'NY';
 
         let email: string | undefined;
-        let websiteUrl: string | undefined;
+        let websiteUrl = typeof data.websiteUrl === 'string' && data.websiteUrl.trim().length > 0
+            ? data.websiteUrl
+            : undefined;
         let contactFormUrl: string | undefined;
         let phone: string | undefined;
         let source: LeadEnrichmentResult['source'] = 'none';
 
         // --- Step 1: Jina web search + page scrape ---
         try {
-            const { jinaSearch } = await import('@/server/tools/jina-tools');
+            let siteUrl = websiteUrl;
+            let ownSiteSnippet = '';
 
-            const searchQuery = `"${dispensaryName}" ${city} NY cannabis dispensary contact email`;
-            const searchResults = await jinaSearch(searchQuery);
+            if (!siteUrl) {
+                const { jinaSearch } = await import('@/server/tools/jina-tools');
 
-            const skipDomains = ['leafly', 'weedmaps', 'yelp', 'google', 'facebook', 'instagram', 'twitter', 'reddit'];
-            const ownSite = searchResults.find(r => {
-                try {
-                    const domain = new URL(r.url).hostname;
-                    return !skipDomains.some(d => domain.includes(d));
-                } catch { return false; }
-            });
+                const searchQuery = `"${dispensaryName}" ${city} ${state} cannabis dispensary contact email`;
+                const searchResults = await jinaSearch(searchQuery);
 
-            if (ownSite) {
-                websiteUrl = ownSite.url;
-                const domain = new URL(ownSite.url).origin;
+                const skipDomains = ['leafly', 'weedmaps', 'yelp', 'google', 'facebook', 'instagram', 'twitter', 'reddit'];
+                const ownSite = searchResults.find(r => {
+                    try {
+                        const domain = new URL(r.url).hostname;
+                        return !skipDomains.some(d => domain.includes(d));
+                    } catch { return false; }
+                });
+
+                siteUrl = ownSite?.url;
+                ownSiteSnippet = ownSite?.snippet || '';
+            }
+
+            if (siteUrl) {
+                websiteUrl = siteUrl;
+                const domain = new URL(siteUrl).origin;
 
                 const [pc, cc] = await Promise.all([
-                    globalThis.fetch(`https://r.jina.ai/${ownSite.url}`, {
+                    globalThis.fetch(`https://r.jina.ai/${siteUrl}`, {
                         headers: { Accept: 'text/plain' },
                         signal: AbortSignal.timeout(10000),
                     }).then(r => r.text()).catch(() => ''),
@@ -102,7 +113,7 @@ export async function enrichLeadBatch(limit: number = 20): Promise<LeadEnrichmen
                     }).then(r => r.text()).catch(() => ''),
                 ]);
 
-                const content = [pc, cc].filter(c => c.length > 50).join('\n\n') || ownSite.snippet || '';
+                const content = [pc, cc].filter(c => c.length > 50).join('\n\n') || ownSiteSnippet;
 
                 if (content.length >= 20) {
                     const emailMatch = content.match(/\b[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}\b/i);

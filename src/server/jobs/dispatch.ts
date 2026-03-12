@@ -17,6 +17,8 @@ export interface AgentJobPayload {
         attachments?: any[];
         brandId?: string; // Optional brand context
         projectId?: string; // Project context (system instructions)
+        source?: string;
+        context?: Record<string, unknown>;
     };
     jobId: string; // Used for tracking/polling
 }

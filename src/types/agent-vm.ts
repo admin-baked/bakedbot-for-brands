@@ -298,7 +298,7 @@ export function resolveVmRunApproval(
         summary: nextSummary,
         updatedAt,
         completedAt:
-            nextStatus === 'completed' || nextStatus === 'failed' || nextStatus === 'cancelled'
+            nextStatus === 'completed' || nextStatus === 'cancelled'
                 ? updatedAt
                 : vmRun.completedAt,
     };
