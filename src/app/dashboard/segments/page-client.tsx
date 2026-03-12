@@ -149,10 +149,10 @@ export default function SegmentsPageClient({ brandId }: SegmentsPageClientProps)
                     <CardHeader className="pb-3">
                         <CardTitle className="text-lg flex items-center gap-2">
                             <Sparkles className="h-5 w-5 text-primary" />
-                            AI-Suggested Campaigns
+                            Suggested Playbooks
                         </CardTitle>
                         <CardDescription>
-                            Based on your customer data, we recommend targeting these segments.
+                            Based on your customer data, we recommend these recurring lifecycle playbooks.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>

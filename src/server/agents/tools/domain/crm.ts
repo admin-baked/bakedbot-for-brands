@@ -6,6 +6,7 @@
  */
 
 import { createServerClient } from '@/firebase/server-client';
+import { resolveCustomerDisplayName } from '@/lib/customers/profile-derivations';
 import { CustomerSegment, getSegmentInfo } from '@/types/customers';
 
 // ==========================================
@@ -123,7 +124,13 @@ export async function findCustomers(
         const data = doc.data();
         customers.push({
             email: data.email,
-            displayName: data.displayName || data.email,
+            displayName: resolveCustomerDisplayName({
+                displayName: data.displayName,
+                firstName: data.firstName,
+                lastName: data.lastName,
+                email: data.email,
+                fallbackId: doc.id,
+            }),
             segment: data.segment,
             totalSpent: data.totalSpent || 0,
             orderCount: data.orderCount || 0,
@@ -171,7 +178,13 @@ export async function getTopCustomers(
         const data = doc.data();
         customers.push({
             email: data.email,
-            displayName: data.displayName || data.email,
+            displayName: resolveCustomerDisplayName({
+                displayName: data.displayName,
+                firstName: data.firstName,
+                lastName: data.lastName,
+                email: data.email,
+                fallbackId: doc.id,
+            }),
             segment: data.segment,
             totalSpent: data.totalSpent || 0,
             orderCount: data.orderCount || 0,
@@ -212,7 +225,13 @@ export async function getAtRiskCustomers(
 
         customers.push({
             email: data.email,
-            displayName: data.displayName || data.email,
+            displayName: resolveCustomerDisplayName({
+                displayName: data.displayName,
+                firstName: data.firstName,
+                lastName: data.lastName,
+                email: data.email,
+                fallbackId: doc.id,
+            }),
             daysSinceLastOrder: daysSince,
             totalSpent: data.totalSpent || 0,
         });
@@ -271,7 +290,13 @@ export async function getCustomerInsight(
     return {
         customer: {
             email: data.email,
-            displayName: data.displayName || data.email,
+            displayName: resolveCustomerDisplayName({
+                displayName: data.displayName,
+                firstName: data.firstName,
+                lastName: data.lastName,
+                email: data.email,
+                fallbackId: doc.id,
+            }),
             segment: data.segment,
             totalSpent: data.totalSpent || 0,
             orderCount: data.orderCount || 0,

@@ -3,37 +3,55 @@
 import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
 import { logger } from '@/lib/logger';
+import { analyzeCustomerPreferences } from '@/lib/analytics/customer-preferences';
+import {
+    buildAutoCustomerTags,
+    mergeCustomerTags,
+    resolveCustomerDisplayName,
+} from '@/lib/customers/profile-derivations';
+import {
+    buildLifecyclePlaybookStatuses,
+    type CustomerLifecyclePlaybookStatus,
+} from '@/lib/customers/lifecycle-playbooks';
 import { ALLeavesClient, type ALLeavesConfig, type ALLeavesOrder } from '@/lib/pos/adapters/alleaves';
 import { posCache, cacheKeys } from '@/lib/cache/pos-cache';
+import { getCustomerCommunications, getUpcomingCommunications } from '@/server/actions/customer-communications';
+import { getDispensaryPlaybookAssignments } from '@/server/actions/dispensary-playbooks';
 import { CustomerProfile, calculateSegment, type CustomerSegment } from '@/types/customers';
+import type { CustomerCommunication, ScheduledCommunication } from '@/types/customer-communications';
 import { isBrandRole, isDispensaryRole } from '@/types/roles';
 import { mapSegmentToTier } from '@/lib/pricing/customer-tier-mapper';
 import type { DynamicPricingRule, CustomerTier } from '@/types/dynamic-pricing';
+import { getCustomers } from '../actions';
 
-// ==========================================
-// Types
-// ==========================================
+export interface CustomerSpendingData {
+    totalSpent: number;
+    orderCount: number;
+    avgOrderValue: number;
+    lastOrderDate: string | null;
+    firstOrderDate: string | null;
+}
 
 export interface CustomerDetailData {
     customer: CustomerProfile | null;
-    spending: {
-        totalSpent: number;
-        orderCount: number;
-        avgOrderValue: number;
-        lastOrderDate: string | null;
-        firstOrderDate: string | null;
-    } | null;
+    spending: CustomerSpendingData | null;
+    orgName: string;
+    communications: CustomerCommunication[];
+    upcoming: ScheduledCommunication[];
+    playbooks: CustomerLifecyclePlaybookStatus[];
 }
 
 export interface CustomerOrder {
     id: string;
     orderNumber?: string;
-    date: string;
+    createdAt: Date;
     items: Array<{
-        productName: string;
-        quantity: number;
-        unitPrice: number;
-        total: number;
+        name: string;
+        quantity?: number;
+        price?: number;
+        total?: number;
+        category?: string;
+        productId?: string;
     }>;
     subtotal: number;
     tax: number;
@@ -43,9 +61,139 @@ export interface CustomerOrder {
     paymentMethod: string;
 }
 
-// ==========================================
-// Helper: Resolve orgId from user
-// ==========================================
+export interface CustomerOrderData {
+    orders: CustomerOrder[];
+    preferences: {
+        categories: string[];
+        products: string[];
+        strains: string[];
+        brands: string[];
+    };
+    autoTags: string[];
+    source: 'customer_endpoint' | 'all_orders_cache' | 'all_orders_live' | 'no_client';
+}
+
+export interface ApplicablePricingRule {
+    id: string;
+    name: string;
+    description?: string;
+    adjustmentType: string;
+    adjustmentValue: number;
+    customerTiers: CustomerTier[];
+    isActive: boolean;
+}
+
+type CustomerBaseDetail = {
+    customer: CustomerProfile | null;
+    spending: CustomerSpendingData | null;
+};
+
+function normalizeEmail(value: unknown): string | null {
+    if (typeof value !== 'string') return null;
+    const normalized = value.trim().toLowerCase();
+    return normalized.length > 0 ? normalized : null;
+}
+
+function isAlleavesPlaceholderEmail(email: string): boolean {
+    const atIndex = email.lastIndexOf('@');
+    if (atIndex <= 0) return false;
+    return email.slice(atIndex + 1) === 'alleaves.local';
+}
+
+function deriveTier(totalSpent: number): CustomerProfile['tier'] {
+    if (totalSpent > 2000) return 'gold';
+    if (totalSpent > 500) return 'silver';
+    return 'bronze';
+}
+
+function toDate(value: unknown): Date | undefined {
+    if (!value) return undefined;
+    if (value instanceof Date) return value;
+    if (typeof value === 'object' && value && 'toDate' in value && typeof (value as { toDate?: unknown }).toDate === 'function') {
+        return (value as { toDate: () => Date }).toDate();
+    }
+    if (typeof value === 'string' || typeof value === 'number') {
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? undefined : date;
+    }
+    return undefined;
+}
+
+function toIsoDate(value: Date | undefined): string | null {
+    return value ? value.toISOString() : null;
+}
+
+function buildSpendingFromCache(
+    cache: Record<string, CustomerSpendingData> | null | undefined,
+    customerId: string,
+): CustomerSpendingData | null {
+    return cache?.[customerId] ?? null;
+}
+
+function decorateCustomerProfile(customer: CustomerProfile): CustomerProfile {
+    const displayName = resolveCustomerDisplayName({
+        displayName: customer.displayName,
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        email: customer.email,
+        fallbackId: customer.id,
+    });
+
+    const autoTags = buildAutoCustomerTags({
+        segment: customer.segment,
+        tier: customer.tier,
+        priceRange: customer.priceRange,
+        orderCount: customer.orderCount,
+        totalSpent: customer.totalSpent,
+        daysSinceLastOrder: customer.daysSinceLastOrder,
+        preferredCategories: customer.preferredCategories,
+        preferredProducts: customer.preferredProducts,
+    });
+
+    return {
+        ...customer,
+        displayName,
+        autoTags,
+        allTags: mergeCustomerTags(customer.customTags, autoTags),
+    };
+}
+
+function mergeSpending(customer: CustomerProfile, spending: CustomerSpendingData | null): CustomerProfile {
+    if (!spending) {
+        return decorateCustomerProfile(customer);
+    }
+
+    const totalSpent = spending.totalSpent;
+    const orderCount = spending.orderCount;
+    const lastOrderDate = toDate(spending.lastOrderDate);
+    const firstOrderDate = toDate(spending.firstOrderDate) ?? customer.firstOrderDate;
+    const daysSinceLastOrder = lastOrderDate
+        ? Math.floor((Date.now() - lastOrderDate.getTime()) / (1000 * 60 * 60 * 24))
+        : customer.daysSinceLastOrder;
+
+    return decorateCustomerProfile({
+        ...customer,
+        totalSpent,
+        orderCount,
+        avgOrderValue: spending.avgOrderValue,
+        lastOrderDate,
+        firstOrderDate,
+        daysSinceLastOrder,
+        lifetimeValue: totalSpent,
+        points: customer.points || Math.floor(totalSpent),
+        segment: calculateSegment({
+            ...customer,
+            totalSpent,
+            orderCount,
+            avgOrderValue: spending.avgOrderValue,
+            lastOrderDate,
+            firstOrderDate,
+            lifetimeValue: totalSpent,
+            daysSinceLastOrder,
+        }),
+        tier: deriveTier(totalSpent),
+    });
+}
 
 async function resolveOrgId(): Promise<string> {
     const user = await requireUser([
@@ -54,22 +202,19 @@ async function resolveOrgId(): Promise<string> {
         'super_user',
     ]);
 
-    const userRole = (user as any).role as string;
+    const userRole = String((user as { role?: string }).role || '');
     let orgId: string | undefined;
 
     if (isBrandRole(userRole)) {
-        orgId = (user as any).brandId;
+        orgId = (user as { brandId?: string }).brandId;
     }
     if (isDispensaryRole(userRole)) {
-        orgId = (user as any).orgId || (user as any).currentOrgId || (user as any).locationId;
+        const dispensaryUser = user as { orgId?: string; currentOrgId?: string; locationId?: string };
+        orgId = dispensaryUser.orgId || dispensaryUser.currentOrgId || dispensaryUser.locationId;
     }
 
     return orgId || user.uid;
 }
-
-// ==========================================
-// Helper: Initialize Alleaves client
-// ==========================================
 
 async function initAlleavesClient(orgId: string, firestore: FirebaseFirestore.Firestore): Promise<ALLeavesClient | null> {
     let locationsSnap = await firestore.collection('locations')
@@ -107,243 +252,179 @@ async function initAlleavesClient(orgId: string, firestore: FirebaseFirestore.Fi
     return new ALLeavesClient(alleavesConfig);
 }
 
-// ==========================================
-// Get Customer Detail
-// ==========================================
+function buildCustomerFromCrmDoc(
+    customerId: string,
+    orgId: string,
+    data: FirebaseFirestore.DocumentData,
+): CustomerProfile {
+    const totalSpent = data.totalSpent || data.lifetimeValue || 0;
+    const orderCount = data.orderCount || 0;
+    const lastOrderDate = toDate(data.lastOrderDate);
+    const firstOrderDate = toDate(data.firstOrderDate);
+    const avgOrderValue = data.avgOrderValue || (orderCount > 0 ? totalSpent / orderCount : 0);
+    const daysSinceLastOrder = lastOrderDate
+        ? Math.floor((Date.now() - lastOrderDate.getTime()) / (1000 * 60 * 60 * 24))
+        : undefined;
 
-/**
- * Fetch a single customer profile with spending data.
- * Tries cached spending first, then looks up in customer list.
- */
-export async function getCustomerDetail(customerId: string): Promise<CustomerDetailData> {
-    const orgId = await resolveOrgId();
-    const { firestore } = await createServerClient();
-
-    logger.info('[CUSTOMER_DETAIL] Fetching customer', { customerId, orgId });
-
-    // 1. Try to get spending data from cache
-    const spendingCacheKey = `spending:${orgId}`;
-    const cachedSpending = posCache.get<Record<string, {
-        totalSpent: number;
-        orderCount: number;
-        lastOrderDate: string | null;
-        firstOrderDate: string | null;
-        avgOrderValue: number;
-    }>>(spendingCacheKey);
-
-    const spendingData = cachedSpending?.[customerId] ?? null;
-
-    // 2. Try CRM collection first
-    const crmDoc = await firestore.collection('customers').doc(customerId).get();
-    if (crmDoc.exists && crmDoc.data()?.orgId === orgId) {
-        const data = crmDoc.data()!;
-        const customer: CustomerProfile = {
-            id: crmDoc.id,
-            orgId: data.orgId,
-            email: data.email,
+    return decorateCustomerProfile({
+        id: customerId,
+        orgId,
+        email: data.email || `${customerId}@unknown.local`,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        displayName: resolveCustomerDisplayName({
+            displayName: data.displayName,
             firstName: data.firstName,
             lastName: data.lastName,
-            displayName: data.displayName || data.email,
-            phone: data.phone,
-            totalSpent: spendingData?.totalSpent ?? data.totalSpent ?? 0,
-            orderCount: spendingData?.orderCount ?? data.orderCount ?? 0,
-            avgOrderValue: spendingData?.avgOrderValue ?? data.avgOrderValue ?? 0,
-            lastOrderDate: spendingData?.lastOrderDate ? new Date(spendingData.lastOrderDate) : data.lastOrderDate?.toDate?.(),
-            firstOrderDate: spendingData?.firstOrderDate ? new Date(spendingData.firstOrderDate) : data.firstOrderDate?.toDate?.(),
-            preferredCategories: data.preferredCategories || [],
-            preferredProducts: data.preferredProducts || [],
-            priceRange: data.priceRange || 'mid',
-            segment: 'new',
-            tier: 'bronze',
-            points: data.points || 0,
-            lifetimeValue: spendingData?.totalSpent ?? data.lifetimeValue ?? 0,
-            customTags: data.customTags || [],
-            birthDate: data.birthDate,
-            preferences: data.preferences,
-            source: data.source || 'manual',
-            notes: data.notes,
-            createdAt: data.createdAt?.toDate?.() || new Date(),
-            updatedAt: data.updatedAt?.toDate?.() || new Date(),
-        };
-        customer.segment = calculateSegment(customer);
-        customer.tier = customer.totalSpent > 2000 ? 'gold' : customer.totalSpent > 500 ? 'silver' : 'bronze';
+            email: data.email,
+            fallbackId: customerId,
+        }),
+        phone: data.phone,
+        totalSpent,
+        orderCount,
+        avgOrderValue,
+        lastOrderDate,
+        firstOrderDate,
+        daysSinceLastOrder,
+        preferredCategories: Array.isArray(data.preferredCategories) ? data.preferredCategories : [],
+        preferredProducts: Array.isArray(data.preferredProducts) ? data.preferredProducts : [],
+        priceRange: data.priceRange || 'mid',
+        segment: data.segment || calculateSegment({ totalSpent, orderCount, avgOrderValue, daysSinceLastOrder, lifetimeValue: totalSpent }),
+        tier: data.tier || deriveTier(totalSpent),
+        points: data.points || Math.floor(totalSpent),
+        lifetimeValue: data.lifetimeValue || totalSpent,
+        customTags: Array.isArray(data.customTags) ? data.customTags : [],
+        birthDate: data.birthDate,
+        preferences: data.preferences,
+        notes: data.notes,
+        source: data.source || 'manual',
+        createdAt: toDate(data.createdAt) || new Date(),
+        updatedAt: toDate(data.updatedAt) || new Date(),
+    });
+}
 
+function buildCustomerFromAlleavesRecord(
+    customerId: string,
+    orgId: string,
+    alleavesCustomer: Record<string, unknown>,
+    spending: CustomerSpendingData | null,
+): CustomerProfile {
+    const firstName = typeof alleavesCustomer.name_first === 'string' ? alleavesCustomer.name_first : '';
+    const lastName = typeof alleavesCustomer.name_last === 'string' ? alleavesCustomer.name_last : '';
+    const lastOrderDate = toDate(spending?.lastOrderDate);
+    const firstOrderDate = toDate(spending?.firstOrderDate)
+        || toDate(alleavesCustomer.date_created);
+    const totalSpent = spending?.totalSpent ?? 0;
+    const orderCount = spending?.orderCount ?? 0;
+    const avgOrderValue = spending?.avgOrderValue ?? (orderCount > 0 ? totalSpent / orderCount : 0);
+    const daysSinceLastOrder = lastOrderDate
+        ? Math.floor((Date.now() - lastOrderDate.getTime()) / (1000 * 60 * 60 * 24))
+        : undefined;
+    const email = normalizeEmail(alleavesCustomer.email) || `customer_${customerId.replace('alleaves_', '')}@alleaves.local`;
+
+    return decorateCustomerProfile({
+        id: customerId,
+        orgId,
+        email,
+        phone: typeof alleavesCustomer.phone === 'string' ? alleavesCustomer.phone : '',
+        firstName,
+        lastName,
+        displayName: resolveCustomerDisplayName({
+            displayName: typeof alleavesCustomer.customer_name === 'string' ? alleavesCustomer.customer_name : null,
+            firstName,
+            lastName,
+            email,
+            fallbackId: customerId,
+        }),
+        totalSpent,
+        orderCount,
+        avgOrderValue,
+        lastOrderDate,
+        firstOrderDate,
+        daysSinceLastOrder,
+        preferredCategories: [],
+        preferredProducts: [],
+        priceRange: 'mid',
+        segment: calculateSegment({ totalSpent, orderCount, avgOrderValue, daysSinceLastOrder, lifetimeValue: totalSpent, firstOrderDate }),
+        tier: deriveTier(totalSpent),
+        points: Number(alleavesCustomer.loyalty_points || 0),
+        lifetimeValue: totalSpent,
+        customTags: [],
+        birthDate: typeof alleavesCustomer.date_of_birth === 'string' ? alleavesCustomer.date_of_birth : undefined,
+        source: 'pos_dutchie',
+        createdAt: firstOrderDate || new Date(),
+        updatedAt: new Date(),
+    });
+}
+
+async function loadCustomerBaseDetail(
+    customerId: string,
+    orgId: string,
+    firestore: FirebaseFirestore.Firestore,
+): Promise<CustomerBaseDetail> {
+    const spendingCacheKey = `spending:${orgId}`;
+    const cachedSpending = posCache.get<Record<string, CustomerSpendingData>>(spendingCacheKey);
+    const spending = buildSpendingFromCache(cachedSpending, customerId);
+
+    const crmDoc = await firestore.collection('customers').doc(customerId).get();
+    if (crmDoc.exists && crmDoc.data()?.orgId === orgId) {
         return {
-            customer: JSON.parse(JSON.stringify(customer)),
-            spending: spendingData,
+            customer: mergeSpending(buildCustomerFromCrmDoc(crmDoc.id, orgId, crmDoc.data()!), spending),
+            spending,
         };
     }
 
-    // 3. For Alleaves customers (alleaves_XXX format), build from cached customer list
-    // and supplement with spending
     if (customerId.startsWith('alleaves_')) {
-        // Try to find in cached customer data
         const customersCacheKey = cacheKeys.customers(orgId);
         const cachedCustomers = posCache.get<CustomerProfile[]>(customersCacheKey);
+        const cachedCustomer = cachedCustomers?.find((candidate) => candidate.id === customerId) ?? null;
+        if (cachedCustomer) {
+            return { customer: mergeSpending(decorateCustomerProfile(cachedCustomer), spending), spending };
+        }
 
-        let customer = cachedCustomers?.find(c => c.id === customerId) ?? null;
-
-        if (!customer) {
-            // Fetch fresh from Alleaves
-            const client = await initAlleavesClient(orgId, firestore);
-            if (client) {
-                const allCustomers = await client.getAllCustomersPaginated(30);
-                const numericId = customerId.replace('alleaves_', '');
-                const ac = allCustomers.find((c: any) => String(c.id_customer || c.id) === numericId);
-
-                if (ac) {
-                    customer = {
-                        id: customerId,
-                        orgId,
-                        email: ac.email?.toLowerCase() || `customer_${numericId}@alleaves.local`,
-                        phone: ac.phone || '',
-                        firstName: ac.name_first || '',
-                        lastName: ac.name_last || '',
-                        displayName: [ac.name_first, ac.name_last].filter(Boolean).join(' ') || ac.customer_name || ac.email || '',
-                        totalSpent: spendingData?.totalSpent ?? 0,
-                        orderCount: spendingData?.orderCount ?? 0,
-                        avgOrderValue: spendingData?.avgOrderValue ?? 0,
-                        lastOrderDate: spendingData?.lastOrderDate ? new Date(spendingData.lastOrderDate) : undefined,
-                        firstOrderDate: spendingData?.firstOrderDate ? new Date(spendingData.firstOrderDate) : (ac.date_created ? new Date(ac.date_created) : undefined),
-                        preferredCategories: [],
-                        preferredProducts: [],
-                        priceRange: 'mid',
-                        segment: 'new',
-                        tier: 'bronze',
-                        points: parseInt(ac.loyalty_points || '0', 10),
-                        lifetimeValue: spendingData?.totalSpent ?? 0,
-                        customTags: [],
-                        birthDate: ac.date_of_birth,
-                        source: 'pos_dutchie',
-                        createdAt: ac.date_created ? new Date(ac.date_created) : new Date(),
-                        updatedAt: new Date(),
-                    };
-                }
+        const client = await initAlleavesClient(orgId, firestore);
+        if (client) {
+            const numericId = customerId.replace('alleaves_', '');
+            const allCustomers = await client.getAllCustomersPaginated(30);
+            const alleavesCustomer = allCustomers.find((candidate: Record<string, unknown>) => String(candidate.id_customer || candidate.id) === numericId) ?? null;
+            if (alleavesCustomer) {
+                return {
+                    customer: buildCustomerFromAlleavesRecord(customerId, orgId, alleavesCustomer, spending),
+                    spending,
+                };
             }
         }
-
-        if (customer) {
-            // Enrich with spending
-            if (spendingData) {
-                customer.totalSpent = spendingData.totalSpent;
-                customer.orderCount = spendingData.orderCount;
-                customer.avgOrderValue = spendingData.avgOrderValue;
-                customer.lastOrderDate = spendingData.lastOrderDate ? new Date(spendingData.lastOrderDate) : customer.lastOrderDate;
-                customer.firstOrderDate = spendingData.firstOrderDate ? new Date(spendingData.firstOrderDate) : customer.firstOrderDate;
-                customer.lifetimeValue = spendingData.totalSpent;
-                if (customer.lastOrderDate) {
-                    customer.daysSinceLastOrder = Math.floor(
-                        (Date.now() - new Date(customer.lastOrderDate).getTime()) / (1000 * 60 * 60 * 24)
-                    );
-                }
-            }
-            customer.segment = calculateSegment(customer);
-            customer.tier = customer.totalSpent > 2000 ? 'gold' : customer.totalSpent > 500 ? 'silver' : 'bronze';
-
-            return {
-                customer: JSON.parse(JSON.stringify(customer)),
-                spending: spendingData,
-            };
-        }
     }
 
-    logger.warn('[CUSTOMER_DETAIL] Customer not found', { customerId, orgId });
-    return { customer: null, spending: null };
+    const allCustomers = await getCustomers({ orgId });
+    const fallback = allCustomers.customers.find((candidate) => candidate.id === customerId || candidate.email === customerId) ?? null;
+    if (fallback) {
+        return {
+            customer: mergeSpending({
+                ...fallback,
+                lastOrderDate: toDate(fallback.lastOrderDate),
+                firstOrderDate: toDate(fallback.firstOrderDate),
+                createdAt: toDate(fallback.createdAt) || new Date(),
+                updatedAt: toDate(fallback.updatedAt) || new Date(),
+            }, spending),
+            spending,
+        };
+    }
+
+    return { customer: null, spending };
 }
 
-// ==========================================
-// Get Customer Orders
-// ==========================================
-
-/**
- * Fetch order history for a customer from Alleaves.
- * Tries per-customer endpoint first, falls back to filtering all orders.
- */
-export async function getCustomerOrders(customerId: string): Promise<CustomerOrder[]> {
-    const orgId = await resolveOrgId();
-    const { firestore } = await createServerClient();
-
-    logger.info('[CUSTOMER_ORDERS] Fetching orders', { customerId, orgId });
-
-    // Extract numeric Alleaves ID
-    const numericId = customerId.startsWith('alleaves_')
-        ? customerId.replace('alleaves_', '')
-        : customerId;
-
-    const client = await initAlleavesClient(orgId, firestore);
-    if (!client) {
-        logger.info('[CUSTOMER_ORDERS] No Alleaves client available', { orgId });
-        return [];
-    }
-
-    try {
-        // Try per-customer endpoint first
-        const orders = await client.getCustomerOrders(numericId);
-        if (orders && orders.length > 0) {
-            return orders.map(mapAleavesOrder);
-        }
-    } catch (err) {
-        logger.warn('[CUSTOMER_ORDERS] Per-customer endpoint failed, falling back to all orders', {
-            customerId,
-            error: (err as Error).message,
-        });
-    }
-
-    // Fallback: filter from cached all-orders or fetch limited set
-    try {
-        const ordersCacheKey = cacheKeys.orders(orgId);
-        let allOrders = posCache.get<any[]>(ordersCacheKey);
-
-        if (!allOrders) {
-            // Fetch limited orders set (not 100k)
-            allOrders = await client.getAllOrders(5000);
-            posCache.set(ordersCacheKey, allOrders, 5 * 60 * 1000);
-        }
-
-        const customerOrders = allOrders.filter((o: any) =>
-            String(o.id_customer) === numericId
-        );
-
-        return customerOrders
-            .map((o: any) => ({
-                id: String(o.id || o.id_order || o.order_number || ''),
-                orderNumber: o.order_number || String(o.id_order || o.id || ''),
-                date: o.date_created || o.created_at || '',
-                items: (o.items || []).map((item: any) => ({
-                    productName: item.product_name || item.item || item.name || 'Unknown Product',
-                    quantity: item.quantity || 1,
-                    unitPrice: item.unit_price || item.price || 0,
-                    total: item.total || (item.quantity || 1) * (item.unit_price || item.price || 0),
-                })),
-                subtotal: o.subtotal || o.total || 0,
-                tax: o.tax || 0,
-                discount: o.discount || 0,
-                total: o.total || 0,
-                status: o.status || 'completed',
-                paymentMethod: o.payment_method || 'unknown',
-            }))
-            .sort((a: CustomerOrder, b: CustomerOrder) =>
-                new Date(b.date).getTime() - new Date(a.date).getTime()
-            );
-    } catch (err) {
-        logger.error('[CUSTOMER_ORDERS] Failed to fetch orders', {
-            customerId,
-            error: (err as Error).message,
-        });
-        return [];
-    }
-}
-
-function mapAleavesOrder(order: ALLeavesOrder): CustomerOrder {
+function mapAlleavesOrder(order: ALLeavesOrder): CustomerOrder {
     return {
         id: order.id,
         orderNumber: order.external_id || order.id,
-        date: order.created_at,
-        items: order.items.map(item => ({
-            productName: item.product_name,
+        createdAt: new Date(order.created_at),
+        items: order.items.map((item) => ({
+            name: item.product_name,
             quantity: item.quantity,
-            unitPrice: item.unit_price,
+            price: item.unit_price,
             total: item.total,
+            productId: item.product_id,
         })),
         subtotal: order.subtotal,
         tax: order.tax,
@@ -354,35 +435,254 @@ function mapAleavesOrder(order: ALLeavesOrder): CustomerOrder {
     };
 }
 
-// ==========================================
-// Update Customer Notes
-// ==========================================
+function mapCachedOrder(order: Record<string, unknown>): CustomerOrder {
+    const createdAt = toDate(order.date_created) || toDate(order.created_at) || new Date();
+    const items = Array.isArray(order.items) ? order.items : [];
+
+    return {
+        id: String(order.id || order.id_order || order.order_number || ''),
+        orderNumber: typeof order.order_number === 'string'
+            ? order.order_number
+            : String(order.id_order || order.id || ''),
+        createdAt,
+        items: items.map((item) => {
+            const typedItem = item as Record<string, unknown>;
+            return {
+                name: String(typedItem.product_name || typedItem.item || typedItem.name || 'Unknown Product'),
+                quantity: Number(typedItem.quantity || 1),
+                price: Number(typedItem.unit_price || typedItem.price || 0),
+                total: Number(typedItem.total || (Number(typedItem.quantity || 1) * Number(typedItem.unit_price || typedItem.price || 0))),
+                category: typeof typedItem.category === 'string' ? typedItem.category : undefined,
+                productId: typeof typedItem.product_id === 'string'
+                    ? typedItem.product_id
+                    : typeof typedItem.productId === 'string'
+                        ? typedItem.productId
+                        : undefined,
+            };
+        }),
+        subtotal: Number(order.subtotal || order.total || 0),
+        tax: Number(order.tax || 0),
+        discount: Number(order.discount || 0),
+        total: Number(order.total || 0),
+        status: typeof order.status === 'string' ? order.status : 'completed',
+        paymentMethod: typeof order.payment_method === 'string' ? order.payment_method : 'unknown',
+    };
+}
+
+function buildOrderData(
+    orders: CustomerOrder[],
+    source: CustomerOrderData['source'],
+    customer: CustomerProfile | null,
+): CustomerOrderData {
+    const analyticsOrders = orders.map((order) => ({
+        items: order.items.map((item) => ({
+            productId: item.productId || item.name,
+            name: item.name,
+            category: item.category,
+            price: item.price || 0,
+            qty: item.quantity || 1,
+        })),
+        totals: { total: order.total },
+        createdAt: order.createdAt,
+    }));
+
+    const analyzed = analyzeCustomerPreferences(analyticsOrders, customer?.email);
+    const categories = analyzed.preferredCategories.filter((category) => category.toLowerCase() !== 'other');
+    const products = analyzed.preferredProducts;
+    const autoTags = buildAutoCustomerTags({
+        segment: customer?.segment,
+        tier: customer?.tier,
+        priceRange: analyzed.priceRange || customer?.priceRange,
+        orderCount: customer?.orderCount ?? orders.length,
+        totalSpent: customer?.totalSpent ?? orders.reduce((sum, order) => sum + order.total, 0),
+        daysSinceLastOrder: customer?.daysSinceLastOrder,
+        preferredCategories: categories,
+        preferredProducts: products,
+    });
+
+    return {
+        orders,
+        preferences: {
+            categories,
+            products,
+            strains: [],
+            brands: [],
+        },
+        autoTags,
+        source,
+    };
+}
+
+export async function getCustomerDetail(customerId: string): Promise<CustomerDetailData> {
+    const orgId = await resolveOrgId();
+    const { firestore } = await createServerClient();
+
+    logger.info('[CUSTOMER_DETAIL] Fetching customer', { customerId, orgId });
+
+    const baseDetail = await loadCustomerBaseDetail(customerId, orgId, firestore);
+    if (!baseDetail.customer) {
+        logger.warn('[CUSTOMER_DETAIL] Customer not found', { customerId, orgId });
+        return {
+            customer: null,
+            spending: baseDetail.spending,
+            orgName: orgId,
+            communications: [],
+            upcoming: [],
+            playbooks: [],
+        };
+    }
+
+    const orgSnap = await firestore.collection('organizations').doc(orgId).get();
+    const orgName = typeof orgSnap.data()?.name === 'string' && orgSnap.data()?.name.trim()
+        ? orgSnap.data()!.name.trim()
+        : orgId;
+
+    const assignmentsPromise = getDispensaryPlaybookAssignments(orgId).catch((error) => {
+        logger.warn('[CUSTOMER_DETAIL] Failed to load playbook assignments', {
+            customerId,
+            orgId,
+            error: error instanceof Error ? error.message : String(error),
+        });
+        return {
+            assignments: [],
+            activeIds: [],
+        };
+    });
+
+    const [communications, upcoming, playbooksSnap, assignments] = await Promise.all([
+        baseDetail.customer.email
+            ? getCustomerCommunications(baseDetail.customer.email, orgId, { limit: 10 })
+            : Promise.resolve([]),
+        baseDetail.customer.email
+            ? getUpcomingCommunications(baseDetail.customer.email, orgId)
+            : Promise.resolve([]),
+        firestore.collection('playbooks').where('orgId', '==', orgId).limit(25).get(),
+        assignmentsPromise,
+    ]);
+
+    const playbooks = buildLifecyclePlaybookStatuses({
+        customer: { segment: baseDetail.customer.segment },
+        playbooks: playbooksSnap.docs
+            .map((doc) => ({ id: doc.id, templateId: doc.data().templateId }))
+            .filter((playbook) => typeof playbook.templateId === 'string'),
+        assignments: assignments.assignments.map((assignment) => ({
+            playbookId: assignment.playbookId,
+            status: assignment.status,
+            isActive: assignment.status === 'active',
+        })),
+        communications: communications
+            .map((communication) => ({
+                sentAt: communication.sentAt || communication.createdAt,
+                channel: communication.channel,
+                subject: communication.subject,
+                playbookId: communication.playbookId,
+                metadata: communication.metadata ?? null,
+                type: communication.type,
+            }))
+            .filter((communication) => communication.sentAt instanceof Date),
+        upcoming,
+    });
+
+    return {
+        customer: baseDetail.customer,
+        spending: baseDetail.spending,
+        orgName,
+        communications,
+        upcoming,
+        playbooks,
+    };
+}
+
+export async function getCustomerOrders(customerId: string): Promise<CustomerOrderData> {
+    const orgId = await resolveOrgId();
+    const { firestore } = await createServerClient();
+
+    logger.info('[CUSTOMER_ORDERS] Fetching orders', { customerId, orgId });
+
+    const numericId = customerId.startsWith('alleaves_') ? customerId.replace('alleaves_', '') : customerId;
+    const cacheKey = `customerOrders:${orgId}:${numericId}`;
+    const cached = posCache.get<CustomerOrderData>(cacheKey);
+    if (cached) {
+        return cached;
+    }
+
+    const client = await initAlleavesClient(orgId, firestore);
+    const baseDetail = await loadCustomerBaseDetail(customerId, orgId, firestore);
+
+    if (!client) {
+        const noClientData = buildOrderData([], 'no_client', baseDetail.customer);
+        posCache.set(cacheKey, noClientData, 5 * 60 * 1000);
+        return noClientData;
+    }
+
+    try {
+        const customerOrders = await client.getCustomerOrders(numericId);
+        if (customerOrders.length > 0) {
+            const result = buildOrderData(
+                customerOrders.map(mapAlleavesOrder).sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime()),
+                'customer_endpoint',
+                baseDetail.customer,
+            );
+            posCache.set(cacheKey, result, 5 * 60 * 1000);
+            return result;
+        }
+    } catch (error) {
+        logger.warn('[CUSTOMER_ORDERS] Per-customer endpoint failed, falling back to all orders', {
+            customerId,
+            orgId,
+            error: error instanceof Error ? error.message : String(error),
+        });
+    }
+
+    try {
+        const ordersCacheKey = cacheKeys.orders(orgId);
+        let allOrders = posCache.get<Record<string, unknown>[]>(ordersCacheKey);
+        let source: CustomerOrderData['source'] = 'all_orders_cache';
+
+        if (!allOrders) {
+            allOrders = await client.getAllOrders(5000) as unknown as Record<string, unknown>[];
+            posCache.set(ordersCacheKey, allOrders, 5 * 60 * 1000);
+            source = 'all_orders_live';
+        }
+
+        const customerOrders = allOrders
+            .filter((order) => String(order.id_customer || order.userId || '') === numericId)
+            .map(mapCachedOrder)
+            .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime());
+
+        const result = buildOrderData(customerOrders, source, baseDetail.customer);
+        posCache.set(cacheKey, result, 5 * 60 * 1000);
+        return result;
+    } catch (error) {
+        logger.error('[CUSTOMER_ORDERS] Failed to fetch orders', {
+            customerId,
+            orgId,
+            error: error instanceof Error ? error.message : String(error),
+        });
+        return buildOrderData([], 'all_orders_live', baseDetail.customer);
+    }
+}
 
 export async function updateCustomerNotes(customerId: string, notes: string): Promise<void> {
     const orgId = await resolveOrgId();
     const { firestore } = await createServerClient();
 
-    // Upsert into customers collection
     const existing = await firestore.collection('customers').doc(customerId).get();
     if (existing.exists && existing.data()?.orgId === orgId) {
         await firestore.collection('customers').doc(customerId).update({
             notes,
             updatedAt: new Date(),
         });
-    } else {
-        // Create a minimal CRM doc for this customer
-        await firestore.collection('customers').doc(customerId).set({
-            orgId,
-            notes,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-        }, { merge: true });
+        return;
     }
-}
 
-// ==========================================
-// Update Customer Tags
-// ==========================================
+    await firestore.collection('customers').doc(customerId).set({
+        orgId,
+        notes,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+    }, { merge: true });
+}
 
 export async function updateCustomerTags(customerId: string, tags: string[]): Promise<void> {
     const orgId = await resolveOrgId();
@@ -395,23 +695,6 @@ export async function updateCustomerTags(customerId: string, tags: string[]): Pr
     }, { merge: true });
 }
 
-// ==========================================
-// Get Applicable Pricing Rules
-// ==========================================
-
-export interface ApplicablePricingRule {
-    id: string;
-    name: string;
-    description?: string;
-    adjustmentType: string;
-    adjustmentValue: number;
-    customerTiers: CustomerTier[];
-    isActive: boolean;
-}
-
-/**
- * Get dynamic pricing rules that apply to a customer based on their tier.
- */
 export async function getCustomerPricingRules(
     customerSegment: CustomerSegment,
     customerTotalSpent: number,
@@ -422,7 +705,6 @@ export async function getCustomerPricingRules(
     const pricingTier = mapSegmentToTier(customerSegment, customerTotalSpent);
 
     try {
-        // Query pricing rules that include this customer's tier
         const rulesSnap = await firestore.collection('pricing_rules')
             .where('orgId', '==', orgId)
             .where('active', '==', true)
@@ -434,7 +716,6 @@ export async function getCustomerPricingRules(
             const data = doc.data() as DynamicPricingRule;
             const tierCondition = data.conditions?.customerTier;
 
-            // Include if no tier restriction OR if this customer's tier matches
             if (!tierCondition || tierCondition.length === 0 || tierCondition.includes(pricingTier)) {
                 rules.push({
                     id: doc.id,
@@ -451,7 +732,7 @@ export async function getCustomerPricingRules(
         return { pricingTier, rules };
     } catch (error) {
         logger.error('[CUSTOMER_PRICING] Failed to fetch pricing rules', {
-            error: (error as Error).message,
+            error: error instanceof Error ? error.message : String(error),
             orgId,
         });
         return { pricingTier, rules: [] };

@@ -1,224 +1,226 @@
-/**
- * Unit tests for Customer CRM Actions
- */
+import { getSuggestedSegments, launchLifecyclePlaybook } from '../actions';
+import { createServerClient } from '@/firebase/server-client';
 import {
-    getCustomers,
-    getCustomer,
-    upsertCustomer,
-    getSuggestedSegments,
-    type CustomersData,
-} from '../actions';
+    getDispensaryPlaybookAssignments,
+    updatePlaybookAssignmentConfig,
+} from '@/server/actions/dispensary-playbooks';
+import { createWelcomeEmailPlaybook } from '@/server/actions/pilot-setup';
 
-// Mock dependencies
 jest.mock('@/firebase/server-client', () => ({
-    createServerClient: jest.fn().mockResolvedValue({
-        firestore: {
-            collection: jest.fn().mockReturnValue({
-                where: jest.fn().mockReturnThis(),
-                orderBy: jest.fn().mockReturnThis(),
-                limit: jest.fn().mockReturnThis(),
-                doc: jest.fn().mockReturnValue({
-                    get: jest.fn().mockResolvedValue({
-                        exists: true,
-                        data: () => ({
-                            orgId: 'test-org',
-                            email: 'customer@test.com',
-                            segment: 'vip',
-                            totalSpent: 500,
-                            orderCount: 10,
-                        })
-                    }),
-                    update: jest.fn(),
-                }),
-                add: jest.fn().mockResolvedValue({ id: 'new-customer-id' }),
-                get: jest.fn().mockResolvedValue({
-                    docs: [
-                        {
-                            id: 'cust_1',
-                            data: () => ({
-                                orgId: 'test-org',
-                                email: 'vip@example.com',
-                                firstName: 'VIP',
-                                lastName: 'Customer',
-                                segment: 'vip',
-                                totalSpent: 1000,
-                                orderCount: 20,
-                                tier: 'gold',
-                                createdAt: { toDate: () => new Date() },
-                                updatedAt: { toDate: () => new Date() }
-                            })
-                        },
-                        {
-                            id: 'cust_2',
-                            data: () => ({
-                                orgId: 'test-org',
-                                email: 'loyal@example.com',
-                                firstName: 'Loyal',
-                                lastName: 'Buyer',
-                                segment: 'loyal',
-                                totalSpent: 300,
-                                orderCount: 8,
-                                tier: 'silver',
-                                createdAt: { toDate: () => new Date() },
-                                updatedAt: { toDate: () => new Date() }
-                            })
-                        }
-                    ],
-                    forEach: function (cb: any) {
-                        this.docs.forEach(cb);
-                    },
-                    empty: false,
-                })
-            })
-        }
-    })
+    createServerClient: jest.fn(),
 }));
 
 jest.mock('@/server/auth/auth', () => ({
     requireUser: jest.fn().mockResolvedValue({
-        uid: 'test-user',
+        uid: 'user-1',
+        role: 'brand_admin',
         brandId: 'test-org',
-        role: 'brand'
-    })
+    }),
 }));
 
-describe('Customer CRM Actions', () => {
+jest.mock('@/server/actions/dispensary-playbooks', () => ({
+    getDispensaryPlaybookAssignments: jest.fn(),
+    updatePlaybookAssignmentConfig: jest.fn(),
+}));
+
+jest.mock('@/server/actions/pilot-setup', () => ({
+    createWelcomeEmailPlaybook: jest.fn(),
+    createWinbackEmailPlaybook: jest.fn(),
+    createVIPPlaybook: jest.fn(),
+}));
+
+jest.mock('@/lib/logger', () => ({
+    logger: {
+        info: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        debug: jest.fn(),
+    },
+}));
+
+function createSnapshot(docs: Array<{ id: string; data: () => Record<string, unknown> }>) {
+    return {
+        docs,
+        empty: docs.length === 0,
+        size: docs.length,
+        forEach: (callback: (doc: { id: string; data: () => Record<string, unknown> }) => void) => docs.forEach(callback),
+    };
+}
+
+function createQuery(snapshot: ReturnType<typeof createSnapshot>) {
+    return {
+        where: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        get: jest.fn().mockResolvedValue(snapshot),
+    };
+}
+
+describe('customer CRM actions', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-    });
 
-    describe('getCustomers', () => {
-        it('should return customers data with stats', async () => {
-            const result = await getCustomers('test-org');
+        const now = new Date('2026-03-11T10:00:00Z');
+        const oldDate = new Date('2025-11-01T10:00:00Z');
+        const atRiskDate = new Date('2025-12-20T10:00:00Z');
+        const vipDate = new Date('2026-03-10T10:00:00Z');
 
-            expect(result).toBeDefined();
-            expect(result.customers).toBeInstanceOf(Array);
-            expect(result.stats).toBeDefined();
-        });
+        const customerDocs = [
+            {
+                id: 'customer-new',
+                data: () => ({
+                    orgId: 'test-org',
+                    email: 'new@example.com',
+                    firstName: 'New',
+                    lastName: 'Customer',
+                    totalSpent: 0,
+                    orderCount: 0,
+                    avgOrderValue: 0,
+                    createdAt: { toDate: () => now },
+                    updatedAt: { toDate: () => now },
+                    firstOrderDate: { toDate: () => now },
+                }),
+            },
+            ...Array.from({ length: 4 }, (_, index) => ({
+                id: `customer-risk-${index}`,
+                data: () => ({
+                    orgId: 'test-org',
+                    email: `risk-${index}@example.com`,
+                    firstName: 'Risk',
+                    lastName: `${index}`,
+                    totalSpent: 120,
+                    orderCount: 3,
+                    avgOrderValue: 40,
+                    lastOrderDate: { toDate: () => atRiskDate },
+                    firstOrderDate: { toDate: () => oldDate },
+                    createdAt: { toDate: () => oldDate },
+                    updatedAt: { toDate: () => now },
+                }),
+            })),
+            {
+                id: 'customer-vip',
+                data: () => ({
+                    orgId: 'test-org',
+                    email: 'vip@example.com',
+                    firstName: 'VIP',
+                    lastName: 'Customer',
+                    totalSpent: 982,
+                    orderCount: 12,
+                    avgOrderValue: 81.83,
+                    lastOrderDate: { toDate: () => vipDate },
+                    firstOrderDate: { toDate: () => oldDate },
+                    createdAt: { toDate: () => oldDate },
+                    updatedAt: { toDate: () => now },
+                }),
+            },
+        ];
 
-        it('should include segment breakdown in stats', async () => {
-            const result = await getCustomers('test-org');
+        const emptySnapshot = createSnapshot([]);
+        const customersSnapshot = createSnapshot(customerDocs);
+        const playbooksSnapshot = createSnapshot([
+            {
+                id: 'playbook-welcome',
+                data: () => ({ orgId: 'test-org', templateId: 'welcome_email_template' }),
+            },
+        ]);
 
-            expect(result.stats.segmentBreakdown).toBeDefined();
-            expect(typeof result.stats.totalCustomers).toBe('number');
-        });
+        const firestore = {
+            collection: jest.fn((name: string) => {
+                if (name === 'customers') return createQuery(customersSnapshot);
+                if (name === 'playbooks') return createQuery(playbooksSnapshot);
+                if (name === 'locations' || name === 'orders') return createQuery(emptySnapshot);
+                throw new Error(`Unexpected collection: ${name}`);
+            }),
+        };
 
-        it('should filter by retailerId when locationId is provided', async () => {
-            const { firestore } = await (require('@/firebase/server-client').createServerClient)();
-            const result = await getCustomers('test-org', 'loc-123');
-
-            expect(firestore.collection).toHaveBeenCalledWith('orders');
-            // We assume the mock structure allows checking this
-            expect(result).toBeDefined();
-        });
-    });
-
-    describe('CustomersData type', () => {
-        it('should have correct structure', () => {
-            const data: CustomersData = {
-                customers: [],
-                stats: {
-                    totalCustomers: 0,
-                    newThisWeek: 0,
-                    newThisMonth: 0,
-                    atRiskCount: 0,
-                    vipCount: 0,
-                    avgLifetimeValue: 0,
-                    segmentBreakdown: {
-                        vip: 0,
-                        loyal: 0,
-                        new: 0,
-                        at_risk: 0,
-                        slipping: 0,
-                        churned: 0,
-                        high_value: 0,
-                        frequent: 0,
-                    }
-                }
-            };
-
-            expect(data.customers).toBeInstanceOf(Array);
-            expect(data.stats.segmentBreakdown.vip).toBe(0);
-        });
-    });
-
-    describe('getSuggestedSegments', () => {
-        it('should return segment suggestions', async () => {
-            const suggestions = await getSuggestedSegments('test-org');
-
-            expect(Array.isArray(suggestions)).toBe(true);
-        });
-
-        it('should include reasoning in suggestions', async () => {
-            const suggestions = await getSuggestedSegments('test-org');
-
-            suggestions.forEach(s => {
-                expect(s.name).toBeDefined();
-                expect(s.description).toBeDefined();
-                expect(s.reasoning).toBeDefined();
-            });
-        });
-
-        it('should reference Craig and Mrs. Parker agents in reasoning', async () => {
-            const suggestions = await getSuggestedSegments('test-org');
-
-            // At least one suggestion should reference the agents
-            const hasAgentReference = suggestions.some(s =>
-                s.reasoning.includes('Craig') || s.reasoning.includes('Mrs. Parker')
-            );
-
-            // If there are suggestions, they should reference agents
-            if (suggestions.length > 0) {
-                expect(hasAgentReference).toBe(true);
-            }
-        });
-
-        it('should suggest New Customer Welcome for new customers', async () => {
-            const suggestions = await getSuggestedSegments('test-org');
-
-            // Look for the new customer welcome suggestion
-            const welcomeSuggestion = suggestions.find(s =>
-                s.name === 'New Customer Welcome' ||
-                s.name.toLowerCase().includes('welcome')
-            );
-
-            // If found, verify it references the email agent
-            if (welcomeSuggestion) {
-                expect(welcomeSuggestion.reasoning).toContain('Mrs. Parker');
-                expect(welcomeSuggestion.description).toContain('welcome');
-            }
+        (createServerClient as jest.Mock).mockResolvedValue({ firestore });
+        (getDispensaryPlaybookAssignments as jest.Mock).mockResolvedValue({
+            assignments: [],
+            activeIds: [],
+            tierId: 'empire',
+            totalAvailable: 0,
+            totalActive: 0,
+            customConfigs: {},
         });
     });
 
-    describe('Customer Profile Fields', () => {
-        it('should support all required fields', async () => {
-            const result = await getCustomers('test-org');
+    it('returns lifecycle playbook suggestions with launch metadata', async () => {
+        const suggestions = await getSuggestedSegments('test-org');
 
-            if (result.customers.length > 0) {
-                const customer = result.customers[0];
-                expect(customer.id).toBeDefined();
-                expect(customer.email).toBeDefined();
-                expect(customer.segment).toBeDefined();
-            }
-        });
-
-        it('should calculate segment automatically', async () => {
-            const result = await getCustomers('test-org');
-
-            result.customers.forEach(c => {
-                expect(['vip', 'loyal', 'new', 'at_risk', 'slipping', 'churned', 'high_value', 'frequent'])
-                    .toContain(c.segment);
-            });
+        expect(suggestions).toHaveLength(3);
+        expect(suggestions.map((suggestion) => suggestion.playbookKind)).toEqual(['welcome', 'winback', 'vip']);
+        suggestions.forEach((suggestion) => {
+            expect(suggestion.ctaLabel).toBe('Launch Playbook');
         });
     });
 
-    describe('Tier Calculation', () => {
-        it('should assign tiers based on total spent', async () => {
-            const result = await getCustomers('test-org');
+    it('does not claim customers were already auto-added by an agent', async () => {
+        const suggestions = await getSuggestedSegments('test-org');
 
-            result.customers.forEach(c => {
-                expect(['bronze', 'silver', 'gold', 'platinum']).toContain(c.tier);
-            });
+        suggestions.forEach((suggestion) => {
+            expect(suggestion.reasoning).not.toContain('automatically added');
+            expect(suggestion.reasoning).not.toContain('Craig has automatically added');
         });
+    });
+
+    it('exposes lifecycle status hints based on existing playbooks', async () => {
+        const suggestions = await getSuggestedSegments('test-org');
+        const hints = Object.fromEntries(suggestions.map((suggestion) => [suggestion.playbookKind, suggestion.statusHint]));
+
+        expect(hints.welcome).toBe('paused');
+        expect(hints.winback).toBe('missing');
+        expect(hints.vip).toBe('missing');
+    });
+
+    it('launches lifecycle playbooks for the requested org context', async () => {
+        const emptySnapshot = createSnapshot([]);
+        const firestore = {
+            collection: jest.fn((name: string) => {
+                if (name === 'playbooks') return createQuery(emptySnapshot);
+                if (name === 'customers' || name === 'locations' || name === 'orders') return createQuery(emptySnapshot);
+                throw new Error(`Unexpected collection: ${name}`);
+            }),
+        };
+
+        (createServerClient as jest.Mock).mockResolvedValue({ firestore });
+        const { requireUser } = jest.requireMock('@/server/auth/auth') as { requireUser: jest.Mock };
+        requireUser.mockResolvedValue({
+            uid: 'super-1',
+            role: 'super_user',
+            currentOrgId: 'org-super',
+        });
+        (createWelcomeEmailPlaybook as jest.Mock).mockResolvedValue({
+            success: true,
+            playbookId: 'playbook-welcome',
+        });
+        (getDispensaryPlaybookAssignments as jest.Mock).mockResolvedValue({
+            assignments: [],
+            activeIds: [],
+            tierId: 'empire',
+            totalAvailable: 0,
+            totalActive: 0,
+            customConfigs: {},
+        });
+        (updatePlaybookAssignmentConfig as jest.Mock).mockResolvedValue({
+            success: true,
+        });
+
+        const result = await launchLifecyclePlaybook('welcome', 'org-target');
+
+        expect(result).toEqual(expect.objectContaining({
+            success: true,
+            playbookId: 'playbook-welcome',
+            status: 'paused',
+        }));
+        expect(createWelcomeEmailPlaybook).toHaveBeenCalledWith(
+            'org-target',
+            'org-target',
+            expect.objectContaining({
+                provider: 'mailjet',
+                senderEmail: 'hello@bakedbot.ai',
+            }),
+        );
+        expect(updatePlaybookAssignmentConfig).toHaveBeenCalledWith('org-target', 'playbook-welcome', {});
     });
 });

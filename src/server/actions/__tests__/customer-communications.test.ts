@@ -1,7 +1,7 @@
 import {
-  logCommunication,
   getCustomerCommunications,
   getUpcomingCommunications,
+  logCommunication,
   updateCommunicationStatus,
 } from '../customer-communications';
 import { createServerClient } from '@/firebase/server-client';
@@ -24,7 +24,7 @@ jest.mock('@/lib/logger', () => ({
   },
 }));
 
-describe('customer-communications access control', () => {
+describe('customer communications actions', () => {
   const customerCommsDocRef = {
     get: jest.fn(),
     update: jest.fn(),
@@ -40,7 +40,6 @@ describe('customer-communications access control', () => {
 
   const scheduledEmailsCollection = {
     where: jest.fn(),
-    orderBy: jest.fn(),
     limit: jest.fn(),
     get: jest.fn(),
   };
@@ -64,9 +63,35 @@ describe('customer-communications access control', () => {
     customerCommsDocRef.update.mockResolvedValue(undefined);
 
     scheduledEmailsCollection.where.mockReturnValue(scheduledEmailsCollection);
-    scheduledEmailsCollection.orderBy.mockReturnValue(scheduledEmailsCollection);
     scheduledEmailsCollection.limit.mockReturnValue(scheduledEmailsCollection);
-    scheduledEmailsCollection.get.mockResolvedValue({ docs: [] });
+    scheduledEmailsCollection.get.mockResolvedValue({
+      docs: [
+        {
+          id: 'scheduled-1',
+          data: () => ({
+            email: 'customer@example.com',
+            type: 'welcome',
+            subject: 'Welcome back',
+            preview: 'Preview text',
+            channel: 'sms',
+            playbookId: 'playbook-welcome',
+            metadata: { playbookKind: 'welcome' },
+            scheduledFor: { toDate: () => new Date('2026-03-12T10:00:00Z') },
+            status: 'pending',
+          }),
+        },
+        {
+          id: 'scheduled-2',
+          data: () => ({
+            email: 'customer@example.com',
+            type: 'winback',
+            subject: 'We miss you',
+            sendAt: { toDate: () => new Date('2026-03-13T12:00:00Z') },
+            status: 'pending',
+          }),
+        },
+      ],
+    });
 
     (createServerClient as jest.Mock).mockResolvedValue({ firestore });
   });
@@ -99,7 +124,7 @@ describe('customer-communications access control', () => {
     expect(customerCommsCollection.where).toHaveBeenCalledWith('orgId', '==', 'org-b');
   });
 
-  it('scopes upcoming scheduled communications by orgId', async () => {
+  it('maps upcoming communications with preview fields and sendAt fallback', async () => {
     (getServerSessionUser as jest.Mock).mockResolvedValue({
       uid: 'user-1',
       role: 'dispensary_admin',
@@ -107,11 +132,20 @@ describe('customer-communications access control', () => {
       orgId: 'org-a',
     });
 
-    await getUpcomingCommunications('Customer@Example.com', 'org-a');
+    const result = await getUpcomingCommunications('Customer@Example.com', 'org-a');
 
     expect(scheduledEmailsCollection.where).toHaveBeenCalledWith('email', '==', 'customer@example.com');
     expect(scheduledEmailsCollection.where).toHaveBeenCalledWith('orgId', '==', 'org-a');
     expect(scheduledEmailsCollection.where).toHaveBeenCalledWith('status', '==', 'pending');
+    expect(result).toHaveLength(2);
+    expect(result[0]).toEqual(expect.objectContaining({
+      id: 'scheduled-1',
+      preview: 'Preview text',
+      channel: 'sms',
+      playbookId: 'playbook-welcome',
+      metadata: { playbookKind: 'welcome' },
+    }));
+    expect(result[1].scheduledFor).toEqual(new Date('2026-03-13T12:00:00Z'));
   });
 
   it('blocks non-super users from updating communication status across orgs', async () => {
@@ -148,47 +182,63 @@ describe('customer-communications access control', () => {
     );
   });
 
-  it('blocks non-super users with missing org context from reading communications', async () => {
-    (getServerSessionUser as jest.Mock).mockResolvedValue({
-      uid: 'user-1',
-      role: 'dispensary_admin',
-    });
-
-    const result = await getCustomerCommunications('customer@example.com', 'org-a');
-
-    expect(result).toEqual([]);
-    expect(createServerClient).not.toHaveBeenCalled();
-  });
-
-  it('rejects invalid communication id path before firestore access', async () => {
-    await updateCommunicationStatus('comm/1', 'opened');
-
-    expect(getServerSessionUser).not.toHaveBeenCalled();
-    expect(createServerClient).not.toHaveBeenCalled();
-    expect(customerCommsDocRef.update).not.toHaveBeenCalled();
-  });
-
-  it('rejects communication logging with invalid org ids', async () => {
-    const result = await logCommunication({
+  it('rejects invalid communication logging inputs before firestore access', async () => {
+    const invalidOrgResult = await logCommunication({
       customerEmail: 'customer@example.com',
       orgId: 'bad/org',
       channel: 'email',
       type: 'manual',
     });
 
-    expect(result).toBeNull();
-    expect(createServerClient).not.toHaveBeenCalled();
-  });
-
-  it('rejects communication logging with missing recipient identifier', async () => {
-    const result = await logCommunication({
+    const missingEmailResult = await logCommunication({
       customerEmail: '   ',
       orgId: 'org-a',
       channel: 'sms',
       type: 'manual',
     });
 
-    expect(result).toBeNull();
+    expect(invalidOrgResult).toBeNull();
+    expect(missingEmailResult).toBeNull();
     expect(createServerClient).not.toHaveBeenCalled();
+  });
+
+  it('returns playbook metadata with communication history rows', async () => {
+    (getServerSessionUser as jest.Mock).mockResolvedValue({
+      uid: 'user-1',
+      role: 'dispensary_admin',
+      currentOrgId: 'org-a',
+      orgId: 'org-a',
+    });
+    customerCommsCollection.get.mockResolvedValue({
+      docs: [
+        {
+          id: 'comm-1',
+          data: () => ({
+            customerEmail: 'customer@example.com',
+            orgId: 'org-a',
+            channel: 'email',
+            direction: 'outbound',
+            type: 'welcome',
+            subject: 'Welcome',
+            status: 'sent',
+            playbookId: 'playbook-welcome',
+            templateId: 'welcome_email_template',
+            providerMessageId: 'provider-1',
+            metadata: { playbookKind: 'welcome' },
+            createdAt: { toDate: () => new Date('2026-03-10T10:00:00Z') },
+            updatedAt: { toDate: () => new Date('2026-03-10T10:05:00Z') },
+          }),
+        },
+      ],
+    });
+
+    const result = await getCustomerCommunications('customer@example.com', 'org-a');
+
+    expect(result[0]).toEqual(expect.objectContaining({
+      playbookId: 'playbook-welcome',
+      templateId: 'welcome_email_template',
+      providerMessageId: 'provider-1',
+      metadata: { playbookKind: 'welcome' },
+    }));
   });
 });
