@@ -31,7 +31,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { buildAutoCustomerTags, mergeCustomerTags } from '@/lib/customers/profile-derivations';
+import {
+    buildAutoCustomerTags,
+    mergeCustomerTags,
+    resolveCustomerDisplayName,
+} from '@/lib/customers/profile-derivations';
 import {
     buildLifecycleMessagePreview,
     inferLifecyclePlaybookKind,
@@ -429,6 +433,13 @@ export default function CustomerDetailClient({ customerId, orgId }: CustomerDeta
     const upcomingPreview = resolveUpcomingMessagePreview(customer, customerData.orgName, upcomingMessage);
     const autoTags = customer.autoTags ?? [];
     const hasPreferences = customer.preferredCategories.length > 0 || customer.preferredProducts.length > 0;
+    const customerName = resolveCustomerDisplayName({
+        displayName: customer.displayName,
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        email: customer.email,
+        fallbackId: customer.id,
+    });
 
     return (
         <div className="space-y-6">
@@ -444,7 +455,7 @@ export default function CustomerDetailClient({ customerId, orgId }: CustomerDeta
             <div className="flex flex-col gap-6 md:flex-row md:items-start">
                 <div className="flex-1">
                     <div className="mb-2 flex flex-wrap items-center gap-3">
-                        <h1 className="text-3xl font-bold tracking-tight">{customer.displayName || customer.email}</h1>
+                        <h1 className="text-3xl font-bold tracking-tight">{customerName}</h1>
                         <Badge className={segInfo.color}>{segInfo.label}</Badge>
                         <Badge variant="outline" className="capitalize">{customer.tier}</Badge>
                     </div>

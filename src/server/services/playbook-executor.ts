@@ -29,6 +29,26 @@ import { generateImageFromPrompt } from '@/ai/flows/generate-social-image';
 // Revenue Attribution
 import { recordPlaybookExecution } from '@/server/actions/playbook-revenue-attribution';
 
+// Playbook V2 / 12-Factor Doctrine Integration
+import { PlaybookRunCoordinator } from '@/server/services/playbook-run-coordinator';
+import {
+    FirestorePlaybookAdapter,
+    FirebaseStorageBlobStore,
+    CloudTasksDispatcher
+} from '@/server/services/playbook-infra-adapters';
+import { runValidationHarness } from '@/server/services/playbook-validation';
+import type { Playbook } from '@/types/playbook';
+
+// Initialize Infrastructure Adapters
+const firestoreAdapter = new FirestorePlaybookAdapter();
+const storageStore = new FirebaseStorageBlobStore();
+const taskDispatcher = new CloudTasksDispatcher();
+const runCoordinator = new PlaybookRunCoordinator(
+    firestoreAdapter,
+    firestoreAdapter,
+    taskDispatcher
+);
+
 // Types
 export interface PlaybookExecutionRequest {
     playbookId: string;
@@ -1332,19 +1352,19 @@ async function runStepValidation(
     context: ExecutionContext
 ): Promise<ValidationInfo | null> {
     const agent = step.agent || step.params?.agent;
-    
+
     // No agent means no validation
     if (!agent) {
         return null;
     }
-    
+
     try {
         const pipeline = createValidationPipeline(agent);
         const action = step.action || 'delegate';
         const params = step.params || {};
-        
+
         const result = await pipeline.validate(action, params, output);
-        
+
         logger.info('[PlaybookExecutor] Validation result:', {
             agent,
             action,
@@ -1352,7 +1372,7 @@ async function runStepValidation(
             score: result.score,
             issues: result.issues,
         });
-        
+
         return {
             valid: result.valid,
             score: result.score,
@@ -1382,22 +1402,22 @@ async function executeStepWithValidation(
     let output: any;
     let validation: ValidationInfo | null = null;
     let retryCount = 0;
-    
+
     const shouldRetry = step.retryOnFailure === true;
     const threshold = step.validationThreshold ?? 60;
-    
+
     while (retryCount <= maxRetries) {
         // Execute the step
         output = await stepExecutor();
-        
+
         // Run validation
         validation = await runStepValidation(step, output, context);
-        
+
         // If no validation or passed, we're done
         if (!validation || validation.valid || validation.score >= threshold) {
             break;
         }
-        
+
         // If validation failed and retry is enabled
         if (shouldRetry && retryCount < maxRetries) {
             logger.info('[PlaybookExecutor] Retrying step due to validation failure:', {
@@ -1406,7 +1426,7 @@ async function executeStepWithValidation(
                 threshold,
                 remediation: validation.remediation,
             });
-            
+
             // Add remediation context for next attempt
             context.variables._remediation = validation.remediation;
             context.variables._previousIssues = validation.issues;
@@ -1416,7 +1436,7 @@ async function executeStepWithValidation(
             break;
         }
     }
-    
+
     return { output, validation, retryCount };
 }
 
@@ -1460,7 +1480,30 @@ export async function executePlaybook(
             throw new Error(`Playbook not found: ${request.playbookId}`);
         }
 
-        const playbook = playbookSnap.data()!;
+        const playbook = playbookSnap.data() as Playbook;
+
+        // [MODIFIED] Check if this is a 12-Factor Doctrine Playbook (Compiled)
+        // If it has a compiledSpec, route it to the RunCoordinator for stage-aware execution
+        if (playbook.compiledSpec) {
+            logger.info('[PlaybookExecutor] Routing to 12-Factor RunCoordinator:', {
+                playbookId: request.playbookId,
+                type: playbook.playbookType
+            });
+
+            const startResult = await runCoordinator.startRun({
+                playbookId: request.playbookId,
+                playbookVersion: playbook.version || 1,
+                triggerEvent: request.eventData || { triggeredBy: request.triggeredBy },
+            });
+
+            return {
+                executionId: startResult.runId,
+                status: 'running',
+                startedAt,
+                stepResults: [],
+            };
+        }
+
         const steps = playbook.steps || [];
 
         // Initialize context
@@ -1483,7 +1526,7 @@ export async function executePlaybook(
             const stepResult: StepResult = {
                 stepIndex: i,
                 action: step.action,
-                agent: step.agent || step.params?.agent,
+                agent: (step.agent || step.params?.agent) as string | undefined,
                 status: 'running',
                 startedAt: new Date(),
             };
@@ -1559,8 +1602,31 @@ export async function executePlaybook(
                     case 'create_inbox_notification':
                         output = await executeCreateInboxNotification(step, context);
                         break;
+
+                    // [NEW] 12-Factor Validation Harness
+                    case 'run_validation_harness': {
+                        logger.info('[PlaybookExecutor] Running validation harness for stage');
+                        const runId = context.variables.runId as string | undefined;
+                        if (!runId) throw new Error('runId missing from context for validation harness');
+
+                        const runRecord = await firestoreAdapter.getRun(runId);
+                        const spec = await firestoreAdapter.getCompiledSpec(runRecord?.playbookId || '');
+                        const artifacts = await firestoreAdapter.listByRun(runId);
+
+                        if (!runRecord || !spec) throw new Error('Run record or spec missing for validation');
+
+                        const report = await runValidationHarness({
+                            run: { id: runId, playbookId: runRecord.playbookId },
+                            spec,
+                            artifacts,
+                            // In production, we'd also load the policy bundle here
+                        });
+
+                        output = report;
+                        break;
+                    }
                     default:
-                        logger.warn('[PlaybookExecutor] Unknown action:', step.action);
+                        logger.warn('[PlaybookExecutor] Unknown action:', { action: step.action });
                         output = { warning: `Unknown action: ${step.action}` };
                 }
 
@@ -1568,26 +1634,26 @@ export async function executePlaybook(
                 const validation = await runStepValidation(step, output, context);
                 if (validation) {
                     stepResult.validation = validation;
-                    
+
                     // If validation failed and retry is enabled, handle retry
                     if (!validation.valid && step.retryOnFailure) {
                         const maxRetries = step.maxRetries ?? 3;
                         const threshold = step.validationThreshold ?? 60;
                         let retryCount = 0;
-                        
-                        while (!stepResult.validation?.valid && 
-                               (stepResult.validation?.score ?? 0) < threshold && 
-                               retryCount < maxRetries) {
+
+                        while (!stepResult.validation?.valid &&
+                            (stepResult.validation?.score ?? 0) < threshold &&
+                            retryCount < maxRetries) {
                             retryCount++;
                             logger.info('[PlaybookExecutor] Retrying step:', {
                                 stepIndex: i,
                                 retryCount,
                                 score: stepResult.validation?.score,
                             });
-                            
+
                             // Add remediation context
                             context.variables._remediation = validation.remediation;
-                            
+
                             // Re-execute the step (simplified - uses same action)
                             switch (step.action) {
                                 case 'delegate':
@@ -1605,14 +1671,14 @@ export async function executePlaybook(
                                 default:
                                     break;
                             }
-                            
+
                             // Re-validate
                             const newValidation = await runStepValidation(step, output, context);
                             if (newValidation) {
                                 stepResult.validation = newValidation;
                             }
                         }
-                        
+
                         stepResult.retryCount = retryCount;
                     }
                 }

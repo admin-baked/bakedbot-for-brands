@@ -35,6 +35,7 @@ import Link from 'next/link';
 import type { OrgProfile } from '@/types/org-profile';
 import { calculateOrgProfileCompletion, getOrgProfileCompletionBreakdown } from '@/types/org-profile';
 import { updateOrgProfileAction } from '@/server/actions/org-profile';
+import type { BrandBusinessModel, BrandOrganizationType } from '@/types/brand-guide';
 import { ARCHETYPE_METADATA, SLIDER_METADATA } from '@/types/dispensary-intent-profile';
 import type {
   BusinessArchetype,
@@ -43,6 +44,10 @@ import type {
   ValueHierarchies,
 } from '@/types/dispensary-intent-profile';
 import { useToast } from '@/hooks/use-toast';
+import {
+  BRAND_BUSINESS_MODEL_LABELS,
+  BRAND_ORGANIZATION_TYPE_LABELS,
+} from '@/lib/brand-guide-utils';
 
 interface OrgProfileClientProps {
   orgId: string;
@@ -140,7 +145,7 @@ export function OrgProfileClient({ orgId, initialProfile }: OrgProfileClientProp
           value="basics"
           icon={Building2}
           title="Brand Basics"
-          subtitle="Name, location, dispensary type"
+          subtitle="Name, location, organization model"
           done={!!brand?.name}
         >
           <BrandBasicsForm brand={brand} onSave={(b) => handleSave({ brand: { ...brand!, ...b } })} isSaving={isSaving} />
@@ -309,12 +314,27 @@ function BrandBasicsForm({ brand, onSave, isSaving }: { brand: OrgProfile['brand
   const [tagline, setTagline] = useState(brand?.tagline || '');
   const [city, setCity] = useState(brand?.city || '');
   const [state, setState] = useState(brand?.state || '');
+  const [organizationType, setOrganizationType] = useState<BrandOrganizationType | ''>(brand?.organizationType || '');
+  const [businessModel, setBusinessModel] = useState<BrandBusinessModel | ''>(brand?.businessModel || '');
   const [dispensaryType, setDispensaryType] = useState<'recreational' | 'medical' | 'both' | ''>(brand?.dispensaryType || '');
   const [instagram, setInstagram] = useState(brand?.instagramHandle || '');
   const [facebook, setFacebook] = useState(brand?.facebookHandle || '');
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onSave({ name, tagline: tagline || undefined, city: city || undefined, state: state || undefined, dispensaryType: dispensaryType || undefined, instagramHandle: instagram || undefined, facebookHandle: facebook || undefined }); }} className="space-y-4">
+    <form onSubmit={(e) => {
+      e.preventDefault();
+      onSave({
+        name,
+        tagline: tagline || undefined,
+        city: city || undefined,
+        state: state || undefined,
+        organizationType: organizationType || undefined,
+        businessModel: businessModel || undefined,
+        dispensaryType: organizationType === 'dispensary' ? dispensaryType || undefined : undefined,
+        instagramHandle: instagram || undefined,
+        facebookHandle: facebook || undefined,
+      });
+    }} className="space-y-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <Label className="text-xs">Brand Name *</Label>
@@ -333,6 +353,31 @@ function BrandBasicsForm({ brand, onSave, isSaving }: { brand: OrgProfile['brand
           <Input value={state} onChange={(e) => setState(e.target.value)} className="mt-1" placeholder="NY" maxLength={2} />
         </div>
         <div>
+          <Label className="text-xs">Organization Type</Label>
+          <select value={organizationType} onChange={(e) => {
+            const nextValue = e.target.value as BrandOrganizationType | '';
+            setOrganizationType(nextValue);
+            if (nextValue !== 'dispensary') {
+              setDispensaryType('');
+            }
+          }} className="w-full mt-1 text-sm border rounded-md px-3 py-2 bg-background">
+            <option value="">Select...</option>
+            {Object.entries(BRAND_ORGANIZATION_TYPE_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <Label className="text-xs">Business Model</Label>
+          <select value={businessModel} onChange={(e) => setBusinessModel(e.target.value as BrandBusinessModel | '')} className="w-full mt-1 text-sm border rounded-md px-3 py-2 bg-background">
+            <option value="">Select...</option>
+            {Object.entries(BRAND_BUSINESS_MODEL_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+        </div>
+        {(organizationType === 'dispensary' || !!dispensaryType) && (
+          <div>
           <Label className="text-xs">Dispensary Type</Label>
           <select value={dispensaryType} onChange={(e) => setDispensaryType(e.target.value as 'recreational' | 'medical' | 'both' | '')} className="w-full mt-1 text-sm border rounded-md px-3 py-2 bg-background">
             <option value="">Select...</option>
@@ -340,7 +385,8 @@ function BrandBasicsForm({ brand, onSave, isSaving }: { brand: OrgProfile['brand
             <option value="medical">Medical</option>
             <option value="both">Both</option>
           </select>
-        </div>
+          </div>
+        )}
         <div>
           <Label className="text-xs">Instagram Handle</Label>
           <Input value={instagram} onChange={(e) => setInstagram(e.target.value)} className="mt-1" placeholder="@yourbrand" />

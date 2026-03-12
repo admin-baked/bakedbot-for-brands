@@ -15,6 +15,10 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { verifyEmail, type EmailVerificationResult } from '@/server/services/email-verification';
 import { sendGenericEmail } from '@/lib/email/dispatcher';
 import { generateOutreachEmails, type OutreachEmailData } from './email-templates';
+import { getOutreachStats, type OutreachResult } from './outreach-read-model';
+
+export type { OutreachResult } from './outreach-read-model';
+export { getOutreachStats } from './outreach-read-model';
 
 const SENDER_EMAIL = 'martez@bakedbot.ai';
 const SENDER_NAME = 'Martez — BakedBot AI';
@@ -31,18 +35,6 @@ export interface OutreachLead {
     websiteUrl?: string;
     contactFormUrl?: string;
     source: string; // 'manual', 'research', 'ocm-registry', etc.
-}
-
-export interface OutreachResult {
-    leadId: string;
-    dispensaryName: string;
-    email: string;
-    templateId: string;
-    emailVerified: boolean;
-    verificationResult?: string;
-    emailSent: boolean;
-    sendError?: string;
-    timestamp: number;
 }
 
 /**
@@ -269,49 +261,6 @@ export async function sendTestOutreachBatch(
     }
 
     return results;
-}
-
-/**
- * Get outreach stats for digest.
- */
-export async function getOutreachStats(since?: number): Promise<{
-    totalSent: number;
-    totalFailed: number;
-    totalBadEmails: number;
-    totalPending: number;
-    recentResults: OutreachResult[];
-}> {
-    const db = getAdminFirestore();
-    const sinceTimestamp = since || Date.now() - (12 * 60 * 60 * 1000); // Last 12 hours
-
-    const snapshot = await db.collection(OUTREACH_COLLECTION)
-        .where('timestamp', '>=', sinceTimestamp)
-        .orderBy('timestamp', 'desc')
-        .limit(100)
-        .get();
-
-    const results = snapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot): OutreachResult => {
-        const d = doc.data();
-        return {
-            leadId: doc.id,
-            dispensaryName: typeof d.dispensaryName === 'string' ? d.dispensaryName : '',
-            email: typeof d.email === 'string' ? d.email : '',
-            templateId: typeof d.templateId === 'string' ? d.templateId : '',
-            emailVerified: d.emailVerified === true,
-            verificationResult: typeof d.verificationResult === 'string' ? d.verificationResult : undefined,
-            emailSent: d.emailSent === true,
-            sendError: typeof d.sendError === 'string' ? d.sendError : undefined,
-            timestamp: typeof d.timestamp === 'number' ? d.timestamp : Date.now(),
-        };
-    });
-
-    return {
-        totalSent: results.filter(r => r.emailSent).length,
-        totalFailed: results.filter(r => !r.emailSent && r.emailVerified).length,
-        totalBadEmails: results.filter(r => !r.emailVerified).length,
-        totalPending: 0,
-        recentResults: results.slice(0, 20),
-    };
 }
 
 // =============================================================================

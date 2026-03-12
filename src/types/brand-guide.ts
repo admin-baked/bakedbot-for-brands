@@ -244,6 +244,11 @@ export interface BrandVoice {
 
 export interface BrandMessaging {
   brandName?: string;           // Extracted brand name (e.g., "Thrive Syracuse")
+  organizationType?: BrandOrganizationType;
+  businessModel?: BrandBusinessModel;
+  city?: string;
+  state?: string;
+  dispensaryType?: 'recreational' | 'medical' | 'both';
   tagline: string;
   alternateTaglines?: string[]; // A/B test variants
   positioning: string;          // "Premium craft cannabis for connoisseurs"
@@ -455,7 +460,7 @@ export interface BrandGuideCompetitorSuggestion {
   id: string;
   name: string;
   url: string;
-  type: 'dispensary' | 'brand';
+  type: 'dispensary' | 'brand' | 'company';
   city?: string;
   state?: string;
   description?: string;
@@ -588,6 +593,22 @@ export interface LLMTrainingData {
 // ============================================================================
 // BRAND GUIDE TEMPLATES
 // ============================================================================
+
+export type BrandOrganizationType =
+  | 'dispensary'
+  | 'cannabis_brand'
+  | 'technology_platform'
+  | 'agency_service'
+  | 'community_organization'
+  | 'other';
+
+export type BrandBusinessModel =
+  | 'retail'
+  | 'product_brand'
+  | 'saas_ai_platform'
+  | 'services'
+  | 'media_education'
+  | 'mixed';
 
 export type BrandGuideTemplateCategory =
   | 'premium'

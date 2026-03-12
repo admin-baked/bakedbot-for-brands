@@ -49,6 +49,27 @@ function normalizeText(value: unknown): string {
     return typeof value === 'string' ? value.trim().toLowerCase() : '';
 }
 
+function normalizeOptionalString(value: unknown): string | null {
+    if (typeof value !== 'string') {
+        return null;
+    }
+
+    const normalized = value.trim();
+    return normalized.length > 0 ? normalized : null;
+}
+
+function normalizeClaimStatus(value: unknown): NonNullable<CRMDispensarySeed['claimStatus']> {
+    return value === 'invited' || value === 'pending' || value === 'claimed' || value === 'unclaimed'
+        ? value
+        : 'unclaimed';
+}
+
+function normalizeCRMSource(value: unknown): CRMDispensarySeed['source'] | undefined {
+    return value === 'discovery' || value === 'claim' || value === 'import' || value === 'system'
+        ? value
+        : undefined;
+}
+
 function buildIdentityKey(name: unknown, city: unknown, state: unknown): string | null {
     const normalizedName = normalizeText(name);
     const normalizedCity = normalizeText(city);
@@ -172,13 +193,19 @@ export async function syncCRMDispensariesToOutreachQueue(
         const state = normalizeState(candidate.data.state);
         const name = typeof candidate.data.name === 'string' ? candidate.data.name.trim() : '';
         const city = typeof candidate.data.city === 'string' ? candidate.data.city.trim() : '';
+        const claimStatus = normalizeClaimStatus(candidate.data.claimStatus);
+        const email = normalizeOptionalString(candidate.data.email);
+        const phone = normalizeOptionalString(candidate.data.phone);
+        const website = normalizeOptionalString(candidate.data.website);
+        const address = normalizeOptionalString(candidate.data.address);
+        const source = normalizeCRMSource(candidate.data.source);
 
         if (!state || !name || !city) {
             skipped++;
             continue;
         }
 
-        if (candidate.data.claimStatus === 'claimed' || candidate.data.claimedOrgId) {
+        if (claimStatus === 'claimed' || candidate.data.claimedOrgId) {
             skipped++;
             continue;
         }
@@ -192,21 +219,21 @@ export async function syncCRMDispensariesToOutreachQueue(
             if (!existingLead.data.crmDispensaryId) {
                 patch.crmDispensaryId = candidate.id;
             }
-            if ((existingLead.data.crmClaimStatus || null) !== (candidate.data.claimStatus || 'unclaimed')) {
-                patch.crmClaimStatus = candidate.data.claimStatus || 'unclaimed';
+            if ((existingLead.data.crmClaimStatus || null) !== claimStatus) {
+                patch.crmClaimStatus = claimStatus;
             }
-            if (!existingLead.data.email && candidate.data.email) {
-                patch.email = candidate.data.email;
+            if (!existingLead.data.email && email) {
+                patch.email = email;
                 patch.enriched = true;
             }
-            if (!existingLead.data.phone && candidate.data.phone) {
-                patch.phone = candidate.data.phone;
+            if (!existingLead.data.phone && phone) {
+                patch.phone = phone;
             }
-            if (!existingLead.data.websiteUrl && candidate.data.website) {
-                patch.websiteUrl = candidate.data.website;
+            if (!existingLead.data.websiteUrl && website) {
+                patch.websiteUrl = website;
             }
-            if (!existingLead.data.address && candidate.data.address) {
-                patch.address = candidate.data.address;
+            if (!existingLead.data.address && address) {
+                patch.address = address;
             }
             if (!existingLead.data.notes) {
                 patch.notes = 'Seeded from CRM dispensary directory';
@@ -228,24 +255,24 @@ export async function syncCRMDispensariesToOutreachQueue(
             updated++;
         } else {
             const leadRef = db.collection('ny_dispensary_leads').doc();
-            const hasEmail = typeof candidate.data.email === 'string' && candidate.data.email.trim().length > 0;
+            const hasEmail = email !== null;
 
             const leadDoc = {
                 dispensaryName: name,
                 contactName: null,
-                email: candidate.data.email || null,
-                phone: candidate.data.phone || null,
+                email,
+                phone,
                 city,
                 state,
-                address: candidate.data.address || null,
-                websiteUrl: candidate.data.website || null,
+                address,
+                websiteUrl: website,
                 contactFormUrl: null,
                 posSystem: null,
                 licenseType: null,
                 licenseNumber: null,
-                source: getCRMSourceLabel(candidate.data.source),
+                source: getCRMSourceLabel(source),
                 crmDispensaryId: candidate.id,
-                crmClaimStatus: candidate.data.claimStatus || 'unclaimed',
+                crmClaimStatus: claimStatus,
                 researchedAt: now,
                 notes: 'Seeded from CRM dispensary directory',
                 status: 'researched',

@@ -15,23 +15,10 @@
 
 import { requireUser } from '@/server/auth/auth';
 import { getAdminFirestore } from '@/firebase/admin';
-import {
-    getOutreachStats,
-    sendTestOutreachBatch,
-    trackInCRM,
-    type OutreachDraft,
-    type OutreachLead,
-} from '@/server/services/ny-outreach/outreach-service';
-import { researchNewLeads, importNYLicensedLeads, bulkImportAllNYLeads } from '@/server/services/ny-outreach/contact-research';
-import { generateOutreachEmails, type OutreachEmailData } from '@/server/services/ny-outreach/email-templates';
-import { verifyEmail } from '@/server/services/email-verification';
-import { sendGenericEmail } from '@/lib/email/dispatcher';
-import { apolloSearchPeople, apolloEnrichByDomain, getApolloCreditStatus, type ApolloCreditStatus } from '@/server/services/ny-outreach/apollo-enrichment';
-import { enrichLeadBatch } from '@/server/services/ny-outreach/lead-enrichment';
-import { getGLMUsageStatus } from '@/server/services/glm-usage';
-import { getGmailToken } from '@/server/integrations/gmail/token-storage';
-import { syncCRMDispensariesToOutreachQueue } from '@/server/services/ny-outreach/crm-queue-sync';
 import { logger } from '@/lib/logger';
+import type { ApolloCreditStatus } from '@/server/services/ny-outreach/apollo-enrichment';
+import type { OutreachEmailData } from '@/server/services/ny-outreach/email-templates';
+import type { OutreachDraft, OutreachLead } from '@/server/services/ny-outreach/outreach-service';
 
 // Re-export Apollo credit type for UI
 export type { ApolloCreditStatus } from '@/server/services/ny-outreach/apollo-enrichment';
@@ -41,7 +28,23 @@ const DAILY_SEND_LIMIT = parseInt(process.env.NY_OUTREACH_DAILY_LIMIT || '5', 10
 // Re-export for the UI
 export type { OutreachDraft } from '@/server/services/ny-outreach/outreach-service';
 
-type DashboardStats = Awaited<ReturnType<typeof getOutreachStats>>;
+type DashboardStats = {
+    totalSent: number;
+    totalFailed: number;
+    totalBadEmails: number;
+    totalPending: number;
+    recentResults: Array<{
+        leadId: string;
+        dispensaryName: string;
+        email: string;
+        templateId: string;
+        emailVerified: boolean;
+        verificationResult?: string;
+        emailSent: boolean;
+        sendError?: string;
+        timestamp: number;
+    }>;
+};
 
 const EMPTY_OUTREACH_STATS: DashboardStats = {
     totalSent: 0,
@@ -50,6 +53,42 @@ const EMPTY_OUTREACH_STATS: DashboardStats = {
     totalPending: 0,
     recentResults: [],
 };
+
+async function loadOutreachStats(since?: number): Promise<DashboardStats> {
+    const { getOutreachStats } = await import('@/server/services/ny-outreach/outreach-read-model');
+    return getOutreachStats(since);
+}
+
+function getOptionalTrimmedString(value: unknown): string | undefined {
+    if (typeof value !== 'string') {
+        return undefined;
+    }
+
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function getNullableTrimmedString(value: unknown): string | null {
+    return getOptionalTrimmedString(value) ?? null;
+}
+
+function getDisplayString(value: unknown, fallback: string): string {
+    return getOptionalTrimmedString(value) ?? fallback;
+}
+
+function toMillisOrZero(value: unknown): number {
+    if (!value) return 0;
+    if (typeof value === 'number') return value;
+    if (value instanceof Date) return value.getTime();
+    if (typeof (value as { toDate?: unknown }).toDate === 'function') {
+        try {
+            return (value as { toDate(): Date }).toDate().getTime();
+        } catch {
+            return 0;
+        }
+    }
+    return 0;
+}
 
 function isMissingIndexError(error: unknown): boolean {
     if (!error || typeof error !== 'object') return false;
@@ -137,7 +176,7 @@ function selectTemplate(lead: { posSystem?: string }): string {
 export async function getOutreachDashboardData(): Promise<{
     success: boolean;
     data?: {
-        stats: Awaited<ReturnType<typeof getOutreachStats>>;
+        stats: DashboardStats;
         queueDepth: number;
         queueLeads: Array<{
             id: string;
@@ -173,15 +212,6 @@ export async function getOutreachDashboardData(): Promise<{
 
         const db = getAdminFirestore();
 
-        // Helper: convert any Timestamp/Date/number to milliseconds
-        const toMs = (val: unknown): number => {
-            if (!val) return 0;
-            if (typeof val === 'number') return val;
-            if (val instanceof Date) return val.getTime();
-            if (typeof (val as any).toDate === 'function') return (val as any).toDate().getTime();
-            return 0;
-        };
-
         const queueQuery = db.collection('ny_dispensary_leads')
             .where('status', '==', 'researched')
             .where('outreachSent', '==', false);
@@ -189,7 +219,7 @@ export async function getOutreachDashboardData(): Promise<{
             .where('status', '==', 'draft');
 
         const results = await Promise.allSettled([
-            getOutreachStats(Date.now() - 24 * 60 * 60 * 1000),
+            loadOutreachStats(Date.now() - 24 * 60 * 60 * 1000),
             getCountWithFallback(queueQuery, 'queueDepth'),
             queueQuery
                 .orderBy('createdAt', 'asc')
@@ -206,7 +236,9 @@ export async function getOutreachDashboardData(): Promise<{
 
                     const fallbackSnapshot = await queueQuery.limit(20).get();
                     const sortedDocs = [...fallbackSnapshot.docs].sort(
-                        (left, right) => toMs(left.data().createdAt ?? left.data().researchedAt) - toMs(right.data().createdAt ?? right.data().researchedAt)
+                        (left, right) =>
+                            toMillisOrZero(left.data().createdAt ?? left.data().researchedAt) -
+                            toMillisOrZero(right.data().createdAt ?? right.data().researchedAt)
                     );
 
                     return { docs: sortedDocs } as Pick<FirebaseFirestore.QuerySnapshot, 'docs'>;
@@ -248,13 +280,13 @@ export async function getOutreachDashboardData(): Promise<{
             const d = doc.data();
             return {
                 id: doc.id,
-                dispensaryName: d.dispensaryName || 'Unknown',
-                email: d.email || undefined,
-                city: d.city || 'Unknown City',
-                state: d.state || 'NY',
-                contactFormUrl: d.contactFormUrl || undefined,
-                source: d.source || 'research',
-                createdAt: toMs(d.createdAt) || toMs(d.researchedAt) || Date.now(),
+                dispensaryName: getDisplayString(d.dispensaryName, 'Unknown'),
+                email: getOptionalTrimmedString(d.email),
+                city: getDisplayString(d.city, 'Unknown City'),
+                state: getDisplayString(d.state, 'NY'),
+                contactFormUrl: getOptionalTrimmedString(d.contactFormUrl),
+                source: getDisplayString(d.source, 'research'),
+                createdAt: toMillisOrZero(d.createdAt) || toMillisOrZero(d.researchedAt) || Date.now(),
             };
         });
 
@@ -262,15 +294,15 @@ export async function getOutreachDashboardData(): Promise<{
             const d = doc.data();
             return {
                 id: doc.id,
-                dispensaryName: d.dispensaryName || 'Unknown',
-                email: d.email || '',
-                contactName: d.contactName || undefined,
-                city: d.city || 'Unknown City',
-                state: d.state || 'NY',
-                status: d.status || 'unknown',
-                outreachCount: d.outreachCount || 0,
-                lastOutreachAt: toMs(d.lastOutreachAt),
-                lastTemplateId: d.lastTemplateId || '',
+                dispensaryName: getDisplayString(d.dispensaryName, 'Unknown'),
+                email: getDisplayString(d.email, ''),
+                contactName: getOptionalTrimmedString(d.contactName),
+                city: getDisplayString(d.city, 'Unknown City'),
+                state: getDisplayString(d.state, 'NY'),
+                status: getDisplayString(d.status, 'unknown'),
+                outreachCount: typeof d.outreachCount === 'number' ? d.outreachCount : 0,
+                lastOutreachAt: toMillisOrZero(d.lastOutreachAt),
+                lastTemplateId: getDisplayString(d.lastTemplateId, ''),
             };
         });
 
@@ -308,6 +340,10 @@ export async function generateOutreachDrafts(): Promise<{
     try {
         const user = await requireUser(['super_user']);
         if (!user) return { success: false, error: 'Unauthorized' };
+        const [{ generateOutreachEmails }, { verifyEmail }] = await Promise.all([
+            import('@/server/services/ny-outreach/email-templates'),
+            import('@/server/services/email-verification'),
+        ]);
 
         const db = getAdminFirestore();
 
@@ -326,9 +362,11 @@ export async function generateOutreachDrafts(): Promise<{
         const allLeads = leadsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as { id: string; [key: string]: unknown }));
 
         // Split into two tracks
-        const emailLeads = allLeads.filter(l => !!l.email).slice(0, DAILY_SEND_LIMIT);
+        const emailLeads = allLeads
+            .filter(lead => getOptionalTrimmedString(lead.email))
+            .slice(0, DAILY_SEND_LIMIT);
         const formLeads = allLeads
-            .filter(l => !l.email && !!l.contactFormUrl)
+            .filter(lead => !getOptionalTrimmedString(lead.email) && getOptionalTrimmedString(lead.contactFormUrl))
             .slice(0, DAILY_SEND_LIMIT); // separate quota for form track
 
         if (emailLeads.length === 0 && formLeads.length === 0) {
@@ -340,13 +378,22 @@ export async function generateOutreachDrafts(): Promise<{
         // --- Track A: email drafts ---
         for (const lead of emailLeads) {
             const data = lead;
-            const templateId = selectTemplate({ posSystem: data.posSystem as string | undefined });
+            const email = getOptionalTrimmedString(data.email);
+            if (!email) continue;
+
+            const dispensaryName = getDisplayString(data.dispensaryName, 'Unknown');
+            const contactName = getOptionalTrimmedString(data.contactName);
+            const city = getDisplayString(data.city, 'Unknown City');
+            const state = getDisplayString(data.state, 'NY');
+            const posSystem = getOptionalTrimmedString(data.posSystem);
+            const websiteUrl = getOptionalTrimmedString(data.websiteUrl);
+            const templateId = selectTemplate({ posSystem });
             const emailData: OutreachEmailData = {
-                dispensaryName: (data.dispensaryName as string) || 'Unknown',
-                contactName: data.contactName as string | undefined,
-                city: (data.city as string) || 'Unknown City',
-                state: (data.state as string) || 'NY',
-                posSystem: data.posSystem as string | undefined,
+                dispensaryName,
+                contactName,
+                city,
+                state,
+                posSystem,
             };
 
             const templates = generateOutreachEmails(emailData);
@@ -357,7 +404,7 @@ export async function generateOutreachDrafts(): Promise<{
             let emailVerified = false;
             let verificationResult = 'pending';
             try {
-                const v = await verifyEmail({ email: data.email as string });
+                const v = await verifyEmail({ email });
                 emailVerified = v.safe_to_send;
                 verificationResult = `${v.result}: ${v.reason}`;
             } catch {
@@ -368,13 +415,13 @@ export async function generateOutreachDrafts(): Promise<{
             await db.collection('ny_outreach_drafts').add({
                 leadId: lead.id,
                 outreachType: 'email',
-                dispensaryName: (data.dispensaryName as string) || 'Unknown',
-                contactName: data.contactName || null,
-                email: data.email,
-                city: (data.city as string) || 'Unknown City',
-                state: (data.state as string) || 'NY',
-                posSystem: data.posSystem || null,
-                websiteUrl: data.websiteUrl || null,
+                dispensaryName,
+                contactName: contactName ?? null,
+                email,
+                city,
+                state,
+                posSystem: posSystem ?? null,
+                websiteUrl: websiteUrl ?? null,
                 templateId,
                 templateName: template.name,
                 subject: template.subject,
@@ -400,12 +447,21 @@ export async function generateOutreachDrafts(): Promise<{
         // --- Track B: contact-form drafts (no email, has contactFormUrl) ---
         for (const lead of formLeads) {
             const data = lead;
+            const contactFormUrl = getOptionalTrimmedString(data.contactFormUrl);
+            if (!contactFormUrl) continue;
+
+            const dispensaryName = getDisplayString(data.dispensaryName, 'Unknown');
+            const contactName = getOptionalTrimmedString(data.contactName);
+            const city = getDisplayString(data.city, 'Unknown City');
+            const state = getDisplayString(data.state, 'NY');
+            const posSystem = getOptionalTrimmedString(data.posSystem);
+            const websiteUrl = getOptionalTrimmedString(data.websiteUrl);
             const emailData: OutreachEmailData = {
-                dispensaryName: (data.dispensaryName as string) || 'Unknown',
-                contactName: data.contactName as string | undefined,
-                city: (data.city as string) || 'Unknown City',
-                state: (data.state as string) || 'NY',
-                posSystem: data.posSystem as string | undefined,
+                dispensaryName,
+                contactName,
+                city,
+                state,
+                posSystem,
             };
             const templates = generateOutreachEmails(emailData);
             const template = templates[0]; // use first template for form messages
@@ -414,14 +470,14 @@ export async function generateOutreachDrafts(): Promise<{
             await db.collection('ny_outreach_drafts').add({
                 leadId: lead.id,
                 outreachType: 'form',
-                dispensaryName: (data.dispensaryName as string) || 'Unknown',
-                contactName: data.contactName || null,
+                dispensaryName,
+                contactName: contactName ?? null,
                 email: null,
-                contactFormUrl: data.contactFormUrl,
-                city: (data.city as string) || 'Unknown City',
-                state: (data.state as string) || 'NY',
-                posSystem: data.posSystem || null,
-                websiteUrl: data.websiteUrl || null,
+                contactFormUrl,
+                city,
+                state,
+                posSystem: posSystem ?? null,
+                websiteUrl: websiteUrl ?? null,
                 templateId: template.id,
                 templateName: template.name,
                 subject: template.subject,
@@ -595,6 +651,10 @@ export async function approveAndSendDraft(draftId: string): Promise<{
     try {
         const user = await requireUser(['super_user']);
         if (!user) return { success: false, error: 'Unauthorized' };
+        const [{ sendGenericEmail }, { trackInCRM }] = await Promise.all([
+            import('@/lib/email/dispatcher'),
+            import('@/server/services/ny-outreach/outreach-service'),
+        ]);
 
         const db = getAdminFirestore();
         const ref = db.collection('ny_outreach_drafts').doc(draftId);
@@ -828,6 +888,7 @@ export async function triggerTestBatch(): Promise<{
     try {
         const user = await requireUser(['super_user']);
         if (!user) return { success: false, error: 'Unauthorized' };
+        const { sendTestOutreachBatch } = await import('@/server/services/ny-outreach/outreach-service');
 
         const recipients = ['martez@bakedbot.ai', 'jack@bakedbot.ai'];
         const results = await sendTestOutreachBatch(recipients);
@@ -851,6 +912,7 @@ export async function triggerContactResearch(): Promise<{
     try {
         const user = await requireUser(['super_user']);
         if (!user) return { success: false, error: 'Unauthorized' };
+        const { researchNewLeads } = await import('@/server/services/ny-outreach/contact-research');
 
         const leads = await researchNewLeads(10);
         return { success: true, leadsFound: leads.length };
@@ -870,6 +932,7 @@ export async function triggerCRMLeadSync(): Promise<{
 }> {
     try {
         await requireUser(['super_user']);
+        const { syncCRMDispensariesToOutreachQueue } = await import('@/server/services/ny-outreach/crm-queue-sync');
 
         const result = await syncCRMDispensariesToOutreachQueue({ limit: 30 });
 
@@ -901,6 +964,7 @@ export async function triggerBulkNYImport(): Promise<{
     try {
         const user = await requireUser(['super_user']);
         if (!user) return { success: false, error: 'Unauthorized' };
+        const { bulkImportAllNYLeads } = await import('@/server/services/ny-outreach/contact-research');
 
         const result = await bulkImportAllNYLeads();
         return { success: true, ...result };
@@ -923,6 +987,7 @@ export async function triggerNYLeadEnrichment(): Promise<{
     try {
         const user = await requireUser(['super_user']);
         if (!user) return { success: false, error: 'Unauthorized' };
+        const { enrichLeadBatch } = await import('@/server/services/ny-outreach/lead-enrichment');
 
         const result = await enrichLeadBatch(20);
         return { success: true, enriched: result.enriched, withEmail: result.withEmail };
@@ -948,6 +1013,7 @@ export async function triggerNYAPIImport(offset: number = 0): Promise<{
     try {
         const user = await requireUser(['super_user']);
         if (!user) return { success: false, error: 'Unauthorized' };
+        const { importNYLicensedLeads } = await import('@/server/services/ny-outreach/contact-research');
 
         const leads = await importNYLicensedLeads(20, offset);
         const withEmail = leads.filter(l => l.email).length;
@@ -1028,23 +1094,23 @@ export async function getNYOutreachForCRM(filter: string = 'all', search: string
             const d = doc.data();
             return {
                 id: doc.id,
-                dispensaryName: d.dispensaryName || 'Unknown',
-                contactName: d.contactName || null,
-                email: d.email || null,
-                phone: d.phone || null,
-                city: d.city || 'NY',
-                address: d.address || null,
-                websiteUrl: d.websiteUrl || null,
-                licenseNumber: d.licenseNumber || null,
-                status: d.status || 'researched',
+                dispensaryName: getDisplayString(d.dispensaryName, 'Unknown'),
+                contactName: getNullableTrimmedString(d.contactName),
+                email: getNullableTrimmedString(d.email),
+                phone: getNullableTrimmedString(d.phone),
+                city: getDisplayString(d.city, 'NY'),
+                address: getNullableTrimmedString(d.address),
+                websiteUrl: getNullableTrimmedString(d.websiteUrl),
+                licenseNumber: getNullableTrimmedString(d.licenseNumber),
+                status: getDisplayString(d.status, 'researched'),
                 outreachSent: !!d.outreachSent,
                 enriched: !!d.enriched,
-                notes: d.notes || null,
-                createdAt: d.createdAt || 0,
-                updatedAt: d.updatedAt || 0,
+                notes: getNullableTrimmedString(d.notes),
+                createdAt: toMillisOrZero(d.createdAt),
+                updatedAt: toMillisOrZero(d.updatedAt),
                 dataQualityScore: typeof d.dataQualityScore === 'number' ? d.dataQualityScore : undefined,
                 isDuplicate: d.isDuplicate === true,
-                duplicateOf: d.duplicateOf || null,
+                duplicateOf: getNullableTrimmedString(d.duplicateOf),
             };
         });
 
@@ -1128,6 +1194,7 @@ export async function checkGmailConnection(): Promise<{
     try {
         const user = await requireUser(['super_user']);
         if (!user) return { connected: false };
+        const { getGmailToken } = await import('@/server/integrations/gmail/token-storage');
 
         const credentials = await getGmailToken(user.uid);
         return {
@@ -1158,6 +1225,7 @@ export async function getApolloCreditsAction(): Promise<{
     try {
         const user = await requireUser(['super_user']);
         if (!user) return { success: false, error: 'Unauthorized' };
+        const { getApolloCreditStatus } = await import('@/server/services/ny-outreach/apollo-enrichment');
 
         const credits = await getApolloCreditStatus();
         return { success: true, credits };
@@ -1203,6 +1271,10 @@ export async function getSuperUserStatusCounts(): Promise<{
     try {
         const user = await requireUser(['super_user']);
         if (!user) return { success: false, error: 'Unauthorized' };
+        const [{ getApolloCreditStatus }, { getGLMUsageStatus }] = await Promise.all([
+            import('@/server/services/ny-outreach/apollo-enrichment'),
+            import('@/server/services/glm-usage'),
+        ]);
 
         const db = getAdminFirestore();
 

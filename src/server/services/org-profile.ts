@@ -13,6 +13,9 @@ import type {
 import { calculateOrgProfileCompletion } from '@/types/org-profile';
 import type { BusinessArchetype } from '@/types/dispensary-intent-profile';
 import { getDefaultProfile } from './intent-profile';
+import {
+  buildOrganizationDescriptor,
+} from '@/lib/brand-guide-utils';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // In-Memory Cache (5-minute TTL)
@@ -176,6 +179,10 @@ export async function getOrgProfileFromLegacy(orgId: string): Promise<OrgProfile
     const brand: OrgProfileBrand = {
       name: brandData.brandName ?? brandData.name ?? '',
       tagline: brandData.messaging?.tagline,
+      organizationType:
+        brandData.messaging?.organizationType
+        ?? (brandData.metadata?.dispensaryType ? 'dispensary' : undefined),
+      businessModel: brandData.messaging?.businessModel,
       city: brandData.metadata?.city,
       state: brandData.metadata?.state ?? brandData.compliance?.state,
       dispensaryType: brandData.metadata?.dispensaryType,
@@ -358,10 +365,15 @@ function buildObjectivesBlock(profile: OrgProfile, limit?: number): string {
 
 function buildBrandHeader(profile: OrgProfile): string {
   const b = profile.brand;
-  const location = [b.city, b.state].filter(Boolean).join(', ');
-  const typeLabel = b.dispensaryType ? `${b.dispensaryType} dispensary` : 'dispensary';
+  const descriptor = buildOrganizationDescriptor({
+    organizationType: b.organizationType,
+    businessModel: b.businessModel,
+    dispensaryType: b.dispensaryType,
+    city: b.city,
+    state: b.state,
+  });
   return [
-    b.name ? `You are representing: ${b.name}, a ${typeLabel}${location ? ` in ${location}` : ''}.` : '',
+    b.name ? `You are representing: ${b.name}, a ${descriptor}.` : '',
   ].filter(Boolean).join('\n');
 }
 
@@ -406,7 +418,7 @@ export function buildSmokeyContextBlock(profile: OrgProfile): string {
   const archetypeLabel = ARCHETYPE_LABELS[sf.archetype] ?? sf.archetype;
 
   return `
-=== ${profile.brand.name || 'DISPENSARY'} — BUDTENDER CONTEXT ===
+=== ${profile.brand.name || 'ORGANIZATION'} — BUDTENDER CONTEXT ===
 ${buildBrandHeader(profile)}
 ${buildVoiceGuidance(profile)}
 
@@ -482,7 +494,7 @@ export function buildPopsContextBlock(profile: OrgProfile): string {
   const archetypeLabel = ARCHETYPE_LABELS[sf.archetype] ?? sf.archetype;
 
   return `
-=== DISPENSARY INTENT PROFILE ===
+=== ORGANIZATION INTENT PROFILE ===
 ${profile.brand.name ? `Organization: ${profile.brand.name}` : ''}
 Archetype: ${archetypeLabel} | Stage: ${sf.growthStage}
 
@@ -513,7 +525,7 @@ export function buildEzalContextBlock(profile: OrgProfile): string {
     .join('\n');
 
   return `
-=== DISPENSARY INTENT PROFILE ===
+=== ORGANIZATION INTENT PROFILE ===
 ${profile.brand.name ? `Organization: ${profile.brand.name}` : ''}
 Archetype: ${archetypeLabel} | Stage: ${sf.growthStage}
 
@@ -537,7 +549,7 @@ export function buildMoneyMikeContextBlock(profile: OrgProfile): string {
   const archetypeLabel = ARCHETYPE_LABELS[sf.archetype] ?? sf.archetype;
 
   return `
-=== DISPENSARY INTENT PROFILE ===
+=== ORGANIZATION INTENT PROFILE ===
 ${profile.brand.name ? `Organization: ${profile.brand.name}` : ''}
 Archetype: ${archetypeLabel} | Stage: ${sf.growthStage}
 
@@ -561,7 +573,7 @@ export function buildMrsParkerContextBlock(profile: OrgProfile): string {
   const archetypeLabel = ARCHETYPE_LABELS[sf.archetype] ?? sf.archetype;
 
   return `
-=== DISPENSARY INTENT PROFILE ===
+=== ORGANIZATION INTENT PROFILE ===
 ${profile.brand.name ? `Organization: ${profile.brand.name}` : ''}
 Archetype: ${archetypeLabel} | Stage: ${sf.growthStage}
 

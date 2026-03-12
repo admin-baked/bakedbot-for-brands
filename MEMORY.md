@@ -1,4 +1,13 @@
-# Build Optimization & Orphaned Module Cleanup - Memory Document
+# BakedBot Session Memory
+
+## Session: 2026-03-12
+- **Gmail tool send restored**: Confirmed the connected Gmail path was failing even after reconnect, enabled `gmail.googleapis.com` on `studio-567050101-bc6e8`, switched `src/server/integrations/gmail/send.ts` to direct Gmail REST bearer auth, and verified `sendGenericEmail()` succeeds with Mailjet and SendGrid disabled. Commits: `30505c5a3`, `3222c9933`.
+- **Provider triage completed**: Confirmed SendGrid keys still fail live send while Martez's Gmail token, scopes, and raw bearer token access were valid, which narrowed the issue to Gmail API/project setup plus the sender implementation rather than token storage.
+- **Verification**: Focused Gmail Jest suite passed and full repo `npm run -s check:types` passed after the sender fix.
+
+### Gotchas (Gmail tool send restored)
+- A valid Google OAuth token is not enough if `gmail.googleapis.com` is disabled on the OAuth consumer project.
+- Raw bearer-token fetches against Gmail are the fastest way to separate token validity from `googleapis` client-path issues.
 
 ## Session: 2026-03-11
 - **Outreach dashboard hardening**: Fixed the super-user outreach dashboard to degrade gracefully on missing Firestore indexes, added canonical Gmail token status checks, and added the missing outreach composite indexes. Commit: `8cf0a4b53`.

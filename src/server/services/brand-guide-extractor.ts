@@ -22,13 +22,17 @@ import type {
   BrandColor,
 } from '@/types/brand-guide';
 import {
-  hexToRgb,
   getContrastRatio,
   checkWCAGLevel,
-  type ContrastResult,
 } from '@/lib/accessibility-checker';
 import { suggestArchetype, type ArchetypeId } from '@/constants/brand-archetypes';
 import { logger } from '@/lib/logger';
+import {
+  buildBrandName,
+  cleanExtractedValue,
+  inferBusinessModelFromText,
+  inferOrganizationTypeFromText,
+} from '@/lib/brand-guide-utils';
 
 // ============================================================================
 // TYPES
@@ -256,6 +260,22 @@ export class BrandGuideExtractor {
     '/who-we-are',
     '/mission',
     '/contact',
+    '/company',
+    '/team',
+    '/platform',
+    '/product',
+    '/products',
+    '/solutions',
+    '/services',
+    '/software',
+    '/technology',
+    '/ai',
+    '/features',
+    '/pricing',
+    '/for-brands',
+    '/for-dispensaries',
+    '/for-retailers',
+    '/why-us',
   ];
 
   /**
@@ -278,16 +298,19 @@ export class BrandGuideExtractor {
         });
         if (!response.ok) return '';
         const html = await response.text();
-        // Strip scripts, styles and HTML tags; decode common entities
+        // Preserve rough paragraph structure so downstream voice extraction has usable samples.
         let content = html
           .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ')
           .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ')
+          .replace(/<(br|\/p|\/div|\/section|\/article|\/li|\/h[1-6])>/gi, '\n')
           .replace(/<[^>]+>/g, ' ')
           .replace(/&amp;/g, '&')
           .replace(/&lt;/g, '<')
           .replace(/&gt;/g, '>')
           .replace(/&nbsp;/g, ' ')
-          .replace(/\s+/g, ' ')
+          .replace(/\r/g, '')
+          .replace(/[ \t]+/g, ' ')
+          .replace(/\n{3,}/g, '\n\n')
           .trim();
 
         // Log warning if content was truncated
@@ -320,6 +343,12 @@ export class BrandGuideExtractor {
         try {
           const r = await this.discovery.discoverUrl(subUrl);
           content = r.markdown || '';
+          if (content.trim().length < 500) {
+            const directContent = await this.fetchDirectly(subUrl);
+            if (directContent.length > content.length) {
+              content = directContent;
+            }
+          }
         } catch {
           // Firecrawl and RTRVR both failed — try direct HTTP fetch as last resort
           content = await this.fetchDirectly(subUrl);
@@ -358,9 +387,9 @@ export class BrandGuideExtractor {
         logger.warn('[BrandGuideExtractor] No markdown content returned from root scrape', { url });
       }
 
-      // If root content is minimal (likely blocked/age-gated), try direct fetch as last resort
+      // If root content is minimal (likely blocked, JS-heavy, or age-gated), try direct fetch as last resort.
       let rootMarkdown = rootResult.markdown || '';
-      if (rootMarkdown.length < 300) {
+      if (rootMarkdown.length < 800) {
         logger.warn('[BrandGuideExtractor] Root content minimal, trying direct fetch', { url, chars: rootMarkdown.length });
         const directContent = await this.fetchDirectly(url);
         if (directContent.length > rootMarkdown.length) {
@@ -370,7 +399,7 @@ export class BrandGuideExtractor {
       }
 
       // Merge root + subpage content (root first so metadata is prioritised)
-      const combinedContent = rootMarkdown + subpageContent;
+      const combinedContent = [rootMarkdown, subpageContent].filter(Boolean).join('\n\n');
 
       // Extract colors from content (looking for hex codes)
       const colors = this.extractColors(combinedContent);
@@ -466,12 +495,16 @@ export class BrandGuideExtractor {
     website: WebsiteAnalysis,
     social: SocialMediaAnalysis[]
   ): Promise<Partial<BrandVisualIdentity>> {
-    const prompt = `You are a brand identity expert. Analyze the following brand website content and extract visual identity information.
+    const likelyOrganizationType = inferOrganizationTypeFromText(
+      [website.metadata?.title, website.metadata?.description, website.content.substring(0, 2000)].filter(Boolean).join(' ')
+    );
+    const prompt = `You are a brand identity expert. Analyze the following cannabis company website content and extract visual identity information.
 
-IMPORTANT: The website colors, fonts, and content below may have limited color hex codes. Use your knowledge of cannabis dispensary branding and the content to intelligently infer appropriate brand colors even if not all hex codes are explicitly present.
+IMPORTANT: The website colors, fonts, and content below may have limited color hex codes. Infer a credible palette from the brand's actual positioning and aesthetic. Do NOT default to earthy greens unless the content strongly points there. Cannabis technology companies may use sharper neutrals, blues, industrial tones, or confident high-contrast palettes.
 
 Website URL: ${website.url}
 Website Title: ${website.metadata?.title || 'Unknown'}
+Likely Organization Type: ${likelyOrganizationType || 'unknown'}
 Detected Colors (hex codes if found): ${website.colors.length > 0 ? website.colors.join(', ') : 'None detected in text content'}
 Detected Fonts: ${website.fonts.length > 0 ? website.fonts.join(', ') : 'Standard web fonts'}
 Logo/Image URL: ${website.metadata?.ogImage || website.metadata?.favicon || 'Not found'}
@@ -482,7 +515,7 @@ ${website.content.substring(0, 3000)}
 ${social.length > 0 ? `Social media profiles analyzed: ${social.map((s) => s.platform).join(', ')}` : ''}
 
 EXTRACTION REQUIREMENTS:
-1. **Brand Colors**: Even if hex codes weren't detected in scraped content, use the website content tone/style to infer appropriate primary and secondary colors. For cannabis brands, consider earthy greens, premium blacks, or modern grays.
+1. **Brand Colors**: Even if hex codes weren't detected in scraped content, use the website content tone/style to infer appropriate primary and secondary colors.
 2. **Logo**: Return the og:image or favicon URL if available
 3. **Font Families**: Infer from content style (premium brands → serif, modern brands → sans-serif)
 4. **Visual Style**: Describe the overall aesthetic
@@ -503,7 +536,7 @@ Return ONLY a valid JSON object (no markdown, no code blocks) with this exact st
   },
   "imagery": {
     "style": "professional",
-    "guidelines": "Professional cannabis dispensary aesthetic"
+    "guidelines": "Professional cannabis company aesthetic"
   }
 }`;
 
@@ -511,7 +544,7 @@ Return ONLY a valid JSON object (no markdown, no code blocks) with this exact st
       const response = await callClaude({
         userMessage: prompt,
         systemPrompt:
-          'You are a brand identity expert specializing in cannabis dispensary branding. Extract visual brand elements and return ONLY valid JSON, no other text.',
+          'You are a brand identity expert specializing in cannabis companies, brands, and technology platforms. Extract visual brand elements and return ONLY valid JSON, no other text.',
         maxTokens: 2000,
       });
 
@@ -640,13 +673,27 @@ Extract the following brand messaging elements from the provided content:
    - Origin: Founding story, how the company started
    - Values: Principles and values the company emphasizes
    - Differentiators: What makes them unique compared to competitors
-7. **City** - The city where this dispensary is located (look in address, "in Syracuse", "serving Albany", footer, contact page, meta description, etc.)
+7. **City** - The city where this company is based or primarily operates (look in address, "in Syracuse", "serving Albany", footer, contact page, meta description, etc.)
 8. **State** - The US state (full name preferred, e.g., "New York" not "NY"; look in address, footer, meta description)
 9. **Dispensary Type** - Whether this is recreational, medical, or both:
    - "recreational" if they serve adult-use / recreational customers
    - "medical" if they are a medical-only dispensary
    - "both" if they serve both recreational and medical patients
    - Look for keywords: "adult-use", "recreational", "medical", "MMJ", "rec & med"
+10. **Organization Type** - Choose the best fit for the company:
+   - "dispensary"
+   - "cannabis_brand"
+   - "technology_platform"
+   - "agency_service"
+   - "community_organization"
+   - "other"
+11. **Business Model** - Choose the best fit:
+   - "retail"
+   - "product_brand"
+   - "saas_ai_platform"
+   - "services"
+   - "media_education"
+   - "mixed"
 
 IMPORTANT NOTES:
 - Extract EXACTLY what's on the page - don't invent information
@@ -654,6 +701,7 @@ IMPORTANT NOTES:
 - The website may have limited About Us content - extract what IS present
 - Focus on factual company information, not marketing fluff or placeholders
 - Pay special attention to About Us / Our Story sections for brand story elements
+- Cannabis technology, AI, social equity, services, and product-brand businesses are all valid outcomes
 
 Return ONLY a valid JSON object (no markdown formatting):
 {
@@ -669,6 +717,8 @@ Return ONLY a valid JSON object (no markdown formatting):
   },
   "city": "City name or null",
   "state": "Full state name or null",
+  "organizationType": "dispensary|cannabis_brand|technology_platform|agency_service|community_organization|other|null",
+  "businessModel": "retail|product_brand|saas_ai_platform|services|media_education|mixed|null",
   "dispensaryType": "recreational" or "medical" or "both" or null
 }`;
 
@@ -676,7 +726,7 @@ Return ONLY a valid JSON object (no markdown formatting):
       const response = await callClaude({
         userMessage: prompt,
         systemPrompt:
-          'You are a cannabis dispensary brand strategist. Extract messaging elements from the provided content and return ONLY valid JSON, no markdown or code blocks.',
+          'You are a cannabis ecosystem brand strategist. Extract messaging elements from the provided content and return ONLY valid JSON, no markdown or code blocks.',
         maxTokens: 2000,
       });
 
@@ -696,15 +746,51 @@ Return ONLY a valid JSON object (no markdown formatting):
       }
 
       const parsed = JSON.parse(jsonStr);
+      const inferenceText = [
+        parsed.brandName,
+        parsed.tagline,
+        parsed.positioning,
+        parsed.missionStatement,
+        website.metadata.title,
+        website.metadata.description,
+        website.content.substring(0, 2000),
+      ].filter(Boolean).join(' ');
+      const explicitOrganizationType = typeof parsed.organizationType === 'string'
+        && ['dispensary', 'cannabis_brand', 'technology_platform', 'agency_service', 'community_organization', 'other']
+          .includes(parsed.organizationType)
+        ? parsed.organizationType
+        : undefined;
+      const explicitBusinessModel = typeof parsed.businessModel === 'string'
+        && ['retail', 'product_brand', 'saas_ai_platform', 'services', 'media_education', 'mixed']
+          .includes(parsed.businessModel)
+        ? parsed.businessModel
+        : undefined;
+      const organizationType =
+        explicitOrganizationType
+        || inferOrganizationTypeFromText(inferenceText);
+      const businessModel =
+        explicitBusinessModel
+        || inferBusinessModelFromText(inferenceText, organizationType);
+      const normalized: Partial<BrandMessaging> = {
+        ...parsed,
+        brandName: cleanExtractedValue(parsed.brandName) || buildBrandName(undefined, website.metadata.title, website.url),
+        tagline: cleanExtractedValue(parsed.tagline),
+        positioning: cleanExtractedValue(parsed.positioning) || website.metadata.description || '',
+        organizationType,
+        businessModel,
+        dispensaryType: organizationType === 'dispensary'
+          ? parsed.dispensaryType || undefined
+          : undefined,
+      };
 
       // Validate that we got meaningful data (not all nulls)
-      const hasData = parsed.brandName || parsed.positioning || parsed.tagline || parsed.missionStatement;
+      const hasData = normalized.brandName || normalized.positioning || normalized.tagline || normalized.missionStatement;
       if (!hasData) {
         logger.warn('Extracted messaging has no meaningful data', { url: website.url, parsed });
         return this.createFallbackMessaging(website);
       }
 
-      return parsed;
+      return normalized;
     } catch (error) {
       logger.error('Messaging extraction failed', { error, url: website.url });
       return this.createFallbackMessaging(website);
@@ -761,12 +847,33 @@ Return ONLY a valid JSON object (no markdown formatting):
     const paragraphs = content
       .split('\n\n')
       .map((p) => p.trim())
-      .filter((p) => p.length > 50 && p.length < 500) // Meaningful paragraphs
+      .filter((p) => p.length > 50 && p.length < 700) // Meaningful paragraphs
       .filter((p) => !p.startsWith('#')) // Skip headers
       .filter((p) => !p.includes('©')) // Skip copyright
       .filter((p) => !p.includes('http')); // Skip URLs
 
-    return paragraphs.slice(0, 30); // Limit to 30 samples (more subpage content now)
+    if (paragraphs.length >= 8) {
+      return paragraphs.slice(0, 30);
+    }
+
+    const sentenceChunks = content
+      .replace(/\s+/g, ' ')
+      .split(/(?<=[.!?])\s+/)
+      .reduce<string[]>((chunks, sentence) => {
+        const trimmed = sentence.trim();
+        if (trimmed.length < 20) return chunks;
+        const current = chunks[chunks.length - 1];
+        if (!current || current.length > 350) {
+          chunks.push(trimmed);
+        } else {
+          chunks[chunks.length - 1] = `${current} ${trimmed}`;
+        }
+        return chunks;
+      }, [])
+      .filter((chunk) => chunk.length > 60 && chunk.length < 700)
+      .filter((chunk) => !chunk.includes('http'));
+
+    return [...paragraphs, ...sentenceChunks].slice(0, 30);
   }
 
   /**
@@ -881,7 +988,22 @@ Return ONLY a valid JSON object (no markdown formatting):
   private createFallbackVisualIdentity(
     website: WebsiteAnalysis
   ): Partial<BrandVisualIdentity> {
-    const colors = website.colors.length > 0 ? website.colors : ['#2D5016', '#C9A05F'];
+    const contextText = [
+      website.metadata.title,
+      website.metadata.description,
+      website.content.substring(0, 2000),
+    ].filter(Boolean).join(' ');
+    const organizationType = inferOrganizationTypeFromText(contextText);
+    const businessModel = inferBusinessModelFromText(contextText, organizationType);
+    const colors = website.colors.length > 0
+      ? website.colors
+      : organizationType === 'technology_platform' || businessModel === 'saas_ai_platform'
+        ? ['#102A43', '#38BDF8', '#F59E0B']
+        : organizationType === 'community_organization'
+          ? ['#2C6E49', '#F4A259', '#FAF3DD']
+          : organizationType === 'cannabis_brand' || businessModel === 'product_brand'
+            ? ['#5A3E2B', '#D6A85F', '#F4F1EA']
+            : ['#2D5016', '#C9A05F', '#1A1A1A'];
 
     return {
       logo: {
@@ -960,20 +1082,27 @@ Return ONLY a valid JSON object (no markdown formatting):
    * Create fallback messaging
    */
   private createFallbackMessaging(website: WebsiteAnalysis): Partial<BrandMessaging> {
+    const contextText = [
+      website.metadata.title,
+      website.metadata.description,
+      website.content.substring(0, 2000),
+    ].filter(Boolean).join(' ');
+    const organizationType = inferOrganizationTypeFromText(contextText);
+    const businessModel = inferBusinessModelFromText(contextText, organizationType);
+    const lowerContext = contextText.toLowerCase();
+    const inferredDispensaryType = organizationType === 'dispensary'
+      ? lowerContext.includes('medical') && (lowerContext.includes('adult-use') || lowerContext.includes('recreational'))
+        ? 'both'
+        : lowerContext.includes('medical')
+          ? 'medical'
+          : lowerContext.includes('adult-use') || lowerContext.includes('recreational')
+            ? 'recreational'
+            : undefined
+      : undefined;
     // Extract brand name from title — handles both "Brand - Tagline" and "Page - Brand" patterns.
     // Filters out generic page-name segments (About Us, Home, Verify Age, etc.) and picks the
     // first remaining segment, which is most likely the actual brand name.
-    const GENERIC_PAGE_WORDS = ['home', 'about', 'contact', 'menu', 'products', 'verify', 'welcome', 'shop'];
-    const titleDerivedName = (() => {
-      if (!website.metadata.title) return '';
-      const segments = website.metadata.title.split(/\s*[\|\-–]\s*/);
-      const nonGeneric = segments.find(s => {
-        const lower = s.toLowerCase().trim();
-        return !GENERIC_PAGE_WORDS.some(w => lower.startsWith(w)) && s.trim().length >= 3;
-      });
-      const best = (nonGeneric || segments[0] || '').trim();
-      return best.replace(/\.(com|net|org|io|co|ca|us|biz|info)(\s.*)?$/i, '').trim();
-    })();
+    const titleDerivedName = buildBrandName(undefined, website.metadata.title, website.url);
 
     return {
       brandName: titleDerivedName,
@@ -981,6 +1110,9 @@ Return ONLY a valid JSON object (no markdown formatting):
         ? website.metadata.description.split('.')[0].trim().substring(0, 100)
         : '',
       positioning: website.metadata.description || '',
+      organizationType,
+      businessModel,
+      dispensaryType: inferredDispensaryType,
       valuePropositions: website.metadata.description
         ? [website.metadata.description.substring(0, 150)]
         : [],

@@ -91,6 +91,11 @@ export interface AgentTelemetryEvent {
     lancedbRetrievedCandidateCount?: number;
     lancedbConsumedCandidateCount?: number;
     lancedbFilterSelectivityAvg?: number; // 0.0-1.0
+
+    // Playbook Context
+    playbookId?: string;
+    runId?: string;
+    stageName?: string;
 }
 
 // === Cost Estimation ===
@@ -118,6 +123,9 @@ export async function recordAgentTelemetry(event: AgentTelemetryEvent): Promise<
             _date: event.timestamp.toISOString().split('T')[0], // YYYY-MM-DD for daily aggregation
             _model: event.model,
             _orgId: event.orgId ?? null,
+            _playbookId: event.playbookId ?? null,
+            _runId: event.runId ?? null,
+            _stageName: event.stageName ?? null,
         });
 
         logger.info(`[AgentTelemetry] Recorded: agent=${event.agentName} tools=${event.toolCallCount} tokens=${event.totalTokens} cost=$${event.costEstimateUsd.toFixed(4)} latency=${event.totalLatencyMs}ms`);
@@ -164,6 +172,11 @@ export function buildTelemetryEvent(params: {
     lancedbRetrievedCandidateCount?: number;
     lancedbConsumedCandidateCount?: number;
     lancedbFilterSelectivityAvg?: number; // 0.0-1.0
+
+    // Playbook Context
+    playbookId?: string;
+    runId?: string;
+    stageName?: string;
 }): AgentTelemetryEvent {
     const toolCalls: ToolCallRecord[] = params.toolExecutions.map(t => ({
         name: t.name,
@@ -223,5 +236,8 @@ export function buildTelemetryEvent(params: {
         lancedbRetrievedCandidateCount: params.lancedbRetrievedCandidateCount,
         lancedbConsumedCandidateCount: params.lancedbConsumedCandidateCount,
         lancedbFilterSelectivityAvg: params.lancedbFilterSelectivityAvg,
+        playbookId: params.playbookId,
+        runId: params.runId,
+        stageName: params.stageName,
     };
 }

@@ -40,6 +40,7 @@ import { bigWormAgent } from '@/server/agents/bigworm';
 import { linusAgent } from '@/server/agents/linus';
 import { validateInput, getRiskLevel } from '@/server/security';
 import { logger } from '@/lib/logger';
+import { omitUndefinedDeep } from '@/lib/utils';
 
 const AGENT_MAP = {
     craig: craigAgent,
@@ -499,13 +500,13 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
             (['leo', 'jack', 'linus', 'glenda', 'mike_exec'].includes(finalPersonaId || '')
                 ? 'genius'
                 : (extraOptions?.modelLevel as any)) || 'standard';
-        const resumeOptions = {
+        const resumeOptions = omitUndefinedDeep({
             modelLevel: resolvedModelLevel,
             brandId: resolvedBrandId,
             projectId: extraOptions?.projectId,
             source: extraOptions?.source,
             context: extraOptions?.context,
-        };
+        });
 
         // 2. Generate Job ID
         const jobId = crypto.randomUUID();
@@ -514,7 +515,7 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
         const { getAdminFirestore } = await import('@/firebase/admin');
         const { FieldValue } = await import('firebase-admin/firestore');
         const db = getAdminFirestore();
-        await db.collection('jobs').doc(jobId).set({
+        const jobData = omitUndefinedDeep({
             status: 'pending',
             userId: user.uid,
             userInput: userMessage,
@@ -525,6 +526,7 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
             resumeOptions,
             thoughts: [] // Initialize empty thoughts
         });
+        await db.collection('jobs').doc(jobId).set(jobData);
 
         // 4. Dispatch
         const { dispatchAgentJob } = await import('@/server/jobs/dispatch');
@@ -532,7 +534,7 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
             userId: user.uid,
             userInput: userMessage,
             persona: (finalPersonaId as AgentPersona) || 'puff',
-            options: {
+            options: omitUndefinedDeep({
                 modelLevel: resolvedModelLevel,
                 audioInput: extraOptions?.audioInput,
                 attachments: extraOptions?.attachments,
@@ -540,7 +542,7 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
                 projectId: extraOptions?.projectId, // Pass project context
                 source: extraOptions?.source, // Pass source identifier (e.g., 'inbox')
                 context: extraOptions?.context // Pass additional context
-            },
+            }),
             jobId
         };
 

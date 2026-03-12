@@ -167,6 +167,12 @@ export interface WorkflowExecution {
 
     // Retry tracking
     retryCount?: number;
+
+    // Agentic Workflows Doctrine extensions
+    autonomyLevel?: 1 | 2 | 3 | 4;
+    confidence?: number;
+    artifacts?: string[];           // artifact IDs produced by this execution
+    policyBundleId?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -224,6 +230,17 @@ export interface WorkflowStepResult {
         processedItems: number;
         failedItems: number;
         batchCount: number;
+    };
+
+    // Stage-level telemetry (Agentic Workflows Doctrine)
+    stageTelemetry?: {
+        modelUsed?: string;
+        tokensIn?: number;
+        tokensOut?: number;
+        toolCalls?: number;
+        connectorCalls?: number;
+        warnings?: string[];
+        confidence?: number;
     };
 }
 

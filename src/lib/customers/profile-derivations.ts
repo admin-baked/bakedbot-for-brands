@@ -17,6 +17,16 @@ export interface CustomerIdentityInput {
     fallbackId?: string | null;
 }
 
+export interface AlleavesCustomerIdentity {
+    displayName?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    birthDate?: string | null;
+    loyaltyPoints?: number | null;
+}
+
 export interface DerivedCustomerTagInput {
     segment?: string | null;
     tier?: string | null;
@@ -51,9 +61,130 @@ function getFirstMeaningfulValue(values: Array<string | null | undefined>): stri
     return null;
 }
 
+function isSyntheticCustomerToken(value: string): boolean {
+    return /^(alleaves|customer|cid)[_-]\d+$/i.test(value);
+}
+
+export function isPlaceholderCustomerEmail(value: string | null | undefined): boolean {
+    const normalized = normalizeValue(value).toLowerCase();
+    if (!normalized) {
+        return false;
+    }
+
+    const atIndex = normalized.lastIndexOf('@');
+    if (atIndex <= 0) {
+        return false;
+    }
+
+    const localPart = normalized.slice(0, atIndex);
+    const domain = normalized.slice(atIndex + 1);
+
+    if (domain === 'unknown.local') {
+        return true;
+    }
+
+    return domain === 'alleaves.local' && isSyntheticCustomerToken(localPart);
+}
+
+export function isPlaceholderCustomerIdentity(
+    value: string | null | undefined,
+    input?: Pick<CustomerIdentityInput, 'email' | 'fallbackId'>,
+): boolean {
+    const normalized = normalizeValue(value);
+    if (!normalized) {
+        return false;
+    }
+
+    const lower = normalized.toLowerCase();
+    if (lower === 'unknown' || lower === 'unknown customer' || lower === 'customer') {
+        return true;
+    }
+
+    if (isSyntheticCustomerToken(normalized)) {
+        return true;
+    }
+
+    const fallbackId = normalizeValue(input?.fallbackId).toLowerCase();
+    if (fallbackId && lower === fallbackId) {
+        return true;
+    }
+
+    const email = normalizeValue(input?.email).toLowerCase();
+    if (email && lower === email) {
+        return true;
+    }
+
+    if (email && isPlaceholderCustomerEmail(email)) {
+        const localPart = email.split('@')[0];
+        if (lower === localPart) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function getRecordStringValue(record: Record<string, unknown>, keys: string[]): string | null {
+    const nestedCustomer = record.customer;
+    const sources: Record<string, unknown>[] = [record];
+
+    if (nestedCustomer && typeof nestedCustomer === 'object' && !Array.isArray(nestedCustomer)) {
+        sources.push(nestedCustomer as Record<string, unknown>);
+    }
+
+    for (const source of sources) {
+        for (const key of keys) {
+            const value = source[key];
+            if (typeof value === 'string' && value.trim()) {
+                return value.trim();
+            }
+        }
+    }
+
+    return null;
+}
+
+function getRecordNumberValue(record: Record<string, unknown>, keys: string[]): number | null {
+    const nestedCustomer = record.customer;
+    const sources: Record<string, unknown>[] = [record];
+
+    if (nestedCustomer && typeof nestedCustomer === 'object' && !Array.isArray(nestedCustomer)) {
+        sources.push(nestedCustomer as Record<string, unknown>);
+    }
+
+    for (const source of sources) {
+        for (const key of keys) {
+            const rawValue = source[key];
+            if (typeof rawValue === 'number' && Number.isFinite(rawValue)) {
+                return rawValue;
+            }
+            if (typeof rawValue === 'string' && rawValue.trim()) {
+                const parsed = Number(rawValue);
+                if (Number.isFinite(parsed)) {
+                    return parsed;
+                }
+            }
+        }
+    }
+
+    return null;
+}
+
+export function extractAlleavesCustomerIdentity(record: Record<string, unknown>): AlleavesCustomerIdentity {
+    return {
+        displayName: getRecordStringValue(record, ['customer_name', 'name', 'full_name']),
+        firstName: getRecordStringValue(record, ['name_first', 'first_name', 'customer_first_name']),
+        lastName: getRecordStringValue(record, ['name_last', 'last_name', 'customer_last_name']),
+        email: getRecordStringValue(record, ['email', 'customer_email']),
+        phone: getRecordStringValue(record, ['phone', 'customer_phone']),
+        birthDate: getRecordStringValue(record, ['date_of_birth', 'birthday']),
+        loyaltyPoints: getRecordNumberValue(record, ['loyalty_points']),
+    };
+}
+
 export function resolveCustomerDisplayName(input: CustomerIdentityInput): string {
     const displayName = normalizeValue(input.displayName);
-    if (displayName) {
+    if (displayName && !isPlaceholderCustomerIdentity(displayName, input)) {
         return displayName;
     }
 
@@ -70,7 +201,7 @@ export function resolveCustomerDisplayName(input: CustomerIdentityInput): string
         return firstName;
     }
 
-    return getFirstMeaningfulValue([input.email, input.fallbackId]) ?? 'Unknown Customer';
+    return getFirstMeaningfulValue([displayName, input.email, input.fallbackId]) ?? 'Unknown Customer';
 }
 
 export function buildAutoCustomerTags(input: DerivedCustomerTagInput): string[] {

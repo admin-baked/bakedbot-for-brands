@@ -5,6 +5,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import type { AgentPersona } from '@/app/dashboard/ceo/agents/personas';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
+import { omitUndefinedDeep } from '@/lib/utils';
 import { runAgentCore } from '@/server/agents/agent-runner';
 import { requireUser } from '@/server/auth/auth';
 import { dispatchAgentJob, type AgentJobPayload } from '@/server/jobs/dispatch';
@@ -48,7 +49,7 @@ function buildResumePayload(
         userInput: sourceJob.userInput,
         persona: sourceJob.persona,
         jobId: crypto.randomUUID(),
-        options: {
+        options: omitUndefinedDeep({
             modelLevel: (sourceJob.resumeOptions?.modelLevel as AgentJobPayload['options']['modelLevel']) || 'standard',
             brandId,
             projectId: sourceJob.resumeOptions?.projectId,
@@ -58,7 +59,7 @@ function buildResumePayload(
                 approvedApprovalId: approvalId,
                 resumeFromJobId: sourceJobId,
             },
-        },
+        }),
     };
 }
 
@@ -88,7 +89,15 @@ async function launchResumeJob(
     const db = getAdminFirestore();
     const payload = buildResumePayload(sourceJob, approvalId, sourceJobId);
 
-    await db.collection('jobs').doc(payload.jobId).set({
+    const resumeOptions = omitUndefinedDeep({
+        modelLevel: payload.options.modelLevel,
+        brandId: payload.options.brandId || null,
+        projectId: payload.options.projectId,
+        source: payload.options.source,
+        context: payload.options.context,
+    });
+
+    await db.collection('jobs').doc(payload.jobId).set(omitUndefinedDeep({
         status: 'pending',
         userId: sourceJob.userId,
         userInput: sourceJob.userInput,
@@ -96,17 +105,11 @@ async function launchResumeJob(
         updatedAt: FieldValue.serverTimestamp(),
         persona: sourceJob.persona,
         brandId: payload.options.brandId || null,
-        resumeOptions: {
-            modelLevel: payload.options.modelLevel,
-            brandId: payload.options.brandId || null,
-            projectId: payload.options.projectId,
-            source: payload.options.source,
-            context: payload.options.context,
-        },
+        resumeOptions,
         resumedFromJobId: sourceJobId,
         approvedApprovalId: approvalId,
         thoughts: [],
-    });
+    }));
 
     const isDevelopment = process.env.NODE_ENV === 'development';
     let dispatch: Awaited<ReturnType<typeof dispatchAgentJob>> = isDevelopment

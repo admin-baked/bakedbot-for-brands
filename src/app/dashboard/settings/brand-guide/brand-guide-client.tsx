@@ -22,7 +22,6 @@ import {
   History,
   Download,
   Share2,
-  Sparkles,
   FileText,
   TrendingUp,
   Search,
@@ -49,7 +48,6 @@ import { VersionHistoryTab } from './components/version-history-tab';
 import { ExportTab } from './components/export-tab';
 import { CompetitorAnalysisTab } from './components/competitor-analysis-tab';
 import { ABTestingTab } from './components/ab-testing-tab';
-import { CreateBrandGuideDialog } from './components/create-brand-guide-dialog';
 import {
   Step1Dialog,
   Step2Dialog,
@@ -58,17 +56,26 @@ import {
   Step5Dialog,
   Step6Dialog,
   Step7Dialog,
+  type Step1Data,
   type Step5Data,
   type Step6Data,
   type Step7Data,
 } from './components/setup-step-dialogs';
-import { extractBrandGuideFromUrl, createBrandGuide } from '@/server/actions/brand-guide';
+import { extractBrandGuideFromUrl } from '@/server/actions/brand-guide';
 import { mirrorBrandAssetFromUrl } from '@/server/actions/brand-assets';
 import { generateBrandImagesForNewAccount } from '@/server/actions/brand-images';
 import { createOrgProfileFromWizard } from '@/server/actions/org-profile';
 import { createBrandGuideViaApi } from './create-brand-guide-client';
 import type { OrgProfile } from '@/types/org-profile';
 import { useToast } from '@/hooks/use-toast';
+import {
+  buildOrganizationDescriptor,
+  formatBusinessModelLabel,
+  formatOrganizationTypeLabel,
+  inferBusinessModelFromText,
+  inferOrganizationTypeFromText,
+  isRetailCannabisOrganization,
+} from '@/lib/brand-guide-utils';
 
 interface BrandGuideClientProps {
   brandId: string;
@@ -286,6 +293,112 @@ interface BrandGuideOnboardingProps {
   onComplete: (brandGuide: BrandGuide) => void;
 }
 
+const ORGANIZATION_TYPE_VALUES = [
+  'dispensary',
+  'cannabis_brand',
+  'technology_platform',
+  'agency_service',
+  'community_organization',
+  'other',
+] as const;
+
+const BUSINESS_MODEL_VALUES = [
+  'retail',
+  'product_brand',
+  'saas_ai_platform',
+  'services',
+  'media_education',
+  'mixed',
+] as const;
+
+const DISPENSARY_TYPE_VALUES = ['recreational', 'medical', 'both'] as const;
+
+function normalizeOrganizationType(value: unknown): Step1Data['organizationType'] {
+  return typeof value === 'string'
+    && ORGANIZATION_TYPE_VALUES.includes(value as typeof ORGANIZATION_TYPE_VALUES[number])
+    ? value as Step1Data['organizationType']
+    : undefined;
+}
+
+function normalizeBusinessModel(value: unknown): Step1Data['businessModel'] {
+  return typeof value === 'string'
+    && BUSINESS_MODEL_VALUES.includes(value as typeof BUSINESS_MODEL_VALUES[number])
+    ? value as Step1Data['businessModel']
+    : undefined;
+}
+
+function normalizeDispensaryType(value: unknown): Step1Data['dispensaryType'] {
+  return typeof value === 'string'
+    && DISPENSARY_TYPE_VALUES.includes(value as typeof DISPENSARY_TYPE_VALUES[number])
+    ? value as Step1Data['dispensaryType']
+    : undefined;
+}
+
+function getVoiceDefaultsForStep1(
+  data: Partial<Step1Data>
+): { tone: string[]; personality: string[] } | null {
+  if (data.organizationType === 'technology_platform' || data.businessModel === 'saas_ai_platform') {
+    return {
+      tone: ['Professional', 'Educational'],
+      personality: ['Innovative', 'Trustworthy'],
+    };
+  }
+
+  if (data.organizationType === 'agency_service' || data.businessModel === 'services') {
+    return {
+      tone: ['Professional', 'Casual'],
+      personality: ['Trustworthy', 'Empowering'],
+    };
+  }
+
+  if (data.organizationType === 'community_organization') {
+    return {
+      tone: ['Educational', 'Empathetic'],
+      personality: ['Authentic', 'Empowering'],
+    };
+  }
+
+  if (data.organizationType === 'cannabis_brand' || data.businessModel === 'product_brand') {
+    return {
+      tone: ['Sophisticated', 'Playful'],
+      personality: ['Authentic', 'Friendly'],
+    };
+  }
+
+  if (data.dispensaryType === 'medical') {
+    return {
+      tone: ['Professional', 'Educational'],
+      personality: ['Trustworthy', 'Empathetic'],
+    };
+  }
+
+  if (data.dispensaryType === 'both') {
+    return {
+      tone: ['Professional', 'Casual'],
+      personality: ['Friendly', 'Trustworthy'],
+    };
+  }
+
+  if (data.organizationType === 'dispensary' || data.dispensaryType === 'recreational') {
+    return {
+      tone: ['Casual', 'Playful'],
+      personality: ['Friendly', 'Authentic'],
+    };
+  }
+
+  return null;
+}
+
+function getPreviewActionLabel(data: Partial<Step1Data> | null): string {
+  if (!data) return 'Learn More';
+  if (data.organizationType === 'technology_platform' || data.businessModel === 'saas_ai_platform') return 'Book Demo';
+  if (data.organizationType === 'agency_service' || data.businessModel === 'services') return 'Start a Project';
+  if (data.organizationType === 'community_organization' || data.businessModel === 'media_education') return 'Learn More';
+  if (data.organizationType === 'cannabis_brand' || data.businessModel === 'product_brand') return 'Explore Brand';
+  if (data.organizationType === 'dispensary') return 'Visit Menu';
+  return 'Learn More';
+}
+
 function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps) {
   const { toast } = useToast();
   const [websiteUrl, setWebsiteUrl] = useState('');
@@ -294,7 +407,7 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
   const [suggestedCompetitors, setSuggestedCompetitors] = useState<BrandGuideCompetitorSuggestion[]>([]);
 
   // Collected data from steps
-  const [step1Data, setStep1Data] = useState<any>(null);
+  const [step1Data, setStep1Data] = useState<Step1Data | null>(null);
   const [step2Data, setStep2Data] = useState<any>(null);
   const [step3Data, setStep3Data] = useState<any>(null);
   const [step4Data, setStep4Data] = useState<any>(null);
@@ -306,7 +419,7 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
     {
       id: 1,
       icon: PenSquare,
-      title: 'Write Brand Name & Description',
+      title: 'Define Brand Basics',
       subtitle: 'Step 1 • Required',
       color: 'text-gray-500 group-hover:text-baked-green',
       completed: !!step1Data,
@@ -389,7 +502,7 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
 
       // Step 1 — derive brand name from extracted data, website title, or URL domain
       // Priority: AI-extracted brandName → website page title → URL domain fallback
-      const aiExtractedBrandName = (result as any).messaging?.brandName;
+      const extractedMessaging = (result as any).messaging ?? {};
       const websiteTitle: string | undefined = (result as any).websiteTitle;
       // Smarter title-to-brand-name derivation:
       // Handles "About Us - Thrive Syracuse" → "Thrive Syracuse"
@@ -442,13 +555,28 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
         return value;
       };
 
+      const contextText = [
+        websiteTitle,
+        result.metadata?.description,
+        extractedMessaging.positioning,
+        extractedMessaging.missionStatement,
+        extractedMessaging.valuePropositions?.join(' '),
+      ].filter(Boolean).join(' ');
+      const organizationType =
+        normalizeOrganizationType(extractedMessaging.organizationType)
+        || inferOrganizationTypeFromText(contextText);
+      const businessModel =
+        normalizeBusinessModel(extractedMessaging.businessModel)
+        || inferBusinessModelFromText(contextText, organizationType);
+      const dispensaryType =
+        normalizeDispensaryType(extractedMessaging.dispensaryType);
+
       // Clean AI-extracted brand name, falling back to title or domain (only if slug had separators)
       const extractedBrandName: string =
-        cleanExtractedValue(aiExtractedBrandName) || titleDerivedName || domainFallback;
+        cleanExtractedValue(extractedMessaging.brandName) || titleDerivedName || domainFallback;
 
       // Only pre-fill if the user hasn't already completed step 1
       if (!step1Data) {
-        const extractedMessaging = (result as any).messaging ?? {};
         setStep1Data({
           brandName: extractedBrandName,
           // Fallback chain: positioning (clearest) → valuePropositions[0] → metadata.description
@@ -458,20 +586,21 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
             cleanExtractedValue((result as any).metadata?.description) ||
             '',
           tagline: cleanExtractedValue(extractedMessaging.tagline),
+          organizationType,
+          businessModel,
           // Location + dispensary type — now extracted from the AI prompt
           city: cleanExtractedValue(extractedMessaging.city) || undefined,
           state: cleanExtractedValue(extractedMessaging.state) || undefined,
-          dispensaryType: (['recreational', 'medical', 'both'].includes(extractedMessaging.dispensaryType)
-            ? extractedMessaging.dispensaryType
-            : undefined) as 'recreational' | 'medical' | 'both' | undefined,
+          dispensaryType,
         });
       }
 
       // Step 2 — visual identity + logo preview from OG image / favicon
       if (result.visualIdentity) {
         const detectedLogo = result.visualIdentity.logo?.primary;
+        const shouldUseProductImage = isRetailCannabisOrganization(organizationType, dispensaryType);
         const detectedFeaturedImage =
-          (result as any).featuredProductImage ||   // Flower product from live menu (most relevant for dispensaries)
+          (shouldUseProductImage ? (result as any).featuredProductImage : undefined) ||
           (result as any).metadata?.ogImage ||
           (result as any).metadata?.image ||
           result.visualIdentity.logo?.secondary ||
@@ -548,6 +677,26 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
 
       const persistedLogoUrl = await mirrorCandidate(step2Data.logoUrl, 'logo');
       const persistedFeaturedImageUrl = await mirrorCandidate(step2Data.featuredImageUrl, 'image');
+      const organizationIsRetail = isRetailCannabisOrganization(
+        step1Data.organizationType,
+        step1Data.dispensaryType
+      );
+      const manualMessaging = {
+        brandName: step1Data.brandName,
+        tagline: step1Data.tagline || '',
+        positioning: step1Data.description,
+        missionStatement: '',
+        valuePropositions: [],
+        keyMessages: [],
+        organizationType: step1Data.organizationType,
+        businessModel: step1Data.businessModel,
+        city: step1Data.city,
+        state: step1Data.state,
+        dispensaryType: step1Data.dispensaryType,
+        targetAudience: step4Data?.targetAudience
+          ? { primary: step4Data.targetAudience }
+          : undefined,
+      };
 
       // Create brand guide with collected data
       const result = await createBrandGuideViaApi({
@@ -556,16 +705,7 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
         method: 'manual',
         initialData: {
           brandName: step1Data.brandName,
-          // Location + dispensary type stored as metadata for AI content generation
-          ...(step1Data.city || step1Data.state || step1Data.dispensaryType
-            ? {
-                metadata: {
-                  city: step1Data.city,
-                  state: step1Data.state,
-                  dispensaryType: step1Data.dispensaryType,
-                },
-              }
-            : {}),
+          messaging: manualMessaging as any,
           visualIdentity: {
             colors: {
               primary: {
@@ -588,8 +728,12 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
               : undefined,
             imagery: persistedFeaturedImageUrl
               ? {
-                  style: ['Product-forward', 'Menu-ready'],
-                  mood: ['Inviting', 'Community-focused'],
+                  style: organizationIsRetail
+                    ? ['Product-forward', 'Menu-ready']
+                    : ['Editorial', 'Campaign-ready'],
+                  mood: organizationIsRetail
+                    ? ['Inviting', 'Community-focused']
+                    : ['Modern', 'Confident'],
                   examples: [persistedFeaturedImageUrl],
                 }
               : undefined,
@@ -600,10 +744,6 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
             doWrite: step3Data.doWrite,
             dontWrite: step3Data.dontWrite,
           } as any,
-          // Messaging from tagline (if provided)
-          ...(step1Data.tagline
-            ? { messaging: { tagline: step1Data.tagline } as any }
-            : {}),
         },
       });
 
@@ -620,6 +760,8 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
           tagline: step1Data.tagline,
           city: step1Data.city,
           state: step1Data.state,
+          organizationType: step1Data.organizationType,
+          businessModel: step1Data.businessModel,
           dispensaryType: step1Data.dispensaryType,
           instagramHandle: step4Data?.instagramHandle,
           facebookHandle: step4Data?.facebookHandle,
@@ -638,8 +780,12 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
             doWrite: step3Data?.doWrite || [],
             dontWrite: step3Data?.dontWrite || [],
           },
-          messaging: { tagline: step1Data.tagline },
-          compliance: { state: step1Data.state },
+          messaging: {
+            tagline: step1Data.tagline,
+            positioning: step1Data.description,
+            keyMessages: step4Data?.targetAudience ? [step4Data.targetAudience] : [],
+          },
+          compliance: step1Data.state ? { state: step1Data.state } : {},
         };
         const intentData: OrgProfile['intent'] = {
           strategicFoundation: {
@@ -725,7 +871,7 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
               <div>
                 <h2 className="text-lg font-bold text-gray-800">Import from Website</h2>
                 <p className="text-sm text-gray-500">
-                  Fast-track setup by scanning your landing page.
+                  Fast-track setup by scanning your website, company pages, and public brand content.
                 </p>
               </div>
             </div>
@@ -868,26 +1014,35 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
 
               {/* Preview Content */}
               <div className="p-6">
-                {/* Instagram-ready Preview Card */}
+                {/* Brand-ready Preview Card */}
                 {(() => {
                   const brandColor = step2Data?.primaryColor || '#1a2e1a';
                   const accentColor = step2Data?.secondaryColor || step2Data?.primaryColor || '#4ade80';
                   const logoUrl = step2Data?.logoUrl || step2Data?.logoPreviewUrl;
                   const featuredImageUrl = step2Data?.featuredImageUrl;
-                  const tagline = step1Data?.tagline || 'Where Community Comes First';
+                  const tagline = step1Data?.tagline || 'Technology Built for Cannabis Growth';
                   const shortDesc = step1Data?.description
                     ? step1Data.description.length > 90
                       ? step1Data.description.substring(0, 90).trimEnd() + '…'
                       : step1Data.description
-                    : 'Premium cannabis products. Community first.';
+                    : 'AI workflows, market intelligence, and brand systems built for modern cannabis teams.';
                   const city = step1Data?.city;
                   const state = step1Data?.state;
                   const locationLine = city && state ? `${city}, ${state}` : city || state || null;
-                  const typeLabel =
-                    step1Data?.dispensaryType === 'recreational' ? 'Adult-Use Cannabis' :
-                    step1Data?.dispensaryType === 'medical' ? 'Medical Dispensary' :
-                    step1Data?.dispensaryType === 'both' ? 'Rec + Medical' :
-                    'Cannabis Dispensary';
+                  const organizationLabel = step1Data?.organizationType
+                    ? formatOrganizationTypeLabel(step1Data.organizationType)
+                    : 'Cannabis Organization';
+                  const businessModelLabel = step1Data?.businessModel
+                    ? formatBusinessModelLabel(step1Data.businessModel)
+                    : '';
+                  const descriptor = step1Data ? buildOrganizationDescriptor({
+                    organizationType: step1Data.organizationType,
+                    businessModel: step1Data.businessModel,
+                    dispensaryType: step1Data.dispensaryType,
+                    city: step1Data.city,
+                    state: step1Data.state,
+                  }) : '';
+                  const ctaLabel = getPreviewActionLabel(step1Data);
 
                   return (
                     <div
@@ -903,7 +1058,7 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
                         <div className="absolute bottom-0 left-0 w-40 h-40 rounded-full blur-[60px] opacity-10 bg-white" />
                       </div>
 
-                      {/* Top bar: Logo + IG badge */}
+                      {/* Top bar: Logo + ready badge */}
                       <div className="relative z-10 flex items-start justify-between p-6 pb-0">
                         {logoUrl ? (
                           <img
@@ -918,16 +1073,16 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
                           </span>
                         )}
                         <div className="flex items-center gap-1 bg-white/10 backdrop-blur-sm px-2.5 py-1 rounded-full">
-                          <span className="text-white text-[10px] font-semibold tracking-wide">📸 IG Ready</span>
+                          <span className="text-white text-[10px] font-semibold tracking-wide">Campaign Ready</span>
                         </div>
                       </div>
 
-                      {/* Featured product image */}
+                      {/* Featured image */}
                       {featuredImageUrl && (
                         <div className="relative z-10 px-6 pt-3">
                           <img
                             src={featuredImageUrl}
-                            alt="Featured product"
+                            alt="Featured brand visual"
                             className="w-full h-28 rounded-xl object-cover border border-white/20"
                           />
                         </div>
@@ -938,14 +1093,19 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
 
                       {/* Bottom content */}
                       <div className="relative z-10 p-6 pt-0 space-y-3">
-                        {/* Dispensary type + location pill */}
+                        {/* Organization context pills */}
                         <div className="flex items-center gap-2 flex-wrap">
                           <span
                             className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full"
                             style={{ backgroundColor: `${accentColor}33`, color: accentColor }}
                           >
-                            {typeLabel}
+                            {organizationLabel}
                           </span>
+                          {businessModelLabel && (
+                            <span className="text-white/70 text-[10px] uppercase tracking-widest px-2.5 py-1 rounded-full border border-white/15">
+                              {businessModelLabel}
+                            </span>
+                          )}
                           {locationLine && (
                             <span className="text-white/50 text-[10px] uppercase tracking-wider">
                               📍 {locationLine}
@@ -954,6 +1114,12 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
                         </div>
 
                         {/* Headline — tagline only, sized to fit */}
+                        {descriptor && (
+                          <p className="text-white/55 text-[10px] uppercase tracking-[0.2em]">
+                            {descriptor}
+                          </p>
+                        )}
+
                         <h4
                           className="text-white font-black leading-[1.05] uppercase tracking-tight"
                           style={{ fontSize: tagline.length > 30 ? '1.35rem' : tagline.length > 20 ? '1.6rem' : '1.9rem' }}
@@ -972,7 +1138,7 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
                             className="inline-block px-5 py-2 font-black text-xs uppercase tracking-widest rounded-sm"
                             style={{ backgroundColor: accentColor, color: brandColor }}
                           >
-                            Shop Now
+                            {ctaLabel}
                           </div>
                         </div>
                       </div>
@@ -987,8 +1153,8 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
                   <Info className="w-5 h-5 text-baked-green mt-0.5 flex-shrink-0" />
                   <p className="text-sm text-green-800 leading-relaxed">
                     Completing your brand guide helps BakedBot's AI generate{' '}
-                    <strong>higher-converting</strong> copy and visuals tailored exactly to
-                    your business.
+                    <strong>sharper</strong> campaigns, website copy, sales enablement, and visuals tailored to
+                    your actual business model.
                   </p>
                 </div>
               </div>
@@ -1024,13 +1190,8 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
         onComplete={(data) => {
           setStep1Data(data);
           // Smart voice defaults based on dispensaryType — only if Step3 not yet filled
-          if (!step3Data && data.dispensaryType) {
-            const voiceDefaults: Record<string, { tone: string[]; personality: string[] }> = {
-              medical: { tone: ['Professional', 'Educational'], personality: ['Trustworthy', 'Empathetic'] },
-              recreational: { tone: ['Casual', 'Playful'], personality: ['Friendly', 'Authentic'] },
-              both: { tone: ['Professional', 'Casual'], personality: ['Friendly', 'Trustworthy'] },
-            };
-            const defaults = voiceDefaults[data.dispensaryType];
+          if (!step3Data) {
+            const defaults = getVoiceDefaultsForStep1(data);
             if (defaults) {
               setStep3Data({ tone: defaults.tone, personality: defaults.personality, doWrite: [], dontWrite: [] });
             }
@@ -1060,6 +1221,7 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
         open={currentStep === 4}
         onOpenChange={(open) => !open && setCurrentStep(null)}
         initialData={step4Data || undefined}
+        brandContext={step1Data || undefined}
         onComplete={(data) => {
           setStep4Data(data);
           setCurrentStep(null);

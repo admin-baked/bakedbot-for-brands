@@ -13,6 +13,9 @@
 
 import type { BrandGuide, BrandVoice, BrandMessaging } from '@/types/brand-guide';
 import { BRAND_ARCHETYPES } from '@/constants/brand-archetypes';
+import {
+    buildOrganizationDescriptor,
+} from '@/lib/brand-guide-utils';
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -123,10 +126,14 @@ function buildMessagingSection(messaging: Partial<BrandMessaging> | undefined): 
         lines.push(`Differentiators: ${messaging.brandStory.differentiators.slice(0, 3).join('; ')}`);
     }
 
-    const dispensaryType = (messaging as any).dispensaryType;
-    const location = [(messaging as any).city, (messaging as any).state].filter(Boolean).join(', ');
-    if (dispensaryType) lines.push(`Type: ${dispensaryType} dispensary${location ? ` in ${location}` : ''}`);
-    else if (location) lines.push(`Location: ${location}`);
+    const descriptor = buildOrganizationDescriptor({
+        organizationType: messaging.organizationType,
+        businessModel: messaging.businessModel,
+        dispensaryType: messaging.dispensaryType,
+        city: messaging.city,
+        state: messaging.state,
+    });
+    if (descriptor) lines.push(`Organization: ${descriptor}`);
 
     if (messaging.doNotSay?.length) {
         lines.push(`Never say: ${messaging.doNotSay.slice(0, 5).join(', ')}`);

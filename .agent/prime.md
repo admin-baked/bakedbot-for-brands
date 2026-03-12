@@ -19,7 +19,10 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** Targeted outreach tests passing; full repo typecheck timed out locally (verified 2026-03-11)
+**Current Status:** Gmail-first email path restored; full repo typecheck passing (verified 2026-03-12)
+
+## Session 2026-03-12 (Gmail tool send restored)
+- **Connected Gmail dispatch restored** (`30505c5a3`, `3222c9933`): confirmed SendGrid fallback was still failing live sends, enabled `gmail.googleapis.com` on `studio-567050101-bc6e8`, replaced the brittle Gmail send path with direct Gmail REST bearer auth, normalized refresh-token persistence, and verified `sendGenericEmail()` succeeds with Mailjet/SendGrid disabled
 
 ## Session 2026-03-11 (CRM outreach gap fixed + MI/IL expansion)
 - **Multi-state outreach deployed** (`8cf0a4b53`): synced `crm_dispensaries` into the outreach queue, hardened dashboard partial-load behavior + Gmail token status, added missing outreach indexes, and expanded proactive outreach from NY-only to CRM-first NY/MI/IL with queue enrichment + updated CEO copy/templates
@@ -270,8 +273,8 @@ Do NOT wait for the user to say "P1" or "file a bug first" — triage, file, and
 
 ---
 
-**Recent work (2026-03-11):** See `MEMORY.md` for full log.
-Key completed: [CRM-first outreach queue sync + NY/MI/IL expansion] (`8cf0a4b53`)
+**Recent work (2026-03-12):** See `MEMORY.md` for full log.
+Key completed: [Gmail tool send restore] (`30505c5a3`), [Gmail token refresh normalization] (`3222c9933`)
 
 ---
 
@@ -358,17 +361,6 @@ node scripts/promote-super-user-by-email.mjs <EMAIL>
 
 | System | Status | Key Ref | Production Spec |
 |--------|--------|---------|----------------|
-| Alleaves POS (Thrive) | ✅ 95% data capture | `refs/alleaves-pos.md` | `specs/tier1-pos-menu-sync.md` |
-| BakedBot Drive (viewer/editor/AI) | ✅ Live | `src/components/drive/` | — |
-| NY OCM Delivery System | ✅ 6 phases | `refs/delivery-system.md` | — |
-| Slack Agent Integration | ✅ 14 channels | `memory/slack.md` | — |
-| Heartbeat + Auto-recovery | ✅ 99.9% uptime | `memory/platform.md` | — |
-| Playbook Engine (23 playbooks) | ✅ Empire tier live | `memory/playbooks.md` | — |
-| Super User Agent Tools (28) | ✅ All wired | `refs/super-user-agent-tools.md` | — |
-| Vibe Builder | ✅ + 150 tests | `refs/vibe-builder-spec.md` | — |
-| Billing (Phases 1-10) | ✅ Tests passing | `refs/` (various) | `specs/tier1-billing.md` |
-| Creative Studio (Canva-style) | ✅ 3-panel layout | `src/app/dashboard/creative/` | — |
-| Help Center (50 articles) | ✅ Feb 2026 | `src/app/help/` | — |
 | Campaign System (Craig) | ✅ SMS+Email+Deebo gate | `refs/agents/behavioral-agents.md` | `specs/tier1-campaign-system.md` |
 | Compliance (Deebo) | ✅ NY/CA/IL rules + monitor | `refs/agents/behavioral-agents.md` | `specs/tier1-compliance-deebo.md` |
 | Public Menu Pages | ✅ Brand + Dispensary + ISR | `refs/pages-brand.md` | `specs/tier1-public-menu-pages.md` |

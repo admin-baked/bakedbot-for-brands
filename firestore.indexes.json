@@ -148,6 +148,54 @@
             ]
         },
         {
+            "collectionGroup": "products",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "__name__",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "embedding",
+                    "vectorConfig": {
+                        "dimension": 768,
+                        "flat": {}
+                    }
+                }
+            ]
+        },
+        {
+            "collectionGroup": "productReviewEmbeddings",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "__name__",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "embedding",
+                    "vectorConfig": {
+                        "dimension": 768,
+                        "flat": {}
+                    }
+                }
+            ]
+        },
+        {
+            "collectionGroup": "sync_status",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "brandId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "startTime",
+                    "order": "DESCENDING"
+                }
+            ]
+        },
+        {
             "collectionGroup": "site_permissions",
             "queryScope": "COLLECTION",
             "fields": [
@@ -1075,6 +1123,20 @@
         },
         {
             "collectionGroup": "playbook_assignments",
+            "queryScope": "COLLECTION_GROUP",
+            "fields": [
+                {
+                    "fieldPath": "orgId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "playbook_assignments",
             "queryScope": "COLLECTION",
             "fields": [
                 {
@@ -1568,10 +1630,23 @@
             ]
         },
         {
-            "collectionGroup": "agent_telemetry",
+            "collectionGroup": "scheduled_emails",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "timestamp", "order": "DESCENDING" }
+                { "fieldPath": "email", "order": "ASCENDING" },
+                { "fieldPath": "orgId", "order": "ASCENDING" },
+                { "fieldPath": "status", "order": "ASCENDING" },
+                { "fieldPath": "scheduledFor", "order": "ASCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "scheduled_emails",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "email", "order": "ASCENDING" },
+                { "fieldPath": "orgId", "order": "ASCENDING" },
+                { "fieldPath": "status", "order": "ASCENDING" },
+                { "fieldPath": "sendAt", "order": "ASCENDING" }
             ]
         },
         {

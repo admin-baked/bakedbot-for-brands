@@ -1,0 +1,6 @@
+﻿
+> nextn@0.1.0 check:types
+> node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc --noEmit --incremental false
+
+src/server/services/morning-briefing.ts(21,10): error TS2459: Module '"@/server/services/ny-outreach/outreach-service"' declares 'getOutreachStats' locally, but it is not exported.
+src/server/services/ny-outreach/index.ts(8,50): error TS2459: Module '"./outreach-service"' declares 'getOutreachStats' locally, but it is not exported.

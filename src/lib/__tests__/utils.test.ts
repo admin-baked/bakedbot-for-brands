@@ -1,5 +1,5 @@
 
-import { haversineDistance, formatNumber } from '../utils';
+import { formatNumber, haversineDistance, omitUndefinedDeep } from '../utils';
 
 describe('utils library', () => {
 
@@ -49,6 +49,30 @@ describe('utils library', () => {
     it('should not show .0 for whole numbers', () => {
         expect(formatNumber(2000)).toBe('2K');
         expect(formatNumber(3000000)).toBe('3M');
+    });
+  });
+
+  describe('omitUndefinedDeep', () => {
+    it('should recursively remove undefined values from objects and arrays', () => {
+      expect(omitUndefinedDeep({
+        modelLevel: 'standard',
+        projectId: undefined,
+        context: {
+          threadId: 'thread-1',
+          campaignId: undefined,
+        },
+        approvals: [
+          'approved',
+          undefined,
+          'pending',
+        ],
+      })).toEqual({
+        modelLevel: 'standard',
+        context: {
+          threadId: 'thread-1',
+        },
+        approvals: ['approved', 'pending'],
+      });
     });
   });
 });
