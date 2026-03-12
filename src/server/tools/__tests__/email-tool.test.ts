@@ -1,10 +1,10 @@
 
 import { EmailTool } from '../email-tool';
-import { sendGenericEmail } from '@/lib/email/mailjet';
+import { sendGenericEmail } from '@/lib/email/dispatcher';
 import { logger } from '@/lib/logger';
 
 // Mock dependencies
-jest.mock('@/lib/email/mailjet', () => ({
+jest.mock('@/lib/email/dispatcher', () => ({
     sendGenericEmail: jest.fn(),
 }));
 jest.mock('@/lib/logger', () => ({
@@ -25,14 +25,12 @@ describe('EmailTool', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         tool = new EmailTool();
-        process.env.MAILJET_API_KEY = 'test_key';
-        process.env.MAILJET_SECRET_KEY = 'test_secret';
     });
 
     it('should have correct metadata', () => {
         expect(tool.id).toBe('email.send');
         expect(tool.name).toBe('Send Email');
-        expect(tool.description).toContain('Mailjet');
+        expect(tool.description).toContain('connected Gmail');
     });
 
     it('should execute successfully for a single recipient', async () => {
@@ -51,7 +49,8 @@ describe('EmailTool', () => {
         expect(sendGenericEmail).toHaveBeenCalledWith(expect.objectContaining({
             to: 'customer@example.com',
             subject: 'Welcome',
-            textBody: 'Hello World'
+            textBody: 'Hello World',
+            userId: 'user123',
         }));
         expect(result.data?.sent).toBe(true);
         expect(result.data?.recipients).toContain('customer@example.com');
@@ -73,9 +72,9 @@ describe('EmailTool', () => {
         expect(result.data?.recipients).toHaveLength(2);
     });
 
-    it('should throw error if API keys are missing', async () => {
-        delete process.env.MAILJET_API_KEY;
-        
+    it('should fail when all deliveries fail', async () => {
+        (sendGenericEmail as jest.Mock).mockResolvedValue({ success: false, error: 'No provider available' });
+
         const input = {
             to: 'test@test.com',
             subject: 'Fail',
@@ -83,9 +82,9 @@ describe('EmailTool', () => {
         };
 
         const result = await tool.execute(input, mockContext);
-        
+
         expect(result.success).toBe(false);
-        expect(result.error?.message).toContain('not configured');
+        expect(result.error?.message).toContain('Email delivery error');
     });
 
     it('should handle partial failures', async () => {

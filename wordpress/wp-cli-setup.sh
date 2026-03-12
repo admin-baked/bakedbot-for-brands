@@ -3,6 +3,12 @@
 # Runs WordPress file copy + wp-config setup, then installs WP via WP-CLI
 set -e
 
+WP_URL="${WP_HOME:-https://bakedbot.ai/andrewsdevelopments}"
+WP_SITE_TITLE="${WP_SITE_TITLE:-Andrews Developments}"
+WP_ADMIN_USER="${WP_ADMIN_USER:-marcus_admin}"
+WP_ADMIN_EMAIL="${WP_ADMIN_EMAIL:-marcus@andrewsdevelopments.com}"
+WP_ADMIN_PASSWORD="${WP_ADMIN_PASSWORD:-}"
+
 echo "[wp-cli-setup] Starting WordPress file copy..."
 
 # Copy WordPress core files (same logic as docker-entrypoint.sh)
@@ -29,12 +35,17 @@ echo "[wp-cli-setup] Testing database connection..."
 wp db check --allow-root --path=/var/www/html 2>&1 || echo "DB check failed, continuing anyway..."
 
 echo "[wp-cli-setup] Installing WordPress core..."
+if [ -z "${WP_ADMIN_PASSWORD}" ]; then
+  echo "[wp-cli-setup] WP_ADMIN_PASSWORD must be set before installing WordPress." >&2
+  exit 1
+fi
+
 wp core install \
-  --url="https://bakedbot.ai/andrewsdevelopments" \
-  --title="Andrews Developments" \
-  --admin_user="marcus_admin" \
-  --admin_email="marcus@andrewsdevelopments.com" \
-  --admin_password="AndrewsDev2026!" \
+  --url="${WP_URL}" \
+  --title="${WP_SITE_TITLE}" \
+  --admin_user="${WP_ADMIN_USER}" \
+  --admin_email="${WP_ADMIN_EMAIL}" \
+  --admin_password="${WP_ADMIN_PASSWORD}" \
   --skip-email \
   --allow-root \
   --path=/var/www/html

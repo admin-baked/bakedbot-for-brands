@@ -221,17 +221,22 @@ export async function getCoverageStatusAction() {
     }
 }
 
-export async function testEmailDispatch(data: { to: string, subject: string, body: string }): Promise<ActionResult> {
+export async function testEmailDispatch(data: { to: string, subject: string, body: string, fromEmail?: string, fromName?: string }): Promise<ActionResult> {
     try {
-        await requireUser(['super_user']);
+        const user = await requireUser(['super_user']);
         const htmlBody = data.body || '<p>Test email</p>';
         const result = await sendGenericEmail({
             to: data.to,
             subject: data.subject,
             htmlBody: htmlBody,
-            textBody: htmlBody.replace(/<[^>]*>?/gm, '')
+            textBody: htmlBody.replace(/<[^>]*>?/gm, ''),
+            fromEmail: data.fromEmail,
+            fromName: data.fromName,
+            userId: user.uid,
         });
-        return result.success ? { message: `Email sent to ${data.to}` } : { message: 'Dispatch failed', error: true };
+        return result.success
+            ? { message: `Email sent successfully to ${data.to}` }
+            : { message: `Failed to dispatch email: ${result.error || 'Unknown error'}`, error: true };
     } catch (error: any) {
         return { message: error.message, error: true };
     }

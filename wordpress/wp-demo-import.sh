@@ -29,7 +29,7 @@ if [ ! -f "${DOCROOT}/index.php" ] && [ -d "${WP_SOURCE}" ]; then
   cp -a "${WP_SOURCE}/." "${DOCROOT}/"
 fi
 
-mkdir -p "${DOCROOT}/wp-content/themes" "${DOCROOT}/wp-content/plugins"
+mkdir -p "${DOCROOT}/wp-content/themes" "${DOCROOT}/wp-content/plugins" "${DOCROOT}/wp-content/mu-plugins"
 
 if [ -d "${WP_SOURCE}/wp-content/themes/inclub" ]; then
   rm -rf "${DOCROOT}/wp-content/themes/inclub"
@@ -38,6 +38,10 @@ fi
 
 if [ -d "${WP_SOURCE}/wp-content/plugins" ]; then
   cp -a "${WP_SOURCE}/wp-content/plugins/." "${DOCROOT}/wp-content/plugins/"
+fi
+
+if [ -d "${WP_SOURCE}/wp-content/mu-plugins" ]; then
+  cp -a "${WP_SOURCE}/wp-content/mu-plugins/." "${DOCROOT}/wp-content/mu-plugins/"
 fi
 
 cat > "${WP_CONFIG_EXTRA}" <<EOF
