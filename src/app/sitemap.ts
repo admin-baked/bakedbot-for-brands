@@ -3,6 +3,9 @@ import { createServerClient } from '@/firebase/server-client';
 
 const BASE_URL = 'https://bakedbot.ai';
 
+// This route aggregates large Firestore collections and should be generated on demand.
+export const dynamic = 'force-dynamic';
+
 /**
  * Optimized sitemap with proper SEO priority hierarchy:
  * - 1.0: Homepage

@@ -5,6 +5,7 @@
   },
   "storage": [
     {
+      "bucket": "bakedbot-global-assets",
       "target": "assets",
       "rules": "storage.rules"
     }

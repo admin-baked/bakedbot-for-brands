@@ -5,11 +5,8 @@
  */
 
 import '@/app/globals.css';
-import { Inter } from 'next/font/google';
 import { Providers } from '@/app/providers';
 import type { Metadata } from 'next';
-
-const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
     title: 'Menu',
@@ -28,7 +25,7 @@ export default function EmbedMenuLayout({
                 {/* Allow iframe embedding from any origin */}
                 <meta httpEquiv="X-Frame-Options" content="ALLOWALL" />
             </head>
-            <body className={`${inter.className} embed-mode`}>
+            <body className="font-sans embed-mode">
                 <Providers>
                     {children}
                 </Providers>

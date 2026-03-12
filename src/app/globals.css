@@ -84,6 +84,11 @@
 
 @layer base {
   :root {
+    /* Local fallback font stacks keep Windows Firebase deploys off the network path. */
+    --font-inter: "Segoe UI";
+    --font-jost: "Trebuchet MS";
+    --font-teko: "Arial Narrow";
+
     --background: 210 40% 98%;
     --foreground: 222.2 84% 4.9%;
 

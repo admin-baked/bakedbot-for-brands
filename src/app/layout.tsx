@@ -1,7 +1,6 @@
 // src/app/layout.tsx
 import type { Metadata, Viewport } from 'next';
 import React from 'react';
-import { Inter, Teko } from 'next/font/google';
 import { cookies, headers } from 'next/headers';
 import './globals.css';
 import 'react-grid-layout/css/styles.css';
@@ -12,18 +11,6 @@ import GlobalChatbot from '@/components/global-chatbot';
 import { demoProducts } from '@/lib/demo/demo-data';
 import { SimulationBanner } from '@/components/debug/simulation-banner';
 import { GoogleAnalytics } from '@/components/analytics/google-analytics';
-
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
-});
-
-const teko = Teko({
-  subsets: ['latin'],
-  variable: '--font-teko',
-  weight: ['400', '700'],
-  preload: false, // Load on demand - not critical for first paint
-});
 
 const ANDREWS_HOST = 'andrewsdevelopments.bakedbot.ai';
 
@@ -92,7 +79,7 @@ export default async function RootLayout({
 
   if (isAndrewsHost) {
     return (
-      <html lang="en" className={`${inter.variable} ${teko.variable}`} suppressHydrationWarning>
+      <html lang="en" suppressHydrationWarning>
         <body className="font-sans min-h-screen bg-background text-foreground" suppressHydrationWarning>
           <GoogleAnalytics />
           {children}
@@ -102,7 +89,7 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang="en" className={`${inter.variable} ${teko.variable}`} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body className="font-sans min-h-screen bg-background text-foreground" suppressHydrationWarning>
         <Providers>
           <AppLayout>

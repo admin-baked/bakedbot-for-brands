@@ -1,6 +1,5 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { Jost } from 'next/font/google';
 import { headers } from 'next/headers';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -32,12 +31,6 @@ import {
 import { BakedBotHome } from '@/components/landing/bakedbot-home';
 
 import styles from './inclub-home.module.css';
-
-const jost = Jost({
-  subsets: ['latin'],
-  variable: '--font-jost',
-  weight: ['400', '500', '600', '700'],
-});
 
 type IconCard = {
   icon: LucideIcon;
@@ -267,7 +260,7 @@ export default async function HomePage() {
   const year = new Date().getFullYear();
 
   return (
-    <div className={`${styles.page} ${jost.variable}`}>
+    <div className={styles.page}>
       <section id="home" className={styles.hero}>
         <div className={styles.heroMedia}>
           <Image
