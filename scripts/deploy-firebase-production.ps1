@@ -3,7 +3,8 @@
 [CmdletBinding()]
 param(
     [string]$ProjectId = "studio-567050101-bc6e8",
-    [switch]$SkipInstall
+    [switch]$SkipInstall,
+    [switch]$SkipFieldOverrideDriftCheck
 )
 
 $ErrorActionPreference = "Stop"
@@ -21,6 +22,269 @@ function Assert-LastExitCode([string]$Message) {
     if ($LASTEXITCODE -ne 0) {
         Fail $Message
     }
+}
+
+function Get-NormalizedFieldOverrideIndexTokens([object[]]$Indexes) {
+    $tokens = New-Object System.Collections.Generic.List[string]
+
+    foreach ($index in @($Indexes)) {
+        if ($null -eq $index) {
+            continue
+        }
+
+        $queryScope = "COLLECTION"
+        if ($index.PSObject.Properties.Name -contains "queryScope" -and -not [string]::IsNullOrWhiteSpace([string]$index.queryScope)) {
+            $queryScope = [string]$index.queryScope
+        }
+
+        $order = $null
+        $arrayConfig = $null
+
+        if ($index.PSObject.Properties.Name -contains "order") {
+            $order = [string]$index.order
+        }
+
+        if ($index.PSObject.Properties.Name -contains "arrayConfig") {
+            $arrayConfig = [string]$index.arrayConfig
+        }
+
+        if (($null -eq $order) -and ($null -eq $arrayConfig) -and ($index.PSObject.Properties.Name -contains "fields")) {
+            $indexFields = @($index.fields)
+            if ($indexFields.Count -gt 0) {
+                $fieldConfig = $indexFields[0]
+                if ($fieldConfig.PSObject.Properties.Name -contains "order") {
+                    $order = [string]$fieldConfig.order
+                }
+                if ($fieldConfig.PSObject.Properties.Name -contains "arrayConfig") {
+                    $arrayConfig = [string]$fieldConfig.arrayConfig
+                }
+            }
+        }
+
+        if (-not [string]::IsNullOrWhiteSpace($order)) {
+            $tokens.Add("$queryScope|ORDER|$($order.ToUpperInvariant())")
+            continue
+        }
+
+        if (-not [string]::IsNullOrWhiteSpace($arrayConfig)) {
+            $tokens.Add("$queryScope|ARRAY|$($arrayConfig.ToUpperInvariant())")
+        }
+    }
+
+    return @($tokens | Sort-Object -Unique)
+}
+
+function Get-FieldOverrideIdentity([string]$FieldResourceName) {
+    if ([string]::IsNullOrWhiteSpace($FieldResourceName)) {
+        return $null
+    }
+
+    $collectionGroupParts = $FieldResourceName -split "/collectionGroups/", 2
+    if ($collectionGroupParts.Count -ne 2) {
+        return $null
+    }
+
+    $fieldParts = $collectionGroupParts[1] -split "/fields/", 2
+    if ($fieldParts.Count -ne 2) {
+        return $null
+    }
+
+    return @{
+        CollectionGroup = $fieldParts[0]
+        FieldPath = $fieldParts[1]
+    }
+}
+
+function Convert-ProductionFieldOverride([object]$FieldConfig) {
+    if ($null -eq $FieldConfig) {
+        return $null
+    }
+
+    $identity = Get-FieldOverrideIdentity -FieldResourceName ([string]$FieldConfig.name)
+    if ($null -eq $identity) {
+        return $null
+    }
+
+    if ($identity.CollectionGroup -eq "__default__" -and $identity.FieldPath -eq "*") {
+        return $null
+    }
+
+    $ttlEnabled = $false
+    if ($FieldConfig.PSObject.Properties.Name -contains "ttlConfig" -and $null -ne $FieldConfig.ttlConfig) {
+        $ttlState = [string]$FieldConfig.ttlConfig.state
+        $ttlEnabled = -not [string]::IsNullOrWhiteSpace($ttlState) -and $ttlState -ne "STATE_UNSPECIFIED"
+    }
+
+    return [pscustomobject]@{
+        collectionGroup = $identity.CollectionGroup
+        fieldPath = $identity.FieldPath
+        ttl = $ttlEnabled
+        indexTokens = @(Get-NormalizedFieldOverrideIndexTokens -Indexes $FieldConfig.indexConfig.indexes)
+    }
+}
+
+function Convert-LocalFieldOverride([object]$FieldConfig) {
+    if ($null -eq $FieldConfig) {
+        return $null
+    }
+
+    $ttlEnabled = $false
+    if ($FieldConfig.PSObject.Properties.Name -contains "ttl") {
+        $ttlEnabled = [bool]$FieldConfig.ttl
+    } elseif ($FieldConfig.PSObject.Properties.Name -contains "ttlConfig" -and $null -ne $FieldConfig.ttlConfig) {
+        $ttlState = [string]$FieldConfig.ttlConfig.state
+        $ttlEnabled = -not [string]::IsNullOrWhiteSpace($ttlState) -and $ttlState -ne "STATE_UNSPECIFIED"
+    }
+
+    return [pscustomobject]@{
+        collectionGroup = [string]$FieldConfig.collectionGroup
+        fieldPath = [string]$FieldConfig.fieldPath
+        ttl = $ttlEnabled
+        indexTokens = @(Get-NormalizedFieldOverrideIndexTokens -Indexes $FieldConfig.indexes)
+    }
+}
+
+function Convert-FieldOverrideToExportShape([object]$FieldOverride) {
+    $exportShape = [ordered]@{
+        collectionGroup = $FieldOverride.collectionGroup
+        fieldPath = $FieldOverride.fieldPath
+    }
+
+    if ($FieldOverride.ttl) {
+        $exportShape.ttl = $true
+    }
+
+    $indexes = New-Object System.Collections.Generic.List[object]
+    foreach ($token in @($FieldOverride.indexTokens)) {
+        $parts = $token -split "\|", 3
+        if ($parts.Count -ne 3) {
+            continue
+        }
+
+        if ($parts[1] -eq "ORDER") {
+            $indexes.Add([ordered]@{
+                queryScope = $parts[0]
+                order = $parts[2]
+            })
+            continue
+        }
+
+        if ($parts[1] -eq "ARRAY") {
+            $indexes.Add([ordered]@{
+                queryScope = $parts[0]
+                arrayConfig = $parts[2]
+            })
+        }
+    }
+
+    $exportShape.indexes = @($indexes)
+    return [pscustomobject]$exportShape
+}
+
+function Get-LocalFieldOverrides([string]$FirestoreIndexesPath) {
+    if (-not (Test-Path $FirestoreIndexesPath)) {
+        Fail "Missing Firestore indexes config at $FirestoreIndexesPath"
+    }
+
+    $config = Get-Content $FirestoreIndexesPath -Raw | ConvertFrom-Json
+    $localOverrides = New-Object System.Collections.Generic.List[object]
+
+    foreach ($fieldOverride in @($config.fieldOverrides)) {
+        $normalized = Convert-LocalFieldOverride -FieldConfig $fieldOverride
+        if ($null -ne $normalized) {
+            $localOverrides.Add($normalized)
+        }
+    }
+
+    return @($localOverrides)
+}
+
+function Get-ProductionFieldOverrides([string]$ProjectId) {
+    $gcloudCommand = Get-Command gcloud -ErrorAction SilentlyContinue
+    if ($null -eq $gcloudCommand) {
+        Fail "gcloud CLI is required to verify Firestore single-field overrides before deploying."
+    }
+
+    $gcloudOutput = & $gcloudCommand.Source firestore indexes fields list --database "(default)" --project $ProjectId --format json --quiet 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        $details = ($gcloudOutput | Out-String).Trim()
+        Fail "Unable to read Firestore single-field overrides for $ProjectId. $details"
+    }
+
+    $jsonText = ($gcloudOutput | Out-String).Trim()
+    if ([string]::IsNullOrWhiteSpace($jsonText)) {
+        return @()
+    }
+
+    $fieldConfigs = @($jsonText | ConvertFrom-Json)
+    $productionOverrides = New-Object System.Collections.Generic.List[object]
+
+    foreach ($fieldConfig in $fieldConfigs) {
+        $normalized = Convert-ProductionFieldOverride -FieldConfig $fieldConfig
+        if ($null -ne $normalized) {
+            $productionOverrides.Add($normalized)
+        }
+    }
+
+    return @($productionOverrides)
+}
+
+function Get-MissingFieldOverrides([object[]]$ProductionOverrides, [object[]]$LocalOverrides) {
+    $localByKey = @{}
+    foreach ($localOverride in @($LocalOverrides)) {
+        if ($null -eq $localOverride) {
+            continue
+        }
+
+        $key = "$($localOverride.collectionGroup)|$($localOverride.fieldPath)"
+        $localByKey[$key] = $localOverride
+    }
+
+    $missingOverrides = New-Object System.Collections.Generic.List[object]
+    foreach ($productionOverride in @($ProductionOverrides)) {
+        if ($null -eq $productionOverride) {
+            continue
+        }
+
+        $key = "$($productionOverride.collectionGroup)|$($productionOverride.fieldPath)"
+        if (-not $localByKey.ContainsKey($key)) {
+            $missingOverrides.Add($productionOverride)
+            continue
+        }
+
+        $localOverride = $localByKey[$key]
+        $productionTokens = [string]::Join(";", @($productionOverride.indexTokens))
+        $localTokens = [string]::Join(";", @($localOverride.indexTokens))
+
+        if (($productionOverride.ttl -ne $localOverride.ttl) -or ($productionTokens -ne $localTokens)) {
+            $missingOverrides.Add($productionOverride)
+        }
+    }
+
+    return @($missingOverrides)
+}
+
+function Assert-FirestoreFieldOverrideParity([string]$ProjectId, [string]$FirestoreIndexesPath) {
+    $localOverrides = Get-LocalFieldOverrides -FirestoreIndexesPath $FirestoreIndexesPath
+    $productionOverrides = Get-ProductionFieldOverrides -ProjectId $ProjectId
+    $missingOverrides = Get-MissingFieldOverrides -ProductionOverrides $productionOverrides -LocalOverrides $localOverrides
+
+    if ($missingOverrides.Count -eq 0) {
+        Write-Host "OK: Firestore field override config matches production." -ForegroundColor Green
+        return
+    }
+
+    $exportOverrides = @()
+    foreach ($missingOverride in $missingOverrides) {
+        $exportOverrides += Convert-FieldOverrideToExportShape -FieldOverride $missingOverride
+    }
+
+    $snippet = $exportOverrides | ConvertTo-Json -Depth 6
+    Write-Host "WARN: Production has Firestore single-field overrides that are missing or different in $FirestoreIndexesPath." -ForegroundColor Yellow
+    Write-Host "Sync these entries under fieldOverrides before deploying, or rerun with -SkipFieldOverrideDriftCheck if the change is intentional." -ForegroundColor Yellow
+    Write-Host $snippet -ForegroundColor Yellow
+
+    Fail "Firestore field override drift detected."
 }
 
 function Remove-PathIfExists([string]$Path, [switch]$Recurse) {
@@ -99,6 +363,7 @@ function Get-ServiceAccountCredentialSource([string]$RepoRoot, [string]$TempDir)
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $envConfigPath = Join-Path $repoRoot "env-config.json"
+$firestoreIndexesPath = Join-Path $repoRoot "firestore.indexes.json"
 $tempDir = Join-Path $env:TEMP "bakedbot-firebase-deploy-check"
 $sourcePath = Join-Path $tempDir "source.txt"
 $linkPath = Join-Path $tempDir "link.txt"
@@ -175,6 +440,11 @@ try {
         $createdEnvConfig = $true
     }
 
+    if (-not $SkipFieldOverrideDriftCheck) {
+        Write-Step "Checking Firestore field override drift"
+        Assert-FirestoreFieldOverrideParity -ProjectId $ProjectId -FirestoreIndexesPath $firestoreIndexesPath
+    }
+
     if (-not $SkipInstall) {
         Write-Step "Installing dependencies"
         npm install --legacy-peer-deps
@@ -185,9 +455,9 @@ try {
     npm run build
     Assert-LastExitCode "Production build failed."
 
-    Write-Step "Deploying to Firebase"
+    Write-Step "Deploying Firebase hosting and Firestore indexes"
     $env:FIREBASE_CLI_EXPERIMENTS = "webframeworks"
-    firebase deploy --project $ProjectId --force --only "hosting,functions" --non-interactive
+    firebase deploy --project $ProjectId --force --only "hosting,firestore:indexes" --non-interactive
     Assert-LastExitCode "Firebase deploy failed."
 
     Write-Host "OK: Firebase deploy completed for $ProjectId" -ForegroundColor Green

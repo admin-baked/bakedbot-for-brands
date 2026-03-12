@@ -20,9 +20,18 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Instagram, Facebook, MapPin, Building2, Gem, Tag, Users, HeartPulse, Sparkles, ShieldAlert } from 'lucide-react';
+import {
+  BRAND_BUSINESS_MODEL_LABELS,
+  BRAND_ORGANIZATION_TYPE_LABELS,
+  buildOrganizationDescriptor,
+} from '@/lib/brand-guide-utils';
 import type { ArchetypeId } from '@/constants/brand-archetypes';
 import { ArchetypeSelector } from './archetype-selector';
 import { ArchetypePreview } from './archetype-preview';
+import type {
+  BrandBusinessModel,
+  BrandOrganizationType,
+} from '@/types/brand-guide';
 import type {
   BusinessArchetype,
   GrowthStage,
@@ -34,28 +43,25 @@ import type {
 import { ARCHETYPE_METADATA, SLIDER_METADATA } from '@/types/dispensary-intent-profile';
 
 // ============================================================================
-// STEP 1: Brand Name & Description + Location + Dispensary Type
+// STEP 1: Brand Name & Description + Organization Context
 // ============================================================================
+
+export interface Step1Data {
+  brandName: string;
+  description: string;
+  tagline?: string;
+  city?: string;
+  state?: string;
+  organizationType?: BrandOrganizationType;
+  businessModel?: BrandBusinessModel;
+  dispensaryType?: 'recreational' | 'medical' | 'both';
+}
 
 interface Step1DialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onComplete: (data: {
-    brandName: string;
-    description: string;
-    tagline?: string;
-    city?: string;
-    state?: string;
-    dispensaryType?: 'recreational' | 'medical' | 'both';
-  }) => void;
-  initialData?: {
-    brandName?: string;
-    description?: string;
-    tagline?: string;
-    city?: string;
-    state?: string;
-    dispensaryType?: 'recreational' | 'medical' | 'both';
-  };
+  onComplete: (data: Step1Data) => void;
+  initialData?: Partial<Step1Data>;
 }
 
 export function Step1Dialog({ open, onOpenChange, onComplete, initialData }: Step1DialogProps) {
@@ -64,6 +70,12 @@ export function Step1Dialog({ open, onOpenChange, onComplete, initialData }: Ste
   const [tagline, setTagline] = useState(initialData?.tagline || '');
   const [city, setCity] = useState(initialData?.city || '');
   const [state, setState] = useState(initialData?.state || '');
+  const [organizationType, setOrganizationType] = useState<BrandOrganizationType | ''>(
+    initialData?.organizationType || ''
+  );
+  const [businessModel, setBusinessModel] = useState<BrandBusinessModel | ''>(
+    initialData?.businessModel || ''
+  );
   const [dispensaryType, setDispensaryType] = useState<'recreational' | 'medical' | 'both' | ''>(
     initialData?.dispensaryType || ''
   );
@@ -78,6 +90,8 @@ export function Step1Dialog({ open, onOpenChange, onComplete, initialData }: Ste
       if ('tagline' in initialData) setTagline(initialData.tagline || '');
       if ('city' in initialData) setCity(initialData.city || '');
       if ('state' in initialData) setState(initialData.state || '');
+      if ('organizationType' in initialData) setOrganizationType(initialData.organizationType || '');
+      if ('businessModel' in initialData) setBusinessModel(initialData.businessModel || '');
       if ('dispensaryType' in initialData) setDispensaryType(initialData.dispensaryType || '');
     }
   }, [open, initialData]);
@@ -89,10 +103,40 @@ export function Step1Dialog({ open, onOpenChange, onComplete, initialData }: Ste
       tagline,
       city: city || undefined,
       state: state || undefined,
-      dispensaryType: dispensaryType || undefined,
+      organizationType: organizationType || undefined,
+      businessModel: businessModel || undefined,
+      dispensaryType: organizationType === 'dispensary'
+        ? dispensaryType || undefined
+        : undefined,
     });
     onOpenChange(false);
   };
+
+  const organizationTypeOptions: Array<{
+    value: BrandOrganizationType;
+    label: string;
+    desc: string;
+  }> = [
+    { value: 'dispensary', label: BRAND_ORGANIZATION_TYPE_LABELS.dispensary, desc: 'Retail storefront or delivery business' },
+    { value: 'cannabis_brand', label: BRAND_ORGANIZATION_TYPE_LABELS.cannabis_brand, desc: 'Product, CPG, or packaged goods brand' },
+    { value: 'technology_platform', label: BRAND_ORGANIZATION_TYPE_LABELS.technology_platform, desc: 'Software, AI, data, or workflow platform' },
+    { value: 'agency_service', label: BRAND_ORGANIZATION_TYPE_LABELS.agency_service, desc: 'Services, consulting, or managed execution' },
+    { value: 'community_organization', label: BRAND_ORGANIZATION_TYPE_LABELS.community_organization, desc: 'Social equity, nonprofit, or advocacy-led org' },
+    { value: 'other', label: BRAND_ORGANIZATION_TYPE_LABELS.other, desc: 'A different cannabis ecosystem business model' },
+  ];
+
+  const businessModelOptions: Array<{
+    value: BrandBusinessModel;
+    label: string;
+    desc: string;
+  }> = [
+    { value: 'retail', label: BRAND_BUSINESS_MODEL_LABELS.retail, desc: 'Storefront, menu, delivery, or local retail' },
+    { value: 'product_brand', label: BRAND_BUSINESS_MODEL_LABELS.product_brand, desc: 'Products sold through retail or wholesale' },
+    { value: 'saas_ai_platform', label: BRAND_BUSINESS_MODEL_LABELS.saas_ai_platform, desc: 'Subscription software, AI, or platform revenue' },
+    { value: 'services', label: BRAND_BUSINESS_MODEL_LABELS.services, desc: 'Agency, advisory, or managed services' },
+    { value: 'media_education', label: BRAND_BUSINESS_MODEL_LABELS.media_education, desc: 'Content, research, media, or training' },
+    { value: 'mixed', label: BRAND_BUSINESS_MODEL_LABELS.mixed, desc: 'More than one core revenue model' },
+  ];
 
   const typeOptions: { value: 'recreational' | 'medical' | 'both'; label: string; desc: string }[] = [
     { value: 'recreational', label: 'Recreational', desc: 'Adult-use cannabis' },
@@ -106,7 +150,7 @@ export function Step1Dialog({ open, onOpenChange, onComplete, initialData }: Ste
         <DialogHeader>
           <DialogTitle>Brand Name & Description</DialogTitle>
           <DialogDescription>
-            Tell us about your brand. This helps our AI generate better content.
+            Tell us about your company, product, or brand so BakedBot can tailor messaging and AI behavior.
           </DialogDescription>
         </DialogHeader>
 
@@ -115,7 +159,7 @@ export function Step1Dialog({ open, onOpenChange, onComplete, initialData }: Ste
             <Label htmlFor="brandName">Brand Name *</Label>
             <Input
               id="brandName"
-              placeholder="e.g., Green Valley Dispensary"
+              placeholder="e.g., Super Users"
               value={brandName}
               onChange={(e) => setBrandName(e.target.value)}
               className="mt-1.5"
@@ -126,7 +170,7 @@ export function Step1Dialog({ open, onOpenChange, onComplete, initialData }: Ste
             <Label htmlFor="tagline">Tagline (Optional)</Label>
             <Input
               id="tagline"
-              placeholder="e.g., Premium Cannabis, Locally Grown"
+              placeholder="e.g., AI Infrastructure for Cannabis Growth"
               value={tagline}
               onChange={(e) => setTagline(e.target.value)}
               className="mt-1.5"
@@ -137,13 +181,72 @@ export function Step1Dialog({ open, onOpenChange, onComplete, initialData }: Ste
             <Label htmlFor="description">Brand Description *</Label>
             <Textarea
               id="description"
-              placeholder="Describe your brand, mission, and what makes you unique..."
+              placeholder="Describe what you do, who you serve, your mission, and what makes you different..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="mt-1.5 min-h-[100px]"
             />
             <p className="text-xs text-muted-foreground mt-1.5">
-              This will be used across your marketing materials and customer communications.
+              This becomes the foundation for content, positioning, and downstream AI context.
+            </p>
+          </div>
+
+          <div>
+            <Label className="flex items-center gap-1.5">
+              <Building2 className="w-3.5 h-3.5" />
+              Organization Type
+            </Label>
+            <div className="grid grid-cols-2 gap-2 mt-1.5">
+              {organizationTypeOptions.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    setOrganizationType(opt.value);
+                    if (opt.value !== 'dispensary') {
+                      setDispensaryType('');
+                    }
+                  }}
+                  className={`p-3 rounded-lg border text-left transition-all ${
+                    organizationType === opt.value
+                      ? 'border-baked-green bg-green-50 ring-1 ring-baked-green'
+                      : 'border-gray-200 hover:border-green-200 hover:bg-green-50/50'
+                  }`}
+                >
+                  <div className="font-semibold text-sm text-gray-800">{opt.label}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">{opt.desc}</div>
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1.5">
+              Choose the primary type of cannabis organization you operate.
+            </p>
+          </div>
+
+          <div>
+            <Label className="flex items-center gap-1.5">
+              <Tag className="w-3.5 h-3.5" />
+              Business Model
+            </Label>
+            <div className="grid grid-cols-2 gap-2 mt-1.5">
+              {businessModelOptions.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setBusinessModel(opt.value)}
+                  className={`p-3 rounded-lg border text-left transition-all ${
+                    businessModel === opt.value
+                      ? 'border-baked-green bg-green-50 ring-1 ring-baked-green'
+                      : 'border-gray-200 hover:border-green-200 hover:bg-green-50/50'
+                  }`}
+                >
+                  <div className="font-semibold text-sm text-gray-800">{opt.label}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">{opt.desc}</div>
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1.5">
+              This tells BakedBot whether you sell products, software, services, or a mix.
             </p>
           </div>
 
@@ -160,18 +263,18 @@ export function Step1Dialog({ open, onOpenChange, onComplete, initialData }: Ste
                 onChange={(e) => setCity(e.target.value)}
               />
               <Input
-                placeholder="State (e.g., New York)"
+                placeholder="State (e.g., Illinois)"
                 value={state}
                 onChange={(e) => setState(e.target.value)}
               />
             </div>
             <p className="text-xs text-muted-foreground mt-1.5">
-              Used for local marketing, compliance, and geo-targeted content.
+              Used for market context, regional messaging, compliance, and geo-targeted content.
             </p>
           </div>
 
-          {/* Dispensary Type */}
-          <div>
+          {organizationType === 'dispensary' && (
+            <div>
             <Label className="flex items-center gap-1.5">
               <Building2 className="w-3.5 h-3.5" />
               Dispensary Type
@@ -196,7 +299,8 @@ export function Step1Dialog({ open, onOpenChange, onComplete, initialData }: Ste
             <p className="text-xs text-muted-foreground mt-1.5">
               Determines compliance rules and default voice settings.
             </p>
-          </div>
+            </div>
+          )}
         </div>
 
         <div className="flex justify-end gap-2">
@@ -354,7 +458,7 @@ export function Step2Dialog({ open, onOpenChange, onComplete, initialData }: Ste
           )}
 
           <div>
-            <Label htmlFor="featuredImageUrl">Featured Product/Menu Image URL (Optional)</Label>
+            <Label htmlFor="featuredImageUrl">Featured Image URL (Optional)</Label>
             <Input
               id="featuredImageUrl"
               type="url"
@@ -648,6 +752,8 @@ interface Step4DialogProps {
     brandName?: string;
     city?: string;
     state?: string;
+    organizationType?: BrandOrganizationType;
+    businessModel?: BrandBusinessModel;
     dispensaryType?: 'recreational' | 'medical' | 'both';
   };
   open: boolean;
@@ -679,36 +785,80 @@ export function Step4Dialog({ open, onOpenChange, onComplete, initialData, brand
   const [instagramHandle, setInstagramHandle] = useState(initialData?.instagramHandle || '');
   const [facebookHandle, setFacebookHandle] = useState(initialData?.facebookHandle || '');
 
+  const organizationDescriptor = buildOrganizationDescriptor({
+    organizationType: brandContext?.organizationType,
+    businessModel: brandContext?.businessModel,
+    dispensaryType: brandContext?.dispensaryType,
+    city: brandContext?.city,
+    state: brandContext?.state,
+  });
+
   const applyAudienceMagic = () => {
     const location = [brandContext?.city, brandContext?.state].filter(Boolean).join(', ') || 'your local market';
-    const channelHint = brandContext?.dispensaryType === 'medical'
-      ? 'wellness seekers and patients'
-      : brandContext?.dispensaryType === 'both'
-        ? 'adult-use shoppers and medical patients'
-        : 'adult-use cannabis shoppers';
+    const channelHint = brandContext?.organizationType === 'technology_platform'
+      || brandContext?.businessModel === 'saas_ai_platform'
+      ? 'social-equity operators, dispensary teams, cannabis brands, and growth leaders'
+      : brandContext?.organizationType === 'agency_service'
+        || brandContext?.businessModel === 'services'
+        ? 'cannabis founders, operators, and marketing teams who need execution support'
+        : brandContext?.organizationType === 'community_organization'
+          ? 'social-equity entrepreneurs, community partners, and cannabis advocates'
+          : brandContext?.organizationType === 'cannabis_brand'
+            || brandContext?.businessModel === 'product_brand'
+            ? 'retail buyers, brand-loyal consumers, and dispensary partners'
+            : brandContext?.dispensaryType === 'medical'
+              ? 'patients and wellness-focused shoppers'
+              : brandContext?.dispensaryType === 'both'
+                ? 'adult-use shoppers and medical patients'
+                : 'cannabis customers and partners';
 
     setTargetAudience(
-      `${brandContext?.brandName || 'Our dispensary'} serves ${channelHint} in ${location}. Focus on ages 25-44, value-conscious regulars, and curious first-time visitors looking for trusted guidance, quality flower, pre-rolls, edibles, and fast pickup.`
+      `${brandContext?.brandName || 'Our organization'} is a ${organizationDescriptor || 'cannabis organization'} serving ${channelHint} in ${location}. Focus on people who value trusted guidance, measurable outcomes, and a brand that understands cannabis culture, compliance, and growth.`
     );
   };
 
   const applyCompetitorMagic = () => {
-    const citySlug = (brandContext?.city || 'city').toLowerCase().replace(/\s+/g, '-');
-    const stateSlug = (brandContext?.state || 'state').toLowerCase().replace(/\s+/g, '-');
-    setCompetitorUrls([
-      `https://www.leafly.com/dispensaries/${stateSlug}/${citySlug}`,
-      `https://www.weedmaps.com/dispensaries/in/united-states/${stateSlug}/${citySlug}`,
-      `https://www.google.com/search?q=${encodeURIComponent(`best dispensary in ${brandContext?.city || 'your city'} ${brandContext?.state || ''}`)}`
-    ].join('\n'));
+    const searches = brandContext?.organizationType === 'technology_platform'
+      || brandContext?.businessModel === 'saas_ai_platform'
+      ? [
+          'cannabis retail technology platform',
+          'dispensary CRM software',
+          'cannabis AI marketing platform',
+        ]
+      : brandContext?.organizationType === 'agency_service'
+        || brandContext?.businessModel === 'services'
+        ? [
+            'cannabis marketing agency',
+            'cannabis growth consulting',
+            'social equity cannabis agency',
+          ]
+        : brandContext?.organizationType === 'cannabis_brand'
+          || brandContext?.businessModel === 'product_brand'
+          ? [
+              'cannabis product brand',
+              'cannabis wellness brand',
+              'dispensary shelf brand',
+            ]
+          : [
+              `best dispensary in ${brandContext?.city || 'your city'} ${brandContext?.state || ''}`.trim(),
+              'cannabis delivery service',
+              'adult-use dispensary',
+            ];
+
+    setCompetitorUrls(
+      searches
+        .map((query) => `https://www.google.com/search?q=${encodeURIComponent(query)}`)
+        .join('\n')
+    );
   };
 
   useEffect(() => {
     if (open && initialData) {
-      if (initialData.targetAudience) setTargetAudience(initialData.targetAudience);
-      if (initialData.competitorUrls) setCompetitorUrls(initialData.competitorUrls.join('\n'));
-      if (initialData.specialRequirements) setSpecialRequirements(initialData.specialRequirements);
-      if (initialData.instagramHandle) setInstagramHandle(initialData.instagramHandle);
-      if (initialData.facebookHandle) setFacebookHandle(initialData.facebookHandle);
+      if ('targetAudience' in initialData) setTargetAudience(initialData.targetAudience || '');
+      if ('competitorUrls' in initialData) setCompetitorUrls(initialData.competitorUrls?.join('\n') || '');
+      if ('specialRequirements' in initialData) setSpecialRequirements(initialData.specialRequirements || '');
+      if ('instagramHandle' in initialData) setInstagramHandle(initialData.instagramHandle || '');
+      if ('facebookHandle' in initialData) setFacebookHandle(initialData.facebookHandle || '');
     }
   }, [open, initialData]);
 
@@ -731,7 +881,7 @@ export function Step4Dialog({ open, onOpenChange, onComplete, initialData, brand
         <DialogHeader>
           <DialogTitle>Advanced Setup</DialogTitle>
           <DialogDescription>
-            Optional settings to fine-tune your brand guide.
+            Optional settings to sharpen audience, competitor, and social context for your brand guide.
           </DialogDescription>
         </DialogHeader>
 
@@ -743,13 +893,13 @@ export function Step4Dialog({ open, onOpenChange, onComplete, initialData, brand
               <Badge variant="outline" className="text-[10px] ml-1">Enhances AI extraction</Badge>
             </Label>
             <p className="text-xs text-muted-foreground -mt-1">
-              Adding your social handles gives BakedBot more brand voice samples for better content.
+              Adding your social handles gives BakedBot more brand voice samples and positioning cues.
             </p>
             <div>
               <div className="flex items-center gap-2">
                 <Instagram className="w-4 h-4 text-pink-500 flex-shrink-0" />
                 <Input
-                  placeholder="@yourdispensary"
+                  placeholder={brandContext?.organizationType === 'technology_platform' ? '@yourcompany' : '@yourbrand'}
                   value={instagramHandle}
                   onChange={(e) => setInstagramHandle(e.target.value)}
                   className="bg-white"
@@ -760,7 +910,7 @@ export function Step4Dialog({ open, onOpenChange, onComplete, initialData, brand
               <div className="flex items-center gap-2">
                 <Facebook className="w-4 h-4 text-blue-500 flex-shrink-0" />
                 <Input
-                  placeholder="yourdispensarypage"
+                  placeholder={brandContext?.organizationType === 'technology_platform' ? 'yourcompanypage' : 'yourbrandpage'}
                   value={facebookHandle}
                   onChange={(e) => setFacebookHandle(e.target.value)}
                   className="bg-white"
@@ -778,7 +928,7 @@ export function Step4Dialog({ open, onOpenChange, onComplete, initialData, brand
             </div>
             <Textarea
               id="targetAudience"
-              placeholder="Describe your ideal customer (age, interests, needs)..."
+              placeholder="Describe your ideal customer or buyer (role, goals, pain points, needs)..."
               value={targetAudience}
               onChange={(e) => setTargetAudience(e.target.value)}
               className="mt-1.5 min-h-[80px]"
@@ -800,7 +950,7 @@ export function Step4Dialog({ open, onOpenChange, onComplete, initialData, brand
               className="mt-1.5 min-h-[80px] font-mono text-sm"
             />
             <p className="text-xs text-muted-foreground mt-1.5">
-              We&apos;ll analyze competitors to help you stand out.
+              Add company, brand, market, or search-result URLs to help BakedBot understand your competitive set.
             </p>
           </div>
 

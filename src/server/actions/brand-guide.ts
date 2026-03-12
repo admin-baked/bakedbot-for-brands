@@ -29,6 +29,7 @@ import { BRAND_ARCHETYPES, type ArchetypeId } from '@/constants/brand-archetypes
 import { logger } from '@/lib/logger';
 import { discoverCompetitorsByLocation } from '@/server/services/ezal/competitor-discovery';
 import { searchEntities } from '@/server/actions/discovery-search';
+import { isRetailCannabisOrganization } from '@/lib/brand-guide-utils';
 
 const STATE_ABBREVIATIONS: Record<string, string> = {
   Alabama: 'AL',
@@ -94,16 +95,36 @@ function inferCompetitorType({
 }: {
   websiteTitle?: string;
   messaging?: Record<string, unknown>;
-}): 'dispensary' | 'brand' {
+}): 'dispensary' | 'brand' | 'company' {
+  const organizationType = cleanString(messaging?.organizationType);
+  const businessModel = cleanString(messaging?.businessModel);
   const dispensaryType = cleanString(messaging?.dispensaryType);
-  if (dispensaryType) return 'dispensary';
-
   const titleBlob = `${websiteTitle || ''} ${cleanString(messaging?.positioning) || ''}`.toLowerCase();
+
+  if (
+    organizationType === 'technology_platform'
+    || businessModel === 'saas_ai_platform'
+    || businessModel === 'services'
+    || /(software|saas|platform|artificial intelligence|\bai\b|automation|crm|analytics|technology)/.test(titleBlob)
+  ) {
+    return 'company';
+  }
+
+  if (dispensaryType || organizationType === 'dispensary') return 'dispensary';
+
   if (/(dispensary|adult-use|recreational|medical cannabis|cannabis menu|shop weed|dispensary menu)/.test(titleBlob)) {
     return 'dispensary';
   }
 
-  return 'brand';
+  if (
+    organizationType === 'cannabis_brand'
+    || businessModel === 'product_brand'
+    || /(cannabis brand|product brand|flower|pre-roll|vape|edible|wellness brand)/.test(titleBlob)
+  ) {
+    return 'brand';
+  }
+
+  return 'company';
 }
 
 function dedupeSuggestions(
@@ -128,14 +149,21 @@ async function buildBrandCompetitorSuggestions(params: {
   city?: string;
   state?: string;
   limit: number;
+  type: 'brand' | 'company';
 }): Promise<BrandGuideCompetitorSuggestion[]> {
-  const { url, brandName, city, state, limit } = params;
+  const { url, brandName, city, state, limit, type } = params;
   const ownHost = getHostname(url);
-  const query = [brandName, city, state].filter(Boolean).join(' ').trim() || ownHost || 'cannabis brand';
-  const result = await searchEntities(query, 'brand');
+  const query = [brandName, city, state].filter(Boolean).join(' ').trim()
+    || ownHost
+    || (type === 'company' ? 'cannabis technology company' : 'cannabis brand');
+  const result = await searchEntities(query, type);
 
   if (!result.success) {
-    logger.warn('[extractBrandGuideFromUrl] Brand competitor search failed', { query, error: result.error });
+    logger.warn('[extractBrandGuideFromUrl] Non-dispensary competitor search failed', {
+      query,
+      type,
+      error: result.error,
+    });
     return [];
   }
 
@@ -144,7 +172,7 @@ async function buildBrandCompetitorSuggestions(params: {
       id: entity.id,
       name: entity.name,
       url: entity.url,
-      type: 'brand' as const,
+      type,
       city,
       state,
       description: entity.description,
@@ -582,6 +610,7 @@ export async function extractBrandGuideFromUrl(
               city,
               state,
               limit: 5,
+              type: competitorType,
             });
       } catch (competitorError) {
         logger.warn('[extractBrandGuideFromUrl] Competitor suggestion lookup failed', {
@@ -591,8 +620,11 @@ export async function extractBrandGuideFromUrl(
       }
     }
 
-    // Fetch featured Flower product image from the dispensary's live menu (non-blocking)
-    const featuredProductImage = input.brandId
+    const organizationType = cleanString(messaging.organizationType) as Parameters<typeof isRetailCannabisOrganization>[0];
+    const dispensaryType = cleanString(messaging.dispensaryType);
+
+    // Fetch featured Flower product image from the live menu only for retail/product cannabis orgs
+    const featuredProductImage = input.brandId && isRetailCannabisOrganization(organizationType, dispensaryType)
       ? await fetchFeaturedFlowerImage(input.brandId).catch(() => null)
       : null;
 

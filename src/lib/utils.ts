@@ -70,3 +70,36 @@ export function formatCurrency(value: number): string {
         currency: 'USD',
     }).format(value);
 }
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+    if (!value || typeof value !== 'object') {
+        return false;
+    }
+
+    const prototype = Object.getPrototypeOf(value);
+    return prototype === Object.prototype || prototype === null;
+}
+
+/**
+ * Recursively removes undefined values from plain objects and arrays.
+ * Firestore rejects undefined values, so server write payloads should be
+ * normalized through this helper before persistence.
+ */
+export function omitUndefinedDeep<T>(value: T): T {
+    if (Array.isArray(value)) {
+        return value
+            .map((entry) => omitUndefinedDeep(entry))
+            .filter((entry) => entry !== undefined) as T;
+    }
+
+    if (isPlainObject(value)) {
+        return Object.fromEntries(
+            Object.entries(value)
+                .filter(([, entry]) => entry !== undefined)
+                .map(([key, entry]) => [key, omitUndefinedDeep(entry)])
+                .filter(([, entry]) => entry !== undefined),
+        ) as T;
+    }
+
+    return value;
+}

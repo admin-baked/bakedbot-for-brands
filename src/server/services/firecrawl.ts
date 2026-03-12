@@ -130,10 +130,20 @@ export class DiscoveryService {
      *   3. Firecrawl — premium JS rendering; last resort (credits-based)
      */
     public async discoverUrl(url: string, formats: ('markdown' | 'html' | 'rawHtml' | 'screenshot')[] = ['markdown']) {
+        let jinaFallback: { success: true; markdown: string; metadata: { title?: string; description?: string } } | null = null;
         // ── 1. Jina AI (primary) ─────────────────────────────────────────────
         try {
             logger.info('[Discovery] Using Jina AI for discoverUrl', { url });
-            return await this.discoverViaJina(url);
+            const result = await this.discoverViaJina(url);
+            if ((result.markdown || '').trim().length >= 700) {
+                return result;
+            }
+
+            jinaFallback = result;
+            logger.warn('[Discovery] Jina AI returned thin content, trying RTRVR', {
+                url,
+                chars: result.markdown.length,
+            });
         } catch (jinaError: any) {
             logger.warn('[Discovery] Jina AI failed, trying RTRVR', { url, error: jinaError.message });
         }
@@ -161,6 +171,9 @@ export class DiscoveryService {
                         : this.extractRTRVRContent(res.data);
                     const title       = typeof result?.title       === 'string' ? result.title       : undefined;
                     const description = typeof result?.description === 'string' ? result.description : undefined;
+                    if (jinaFallback && markdown.length <= jinaFallback.markdown.length) {
+                        return jinaFallback;
+                    }
                     return { success: true, markdown, metadata: { title, description } };
                 }
                 logger.warn('[Discovery] RTRVR failed, trying Firecrawl', { url, error: res.error });
@@ -175,10 +188,18 @@ export class DiscoveryService {
                 const response = await this.app!.scrape(url, { formats }) as any;
                 if (!response.success) throw new Error(`Firecrawl failed: ${response.error}`);
                 logger.info('[Discovery] discoverUrl succeeded via Firecrawl', { url });
+                if (jinaFallback && (response.markdown || '').length <= jinaFallback.markdown.length) {
+                    return jinaFallback;
+                }
                 return response;
             } catch (error: any) {
                 logger.warn('[Discovery] Firecrawl failed', { url, error: error.message });
             }
+        }
+
+        if (jinaFallback) {
+            logger.info('[Discovery] Falling back to thin Jina AI result after other providers failed', { url });
+            return jinaFallback;
         }
 
         throw new Error('discoverUrl failed: Jina AI, RTRVR, and Firecrawl all unavailable or errored');

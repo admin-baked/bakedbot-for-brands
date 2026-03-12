@@ -1,0 +1,61 @@
+﻿ M .agent/prime.md
+M  .gitignore
+ M CLAUDE.md
+ M MEMORY.md
+ M docs/DEPLOYMENT.md
+A  docs/testing/CRM_CUSTOMER_LIFECYCLE_TESTING.md
+ M firestore.indexes.json
+ M package-lock.json
+ M public/embed/chatbot.css
+ M public/embed/chatbot.js
+ M public/embed/locator.css
+ M public/embed/locator.js
+ M scripts/deploy-firebase-production.ps1
+ M src/app/dashboard/ceo/agents/actions.ts
+ M src/app/dashboard/customers/[id]/__tests__/actions.test.ts
+ M src/app/dashboard/customers/[id]/__tests__/page-client.test.tsx
+ M src/app/dashboard/customers/[id]/actions.ts
+ M src/app/dashboard/customers/[id]/page-client.tsx
+ M src/app/dashboard/customers/actions.ts
+ M src/app/dashboard/settings/brand-guide/brand-guide-client.tsx
+ M src/app/dashboard/settings/brand-guide/components/setup-step-dialogs.tsx
+ M src/app/dashboard/settings/profile/org-profile-client.tsx
+ M src/lib/__tests__/brand-guide-utils.test.ts
+ M src/lib/__tests__/utils.test.ts
+ M src/lib/brand-guide-prompt.ts
+ M src/lib/brand-guide-utils.ts
+ M src/lib/customers/__tests__/profile-derivations.test.ts
+ M src/lib/customers/profile-derivations.ts
+ M src/lib/utils.ts
+ M src/server/actions/agent-vm.ts
+ M src/server/actions/brand-guide.ts
+ M src/server/actions/discovery-search.ts
+ M src/server/actions/ny-outreach-dashboard.ts
+ M src/server/services/agent-telemetry.ts
+ M src/server/services/brand-guide-enricher.ts
+ M src/server/services/brand-guide-extractor.ts
+ M src/server/services/firecrawl.ts
+ M src/server/services/ny-outreach/crm-queue-sync.ts
+ M src/server/services/ny-outreach/outreach-service.ts
+ M src/server/services/org-profile.ts
+ M src/server/services/playbook-executor.ts
+ M src/types/brand-guide.ts
+ M src/types/org-profile.ts
+ M src/types/playbook.ts
+ M src/types/workflow.ts
+?? .agent/refs/playbooks-doctrine-audit.md
+?? .agent/refs/playbooks-doctrine.md
+?? .agent/specs/playbooks-implementation-spec.md
+?? .agent/specs/playbooks-revised-implementation-plan.md
+?? git-status.txt
+?? git-status2.txt
+?? src/server/actions/__tests__/ny-outreach-dashboard.test.ts
+?? src/server/services/ny-outreach/outreach-read-model.ts
+?? src/server/services/playbook-artifact-service.ts
+?? src/server/services/playbook-compiler.ts
+?? src/server/services/playbook-infra-adapters.ts
+?? src/server/services/playbook-run-coordinator.ts
+?? src/server/services/playbook-validation.ts
+?? src/server/services/workflow-definitions/daily-ci-report.workflow.ts
+?? src/types/playbook-v2.ts
+?? tests/playbook-runtime.test.ts

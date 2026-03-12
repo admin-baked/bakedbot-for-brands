@@ -7,6 +7,140 @@
  * - Brand name extraction
  */
 
+import type {
+  BrandBusinessModel,
+  BrandOrganizationType,
+} from '@/types/brand-guide';
+
+export const BRAND_ORGANIZATION_TYPE_LABELS: Record<BrandOrganizationType, string> = {
+  dispensary: 'Dispensary',
+  cannabis_brand: 'Cannabis Brand',
+  technology_platform: 'Technology Platform',
+  agency_service: 'Agency / Services',
+  community_organization: 'Community Organization',
+  other: 'Other',
+};
+
+export const BRAND_BUSINESS_MODEL_LABELS: Record<BrandBusinessModel, string> = {
+  retail: 'Retail',
+  product_brand: 'Product Brand',
+  saas_ai_platform: 'SaaS / AI Platform',
+  services: 'Services',
+  media_education: 'Media / Education',
+  mixed: 'Mixed',
+};
+
+export function formatOrganizationTypeLabel(
+  organizationType: BrandOrganizationType | undefined
+): string {
+  return organizationType ? BRAND_ORGANIZATION_TYPE_LABELS[organizationType] : '';
+}
+
+export function formatBusinessModelLabel(
+  businessModel: BrandBusinessModel | undefined
+): string {
+  return businessModel ? BRAND_BUSINESS_MODEL_LABELS[businessModel] : '';
+}
+
+export function inferOrganizationTypeFromText(
+  value: string | undefined
+): BrandOrganizationType | undefined {
+  if (!value) return undefined;
+
+  const lower = value.toLowerCase();
+
+  if (/(software|saas|artificial intelligence|machine learning|\bai\b|platform|crm|automation|analytics|data platform|technology)/.test(lower)) {
+    return 'technology_platform';
+  }
+
+  if (/(agency|studio|consulting|consultancy|services|fractional|advisory)/.test(lower)) {
+    return 'agency_service';
+  }
+
+  if (/(community|coalition|nonprofit|non-profit|social equity|education program|advocacy)/.test(lower)) {
+    return 'community_organization';
+  }
+
+  if (/(dispensary|adult-use|recreational|medical cannabis|menu|pickup|delivery|budtender|flower|pre-roll|edibles)/.test(lower)) {
+    return 'dispensary';
+  }
+
+  if (/(cannabis brand|product brand|cultivar|consumer brand|wellness brand|packaging|drops)/.test(lower)) {
+    return 'cannabis_brand';
+  }
+
+  return undefined;
+}
+
+export function inferBusinessModelFromText(
+  value: string | undefined,
+  organizationType?: BrandOrganizationType
+): BrandBusinessModel | undefined {
+  if (!value && !organizationType) return undefined;
+
+  const lower = value?.toLowerCase() || '';
+
+  if (/(software|saas|subscription|platform|api|assistant|automation|copilot|crm|dashboard|analytics|\bai\b)/.test(lower)) {
+    return 'saas_ai_platform';
+  }
+
+  if (/(services|consulting|agency|advisory|fractional|managed service)/.test(lower)) {
+    return 'services';
+  }
+
+  if (/(education|academy|media|newsletter|content|research|reports)/.test(lower)) {
+    return 'media_education';
+  }
+
+  if (/(products|sku|merchandise|brand|wholesale|consumer packaged)/.test(lower)) {
+    return 'product_brand';
+  }
+
+  if (/(retail|menu|shop|pickup|delivery|storefront)/.test(lower)) {
+    return 'retail';
+  }
+
+  if (organizationType === 'technology_platform') return 'saas_ai_platform';
+  if (organizationType === 'agency_service') return 'services';
+  if (organizationType === 'cannabis_brand') return 'product_brand';
+  if (organizationType === 'dispensary') return 'retail';
+
+  return undefined;
+}
+
+export function isRetailCannabisOrganization(
+  organizationType: BrandOrganizationType | undefined,
+  dispensaryType?: string
+): boolean {
+  return organizationType === 'dispensary'
+    || organizationType === 'cannabis_brand'
+    || Boolean(dispensaryType);
+}
+
+export function buildOrganizationDescriptor(input: {
+  organizationType?: BrandOrganizationType;
+  businessModel?: BrandBusinessModel;
+  dispensaryType?: 'recreational' | 'medical' | 'both';
+  city?: string;
+  state?: string;
+}): string {
+  const location = [input.city, input.state].filter(Boolean).join(', ');
+
+  if (input.organizationType === 'dispensary') {
+    const typeLabel = input.dispensaryType
+      ? `${input.dispensaryType} dispensary`
+      : 'dispensary';
+    return location ? `${typeLabel} in ${location}` : typeLabel;
+  }
+
+  const orgLabel = formatOrganizationTypeLabel(input.organizationType);
+  const modelLabel = formatBusinessModelLabel(input.businessModel);
+  const base = [orgLabel, modelLabel].filter(Boolean).join(' - ');
+
+  if (!base) return location ? `organization in ${location}` : 'organization';
+  return location ? `${base} in ${location}` : base;
+}
+
 /**
  * Clean AI-extracted values by filtering out placeholder values.
  * Returns empty string if the value is an AI placeholder like "Unknown", "Unable to extract", etc.

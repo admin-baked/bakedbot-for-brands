@@ -22,6 +22,7 @@ npm run build
 
 ### Database
 - [ ] Firestore indexes deployed: `firebase deploy --only firestore:indexes`
+- [ ] `fieldOverrides` in `firestore.indexes.json` match production single-field configs before deploy
 - [ ] Security rules reviewed
 - [ ] Composite indexes for orders, products, analytics, chatSessions
 

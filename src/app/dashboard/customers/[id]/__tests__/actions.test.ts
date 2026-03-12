@@ -233,6 +233,102 @@ describe('customer detail actions', () => {
         }));
     });
 
+    it('hydrates placeholder CRM identities from cached Alleaves customers', async () => {
+        const firestore = {
+            collection: jest.fn((name: string) => {
+                if (name === 'customers') {
+                    return {
+                        doc: jest.fn(() => ({
+                            get: jest.fn().mockResolvedValue({
+                                exists: true,
+                                data: () => ({
+                                    orgId: 'org-a',
+                                    email: 'alleaves_2730@unknown.local',
+                                    firstName: '',
+                                    lastName: '',
+                                    displayName: 'alleaves_2730',
+                                    totalSpent: 125,
+                                    orderCount: 4,
+                                    avgOrderValue: 31,
+                                    priceRange: 'mid',
+                                    createdAt: { toDate: () => new Date('2026-03-11T00:00:00Z') },
+                                    updatedAt: { toDate: () => new Date('2026-03-12T00:00:00Z') },
+                                    source: 'manual',
+                                }),
+                            }),
+                            set: jest.fn(),
+                            update: jest.fn(),
+                        })),
+                    };
+                }
+
+                if (name === 'organizations') {
+                    return {
+                        doc: jest.fn(() => ({
+                            get: jest.fn().mockResolvedValue({
+                                exists: true,
+                                data: () => ({ name: 'Allo' }),
+                            }),
+                        })),
+                    };
+                }
+
+                if (name === 'playbooks') {
+                    return {
+                        where: jest.fn().mockReturnThis(),
+                        limit: jest.fn().mockReturnThis(),
+                        get: jest.fn().mockResolvedValue({ docs: [] }),
+                    };
+                }
+
+                if (name === 'locations') {
+                    return {
+                        where: jest.fn().mockReturnThis(),
+                        limit: jest.fn().mockReturnThis(),
+                        get: jest.fn().mockResolvedValue({ empty: true, docs: [] }),
+                    };
+                }
+
+                if (name === 'pricing_rules') {
+                    return {
+                        where: jest.fn().mockReturnThis(),
+                        get: jest.fn().mockResolvedValue({ forEach: jest.fn() }),
+                    };
+                }
+
+                throw new Error(`Unexpected collection: ${name}`);
+            }),
+        };
+
+        (createServerClient as jest.Mock).mockResolvedValueOnce({ firestore });
+        (posCache.get as jest.Mock).mockImplementation((key: string) => {
+            if (key === 'customers:org-a') {
+                return [
+                    {
+                        id: 'alleaves_2730',
+                        orgId: 'org-a',
+                        email: 'michael.green@example.com',
+                        firstName: 'Michael',
+                        lastName: 'Green Joseph',
+                        displayName: 'Michael Green Joseph',
+                        phone: '555-000-0000',
+                        points: 124,
+                        birthDate: '1998-01-25',
+                    },
+                ];
+            }
+
+            return undefined;
+        });
+
+        const result = await getCustomerDetail('alleaves_2730');
+
+        expect(result.customer?.displayName).toBe('Michael Green Joseph');
+        expect(result.customer?.firstName).toBe('Michael');
+        expect(result.customer?.lastName).toBe('Green Joseph');
+        expect(result.customer?.email).toBe('michael.green@example.com');
+    });
+
     it('derives customer preferences and auto tags from fallback order history', async () => {
         const result = await getCustomerOrders('customer-1');
 

@@ -6,6 +6,9 @@ import { logger } from '@/lib/logger';
 import { analyzeCustomerPreferences } from '@/lib/analytics/customer-preferences';
 import {
     buildAutoCustomerTags,
+    extractAlleavesCustomerIdentity,
+    isPlaceholderCustomerEmail,
+    isPlaceholderCustomerIdentity,
     mergeCustomerTags,
     resolveCustomerDisplayName,
 } from '@/lib/customers/profile-derivations';
@@ -94,10 +97,121 @@ function normalizeEmail(value: unknown): string | null {
     return normalized.length > 0 ? normalized : null;
 }
 
-function isAlleavesPlaceholderEmail(email: string): boolean {
-    const atIndex = email.lastIndexOf('@');
-    if (atIndex <= 0) return false;
-    return email.slice(atIndex + 1) === 'alleaves.local';
+function needsIdentityEnrichment(customer: CustomerProfile): boolean {
+    if (!customer.id.startsWith('alleaves_')) {
+        return false;
+    }
+
+    const firstName = typeof customer.firstName === 'string' ? customer.firstName.trim() : '';
+    const lastName = typeof customer.lastName === 'string' ? customer.lastName.trim() : '';
+    if (firstName || lastName) {
+        return false;
+    }
+
+    return isPlaceholderCustomerIdentity(customer.displayName, {
+        email: customer.email,
+        fallbackId: customer.id,
+    });
+}
+
+function choosePreferredCustomerEmail(currentEmail: string, candidateEmail: string | null | undefined): string {
+    const normalizedCandidate = normalizeEmail(candidateEmail) || undefined;
+    if (!normalizedCandidate) {
+        return currentEmail;
+    }
+
+    const normalizedCurrent = normalizeEmail(currentEmail);
+    if (!normalizedCurrent || isPlaceholderCustomerEmail(normalizedCurrent)) {
+        return normalizedCandidate;
+    }
+
+    return currentEmail;
+}
+
+function mergeCustomerIdentity(
+    customer: CustomerProfile,
+    identity: {
+        displayName?: string | null;
+        firstName?: string | null;
+        lastName?: string | null;
+        email?: string | null;
+        phone?: string | null;
+        birthDate?: string | null;
+        points?: number | null;
+    },
+): CustomerProfile {
+    const email = choosePreferredCustomerEmail(customer.email, identity.email);
+    const firstName = customer.firstName || identity.firstName || '';
+    const lastName = customer.lastName || identity.lastName || '';
+    const displayName = resolveCustomerDisplayName({
+        displayName: isPlaceholderCustomerIdentity(customer.displayName, {
+            email: customer.email,
+            fallbackId: customer.id,
+        })
+            ? identity.displayName
+            : customer.displayName,
+        firstName,
+        lastName,
+        email,
+        fallbackId: customer.id,
+    });
+
+    return decorateCustomerProfile({
+        ...customer,
+        email,
+        phone: customer.phone || identity.phone || '',
+        firstName,
+        lastName,
+        displayName,
+        birthDate: customer.birthDate || identity.birthDate || undefined,
+        points: customer.points > 0 ? customer.points : (identity.points ?? customer.points),
+    });
+}
+
+async function enrichCustomerIdentityFromPos(
+    customer: CustomerProfile,
+    orgId: string,
+    firestore: FirebaseFirestore.Firestore,
+): Promise<CustomerProfile> {
+    if (!needsIdentityEnrichment(customer)) {
+        return customer;
+    }
+
+    const cachedCustomers = posCache.get<CustomerProfile[]>(cacheKeys.customers(orgId));
+    const cachedCustomer = cachedCustomers?.find((candidate) => candidate.id === customer.id) ?? null;
+    if (cachedCustomer) {
+        const cachedIdentityCustomer = mergeCustomerIdentity(customer, {
+            displayName: cachedCustomer.displayName,
+            firstName: cachedCustomer.firstName,
+            lastName: cachedCustomer.lastName,
+            email: cachedCustomer.email,
+            phone: cachedCustomer.phone,
+            birthDate: cachedCustomer.birthDate,
+            points: cachedCustomer.points,
+        });
+
+        if (!needsIdentityEnrichment(cachedIdentityCustomer)) {
+            return cachedIdentityCustomer;
+        }
+    }
+
+    const client = await initAlleavesClient(orgId, firestore);
+    if (!client) {
+        return customer;
+    }
+
+    const numericId = customer.id.replace('alleaves_', '');
+    const allCustomers = await client.getAllCustomersPaginated(30);
+    const alleavesCustomer = allCustomers.find((candidate: Record<string, unknown>) => String(candidate.id_customer || candidate.id) === numericId) ?? null;
+    if (!alleavesCustomer) {
+        return customer;
+    }
+
+    const identity = extractAlleavesCustomerIdentity(alleavesCustomer);
+    return mergeCustomerIdentity(customer, {
+        ...identity,
+        points: identity.loyaltyPoints ?? undefined,
+    });
 }
 
 function deriveTier(totalSpent: number): CustomerProfile['tier'] {
@@ -309,8 +423,9 @@ function buildCustomerFromAlleavesRecord(
     alleavesCustomer: Record<string, unknown>,
     spending: CustomerSpendingData | null,
 ): CustomerProfile {
-    const firstName = typeof alleavesCustomer.name_first === 'string' ? alleavesCustomer.name_first : '';
-    const lastName = typeof alleavesCustomer.name_last === 'string' ? alleavesCustomer.name_last : '';
+    const identity = extractAlleavesCustomerIdentity(alleavesCustomer);
+    const firstName = identity.firstName || '';
+    const lastName = identity.lastName || '';
     const lastOrderDate = toDate(spending?.lastOrderDate);
     const firstOrderDate = toDate(spending?.firstOrderDate)
         || toDate(alleavesCustomer.date_created);
@@ -320,17 +435,17 @@ function buildCustomerFromAlleavesRecord(
     const daysSinceLastOrder = lastOrderDate
         ? Math.floor((Date.now() - lastOrderDate.getTime()) / (1000 * 60 * 60 * 24))
         : undefined;
-    const email = normalizeEmail(alleavesCustomer.email) || `customer_${customerId.replace('alleaves_', '')}@alleaves.local`;
+    const email = normalizeEmail(identity.email) || `customer_${customerId.replace('alleaves_', '')}@alleaves.local`;
 
     return decorateCustomerProfile({
         id: customerId,
         orgId,
         email,
-        phone: typeof alleavesCustomer.phone === 'string' ? alleavesCustomer.phone : '',
+        phone: identity.phone || '',
         firstName,
         lastName,
         displayName: resolveCustomerDisplayName({
-            displayName: typeof alleavesCustomer.customer_name === 'string' ? alleavesCustomer.customer_name : null,
+            displayName: identity.displayName,
             firstName,
             lastName,
             email,
@@ -347,10 +462,10 @@ function buildCustomerFromAlleavesRecord(
         priceRange: 'mid',
         segment: calculateSegment({ totalSpent, orderCount, avgOrderValue, daysSinceLastOrder, lifetimeValue: totalSpent, firstOrderDate }),
         tier: deriveTier(totalSpent),
-        points: Number(alleavesCustomer.loyalty_points || 0),
+        points: identity.loyaltyPoints ?? Number(alleavesCustomer.loyalty_points || 0),
         lifetimeValue: totalSpent,
         customTags: [],
-        birthDate: typeof alleavesCustomer.date_of_birth === 'string' ? alleavesCustomer.date_of_birth : undefined,
+        birthDate: identity.birthDate || undefined,
         source: 'pos_dutchie',
         createdAt: firstOrderDate || new Date(),
         updatedAt: new Date(),
@@ -368,8 +483,9 @@ async function loadCustomerBaseDetail(
 
     const crmDoc = await firestore.collection('customers').doc(customerId).get();
     if (crmDoc.exists && crmDoc.data()?.orgId === orgId) {
+        const crmCustomer = mergeSpending(buildCustomerFromCrmDoc(crmDoc.id || customerId, orgId, crmDoc.data()!), spending);
         return {
-            customer: mergeSpending(buildCustomerFromCrmDoc(crmDoc.id, orgId, crmDoc.data()!), spending),
+            customer: await enrichCustomerIdentityFromPos(crmCustomer, orgId, firestore),
             spending,
         };
     }
@@ -379,7 +495,11 @@ async function loadCustomerBaseDetail(
         const cachedCustomers = posCache.get<CustomerProfile[]>(customersCacheKey);
         const cachedCustomer = cachedCustomers?.find((candidate) => candidate.id === customerId) ?? null;
         if (cachedCustomer) {
-            return { customer: mergeSpending(decorateCustomerProfile(cachedCustomer), spending), spending };
+            const customer = mergeSpending(decorateCustomerProfile(cachedCustomer), spending);
+            return {
+                customer: await enrichCustomerIdentityFromPos(customer, orgId, firestore),
+                spending,
+            };
         }
 
         const client = await initAlleavesClient(orgId, firestore);
@@ -399,14 +519,16 @@ async function loadCustomerBaseDetail(
     const allCustomers = await getCustomers({ orgId });
     const fallback = allCustomers.customers.find((candidate) => candidate.id === customerId || candidate.email === customerId) ?? null;
     if (fallback) {
+        const fallbackCustomer = mergeSpending({
+            ...fallback,
+            lastOrderDate: toDate(fallback.lastOrderDate),
+            firstOrderDate: toDate(fallback.firstOrderDate),
+            createdAt: toDate(fallback.createdAt) || new Date(),
+            updatedAt: toDate(fallback.updatedAt) || new Date(),
+        }, spending);
+
         return {
-            customer: mergeSpending({
-                ...fallback,
-                lastOrderDate: toDate(fallback.lastOrderDate),
-                firstOrderDate: toDate(fallback.firstOrderDate),
-                createdAt: toDate(fallback.createdAt) || new Date(),
-                updatedAt: toDate(fallback.updatedAt) || new Date(),
-            }, spending),
+            customer: await enrichCustomerIdentityFromPos(fallbackCustomer, orgId, firestore),
             spending,
         };
     }

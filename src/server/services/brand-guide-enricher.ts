@@ -9,7 +9,7 @@
  *   3. Target audience — 2-3 audience segments from the brand's messaging
  *   4. Sub-tones      — different tone for social vs email vs customer service
  *   5. Brand archetype — Jungian classification (The Sage, The Caregiver, etc.)
- *   6. Compliance     — auto-populate from detected state + dispensaryType
+ *   6. Compliance     — auto-populate for retail/product cannabis orgs from detected state
  *
  * Non-blocking: called via setImmediate() — the user never waits for this.
  * Idempotent: safe to run multiple times; won't overwrite user edits.
@@ -20,6 +20,10 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { makeBrandGuideRepo } from '@/server/repos/brandGuideRepo';
 import { logger } from '@/lib/logger';
 import type { BrandGuide, BrandVoiceSample, USState } from '@/types/brand-guide';
+import {
+    buildOrganizationDescriptor,
+    isRetailCannabisOrganization,
+} from '@/lib/brand-guide-utils';
 
 // ---------------------------------------------------------------------------
 // State → disclaimer / compliance mapping
@@ -195,8 +199,13 @@ async function enrichVoice(guide: BrandGuide): Promise<Partial<BrandGuide['voice
     const personality = guide.voice?.personality?.join(', ') || 'Professional, Trustworthy';
     const tagline = guide.messaging?.tagline || '';
     const positioning = guide.messaging?.positioning || '';
-    const dispensaryType = (guide.messaging as any)?.dispensaryType || 'recreational';
-    const city = (guide.messaging as any)?.city || '';
+    const organizationDescriptor = buildOrganizationDescriptor({
+        organizationType: guide.messaging?.organizationType,
+        businessModel: guide.messaging?.businessModel,
+        dispensaryType: guide.messaging?.dispensaryType,
+        city: guide.messaging?.city,
+        state: guide.messaging?.state,
+    });
 
     const prompt = `You are a cannabis brand voice expert. Generate voice enrichment data for this brand.
 
@@ -206,7 +215,7 @@ BRAND INFO:
 - Positioning: "${positioning}"
 - Tone: ${tone}
 - Personality: ${personality}
-- Type: ${dispensaryType} dispensary${city ? ` in ${city}` : ''}
+- Organization: ${organizationDescriptor}
 
 Generate ONLY valid JSON with this structure (no markdown, no code blocks):
 {
@@ -258,7 +267,7 @@ Rules:
 - Sample content must actually sound like ${brandName} — use their personality and tone
 - Cannabis vocabulary should reflect how THIS brand actually talks (${tone} tone, ${personality})
 - Sub-tones: social is usually more casual than email; customer_service is always empathetic
-- If the brand is ${dispensaryType}, vocabulary should match (medical brands avoid recreational slang)
+- Vocabulary should match the organization type and customer context
 - Preferred terms: pick 4-6 that reflect this brand's voice (not generic placeholders)`;
 
     try {
@@ -307,11 +316,16 @@ async function enrichTargetAudience(guide: BrandGuide): Promise<Partial<BrandGui
     const hasMessaging = guide.messaging?.positioning || guide.messaging?.valuePropositions?.length;
     if (!hasMessaging) return null;
 
-    const prompt = `Based on this cannabis dispensary's brand messaging, identify their target audience.
+    const prompt = `Based on this cannabis organization's brand messaging, identify their target audience.
 
-Brand: ${guide.brandName || 'Cannabis Dispensary'}
-Type: ${(guide.messaging as any)?.dispensaryType || 'recreational'}
-City: ${(guide.messaging as any)?.city || ''}
+Brand: ${guide.brandName || 'Cannabis Organization'}
+Organization: ${buildOrganizationDescriptor({
+    organizationType: guide.messaging?.organizationType,
+    businessModel: guide.messaging?.businessModel,
+    dispensaryType: guide.messaging?.dispensaryType,
+    city: guide.messaging?.city,
+    state: guide.messaging?.state,
+})}
 Positioning: ${guide.messaging?.positioning || ''}
 Value Propositions: ${guide.messaging?.valuePropositions?.slice(0, 3).join('; ') || ''}
 Mission: ${guide.messaging?.missionStatement || ''}
@@ -329,7 +343,7 @@ Return ONLY valid JSON:
       }
     ]
   },
-  "elevatorPitch": "One compelling 30-second pitch sentence for this dispensary"
+  "elevatorPitch": "One compelling 30-second pitch sentence for this organization"
 }`;
 
     try {
@@ -384,7 +398,13 @@ Tone: ${guide.voice?.tone || 'professional'}
 Personality: ${guide.voice?.personality?.join(', ') || ''}
 Positioning: ${guide.messaging?.positioning || ''}
 Tagline: ${guide.messaging?.tagline || ''}
-Type: ${(guide.messaging as any)?.dispensaryType || 'recreational'}
+Organization: ${buildOrganizationDescriptor({
+    organizationType: guide.messaging?.organizationType,
+    businessModel: guide.messaging?.businessModel,
+    dispensaryType: guide.messaging?.dispensaryType,
+    city: guide.messaging?.city,
+    state: guide.messaging?.state,
+})}
 
 Return ONLY a valid JSON object: { "archetype": "The Sage" }
 Pick the single best fit based on their actual voice and positioning.`;
@@ -419,8 +439,13 @@ function buildComplianceFromState(guide: BrandGuide): Partial<BrandGuide['compli
     if (guide.compliance?.primaryState && guide.compliance?.requiredDisclaimers?.age) return null;
 
     // Extract state from messaging (set by the extractor)
-    const state = (guide.messaging as any)?.state as string | undefined;
-    const dispensaryType = (guide.messaging as any)?.dispensaryType as string | undefined;
+    const state = guide.messaging?.state;
+    const dispensaryType = guide.messaging?.dispensaryType;
+    const organizationType = guide.messaging?.organizationType;
+
+    if (!isRetailCannabisOrganization(organizationType, dispensaryType)) {
+        return null;
+    }
 
     // Convert full state name to abbreviation
     const STATE_ABBREVS: Record<string, string> = {

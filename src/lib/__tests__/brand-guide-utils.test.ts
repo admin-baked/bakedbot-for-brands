@@ -11,6 +11,10 @@ import {
   extractBrandNameFromTitle,
   extractBrandNameFromDomain,
   buildBrandName,
+  buildOrganizationDescriptor,
+  inferBusinessModelFromText,
+  inferOrganizationTypeFromText,
+  isRetailCannabisOrganization,
 } from '../brand-guide-utils';
 
 // ---------------------------------------------------------------------------
@@ -143,5 +147,73 @@ describe('buildBrandName', () => {
     const result = buildBrandName('Cannabis Brand', undefined, 'https://thrivesyracuse.com');
     expect(result).not.toBe('Cannabis Brand');
     expect(result).toBe('thrivesyracuse');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// organization context inference
+// ---------------------------------------------------------------------------
+
+describe('inferOrganizationTypeFromText', () => {
+  it('detects technology platforms', () => {
+    expect(inferOrganizationTypeFromText('AI CRM and cannabis automation platform')).toBe('technology_platform');
+  });
+
+  it('detects service organizations', () => {
+    expect(inferOrganizationTypeFromText('Cannabis consulting and managed services')).toBe('agency_service');
+  });
+
+  it('detects community organizations', () => {
+    expect(inferOrganizationTypeFromText('Social equity coalition and advocacy program')).toBe('community_organization');
+  });
+
+  it('detects dispensaries', () => {
+    expect(inferOrganizationTypeFromText('Adult-use dispensary with delivery menu')).toBe('dispensary');
+  });
+});
+
+describe('inferBusinessModelFromText', () => {
+  it('detects SaaS / AI platforms', () => {
+    expect(inferBusinessModelFromText('Subscription cannabis analytics dashboard')).toBe('saas_ai_platform');
+  });
+
+  it('falls back from organization type', () => {
+    expect(inferBusinessModelFromText(undefined, 'technology_platform')).toBe('saas_ai_platform');
+    expect(inferBusinessModelFromText(undefined, 'cannabis_brand')).toBe('product_brand');
+  });
+});
+
+describe('buildOrganizationDescriptor', () => {
+  it('builds dispensary descriptors with location', () => {
+    expect(buildOrganizationDescriptor({
+      organizationType: 'dispensary',
+      dispensaryType: 'medical',
+      city: 'Chicago',
+      state: 'Illinois',
+    })).toBe('medical dispensary in Chicago, Illinois');
+  });
+
+  it('builds startup/company descriptors', () => {
+    expect(buildOrganizationDescriptor({
+      organizationType: 'technology_platform',
+      businessModel: 'saas_ai_platform',
+      city: 'Chicago',
+      state: 'Illinois',
+    })).toBe('Technology Platform - SaaS / AI Platform in Chicago, Illinois');
+  });
+});
+
+describe('isRetailCannabisOrganization', () => {
+  it('returns true for dispensaries and cannabis brands', () => {
+    expect(isRetailCannabisOrganization('dispensary')).toBe(true);
+    expect(isRetailCannabisOrganization('cannabis_brand')).toBe(true);
+  });
+
+  it('returns false for technology companies without dispensary type', () => {
+    expect(isRetailCannabisOrganization('technology_platform')).toBe(false);
+  });
+
+  it('treats legacy dispensaryType as retail', () => {
+    expect(isRetailCannabisOrganization(undefined, 'medical')).toBe(true);
   });
 });

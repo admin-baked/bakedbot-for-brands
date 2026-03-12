@@ -11,6 +11,10 @@ import type {
   HardBoundaries,
   FeedbackConfig,
 } from './dispensary-intent-profile';
+import type {
+  BrandBusinessModel,
+  BrandOrganizationType,
+} from './brand-guide';
 
 // Re-export intent types so consumers only need one import
 export type {
@@ -97,7 +101,7 @@ export interface OrgProfileAssets {
 }
 
 /**
- * Brand identity section — who the dispensary IS (visual, voice, messaging, compliance).
+ * Brand identity section — who the organization is (visual, voice, messaging, compliance).
  * Sourced from: website scan + manual entry in onboarding wizard (Steps 1-4).
  */
 export interface OrgProfileBrand {
@@ -105,6 +109,8 @@ export interface OrgProfileBrand {
   tagline?: string;
   city?: string;
   state?: string;
+  organizationType?: BrandOrganizationType;
+  businessModel?: BrandBusinessModel;
   dispensaryType?: 'recreational' | 'medical' | 'both';
   instagramHandle?: string;
   facebookHandle?: string;
@@ -122,7 +128,7 @@ export interface OrgProfileBrand {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Business intent section — HOW the dispensary operates (strategy, agent behavior, boundaries).
+ * Business intent section — how the organization operates (strategy, agent behavior, boundaries).
  * Sourced from: archetype selection + sliders in onboarding wizard (Steps 5-7).
  */
 export interface OrgProfileIntent {

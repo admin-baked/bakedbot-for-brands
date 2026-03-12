@@ -9,6 +9,7 @@ import { posCache, cacheKeys } from '@/lib/cache/pos-cache';
 import { inferPreferencesFromAlleaves } from '@/lib/analytics/customer-preferences';
 import {
     buildAutoCustomerTags,
+    extractAlleavesCustomerIdentity,
     mergeCustomerTags,
     resolveCustomerDisplayName,
 } from '@/lib/customers/profile-derivations';
@@ -388,12 +389,13 @@ async function getCustomersFromAlleaves(orgId: string, firestore: FirebaseFirest
 
         // Transform Alleaves customers to CustomerProfile format
         const customers = alleavesCustomers.map((ac: any, index: number) => {
-            const email = normalizeEmail(ac.email) || `customer_${ac.id_customer || ac.id}@alleaves.local`;
-            const firstName = ac.name_first || '';
-            const lastName = ac.name_last || '';
+            const identity = extractAlleavesCustomerIdentity(ac);
             const alleavesCustId = (ac.id_customer || ac.id)?.toString();
+            const email = normalizeEmail(identity.email) || `customer_${ac.id_customer || ac.id}@alleaves.local`;
+            const firstName = identity.firstName || '';
+            const lastName = identity.lastName || '';
             const displayName = resolveCustomerDisplayName({
-                displayName: ac.customer_name,
+                displayName: identity.displayName,
                 firstName,
                 lastName,
                 email,
@@ -422,7 +424,7 @@ async function getCustomersFromAlleaves(orgId: string, firestore: FirebaseFirest
                 id: uniqueCustomerId,
                 orgId,
                 email,
-                phone: ac.phone || '',
+                phone: identity.phone || '',
                 firstName,
                 lastName,
                 displayName,
@@ -439,10 +441,10 @@ async function getCustomersFromAlleaves(orgId: string, firestore: FirebaseFirest
                 priceRange: preferences.priceRange || 'mid',
                 segment: 'new', // Will be calculated later
                 tier: 'bronze', // Will be calculated later
-                points: parseInt(ac.loyalty_points || 0),
+                points: identity.loyaltyPoints ?? parseInt(ac.loyalty_points || 0),
                 lifetimeValue: totalSpent,
                 customTags: [],
-                birthDate: ac.date_of_birth,
+                birthDate: identity.birthDate || undefined,
                 source: 'pos_dutchie', // Alleaves integration treated as POS source
                 createdAt: firstOrderDate || new Date(),
                 updatedAt: new Date(),

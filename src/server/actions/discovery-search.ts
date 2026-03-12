@@ -11,7 +11,7 @@ export interface DiscoveryEntity {
     name: string;
     url: string;
     description?: string;
-    type: 'dispensary' | 'brand';
+    type: 'dispensary' | 'brand' | 'company';
 }
 
 export interface SearchResult {
@@ -60,12 +60,24 @@ function normalizeHttpUrl(input: string): string {
 /**
  * Search for cannabis businesses using BakedBot Discovery (FireCrawl)
  */
-export async function searchEntities(query: string, type: 'dispensary' | 'brand', zip?: string): Promise<SearchResult> {
+function buildDiscoverySearchQuery(query: string, type: 'dispensary' | 'brand' | 'company', zip?: string): string {
+    const base = [query, zip].filter(Boolean).join(' ').trim();
+
+    switch (type) {
+        case 'dispensary':
+            return `${base} cannabis dispensary menu`.trim();
+        case 'brand':
+            return `${base} cannabis brand products`.trim();
+        case 'company':
+            return `${base} cannabis technology platform software`.trim();
+    }
+}
+
+export async function searchEntities(query: string, type: 'dispensary' | 'brand' | 'company', zip?: string): Promise<SearchResult> {
     await requireUser([...DISCOVERY_ROLES]);
     
     try {
-        // Construct targeted query
-        const searchQuery = `${query} ${zip ? zip : ''} cannabis ${type} menu`.trim();
+        const searchQuery = buildDiscoverySearchQuery(query, type, zip);
         logger.info(`[Discovery] Searching for: ${searchQuery}`);
         
         const results = await discovery.search(searchQuery);
@@ -139,7 +151,7 @@ export async function linkEntity(entity: DiscoveryEntity) {
  * Trigger the "Auto-Sync" process
  * Scrapes the site for menu/products and updates progress
  */
-export async function triggerDiscoverySync(orgId: string, url: string, type: 'dispensary' | 'brand') {
+export async function triggerDiscoverySync(orgId: string, url: string, type: 'dispensary' | 'brand' | 'company') {
     const user = await requireUser([...DISCOVERY_ROLES]);
     if (!isValidOrgId(orgId)) {
         throw new Error('Invalid organization context');

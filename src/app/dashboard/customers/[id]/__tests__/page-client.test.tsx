@@ -144,6 +144,49 @@ describe('customer detail client', () => {
         expect(mockPush).not.toHaveBeenCalledWith(expect.stringContaining('/dashboard/inbox'));
     });
 
+    it('renders a real customer name when displayName is a placeholder id', async () => {
+        (getCustomerDetail as jest.Mock).mockResolvedValueOnce({
+            customer: {
+                id: 'alleaves_2730',
+                orgId: 'org-a',
+                email: 'alleaves_2730@unknown.local',
+                displayName: 'alleaves_2730',
+                firstName: 'Michael',
+                lastName: 'Green Joseph',
+                phone: '555-555-5555',
+                totalSpent: 125,
+                orderCount: 4,
+                avgOrderValue: 31,
+                lastOrderDate: new Date('2026-03-11T00:00:00Z'),
+                firstOrderDate: new Date('2026-03-11T00:00:00Z'),
+                daysSinceLastOrder: 0,
+                preferredCategories: [],
+                preferredProducts: [],
+                priceRange: 'mid',
+                segment: 'loyal',
+                tier: 'bronze',
+                points: 124,
+                lifetimeValue: 125,
+                customTags: [],
+                autoTags: ['Loyal'],
+                allTags: ['Loyal'],
+                source: 'manual',
+                createdAt: new Date('2026-03-11T00:00:00Z'),
+                updatedAt: new Date('2026-03-12T00:00:00Z'),
+            },
+            spending: null,
+            orgName: 'Allo',
+            communications: [],
+            upcoming: [],
+            playbooks: [],
+        });
+
+        render(<CustomerDetailClient customerId="alleaves_2730" orgId="org-a" />);
+
+        expect(await screen.findByRole('heading', { name: 'Michael Green Joseph' })).toBeInTheDocument();
+        expect(screen.queryByRole('heading', { name: 'alleaves_2730' })).not.toBeInTheDocument();
+    });
+
     it('renders auto tags in the notes and tags tab', async () => {
         render(<CustomerDetailClient customerId="customer-1" orgId="org-a" />);
 
