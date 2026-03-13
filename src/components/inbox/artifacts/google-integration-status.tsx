@@ -4,7 +4,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Mail, Calendar, FolderOpen, Sheet } from 'lucide-react';
+import { Mail, Calendar, FolderOpen, Sheet, BarChart3, Search } from 'lucide-react';
 
 export interface GoogleServiceStatus {
   status: 'online' | 'offline' | 'pending';
@@ -16,6 +16,8 @@ export interface GoogleIntegrationStatusData {
   calendar?: GoogleServiceStatus;
   drive?: GoogleServiceStatus;
   sheets?: GoogleServiceStatus;
+  google_analytics?: GoogleServiceStatus;
+  google_search_console?: GoogleServiceStatus;
 }
 
 interface Props {
@@ -43,6 +45,16 @@ const SERVICE_CONFIG = {
     name: 'Sheets',
     icon: Sheet,
     color: 'text-emerald-500',
+  },
+  google_analytics: {
+    name: 'Analytics',
+    icon: BarChart3,
+    color: 'text-orange-500',
+  },
+  google_search_console: {
+    name: 'Search Console',
+    icon: Search,
+    color: 'text-teal-500',
   },
 } as const;
 

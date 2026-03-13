@@ -202,7 +202,9 @@ export const leoAgent: AgentImplementation<LeoMemory, LeoTools> = {
               "gmail": { "status": "offline", "connectUrl": "/api/auth/google?service=gmail" },
               "calendar": { "status": "offline", "connectUrl": "/api/auth/google?service=calendar" },
               "drive": { "status": "offline", "connectUrl": "/api/auth/google?service=drive" },
-              "sheets": { "status": "offline", "connectUrl": "/api/auth/google?service=sheets" }
+              "sheets": { "status": "offline", "connectUrl": "/api/auth/google?service=sheets" },
+              "google_analytics": { "status": "offline", "connectUrl": "/api/auth/google?service=google_analytics" },
+              "google_search_console": { "status": "offline", "connectUrl": "/api/auth/google?service=google_search_console" }
             }
             :::
 

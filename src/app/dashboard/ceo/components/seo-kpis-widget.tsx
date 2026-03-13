@@ -236,16 +236,15 @@ export default function SeoKpisWidget({
                 </CardContent>
             </Card>
 
-            {/* Search Console Placeholder */}
+            {/* Search Console */}
             <Card className="border-dashed">
                 <CardHeader className="pb-3">
                     <CardTitle className="text-sm flex items-center gap-2">
                         <Search className="h-4 w-4" />
                         Search Console
-                        <Badge variant="outline" className="text-xs">Coming Soon</Badge>
                     </CardTitle>
                     <CardDescription>
-                        Connect Google Search Console for impressions, clicks, and ranking data.
+                        Organic search visibility for bakedbot.ai.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -267,15 +266,23 @@ export default function SeoKpisWidget({
                                 <p className="text-2xl font-bold">{kpis.searchConsole.avgPosition}</p>
                                 <p className="text-xs text-muted-foreground">Avg Position</p>
                             </div>
+                            <div>
+                                <p className="text-2xl font-bold">{kpis.searchConsole.top3Keywords ?? 0}</p>
+                                <p className="text-xs text-muted-foreground">Top 3 Queries</p>
+                            </div>
+                            <div>
+                                <p className="text-2xl font-bold">{kpis.searchConsole.top10Keywords ?? 0}</p>
+                                <p className="text-xs text-muted-foreground">Top 10 Queries</p>
+                            </div>
                         </div>
                     ) : (
                         <div className="text-center py-4">
                             <p className="text-sm text-muted-foreground mb-3">
-                                Search Console integration not configured.
+                                Search Console data is not available yet. Check service credentials and site verification if this should be live.
                             </p>
                             <Button variant="outline" size="sm" disabled>
                                 <ExternalLink className="h-4 w-4 mr-2" />
-                                Connect Search Console
+                                Search Console Pending
                             </Button>
                         </div>
                     )}

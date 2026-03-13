@@ -3,12 +3,14 @@ export type IntegrationProvider =
   | 'google_calendar'
   | 'google_drive'
   | 'google_sheets'
+  | 'google_analytics'
+  | 'google_search_console'
   | 'dutchie'
   | 'alleaves'
   | 'mailchimp';
 
 export type IntegrationAuthMethod = 'oauth' | 'api_key' | 'jwt';
-export type IntegrationCategory = 'workspace' | 'pos' | 'marketing';
+export type IntegrationCategory = 'workspace' | 'analytics' | 'pos' | 'marketing';
 export type IntegrationStatus = 'connected' | 'disconnected' | 'error' | 'expired';
 
 export interface IntegrationRequest {
@@ -65,6 +67,24 @@ export const INTEGRATION_METADATA: Record<IntegrationProvider, IntegrationMetada
     description: 'Create and edit spreadsheets',
     icon: 'sheets',
     category: 'workspace',
+    authMethod: 'oauth',
+    setupTime: '1 minute',
+  },
+  google_analytics: {
+    id: 'google_analytics',
+    name: 'Google Analytics',
+    description: 'Access GA4 traffic and acquisition reporting',
+    icon: 'analytics',
+    category: 'analytics',
+    authMethod: 'oauth',
+    setupTime: '1 minute',
+  },
+  google_search_console: {
+    id: 'google_search_console',
+    name: 'Google Search Console',
+    description: 'Access search clicks, impressions, and ranking data',
+    icon: 'search',
+    category: 'analytics',
     authMethod: 'oauth',
     setupTime: '1 minute',
   },

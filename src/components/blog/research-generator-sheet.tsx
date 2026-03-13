@@ -9,7 +9,7 @@
  *   Step 3 — Generated (post created, link to editor)
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     Sheet,
@@ -92,6 +92,16 @@ export function ResearchGeneratorSheet({
     const [generatedTitle, setGeneratedTitle] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
 
+    useEffect(() => {
+        if (!open) {
+            return;
+        }
+
+        setTopic(seedTopic);
+        setContentType(defaultMode);
+        setError(null);
+    }, [defaultMode, open, seedTopic]);
+
     const resetToStep1 = () => {
         setStep('research');
         setBrief(null);
@@ -126,7 +136,6 @@ export function ResearchGeneratorSheet({
                 contentType,
                 brief,
                 orgId,
-                userId: 'super_user',
             });
             setGeneratedPostId(post.id);
             setGeneratedTitle(post.title);
@@ -271,6 +280,53 @@ export function ResearchGeneratorSheet({
                                     </ul>
                                 </CardContent>
                             </Card>
+
+                            {brief.analyticsSignals && (
+                                <Card>
+                                    <CardContent className="pt-4 space-y-3">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <p className="text-sm font-medium">BakedBot Growth Signals</p>
+                                            <div className="flex items-center gap-1">
+                                                <Badge variant={brief.analyticsSignals.gaConnected ? 'secondary' : 'outline'} className="text-[10px]">
+                                                    GA {brief.analyticsSignals.gaConnected ? 'Live' : 'Off'}
+                                                </Badge>
+                                                <Badge variant={brief.analyticsSignals.gscConnected ? 'secondary' : 'outline'} className="text-[10px]">
+                                                    GSC {brief.analyticsSignals.gscConnected ? 'Live' : 'Off'}
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div className="rounded-md border p-2">
+                                                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Sessions</p>
+                                                <p className="mt-1 text-sm font-semibold">
+                                                    {brief.analyticsSignals.kpis.sessions28d?.toLocaleString() ?? 'Not connected'}
+                                                </p>
+                                            </div>
+                                            <div className="rounded-md border p-2">
+                                                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Impressions</p>
+                                                <p className="mt-1 text-sm font-semibold">
+                                                    {brief.analyticsSignals.kpis.impressions28d?.toLocaleString() ?? 'Not connected'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        {brief.analyticsSignals.recommendations.length > 0 && (
+                                            <div className="space-y-2">
+                                                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                                    Why This Topic Matters
+                                                </p>
+                                                {brief.analyticsSignals.recommendations.slice(0, 2).map((recommendation, index) => (
+                                                    <div key={`${recommendation.source}-${index}`} className="rounded-md bg-muted/50 p-2.5 text-sm">
+                                                        <p className="font-medium">{recommendation.title}</p>
+                                                        <p className="mt-1 text-xs text-muted-foreground">
+                                                            {recommendation.supportingMetric}
+                                                        </p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            )}
 
                             {/* Suggested Angles */}
                             <div className="space-y-2">

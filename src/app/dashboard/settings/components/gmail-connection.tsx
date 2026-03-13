@@ -27,6 +27,7 @@ export function GmailConnection({ redirectPath = '/dashboard/settings?tab=integr
     // Check for success/error from OAuth callback
     const success = searchParams.get('success');
     const error = searchParams.get('error');
+    const connect = searchParams.get('connect');
 
     useEffect(() => {
         // Check if Gmail is connected by calling a status endpoint
@@ -53,6 +54,13 @@ export function GmailConnection({ redirectPath = '/dashboard/settings?tab=integr
         const encodedRedirect = encodeURIComponent(redirectPath);
         window.location.href = `/api/auth/google?service=gmail&redirect=${encodedRedirect}`;
     };
+
+    useEffect(() => {
+        if (connect === 'gmail' && !isConnected) {
+            const encodedRedirect = encodeURIComponent(redirectPath);
+            window.location.href = `/api/auth/google?service=gmail&redirect=${encodedRedirect}`;
+        }
+    }, [connect, isConnected, redirectPath]);
 
     const handleDisconnect = async () => {
         try {

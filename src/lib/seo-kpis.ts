@@ -1,5 +1,6 @@
 
 import { createServerClient } from '@/firebase/server-client';
+import { searchConsoleService } from '@/server/services/growth/search-console';
 
 /**
  * SEO KPIs Data Service for Pops Dashboard
@@ -45,25 +46,54 @@ export interface SeoKpis {
     lastUpdated: Date;
 }
 
+type TimestampLike = {
+    toDate?: () => Date;
+};
+
+function coerceDate(value: unknown): Date | null {
+    if (value instanceof Date) return value;
+    if (value && typeof value === 'object' && typeof (value as TimestampLike).toDate === 'function') {
+        try {
+            return (value as TimestampLike).toDate?.() || null;
+        } catch {
+            return null;
+        }
+    }
+    if (typeof value === 'string' || typeof value === 'number') {
+        const parsed = new Date(value);
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+    return null;
+}
+
+function mostRecentDate(a?: Date | null, b?: Date | null): Date | null {
+    if (!a) return b || null;
+    if (!b) return a;
+    return a.getTime() >= b.getTime() ? a : b;
+}
+
 /**
  * Fetch SEO KPIs from Firestore
  */
-export async function fetchSeoKpis(): Promise<SeoKpis> {
+export async function fetchSeoKpis(userId?: string): Promise<SeoKpis> {
     const { firestore } = await createServerClient();
     const configRef = firestore.collection('foot_traffic').doc('config');
 
-    // Count pages by type
-    const [zipSnap, dispSnap, brandSnap, citySnap, stateSnap] = await Promise.all([
+    // Count pages by type. Brand + dispensary pages still exist in both the
+    // legacy foot_traffic/config tree and the newer top-level SEO collections.
+    const [zipSnap, configDispSnap, topLevelDispSnap, configBrandSnap, topLevelBrandSnap, citySnap, stateSnap] = await Promise.all([
         configRef.collection('zip_pages').count().get(),
         configRef.collection('dispensary_pages').count().get(),
+        firestore.collection('seo_pages_dispensary').count().get(),
         configRef.collection('brand_pages').count().get(),
+        firestore.collection('seo_pages_brand').count().get(),
         configRef.collection('city_pages').count().get(),
         configRef.collection('state_pages').count().get()
     ]);
 
     const zipCount = zipSnap.data().count;
-    const dispCount = dispSnap.data().count;
-    const brandCount = brandSnap.data().count;
+    const dispCount = Math.max(configDispSnap.data().count, topLevelDispSnap.data().count);
+    const brandCount = Math.max(configBrandSnap.data().count, topLevelBrandSnap.data().count);
     const cityCount = citySnap.data().count;
     const stateCount = stateSnap.data().count;
     const totalPages = zipCount + dispCount + brandCount + cityCount + stateCount;
@@ -73,11 +103,31 @@ export async function fetchSeoKpis(): Promise<SeoKpis> {
     let claimedBrands = 0;
 
     // Sample check (for large datasets, this would need pagination or aggregation queries)
-    const dispDocs = await configRef.collection('dispensary_pages').limit(1000).get();
-    const brandDocs = await configRef.collection('brand_pages').limit(1000).get();
+    const [configDispDocs, topLevelDispDocs, configBrandDocs, topLevelBrandDocs] = await Promise.all([
+        configRef.collection('dispensary_pages').limit(1000).get(),
+        firestore.collection('seo_pages_dispensary').limit(1000).get(),
+        configRef.collection('brand_pages').limit(1000).get(),
+        firestore.collection('seo_pages_brand').limit(1000).get(),
+    ]);
 
-    dispDocs.forEach(doc => { if (doc.data().claimedBy) claimedDisp++; });
-    brandDocs.forEach(doc => { if (doc.data().claimedBy) claimedBrands++; });
+    const dispensaryClaims = new Map<string, boolean>();
+    const brandClaims = new Map<string, boolean>();
+
+    configDispDocs.forEach((doc) => {
+        dispensaryClaims.set(doc.id, Boolean(doc.data().claimedBy));
+    });
+    topLevelDispDocs.forEach((doc) => {
+        dispensaryClaims.set(doc.id, dispensaryClaims.get(doc.id) || Boolean(doc.data().claimedBy));
+    });
+    configBrandDocs.forEach((doc) => {
+        brandClaims.set(doc.id, Boolean(doc.data().claimedBy));
+    });
+    topLevelBrandDocs.forEach((doc) => {
+        brandClaims.set(doc.id, brandClaims.get(doc.id) || Boolean(doc.data().claimedBy));
+    });
+
+    claimedDisp = Array.from(dispensaryClaims.values()).filter(Boolean).length;
+    claimedBrands = Array.from(brandClaims.values()).filter(Boolean).length;
 
     const totalClaimed = claimedDisp + claimedBrands;
     const totalUnclaimed = (dispCount + brandCount) - totalClaimed;
@@ -93,20 +143,53 @@ export async function fetchSeoKpis(): Promise<SeoKpis> {
     let freshCount = 0;
     let staleCount = 0;
 
-    // Check freshness of dispensary pages
-    dispDocs.forEach(doc => {
+    const pageFreshness = new Map<string, Date | null>();
+
+    const zipDocs = await configRef.collection('zip_pages').limit(1000).get();
+
+    zipDocs.forEach((doc) => {
         const data = doc.data();
-        const updatedAt = data.updatedAt?.toDate?.() || data.updatedAt;
+        pageFreshness.set(doc.id, coerceDate(data.updatedAt) || coerceDate(data.lastRefreshed));
+    });
+    configDispDocs.forEach((doc) => {
+        const data = doc.data();
+        pageFreshness.set(doc.id, mostRecentDate(pageFreshness.get(doc.id), coerceDate(data.updatedAt)));
+    });
+    topLevelDispDocs.forEach((doc) => {
+        const data = doc.data();
+        pageFreshness.set(doc.id, mostRecentDate(pageFreshness.get(doc.id), coerceDate(data.updatedAt)));
+    });
+    configBrandDocs.forEach((doc) => {
+        const data = doc.data();
+        pageFreshness.set(doc.id, mostRecentDate(pageFreshness.get(doc.id), coerceDate(data.updatedAt)));
+    });
+    topLevelBrandDocs.forEach((doc) => {
+        const data = doc.data();
+        pageFreshness.set(doc.id, mostRecentDate(pageFreshness.get(doc.id), coerceDate(data.updatedAt)));
+    });
+
+    pageFreshness.forEach((updatedAt) => {
         if (updatedAt) {
-            const updateDate = new Date(updatedAt);
-            if (updateDate >= sevenDaysAgo) freshCount++;
-            else if (updateDate < thirtyDaysAgo) staleCount++;
+            if (updatedAt >= sevenDaysAgo) {
+                freshCount++;
+            } else if (updatedAt < thirtyDaysAgo) {
+                staleCount++;
+            }
         }
     });
 
     const healthScore = totalPages > 0
         ? Math.round(((totalPages - staleCount) / totalPages) * 100)
         : 0;
+
+    const [siteSummary, topQueries] = await Promise.all([
+        searchConsoleService.getSiteSummary(28, { userId }),
+        searchConsoleService.getTopQueries(undefined, undefined, 100, { userId }),
+    ]);
+
+    const top3Keywords = topQueries.queries.filter((query) => query.position <= 3).length;
+    const top10Keywords = topQueries.queries.filter((query) => query.position <= 10).length;
+    const searchConsoleAvailable = siteSummary.impressions > 0 || topQueries.queries.length > 0;
 
     return {
         indexedPages: {
@@ -130,13 +213,13 @@ export async function fetchSeoKpis(): Promise<SeoKpis> {
         },
         // Placeholder for Search Console data
         searchConsole: {
-            impressions: null,
-            clicks: null,
-            ctr: null,
-            avgPosition: null,
-            top3Keywords: null,
-            top10Keywords: null,
-            dataAvailable: false
+            impressions: searchConsoleAvailable ? siteSummary.impressions : null,
+            clicks: searchConsoleAvailable ? siteSummary.clicks : null,
+            ctr: searchConsoleAvailable ? Number((siteSummary.ctr * 100).toFixed(2)) : null,
+            avgPosition: searchConsoleAvailable ? Number(siteSummary.avgPosition.toFixed(1)) : null,
+            top3Keywords: searchConsoleAvailable ? top3Keywords : null,
+            top10Keywords: searchConsoleAvailable ? top10Keywords : null,
+            dataAvailable: searchConsoleAvailable
         },
         lastUpdated: now
     };

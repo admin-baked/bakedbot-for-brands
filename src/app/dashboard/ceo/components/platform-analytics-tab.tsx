@@ -21,7 +21,22 @@ const MOCK_DATA: any = {
         signups: { today: 12, week: 78, month: 312, total: 1847, trend: 15.2, trendUp: true },
         activeUsers: { daily: 234, weekly: 892, monthly: 1456, trend: 8.7, trendUp: true },
         retention: { day1: 68, day7: 45, day30: 32, trend: -2.1, trendUp: false },
-        revenue: { mrr: 24500, arr: 294000, arpu: 89, trend: 12.5, trendUp: true }
+        revenue: { mrr: 24500, arr: 294000, arpu: 89, trend: 12.5, trendUp: true },
+        siteTraffic: {
+            configured: true,
+            sessions: 6842,
+            blogSessions: 2911,
+            topSources: [
+                { source: 'google', sessions: 2840 },
+                { source: '(direct)', sessions: 2014 },
+                { source: 'linkedin.com', sessions: 944 },
+            ],
+            topContentPages: [
+                { path: '/blog/cannabis-ai-platforms', sessions: 642 },
+                { path: '/blog/alpine-iq-vs-bakedbot', sessions: 511 },
+                { path: '/blog/dispensary-crm-automation', sessions: 403 },
+            ],
+        },
     },
     featureAdoption: [
         { name: 'AI Chat (Smokey)', usage: 89, trend: 12, status: 'healthy' },
@@ -115,6 +130,7 @@ export default function PlatformAnalyticsTab() {
                 activeUsers: MOCK_DATA.metrics.activeUsers,
                 retention: MOCK_DATA.metrics.retention,
                 revenue: MOCK_DATA.metrics.revenue,
+                siteTraffic: MOCK_DATA.metrics.siteTraffic,
                 featureAdoption: MOCK_DATA.featureAdoption,
                 recentSignups: MOCK_DATA.recentSignups,
                 agentUsage: MOCK_DATA.agentUsage
@@ -188,7 +204,7 @@ export default function PlatformAnalyticsTab() {
                 <div>
                     <h2 className="text-2xl font-bold">Platform Analytics</h2>
                     <p className="text-muted-foreground">
-                        {isMock ? 'Viewing MOCK Data' : 'Viewing LIVE Data'}
+                        {isMock ? 'Viewing MOCK Data' : 'Live operating metrics for CRM, discovery, content, and automation'}
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -219,11 +235,11 @@ export default function PlatformAnalyticsTab() {
                     icon={Activity}
                 />
                 <MetricCard
-                    title="Day 7 Retention"
-                    value={typeof data.retention.day7 === 'number' ? `${data.retention.day7}%` : 'N/A'}
-                    subtitle={typeof data.retention.day30 === 'number' ? `Day 30: ${data.retention.day30}%` : 'Retention not tracked'}
-                    trend={data.retention.trend}
-                    trendUp={data.retention.trendUp}
+                    title="Site Sessions"
+                    value={typeof data.siteTraffic.sessions === 'number' ? data.siteTraffic.sessions.toLocaleString() : 'N/A'}
+                    subtitle={typeof data.siteTraffic.blogSessions === 'number' ? `${data.siteTraffic.blogSessions.toLocaleString()} blog sessions` : 'Google Analytics not configured'}
+                    trend={null}
+                    trendUp={null}
                     icon={TrendingUp}
                 />
                 <MetricCard
@@ -285,6 +301,20 @@ export default function PlatformAnalyticsTab() {
                                     <span className="text-sm text-muted-foreground">Unclaimed Opps</span>
                                     <span className="font-bold">{seoKpis.claimMetrics.totalUnclaimed}</span>
                                 </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm text-muted-foreground">Top Source</span>
+                                    <span className="font-bold text-right">
+                                        {data.siteTraffic.topSources[0]?.source || 'N/A'}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm text-muted-foreground">Blog Sessions</span>
+                                    <span className="font-bold">
+                                        {typeof data.siteTraffic.blogSessions === 'number'
+                                            ? data.siteTraffic.blogSessions.toLocaleString()
+                                            : 'N/A'}
+                                    </span>
+                                </div>
                             </CardContent>
                         </Card>
                     </div>
@@ -293,14 +323,14 @@ export default function PlatformAnalyticsTab() {
 
             {/* Feature Adoption & Agent Usage */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Feature Adoption */}
+                {/* Operating Coverage */}
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Zap className="h-5 w-5 text-primary" />
-                            Feature Adoption
+                            Operating Coverage
                         </CardTitle>
-                        <CardDescription>What&apos;s working and what needs attention</CardDescription>
+                        <CardDescription>Progress across CRM, discovery pages, content, automation, and media telemetry</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         {data.featureAdoption.length === 0 && <p className="text-sm text-muted-foreground">No data available.</p>}

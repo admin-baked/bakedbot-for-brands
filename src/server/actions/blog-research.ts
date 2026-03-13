@@ -7,6 +7,7 @@
  *
  * Exports:
  *   getCannabisNewsIdeas      — cannabis industry news for content ideation
+ *   getContentAnalyticsSignals — GA/GSC/content KPI snapshot for BakedBot planning
  *   generateResearchBrief     — Jina search → Claude synthesis → structured brief
  *   researchAndGenerateBlog   — brief + generate in one call, saves to Firestore
  *   generateMarketReports     — programmatic SEO bulk generator per state
@@ -19,6 +20,11 @@ import { callClaude } from '@/ai/claude';
 import { generateBlogDraftWithResearch } from '@/server/services/blog-generator';
 import { createBlogPostInternal } from '@/server/actions/blog';
 import { generateFromTemplate } from '@/server/services/content-engine/generator';
+import {
+    buildContentAnalyticsContext,
+    getContentAnalyticsSignals as getContentAnalyticsSnapshot,
+    type ContentAnalyticsSnapshot,
+} from '@/server/services/content-engine/analytics-signals';
 import {
     PULSE_PRESET_KEYS,
     fetchAndCacheNewsForTopic,
@@ -62,6 +68,7 @@ export interface ResearchBrief {
     suggestedKeywords: string[];
     rawResearch: string;
     citations: Citation[];
+    analyticsSignals?: ContentAnalyticsSnapshot | null;
 }
 
 export interface ContentScorecard {
@@ -83,6 +90,8 @@ export interface NewsIdeasResult {
     ideas: NewsIdea[];
     cachedAt: string | null; // ISO string — cache timestamp or fresh fetch time; null on error/empty
 }
+
+export type { ContentAnalyticsSnapshot };
 
 /**
  * Fetch cannabis industry news for content ideation using Jina Search.
@@ -118,12 +127,12 @@ export async function getCannabisNewsIdeas(
     // For free-form text topics: fetch live (no caching)
     if (topic && !isPreset) {
         try {
-            const query = `cannabis dispensary ${topic} 2026`;
+            const query = `cannabis technology ${topic} dispensary brand AI 2026`;
             const results = await jinaSearch(query);
             if (results.length === 0) return { ideas: [], cachedAt: null };
 
             const top8 = results.slice(0, 8);
-            const anglePrompt = `You are a cannabis content strategist. For each of these recent cannabis industry articles, suggest a SHORT (1 sentence) unique content angle for a cannabis dispensary's blog.
+            const anglePrompt = `You are a cannabis technology content strategist for BakedBot AI. For each of these recent cannabis industry articles, suggest a SHORT (1 sentence) content angle for a cannabis technology platform serving dispensaries and brands.
 
 Articles:
 ${top8.map((r, i) => `${i + 1}. "${r.title}" — ${r.snippet}`).join('\n')}
@@ -131,7 +140,7 @@ ${top8.map((r, i) => `${i + 1}. "${r.title}" — ${r.snippet}`).join('\n')}
 Respond with ONLY a JSON array of ${top8.length} strings. Example:
 ["Angle for article 1", "Angle for article 2", ...]`;
 
-            let angles: string[] = top8.map(() => 'Explore how this affects your local dispensary customers.');
+            let angles: string[] = top8.map(() => 'Explain what this means for cannabis operators, brand teams, and the systems they depend on.');
             try {
                 const angleResponse = await callClaude({ userMessage: anglePrompt, temperature: 0.6, maxTokens: 500 });
                 const jsonMatch = angleResponse.match(/\[[\s\S]*\]/);
@@ -145,7 +154,7 @@ Respond with ONLY a JSON array of ${top8.length} strings. Example:
                 title: r.title,
                 url: r.url,
                 snippet: r.snippet,
-                suggestedAngle: angles[i] ?? 'Explore how this affects your local dispensary customers.',
+                suggestedAngle: angles[i] ?? 'Explain what this means for cannabis operators, brand teams, and the systems they depend on.',
             }));
 
             return { ideas, cachedAt: new Date().toISOString() };
@@ -169,6 +178,11 @@ Respond with ONLY a JSON array of ${top8.length} strings. Example:
     }
 }
 
+export async function getContentAnalyticsSignals(): Promise<ContentAnalyticsSnapshot> {
+    const user = await requireSuperUser();
+    return getContentAnalyticsSnapshot(user.uid);
+}
+
 // ─── 2. Research Brief ────────────────────────────────────────────────────────
 
 /**
@@ -179,25 +193,29 @@ export async function generateResearchBrief(
     topic: string,
     category: string
 ): Promise<ResearchBrief> {
-    await requireSuperUser();
+    const user = await requireSuperUser();
 
     logger.info('[BlogResearch] Generating research brief', { topic, category });
 
-    // Step 1: Search for sources
-    const searchQuery = `${topic} cannabis dispensary`;
-    const results = await jinaSearch(searchQuery);
+    const searchQuery = `${topic} cannabis technology dispensary brand AI CRM loyalty analytics`;
+    const [analyticsSignals, results] = await Promise.all([
+        getContentAnalyticsSnapshot(user.uid),
+        jinaSearch(searchQuery),
+    ]);
+    const analyticsContext = buildContentAnalyticsContext(analyticsSignals);
 
     if (results.length === 0) {
         // Return a minimal brief so the caller can still proceed
         return {
             topic,
             keyFindings: [`Research topic: ${topic}`],
-            suggestedAngles: [`How ${topic} impacts cannabis dispensaries`],
-            competitorGaps: ['This topic has limited coverage in cannabis media'],
-            suggestedTitle: `${topic}: What Cannabis Dispensaries Need to Know`,
-            suggestedKeywords: [topic, 'cannabis dispensary', 'marijuana dispensary'],
-            rawResearch: `Topic: ${topic}\nCategory: ${category}`,
+            suggestedAngles: [`How ${topic} affects cannabis operators, retention teams, and AI-led growth`],
+            competitorGaps: ['This topic has limited coverage for cannabis technology teams and operator workflows'],
+            suggestedTitle: `${topic}: What Cannabis Operators Need to Know`,
+            suggestedKeywords: [topic, 'cannabis technology', 'dispensary software', 'cannabis AI'],
+            rawResearch: `Topic: ${topic}\nCategory: ${category}\n\n${analyticsContext}`,
             citations: [],
+            analyticsSignals,
         };
     }
 
@@ -214,7 +232,7 @@ export async function generateResearchBrief(
         })
     );
 
-    const rawResearch = pageContents.join('\n\n---\n\n');
+    const rawResearch = `${pageContents.join('\n\n---\n\n')}\n\n---\n\n## BakedBot analytics context\n${analyticsContext}`;
 
     // Step 3a: Extract attributable citations from research sources
     let citations: Citation[] = [];
@@ -267,10 +285,14 @@ Rules:
     }
 
     // Step 3b: Claude synthesis → structured JSON brief
-    const synthesisPrompt = `You are a senior cannabis content strategist. Synthesize the following research into a structured content brief.
+    const synthesisPrompt = `You are a senior cannabis technology content strategist for BakedBot AI. Synthesize the following research into a structured content brief.
 
 Topic: ${topic}
 Category: ${category.replace('_', ' ')}
+Primary competitor: AlpineIQ (AIQ)
+
+Internal performance context:
+${analyticsContext}
 
 Research Sources:
 ${rawResearch.substring(0, 12000)}
@@ -286,10 +308,10 @@ Respond with ONLY valid JSON matching this exact structure:
 
 Rules:
 - keyFindings: 5-7 factual insights from the research
-- suggestedAngles: 3 distinct content approaches for a cannabis dispensary blog
-- competitorGaps: 2-3 angles that are underserved in cannabis content
+- suggestedAngles: 3 distinct content approaches for a cannabis technology company serving dispensaries, brands, and operators
+- competitorGaps: 2-3 angles that are underserved in cannabis technology, CRM, AI, or operator-focused content
 - suggestedTitle: compelling, includes primary keyword, 50-60 chars
-- suggestedKeywords: 5-8 SEO terms a dispensary should rank for
+- suggestedKeywords: 5-8 SEO terms BakedBot should rank for
 - NO medical claims, NO youth appeal language`;
 
     try {
@@ -313,24 +335,26 @@ Rules:
         return {
             topic,
             keyFindings: parsed.keyFindings ?? [`Research topic: ${topic}`],
-            suggestedAngles: parsed.suggestedAngles ?? [`How ${topic} impacts cannabis dispensaries`],
-            competitorGaps: parsed.competitorGaps ?? ['Limited cannabis-specific coverage'],
+            suggestedAngles: parsed.suggestedAngles ?? [`How ${topic} affects cannabis operators and growth teams`],
+            competitorGaps: parsed.competitorGaps ?? ['Limited operator-focused coverage'],
             suggestedTitle: parsed.suggestedTitle ?? `${topic}: A Cannabis Industry Guide`,
-            suggestedKeywords: parsed.suggestedKeywords ?? [topic, 'cannabis', 'dispensary'],
+            suggestedKeywords: parsed.suggestedKeywords ?? [topic, 'cannabis technology', 'dispensary software'],
             rawResearch,
             citations,
+            analyticsSignals,
         };
     } catch (error) {
         logger.error('[BlogResearch] Claude synthesis failed', { error });
         return {
             topic,
             keyFindings: results.slice(0, 5).map(r => r.snippet),
-            suggestedAngles: [`How ${topic} impacts your dispensary`],
-            competitorGaps: ['Limited cannabis-specific coverage on this topic'],
-            suggestedTitle: `${topic}: What Dispensaries Need to Know`,
-            suggestedKeywords: [topic, 'cannabis dispensary', 'marijuana'],
+            suggestedAngles: [`How ${topic} impacts cannabis operators, brands, and AI-led teams`],
+            competitorGaps: ['Limited cannabis technology coverage on this topic'],
+            suggestedTitle: `${topic}: What Cannabis Teams Need to Know`,
+            suggestedKeywords: [topic, 'cannabis technology', 'cannabis CRM', 'AI for dispensaries'],
             rawResearch,
             citations,
+            analyticsSignals,
         };
     }
 }
@@ -347,9 +371,9 @@ export async function researchAndGenerateBlog(input: {
     contentType: BlogContentType;
     brief?: ResearchBrief;
     orgId: string;
-    userId: string;
+    userId?: string;
 }): Promise<{ id: string; title: string }> {
-    await requireSuperUser();
+    const user = await requireSuperUser();
 
     logger.info('[BlogResearch] researchAndGenerateBlog', {
         topic: input.topic,
@@ -387,9 +411,9 @@ export async function researchAndGenerateBlog(input: {
         seoKeywords: draft.seoKeywords,
         generatedBy: 'research_pipeline',
         status: 'draft',
-        createdBy: input.userId,
+        createdBy: user.uid || input.userId || 'super_user',
         author: {
-            id: input.userId,
+            id: user.uid || input.userId || 'super_user',
             name: 'BakedBot AI',
         },
     });

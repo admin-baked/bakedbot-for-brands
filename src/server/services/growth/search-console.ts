@@ -1,14 +1,16 @@
-// src/server/services/growth/search-console.ts
 /**
  * Google Search Console Service
- * 
- * Provides SEO performance data to Day Day for optimization decisions.
- * Uses service account authentication via GOOGLE_APPLICATION_CREDENTIALS.
+ *
+ * Provides SEO performance data to Day Day, Pops, and the Super User dashboards.
+ * Uses user OAuth when available and falls back to platform service-account auth.
  */
 
-import { google } from 'googleapis';
+import { google, webmasters_v3 } from 'googleapis';
 import { logger } from '@/lib/logger';
 import { GoogleAuth } from 'google-auth-library';
+import { getOAuth2ClientAsync } from '@/server/integrations/gmail/oauth';
+import { getGoogleSearchConsoleToken } from '@/server/integrations/google-search-console/token-storage';
+import type { GoogleIntegrationMode } from './google-analytics';
 
 export interface SearchPerformanceData {
     query: string;
@@ -38,25 +40,151 @@ export interface LowCompetitionOpportunity {
     reason: string;
 }
 
-export class SearchConsoleService {
-    private webmasters: any = null;
-    private siteUrl: string | undefined;
+export interface SearchConsoleConnectionStatus {
+    connected: boolean;
+    mode: GoogleIntegrationMode;
+    siteUrl: string | null;
+    siteConfigured: boolean;
+}
 
-    constructor() {
-        try {
-            const auth = new GoogleAuth({
-                scopes: ['https://www.googleapis.com/auth/webmasters.readonly']
-            });
-            
-            this.webmasters = google.webmasters({ version: 'v3', auth: auth as any });
-            this.siteUrl = process.env.SEARCH_CONSOLE_SITE_URL; // e.g., 'https://bakedbot.ai'
-            
-            if (!this.siteUrl) {
-                logger.warn('[GSC] Missing SEARCH_CONSOLE_SITE_URL env var');
-            }
-        } catch (e: any) {
-            logger.error(`[GSC] Init failed: ${e.message}`);
+interface SearchConsoleResolution {
+    webmasters: webmasters_v3.Webmasters;
+    authMode: Exclude<GoogleIntegrationMode, 'disconnected'>;
+    siteUrl: string;
+}
+
+type SearchConsoleAuth = webmasters_v3.Options['auth'];
+
+export class SearchConsoleService {
+    private readonly siteUrl = process.env.SEARCH_CONSOLE_SITE_URL;
+    private readonly scope = 'https://www.googleapis.com/auth/webmasters.readonly';
+
+    private async resolveOauthWebmasters(userId: string): Promise<SearchConsoleResolution | null> {
+        if (!this.siteUrl) {
+            return null;
         }
+
+        const tokens = await getGoogleSearchConsoleToken(userId);
+        if (!tokens?.refresh_token) {
+            return null;
+        }
+
+        const oauth2Client = await getOAuth2ClientAsync();
+        oauth2Client.setCredentials(tokens);
+
+        return {
+            webmasters: google.webmasters({ version: 'v3', auth: oauth2Client }),
+            authMode: 'oauth',
+            siteUrl: this.siteUrl,
+        };
+    }
+
+    private async resolveServiceAccountWebmasters(): Promise<SearchConsoleResolution | null> {
+        if (!this.siteUrl) {
+            return null;
+        }
+
+        const auth = new GoogleAuth({
+            scopes: [this.scope],
+        });
+
+        await auth.getClient();
+
+        return {
+            webmasters: google.webmasters({ version: 'v3', auth: auth as SearchConsoleAuth }),
+            authMode: 'service_account',
+            siteUrl: this.siteUrl,
+        };
+    }
+
+    private async resolveWebmasters(userId?: string): Promise<SearchConsoleResolution | null> {
+        if (userId) {
+            try {
+                const oauthResolution = await this.resolveOauthWebmasters(userId);
+                if (oauthResolution) {
+                    return oauthResolution;
+                }
+            } catch (error) {
+                logger.warn('[GSC] OAuth resolution failed, falling back to service account', {
+                    userId,
+                    error: error instanceof Error ? error.message : String(error),
+                });
+            }
+        }
+
+        try {
+            return await this.resolveServiceAccountWebmasters();
+        } catch (error) {
+            logger.warn('[GSC] Service-account resolution failed', {
+                error: error instanceof Error ? error.message : String(error),
+            });
+            return null;
+        }
+    }
+
+    async getConnectionStatus(userId?: string): Promise<SearchConsoleConnectionStatus> {
+        if (userId) {
+            try {
+                const oauthResolution = await this.resolveOauthWebmasters(userId);
+                if (oauthResolution) {
+                    return {
+                        connected: true,
+                        mode: 'oauth',
+                        siteUrl: oauthResolution.siteUrl,
+                        siteConfigured: true,
+                    };
+                }
+            } catch (error) {
+                logger.warn('[GSC] Failed to resolve OAuth status', {
+                    userId,
+                    error: error instanceof Error ? error.message : String(error),
+                });
+            }
+        }
+
+        try {
+            const serviceAccountResolution = await this.resolveServiceAccountWebmasters();
+            if (serviceAccountResolution) {
+                return {
+                    connected: true,
+                    mode: 'service_account',
+                    siteUrl: serviceAccountResolution.siteUrl,
+                    siteConfigured: true,
+                };
+            }
+        } catch (error) {
+            logger.warn('[GSC] Failed to resolve service-account status', {
+                error: error instanceof Error ? error.message : String(error),
+            });
+        }
+
+        return {
+            connected: false,
+            mode: 'disconnected',
+            siteUrl: this.siteUrl ?? null,
+            siteConfigured: Boolean(this.siteUrl),
+        };
+    }
+
+    private buildEmptyTopQueriesReport(startDate: string, endDate: string): TopQueriesReport {
+        return {
+            queries: [],
+            totalClicks: 0,
+            totalImpressions: 0,
+            avgPosition: 0,
+            dateRange: { start: startDate, end: endDate },
+        };
+    }
+
+    private mapQueryRows(rows: webmasters_v3.Schema$ApiDataRow[] | undefined): SearchPerformanceData[] {
+        return (rows || []).map((row) => ({
+            query: row.keys?.[0] || '',
+            page: row.keys?.[1] || '',
+            clicks: row.clicks || 0,
+            impressions: row.impressions || 0,
+            ctr: row.ctr || 0,
+            position: row.position || 0,
+        }));
     }
 
     /**
@@ -65,103 +193,82 @@ export class SearchConsoleService {
     async getTopQueries(
         startDate: string = this.getDateDaysAgo(28),
         endDate: string = this.getDateDaysAgo(1),
-        limit: number = 50
+        limit: number = 50,
+        options?: { userId?: string }
     ): Promise<TopQueriesReport> {
-        if (!this.webmasters || !this.siteUrl) {
-            return {
-                queries: [],
-                totalClicks: 0,
-                totalImpressions: 0,
-                avgPosition: 0,
-                dateRange: { start: startDate, end: endDate }
-            };
+        const resolution = await this.resolveWebmasters(options?.userId);
+        if (!resolution) {
+            return this.buildEmptyTopQueriesReport(startDate, endDate);
         }
 
         try {
-            const response = await this.webmasters.searchanalytics.query({
-                siteUrl: this.siteUrl,
+            const response = await resolution.webmasters.searchanalytics.query({
+                siteUrl: resolution.siteUrl,
                 requestBody: {
                     startDate,
                     endDate,
                     dimensions: ['query', 'page'],
                     rowLimit: limit,
-                    dimensionFilterGroups: []
-                }
+                    dimensionFilterGroups: [],
+                },
             });
 
-            const rows = response.data.rows || [];
-            const queries: SearchPerformanceData[] = rows.map((row: any) => ({
-                query: row.keys[0],
-                page: row.keys[1],
-                clicks: row.clicks,
-                impressions: row.impressions,
-                ctr: row.ctr,
-                position: row.position
-            }));
+            const queries = this.mapQueryRows(response.data.rows);
 
             return {
                 queries,
-                totalClicks: queries.reduce((sum, q) => sum + q.clicks, 0),
-                totalImpressions: queries.reduce((sum, q) => sum + q.impressions, 0),
-                avgPosition: queries.length > 0 
-                    ? queries.reduce((sum, q) => sum + q.position, 0) / queries.length 
+                totalClicks: queries.reduce((sum, query) => sum + query.clicks, 0),
+                totalImpressions: queries.reduce((sum, query) => sum + query.impressions, 0),
+                avgPosition: queries.length > 0
+                    ? queries.reduce((sum, query) => sum + query.position, 0) / queries.length
                     : 0,
-                dateRange: { start: startDate, end: endDate }
+                dateRange: { start: startDate, end: endDate },
             };
-
-        } catch (e: any) {
-            logger.error(`[GSC] Query failed: ${e.message}`);
-            return {
-                queries: [],
-                totalClicks: 0,
-                totalImpressions: 0,
-                avgPosition: 0,
-                dateRange: { start: startDate, end: endDate }
-            };
+        } catch (error) {
+            logger.error('[GSC] Query failed', {
+                authMode: resolution.authMode,
+                error: error instanceof Error ? error.message : String(error),
+            });
+            return this.buildEmptyTopQueriesReport(startDate, endDate);
         }
     }
 
     /**
      * Find low-competition opportunities (high impressions, low clicks, position 5-20)
-     * These are keywords where we're showing but not ranking well - easy wins!
      */
     async findLowCompetitionOpportunities(
-        limit: number = 20
+        limit: number = 20,
+        options?: { userId?: string }
     ): Promise<LowCompetitionOpportunity[]> {
-        const report = await this.getTopQueries(this.getDateDaysAgo(28), this.getDateDaysAgo(1), 500);
-        
+        const report = await this.getTopQueries(this.getDateDaysAgo(28), this.getDateDaysAgo(1), 500, options);
+
         const opportunities: LowCompetitionOpportunity[] = report.queries
-            .filter(q => q.impressions >= 10 && q.position > 4 && q.position < 30)
-            .map(q => {
+            .filter((query) => query.impressions >= 10 && query.position > 4 && query.position < 30)
+            .map((query) => {
                 let opportunity: 'high' | 'medium' | 'low' = 'low';
                 let reason = '';
-                
-                // High opportunity: lots of impressions but low CTR, position 5-10
-                if (q.impressions >= 100 && q.ctr < 0.03 && q.position <= 10) {
+
+                if (query.impressions >= 100 && query.ctr < 0.03 && query.position <= 10) {
                     opportunity = 'high';
                     reason = 'High impressions with low CTR - improve title/description';
-                }
-                // Medium: decent impressions, position 10-20 (one optimization away from page 1)
-                else if (q.impressions >= 50 && q.position > 10 && q.position <= 20) {
+                } else if (query.impressions >= 50 && query.position > 10 && query.position <= 20) {
                     opportunity = 'medium';
                     reason = 'Close to page 1 - content optimization could boost rankings';
-                }
-                // Low: some potential but lower priority
-                else {
+                } else {
                     reason = 'Some search visibility - monitor for growth';
                 }
-                
-                return { ...q, opportunity, reason };
+
+                return { ...query, opportunity, reason };
             })
-            .sort((a, b) => {
-                const opOrder = { high: 0, medium: 1, low: 2 };
-                if (opOrder[a.opportunity] !== opOrder[b.opportunity]) {
-                    return opOrder[a.opportunity] - opOrder[b.opportunity];
+            .sort((left, right) => {
+                const opportunityOrder = { high: 0, medium: 1, low: 2 };
+                if (opportunityOrder[left.opportunity] !== opportunityOrder[right.opportunity]) {
+                    return opportunityOrder[left.opportunity] - opportunityOrder[right.opportunity];
                 }
-                return b.impressions - a.impressions;
+                return right.impressions - left.impressions;
             })
             .slice(0, limit);
-        
+
         return opportunities;
     }
 
@@ -171,9 +278,11 @@ export class SearchConsoleService {
     async getPagePerformance(
         pagePaths: string[],
         startDate: string = this.getDateDaysAgo(7),
-        endDate: string = this.getDateDaysAgo(1)
+        endDate: string = this.getDateDaysAgo(1),
+        options?: { userId?: string }
     ): Promise<Record<string, SearchPerformanceData[]>> {
-        if (!this.webmasters || !this.siteUrl) {
+        const resolution = await this.resolveWebmasters(options?.userId);
+        if (!resolution) {
             return {};
         }
 
@@ -181,8 +290,8 @@ export class SearchConsoleService {
 
         for (const pagePath of pagePaths) {
             try {
-                const response = await this.webmasters.searchanalytics.query({
-                    siteUrl: this.siteUrl,
+                const response = await resolution.webmasters.searchanalytics.query({
+                    siteUrl: resolution.siteUrl,
                     requestBody: {
                         startDate,
                         endDate,
@@ -191,24 +300,27 @@ export class SearchConsoleService {
                             filters: [{
                                 dimension: 'page',
                                 operator: 'contains',
-                                expression: pagePath
-                            }]
+                                expression: pagePath,
+                            }],
                         }],
-                        rowLimit: 10
-                    }
+                        rowLimit: 10,
+                    },
                 });
 
-                results[pagePath] = (response.data.rows || []).map((row: any) => ({
-                    query: row.keys[0],
+                results[pagePath] = (response.data.rows || []).map((row) => ({
+                    query: row.keys?.[0] || '',
                     page: pagePath,
-                    clicks: row.clicks,
-                    impressions: row.impressions,
-                    ctr: row.ctr,
-                    position: row.position
+                    clicks: row.clicks || 0,
+                    impressions: row.impressions || 0,
+                    ctr: row.ctr || 0,
+                    position: row.position || 0,
                 }));
-
-            } catch (e: any) {
-                logger.error(`[GSC] Page query failed for ${pagePath}: ${e.message}`);
+            } catch (error) {
+                logger.error('[GSC] Page query failed', {
+                    authMode: resolution.authMode,
+                    pagePath,
+                    error: error instanceof Error ? error.message : String(error),
+                });
                 results[pagePath] = [];
             }
         }
@@ -219,7 +331,10 @@ export class SearchConsoleService {
     /**
      * Get site-wide summary stats
      */
-    async getSiteSummary(days: number = 7): Promise<{
+    async getSiteSummary(
+        days: number = 7,
+        options?: { userId?: string }
+    ): Promise<{
         clicks: number;
         impressions: number;
         ctr: number;
@@ -228,20 +343,21 @@ export class SearchConsoleService {
     }> {
         const startDate = this.getDateDaysAgo(days);
         const endDate = this.getDateDaysAgo(1);
+        const resolution = await this.resolveWebmasters(options?.userId);
 
-        if (!this.webmasters || !this.siteUrl) {
+        if (!resolution) {
             return { clicks: 0, impressions: 0, ctr: 0, avgPosition: 0, dateRange: { start: startDate, end: endDate } };
         }
 
         try {
-            const response = await this.webmasters.searchanalytics.query({
-                siteUrl: this.siteUrl,
+            const response = await resolution.webmasters.searchanalytics.query({
+                siteUrl: resolution.siteUrl,
                 requestBody: {
                     startDate,
                     endDate,
-                    dimensions: [], // No dimensions = site-wide totals
-                    rowLimit: 1
-                }
+                    dimensions: [],
+                    rowLimit: 1,
+                },
             });
 
             const row = response.data.rows?.[0];
@@ -250,11 +366,13 @@ export class SearchConsoleService {
                 impressions: row?.impressions || 0,
                 ctr: row?.ctr || 0,
                 avgPosition: row?.position || 0,
-                dateRange: { start: startDate, end: endDate }
+                dateRange: { start: startDate, end: endDate },
             };
-
-        } catch (e: any) {
-            logger.error(`[GSC] Summary failed: ${e.message}`);
+        } catch (error) {
+            logger.error('[GSC] Summary failed', {
+                authMode: resolution.authMode,
+                error: error instanceof Error ? error.message : String(error),
+            });
             return { clicks: 0, impressions: 0, ctr: 0, avgPosition: 0, dateRange: { start: startDate, end: endDate } };
         }
     }

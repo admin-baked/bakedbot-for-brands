@@ -21,6 +21,8 @@ import { NotebookLMAuth } from '@/components/settings/notebooklm-auth';
 import { GmailConnection } from './components/gmail-connection';
 import { SheetsConnection } from './components/sheets-connection';
 import { DriveConnection } from './components/drive-connection';
+import { GoogleAnalyticsConnection } from './components/google-analytics-connection';
+import { SearchConsoleConnection } from './components/search-console-connection';
 import { QEVConnection } from './components/qev-connection';
 
 import { Button } from '@/components/ui/button';
@@ -204,6 +206,12 @@ export default function SettingsPage() {
           </Suspense>
           <Suspense fallback={<Card className="p-6 animate-pulse"><div className="h-20 bg-muted rounded" /></Card>}>
             <DriveConnection />
+          </Suspense>
+          <Suspense fallback={<Card className="p-6 animate-pulse"><div className="h-20 bg-muted rounded" /></Card>}>
+            <GoogleAnalyticsConnection />
+          </Suspense>
+          <Suspense fallback={<Card className="p-6 animate-pulse"><div className="h-20 bg-muted rounded" /></Card>}>
+            <SearchConsoleConnection />
           </Suspense>
           <Suspense fallback={<Card className="p-6 animate-pulse"><div className="h-20 bg-muted rounded" /></Card>}>
             <QEVConnection />

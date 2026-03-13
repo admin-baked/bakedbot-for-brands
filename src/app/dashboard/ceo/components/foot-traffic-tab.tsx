@@ -66,7 +66,8 @@ import {
     refreshSeoPageDataAction,
     getDispensaryPagesAction,
     deleteDispensaryPageAction,
-    toggleDispensaryPagePublishAction
+    toggleDispensaryPagePublishAction,
+    syncDiscoveryPagesFromCrmAction,
 } from '../actions/seo-actions';
 import { bulkSeoPageStatusAction } from '../actions/user-actions';
 import { getDiscoveryJobStatusAction, runNationalSeedAction } from '../actions/pilot-actions';
@@ -128,6 +129,7 @@ export default function FootTrafficTab() {
     const [isQuickGeneratorOpen, setIsQuickGeneratorOpen] = useState(false);
     const [isPilotOpen, setIsPilotOpen] = useState(false);
     const [jobStatus, setJobStatus] = useState<any>(null);
+    const [isSyncingCrmPages, setIsSyncingCrmPages] = useState(false);
 
     // Sorting State
     const [zipSort, setZipSort] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'zipCode', direction: 'asc' });
@@ -363,6 +365,36 @@ export default function FootTrafficTab() {
         }
     };
 
+    const handleSyncCrmPages = async () => {
+        setIsSyncingCrmPages(true);
+        try {
+            const result = await syncDiscoveryPagesFromCrmAction();
+            if (result.error) {
+                toast({
+                    title: 'CRM Sync Failed',
+                    description: result.message,
+                    variant: 'destructive',
+                });
+                return;
+            }
+
+            toast({
+                title: 'CRM Pages Imported',
+                description: `Created ${result.created.zipPages} location, ${result.created.dispensaryPages} dispensary, and ${result.created.brandPages} brand pages.`,
+            });
+
+            await fetchData();
+        } catch (error) {
+            toast({
+                title: 'CRM Sync Failed',
+                description: 'Unable to import Discovery Hub pages from CRM.',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsSyncingCrmPages(false);
+        }
+    };
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -392,6 +424,18 @@ export default function FootTrafficTab() {
                     >
                         <Rocket className="h-4 w-4 mr-2" />
                         Custom Discovery
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={handleSyncCrmPages}
+                        disabled={isSyncingCrmPages}
+                    >
+                        {isSyncingCrmPages ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                            <Users className="h-4 w-4 mr-2" />
+                        )}
+                        Import CRM Pages
                     </Button>
                     {/* Seed All Markets - Creates all 3 page types */}
                     <Button
@@ -515,7 +559,17 @@ export default function FootTrafficTab() {
                     ) : filteredPages.length === 0 ? (
                         <div className="py-20 text-center border rounded-lg border-dashed bg-muted/10">
                             <p className="text-muted-foreground mb-4">No pages found matching your filters.</p>
-                            <Button onClick={() => setIsPilotOpen(true)}>Generate Your First Batch</Button>
+                            <div className="flex items-center justify-center gap-2">
+                                <Button onClick={handleSyncCrmPages} variant="outline" disabled={isSyncingCrmPages}>
+                                    {isSyncingCrmPages ? (
+                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    ) : (
+                                        <Users className="h-4 w-4 mr-2" />
+                                    )}
+                                    Import from CRM
+                                </Button>
+                                <Button onClick={() => setIsPilotOpen(true)}>Generate Your First Batch</Button>
+                            </div>
                         </div>
                     ) : (
                         <div className="rounded-md border">
