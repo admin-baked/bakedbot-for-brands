@@ -35,6 +35,32 @@ function buildRepoWithDoc(data: Record<string, unknown>) {
   };
 }
 
+function buildRepoForWrites() {
+  const rootSet = jest.fn().mockResolvedValue(undefined);
+  const versionSet = jest.fn().mockResolvedValue(undefined);
+  const rootGet = jest.fn().mockResolvedValue({ exists: false, data: () => undefined });
+
+  const firestore = {
+    collection: jest.fn(() => ({
+      doc: jest.fn(() => ({
+        set: rootSet,
+        get: rootGet,
+        collection: jest.fn(() => ({
+          doc: jest.fn(() => ({
+            set: versionSet,
+          })),
+        })),
+      })),
+    })),
+  };
+
+  return {
+    repo: makeBrandGuideRepo(firestore as any),
+    rootSet,
+    versionSet,
+  };
+}
+
 describe('brandGuideRepo timestamp conversion', () => {
   it('recursively converts nested Firestore Timestamps into Date objects', async () => {
     const createdAt = new Date('2026-02-26T12:00:00.000Z');
@@ -115,5 +141,67 @@ describe('brandGuideRepo timestamp conversion', () => {
 
     expect(result).not.toBeNull();
     expect((result as any).reference).toBe(ref);
+  });
+
+  it('writes create payloads with plain Date fields for Firestore-safe serialization', async () => {
+    const { repo, rootSet } = buildRepoForWrites();
+    const uploadedAt = new Date('2026-03-12T12:00:00.000Z');
+
+    await repo.create('brand-4', {
+      brandName: 'Write Test Brand',
+      assets: {
+        heroImages: [
+          {
+            id: 'featured-image-brand-4',
+            type: 'image',
+            name: 'Featured image',
+            url: 'https://cdn.example.com/featured.jpg',
+            uploadedBy: 'brand-4',
+            uploadedAt,
+          },
+        ],
+      } as any,
+    });
+
+    expect(rootSet).toHaveBeenCalledTimes(1);
+    const payload = rootSet.mock.calls[0]?.[0] as Record<string, any>;
+    expect(payload.createdAt).toBeInstanceOf(Date);
+    expect(payload.lastUpdatedAt).toBeInstanceOf(Date);
+    expect(payload.assets.heroImages[0].uploadedAt).toBeInstanceOf(Date);
+  });
+
+  it('writes version snapshots with plain Date fields instead of custom timestamp prototypes', async () => {
+    const { repo, versionSet } = buildRepoForWrites();
+    const createdAt = new Date('2026-03-12T12:00:00.000Z');
+    const uploadedAt = new Date('2026-03-12T12:05:00.000Z');
+
+    await repo.createVersion('brand-4', {
+      version: 1,
+      timestamp: new Date('2026-03-12T12:10:00.000Z'),
+      updatedBy: 'brand-4',
+      changes: [],
+      snapshot: {
+        createdAt,
+        assets: {
+          heroImages: [
+            {
+              id: 'featured-image-brand-4',
+              type: 'image',
+              name: 'Featured image',
+              url: 'https://cdn.example.com/featured.jpg',
+              uploadedBy: 'brand-4',
+              uploadedAt,
+            },
+          ],
+        },
+      } as any,
+      isActive: true,
+    });
+
+    expect(versionSet).toHaveBeenCalledTimes(1);
+    const payload = versionSet.mock.calls[0]?.[0] as Record<string, any>;
+    expect(payload.timestamp).toBeInstanceOf(Date);
+    expect(payload.snapshot.createdAt).toBeInstanceOf(Date);
+    expect(payload.snapshot.assets.heroImages[0].uploadedAt).toBeInstanceOf(Date);
   });
 });

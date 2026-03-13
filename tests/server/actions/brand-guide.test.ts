@@ -52,6 +52,83 @@ jest.mock('@/lib/logger', () => ({
   },
 }));
 
+function makeFirestoreDocs(items: Array<Record<string, unknown>>) {
+  return items.map((item) => ({
+    data: () => item,
+  }));
+}
+
+function buildFeaturedImageFirestoreMock(config: {
+  brandId: string;
+  brandDocOrgId?: string | null;
+  tenantItemsByOrgId?: Record<string, Array<Record<string, unknown>>>;
+  orgProductsByOrgId?: Record<string, Array<Record<string, unknown>>>;
+  brandProducts?: Array<Record<string, unknown>>;
+  retailerProductsByOrgId?: Record<string, Array<Record<string, unknown>>>;
+}) {
+  return {
+    collection: jest.fn((collectionName: string) => {
+      if (collectionName === 'brands') {
+        return {
+          doc: jest.fn(() => ({
+            get: jest.fn().mockResolvedValue(
+              config.brandDocOrgId
+                ? {
+                    exists: true,
+                    data: () => ({ orgId: config.brandDocOrgId }),
+                  }
+                : {
+                    exists: false,
+                    data: () => undefined,
+                  }
+            ),
+          })),
+        };
+      }
+
+      if (collectionName === 'tenants') {
+        return {
+          doc: jest.fn((orgId: string) => ({
+            collection: jest.fn(() => ({
+              doc: jest.fn(() => ({
+                collection: jest.fn(() => ({
+                  limit: jest.fn(() => ({
+                    get: jest.fn().mockResolvedValue({
+                      docs: makeFirestoreDocs(config.tenantItemsByOrgId?.[orgId] || []),
+                    }),
+                  })),
+                })),
+              })),
+            })),
+          })),
+        };
+      }
+
+      if (collectionName === 'products') {
+        return {
+          where: jest.fn((field: string, _operator: string, value: string) => ({
+            limit: jest.fn(() => ({
+              get: jest.fn().mockResolvedValue({
+                docs: makeFirestoreDocs(
+                  field === 'orgId'
+                    ? config.orgProductsByOrgId?.[value] || []
+                    : field === 'brandId'
+                      ? (value === config.brandId ? config.brandProducts || [] : [])
+                      : field === 'retailerIds'
+                        ? config.retailerProductsByOrgId?.[value] || []
+                        : []
+                ),
+              }),
+            })),
+          })),
+        };
+      }
+
+      throw new Error(`Unexpected collection: ${collectionName}`);
+    }),
+  };
+}
+
 describe('Brand Guide Server Actions', () => {
   let mockRepo: MockBrandGuideRepo;
 
@@ -504,15 +581,100 @@ describe('Brand Guide Server Actions', () => {
         includeCompetitorAnalysis: true,
       });
 
-      expect(searchEntities).toHaveBeenCalledWith('Hudson Cannabis Hudson New York', 'brand');
+      expect(searchEntities).toHaveBeenCalledWith('Hudson Cannabis Hudson New York', 'company');
       expect(result.success).toBe(true);
       expect(result.competitorSuggestions).toEqual([
         expect.objectContaining({
           name: 'MFNY',
-          type: 'brand',
+          type: 'company',
           url: 'https://mfnycannabis.com',
         }),
       ]);
+    });
+
+    it('should prefer org-scoped flower imagery when the active brandId is actually a dispensary orgId', async () => {
+      const mockExtractor = {
+        extractFromUrl: jest.fn().mockResolvedValue({
+          visualIdentity: {},
+          voice: {},
+          messaging: {
+            brandName: 'Thrive Syracuse',
+            organizationType: 'dispensary',
+            dispensaryType: 'recreational',
+          },
+          source: { method: 'url_extraction' },
+          confidence: 88,
+        }),
+      };
+
+      (getBrandGuideExtractor as jest.Mock).mockReturnValue(mockExtractor);
+      const { getAdminFirestore } = require('@/firebase/admin');
+      (getAdminFirestore as jest.Mock).mockReturnValue(
+        buildFeaturedImageFirestoreMock({
+          brandId: 'org_thrive_syracuse',
+          orgProductsByOrgId: {
+            org_thrive_syracuse: [
+              {
+                name: 'Blue Dream Flower',
+                category: 'Flower',
+                imageUrl: 'https://cdn.example.com/blue-dream.jpg',
+              },
+              {
+                name: 'Gummy Bears',
+                category: 'Edibles',
+                imageUrl: 'https://cdn.example.com/gummies.jpg',
+              },
+            ],
+          },
+        })
+      );
+
+      const result = await extractBrandGuideFromUrl({
+        brandId: 'org_thrive_syracuse',
+        url: 'https://thrivesyracuse.com',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.featuredProductImage).toBe('https://cdn.example.com/blue-dream.jpg');
+    });
+
+    it('should fall back to a brand-owned product image for cannabis brands', async () => {
+      const mockExtractor = {
+        extractFromUrl: jest.fn().mockResolvedValue({
+          visualIdentity: {},
+          voice: {},
+          messaging: {
+            brandName: 'Hudson Cannabis',
+            organizationType: 'cannabis_brand',
+            businessModel: 'product_brand',
+          },
+          source: { method: 'url_extraction' },
+          confidence: 84,
+        }),
+      };
+
+      (getBrandGuideExtractor as jest.Mock).mockReturnValue(mockExtractor);
+      const { getAdminFirestore } = require('@/firebase/admin');
+      (getAdminFirestore as jest.Mock).mockReturnValue(
+        buildFeaturedImageFirestoreMock({
+          brandId: 'brand_hudson',
+          brandProducts: [
+            {
+              name: 'Live Rosin Cartridge',
+              category: 'Concentrate',
+              imageUrl: 'https://cdn.example.com/live-rosin.jpg',
+            },
+          ],
+        })
+      );
+
+      const result = await extractBrandGuideFromUrl({
+        brandId: 'brand_hudson',
+        url: 'https://hudsoncannabis.com',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.featuredProductImage).toBe('https://cdn.example.com/live-rosin.jpg');
     });
 
     it('should handle extraction errors', async () => {

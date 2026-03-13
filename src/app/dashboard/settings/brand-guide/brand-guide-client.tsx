@@ -595,20 +595,20 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
         });
       }
 
-      // Step 2 — visual identity + logo preview from OG image / favicon
-      if (result.visualIdentity) {
-        const detectedLogo = result.visualIdentity.logo?.primary;
-        const shouldUseProductImage = isRetailCannabisOrganization(organizationType, dispensaryType);
-        const detectedFeaturedImage =
-          (shouldUseProductImage ? (result as any).featuredProductImage : undefined) ||
-          (result as any).metadata?.ogImage ||
-          (result as any).metadata?.image ||
-          result.visualIdentity.logo?.secondary ||
-          undefined;
+      // Step 2 — visual identity + logo preview from product image / OG image / favicon
+      const detectedLogo = result.visualIdentity?.logo?.primary;
+      const shouldUseProductImage = isRetailCannabisOrganization(organizationType, dispensaryType);
+      const detectedFeaturedImage =
+        (shouldUseProductImage ? (result as any).featuredProductImage : undefined) ||
+        (result as any).metadata?.ogImage ||
+        (result as any).metadata?.image ||
+        result.visualIdentity?.logo?.secondary ||
+        undefined;
 
+      if (result.visualIdentity || detectedFeaturedImage) {
         setStep2Data({
-          primaryColor: result.visualIdentity.colors?.primary?.hex || '#4ade80',
-          secondaryColor: result.visualIdentity.colors?.secondary?.hex,
+          primaryColor: result.visualIdentity?.colors?.primary?.hex || '#4ade80',
+          secondaryColor: result.visualIdentity?.colors?.secondary?.hex,
           logoUrl: detectedLogo,
           logoPreviewUrl: detectedLogo,
           featuredImageUrl: detectedFeaturedImage,
@@ -728,12 +728,10 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
               : undefined,
             imagery: persistedFeaturedImageUrl
               ? {
-                  style: organizationIsRetail
-                    ? ['Product-forward', 'Menu-ready']
-                    : ['Editorial', 'Campaign-ready'],
-                  mood: organizationIsRetail
-                    ? ['Inviting', 'Community-focused']
-                    : ['Modern', 'Confident'],
+                  style: organizationIsRetail ? 'product-focused' : 'lifestyle',
+                  guidelines: organizationIsRetail
+                    ? 'Use real menu product imagery that clearly shows flower, packaging, or strain presentation.'
+                    : 'Use real brand product imagery instead of stock photography whenever possible.',
                   examples: [persistedFeaturedImageUrl],
                 }
               : undefined,
@@ -786,6 +784,12 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
             keyMessages: step4Data?.targetAudience ? [step4Data.targetAudience] : [],
           },
           compliance: step1Data.state ? { state: step1Data.state } : {},
+          assets: persistedFeaturedImageUrl
+            ? {
+                heroImages: [persistedFeaturedImageUrl],
+                brandImages: { hero: persistedFeaturedImageUrl },
+              }
+            : undefined,
         };
         const intentData: OrgProfile['intent'] = {
           strategicFoundation: {

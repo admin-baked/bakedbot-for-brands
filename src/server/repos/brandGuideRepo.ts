@@ -59,11 +59,10 @@ export function makeBrandGuideRepo(firestore: Firestore): BrandGuideRepo {
 
   /**
    * Convert BrandGuide to Firestore format.
-   * Applies deep serialization via toSerializable() to ensure ALL nested Date objects
-   * and any custom-prototype objects are converted to Firestore-compatible types.
-   * Only then set the top-level Timestamp fields explicitly.
+   * Applies deep serialization so Firestore only sees plain objects and JS Dates.
+   * Firestore natively accepts Date values and stores them as timestamps.
    */
-  function toFirestore(guide: BrandGuide): BrandGuideFirestore {
+  function toFirestore(guide: BrandGuide): Record<string, unknown> {
     const createdAtDate = guide.createdAt instanceof Date ? guide.createdAt : new Date();
     const lastUpdatedAtDate = guide.lastUpdatedAt instanceof Date ? guide.lastUpdatedAt : new Date();
 
@@ -74,7 +73,7 @@ export function makeBrandGuideRepo(firestore: Firestore): BrandGuideRepo {
       lastUpdatedAt: lastUpdatedAtDate,
     }) as Record<string, unknown>;
 
-    return serialized as BrandGuideFirestore;
+    return serialized;
   }
 
   /**
@@ -115,13 +114,13 @@ export function makeBrandGuideRepo(firestore: Firestore): BrandGuideRepo {
 
   function toSerializable(val: unknown): unknown {
     if (val === null || val === undefined) return val;
-    if (val instanceof Date) return Timestamp.fromDate(val);
+    if (val instanceof Date) return val;
     if (Array.isArray(val)) return val.map(toSerializable);
     if (typeof val === 'object') {
       const proto = Object.getPrototypeOf(val);
       if (proto !== Object.prototype && proto !== null) {
         if (typeof (val as { toDate?: unknown }).toDate === 'function') {
-          return Timestamp.fromDate((val as { toDate(): Date }).toDate());
+          return (val as { toDate(): Date }).toDate();
         }
         return JSON.parse(JSON.stringify(val));
       }
@@ -150,6 +149,18 @@ export function makeBrandGuideRepo(firestore: Firestore): BrandGuideRepo {
    */
   async function create(brandId: string, data: Partial<BrandGuide>): Promise<BrandGuide> {
     const now = new Date();
+    const defaultAssets = {
+      heroImages: [],
+      productPhotography: { style: 'lifestyle' as const, examples: [] },
+      templates: {
+        instagram: [],
+        instagramStory: [],
+        facebook: [],
+        twitter: [],
+        email: [],
+        printable: [],
+      },
+    };
 
     const guide: BrandGuide = {
       id: brandId,
@@ -213,16 +224,17 @@ export function makeBrandGuideRepo(firestore: Firestore): BrandGuideRepo {
         contentRestrictions: [],
       },
 
-      assets: data.assets || {
-        heroImages: [],
-        productPhotography: { style: 'lifestyle', examples: [] },
+      assets: {
+        ...defaultAssets,
+        ...data.assets,
+        productPhotography: {
+          ...defaultAssets.productPhotography,
+          ...data.assets?.productPhotography,
+          examples: data.assets?.productPhotography?.examples || defaultAssets.productPhotography.examples,
+        },
         templates: {
-          instagram: [],
-          instagramStory: [],
-          facebook: [],
-          twitter: [],
-          email: [],
-          printable: [],
+          ...defaultAssets.templates,
+          ...data.assets?.templates,
         },
       },
 
@@ -270,14 +282,12 @@ export function makeBrandGuideRepo(firestore: Firestore): BrandGuideRepo {
   async function update(brandId: string, updates: Partial<BrandGuide>): Promise<void> {
     const updateData: any = {
       ...updates,
-      lastUpdatedAt: Timestamp.now(),
+      lastUpdatedAt: new Date(),
     };
 
-    // Convert dates to Timestamps
+    // Normalize explicit date updates to plain Dates before writing.
     if (updates.createdAt) {
-      updateData.createdAt = Timestamp.fromDate(
-        updates.createdAt instanceof Date ? updates.createdAt : new Date()
-      );
+      updateData.createdAt = updates.createdAt instanceof Date ? updates.createdAt : new Date();
     }
 
     // Recalculate completeness score by merging updates with current doc
@@ -316,7 +326,7 @@ export function makeBrandGuideRepo(firestore: Firestore): BrandGuideRepo {
       .doc(versionId)
       .set({
         ...version,
-        timestamp: Timestamp.fromDate(version.timestamp),
+        timestamp: version.timestamp,
         snapshot: toSerializable(version.snapshot),
       });
 
