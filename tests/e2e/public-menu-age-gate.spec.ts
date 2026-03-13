@@ -198,14 +198,15 @@ test.describe('Public Menu Age Gate - Compliance Critical', () => {
     // Try to access menu data directly via API
     const response = await page.request.get(`${BASE_URL}/api/menu/${TEST_MENU_SLUG}`);
 
-    // Should either return 401/403 or require age verification
+    // Should either return 401/403/404 or require age verification.
+    // A 404 is acceptable here because the app no longer exposes a public menu JSON endpoint.
     if (response.ok()) {
       const data = await response.json();
       // If 200, response should indicate verification needed
       expect(data).toHaveProperty('requiresAgeVerification');
       expect(data.requiresAgeVerification).toBe(true);
     } else {
-      expect([401, 403]).toContain(response.status());
+      expect([401, 403, 404]).toContain(response.status());
     }
   });
 

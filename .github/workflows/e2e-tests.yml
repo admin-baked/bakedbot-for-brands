@@ -13,7 +13,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: [18.x, 20.x]
+        node-version: [20.x]
+    env:
+      FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+      # Firebase web API keys are public client config, not secrets. Prefer a repo variable when available.
+      NEXT_PUBLIC_FIREBASE_API_KEY: ${{ vars.NEXT_PUBLIC_FIREBASE_API_KEY || 'AIzaSyAGUhtFXf_4bblJ5U6soNnEKuT_7YOavos' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -34,15 +38,11 @@ jobs:
 
       - name: Build application
         run: npm run build
-        env:
-          # Set Firebase env var if needed for build
-          FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
 
       - name: Run E2E tests
         run: npm run test:e2e
         env:
           CI: true
-          FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
 
       - name: Upload Playwright Report
         uses: actions/upload-artifact@v4
