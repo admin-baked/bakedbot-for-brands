@@ -2,13 +2,14 @@
 
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
+import { FieldValue } from 'firebase-admin/firestore';
+
 import { getAdminFirestore } from '@/firebase/admin';
 import { createServerClient } from '@/firebase/server-client';
 import { requireUser, isSuperUser } from '@/server/auth/auth';
-import type { Invitation, InvitationRole, InvitationStatus } from '@/types/invitation';
+import type { Invitation, InvitationRole } from '@/types/invitation';
 import { CreateInvitationSchema, AcceptInvitationSchema } from '@/types/invitation';
-import { FieldValue } from 'firebase-admin/firestore';
-import { requireBrandAccess, requireDispensaryAccess, requirePermission, isBrandRole, isDispensaryRole, isBrandAdmin, isDispensaryAdmin } from '@/server/auth/rbac';
+import { requireBrandAccess, requireDispensaryAccess, requirePermission, isBrandRole, isDispensaryRole, normalizeRole } from '@/server/auth/rbac';
 import { logger } from '@/lib/logger';
 
 function isSuperRole(role: unknown): boolean {
@@ -17,6 +18,7 @@ function isSuperRole(role: unknown): boolean {
 
 function getActorOrgId(user: unknown): string | null {
     if (!user || typeof user !== 'object') return null;
+
     const token = user as {
         currentOrgId?: string;
         orgId?: string;
@@ -25,6 +27,7 @@ function getActorOrgId(user: unknown): string | null {
         tenantId?: string;
         organizationId?: string;
     };
+
     return (
         token.currentOrgId ||
         token.orgId ||
@@ -45,11 +48,95 @@ function isValidDocumentId(value: unknown): value is string {
     );
 }
 
-// --- ACTIONS ---
+function getCanonicalAppUrl(): string {
+    return process.env.NEXT_PUBLIC_CANONICAL_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://bakedbot.ai';
+}
 
-/**
- * Create a new Invitation
- */
+function getInvitationCopy(role: InvitationRole, organizationName?: string) {
+    const targetName = organizationName || 'BakedBot';
+
+    return {
+        subject: `Invitation to join ${targetName}`,
+        html: `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                <h1 style="color: #16a34a;">You've been invited!</h1>
+                <p>You have been invited to join <strong>${targetName}</strong> as a <strong>${role}</strong>.</p>
+                <p style="margin: 20px 0;">
+                    <a href="__INVITE_LINK__" style="background-color: #16a34a; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                        Accept Invitation
+                    </a>
+                </p>
+                <p>Or copy this link:</p>
+                <p style="background-color: #f5f5f5; padding: 10px; font-family: monospace; word-break: break-all;">__INVITE_LINK__</p>
+                <p style="font-size: 12px; color: #666; margin-top: 30px;">
+                    This link expires in 7 days. If you didn't expect this invitation, you can ignore this email.
+                </p>
+            </div>
+        `,
+        text: `You've been invited!\n\nYou have been invited to join ${targetName} as a ${role}.\n\nAccept Invitation:\n__INVITE_LINK__\n\nThis link expires in 7 days. If you didn't expect this invitation, you can ignore this email.`,
+    };
+}
+
+function toDateValue(value: unknown): Date {
+    if (value instanceof Date) return value;
+    if (value && typeof value === 'object' && 'toDate' in value && typeof (value as { toDate?: unknown }).toDate === 'function') {
+        return (value as { toDate: () => Date }).toDate();
+    }
+
+    return new Date(value as string | number | Date);
+}
+
+async function resolveInvitationOrganization(
+    firestore: FirebaseFirestore.Firestore,
+    targetOrgId: string,
+    role: InvitationRole
+): Promise<{ organizationName?: string; organizationType?: 'brand' | 'dispensary' }> {
+    const fallbackType: 'brand' | 'dispensary' | undefined = isBrandRole(role)
+        ? 'brand'
+        : isDispensaryRole(role)
+            ? 'dispensary'
+            : undefined;
+
+    const orgDoc = await firestore.collection('organizations').doc(targetOrgId).get();
+    if (orgDoc.exists) {
+        const orgData = orgDoc.data();
+        return {
+            organizationName: typeof orgData?.name === 'string' ? orgData.name : undefined,
+            organizationType: orgData?.type === 'brand' || orgData?.type === 'dispensary' ? orgData.type : fallbackType,
+        };
+    }
+
+    if (isBrandRole(role)) {
+        const brandDoc = await firestore.collection('brands').doc(targetOrgId).get();
+        if (brandDoc.exists) {
+            return {
+                organizationName: brandDoc.data()?.name,
+                organizationType: 'brand',
+            };
+        }
+
+        const brandByOrgSnap = await firestore.collection('brands').where('orgId', '==', targetOrgId).limit(1).get();
+        if (!brandByOrgSnap.empty) {
+            return {
+                organizationName: brandByOrgSnap.docs[0].data()?.name,
+                organizationType: 'brand',
+            };
+        }
+    }
+
+    if (isDispensaryRole(role)) {
+        const retailerDoc = await firestore.collection('retailers').doc(targetOrgId).get();
+        if (retailerDoc.exists) {
+            return {
+                organizationName: retailerDoc.data()?.name,
+                organizationType: 'dispensary',
+            };
+        }
+    }
+
+    return { organizationType: fallbackType };
+}
+
 export async function createInvitationAction(input: z.infer<typeof CreateInvitationSchema>) {
     try {
         const parsed = CreateInvitationSchema.safeParse(input);
@@ -63,122 +150,116 @@ export async function createInvitationAction(input: z.infer<typeof CreateInvitat
         const validatedInput = parsed.data;
         const user = await requireUser();
         const firestore = getAdminFirestore();
-        const role = (user as { role?: string }).role;
+        const actorRole = (user as { role?: string }).role;
 
-        // Security Checks
         if (validatedInput.role === 'super_user' || validatedInput.role === 'super_admin' || validatedInput.role === 'intern') {
-            const isSuper = isSuperRole(role) || await isSuperUser();
+            const isSuper = isSuperRole(actorRole) || await isSuperUser();
             if (!isSuper) {
                 throw new Error('Unauthorized: Only Super Users can invite platform-level roles.');
             }
         } else if (isBrandRole(validatedInput.role)) {
-            // Must be admin of that brand
             if (!validatedInput.targetOrgId) {
                 throw new Error('Target Organization ID is required for this role.');
             }
-            // Enforce Access & Permission
+
             requireBrandAccess(user as any, validatedInput.targetOrgId);
             requirePermission(user as any, 'manage:team');
-            
         } else if (isDispensaryRole(validatedInput.role)) {
-            // Must be admin of that dispensary
             if (!validatedInput.targetOrgId) {
                 throw new Error('Target Organization ID is required for this role.');
             }
-            // Enforce Access & Permission
+
             requireDispensaryAccess(user as any, validatedInput.targetOrgId);
             requirePermission(user as any, 'manage:team');
         }
-        
-        // Generate Secure Token
+
+        let organizationName: string | undefined;
+        let organizationType: 'brand' | 'dispensary' | undefined;
+
+        if (validatedInput.targetOrgId) {
+            const resolvedOrg = await resolveInvitationOrganization(firestore, validatedInput.targetOrgId, validatedInput.role);
+            organizationName = resolvedOrg.organizationName;
+            organizationType = resolvedOrg.organizationType;
+        }
+
         const token = uuidv4().replace(/-/g, '') + uuidv4().replace(/-/g, '');
-        
+        const inviteLink = `${getCanonicalAppUrl()}/invite/${token}`;
+
         const newInvitation: Invitation = {
             id: uuidv4(),
             email: validatedInput.email.toLowerCase(),
             role: validatedInput.role,
             targetOrgId: validatedInput.targetOrgId,
+            organizationName,
+            organizationType,
             invitedBy: user.uid,
             status: 'pending',
-            token: token,
+            token,
             createdAt: new Date(),
-            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 Days
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         };
 
         await firestore.collection('invitations').doc(newInvitation.id).set(newInvitation);
 
-        // Send Invitation Email via Mailjet/SendGrid
-        const inviteLink = `https://bakedbot.ai/join/${token}`;
-        const roleName = validatedInput.role.replace('_', ' ').toUpperCase();
-
         let emailSent = false;
         let emailError: string | null = null;
-        try {
-            const { sendGenericEmail } = await import('@/lib/email/dispatcher');
-            const result = await sendGenericEmail({
-                to: validatedInput.email,
-                name: validatedInput.email.split('@')[0],
-                subject: `You're invited to join BakedBot as ${roleName}`,
-                htmlBody: `
-                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                        <h2 style="color: #16a34a;">You've Been Invited! 🎉</h2>
-                        <p>You've been invited to join <strong>BakedBot</strong> as a <strong>${roleName}</strong>.</p>
-                        <p style="margin: 24px 0;">
-                            <a href="${inviteLink}"
-                               style="background: #16a34a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-                                Accept Invitation
-                            </a>
-                        </p>
-                        <p style="color: #666; font-size: 14px;">
-                            This invitation expires in 7 days. If you didn't expect this email, you can safely ignore it.
-                        </p>
-                        <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
-                        <p style="color: #999; font-size: 12px;">
-                            BakedBot • AI-Powered Commerce for Cannabis
-                        </p>
-                    </div>
-                `,
-                textBody: `You've been invited to join BakedBot as ${roleName}. Accept here: ${inviteLink}`
-            });
 
-            if (result.success) {
-                emailSent = true;
-                logger.info('[createInvitationAction] Email sent successfully', { email: validatedInput.email });
-            } else {
-                emailError = result.error || 'Unknown error';
-                logger.warn('[createInvitationAction] Email sending failed', {
+        if (validatedInput.sendEmail) {
+            const inviteCopy = getInvitationCopy(validatedInput.role, organizationName);
+
+            try {
+                const { sendGenericEmail } = await import('@/lib/email/dispatcher');
+                const result = await sendGenericEmail({
+                    to: validatedInput.email,
+                    name: validatedInput.email.split('@')[0],
+                    subject: inviteCopy.subject,
+                    htmlBody: inviteCopy.html.replaceAll('__INVITE_LINK__', inviteLink),
+                    textBody: inviteCopy.text.replaceAll('__INVITE_LINK__', inviteLink),
+                    fromEmail: 'hello@bakedbot.ai',
+                    fromName: 'BakedBot Team',
+                });
+
+                if (result.success) {
+                    emailSent = true;
+                    logger.info('[createInvitationAction] Invitation email sent', {
+                        email: validatedInput.email,
+                        role: validatedInput.role,
+                        targetOrgId: validatedInput.targetOrgId,
+                    });
+                } else {
+                    emailError = result.error || 'Unknown error';
+                    logger.warn('[createInvitationAction] Invitation email failed', {
+                        email: validatedInput.email,
+                        error: emailError,
+                    });
+                }
+            } catch (emailException) {
+                emailError = emailException instanceof Error ? emailException.message : String(emailException);
+                logger.error('[createInvitationAction] Invitation email exception', {
                     email: validatedInput.email,
-                    error: emailError
+                    error: emailError,
                 });
             }
-        } catch (emailException) {
-            emailError = emailException instanceof Error ? emailException.message : String(emailException);
-            logger.error('[createInvitationAction] Email exception', {
-                email: validatedInput.email,
-                error: emailError
-            });
         }
 
         return {
             success: true,
-            message: emailSent
-                ? 'Invitation created and email sent successfully.'
-                : `Invitation created but email sending failed: ${emailError || 'Unknown error'}. The invite link is: ${inviteLink}`,
+            message: validatedInput.sendEmail
+                ? emailSent
+                    ? 'Invitation created and emailed successfully.'
+                    : `Invitation created, but email delivery failed: ${emailError || 'Unknown error'}.`
+                : 'Invitation created. Share the link below.',
             invitation: newInvitation,
-            link: `/join/${token}`, // Frontend can prepend domain
+            link: inviteLink,
             emailSent,
-            emailError: emailError || undefined
+            emailError: emailError || undefined,
         };
-
     } catch (error: any) {
         console.error('[createInvitationAction] Error:', error);
         return { success: false, message: error.message };
     }
 }
 
-/**
- * Get Invitations (Filtered by Org or Role)
- */
 export async function getInvitationsAction(orgId?: string) {
     try {
         const user = await requireUser();
@@ -188,7 +269,6 @@ export async function getInvitationsAction(orgId?: string) {
         const actorOrgId = getActorOrgId(user);
 
         if (orgId) {
-            // Security: org-scoped query must match actor org unless super role.
             if (!isSuper && (!actorOrgId || actorOrgId !== orgId)) {
                 return [];
             }
@@ -199,43 +279,45 @@ export async function getInvitationsAction(orgId?: string) {
                 requireDispensaryAccess(user as any, orgId);
             }
 
-            const query = firestore
+            const snapshot = await firestore
                 .collection('invitations')
                 .where('status', '==', 'pending')
-                .where('targetOrgId', '==', orgId);
+                .where('targetOrgId', '==', orgId)
+                .orderBy('createdAt', 'desc')
+                .get();
 
-            const snapshot = await query.orderBy('createdAt', 'desc').get();
-            return snapshot.docs.map(doc => ({
-                ...doc.data(),
-                createdAt: (doc.data().createdAt as any).toDate(),
-                expiresAt: (doc.data().expiresAt as any).toDate(),
-            } as Invitation));
-        } else {
-            // If no orgId, only super-role users can query globally.
-            if (!isSuper) return [];
+            return snapshot.docs.map((doc) => {
+                const data = doc.data();
+                return {
+                    ...data,
+                    createdAt: toDateValue(data.createdAt),
+                    expiresAt: toDateValue(data.expiresAt),
+                } as Invitation;
+            });
         }
+
+        if (!isSuper) return [];
 
         const snapshot = await firestore
             .collection('invitations')
             .where('status', '==', 'pending')
             .orderBy('createdAt', 'desc')
             .get();
-        
-        return snapshot.docs.map(doc => ({
-            ...doc.data(),
-            createdAt: (doc.data().createdAt as any).toDate(),
-            expiresAt: (doc.data().expiresAt as any).toDate(),
-        } as Invitation));
 
+        return snapshot.docs.map((doc) => {
+            const data = doc.data();
+            return {
+                ...data,
+                createdAt: toDateValue(data.createdAt),
+                expiresAt: toDateValue(data.expiresAt),
+            } as Invitation;
+        });
     } catch (error: any) {
         console.error('[getInvitationsAction] Error:', error);
         return [];
     }
 }
 
-/**
- * Revoke Invitation
- */
 export async function revokeInvitationAction(invitationId: string) {
     try {
         if (!isValidDocumentId(invitationId)) {
@@ -246,56 +328,47 @@ export async function revokeInvitationAction(invitationId: string) {
         const firestore = getAdminFirestore();
         const userRole: string | null = (user as { role?: string }).role ?? null;
         const isSuper = isSuperRole(userRole) || await isSuperUser();
-        
+
         const inviteRef = firestore.collection('invitations').doc(invitationId);
         const inviteDoc = await inviteRef.get();
-        if (!inviteDoc.exists) throw new Error('Invitation not found.');
-        
+        if (!inviteDoc.exists) {
+            throw new Error('Invitation not found.');
+        }
+
         const invite = inviteDoc.data() as Invitation;
-        
-        // Ownership Check: 
-        // 1. Inviter can revoke
-        // 2. Admin of the target org can revoke
         const isInviter = invite.invitedBy === user.uid;
         let isAdminOfTarget = false;
-        
+
         if (invite.targetOrgId) {
-             const userRole = (user as any).role;
-             if (isBrandRole(userRole)) {
-                  // Check if user is admin of target brand
-                  // requireBrandAccess checks if user is LINKED to brand.
-                  // requirePermission checks if user is ADMIN.
-                  try {
-                      requireBrandAccess(user as any, invite.targetOrgId);
-                      requirePermission(user as any, 'manage:team');
-                      isAdminOfTarget = true;
-                  } catch {}
-             } else if (isDispensaryRole(userRole)) {
-                  try {
-                      requireDispensaryAccess(user as any, invite.targetOrgId);
-                      requirePermission(user as any, 'manage:team');
-                      isAdminOfTarget = true;
-                  } catch {}
-             }
+            const actorRole = (user as { role?: string }).role;
+
+            if (isBrandRole(actorRole)) {
+                try {
+                    requireBrandAccess(user as any, invite.targetOrgId);
+                    requirePermission(user as any, 'manage:team');
+                    isAdminOfTarget = true;
+                } catch {}
+            } else if (isDispensaryRole(actorRole)) {
+                try {
+                    requireDispensaryAccess(user as any, invite.targetOrgId);
+                    requirePermission(user as any, 'manage:team');
+                    isAdminOfTarget = true;
+                } catch {}
+            }
         }
-        
+
         if (!isInviter && !isAdminOfTarget && !isSuper) {
-             throw new Error('Unauthorized to revoke this invitation.');
+            throw new Error('Unauthorized to revoke this invitation.');
         }
-        
-        await inviteRef.update({
-            status: 'revoked'
-        });
+
+        await inviteRef.update({ status: 'revoked' });
 
         return { success: true, message: 'Invitation revoked.' };
     } catch (error: any) {
-         return { success: false, message: error.message };
+        return { success: false, message: error.message };
     }
 }
 
-/**
- * Validate Invitation Token (Public)
- */
 export async function validateInvitationAction(token: string) {
     try {
         const parsed = AcceptInvitationSchema.safeParse({ token });
@@ -304,7 +377,8 @@ export async function validateInvitationAction(token: string) {
         }
 
         const firestore = getAdminFirestore();
-        const snapshot = await firestore.collection('invitations')
+        const snapshot = await firestore
+            .collection('invitations')
             .where('token', '==', parsed.data.token)
             .limit(1)
             .get();
@@ -314,25 +388,27 @@ export async function validateInvitationAction(token: string) {
         }
 
         const data = snapshot.docs[0].data() as Invitation;
-
         if (data.status !== 'pending') {
             return { valid: false, message: 'Invitation is no longer valid.' };
         }
 
-        if (new Date() > ((data.expiresAt as any).toDate())) {
-             return { valid: false, message: 'Invitation has expired.' };
+        if (new Date() > toDateValue(data.expiresAt)) {
+            return { valid: false, message: 'Invitation has expired.' };
         }
 
-        return { valid: true, invitation: data };
-
+        return {
+            valid: true,
+            invitation: {
+                ...data,
+                createdAt: toDateValue(data.createdAt),
+                expiresAt: toDateValue(data.expiresAt),
+            } as Invitation,
+        };
     } catch (error: any) {
         return { valid: false, message: error.message };
     }
 }
 
-/**
- * Accept Invitation (Authenticated)
- */
 export async function acceptInvitationAction(token: string) {
     try {
         const parsed = AcceptInvitationSchema.safeParse({ token });
@@ -350,93 +426,97 @@ export async function acceptInvitationAction(token: string) {
         }
 
         const invite = validRes.invitation;
+        const normalizedInviteRole = invite.role === 'super_admin' ? 'super_user' : normalizeRole(invite.role);
 
-        // Fetch organization details
-        let orgName = 'Unknown Org';
-        let orgType: 'brand' | 'dispensary' = invite.role === 'brand' ? 'brand' : 'dispensary';
+        let orgName = invite.organizationName || 'Unknown Org';
+        let orgType: 'brand' | 'dispensary' = invite.organizationType || (isBrandRole(invite.role) ? 'brand' : 'dispensary');
 
         if (invite.targetOrgId) {
-            const orgDoc = await firestore.collection('organizations').doc(invite.targetOrgId).get();
-            if (orgDoc.exists) {
-                const orgData = orgDoc.data();
-                orgName = orgData?.name || 'Unknown Org';
-                orgType = orgData?.type || orgType;
-            }
+            const resolvedOrg = await resolveInvitationOrganization(firestore, invite.targetOrgId, invite.role);
+            orgName = resolvedOrg.organizationName || orgName;
+            orgType = resolvedOrg.organizationType || orgType;
         }
 
-        // Update User Profile based on Role
         const userRef = firestore.collection('users').doc(user.uid);
-
         let userName: string | undefined;
 
-        await firestore.runTransaction(async (t) => {
-            const userDoc = await t.get(userRef);
-            if (!userDoc.exists) throw new Error('User profile not found.');
+        await firestore.runTransaction(async (transaction) => {
+            const userDoc = await transaction.get(userRef);
+            const existingData = userDoc.exists ? userDoc.data() : undefined;
 
-            // Store user name for welcome email
-            userName = userDoc.data()?.name;
+            userName =
+                existingData?.name ||
+                existingData?.displayName ||
+                ((user as { email?: string }).email ? String((user as { email?: string }).email).split('@')[0] : undefined);
 
-            // Update Invite Status
-            t.update(firestore.collection('invitations').doc(invite.id), {
+            transaction.update(firestore.collection('invitations').doc(invite.id), {
                 status: 'accepted',
                 acceptedAt: new Date(),
-                acceptedBy: user.uid
+                acceptedBy: user.uid,
             });
 
-            // Update User Roles
-            const updates: any = {};
+            const updates: Record<string, unknown> = {
+                updatedAt: new Date(),
+            };
 
-            if (invite.role === 'super_admin') {
-                updates.role = 'super_user';
-            } else if (invite.role === 'brand' || invite.role === 'dispensary') {
-                 // Add to organizationIds
-                 updates.organizationIds = FieldValue.arrayUnion(invite.targetOrgId);
-                 updates.role = invite.role;
-                 updates.currentOrgId = invite.targetOrgId;
-
-                 // Write orgMemberships[orgId] for vertical integration
-                 if (invite.targetOrgId) {
-                     updates[`orgMemberships.${invite.targetOrgId}`] = {
-                         orgId: invite.targetOrgId,
-                         orgName: orgName,
-                         orgType: orgType,
-                         role: invite.role,
-                         joinedAt: new Date().toISOString(),
-                     };
-                 }
+            if (!userDoc.exists) {
+                updates.uid = user.uid;
+                updates.email = (user as { email?: string }).email || invite.email;
+                updates.createdAt = new Date();
             }
 
-            t.update(userRef, updates);
+            if (normalizedInviteRole === 'super_user') {
+                updates.role = 'super_user';
+            } else if (invite.targetOrgId && (isBrandRole(normalizedInviteRole) || isDispensaryRole(normalizedInviteRole))) {
+                updates.organizationIds = FieldValue.arrayUnion(invite.targetOrgId);
+                updates.role = normalizedInviteRole;
+                updates.orgId = invite.targetOrgId;
+                updates.currentOrgId = invite.targetOrgId;
+
+                if (isBrandRole(normalizedInviteRole)) {
+                    updates.brandId = invite.targetOrgId;
+                } else {
+                    updates.dispensaryId = invite.targetOrgId;
+                    updates.locationId = invite.targetOrgId;
+                }
+
+                updates[`orgMemberships.${invite.targetOrgId}`] = {
+                    orgId: invite.targetOrgId,
+                    orgName,
+                    orgType,
+                    role: normalizedInviteRole,
+                    joinedAt: new Date().toISOString(),
+                };
+            } else {
+                updates.role = normalizedInviteRole;
+            }
+
+            if (userDoc.exists) {
+                transaction.update(userRef, updates);
+            } else {
+                transaction.set(userRef, updates, { merge: true });
+            }
         });
 
-        // Update Firebase custom claims to reflect new org context
-        if (invite.targetOrgId && (invite.role === 'brand' || invite.role === 'dispensary')) {
+        if (invite.targetOrgId && (isBrandRole(normalizedInviteRole) || isDispensaryRole(normalizedInviteRole))) {
             try {
-                const claims: Record<string, any> = {
-                    role: invite.role,
+                const claims: Record<string, unknown> = {
+                    role: normalizedInviteRole,
                     orgId: invite.targetOrgId,
                     currentOrgId: invite.targetOrgId,
                 };
 
-                // Add org-specific claim
-                if (invite.role === 'brand') {
+                if (isBrandRole(normalizedInviteRole)) {
                     claims.brandId = invite.targetOrgId;
-                } else if (invite.role === 'dispensary') {
-                    // Try to get first location for this org
-                    const locSnap = await firestore
-                        .collection('locations')
-                        .where('orgId', '==', invite.targetOrgId)
-                        .limit(1)
-                        .get();
-                    if (!locSnap.empty) {
-                        claims.locationId = locSnap.docs[0].id;
-                    }
+                } else {
+                    claims.dispensaryId = invite.targetOrgId;
+                    claims.locationId = invite.targetOrgId;
                 }
 
                 await auth.setCustomUserClaims(user.uid, claims);
                 logger.info('[acceptInvitationAction] Custom claims updated', {
                     userId: user.uid,
-                    role: invite.role,
+                    role: normalizedInviteRole,
                     orgId: invite.targetOrgId,
                 });
             } catch (claimsError) {
@@ -444,11 +524,9 @@ export async function acceptInvitationAction(token: string) {
                     userId: user.uid,
                     error: claimsError instanceof Error ? claimsError.message : String(claimsError),
                 });
-                // Non-fatal, continue with invitation acceptance
             }
         }
 
-        // Trigger AI-powered welcome email for invited user
         try {
             const { handlePlatformSignup } = await import('./platform-signup');
             await handlePlatformSignup({
@@ -456,26 +534,24 @@ export async function acceptInvitationAction(token: string) {
                 email: invite.email,
                 firstName: userName?.split(' ')[0],
                 lastName: userName?.split(' ').slice(1).join(' '),
-                role: invite.role as any,
+                role: normalizedInviteRole as any,
                 orgId: invite.targetOrgId,
-                brandId: invite.role === 'brand' ? invite.targetOrgId : undefined,
-                dispensaryId: invite.role === 'dispensary' ? invite.targetOrgId : undefined,
+                brandId: invite.targetOrgId && isBrandRole(normalizedInviteRole) ? invite.targetOrgId : undefined,
+                dispensaryId: invite.targetOrgId && isDispensaryRole(normalizedInviteRole) ? invite.targetOrgId : undefined,
             });
             logger.info('[Invitations] Welcome email triggered for invited user', {
                 userId: user.uid,
                 email: invite.email,
-                role: invite.role,
+                role: normalizedInviteRole,
             });
         } catch (welcomeError) {
             logger.error('[Invitations] Failed to trigger welcome email', {
                 userId: user.uid,
                 error: welcomeError instanceof Error ? welcomeError.message : String(welcomeError),
             });
-            // Non-fatal, continue with invitation acceptance
         }
 
         return { success: true, message: 'Invitation accepted!' };
-
     } catch (error: any) {
         return { success: false, message: error.message };
     }

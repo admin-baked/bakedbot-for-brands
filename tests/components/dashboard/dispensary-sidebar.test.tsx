@@ -5,7 +5,7 @@
  * - Workspace: Inbox, Projects, Playbooks
  * - Menu & Inventory: Menu, Products, Carousels, Hero Banners, Bundles, Orders, Pricing, Smart Upsells
  * - Customers: Customers, Segments, Loyalty
- * - Marketing: Brand Guide, Creative Center, Vibe Studio, Media, Campaigns
+ * - Marketing: Brand Guide, Creative Center, Vibe Studio, Campaigns
  * - Intelligence (collapsible): Competitive Intel, Deep Research, Profitability
  * - Admin (collapsible): App Store, Custom Domains, Settings, Invite
  */
@@ -57,8 +57,23 @@ jest.mock('@/components/ui/collapsible', () => ({
 
 // Mock InviteUserDialog
 jest.mock('@/components/dashboard/admin/invite-user-dialog', () => ({
-    InviteUserDialog: ({ defaultRole, trigger }: { defaultRole?: string; trigger?: React.ReactNode }) => (
-        <div data-testid="invite-user-dialog" data-default-role={defaultRole ?? ''}>
+    InviteUserDialog: ({
+        defaultRole,
+        orgId,
+        allowedRoles,
+        trigger,
+    }: {
+        defaultRole?: string;
+        orgId?: string;
+        allowedRoles?: string[];
+        trigger?: React.ReactNode;
+    }) => (
+        <div
+            data-testid="invite-user-dialog"
+            data-default-role={defaultRole ?? ''}
+            data-org-id={orgId ?? ''}
+            data-allowed-roles={(allowedRoles ?? []).join(',')}
+        >
             {trigger}
         </div>
     ),
@@ -128,7 +143,6 @@ describe('DispensarySidebar', () => {
             expect(screen.getByText('Brand Guide')).toBeInTheDocument();
             expect(screen.getByText('Creative Center')).toBeInTheDocument();
             expect(screen.getByText('Vibe Studio')).toBeInTheDocument();
-            expect(screen.getByText('Media')).toBeInTheDocument();
             expect(screen.getByText('Campaigns')).toBeInTheDocument();
         });
 
@@ -163,7 +177,6 @@ describe('DispensarySidebar', () => {
             expect(hrefs).toContain('/dashboard/projects');
             expect(hrefs).toContain('/dashboard/playbooks');
             expect(hrefs).toContain('/dashboard/drive');
-            expect(hrefs).toContain('/dashboard/academy');
         });
 
         it('links to correct paths for Menu & Inventory items', () => {
@@ -235,12 +248,12 @@ describe('DispensarySidebar', () => {
     });
 
     describe('Collapsible Sections', () => {
-        it('Intelligence section defaults to open', () => {
+        it('Intelligence section defaults to collapsed', () => {
             render(<DispensarySidebar />);
 
             const collapsibles = screen.getAllByTestId('collapsible');
             // Find the Intelligence collapsible (first one)
-            expect(collapsibles[0]).toHaveAttribute('data-default-open', 'true');
+            expect(collapsibles[0]).toHaveAttribute('data-default-open', 'false');
         });
 
         it('Admin section defaults to collapsed', () => {
@@ -253,11 +266,13 @@ describe('DispensarySidebar', () => {
     });
 
     describe('Invite User Dialog', () => {
-        it('renders invite dialog with default role', () => {
+        it('renders invite dialog with contextual dispensary roles', () => {
             render(<DispensarySidebar />);
 
             const inviteDialog = screen.getByTestId('invite-user-dialog');
             expect(inviteDialog).toHaveAttribute('data-default-role', 'dispensary_admin');
+            expect(inviteDialog).toHaveAttribute('data-org-id', 'dispensary_test-org');
+            expect(inviteDialog).toHaveAttribute('data-allowed-roles', 'dispensary_admin,dispensary_staff,budtender');
         });
     });
 

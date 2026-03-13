@@ -18,6 +18,8 @@ export function JoinPageClient({ invitationToken }: { invitationToken: string })
     const [status, setStatus] = useState<'validating' | 'valid' | 'invalid' | 'accepting' | 'success'>('validating');
     const [invitation, setInvitation] = useState<Invitation | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const invitationRoleLabel = invitation?.role.replaceAll('_', ' ');
+    const invitationTarget = invitation?.organizationName || 'your team';
 
     // 1. Validate Token on Load
     useEffect(() => {
@@ -42,10 +44,7 @@ export function JoinPageClient({ invitationToken }: { invitationToken: string })
     // 2. Handle Acceptance
     const handleAccept = async () => {
         if (!user) {
-            // Redirect to login with return URL
-            // Assuming your auth flow supports ?redirect=... or similar
-            // For now, simple redirect to auth page
-            router.push(`/auth?redirect=/join/${invitationToken}`);
+            router.push(`/signin?next=/invite/${invitationToken}`);
             return;
         }
 
@@ -128,7 +127,8 @@ export function JoinPageClient({ invitationToken }: { invitationToken: string })
                 <CardHeader className="text-center">
                     <CardTitle>Join Team</CardTitle>
                     <CardDescription>
-                        You have been invited to join as a <span className="font-bold capitalize">{invitation?.role.replace('_', ' ')}</span>.
+                        You have been invited to join <span className="font-bold">{invitationTarget}</span> as a{' '}
+                        <span className="font-bold capitalize">{invitationRoleLabel}</span>.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">

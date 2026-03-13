@@ -47,6 +47,7 @@ import { usePathname } from "next/navigation";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { InviteUserDialog } from "@/components/dashboard/admin/invite-user-dialog";
 import { useUserRole } from "@/hooks/use-user-role";
+import { getInviteAllowedRoles } from '@/types/roles';
 
 export const GrowerSidebar = memo(function GrowerSidebar() {
     const pathname = usePathname();
@@ -236,6 +237,8 @@ export const GrowerSidebar = memo(function GrowerSidebar() {
                                 <SidebarMenuItem>
                                     <InviteUserDialog
                                         defaultRole="brand_member"
+                                        orgId={orgId || undefined}
+                                        allowedRoles={getInviteAllowedRoles('grower')}
                                         trigger={
                                             <SidebarMenuButton className="text-primary hover:text-primary/90">
                                                 <UserPlus className="text-primary" />
