@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
+import { useJobPoller } from '@/hooks/use-job-poller';
 import type { CustomerProfile } from '@/types/customers';
 import {
     addMessageToInboxThread,
@@ -50,6 +51,17 @@ function normalizeMessages(messages: ChatMessage[] | undefined): ChatMessage[] {
     })).filter((message): message is ChatMessage => message !== null);
 }
 
+function upsertMessage(messages: ChatMessage[], nextMessage: ChatMessage): ChatMessage[] {
+    const existingIndex = messages.findIndex((message) => message.id === nextMessage.id);
+    if (existingIndex === -1) {
+        return [...messages, nextMessage];
+    }
+
+    const nextMessages = [...messages];
+    nextMessages[existingIndex] = nextMessage;
+    return nextMessages;
+}
+
 export function CustomerChatDialog({ open, onOpenChange, customer }: CustomerChatDialogProps) {
     const { toast } = useToast();
     const [loadingThread, setLoadingThread] = useState(false);
@@ -58,6 +70,8 @@ export function CustomerChatDialog({ open, onOpenChange, customer }: CustomerCha
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [draft, setDraft] = useState('');
     const [loadedCustomerId, setLoadedCustomerId] = useState<string | null>(null);
+    const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+    const { job, isComplete, error: jobError } = useJobPoller(currentJobId ?? undefined);
 
     const customerName = useMemo(() => resolveCustomerDisplayName({
         displayName: customer.displayName,
@@ -141,12 +155,100 @@ export function CustomerChatDialog({ open, onOpenChange, customer }: CustomerCha
     useEffect(() => {
         if (!open) {
             setDraft('');
+            setCurrentJobId(null);
+            setSending(false);
         }
     }, [open]);
 
+    useEffect(() => {
+        if (!open || !threadId || !currentJobId || !job || !isComplete) {
+            return;
+        }
+
+        const activeJob = job;
+        const activeThreadId = threadId;
+        let cancelled = false;
+
+        async function syncJobResult() {
+            try {
+                if (activeJob.status === 'completed') {
+                    const refreshedThread = await getInboxThread(activeThreadId);
+                    if (cancelled) {
+                        return;
+                    }
+
+                    if (refreshedThread.success && refreshedThread.thread) {
+                        setMessages(normalizeMessages(refreshedThread.thread.messages));
+                    } else if (activeJob.result?.content) {
+                        setMessages((current) => upsertMessage(current, {
+                            id: `job-${activeJob.id}`,
+                            type: 'agent',
+                            content: String(activeJob.result.content),
+                            timestamp: new Date(),
+                        }));
+                    }
+                } else if (activeJob.status === 'failed') {
+                    const failureContent = `I encountered an error: ${activeJob.error || 'Unknown error'}. Please try again.`;
+                    if (!cancelled) {
+                        setMessages((current) => upsertMessage(current, {
+                            id: `job-error-${activeJob.id}`,
+                            type: 'agent',
+                            content: failureContent,
+                            timestamp: new Date(),
+                        }));
+                        toast({
+                            variant: 'destructive',
+                            title: 'Message failed',
+                            description: activeJob.error || 'Could not get a CRM response.',
+                        });
+                    }
+                }
+            } catch (error) {
+                if (!cancelled) {
+                    toast({
+                        variant: 'destructive',
+                        title: 'Chat unavailable',
+                        description: error instanceof Error ? error.message : 'Could not refresh the CRM chat.',
+                    });
+                }
+            } finally {
+                if (!cancelled) {
+                    setCurrentJobId(null);
+                    setSending(false);
+                }
+            }
+        }
+
+        void syncJobResult();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [currentJobId, isComplete, job, open, threadId, toast]);
+
+    useEffect(() => {
+        if (!jobError || !currentJobId) {
+            return;
+        }
+
+        setMessages((current) => upsertMessage(current, {
+            id: `job-polling-error-${currentJobId}`,
+            type: 'agent',
+            content: 'Sorry, I lost connection while processing your request. Please try again.',
+            timestamp: new Date(),
+        }));
+        toast({
+            variant: 'destructive',
+            title: 'Chat unavailable',
+            description: jobError,
+        });
+        setCurrentJobId(null);
+        setSending(false);
+    }, [currentJobId, jobError, toast]);
+
     const handleSend = async () => {
         const trimmed = draft.trim();
-        if (!trimmed || !threadId || sending) {
+        if (!trimmed || !threadId || sending || currentJobId) {
             return;
         }
 
@@ -161,6 +263,7 @@ export function CustomerChatDialog({ open, onOpenChange, customer }: CustomerCha
         setMessages((current) => [...current, optimisticMessage]);
         setDraft('');
         setSending(true);
+        let queuedJobId: string | null = null;
 
         try {
             const saveResult = await addMessageToInboxThread(threadId, optimisticMessage);
@@ -171,6 +274,12 @@ export function CustomerChatDialog({ open, onOpenChange, customer }: CustomerCha
             const agentResult = await runInboxAgentChat(threadId, trimmed);
             if (!agentResult.success) {
                 throw new Error(agentResult.error || 'Could not get a CRM response');
+            }
+
+            if (agentResult.jobId) {
+                queuedJobId = agentResult.jobId;
+                setCurrentJobId(agentResult.jobId);
+                return;
             }
 
             const agentMessage = normalizeMessage(agentResult.message);
@@ -186,9 +295,13 @@ export function CustomerChatDialog({ open, onOpenChange, customer }: CustomerCha
                 description: error instanceof Error ? error.message : 'Could not send the CRM chat message.',
             });
         } finally {
-            setSending(false);
+            if (!queuedJobId) {
+                setSending(false);
+            }
         }
     };
+
+    const isAwaitingResponse = sending || !!currentJobId;
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -263,11 +376,14 @@ export function CustomerChatDialog({ open, onOpenChange, customer }: CustomerCha
                             value={draft}
                             onChange={(event) => setDraft(event.target.value)}
                             rows={4}
-                            disabled={sending || loadingThread}
+                            disabled={isAwaitingResponse || loadingThread}
                         />
-                        <div className="flex justify-end">
-                            <Button onClick={handleSend} disabled={!draft.trim() || sending || loadingThread || !threadId}>
-                                {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="text-sm text-muted-foreground">
+                                {currentJobId ? 'CRM is drafting a reply...' : null}
+                            </div>
+                            <Button onClick={handleSend} disabled={!draft.trim() || isAwaitingResponse || loadingThread || !threadId}>
+                                {isAwaitingResponse ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
                                 Send
                             </Button>
                         </div>

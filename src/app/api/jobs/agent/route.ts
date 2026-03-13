@@ -4,9 +4,68 @@ import { runAgentCore } from '@/server/agents/agent-runner';
 import { createServerClient } from '@/firebase/server-client';
 import { DecodedIdToken } from 'firebase-admin/auth';
 import { formatAgentResponse } from '@/lib/agent-response-formatter';
+import { handlePlaybookStageJob } from '@/server/services/playbook-stage-runner';
 
 // Force dynamic rendering - prevents build-time evaluation of agent dependencies
 export const dynamic = 'force-dynamic';
+
+function getInboxThreadId(options: Record<string, any> | undefined): string | null {
+    if (options?.source !== 'inbox') {
+        return null;
+    }
+
+    const threadId = options?.context?.threadId;
+    return typeof threadId === 'string' && threadId.trim() ? threadId.trim() : null;
+}
+
+async function persistInboxThreadAgentMessage(params: {
+    firestore: FirebaseFirestore.Firestore;
+    threadId: string;
+    messageId: string;
+    content: string;
+}): Promise<void> {
+    const { firestore, threadId, messageId, content } = params;
+    const trimmedContent = typeof content === 'string' ? content.trim() : '';
+    if (!trimmedContent) {
+        return;
+    }
+
+    const threadRef = firestore.collection('inbox_threads').doc(threadId);
+    await firestore.runTransaction(async (transaction) => {
+        const threadDoc = await transaction.get(threadRef);
+        if (!threadDoc.exists) {
+            return;
+        }
+
+        const data = threadDoc.data() ?? {};
+        const messages = Array.isArray(data.messages) ? data.messages : [];
+        const alreadyPersisted = messages.some((message) => (
+            message
+            && typeof message === 'object'
+            && 'id' in (message as Record<string, unknown>)
+            && (message as { id?: unknown }).id === messageId
+        ));
+
+        if (alreadyPersisted) {
+            return;
+        }
+
+        transaction.update(threadRef, {
+            messages: [
+                ...messages,
+                {
+                    id: messageId,
+                    type: 'agent',
+                    content: trimmedContent,
+                    timestamp: new Date().toISOString(),
+                },
+            ],
+            preview: trimmedContent.slice(0, 50),
+            updatedAt: new Date(),
+            lastActivityAt: new Date(),
+        });
+    });
+}
 
 /**
  * Cloud Task Worker for Agent Jobs.
@@ -29,6 +88,12 @@ export async function POST(req: NextRequest) {
 
     try {
         console.log(`[Job:${jobId}] Starting Agent Execution for User: ${userId}`);
+
+        if (options?.context?.isPlaybookStage) {
+            await handlePlaybookStageJob(options.context);
+            console.log(`[Job:${jobId}] Playbook stage completed`);
+            return NextResponse.json({ success: true, jobId });
+        }
 
         // 3. User Context Strategy
         let userData: any = {};
@@ -113,6 +178,16 @@ export async function POST(req: NextRequest) {
             return value;
         }));
 
+        const inboxThreadId = getInboxThreadId(options);
+        if (inboxThreadId) {
+            await persistInboxThreadAgentMessage({
+                firestore,
+                threadId: inboxThreadId,
+                messageId: `job-${jobId}`,
+                content: sanitizedResult?.content || '',
+            });
+        }
+
         await firestore.collection('jobs').doc(jobId).set({
             status: 'completed',
             result: sanitizedResult,
@@ -133,6 +208,16 @@ export async function POST(req: NextRequest) {
             error: error.message,
             failedAt: new Date()
         }, { merge: true });
+
+        const inboxThreadId = getInboxThreadId(options);
+        if (inboxThreadId) {
+            await persistInboxThreadAgentMessage({
+                firestore,
+                threadId: inboxThreadId,
+                messageId: `job-error-${jobId}`,
+                content: `I encountered an error: ${error.message || 'Unknown error'}. Please try again.`,
+            });
+        }
 
         return NextResponse.json({ error: error.message }, { status: 500 });
     }

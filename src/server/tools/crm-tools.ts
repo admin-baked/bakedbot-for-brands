@@ -13,7 +13,11 @@ import { z } from 'zod';
 import { getAdminFirestore } from '@/firebase/admin';
 import { ALLeavesClient, type ALLeavesConfig } from '@/lib/pos/adapters/alleaves';
 import { posCache, cacheKeys } from '@/lib/cache/pos-cache';
-import { resolveCustomerDisplayName } from '@/lib/customers/profile-derivations';
+import {
+    isPlaceholderCustomerEmail,
+    isPlaceholderCustomerIdentity,
+    resolveCustomerDisplayName,
+} from '@/lib/customers/profile-derivations';
 import { calculateSegment, getSegmentInfo, type CustomerSegment } from '@/types/customers';
 import { mapSegmentToTier } from '@/lib/pricing/customer-tier-mapper';
 import { logger } from '@/lib/logger';
@@ -202,26 +206,117 @@ export async function lookupCustomer(
     };
 }
 
+function getCachedCustomerProfile(id: string, orgId: string): Record<string, unknown> | null {
+    const cachedCustomers = posCache.get<Record<string, unknown>[]>(cacheKeys.customers(orgId));
+    if (!Array.isArray(cachedCustomers)) {
+        return null;
+    }
+
+    return cachedCustomers.find((candidate) => (
+        candidate
+        && typeof candidate === 'object'
+        && typeof candidate.id === 'string'
+        && candidate.id === id
+    )) ?? null;
+}
+
+function preferCachedString(
+    currentValue: unknown,
+    cachedValue: unknown,
+    shouldReplace?: (value: string) => boolean,
+): string | undefined {
+    const current = typeof currentValue === 'string' ? currentValue.trim() : '';
+    const cached = typeof cachedValue === 'string' ? cachedValue.trim() : '';
+
+    if (!cached) {
+        return current || undefined;
+    }
+
+    if (!current) {
+        return cached;
+    }
+
+    return shouldReplace?.(current) ? cached : current;
+}
+
+function preferCachedArray(currentValue: unknown, cachedValue: unknown): unknown[] | undefined {
+    if (Array.isArray(currentValue) && currentValue.length > 0) {
+        return currentValue;
+    }
+
+    if (Array.isArray(cachedValue) && cachedValue.length > 0) {
+        return cachedValue;
+    }
+
+    return Array.isArray(currentValue) ? currentValue : undefined;
+}
+
+function mergeCustomerDocWithCachedProfile(
+    id: string,
+    data: FirebaseFirestore.DocumentData,
+    orgId: string,
+): FirebaseFirestore.DocumentData {
+    const cachedCustomer = getCachedCustomerProfile(id, orgId);
+    if (!cachedCustomer) {
+        return data;
+    }
+
+    const email = preferCachedString(
+        data.email,
+        cachedCustomer.email,
+        (value) => isPlaceholderCustomerEmail(value),
+    );
+
+    return {
+        ...data,
+        displayName: preferCachedString(
+            data.displayName,
+            cachedCustomer.displayName,
+            (value) => isPlaceholderCustomerIdentity(value, {
+                email,
+                fallbackId: id,
+            }),
+        ) ?? data.displayName,
+        firstName: preferCachedString(data.firstName, cachedCustomer.firstName) ?? data.firstName,
+        lastName: preferCachedString(data.lastName, cachedCustomer.lastName) ?? data.lastName,
+        email: email ?? data.email,
+        phone: preferCachedString(data.phone, cachedCustomer.phone) ?? data.phone,
+        birthDate: data.birthDate ?? cachedCustomer.birthDate ?? null,
+        points: data.points ?? cachedCustomer.points ?? data.points,
+        totalSpent: data.totalSpent ?? cachedCustomer.totalSpent ?? data.totalSpent,
+        orderCount: data.orderCount ?? cachedCustomer.orderCount ?? data.orderCount,
+        avgOrderValue: data.avgOrderValue ?? cachedCustomer.avgOrderValue ?? data.avgOrderValue,
+        lastOrderDate: data.lastOrderDate ?? cachedCustomer.lastOrderDate ?? data.lastOrderDate,
+        preferredCategories: preferCachedArray(data.preferredCategories, cachedCustomer.preferredCategories) ?? [],
+        preferredProducts: preferCachedArray(data.preferredProducts, cachedCustomer.preferredProducts) ?? [],
+        priceRange: data.priceRange ?? cachedCustomer.priceRange ?? data.priceRange,
+        customTags: preferCachedArray(data.customTags, cachedCustomer.customTags) ?? [],
+        notes: data.notes ?? cachedCustomer.notes ?? null,
+        source: data.source ?? cachedCustomer.source ?? data.source,
+    };
+}
+
 function formatCustomerResult(
     id: string,
     data: FirebaseFirestore.DocumentData,
     orgId: string,
 ): { summary: string; customer: Record<string, unknown> } {
-    const totalSpent = data.totalSpent || 0;
-    const orderCount = data.orderCount || 0;
-    const avgOrderValue = data.avgOrderValue || (orderCount > 0 ? totalSpent / orderCount : 0);
-    const daysSinceLastOrder = data.lastOrderDate
-        ? Math.floor((Date.now() - (data.lastOrderDate?.toDate?.()?.getTime?.() || new Date(data.lastOrderDate).getTime())) / (1000 * 60 * 60 * 24))
+    const resolvedData = mergeCustomerDocWithCachedProfile(id, data, orgId);
+    const totalSpent = resolvedData.totalSpent || 0;
+    const orderCount = resolvedData.orderCount || 0;
+    const avgOrderValue = resolvedData.avgOrderValue || (orderCount > 0 ? totalSpent / orderCount : 0);
+    const daysSinceLastOrder = resolvedData.lastOrderDate
+        ? Math.floor((Date.now() - (resolvedData.lastOrderDate?.toDate?.()?.getTime?.() || new Date(resolvedData.lastOrderDate).getTime())) / (1000 * 60 * 60 * 24))
         : undefined;
 
     const segment = calculateSegment({ totalSpent, orderCount, avgOrderValue, daysSinceLastOrder, lifetimeValue: totalSpent });
     const tier = mapSegmentToTier(segment, totalSpent);
     const segInfo = getSegmentInfo(segment);
     const displayName = resolveCustomerDisplayName({
-        displayName: data.displayName,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
+        displayName: resolvedData.displayName,
+        firstName: resolvedData.firstName,
+        lastName: resolvedData.lastName,
+        email: resolvedData.email,
         fallbackId: id,
     });
 
@@ -229,33 +324,33 @@ function formatCustomerResult(
         id,
         orgId,
         displayName,
-        email: data.email,
-        phone: data.phone || null,
-        firstName: data.firstName,
-        lastName: data.lastName,
+        email: resolvedData.email,
+        phone: resolvedData.phone || null,
+        firstName: resolvedData.firstName,
+        lastName: resolvedData.lastName,
         segment,
         segmentLabel: segInfo.label,
         tier,
         totalSpent,
         orderCount,
         avgOrderValue: Math.round(avgOrderValue * 100) / 100,
-        lastOrderDate: data.lastOrderDate?.toDate?.()?.toISOString?.() || data.lastOrderDate || null,
+        lastOrderDate: resolvedData.lastOrderDate?.toDate?.()?.toISOString?.() || resolvedData.lastOrderDate || null,
         daysSinceLastOrder,
         lifetimeValue: totalSpent,
-        points: data.points || Math.floor(totalSpent),
-        preferredCategories: data.preferredCategories || [],
-        preferredProducts: data.preferredProducts || [],
-        priceRange: data.priceRange || 'mid',
-        customTags: data.customTags || [],
-        notes: data.notes || null,
-        birthDate: data.birthDate || null,
-        source: data.source || 'unknown',
+        points: resolvedData.points || Math.floor(totalSpent),
+        preferredCategories: resolvedData.preferredCategories || [],
+        preferredProducts: resolvedData.preferredProducts || [],
+        priceRange: resolvedData.priceRange || 'mid',
+        customTags: resolvedData.customTags || [],
+        notes: resolvedData.notes || null,
+        birthDate: resolvedData.birthDate || null,
+        source: resolvedData.source || 'unknown',
     };
 
     const lastOrder = customer.lastOrderDate ? new Date(customer.lastOrderDate as string).toLocaleDateString() : 'Never';
 
     const summary = `**${displayName}** (${segInfo.label} | ${tier} tier)
-- Email: ${data.email || 'N/A'} | Phone: ${data.phone || 'N/A'}
+- Email: ${resolvedData.email || 'N/A'} | Phone: ${resolvedData.phone || 'N/A'}
 - LTV: $${totalSpent.toLocaleString()} | Orders: ${orderCount} | AOV: $${avgOrderValue.toFixed(2)}
 - Last Order: ${lastOrder}${daysSinceLastOrder !== undefined ? ` (${daysSinceLastOrder} days ago)` : ''}
 - Points: ${customer.points} | Tags: ${(customer.customTags as string[]).join(', ') || 'None'}

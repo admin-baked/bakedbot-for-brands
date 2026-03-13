@@ -32,7 +32,10 @@ jest.mock('@/lib/pos/adapters/alleaves', () => ({
 
 jest.mock('@/lib/cache/pos-cache', () => ({
   posCache: { get: jest.fn(), set: jest.fn() },
-  cacheKeys: { orders: (id: string) => `orders:${id}` },
+  cacheKeys: {
+    orders: (id: string) => `orders:${id}`,
+    customers: (id: string) => `customers:${id}`,
+  },
 }));
 
 jest.mock('@/types/customers', () => ({
@@ -180,6 +183,53 @@ describe('lookupCustomer', () => {
     expect(result.customer!.id).toBe('alleaves_100');
     expect(result.customer!.displayName).toBe('Jane Doe');
     expect(result.customer!.totalSpent).toBe(5000);
+  });
+
+  it('hydrates sparse alleaves identities from cached customer profiles', async () => {
+    const doc = makeCustomerDoc('alleaves_100', {
+      displayName: 'alleaves_100',
+      email: undefined,
+      firstName: undefined,
+      lastName: undefined,
+      phone: null,
+      totalSpent: undefined,
+      orderCount: undefined,
+      avgOrderValue: undefined,
+      points: undefined,
+      preferredCategories: [],
+      preferredProducts: [],
+      customTags: [],
+    });
+    mockDocGet.mockResolvedValue(doc);
+
+    const { posCache } = require('@/lib/cache/pos-cache');
+    (posCache.get as jest.Mock).mockImplementation((key: string) => {
+      if (key === 'customers:org_test') {
+        return [{
+          id: 'alleaves_100',
+          displayName: 'Patrick Rose',
+          firstName: 'Patrick',
+          lastName: 'Rose',
+          email: 'customer_100@alleaves.local',
+          phone: '+15550000000',
+          totalSpent: 125,
+          orderCount: 4,
+          avgOrderValue: 31.25,
+          points: 124,
+          preferredCategories: ['flower'],
+          customTags: ['loyal'],
+        }];
+      }
+      return null;
+    });
+
+    const result = await lookupCustomer('alleaves_100', 'org_test');
+
+    expect(result.customer).not.toBeNull();
+    expect(result.customer!.displayName).toBe('Patrick Rose');
+    expect(result.customer!.email).toBe('customer_100@alleaves.local');
+    expect(result.customer!.orderCount).toBe(4);
+    expect(result.customer!.preferredCategories).toEqual(['flower']);
   });
 
   it('returns customer data when found by email (includes @)', async () => {
