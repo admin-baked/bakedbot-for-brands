@@ -7,7 +7,7 @@
  * visual design: colored category icons, toggle, category badge, and ··· menu.
  */
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -36,7 +36,13 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { listSuperUserPlaybooks, toggleSuperUserPlaybook, runSuperUserPlaybook } from '../playbook-actions';
+import {
+    installDefaultSuperUserPlaybooks,
+    listSuperUserPlaybooks,
+    runSuperUserPlaybook,
+    toggleSuperUserPlaybook,
+} from '../playbook-actions';
+import { DEFAULT_SUPER_USER_PLAYBOOKS } from '../default-super-user-playbooks';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -84,41 +90,18 @@ const DEFAULT_CONFIG = CATEGORY_CONFIG.custom;
 
 // ── Built-in defaults (shown when Firestore is empty) ─────────────────────────
 
-const BUILTIN_PLAYBOOKS: InternalPlaybook[] = [
-    {
-        id: 'welcome-emails',
-        name: 'Welcome Email Automation',
-        description: 'Send personalized welcome emails to new signups',
-        category: 'email',
-        agents: ['Craig', 'Smokey'],
-        schedule: '*/30 * * * *',
-        active: false,
-        runsToday: 0,
-        isBuiltin: true,
-    },
-    {
-        id: 'dayday-seo-discovery',
-        name: 'Day Day SEO Discovery',
-        description: 'Find 5-10 low-competition markets daily and auto-publish optimized pages',
-        category: 'seo',
-        agents: ['Day Day'],
-        schedule: '0 5 * * *',
-        active: false,
-        runsToday: 0,
-        isBuiltin: true,
-    },
-    {
-        id: 'competitor-scan',
-        name: 'Competitor Price Monitor',
-        description: 'Scan AIQ and competitor pricing daily',
-        category: 'research',
-        agents: ['Ezal', 'Pops'],
-        schedule: '0 6 * * *',
-        active: false,
-        runsToday: 0,
-        isBuiltin: true,
-    },
-];
+const BUILTIN_PLAYBOOKS: InternalPlaybook[] = DEFAULT_SUPER_USER_PLAYBOOKS.map((playbook) => ({
+    id: playbook.id,
+    name: playbook.name,
+    description: playbook.description,
+    category: playbook.category,
+    agents: playbook.agents,
+    schedule: playbook.triggers.find((trigger) => trigger.type === 'schedule')?.cron,
+    triggers: playbook.triggers,
+    active: false,
+    runsToday: 0,
+    isBuiltin: true,
+}));
 
 // ── Single card ───────────────────────────────────────────────────────────────
 
@@ -155,7 +138,7 @@ function PlaybookCard({
     return (
         <Card className={cn(
             'glass-card glass-card-hover rounded-xl p-5 flex flex-col justify-between transition-all duration-200',
-            !playbook.active && 'opacity-60',
+            !playbook.active && !playbook.isBuiltin && 'opacity-60',
         )}>
             {/* Top row */}
             <div className="flex justify-between items-start">
@@ -185,7 +168,6 @@ function PlaybookCard({
                 <div className="flex items-center gap-3 ml-2 shrink-0" onClick={e => e.stopPropagation()}>
                     <Switch
                         checked={playbook.active}
-                        disabled={!!playbook.isBuiltin}
                         onCheckedChange={() => onToggle(playbook.id, playbook.active)}
                         aria-label={`Toggle ${playbook.name}`}
                     />
@@ -207,7 +189,7 @@ function PlaybookCard({
                             )}
                             <DropdownMenuItem
                                 onClick={() => onRun(playbook.id)}
-                                disabled={!playbook.active || !!playbook.isBuiltin}
+                                disabled={!playbook.active && !playbook.isBuiltin}
                             >
                                 <Play className="h-3.5 w-3.5 mr-2" />
                                 Run now
@@ -222,7 +204,6 @@ function PlaybookCard({
                 <div className="flex items-center gap-3">
                     <Switch
                         checked={playbook.active}
-                        disabled={!!playbook.isBuiltin}
                         onCheckedChange={() => onToggle(playbook.id, playbook.active)}
                         className="scale-90"
                     />
@@ -269,42 +250,76 @@ export function InternalPlaybooksGrid({ searchQuery, refreshNonce, onEdit, onRef
     const [playbooks, setPlaybooks] = useState<InternalPlaybook[]>([]);
     const [loading, setLoading] = useState(true);
 
+    const loadPlaybooks = useCallback(async () => {
+        const firestorePlaybooks = await listSuperUserPlaybooks();
+        const firestoreIds = new Set(firestorePlaybooks.map((playbook) => playbook.id));
+
+        const merged: InternalPlaybook[] = [
+            ...firestorePlaybooks.map((playbook) => ({
+                id: playbook.id,
+                name: playbook.name,
+                description: playbook.description,
+                category: playbook.category || 'custom',
+                agents: Array.isArray(playbook.metadata?.agents)
+                    ? (playbook.metadata.agents as string[])
+                    : [playbook.agent || 'puff'],
+                schedule: playbook.triggers?.find((trigger: any) => trigger?.type === 'schedule')?.cron,
+                triggers: playbook.triggers,
+                active: playbook.status === 'active',
+                lastRun: playbook.lastRunAt ? new Date(playbook.lastRunAt as any) : undefined,
+                runsToday: playbook.runCount || 0,
+                isCustom: playbook.isCustom ?? true,
+                isBuiltin: false,
+            })),
+            ...BUILTIN_PLAYBOOKS.filter((playbook) => !firestoreIds.has(playbook.id)),
+        ];
+
+        setPlaybooks(merged);
+    }, []);
+
     useEffect(() => {
         let cancelled = false;
-        setLoading(true);
 
-        listSuperUserPlaybooks()
-            .then(firestorePlaybooks => {
-                if (cancelled) return;
-                const firestoreIds = new Set(firestorePlaybooks.map(p => p.id));
-                const merged: InternalPlaybook[] = [
-                    ...firestorePlaybooks.map(p => ({
-                        id: p.id,
-                        name: p.name,
-                        description: p.description,
-                        category: p.category || 'custom',
-                        agents: [p.agent || 'puff'],
-                        schedule: p.triggers?.find((t: any) => t?.type === 'schedule')?.cron,
-                        triggers: p.triggers,
-                        active: p.status === 'active',
-                        lastRun: p.lastRunAt ? new Date(p.lastRunAt as any) : undefined,
-                        runsToday: p.runCount || 0,
-                        isCustom: p.isCustom ?? true,
-                        isBuiltin: false,
-                    })),
-                    ...BUILTIN_PLAYBOOKS.filter(b => !firestoreIds.has(b.id)),
-                ];
-                setPlaybooks(merged);
-            })
-            .catch(() => {
-                if (!cancelled) setPlaybooks(BUILTIN_PLAYBOOKS);
-            })
-            .finally(() => {
-                if (!cancelled) setLoading(false);
-            });
+        const run = async () => {
+            setLoading(true);
+            try {
+                await loadPlaybooks();
+            } catch {
+                if (!cancelled) {
+                    setPlaybooks(BUILTIN_PLAYBOOKS);
+                }
+            } finally {
+                if (!cancelled) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        run();
 
         return () => { cancelled = true; };
-    }, [refreshNonce]);
+    }, [loadPlaybooks, refreshNonce]);
+
+    const ensureInstalled = useCallback(async (id: string) => {
+        const result = await installDefaultSuperUserPlaybooks([id]);
+        if (!result.success && result.installed.length === 0 && result.skipped.length === 0) {
+            toast({
+                variant: 'destructive',
+                title: 'Install failed',
+                description: result.errors[0] || 'Could not install the default playbook.',
+            });
+            return false;
+        }
+
+        await loadPlaybooks();
+        toast({
+            title: result.installed.length > 0 ? 'Playbook installed' : 'Playbook already installed',
+            description: result.installed.length > 0
+                ? 'The default playbook is now available in Super User mode.'
+                : 'That default playbook was already available.',
+        });
+        return true;
+    }, [loadPlaybooks, toast]);
 
     const filtered = playbooks.filter(pb =>
         pb.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -314,8 +329,9 @@ export function InternalPlaybooksGrid({ searchQuery, refreshNonce, onEdit, onRef
     const handleToggle = async (id: string, currentActive: boolean) => {
         const pb = playbooks.find(p => p.id === id);
         if (pb?.isBuiltin) {
-            toast({ title: 'Template not installed', description: 'Use "Seed Templates" to install system playbooks.' });
-            return;
+            const installed = await ensureInstalled(id);
+            if (!installed) return;
+            currentActive = false;
         }
         setPlaybooks(prev => prev.map(p => p.id === id ? { ...p, active: !currentActive } : p));
         try {
@@ -333,8 +349,8 @@ export function InternalPlaybooksGrid({ searchQuery, refreshNonce, onEdit, onRef
     const handleRun = async (id: string) => {
         const pb = playbooks.find(p => p.id === id);
         if (pb?.isBuiltin) {
-            toast({ title: 'Template not installed', description: 'Use "Seed Templates" to install.' });
-            return;
+            const installed = await ensureInstalled(id);
+            if (!installed) return;
         }
         try {
             const result = await runSuperUserPlaybook(id);

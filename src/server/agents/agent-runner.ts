@@ -738,7 +738,7 @@ All agents are online and ready. Type an agent name or describe your task to get
         }
 
         // === SYSTEM DIRECTIVES ===
-        const missingIntegrationDirective = `\n\n[SYSTEM DIRECTIVE: MISSING DATA]\nIf you cannot answer a query about sales, inventory, products, or customers because the necessary integrations (POS, ecommerce, marketing) are not connected, you MUST instruct the user to connect their system using this exact markdown link: [Connect your POS or Data Source](/dashboard/settings/integrations)\n`;
+        const missingIntegrationDirective = `\n\n[SYSTEM DIRECTIVE: MISSING DATA]\nIf you cannot answer a query about sales, inventory, products, or customers because the necessary integrations (POS, ecommerce, marketing) are not connected, you MUST instruct the user to connect their system using this exact markdown link: [Connect your POS or Data Source](/dashboard/settings?tab=integrations)\n`;
         customInstructionsBlock += missingIntegrationDirective;
 
         // === MODEL TIER ENFORCEMENT ===

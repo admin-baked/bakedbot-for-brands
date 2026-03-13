@@ -10,6 +10,8 @@ import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { logger } from '@/lib/logger';
 import { requireUser } from '@/server/auth/auth';
 import {
+    calculateImageCost,
+    calculateVideoCost,
     getMediaUsage,
     getRecentMediaEvents,
     getTopCostContent,
@@ -67,6 +69,86 @@ export interface MediaCostsDashboard {
         end: string;
         label: string;
     };
+}
+
+type BackfilledCreativeDoc = {
+    createdAt?: number;
+    createdBy?: string;
+    mediaType?: string;
+    generatedBy?: string;
+    durationSeconds?: number;
+    generationPrompt?: string;
+    caption?: string;
+};
+
+function inferBackfillProvider(
+    doc: BackfilledCreativeDoc,
+): { provider: MediaProvider; type: 'image' | 'video'; costUsd: number } | null {
+    if (doc.mediaType === 'video') {
+        const provider = doc.generatedBy === 'sora' || doc.generatedBy === 'sora-pro' ? 'sora' : 'veo';
+        return {
+            provider,
+            type: 'video',
+            costUsd: calculateVideoCost(provider, doc.durationSeconds || 5),
+        };
+    }
+
+    if (doc.mediaType === 'image') {
+        const provider = doc.generatedBy === 'flux-pro' ? 'gemini-pro' : 'gemini-flash';
+        return {
+            provider,
+            type: 'image',
+            costUsd: calculateImageCost(provider),
+        };
+    }
+
+    return null;
+}
+
+async function getBackfilledCreativeEvents(
+    startDate: Date,
+    endDate: Date,
+): Promise<MediaGenerationEvent[]> {
+    const db = getFirestore();
+
+    try {
+        const snapshot = await db
+            .collectionGroup('creative_content')
+            .where('createdAt', '>=', startDate.getTime())
+            .where('createdAt', '<=', endDate.getTime())
+            .get();
+
+        return snapshot.docs.flatMap((doc) => {
+            const data = doc.data() as BackfilledCreativeDoc;
+            const inferred = inferBackfillProvider(data);
+            const tenantId = doc.ref.parent.parent?.id;
+
+            if (!inferred || !tenantId || typeof data.createdAt !== 'number') {
+                return [];
+            }
+
+            return [{
+                id: `backfill_${doc.id}`,
+                tenantId,
+                userId: data.createdBy || 'unknown',
+                type: inferred.type,
+                provider: inferred.provider,
+                model: data.generatedBy || inferred.provider,
+                prompt: data.generationPrompt || data.caption || 'Backfilled creative content generation',
+                durationSeconds: inferred.type === 'video' ? data.durationSeconds || 5 : undefined,
+                costUsd: inferred.costUsd,
+                createdAt: data.createdAt,
+                success: true,
+                contentId: doc.id,
+                metadata: {
+                    source: 'creative_content_backfill',
+                },
+            } satisfies MediaGenerationEvent];
+        });
+    } catch (error) {
+        logger.warn('[MediaCosts] Failed to backfill creative content events', { error });
+        return [];
+    }
 }
 
 /**
@@ -195,11 +277,15 @@ export async function getGlobalMediaCosts(
             .orderBy('createdAt', 'desc')
             .get();
 
-        const events: MediaGenerationEvent[] = snapshot.docs.map((doc) => ({
+        let events: MediaGenerationEvent[] = snapshot.docs.map((doc) => ({
             ...doc.data(),
             id: doc.id,
             createdAt: (doc.data().createdAt as Timestamp).toMillis(),
         })) as MediaGenerationEvent[];
+
+        if (events.length === 0) {
+            events = await getBackfilledCreativeEvents(startDate, now);
+        }
 
         // Aggregate by tenant
         const tenantMap = new Map<string, { costUsd: number; count: number }>();
@@ -278,10 +364,15 @@ export async function getMonthlyProjection(orgId: string): Promise<{
             .where('createdAt', '<=', Timestamp.fromDate(now))
             .get();
 
-        currentMonth = snapshot.docs.reduce((sum, doc) => {
-            const event = doc.data() as MediaGenerationEvent;
-            return sum + event.costUsd;
-        }, 0);
+        if (snapshot.empty) {
+            const backfilledEvents = await getBackfilledCreativeEvents(startOfMonth, now);
+            currentMonth = backfilledEvents.reduce((sum, event) => sum + event.costUsd, 0);
+        } else {
+            currentMonth = snapshot.docs.reduce((sum, doc) => {
+                const event = doc.data() as MediaGenerationEvent;
+                return sum + event.costUsd;
+            }, 0);
+        }
     } else {
         // For specific org, use existing getMediaUsage
         const usage = await getMediaUsage(orgId, startOfMonth, now);

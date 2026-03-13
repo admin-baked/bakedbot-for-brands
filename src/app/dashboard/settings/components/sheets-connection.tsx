@@ -25,6 +25,7 @@ export function SheetsConnection({ redirectPath = '/dashboard/settings?tab=integ
 
     const success = searchParams.get('success');
     const error = searchParams.get('error');
+    const connect = searchParams.get('connect');
 
     useEffect(() => {
         async function checkStatus() {
@@ -47,6 +48,13 @@ export function SheetsConnection({ redirectPath = '/dashboard/settings?tab=integ
         const encodedRedirect = encodeURIComponent(redirectPath);
         window.location.href = `/api/auth/google?service=sheets&redirect=${encodedRedirect}`;
     };
+
+    useEffect(() => {
+        if ((connect === 'sheets' || connect === 'google_sheets') && !isConnected) {
+            const encodedRedirect = encodeURIComponent(redirectPath);
+            window.location.href = `/api/auth/google?service=sheets&redirect=${encodedRedirect}`;
+        }
+    }, [connect, isConnected, redirectPath]);
 
     const handleDisconnect = async () => {
         try {

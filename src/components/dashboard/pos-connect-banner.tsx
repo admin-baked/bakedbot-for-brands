@@ -47,7 +47,7 @@ export async function PosConnectBanner({ orgId }: PosConnectBannerProps) {
                         </div>
                     </div>
                     <Link
-                        href="/dashboard/settings/integrations"
+                        href="/dashboard/settings?tab=integrations"
                         className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 transition-colors shrink-0"
                     >
                         Connect {posName}
@@ -74,7 +74,7 @@ export async function PosConnectBanner({ orgId }: PosConnectBannerProps) {
                     </div>
                 </div>
                 <Link
-                    href="/dashboard/settings/integrations"
+                    href="/dashboard/settings?tab=integrations"
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-slate-300 text-sm font-medium hover:bg-slate-100 transition-colors shrink-0"
                 >
                     Connect POS

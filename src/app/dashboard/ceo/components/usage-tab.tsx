@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, RefreshCw, MessageSquare, Bot, ShieldCheck, Eye, RefreshCcw, MousePointerClick, Mail } from 'lucide-react';
 import { getUsageStatsAction } from '@/app/actions/usage';
-import { UsageMetric } from '@/server/services/usage';
+import type { UsageMetric } from '@/server/services/usage';
 
 // Helper to format numbers
 const fmt = (n: number) => new Intl.NumberFormat().format(n);
@@ -37,13 +37,13 @@ export default function UsageTab() {
     }, [timeframe]);
 
     const metrics: { key: UsageMetric; label: string; icon: any; color: string }[] = [
-        { key: 'chat_sessions', label: 'Chat Sessions', icon: MessageSquare, color: 'text-blue-500' },
-        { key: 'agent_calls', label: 'Agent Calls', icon: Bot, color: 'text-purple-500' },
-        { key: 'deebo_checks', label: 'Deebo Checks', icon: ShieldCheck, color: 'text-green-500' },
-        { key: 'menu_pageviews', label: 'Menu Views', icon: Eye, color: 'text-amber-500' },
-        { key: 'menu_sync_jobs', label: 'Menu Syncs', icon: RefreshCcw, color: 'text-cyan-500' },
-        { key: 'tracked_events', label: 'Analytics Events', icon: MousePointerClick, color: 'text-indigo-500' },
-        { key: 'messages_sent', label: 'Emails/SMS', icon: Mail, color: 'text-pink-500' },
+        { key: 'chat_sessions', label: 'Operator Sessions', icon: MessageSquare, color: 'text-blue-500' },
+        { key: 'agent_calls', label: 'AI Agent Runs', icon: Bot, color: 'text-purple-500' },
+        { key: 'deebo_checks', label: 'Compliance Reviews', icon: ShieldCheck, color: 'text-green-500' },
+        { key: 'menu_pageviews', label: 'Discovery Page Views', icon: Eye, color: 'text-amber-500' },
+        { key: 'menu_sync_jobs', label: 'Data Sync Jobs', icon: RefreshCcw, color: 'text-cyan-500' },
+        { key: 'tracked_events', label: 'Product Analytics Events', icon: MousePointerClick, color: 'text-indigo-500' },
+        { key: 'messages_sent', label: 'Outreach Sends', icon: Mail, color: 'text-pink-500' },
     ];
 
     if (loading && !data) {
@@ -60,7 +60,7 @@ export default function UsageTab() {
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight">Usage Analytics</h2>
                     <p className="text-muted-foreground">
-                        Track system usage across all organizations.
+                        Activity across CRM, discovery, content, and automation for BakedBot's cannabis tech stack.
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -103,12 +103,12 @@ export default function UsageTab() {
 
             {/* Breakdown Table */}
             <Card>
-                <CardHeader>
-                    <CardTitle>Organization Breakdown</CardTitle>
-                    <CardDescription>
-                        Detailed usage metrics by organization ID.
-                    </CardDescription>
-                </CardHeader>
+                    <CardHeader>
+                        <CardTitle>Organization Breakdown</CardTitle>
+                        <CardDescription>
+                            Usage telemetry grouped by organization ID.
+                        </CardDescription>
+                    </CardHeader>
                 <CardContent>
                     <Table>
                         <TableHeader>

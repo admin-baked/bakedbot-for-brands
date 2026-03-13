@@ -15,8 +15,49 @@
 import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
 import { Playbook } from '@/types/playbook';
+import {
+    DEFAULT_SUPER_USER_PLAYBOOKS,
+    getDefaultSuperUserPlaybookTemplate,
+} from './default-super-user-playbooks';
 
 const SUPER_USER_ORG = 'bakedbot-internal';
+
+function buildDefaultSuperUserPlaybook(
+    template: typeof DEFAULT_SUPER_USER_PLAYBOOKS[number],
+    user: Awaited<ReturnType<typeof requireUser>>,
+): Playbook {
+    const timestamp = new Date();
+
+    return {
+        id: template.id,
+        name: template.name,
+        description: template.description,
+        status: 'paused',
+        active: false,
+        agent: template.agent,
+        agentId: template.agent,
+        category: template.category,
+        triggers: template.triggers,
+        steps: template.steps,
+        ownerId: user.uid,
+        ownerName: user.name || user.email || 'Super User',
+        isCustom: false,
+        requiresApproval: true,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        createdBy: user.uid,
+        orgId: SUPER_USER_ORG,
+        runCount: 0,
+        successCount: 0,
+        failureCount: 0,
+        version: 1,
+        metadata: {
+            agents: template.agents,
+            source: 'default_super_user_playbook',
+            ...(template.metadata || {}),
+        },
+    } as Playbook;
+}
 
 function normalizeStatus(value: unknown): string {
     return String(value || '').toLowerCase();
@@ -381,6 +422,82 @@ export async function updateSuperUserPlaybook(
     } catch (error: any) {
         console.error('[SuperUserPlaybooks] updateSuperUserPlaybook failed:', error);
         return { success: false, error: error.message };
+    }
+}
+
+export interface InstallDefaultSuperUserPlaybooksResult {
+    success: boolean;
+    installed: string[];
+    skipped: string[];
+    errors: string[];
+}
+
+export async function installDefaultSuperUserPlaybooks(
+    playbookIds?: string[],
+): Promise<InstallDefaultSuperUserPlaybooksResult> {
+    try {
+        const { firestore } = await createServerClient();
+        const user = await requireUser(['super_user']);
+
+        const requestedTemplates = (playbookIds?.length
+            ? playbookIds
+                .map((playbookId) => getDefaultSuperUserPlaybookTemplate(playbookId))
+                .filter((template): template is NonNullable<typeof template> => Boolean(template))
+            : DEFAULT_SUPER_USER_PLAYBOOKS);
+
+        const installed: string[] = [];
+        const skipped: string[] = [];
+        const errors: string[] = [];
+
+        for (const template of requestedTemplates) {
+            try {
+                const docRef = firestore.collection('playbooks').doc(template.id);
+                const existing = await docRef.get();
+
+                if (existing.exists) {
+                    skipped.push(template.id);
+                    continue;
+                }
+
+                const playbook = buildDefaultSuperUserPlaybook(template, user);
+                await docRef.set(playbook);
+
+                const scheduleTriggers = (playbook.triggers || []).filter(
+                    (trigger: any) => trigger?.type === 'schedule' && typeof trigger?.cron === 'string' && trigger.cron.trim(),
+                );
+
+                for (const trigger of scheduleTriggers) {
+                    await firestore.collection('schedules').add({
+                        cron: String(trigger.cron).trim(),
+                        task: `Execute Playbook: ${playbook.name}`,
+                        agentId: playbook.agent,
+                        enabled: false,
+                        params: { playbookId: playbook.id },
+                        createdAt: playbook.createdAt,
+                    });
+                }
+
+                installed.push(template.id);
+            } catch (error: any) {
+                console.error('[SuperUserPlaybooks] installDefaultSuperUserPlaybooks failed:', error);
+                errors.push(`${template.id}: ${error?.message || 'Unknown error'}`);
+            }
+        }
+
+        return {
+            success: errors.length === 0,
+            installed,
+            skipped,
+            errors,
+        };
+    } catch (error: any) {
+        console.error('[SuperUserPlaybooks] installDefaultSuperUserPlaybooks failed:', error);
+        return {
+            success: false,
+            installed: [],
+            skipped: [],
+            errors: [error?.message || 'Unknown error'],
+        };
     }
 }
 

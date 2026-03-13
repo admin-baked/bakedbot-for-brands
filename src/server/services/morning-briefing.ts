@@ -21,12 +21,22 @@ import { getDispensaryGreenLedgerSummary } from '@/server/services/greenledger';
 import { getOutreachStats } from '@/server/services/ny-outreach/outreach-service';
 import { getMeetingsForDay, getUpcomingMeetingsToday, getTomorrowsMeetings } from '@/server/services/calendar-digest';
 import { getEmailDigest, findSuperUserUid } from '@/server/services/email-digest';
+import {
+    getContentAnalyticsSignals,
+    type ContentAnalyticsSnapshot,
+} from '@/server/services/content-engine/analytics-signals';
 import { jinaSearch } from '@/server/tools/jina-tools';
 import type { AnalyticsBriefing, BriefingMetric, BriefingNewsItem, BriefingMeeting, BriefingEmailDigest } from '@/types/inbox';
 import {
     createInboxThreadId,
     createInboxArtifactId,
 } from '@/types/inbox';
+
+const PLATFORM_SIGNAL_ORG_IDS = new Set([
+    'org_bakedbot_platform',
+    'bakedbot_super_admin',
+    'bakedbot-internal',
+]);
 
 // ============ Internal data loaders (no auth — cron context) ============
 
@@ -270,6 +280,23 @@ async function loadEmailDigest(sinceMs?: number): Promise<BriefingEmailDigest | 
     }
 }
 
+async function loadContentAnalyticsSnapshotForBriefing(orgId: string): Promise<ContentAnalyticsSnapshot | null> {
+    if (!PLATFORM_SIGNAL_ORG_IDS.has(orgId)) {
+        return null;
+    }
+
+    try {
+        const uid = await findSuperUserUid();
+        return await getContentAnalyticsSignals(uid || undefined);
+    } catch (error) {
+        logger.warn('[MorningBriefing] Failed to load content analytics snapshot', {
+            orgId,
+            error: error instanceof Error ? error.message : String(error),
+        });
+        return null;
+    }
+}
+
 /**
  * Load counts of items awaiting super user review.
  * Added to the morning briefing so the inbox artifact surfaces actionable items.
@@ -298,6 +325,7 @@ function buildMetrics(
     pendingCounts?: PendingReviewCounts | null,
     platformGrowth?: PlatformGrowthStats | null,
     outreachFunnel?: OutreachFunnel | null,
+    contentAnalytics?: ContentAnalyticsSnapshot | null,
 ): BriefingMetric[] {
     const metrics: BriefingMetric[] = [];
 
@@ -477,6 +505,71 @@ function buildMetrics(
         });
     }
 
+    if (contentAnalytics) {
+        if (!contentAnalytics.gaConnected && !contentAnalytics.gscConnected) {
+            metrics.push({
+                title: 'Growth Signals',
+                value: 'GA + GSC disconnected',
+                trend: 'flat',
+                vsLabel: 'content engine lacks live search data',
+                status: 'warning',
+                actionable: 'Reconnect Google Analytics and Search Console in Settings',
+            });
+        } else {
+            metrics.push({
+                title: 'Content Sessions (28-day)',
+                value: contentAnalytics.kpis.blogSessions28d !== null
+                    ? `${contentAnalytics.kpis.blogSessions28d.toLocaleString()} blog sessions`
+                    : 'GA not connected',
+                trend: contentAnalytics.kpis.blogSessions28d && contentAnalytics.kpis.blogSessions28d > 0 ? 'up' : 'flat',
+                vsLabel: contentAnalytics.kpis.sessions28d !== null
+                    ? `${contentAnalytics.kpis.sessions28d.toLocaleString()} total sessions`
+                    : 'Google Analytics signal',
+                status: contentAnalytics.gaConnected ? 'good' : 'warning',
+                actionable: !contentAnalytics.gaConnected
+                    ? 'Connect Google Analytics in Settings'
+                    : contentAnalytics.topContentPages[0]
+                    ? `Refresh ${contentAnalytics.topContentPages[0].path} while it is already earning traffic`
+                    : undefined,
+            });
+
+            metrics.push({
+                title: 'Search Visibility (28-day)',
+                value: contentAnalytics.kpis.impressions28d !== null
+                    ? `${contentAnalytics.kpis.impressions28d.toLocaleString()} impressions`
+                    : 'GSC not connected',
+                trend: contentAnalytics.kpis.avgPosition28d !== null && contentAnalytics.kpis.avgPosition28d <= 10 ? 'up' : 'flat',
+                vsLabel: contentAnalytics.kpis.clicks28d !== null
+                    ? `${contentAnalytics.kpis.clicks28d.toLocaleString()} clicks · CTR ${(contentAnalytics.kpis.ctr28d ?? 0).toFixed(2)}% · avg pos ${(contentAnalytics.kpis.avgPosition28d ?? 0).toFixed(1)}`
+                    : 'Search Console signal',
+                status: !contentAnalytics.gscConnected
+                    ? 'warning'
+                    : contentAnalytics.kpis.avgPosition28d !== null && contentAnalytics.kpis.avgPosition28d <= 15
+                    ? 'good'
+                    : 'warning',
+                actionable: !contentAnalytics.gscConnected
+                    ? 'Connect Search Console in Settings'
+                    : contentAnalytics.topQueries[0]
+                    ? `Create or refresh content for "${contentAnalytics.topQueries[0].query}"`
+                    : undefined,
+            });
+
+            const prioritySignal = contentAnalytics.recommendations[0];
+            if (prioritySignal) {
+                metrics.push({
+                    title: 'Content Priority',
+                    value: prioritySignal.topic.length > 48
+                        ? `${prioritySignal.topic.slice(0, 45)}...`
+                        : prioritySignal.topic,
+                    trend: prioritySignal.source === 'search_console' ? 'up' : 'flat',
+                    vsLabel: prioritySignal.supportingMetric,
+                    status: prioritySignal.source === 'competitive_intel' ? 'warning' : 'good',
+                    actionable: `Open Content Engine and generate a ${prioritySignal.contentType} draft`,
+                });
+            }
+        }
+    }
+
     // P4 — 10. Outreach Conversion Funnel — super user only
     if (outreachFunnel && outreachFunnel.totalLeads > 0) {
         const conversionRate = outreachFunnel.sent > 0 && outreachFunnel.totalLeads > 0
@@ -506,7 +599,7 @@ function buildMetrics(
 // ============ Core generation function ============
 
 export async function generateMorningBriefing(orgId: string): Promise<AnalyticsBriefing> {
-    const [benchmarks, products, yesterdayOrders, last7Orders, greenledgerSummary, outreachStatsResult, pendingCountsResult, meetingsResult, emailDigestResult, platformGrowthResult, outreachFunnelResult] = await Promise.allSettled([
+    const [benchmarks, products, yesterdayOrders, last7Orders, greenledgerSummary, outreachStatsResult, pendingCountsResult, meetingsResult, emailDigestResult, platformGrowthResult, outreachFunnelResult, contentAnalyticsResult] = await Promise.allSettled([
         getMarketBenchmarks(orgId),
         loadOrgProducts(orgId),
         loadYesterdayOrders(orgId),
@@ -518,6 +611,7 @@ export async function generateMorningBriefing(orgId: string): Promise<AnalyticsB
         loadEmailDigest(), // emails since midnight
         loadPlatformGrowthStats(), // P1: MRR + customer count
         loadOutreachFunnel(),      // P4: outreach pipeline funnel
+        loadContentAnalyticsSnapshotForBriefing(orgId),
     ]);
 
     const bm = benchmarks.status === 'fulfilled' ? benchmarks.value : await getMarketBenchmarks('');
@@ -531,9 +625,10 @@ export async function generateMorningBriefing(orgId: string): Promise<AnalyticsB
     const emailDigest = emailDigestResult.status === 'fulfilled' ? emailDigestResult.value : null;
     const platformGrowth = platformGrowthResult.status === 'fulfilled' ? platformGrowthResult.value : null;
     const outreachFunnel = outreachFunnelResult.status === 'fulfilled' ? outreachFunnelResult.value : null;
+    const contentAnalytics = contentAnalyticsResult.status === 'fulfilled' ? contentAnalyticsResult.value : null;
 
     // Build metrics
-    const metrics = buildMetrics(yesterdayOrds, last7Ords, prods, bm, glSummary, outreachStats, pendingCounts, platformGrowth, outreachFunnel);
+    const metrics = buildMetrics(yesterdayOrds, last7Ords, prods, bm, glSummary, outreachStats, pendingCounts, platformGrowth, outreachFunnel, contentAnalytics);
 
     // Read industry news from pre-warmed cache (written at 5:30 AM by industry-pulse-refresh cron)
     let newsItems: BriefingNewsItem[] = [];
@@ -587,11 +682,15 @@ export async function generateMorningBriefing(orgId: string): Promise<AnalyticsB
     }
 
     // Market context string
-    const licenseLabel = bm.context.licenseType === 'limited' ? 'Limited License' : 'Unlimited';
-    const maturityLabel = bm.context.marketMaturity
-        ? bm.context.marketMaturity.charAt(0).toUpperCase() + bm.context.marketMaturity.slice(1) + ' Market'
-        : 'Developing Market';
-    const marketContext = `${bm.context.stateCode || 'US'} ${licenseLabel} | ${maturityLabel}`;
+    const marketContext = PLATFORM_SIGNAL_ORG_IDS.has(orgId)
+        ? 'BakedBot Platform | Cannabis Tech AI'
+        : (() => {
+            const licenseLabel = bm.context.licenseType === 'limited' ? 'Limited License' : 'Unlimited';
+            const maturityLabel = bm.context.marketMaturity
+                ? bm.context.marketMaturity.charAt(0).toUpperCase() + bm.context.marketMaturity.slice(1) + ' Market'
+                : 'Developing Market';
+            return `${bm.context.stateCode || 'US'} ${licenseLabel} | ${maturityLabel}`;
+        })();
 
     const now = new Date();
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];

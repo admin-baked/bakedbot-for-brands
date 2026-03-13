@@ -16,12 +16,41 @@ export async function GET(
         }
 
         const { firestore: db } = await createServerClient();
+        const configRef = db.collection('foot_traffic').doc('config');
 
-        // Fetch from seo_pages/zip-{zipCode}
-        const docRef = db.collection('seo_pages').doc(`zip-${zipCode}`);
-        const doc = await docRef.get();
+        const [configDoc, legacyConfigDoc, topLevelDashDoc, topLevelUnderscoreDoc, topLevelPlainDoc] = await Promise.all([
+            configRef.collection('zip_pages').doc(zipCode).get(),
+            configRef.collection('seo_pages').doc(zipCode).get(),
+            db.collection('seo_pages').doc(`zip-${zipCode}`).get(),
+            db.collection('seo_pages').doc(`zip_${zipCode}`).get(),
+            db.collection('seo_pages').doc(zipCode).get(),
+        ]);
 
-        if (!doc.exists) {
+        if (configDoc.exists) {
+            const data = configDoc.data();
+            const nearbyRetailers = Array.isArray(data?.content?.nearbyRetailers)
+                ? data.content.nearbyRetailers
+                : [];
+
+            return NextResponse.json({
+                zip: data?.zipCode || zipCode,
+                city: data?.city || 'Unknown',
+                state: data?.state || 'IL',
+                dispensaries: nearbyRetailers.map((retailer: any) => ({
+                    id: retailer.id || retailer.slug || retailer.name || zipCode,
+                    name: retailer.name || 'Unknown dispensary',
+                    address: retailer.address || '',
+                    rating: retailer.rating || undefined,
+                })),
+                nearbyZips: data?.nearbyZipCodes || data?.nearbyZips || [],
+                citySlug: data?.citySlug || `${String(data?.city || 'local').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-cannabis-guide`,
+            });
+        }
+
+        const doc = [legacyConfigDoc, topLevelDashDoc, topLevelUnderscoreDoc, topLevelPlainDoc]
+            .find((candidate) => candidate.exists) || null;
+
+        if (!doc || !doc.exists) {
             // Return fallback data for uncached zips
             return NextResponse.json({
                 zip: zipCode,

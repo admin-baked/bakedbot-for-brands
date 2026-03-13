@@ -4,17 +4,19 @@ import { saveGmailToken } from '@/server/integrations/gmail/token-storage';
 import { saveCalendarToken } from '@/server/integrations/calendar/token-storage';
 import { saveSheetsToken } from '@/server/integrations/sheets/token-storage';
 import { saveDriveToken } from '@/server/integrations/drive/token-storage';
+import { saveGoogleAnalyticsToken } from '@/server/integrations/google-analytics/token-storage';
+import { saveGoogleSearchConsoleToken } from '@/server/integrations/google-search-console/token-storage';
+import { getGoogleSuccessKey, normalizeGoogleService, type GoogleOAuthService, type GoogleServiceAlias } from '@/server/integrations/google/service-definitions';
 import { requireUser } from '@/server/auth/auth';
 import { getAdminFirestore } from '@/firebase/admin';
 import { Timestamp } from '@google-cloud/firestore';
 
-type GoogleService = 'gmail' | 'calendar' | 'sheets' | 'drive' | 'exec_calendar';
-
 interface OAuthState {
-    service: GoogleService;
+    service: GoogleOAuthService;
     redirect: string;
     profileSlug?: string; // only for exec_calendar
     uid?: string; // user UID embedded at auth URL generation time (avoids SameSite=Strict issue)
+    requestedService?: GoogleServiceAlias;
 }
 
 /**
@@ -45,7 +47,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Parse state to get service, redirect, uid (outside try so available in catch)
-    let service: GoogleService = 'gmail';
+    let service: GoogleOAuthService = 'gmail';
     let redirectPath = '/dashboard/ceo';
     let execProfileSlug: string | null = null;
     let stateUid: string | null = null;
@@ -53,7 +55,7 @@ export async function GET(req: NextRequest) {
     if (stateParam) {
         try {
             const state = JSON.parse(stateParam) as OAuthState;
-            if (state.service) service = state.service;
+            if (state.service) service = normalizeGoogleService(state.service);
             if (state.redirect) redirectPath = state.redirect;
             if (state.profileSlug) execProfileSlug = state.profileSlug;
             if (state.uid) stateUid = state.uid;
@@ -119,6 +121,18 @@ export async function GET(req: NextRequest) {
                 console.log(`[Google OAuth] Successfully connected calendar for user:`, uid);
                 break;
             }
+            case 'google_analytics': {
+                const uid = await resolveUid();
+                await saveGoogleAnalyticsToken(uid, tokens);
+                console.log(`[Google OAuth] Successfully connected Google Analytics for user:`, uid);
+                break;
+            }
+            case 'google_search_console': {
+                const uid = await resolveUid();
+                await saveGoogleSearchConsoleToken(uid, tokens);
+                console.log(`[Google OAuth] Successfully connected Google Search Console for user:`, uid);
+                break;
+            }
             case 'gmail':
             default: {
                 const uid = await resolveUid();
@@ -128,7 +142,7 @@ export async function GET(req: NextRequest) {
             }
         }
 
-        return NextResponse.redirect(buildRedirectUrl(redirectPath, 'success', `${service}_connected`));
+        return NextResponse.redirect(buildRedirectUrl(redirectPath, 'success', `${getGoogleSuccessKey(service)}_connected`));
 
     } catch (err: any) {
         const errMsg = err.message || String(err);

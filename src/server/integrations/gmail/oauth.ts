@@ -7,28 +7,7 @@
 
 import { google } from 'googleapis';
 import { getGoogleOAuthCredentials } from '@/server/utils/secrets';
-
-// Scopes required for Google services
-const SCOPES_MAP = {
-    gmail: [
-        'https://www.googleapis.com/auth/gmail.send',
-        'https://www.googleapis.com/auth/gmail.readonly',
-        'https://www.googleapis.com/auth/userinfo.email'
-    ],
-    calendar: [
-        'https://www.googleapis.com/auth/calendar',
-        'https://www.googleapis.com/auth/userinfo.email'
-    ],
-    sheets: [
-        'https://www.googleapis.com/auth/spreadsheets',
-        'https://www.googleapis.com/auth/drive.file', // For creating sheets
-        'https://www.googleapis.com/auth/userinfo.email'
-    ],
-    drive: [
-         'https://www.googleapis.com/auth/drive.file',
-         'https://www.googleapis.com/auth/userinfo.email'
-    ]
-};
+import { GOOGLE_SERVICE_SCOPES, type GoogleOAuthService, normalizeGoogleService } from '@/server/integrations/google/service-definitions';
 
 // Redirect URI - use env var for flexibility
 const REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI ||
@@ -65,12 +44,11 @@ export function getOAuth2Client() {
  * @param state - Optional state parameter for CSRF protection
  * @param service - Optional service key to request specific scopes (default: gmail for backward compat)
  */
-export async function getAuthUrl(state?: string, service: 'gmail' | 'calendar' | 'sheets' | 'drive' = 'gmail'): Promise<string> {
+export async function getAuthUrl(state?: string, service: GoogleOAuthService = 'gmail'): Promise<string> {
     const oauth2Client = await getOAuth2ClientAsync();
     
-    // Combine base scopes (email) with service specific scopes if needed, 
-    // but the map already includes base scopes for simplicity.
-    const scopes = SCOPES_MAP[service] || SCOPES_MAP['gmail'];
+    const normalizedService = normalizeGoogleService(service);
+    const scopes = GOOGLE_SERVICE_SCOPES[normalizedService] || GOOGLE_SERVICE_SCOPES.gmail;
 
     return oauth2Client.generateAuthUrl({
         access_type: 'offline', // Crucial for getting a refresh token

@@ -1360,36 +1360,36 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
             'authorize_net': '/dashboard/settings/billing',
             
             // CRM & Communication
-            'salesforce': '/dashboard/settings/integrations?connect=salesforce',
-            'hubspot': '/dashboard/settings/integrations?connect=hubspot',
-            'slack': '/dashboard/settings/integrations?connect=slack',
-            'twilio_sms': '/dashboard/settings/integrations?connect=twilio_sms',
-            'springbig': '/dashboard/settings/integrations?connect=springbig',
-            'alpineiq': '/dashboard/settings/integrations?connect=alpineiq',
-            'gmail': '/dashboard/settings/integrations?connect=gmail',
+            'salesforce': '/dashboard/settings?tab=integrations&connect=salesforce',
+            'hubspot': '/dashboard/settings?tab=integrations&connect=hubspot',
+            'slack': '/dashboard/settings?tab=integrations&connect=slack',
+            'twilio_sms': '/dashboard/settings?tab=integrations&connect=twilio_sms',
+            'springbig': '/dashboard/settings?tab=integrations&connect=springbig',
+            'alpineiq': '/dashboard/settings?tab=integrations&connect=alpineiq',
+            'gmail': '/dashboard/settings?tab=integrations&connect=gmail',
             
             // Ops & Project Management
-            'linear': '/dashboard/settings/integrations?connect=linear',
-            'jira': '/dashboard/settings/integrations?connect=jira',
-            'github': '/dashboard/settings/integrations?connect=github',
+            'linear': '/dashboard/settings?tab=integrations&connect=linear',
+            'jira': '/dashboard/settings?tab=integrations&connect=jira',
+            'github': '/dashboard/settings?tab=integrations&connect=github',
             
             // POS
-            'dutchie': '/dashboard/settings/integrations?connect=dutchie',
-            'flowhub': '/dashboard/settings/integrations?connect=flowhub',
-            'jane': '/dashboard/settings/integrations?connect=jane',
+            'dutchie': '/dashboard/settings?tab=integrations&connect=dutchie',
+            'flowhub': '/dashboard/settings?tab=integrations&connect=flowhub',
+            'jane': '/dashboard/settings?tab=integrations&connect=jane',
             
             // Wholesale
-            'leaflink': '/dashboard/settings/integrations?connect=leaflink',
+            'leaflink': '/dashboard/settings?tab=integrations&connect=leaflink',
             
             // Google Workspace
-            'google_drive': '/dashboard/settings/integrations?connect=google_drive',
-            'google_calendar': '/dashboard/settings/integrations?connect=google_calendar',
-            'google_sheets': '/dashboard/settings/integrations?connect=google_sheets',
+            'google_drive': '/dashboard/settings?tab=integrations&connect=google_drive',
+            'google_calendar': '/dashboard/settings?tab=integrations&connect=google_calendar',
+            'google_sheets': '/dashboard/settings?tab=integrations&connect=google_sheets',
             
             // Analytics
-            'google_analytics': '/dashboard/settings/analytics?enable=true',
-            'search_console': '/dashboard/settings/seo?enable=true', // Legacy key
-            'google_search_console': '/dashboard/settings/seo?enable=true', // New key
+            'google_analytics': '/dashboard/settings?tab=integrations&connect=google_analytics',
+            'search_console': '/dashboard/settings?tab=integrations&connect=google_search_console',
+            'google_search_console': '/dashboard/settings?tab=integrations&connect=google_search_console',
         };
 
         const targetUrl = toolMap[inputs.tool];

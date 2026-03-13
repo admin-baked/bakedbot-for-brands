@@ -25,6 +25,7 @@ export function DriveConnection({ redirectPath = '/dashboard/settings?tab=integr
 
     const success = searchParams.get('success');
     const error = searchParams.get('error');
+    const connect = searchParams.get('connect');
 
     useEffect(() => {
         async function checkStatus() {
@@ -47,6 +48,13 @@ export function DriveConnection({ redirectPath = '/dashboard/settings?tab=integr
         const encodedRedirect = encodeURIComponent(redirectPath);
         window.location.href = `/api/auth/google?service=drive&redirect=${encodedRedirect}`;
     };
+
+    useEffect(() => {
+        if ((connect === 'drive' || connect === 'google_drive') && !isConnected) {
+            const encodedRedirect = encodeURIComponent(redirectPath);
+            window.location.href = `/api/auth/google?service=drive&redirect=${encodedRedirect}`;
+        }
+    }, [connect, isConnected, redirectPath]);
 
     const handleDisconnect = async () => {
         try {

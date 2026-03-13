@@ -30,9 +30,14 @@ import { Search, Bot, Zap, TrendingUp, Mail, BarChart3, Target, Database, Loader
 import { SuperUserAgentChat } from './components/super-user-agent-chat';
 import { InternalPlaybooksGrid, type InternalPlaybook } from './components/internal-playbooks-grid';
 import { CreateInternalPlaybookDialog } from './components/create-internal-playbook-dialog';
-import { seedPlaybookTemplates, type SeedResult } from '@/server/actions/seed-playbooks';
 import { useToast } from '@/hooks/use-toast';
-import { listSuperUserPlaybooks, reviseSuperUserPlaybookWithPrompt, updateSuperUserPlaybook } from './playbook-actions';
+import {
+    installDefaultSuperUserPlaybooks,
+    listSuperUserPlaybooks,
+    reviseSuperUserPlaybookWithPrompt,
+    updateSuperUserPlaybook,
+    type InstallDefaultSuperUserPlaybooksResult,
+} from './playbook-actions';
 import { PlaybookEditSheet } from '@/app/dashboard/playbooks/components/playbook-edit-sheet';
 import type { PlaybookTrigger } from '@/types/playbook';
 
@@ -40,7 +45,7 @@ export default function SuperUserPlaybooksPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [refreshNonce, setRefreshNonce] = useState(0);
     const [isSeeding, setIsSeeding] = useState(false);
-    const [seedResult, setSeedResult] = useState<SeedResult | null>(null);
+    const [seedResult, setSeedResult] = useState<InstallDefaultSuperUserPlaybooksResult | null>(null);
     const [editingPlaybook, setEditingPlaybook] = useState<InternalPlaybook | null>(null);
     const [refiningPlaybook, setRefiningPlaybook] = useState<InternalPlaybook | null>(null);
     const [refinementPrompt, setRefinementPrompt] = useState('');
@@ -95,17 +100,18 @@ export default function SuperUserPlaybooksPage() {
         setIsSeeding(true);
         setSeedResult(null);
         try {
-            const result = await seedPlaybookTemplates();
+            const result = await installDefaultSuperUserPlaybooks();
             setSeedResult(result);
 
             if (result.success) {
                 toast({
-                    title: 'Templates seeded',
-                    description: `Seeded ${result.seeded.length} templates, ${result.skipped.length} already existed.`,
+                    title: 'Default playbooks installed',
+                    description: `Installed ${result.installed.length} playbooks, ${result.skipped.length} already existed.`,
                 });
+                refreshPlaybooks();
             } else {
                 toast({
-                    title: 'Seeding completed with errors',
+                    title: 'Install completed with errors',
                     description: result.errors.join(', '),
                     variant: 'destructive',
                 });
@@ -187,12 +193,12 @@ export default function SuperUserPlaybooksPage() {
                         ) : seedResult?.success ? (
                             <>
                                 <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
-                                Seeded
+                                Installed
                             </>
                         ) : (
                             <>
                                 <Database className="h-4 w-4 mr-2" />
-                                Seed Templates
+                                Install Defaults
                             </>
                         )}
                     </Button>

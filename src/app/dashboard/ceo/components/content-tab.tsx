@@ -36,11 +36,12 @@ import {
 } from 'lucide-react';
 import {
     getCannabisNewsIdeas,
+    getContentAnalyticsSignals,
     getContentScorecard,
     generateMarketReports,
     type NewsIdea,
     type ContentScorecard,
-    PULSE_PRESET_KEYS,
+    type ContentAnalyticsSnapshot,
 } from '@/server/actions/blog-research';
 import { getPublishedPlatformPosts } from '@/server/actions/blog';
 import { ResearchGeneratorSheet } from '@/components/blog/research-generator-sheet';
@@ -114,6 +115,14 @@ function ScorecardCard({
     );
 }
 
+function formatAnalyticsValue(value: number | null, suffix = ''): string {
+    if (value === null) {
+        return 'Not connected';
+    }
+
+    return `${Math.round(value).toLocaleString()}${suffix}`;
+}
+
 export default function ContentCeoTab() {
     const [sheetOpen, setSheetOpen] = useState(false);
     const [sheetMode, setSheetMode] = useState<BlogContentType>('standard');
@@ -122,9 +131,14 @@ export default function ContentCeoTab() {
     const [scorecard, setScorecard] = useState<ContentScorecard | null>(null);
     const [news, setNews] = useState<NewsIdea[]>([]);
     const [posts, setPosts] = useState<BlogPost[]>([]);
+    const [analyticsSignals, setAnalyticsSignals] = useState<ContentAnalyticsSnapshot | null>(null);
     const [newsCachedAt, setNewsCachedAt] = useState<string | null>(null);
     const [newsLoading, setNewsLoading] = useState(true);
     const [scorecardLoading, setScorecardLoading] = useState(true);
+    const [analyticsLoading, setAnalyticsLoading] = useState(true);
+    const [scorecardError, setScorecardError] = useState<string | null>(null);
+    const [newsError, setNewsError] = useState<string | null>(null);
+    const [analyticsError, setAnalyticsError] = useState<string | null>(null);
 
     const [activePill, setActivePill] = useState<PulsePillKey>('default');
     const [topicFilter, setTopicFilter] = useState('');
@@ -136,20 +150,56 @@ export default function ContentCeoTab() {
 
     const loadData = useCallback(async () => {
         setScorecardLoading(true);
-        const [sc, ps] = await Promise.all([
+        setAnalyticsLoading(true);
+        setScorecardError(null);
+        setAnalyticsError(null);
+
+        const [scorecardResult, postsResult, analyticsResult] = await Promise.allSettled([
             getContentScorecard(),
             getPublishedPlatformPosts({ limit: 20 }),
+            getContentAnalyticsSignals(),
         ]);
-        setScorecard(sc);
-        setPosts(ps);
+
+        if (scorecardResult.status === 'fulfilled') {
+            setScorecard(scorecardResult.value);
+        } else {
+            setScorecard(null);
+            setScorecardError('Scorecard data is unavailable right now.');
+        }
+
+        if (postsResult.status === 'fulfilled') {
+            setPosts(postsResult.value);
+        } else {
+            setPosts([]);
+            setScorecardError((current) => current ?? 'Published content is unavailable right now.');
+        }
+
+        if (analyticsResult.status === 'fulfilled') {
+            setAnalyticsSignals(analyticsResult.value);
+        } else {
+            setAnalyticsSignals(null);
+            setAnalyticsError('Analytics-backed content signals are unavailable right now.');
+        }
+
         setScorecardLoading(false);
+        setAnalyticsLoading(false);
     }, []);
 
     const loadNews = useCallback(async (topic?: string, forceRefresh = false) => {
         setNewsLoading(true);
-        const result = await getCannabisNewsIdeas(topic, forceRefresh);
-        setNews(result.ideas);
-        setNewsCachedAt(result.cachedAt);
+        setNewsError(null);
+
+        try {
+            const result = await getCannabisNewsIdeas(topic, forceRefresh);
+            setNews(result.ideas);
+            setNewsCachedAt(result.cachedAt);
+        } catch (error) {
+            console.error('Failed to load industry pulse', error);
+            setNews([]);
+            setNewsCachedAt(null);
+            setNewsError('Industry Pulse could not be loaded.');
+        }
+
         setNewsLoading(false);
     }, []);
 
@@ -211,7 +261,7 @@ export default function ContentCeoTab() {
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight">Content Engine</h2>
                     <p className="text-muted-foreground">
-                        Research, generate, and track your $10M authority content strategy
+                        Research, generate, and track authority content for BakedBot's cannabis technology platform
                     </p>
                 </div>
                 <Button onClick={() => handleOpenSheet('hub')}>
@@ -236,6 +286,13 @@ export default function ContentCeoTab() {
                     <ScorecardCard label="Reports" value={scorecard.reportCount} target={1} suffix="/qtr" icon={Newspaper} />
                 </div>
             ) : null}
+            {scorecardError && (
+                <Card className="border-amber-200 bg-amber-50/60">
+                    <CardContent className="pt-6">
+                        <p className="text-sm text-amber-900">{scorecardError}</p>
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Two-column layout */}
             <div className="grid gap-6 lg:grid-cols-5">
@@ -305,6 +362,10 @@ export default function ContentCeoTab() {
                                         <div key={i} className="h-16 bg-muted animate-pulse rounded" />
                                     ))}
                                 </div>
+                            ) : newsError ? (
+                                <p className="text-sm text-muted-foreground text-center py-8">
+                                    {newsError}
+                                </p>
                             ) : news.length === 0 ? (
                                 <p className="text-sm text-muted-foreground text-center py-8">
                                     No results — try refreshing or entering a topic
@@ -418,6 +479,135 @@ export default function ContentCeoTab() {
 
                 {/* Right — 40% */}
                 <div className="lg:col-span-2 space-y-4">
+                    <Card>
+                        <CardHeader className="pb-3">
+                            <div className="flex items-center justify-between gap-3">
+                                <div>
+                                    <CardTitle className="text-base">Analytics Signals</CardTitle>
+                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                        GA, Search Console, and AIQ content gaps
+                                    </p>
+                                </div>
+                                {!analyticsLoading && analyticsSignals && (
+                                    <div className="flex items-center gap-1">
+                                        <Badge variant={analyticsSignals.gaConnected ? 'secondary' : 'outline'} className="text-[10px]">
+                                            GA {analyticsSignals.gaConnected ? 'Live' : 'Off'}
+                                        </Badge>
+                                        <Badge variant={analyticsSignals.gscConnected ? 'secondary' : 'outline'} className="text-[10px]">
+                                            GSC {analyticsSignals.gscConnected ? 'Live' : 'Off'}
+                                        </Badge>
+                                    </div>
+                                )}
+                            </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {analyticsLoading ? (
+                                <div className="space-y-3">
+                                    {Array.from({ length: 3 }).map((_, index) => (
+                                        <div key={index} className="h-16 rounded-md bg-muted animate-pulse" />
+                                    ))}
+                                </div>
+                            ) : analyticsError ? (
+                                <p className="text-sm text-muted-foreground">{analyticsError}</p>
+                            ) : analyticsSignals ? (
+                                <>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div className="rounded-lg border p-3">
+                                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Sessions</p>
+                                            <p className="mt-1 text-lg font-semibold">
+                                                {formatAnalyticsValue(analyticsSignals.kpis.sessions28d)}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                                28-day site traffic
+                                            </p>
+                                        </div>
+                                        <div className="rounded-lg border p-3">
+                                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Blog Sessions</p>
+                                            <p className="mt-1 text-lg font-semibold">
+                                                {formatAnalyticsValue(analyticsSignals.kpis.blogSessions28d)}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                                28-day content traffic
+                                            </p>
+                                        </div>
+                                        <div className="rounded-lg border p-3">
+                                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Impressions</p>
+                                            <p className="mt-1 text-lg font-semibold">
+                                                {formatAnalyticsValue(analyticsSignals.kpis.impressions28d)}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {analyticsSignals.kpis.ctr28d !== null
+                                                    ? `${analyticsSignals.kpis.ctr28d.toFixed(2)}% CTR`
+                                                    : 'Search Console needed'}
+                                            </p>
+                                        </div>
+                                        <div className="rounded-lg border p-3">
+                                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">AIQ Coverage</p>
+                                            <p className="mt-1 text-lg font-semibold">
+                                                {analyticsSignals.kpis.aiqMentionPosts}/{analyticsSignals.kpis.comparisonPosts}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                                AIQ mentions / comparison posts
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                            Priority Topics
+                                        </p>
+                                        {analyticsSignals.recommendations.length === 0 ? (
+                                            <p className="text-sm text-muted-foreground">
+                                                Connect GA and Search Console to unlock analytics-backed topic suggestions.
+                                            </p>
+                                        ) : (
+                                            analyticsSignals.recommendations.map((recommendation, index) => (
+                                                <button
+                                                    key={`${recommendation.source}-${index}`}
+                                                    type="button"
+                                                    onClick={() => handleOpenSheet(recommendation.contentType, recommendation.topic)}
+                                                    className="w-full rounded-lg border p-3 text-left transition-colors hover:bg-muted/40"
+                                                >
+                                                    <div className="flex items-start justify-between gap-3">
+                                                        <div className="min-w-0">
+                                                            <p className="text-sm font-medium leading-snug">{recommendation.title}</p>
+                                                            <p className="mt-1 text-xs text-muted-foreground">
+                                                                {recommendation.supportingMetric}
+                                                            </p>
+                                                            <p className="mt-1 text-xs text-primary">
+                                                                {recommendation.reason}
+                                                            </p>
+                                                        </div>
+                                                        <Badge variant="outline" className="shrink-0 text-[10px]">
+                                                            {recommendation.contentType}
+                                                        </Badge>
+                                                    </div>
+                                                </button>
+                                            ))
+                                        )}
+                                    </div>
+
+                                    {(analyticsSignals.topQueries[0] || analyticsSignals.topContentPages[0]) && (
+                                        <div className="space-y-1 border-t pt-3">
+                                            {analyticsSignals.topQueries[0] && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    Top query: <span className="font-medium text-foreground">{analyticsSignals.topQueries[0].query}</span>
+                                                </p>
+                                            )}
+                                            {analyticsSignals.topContentPages[0] && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    Top page: <span className="font-medium text-foreground">{analyticsSignals.topContentPages[0].path}</span>
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <p className="text-sm text-muted-foreground">No analytics signals available.</p>
+                            )}
+                        </CardContent>
+                    </Card>
+
                     {/* Quick Generate Panel */}
                     <Card>
                         <CardHeader>

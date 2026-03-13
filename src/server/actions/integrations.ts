@@ -10,6 +10,8 @@ export interface SystemIntegrations {
     calendar: IntegrationStatus;
     drive: IntegrationStatus;
     sheets: IntegrationStatus;
+    googleAnalytics: IntegrationStatus;
+    googleSearchConsole: IntegrationStatus;
 }
 
 /**
@@ -22,7 +24,9 @@ export async function checkIntegrationsStatus(): Promise<SystemIntegrations> {
         gmail: 'disconnected',
         calendar: 'disconnected',
         drive: 'disconnected',
-        sheets: 'disconnected'
+        sheets: 'disconnected',
+        googleAnalytics: 'disconnected',
+        googleSearchConsole: 'disconnected',
     };
 
     try {
@@ -50,11 +54,13 @@ export async function checkIntegrationsStatus(): Promise<SystemIntegrations> {
         const integrationsRef = firestore.collection('users').doc(user.uid).collection('integrations');
 
         // Parallel fetch for all services
-        const [gmailDoc, calendarDoc, driveDoc, sheetsDoc] = await Promise.all([
+        const [gmailDoc, calendarDoc, driveDoc, sheetsDoc, googleAnalyticsDoc, googleSearchConsoleDoc] = await Promise.all([
             integrationsRef.doc('gmail').get(),
             integrationsRef.doc('calendar').get(),
             integrationsRef.doc('drive').get(),
-            integrationsRef.doc('sheets').get()
+            integrationsRef.doc('sheets').get(),
+            integrationsRef.doc('google_analytics').get(),
+            integrationsRef.doc('google_search_console').get(),
         ]);
 
         const checkStatus = (doc: FirebaseFirestore.DocumentSnapshot): IntegrationStatus => {
@@ -69,7 +75,9 @@ export async function checkIntegrationsStatus(): Promise<SystemIntegrations> {
             gmail: checkStatus(gmailDoc),
             calendar: checkStatus(calendarDoc),
             drive: checkStatus(driveDoc),
-            sheets: checkStatus(sheetsDoc)
+            sheets: checkStatus(sheetsDoc),
+            googleAnalytics: checkStatus(googleAnalyticsDoc),
+            googleSearchConsole: checkStatus(googleSearchConsoleDoc),
         };
 
     } catch (error) {

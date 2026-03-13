@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUrl } from '@/server/integrations/gmail/oauth';
 import { requireUser } from '@/server/auth/auth';
-
-type GoogleService = 'gmail' | 'calendar' | 'sheets' | 'drive';
+import { normalizeGoogleService, type GoogleServiceAlias } from '@/server/integrations/google/service-definitions';
 
 export async function GET(req: NextRequest) {
     try {
         const searchParams = req.nextUrl.searchParams;
 
         // Get service type from query params (default: gmail for backward compat)
-        const service = (searchParams.get('service') as GoogleService) || 'gmail';
+        const requestedService = (searchParams.get('service') as GoogleServiceAlias | null) || 'gmail';
+        const service = normalizeGoogleService(requestedService);
         const redirect = searchParams.get('redirect') || '/dashboard/ceo';
 
         // Get the user's UID here (where __session cookie IS present — same-site request)
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
         }
 
         // Encode state to preserve service context + uid through the OAuth redirect loop
-        const state = JSON.stringify({ service, redirect, uid });
+        const state = JSON.stringify({ service, redirect, uid, requestedService });
 
         // Generate the OAuth URL (now async since it fetches secrets)
         const url = await getAuthUrl(state, service);
