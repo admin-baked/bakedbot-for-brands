@@ -1,11 +1,8 @@
 import { logger } from '@/lib/logger';
 import type { StageExecutor, StageExecutionInput, StageExecutionResult } from '@/types/playbook-v2';
-import { ArtifactPersistenceService } from '@/server/services/playbook-artifact-service';
-import { FirestorePlaybookAdapter, FirebaseStorageBlobStore } from '@/server/services/playbook-infra-adapters';
+import { getPlaybookArtifactRuntime } from '@/server/services/playbook-artifact-runtime';
 
-const adapter = new FirestorePlaybookAdapter();
-const blob = new FirebaseStorageBlobStore();
-const artifactService = new ArtifactPersistenceService(blob, adapter);
+const { artifactService } = getPlaybookArtifactRuntime();
 
 export const deliverExecutor: StageExecutor = {
     stageName: 'delivering',
@@ -31,7 +28,7 @@ export const deliverExecutor: StageExecutor = {
         // Persist Artifact
         const persistResult = await artifactService.persist({
             runId: input.run.id,
-            workspaceId: scope.orgId as string || 'unknown_org',
+            workspaceId: String(input.run.orgId || scope.orgId || 'unknown_org'),
             playbookId: input.run.playbookId,
             stageName: this.stageName,
             artifactType: 'delivery_manifest',
@@ -39,6 +36,7 @@ export const deliverExecutor: StageExecutor = {
             body: JSON.stringify(deliveryManifest, null, 2),
             contentType: 'application/json',
             commitToRepo: true,
+            runDate: input.run.startedAt,
         });
 
         return {

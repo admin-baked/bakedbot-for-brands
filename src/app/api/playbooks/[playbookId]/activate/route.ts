@@ -1,18 +1,25 @@
-import { NextResponse } from 'next/server';
-import { getAdminFirestore } from '@/firebase/admin';
+import { NextRequest, NextResponse } from 'next/server';
+import { PlaybookApiError, getAuthorizedPlaybook } from '@/server/services/playbook-auth';
 
-export async function POST(req: Request, { params }: { params: { playbookId: string } }) {
+export async function POST(
+    _req: NextRequest,
+    { params }: { params: Promise<{ playbookId: string }> },
+) {
     try {
-        const { playbookId } = params;
-        const db = getAdminFirestore();
+        const { playbookId } = await params;
+        const { ref } = await getAuthorizedPlaybook(playbookId);
 
-        await db.collection('playbooks').doc(playbookId).update({
+        await ref.update({
             status: 'active',
-            updatedAt: new Date().toISOString()
+            active: true,
+            updatedAt: new Date(),
         });
 
         return NextResponse.json({ success: true, playbookId, status: 'active' });
     } catch (error) {
+        if (error instanceof PlaybookApiError) {
+            return NextResponse.json({ error: error.message }, { status: error.status });
+        }
         console.error('[API] Playbook activate error:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Internal Server Error' },

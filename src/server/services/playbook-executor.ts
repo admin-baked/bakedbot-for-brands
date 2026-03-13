@@ -33,20 +33,23 @@ import { recordPlaybookExecution } from '@/server/actions/playbook-revenue-attri
 import { PlaybookRunCoordinator } from '@/server/services/playbook-run-coordinator';
 import {
     FirestorePlaybookAdapter,
-    FirebaseStorageBlobStore,
     CloudTasksDispatcher
 } from '@/server/services/playbook-infra-adapters';
+import { PlaybookArtifactMemoryService } from '@/server/services/playbook-artifact-memory';
+import { getPlaybookArtifactRuntime } from '@/server/services/playbook-artifact-runtime';
 import { runValidationHarness } from '@/server/services/playbook-validation';
 import type { Playbook } from '@/types/playbook';
 
 // Initialize Infrastructure Adapters
 const firestoreAdapter = new FirestorePlaybookAdapter();
-const storageStore = new FirebaseStorageBlobStore();
 const taskDispatcher = new CloudTasksDispatcher();
+const { artifactService } = getPlaybookArtifactRuntime();
+const artifactMemory = new PlaybookArtifactMemoryService(artifactService);
 const runCoordinator = new PlaybookRunCoordinator(
     firestoreAdapter,
     firestoreAdapter,
-    taskDispatcher
+    taskDispatcher,
+    artifactMemory,
 );
 
 // Types
@@ -1452,24 +1455,8 @@ export async function executePlaybook(
 ): Promise<PlaybookExecutionResult> {
     const { firestore } = await createServerClient();
     const startedAt = new Date();
-
-    // Create execution record
-    const executionRef = await firestore.collection('playbook_executions').add({
-        playbookId: request.playbookId,
-        orgId: request.orgId,
-        userId: request.userId,
-        triggeredBy: request.triggeredBy,
-        status: 'running',
-        startedAt,
-        stepResults: [],
-    });
-
-    const executionId = executionRef.id;
-
-    logger.info('[PlaybookExecutor] Starting execution:', {
-        executionId,
-        playbookId: request.playbookId,
-    });
+    let executionRef: FirebaseFirestore.DocumentReference | null = null;
+    let executionId = '';
 
     try {
         // Load playbook
@@ -1493,6 +1480,7 @@ export async function executePlaybook(
             const startResult = await runCoordinator.startRun({
                 playbookId: request.playbookId,
                 playbookVersion: playbook.version || 1,
+                orgId: playbook.orgId || request.orgId,
                 triggerEvent: request.eventData || { triggeredBy: request.triggeredBy },
             });
 
@@ -1503,6 +1491,23 @@ export async function executePlaybook(
                 stepResults: [],
             };
         }
+
+        // Create execution record only for legacy step-based playbooks.
+        executionRef = await firestore.collection('playbook_executions').add({
+            playbookId: request.playbookId,
+            orgId: request.orgId,
+            userId: request.userId,
+            triggeredBy: request.triggeredBy,
+            status: 'running',
+            startedAt,
+            stepResults: [],
+        });
+        executionId = executionRef.id;
+
+        logger.info('[PlaybookExecutor] Starting execution:', {
+            executionId,
+            playbookId: request.playbookId,
+        });
 
         const steps = playbook.steps || [];
 
@@ -1758,11 +1763,13 @@ export async function executePlaybook(
         logger.error('[PlaybookExecutor] Execution failed:', { executionId, error: errorMessage });
 
         // Update execution record as failed
-        await executionRef.update({
-            status: 'failed',
-            error: errorMessage,
-            completedAt: new Date(),
-        });
+        if (executionRef) {
+            await executionRef.update({
+                status: 'failed',
+                error: errorMessage,
+                completedAt: new Date(),
+            });
+        }
 
         // Update playbook failure count
         try {

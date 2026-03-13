@@ -41,6 +41,7 @@
     "audit:indexes:create": "node scripts/audit-indexes.mjs --auto-create",
     "setup:secrets": "node scripts/setup-secrets.mjs",
     "setup:secrets:deploy": "node scripts/setup-secrets.mjs --deploy",
+    "setup:artifact-repo": "node scripts/setup-playbook-artifact-repo.mjs",
     "audit:schema": "node scripts/audit-schema.mjs",
     "audit:schema:org": "node scripts/audit-schema.mjs --orgId",
     "seed:test": "node scripts/seed-test-data.mjs",

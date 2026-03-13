@@ -155,4 +155,70 @@ Day of week:
 
 ---
 
+### Rule 8: Compiled Playbook V2 uses `playbook_runs`, not `playbook_executions`
+```typescript
+// ✅ CORRECT — compiled runtime state machine
+const runRef = db.collection('playbook_runs').doc(runId);
+
+// ❌ WRONG — this is the legacy template execution log
+const executionRef = db.collection('playbook_executions').doc(runId);
+```
+
+### Rule 9: Stage jobs execute through `/api/jobs/agent`, not a separate worker route
+```typescript
+// ✅ CORRECT — dispatch through the shared agent task path
+await dispatchAgentJob({
+  userId: 'system-playbook-runtime',
+  options: {
+    context: {
+      ...payload,
+      isPlaybookStage: true,
+    },
+  },
+});
+
+// ❌ WRONG — assuming a dedicated /api/playbooks/stage route exists
+await fetch('/api/playbooks/stage', { method: 'POST' });
+```
+
+### Rule 10: Repo artifact pathing must be pinned to the run timestamp
+```typescript
+// ✅ CORRECT — keep retries/replays in the same run folder
+await artifactService.persist({
+  runDate: run.startedAt,
+  filename: 'run.json',
+  // ...
+});
+
+// ❌ WRONG — using "now" during retries can scatter one run across dates
+await artifactService.persist({
+  filename: 'run.json',
+  // no runDate
+});
+```
+
+### Rule 11: `summary_for_ai_engineers.md` is a terminal artifact, not a per-stage default
+```typescript
+// ✅ CORRECT — generate on awaiting_approval/completed/failed
+if (['awaiting_approval', 'completed', 'failed'].includes(run.status)) {
+  await artifactMemory.persistSummaryForAIEngineers(...);
+}
+
+// ❌ WRONG — writing the summary after every stage adds noise and unnecessary commits
+await artifactMemory.persistSummaryForAIEngineers(...);
+```
+
+### Rule 12: Production artifact commits require App Hosting env + secret wiring
+```typescript
+// ✅ CORRECT — runtime can instantiate GitHubArtifactRepoStore
+process.env.PLAYBOOK_ARTIFACT_REPO_OWNER;
+process.env.PLAYBOOK_ARTIFACT_REPO_NAME;
+process.env.PLAYBOOK_ARTIFACT_REPO_TOKEN;
+
+// ❌ WRONG — assuming blob persistence alone means the artifact repo is live
+await blobStore.put(...);
+```
+
+---
+
 *Patterns version: 1.0 | Created: 2026-02-26*

@@ -4,6 +4,32 @@
 
 Playbook Pablo owns the automation playbook system: 23 pre-built Empire templates, the Zapier-like trigger editor, per-org assignment with custom config overrides, execution cron, and the pure-JS cron utilities that power scheduling.
 
+## Update 2026-03-12: Compiled Playbook V2 now coexists with the legacy template runtime
+
+The notes below still describe the original template/assignment system, but they are no longer the only playbook path.
+
+There is now a second runtime for compiled playbooks:
+
+```
+Natural language request
+  -> compile endpoint persists playbook + compiled spec
+  -> spec snapshot committed via artifact memory
+  -> run coordinator creates playbook_runs/{runId}
+  -> CloudTasksDispatcher enqueues stage jobs through /api/jobs/agent
+  -> handlePlaybookStageJob() executes stage executors
+  -> artifacts persist to blob storage + Firestore metadata + artifact Git repo
+```
+
+Key distinction:
+
+- Legacy runtime records execution in `playbook_executions`
+- Compiled Playbook V2 records execution in `playbook_runs`
+
+See also:
+
+- `memory/artifact-runtime.md`
+- `.agent/refs/playbook-artifact-repo.md`
+
 ---
 
 ## 1. Two PlaybookTrigger Types (Critical Distinction)

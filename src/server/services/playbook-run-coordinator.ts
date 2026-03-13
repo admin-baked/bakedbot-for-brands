@@ -35,6 +35,7 @@ import {
     type PlaybookJobPayload,
 } from '@/types/playbook-v2';
 import type { RunStatus, StageStatus } from '@/types/playbook';
+import type { PlaybookArtifactMemoryService } from '@/server/services/playbook-artifact-memory';
 
 // ---------------------------------------------------------------------------
 // Run Record (matches Firestore doc shape)
@@ -44,6 +45,7 @@ export interface PlaybookRunRecord {
     id: string;
     playbookId: string;
     playbookVersion: number;
+    orgId: string;
     status: RunStatus;
     triggerEvent: Record<string, unknown>;
     resolvedScope?: Record<string, unknown>;
@@ -123,6 +125,7 @@ export class PlaybookRunCoordinator {
         private readonly runRepo: RunRepository,
         private readonly playbookRepo: PlaybookRepository,
         private readonly taskDispatcher: TaskDispatcher,
+        private readonly artifactMemory?: PlaybookArtifactMemoryService,
     ) { }
 
     /**
@@ -131,6 +134,7 @@ export class PlaybookRunCoordinator {
     async startRun(input: {
         playbookId: string;
         playbookVersion: number;
+        orgId: string;
         triggerEvent: Record<string, unknown>;
     }): Promise<{ runId: string }> {
         const now = new Date().toISOString();
@@ -140,6 +144,7 @@ export class PlaybookRunCoordinator {
             id: runId,
             playbookId: input.playbookId,
             playbookVersion: input.playbookVersion,
+            orgId: input.orgId,
             status: 'queued',
             triggerEvent: input.triggerEvent,
             requiresApproval: false,
@@ -165,6 +170,16 @@ export class PlaybookRunCoordinator {
             triggerEvent: input.triggerEvent,
         });
 
+        await this.artifactMemory?.safePersist('persistRunManifest:startRun', () => {
+            return this.artifactMemory!.persistRunManifest({
+                run: {
+                    ...run,
+                    status: nextStatus,
+                },
+                stageName: 'queued',
+            });
+        });
+
         logger.info('[RunCoordinator] Run started', { runId, playbookId: input.playbookId });
 
         return { runId };
@@ -176,24 +191,32 @@ export class PlaybookRunCoordinator {
     async handleStageCompletion(input: {
         runId: string;
         stageName: OrderedRunStage;
+        attempt?: number;
         result: StageExecutionResult;
         validationReport?: ValidationReport;
     }): Promise<void> {
         const run = await this.runRepo.getRun(input.runId);
         if (!run) throw new Error(`Run ${input.runId} not found`);
+        const attempt = input.attempt ?? 1;
+        const existingStages = await this.runRepo.getStages(input.runId);
+        const existingStage = existingStages.find(
+            (stage) => stage.stageName === input.stageName && stage.attempt === attempt,
+        );
 
         // Record stage result
         const stageRecord: StageRecord = {
             runId: input.runId,
             stageName: input.stageName,
-            attempt: 1,
+            attempt,
             status: input.result.status === 'completed' ? 'completed' : 'failed',
+            stateIn: existingStage?.stateIn,
             stateOut: input.result.stageOutput as Record<string, unknown> | undefined,
             confidence: input.result.confidence,
             errorCode: input.result.error?.code,
             errorMessage: input.result.error?.message,
             metrics: input.result.metrics,
             artifactIds: (input.result.artifactsCreated || []).map(a => a.id),
+            startedAt: existingStage?.startedAt,
             completedAt: new Date().toISOString(),
         };
 
@@ -206,9 +229,19 @@ export class PlaybookRunCoordinator {
         // Handle failure
         if (input.result.status === 'failed') {
             if (input.result.error?.retryable && run.retryCount < 3) {
-                await this.runRepo.updateRun(input.runId, {
+                const retryPatch: Partial<PlaybookRunRecord> = {
                     retryCount: run.retryCount + 1,
                     stageStatuses: { ...run.stageStatuses, [input.stageName]: 'failed' },
+                };
+                await this.runRepo.updateRun(input.runId, retryPatch);
+                await this.artifactMemory?.safePersist('persistRunManifest:retry', () => {
+                    return this.artifactMemory!.persistRunManifest({
+                        run: {
+                            ...run,
+                            ...retryPatch,
+                        } as PlaybookRunRecord,
+                        stageName: input.stageName,
+                    });
                 });
                 await this.taskDispatcher.enqueueStage({
                     runId: input.runId,
@@ -220,11 +253,21 @@ export class PlaybookRunCoordinator {
                 return;
             }
 
-            await this.runRepo.updateRun(input.runId, {
+            const failurePatch: Partial<PlaybookRunRecord> = {
                 status: 'failed',
                 artifactIds: allArtifactIds,
                 stageStatuses: { ...run.stageStatuses, [input.stageName]: 'failed' },
                 completedAt: new Date().toISOString(),
+            };
+            await this.runRepo.updateRun(input.runId, failurePatch);
+            await this.artifactMemory?.safePersist('persistRunManifest:failed', () => {
+                return this.artifactMemory!.persistRunManifest({
+                    run: {
+                        ...run,
+                        ...failurePatch,
+                    } as PlaybookRunRecord,
+                    stageName: input.stageName,
+                });
             });
             return;
         }
@@ -259,6 +302,16 @@ export class PlaybookRunCoordinator {
         }
 
         await this.runRepo.updateRun(input.runId, runPatch);
+
+        await this.artifactMemory?.safePersist('persistRunManifest:stageCompletion', () => {
+            return this.artifactMemory!.persistRunManifest({
+                run: {
+                    ...run,
+                    ...runPatch,
+                } as PlaybookRunRecord,
+                stageName: input.stageName,
+            });
+        });
 
         // Enqueue next stage if needed
         if (nextStatus !== 'completed' && nextStatus !== 'failed' && nextStatus !== 'awaiting_approval') {
@@ -310,6 +363,16 @@ export class PlaybookRunCoordinator {
         });
 
         await this.runRepo.updateRun(input.runId, { status: nextStatus });
+
+        await this.artifactMemory?.safePersist('persistRunManifest:approval', () => {
+            return this.artifactMemory!.persistRunManifest({
+                run: {
+                    ...run,
+                    status: nextStatus,
+                },
+                stageName: 'awaiting_approval',
+            });
+        });
 
         // Enqueue delivery
         await this.taskDispatcher.enqueueStage({

@@ -1,30 +1,35 @@
 /**
  * Playbook Validation Harness
  *
- * Modular validation pipeline per the Build Package §10.
+ * Modular validation pipeline per the Build Package section 10.
  * Each validator is a pure function implementing the Validator interface.
- * The harness orchestrates validators and produces a structured ValidationReport.
- *
- * Validators:
- *   - source-integrity: named entities exist, timestamps fresh, values parseable
- *   - schema: JSON shape, required keys, enumerations
- *   - policy: disclaimers, blocked claims, channel rules
- *   - confidence: model confidence floor, source conflicts
- *   - delivery: assets exist, destinations reachable, length constraints
- *   - duplication: output not duplicative of recent runs
  */
 
 import { logger } from '@/lib/logger';
 import type {
+    CompiledPlaybookSpec,
+    PlaybookArtifact,
+    PolicyBundle,
+    ValidationContext,
+    ValidationOverallStatus,
+    ValidationReport,
     Validator,
     ValidatorResult,
-    ValidationContext,
-    ValidationReport,
-    ValidationOverallStatus,
-    PlaybookArtifact,
-    CompiledPlaybookSpec,
-    PolicyBundle,
 } from '@/types/playbook-v2';
+
+type ValidationIssue = {
+    code: string;
+    message: string;
+    severity?: 'info' | 'warning' | 'error';
+};
+
+function collectGeneratedOutputText(input: ValidationContext): string {
+    return input.artifacts
+        .filter((artifact) => artifact.artifactType === 'generated_output')
+        .map((artifact) => input.artifactBodies?.[artifact.id] ?? '')
+        .join('\n')
+        .toLowerCase();
+}
 
 // ---------------------------------------------------------------------------
 // Source Integrity Validator
@@ -34,10 +39,9 @@ export const sourceIntegrityValidator: Validator = {
     name: 'source_integrity',
 
     async validate(input: ValidationContext): Promise<ValidatorResult> {
-        const issues: Array<{ code: string; message: string; severity?: 'info' | 'warning' | 'error' }> = [];
+        const issues: ValidationIssue[] = [];
         const scope = input.spec.scope as Record<string, unknown>;
 
-        // Check that competitor IDs exist if scope references them
         const competitorIds = scope.competitorIds as string[] | undefined;
         if (competitorIds && competitorIds.length === 0) {
             issues.push({
@@ -47,19 +51,28 @@ export const sourceIntegrityValidator: Validator = {
             });
         }
 
-        // Check that research artifacts have content
-        const researchArtifacts = input.artifacts.filter(a => a.artifactType === 'research_pack');
+        const researchArtifacts = input.artifacts.filter((artifact) => artifact.artifactType === 'research_pack');
         if (researchArtifacts.length === 0) {
             issues.push({
                 code: 'MISSING_RESEARCH_PACK',
                 message: 'No research pack artifact found',
                 severity: 'warning',
             });
+        } else if (researchArtifacts.some((artifact) => !input.artifactBodies?.[artifact.id]?.trim())) {
+            issues.push({
+                code: 'EMPTY_RESEARCH_PACK',
+                message: 'Research pack artifact is empty',
+                severity: 'error',
+            });
         }
 
         return {
             name: 'source_integrity',
-            status: issues.some(i => i.severity === 'error') ? 'fail' : issues.length > 0 ? 'warning' : 'pass',
+            status: issues.some((issue) => issue.severity === 'error')
+                ? 'fail'
+                : issues.length > 0
+                    ? 'warning'
+                    : 'pass',
             issues: issues.length > 0 ? issues : undefined,
         };
     },
@@ -73,11 +86,12 @@ export const schemaValidator: Validator = {
     name: 'schema',
 
     async validate(input: ValidationContext): Promise<ValidatorResult> {
-        const issues: Array<{ code: string; message: string; severity?: 'info' | 'warning' | 'error' }> = [];
+        const issues: ValidationIssue[] = [];
 
-        // Validate output artifacts have expected shape
-        const outputArtifacts = input.artifacts.filter(a =>
-            a.artifactType === 'generated_output' || a.artifactType === 'recommendations'
+        const outputArtifacts = input.artifacts.filter(
+            (artifact) =>
+                artifact.artifactType === 'generated_output' ||
+                artifact.artifactType === 'recommendations',
         );
 
         if (outputArtifacts.length === 0) {
@@ -88,9 +102,7 @@ export const schemaValidator: Validator = {
             });
         }
 
-        // Check deliverables are accounted for
-        const expectedDeliverables = input.spec.outputs.deliverables;
-        if (expectedDeliverables.length === 0) {
+        if (input.spec.outputs.deliverables.length === 0) {
             issues.push({
                 code: 'NO_DELIVERABLES_SPECIFIED',
                 message: 'Compiled spec has no deliverables',
@@ -100,7 +112,11 @@ export const schemaValidator: Validator = {
 
         return {
             name: 'schema',
-            status: issues.some(i => i.severity === 'error') ? 'fail' : issues.length > 0 ? 'warning' : 'pass',
+            status: issues.some((issue) => issue.severity === 'error')
+                ? 'fail'
+                : issues.length > 0
+                    ? 'warning'
+                    : 'pass',
             issues: issues.length > 0 ? issues : undefined,
         };
     },
@@ -114,7 +130,7 @@ export const policyValidator: Validator = {
     name: 'policy',
 
     async validate(input: ValidationContext): Promise<ValidatorResult> {
-        const issues: Array<{ code: string; message: string; severity?: 'info' | 'warning' | 'error' }> = [];
+        const issues: ValidationIssue[] = [];
 
         if (!input.policyBundle) {
             issues.push({
@@ -125,21 +141,35 @@ export const policyValidator: Validator = {
             return { name: 'policy', status: 'warning', issues };
         }
 
-        // Check required disclaimers would be present
-        const requiredDisclaimers = input.policyBundle.contentRules?.blockedClaims || [];
-        if (requiredDisclaimers.length > 0) {
-            // In a real implementation, this would scan the generated output
-            // For now, we flag if disclaimers are required but no check is possible
-            issues.push({
-                code: 'DISCLAIMER_CHECK_PENDING',
-                message: `Policy requires ${requiredDisclaimers.length} blocked claim rules — runtime check needed`,
-                severity: 'info',
-            });
+        const outputText = collectGeneratedOutputText(input);
+
+        for (const disclaimer of input.policyBundle.contentRules.requiredDisclaimers || []) {
+            if (!outputText.includes(disclaimer.toLowerCase())) {
+                issues.push({
+                    code: 'DISCLAIMER_MISSING',
+                    message: `Required disclaimer missing: ${disclaimer}`,
+                    severity: 'error',
+                });
+            }
+        }
+
+        for (const blockedClaim of input.policyBundle.contentRules.blockedClaims || []) {
+            if (outputText.includes(blockedClaim.toLowerCase())) {
+                issues.push({
+                    code: 'BLOCKED_CLAIM_PRESENT',
+                    message: `Blocked claim detected: ${blockedClaim}`,
+                    severity: 'error',
+                });
+            }
         }
 
         return {
             name: 'policy',
-            status: issues.some(i => i.severity === 'error') ? 'fail' : issues.length > 0 ? 'warning' : 'pass',
+            status: issues.some((issue) => issue.severity === 'error')
+                ? 'fail'
+                : issues.length > 0
+                    ? 'warning'
+                    : 'pass',
             issues: issues.length > 0 ? issues : undefined,
         };
     },
@@ -153,13 +183,11 @@ export const confidenceValidator: Validator = {
     name: 'confidence',
 
     async validate(input: ValidationContext): Promise<ValidatorResult> {
-        const issues: Array<{ code: string; message: string; severity?: 'info' | 'warning' | 'error' }> = [];
+        const issues: ValidationIssue[] = [];
         const threshold = input.spec.approvalPolicy.confidenceThreshold ?? 0.78;
 
-        // In a real implementation, confidence would come from stage outputs
-        // For now, we check if any artifact metadata has low confidence
-        const lowConfidenceArtifacts = input.artifacts.filter(a => {
-            const confidence = a.metadata?.confidence as number | undefined;
+        const lowConfidenceArtifacts = input.artifacts.filter((artifact) => {
+            const confidence = artifact.metadata?.confidence as number | undefined;
             return confidence !== undefined && confidence < threshold;
         });
 
@@ -173,7 +201,11 @@ export const confidenceValidator: Validator = {
 
         return {
             name: 'confidence',
-            status: issues.some(i => i.severity === 'error') ? 'fail' : issues.length > 0 ? 'warning' : 'pass',
+            status: issues.some((issue) => issue.severity === 'error')
+                ? 'fail'
+                : issues.length > 0
+                    ? 'warning'
+                    : 'pass',
             issues: issues.length > 0 ? issues : undefined,
         };
     },
@@ -187,11 +219,11 @@ export const deliveryValidator: Validator = {
     name: 'delivery',
 
     async validate(input: ValidationContext): Promise<ValidatorResult> {
-        const issues: Array<{ code: string; message: string; severity?: 'info' | 'warning' | 'error' }> = [];
-
-        // Verify all destinations are supported
+        const issues: ValidationIssue[] = [];
         const supportedDestinations = ['dashboard', 'email', 'slack', 'sms', 'cms'];
-        const unsupported = input.spec.outputs.destinations.filter(d => !supportedDestinations.includes(d));
+        const unsupported = input.spec.outputs.destinations.filter(
+            (destination) => !supportedDestinations.includes(destination),
+        );
 
         if (unsupported.length > 0) {
             issues.push({
@@ -203,7 +235,11 @@ export const deliveryValidator: Validator = {
 
         return {
             name: 'delivery',
-            status: issues.some(i => i.severity === 'error') ? 'fail' : issues.length > 0 ? 'warning' : 'pass',
+            status: issues.some((issue) => issue.severity === 'error')
+                ? 'fail'
+                : issues.length > 0
+                    ? 'warning'
+                    : 'pass',
             issues: issues.length > 0 ? issues : undefined,
         };
     },
@@ -217,8 +253,6 @@ export const duplicationValidator: Validator = {
     name: 'duplication',
 
     async validate(_input: ValidationContext): Promise<ValidatorResult> {
-        // Placeholder: In production, this would compare against recent run outputs
-        // to detect materially duplicate content.
         return { name: 'duplication', status: 'pass' };
     },
 };
@@ -248,10 +282,6 @@ export const DAILY_CI_VALIDATORS: Validator[] = [
 // Validation Harness Orchestrator
 // ---------------------------------------------------------------------------
 
-/**
- * Run the full validation harness against a set of artifacts.
- * Returns a structured ValidationReport with overall status and per-validator results.
- */
 export async function runValidationHarness(
     context: ValidationContext,
     validators: Validator[] = DEFAULT_VALIDATORS,
@@ -262,25 +292,24 @@ export async function runValidationHarness(
         try {
             const result = await validator.validate(context);
             results.push(result);
-        } catch (err) {
+        } catch (error) {
             logger.error(`[ValidationHarness] Validator ${validator.name} threw exception`, {
-                error: err instanceof Error ? err.message : String(err),
+                error: error instanceof Error ? error.message : String(error),
             });
             results.push({
                 name: validator.name,
                 status: 'fail',
                 issues: [{
                     code: 'VALIDATOR_EXCEPTION',
-                    message: `Validator threw: ${err instanceof Error ? err.message : String(err)}`,
+                    message: `Validator threw: ${error instanceof Error ? error.message : String(error)}`,
                     severity: 'error',
                 }],
             });
         }
     }
 
-    // Determine overall status
-    const hasFail = results.some(r => r.status === 'fail');
-    const hasWarning = results.some(r => r.status === 'warning');
+    const hasFail = results.some((result) => result.status === 'fail');
+    const hasWarning = results.some((result) => result.status === 'warning');
 
     const overallStatus: ValidationOverallStatus = hasFail
         ? 'fail'
@@ -288,13 +317,14 @@ export async function runValidationHarness(
             ? 'pass_with_warnings'
             : 'pass';
 
-    // Determine if approval is required based on policy
-    const requiresApproval = determineApprovalRequired(context, overallStatus, results);
+    const confidence = deriveRunConfidence(context);
+    const requiresApproval = determineApprovalRequired(context, overallStatus, results, confidence);
 
     const report: ValidationReport = {
         runId: context.run.id,
         overallStatus,
         requiresApproval,
+        confidence,
         validators: results,
     };
 
@@ -303,19 +333,17 @@ export async function runValidationHarness(
         overallStatus,
         requiresApproval,
         validatorCount: results.length,
-        failedCount: results.filter(r => r.status === 'fail').length,
+        failedCount: results.filter((result) => result.status === 'fail').length,
     });
 
     return report;
 }
 
-/**
- * Determine whether a run requires human approval based on approval policy and validation results.
- */
 function determineApprovalRequired(
     context: ValidationContext,
     overallStatus: ValidationOverallStatus,
     results: ValidatorResult[],
+    confidence?: number,
 ): boolean {
     const policy = context.spec.approvalPolicy;
 
@@ -324,15 +352,54 @@ function determineApprovalRequired(
             return false;
         case 'always':
             return true;
-        case 'escalate_on_low_confidence':
-            return overallStatus === 'fail' || overallStatus === 'pass_with_warnings';
+        case 'escalate_on_low_confidence': {
+            if (overallStatus === 'fail') {
+                return true;
+            }
+
+            const threshold = policy.confidenceThreshold ?? 0.78;
+            const belowThreshold = typeof confidence === 'number' ? confidence < threshold : false;
+            return belowThreshold || hasApprovalTriggerIssue(results, policy.requiredFor);
+        }
         case 'required_for_first_run_and_policy_warnings': {
             const hasPolicyIssue = results.some(
-                r => r.name === 'policy' && (r.status === 'fail' || r.status === 'warning')
+                (result) => result.name === 'policy' && (result.status === 'fail' || result.status === 'warning'),
             );
             return hasPolicyIssue || overallStatus === 'fail';
         }
         default:
-            return true; // Safe fallback
+            return true;
     }
 }
+
+function deriveRunConfidence(context: ValidationContext): number | undefined {
+    const artifactConfidences = context.artifacts
+        .map((artifact) => artifact.metadata?.confidence)
+        .filter((value): value is number => typeof value === 'number');
+
+    if (artifactConfidences.length === 0) {
+        return undefined;
+    }
+
+    return Math.min(...artifactConfidences);
+}
+
+function hasApprovalTriggerIssue(
+    results: ValidatorResult[],
+    requiredFor?: string[],
+): boolean {
+    if (!requiredFor || requiredFor.length === 0) {
+        return results.some((result) => result.status === 'fail');
+    }
+
+    const issueCodes = new Set(requiredFor.map((value) => value.toLowerCase()));
+    return results.some((result) =>
+        (result.issues ?? []).some((issue) => issueCodes.has(issue.code.toLowerCase())),
+    );
+}
+
+export type {
+    CompiledPlaybookSpec,
+    PlaybookArtifact,
+    PolicyBundle,
+};

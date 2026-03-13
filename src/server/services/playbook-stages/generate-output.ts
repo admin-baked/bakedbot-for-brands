@@ -1,11 +1,8 @@
 import { logger } from '@/lib/logger';
 import type { StageExecutor, StageExecutionInput, StageExecutionResult } from '@/types/playbook-v2';
-import { ArtifactPersistenceService } from '@/server/services/playbook-artifact-service';
-import { FirestorePlaybookAdapter, FirebaseStorageBlobStore } from '@/server/services/playbook-infra-adapters';
+import { getPlaybookArtifactRuntime } from '@/server/services/playbook-artifact-runtime';
 
-const adapter = new FirestorePlaybookAdapter();
-const blob = new FirebaseStorageBlobStore();
-const artifactService = new ArtifactPersistenceService(blob, adapter);
+const { artifactService } = getPlaybookArtifactRuntime();
 
 export const generateOutputExecutor: StageExecutor = {
     stageName: 'generating_output',
@@ -33,7 +30,7 @@ export const generateOutputExecutor: StageExecutor = {
         // Persist Artifacts
         const p1 = artifactService.persist({
             runId: input.run.id,
-            workspaceId: scope.orgId as string || 'unknown_org',
+            workspaceId: String(input.run.orgId || scope.orgId || 'unknown_org'),
             playbookId: input.run.playbookId,
             stageName: this.stageName,
             artifactType: 'generated_output',
@@ -41,11 +38,13 @@ export const generateOutputExecutor: StageExecutor = {
             body: report,
             contentType: 'text/markdown',
             commitToRepo: true,
+            metadata: { confidence: 0.85 },
+            runDate: input.run.startedAt,
         });
 
         const p2 = artifactService.persist({
             runId: input.run.id,
-            workspaceId: scope.orgId as string || 'unknown_org',
+            workspaceId: String(input.run.orgId || scope.orgId || 'unknown_org'),
             playbookId: input.run.playbookId,
             stageName: this.stageName,
             artifactType: 'recommendations',
@@ -53,6 +52,8 @@ export const generateOutputExecutor: StageExecutor = {
             body: JSON.stringify(recommendations, null, 2),
             contentType: 'application/json',
             commitToRepo: true,
+            metadata: { confidence: 0.85 },
+            runDate: input.run.startedAt,
         });
 
         const [res1, res2] = await Promise.all([p1, p2]);

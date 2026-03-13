@@ -4,6 +4,20 @@
 
 BakedBot Playbooks support **zero-touch scheduling** - users create playbooks via natural language in chat, and the system automatically handles scheduling without manual Cloud Scheduler setup.
 
+## Update 2026-03-12: This repo now has two playbook execution models
+
+This document still captures the original scheduling-oriented playbook architecture, but it is no longer the full picture.
+
+There is now a compiled Playbook V2 runtime for doctrine-aligned workflows:
+
+- natural-language compile to structured spec
+- deterministic run states in `playbook_runs`
+- stage execution through `/api/jobs/agent` with `isPlaybookStage`
+- artifact persistence to blob storage + Firestore + dedicated Git artifact repo
+- run inspector endpoints for artifacts, validation, and `summary_for_ai_engineers`
+
+Read `.agent/refs/playbook-artifact-repo.md` alongside this file when working on compiled playbooks or artifact persistence.
+
 ---
 
 ## 🔄 Execution Flow
