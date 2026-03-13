@@ -12,7 +12,6 @@
  */
 
 import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
 import { setAgeVerificationCookie } from '@/server/actions/age-verification';
 import { AlertCircle, PartyPopper, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -76,7 +75,10 @@ export default async function VerifyAgePage({ searchParams }: PageProps) {
 
     // Age verification screen
     return (
-        <div className="min-h-screen flex items-center justify-center bg-background/95 backdrop-blur-sm p-4">
+        <div
+            className="min-h-screen flex items-center justify-center bg-background/95 backdrop-blur-sm p-4"
+            data-testid="age-gate"
+        >
             <Card className="w-full max-w-md mx-4">
                 <CardHeader className="text-center">
                     <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
@@ -100,6 +102,8 @@ export default async function VerifyAgePage({ searchParams }: PageProps) {
                             name="confirmed"
                             value="yes"
                             className="w-full h-14 text-lg font-semibold"
+                            data-testid="age-confirm"
+                            aria-label="Confirm age verification"
                             size="lg"
                         >
                             <PartyPopper className="mr-2 h-5 w-5" />
@@ -112,6 +116,8 @@ export default async function VerifyAgePage({ searchParams }: PageProps) {
                             value="no"
                             variant="outline"
                             className="w-full h-14 text-lg"
+                            data-testid="age-deny"
+                            aria-label="Decline age verification"
                             size="lg"
                         >
                             <X className="mr-2 h-5 w-5" />

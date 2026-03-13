@@ -340,7 +340,7 @@ export async function revokeInvitationAction(invitationId: string) {
         let isAdminOfTarget = false;
 
         if (invite.targetOrgId) {
-            const actorRole = (user as { role?: string }).role;
+            const actorRole: string | null = (user as { role?: string }).role ?? null;
 
             if (isBrandRole(actorRole)) {
                 try {

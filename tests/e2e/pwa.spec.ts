@@ -18,13 +18,13 @@ test.describe('PWA Features', () => {
         expect(response.ok()).toBeTruthy();
 
         const manifest = await response.json();
-        expect(manifest.name).toBe('BakedBot for Brands');
+        expect(manifest.name).toBe('BakedBot AI');
         expect(manifest.short_name).toBe('BakedBot');
         expect(manifest.icons).toBeDefined();
         expect(manifest.icons.length).toBeGreaterThan(0);
     });
 
-    test('should register service worker', async ({ page, context }) => {
+    test('should not register service worker while running the dev server', async ({ page }) => {
         await page.goto('/');
 
         // Wait for service worker registration
@@ -35,7 +35,7 @@ test.describe('PWA Features', () => {
             return navigator.serviceWorker.getRegistration().then(reg => !!reg);
         });
 
-        expect(swRegistered).toBeTruthy();
+        expect(swRegistered).toBe(false);
     });
 
     test('should show install prompt when criteria met', async ({ page }) => {

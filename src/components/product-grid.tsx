@@ -54,7 +54,10 @@ export function ProductGrid({
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+        data-testid="product-grid"
+      >
         {[...Array(8)].map((_, i) => (
           <ProductSkeleton key={i} />
         ))}
@@ -64,7 +67,10 @@ export function ProductGrid({
 
   if (!products || products.length === 0) {
     return (
-      <div className="text-center py-20 my-8 bg-muted/40 rounded-lg">
+      <div
+        className="text-center py-20 my-8 bg-muted/40 rounded-lg"
+        data-testid="product-grid"
+      >
         <Database className="mx-auto h-12 w-12 text-muted-foreground" />
         <h3 className="mt-4 text-lg font-semibold">No Products Found</h3>
         <p className="mt-2 text-sm text-muted-foreground">
@@ -88,7 +94,7 @@ export function ProductGrid({
     : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6";
 
   return (
-    <div className={gridClassName}>
+    <div className={gridClassName} data-testid="product-grid">
       {products.map(product => (
         <ProductCard
           key={product.id}

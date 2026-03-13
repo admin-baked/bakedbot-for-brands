@@ -187,7 +187,10 @@ export function AgeGateSimpleWithEmail({
     // Underage screen
     if (step === 'underage') {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-sm p-4">
+            <div
+                className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-sm p-4"
+                data-testid="age-gate"
+            >
                 <Card className="w-full max-w-md mx-4">
                     <CardHeader className="text-center">
                         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
@@ -339,6 +342,8 @@ export function AgeGateSimpleWithEmail({
                     <Button
                         onClick={handleYes}
                         className="w-full h-14 text-lg font-semibold"
+                        data-testid="age-confirm"
+                        aria-label="Confirm age verification"
                         size="lg"
                     >
                         <PartyPopper className="mr-2 h-5 w-5" />
@@ -349,6 +354,8 @@ export function AgeGateSimpleWithEmail({
                         onClick={handleNo}
                         variant="outline"
                         className="w-full h-14 text-lg"
+                        data-testid="age-deny"
+                        aria-label="Decline age verification"
                         size="lg"
                     >
                         <X className="mr-2 h-5 w-5" />
