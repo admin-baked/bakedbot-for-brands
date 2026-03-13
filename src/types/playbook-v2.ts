@@ -303,6 +303,8 @@ export interface StageExecutionInput<TIn = unknown> {
         id: string;
         playbookId: string;
         playbookVersion: number;
+        orgId?: string;
+        startedAt?: string;
     };
     spec: CompiledPlaybookSpec;
     stageInput: TIn;
@@ -344,6 +346,7 @@ export interface ValidationContext {
     spec: CompiledPlaybookSpec;
     artifacts: PlaybookArtifact[];
     policyBundle?: PolicyBundle;
+    artifactBodies?: Record<string, string>;
 }
 
 export interface Validator {

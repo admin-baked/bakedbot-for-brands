@@ -1,12 +1,9 @@
 import { logger } from '@/lib/logger';
 import type { StageExecutor, StageExecutionInput, StageExecutionResult } from '@/types/playbook-v2';
 import { getAdminFirestore } from '@/firebase/admin';
-import { ArtifactPersistenceService } from '@/server/services/playbook-artifact-service';
-import { FirestorePlaybookAdapter, FirebaseStorageBlobStore } from '@/server/services/playbook-infra-adapters';
+import { getPlaybookArtifactRuntime } from '@/server/services/playbook-artifact-runtime';
 
-const adapter = new FirestorePlaybookAdapter();
-const blob = new FirebaseStorageBlobStore();
-const artifactService = new ArtifactPersistenceService(blob, adapter);
+const { artifactService } = getPlaybookArtifactRuntime();
 
 export const resolveScopeExecutor: StageExecutor = {
     stageName: 'resolving_scope',
@@ -17,23 +14,27 @@ export const resolveScopeExecutor: StageExecutor = {
         const scopeIn = input.spec.scope as Record<string, any>;
 
         // 1. Resolve Competitors
-        let competitorIds = scopeIn.competitorIds || [];
-        if (competitorIds.includes('detect_from_org_profile')) {
+        const explicitCompetitorIds = (scopeIn.competitorIds || [])
+            .filter((id: string) => id !== 'detect_from_org_profile');
+        let competitorIds = [...explicitCompetitorIds];
+
+        if ((scopeIn.competitorIds || []).includes('detect_from_org_profile')) {
             const db = getAdminFirestore();
             const orgDoc = await db.collection('tenants').doc(scopeIn.orgId).get();
             const orgData = orgDoc.data();
-            competitorIds = (orgData?.competitors || []).map((c: any) => c.id || c);
+            const detectedCompetitorIds = (orgData?.competitors || []).map((c: any) => c.id || c);
+            competitorIds = [...new Set([...detectedCompetitorIds, ...explicitCompetitorIds])];
         }
 
         const resolvedScope = {
             ...scopeIn,
-            competitorIds: competitorIds.filter((id: string) => id !== 'detect_from_org_profile')
+            competitorIds,
         };
 
         // 2. Persist Artifact
         const persistResult = await artifactService.persist({
             runId: input.run.id,
-            workspaceId: scopeIn.orgId,
+            workspaceId: String(input.run.orgId || scopeIn.orgId || 'unknown_org'),
             playbookId: input.run.playbookId,
             stageName: this.stageName,
             artifactType: 'resolved_scope',
@@ -41,6 +42,7 @@ export const resolveScopeExecutor: StageExecutor = {
             body: JSON.stringify(resolvedScope, null, 2),
             contentType: 'application/json',
             commitToRepo: true,
+            runDate: input.run.startedAt,
         });
 
         return {

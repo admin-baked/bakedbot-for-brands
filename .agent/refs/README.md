@@ -31,6 +31,7 @@ Detailed documentation for AI agents working in this codebase.
 | External APIs (Blackleaf, etc.) | `integrations.md` |
 | **Alleaves POS — endpoints, fields, enrichment flow** | **`alleaves-pos.md`** |
 | Playbooks, automation | `workflows.md` |
+| **Compiled playbook runtime + artifact repo memory** | **`playbook-artifact-repo.md`** |
 | Media generation, cost tracking | `media-generation.md` |
 | Vibe Builder, domains, publishing | `vibe-builder-spec.md` |
 | Past decisions | `work-archive.md` |
@@ -91,6 +92,7 @@ Detailed documentation for AI agents working in this codebase.
 | `testing.md` | Jest patterns, test strategies, coverage |
 | `tools.md` | Genkit tool definitions, executors |
 | `workflows.md` | Playbooks, automation recipes |
+| `playbook-artifact-repo.md` | Compiled Playbook V2 artifact persistence, repo commits, run inspector artifacts |
 | `media-generation.md` | AI image/video generation, cost tracking, playbook templates |
 
 ### Operations & Monitoring

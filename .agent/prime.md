@@ -19,7 +19,10 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** Gmail-first email path restored; full repo typecheck passing (verified 2026-03-12)
+**Current Status:** Playbook artifact repo provisioning completed for `bakedbot-artifacts-prod`; focused playbook runtime tests are passing; full repo typecheck should be rerun before broad shipping because the workspace still has additional in-flight changes.
+
+## Session 2026-03-12 (Playbook artifact repo + runtime memory layer)
+- **Artifact repo path made real**: Playbook V2 now persists spec snapshots, run manifests, failure artifacts, approval records, delivery manifests, and `summary_for_ai_engineers.md` through the shared artifact runtime. Runtime writes go to blob storage + Firestore metadata + the dedicated Git repo `admin-baked/bakedbot-artifacts-prod` when App Hosting is running with the new repo env/secret config.
 
 ## Session 2026-03-12 (Gmail tool send restored)
 - **Connected Gmail dispatch restored** (`30505c5a3`, `3222c9933`): confirmed SendGrid fallback was still failing live sends, enabled `gmail.googleapis.com` on `studio-567050101-bc6e8`, replaced the brittle Gmail send path with direct Gmail REST bearer auth, normalized refresh-token persistence, and verified `sendGenericEmail()` succeeds with Mailjet/SendGrid disabled

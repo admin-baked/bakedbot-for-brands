@@ -1,32 +1,40 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { PlaybookArtifactMemoryService } from '@/server/services/playbook-artifact-memory';
+import { getPlaybookArtifactRuntime } from '@/server/services/playbook-artifact-runtime';
 import { PlaybookRunCoordinator } from '@/server/services/playbook-run-coordinator';
 import { FirestorePlaybookAdapter, CloudTasksDispatcher } from '@/server/services/playbook-infra-adapters';
-import { getAdminFirestore } from '@/firebase/admin';
+import {
+    PlaybookApiError,
+    getAuthorizedPlaybook,
+} from '@/server/services/playbook-auth';
 
 const adapter = new FirestorePlaybookAdapter();
 const dispatcher = new CloudTasksDispatcher();
-const coordinator = new PlaybookRunCoordinator(adapter, adapter, dispatcher);
+const { artifactService } = getPlaybookArtifactRuntime();
+const artifactMemory = new PlaybookArtifactMemoryService(artifactService);
+const coordinator = new PlaybookRunCoordinator(adapter, adapter, dispatcher, artifactMemory);
 
-export async function POST(req: Request, { params }: { params: { playbookId: string } }) {
+export async function POST(
+    req: NextRequest,
+    { params }: { params: Promise<{ playbookId: string }> },
+) {
     try {
-        const { playbookId } = params;
+        const { playbookId } = await params;
         const body = await req.json();
-
-        const db = getAdminFirestore();
-        const playbookDoc = await db.collection('playbooks').doc(playbookId).get();
-
-        if (!playbookDoc.exists) {
-            return NextResponse.json({ error: 'Playbook not found' }, { status: 404 });
-        }
+        const { playbook } = await getAuthorizedPlaybook(playbookId);
 
         const runResult = await coordinator.startRun({
             playbookId,
-            playbookVersion: playbookDoc.data()?.version || 1,
-            triggerEvent: body.triggerEvent || { type: 'manual' }
+            playbookVersion: playbook.version || 1,
+            orgId: playbook.orgId,
+            triggerEvent: body.triggerEvent || body.trigger || { type: 'manual' },
         });
 
         return NextResponse.json(runResult);
     } catch (error) {
+        if (error instanceof PlaybookApiError) {
+            return NextResponse.json({ error: error.message }, { status: error.status });
+        }
         console.error('[API] Playbook manual run error:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Internal Server Error' },

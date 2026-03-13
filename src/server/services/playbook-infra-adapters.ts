@@ -12,6 +12,7 @@
 
 import { getAdminFirestore, getAdminStorage } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
+import { getSecret } from '@/server/utils/secrets';
 import type {
     RunRepository,
     PlaybookRepository,
@@ -184,6 +185,153 @@ export class FirebaseStorageBlobStore implements BlobStore {
 // Repo Adapter (Git Mock / Local Log)
 // ---------------------------------------------------------------------------
 
+interface GitHubArtifactRepoStoreConfig {
+    owner: string;
+    repo: string;
+    branch: string;
+    tokenSecretName: string;
+    committerName?: string;
+    committerEmail?: string;
+}
+
+export class GitHubArtifactRepoStore implements ArtifactRepoStore {
+    private octokit: Awaited<ReturnType<typeof this.createOctokit>> | null = null;
+    private token: string | null = null;
+
+    constructor(private readonly config: GitHubArtifactRepoStoreConfig) { }
+
+    private async createOctokit() {
+        const { Octokit } = await import('@octokit/rest');
+        return new Octokit({ auth: this.token! });
+    }
+
+    private async getOctokit() {
+        if (this.octokit) {
+            return this.octokit;
+        }
+
+        const token = this.token ?? await getSecret(this.config.tokenSecretName);
+        if (!token) {
+            throw new Error(
+                `Artifact repo token is not configured: ${this.config.tokenSecretName}`,
+            );
+        }
+
+        this.token = token;
+        this.octokit = await this.createOctokit();
+        return this.octokit;
+    }
+
+    private getCommitIdentity() {
+        if (!this.config.committerName || !this.config.committerEmail) {
+            return undefined;
+        }
+
+        return {
+            name: this.config.committerName,
+            email: this.config.committerEmail,
+        };
+    }
+
+    async writeFile(input: { repoPath: string; body: string; message: string }): Promise<void> {
+        const octokit = await this.getOctokit();
+
+        let sha: string | undefined;
+        try {
+            const existing = await octokit.repos.getContent({
+                owner: this.config.owner,
+                repo: this.config.repo,
+                path: input.repoPath,
+                ref: this.config.branch,
+            });
+
+            if (!Array.isArray(existing.data) && 'sha' in existing.data) {
+                sha = existing.data.sha;
+            }
+        } catch (error) {
+            const status = (error as { status?: number }).status;
+            if (status !== 404) {
+                throw error;
+            }
+        }
+
+        await octokit.repos.createOrUpdateFileContents({
+            owner: this.config.owner,
+            repo: this.config.repo,
+            path: input.repoPath,
+            branch: this.config.branch,
+            message: input.message,
+            content: Buffer.from(input.body, 'utf8').toString('base64'),
+            sha,
+            author: this.getCommitIdentity(),
+            committer: this.getCommitIdentity(),
+        });
+
+        logger.info('[GitHubArtifactRepoStore] Artifact committed', {
+            owner: this.config.owner,
+            repo: this.config.repo,
+            branch: this.config.branch,
+            repoPath: input.repoPath,
+        });
+    }
+
+    async writeFiles(input: { files: Array<{ repoPath: string; body: string }>; message: string }): Promise<void> {
+        if (input.files.length === 0) {
+            return;
+        }
+
+        const octokit = await this.getOctokit();
+        const ref = await octokit.git.getRef({
+            owner: this.config.owner,
+            repo: this.config.repo,
+            ref: `heads/${this.config.branch}`,
+        });
+
+        const headSha = ref.data.object.sha;
+        const commit = await octokit.git.getCommit({
+            owner: this.config.owner,
+            repo: this.config.repo,
+            commit_sha: headSha,
+        });
+
+        const tree = await octokit.git.createTree({
+            owner: this.config.owner,
+            repo: this.config.repo,
+            base_tree: commit.data.tree.sha,
+            tree: input.files.map((file) => ({
+                path: file.repoPath,
+                mode: '100644',
+                type: 'blob',
+                content: file.body,
+            })),
+        });
+
+        const nextCommit = await octokit.git.createCommit({
+            owner: this.config.owner,
+            repo: this.config.repo,
+            message: input.message,
+            tree: tree.data.sha,
+            parents: [headSha],
+            author: this.getCommitIdentity(),
+            committer: this.getCommitIdentity(),
+        });
+
+        await octokit.git.updateRef({
+            owner: this.config.owner,
+            repo: this.config.repo,
+            ref: `heads/${this.config.branch}`,
+            sha: nextCommit.data.sha,
+        });
+
+        logger.info('[GitHubArtifactRepoStore] Artifact batch committed', {
+            owner: this.config.owner,
+            repo: this.config.repo,
+            branch: this.config.branch,
+            fileCount: input.files.length,
+        });
+    }
+}
+
 export class GitArtifactRepoMock implements ArtifactRepoStore {
     async writeFile(input: { repoPath: string; body: string; message: string }): Promise<void> {
         // In production, this would use a git client to push to the artifacts repo
@@ -205,6 +353,38 @@ export class GitArtifactRepoMock implements ArtifactRepoStore {
     }
 }
 
+export function createPlaybookArtifactRepoStore(): ArtifactRepoStore {
+    const owner = process.env.PLAYBOOK_ARTIFACT_REPO_OWNER?.trim();
+    const repo = process.env.PLAYBOOK_ARTIFACT_REPO_NAME?.trim();
+    const branch = process.env.PLAYBOOK_ARTIFACT_REPO_BRANCH?.trim() || 'main';
+    const tokenSecretName =
+        process.env.PLAYBOOK_ARTIFACT_REPO_TOKEN_SECRET?.trim()
+        || 'PLAYBOOK_ARTIFACT_REPO_TOKEN';
+    const committerName =
+        process.env.PLAYBOOK_ARTIFACT_REPO_COMMITTER_NAME?.trim()
+        || 'BakedBot Artifact Runtime';
+    const committerEmail =
+        process.env.PLAYBOOK_ARTIFACT_REPO_COMMITTER_EMAIL?.trim()
+        || 'artifacts@bakedbot.ai';
+
+    if (!owner || !repo) {
+        logger.warn('[ArtifactRepoStore] Artifact repo not configured; using mock store', {
+            hasOwner: Boolean(owner),
+            hasRepo: Boolean(repo),
+        });
+        return new GitArtifactRepoMock();
+    }
+
+    return new GitHubArtifactRepoStore({
+        owner,
+        repo,
+        branch,
+        tokenSecretName,
+        committerName,
+        committerEmail,
+    });
+}
+
 // ---------------------------------------------------------------------------
 // Task Dispatcher (Cloud Tasks)
 // ---------------------------------------------------------------------------
@@ -214,7 +394,7 @@ export class CloudTasksDispatcher implements TaskDispatcher {
         // We use the existing dispatchAgentJob but wrapper for playbook stages
         const response = await dispatchAgentJob({
             userId: 'system-playbook-runtime',
-            jobId: payload.runId,
+            jobId: `${payload.runId}:${payload.stageName}:${payload.attempt}`,
             userInput: `Execute playbook stage: ${payload.stageName}`,
             persona: 'ezal', // Defaulting to Ezal for CI, can be dynamic
             options: {

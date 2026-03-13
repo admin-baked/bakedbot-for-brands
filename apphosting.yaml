@@ -177,6 +177,37 @@ env:
     secret: TOKEN_ENCRYPTION_KEY@1
     availability:
       - RUNTIME
+  # Playbook Artifact Repo - Dedicated Git-backed memory layer for workflow artifacts
+  # Setup:
+  #   npm run setup:artifact-repo
+  # Or manually:
+  #   gh repo create admin-baked/bakedbot-artifacts-prod --private --add-readme
+  #   echo -n "GITHUB_PAT" | gcloud secrets create PLAYBOOK_ARTIFACT_REPO_TOKEN --data-file=- --project=studio-567050101-bc6e8
+  #   gcloud secrets add-iam-policy-binding PLAYBOOK_ARTIFACT_REPO_TOKEN --member="serviceAccount:firebase-app-hosting-compute@studio-567050101-bc6e8.iam.gserviceaccount.com" --role="roles/secretmanager.secretAccessor" --project=studio-567050101-bc6e8
+  - variable: PLAYBOOK_ARTIFACT_REPO_OWNER
+    value: "admin-baked"
+    availability:
+      - RUNTIME
+  - variable: PLAYBOOK_ARTIFACT_REPO_NAME
+    value: "bakedbot-artifacts-prod"
+    availability:
+      - RUNTIME
+  - variable: PLAYBOOK_ARTIFACT_REPO_BRANCH
+    value: "main"
+    availability:
+      - RUNTIME
+  - variable: PLAYBOOK_ARTIFACT_REPO_COMMITTER_NAME
+    value: "BakedBot Artifact Runtime"
+    availability:
+      - RUNTIME
+  - variable: PLAYBOOK_ARTIFACT_REPO_COMMITTER_EMAIL
+    value: "artifacts@bakedbot.ai"
+    availability:
+      - RUNTIME
+  - variable: PLAYBOOK_ARTIFACT_REPO_TOKEN
+    secret: PLAYBOOK_ARTIFACT_REPO_TOKEN@1
+    availability:
+      - RUNTIME
   # SMS
   # - variable: LEAFBUYER_API_KEY
   #   secret: LEAFBUYER_API_KEY

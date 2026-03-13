@@ -15,11 +15,21 @@
  */
 
 import { logger } from '@/lib/logger';
-import { randomUUID } from 'crypto';
+import { getAdminFirestore } from '@/firebase/admin';
+import { PlaybookArtifactMemoryService } from '@/server/services/playbook-artifact-memory';
+import { getPlaybookArtifactRuntime } from '@/server/services/playbook-artifact-runtime';
 import type {
     CompiledPlaybookSpec,
 } from '@/types/playbook-v2';
-import type { PlaybookStatus, AutonomyLevel, ApprovalPolicy } from '@/types/playbook';
+import type {
+    ApprovalPolicy,
+    AutonomyLevel,
+    Playbook,
+    PlaybookTrigger,
+} from '@/types/playbook';
+
+const { artifactService } = getPlaybookArtifactRuntime();
+const artifactMemory = new PlaybookArtifactMemoryService(artifactService);
 
 // ---------------------------------------------------------------------------
 // Compiler Input/Result
@@ -34,9 +44,10 @@ export interface CompileRequest {
 }
 
 export interface CompileResult {
-    playbookId: string;
-    version: number;
-    spec: CompiledPlaybookSpec;
+    status: 'compiled' | 'needs_clarification';
+    playbookId?: string;
+    version?: number;
+    spec?: CompiledPlaybookSpec;
     needsClarification?: string[];
 }
 
@@ -45,6 +56,10 @@ export interface CompileResult {
 // ---------------------------------------------------------------------------
 
 export class PlaybookCompilerService {
+    private get db() {
+        return getAdminFirestore();
+    }
+
     /**
      * Compile a natural language request into a Playbook spec.
      * In a full implementation, this calls an LLM flow (e.g. Genkit).
@@ -69,7 +84,7 @@ export class PlaybookCompilerService {
         }
 
         // 2. Resolve Scope (Placeholder: In production, this uses EZAL to resolve entities)
-        const scope: Record<string, any> = {
+        const scope: Record<string, unknown> = {
             orgId: request.orgId,
             userId: request.userId,
         };
@@ -85,8 +100,12 @@ export class PlaybookCompilerService {
         const approvalPolicy: ApprovalPolicy = this.getDefaultApprovalPolicy(autonomy);
 
         // 4. Assemble the Spec
+        const playbookRef = this.db.collection('playbooks').doc();
+        const now = new Date();
+        const version = 1;
+
         const spec: CompiledPlaybookSpec = {
-            playbookId: `pb_${randomUUID().slice(0, 8)}`,
+            playbookId: playbookRef.id,
             version: 1,
             playbookType,
             trigger: {
@@ -112,15 +131,67 @@ export class PlaybookCompilerService {
             telemetryProfile: 'standard',
         };
 
+        const playbook: Playbook = {
+            id: playbookRef.id,
+            name: this.buildPlaybookName(playbookType),
+            displayName: this.buildDisplayName(playbookType),
+            description: request.naturalLanguageInput.trim(),
+            status: 'compiled',
+            active: false,
+            agent: this.getDefaultAgent(playbookType),
+            category: this.getDefaultCategory(playbookType),
+            triggers: this.buildLegacyTriggers(spec),
+            steps: [],
+            ownerId: request.userId,
+            isCustom: true,
+            requiresApproval: approvalPolicy.mode !== 'never',
+            runCount: 0,
+            successCount: 0,
+            failureCount: 0,
+            createdAt: now,
+            updatedAt: now,
+            createdBy: request.userId,
+            orgId: request.orgId,
+            version,
+            compiledSpec: spec,
+            playbookType,
+            autonomyLevel: autonomy,
+            approvalPolicy,
+            policyBundleId: spec.policyBundleId,
+            metadata: {
+                source: 'playbook_compiler_v2',
+                naturalLanguageInput: request.naturalLanguageInput,
+                suggestedType: request.suggestedType,
+            },
+        } as Playbook;
+
+        await playbookRef.set(playbook);
+        await playbookRef.collection('versions').doc(String(version)).set({
+            version,
+            compiledSpec: spec,
+            createdAt: now,
+            createdBy: request.userId,
+        });
+
+        await artifactMemory.safePersist('persistSpecSnapshot', () => {
+            return artifactMemory.persistSpecSnapshot({
+                workspaceId: request.orgId,
+                playbookId: playbook.id,
+                version,
+                spec,
+            });
+        });
+
         logger.info('[PlaybookCompiler] Compilation complete', {
-            playbookId: spec.playbookId,
+            playbookId: playbook.id,
             type: spec.playbookType,
             autonomy,
         });
 
         return {
-            playbookId: spec.playbookId,
-            version: 1,
+            status: 'compiled',
+            playbookId: playbook.id,
+            version,
             spec,
         };
     }
@@ -151,5 +222,124 @@ export class PlaybookCompilerService {
             default:
                 return ['synthesize_insights', 'generate_recommendations'];
         }
+    }
+
+    private buildPlaybookName(type: string): string {
+        switch (type) {
+            case 'daily_competitive_intelligence':
+                return 'daily_competitive_intelligence';
+            case 'promo_optimizer':
+                return 'promo_optimizer';
+            case 'assortment_advisor':
+                return 'assortment_advisor';
+            default:
+                return 'custom_playbook';
+        }
+    }
+
+    private buildDisplayName(type: string): string {
+        switch (type) {
+            case 'daily_competitive_intelligence':
+                return 'Daily Competitive Intelligence';
+            case 'promo_optimizer':
+                return 'Promo Optimizer';
+            case 'assortment_advisor':
+                return 'Assortment Advisor';
+            default:
+                return 'Custom Playbook';
+        }
+    }
+
+    private getDefaultAgent(type: string): string {
+        switch (type) {
+            case 'daily_competitive_intelligence':
+                return 'ezal';
+            case 'promo_optimizer':
+                return 'money_mike';
+            case 'assortment_advisor':
+                return 'pops';
+            default:
+                return 'smokey';
+        }
+    }
+
+    private getDefaultCategory(type: string): Playbook['category'] {
+        switch (type) {
+            case 'daily_competitive_intelligence':
+                return 'intel';
+            case 'promo_optimizer':
+                return 'marketing';
+            case 'assortment_advisor':
+                return 'ops';
+            default:
+                return 'custom';
+        }
+    }
+
+    private buildLegacyTriggers(spec: CompiledPlaybookSpec): PlaybookTrigger[] {
+        if (spec.trigger.type === 'manual') {
+            return [{ type: 'manual' }];
+        }
+
+        if (spec.trigger.type === 'schedule') {
+            return [{
+                type: 'schedule',
+                cron: this.buildCronExpression(spec.trigger.schedule),
+                timezone: spec.trigger.schedule.timezone,
+            }];
+        }
+
+        if (spec.trigger.type === 'event') {
+            return [{
+                type: 'event',
+                eventName: spec.trigger.eventName,
+            }];
+        }
+
+        return [{
+            type: 'webhook',
+            eventName: spec.trigger.webhookName,
+        }];
+    }
+
+    private buildCronExpression(schedule: {
+        frequency: 'daily' | 'weekday' | 'weekly' | 'monthly';
+        dayOfWeek?: string;
+        timeLocal: string;
+    }): string {
+        const [hourPart = '08', minutePart = '00'] = schedule.timeLocal.split(':');
+        const hour = Number.parseInt(hourPart, 10);
+        const minute = Number.parseInt(minutePart, 10);
+        const safeHour = Number.isFinite(hour) ? hour : 8;
+        const safeMinute = Number.isFinite(minute) ? minute : 0;
+
+        switch (schedule.frequency) {
+            case 'weekday':
+                return `${safeMinute} ${safeHour} * * 1-5`;
+            case 'weekly': {
+                const day = this.mapDayOfWeek(schedule.dayOfWeek);
+                return `${safeMinute} ${safeHour} * * ${day}`;
+            }
+            case 'monthly':
+                return `${safeMinute} ${safeHour} 1 * *`;
+            case 'daily':
+            default:
+                return `${safeMinute} ${safeHour} * * *`;
+        }
+    }
+
+    private mapDayOfWeek(dayOfWeek?: string): string {
+        const normalized = (dayOfWeek || 'monday').trim().toLowerCase();
+        const days: Record<string, string> = {
+            sunday: '0',
+            monday: '1',
+            tuesday: '2',
+            wednesday: '3',
+            thursday: '4',
+            friday: '5',
+            saturday: '6',
+        };
+
+        return days[normalized] || '1';
     }
 }

@@ -75,6 +75,21 @@ export function buildArtifactPaths(input: {
     };
 }
 
+export function buildPlaybookSpecPaths(input: {
+    workspaceId: string;
+    playbookId: string;
+    version: number;
+    filename?: string;
+}) {
+    const base = `artifacts/playbooks/${input.workspaceId}/${input.playbookId}/spec`;
+    const filename = input.filename ?? `v${input.version}.json`;
+
+    return {
+        repoPath: `${base}/${filename}`,
+        blobPath: `${base}/${filename}`,
+    };
+}
+
 // ---------------------------------------------------------------------------
 // Persist Input/Result contracts
 // ---------------------------------------------------------------------------
@@ -91,12 +106,19 @@ export interface PersistArtifactInput {
     commitToRepo: boolean;
     sourceRefs?: string[];
     metadata?: Record<string, unknown>;
+    runDate?: Date | string;
 }
 
 export interface PersistArtifactResult {
     artifact: PlaybookArtifact;
     blobPath: string;
     repoPath?: string;
+}
+
+export interface PersistDocumentResult {
+    blobPath: string;
+    repoPath?: string;
+    checksum?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -146,7 +168,11 @@ export class ArtifactPersistenceService {
      * Persist an artifact to blob storage, metadata store, and optionally Git repo.
      */
     async persist(input: PersistArtifactInput): Promise<PersistArtifactResult> {
-        const now = new Date();
+        const candidateRunDate = input.runDate ? new Date(input.runDate) : null;
+        const now =
+            candidateRunDate && Number.isFinite(candidateRunDate.getTime())
+                ? candidateRunDate
+                : new Date();
         const { repoPath, blobPath } = buildArtifactPaths({
             workspaceId: input.workspaceId,
             playbookId: input.playbookId,
@@ -155,31 +181,14 @@ export class ArtifactPersistenceService {
             filename: input.filename,
         });
 
-        // 1. Write to blob storage
-        const blobResult = await this.blobStore.put({
-            path: blobPath,
-            contentType: input.contentType,
+        const documentResult = await this.writeDocument({
+            blobPath,
+            repoPath,
             body: input.body,
+            contentType: input.contentType,
+            commitToRepo: input.commitToRepo,
+            message: `[playbooks] ${input.workspaceId} ${input.playbookId} ${input.runId} ${input.stageName}`,
         });
-
-        // 2. Optionally commit to Git repo
-        let committedRepoPath: string | undefined;
-        if (input.commitToRepo && this.repoStore) {
-            try {
-                await this.repoStore.writeFile({
-                    repoPath,
-                    body: input.body,
-                    message: `[playbooks] ${input.workspaceId} ${input.playbookId} ${input.runId} ${input.stageName}`,
-                });
-                committedRepoPath = repoPath;
-            } catch (err) {
-                // Repo writes are best-effort; blob is the source of truth
-                logger.warn('[ArtifactService] Repo write failed, blob persisted', {
-                    repoPath,
-                    error: err instanceof Error ? err.message : String(err),
-                });
-            }
-        }
 
         // 3. Create metadata record
         const artifact: PlaybookArtifact = {
@@ -187,14 +196,14 @@ export class ArtifactPersistenceService {
             runId: input.runId,
             stageName: input.stageName,
             artifactType: input.artifactType,
-            storagePath: blobResult.path,
+            storagePath: documentResult.blobPath,
             mimeType: input.contentType,
-            checksum: blobResult.checksum,
+            checksum: documentResult.checksum,
             createdAt: now.toISOString(),
             sourceRefs: input.sourceRefs,
             metadata: {
                 ...input.metadata,
-                repoPath: committedRepoPath,
+                repoPath: documentResult.repoPath,
             },
         };
 
@@ -205,13 +214,51 @@ export class ArtifactPersistenceService {
             runId: input.runId,
             stageName: input.stageName,
             blobPath,
-            repoPath: committedRepoPath,
+            repoPath: documentResult.repoPath,
         });
 
         return {
             artifact,
             blobPath,
+            repoPath: documentResult.repoPath,
+        };
+    }
+
+    async writeDocument(input: {
+        blobPath: string;
+        repoPath?: string;
+        body: string;
+        contentType: string;
+        commitToRepo: boolean;
+        message: string;
+    }): Promise<PersistDocumentResult> {
+        const blobResult = await this.blobStore.put({
+            path: input.blobPath,
+            contentType: input.contentType,
+            body: input.body,
+        });
+
+        let committedRepoPath: string | undefined;
+        if (input.commitToRepo && input.repoPath && this.repoStore) {
+            try {
+                await this.repoStore.writeFile({
+                    repoPath: input.repoPath,
+                    body: input.body,
+                    message: input.message,
+                });
+                committedRepoPath = input.repoPath;
+            } catch (err) {
+                logger.warn('[ArtifactService] Repo write failed, blob persisted', {
+                    repoPath: input.repoPath,
+                    error: err instanceof Error ? err.message : String(err),
+                });
+            }
+        }
+
+        return {
+            blobPath: blobResult.path,
             repoPath: committedRepoPath,
+            checksum: blobResult.checksum,
         };
     }
 
