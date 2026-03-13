@@ -19,7 +19,13 @@ jest.mock('firebase-admin/firestore', () => ({
 const mockUser = {
     uid: 'user-123',
     email: 'test@example.com',
+    currentOrgId: 'org-123',
+    role: 'brand_admin',
 };
+
+jest.mock('@/firebase/admin', () => ({
+    getAdminFirestore: jest.fn(),
+}));
 
 jest.mock('@/server/auth/session', () => ({
     getServerSessionUser: jest.fn(),
@@ -33,6 +39,14 @@ jest.mock('@/lib/logger', () => ({
         warn: jest.fn(),
         debug: jest.fn(),
     },
+}));
+
+jest.mock('@/server/tools/crm-tools', () => ({
+    lookupCustomer: jest.fn(),
+}));
+
+jest.mock('@/server/actions/agent-vm', () => ({
+    resolveVmToolApproval: jest.fn(),
 }));
 
 // Mock agent chat
@@ -117,9 +131,11 @@ jest.mock('@/types/inbox', () => ({
 }));
 
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '@/firebase/admin';
 import { getServerSessionUser } from '@/server/auth/session';
 import { parseArtifactsFromContent } from '@/types/artifact';
 import { runAgentChat } from '@/app/dashboard/ceo/agents/actions';
+import { lookupCustomer } from '@/server/tools/crm-tools';
 import {
     createInboxThread,
     getInboxThreads,
@@ -134,6 +150,7 @@ import {
 describe('Inbox Server Actions', () => {
     // Mock Firestore document and collection
     const mockDocRef = {
+        create: jest.fn().mockResolvedValue(undefined),
         set: jest.fn().mockResolvedValue(undefined),
         update: jest.fn().mockResolvedValue(undefined),
         delete: jest.fn().mockResolvedValue(undefined),
@@ -158,6 +175,7 @@ describe('Inbox Server Actions', () => {
         threadIdCounter = 0;
         artifactIdCounter = 0;
         (getFirestore as jest.Mock).mockReturnValue(mockDb);
+        (getAdminFirestore as jest.Mock).mockReturnValue(mockDb);
         (getServerSessionUser as jest.Mock).mockResolvedValue(mockUser);
     });
 
@@ -173,7 +191,7 @@ describe('Inbox Server Actions', () => {
             expect(result.thread?.type).toBe('carousel');
             expect(result.thread?.title).toBe('Test Carousel');
             expect(result.thread?.primaryAgent).toBe('smokey');
-            expect(mockDocRef.set).toHaveBeenCalled();
+            expect(mockDocRef.create).toHaveBeenCalled();
         });
 
         it('should return error when user is not authenticated', async () => {
@@ -214,7 +232,7 @@ describe('Inbox Server Actions', () => {
 
             expect(result.success).toBe(false);
             expect(result.error).toBe('Unauthorized org context');
-            expect(mockDocRef.set).not.toHaveBeenCalled();
+            expect(mockDocRef.create).not.toHaveBeenCalled();
         });
 
         it('should allow super users to set org context explicitly', async () => {
@@ -233,7 +251,7 @@ describe('Inbox Server Actions', () => {
 
             expect(result.success).toBe(true);
             expect(result.thread?.orgId).toBe('org-target');
-            expect(mockDocRef.set).toHaveBeenCalled();
+            expect(mockDocRef.create).toHaveBeenCalled();
         });
     });
 
@@ -605,6 +623,58 @@ describe('Inbox Server Actions', () => {
                         threadType: 'carousel',
                     }),
                 })
+            );
+        });
+
+        it('prefers CRM thread metadata when lookupCustomer returns placeholder identity', async () => {
+            mockDocRef.get.mockResolvedValue({
+                exists: true,
+                data: () => ({
+                    ...mockThread,
+                    type: 'crm_customer',
+                    primaryAgent: 'mrs_parker',
+                    title: 'PATRICK,GARY ROSE - CRM',
+                    customerId: 'alleaves_2730',
+                    customerEmail: 'customer_2730@alleaves.local',
+                    customerSegment: 'new',
+                }),
+            });
+
+            (lookupCustomer as jest.Mock).mockResolvedValue({
+                summary: 'placeholder',
+                customer: {
+                    displayName: 'alleaves_2730',
+                    email: null,
+                    phone: null,
+                    segment: 'new',
+                    tier: 'bronze',
+                    points: 124,
+                    totalSpent: 125,
+                    orderCount: 4,
+                    avgOrderValue: 31.25,
+                    lastOrderDate: '2026-03-11',
+                    daysSinceLastOrder: 1,
+                    customTags: [],
+                    notes: 'This was our initial testing customer',
+                },
+            });
+
+            (runAgentChat as jest.Mock).mockResolvedValue({
+                content: 'Response',
+                metadata: {},
+            });
+
+            (parseArtifactsFromContent as jest.Mock).mockReturnValue({
+                artifacts: [],
+                cleanedContent: 'Response',
+            });
+
+            await runInboxAgentChat('thread-1', 'How many times has this customer shopped?');
+
+            expect(runAgentChat).toHaveBeenCalledWith(
+                expect.stringContaining('Name: PATRICK,GARY ROSE | Email: customer_2730@alleaves.local'),
+                'mrs_parker',
+                expect.any(Object),
             );
         });
     });

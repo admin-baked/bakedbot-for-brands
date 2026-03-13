@@ -38,6 +38,10 @@ import type { ResearchReportArtifactData } from '@/types/inbox';
 import type { VmRunArtifactData } from '@/types/agent-vm';
 import { resolveVmToolApproval } from '@/server/actions/agent-vm';
 import { mapVmRunStatusToInboxStatus, queueVmRunResume, resolveVmRunApproval } from '@/types/agent-vm';
+import {
+    isPlaceholderCustomerIdentity,
+    resolveCustomerDisplayName,
+} from '@/lib/customers/profile-derivations';
 
 // ============ Firestore Collections ============
 
@@ -68,6 +72,19 @@ function isValidOrgId(orgId: string): boolean {
 
 function isValidDocumentId(id: string): boolean {
     return !!id && !id.includes('/') && id.length <= 128;
+}
+
+function getThreadCustomerDisplayName(thread: InboxThread): string | null {
+    if (thread.type !== 'crm_customer') {
+        return null;
+    }
+
+    const titleCandidate = (thread.title || '').replace(/\s*-\s*CRM$/i, '').trim();
+    if (!titleCandidate || /^new\s+crm_customer\s+conversation$/i.test(titleCandidate)) {
+        return null;
+    }
+
+    return titleCandidate;
 }
 
 /**
@@ -1648,9 +1665,26 @@ Always validate compliance with Deebo before sending any campaigns.`,
             const result = await lookupCustomer(thread.customerId, thread.orgId);
             if (result?.customer) {
                 const c = result.customer;
+                const resolvedEmail = typeof c.email === 'string' && c.email.trim() ? c.email : (thread.customerEmail || undefined);
+                const fallbackThreadCustomerName = getThreadCustomerDisplayName(thread);
+                const displayName = resolveCustomerDisplayName({
+                    displayName: typeof c.displayName === 'string'
+                        && !isPlaceholderCustomerIdentity(c.displayName, {
+                            email: resolvedEmail,
+                            fallbackId: thread.customerId,
+                        })
+                        ? c.displayName
+                        : fallbackThreadCustomerName,
+                    firstName: typeof c.firstName === 'string' ? c.firstName : undefined,
+                    lastName: typeof c.lastName === 'string' ? c.lastName : undefined,
+                    email: resolvedEmail,
+                    fallbackId: thread.customerId,
+                });
+                const email = resolvedEmail || 'N/A';
+                const segment = typeof c.segment === 'string' && c.segment.trim() ? c.segment : (thread.customerSegment || 'unknown');
                 customerContext = `\n\n=== CUSTOMER CONTEXT ===
-Name: ${c.displayName ?? 'Unknown'} | Email: ${c.email ?? 'N/A'} | Phone: ${c.phone || 'N/A'}
-Segment: ${c.segment ?? 'unknown'} | Tier: ${c.tier ?? 'N/A'} | Points: ${c.points ?? 0}
+Name: ${displayName} | Email: ${email} | Phone: ${c.phone || 'N/A'}
+Segment: ${segment} | Tier: ${c.tier ?? 'N/A'} | Points: ${c.points ?? 0}
 LTV: $${Number(c.totalSpent ?? 0).toLocaleString()} | Orders: ${c.orderCount ?? 0} | AOV: $${Number(c.avgOrderValue ?? 0).toFixed(2)}
 Last Order: ${c.lastOrderDate || 'Never'} | Days Inactive: ${c.daysSinceLastOrder ?? 'N/A'}
 Tags: ${Array.isArray(c.customTags) ? c.customTags.join(', ') : 'None'}
