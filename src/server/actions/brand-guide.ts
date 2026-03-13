@@ -16,6 +16,7 @@ import { generateBrandImagesForNewAccount } from '@/server/actions/brand-images'
 import { getTemplateById, getAllTemplates } from '@/lib/brand-guide-templates';
 import { validateBrandPalette } from '@/lib/accessibility-checker';
 import type {
+  BrandAsset,
   BrandGuide,
   BrandGuideCompetitorSuggestion,
   CreateBrandGuideInput,
@@ -253,63 +254,193 @@ async function buildDispensaryCompetitorSuggestions(params: {
 // ============================================================================
 
 /**
- * Fetch the image URL of the top Flower product from a dispensary's live menu.
- * Checks POS tenant catalog first, then falls back to the legacy products collection.
- * Returns null if no valid Flower image is found.
+ * Fetch a representative product image from the active catalog.
+ * Dispensaries prefer Flower menu items; brands fall back to any valid product image.
  */
-async function fetchFeaturedFlowerImage(brandId: string): Promise<string | null> {
+async function fetchFeaturedProductImage(
+  brandId: string,
+  options: { preferFlower: boolean }
+): Promise<string | null> {
+  const isValidImage = (url: unknown): url is string =>
+    typeof url === 'string' &&
+    url.startsWith('http') &&
+    !url.includes('placeholder') &&
+    !url.includes('/icon');
+
+  const extractImageUrl = (data: Record<string, unknown>): string | null => {
+    const imageUrl = data.imageUrl;
+    if (isValidImage(imageUrl)) return imageUrl;
+
+    const imageUrls = data.imageUrls;
+    if (Array.isArray(imageUrls)) {
+      const firstImageUrl = imageUrls.find(isValidImage);
+      if (firstImageUrl) return firstImageUrl;
+    }
+
+    const images = data.images;
+    if (Array.isArray(images)) {
+      const firstImage = images.find(isValidImage);
+      if (firstImage) return firstImage;
+    }
+
+    return null;
+  };
+
+  const scoreCandidate = (
+    data: Record<string, unknown>,
+    options: { preferFlower: boolean }
+  ): number => {
+    const imageUrl = extractImageUrl(data);
+    if (!imageUrl) return -1;
+
+    const context = [data.category, data.name, data.imageHint]
+      .filter((value): value is string => typeof value === 'string')
+      .join(' ')
+      .toLowerCase();
+
+    let score = 100;
+    if (options.preferFlower && context.includes('flower')) score += 50;
+    if (!options.preferFlower && context.includes('product')) score += 10;
+    if (data.featured === true) score += 15;
+
+    const sortOrder = typeof data.sortOrder === 'number' ? data.sortOrder : null;
+    if (sortOrder !== null) {
+      score += Math.max(0, 10 - sortOrder);
+    }
+
+    return score;
+  };
+
+  const pickBestImageFromDocs = (
+    docs: Array<{ data(): Record<string, unknown> }>,
+    options: { preferFlower: boolean }
+  ): string | null => {
+    let bestImageUrl: string | null = null;
+    let bestScore = -1;
+
+    for (const doc of docs) {
+      const data = doc.data();
+      const candidateScore = scoreCandidate(data, options);
+      if (candidateScore <= bestScore) continue;
+
+      const imageUrl = extractImageUrl(data);
+      if (!imageUrl) continue;
+
+      bestScore = candidateScore;
+      bestImageUrl = imageUrl;
+    }
+
+    return bestImageUrl;
+  };
+
   try {
     const firestore = getAdminFirestore();
 
-    // For POS-connected dispensaries: look up the tenant orgId
+    // The settings page passes the active orgId for dispensaries, but some legacy brand-guide
+    // paths still pass a brand document ID. Query both shapes before falling back.
     const brandDoc = await firestore.collection('brands').doc(brandId).get();
-    const orgId = brandDoc.exists ? (brandDoc.data()?.orgId as string | undefined) : undefined;
+    const brandOrgId = brandDoc.exists && typeof brandDoc.data()?.orgId === 'string'
+      ? (brandDoc.data()?.orgId as string)
+      : null;
+    const orgIds = Array.from(new Set([brandId, brandOrgId].filter((value): value is string => Boolean(value))));
 
-    const isValidImage = (url: unknown): url is string =>
-      typeof url === 'string' &&
-      url.startsWith('http') &&
-      !url.includes('placeholder') &&
-      !url.includes('/icon');
+    const queryPlans: Array<() => Promise<{ docs: Array<{ data(): Record<string, unknown> }> }>> = [
+      ...orgIds.map((orgId) => () =>
+        firestore
+          .collection('tenants').doc(orgId)
+          .collection('publicViews').doc('products')
+          .collection('items')
+          .limit(40)
+          .get()
+      ),
+      ...orgIds.map((orgId) => () =>
+        firestore.collection('products').where('orgId', '==', orgId).limit(40).get()
+      ),
+      () =>
+        firestore.collection('products').where('brandId', '==', brandId).limit(40).get(),
+      ...orgIds.map((orgId) => () =>
+        firestore.collection('products').where('retailerIds', 'array-contains', orgId).limit(40).get()
+      ),
+    ];
 
-    if (orgId) {
-      // POS path: tenants/{orgId}/publicViews/products/items
-      const snap = await firestore
-        .collection('tenants').doc(orgId)
-        .collection('publicViews').doc('products')
-        .collection('items')
-        .where('category', '==', 'flower')
-        .limit(20)
-        .get();
-
-      for (const doc of snap.docs) {
-        const d = doc.data();
-        const url = d.imageUrl ?? (Array.isArray(d.imageUrls) ? d.imageUrls[0] : null);
-        if (isValidImage(url)) return url;
-      }
-    }
-
-    // Legacy / non-POS path: products collection
-    const legacySnap = await firestore
-      .collection('products')
-      .where('brandId', '==', brandId)
-      .where('category', '==', 'Flower')
-      .limit(10)
-      .get();
-
-    for (const doc of legacySnap.docs) {
-      const d = doc.data();
-      const url = d.imageUrl ?? (Array.isArray(d.images) ? d.images[0] : null);
-      if (isValidImage(url)) return url;
+    for (const loadSnapshot of queryPlans) {
+      const snapshot = await loadSnapshot();
+      const featuredImage = pickBestImageFromDocs(snapshot.docs, options);
+      if (featuredImage) return featuredImage;
     }
 
     return null;
   } catch (err) {
-    logger.warn('[BrandGuide] fetchFeaturedFlowerImage failed', {
+    logger.warn('[BrandGuide] fetchFeaturedProductImage failed', {
       brandId,
       error: err instanceof Error ? err.message : String(err),
     });
     return null;
   }
+}
+
+function buildFeaturedImageAsset(
+  brandId: string,
+  imageUrl: string,
+  options: { preferFlower: boolean }
+): BrandAsset {
+  return {
+    id: `featured-image-${brandId}`,
+    type: 'image',
+    name: options.preferFlower ? 'Featured menu product image' : 'Featured brand product image',
+    url: imageUrl,
+    category: options.preferFlower ? 'Hero Images' : 'Product Photography',
+    tags: ['brand-guide', 'featured'],
+    uploadedBy: brandId,
+    uploadedAt: new Date(),
+  };
+}
+
+function normalizeFeaturedImageAssets(
+  brandId: string,
+  data: Partial<BrandGuide>
+): Partial<BrandGuide> {
+  const featuredImageUrl = data.visualIdentity?.imagery?.examples?.find(
+    (example): example is string => typeof example === 'string' && example.startsWith('http')
+  );
+
+  if (!featuredImageUrl) {
+    return data;
+  }
+
+  const preferFlower =
+    data.messaging?.organizationType === 'dispensary'
+    || Boolean(data.messaging?.dispensaryType);
+
+  const featuredAsset = buildFeaturedImageAsset(brandId, featuredImageUrl, { preferFlower });
+  const defaultTemplates = {
+    instagram: [],
+    instagramStory: [],
+    facebook: [],
+    twitter: [],
+    email: [],
+    printable: [],
+  };
+
+  return {
+    ...data,
+    assets: {
+      ...data.assets,
+      heroImages:
+        data.assets?.heroImages && data.assets.heroImages.length > 0
+          ? data.assets.heroImages
+          : [featuredAsset],
+      productPhotography: {
+        style: data.assets?.productPhotography?.style || (preferFlower ? 'white-background' : 'lifestyle'),
+        guidelines: data.assets?.productPhotography?.guidelines,
+        examples:
+          data.assets?.productPhotography?.examples && data.assets.productPhotography.examples.length > 0
+            ? data.assets.productPhotography.examples
+            : [featuredAsset],
+      },
+      templates: data.assets?.templates || defaultTemplates,
+    },
+  };
 }
 
 // ============================================================================
@@ -398,6 +529,8 @@ export async function createBrandGuide(
         }
         break;
     }
+
+    brandGuideData = normalizeFeaturedImageAssets(input.brandId, brandGuideData);
 
     // Create the brand guide
     const brandGuide = await repo.create(input.brandId, brandGuideData);
@@ -623,9 +756,11 @@ export async function extractBrandGuideFromUrl(
     const organizationType = cleanString(messaging.organizationType) as Parameters<typeof isRetailCannabisOrganization>[0];
     const dispensaryType = cleanString(messaging.dispensaryType);
 
-    // Fetch featured Flower product image from the live menu only for retail/product cannabis orgs
+    // Fetch a representative product image from the live catalog for retail/product cannabis orgs.
+    // Dispensaries prefer Flower menu items; brands fall back to any real product image.
+    const preferFlowerImage = organizationType === 'dispensary' || Boolean(dispensaryType);
     const featuredProductImage = input.brandId && isRetailCannabisOrganization(organizationType, dispensaryType)
-      ? await fetchFeaturedFlowerImage(input.brandId).catch(() => null)
+      ? await fetchFeaturedProductImage(input.brandId, { preferFlower: preferFlowerImage }).catch(() => null)
       : null;
 
     logger.info('[extractBrandGuideFromUrl] Extraction result', {

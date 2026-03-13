@@ -351,10 +351,10 @@ export function Step2Dialog({ open, onOpenChange, onComplete, initialData }: Ste
   // Pre-fill when dialog opens with extracted data
   useEffect(() => {
     if (open && initialData) {
-      if ('primaryColor' in initialData && initialData.primaryColor) setPrimaryColor(initialData.primaryColor);
-      if ('secondaryColor' in initialData && initialData.secondaryColor) setSecondaryColor(initialData.secondaryColor);
-      if ('logoUrl' in initialData && initialData.logoUrl) setLogoUrl(initialData.logoUrl);
-      if ('featuredImageUrl' in initialData && initialData.featuredImageUrl) setFeaturedImageUrl(initialData.featuredImageUrl);
+      if ('primaryColor' in initialData) setPrimaryColor(initialData.primaryColor || '#4ade80');
+      if ('secondaryColor' in initialData) setSecondaryColor(initialData.secondaryColor || '');
+      if ('logoUrl' in initialData) setLogoUrl(initialData.logoUrl || '');
+      if ('featuredImageUrl' in initialData) setFeaturedImageUrl(initialData.featuredImageUrl || '');
     }
   }, [open, initialData]);
 
