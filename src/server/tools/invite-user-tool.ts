@@ -1,7 +1,7 @@
 /**
  * Invite User Tool
  *
- * Allows agents to create user accounts and send invitation emails via Mailjet.
+ * Allows agents to create user accounts and send invitation emails.
  * Wraps the inviteUser server action to enable direct email sending without copy/paste.
  */
 
@@ -36,7 +36,7 @@ export interface InviteUserOutput {
 export class InviteUserTool extends BaseTool<InviteUserInput, InviteUserOutput> {
     readonly id = 'user.invite';
     readonly name = 'Invite User';
-    readonly description = 'Create a user account and send an invitation email via Mailjet. Supports all roles including brand admins, dispensary staff, and customers.';
+    readonly description = 'Create a user account and send an invitation email. Supports all roles including brand admins, dispensary staff, and customers.';
     readonly category = 'communication' as const;
     readonly version = '1.0.0';
 
@@ -56,7 +56,7 @@ export class InviteUserTool extends BaseTool<InviteUserInput, InviteUserOutput> 
         },
         {
             name: 'Send Email Invitations',
-            description: 'Send branded invitation emails via Mailjet with onboarding links',
+            description: 'Send branded invitation emails with onboarding links',
             examples: [
                 'Email invitation to new brand owner',
                 'Send welcome email with setup instructions',
@@ -101,7 +101,7 @@ export class InviteUserTool extends BaseTool<InviteUserInput, InviteUserOutput> 
             },
             sendEmail: {
                 type: 'boolean',
-                description: 'Whether to send the invitation email via Mailjet (default: true)',
+                description: 'Whether to send the invitation email immediately (default: true)',
                 default: true
             }
         },
@@ -117,11 +117,11 @@ export class InviteUserTool extends BaseTool<InviteUserInput, InviteUserOutput> 
             },
             inviteLink: {
                 type: 'string',
-                description: 'The invitation/onboarding link (password reset link)'
+                description: 'The invitation/onboarding link'
             },
             emailSent: {
                 type: 'boolean',
-                description: 'Whether the email was sent via Mailjet'
+                description: 'Whether the invitation email was sent'
             },
             userId: {
                 type: 'string',
@@ -220,8 +220,8 @@ export class InviteUserTool extends BaseTool<InviteUserInput, InviteUserOutput> 
                 inviteLink: result.link || '',
                 emailSent: input.sendEmail ?? true,
                 message: input.sendEmail
-                    ? `✅ Invitation sent to ${input.email} via Mailjet! User can complete setup at the link provided.`
-                    : `✅ User account created for ${input.email}. Share the invite link to complete setup.`
+                    ? `Invitation sent to ${input.email}. The user can complete setup from the provided link.`
+                    : `User account created for ${input.email}. Share the invite link to complete setup.`
             };
 
             return this.createResult(

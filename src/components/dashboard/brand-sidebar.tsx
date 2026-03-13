@@ -62,6 +62,7 @@ import { InviteUserDialog } from "@/components/dashboard/admin/invite-user-dialo
 import { useUserRole } from "@/hooks/use-user-role";
 import { AGENT_SQUAD } from '@/hooks/use-agentic-dashboard';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getInviteAllowedRoles } from '@/types/roles';
 
 export const BrandSidebar = memo(function BrandSidebar() {
     const pathname = usePathname();
@@ -456,6 +457,8 @@ export const BrandSidebar = memo(function BrandSidebar() {
                                 <SidebarMenuItem>
                                     <InviteUserDialog
                                         defaultRole="brand_admin"
+                                        orgId={orgId || undefined}
+                                        allowedRoles={getInviteAllowedRoles('brand_admin')}
                                         trigger={
                                             <SidebarMenuButton className="text-primary hover:text-primary/90">
                                                 <UserPlus className="text-primary" />

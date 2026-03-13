@@ -122,7 +122,7 @@ export async function inviteUser(data: InviteUserData): Promise<{ success: boole
         // 5. Generate Password Reset Link (Invite Link)
         const link = await auth.generatePasswordResetLink(email);
 
-        // 6. Send Email via Mailjet (if enabled)
+        // 6. Send invitation email (if enabled)
         if (sendEmail) {
             await emailService.sendInvitationEmail(email, link, role, businessName || 'BakedBot');
         }

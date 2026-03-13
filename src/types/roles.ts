@@ -160,3 +160,30 @@ export function normalizeRole(role: UserRole | string | null): UserRole {
 
     return role as UserRole;
 }
+
+/**
+ * Roles that make sense to invite within the current org context.
+ */
+export function getInviteAllowedRoles(role: UserRole | string | null): UserRole[] {
+    if (!role) return [];
+
+    const normalizedRole = normalizeRole(role);
+
+    if (normalizedRole === 'super_user') {
+        return ['super_user', 'brand_admin', 'brand_member', 'dispensary_admin', 'dispensary_staff', 'budtender', 'customer'];
+    }
+
+    if (normalizedRole === 'brand_admin') {
+        return ['brand_admin', 'brand_member'];
+    }
+
+    if (normalizedRole === 'dispensary_admin') {
+        return ['dispensary_admin', 'dispensary_staff', 'budtender'];
+    }
+
+    if (normalizedRole === 'grower') {
+        return ['brand_member'];
+    }
+
+    return [];
+}

@@ -66,8 +66,23 @@ jest.mock('@/components/ui/collapsible', () => ({
 
 // Mock InviteUserDialog
 jest.mock('@/components/dashboard/admin/invite-user-dialog', () => ({
-    InviteUserDialog: ({ defaultRole, trigger }: { defaultRole?: string; trigger?: React.ReactNode }) => (
-        <div data-testid="invite-user-dialog" data-default-role={defaultRole || ''}>
+    InviteUserDialog: ({
+        defaultRole,
+        orgId,
+        allowedRoles,
+        trigger,
+    }: {
+        defaultRole?: string;
+        orgId?: string;
+        allowedRoles?: string[];
+        trigger?: React.ReactNode;
+    }) => (
+        <div
+            data-testid="invite-user-dialog"
+            data-default-role={defaultRole || ''}
+            data-org-id={orgId || ''}
+            data-allowed-roles={(allowedRoles || []).join(',')}
+        >
             {trigger}
         </div>
     )
@@ -295,11 +310,13 @@ describe('BrandSidebar', () => {
     });
 
     describe('Invite User Dialog', () => {
-        it('passes brand_admin as defaultRole', () => {
+        it('passes contextual invite props for brand users', () => {
             render(<BrandSidebar />);
 
             const inviteDialog = screen.getByTestId('invite-user-dialog');
             expect(inviteDialog).toHaveAttribute('data-default-role', 'brand_admin');
+            expect(inviteDialog).toHaveAttribute('data-org-id', 'brand_test-org');
+            expect(inviteDialog).toHaveAttribute('data-allowed-roles', 'brand_admin,brand_member');
         });
 
         it('renders invite trigger inside wrapper', () => {

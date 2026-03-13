@@ -6,6 +6,7 @@ import { generateImageFromPrompt } from '@/ai/flows/generate-social-image';
 import { generateMarketingVideo } from '@/ai/flows/generate-video';
 import { getServerSessionUser } from '@/server/auth/session';
 import { logger } from '@/lib/logger';
+import { withImageTracking, withVideoTracking } from '@/server/services/media-tracking';
 import type { CreativeContent } from '@/types/creative-content';
 import type {
     GenerateInboxImageDraftInput,
@@ -145,6 +146,24 @@ function normalizeHashtags(tags?: string[]): string[] {
         .map((tag) => (tag.startsWith('#') ? tag : `#${tag.replace(/\s+/g, '')}`));
 }
 
+function getTrackedImageProvider(
+    input: GenerateInboxImageDraftInput,
+): 'gemini-flash' | 'gemini-pro' {
+    return input.platform === 'linkedin' ? 'gemini-pro' : 'gemini-flash';
+}
+
+function getTrackedVideoProvider(
+    result: Awaited<ReturnType<typeof generateMarketingVideo>>,
+): 'veo' | 'sora' {
+    if (result.provider === 'sora' || result.provider === 'sora-pro') {
+        return 'sora';
+    }
+    if (typeof result.model === 'string' && result.model.toLowerCase().includes('sora')) {
+        return 'sora';
+    }
+    return 'veo';
+}
+
 function buildFallbackVideoPrompt(input: GenerateInboxVideoDraftInput): string {
     return [
         input.prompt.trim(),
@@ -227,20 +246,35 @@ export async function generateInboxImageDraft(input: GenerateInboxImageDraftInpu
         await requireInboxMediaUser();
         const parsed = ImageDraftInputSchema.parse(input);
         const generationPrompt = buildInboxImagePrompt(parsed);
-        const imageUrl = await generateImageFromPrompt(generationPrompt, {
-            platform: parsed.platform,
-            tier: 'free',
-        });
-        const draft = buildImageDraft(parsed, imageUrl, generationPrompt);
+        const trackedProvider = getTrackedImageProvider(parsed);
+        const trackedImage = await withImageTracking(
+            parsed.tenantId,
+            parsed.createdBy,
+            trackedProvider,
+            generationPrompt,
+            () => generateImageFromPrompt(generationPrompt, {
+                platform: parsed.platform,
+                tier: 'free',
+            }).then((imageUrl) => ({ imageUrl })),
+            {
+                metadata: {
+                    source: 'inbox_media',
+                    platform: parsed.platform,
+                    style: parsed.style,
+                    brandId: parsed.brandId,
+                },
+            },
+        );
+        const draft = buildImageDraft(parsed, trackedImage.imageUrl, generationPrompt);
 
         return {
             success: true,
             draft,
             media: {
                 type: 'image',
-                url: imageUrl,
+                url: trackedImage.imageUrl,
                 prompt: generationPrompt,
-                model: 'flux-schnell',
+                model: draft.generatedBy,
             },
         };
     } catch (error) {
@@ -299,12 +333,31 @@ export async function generateInboxVideoDraft(input: GenerateInboxVideoDraftInpu
         await requireInboxMediaUser();
         const parsed = VideoDraftInputSchema.parse(input);
         const generationPrompt = parsed.concept?.generationPrompt || buildFallbackVideoPrompt(parsed);
-        const result = await generateMarketingVideo({
+        const rawResult = await generateMarketingVideo({
             prompt: generationPrompt,
             duration: parsed.duration,
             aspectRatio: VIDEO_ASPECT_RATIO_BY_PLATFORM[parsed.platform],
             brandName: parsed.brandName,
         }, { allowFallbackDemo: false });
+        const trackedProvider = getTrackedVideoProvider(rawResult);
+        const result = await withVideoTracking(
+            parsed.tenantId,
+            parsed.createdBy,
+            trackedProvider,
+            generationPrompt,
+            rawResult.duration,
+            async () => rawResult,
+            {
+                aspectRatio: VIDEO_ASPECT_RATIO_BY_PLATFORM[parsed.platform],
+                contentId: undefined,
+                metadata: {
+                    source: 'inbox_media',
+                    platform: parsed.platform,
+                    style: parsed.style,
+                    brandId: parsed.brandId,
+                },
+            },
+        );
 
         const draft = buildVideoDraft(parsed, parsed.concept, result, generationPrompt);
 

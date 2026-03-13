@@ -23,6 +23,11 @@ interface InviteUserDialogProps {
     trigger?: React.ReactNode;
 }
 
+function toAbsoluteLink(link: string): string {
+    if (typeof window === 'undefined') return link;
+    return new URL(link, window.location.origin).toString();
+}
+
 export function InviteUserDialog({ orgId, allowedRoles, onInviteSent, trigger }: InviteUserDialogProps) {
     const [open, setOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -34,7 +39,8 @@ export function InviteUserDialog({ orgId, allowedRoles, onInviteSent, trigger }:
         defaultValues: {
             email: '',
             role: allowedRoles[0],
-            targetOrgId: orgId
+            targetOrgId: orgId,
+            sendEmail: true,
         }
     });
 
@@ -44,9 +50,7 @@ export function InviteUserDialog({ orgId, allowedRoles, onInviteSent, trigger }:
             const res = await createInvitationAction(data);
             if (res.success && res.link) {
                 toast({ title: 'Invitation Created', description: 'Share the link below with the user.' });
-                // Construct full URL
-                const fullLink = `${window.location.origin}${res.link}`;
-                setInviteLink(fullLink);
+                setInviteLink(toAbsoluteLink(res.link));
                 onInviteSent?.();
             } else {
                 toast({ title: 'Error', description: res.message, variant: 'destructive' });
@@ -67,7 +71,12 @@ export function InviteUserDialog({ orgId, allowedRoles, onInviteSent, trigger }:
 
     const reset = () => {
         setInviteLink(null);
-        form.reset();
+        form.reset({
+            email: '',
+            role: allowedRoles[0],
+            targetOrgId: orgId,
+            sendEmail: true,
+        });
         setOpen(false);
     };
 

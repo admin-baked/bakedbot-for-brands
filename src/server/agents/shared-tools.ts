@@ -48,7 +48,7 @@ export const contextOsToolDefs = [
 export const userManagementToolDefs = [
     {
         name: "inviteUser",
-        description: "Create a user account and send an invitation email via Mailjet. Use this to invite new team members, brand admins, dispensary staff, or customers to the platform.",
+        description: "Create a user account and send an invitation email. Use this to invite new team members, brand admins, dispensary staff, or customers to the platform.",
         schema: z.object({
             email: z.string().email().describe("Email address of the user to invite"),
             role: z.enum([
@@ -60,7 +60,7 @@ export const userManagementToolDefs = [
             businessName: z.string().optional().describe("Name of the brand or dispensary (required for business roles)"),
             firstName: z.string().optional().describe("User's first name (optional but recommended)"),
             lastName: z.string().optional().describe("User's last name (optional but recommended)"),
-            sendEmail: z.boolean().optional().default(true).describe("Whether to send the invitation email via Mailjet (default: true)")
+            sendEmail: z.boolean().optional().default(true).describe("Whether to send the invitation email immediately (default: true)")
         })
     }
 ];

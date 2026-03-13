@@ -11,6 +11,8 @@ export interface Invitation {
     email: string;
     role: InvitationRole;
     targetOrgId?: string; // Optional: Only for brand/dispensary invites (context)
+    organizationName?: string;
+    organizationType?: 'brand' | 'dispensary';
     invitedBy: string; // User ID of the inviter
     status: InvitationStatus;
     token: string; // Secure token for the invite link
@@ -28,6 +30,7 @@ export const CreateInvitationSchema = z.object({
     email: z.string().email(),
     role: z.enum(ROLES), // Use the tuple from roles.ts if available, else standard Zod enum
     targetOrgId: z.string().optional(), // Required if role is brand/dispensary
+    sendEmail: z.boolean().default(true),
 });
 
 export const AcceptInvitationSchema = z.object({
