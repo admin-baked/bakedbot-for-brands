@@ -31,9 +31,31 @@ interface VisualIdentityTabProps {
   onUpdate: (updates: Partial<BrandGuide>) => void;
 }
 
+const DEFAULT_COLORS = {
+  primary:    { hex: '#4ade80', name: 'Primary' },
+  secondary:  { hex: '#22d3ee', name: 'Secondary' },
+  accent:     { hex: '#f59e0b', name: 'Accent' },
+  text:       { hex: '#111827', name: 'Text' },
+  background: { hex: '#ffffff', name: 'Background' },
+};
+
+function normalizeVisualIdentity(vi: BrandVisualIdentity): BrandVisualIdentity {
+  const colors = vi?.colors || {};
+  return {
+    ...vi,
+    colors: {
+      primary:    colors.primary    ?? DEFAULT_COLORS.primary,
+      secondary:  colors.secondary  ?? DEFAULT_COLORS.secondary,
+      accent:     colors.accent     ?? DEFAULT_COLORS.accent,
+      text:       colors.text       ?? DEFAULT_COLORS.text,
+      background: colors.background ?? DEFAULT_COLORS.background,
+    },
+  };
+}
+
 export function VisualIdentityTab({ brandId, brandGuide, onUpdate }: VisualIdentityTabProps) {
   const [visualIdentity, setVisualIdentity] = useState<BrandVisualIdentity>(
-    brandGuide.visualIdentity
+    normalizeVisualIdentity(brandGuide.visualIdentity)
   );
   const [loading, setLoading] = useState(false);
   const [accessibilityCheck, setAccessibilityCheck] = useState<any>(null);
