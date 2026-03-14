@@ -1,5 +1,3 @@
-'use server';
-
 /**
  * Strain Image Database — Global Brand Asset Library
  *
