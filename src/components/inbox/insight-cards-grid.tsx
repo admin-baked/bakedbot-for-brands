@@ -77,6 +77,7 @@ export function InsightCardsGrid({ className, maxCards = 5 }: InsightCardsGridPr
     const { toast } = useToast();
     const {
         createThread,
+        setActiveThread,
         markThreadPending,
         markThreadPersisted,
         deleteThread,
@@ -140,14 +141,7 @@ export function InsightCardsGrid({ className, maxCards = 5 }: InsightCardsGridPr
             }
 
             markThreadPersisted(localThread.id);
-
-            // Show success toast with thread prompt hint
-            toast({
-                title: `Chat with ${insight.agentName}`,
-                description: insight.threadPrompt
-                    ? `Try asking: "${insight.threadPrompt.slice(0, 50)}..."`
-                    : 'Thread created successfully',
-            });
+            setActiveThread(localThread.id);
         } catch (err) {
             if (localThread) deleteThread(localThread.id);
             toast({
