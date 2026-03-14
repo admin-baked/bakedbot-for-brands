@@ -27,6 +27,8 @@ import type {
     ImportStatus
 } from '@/types/tenant';
 import { CANNMENUS_CONFIG } from '@/lib/config';
+import { lookupStrainImages, toStrainSlug } from '@/server/services/product-images/strain-image-db';
+import { extractStrainSlugsFromName } from '@/server/services/product-images/strain-slug-extractor';
 
 // ============================================================================
 // Types
@@ -299,6 +301,60 @@ async function runImportPipeline(
     // Build and write public views
     const viewResult = buildPublicViews(createdProducts);
 
+    // Pre-populate images from the global strain image library for products
+    // that don't have a real image yet. This gives new dispensaries instant
+    // product photos without waiting for the nightly Leafly sync cron.
+    const strainImageMap = new Map<string, string>(); // productId → imageUrl
+    try {
+        const productsNeedingImages = createdProducts.filter(p => {
+            const url = p.images?.[0]?.url;
+            return !url || url === '/icon-192.png' || url.includes('unsplash.com');
+        });
+
+        if (productsNeedingImages.length > 0) {
+            // Collect all candidate strain slugs from product names
+            const slugToProductIds = new Map<string, string[]>(); // slug → [productId]
+            for (const p of productsNeedingImages) {
+                const slugs = extractStrainSlugsFromName(p.name || '');
+                for (const slug of slugs) {
+                    const existing = slugToProductIds.get(slug) || [];
+                    existing.push(p.id);
+                    slugToProductIds.set(slug, existing);
+                }
+                // Also try a direct slug from the full name
+                const direct = toStrainSlug((p.name || '').toLowerCase().replace(/\s+/g, '-'));
+                if (direct.length > 2) {
+                    const existing = slugToProductIds.get(direct) || [];
+                    existing.push(p.id);
+                    slugToProductIds.set(direct, existing);
+                }
+            }
+
+            // Batch lookup all slugs at once
+            const allSlugs = Array.from(slugToProductIds.keys());
+            const dbImages = await lookupStrainImages(allSlugs);
+
+            // Map back: first slug with a DB hit wins for each product
+            for (const [slug, productIds] of slugToProductIds) {
+                const url = dbImages.get(slug);
+                if (url) {
+                    for (const pid of productIds) {
+                        if (!strainImageMap.has(pid)) {
+                            strainImageMap.set(pid, url);
+                        }
+                    }
+                }
+            }
+
+            if (strainImageMap.size > 0) {
+                // logger call uses import { logger } — add import if missing; handled below
+                console.log(`[ImportPipeline] Pre-populated ${strainImageMap.size} product images from global strain DB`);
+            }
+        }
+    } catch {
+        // Non-fatal — image pre-population is a best-effort enhancement
+    }
+
     // Write public views in batches
     let viewBatch = firestore.batch();
     let viewOps = 0;
@@ -313,6 +369,11 @@ async function runImportPipeline(
             incomingImageUrl.includes('unsplash.com') ||
             incomingImageUrl.includes('picsum.photos');
 
+        // Use global DB image if POS didn't supply one
+        const resolvedImageUrl = isPlaceholderImage
+            ? (strainImageMap.get(product.id) ?? undefined)
+            : incomingImageUrl;
+
         const publicView = {
             id: product.id,
             tenantId: product.tenantId,
@@ -323,10 +384,10 @@ async function runImportPipeline(
             description: product.shortDescription || product.description,
             thcPercent: product.potency?.thc?.unit === 'percent' ? product.potency.thc.value : undefined,
             cbdPercent: product.potency?.cbd?.unit === 'percent' ? product.potency.cbd.value : undefined,
-            // Only write imageUrl/imageUrls if incoming is a real image — otherwise
-            // leave the field undefined so merge:true preserves the scraped value.
-            imageUrl: isPlaceholderImage ? undefined : incomingImageUrl,
-            imageUrls: isPlaceholderImage ? undefined : product.images?.map(i => i.url),
+            // Write imageUrl if we have a real one (incoming or from global DB).
+            // Leave undefined so merge:true preserves any previously-scraped value.
+            imageUrl: resolvedImageUrl ?? undefined,
+            imageUrls: resolvedImageUrl ? [resolvedImageUrl] : undefined,
             price: productPrices.get(product.id) || 0, // Default to $0 for products without pricing
             currency: 'USD',
             viewBuiltAt: new Date() as any,
