@@ -21,6 +21,19 @@ import { COMPLIANCE_RULES_BY_STATE, US_STATES } from '@/lib/compliance-rules';
 import { useToast } from '@/hooks/use-toast';
 import type { BrandGuide, BrandCompliance, ComplianceRule } from '@/types/brand-guide';
 
+function normalizeCompliance(c: BrandCompliance | undefined | null): BrandCompliance {
+  const raw = (c ?? {}) as Partial<BrandCompliance>;
+  return {
+    primaryState: raw.primaryState ?? 'CA' as BrandCompliance['primaryState'],
+    operatingStates: raw.operatingStates ?? [],
+    stateSpecificRules: raw.stateSpecificRules ?? [],
+    ageGateLanguage: raw.ageGateLanguage ?? '',
+    medicalClaims: raw.medicalClaims ?? 'none',
+    contentRestrictions: raw.contentRestrictions ?? [],
+    ...raw,
+  };
+}
+
 interface ComplianceTabProps {
   brandId: string;
   brandGuide: BrandGuide;
@@ -28,7 +41,7 @@ interface ComplianceTabProps {
 }
 
 export function ComplianceTab({ brandId, brandGuide, onUpdate }: ComplianceTabProps) {
-  const [compliance, setCompliance] = useState<BrandCompliance>(brandGuide.compliance);
+  const [compliance, setCompliance] = useState<BrandCompliance>(normalizeCompliance(brandGuide.compliance));
   const [selectedState, setSelectedState] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -337,7 +350,7 @@ export function ComplianceTab({ brandId, brandGuide, onUpdate }: ComplianceTabPr
 
       {/* Save Button */}
       <div className="flex justify-end gap-2">
-        <Button variant="outline" onClick={() => setCompliance(brandGuide.compliance)}>
+        <Button variant="outline" onClick={() => setCompliance(normalizeCompliance(brandGuide.compliance))}>
           Reset
         </Button>
         <Button onClick={handleSave} disabled={loading}>
