@@ -128,7 +128,16 @@ export async function listCustomPlaybooks(
             .get();
 
         const playbooks: Playbook[] = snap.docs
-            .map((d) => ({ ...(d.data() as Omit<Playbook, 'id'>), id: d.id } as Playbook))
+            .map((d) => {
+                const data = d.data();
+                return {
+                    ...data,
+                    id: d.id,
+                    createdAt: data.createdAt?.toDate?.() ?? new Date(),
+                    updatedAt: data.updatedAt?.toDate?.() ?? new Date(),
+                    ...(data.lastRunAt ? { lastRunAt: data.lastRunAt?.toDate?.() ?? data.lastRunAt } : {}),
+                } as Playbook;
+            })
             .filter((p) => p.status !== 'archived');
 
         return { success: true, playbooks };
