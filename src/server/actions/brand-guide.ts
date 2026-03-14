@@ -1259,7 +1259,7 @@ export async function saveBrandArchetype(
       archetype: {
         primary,
         secondary: secondary ?? null,
-        selected_at: Timestamp.now(),
+        selected_at: Timestamp.fromDate(new Date()),
         suggested_by_scanner: null,
       },
     });
