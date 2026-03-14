@@ -882,6 +882,7 @@ async function generateCaption(request: GenerateContentRequest): Promise<string>
             platform: request.platform,
             prompt: request.prompt,
             style: request.style || 'professional',
+            brandName: request.brandName,
             brandVoice: request.brandVoice,
             productName: request.productName,
             targetAudience: request.targetAudience,

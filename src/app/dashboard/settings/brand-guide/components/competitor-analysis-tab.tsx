@@ -220,12 +220,12 @@ export function CompetitorAnalysisTab({ brandId, brandGuide }: CompetitorAnalysi
                 <div className="flex gap-2">
                   <div
                     className="w-16 h-16 rounded border"
-                    style={{ backgroundColor: analysis.brandSummary.primaryColor.hex }}
+                    style={{ backgroundColor: analysis.brandSummary.primaryColor?.hex }}
                     title="Primary"
                   />
                   <div
                     className="w-16 h-16 rounded border"
-                    style={{ backgroundColor: analysis.brandSummary.secondaryColor.hex }}
+                    style={{ backgroundColor: analysis.brandSummary.secondaryColor?.hex }}
                     title="Secondary"
                   />
                 </div>

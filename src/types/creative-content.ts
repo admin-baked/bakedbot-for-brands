@@ -399,6 +399,7 @@ export interface GenerateContentRequest {
     productId?: string;
     productName?: string;
     /** Brand assets */
+    brandName?: string;
     brandVoice?: string;
     logoUrl?: string;
     /** Tier for image generation */
