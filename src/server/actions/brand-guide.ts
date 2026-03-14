@@ -1266,15 +1266,15 @@ export async function saveBrandArchetype(
     }
 
     const firestore = getAdminFirestore();
-    const repo = makeBrandGuideRepo(firestore);
 
-    await repo.update(brandId, {
-      archetype: {
-        primary,
-        secondary: secondary ?? null,
-        selected_at: new Date() as unknown as Timestamp,
-        suggested_by_scanner: null,
-      },
+    // Write archetype fields using dot-notation field paths to avoid Timestamp
+    // serialization issues when passing nested objects through repo.update().
+    // This mirrors the pattern used by recordScannerArchetypeSuggestion.
+    await firestore.collection('brandGuides').doc(brandId).update({
+      'archetype.primary': primary,
+      'archetype.secondary': secondary ?? null,
+      'archetype.selected_at': new Date(),
+      'archetype.suggested_by_scanner': null,
     });
 
     logger.info('[BrandGuide] Archetype saved', { brandId, primary, secondary });
