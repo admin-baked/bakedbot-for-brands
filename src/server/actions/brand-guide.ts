@@ -15,6 +15,7 @@ import { enrichBrandGuide } from '@/server/services/brand-guide-enricher';
 import { generateBrandImagesForNewAccount } from '@/server/actions/brand-images';
 import { getTemplateById, getAllTemplates } from '@/lib/brand-guide-templates';
 import { validateBrandPalette } from '@/lib/accessibility-checker';
+import { callClaude } from '@/ai/claude';
 import type {
   BrandAsset,
   BrandGuide,
@@ -1297,5 +1298,208 @@ export async function recordScannerArchetypeSuggestion(
       error: (error as Error).message,
       brandId,
     });
+  }
+}
+
+// ============================================================================
+// MAGIC BUTTONS — AI-assisted content generation
+// ============================================================================
+
+/**
+ * Generate brand messaging from existing brand guide context.
+ * Only populates fields that are currently empty.
+ */
+export async function generateBrandMessagingContent(brandId: string): Promise<{
+  success: boolean;
+  messaging?: {
+    tagline?: string;
+    positioning?: string;
+    missionStatement?: string;
+    valuePropositions?: string[];
+    keyMessages?: Array<{ audience: string; message: string; supportingPoints: string[] }>;
+    brandStoryOrigin?: string;
+  };
+  error?: string;
+}> {
+  try {
+    const firestore = getAdminFirestore();
+    const repo = makeBrandGuideRepo(firestore);
+    const guide = await repo.getById(brandId);
+    if (!guide) return { success: false, error: 'Brand guide not found' };
+
+    const name = guide.messaging?.brandName || (guide as any).metadata?.brandName || 'this brand';
+    const archetypeId = guide.archetype?.primary as ArchetypeId | undefined;
+    const archetype = archetypeId ? `${BRAND_ARCHETYPES[archetypeId]?.label} archetype` : null;
+    const tone = guide.voice?.tone || 'professional';
+    const personality = guide.voice?.personality?.join(', ') || null;
+    const location = [guide.messaging?.city, guide.messaging?.state].filter(Boolean).join(', ');
+    const orgType = (guide.messaging as any)?.organizationType || null;
+    const existing = guide.messaging || {};
+
+    const contextParts = [
+      `Brand name: ${name}`,
+      archetype && `Brand archetype: ${archetype}`,
+      tone && `Voice tone: ${tone}`,
+      personality && `Personality traits: ${personality}`,
+      location && `Location: ${location}`,
+      orgType && `Organization type: ${orgType}`,
+      existing.positioning && `Existing positioning: ${existing.positioning}`,
+    ].filter(Boolean).join('\n');
+
+    const prompt = `You are a cannabis brand strategist. Generate compelling brand messaging for the following brand.
+
+BRAND CONTEXT:
+${contextParts}
+
+Generate ONLY fields that would be empty (I'll indicate which to generate):
+- Generate: tagline (punchy, memorable, max 8 words)
+- Generate: positioning statement (1-2 sentences, "For X, [Brand] is the Y that Z")
+- Generate: mission statement (1-2 sentences starting with "Our mission is to...")
+- Generate: 4 value propositions (short benefit statements, max 12 words each)
+- Generate: 3 key messages for different audience segments
+- Generate: brand origin story (2-3 sentences about what this brand stands for)
+
+Cannabis industry context: avoid medical claims, focus on experience, community, quality, and education.
+
+Return ONLY valid JSON in this exact structure:
+{
+  "tagline": "string",
+  "positioning": "string",
+  "missionStatement": "string",
+  "valuePropositions": ["string", "string", "string", "string"],
+  "keyMessages": [
+    { "audience": "string", "message": "string" },
+    { "audience": "string", "message": "string" },
+    { "audience": "string", "message": "string" }
+  ],
+  "brandStoryOrigin": "string"
+}`;
+
+    const raw = await callClaude({ userMessage: prompt, maxTokens: 1000, model: 'claude-haiku-4-5-20251001' });
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON in AI response');
+    const generated = JSON.parse(jsonMatch[0]);
+
+    logger.info('[BrandGuide] Messaging content generated', { brandId });
+    return { success: true, messaging: generated };
+  } catch (error) {
+    logger.error('[BrandGuide] generateBrandMessagingContent failed', { error: (error as Error).message, brandId });
+    return { success: false, error: (error as Error).message };
+  }
+}
+
+/**
+ * Generate state-appropriate required disclaimers from existing compliance settings.
+ */
+export async function generateBrandDisclaimers(brandId: string): Promise<{
+  success: boolean;
+  disclaimers?: { age: string; health: string; legal: string };
+  error?: string;
+}> {
+  try {
+    const firestore = getAdminFirestore();
+    const repo = makeBrandGuideRepo(firestore);
+    const guide = await repo.getById(brandId);
+    if (!guide) return { success: false, error: 'Brand guide not found' };
+
+    const primaryState = guide.compliance?.primaryState || 'CA';
+    const operatingStates = guide.compliance?.operatingStates || [];
+    const medicalClaims = guide.compliance?.medicalClaims || 'none';
+    const brandName = guide.messaging?.brandName || 'this brand';
+    const allStates = Array.from(new Set([primaryState, ...operatingStates])).join(', ');
+
+    const prompt = `You are a cannabis compliance attorney. Generate required disclaimers for a cannabis brand operating in the following states.
+
+Brand: ${brandName}
+Operating states: ${allStates}
+Medical claims policy: ${medicalClaims}
+
+Generate three disclaimers appropriate for cannabis marketing in these states:
+
+1. AGE DISCLAIMER — short, required on all marketing (1 sentence)
+2. HEALTH DISCLAIMER — FDA-style disclaimer about not treating/curing conditions (2-3 sentences)
+3. LEGAL DISCLAIMER — state-specific legal use disclaimer (1-2 sentences)
+
+Be specific to the states listed. For NY: reference OCM. For CA: reference CDTFA/DCC. For CO: reference MED.
+
+Return ONLY valid JSON:
+{
+  "age": "string",
+  "health": "string",
+  "legal": "string"
+}`;
+
+    const raw = await callClaude({ userMessage: prompt, maxTokens: 500, model: 'claude-haiku-4-5-20251001' });
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON in AI response');
+    const disclaimers = JSON.parse(jsonMatch[0]);
+
+    logger.info('[BrandGuide] Disclaimers generated', { brandId, primaryState });
+    return { success: true, disclaimers };
+  } catch (error) {
+    logger.error('[BrandGuide] generateBrandDisclaimers failed', { error: (error as Error).message, brandId });
+    return { success: false, error: (error as Error).message };
+  }
+}
+
+/**
+ * Suggest cannabis industry vocabulary terms based on brand archetype and tone.
+ */
+export async function suggestVocabularyTerms(brandId: string): Promise<{
+  success: boolean;
+  preferred?: Array<{ term: string; instead: string }>;
+  avoid?: Array<{ term: string; reason: string }>;
+  error?: string;
+}> {
+  try {
+    const firestore = getAdminFirestore();
+    const repo = makeBrandGuideRepo(firestore);
+    const guide = await repo.getById(brandId);
+    if (!guide) return { success: false, error: 'Brand guide not found' };
+
+    const archetypeId2 = guide.archetype?.primary as ArchetypeId | undefined;
+    const archetype = archetypeId2 ? BRAND_ARCHETYPES[archetypeId2]?.label : null;
+    const tone = guide.voice?.tone || 'professional';
+    const personality = guide.voice?.personality?.join(', ') || null;
+    const orgType = (guide.messaging as any)?.organizationType || 'dispensary';
+
+    const prompt = `You are a cannabis brand voice expert. Suggest vocabulary terms for a cannabis brand.
+
+Brand tone: ${tone}
+${archetype ? `Brand archetype: ${archetype}` : ''}
+${personality ? `Personality: ${personality}` : ''}
+Organization type: ${orgType}
+
+Generate cannabis industry vocabulary guidance:
+- 6 PREFERRED TERM PAIRS: terms to use vs what to say instead (cannabis terminology that fits this brand's voice)
+- 5 TERMS TO AVOID: words/phrases to never use, with reasons (compliance/brand fit issues)
+
+Examples of preferred pairs: "flower" instead of "marijuana weed", "pre-roll" instead of "joint"
+Examples of avoid: "get high" (too casual/negative), "drug" (stigmatizing)
+
+Tailor vocabulary to the brand's tone and archetype. For wellness/caregiver brands use clinical-adjacent terms. For rebel/streetwear use culture-forward terms.
+
+Return ONLY valid JSON:
+{
+  "preferred": [
+    { "term": "string", "instead": "string" },
+    ...
+  ],
+  "avoid": [
+    { "term": "string", "reason": "string" },
+    ...
+  ]
+}`;
+
+    const raw = await callClaude({ userMessage: prompt, maxTokens: 600, model: 'claude-haiku-4-5-20251001' });
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON in AI response');
+    const result = JSON.parse(jsonMatch[0]);
+
+    logger.info('[BrandGuide] Vocabulary terms suggested', { brandId });
+    return { success: true, preferred: result.preferred, avoid: result.avoid };
+  } catch (error) {
+    logger.error('[BrandGuide] suggestVocabularyTerms failed', { error: (error as Error).message, brandId });
+    return { success: false, error: (error as Error).message };
   }
 }
