@@ -525,7 +525,11 @@ export const useInboxStore = create<InboxState>()(
             // ============ Hydration ============
 
             hydrateThreads: (threads) => {
-                set({ threads });
+                if (threads.length === 0) return; // Don't wipe localStorage on empty/failed server response
+                // Merge: server threads take precedence by ID; keep any local-only threads (created offline/before server confirm)
+                const serverIds = new Set(threads.map((t) => t.id));
+                const localOnly = get().threads.filter((t) => !serverIds.has(t.id));
+                set({ threads: [...threads, ...localOnly] });
             },
 
             hydrateArtifacts: (artifacts) => {

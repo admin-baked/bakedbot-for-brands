@@ -37,6 +37,105 @@ function mimeTypeForArtifactType(type: InboxArtifactType): string {
   return 'text/plain';
 }
 
+export interface SaveMediaUrlOptions {
+  artifactId: string;
+  mediaUrls: string[];
+  mediaType: 'image' | 'video';
+  title: string;
+  orgId: string;
+  ownerId: string;
+  ownerEmail: string;
+  platform?: string;
+}
+
+/**
+ * Register generated images/videos in BakedBot Drive.
+ * Does NOT upload to Firebase Storage (avoids large file downloads).
+ * Creates drive_files entries pointing to the external CDN URLs.
+ * Fire-and-forget safe — returns null on failure.
+ */
+export async function saveMediaUrlsToDrive(
+  opts: SaveMediaUrlOptions
+): Promise<string | null> {
+  try {
+    const { artifactId, mediaUrls, mediaType, title, orgId, ownerId, ownerEmail, platform } = opts;
+    if (!mediaUrls.length) return null;
+
+    const db = getAdminFirestore();
+    const category: DriveCategory = mediaType === 'image' ? 'images' : 'agents';
+    const mimeType = mediaType === 'image' ? 'image/jpeg' : 'video/mp4';
+    const timestamp = Date.now();
+    const safeName = title.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 60);
+    const filename = `${mediaType}_${safeName}_${timestamp}`;
+
+    // Find or create a media folder for this org
+    const folderSnap = await db.collection('drive_folders')
+      .where('ownerId', '==', ownerId)
+      .where('name', '==', mediaType === 'image' ? 'Generated Images' : 'Generated Videos')
+      .limit(1)
+      .get();
+
+    let folderId: string | null = null;
+    if (!folderSnap.empty) {
+      folderId = folderSnap.docs[0].id;
+    } else {
+      const folderRef = db.collection('drive_folders').doc();
+      folderId = folderRef.id;
+      await folderRef.set({
+        id: folderId,
+        name: mediaType === 'image' ? 'Generated Images' : 'Generated Videos',
+        ownerId,
+        ownerEmail,
+        orgId,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        isDeleted: false,
+      });
+    }
+
+    // Create a drive_files entry for the primary media URL
+    const driveDocRef = db.collection('drive_files').doc();
+    const driveFileId = driveDocRef.id;
+
+    await driveDocRef.set({
+      id: driveFileId,
+      name: filename,
+      mimeType,
+      size: 0, // Unknown — not downloaded
+      storagePath: null, // Externally hosted
+      downloadUrl: mediaUrls[0],
+      allUrls: mediaUrls,
+      folderId,
+      path: `/${mediaType === 'image' ? 'Generated Images' : 'Generated Videos'}/${filename}`,
+      ownerId,
+      ownerEmail,
+      category,
+      tags: ['inbox', mediaType, orgId, ...(platform ? [platform] : [])],
+      description: `AI-generated ${mediaType}: ${title}`,
+      metadata: { artifactId, orgId, platform, generatedAt: new Date().toISOString() },
+      isShared: false,
+      shareIds: [],
+      viewCount: 0,
+      downloadCount: 0,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      isDeleted: false,
+    });
+
+    // Write driveFileId back to the inbox_artifacts doc
+    await db.collection('inbox_artifacts').doc(artifactId).update({
+      driveFileId,
+      updatedAt: new Date(),
+    });
+
+    logger.info('Media URLs saved to Drive', { artifactId, driveFileId, orgId, mediaType });
+    return driveFileId;
+  } catch (error) {
+    logger.error('saveMediaUrlsToDrive failed', { artifactId: opts.artifactId, error });
+    return null;
+  }
+}
+
 export interface SaveArtifactOptions {
   artifactId: string;
   artifactType: InboxArtifactType;
