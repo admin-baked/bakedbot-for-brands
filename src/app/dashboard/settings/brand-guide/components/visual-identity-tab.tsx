@@ -20,7 +20,7 @@ import { Loader2, Upload, Check, AlertCircle, Info } from 'lucide-react';
 import { updateBrandGuide } from '@/server/actions/brand-guide';
 import { validateColorAccessibility } from '@/server/actions/brand-guide';
 import { useToast } from '@/hooks/use-toast';
-import type { BrandGuide, BrandVisualIdentity } from '@/types/brand-guide';
+import type { BrandGuide, BrandVisualIdentity, BrandTypography } from '@/types/brand-guide';
 import { BRAND_ARCHETYPES, type ArchetypeId } from '@/constants/brand-archetypes';
 import { ArchetypeSelector } from './archetype-selector';
 import { ArchetypePreview } from './archetype-preview';
@@ -32,17 +32,24 @@ interface VisualIdentityTabProps {
 }
 
 const DEFAULT_COLORS = {
-  primary:    { hex: '#4ade80', name: 'Primary' },
-  secondary:  { hex: '#22d3ee', name: 'Secondary' },
-  accent:     { hex: '#f59e0b', name: 'Accent' },
-  text:       { hex: '#111827', name: 'Text' },
-  background: { hex: '#ffffff', name: 'Background' },
+  primary:    { hex: '#4ade80', name: 'Primary',    usage: 'Primary CTA buttons, headers' },
+  secondary:  { hex: '#22d3ee', name: 'Secondary',  usage: 'Secondary elements' },
+  accent:     { hex: '#f59e0b', name: 'Accent',     usage: 'Highlights, accents' },
+  text:       { hex: '#111827', name: 'Text',       usage: 'Body text' },
+  background: { hex: '#ffffff', name: 'Background', usage: 'Page background' },
 };
 
-function normalizeVisualIdentity(vi: BrandVisualIdentity): BrandVisualIdentity {
-  const colors = vi?.colors || {};
+const DEFAULT_FONT = { family: 'Inter', weights: [400, 700], source: 'google' as const };
+const DEFAULT_SPACING = { scale: 4 as const, borderRadius: 'md' as const };
+const DEFAULT_LOGO = { primary: '' };
+
+function normalizeVisualIdentity(vi: BrandVisualIdentity | undefined | null): BrandVisualIdentity {
+  const raw = vi ?? {} as Partial<BrandVisualIdentity>;
+  const colors = (raw.colors ?? {}) as Partial<BrandVisualIdentity['colors']>;
+  const typo = (raw.typography ?? {}) as Partial<BrandTypography>;
   return {
-    ...vi,
+    ...raw as BrandVisualIdentity,
+    logo: { ...DEFAULT_LOGO, ...(raw.logo ?? {}) },
     colors: {
       primary:    colors.primary    ?? DEFAULT_COLORS.primary,
       secondary:  colors.secondary  ?? DEFAULT_COLORS.secondary,
@@ -50,6 +57,12 @@ function normalizeVisualIdentity(vi: BrandVisualIdentity): BrandVisualIdentity {
       text:       colors.text       ?? DEFAULT_COLORS.text,
       background: colors.background ?? DEFAULT_COLORS.background,
     },
+    typography: {
+      headingFont: typo.headingFont ?? DEFAULT_FONT,
+      bodyFont:    typo.bodyFont    ?? DEFAULT_FONT,
+      ...typo,
+    },
+    spacing: { ...DEFAULT_SPACING, ...(raw.spacing ?? {}) },
   };
 }
 
@@ -652,7 +665,7 @@ export function VisualIdentityTab({ brandId, brandGuide, onUpdate }: VisualIdent
 
       {/* Save Button */}
       <div className="flex justify-end gap-2">
-        <Button variant="outline" onClick={() => setVisualIdentity(brandGuide.visualIdentity)}>
+        <Button variant="outline" onClick={() => setVisualIdentity(normalizeVisualIdentity(brandGuide.visualIdentity))}>
           Reset
         </Button>
         <Button onClick={handleSave} disabled={loading}>
