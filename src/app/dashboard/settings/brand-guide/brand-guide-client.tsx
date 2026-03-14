@@ -37,6 +37,8 @@ import {
   Brain,
   ShieldAlert,
   TrendingUp as StrategyIcon,
+  RotateCcw,
+  Loader2,
 } from 'lucide-react';
 import type { BrandGuide, BrandGuideCompetitorSuggestion } from '@/types/brand-guide';
 import { VisualIdentityTab } from './components/visual-identity-tab';
@@ -61,7 +63,7 @@ import {
   type Step6Data,
   type Step7Data,
 } from './components/setup-step-dialogs';
-import { extractBrandGuideFromUrl } from '@/server/actions/brand-guide';
+import { extractBrandGuideFromUrl, deleteBrandGuide } from '@/server/actions/brand-guide';
 import { mirrorBrandAssetFromUrl } from '@/server/actions/brand-assets';
 import { generateBrandImagesForNewAccount } from '@/server/actions/brand-images';
 import { createOrgProfileFromWizard } from '@/server/actions/org-profile';
@@ -93,7 +95,11 @@ export function BrandGuideClient({
   );
   const [activeTab, setActiveTab] = useState('visual');
   const [showCompletionReminder, setShowCompletionReminder] = useState(false);
+  const [showResetDialog, setShowResetDialog] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const isGuideComplete = useMemo(() => (brandGuide?.completenessScore || 0) >= 100, [brandGuide]);
+  const canReset = userRole === 'dispensary_admin' || userRole === 'super_user' || userRole === 'super_admin';
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!brandGuide) return;
@@ -101,6 +107,20 @@ export function BrandGuideClient({
       setShowCompletionReminder(true);
     }
   }, [brandGuide, isGuideComplete]);
+
+  async function handleReset() {
+    setResetting(true);
+    try {
+      const result = await deleteBrandGuide(brandId);
+      if (!result.success) throw new Error((result as { success: false; error: string }).error);
+      setShowResetDialog(false);
+      setBrandGuide(undefined);
+    } catch (err) {
+      toast({ title: 'Reset failed', description: (err as Error).message, variant: 'destructive' });
+    } finally {
+      setResetting(false);
+    }
+  }
 
   // Show create dialog if no brand guide exists
   if (!brandGuide) {
@@ -159,8 +179,35 @@ export function BrandGuideClient({
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
+          {canReset && (
+            <Button variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={() => setShowResetDialog(true)}>
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Reset & Rescan
+            </Button>
+          )}
         </div>
       </div>
+
+      {/* Reset confirmation dialog */}
+      <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset Brand Guide?</DialogTitle>
+            <DialogDescription>
+              This will permanently delete the current brand guide and re-open the website scan wizard. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowResetDialog(false)} disabled={resetting}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleReset} disabled={resetting}>
+              {resetting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
+              Reset & Rescan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Progress bar */}
       <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">

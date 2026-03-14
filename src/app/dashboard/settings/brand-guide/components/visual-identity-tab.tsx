@@ -156,7 +156,8 @@ export function VisualIdentityTab({ brandId, brandGuide, onUpdate }: VisualIdent
               onSaved={(primary, secondary) => {
                 setSavedPrimary(primary);
                 setSavedSecondary(secondary);
-                onUpdate({ archetype: { primary, secondary, selected_at: { seconds: Date.now() / 1000, nanoseconds: 0 } as any, suggested_by_scanner: brandGuide.archetype?.suggested_by_scanner ?? null } });
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                onUpdate({ archetype: { primary, secondary, selected_at: new Date() as any, suggested_by_scanner: brandGuide.archetype?.suggested_by_scanner ?? null } });
               }}
             />
             {savedPrimary && (
