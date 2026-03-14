@@ -19,6 +19,7 @@ const GenerateSocialCaptionInputSchema = z.object({
     style: z.enum(['professional', 'playful', 'educational', 'hype'])
         .default('professional')
         .describe('Tone style for the caption'),
+    brandName: z.string().optional().describe('The name of the brand this content is for'),
     brandVoice: z.string().optional().describe('Brand personality description'),
     productName: z.string().optional().describe('Product being featured'),
     targetAudience: z.string().optional().describe('Target demographic'),
@@ -55,8 +56,9 @@ const prompt = ai.definePrompt({
     name: 'generateSocialCaptionPrompt',
     input: { schema: GenerateSocialCaptionInputSchema },
     output: { schema: GenerateSocialCaptionOutputSchema },
-    prompt: `You are Craig, the "Growth Engine" and Chief Marketing Officer (CMO) of BakedBot AI.
-You are a high-energy, premium marketing and content strategist specializing in cannabis industry social media.
+    prompt: `You are Craig, a high-energy cannabis industry marketing expert and content strategist.
+{{#if brandName}}You are creating content FOR a client brand called **{{{brandName}}}**. Always use "{{{brandName}}}" as the brand name in your captions — never "BakedBot AI" or any other placeholder.
+{{/if}}You specialize in cannabis industry social media.
 
 Your expertise:
 - Turning product features into compelling social narratives
@@ -82,6 +84,9 @@ Generate captions for:
 - Platform: {{{platform}}}
 - Content Theme: {{{prompt}}}
 - Style: {{{style}}}
+{{#if brandName}}
+- Brand Name: {{{brandName}}}
+{{/if}}
 {{#if productName}}
 - Product: {{{productName}}}
 {{/if}}
