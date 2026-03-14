@@ -14,9 +14,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, AlertCircle, CheckCircle2, Info } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle2, Info, Sparkles } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { updateBrandGuide } from '@/server/actions/brand-guide';
+import { updateBrandGuide, generateBrandDisclaimers } from '@/server/actions/brand-guide';
 import { COMPLIANCE_RULES_BY_STATE, US_STATES } from '@/lib/compliance-rules';
 import { useToast } from '@/hooks/use-toast';
 import type { BrandGuide, BrandCompliance, ComplianceRule } from '@/types/brand-guide';
@@ -44,6 +44,7 @@ export function ComplianceTab({ brandId, brandGuide, onUpdate }: ComplianceTabPr
   const [compliance, setCompliance] = useState<BrandCompliance>(normalizeCompliance(brandGuide.compliance));
   const [selectedState, setSelectedState] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [generatingDisclaimers, setGeneratingDisclaimers] = useState(false);
   const { toast } = useToast();
 
   const handleSave = async () => {
@@ -122,6 +123,28 @@ export function ComplianceTab({ brandId, brandGuide, onUpdate }: ComplianceTabPr
       : [...current, restriction];
 
     setCompliance({ ...compliance, restrictions: updated });
+  };
+
+  const handleGenerateDisclaimers = async () => {
+    setGeneratingDisclaimers(true);
+    try {
+      const result = await generateBrandDisclaimers(brandId);
+      if (!result.success || !result.disclaimers) throw new Error(result.error || 'Generation failed');
+      const d = result.disclaimers;
+      setCompliance((prev) => ({
+        ...prev,
+        requiredDisclaimers: {
+          age:    !prev.requiredDisclaimers?.age    ? d.age    : (prev.requiredDisclaimers?.age    ?? ''),
+          health: !prev.requiredDisclaimers?.health ? d.health : (prev.requiredDisclaimers?.health ?? ''),
+          legal:  !prev.requiredDisclaimers?.legal  ? d.legal  : (prev.requiredDisclaimers?.legal  ?? ''),
+        },
+      }));
+      toast({ title: 'Disclaimers generated', description: 'Review and save. These are AI suggestions — consult a lawyer for final copy.' });
+    } catch (err) {
+      toast({ title: 'Generation failed', description: (err as Error).message, variant: 'destructive' });
+    } finally {
+      setGeneratingDisclaimers(false);
+    }
   };
 
   const getUniqueStates = () => {
@@ -263,10 +286,18 @@ export function ComplianceTab({ brandId, brandGuide, onUpdate }: ComplianceTabPr
       {/* Required Disclaimers */}
       <Card>
         <CardHeader>
-          <CardTitle>Required Disclaimers</CardTitle>
-          <CardDescription>
-            Standard disclaimers that must appear on marketing materials
-          </CardDescription>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <CardTitle>Required Disclaimers</CardTitle>
+              <CardDescription>
+                Standard disclaimers that must appear on marketing materials
+              </CardDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleGenerateDisclaimers} disabled={generatingDisclaimers} className="shrink-0">
+              {generatingDisclaimers ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+              Generate Disclaimers
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>

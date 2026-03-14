@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Plus, X, Sparkles } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { updateBrandGuide, analyzeBrandVoice } from '@/server/actions/brand-guide';
+import { updateBrandGuide, analyzeBrandVoice, suggestVocabularyTerms } from '@/server/actions/brand-guide';
 import { useToast } from '@/hooks/use-toast';
 import type { BrandGuide, BrandVoice, BrandPersonalityTrait, BrandTone, BrandWritingStyle } from '@/types/brand-guide';
 
@@ -84,6 +84,7 @@ export function BrandVoiceTab({ brandId, brandGuide, onUpdate }: BrandVoiceTabPr
   const [voice, setVoice] = useState<BrandVoice>(normalizeVoice(brandGuide.voice));
   const [loading, setLoading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [suggestingTerms, setSuggestingTerms] = useState(false);
   const [contentSample, setContentSample] = useState('');
   const { toast } = useToast();
 
@@ -154,6 +155,31 @@ export function BrandVoiceTab({ brandId, brandGuide, onUpdate }: BrandVoiceTabPr
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSuggestTerms = async () => {
+    setSuggestingTerms(true);
+    try {
+      const result = await suggestVocabularyTerms(brandId);
+      if (!result.success) throw new Error(result.error || 'Suggestion failed');
+      setVoice((prev) => ({
+        ...prev,
+        vocabulary: {
+          ...prev.vocabulary,
+          preferred: prev.vocabulary.preferred.length === 0
+            ? (result.preferred?.map((p) => ({ term: p.term, instead: p.instead, context: '' })) ?? prev.vocabulary.preferred)
+            : [...prev.vocabulary.preferred, ...(result.preferred?.map((p) => ({ term: p.term, instead: p.instead, context: '' })) ?? [])],
+          avoid: prev.vocabulary.avoid.length === 0
+            ? (result.avoid ?? prev.vocabulary.avoid)
+            : [...prev.vocabulary.avoid, ...(result.avoid ?? [])],
+        },
+      }));
+      toast({ title: 'Terms suggested', description: 'Cannabis industry terms added based on your brand archetype and tone. Remove any that don\'t fit.' });
+    } catch (err) {
+      toast({ title: 'Suggestion failed', description: (err as Error).message, variant: 'destructive' });
+    } finally {
+      setSuggestingTerms(false);
     }
   };
 
@@ -284,10 +310,16 @@ export function BrandVoiceTab({ brandId, brandGuide, onUpdate }: BrandVoiceTabPr
       {/* Vocabulary - Preferred Terms */}
       <Card>
         <CardHeader>
-          <CardTitle>Vocabulary - Preferred Terms</CardTitle>
-          <CardDescription>
-            Define terms to use instead of alternatives
-          </CardDescription>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <CardTitle>Vocabulary - Preferred Terms</CardTitle>
+              <CardDescription>Define terms to use instead of alternatives</CardDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleSuggestTerms} disabled={suggestingTerms} className="shrink-0">
+              {suggestingTerms ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+              Suggest Terms
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {voice.vocabulary.preferred.map((pref, index) => (

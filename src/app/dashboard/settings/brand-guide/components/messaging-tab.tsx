@@ -12,8 +12,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Plus, X } from 'lucide-react';
-import { updateBrandGuide } from '@/server/actions/brand-guide';
+import { Loader2, Plus, X, Sparkles } from 'lucide-react';
+import { updateBrandGuide, generateBrandMessagingContent } from '@/server/actions/brand-guide';
 import { useToast } from '@/hooks/use-toast';
 import type { BrandGuide, BrandMessaging } from '@/types/brand-guide';
 
@@ -38,6 +38,7 @@ interface MessagingTabProps {
 export function MessagingTab({ brandId, brandGuide, onUpdate }: MessagingTabProps) {
   const [messaging, setMessaging] = useState<BrandMessaging>(normalizeMessaging(brandGuide.messaging));
   const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const { toast } = useToast();
 
   const handleSave = async () => {
@@ -92,6 +93,33 @@ export function MessagingTab({ brandId, brandGuide, onUpdate }: MessagingTabProp
     setMessaging({ ...messaging, valuePropositions: updated });
   };
 
+  const handleGenerate = async () => {
+    setGenerating(true);
+    try {
+      const result = await generateBrandMessagingContent(brandId);
+      if (!result.success || !result.messaging) throw new Error(result.error || 'Generation failed');
+      const g = result.messaging;
+      setMessaging((prev) => ({
+        ...prev,
+        tagline:          !prev.tagline          ? (g.tagline          ?? prev.tagline)          : prev.tagline,
+        positioning:      !prev.positioning      ? (g.positioning      ?? prev.positioning)      : prev.positioning,
+        missionStatement: !prev.missionStatement ? (g.missionStatement ?? prev.missionStatement) : prev.missionStatement,
+        valuePropositions: prev.valuePropositions.length === 0 ? (g.valuePropositions ?? prev.valuePropositions) : prev.valuePropositions,
+        keyMessages:      (prev.keyMessages || []).length === 0
+          ? (g.keyMessages?.map((km) => ({ audience: km.audience, message: km.message, supportingPoints: [] })) ?? prev.keyMessages)
+          : prev.keyMessages,
+        brandStory: (!prev.brandStory?.origin && g.brandStoryOrigin)
+          ? { origin: g.brandStoryOrigin, values: prev.brandStory?.values || [], differentiators: prev.brandStory?.differentiators || [] }
+          : prev.brandStory,
+      }));
+      toast({ title: 'Content generated', description: 'Empty fields filled from brand context. Review and save.' });
+    } catch (err) {
+      toast({ title: 'Generation failed', description: (err as Error).message, variant: 'destructive' });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const addKeyMessage = () => {
     setMessaging({
       ...messaging,
@@ -114,6 +142,18 @@ export function MessagingTab({ brandId, brandGuide, onUpdate }: MessagingTabProp
 
   return (
     <div className="space-y-6">
+      {/* AI Generate Banner */}
+      <div className="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+        <div className="text-sm">
+          <span className="font-medium">✨ AI Messaging Generator</span>
+          <span className="text-muted-foreground ml-2">Fills empty fields from your brand context — won't overwrite existing content.</span>
+        </div>
+        <Button variant="default" size="sm" onClick={handleGenerate} disabled={generating}>
+          {generating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+          Generate from Context
+        </Button>
+      </div>
+
       {/* Tagline */}
       <Card>
         <CardHeader>
