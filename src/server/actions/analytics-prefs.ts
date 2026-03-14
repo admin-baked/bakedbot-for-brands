@@ -12,23 +12,7 @@ import { requireUser } from '@/server/auth/auth';
 import { getAdminFirestore } from '@/firebase/admin';
 import { createPlaybook } from '@/server/actions/playbooks';
 import { logger } from '@/lib/logger';
-
-// ---------------------------------------------------------------------------
-// Widget registry (canonical list — mirrors overview-tab.tsx OVERVIEW_WIDGETS)
-// ---------------------------------------------------------------------------
-
-export const DEFAULT_WIDGETS = [
-  'revenue_kpis',
-  'revenue_chart',
-  'sales_by_category',
-  'top_products',
-  'affinity_pairs',
-  'cohort_heatmap',
-  'conversion_funnel',
-  'channel_performance',
-] as const;
-
-export type WidgetId = (typeof DEFAULT_WIDGETS)[number];
+import { DEFAULT_WIDGETS } from '@/lib/analytics-constants';
 
 export interface AnalyticsPrefs {
   enabledWidgets: string[];

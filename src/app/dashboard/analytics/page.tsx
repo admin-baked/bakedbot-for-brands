@@ -2,7 +2,8 @@
 import { requireUser } from '@/server/auth/auth';
 import { redirect } from 'next/navigation';
 import { getAnalyticsData } from './actions';
-import { getAnalyticsPrefs, DEFAULT_WIDGETS } from '@/server/actions/analytics-prefs';
+import { getAnalyticsPrefs } from '@/server/actions/analytics-prefs';
+import { DEFAULT_WIDGETS } from '@/lib/analytics-constants';
 import AnalyticsDashboard from './components/analytics-dashboard';
 import { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
