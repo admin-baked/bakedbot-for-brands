@@ -62,8 +62,11 @@ export async function POST(request: NextRequest) {
         // Single org mode
         if (body.orgId && !allOrgs) {
             logger.info('[WMImageSyncCron] Single org sync', { orgId: body.orgId, forceRebuild, dryRun });
-            const result = await runWeedmapsImageSync(body.orgId, { forceRebuild, dryRun });
-            return NextResponse.json({ success: true, result });
+            // Fire-and-forget — avoids proxy timeout on large catalogs
+            runWeedmapsImageSync(body.orgId, { forceRebuild, dryRun })
+                .then(r => logger.info('[WMImageSyncCron] Sync complete', r))
+                .catch(e => logger.error('[WMImageSyncCron] Sync failed', { err: String(e) }));
+            return NextResponse.json({ success: true, status: 'started', orgId: body.orgId });
         }
 
         // All orgs mode — run for every org that has products
