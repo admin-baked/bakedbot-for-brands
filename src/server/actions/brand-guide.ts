@@ -940,7 +940,19 @@ export async function getVersionHistory(
 
     const versions = await repo.getVersionHistory(brandId);
 
-    return { success: true, versions };
+    // Strip snapshot (contains Timestamps) and oldValue/newValue from changes —
+    // the UI only needs field names, not the full diffs, and snapshot is only
+    // needed for rollback (fetched separately by rollbackToVersion).
+    const serializable = versions.map(({ snapshot: _snap, ...v }) => ({
+      version:   v.version,
+      timestamp: v.timestamp instanceof Date ? v.timestamp.toISOString() : String(v.timestamp),
+      updatedBy: v.updatedBy ?? '',
+      isActive:  v.isActive ?? false,
+      tags:      v.tags ?? [],
+      changes:   (v.changes ?? []).map((c) => ({ field: c.field, reason: c.reason ?? '' })),
+    }));
+
+    return { success: true, versions: serializable };
   } catch (error) {
     logger.error('Failed to get version history', { error, brandId });
     return {
@@ -1260,7 +1272,7 @@ export async function saveBrandArchetype(
       archetype: {
         primary,
         secondary: secondary ?? null,
-        selected_at: Timestamp.fromDate(new Date()),
+        selected_at: new Date() as unknown as Timestamp,
         suggested_by_scanner: null,
       },
     });
