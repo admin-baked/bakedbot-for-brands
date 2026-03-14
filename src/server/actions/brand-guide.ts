@@ -1306,6 +1306,25 @@ export async function recordScannerArchetypeSuggestion(
 // ============================================================================
 
 /**
+ * Resolve the best Claude model for an org based on subscription tier.
+ * growth/empire → Sonnet (better brand copy quality, they're paying for it)
+ * scout/pro/none → Haiku (fast, cheap, good enough)
+ */
+async function getModelForOrg(orgId: string): Promise<string> {
+  try {
+    const firestore = getAdminFirestore();
+    const doc = await firestore.collection('subscriptions').doc(orgId).get();
+    const tierId = doc.exists ? (doc.data()?.tierId as string | undefined) : undefined;
+    if (tierId === 'empire' || tierId === 'growth') {
+      return 'claude-sonnet-4-6';
+    }
+  } catch {
+    // Fall through to default
+  }
+  return 'claude-haiku-4-5-20251001';
+}
+
+/**
  * Generate brand messaging from existing brand guide context.
  * Only populates fields that are currently empty.
  */
@@ -1324,7 +1343,7 @@ export async function generateBrandMessagingContent(brandId: string): Promise<{
   try {
     const firestore = getAdminFirestore();
     const repo = makeBrandGuideRepo(firestore);
-    const guide = await repo.getById(brandId);
+    const [guide, model] = await Promise.all([repo.getById(brandId), getModelForOrg(brandId)]);
     if (!guide) return { success: false, error: 'Brand guide not found' };
 
     const name = guide.messaging?.brandName || (guide as any).metadata?.brandName || 'this brand';
@@ -1375,7 +1394,7 @@ Return ONLY valid JSON in this exact structure:
   "brandStoryOrigin": "string"
 }`;
 
-    const raw = await callClaude({ userMessage: prompt, maxTokens: 1000, model: 'claude-haiku-4-5-20251001' });
+    const raw = await callClaude({ userMessage: prompt, maxTokens: 1000, model });
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('No JSON in AI response');
     const generated = JSON.parse(jsonMatch[0]);
@@ -1399,7 +1418,7 @@ export async function generateBrandDisclaimers(brandId: string): Promise<{
   try {
     const firestore = getAdminFirestore();
     const repo = makeBrandGuideRepo(firestore);
-    const guide = await repo.getById(brandId);
+    const [guide, model] = await Promise.all([repo.getById(brandId), getModelForOrg(brandId)]);
     if (!guide) return { success: false, error: 'Brand guide not found' };
 
     const primaryState = guide.compliance?.primaryState || 'CA';
@@ -1429,7 +1448,7 @@ Return ONLY valid JSON:
   "legal": "string"
 }`;
 
-    const raw = await callClaude({ userMessage: prompt, maxTokens: 500, model: 'claude-haiku-4-5-20251001' });
+    const raw = await callClaude({ userMessage: prompt, maxTokens: 500, model });
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('No JSON in AI response');
     const disclaimers = JSON.parse(jsonMatch[0]);
@@ -1454,7 +1473,7 @@ export async function suggestVocabularyTerms(brandId: string): Promise<{
   try {
     const firestore = getAdminFirestore();
     const repo = makeBrandGuideRepo(firestore);
-    const guide = await repo.getById(brandId);
+    const [guide, model] = await Promise.all([repo.getById(brandId), getModelForOrg(brandId)]);
     if (!guide) return { success: false, error: 'Brand guide not found' };
 
     const archetypeId2 = guide.archetype?.primary as ArchetypeId | undefined;
@@ -1491,7 +1510,7 @@ Return ONLY valid JSON:
   ]
 }`;
 
-    const raw = await callClaude({ userMessage: prompt, maxTokens: 600, model: 'claude-haiku-4-5-20251001' });
+    const raw = await callClaude({ userMessage: prompt, maxTokens: 600, model });
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('No JSON in AI response');
     const result = JSON.parse(jsonMatch[0]);
