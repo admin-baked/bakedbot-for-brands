@@ -18,7 +18,7 @@ import { Loader2, Plus, X, Sparkles } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { updateBrandGuide, analyzeBrandVoice } from '@/server/actions/brand-guide';
 import { useToast } from '@/hooks/use-toast';
-import type { BrandGuide, BrandVoice, BrandPersonalityTrait, BrandTone } from '@/types/brand-guide';
+import type { BrandGuide, BrandVoice, BrandPersonalityTrait, BrandTone, BrandWritingStyle } from '@/types/brand-guide';
 
 interface BrandVoiceTabProps {
   brandId: string;
@@ -49,8 +49,39 @@ const TONES: BrandTone[] = [
   'authoritative',
 ];
 
+const DEFAULT_WRITING_STYLE: BrandWritingStyle = {
+  sentenceLength: 'medium',
+  paragraphLength: 'moderate',
+  useEmojis: false,
+  useExclamation: false,
+  useQuestions: false,
+  useHumor: false,
+  formalityLevel: 3,
+  complexity: 'moderate',
+  perspective: 'second-person',
+};
+
+function normalizeVoice(v: BrandVoice | undefined | null): BrandVoice {
+  const raw = (v ?? {}) as Partial<BrandVoice>;
+  const vocab = (raw.vocabulary ?? {}) as Partial<BrandVoice['vocabulary']>;
+  return {
+    personality: raw.personality ?? [],
+    tone: raw.tone ?? 'professional',
+    vocabulary: {
+      preferred: vocab.preferred ?? [],
+      avoid: vocab.avoid ?? [],
+      cannabisTerms: vocab.cannabisTerms ?? [],
+      ...vocab,
+    },
+    writingStyle: { ...DEFAULT_WRITING_STYLE, ...(raw.writingStyle ?? {}) },
+    sampleContent: raw.sampleContent ?? [],
+    ...(raw.subTones ? { subTones: raw.subTones } : {}),
+    ...(raw.voiceAnalysis ? { voiceAnalysis: raw.voiceAnalysis } : {}),
+  };
+}
+
 export function BrandVoiceTab({ brandId, brandGuide, onUpdate }: BrandVoiceTabProps) {
-  const [voice, setVoice] = useState<BrandVoice>(brandGuide.voice);
+  const [voice, setVoice] = useState<BrandVoice>(normalizeVoice(brandGuide.voice));
   const [loading, setLoading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [contentSample, setContentSample] = useState('');
@@ -446,7 +477,7 @@ export function BrandVoiceTab({ brandId, brandGuide, onUpdate }: BrandVoiceTabPr
 
       {/* Save Button */}
       <div className="flex justify-end gap-2">
-        <Button variant="outline" onClick={() => setVoice(brandGuide.voice)}>
+        <Button variant="outline" onClick={() => setVoice(normalizeVoice(brandGuide.voice))}>
           Reset
         </Button>
         <Button onClick={handleSave} disabled={loading}>

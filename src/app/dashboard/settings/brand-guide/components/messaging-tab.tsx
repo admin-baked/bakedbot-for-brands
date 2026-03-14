@@ -17,6 +17,18 @@ import { updateBrandGuide } from '@/server/actions/brand-guide';
 import { useToast } from '@/hooks/use-toast';
 import type { BrandGuide, BrandMessaging } from '@/types/brand-guide';
 
+function normalizeMessaging(m: BrandMessaging | undefined | null): BrandMessaging {
+  const raw = (m ?? {}) as Partial<BrandMessaging>;
+  return {
+    tagline: raw.tagline ?? '',
+    positioning: raw.positioning ?? '',
+    missionStatement: raw.missionStatement ?? '',
+    valuePropositions: raw.valuePropositions ?? [],
+    keyMessages: raw.keyMessages ?? [],
+    ...raw,
+  };
+}
+
 interface MessagingTabProps {
   brandId: string;
   brandGuide: BrandGuide;
@@ -24,7 +36,7 @@ interface MessagingTabProps {
 }
 
 export function MessagingTab({ brandId, brandGuide, onUpdate }: MessagingTabProps) {
-  const [messaging, setMessaging] = useState<BrandMessaging>(brandGuide.messaging);
+  const [messaging, setMessaging] = useState<BrandMessaging>(normalizeMessaging(brandGuide.messaging));
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -256,7 +268,7 @@ export function MessagingTab({ brandId, brandGuide, onUpdate }: MessagingTabProp
 
       {/* Save Button */}
       <div className="flex justify-end gap-2">
-        <Button variant="outline" onClick={() => setMessaging(brandGuide.messaging)}>
+        <Button variant="outline" onClick={() => setMessaging(normalizeMessaging(brandGuide.messaging))}>
           Reset
         </Button>
         <Button onClick={handleSave} disabled={loading}>
