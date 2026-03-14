@@ -65,6 +65,7 @@ import { FeaturedBrandsCarousel } from '@/components/demo/featured-brands-carous
 import { MenuInfoBar } from '@/components/demo/menu-info-bar';
 import type { PublicMenuSettings } from '@/components/demo/menu-info-bar';
 import { MenuFilterSidebar, type MenuFilters, EMPTY_FILTERS } from '@/components/demo/menu-filter-sidebar';
+import { CategoryTabsNav } from '@/components/demo/category-tabs-nav';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 
 interface BrandMenuClientProps {
@@ -666,219 +667,52 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
             }}
           />
 
-          {/* Category Grid - Dynamic from actual products */}
+          {/* Category Tab Navigation */}
           {categoryGridData.length > 0 && (
-            <CategoryGrid
-              title="Shop by Category"
-              categories={categoryGridData}
-              onCategoryClick={(categoryId) => {
-                const cat = categoryGridData.find(c => c.id === categoryId);
-                if (cat) handleCategorySelect(cat.name);
+            <CategoryTabsNav
+              categories={categoryGridData.map(c => ({ id: c.id, name: c.name, count: c.productCount }))}
+              activeCategory={categoryFilter}
+              onSelect={(cat) => {
+                setCategoryFilter(cat);
+                updateUrlParams({ category: cat });
               }}
               primaryColor={primaryColor}
             />
           )}
 
-          {/* Bundle Deals Section (if any) */}
-          {bundlesForDisplay.length > 0 ? (
-            <BundleDealsSection
-              bundles={bundlesForDisplay}
-              title="Bundle & Save"
-              subtitle="Curated packs at special prices. More value, less hassle."
-              primaryColor={primaryColor}
-            />
-          ) : (
-            <BundleDealsSection
-              title="Bundle & Save"
-              subtitle="Curated packs at special prices. More value, less hassle."
-              primaryColor={primaryColor}
-            />
-          )}
-
-          {/* Dynamic Carousels from Dashboard */}
-          {carousels.map((carousel) => {
-            const carouselProducts = products.filter(p => carousel.productIds.includes(p.id));
-            if (carouselProducts.length === 0) return null;
-
-            return (
-              <ProductSection
-                key={carousel.id}
-                title={carousel.title}
-                subtitle={carousel.description || ''}
-                products={carouselProducts}
-                onAddToCart={handleAddToCart}
-                getCartQuantity={getCartItemQuantity}
-                primaryColor={primaryColor}
-                layout="carousel"
-                dealBadge={getDealBadge}
-                onProductClick={setSelectedProduct}
-                onFavorite={toggleFavorite}
-                favorites={favorites}
-              />
-            );
-          })}
-
-          {/* Featured Products Section (fallback if no carousels) */}
-          {carousels.length === 0 && featuredProducts.length > 0 && (
-            <ProductSection
-              title="Customer Favorites"
-              subtitle="Our most loved products based on reviews and sales"
-              products={featuredProducts}
-              onAddToCart={handleAddToCart}
-              getCartQuantity={getCartItemQuantity}
-              primaryColor={primaryColor}
-              layout="carousel"
-              dealBadge={getDealBadge}
-              onProductClick={setSelectedProduct}
-              onFavorite={toggleFavorite}
-              favorites={favorites}
-            />
-          )}
-
-          {/* Deal Products Section */}
-          {dealProducts.length > 0 && (
-            <div id="deals" className="bg-gradient-to-r from-red-500/10 via-orange-500/10 to-yellow-500/10 py-2">
-              <ProductSection
-                title="Daily Deals"
-                subtitle="Limited time offers - grab them while they last!"
-                products={dealProducts}
-                onAddToCart={handleAddToCart}
-                getCartQuantity={getCartItemQuantity}
-                primaryColor="#dc2626"
-                layout="carousel"
-                dealBadge={() => 'SALE'}
-                onProductClick={setSelectedProduct}
-                onFavorite={toggleFavorite}
-                favorites={favorites}
-              />
-            </div>
-          )}
-
-          {/* All Products Section with Sidebar Filters */}
-          <section id="products" className="py-12">
-            <div className="container mx-auto px-4">
-              {/* Section Header */}
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                <div>
-                  <h2 className="text-2xl md:text-3xl font-bold tracking-tight">All Products</h2>
-                  <p className="text-muted-foreground">
-                    {filteredProducts.length} products available
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap gap-3">
-                  {/* Mobile Filters Drawer */}
-                  <Sheet>
-                    <SheetTrigger asChild>
-                      <Button variant="outline" className="lg:hidden gap-2">
-                        <SlidersHorizontal className="h-4 w-4" />
-                        Filters
-                        {activeSidebarFilterCount > 0 && (
-                          <Badge
-                            className="h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs text-white border-0"
-                            style={{ backgroundColor: primaryColor }}
-                          >
-                            {activeSidebarFilterCount}
-                          </Badge>
-                        )}
-                      </Button>
-                    </SheetTrigger>
-                    <SheetContent side="left" className="w-[300px] overflow-y-auto">
-                      <SheetHeader>
-                        <SheetTitle>Filter Products</SheetTitle>
-                      </SheetHeader>
-                      <div className="mt-4">
-                        <MenuFilterSidebar
-                          products={allProducts}
-                          filters={sidebarFilters}
-                          onChange={handleSidebarFilterChange}
-                          primaryColor={primaryColor}
-                        />
-                      </div>
-                    </SheetContent>
-                  </Sheet>
-
-                  {/* Search */}
-                  <div className="relative flex-1 min-w-[200px] md:w-[300px]">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search products..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10"
-                    />
+          <div id="products">
+            {searchQuery ? (
+              /* Search Results — shown only when search is active */
+              <section className="py-8">
+                <div className="container mx-auto px-4">
+                  <div className="flex items-center justify-between gap-4 mb-6">
+                    <div>
+                      <h2 className="text-xl font-bold">Search Results</h2>
+                      <p className="text-muted-foreground text-sm">
+                        {filteredProducts.length} products found for &ldquo;{searchQuery}&rdquo;
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => { setSearchQuery(''); updateUrlParams({ q: '' }); }}
+                    >
+                      Clear
+                    </Button>
                   </div>
-                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                    <SelectTrigger className="w-[160px]">
-                      <SelectValue placeholder="Category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Categories</SelectItem>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger className="w-[160px]">
-                      <SelectValue placeholder="Sort by" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="popular">Most Popular</SelectItem>
-                      <SelectItem value="price-low">Price: Low to High</SelectItem>
-                      <SelectItem value="price-high">Price: High to Low</SelectItem>
-                      <SelectItem value="thc-high">THC: High to Low</SelectItem>
-                      <SelectItem value="name">Name (A-Z)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Two-column layout: sticky sidebar + product grid */}
-              <div className="flex gap-8">
-                {/* Desktop sidebar */}
-                <aside className="hidden lg:block w-52 shrink-0">
-                  <div className="sticky top-4">
-                    <MenuFilterSidebar
-                      products={allProducts}
-                      filters={sidebarFilters}
-                      onChange={handleSidebarFilterChange}
-                      primaryColor={primaryColor}
-                    />
-                  </div>
-                </aside>
-
-                {/* Main content */}
-                <div className="flex-1 min-w-0">
-                  {/* Products Grid */}
                   {filteredProducts.length === 0 ? (
                     <Card>
                       <CardContent className="flex flex-col items-center justify-center py-16">
                         <ShoppingCart className="h-16 w-16 text-muted-foreground mb-4" />
                         <p className="text-xl font-medium mb-2">No products found</p>
-                        <p className="text-muted-foreground mb-4">
-                          Try adjusting your search or filters
-                        </p>
-                        <Button variant="outline" onClick={() => { setSearchQuery(''); setCategoryFilter('all'); setSidebarFilters(EMPTY_FILTERS); }}>
-                          Clear Filters
+                        <p className="text-muted-foreground mb-4">Try adjusting your search</p>
+                        <Button variant="outline" onClick={() => { setSearchQuery(''); updateUrlParams({ q: '' }); }}>
+                          Clear Search
                         </Button>
                       </CardContent>
                     </Card>
-                  ) : isManageMode ? (
-                    <ManagedProductGrid
-                      products={filteredProducts}
-                      primaryColor={primaryColor}
-                      onAddToCart={handleAddToCart}
-                      getCartQuantity={getCartItemQuantity}
-                      onProductClick={setSelectedProduct}
-                      onFavorite={toggleFavorite}
-                      favorites={favorites}
-                      getDealBadge={getDealBadge}
-                      onReorderSave={onProductReorder}
-                      onToggleFeatured={onToggleFeatured}
-                    />
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
                       {filteredProducts.map((product) => (
                         <OversizedProductCard
                           key={product.id}
@@ -896,36 +730,106 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
                     </div>
                   )}
                 </div>
-              </div>
-            </div>
-          </section>
+              </section>
+            ) : (
+              <>
+                {/* Dynamic Carousels from Dashboard */}
+                {carousels.map((carousel) => {
+                  const carouselProducts = products.filter(p => carousel.productIds.includes(p.id));
+                  if (carouselProducts.length === 0) return null;
+                  return (
+                    <ProductSection
+                      key={carousel.id}
+                      title={carousel.title}
+                      subtitle={carousel.description || ''}
+                      products={carouselProducts}
+                      onAddToCart={handleAddToCart}
+                      getCartQuantity={getCartItemQuantity}
+                      primaryColor={primaryColor}
+                      layout="carousel"
+                      dealBadge={getDealBadge}
+                      onProductClick={setSelectedProduct}
+                      onFavorite={toggleFavorite}
+                      favorites={favorites}
+                    />
+                  );
+                })}
 
-          {/* Category Sections */}
-          {categoryFilter === 'all' && categories.map((category) => {
-            const categoryProducts = productsByCategory[category] || [];
-            if (categoryProducts.length === 0) return null;
+                {/* Featured Products (fallback if no carousels) */}
+                {carousels.length === 0 && featuredProducts.length > 0 && (
+                  <ProductSection
+                    title="Customer Favorites"
+                    subtitle="Our most loved products based on reviews and sales"
+                    products={featuredProducts}
+                    onAddToCart={handleAddToCart}
+                    getCartQuantity={getCartItemQuantity}
+                    primaryColor={primaryColor}
+                    layout="carousel"
+                    dealBadge={getDealBadge}
+                    onProductClick={setSelectedProduct}
+                    onFavorite={toggleFavorite}
+                    favorites={favorites}
+                  />
+                )}
 
-            const categoryId = `category-${category.toLowerCase().replace(/\s+/g, '-')}`;
+                {/* Bundle Deals */}
+                {bundlesForDisplay.length > 0 && (
+                  <BundleDealsSection
+                    bundles={bundlesForDisplay}
+                    title="Bundle & Save"
+                    subtitle="Curated packs at special prices. More value, less hassle."
+                    primaryColor={primaryColor}
+                  />
+                )}
 
-            return (
-              <ProductSection
-                key={category}
-                id={categoryId}
-                title={category}
-                subtitle={`${categoryProducts.length} products`}
-                products={categoryProducts.slice(0, 8)}
-                onAddToCart={handleAddToCart}
-                getCartQuantity={getCartItemQuantity}
-                primaryColor={primaryColor}
-                layout="carousel"
-                onViewAll={() => handleCategorySelect(category)}
-                dealBadge={getDealBadge}
-                onProductClick={setSelectedProduct}
-                onFavorite={toggleFavorite}
-                favorites={favorites}
-              />
-            );
-          })}
+                {/* Deal Products — shown for "All" or "Offers" tab */}
+                {dealProducts.length > 0 && (categoryFilter === 'all' || categoryFilter === 'Offers') && (
+                  <div id="category-offers" className="bg-gradient-to-r from-red-500/10 via-orange-500/10 to-yellow-500/10 py-2">
+                    <ProductSection
+                      title="Daily Deals"
+                      subtitle="Limited time offers - grab them while they last!"
+                      products={dealProducts}
+                      onAddToCart={handleAddToCart}
+                      getCartQuantity={getCartItemQuantity}
+                      primaryColor="#dc2626"
+                      layout="carousel"
+                      dealBadge={() => 'SALE'}
+                      onProductClick={setSelectedProduct}
+                      onFavorite={toggleFavorite}
+                      favorites={favorites}
+                    />
+                  </div>
+                )}
+
+                {/* Category Carousels — primary browsing UI */}
+                {categories.map((category) => {
+                  if (categoryFilter !== 'all' && categoryFilter !== category) return null;
+                  const categoryProducts = productsByCategory[category] || [];
+                  if (categoryProducts.length === 0) return null;
+                  const categoryId = `category-${category.toLowerCase().replace(/\s+/g, '-')}`;
+                  const isExpanded = categoryFilter === category;
+                  return (
+                    <ProductSection
+                      key={category}
+                      id={categoryId}
+                      title={category}
+                      subtitle={`${categoryProducts.length} products`}
+                      products={isExpanded ? categoryProducts : categoryProducts.slice(0, 8)}
+                      onAddToCart={handleAddToCart}
+                      getCartQuantity={getCartItemQuantity}
+                      primaryColor={primaryColor}
+                      layout="carousel"
+                      onViewAll={!isExpanded ? () => handleCategorySelect(category) : undefined}
+                      dealBadge={getDealBadge}
+                      onProductClick={setSelectedProduct}
+                      onFavorite={toggleFavorite}
+                      favorites={favorites}
+                    />
+                  );
+                })}
+              </>
+            )}
+          </div>
         </main>
 
         {/* Footer with Dispensary Location */}

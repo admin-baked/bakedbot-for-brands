@@ -26,6 +26,12 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { getStorage } from 'firebase-admin/storage';
 import type { Firestore } from 'firebase-admin/firestore';
 import { logger } from '@/lib/logger';
+import {
+    lookupStrainImage,
+    saveStrainImage,
+    bulkSaveStrainImages,
+    toStrainSlug,
+} from './strain-image-db';
 
 // ============================================================================
 // CONFIGURATION
@@ -314,6 +320,8 @@ async function buildLeaflyImageCatalog(
             }
             found++;
             logger.debug('[PRODUCT_IMG] Image found', { name, slug: result.slug });
+            // Persist to global strain image library (fire-and-forget)
+            saveStrainImage(result.slug, result.imageUrl, 'leafly_cdn').catch(() => {});
         } else {
             notFound++;
         }
@@ -379,7 +387,7 @@ export async function getOrBuildCatalog(
 
     const catalog = await buildLeaflyImageCatalog(productNames);
 
-    // Cache in Firestore
+    // Cache in Firestore (org-scoped, 7-day TTL)
     await db.collection('wm_image_catalog').doc(docId).set({
         entries: Object.fromEntries(catalog),
         builtAt: new Date(),
@@ -387,6 +395,19 @@ export async function getOrBuildCatalog(
         source: 'leafly',
         orgId: orgId || null,
     });
+
+    // Persist to global strain image library so future orgs get images for free
+    if (catalog.size > 0) {
+        // Convert normalized-name keys to strain slugs for the global library
+        const slugMap = new Map<string, string>();
+        for (const [name, url] of catalog) {
+            const slug = toStrainSlug(name);
+            if (slug.length >= 2 && !slugMap.has(slug)) {
+                slugMap.set(slug, url);
+            }
+        }
+        bulkSaveStrainImages(slugMap, 'leafly_cdn').catch(() => {});
+    }
 
     return catalog;
 }
@@ -532,13 +553,25 @@ export async function syncOrgProductImages(
             }
         }
 
-        // Last resort: look up on Leafly directly (adds latency but covers catalog misses)
+        // Global strain library lookup — checks pre-scraped images across all orgs
+        if (!imageUrl) {
+            const strainSlug = toStrainSlug(normName);
+            imageUrl = await lookupStrainImage(strainSlug) ?? undefined;
+            if (imageUrl) {
+                catalog.set(normName, imageUrl); // warm the org cache too
+                logger.debug('[PRODUCT_IMG] Global DB hit', { name, strainSlug });
+            }
+        }
+
+        // Last resort: look up on Leafly directly (adds latency but covers all misses)
         if (!imageUrl) {
             const result = await findProductImage(name);
             if (result) {
                 imageUrl = result.imageUrl;
-                // Add to catalog for future lookups
+                // Add to org catalog
                 catalog.set(normName, imageUrl);
+                // Persist to global library for future orgs
+                saveStrainImage(result.slug, result.imageUrl, 'leafly_cdn').catch(() => {});
             }
         }
 
@@ -555,20 +588,19 @@ export async function syncOrgProductImages(
 
         // Download + re-host on Firebase Storage, fall back to CDN URL
         const storedUrl = await storeProductImage(imageUrl, brand, name);
-        if (storedUrl) {
-            await doc.ref.update({
-                imageUrl: storedUrl,
-                imageSource: 'leafly',
-                imageUpdatedAt: new Date(),
-            });
-        } else {
-            // Use CDN URL directly if Firebase Storage upload fails
-            await doc.ref.update({
-                imageUrl,
-                imageSource: 'leafly_cdn',
-                imageUpdatedAt: new Date(),
-            });
-        }
+        const finalUrl = storedUrl || imageUrl;
+        const finalSource = storedUrl ? 'leafly' : 'leafly_cdn';
+
+        await doc.ref.update({
+            imageUrl: finalUrl,
+            imageSource: finalSource,
+            imageUpdatedAt: new Date(),
+        });
+
+        // Persist to global strain library with the real Storage URL
+        const strainSlug = toStrainSlug(normalize(name));
+        saveStrainImage(strainSlug, finalUrl, finalSource, storedUrl ? imageUrl : undefined).catch(() => {});
+
         updated++;
 
         await sleep(100); // Brief pause between updates
