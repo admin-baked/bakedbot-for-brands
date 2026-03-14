@@ -15,18 +15,19 @@ interface CompetitorSetupWizardProps {
     hasCompetitors: boolean;
     overrideRole?: 'brand' | 'dispensary'; // Explicit role override
     maxCompetitors?: number; // Plan-based competitor limit
+    autoOpen?: boolean; // Whether to auto-open when no competitors (default true)
 }
 
-export function CompetitorSetupWizard({ hasCompetitors, overrideRole, maxCompetitors = 5 }: CompetitorSetupWizardProps) {
+export function CompetitorSetupWizard({ hasCompetitors, overrideRole, maxCompetitors = 5, autoOpen = true }: CompetitorSetupWizardProps) {
     const { role: userRole } = useUserRole();
     const searchType = overrideRole || (userRole === 'brand' ? 'brand' : 'dispensary');
-    const [open, setOpen] = useState(!hasCompetitors);
+    const [open, setOpen] = useState(autoOpen && !hasCompetitors);
     const [step, setStep] = useState(1);
 
     // Sync dialog state with hasCompetitors prop (fixes state drift when competitors load after mount)
     useEffect(() => {
-        setOpen(!hasCompetitors);
-    }, [hasCompetitors]);
+        if (autoOpen) setOpen(!hasCompetitors);
+    }, [hasCompetitors, autoOpen]);
     
     // Search Inputs
     const [mode, setMode] = useState<'zip' | 'city'>('city');

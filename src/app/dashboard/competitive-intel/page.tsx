@@ -11,15 +11,13 @@ import { LayoutDashboard, Zap, MapPin, TrendingUp, Search, Loader2, Plus, Trash2
 import { useUserRole } from '@/hooks/use-user-role';
 import { EzalSnapshotCard } from '@/components/dashboard/ezal-snapshot-card';
 import { useToast } from '@/hooks/use-toast';
-import { getCompetitors, autoDiscoverCompetitors, addManualCompetitor, removeCompetitor, fetchCompetitiveReport } from './actions';
+import { getCompetitors, autoDiscoverCompetitors, addManualCompetitor, removeCompetitor, getLatestDailyReport } from './actions';
 import type { CompetitorEntry, CompetitorSnapshot } from './actions';
 import { CompetitorSetupWizard } from '../intelligence/components/competitor-setup-wizard';
 import { FileText } from 'lucide-react';
-import { useUser } from '@/firebase/auth/use-user';
 
 export default function CompetitiveIntelPage() {
-    const { role } = useUserRole();
-    const { user } = useUser();
+    const { role, user, orgId: hookOrgId } = useUserRole();
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
     const [snapshot, setSnapshot] = useState<CompetitorSnapshot | null>(null);
@@ -32,14 +30,16 @@ export default function CompetitiveIntelPage() {
     const [newAddress, setNewAddress] = useState('');
     const [adding, setAdding] = useState(false);
 
-    const orgId = user?.uid || '';
+    // Use hookOrgId (from JWT claims) as primary; fall back to UID for legacy competitor collections
+    const legacyOrgId = (user as any)?.uid || '';
+    const orgId = hookOrgId || legacyOrgId;
 
     const loadCompetitors = useCallback(async () => {
-        if (!orgId) return;
+        if (!orgId && !legacyOrgId) return;
         try {
             const [data, report] = await Promise.all([
-                getCompetitors(orgId),
-                fetchCompetitiveReport(orgId)
+                getCompetitors(legacyOrgId || orgId),
+                getLatestDailyReport(orgId)
             ]);
             setSnapshot(data);
             setReportMarkdown(report);
@@ -48,15 +48,15 @@ export default function CompetitiveIntelPage() {
         } finally {
             setLoading(false);
         }
-    }, [orgId]);
+    }, [orgId, legacyOrgId]);
 
     useEffect(() => {
-        if (orgId) {
+        if (orgId || legacyOrgId) {
             loadCompetitors();
         } else {
             setLoading(false);
         }
-    }, [orgId, loadCompetitors]);
+    }, [orgId, legacyOrgId, loadCompetitors]);
 
     const handleRefresh = async () => {
         if (!snapshot?.canRefresh) {
@@ -146,6 +146,7 @@ export default function CompetitiveIntelPage() {
                     <CompetitorSetupWizard
                         hasCompetitors={(snapshot?.competitors.length || 0) > 0}
                         maxCompetitors={snapshot?.maxCompetitors || 1000}
+                        autoOpen={false}
                     />
                     <Button variant="outline" size="sm" onClick={() => setShowAddForm(!showAddForm)}>
                         <Plus className="h-4 w-4 mr-2" />
@@ -250,7 +251,7 @@ export default function CompetitiveIntelPage() {
                                     ? "Report generating... Check back after the next scheduled scan."
                                     : "Configure competitors to generate your first strategic report."}
                             </p>
-                            {(snapshot?.competitors.length || 0) === 0 && <CompetitorSetupWizard hasCompetitors={false} />}
+                            {(snapshot?.competitors.length || 0) === 0 && <CompetitorSetupWizard hasCompetitors={false} autoOpen={false} />}
                         </div>
                     )}
                 </CardContent>

@@ -398,6 +398,44 @@ async function saveReportToDrive(
         }
     }
 
+    // Find or create "Competitive Intel Reports" folder
+    const FOLDER_NAME = 'Competitive Intel Reports';
+    let folderId: string | null = null;
+    try {
+        const existingFolder = await firestore
+            .collection('drive_folders')
+            .where('name', '==', FOLDER_NAME)
+            .where('ownerId', '==', adminUserId)
+            .limit(1)
+            .get();
+
+        if (!existingFolder.empty) {
+            folderId = existingFolder.docs[0].id;
+        } else {
+            const folderRef = firestore.collection('drive_folders').doc();
+            const now = Date.now();
+            await folderRef.set({
+                id: folderRef.id,
+                name: FOLDER_NAME,
+                path: `/${FOLDER_NAME}`,
+                folderId: null,
+                ownerId: adminUserId,
+                ownerEmail: adminEmail,
+                isShared: false,
+                shareIds: [],
+                createdAt: now,
+                updatedAt: now,
+                isDeleted: false,
+                metadata: { orgId },
+            });
+            await folderRef.update({ id: folderRef.id });
+            folderId = folderRef.id;
+            logger.info('[WeeklyReport] Created Drive folder', { folderId, name: FOLDER_NAME });
+        }
+    } catch (folderError) {
+        logger.warn('[WeeklyReport] Could not create Drive folder, saving to root', { folderError });
+    }
+
     // Save to Drive under 'documents' category
     const uploadResult = await driveService.uploadFile({
         userId: adminUserId,
@@ -409,7 +447,7 @@ async function saveReportToDrive(
             size: buffer.length,
         },
         category: 'documents',
-        description: `Weekly Competitive Intelligence Report - ${new Date().toLocaleDateString()}`,
+        description: `Daily Competitive Intelligence Report - ${new Date().toLocaleDateString()}`,
         tags: ['competitive-intel', 'automated', 'ezal'],
         metadata: {
             orgId,
@@ -441,13 +479,13 @@ async function saveReportToDrive(
         size: buffer.length,
         storagePath: uploadResult.storagePath!,
         downloadUrl: uploadResult.downloadUrl!,
-        folderId: null,
-        path: `/${filename}`,
+        folderId,
+        path: folderId ? `/${FOLDER_NAME}/${filename}` : `/${filename}`,
         ownerId: adminUserId,
         ownerEmail: adminEmail,
         category: 'documents',
         tags: ['competitive-intel', 'automated', 'ezal'],
-        description: `Weekly Competitive Intelligence Report - ${new Date().toLocaleDateString()}`,
+        description: `Daily Competitive Intelligence Report - ${new Date().toLocaleDateString()}`,
         metadata: {
             orgId,
             reportId,

@@ -391,7 +391,7 @@ export async function researchAndGenerateBlog(input: {
             topic: input.topic,
             category: input.category,
             orgId: input.orgId,
-            userId: input.userId,
+            userId: input.userId ?? user.uid,
             seoKeywords: brief.suggestedKeywords,
         },
         brief.rawResearch,
