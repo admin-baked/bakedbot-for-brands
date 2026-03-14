@@ -1696,8 +1696,74 @@ Notes: ${c.notes || 'None'}
         }
     }
 
+    // Inject org identity so agents know who they're working for
+    let orgIdentityBlock = '';
+    if (thread.orgId) {
+        try {
+            const { getOrgProfileWithFallback } = await import('@/server/services/org-profile');
+            const orgProfile = await getOrgProfileWithFallback(thread.orgId).catch(() => null);
+            if (orgProfile?.brand?.name) {
+                const b = orgProfile.brand;
+                const location = [b.city, b.state].filter(Boolean).join(', ');
+                orgIdentityBlock = `\n\n=== ORG IDENTITY ===
+Organization: ${b.name}${location ? `\nLocation: ${location}` : ''}${b.organizationType ? `\nType: ${b.organizationType}` : ''}
+Org ID: ${thread.orgId}
+=== END ORG IDENTITY ===`;
+            } else {
+                // Fallback: read basic info from tenants or organizations doc
+                const { createServerClient } = await import('@/firebase/server-client');
+                const { firestore } = await createServerClient();
+                // Try tenants collection first, then organizations (legacy)
+                const [tenantDoc, orgDoc] = await Promise.all([
+                    firestore.collection('tenants').doc(thread.orgId).get().catch(() => null),
+                    firestore.collection('organizations').doc(thread.orgId).get().catch(() => null),
+                ]);
+                const tenantData = tenantDoc?.data?.();
+                const orgData = orgDoc?.data?.();
+                const rawName = tenantData?.name || tenantData?.orgName || orgData?.name || orgData?.orgName;
+                const rawCity = tenantData?.city || orgData?.city;
+                const rawState = tenantData?.state || orgData?.marketState || orgData?.state;
+                const rawType = tenantData?.type || orgData?.type;
+                if (rawName) {
+                    const location = [rawCity, rawState].filter(Boolean).join(', ');
+                    orgIdentityBlock = `\n\n=== ORG IDENTITY ===
+Organization: ${rawName}${location ? `\nLocation: ${location}` : ''}${rawType ? `\nType: ${rawType}` : ''}
+Org ID: ${thread.orgId}
+=== END ORG IDENTITY ===`;
+                }
+            }
+        } catch {
+            // Non-fatal — agent can still function without org identity
+        }
+    }
+
+    // Inject competitive intel status if org has competitors tracked
+    let competitiveIntelBlock = '';
+    if (thread.orgId && orgIdentityBlock) {
+        try {
+            const { createServerClient } = await import('@/firebase/server-client');
+            const { firestore } = await createServerClient();
+            const [oldCompSnap, newCompSnap] = await Promise.all([
+                firestore.collection('organizations').doc(thread.orgId)
+                    .collection('competitors').limit(1).get().catch(() => null),
+                firestore.collection('tenants').doc(thread.orgId)
+                    .collection('competitors').where('active', '==', true).limit(1).get().catch(() => null),
+            ]);
+            const hasCompetitors = !oldCompSnap?.empty || !newCompSnap?.empty;
+            if (hasCompetitors) {
+                competitiveIntelBlock = `\nCompetitive Intelligence: ACTIVE — Daily competitor monitoring is running for this org.`;
+            }
+        } catch {
+            // Non-fatal
+        }
+    }
+
+    if (orgIdentityBlock && competitiveIntelBlock) {
+        orgIdentityBlock = orgIdentityBlock.replace('=== END ORG IDENTITY ===', `${competitiveIntelBlock}\n=== END ORG IDENTITY ===`);
+    }
+
     return `Thread Context: ${thread.title}
-Thread Type: ${thread.type}${projectContext}${customerContext}
+Thread Type: ${thread.type}${orgIdentityBlock}${projectContext}${customerContext}
 
 ${typeContexts[thread.type]}
 
