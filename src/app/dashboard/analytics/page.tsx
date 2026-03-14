@@ -2,23 +2,50 @@
 import { requireUser } from '@/server/auth/auth';
 import { redirect } from 'next/navigation';
 import { getAnalyticsData } from './actions';
+import { getAnalyticsPrefs, DEFAULT_WIDGETS } from '@/server/actions/analytics-prefs';
 import AnalyticsDashboard from './components/analytics-dashboard';
 import { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export const dynamic = 'force-dynamic';
 
+const EMPTY_ANALYTICS = {
+  totalRevenue: 0,
+  totalOrders: 0,
+  averageOrderValue: 0,
+  salesByProduct: [],
+  salesByCategory: [],
+  affinityPairs: [],
+  dailyStats: [],
+  conversionFunnel: [],
+  channelPerformance: [],
+  repeatCustomerRate: 0,
+  churnRate: 0,
+  cohorts: [],
+};
+
+const EMPTY_PREFS = {
+  enabledWidgets: [...DEFAULT_WIDGETS],
+  updatedAt: '',
+};
+
 function AnalyticsSkeleton() {
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Skeleton className="h-28 w-full" />
-        <Skeleton className="h-28 w-full" />
-        <Skeleton className="h-28 w-full" />
+      {/* Tab nav skeleton */}
+      <div className="border-b flex gap-4 pb-2">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Skeleton key={i} className="h-6 w-20" />
+        ))}
+      </div>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-28 w-full" />
+        ))}
       </div>
       <Skeleton className="h-96 w-full" />
     </div>
-  )
+  );
 }
 
 export default async function DashboardAnalyticsPage() {
@@ -35,55 +62,42 @@ export default async function DashboardAnalyticsPage() {
       'super_user',
       'super_admin',
     ]);
-  } catch (error) {
+  } catch {
     redirect('/signin');
   }
 
-  const brandId = (user as any).brandId || (user as any).currentOrgId || (user as any).orgId;
-  if (!brandId) {
-    // This could happen if an 'owner' without a brandId lands here.
-    // In a real app, you might have an org selector. For now, we'll show an empty state.
-    return <AnalyticsDashboard initialData={{
-      totalRevenue: 0,
-      totalOrders: 0,
-      averageOrderValue: 0,
-      salesByProduct: [],
-      salesByCategory: [],
-      affinityPairs: [],
-      dailyStats: [],
-      conversionFunnel: [],
-      channelPerformance: [],
-      repeatCustomerRate: 0,
-      churnRate: 0,
-      cohorts: []
-    }} />;
+  const orgId =
+    (user as any).brandId ||
+    (user as any).currentOrgId ||
+    (user as any).orgId ||
+    '';
+
+  const userRole = (user as any).role ?? 'brand';
+
+  if (!orgId) {
+    return (
+      <AnalyticsDashboard
+        initialData={EMPTY_ANALYTICS}
+        prefs={EMPTY_PREFS}
+        orgId=""
+        userRole={userRole}
+      />
+    );
   }
 
-  let analyticsData;
-  try {
-    analyticsData = await getAnalyticsData(brandId);
-  } catch (error) {
-    console.error('Failed to fetch analytics data:', error);
-    // Return empty/safe data instead of crashing
-    analyticsData = {
-      totalRevenue: 0,
-      totalOrders: 0,
-      averageOrderValue: 0,
-      salesByProduct: [],
-      salesByCategory: [],
-      affinityPairs: [],
-      dailyStats: [],
-      conversionFunnel: [],
-      channelPerformance: [],
-      repeatCustomerRate: 0,
-      churnRate: 0,
-      cohorts: []
-    };
-  }
+  const [analyticsData, prefs] = await Promise.all([
+    getAnalyticsData(orgId).catch(() => EMPTY_ANALYTICS),
+    getAnalyticsPrefs().catch(() => EMPTY_PREFS),
+  ]);
 
   return (
     <Suspense fallback={<AnalyticsSkeleton />}>
-      <AnalyticsDashboard initialData={analyticsData} />
+      <AnalyticsDashboard
+        initialData={analyticsData}
+        prefs={prefs}
+        orgId={orgId}
+        userRole={userRole}
+      />
     </Suspense>
   );
 }
