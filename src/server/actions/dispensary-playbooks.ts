@@ -73,16 +73,39 @@ function sanitizePlaybookCustomConfig(config: PlaybookCustomConfig): PlaybookCus
  */
 export async function getDispensaryPlaybookAssignments(orgId: string): Promise<DispensaryPlaybookData> {
     const session = await requireUser();
-    if (!isUserAuthorizedForOrg(session as unknown as Record<string, unknown>, orgId)) {
-        logger.warn('[DispensaryPlaybooks] Forbidden org access', {
-            orgId,
-            role: (session as any)?.role ?? null,
-            uid: (session as any)?.uid ?? null,
-        });
-        throw new Error('Forbidden: You do not have access to this organization');
-    }
+    const authorized = isUserAuthorizedForOrg(session as unknown as Record<string, unknown>, orgId);
 
     const db = getAdminFirestore();
+
+    if (!authorized) {
+        // JWT claims may be stale (e.g. after admin reset) — try Firestore user profile as fallback
+        const uid = (session as any)?.uid as string | undefined;
+        let profileAuthorized = false;
+        if (uid) {
+            try {
+                const userDoc = await db.collection('users').doc(uid).get();
+                if (userDoc.exists) {
+                    const profile = userDoc.data();
+                    const profileOrgId = profile?.orgId || profile?.currentOrgId || profile?.locationId;
+                    profileAuthorized = profileOrgId === orgId;
+                    if (profileAuthorized) {
+                        logger.info('[DispensaryPlaybooks] Auth via Firestore profile (stale JWT claims)', { orgId, uid });
+                    }
+                }
+            } catch (e) {
+                logger.warn('[DispensaryPlaybooks] Failed to read user profile for fallback auth', { uid });
+            }
+        }
+
+        if (!profileAuthorized) {
+            logger.warn('[DispensaryPlaybooks] Forbidden org access', {
+                orgId,
+                role: (session as any)?.role ?? null,
+                uid: uid ?? null,
+            });
+            throw new Error('Forbidden: You do not have access to this organization');
+        }
+    }
 
     // Query by orgId (composite index: orgId ASC, status ASC)
     const snap = await db
