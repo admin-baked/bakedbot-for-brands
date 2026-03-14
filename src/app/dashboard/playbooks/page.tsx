@@ -65,7 +65,7 @@ function mapStoredPlaybookToCard(playbook: StoredPlaybook): Playbook {
 
 export default function PlaybooksPage() {
     const router = useRouter();
-    const { role, user } = useUserRole();
+    const { role, user, orgId: hookOrgId } = useUserRole();
     const { toast } = useToast();
     const [searchQuery, setSearchQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState<PlaybookFilterCategory>('All');
@@ -329,7 +329,7 @@ export default function PlaybooksPage() {
     const isBrandRole = role === 'brand' || role === 'brand_admin' || role === 'brand_member';
 
     if (isDispensaryRole) {
-        const orgId = (user as any)?.currentOrgId || (user as any)?.orgId || user?.uid || '';
+        const orgId = hookOrgId || (user as any)?.currentOrgId || (user as any)?.orgId || '';
         return <DispensaryPlaybooksView orgId={orgId} />;
     }
 
