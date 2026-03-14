@@ -485,6 +485,20 @@ function needsRealImage(imageUrl: string | undefined): boolean {
 }
 
 /**
+ * Leafly only has strain/nug photos (cannabis flower images).
+ * Applying flower bud photos to vapes, edibles, etc. is visually wrong.
+ * Only assign strain images to product types where the plant photo is appropriate.
+ */
+const STRAIN_IMAGE_CATEGORIES = new Set([
+    'flower', 'flowers', 'pre-roll', 'pre-rolls', 'pre roll', 'pre rolls',
+]);
+
+function categoryUsesStrainImage(category: string | undefined): boolean {
+    if (!category) return true; // Unknown — attempt match
+    return STRAIN_IMAGE_CATEGORIES.has(category.toLowerCase());
+}
+
+/**
  * Fetch products from the tenant catalog.
  * Thrive and all POS-integrated orgs store products at:
  *   tenants/{orgId}/publicViews/products/items
@@ -538,20 +552,17 @@ export async function syncOrgProductImages(
         const product = doc.data();
         const name = product.name || '';
         const brand = product.brand || '';
+        const category = product.category || '';
+
+        // Leafly only has strain/nug (flower) images.
+        // Don't apply flower bud photos to vapes, edibles, concentrates, etc.
+        if (!categoryUsesStrainImage(category)) {
+            continue;
+        }
 
         // Try catalog lookup by normalized name (exact match)
         const normName = normalize(name);
         let imageUrl = catalog.get(normName);
-
-        // Fuzzy fallback: try prefix matching on the catalog
-        if (!imageUrl) {
-            for (const [k, v] of catalog) {
-                if (normName.startsWith(k.substring(0, 8)) || k.startsWith(normName.substring(0, 8))) {
-                    imageUrl = v;
-                    break;
-                }
-            }
-        }
 
         // Global strain library lookup — checks pre-scraped images across all orgs
         if (!imageUrl) {
