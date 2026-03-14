@@ -608,6 +608,28 @@ export async function createInboxArtifact(input: {
 
         logger.info('Created inbox artifact', { artifactId, type: input.type, threadId: input.threadId });
 
+        // Auto-save images and videos to Drive (fire-and-forget — non-blocking)
+        if (input.type === 'creative_content') {
+            const cc = input.data as { mediaUrls?: string[]; mediaType?: string; platform?: string; generationPrompt?: string };
+            if (cc?.mediaUrls?.length && (cc.mediaType === 'image' || cc.mediaType === 'video')) {
+                Promise.resolve().then(async () => {
+                    try {
+                        const { saveMediaUrlsToDrive } = await import('@/server/services/inbox-drive-bridge');
+                        await saveMediaUrlsToDrive({
+                            artifactId,
+                            mediaUrls: cc.mediaUrls!,
+                            mediaType: cc.mediaType as 'image' | 'video',
+                            title: cc.generationPrompt?.slice(0, 60) || `${cc.mediaType}-${Date.now()}`,
+                            orgId: thread.orgId,
+                            ownerId: user.uid,
+                            ownerEmail: user.email || '',
+                            platform: cc.platform,
+                        });
+                    } catch { /* non-fatal */ }
+                });
+            }
+        }
+
         return { success: true, artifact: serializeArtifact(artifact) };
     } catch (error) {
         logger.error('Failed to create inbox artifact', { error });

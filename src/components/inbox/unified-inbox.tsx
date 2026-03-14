@@ -126,8 +126,9 @@ export function UnifiedInbox({ className }: UnifiedInboxProps) {
             dispensaryId: orgId || undefined,
             customerId,
             customerEmail,
-        }).catch(() => {
-            // Silent fail — thread exists in local store
+        }).catch((err) => {
+            // Log but don't crash — thread remains in local store until next sync
+            console.error('[UnifiedInbox] Failed to persist thread to server:', err);
         });
     }, [searchParams, role, orgId, createThread, setActiveThread]);
 
