@@ -178,6 +178,72 @@ async function launchResumeJob(
     }
 }
 
+// ---------------------------------------------------------------------------
+// executeVmStep — run a JavaScript step through /api/vm/run and update the
+// vm_run artifact in Firestore.
+// ---------------------------------------------------------------------------
+
+export async function executeVmStep(input: {
+    runId: string;
+    stepId: string;
+    code: string;
+    language?: string;
+    timeoutMs?: number;
+}): Promise<{
+    success: boolean;
+    stdout?: string;
+    stderr?: string;
+    durationMs?: number;
+    error?: string;
+}> {
+    try {
+        await requireUser();
+
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+        const response = await fetch(`${baseUrl}/api/vm/run`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                code: input.code,
+                language: input.language ?? 'javascript',
+                runId: input.runId,
+                stepId: input.stepId,
+                timeout: input.timeoutMs,
+            }),
+        });
+
+        if (!response.ok) {
+            return { success: false, error: `HTTP ${response.status}` };
+        }
+
+        const result = await response.json() as {
+            success: boolean;
+            stdout: string;
+            stderr: string;
+            exitCode: number;
+            durationMs: number;
+        };
+
+        logger.info('[AgentVmAction] executeVmStep completed', {
+            runId: input.runId,
+            stepId: input.stepId,
+            exitCode: result.exitCode,
+            durationMs: result.durationMs,
+        });
+
+        return {
+            success: result.success,
+            stdout: result.stdout,
+            stderr: result.stderr,
+            durationMs: result.durationMs,
+        };
+    } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        logger.error('[AgentVmAction] executeVmStep failed', { error: message, input });
+        return { success: false, error: message };
+    }
+}
+
 export async function resolveVmToolApproval(input: {
     orgId: string;
     approvalId: string;
