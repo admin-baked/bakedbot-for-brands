@@ -18,8 +18,8 @@ import SmokeySupportPanel from './smokey-support-panel';
 import HelpSearchEnhanced from '@/components/help/help-search-enhanced';
 import MessageSupportDialog from './message-support-dialog';
 
-// Keep Help Modal on all dashboard pages except Menu, where Smokey testing is primary.
-const BLOCKED_ROUTES = ['/dashboard/menu'];
+// Keep Help Modal on all dashboard pages except Menu (Smokey testing primary) and Settings (own save buttons conflict).
+const BLOCKED_ROUTES = ['/dashboard/menu', '/dashboard/settings'];
 
 export function SmokeyFloatingButton() {
   const [open, setOpen] = useState(false);
