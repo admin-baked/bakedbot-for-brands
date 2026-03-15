@@ -253,7 +253,9 @@ export type InboxArtifactType =
     // ---- Analytics Artifacts ----
     | 'analytics_chart'     // Recharts chart from agent analytics tool output
     | 'analytics_briefing'  // Morning proactive briefing with metrics + news
-    | 'executive_proactive_check'; // Executive intelligence brief from 9 AM proactive cron
+    | 'executive_proactive_check' // Executive intelligence brief from 9 AM proactive cron
+    // ---- Code & Execution Artifacts ----
+    | 'code_sandbox';       // Live editable code with sandboxed iframe preview
 
 /**
  * Artifact approval status
@@ -1402,6 +1404,8 @@ export const InboxArtifactTypeSchema = z.enum([
     'board_deck', 'budget_model', 'job_spec', 'research_brief', 'compliance_brief',
     // Analytics Artifacts
     'analytics_chart', 'analytics_briefing',
+    // Code & Execution Artifacts
+    'code_sandbox',
 ]);
 
 export const InboxArtifactStatusSchema = z.enum([

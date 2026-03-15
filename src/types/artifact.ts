@@ -25,7 +25,8 @@ export type ArtifactType =
     | 'carousel'       // Product carousel
     | 'bundle'         // Bundle deal
     | 'creative_post'  // Social media content
-    | 'vm_run';        // Agent VM execution trace + outputs
+    | 'vm_run'         // Agent VM execution trace + outputs
+    | 'code_sandbox';  // Live editable code with sandboxed iframe preview
 
 export const ARTIFACT_TYPES: { type: ArtifactType; label: string; icon: string }[] = [
     { type: 'code', label: 'Code', icon: 'Code' },
@@ -42,6 +43,7 @@ export const ARTIFACT_TYPES: { type: ArtifactType; label: string; icon: string }
     { type: 'bundle', label: 'Bundle', icon: 'PackagePlus' },
     { type: 'creative_post', label: 'Social Post', icon: 'Palette' },
     { type: 'vm_run', label: 'Agent Run', icon: 'Cpu' },
+    { type: 'code_sandbox', label: 'Code Sandbox', icon: 'Boxes' },
 ];
 
 // ============ Artifact Interface ============

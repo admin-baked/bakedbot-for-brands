@@ -28,9 +28,10 @@ import {
     isChartArtifact 
 } from '@/types/artifact';
 import { VmRunView } from './vm-run-view';
-import { 
-    ExternalLink, BookOpen, FileText, Lightbulb, 
-    ListOrdered, ChevronRight 
+import { CodeSandboxRenderer } from './code-sandbox-renderer';
+import {
+    ExternalLink, BookOpen, FileText, Lightbulb,
+    ListOrdered, ChevronRight
 } from 'lucide-react';
 
 interface ArtifactRendererProps {
@@ -77,6 +78,17 @@ export function ArtifactRenderer({
                         onApproveVmApproval={onApproveVmApproval}
                         onRejectVmApproval={onRejectVmApproval}
                         isUpdatingVmApproval={isUpdatingVmApproval}
+                    />
+                );
+            case 'code_sandbox':
+                return (
+                    <CodeSandboxRenderer
+                        data={{
+                            code: artifact.content,
+                            language: (artifact.language as 'html' | 'javascript' | 'jsx' | 'css') || 'html',
+                            title: artifact.title,
+                            autorun: artifact.metadata?.autorun as boolean | undefined,
+                        }}
                     />
                 );
             default:
