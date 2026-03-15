@@ -3,6 +3,7 @@ import {
   getArticleBySlug,
   trackArticleView,
 } from '@/server/actions/help-actions';
+import { articles } from '@/content/help/_index';
 import { createServerClient } from '@/firebase/server-client';
 import { cookies } from 'next/headers';
 import { MDXRemote } from 'next-mdx-remote/rsc';
@@ -12,6 +13,15 @@ import RelatedArticles from '@/components/help/related-articles';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import 'highlight.js/styles/atom-one-dark.css';
+
+export async function generateStaticParams() {
+  return Object.values(articles)
+    .filter((article) => article.roles.length === 0) // public articles only
+    .map((article) => ({
+      category: article.category,
+      slug: article.slug,
+    }));
+}
 
 export async function generateMetadata({
   params,
@@ -103,8 +113,28 @@ export default async function ArticlePage({
     user?.uid
   );
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: article.title,
+    description: article.description,
+    author: { '@type': 'Organization', name: article.author },
+    publisher: {
+      '@type': 'Organization',
+      name: 'BakedBot AI',
+      url: 'https://bakedbot.ai',
+    },
+    dateModified: article.lastUpdated,
+    url: `https://bakedbot.ai/help/${category}/${slug}`,
+    keywords: article.tags.join(', '),
+  };
+
   return (
     <article className="max-w-4xl mx-auto">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Article Header */}
       <div className="mb-8">
         <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">

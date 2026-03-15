@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@/firebase/server-client';
 import { getCategories } from '@/content/help/_index';
+import Logo from '@/components/logo';
 
 async function getUser() {
   try {
@@ -40,20 +41,12 @@ export default async function HelpLayout({
       <header className="bg-white border-b sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <Link href="/help" className="flex items-center gap-2">
-                <span className="text-2xl">🌿</span>
-                <h1 className="text-2xl font-bold">BakedBot Help</h1>
+            <div className="flex items-center gap-3">
+              <Logo height={32} />
+              <span className="text-gray-300 hidden sm:block">|</span>
+              <Link href="/help" className="hidden sm:block text-sm font-medium text-gray-600 hover:text-gray-900">
+                Help Center
               </Link>
-
-              {/* Search placeholder - will be enhanced later */}
-              <div className="hidden md:block">
-                <input
-                  type="search"
-                  placeholder="Search help articles..."
-                  className="w-96 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
             </div>
 
             <div className="flex items-center gap-4">

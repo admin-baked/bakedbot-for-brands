@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next';
 import { createServerClient } from '@/firebase/server-client';
+import { articles } from '@/content/help/_index';
 
 const BASE_URL = 'https://bakedbot.ai';
 
@@ -69,7 +70,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.6,
     }));
 
-    // 5. LLM.txt Routes (Agent Web Discovery)
+    // 5. Help Center (SEO-optimized public documentation)
+    const helpRoutes: MetadataRoute.Sitemap = [
+      {
+        url: `${BASE_URL}/help`,
+        lastModified: new Date(),
+        changeFrequency: 'weekly' as const,
+        priority: 0.7,
+      },
+      ...Object.values(articles)
+        .filter((article) => article.roles.length === 0) // public only
+        .map((article) => ({
+          url: `${BASE_URL}/help/${article.category}/${article.slug}`,
+          lastModified: new Date(article.lastUpdated),
+          changeFrequency: 'monthly' as const,
+          priority: 0.6,
+        })),
+    ];
+
+    // 6. LLM.txt Routes (Agent Web Discovery)
     const llmRoutes: MetadataRoute.Sitemap = [
       {
         url: `${BASE_URL}/llm.txt`,
@@ -376,6 +395,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...conversionPages,
       ...productPages,
       ...trustPages,
+      ...helpRoutes,
       ...llmRoutes,
       ...brandRoutes,
       ...retailerRoutes,
