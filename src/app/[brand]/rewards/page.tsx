@@ -1,5 +1,6 @@
 import { fetchBrandPageData } from '@/lib/brand-data';
 import { notFound } from 'next/navigation';
+import { PublicWalletCta } from '@/components/brand-pages/public-wallet-cta';
 import { DemoHeader } from '@/components/demo/demo-header';
 import { DemoFooter } from '@/components/demo/demo-footer';
 import { Card, CardContent } from '@/components/ui/card';
@@ -269,6 +270,12 @@ export default async function RewardsPage({ params }: { params: Promise<{ brand:
                         )}
                     </div>
                 </section>
+                {/* Save to Wallet CTA — renders for all orgs; gracefully shows "coming soon" if unconfigured */}
+                <PublicWalletCta
+                    orgId={brandOrgId || brandSlug}
+                    brandName={brand.name}
+                    primaryColor={brandColors.primary}
+                />
             </main>
 
             {isAdmin && brandOrgId && (

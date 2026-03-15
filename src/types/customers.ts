@@ -69,7 +69,18 @@ export interface CustomerProfile {
     tierSource?: 'calculated' | 'alpine_iq';  // Source of tier assignment
     loyaltyReconciled?: boolean;       // Are calculated and Alpine in sync?
     loyaltyDiscrepancy?: number;       // Difference between sources
+    lastDiscrepancyAlertAt?: Date;     // Last Slack alert timestamp (dedup window: 24h)
     alpineUserId?: string;             // Alpine IQ user code from Alleaves
+
+    // Wallet pass identifiers
+    walletPassSerial?: string;         // UUID for Apple Wallet pass (set on first download)
+    walletGoogleObjectId?: string;     // Google Wallet Loyalty Object ID
+    walletPassUpdatedAt?: Date;        // Last time wallet pass content was refreshed
+    appleDeviceRegistrations?: Array<{
+      deviceLibraryId: string;
+      pushToken: string;               // APNs push token for live updates
+      registeredAt: Date;
+    }>;
 
     // Personalization data
     birthDate?: string;
