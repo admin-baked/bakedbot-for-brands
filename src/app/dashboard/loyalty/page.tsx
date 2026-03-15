@@ -3,7 +3,7 @@
 
 
 import { Button } from '@/components/ui/button';
-import { Settings, Loader2, Award, RefreshCw, Users, CheckCircle2, AlertCircle, Database } from 'lucide-react';
+import { Settings, Loader2, Award, RefreshCw, Users, CheckCircle2, AlertCircle, Database, Wallet } from 'lucide-react';
 import { useDispensaryId } from '@/hooks/use-dispensary-id';
 import { useEffect, useState, useCallback } from 'react';
 import { getLoyaltySettings } from '@/app/actions/loyalty';
@@ -13,6 +13,7 @@ import { LoyaltySettingsForm } from '@/components/dashboard/loyalty/loyalty-sett
 import { BadgeGrid } from '@/components/dashboard/loyalty/badge-grid';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { WalletButtons } from '@/components/dashboard/loyalty/wallet-buttons';
 
 interface LoyaltyStats {
     totalCustomers: number;
@@ -218,6 +219,46 @@ export default function LoyaltyPage() {
                             </div>
                         </div>
                     )}
+
+                    {/* Mobile Wallet Card */}
+                    <div className="p-6 border rounded-lg bg-card">
+                        <div className="flex items-center justify-between mb-2">
+                            <h3 className="font-medium text-lg flex items-center gap-2">
+                                <Wallet className="h-5 w-5 text-primary" />
+                                Mobile Wallet Passes
+                            </h3>
+                            <Badge variant="outline" className="text-xs">Thrive Syracuse</Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-4">
+                            Allow customers to save their loyalty card to Apple Wallet or Google Wallet.
+                            Points update automatically after every sync — no customer action required.
+                        </p>
+                        <div className="flex flex-col gap-3">
+                            <div className="flex items-center gap-3 p-3 border rounded-lg bg-muted/30">
+                                <img
+                                    src="/assets/agents/smokey-main.png"
+                                    alt="Smokey"
+                                    className="h-10 w-10 rounded-full object-cover border"
+                                />
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium">Powered by BakedBot AI</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        Your brand. Your points. Managed by Smokey.
+                                    </p>
+                                </div>
+                            </div>
+                            {dispensaryId && (
+                                <WalletButtons
+                                    customerId="demo"
+                                    orgId={dispensaryId}
+                                />
+                            )}
+                            <p className="text-xs text-muted-foreground">
+                                Wallet credentials must be configured to enable downloads.
+                                Contact your BakedBot rep to activate Apple &amp; Google Wallet.
+                            </p>
+                        </div>
+                    </div>
 
                     <div className="p-6 border rounded-lg bg-card">
                         <h3 className="font-medium text-lg mb-4 flex items-center gap-2">

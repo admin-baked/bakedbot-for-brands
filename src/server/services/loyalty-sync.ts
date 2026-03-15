@@ -13,6 +13,11 @@ import { AlpineIQClient } from '@/server/integrations/alpine-iq/client';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import type { CustomerProfile, LoyaltySettings } from '@/types/customers';
+import {
+  notifyLoyaltyDiscrepancy,
+  notifyBatchSyncSummary,
+} from './loyalty-notifications';
+import { triggerWalletUpdate } from './wallet/updater';
 
 // ==========================================
 // Types
@@ -154,6 +159,30 @@ export class LoyaltySyncService {
       const finalPoints = alpine?.points ?? calculated.points;
       const finalTier = alpine?.tier ?? calculated.tier;
 
+      // Fetch current profile to get lastDiscrepancyAlertAt for dedup
+      const existingDoc = await this.firestore
+        .collection('customers')
+        .doc(`${orgId}_${customerId}`)
+        .get();
+      const existingData = existingDoc.exists ? (existingDoc.data() as CustomerProfile) : null;
+      const lastAlertAt = existingData?.lastDiscrepancyAlertAt
+        ? new Date(existingData.lastDiscrepancyAlertAt as unknown as string)
+        : undefined;
+
+      // Fire Slack alert if discrepancy detected (fire-and-forget — never blocks sync)
+      if (!reconciliation.reconciled && alpine) {
+        notifyLoyaltyDiscrepancy({
+          customerId,
+          orgId,
+          calculatedPoints: calculated.points,
+          alpinePoints: alpine.points,
+          discrepancyPercent: reconciliation.discrepancyPercent,
+          lastAlertAt,
+        }).catch(err =>
+          logger.error('[LoyaltySync] discrepancy notification failed', { customerId, err })
+        );
+      }
+
       await this.updateCustomerProfile(orgId, customerId, {
         points: finalPoints,
         pointsFromOrders: calculated.points,
@@ -164,7 +193,15 @@ export class LoyaltySyncService {
         loyaltyDiscrepancy: reconciliation.discrepancy,
         pointsLastCalculated: new Date(),
         alpineUserId: alleaveCustomer.alpine_user_code || undefined,
+        ...(!reconciliation.reconciled && alpine
+          ? { lastDiscrepancyAlertAt: new Date() }
+          : {}),
       });
+
+      // Fire-and-forget: push updated points to wallet cards if customer has one
+      triggerWalletUpdate(customerId, orgId).catch(err =>
+        logger.error('[LoyaltySync] wallet update failed', { customerId, err })
+      );
 
       const duration = Date.now() - startTime;
 
@@ -289,6 +326,11 @@ export class LoyaltySyncService {
                 alpineUserId: customer.alpine_user_code || undefined,
               });
 
+              // Fire-and-forget wallet push
+              triggerWalletUpdate(customerId, orgId).catch(err =>
+                logger.error('[LoyaltySync] wallet update failed in batch', { customerId, err })
+              );
+
               result.successful++;
 
             } catch (error) {
@@ -324,6 +366,11 @@ export class LoyaltySyncService {
         discrepancies: result.discrepancies.length,
         duration: result.duration
       });
+
+      // Fire consolidated Slack summary (fire-and-forget)
+      notifyBatchSyncSummary(orgId, result).catch(err =>
+        logger.error('[LoyaltySync] batch summary notification failed', { orgId, err })
+      );
 
       return result;
 

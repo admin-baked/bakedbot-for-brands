@@ -491,6 +491,44 @@ env:
     secret: ANDREWS_WP_URL@2
     availability: [ BUILD, RUNTIME ]
 
+  # Apple Wallet PassKit credentials (RUNTIME only — not needed at build time)
+  # Set up: Apple Developer → Certificates → Pass Type IDs → create pass.ai.bakedbot.loyalty
+  # Then base64-encode the P12 cert and WWDR cert → store in Secret Manager
+  - variable: APPLE_WALLET_CERT
+    secret: APPLE_WALLET_CERT@1
+    availability: [ RUNTIME ]
+  - variable: APPLE_WALLET_CERT_PASSWORD
+    secret: APPLE_WALLET_CERT_PASSWORD@1
+    availability: [ RUNTIME ]
+  - variable: APPLE_WALLET_TEAM_ID
+    secret: APPLE_WALLET_TEAM_ID@1
+    availability: [ RUNTIME ]
+  - variable: APPLE_WALLET_PASS_TYPE_ID
+    secret: APPLE_WALLET_PASS_TYPE_ID@1
+    availability: [ RUNTIME ]
+  - variable: APPLE_WALLET_WWDR_CERT
+    secret: APPLE_WALLET_WWDR_CERT@1
+    availability: [ RUNTIME ]
+
+  # Google Wallet credentials (RUNTIME only)
+  # Set up: Google Pay & Wallet Console → create Issuer → grant service account "Wallet Object Issuer" role
+  # base64-encode the service account JSON key → store in Secret Manager
+  - variable: GOOGLE_WALLET_ISSUER_ID
+    secret: GOOGLE_WALLET_ISSUER_ID@1
+    availability: [ RUNTIME ]
+  - variable: GOOGLE_WALLET_SERVICE_ACCOUNT_EMAIL
+    secret: GOOGLE_WALLET_SERVICE_ACCOUNT_EMAIL@1
+    availability: [ RUNTIME ]
+  - variable: GOOGLE_WALLET_SERVICE_ACCOUNT_KEY
+    secret: GOOGLE_WALLET_SERVICE_ACCOUNT_KEY@1
+    availability: [ RUNTIME ]
+
+  # Loyalty discrepancy Slack alerts (RUNTIME only)
+  # Uses SLACK_WEBHOOK_URL as fallback if not set
+  - variable: SLACK_WEBHOOK_LOYALTY
+    secret: SLACK_WEBHOOK_LOYALTY@1
+    availability: [ RUNTIME ]
+
 runConfig:
   minInstances: 1
   maxInstances: 10
