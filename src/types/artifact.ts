@@ -82,6 +82,9 @@ export interface ArtifactMetadata {
     headers?: string[];
     rows?: string[][];
 
+    // For code_sandbox artifacts
+    autorun?: boolean;
+
     // For sharing
     isPublished?: boolean;
     shareId?: string;
