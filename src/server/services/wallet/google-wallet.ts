@@ -15,6 +15,7 @@
  *   3. base64-encode service account JSON key → store in Secret Manager
  */
 
+import { createSign } from 'crypto';
 import { logger } from '@/lib/logger';
 import type { WalletPassData } from './types';
 
@@ -246,8 +247,6 @@ export async function updateLoyaltyObject(
  */
 export async function generateSaveUrl(data: WalletPassData): Promise<string> {
   if (!isGoogleConfigured()) throw new Error('Google Wallet credentials not configured');
-
-  const { createSign } = await import('crypto');
 
   const keyJson = Buffer.from(process.env.GOOGLE_WALLET_SERVICE_ACCOUNT_KEY!, 'base64').toString(
     'utf-8'

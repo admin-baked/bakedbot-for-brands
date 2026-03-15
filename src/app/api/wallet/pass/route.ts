@@ -158,7 +158,7 @@ export async function GET(request: NextRequest) {
 
       logger.info('[WalletPass] Apple pass served', { customerId, orgId, serialNumber });
 
-      return new NextResponse(passBuffer, {
+      return new NextResponse(new Uint8Array(passBuffer), {
         status: 200,
         headers: {
           'Content-Type': 'application/vnd.apple.pkpass',

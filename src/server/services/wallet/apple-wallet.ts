@@ -88,16 +88,6 @@ export async function generateApplePass(data: WalletPassData): Promise<Buffer> {
       teamIdentifier: teamId,
       organizationName: data.brandName,
 
-      // Barcode — QR code encoding the BakedBot customerId
-      barcodes: [
-        {
-          format: 'PKBarcodeFormatQR',
-          message: data.loyaltyId,
-          messageEncoding: 'iso-8859-1',
-          altText: `ID: ${data.loyaltyId}`,
-        },
-      ],
-
       // Colors from Thrive brand guide
       backgroundColor: data.brandColor,
       foregroundColor: '#FFFFFF',
@@ -106,15 +96,23 @@ export async function generateApplePass(data: WalletPassData): Promise<Buffer> {
       // Web service for live updates
       webServiceURL: `${appBaseUrl}/api/wallet`,
       authenticationToken: generatePassAuthToken(data.serialNumber),
-
-      ...(data.expiresAt && {
-        expirationDate: data.expiresAt.toISOString(),
-      }),
     }
   );
 
   // Set pass type to storeCard and populate fields via the v3 setter API
   pass.type = 'storeCard';
+
+  // Barcode — QR code encoding the BakedBot customerId (PassMethodsProps: must use setter)
+  pass.setBarcodes({
+    format: 'PKBarcodeFormatQR',
+    message: data.loyaltyId,
+    messageEncoding: 'iso-8859-1',
+    altText: `ID: ${data.loyaltyId}`,
+  });
+
+  if (data.expiresAt) {
+    pass.setExpirationDate(data.expiresAt);
+  }
 
   pass.primaryFields.push({
     key: 'points',
