@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-03-12 (Gmail tool send restored, Gmail API enabled, typecheck green)
+**Current Status:** 🟢 Passing | **Last update:** 2026-03-14 (Apple/Google Wallet loyalty passes, Slack discrepancy alerts, public rewards wallet CTA)
 
 ---
 

@@ -276,8 +276,8 @@ Do NOT wait for the user to say "P1" or "file a bug first" — triage, file, and
 
 ---
 
-**Recent work (2026-03-12):** See `MEMORY.md` for full log.
-Key completed: [Gmail tool send restore] (`30505c5a3`), [Gmail token refresh normalization] (`3222c9933`)
+**Recent work (2026-03-14):** See `MEMORY.md` for full log.
+Key completed: [Wallet passes + Slack loyalty alerts] (`d1acc0eef`), [Sandbox code artifact + VM run] (`9e924f109`)
 
 ---
 
