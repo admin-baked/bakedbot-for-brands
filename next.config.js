@@ -62,6 +62,12 @@ const nextConfig = {
     // This avoids duplicate TS compilation and memory issues in Firebase builds
     ignoreBuildErrors: true,
   },
+  // Include src/skills/ static files (SKILL.md, eval_spec.json, hard_rules.json, *.jsonl, metadata.json)
+  // in the standalone build output so server actions can read them via fs at runtime.
+  outputFileTracingIncludes: {
+    '/': ['./src/skills/**/*'],
+  },
+
   experimental: {
     // Reduce webpack memory usage during builds (helps avoid OOM on Firebase App Hosting)
     webpackMemoryOptimizations: true,
