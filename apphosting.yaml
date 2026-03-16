@@ -514,19 +514,19 @@ env:
   # Set up: Google Pay & Wallet Console → create Issuer → grant service account "Wallet Object Issuer" role
   # base64-encode the service account JSON key → store in Secret Manager
   - variable: GOOGLE_WALLET_ISSUER_ID
-    secret: GOOGLE_WALLET_ISSUER_ID@1
+    secret: GOOGLE_WALLET_ISSUER_ID@2
     availability: [ RUNTIME ]
   - variable: GOOGLE_WALLET_SERVICE_ACCOUNT_EMAIL
-    secret: GOOGLE_WALLET_SERVICE_ACCOUNT_EMAIL@1
+    secret: GOOGLE_WALLET_SERVICE_ACCOUNT_EMAIL@2
     availability: [ RUNTIME ]
   - variable: GOOGLE_WALLET_SERVICE_ACCOUNT_KEY
-    secret: GOOGLE_WALLET_SERVICE_ACCOUNT_KEY@1
+    secret: GOOGLE_WALLET_SERVICE_ACCOUNT_KEY@2
     availability: [ RUNTIME ]
 
   # Loyalty discrepancy Slack alerts (RUNTIME only)
   # Uses SLACK_WEBHOOK_URL as fallback if not set
   - variable: SLACK_WEBHOOK_LOYALTY
-    secret: SLACK_WEBHOOK_LOYALTY@1
+    secret: SLACK_WEBHOOK_LOYALTY@2
     availability: [ RUNTIME ]
 
 runConfig:
