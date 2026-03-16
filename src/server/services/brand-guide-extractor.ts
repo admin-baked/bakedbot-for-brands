@@ -498,14 +498,18 @@ export class BrandGuideExtractor {
     const likelyOrganizationType = inferOrganizationTypeFromText(
       [website.metadata?.title, website.metadata?.description, website.content.substring(0, 2000)].filter(Boolean).join(' ')
     );
+    const hasDetectedColors = website.colors.length > 0;
     const prompt = `You are a brand identity expert. Analyze the following cannabis company website content and extract visual identity information.
 
-IMPORTANT: The website colors, fonts, and content below may have limited color hex codes. Infer a credible palette from the brand's actual positioning and aesthetic. Do NOT default to earthy greens unless the content strongly points there. Cannabis technology companies may use sharper neutrals, blues, industrial tones, or confident high-contrast palettes.
+CRITICAL COLOR RULE: ${hasDetectedColors
+  ? `Hex colors were detected in the page content: ${website.colors.join(', ')}. Use ONLY these detected colors to fill primary/secondary/accent. Do NOT invent colors not found in this list.`
+  : `No hex colors were detected in the scraped content. Use safe neutral placeholders: primary="#1a1a1a" (dark), secondary="#ffffff" (white), accent="#666666" (gray). Do NOT invent or guess brand colors — the user will set them manually.`
+}
 
 Website URL: ${website.url}
 Website Title: ${website.metadata?.title || 'Unknown'}
 Likely Organization Type: ${likelyOrganizationType || 'unknown'}
-Detected Colors (hex codes if found): ${website.colors.length > 0 ? website.colors.join(', ') : 'None detected in text content'}
+Detected Colors (hex codes from page): ${hasDetectedColors ? website.colors.join(', ') : 'None — use neutral placeholders'}
 Detected Fonts: ${website.fonts.length > 0 ? website.fonts.join(', ') : 'Standard web fonts'}
 Logo/Image URL: ${website.metadata?.ogImage || website.metadata?.favicon || 'Not found'}
 
@@ -515,7 +519,7 @@ ${website.content.substring(0, 3000)}
 ${social.length > 0 ? `Social media profiles analyzed: ${social.map((s) => s.platform).join(', ')}` : ''}
 
 EXTRACTION REQUIREMENTS:
-1. **Brand Colors**: Even if hex codes weren't detected in scraped content, use the website content tone/style to infer appropriate primary and secondary colors.
+1. **Brand Colors**: ONLY use detected hex codes above. If none detected, use neutral placeholders (#1a1a1a, #ffffff, #666666).
 2. **Logo**: Return the og:image or favicon URL if available
 3. **Font Families**: Infer from content style (premium brands → serif, modern brands → sans-serif)
 4. **Visual Style**: Describe the overall aesthetic
@@ -526,9 +530,9 @@ Return ONLY a valid JSON object (no markdown, no code blocks) with this exact st
     "primary": "URL or null if not found"
   },
   "colors": {
-    "primary": { "hex": "#4ade80", "name": "Cannabis Green", "usage": "Primary brand color" },
-    "secondary": { "hex": "#1a1a2e", "name": "Dark Navy", "usage": "Text and accents" },
-    "accent": { "hex": "#ffffff", "name": "White", "usage": "Backgrounds and contrast" }
+    "primary": { "hex": "#1a1a1a", "name": "Brand Primary", "usage": "Primary brand color" },
+    "secondary": { "hex": "#ffffff", "name": "Brand Secondary", "usage": "Text and accents" },
+    "accent": { "hex": "#666666", "name": "Brand Accent", "usage": "Backgrounds and contrast" }
   },
   "typography": {
     "headingFont": { "family": "Inter", "weights": [600, 700], "source": "google" },
