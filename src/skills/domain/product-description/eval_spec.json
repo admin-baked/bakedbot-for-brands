@@ -1,13 +1,13 @@
 {
-  "version": "1.0",
+  "version": "2.0",
   "skillId": "domain.product-description",
 
   "criteria": [
     {
       "id": "gate-001",
-      "name": "No prohibited medical claims",
+      "name": "No prohibited claims",
       "type": "regex",
-      "pattern": "\\b(cure[sd]?|treat[s]?|treatment|prevent[s]?|prevention|diagnose[sd]?|prescribe[sd]?|prescription|heal[s]?|healing|medicinal|medical|therapeutic|therapy|clinically proven|doctor recommended|fda approved)\\b",
+      "pattern": "\\b(cure[sd]?|treat[s]?|treatment|prevent[s]?|prevention|diagnose[sd]?|prescribe[sd]?|prescription|heal[s]?|healing|medicinal|medical|therapeutic|therapy|clinically proven|doctor recommended|fda approved|anxiety|guaranteed|will (make|give|cause|eliminate|remove|fix|solve)|you will feel|proven to)\\b",
       "match": "none",
       "isGate": true,
       "category": "compliance",
@@ -15,17 +15,42 @@
     },
     {
       "id": "gate-002",
-      "name": "No anxiety keyword (use relaxation/stress relief)",
-      "type": "regex",
-      "pattern": "\\banxiety\\b",
-      "match": "none",
+      "name": "No invented facts",
+      "type": "judge",
+      "judgePrompt": "Given this product input data:\n{{input}}\n\nAnd this generated product description:\n{{output}}\n\nDoes the description state, imply, or reference any specific fact — including terpene names, effect claims, percentages, dosages, flavor notes, lineage, lab results, or brand details — that was NOT explicitly provided in the input data above?\nReturn YES if invented or ungrounded specifics are present.\nReturn NO if every claim in the description is traceable to the provided input.\nWhen uncertain, return YES.",
+      "passAnswer": "NO",
+      "isGate": true,
+      "category": "accuracy",
+      "weight": 0
+    },
+    {
+      "id": "gate-003",
+      "name": "Required disclaimer present when needed",
+      "type": "rule",
+      "rule": "required_disclaimer_present_if_needed",
+      "ruleParams": {
+        "disclaimerField": "disclaimer_required",
+        "disclaimerPhrases": ["for adult use only", "21+", "18+", "adults only", "must be 21"]
+      },
       "isGate": true,
       "category": "compliance",
       "weight": 0
     },
     {
-      "id": "gate-003",
-      "name": "No age-restricted targeting language",
+      "id": "gate-004",
+      "name": "Valid output schema",
+      "type": "rule",
+      "rule": "output_is_valid_json_with_fields",
+      "ruleParams": {
+        "requiredFields": ["short_description", "medium_description", "seo_summary"]
+      },
+      "isGate": true,
+      "category": "format",
+      "weight": 0
+    },
+    {
+      "id": "gate-005",
+      "name": "No disallowed audience targeting",
       "type": "regex",
       "pattern": "\\b(teens?|kids?|minors?|youth|students?|children)\\b",
       "match": "none",
@@ -34,50 +59,40 @@
       "weight": 0
     },
     {
-      "id": "gate-004",
-      "name": "Valid JSON output with required short_description field",
-      "type": "rule",
-      "rule": "output_is_valid_json_with_field",
-      "ruleParams": { "field": "short_description" },
-      "isGate": true,
-      "category": "format",
-      "weight": 0
-    },
-    {
       "id": "qual-001",
-      "name": "Short description is within 50–100 words",
-      "type": "rule",
-      "rule": "word_count_in_range",
-      "ruleParams": { "field": "short_description", "min": 50, "max": 100 },
+      "name": "Readable to a normal customer",
+      "type": "judge",
+      "judgePrompt": "Read this cannabis product description output:\n{{output}}\n\nIs the short_description written in clear, natural language that a regular adult retail customer can understand on first read — without needing cannabis industry knowledge or re-reading?\nReturn YES or NO. When uncertain, return NO.",
+      "passAnswer": "YES",
       "isGate": false,
-      "category": "format",
+      "category": "quality",
       "weight": 1
     },
     {
       "id": "qual-002",
-      "name": "References at least one input differentiator (strain, effect, or terpene)",
-      "type": "rule",
-      "rule": "contains_at_least_one_input_field",
-      "ruleParams": { "fields": ["strain", "effects", "terpenes"], "field": "short_description" },
+      "name": "On-brand tone",
+      "type": "judge",
+      "judgePrompt": "The requested tone profile is: {{tone_profile}}\n\nRead this cannabis product description output:\n{{output}}\n\nDoes the short_description match the requested tone profile? Consider vocabulary, energy level, formality, and who the writing seems to address.\nReturn YES or NO. When uncertain, return NO.",
+      "passAnswer": "YES",
+      "isGate": false,
+      "category": "quality",
+      "weight": 1
+    },
+    {
+      "id": "qual-003",
+      "name": "Uses meaningful product differentiators",
+      "type": "judge",
+      "judgePrompt": "The available product input data was:\n{{input}}\n\nThe generated product description output is:\n{{output}}\n\nDoes the short_description highlight at least one specific, input-grounded detail (strain name, terpene note, effect, format, occasion, brand character) that distinguishes this product — rather than using generic filler that could describe any product in the same category?\nReturn YES or NO. When uncertain, return NO.",
+      "passAnswer": "YES",
       "isGate": false,
       "category": "accuracy",
       "weight": 1
     },
     {
-      "id": "qual-003",
-      "name": "No invented potency numbers (THC/CBD % not in input)",
-      "type": "judge",
-      "judgePrompt": "Given this input data:\n{{input}}\n\nAnd this product description:\n{{output}}\n\nDoes the description mention any specific THC percentage, CBD percentage, mg dosage, or lab test result that was NOT provided in the input data? Answer YES or NO.",
-      "passAnswer": "NO",
-      "isGate": false,
-      "category": "accuracy",
-      "weight": 2
-    },
-    {
       "id": "qual-004",
-      "name": "Readable to a dispensary customer",
+      "name": "Appropriate for target channel",
       "type": "judge",
-      "judgePrompt": "Read this cannabis product description:\n{{output}}\n\nIs it written in clear, accessible language that an adult cannabis retail customer can easily understand — without requiring industry expertise? Answer YES or NO.",
+      "judgePrompt": "The target channel is: {{channel}}\n\nChannel requirements:\n- web: 50-100 words for short_description, descriptive and persuasive\n- pos: shorter (50-65 words), clear and scannable\n- social: conversational, slightly casual, avoids compliance-sensitive claims\n\nRead this product description output:\n{{output}}\n\nIs the short_description appropriate in length, structure, and style for the target channel ({{channel}})?\nReturn YES or NO. When uncertain, return NO.",
       "passAnswer": "YES",
       "isGate": false,
       "category": "quality",
@@ -85,38 +100,24 @@
     },
     {
       "id": "qual-005",
-      "name": "Publishable with minimal edits",
+      "name": "Publishable without major edits",
       "type": "judge",
-      "judgePrompt": "Read this cannabis product description:\n{{output}}\n\nCould a dispensary operator publish this description on their menu or website with minimal or no edits — meaning it requires no factual corrections, no compliance fixes, and no major rewriting? Answer YES or NO.",
+      "judgePrompt": "Read this cannabis product description output:\n{{output}}\n\nCould a dispensary operator publish the short_description on their menu or website with zero edits or only minor formatting tweaks? It must require no factual corrections, no compliance fixes, and no major rewrites.\nDo not reward flair or creativity if factuality or compliance is weak.\nReturn YES or NO. When uncertain, return NO.",
       "passAnswer": "YES",
       "isGate": false,
       "category": "quality",
-      "weight": 2
-    },
-    {
-      "id": "qual-006",
-      "name": "On-brand professional tone (not clinical, not slang-heavy)",
-      "type": "judge",
-      "judgePrompt": "Read this cannabis product description:\n{{output}}\n\nDoes it strike a professional, approachable tone — neither overly clinical and dry nor using heavy cannabis slang? Answer YES or NO.",
-      "passAnswer": "YES",
-      "isGate": false,
-      "category": "quality",
-      "weight": 1
-    },
-    {
-      "id": "qual-007",
-      "name": "No guaranteed outcome language",
-      "type": "regex",
-      "pattern": "\\b(guaranteed|will (make|give|cause|eliminate|remove|fix|solve)|you will feel|proven to)\\b",
-      "match": "none",
-      "isGate": false,
-      "category": "compliance",
       "weight": 1
     }
   ],
 
-  "minCriteriaPassRate": 0.75,
-  "promotionDelta": 0.05,
+  "promotionRules": {
+    "requireNonRegressionOnHardGates": true,
+    "minQualityLiftPct": 3,
+    "minPublishableLiftPct": 5,
+    "requireZeroCriticalRegressionFailures": true,
+    "maxLatencyMsP95": 4000,
+    "maxCostPerCaseUsd": 0.03
+  },
 
   "datasets": {
     "dev": "eval/dev-set.jsonl",
