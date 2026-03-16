@@ -103,8 +103,11 @@ export async function GET(request: NextRequest) {
 
   try {
     const firestore = getAdminFirestore();
-    const docId = `${orgId}_${customerId}`;
-    const customerDoc = await firestore.collection('customers').doc(docId).get();
+    // Try compound ID first (org_thrive_syracuse_custId), then bare customerId
+    let customerDoc = await firestore.collection('customers').doc(`${orgId}_${customerId}`).get();
+    if (!customerDoc.exists) {
+      customerDoc = await firestore.collection('customers').doc(customerId).get();
+    }
 
     if (!customerDoc.exists) {
       return NextResponse.json(
