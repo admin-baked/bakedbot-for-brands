@@ -32,7 +32,9 @@ export default function EmailTesterTab() {
             const res = await testEmailDispatch({ to, subject, body, fromEmail });
             setResult(res);
         } catch (error: any) {
-            setResult({ message: error.message || 'Unknown error occurred', error: true });
+            const msg = error?.message || '';
+            const isNextGeneric = msg.includes('An error occurred in the Server') || msg.includes('omitted in production');
+            setResult({ message: isNextGeneric ? 'Email dispatch failed. Check server logs for details.' : (msg || 'Unknown error occurred'), error: true });
         } finally {
             setLoading(false);
         }
