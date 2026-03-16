@@ -1,0 +1,54 @@
+{
+  "version": "1.0",
+  "skillId": "domain.product-description",
+  "owner": "compliance-team",
+  "lastReviewed": "2026-03-15",
+
+  "bannedPhrases": [
+    "\\bcure[sd]?\\b",
+    "\\btreat[s]?\\b",
+    "\\btreatment\\b",
+    "\\bprevent[s]?\\b",
+    "\\bprevention\\b",
+    "\\bdiagnose[sd]?\\b",
+    "\\bprescribe[sd]?\\b",
+    "\\bprescription\\b",
+    "\\bheal[s]?\\b",
+    "\\bhealing\\b",
+    "\\bmedicinal\\b",
+    "\\bmedical\\b",
+    "\\btherapeutic\\b",
+    "\\btherapy\\b",
+    "\\bclinically proven\\b",
+    "\\bdoctor recommended\\b",
+    "\\bfda approved\\b",
+    "\\bguaranteed\\b",
+    "\\bwill (make|give|cause|eliminate|remove)\\b",
+    "\\banxiety\\b",
+    "\\bteens?\\b",
+    "\\bkids?\\b",
+    "\\bminors?\\b",
+    "\\byouth\\b",
+    "\\bstudents?\\b",
+    "\\bchildren\\b"
+  ],
+
+  "requiredPhrases": [
+    {
+      "phrase": "For adult use only",
+      "condition": "when channel is 'social' and store_state is a recreational-only state"
+    }
+  ],
+
+  "prohibitions": [
+    "Do not make any medical or health claims about cannabis products.",
+    "Do not claim any product cures, treats, prevents, or diagnoses any condition.",
+    "Do not use the word 'anxiety' — use 'relaxation' or 'stress relief' instead.",
+    "Do not reference minors, children, teens, or youth in any context.",
+    "Do not guarantee any outcome or effect.",
+    "Do not invent potency numbers, lab data, or clinical evidence not present in the input.",
+    "Do not use the word 'medical' or 'medicinal' to describe any product or effect.",
+    "Do not compare to competitor products by name.",
+    "Do not include price or promotional language in product descriptions."
+  ]
+}

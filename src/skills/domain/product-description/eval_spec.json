@@ -1,0 +1,131 @@
+{
+  "version": "1.0",
+  "skillId": "domain.product-description",
+
+  "criteria": [
+    {
+      "id": "gate-001",
+      "name": "No prohibited medical claims",
+      "type": "regex",
+      "pattern": "\\b(cure[sd]?|treat[s]?|treatment|prevent[s]?|prevention|diagnose[sd]?|prescribe[sd]?|prescription|heal[s]?|healing|medicinal|medical|therapeutic|therapy|clinically proven|doctor recommended|fda approved)\\b",
+      "match": "none",
+      "isGate": true,
+      "category": "compliance",
+      "weight": 0
+    },
+    {
+      "id": "gate-002",
+      "name": "No anxiety keyword (use relaxation/stress relief)",
+      "type": "regex",
+      "pattern": "\\banxiety\\b",
+      "match": "none",
+      "isGate": true,
+      "category": "compliance",
+      "weight": 0
+    },
+    {
+      "id": "gate-003",
+      "name": "No age-restricted targeting language",
+      "type": "regex",
+      "pattern": "\\b(teens?|kids?|minors?|youth|students?|children)\\b",
+      "match": "none",
+      "isGate": true,
+      "category": "compliance",
+      "weight": 0
+    },
+    {
+      "id": "gate-004",
+      "name": "Valid JSON output with required short_description field",
+      "type": "rule",
+      "rule": "output_is_valid_json_with_field",
+      "ruleParams": { "field": "short_description" },
+      "isGate": true,
+      "category": "format",
+      "weight": 0
+    },
+    {
+      "id": "qual-001",
+      "name": "Short description is within 50–100 words",
+      "type": "rule",
+      "rule": "word_count_in_range",
+      "ruleParams": { "field": "short_description", "min": 50, "max": 100 },
+      "isGate": false,
+      "category": "format",
+      "weight": 1
+    },
+    {
+      "id": "qual-002",
+      "name": "References at least one input differentiator (strain, effect, or terpene)",
+      "type": "rule",
+      "rule": "contains_at_least_one_input_field",
+      "ruleParams": { "fields": ["strain", "effects", "terpenes"], "field": "short_description" },
+      "isGate": false,
+      "category": "accuracy",
+      "weight": 1
+    },
+    {
+      "id": "qual-003",
+      "name": "No invented potency numbers (THC/CBD % not in input)",
+      "type": "judge",
+      "judgePrompt": "Given this input data:\n{{input}}\n\nAnd this product description:\n{{output}}\n\nDoes the description mention any specific THC percentage, CBD percentage, mg dosage, or lab test result that was NOT provided in the input data? Answer YES or NO.",
+      "passAnswer": "NO",
+      "isGate": false,
+      "category": "accuracy",
+      "weight": 2
+    },
+    {
+      "id": "qual-004",
+      "name": "Readable to a dispensary customer",
+      "type": "judge",
+      "judgePrompt": "Read this cannabis product description:\n{{output}}\n\nIs it written in clear, accessible language that an adult cannabis retail customer can easily understand — without requiring industry expertise? Answer YES or NO.",
+      "passAnswer": "YES",
+      "isGate": false,
+      "category": "quality",
+      "weight": 1
+    },
+    {
+      "id": "qual-005",
+      "name": "Publishable with minimal edits",
+      "type": "judge",
+      "judgePrompt": "Read this cannabis product description:\n{{output}}\n\nCould a dispensary operator publish this description on their menu or website with minimal or no edits — meaning it requires no factual corrections, no compliance fixes, and no major rewriting? Answer YES or NO.",
+      "passAnswer": "YES",
+      "isGate": false,
+      "category": "quality",
+      "weight": 2
+    },
+    {
+      "id": "qual-006",
+      "name": "On-brand professional tone (not clinical, not slang-heavy)",
+      "type": "judge",
+      "judgePrompt": "Read this cannabis product description:\n{{output}}\n\nDoes it strike a professional, approachable tone — neither overly clinical and dry nor using heavy cannabis slang? Answer YES or NO.",
+      "passAnswer": "YES",
+      "isGate": false,
+      "category": "quality",
+      "weight": 1
+    },
+    {
+      "id": "qual-007",
+      "name": "No guaranteed outcome language",
+      "type": "regex",
+      "pattern": "\\b(guaranteed|will (make|give|cause|eliminate|remove|fix|solve)|you will feel|proven to)\\b",
+      "match": "none",
+      "isGate": false,
+      "category": "compliance",
+      "weight": 1
+    }
+  ],
+
+  "minCriteriaPassRate": 0.75,
+  "promotionDelta": 0.05,
+
+  "datasets": {
+    "dev": "eval/dev-set.jsonl",
+    "holdout": "eval/holdout-set.jsonl",
+    "regression": "eval/regression-set.jsonl"
+  },
+
+  "judgeModels": {
+    "dev": "claude-haiku-4-5-20251001",
+    "holdout": "claude-sonnet-4-6"
+  }
+}
