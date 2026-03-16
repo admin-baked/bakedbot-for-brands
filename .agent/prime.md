@@ -19,7 +19,10 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** Playbook artifact repo provisioning completed for `bakedbot-artifacts-prod`; focused playbook runtime tests are passing; full repo typecheck should be rerun before broad shipping because the workspace still has additional in-flight changes.
+**Current Status:** 🟢 Passing — champion/challenger skill optimization platform shipped; build clean (3x tsc exit 0).
+
+## Session 2026-03-15 (Self-improving skills system)
+- **Skill optimization platform** (`9a7575903`): `OptimizableSkill` types, `loadOptimizableSkill()`, `skill_experiments` Firestore schema, pilot `domain/product-description` skill (4 hard gates + 7 binary quality criteria), `run-skill-eval.mjs` champion/challenger runner
 
 ## Session 2026-03-12 (Playbook artifact repo + runtime memory layer)
 - **Artifact repo path made real**: Playbook V2 now persists spec snapshots, run manifests, failure artifacts, approval records, delivery manifests, and `summary_for_ai_engineers.md` through the shared artifact runtime. Runtime writes go to blob storage + Firestore metadata + the dedicated Git repo `admin-baked/bakedbot-artifacts-prod` when App Hosting is running with the new repo env/secret config.
