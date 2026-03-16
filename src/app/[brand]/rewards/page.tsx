@@ -123,7 +123,7 @@ export default async function RewardsPage({ params }: { params: Promise<{ brand:
                                             </div>
                                             <h3 className="font-semibold text-lg mb-2">1. Join Free</h3>
                                             <p className="text-sm text-muted-foreground">
-                                                Sign up in-store or online - it\'s completely free
+                                                {"Sign up in-store or online - it's completely free"}
                                             </p>
                                         </CardContent>
                                     </Card>
