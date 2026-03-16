@@ -56,6 +56,7 @@ const CalendarTab = nextDynamic(() => import("./components/calendar-tab"), { loa
 const NYPilotTab = nextDynamic(() => import("./components/ny-pilot-tab"), { loading: TabLoader, ssr: false });
 const OutreachTab = nextDynamic(() => import("./components/outreach-tab"), { loading: TabLoader, ssr: false });
 const ContentCeoTab = nextDynamic(() => import("./components/content-tab"), { loading: TabLoader, ssr: false });
+const SkillOptimizationTab = nextDynamic(() => import("./components/skill-optimization-tab"), { loading: TabLoader, ssr: false });
 
 
 import { useUserRole } from '@/hooks/use-user-role';
@@ -237,6 +238,7 @@ function CeoDashboardContent() {
             case 'ny-pilot': return <NYPilotTab />;
             case 'outreach': return <OutreachTab />;
             case 'content': return <ContentCeoTab />;
+            case 'skills-lab': return <SkillOptimizationTab />;
             case 'ai-settings': return <GLMSettingsTab />;
             default: return <SuperUserPlaybooksPage />;
         }
@@ -279,6 +281,7 @@ function CeoDashboardContent() {
                                 <Link href="?tab=outreach"><Button variant="outline" size="sm" className="w-full justify-start">Outreach</Button></Link>
                                 <Link href="?tab=ai-settings"><Button variant="outline" size="sm" className="w-full justify-start">AI Settings</Button></Link>
                                 <Link href="?tab=content"><Button variant="outline" size="sm" className="w-full justify-start">📝 Content</Button></Link>
+                                <Link href="?tab=skills-lab"><Button variant="outline" size="sm" className="w-full justify-start">🧪 Skills Lab</Button></Link>
                             </div>
                         </SheetContent>
                     </Sheet>
@@ -314,6 +317,9 @@ function CeoDashboardContent() {
                     </Link>
                     <Link href="?tab=content">
                         <Button variant="ghost" size="sm">📝 Content</Button>
+                    </Link>
+                    <Link href="?tab=skills-lab">
+                        <Button variant="ghost" size="sm">🧪 Skills Lab</Button>
                     </Link>
                     <DataImportDropdown />
                     {process.env.NODE_ENV !== 'production' && <MockDataToggle />}
