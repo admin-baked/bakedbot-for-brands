@@ -77,23 +77,19 @@ export default function NYPilotTab() {
   const [campStatusFilter, setCampStatusFilter] = useState<string>('all');
 
   const loadData = useCallback(async () => {
-    try {
-      const [orgsData, kpisData, pbData, campData, promoData] = await Promise.all([
-        getNY10PilotOrgs(),
-        getNY10KPIs(),
-        getNY10PlaybookSummary(),
-        getNY10CampaignSummary(),
-        getNY10PromoStatus(),
-      ]);
-      setOrgs(orgsData);
-      setKpis(kpisData);
-      setPlaybookRows(pbData);
-      setCampaigns(campData);
-      setPromoStatus(promoData);
-    } catch (error) {
-      toast({ title: 'Failed to load pilot data', description: String(error), variant: 'destructive' });
-    }
-  }, [toast]);
+    const [orgsResult, kpisResult, pbResult, campResult, promoResult] = await Promise.allSettled([
+      getNY10PilotOrgs(),
+      getNY10KPIs(),
+      getNY10PlaybookSummary(),
+      getNY10CampaignSummary(),
+      getNY10PromoStatus(),
+    ]);
+    if (orgsResult.status === 'fulfilled') setOrgs(orgsResult.value);
+    if (kpisResult.status === 'fulfilled') setKpis(kpisResult.value);
+    if (pbResult.status === 'fulfilled') setPlaybookRows(pbResult.value);
+    if (campResult.status === 'fulfilled') setCampaigns(campResult.value);
+    if (promoResult.status === 'fulfilled') setPromoStatus(promoResult.value);
+  }, []);
 
   useEffect(() => {
     setLoading(true);

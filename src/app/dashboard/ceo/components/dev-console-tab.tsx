@@ -267,6 +267,12 @@ function CodeFixerTab({ onTypeCheck }: { onTypeCheck: () => void }) {
             <ScrollArea className="flex-1">
               <div className="p-2 space-y-1">
                 {isLoading && <div className="text-xs text-muted-foreground p-2">Loading...</div>}
+                {!isLoading && files.length === 0 && (
+                  <div className="text-xs text-muted-foreground p-3 text-center leading-relaxed">
+                    Source files are not available in this environment.<br />
+                    File browsing requires the development build.
+                  </div>
+                )}
                 {filteredFiles.map((file) => (
                   <button
                     key={file}
