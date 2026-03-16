@@ -450,6 +450,8 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
   const { toast } = useToast();
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [isScanning, setIsScanning] = useState(false);
+  const [scanProgress, setScanProgress] = useState(0);
+  const [scanPhaseLabel, setScanPhaseLabel] = useState('');
   const [currentStep, setCurrentStep] = useState<number | null>(null);
   const [suggestedCompetitors, setSuggestedCompetitors] = useState<BrandGuideCompetitorSuggestion[]>([]);
 
@@ -520,6 +522,53 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
       completed: !!step7Data,
     },
   ];
+
+  // Scan phase definitions: [label, targetProgress, durationMs]
+  const SCAN_PHASES: Array<[string, number, number]> = [
+    ['Connecting to website…', 8, 2000],
+    ['Fetching pages & subpages…', 30, 14000],
+    ['Analyzing visual identity…', 50, 8000],
+    ['Extracting brand voice…', 65, 7000],
+    ['Building messaging profile…', 78, 7000],
+    ['Analyzing competitors…', 90, 8000],
+    ['Finalizing results…', 97, 5000],
+  ];
+
+  useEffect(() => {
+    if (!isScanning) {
+      setScanProgress(0);
+      setScanPhaseLabel('');
+      return;
+    }
+    setScanProgress(0);
+    let phaseIdx = 0;
+    let rafId: ReturnType<typeof setTimeout>;
+
+    const runPhase = () => {
+      if (phaseIdx >= SCAN_PHASES.length) return;
+      const [label, target, duration] = SCAN_PHASES[phaseIdx];
+      setScanPhaseLabel(label);
+      const start = Date.now();
+      const prevTarget = phaseIdx === 0 ? 0 : SCAN_PHASES[phaseIdx - 1][1];
+      const range = target - prevTarget;
+      const tick = () => {
+        const elapsed = Date.now() - start;
+        const pct = Math.min(elapsed / duration, 1);
+        setScanProgress(Math.round(prevTarget + range * pct));
+        if (pct < 1) {
+          rafId = setTimeout(tick, 80);
+        } else {
+          phaseIdx++;
+          runPhase();
+        }
+      };
+      tick();
+    };
+
+    runPhase();
+    return () => clearTimeout(rafId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isScanning]);
 
   const handleScanSite = async () => {
     if (!websiteUrl) return;
@@ -688,7 +737,9 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
         variant: 'destructive',
       });
     } finally {
-      setIsScanning(false);
+      setScanProgress(100);
+      setScanPhaseLabel('Complete!');
+      setTimeout(() => setIsScanning(false), 600);
     }
   };
 
@@ -946,9 +997,27 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
                 disabled={!websiteUrl || isScanning}
                 className="bg-baked-green hover:bg-baked-green/90 text-white font-semibold px-6"
               >
-                {isScanning ? 'Scanning...' : 'Scan Site'}
+                {isScanning ? 'Scanning…' : 'Scan Site'}
               </Button>
             </div>
+
+            {isScanning && (
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <span className="flex items-center gap-1.5">
+                    <Loader2 className="w-3 h-3 animate-spin text-baked-green" />
+                    {scanPhaseLabel}
+                  </span>
+                  <span className="font-medium text-baked-green">{scanProgress}%</span>
+                </div>
+                <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-baked-green rounded-full transition-all duration-200 ease-out"
+                    style={{ width: `${scanProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
           </Card>
 
           {suggestedCompetitors.length > 0 && (
