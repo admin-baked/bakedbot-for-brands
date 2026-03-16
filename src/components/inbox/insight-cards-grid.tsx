@@ -16,6 +16,7 @@ import { InsightCard } from './insight-card';
 import { useInsights } from '@/hooks/use-insights';
 import { useInboxStore } from '@/lib/store/inbox-store';
 import { createInboxThread } from '@/server/actions/inbox';
+import { getLatestCompetitiveIntel } from '@/server/actions/competitive-pricing';
 import { useToast } from '@/hooks/use-toast';
 import type { InsightCard as InsightCardType } from '@/types/insight-cards';
 import type { InboxThreadType, InboxAgentPersona } from '@/types/inbox';
@@ -81,6 +82,7 @@ export function InsightCardsGrid({ className, maxCards = 5 }: InsightCardsGridPr
         markThreadPending,
         markThreadPersisted,
         deleteThread,
+        addMessageToThread,
         currentOrgId,
     } = useInboxStore();
 
@@ -109,8 +111,39 @@ export function InsightCardsGrid({ className, maxCards = 5 }: InsightCardsGridPr
 
         let localThread = null;
         try {
-            // Agent ID is already in the correct format (underscore-separated)
             const agentPersona = insight.agentId as InboxAgentPersona;
+
+            // For Ezal's market_intel card: pre-fetch the latest CI report to show inline
+            let ciReport: string | null = null;
+            if (insight.agentId === 'ezal' && insight.threadType === 'market_intel' && currentOrgId) {
+                try {
+                    const ciResult = await getLatestCompetitiveIntel(currentOrgId);
+                    if (ciResult.success && ciResult.data) {
+                        const d = ciResult.data;
+                        const lines: string[] = [
+                            `## Latest Competitive Intelligence Report`,
+                            `*${new Date(d.generatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} — ${d.competitorsTracked} competitor${d.competitorsTracked !== 1 ? 's' : ''} tracked, ${d.totalDeals} deal${d.totalDeals !== 1 ? 's' : ''} found*`,
+                            '',
+                        ];
+                        if (d.topDeal) {
+                            lines.push(`**Top Deal:** ${d.topDeal.competitor} — ${d.topDeal.deal} at $${d.topDeal.price}`);
+                            lines.push('');
+                        }
+                        if (d.marketTrends.length > 0) {
+                            lines.push('**Market Trends:**');
+                            d.marketTrends.forEach(t => lines.push(`- ${t.trend}`));
+                            lines.push('');
+                        }
+                        if (d.recommendations.length > 0) {
+                            lines.push('**Recommendations:**');
+                            d.recommendations.slice(0, 4).forEach(r => lines.push(`- ${r}`));
+                        }
+                        ciReport = lines.join('\n');
+                    }
+                } catch {
+                    // CI fetch failed — open thread empty so Ezal can run fresh
+                }
+            }
 
             // Create thread locally first
             localThread = createThread(insight.threadType as InboxThreadType, {
@@ -141,6 +174,18 @@ export function InsightCardsGrid({ className, maxCards = 5 }: InsightCardsGridPr
             }
 
             markThreadPersisted(localThread.id);
+
+            // Inject CI report as Ezal's opening message so it's visible immediately inline
+            if (ciReport) {
+                addMessageToThread(localThread.id, {
+                    id: `ezal-ci-${Date.now()}`,
+                    type: 'agent',
+                    content: ciReport,
+                    timestamp: new Date(),
+                    metadata: { agentName: 'Ezal' },
+                });
+            }
+
             setActiveThread(localThread.id);
         } catch (err) {
             if (localThread) deleteThread(localThread.id);

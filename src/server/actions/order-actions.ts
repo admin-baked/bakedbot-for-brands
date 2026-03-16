@@ -305,9 +305,11 @@ export async function getDispensaryOrders(
 }
 
 /**
- * Get order statistics for a dispensary
+ * Get order statistics for a dispensary.
+ * Tries `orgId` first (canonical field used by Alleaves sync + analytics),
+ * then falls back to `retailerId` for legacy BakedBot orders.
  */
-export async function getOrderStats(retailerId: string): Promise<{
+export async function getOrderStats(orgId: string): Promise<{
     pending: number;
     preparing: number;
     ready: number;
@@ -320,17 +322,28 @@ export async function getOrderStats(retailerId: string): Promise<{
         const statuses: OrderStatus[] = ['pending', 'preparing', 'ready', 'completed', 'cancelled'];
         const results: Record<string, number> = {};
 
-        await Promise.all(
-            statuses.map(async (status) => {
-                const snapshot = await firestore
-                    .collection('orders')
-                    .where('retailerId', '==', retailerId)
-                    .where('status', '==', status)
-                    .count()
-                    .get();
-                results[status] = snapshot.data().count;
-            })
-        );
+        const queryField = async (field: string) => {
+            await Promise.all(
+                statuses.map(async (status) => {
+                    const snapshot = await firestore
+                        .collection('orders')
+                        .where(field, '==', orgId)
+                        .where('status', '==', status)
+                        .count()
+                        .get();
+                    results[status] = (results[status] || 0) + snapshot.data().count;
+                })
+            );
+        };
+
+        // Primary: orgId (used by Alleaves sync and order-analytics)
+        await queryField('orgId');
+
+        // Fallback: retailerId (used by legacy BakedBot orders) — only if orgId returned nothing
+        const totalFromOrgId = Object.values(results).reduce((sum, n) => sum + n, 0);
+        if (totalFromOrgId === 0) {
+            await queryField('retailerId');
+        }
 
         return {
             pending: results.pending || 0,
