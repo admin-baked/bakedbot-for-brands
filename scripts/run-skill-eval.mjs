@@ -159,9 +159,14 @@ async function evaluateCriterion(criterion, input, output) {
             return { ...base, passed: true, reasoning: '[SKIPPED — run with --full to enable judge checks]' };
         }
 
+        const toneProfile = typeof input.tone_profile === 'object'
+            ? JSON.stringify(input.tone_profile)
+            : String(input.tone_profile ?? 'Professional and approachable');
         const prompt = (criterion.judgePrompt ?? '')
             .replace('{{input}}', JSON.stringify(input, null, 2))
-            .replace('{{output}}', output);
+            .replace('{{output}}', output)
+            .replace(/\{\{tone_profile\}\}/g, toneProfile)
+            .replace(/\{\{channel\}\}/g, String(input.channel ?? 'web'));
 
         try {
             const response = await anthropic.messages.create({
@@ -190,6 +195,17 @@ function evaluateRule(rule, params, input, outputRaw) {
     switch (rule) {
         case 'output_is_valid_json_with_field': {
             return parsed !== null && typeof parsed[params.field] === 'string';
+        }
+        case 'output_is_valid_json_with_fields': {
+            const fields = params.requiredFields ?? [];
+            return parsed !== null && fields.every(f => typeof parsed[f] === 'string');
+        }
+        case 'required_disclaimer_present_if_needed': {
+            const disclaimerRequired = input[params.disclaimerField];
+            if (!disclaimerRequired) return true; // disclaimer not needed
+            const phrases = params.disclaimerPhrases ?? [];
+            const combined = JSON.stringify(parsed ?? outputRaw).toLowerCase();
+            return phrases.some(p => combined.includes(p.toLowerCase()));
         }
         case 'word_count_in_range': {
             if (!parsed) return false;
@@ -221,20 +237,32 @@ function evaluateRule(rule, params, input, outputRaw) {
 
 async function generateOutput(instructions, input, retries = 2) {
     if (!anthropic) {
-        return JSON.stringify({ short_description: '[GENERATION SKIPPED — no API key]' });
+        return JSON.stringify({
+            short_description: '[GENERATION SKIPPED — no API key]',
+            medium_description: '[GENERATION SKIPPED]',
+            seo_summary: '[GENERATION SKIPPED]',
+            cta_snippet: null,
+        });
     }
 
     for (let attempt = 0; attempt <= retries; attempt++) {
         try {
             const response = await anthropic.messages.create({
                 model: generationModel,
-                max_tokens: 300,
+                max_tokens: 600,
                 system: instructions,
                 messages: [{ role: 'user', content: JSON.stringify(input, null, 2) }],
             });
             return response.content[0]?.type === 'text' ? response.content[0].text.trim() : '';
         } catch (err) {
-            if (attempt === retries) return `{"short_description":"[ERROR: ${err.message}]"}`;
+            if (attempt === retries) {
+                return JSON.stringify({
+                    short_description: `[ERROR: ${err.message}]`,
+                    medium_description: '[ERROR]',
+                    seo_summary: '[ERROR]',
+                    cta_snippet: null,
+                });
+            }
             await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
         }
     }
@@ -292,6 +320,24 @@ async function runEval(instructions, versionLabel, dataset, isRegressionMode = f
     const totalMaxScore = caseResults.reduce((s, r) => s + r.maxScore, 0);
     const compositeScore = totalMaxScore > 0 ? totalScore / totalMaxScore : 0;
     const anyGateFailure = gatesPassedCount < caseResults.length;
+    const hardGatePassRate = caseResults.length > 0 ? gatesPassedCount / caseResults.length : 0;
+
+    const gatePassedCases = caseResults.filter(r => r.gatesPassed);
+    const totalQualSlots = gatePassedCases.reduce((s, r) => s + r.maxScore, 0);
+    const totalQualPasses = gatePassedCases.reduce((s, r) => s + r.score, 0);
+    const qualityPassRate = totalQualSlots > 0 ? totalQualPasses / totalQualSlots : 0;
+
+    const publishablePassedInGate = gatePassedCases.filter(r =>
+        r.criteriaResults.find(c => c.criterionId === 'qual-005')?.passed === true
+    ).length;
+    const publishableRate = gatePassedCases.length > 0 ? publishablePassedInGate / gatePassedCases.length : 0;
+
+    const inventedFactResults = caseResults.map(r =>
+        r.criteriaResults.find(c => c.criterionId === 'gate-002')
+    ).filter(c => c && !c.reasoning?.includes('[SKIPPED'));
+    const inventedFactRate = inventedFactResults.length > 0
+        ? inventedFactResults.filter(c => !c.passed).length / inventedFactResults.length
+        : -1;
 
     // Per-criterion pass rates
     const criteriaPassRates = {};
@@ -313,6 +359,10 @@ async function runEval(instructions, versionLabel, dataset, isRegressionMode = f
         gatesPassedCount,
         gatesFailedCount: caseResults.length - gatesPassedCount,
         compositeScore,
+        hardGatePassRate,
+        qualityPassRate,
+        publishableRate,
+        inventedFactRate,
         criteriaPassRates,
         anyGateFailure,
         runDurationMs: Date.now() - startMs,
@@ -329,8 +379,10 @@ function formatScore(score) {
 function printRunResult(label, result) {
     console.log(`\n  ┌─ ${label}`);
     console.log(`  │  Cases: ${result.totalCases}`);
-    console.log(`  │  Gates passed: ${result.gatesPassedCount}/${result.totalCases} ${result.anyGateFailure ? '⛔' : '✅'}`);
-    console.log(`  │  Composite score: ${formatScore(result.compositeScore)}`);
+    console.log(`  │  Hard gate pass rate:  ${formatScore(result.hardGatePassRate)} (${result.gatesPassedCount}/${result.totalCases}) ${result.anyGateFailure ? '⛔' : '✅'}`);
+    console.log(`  │  Quality pass rate:    ${formatScore(result.qualityPassRate)}`);
+    console.log(`  │  Publishable rate:     ${formatScore(result.publishableRate)}`);
+    console.log(`  │  Invented fact rate:   ${result.inventedFactRate === -1 ? '[skipped]' : formatScore(result.inventedFactRate)}`);
     console.log(`  │`);
     console.log(`  │  Criteria breakdown:`);
 
@@ -344,34 +396,52 @@ function printRunResult(label, result) {
 }
 
 function printComparison(champion, challenger, spec) {
-    const delta = challenger.compositeScore - champion.compositeScore;
-    const meetsThreshold = delta >= spec.promotionDelta;
-    const anyGateFailure = challenger.anyGateFailure;
+    const promotionRules = spec.promotionRules ?? {};
+    const minQualityLift = (promotionRules.minQualityLiftPct ?? 3) / 100;
+    const minPublishableLift = (promotionRules.minPublishableLiftPct ?? 5) / 100;
+
+    const hardGateDelta = challenger.hardGatePassRate - champion.hardGatePassRate;
+    const qualityDelta = challenger.qualityPassRate - champion.qualityPassRate;
+    const publishableDelta = challenger.publishableRate - champion.publishableRate;
+    const inventedFactDelta = challenger.inventedFactRate - champion.inventedFactRate; // negative = better
+
+    const meetsHardGate = hardGateDelta >= 0; // must not regress
+    const meetsQualityLift = qualityDelta >= minQualityLift;
+    const meetsPublishableLift = publishableDelta >= minPublishableLift;
+    const meetsInventedFact = challenger.inventedFactRate === -1 || inventedFactDelta <= 0; // -1 = skipped
+    const meetsBudget = true; // budget only checked by full script with timing
+
+    const rejectionReasons = [];
+    if (!meetsHardGate) rejectionReasons.push(`Hard gate pass rate regressed: ${formatScore(hardGateDelta)} (must be ≥ 0)`);
+    if (!meetsQualityLift) rejectionReasons.push(`Quality lift ${formatScore(qualityDelta)} < required +${formatScore(minQualityLift)}`);
+    if (!meetsPublishableLift) rejectionReasons.push(`Publishable lift ${formatScore(publishableDelta)} < required +${formatScore(minPublishableLift)}`);
+    if (!meetsInventedFact) rejectionReasons.push(`Invented fact rate worsened: ${formatScore(inventedFactDelta)}`);
+
+    const allMet = meetsHardGate && meetsQualityLift && meetsPublishableLift && meetsInventedFact;
+
+    // Borderline: passes all criteria but publishable delta is marginal (< 2x minimum)
+    const borderline = allMet && publishableDelta < minPublishableLift * 2;
 
     let recommendation;
-    const rejectionReasons = [];
-
-    if (anyGateFailure) {
+    if (!allMet) {
         recommendation = 'reject';
-        rejectionReasons.push('Challenger failed one or more hard gates');
-    } else if (!meetsThreshold) {
-        recommendation = 'reject';
-        rejectionReasons.push(`Score delta ${formatScore(delta)} < required ${formatScore(spec.promotionDelta)}`);
+    } else if (borderline) {
+        recommendation = 'needs_human_review';
+        rejectionReasons.push(`Publishable lift ${formatScore(publishableDelta)} above threshold but marginal — human review recommended`);
     } else {
         recommendation = 'promote';
     }
 
-    // Additional nuance: require human review if delta is between threshold and 2x threshold
-    if (recommendation === 'promote' && delta < spec.promotionDelta * 2) {
-        recommendation = 'needs_human_review';
-        rejectionReasons.push(`Delta is above threshold but small (${formatScore(delta)}) — human review recommended`);
+    console.log('\n  ┌─ CHAMPION vs CHALLENGER (5-metric promotion decision)');
+    console.log(`  │`);
+    console.log(`  │  Hard gate pass rate: ${formatScore(champion.hardGatePassRate)} → ${formatScore(challenger.hardGatePassRate)}  (${hardGateDelta >= 0 ? '+' : ''}${formatScore(hardGateDelta)})  ${meetsHardGate ? '✅' : '❌'}`);
+    console.log(`  │  Quality pass rate:   ${formatScore(champion.qualityPassRate)} → ${formatScore(challenger.qualityPassRate)}  (${qualityDelta >= 0 ? '+' : ''}${formatScore(qualityDelta)} / need +${formatScore(minQualityLift)})  ${meetsQualityLift ? '✅' : '❌'}`);
+    console.log(`  │  Publishable rate:    ${formatScore(champion.publishableRate)} → ${formatScore(challenger.publishableRate)}  (${publishableDelta >= 0 ? '+' : ''}${formatScore(publishableDelta)} / need +${formatScore(minPublishableLift)})  ${meetsPublishableLift ? '✅' : '❌'}`);
+    if (challenger.inventedFactRate !== -1) {
+        console.log(`  │  Invented fact rate:  ${formatScore(champion.inventedFactRate)} → ${formatScore(challenger.inventedFactRate)}  (must not worsen)  ${meetsInventedFact ? '✅' : '❌'}`);
+    } else {
+        console.log(`  │  Invented fact rate:  [skipped — run with --full to evaluate]`);
     }
-
-    console.log('\n  ┌─ CHAMPION vs CHALLENGER');
-    console.log(`  │  Champion score:   ${formatScore(champion.compositeScore)}`);
-    console.log(`  │  Challenger score: ${formatScore(challenger.compositeScore)}`);
-    console.log(`  │  Delta: ${delta >= 0 ? '+' : ''}${formatScore(delta)}`);
-    console.log(`  │  Gates: ${anyGateFailure ? '⛔ FAILED' : '✅ PASSED'}`);
     console.log(`  │`);
 
     if (recommendation === 'promote') {
@@ -385,7 +455,11 @@ function printComparison(champion, challenger, spec) {
     }
     console.log('  └─────');
 
-    return { recommendation, rejectionReasons, delta };
+    return {
+        recommendation, rejectionReasons,
+        hardGateDelta, qualityDelta, publishableDelta, inventedFactDelta,
+        meetsHardGate, meetsQualityLift, meetsPublishableLift, meetsInventedFact,
+    };
 }
 
 // ─── Regression mode ──────────────────────────────────────────────────────────
@@ -464,18 +538,20 @@ async function main() {
         process.exit(0);
     }
 
-    // No challenger — just validate champion passes thresholds
-    const passRate = championResult.compositeScore;
-    const threshold = evalSpec.minCriteriaPassRate;
+    // No challenger — validate champion passes baseline thresholds
+    const promotionRules = evalSpec.promotionRules ?? {};
+    const minQualityLift = (promotionRules.minQualityLiftPct ?? 3) / 100;
 
     if (championResult.anyGateFailure) {
         console.log(`\n  ❌ FAIL — Champion failed hard gate(s). Current champion is not compliant.`);
         process.exit(1);
-    } else if (passRate < threshold) {
-        console.log(`\n  ⚠️  WARN — Champion score ${formatScore(passRate)} below threshold ${formatScore(threshold)}`);
+    } else if (championResult.qualityPassRate < (0.5 + minQualityLift)) {
+        console.log(`\n  ⚠️  WARN — Champion quality pass rate ${formatScore(championResult.qualityPassRate)} is low`);
         process.exit(2);
     } else {
-        console.log(`\n  ✅ PASS — Champion score ${formatScore(passRate)} meets threshold`);
+        console.log(`\n  ✅ PASS — Champion clears all hard gates`);
+        console.log(`  Quality pass rate: ${formatScore(championResult.qualityPassRate)}`);
+        console.log(`  Publishable rate:  ${formatScore(championResult.publishableRate)}`);
         process.exit(0);
     }
 }

@@ -48,10 +48,28 @@ export interface LedgerRunMetrics {
     compositeScore: number;
     anyGateFailure: boolean;
 
+    /** % of cases where ALL 5 hard gates passed (0–1) */
+    hardGatePassRate: number;
+
+    /** quality yes answers / total possible quality answers, among gate-passed cases only (0–1) */
+    qualityPassRate: number;
+
+    /** % of gate-passed cases where qual-005 (publishable_without_major_edits) = YES (0–1) */
+    publishableRate: number;
+
+    /** % of ALL cases failing gate-002 (no_invented_facts) (0–1) */
+    inventedFactRate: number;
+
+    /** Average wall-clock ms per case */
+    avgLatencyMs: number;
+
+    /** Average cost per case in USD (judge API calls) */
+    avgCostUsd: number;
+
     /** Pass rate per criterion ID */
     criteriaPassRates: Record<string, number>;
 
-    /** Cost of judge API calls for this run (USD estimate) */
+    /** Total cost of judge API calls for this run (USD estimate) */
     judgeCostUsd: number;
 
     /** Wall-clock ms for the full run */
@@ -132,11 +150,35 @@ export interface SkillExperiment {
     /** challenger composite score minus champion composite score */
     score_delta: number;
 
-    /** Challenger compliance failure rate (0-1) */
-    compliance_fail_rate: number;
+    /** Challenger hard_gate_pass_rate minus champion hard_gate_pass_rate */
+    hard_gate_pass_rate_delta: number;
 
-    /** Whether the challenger meets the minimum promotion delta */
-    meets_promotion_delta: boolean;
+    /** Challenger quality_pass_rate minus champion quality_pass_rate */
+    quality_pass_rate_delta: number;
+
+    /** Challenger publishable_rate minus champion publishable_rate */
+    publishable_rate_delta: number;
+
+    /** Challenger invented_fact_rate minus champion invented_fact_rate (negative = better) */
+    invented_fact_rate_delta: number;
+
+    /** All 5 promotion conditions satisfied */
+    meets_all_promotion_criteria: boolean;
+
+    /** Challenger hard_gate_pass_rate >= champion (non-regression requirement) */
+    meets_hard_gate_requirement: boolean;
+
+    /** quality_pass_rate_delta >= promotionRules.minQualityLiftPct / 100 */
+    meets_quality_lift: boolean;
+
+    /** publishable_rate_delta >= promotionRules.minPublishableLiftPct / 100 */
+    meets_publishable_lift: boolean;
+
+    /** invented_fact_rate_delta <= 0 (challenger did not get worse) */
+    meets_invented_fact_requirement: boolean;
+
+    /** avg cost and latency within budget */
+    meets_budget: boolean;
 
     /**
      * Final decision for this experiment:

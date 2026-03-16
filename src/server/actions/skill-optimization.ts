@@ -124,6 +124,14 @@ export interface FastEvalResult {
     gatesFailedCount: number;
     compositeScore: number;
     anyGateFailure: boolean;
+    /** % of cases with ALL hard gates passing */
+    hardGatePassRate: number;
+    /** quality passes / total quality slots, among gate-passed cases */
+    qualityPassRate: number;
+    /** % of gate-passed cases where qual-005 passed */
+    publishableRate: number;
+    /** % of cases failing gate-002 (no_invented_facts) — -1 if all skipped */
+    inventedFactRate: number;
     criteriaPassRates: Record<string, number>;
     caseResults: Array<{
         caseId: string;
@@ -302,17 +310,28 @@ function evaluateRuleCriterion(
             const field = params.field as string;
             return { passed: parsed !== null && typeof parsed[field] === 'string' };
         }
+        case 'output_is_valid_json_with_fields': {
+            const fields = params.requiredFields as string[];
+            return { passed: parsed !== null && fields.every(f => typeof (parsed as Record<string, unknown>)[f] === 'string') };
+        }
+        case 'required_disclaimer_present_if_needed': {
+            const disclaimerRequired = input[params.disclaimerField as string];
+            if (!disclaimerRequired) return { passed: true }; // disclaimer not needed
+            const phrases = params.disclaimerPhrases as string[];
+            const combined = JSON.stringify(parsed ?? outputRaw).toLowerCase();
+            return { passed: phrases.some(p => combined.includes(p.toLowerCase())) };
+        }
         case 'word_count_in_range': {
             if (!parsed) return { passed: false };
             const field = params.field as string;
-            const text = String(parsed[field] ?? '');
+            const text = String((parsed as Record<string, unknown>)[field] ?? '');
             const count = text.trim().split(/\s+/).filter(Boolean).length;
             return { passed: count >= (params.min as number ?? 0) && count <= (params.max as number ?? Infinity) };
         }
         case 'contains_at_least_one_input_field': {
             if (!parsed) return { passed: false };
             const field = params.field as string;
-            const text = String(parsed[field] ?? '').toLowerCase();
+            const text = String((parsed as Record<string, unknown>)[field] ?? '').toLowerCase();
             const fields = params.fields as string[];
             for (const f of fields) {
                 const val = input[f];
@@ -411,6 +430,25 @@ export async function runFastEval(
         const totalMaxScore = caseResults.reduce((s, r) => s + r.maxScore, 0);
         const compositeScore = totalMaxScore > 0 ? totalScore / totalMaxScore : 0;
 
+        // 5-metric promotion metrics
+        const hardGatePassRate = caseResults.length > 0 ? gatesPassedCount / caseResults.length : 0;
+        const gatePassed = caseResults.filter(r => r.gatesPassed);
+        const totalQualitySlots = gatePassed.reduce((s, r) => s + r.maxScore, 0);
+        const totalQualityPasses = gatePassed.reduce((s, r) => s + r.score, 0);
+        const qualityPassRate = totalQualitySlots > 0 ? totalQualityPasses / totalQualitySlots : 0;
+        const publishableCritId = 'qual-005';
+        const inventedFactCritId = 'gate-002';
+        const publishableGatePassed = gatePassed.filter(r =>
+            r.criteriaResults.find(c => c.criterionId === publishableCritId)?.passed === true
+        ).length;
+        const publishableRate = gatePassed.length > 0 ? publishableGatePassed / gatePassed.length : 0;
+        const inventedFactResults = caseResults.map(r =>
+            r.criteriaResults.find(c => c.criterionId === inventedFactCritId)
+        ).filter((c): c is NonNullable<typeof c> => c !== undefined && !c.skipped);
+        const inventedFactRate = inventedFactResults.length > 0
+            ? inventedFactResults.filter(c => !c.passed).length / inventedFactResults.length
+            : -1; // -1 = all skipped (judge gate, fast mode)
+
         const criteriaPassRates: Record<string, number> = {};
         for (const criterion of evalSpec.criteria) {
             const relevant = caseResults
@@ -433,6 +471,10 @@ export async function runFastEval(
                 gatesFailedCount: caseResults.length - gatesPassedCount,
                 compositeScore,
                 anyGateFailure: gatesPassedCount < caseResults.length,
+                hardGatePassRate,
+                qualityPassRate,
+                publishableRate,
+                inventedFactRate,
                 criteriaPassRates,
                 caseResults,
             },
