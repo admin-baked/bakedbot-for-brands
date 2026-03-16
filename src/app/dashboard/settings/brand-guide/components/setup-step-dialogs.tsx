@@ -146,7 +146,7 @@ export function Step1Dialog({ open, onOpenChange, onComplete, initialData }: Ste
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl flex flex-col max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Brand Name & Description</DialogTitle>
           <DialogDescription>
@@ -154,7 +154,7 @@ export function Step1Dialog({ open, onOpenChange, onComplete, initialData }: Ste
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-4 overflow-y-auto flex-1 pr-1">
           <div>
             <Label htmlFor="brandName">Brand Name *</Label>
             <Input
@@ -372,7 +372,7 @@ export function Step2Dialog({ open, onOpenChange, onComplete, initialData }: Ste
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl flex flex-col max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Brand Colors & Logo</DialogTitle>
           <DialogDescription>
@@ -380,7 +380,7 @@ export function Step2Dialog({ open, onOpenChange, onComplete, initialData }: Ste
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-4 overflow-y-auto flex-1 pr-1">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="primaryColor">Primary Color *</Label>
