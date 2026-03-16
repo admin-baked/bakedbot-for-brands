@@ -1,0 +1,11 @@
+{
+  "skillId": "domain.product-description",
+  "name": "Product Description Generator",
+  "description": "Generates compliance-safe, on-brand short product descriptions for cannabis retail menus and websites.",
+  "targetRole": "dispensary",
+  "domains": ["content", "compliance", "menu"],
+  "championVersion": "1.0.0",
+  "promotionStatus": "dev",
+  "lastPromotionDate": null,
+  "owner": "Campaign Carlos / Content Skills"
+}
