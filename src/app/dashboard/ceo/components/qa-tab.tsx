@@ -720,7 +720,6 @@ export default function QATab() {
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">All Statuses</SelectItem>
-                                <SelectItem value="open">Open</SelectItem>
                                 {STATUSES.map(s => (
                                     <SelectItem key={s} value={s}>{QA_STATUS_CONFIG[s].label}</SelectItem>
                                 ))}

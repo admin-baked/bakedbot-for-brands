@@ -841,14 +841,20 @@ export default function SkillOptimizationTab() {
     const [loadingDetail, setLoadingDetail] = useState(false);
 
     useEffect(() => {
-        getSkillRegistry().then(res => {
-            if (res.success) {
-                setSkills(res.skills);
-            } else {
-                setError(res.error ?? 'Failed to load registry');
-            }
-            setLoading(false);
-        });
+        getSkillRegistry()
+            .then(res => {
+                if (res.success) {
+                    setSkills(res.skills);
+                } else {
+                    setError(res.error ?? 'Failed to load registry');
+                }
+            })
+            .catch(err => {
+                setError(err instanceof Error ? err.message : String(err));
+            })
+            .finally(() => {
+                setLoading(false);
+            });
     }, []);
 
     const handleSelectSkill = async (skillPath: string) => {
