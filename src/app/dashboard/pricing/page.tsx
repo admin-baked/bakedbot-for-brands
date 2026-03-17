@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Plus, TrendingUp, Sparkles } from 'lucide-react';
+import { AgentOwnerBadge } from '@/components/dashboard/agent-owner-badge';
 import { PricingKPIGrid } from './components/pricing-kpi-grid';
 import { PricingRulesList } from './components/pricing-rules-list';
 import { InventoryIntelligenceTab } from './components/inventory-intelligence-tab';
@@ -42,9 +43,12 @@ export default function PricingPage() {
             </div>
             Dynamic Pricing
           </h1>
-          <p className="text-muted-foreground mt-2">
-            AI-powered price optimization and rule management
-          </p>
+          <div className="flex items-center gap-2 mt-1">
+            <p className="text-muted-foreground">
+              AI-powered price optimization and rule management
+            </p>
+            <AgentOwnerBadge agentId="money_mike" label="Powered by Money Mike" />
+          </div>
         </div>
         <Button onClick={() => setCreateSheetOpen(true)} className="gap-2">
           <Plus className="h-4 w-4" />

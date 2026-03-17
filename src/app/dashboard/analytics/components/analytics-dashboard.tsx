@@ -19,6 +19,7 @@ import { ProductsAnalyticsTab } from '@/app/dashboard/products/components/analyt
 import { OrdersAnalyticsTab } from '@/app/dashboard/orders/components/analytics-tab';
 import { MenuAnalyticsTab } from '@/app/dashboard/menu/components/analytics-tab';
 import { UpsellAnalytics } from '@/app/dashboard/upsells/components/upsell-analytics';
+import { AgentOwnerBadge } from '@/components/dashboard/agent-owner-badge';
 
 // ---------------------------------------------------------------------------
 // Tab definitions
@@ -101,6 +102,11 @@ export default function AnalyticsDashboard({
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Page header with agent attribution */}
+      <div className="flex items-center gap-3">
+        <h1 className="text-3xl font-bold tracking-tight">Analytics</h1>
+        <AgentOwnerBadge agentId="pops" label="Pops Insights" />
+      </div>
       {/* Tab nav — sits below the page header */}
       <div className="border-b flex gap-0 overflow-x-auto">
         {visibleTabs.map(({ id, label, Icon }) => {

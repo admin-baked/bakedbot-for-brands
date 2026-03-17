@@ -14,6 +14,7 @@ import { BadgeGrid } from '@/components/dashboard/loyalty/badge-grid';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { WalletButtons } from '@/components/dashboard/loyalty/wallet-buttons';
+import { AgentOwnerBadge } from '@/components/dashboard/agent-owner-badge';
 
 interface LoyaltyStats {
     totalCustomers: number;
@@ -120,7 +121,10 @@ export default function LoyaltyPage() {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h2 className="text-xl font-semibold">Loyalty Program</h2>
+                    <div className="flex items-center gap-2">
+                        <h2 className="text-xl font-semibold">Loyalty Program</h2>
+                        <AgentOwnerBadge agentId="mrs_parker" label="Mrs. Parker" />
+                    </div>
                     <p className="text-sm text-muted-foreground">Configure points, rewards, and sync customer data.</p>
                 </div>
                 <div className="flex gap-2">
