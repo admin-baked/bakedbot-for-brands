@@ -133,6 +133,7 @@ export default function CRMTab() {
     const [leads, setLeads] = useState<CRMLead[]>([]);
     const [leadsLoading, setLeadsLoading] = useState(true);
     const [leadSearch, setLeadSearch] = useState(''); // Search by email/company
+    const [leadSourceFilter, setLeadSourceFilter] = useState<string>('all');
 
     // NY Outreach Leads
     const [outreachLeads, setOutreachLeads] = useState<NYOutreachCRMLead[]>([]);
@@ -307,11 +308,12 @@ export default function CRMTab() {
     const loadLeads = async () => {
         setLeadsLoading(true);
         try {
-            const filters: CRMFilters = { limit: 200 }; // Increase limit
+            const filters: CRMFilters = { limit: 200 };
             if (leadSearch) filters.search = leadSearch;
+            if (leadSourceFilter !== 'all') filters.source = leadSourceFilter;
             const data = await getPlatformLeads(filters);
             setLeads(data);
-            setLeadsPage(1); // Reset page
+            setLeadsPage(1);
         } catch (e: any) {
             toast({ variant: 'destructive', title: 'Error', description: e.message });
         } finally {
@@ -1445,18 +1447,29 @@ export default function CRMTab() {
                         <CardHeader>
                             <CardTitle>Inbound Platform Leads</CardTitle>
                             <CardDescription>
-                                B2B prospects captured via Agent Playground and claim flows.
+                                B2B prospects captured via Agent Playground, FFF Audit, and claim flows.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {/* Filters */}
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 flex-wrap">
                                 <Input
                                     placeholder="Search by email or company..."
                                     value={leadSearch}
                                     onChange={(e) => setLeadSearch(e.target.value)}
                                     className="max-w-xs"
                                 />
+                                <Select value={leadSourceFilter} onValueChange={(v) => setLeadSourceFilter(v)}>
+                                    <SelectTrigger className="w-[160px]">
+                                        <SelectValue placeholder="All Sources" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Sources</SelectItem>
+                                        <SelectItem value="fff_audit">FFF Audit</SelectItem>
+                                        <SelectItem value="agent_playground">Agent Playground</SelectItem>
+                                        <SelectItem value="claim_page">Claim Page</SelectItem>
+                                    </SelectContent>
+                                </Select>
                                 <Button onClick={handleLeadSearch}>
                                     <Search className="h-4 w-4" />
                                 </Button>
@@ -1469,16 +1482,17 @@ export default function CRMTab() {
                                 </div>
                             ) : leads.length === 0 ? (
                                 <p className="text-center text-muted-foreground py-8">
-                                    No leads found. Check Agent Playground activity.
+                                    No leads found.
                                 </p>
                             ) : (
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>Email</TableHead>
-                                            <TableHead>Company</TableHead>
+                                            <TableHead>Company / Site</TableHead>
                                             <TableHead>Source</TableHead>
-                                            <TableHead>Demos</TableHead>
+                                            <TableHead>FFF Score</TableHead>
+                                            <TableHead>Status</TableHead>
                                             <TableHead>Captured</TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -1487,12 +1501,44 @@ export default function CRMTab() {
                                             <TableRow key={lead.id}>
                                                 <TableCell className="font-medium">
                                                     <div>{lead.email}</div>
+                                                    {lead.firstName && (
+                                                        <div className="text-xs text-muted-foreground">{lead.firstName}</div>
+                                                    )}
                                                 </TableCell>
-                                                <TableCell>{lead.company}</TableCell>
                                                 <TableCell>
-                                                    <Badge variant="outline">{lead.source}</Badge>
+                                                    <div className="text-sm">{lead.company || '—'}</div>
+                                                    {lead.state && (
+                                                        <div className="text-xs text-muted-foreground">{lead.state}</div>
+                                                    )}
                                                 </TableCell>
-                                                <TableCell>{lead.demoCount}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant={lead.source === 'fff_audit' ? 'default' : 'outline'} className={lead.source === 'fff_audit' ? 'bg-purple-600 text-white' : ''}>
+                                                        {lead.source === 'fff_audit' ? 'FFF Audit' : lead.source}
+                                                    </Badge>
+                                                    {lead.businessType && (
+                                                        <div className="text-xs text-muted-foreground mt-0.5 capitalize">{lead.businessType}</div>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {lead.fffScore !== undefined ? (
+                                                        <div className="flex items-center gap-1">
+                                                            <span className={`font-bold text-sm ${lead.fffScore >= 80 ? 'text-emerald-600' : lead.fffScore >= 60 ? 'text-amber-600' : 'text-red-600'}`}>
+                                                                {lead.fffScore}
+                                                            </span>
+                                                            <span className="text-xs text-muted-foreground">/ 100</span>
+                                                            {lead.claimRecommended && (
+                                                                <Badge variant="outline" className="ml-1 text-xs border-emerald-500 text-emerald-700 px-1 py-0">Claim ✓</Badge>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-muted-foreground text-sm">—</span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline" className="text-xs capitalize">
+                                                        {lead.fffLeadStatus || lead.status}
+                                                    </Badge>
+                                                </TableCell>
                                                 <TableCell className="text-muted-foreground text-sm">
                                                     {new Date(lead.createdAt).toLocaleDateString()}
                                                 </TableCell>

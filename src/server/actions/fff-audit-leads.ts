@@ -3,6 +3,7 @@
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import { captureEmailLead } from './email-capture';
+import { createFFFAuditLead } from '@/server/services/crm-service';
 import type { FFFAuditReport, FFFScoreLabel, FFFClaimRecommendedType } from '@/types/fff-audit';
 
 // ── Score + leak helpers (authoritative server-side) ──────────────────────
@@ -220,6 +221,7 @@ export interface SubmitFFFAuditLeadResponse {
     success: boolean;
     auditReportId?: string;
     emailLeadId?: string;
+    crmLeadId?: string;
     claimRecommendation?: {
         recommended: boolean;
         reason: string;
@@ -316,7 +318,33 @@ export async function submitFFFAuditLead(
 
         const reportRef = await db.collection('fff_audit_reports').add(reportData);
 
-        // 3. Merge spec-aligned tags onto email_lead (read-merge-write to avoid overwriting)
+        // 3. Sync to CRM leads collection
+        let crmLeadId: string | undefined;
+        try {
+            crmLeadId = await createFFFAuditLead({
+                email: request.email,
+                firstName: request.firstName,
+                businessType: request.inputs.businessType,
+                state: request.inputs.state,
+                websiteUrl: request.inputs.websiteUrl || undefined,
+                fffScore: scores.total,
+                fffScoreLabel: scores.label,
+                fffLeadStatus: lifecycleStage,
+                claimRecommended: claimRecommendation.recommended,
+                auditReportId: reportRef.id,
+                emailLeadId,
+                topLeakBuckets: leaks.map((l) => l.bucket),
+            });
+            // Store crmLeadId on the audit report
+            await reportRef.update({ crmLeadId });
+        } catch (crmErr) {
+            logger.warn('[FFFAudit] CRM lead sync failed (non-fatal)', {
+                error: (crmErr as Error).message,
+                auditReportId: reportRef.id,
+            });
+        }
+
+        // 4. Merge spec-aligned tags onto email_lead (read-merge-write to avoid overwriting)
         const leadDoc = await db.collection('email_leads').doc(emailLeadId).get();
         const existingTags = (leadDoc.data()?.tags as string[]) || [];
         const newTags = [
@@ -351,6 +379,7 @@ export async function submitFFFAuditLead(
             success: true,
             auditReportId: reportRef.id,
             emailLeadId,
+            crmLeadId,
             claimRecommendation,
             scores,
         };

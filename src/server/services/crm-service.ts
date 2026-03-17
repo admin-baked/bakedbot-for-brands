@@ -65,6 +65,8 @@ export interface CRMFilters {
     signupAfter?: Date;
     /** Include test accounts in results (default: false — test accounts excluded) */
     includeTest?: boolean;
+    /** Filter by lead source (e.g. 'fff_audit') */
+    source?: string;
 }
 
 // NOTE: LIFECYCLE_STAGE_CONFIG, CRMLifecycleStage, and CRMUser are in crm-types.ts
@@ -456,6 +458,16 @@ export interface CRMLead {
     status: string;
     demoCount: number;
     createdAt: Date;
+    // FFF Audit fields (populated when source === 'fff_audit')
+    firstName?: string;
+    businessType?: 'dispensary' | 'brand';
+    websiteUrl?: string;
+    state?: string;
+    fffScore?: number;
+    fffScoreLabel?: string;
+    fffLeadStatus?: string;
+    claimRecommended?: boolean;
+    auditReportId?: string;
 }
 
 /**
@@ -481,24 +493,109 @@ export async function getPlatformLeads(filters: CRMFilters = {}): Promise<CRMLea
         return {
             id: doc.id,
             email: data.email,
-            company: data.company,
+            company: data.company || data.websiteUrl || '',
             source: data.source || 'unknown',
-            status: data.status || 'new',
+            status: data.status || data.fffLeadStatus || 'new',
             demoCount: data.demoCount || 0,
             createdAt: data.createdAt?.toDate?.() || new Date(),
+            firstName: data.firstName,
+            businessType: data.businessType,
+            websiteUrl: data.websiteUrl,
+            state: data.state,
+            fffScore: typeof data.fffScore === 'number' ? data.fffScore : undefined,
+            fffScoreLabel: data.fffScoreLabel,
+            fffLeadStatus: data.fffLeadStatus,
+            claimRecommended: data.claimRecommended === true,
+            auditReportId: data.auditReportId,
         } as CRMLead;
     });
+
+    // Filter by source (client-side)
+    if (filters.source) {
+        leads = leads.filter(l => l.source === filters.source);
+    }
 
     // Filter by search (client-side)
     if (filters.search) {
         const search = filters.search.toLowerCase();
         leads = leads.filter(l =>
             l.email.toLowerCase().includes(search) ||
-            l.company.toLowerCase().includes(search)
+            (l.company || '').toLowerCase().includes(search) ||
+            (l.firstName || '').toLowerCase().includes(search)
         );
     }
 
     return leads;
+}
+
+export interface CreateFFFLeadRequest {
+    email: string;
+    firstName?: string;
+    businessType: 'dispensary' | 'brand';
+    state: string;
+    websiteUrl?: string;
+    fffScore: number;
+    fffScoreLabel: string;
+    fffLeadStatus: string;
+    claimRecommended: boolean;
+    auditReportId: string;
+    emailLeadId: string;
+    topLeakBuckets?: string[];
+}
+
+/**
+ * Create or upsert a CRM lead record when an FFF Audit is submitted.
+ * Writes to the `leads` collection. Returns the lead doc ID.
+ */
+export async function createFFFAuditLead(req: CreateFFFLeadRequest): Promise<string> {
+    const db = getAdminFirestore();
+    const now = Date.now();
+
+    // Dedupe: check for existing lead with same email + source
+    const existing = await db
+        .collection('leads')
+        .where('email', '==', req.email)
+        .where('source', '==', 'fff_audit')
+        .limit(1)
+        .get();
+
+    if (!existing.empty) {
+        const docRef = existing.docs[0].ref;
+        await docRef.update({
+            fffScore: req.fffScore,
+            fffScoreLabel: req.fffScoreLabel,
+            fffLeadStatus: req.fffLeadStatus,
+            claimRecommended: req.claimRecommended,
+            auditReportId: req.auditReportId,
+            emailLeadId: req.emailLeadId,
+            topLeakBuckets: req.topLeakBuckets || [],
+            updatedAt: now,
+        });
+        return existing.docs[0].id;
+    }
+
+    const docRef = await db.collection('leads').add({
+        email: req.email,
+        firstName: req.firstName,
+        company: req.websiteUrl || '',
+        websiteUrl: req.websiteUrl || '',
+        businessType: req.businessType,
+        state: req.state,
+        source: 'fff_audit',
+        status: req.fffLeadStatus,
+        fffScore: req.fffScore,
+        fffScoreLabel: req.fffScoreLabel,
+        fffLeadStatus: req.fffLeadStatus,
+        claimRecommended: req.claimRecommended,
+        auditReportId: req.auditReportId,
+        emailLeadId: req.emailLeadId,
+        topLeakBuckets: req.topLeakBuckets || [],
+        demoCount: 0,
+        createdAt: now,
+        updatedAt: now,
+    });
+
+    return docRef.id;
 }
 
 // ============================================================================
