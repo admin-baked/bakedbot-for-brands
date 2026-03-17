@@ -8,137 +8,180 @@ export interface PricingPlan {
     priceLater?: number | null;
     period: string;
     setup?: string;
+    activationFee?: number | null;
     desc: string;
+    tagline?: string;
     highlight?: string | boolean;
     features: string[];
     pill: string;
+    pillHref?: string;
     tier: "directory" | "platform";
     scarcity?: string;
 }
 
 // ----------------------------------------------------------------------
-// 4-TIER MODEL (Scout, Pro, Growth, Empire)
-// Prices updated February 2026 — Growth $349/mo, Empire $999/mo
+// FREE AUDIT — not a product tier, just an entry motion object
 // ----------------------------------------------------------------------
 
-export const DIRECTORY_PLANS: PricingPlan[] = [
-    {
-        id: "scout",
-        name: "The Scout",
-        badge: "Free Forever",
-        price: 0,
-        priceDisplay: "$0",
-        period: "free forever",
-        setup: "Best for: Market intel + monitoring",
-        desc: "Monitor your market. Zero commitment.",
-        features: [
-            "1 competitor tracked",
-            "1 ZIP code market preview",
-            "25 AI budtender messages / month",
-            "Public listing page",
-            "Basic market intel reports",
-            "Community Slack access",
-        ],
-        pill: "Start for Free",
-        highlight: false,
-        tier: "directory"
-    },
-    {
-        id: "pro",
-        name: "Pro",
-        badge: "Best Value",
-        price: 99,
-        priceDisplay: "$99",
-        period: "/ mo",
-        setup: "Best for: Single location dispensaries",
-        desc: "Turn your menu into your #1 sales channel.",
-        features: [
-            "Unlimited AI budtender messages",
-            "Headless SEO menu with real-time sync",
-            "500 customer SMS / month",
-            "5,000 emails / month",
-            "3 competitors tracked",
-            "3 ZIP codes included",
-            "10 creative assets / month",
-            "3 custom campaigns",
-            "11 automated playbooks",
-            "Deebo compliance checks",
-            "Standard support",
-        ],
-        pill: "Start Pro",
-        highlight: true,
-        tier: "directory"
-    },
-    {
-        id: "growth",
-        name: "Growth",
-        price: 349,
-        priceDisplay: "$349",
-        period: "/ mo",
-        setup: "Best for: Consistent traffic volume",
-        desc: "Scale your reach. Automate retention.",
-        features: [
-            "Everything in Pro, plus:",
-            "2,000 customer SMS / month",
-            "15,000 emails / month",
-            "10 competitors tracked",
-            "10 ZIP codes included",
-            "50 creative assets / month",
-            "Unlimited campaign workflows",
-            "17 automated playbooks",
-            "Advanced analytics & dashboards",
-            "Priority support",
-        ],
-        pill: "Start Growth",
-        highlight: false,
-        tier: "platform"
-    }
-];
+export const FREE_AUDIT = {
+    title: "Free Audit",
+    price: "$0",
+    includes: [
+        "1 market scan",
+        "1 competitor snapshot",
+        "1 menu/SEO audit",
+        "1 sample recommendation set",
+    ],
+    cta: "Run Free Audit",
+    href: "/free-audit",
+};
 
-export const PLATFORM_PLANS: PricingPlan[] = [
+// ----------------------------------------------------------------------
+// PUBLIC PLANS — Signal / Convert / Retain / Optimize / Enterprise
+// Replaces Scout / Pro / Growth / Empire (2026-03 rewrite)
+// ----------------------------------------------------------------------
+
+export const PUBLIC_PLANS: PricingPlan[] = [
     {
-        id: "empire",
-        name: "Empire",
-        badge: "Enterprise",
-        price: 999,
-        priceDisplay: "$999",
+        id: "signal",
+        name: "Signal",
+        tagline: "Know your market.",
+        price: 149,
+        priceDisplay: "$149",
+        activationFee: null,
         period: "/ mo",
-        highlight: "For MSOs & High-Volume",
-        setup: "Best for: Multi-state operators",
-        desc: "For MSOs & high-volume operations.",
+        setup: "Best for: Operators not ready to switch infrastructure yet",
+        desc: "Know your market before you change anything. Track competitors, monitor local shifts, and get weekly intelligence without replacing your current stack.",
         features: [
-            "Everything in Growth, plus:",
-            "5,000 customer SMS / month",
-            "50,000 emails / month",
-            "Unlimited competitors & ZIP codes",
-            "Unlimited creative center",
-            "23 automated playbooks (all agents)",
-            "Real-time competitor price alerts via SMS",
-            "Executive daily digest",
-            "Multi-location management console",
-            "Custom integrations (POS, ERP, loyalty)",
-            "White-glove onboarding (14 days)",
-            "SLA support with dedicated CSM",
-            "Audit prep automation",
+            "Competitor tracking",
+            "Weekly intel digest",
+            "Market & ZIP insights",
+            "Limited analytics summary",
+            "Limited AI workspace access",
         ],
-        pill: "Get Started",
-        tier: "platform"
-    }
+        pill: "Start Signal",
+        pillHref: "/onboarding?plan=signal",
+        highlight: false,
+        tier: "directory",
+    },
+    {
+        id: "convert",
+        name: "Convert",
+        tagline: "Turn traffic into sales.",
+        price: 499,
+        priceDisplay: "$499",
+        activationFee: 1000,
+        period: "/ mo",
+        setup: "Best for: Dispensaries or brands that want commerce performance",
+        desc: "Turn product pages and shopper questions into sales. Launch a faster, search-friendly commerce experience with Smokey, recommendations, and real-time sync.",
+        features: [
+            "SEO menu",
+            "Smokey AI budtender",
+            "Product discovery surfaces",
+            "Real-time inventory sync",
+            "Bundles & upsells",
+            "Basic analytics",
+            "Compliance pre-checks",
+        ],
+        pill: "Start Convert",
+        pillHref: "/onboarding?plan=convert",
+        highlight: false,
+        tier: "directory",
+    },
+    {
+        id: "retain",
+        name: "Retain",
+        badge: "Most Popular",
+        tagline: "Turn buyers into repeat buyers.",
+        price: 799,
+        priceDisplay: "$799",
+        activationFee: 1500,
+        period: "/ mo",
+        setup: "Best for: Operators who want lifecycle revenue, not just storefront improvements",
+        desc: "Turn one-time buyers into repeat customers. Activate campaigns, loyalty workflows, segments, and retention playbooks from one workspace.",
+        features: [
+            "Everything in Convert, plus:",
+            "Playbooks",
+            "Campaigns",
+            "Loyalty",
+            "Segmentation",
+            "QR sign-up",
+            "CRM workflows",
+            "Deebo campaign review",
+            "Future Wallet & push support",
+        ],
+        pill: "Start Retain",
+        pillHref: "/onboarding?plan=retain",
+        highlight: true,
+        tier: "platform",
+    },
+    {
+        id: "optimize",
+        name: "Optimize",
+        tagline: "Run a smarter operation.",
+        price: 1500,
+        priceDisplay: "$1,500",
+        activationFee: 2500,
+        period: "/ mo",
+        setup: "Best for: Advanced operators and multi-location teams",
+        desc: "See what's happening, what's changing, and what to do next. Get profitability insights, competitive alerts, executive reporting, and smarter pricing guidance.",
+        features: [
+            "Everything in Retain, plus:",
+            "Advanced analytics",
+            "Goals and reporting",
+            "Profitability",
+            "Competitor price alerts",
+            "Deep research",
+            "Executive digests",
+            "Pricing recommendations",
+            "Advanced optimization workflows",
+        ],
+        pill: "Talk to Sales",
+        pillHref: "/contact",
+        highlight: false,
+        tier: "platform",
+    },
+    {
+        id: "enterprise",
+        name: "Enterprise",
+        price: null,
+        priceDisplay: "Custom",
+        activationFee: null,
+        period: "custom",
+        setup: "For: MSOs, complex integrations, white-label & partner deals",
+        desc: "For MSOs, complex integrations, white-label and partner deals, and advanced governance with custom workflows.",
+        features: [
+            "Everything in Optimize, plus:",
+            "Multi-state operator support",
+            "Complex integrations",
+            "White-label & partner deals",
+            "Advanced governance",
+            "Custom workflows",
+        ],
+        pill: "Talk to Sales",
+        pillHref: "/contact",
+        highlight: false,
+        tier: "platform",
+    },
 ];
 
 // Combine all for backward compatibility and simple lists
-export const PRICING_PLANS = [...DIRECTORY_PLANS, ...PLATFORM_PLANS];
+export const PRICING_PLANS = PUBLIC_PLANS;
 
 // Legacy plan ID aliases - map old plan IDs to current plans
 export const LEGACY_PLAN_ALIASES: Record<string, string> = {
-    'claim_pro': 'pro',
-    'founders_claim': 'pro',
-    'free': 'scout',
-    'growth_5': 'growth',
-    'scale_10': 'growth',
-    'scale': 'growth',
-    'pro_25': 'growth',
-    'enterprise': 'empire',
+    'claim_pro': 'convert',
+    'founders_claim': 'convert',
+    'free': 'signal',
+    'scout': 'signal',
+    'pro': 'convert',
+    'growth': 'retain',
+    'growth_5': 'retain',
+    'scale_10': 'retain',
+    'scale': 'retain',
+    'pro_25': 'retain',
+    'empire': 'optimize',
+    'enterprise': 'enterprise',
 };
 
 /**
@@ -184,47 +227,41 @@ export const OVERAGES_TABLE: OverageRow[] = [
 
 // Legacy flat OVERAGES kept for backwards compatibility
 export const OVERAGES = [
-    { k: "SMS Messages",           v: "$0.05",  unit: "per msg (Pro) · $0.04 (Growth) · $0.03 (Empire)" },
-    { k: "Email Messages",         v: "$0.002", unit: "per email (Pro/Growth) · $0.001 (Empire)" },
-    { k: "Creative Assets",        v: "$2.00",  unit: "per asset on Pro · $1.50 on Growth · Included on Empire" },
-    { k: "Additional ZIP Codes",   v: "$10.00", unit: "per ZIP/mo on Pro · $8 on Growth · Included on Empire" },
-    { k: "Additional Competitors", v: "$5.00",  unit: "per competitor/mo on Pro · $4 on Growth · Included on Empire" },
+    { k: "SMS Messages",           v: "$0.05",  unit: "per msg (Signal) · $0.04 (Convert/Retain) · $0.03 (Optimize)" },
+    { k: "Email Messages",         v: "$0.002", unit: "per email (Signal/Convert/Retain) · $0.001 (Optimize)" },
+    { k: "Creative Assets",        v: "$2.00",  unit: "per asset on Signal · $1.50 on Convert/Retain · Included on Optimize" },
+    { k: "Additional ZIP Codes",   v: "$10.00", unit: "per ZIP/mo on Signal · $8 on Convert/Retain · Included on Optimize" },
+    { k: "Additional Competitors", v: "$5.00",  unit: "per competitor/mo on Signal · $4 on Convert/Retain · Included on Optimize" },
 ];
 
 // ----------------------------------------------------------------------
-// ADD-ONS — Agent modules available on Pro & Growth (included in Empire)
-// Updated February 2026
+// ADD-ONS — Agent modules (included at various plan tiers)
+// Updated 2026-03
 // ----------------------------------------------------------------------
 
 export const ADDONS = [
     {
         name: "Craig — Marketing AI",
         price: 0,
-        note: "Included in Pro+",
+        note: "Included in Convert+",
         desc: "Welcome + winback workflows, segmentation playbooks, engagement tracking, email & SMS campaign automation.",
+    },
+    {
+        name: "Analytics Engine",
+        price: 49,
+        note: "Add-on for Signal & Convert · Included in Retain+",
+        desc: "Revenue dashboards, retention insights, demand forecasting, exportable reports, cohort analysis.",
     },
     {
         name: "Ezal — Intel Engine",
         price: 49,
-        note: "Add-on for Pro & Growth · Included in Empire",
+        note: "Add-on for Convert & Retain · Included in Optimize+",
         desc: "Competitor menu tracking, price alerts, category comparisons, weekly market summaries, demand signals.",
-    },
-    {
-        name: "Big Worm — Analytics",
-        price: 49,
-        note: "Add-on for Pro & Growth · Included in Empire",
-        desc: "Revenue dashboards, retention insights, demand forecasting, exportable reports, cohort analysis.",
-    },
-    {
-        name: "Ezal + Big Worm Bundle",
-        price: 79,
-        note: "Save $19 vs. buying separately",
-        desc: "Full intel engine + analytics suite at a discount. Available on Pro & Growth.",
     },
     {
         name: "Deebo — Compliance",
         price: 0,
-        note: "Included in Pro+",
+        note: "Included on all plans",
         desc: "Jurisdiction rule packs, audit trail + export, cross-channel pre-flight checks, approval workflows.",
     },
     {
@@ -250,7 +287,7 @@ export const COVERAGE_PACKS = [
         name: "Metro Pack",
         price: 8,
         priceDisplay: "$8",
-        period: "/ mo (Growth)",
+        period: "/ mo (Retain)",
         zips: 1
     },
 ];

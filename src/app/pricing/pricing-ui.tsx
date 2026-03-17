@@ -6,17 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { DIRECTORY_PLANS, PLATFORM_PLANS, OVERAGES, ADDONS, PricingPlan } from "@/lib/config/pricing";
+import { PUBLIC_PLANS, OVERAGES, ADDONS, PricingPlan } from "@/lib/config/pricing";
 
 export function PricingUI() {
-    // Combine plans for display: Scout (Directory 0) -> Pro (Directory 1) -> Growth (Platform 0) -> Empire (Platform 1)
-    // This mapping ensures the hierarchy visual is correct.
-    const displayPlans = [
-        DIRECTORY_PLANS[0], // Scout
-        DIRECTORY_PLANS[1], // Pro
-        DIRECTORY_PLANS[2], // Growth
-        PLATFORM_PLANS[0]   // Empire
-    ];
+    // Display first 4 public plans: Signal, Convert, Retain, Optimize
+    const displayPlans = PUBLIC_PLANS.slice(0, 4);
 
     return (
         <>

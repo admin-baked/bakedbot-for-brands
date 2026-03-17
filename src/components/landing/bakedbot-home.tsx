@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Terminal, Zap, FileSpreadsheet, Scale, Lock, RefreshCw, BarChart3, Mail, MessageSquare } from "lucide-react";
+import { Search, Terminal, Zap, FileSpreadsheet, Scale, Lock, BarChart3, Mail, MessageSquare, RefreshCw } from "lucide-react";
 
 import { HeroClient } from "@/components/landing/hero-client";
 import { PricingClient } from "@/components/landing/pricing-client";
@@ -46,61 +46,54 @@ const outcomes = [
   },
 ];
 
-const modules = [
+const engines = [
+  {
+    icon: Search,
+    name: "Attract",
+    blurb: "SEO menu pages, product discovery, local visibility, competitive awareness.",
+    bullets: [
+      "SEO-first menu pages",
+      "Local market visibility",
+      "Competitive awareness",
+      "Product discovery surfaces",
+    ],
+    poweredBy: "Powered by Ezal + Pops",
+  },
   {
     icon: Zap,
-    name: "Core: Headless Menu + Smokey",
-    blurb: "Your menu becomes a revenue channel: searchable pages, real-time inventory sync, and an AI budtender.",
+    name: "Convert",
+    blurb: "Smokey AI budtender, bundles, upsells, real-time inventory, merchandising.",
     bullets: [
-      "SEO-first headless menu",
       "Smokey AI budtender",
       "Real-time inventory sync",
-      "Basic analytics",
+      "Bundles & upsells",
+      "Product merchandising",
     ],
+    poweredBy: "Powered by Smokey",
   },
   {
     icon: Mail,
-    name: "Add-on: Craig (Marketing)",
-    blurb: "Lifecycle email + SMS workflows that stay warm, not spammy, and checked before sending.",
+    name: "Retain",
+    blurb: "Playbooks, campaigns, loyalty, segmentation, QR capture, CRM workflows.",
     bullets: [
-      "Welcome + winback workflows",
-      "Segmentation playbooks",
-      "Engagement tracking",
-      "Deebo compliance checks",
+      "Campaign automation",
+      "Loyalty programs",
+      "CRM segmentation",
+      "QR sign-up capture",
     ],
+    poweredBy: "Powered by Craig + Mrs. Parker",
   },
   {
     icon: BarChart3,
-    name: "Add-on: Big Worm (Analytics)",
-    blurb: "Turn data into decisions: dashboards, insights, and forecasting you can act on.",
+    name: "Optimize",
+    blurb: "Pricing, analytics, profitability, market research, compliance.",
     bullets: [
-      "Revenue dashboards",
-      "Retention insights",
-      "Demand forecasting",
-      "Exportable reports",
+      "Profitability dashboards",
+      "Competitor price alerts",
+      "Pricing recommendations",
+      "Compliance enforcement",
     ],
-  },
-  {
-    icon: RefreshCw,
-    name: "Add-on: Ezal (Intelligence)",
-    blurb: "Track competitor pricing and availability, then respond with smarter positioning.",
-    bullets: [
-      "Competitor menu tracking",
-      "Price alerts",
-      "Category comparisons",
-      "Weekly summary",
-    ],
-  },
-  {
-    icon: Lock,
-    name: "Add-on: Deebo Pro (Compliance)",
-    blurb: "Policy packs, audit trails, and compliance checks across channels.",
-    bullets: [
-      "Jurisdiction rule packs",
-      "Audit trail + export",
-      "Cross-channel checks",
-      "Approval workflows",
-    ],
+    poweredBy: "Powered by Money Mike + Deebo",
   },
 ];
 
@@ -150,11 +143,10 @@ export function BakedBotHome() {
       <section id="product" className="mx-auto max-w-6xl px-4 py-20 relative">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12">
           <div className="space-y-4 max-w-2xl">
-            <Badge variant="outline" className="w-fit bg-blue-500/10 text-blue-600 border-blue-500/20">Modular Platform</Badge>
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Start with what drives revenue. Add intelligence as you scale.</h2>
+            <Badge variant="outline" className="w-fit bg-blue-500/10 text-blue-600 border-blue-500/20">AI Operating System</Badge>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">One platform. Four jobs.</h2>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              Your core is the SEO menu and AI budtender — the two things that put products in front of customers
-              and convert questions into sales. Everything else layers on when you're ready.
+              BakedBot helps cannabis operators win at the four jobs that matter most: get found, convert shoppers, retain buyers, and optimize the business.
             </p>
           </div>
           <div className="flex gap-3">
@@ -162,27 +154,27 @@ export function BakedBotHome() {
               <a href="#pricing">View Pricing</a>
             </Button>
             <Button asChild className="rounded-xl h-11 px-6 shadow-lg shadow-primary/20">
-              <a href="/get-started">Deploy Core</a>
+              <a href="/free-audit">Get a Free Audit</a>
             </Button>
           </div>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {modules.map((m) => {
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {engines.map((m) => {
             const Icon = m.icon;
             return (
-              <Card key={m.name} className="glass-card hover:border-primary/20 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group">
+              <Card key={m.name} className="glass-card hover:border-primary/20 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group flex flex-col">
                 <CardHeader>
                   <div className="flex items-center gap-3 mb-2">
                     <div className="p-2.5 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
                       <Icon size={20} />
                     </div>
-                    <CardTitle className="text-lg font-bold">{m.name.split(':')[0]}</CardTitle>
+                    <CardTitle className="text-lg font-bold">{m.name}</CardTitle>
                   </div>
                   <CardDescription className="text-base leading-relaxed">{m.blurb}</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <ul className="space-y-3 text-sm">
+                <CardContent className="flex-1 flex flex-col justify-between">
+                  <ul className="space-y-3 text-sm mb-4">
                     {m.bullets.map((b) => (
                       <li key={b} className="flex gap-3 items-center text-muted-foreground">
                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/50" />
@@ -190,6 +182,7 @@ export function BakedBotHome() {
                       </li>
                     ))}
                   </ul>
+                  <p className="text-xs text-muted-foreground/60 font-medium">{m.poweredBy}</p>
                 </CardContent>
               </Card>
             );
@@ -203,9 +196,9 @@ export function BakedBotHome() {
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12">
             <div className="space-y-4">
               <Badge variant="outline" className="w-fit bg-purple-500/10 text-purple-600 border-purple-500/20">Case Studies</Badge>
-              <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Proof you can feel</h2>
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Built to move real business metrics</h2>
               <p className="text-lg text-muted-foreground max-w-2xl leading-relaxed">
-                We're building for outcomes: more visibility, higher conversion, and less manual work.
+                From search visibility and first orders to repeat purchase rate and margin insight, BakedBot is designed to improve the numbers operators actually care about.
               </p>
             </div>
             <Button variant="outline" asChild className="rounded-xl">
@@ -234,6 +227,9 @@ export function BakedBotHome() {
             <p className="text-lg text-muted-foreground leading-relaxed">
               Deebo is our compliance engine. It pre-checks on-site content and outbound messaging against jurisdiction-aware
               rules, then records what happened for auditability.
+            </p>
+            <p className="text-lg text-muted-foreground leading-relaxed">
+              Deebo protects every engine in BakedBot — commerce, campaigns, loyalty, and reporting workflows.
             </p>
             <div className="flex flex-wrap gap-3">
               {['Pre-flight checks', 'Audit trails', 'Jurisdiction rule packs', 'Approvals & controls'].map(tag => (
@@ -297,9 +293,9 @@ export function BakedBotHome() {
         <div className="mx-auto max-w-6xl px-4">
           <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
             <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">Transparent Pricing</Badge>
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Start free. Scale when it pays for itself.</h2>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Choose the business problem you want solved first.</h2>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              Every plan includes a usage allowance. No hidden fees. Transparent overages when you grow past your limits.
+              Start with market intelligence, commerce conversion, retention, or optimization — then expand as BakedBot proves ROI.
             </p>
           </div>
 

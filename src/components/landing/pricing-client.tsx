@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { PRICING_PLANS, ADDONS, OVERAGES_TABLE } from '@/lib/config/pricing';
+import { PUBLIC_PLANS, FREE_AUDIT, ADDONS, OVERAGES_TABLE } from '@/lib/config/pricing';
 
 // Simplified Tab Component
 function PricingTabs({
@@ -49,7 +49,7 @@ function PricingTabs({
 
 function formatMoney(value: number) {
     if (!Number.isFinite(value)) return "";
-    return `$${Math.round(value)}`;
+    return `$${Math.round(value).toLocaleString()}`;
 }
 
 function Price({ value }: { value: number | null }) {
@@ -65,6 +65,35 @@ function Price({ value }: { value: number | null }) {
 const isHighlighted = (badge?: string, highlight?: string | boolean) =>
     badge === "Best Value" || badge === "Most Popular" || highlight === true;
 
+// Engine descriptions for the "What's Included" tab
+const ENGINE_DESCRIPTIONS = [
+    {
+        name: "Commerce Engine",
+        desc: "The core of every paid plan. Smokey handles product recommendations, real-time inventory sync, and guided browsing. Combined with SEO-first menu pages, the Commerce Engine turns your digital presence into an active sales channel.",
+        plans: "Convert, Retain, Optimize",
+    },
+    {
+        name: "Retention Engine",
+        desc: "Available from Retain onward. Craig and Mrs. Parker run lifecycle campaigns, loyalty programs, and CRM workflows that bring buyers back. Includes playbooks, segmentation, QR capture, and Deebo-reviewed outbound campaigns.",
+        plans: "Retain, Optimize",
+    },
+    {
+        name: "Intelligence Engine",
+        desc: "Available from Signal onward. Ezal monitors competitor pricing and menu activity across your market. Pops surfaces demand signals, ZIP-level insights, and weekly digests — so you know what's changing before your competitors do.",
+        plans: "Signal, Convert, Retain, Optimize",
+    },
+    {
+        name: "Optimization Engine",
+        desc: "Available on Optimize. Money Mike connects profitability data to pricing decisions. Get executive-level digests, margin analysis, deep research workflows, and competitive price alerts — all routed through a single dashboard.",
+        plans: "Optimize",
+    },
+    {
+        name: "Compliance Layer",
+        desc: "Deebo runs on every plan and every engine. Pre-flight checks on all campaigns, content guardrails on menus and messaging, immutable audit trails, and jurisdiction-aware rule packs.",
+        plans: "All plans",
+    },
+];
+
 export function PricingClient() {
     const tabs = useMemo(() => [
         {
@@ -72,17 +101,25 @@ export function PricingClient() {
             label: "Plans",
             content: (
                 <div>
-                    {/* EARLYBIRD50 Promo Banner */}
-                    <div className="mb-8 flex items-center gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 px-5 py-4">
-                        <span className="text-lg">🚀</span>
-                        <p className="text-sm text-emerald-700 dark:text-emerald-400">
-                            <span className="font-semibold">Early Adopter Program</span> — First 50 dispensaries get 3 months free on any paid plan.{" "}
-                            Use code <span className="font-mono font-bold">EARLYBIRD50</span> at signup.
-                        </p>
+                    {/* Free Audit entry card */}
+                    <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center gap-4 rounded-2xl border border-dashed border-border/60 bg-muted/20 px-6 py-5">
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="text-2xl font-bold font-teko tracking-wide">{FREE_AUDIT.price}</span>
+                                <Badge variant="secondary" className="text-xs">No account needed</Badge>
+                            </div>
+                            <p className="font-semibold text-foreground">{FREE_AUDIT.title}</p>
+                            <p className="text-sm text-muted-foreground mt-1">
+                                {FREE_AUDIT.includes.join(' · ')}
+                            </p>
+                        </div>
+                        <Button variant="outline" size="sm" className="shrink-0 rounded-xl" asChild>
+                            <a href={FREE_AUDIT.href}>{FREE_AUDIT.cta}</a>
+                        </Button>
                     </div>
 
-                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                        {PRICING_PLANS.map((t) => {
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+                        {PUBLIC_PLANS.map((t) => {
                             const highlighted = isHighlighted(t.badge, t.highlight);
                             return (
                                 <Card
@@ -98,27 +135,32 @@ export function PricingClient() {
                                     )}
 
                                     <CardHeader>
-                                        <div className="flex items-center justify-between gap-2 mb-2">
+                                        <div className="flex items-center justify-between gap-2 mb-1">
                                             <CardTitle className="text-xl font-bold">{t.name}</CardTitle>
                                             {t.badge && (
                                                 <Badge
                                                     variant={highlighted ? "default" : "secondary"}
-                                                    className={highlighted ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}
+                                                    className={highlighted ? "bg-emerald-600 hover:bg-emerald-700 text-white text-xs" : "text-xs"}
                                                 >
                                                     {t.badge}
                                                 </Badge>
                                             )}
                                         </div>
-                                        <CardDescription className="min-h-[40px]">
-                                            {typeof t.highlight === 'string' ? t.highlight : t.desc}
+                                        {t.tagline && (
+                                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t.tagline}</p>
+                                        )}
+                                        <CardDescription className="text-sm mt-2 min-h-[48px]">
+                                            {t.desc}
                                         </CardDescription>
-                                        <div className="mt-6">
+                                        <div className="mt-4">
                                             <Price value={t.price} />
-                                            {t.price !== null && t.price > 0 && (
-                                                <p className="mt-1 text-xs text-muted-foreground">billed monthly</p>
+                                            {t.activationFee && (
+                                                <p className="mt-1 text-xs text-muted-foreground">
+                                                    + {formatMoney(t.activationFee)} activation
+                                                </p>
                                             )}
-                                            {t.price === 0 && (
-                                                <p className="mt-1 text-xs text-muted-foreground">free forever</p>
+                                            {t.price !== null && !t.activationFee && (
+                                                <p className="mt-1 text-xs text-muted-foreground">billed monthly</p>
                                             )}
                                         </div>
                                     </CardHeader>
@@ -148,7 +190,7 @@ export function PricingClient() {
                                             }`}
                                             asChild
                                         >
-                                            <a href={`/onboarding?plan=${t.id}`}>
+                                            <a href={t.pillHref ?? `/onboarding?plan=${t.id}`}>
                                                 {t.pill}
                                             </a>
                                         </Button>
@@ -160,7 +202,7 @@ export function PricingClient() {
 
                     <div className="mt-8 text-center">
                         <p className="text-xs text-muted-foreground bg-muted/30 inline-block px-4 py-2 rounded-full border border-border/50">
-                            💡 Every plan includes a usage allowance. Transparent overages apply if you exceed limits — see the Overages tab.
+                            💡 Every plan includes a usage allowance. Transparent overages apply if you exceed limits — see the Usage & Add-Ons tab.
                         </p>
                     </div>
 
@@ -168,9 +210,9 @@ export function PricingClient() {
                     <div className="mt-10 flex items-center gap-4 rounded-2xl border border-purple-500/20 bg-purple-500/5 px-6 py-5">
                         <span className="text-2xl shrink-0">✊</span>
                         <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-foreground">Built for Equity, Priced for Access</p>
+                            <p className="font-semibold text-foreground">Social Equity Access</p>
                             <p className="text-sm text-muted-foreground mt-0.5">
-                                Licensed social equity dispensaries get 50% off any plan. Same tools. Same support. Half the price.
+                                Licensed social equity operators receive discounted access. Contact us for eligibility.
                             </p>
                         </div>
                         <Button variant="outline" size="sm" className="shrink-0 border-purple-500/30 text-purple-700 dark:text-purple-400 hover:bg-purple-500/10" asChild>
@@ -181,21 +223,97 @@ export function PricingClient() {
             ),
         },
         {
-            key: "addons",
-            label: "Add-Ons",
+            key: "whats-included",
+            label: "What's Included",
             content: (
-                <div>
-                    <div className="mb-8 p-6 bg-gradient-to-br from-muted/50 to-muted/10 rounded-2xl border border-border/60 text-center max-w-3xl mx-auto">
-                        <h4 className="font-semibold mb-2 text-base">Agent Modules</h4>
-                        <p className="text-muted-foreground text-sm">
-                            Craig and Deebo are included in Pro+. Ezal and Big Worm are paid add-ons on Pro/Growth — included in Empire.
+                <div className="max-w-3xl mx-auto space-y-6">
+                    <div className="text-center mb-10 space-y-2">
+                        <p className="text-muted-foreground">
+                            BakedBot is organized into five engines. Each plan unlocks a different set. Here's what each one does.
+                        </p>
+                    </div>
+                    {ENGINE_DESCRIPTIONS.map((engine) => (
+                        <Card key={engine.name} className="border-border/60">
+                            <CardHeader className="pb-3">
+                                <div className="flex items-start justify-between gap-4">
+                                    <CardTitle className="text-lg font-bold">{engine.name}</CardTitle>
+                                    <Badge variant="secondary" className="text-xs shrink-0 mt-0.5">{engine.plans}</Badge>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-muted-foreground leading-relaxed">{engine.desc}</p>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            ),
+        },
+        {
+            key: "usage",
+            label: "Usage & Add-Ons",
+            content: (
+                <div className="max-w-4xl mx-auto">
+                    <div className="mb-8 text-center space-y-2">
+                        <p className="text-muted-foreground">
+                            Every plan includes a usage allowance. You'll be notified at 80% — no throttling, no surprise bills.{" "}
+                            <span className="font-medium text-foreground">Pay only for what you use above your limit.</span>
+                        </p>
+                    </div>
+
+                    <Card className="border-border/60 shadow-sm mb-10">
+                        <CardHeader>
+                            <CardTitle className="text-xl">Transparent Overage Rates</CardTitle>
+                            <CardDescription>
+                                Pay only for what you use above your plan limits.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b border-border/50">
+                                            <th className="text-left py-3 pr-6 font-semibold text-foreground">Usage Type</th>
+                                            <th className="text-center py-3 px-4 font-semibold text-foreground">Signal / Convert</th>
+                                            <th className="text-center py-3 px-4 font-semibold text-foreground">Retain</th>
+                                            <th className="text-center py-3 px-4 font-semibold text-foreground">Optimize</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {OVERAGES_TABLE.map((row) => (
+                                            <tr key={row.k} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
+                                                <td className="py-3 pr-6 font-medium text-foreground">{row.k}</td>
+                                                <td className="py-3 px-4 text-center text-muted-foreground">{row.pro}</td>
+                                                <td className="py-3 px-4 text-center text-muted-foreground">{row.growth}</td>
+                                                <td className="py-3 px-4 text-center">
+                                                    {row.empire === "Included" ? (
+                                                        <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">Included</Badge>
+                                                    ) : (
+                                                        <span className="text-muted-foreground">{row.empire}</span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <p className="mt-6 text-sm text-muted-foreground text-center">
+                                Internal staff alerts (price drops, compliance flags) are unlimited on all paid tiers and separate from customer SMS allocations.
+                            </p>
+                        </CardContent>
+                    </Card>
+
+                    {/* Add-Ons */}
+                    <div className="mb-6">
+                        <h4 className="font-semibold text-base mb-2">Agent Modules & Add-Ons</h4>
+                        <p className="text-sm text-muted-foreground mb-6">
+                            Some engines are available as add-ons on lower tiers before they're included in higher ones.
                         </p>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="border-b border-border/50">
-                                    <th className="text-left py-3 px-4 font-semibold text-foreground">Add-On</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-foreground">Module</th>
                                     <th className="text-center py-3 px-4 font-semibold text-foreground">Price</th>
                                     <th className="text-left py-3 px-4 font-semibold text-foreground">What You Get</th>
                                 </tr>
@@ -220,61 +338,6 @@ export function PricingClient() {
                             </tbody>
                         </table>
                     </div>
-                </div>
-            ),
-        },
-        {
-            key: "overages",
-            label: "Overages",
-            content: (
-                <div className="max-w-4xl mx-auto">
-                    <div className="mb-8 text-center space-y-2">
-                        <p className="text-muted-foreground">
-                            Every plan includes a generous usage allowance. If you go over, you only pay for what you use —
-                            no surprise bills, no throttling. <span className="font-medium text-foreground">We'll notify you at 80% so there are no surprises.</span>
-                        </p>
-                    </div>
-                    <Card className="border-border/60 shadow-sm">
-                        <CardHeader>
-                            <CardTitle className="text-xl">Transparent Overage Rates</CardTitle>
-                            <CardDescription>
-                                Pay only for what you use above your plan limits.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="border-b border-border/50">
-                                            <th className="text-left py-3 pr-6 font-semibold text-foreground">Usage Type</th>
-                                            <th className="text-center py-3 px-4 font-semibold text-foreground">Pro</th>
-                                            <th className="text-center py-3 px-4 font-semibold text-foreground">Growth</th>
-                                            <th className="text-center py-3 px-4 font-semibold text-foreground">Empire</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {OVERAGES_TABLE.map((row) => (
-                                            <tr key={row.k} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
-                                                <td className="py-3 pr-6 font-medium text-foreground">{row.k}</td>
-                                                <td className="py-3 px-4 text-center text-muted-foreground">{row.pro}</td>
-                                                <td className="py-3 px-4 text-center text-muted-foreground">{row.growth}</td>
-                                                <td className="py-3 px-4 text-center">
-                                                    {row.empire === "Included" ? (
-                                                        <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">Included</Badge>
-                                                    ) : (
-                                                        <span className="text-muted-foreground">{row.empire}</span>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                            <p className="mt-6 text-sm text-muted-foreground text-center">
-                                Internal staff SMS alerts (Ezal price drops, compliance flags) are unlimited on all paid tiers and separate from customer SMS allocations.
-                            </p>
-                        </CardContent>
-                    </Card>
                 </div>
             ),
         },
