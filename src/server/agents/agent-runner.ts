@@ -52,6 +52,7 @@ engine.register(new DeeboComplianceEval());
 
 import { executeWithTools, isClaudeAvailable } from '@/ai/claude';
 import { getUniversalClaudeTools, createToolExecutor, shouldUseClaudeTools } from '@/server/agents/tools/claude-tools';
+import { getRequestContext } from '@/lib/request-context';
 
 
 // Verification Layer (Gauntlet)
@@ -1441,8 +1442,25 @@ All agents are online and ready. Type an agent name or describe your task to get
 
                 await emitThought(jobId, 'Complete', `Claude executed ${claudeResult.toolExecutions.length} tool(s).`);
 
+                // Re-synthesize with GLM when requested (Slack cost savings)
+                let finalContent = claudeResult.content || 'Task completed.';
+                if (getRequestContext().useGLMSynthesis && finalContent) {
+                    try {
+                        const { callGLM } = await import('@/ai/glm');
+                        const toolSummary = executedTools.length > 0
+                            ? `\n\nTools used: ${executedTools.map(t => `${t.name} → ${String(t.result).slice(0, 200)}`).join('; ')}`
+                            : '';
+                        finalContent = await callGLM({
+                            userMessage: `Original request: ${userMessage}${toolSummary}\n\nDraft response:\n${finalContent}\n\nReformat this response for Slack: use *bold* for emphasis, bullet points for lists. Keep all facts accurate. Do not add new information.`,
+                        });
+                        logger.info('[AgentRunner] GLM re-synthesized Claude tool response');
+                    } catch (glmErr: any) {
+                        logger.warn('[AgentRunner] GLM re-synthesis failed, using Claude content:', glmErr?.message);
+                    }
+                }
+
                 return {
-                    content: claudeResult.content || 'Task completed.',
+                    content: finalContent,
                     toolCalls: executedTools,
                     metadata: { ...metadata, jobId }
                 };
@@ -1489,10 +1507,24 @@ All agents are online and ready. Type an agent name or describe your task to get
 
         const prompt = promptParts.length === 1 ? promptParts[0].text : promptParts;
 
-        const response = await ai.generate({
-            ...getGenerateOptions(effectiveModelLevel),
-            prompt,
-        });
+        // Use GLM for Slack synthesis (cost savings) — falls back to Gemini on error
+        let glmGeneratedText: string | null = null;
+        if (getRequestContext().useGLMSynthesis && typeof prompt === 'string') {
+            try {
+                const { callGLM } = await import('@/ai/glm');
+                glmGeneratedText = await callGLM({ userMessage: prompt });
+                logger.info('[AgentRunner] GLM handled Gemini fallback response');
+            } catch (glmErr: any) {
+                logger.warn('[AgentRunner] GLM fallback failed, using Gemini:', glmErr?.message);
+            }
+        }
+
+        const response = glmGeneratedText
+            ? { text: glmGeneratedText }
+            : await ai.generate({
+                ...getGenerateOptions(effectiveModelLevel),
+                prompt,
+            });
 
         await emitThought(jobId, 'Complete', 'Task finished.');
 
