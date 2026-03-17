@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import { CampaignsDashboard } from './components/campaigns-dashboard';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AgentOwnerBadge } from '@/components/dashboard/agent-owner-badge';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +18,10 @@ export default async function CampaignsPage() {
     return (
         <div className="flex flex-col gap-6 p-6">
             <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-bold tracking-tight">Campaigns</h1>
+                <div className="flex items-center gap-3">
+                    <h1 className="text-3xl font-bold tracking-tight">Campaigns</h1>
+                    <AgentOwnerBadge agentId="craig" label="Powered by Craig" />
+                </div>
                 <p className="text-muted-foreground">
                     Create and manage personalized email and SMS campaigns powered by your CRM data.
                 </p>

@@ -15,6 +15,7 @@ import { getCompetitors, autoDiscoverCompetitors, addManualCompetitor, removeCom
 import type { CompetitorEntry, CompetitorSnapshot } from './actions';
 import { CompetitorSetupWizard } from '../intelligence/components/competitor-setup-wizard';
 import { FileText } from 'lucide-react';
+import { AgentOwnerBadge } from '@/components/dashboard/agent-owner-badge';
 
 export default function CompetitiveIntelPage() {
     const { role, user, orgId: hookOrgId } = useUserRole();
@@ -135,7 +136,10 @@ export default function CompetitiveIntelPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Competitive Intel</h1>
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-3xl font-bold tracking-tight">Competitive Intel</h1>
+                        <AgentOwnerBadge agentId="ezal" label="Powered by Ezal" />
+                    </div>
                     <p className="text-muted-foreground">
                         {role === 'brand'
                             ? "Monitor competitor pricing and market positioning."
