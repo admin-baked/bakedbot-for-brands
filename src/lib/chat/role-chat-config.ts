@@ -15,7 +15,7 @@ export interface RoleChatConfig {
     welcomeMessage: string;
     placeholder: string;
     promptSuggestions: string[]; // Full pool — use useRotatingPrompts to pick a subset
-    agentPersona: 'smokey' | 'craig' | 'deebo' | 'mrs_parker' | 'pops' | 'money_mike' | 'puff';
+    agentPersona: 'smokey' | 'craig' | 'deebo' | 'mrs_parker' | 'pops' | 'money_mike' | 'ezal' | 'puff';
     themeColor: string;
     iconName: 'sparkles' | 'briefcase' | 'store' | 'edit' | 'shopping-cart' | 'shield';
     restrictedTools?: string[];
@@ -232,7 +232,7 @@ export const OWNER_CHAT_CONFIG: RoleChatConfig = {
         'Summarize agent activity from the past 24 hours',
         'List new signups and their plan mix'
     ],
-    agentPersona: 'smokey',
+    agentPersona: 'pops',
     themeColor: 'primary',
     iconName: 'shield',
     enabledFeatures: {
