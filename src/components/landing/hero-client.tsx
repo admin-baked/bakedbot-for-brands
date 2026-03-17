@@ -79,25 +79,25 @@ export function HeroClient() {
                             className="space-y-6"
                         >
                             <Badge variant="outline" className="mb-4 max-w-[90vw] whitespace-normal text-center leading-snug bg-emerald-500/5 text-emerald-600 border-emerald-500/20 px-3 py-1.5 text-xs sm:text-sm sm:px-4 uppercase tracking-wide sm:tracking-wider backdrop-blur-sm">
-                                {userType === 'dispensary' ? 'Automate Your Retail Operations' : 'Scale Your Wholesale Distribution'}
+                                {userType === 'dispensary' ? 'AI Commerce OS for Dispensaries' : 'AI Growth OS for Cannabis Brands'}
                             </Badge>
 
                             <h1 className="text-[2rem] sm:text-6xl md:text-7xl font-bold tracking-tight text-foreground leading-[1.1]">
                                 {userType === 'dispensary' ? (
                                     <>
-                                        Turn Your Menu Into A{' '}
+                                        Turn traffic into{' '}
                                         <span className="block">
                                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-400">
-                                                Revenue Engine
+                                                repeat revenue.
                                             </span>
                                         </span>
                                     </>
                                 ) : (
                                     <>
-                                        Hire An AI Squad To{' '}
+                                        Grow retail sell-through{' '}
                                         <span className="block">
                                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-indigo-400">
-                                                Run Your Brand
+                                                with AI.
                                             </span>
                                         </span>
                                     </>
@@ -106,8 +106,8 @@ export function HeroClient() {
 
                             <p className="mt-6 text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
                                 {userType === 'dispensary'
-                                    ? "Launch a headless SEO menu, automate budtender recommendations, run compliant campaigns, and spy on your competitors — all from one platform."
-                                    : "Find new retail partners, generate compliant marketing campaigns, and track competitor pricing with your own team of AI agents."
+                                    ? "Launch search-friendly menu pages, convert shoppers with Smokey, automate retention, and make smarter pricing and inventory decisions from one workspace."
+                                    : "Find new retail opportunities, power branded product discovery, launch compliant campaigns, and track market signals from one workspace."
                                 }
                             </p>
                         </motion.div>
@@ -120,14 +120,13 @@ export function HeroClient() {
                             <Search className="ml-3 sm:ml-4 w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground shrink-0" />
                             <input
                                 type="text"
-                                placeholder={userType === 'dispensary' ? "Find your store (e.g., 'Green Releaf')" : "Find your brand (e.g., 'Wyld Edibles')"}
+                                placeholder={userType === 'dispensary' ? "Enter your dispensary name or website" : "Enter your brand name or website"}
                                 className="w-full min-w-0 bg-transparent border-none focus:ring-0 text-sm sm:text-base px-2 sm:px-4 py-2 sm:py-3 placeholder:text-muted-foreground/60"
                                 value={auditUrl}
                                 onChange={(e) => setAuditUrl(e.target.value)}
                             />
                             <Button size="sm" className="rounded-full px-4 sm:px-6 shrink-0 bg-foreground text-background hover:bg-foreground/90 transition-all font-semibold text-xs sm:text-sm">
-                                <span className="hidden sm:inline">{userType === 'dispensary' ? 'Claim Store' : 'Start Audit'}</span>
-                                <span className="sm:hidden">Go</span>
+                                Run Audit
                                 <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1.5" />
                             </Button>
                         </form>
