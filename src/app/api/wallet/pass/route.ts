@@ -124,7 +124,7 @@ export async function GET(request: NextRequest) {
       serialNumber = randomUUID();
       await firestore
         .collection('customers')
-        .doc(docId)
+        .doc(customerDoc.id)
         .set({ walletPassSerial: serialNumber }, { merge: true });
     }
 
