@@ -319,7 +319,11 @@ export async function getOutreachDashboardData(): Promise<{
             },
         };
     } catch (err) {
-        logger.error('[OutreachDashboard] Failed to load data', { error: String(err) });
+        try {
+            await logger.error('[OutreachDashboard] Failed to load data', { error: String(err) });
+        } catch {
+            console.error('[OutreachDashboard] Failed to load data (logger also failed):', err);
+        }
         return { success: false, error: String(err) };
     }
 }
@@ -1194,17 +1198,25 @@ export async function checkGmailConnection(): Promise<{
     try {
         const user = await requireUser(['super_user']);
         if (!user) return { connected: false };
-        const { getGmailToken } = await import('@/server/integrations/gmail/token-storage');
 
-        const credentials = await getGmailToken(user.uid);
-        return {
-            connected: !!credentials?.refresh_token,
-            email: user.email || undefined,
-        };
+        // Check existence of the encrypted token via Admin SDK — no decryption needed
+        // to determine connection status. This avoids ENCRYPTION_KEY mismatches.
+        const db = getAdminFirestore();
+        const doc = await db
+            .collection('users')
+            .doc(user.uid)
+            .collection('integrations')
+            .doc('gmail')
+            .get();
+
+        const connected = doc.exists && !!(doc.data()?.refreshTokenEncrypted);
+        return { connected, email: connected ? (user.email || undefined) : undefined };
     } catch (error) {
-        logger.warn('[OutreachDashboard] Failed to check Gmail connection', {
-            error: String(error),
-        });
+        try {
+            await logger.warn('[OutreachDashboard] Failed to check Gmail connection', {
+                error: String(error),
+            });
+        } catch { /* ignore logger failures */ }
         return { connected: false };
     }
 }
