@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useUserRole } from '@/hooks/use-user-role';
 import { getChatConfigForRole, type UserRoleForChat } from '@/lib/chat/role-chat-config';
+import { VISIBLE_AGENT_SQUAD as REGISTRY_SQUAD, getAgentsForRole } from '@/lib/agents/registry';
 
 // Types
 export type AgentStatus = 'online' | 'thinking' | 'working' | 'offline';
@@ -30,38 +31,44 @@ export interface TaskFeedItem {
     status: 'live' | 'completed' | 'failed';
 }
 
-// Static Definitions
-export const AGENT_SQUAD: Agent[] = [
-    { id: 'craig', name: 'Craig', role: 'The Marketer', img: 'https://i.pravatar.cc/150?u=Craig', status: 'online' },
-    { id: 'money_mike', name: 'Money Mike', role: 'The Banker', img: 'https://i.pravatar.cc/150?u=MoneyMike', status: 'online' },
-    { id: 'smokey', name: 'Smokey', role: 'The Budtender', img: 'https://i.pravatar.cc/150?u=Smokey', status: 'online' },
-    { id: 'deebo', name: 'Deebo', role: 'The Enforcer', img: 'https://i.pravatar.cc/150?u=Deebo', status: 'working' },
-];
+// Full business agent squad — sourced from canonical registry
+export const AGENT_SQUAD: Agent[] = REGISTRY_SQUAD.map(def => ({
+    id: def.id,
+    name: def.name,
+    role: def.title,
+    img: def.image,
+    status: def.defaultStatus,
+}));
 
 export function useAgenticDashboard() {
     const { role } = useUserRole();
     const [config, setConfig] = useState(getChatConfigForRole('brand' as any)); // Default or derived
 
+    // Named agent refs — stable regardless of squad ordering
+    const agentCraig = AGENT_SQUAD.find(a => a.id === 'craig') ?? AGENT_SQUAD[0];
+    const agentMoneyMike = AGENT_SQUAD.find(a => a.id === 'money_mike') ?? AGENT_SQUAD[0];
+    const agentDeebo = AGENT_SQUAD.find(a => a.id === 'deebo') ?? AGENT_SQUAD[0];
+
     // State
-    const [activeAgent, setActiveAgent] = useState<Agent>(AGENT_SQUAD[0]);
+    const [activeAgent, setActiveAgent] = useState<Agent>(agentCraig);
     const [messages, setMessages] = useState<ChatMessage[]>([
         {
             id: '1',
-            agent: AGENT_SQUAD[0], // Craig
+            agent: agentCraig,
             time: "10:30 AM",
             message: "Here's the draft social post, we'll access your insights and draft in your comments.",
             actions: true
         },
         {
             id: '2',
-            agent: AGENT_SQUAD[1], // Money Mike
+            agent: agentMoneyMike,
             time: "10:36 AM",
             message: "Calculated pricing options in your Website component. Price total annual revenue: $1,850.00.",
             actions: false
         }
     ]);
     const [taskFeed, setTaskFeed] = useState<TaskFeedItem>({
-        agent: AGENT_SQUAD[3], // Deebo
+        agent: agentDeebo,
         task: "Scanning for compliance violations...",
         progress: 95,
         status: 'live'
