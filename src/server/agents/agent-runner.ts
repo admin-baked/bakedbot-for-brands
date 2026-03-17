@@ -1406,7 +1406,8 @@ All agents are online and ready. Type an agent name or describe your task to get
         // === CLAUDE TOOL CALLING ===
         // Route tool-heavy requests to Claude for superior tool execution
         // Allow for super users OR inbox requests (brand users creating QR codes, etc.)
-        const allowClaudeTools = isSuperUser || extraOptions?.source === 'inbox';
+        // Slack messages skip Claude entirely — GLM/Gemini handle them (cost savings + billing resilience)
+        const allowClaudeTools = (isSuperUser || extraOptions?.source === 'inbox') && extraOptions?.source !== 'slack';
         if (isClaudeAvailable() && shouldUseClaudeTools(userMessage) && allowClaudeTools) {
             await emitThought(jobId, 'Claude Mode', 'Routing to Claude for enhanced tool calling...');
 
