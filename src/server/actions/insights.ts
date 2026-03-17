@@ -867,6 +867,58 @@ function prioritizeBySeverity(insights: InsightCard[]): InsightCard[] {
     );
 }
 
+// ============ On-Demand Regeneration ============
+
+/**
+ * Regenerate insights for the current user's org by running the generators
+ * directly. Called when the user presses the refresh button in the briefing.
+ * Runs velocity + customer generators in parallel (fast); competitive pricing
+ * is excluded because it scrapes live URLs and takes 30-60s.
+ */
+export async function regenerateInsights(): Promise<{ success: boolean; error?: string }> {
+    try {
+        const user = await requireUser();
+        const role = (user as any).role as string | undefined;
+        const orgId = getActorOrgId(user as {
+            currentOrgId?: string | null;
+            orgId?: string | null;
+            brandId?: string | null;
+            locationId?: string | null;
+        }) || user.uid;
+
+        const isDispensary =
+            role === 'dispensary' ||
+            role === 'dispensary_admin' ||
+            role === 'dispensary_staff' ||
+            role === 'budtender';
+
+        if (!isDispensary) {
+            // Brand + super user insights are real-time queries — no generator needed
+            return { success: true };
+        }
+
+        const [{ InventoryVelocityGenerator }, { CustomerInsightsGenerator }] = await Promise.all([
+            import('@/server/services/insights/generators/inventory-velocity-generator'),
+            import('@/server/services/insights/generators/customer-insights-generator'),
+        ]);
+
+        await Promise.all([
+            new InventoryVelocityGenerator(orgId).generate().catch(err =>
+                logger.warn('[Insights] Velocity regeneration failed', { orgId, error: err })
+            ),
+            new CustomerInsightsGenerator(orgId).generate().catch(err =>
+                logger.warn('[Insights] Customer regeneration failed', { orgId, error: err })
+            ),
+        ]);
+
+        logger.info('[Insights] On-demand regeneration complete', { orgId });
+        return { success: true };
+    } catch (error) {
+        logger.error('[Insights] regenerateInsights failed', { error });
+        return { success: false, error: error instanceof Error ? error.message : 'Regeneration failed' };
+    }
+}
+
 // ============ Main Export ============
 
 export async function getInsights(): Promise<{

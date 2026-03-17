@@ -587,6 +587,28 @@ export async function createBrandGuide(
   }
 }
 
+/** Convert a Firestore Timestamp, Date, or anything to a plain JS Date (safe to pass server→client). */
+function tsToDate(val: unknown): Date {
+  if (!val) return new Date();
+  if (val instanceof Date) return val;
+  if (typeof val === 'object' && 'seconds' in (val as object)) {
+    return new Date((val as { seconds: number }).seconds * 1000);
+  }
+  return new Date();
+}
+
+/** Strip all Firestore Timestamp instances so the object is serializable across the server→client boundary. */
+function serializeBrandGuide(guide: BrandGuide): BrandGuide {
+  return {
+    ...guide,
+    createdAt: tsToDate(guide.createdAt),
+    lastUpdatedAt: tsToDate(guide.lastUpdatedAt),
+    archetype: guide.archetype
+      ? { ...guide.archetype, selected_at: tsToDate(guide.archetype.selected_at) as unknown as import('@google-cloud/firestore').Timestamp }
+      : guide.archetype,
+  };
+}
+
 /**
  * Get brand guide by ID
  */
@@ -603,7 +625,7 @@ export async function getBrandGuide(
       return { success: false, error: 'Brand guide not found' };
     }
 
-    return { success: true, brandGuide };
+    return { success: true, brandGuide: serializeBrandGuide(brandGuide) };
   } catch (error) {
     logger.error('Failed to get brand guide', { error, brandId });
     return {

@@ -987,6 +987,7 @@ interface ArchetypeStepDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   brandId: string;
+  brandName?: string;
   initialPrimary?: ArchetypeId | null;
   initialSecondary?: ArchetypeId | null;
   scannerSuggestion?: ArchetypeId | null;
@@ -997,6 +998,7 @@ export function ArchetypeStepDialog({
   open,
   onOpenChange,
   brandId,
+  brandName,
   initialPrimary,
   initialSecondary,
   scannerSuggestion,
@@ -1037,7 +1039,7 @@ export function ArchetypeStepDialog({
           {selectedPrimary && (
             <div className="hidden lg:block">
               <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Live Preview</div>
-              <ArchetypePreview primary={selectedPrimary} secondary={selectedSecondary} />
+              <ArchetypePreview primary={selectedPrimary} secondary={selectedSecondary} brandName={brandName} />
             </div>
           )}
         </div>
