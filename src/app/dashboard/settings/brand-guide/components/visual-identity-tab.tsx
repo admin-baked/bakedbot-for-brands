@@ -163,7 +163,31 @@ export function VisualIdentityTab({ brandId, brandGuide, onUpdate }: VisualIdent
             {savedPrimary && (
               <div className="hidden lg:block">
                 <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Live Preview</div>
-                <ArchetypePreview primary={savedPrimary} secondary={savedSecondary} />
+                <ArchetypePreview
+                  primary={savedPrimary}
+                  secondary={savedSecondary}
+                  brandName={brandGuide.brandName}
+                  smokeyGreeting={brandGuide.messaging?.smokeyGreeting}
+                  craigSubjectTemplate={brandGuide.messaging?.craigSubjectTemplate}
+                  onSaveGreeting={async (greeting) => {
+                    await updateBrandGuide({
+                      brandId,
+                      updates: { messaging: { ...brandGuide.messaging, smokeyGreeting: greeting } },
+                      createVersion: false,
+                      reason: 'Updated Smokey greeting',
+                    });
+                    onUpdate({ messaging: { ...brandGuide.messaging, smokeyGreeting: greeting } });
+                  }}
+                  onSaveCraigSubject={async (subject) => {
+                    await updateBrandGuide({
+                      brandId,
+                      updates: { messaging: { ...brandGuide.messaging, craigSubjectTemplate: subject } },
+                      createVersion: false,
+                      reason: 'Updated Craig subject template',
+                    });
+                    onUpdate({ messaging: { ...brandGuide.messaging, craigSubjectTemplate: subject } });
+                  }}
+                />
               </div>
             )}
           </div>

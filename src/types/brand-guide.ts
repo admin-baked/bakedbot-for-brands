@@ -278,6 +278,10 @@ export interface BrandMessaging {
   };
   productNamingConvention?: string;
   doNotSay?: string[];          // Phrases to avoid
+  /** Custom Smokey greeting override — replaces archetype default. Use {dispensary} token. */
+  smokeyGreeting?: string;
+  /** Custom Craig campaign subject template — replaces archetype default. Use {dispensary} and {first_name} tokens. */
+  craigSubjectTemplate?: string;
 }
 
 // ============================================================================

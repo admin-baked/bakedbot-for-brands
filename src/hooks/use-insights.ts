@@ -10,7 +10,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useUserRole } from './use-user-role';
 import { useMockData } from './use-mock-data';
-import { getInsights } from '@/server/actions/insights';
+import { getInsights, regenerateInsights } from '@/server/actions/insights';
 import type {
     InsightsResponse,
     InsightCard,
@@ -385,6 +385,13 @@ export function useInsights(options: UseInsightsOptions = {}): UseInsightsReturn
                     }
                     setLastUpdated(new Date());
                 } else {
+                    // On manual refresh, re-run generators first so data is fresh
+                    if (isRefresh) {
+                        await regenerateInsights().catch(() => {
+                            // Non-fatal — still show existing insights
+                        });
+                    }
+
                     const result = await getInsights();
 
                     if (!isMounted.current) return;
