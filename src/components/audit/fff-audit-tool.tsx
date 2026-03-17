@@ -22,8 +22,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowRight, Download, RotateCcw } from "lucide-react";
+import { ArrowRight, Download, Loader2, MapPin, RotateCcw } from "lucide-react";
+import Link from "next/link";
 import Logo from "@/components/logo";
+import { submitFFFAuditLead } from "@/server/actions/fff-audit-leads";
 
 /**
  * FFF Audit Tool
@@ -65,6 +67,8 @@ type FormState = {
     loadedHourlyCost: string;
 
     // Gate
+    firstName: string;
+    phone: string;
     email: string;
     reportConsent: boolean;
     marketingConsent: boolean;
@@ -302,6 +306,8 @@ if (typeof window !== 'undefined') {
                 grossMarginPct: "50",
                 manualHoursPerWeek: "5",
                 loadedHourlyCost: "30",
+                firstName: "",
+                phone: "",
                 email: "",
                 reportConsent: false,
                 marketingConsent: false,
@@ -316,16 +322,24 @@ if (typeof window !== 'undefined') {
 interface FFFAuditToolProps {
     isInternal?: boolean;
     showHeader?: boolean;
+    initialUrl?: string;
 }
 
-export function FFFAuditTool({ isInternal = false, showHeader = true }: FFFAuditToolProps) {
+export function FFFAuditTool({ isInternal = false, showHeader = true, initialUrl = "" }: FFFAuditToolProps) {
     // If internal, start unlocked
     const [unlocked, setUnlocked] = useState(isInternal);
+    const [unlockLoading, setUnlockLoading] = useState(false);
+    const [unlockError, setUnlockError] = useState<string | null>(null);
+    const [auditResult, setAuditResult] = useState<{
+        auditReportId: string;
+        emailLeadId: string;
+        claimRecommended: boolean;
+    } | null>(null);
 
     const [state, setState] = useState<FormState>({
         businessType: "dispensary",
         state: "IL",
-        websiteUrl: "",
+        websiteUrl: initialUrl,
 
         menuType: "not_sure",
         speed: "not_sure",
@@ -347,6 +361,8 @@ export function FFFAuditTool({ isInternal = false, showHeader = true }: FFFAudit
         manualHoursPerWeek: "",
         loadedHourlyCost: "",
 
+        firstName: "",
+        phone: "",
         email: "",
         reportConsent: false,
         marketingConsent: false,
@@ -356,17 +372,32 @@ export function FFFAuditTool({ isInternal = false, showHeader = true }: FFFAudit
 
     const scoreLabel = scores.total >= 80 ? "Strong" : scores.total >= 60 ? "Decent" : "Leaky";
 
+    const claimRecommended = useMemo(() => {
+        if (state.businessType === "brand") return true;
+        return (
+            scores.findability < 18 ||
+            state.menuType === "iframe" ||
+            state.indexation === "poor" ||
+            state.organicShare === "lt10" ||
+            scores.total < 60
+        );
+    }, [state, scores]);
+
     function reset() {
-        setUnlocked(isInternal); // If isInternal, reset to unlocked state
+        setUnlocked(isInternal);
+        setUnlockError(null);
+        setAuditResult(null);
         setState((p) => ({
             ...p,
-            websiteUrl: "",
+            websiteUrl: initialUrl,
             sessionsMonthly: "",
             onlineOrdersMonthly: "",
             aov: "",
             grossMarginPct: "",
             manualHoursPerWeek: "",
             loadedHourlyCost: "",
+            firstName: "",
+            phone: "",
             email: "",
             reportConsent: false,
             marketingConsent: false,
@@ -672,8 +703,18 @@ export function FFFAuditTool({ isInternal = false, showHeader = true }: FFFAudit
                                 </CardHeader>
                                 <CardContent className="space-y-3">
                                     <div className="space-y-2">
+                                        <Label>First name (optional)</Label>
+                                        <Input className="rounded-2xl" value={state.firstName} onChange={(e) => setState((p) => ({ ...p, firstName: e.target.value }))} placeholder="Jane" />
+                                    </div>
+
+                                    <div className="space-y-2">
                                         <Label>Email</Label>
-                                        <Input className="rounded-2xl" value={state.email} onChange={(e) => setState((p) => ({ ...p, email: e.target.value }))} placeholder="you@company.com" />
+                                        <Input className="rounded-2xl" type="email" value={state.email} onChange={(e) => setState((p) => ({ ...p, email: e.target.value }))} placeholder="you@company.com" />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label>Phone (optional)</Label>
+                                        <Input className="rounded-2xl" type="tel" value={state.phone} onChange={(e) => setState((p) => ({ ...p, phone: e.target.value }))} placeholder="+1 (555) 000-0000" />
                                     </div>
 
                                     <div className="flex items-start gap-3">
@@ -686,17 +727,66 @@ export function FFFAuditTool({ isInternal = false, showHeader = true }: FFFAudit
                                         <div className="text-sm text-muted-foreground">You can send follow-ups (optional).</div>
                                     </div>
 
+                                    {unlockError && (
+                                        <div className="text-sm text-destructive rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2">
+                                            {unlockError}
+                                        </div>
+                                    )}
+
                                     <Button
                                         className="rounded-2xl w-full"
-                                        disabled={!state.email || !state.reportConsent}
-                                        onClick={() => {
-                                            // Hook: Save lead to Firestore/CRM
-                                            // Hook: Trigger Craig nurture
-                                            // Hook: Generate PDF + email
-                                            setUnlocked(true);
+                                        disabled={!state.email || !state.reportConsent || unlockLoading}
+                                        onClick={async () => {
+                                            setUnlockLoading(true);
+                                            setUnlockError(null);
+                                            try {
+                                                const result = await submitFFFAuditLead({
+                                                    email: state.email,
+                                                    firstName: state.firstName || undefined,
+                                                    phone: state.phone || undefined,
+                                                    reportConsent: state.reportConsent,
+                                                    marketingConsent: state.marketingConsent,
+                                                    inputs: {
+                                                        businessType: state.businessType,
+                                                        state: state.state,
+                                                        websiteUrl: state.websiteUrl,
+                                                        menuType: state.menuType,
+                                                        speed: state.speed,
+                                                        organicShare: state.organicShare,
+                                                        indexation: state.indexation,
+                                                        confusion: state.confusion,
+                                                        personalization: state.personalization,
+                                                        ageGate: state.ageGate,
+                                                        smsConsent: state.smsConsent,
+                                                        auditTrail: state.auditTrail,
+                                                        complianceWorkflow: state.complianceWorkflow,
+                                                        sessionsMonthly: state.sessionsMonthly,
+                                                        onlineOrdersMonthly: state.onlineOrdersMonthly,
+                                                        aov: state.aov,
+                                                        grossMarginPct: state.grossMarginPct,
+                                                        manualHoursPerWeek: state.manualHoursPerWeek,
+                                                        loadedHourlyCost: state.loadedHourlyCost,
+                                                    },
+                                                });
+                                                if (!result.success) {
+                                                    setUnlockError(result.error || "Something went wrong. Please try again.");
+                                                } else {
+                                                    if (result.auditReportId && result.emailLeadId) {
+                                                        setAuditResult({
+                                                            auditReportId: result.auditReportId,
+                                                            emailLeadId: result.emailLeadId,
+                                                            claimRecommended: result.claimRecommended ?? claimRecommended,
+                                                        });
+                                                    }
+                                                    setUnlocked(true);
+                                                }
+                                            } finally {
+                                                setUnlockLoading(false);
+                                            }
                                         }}
                                     >
-                                        <ArrowRight className="w-4 h-4 mr-2" /> Unlock
+                                        {unlockLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ArrowRight className="w-4 h-4 mr-2" />}
+                                        {unlockLoading ? "Saving…" : "Unlock Report"}
                                     </Button>
 
                                     <div className="text-xs text-muted-foreground">
@@ -754,6 +844,34 @@ export function FFFAuditTool({ isInternal = false, showHeader = true }: FFFAudit
                                 </CardContent>
                             </Card>
                         )}
+
+                        {/* Claim CTA — shown after unlock when claim is recommended */}
+                        {unlocked && (auditResult?.claimRecommended ?? claimRecommended) && (() => {
+                            const claimHref = `/claim?source=fff_audit${
+                                auditResult ? `&auditReportId=${auditResult.auditReportId}&emailLeadId=${auditResult.emailLeadId}` : ''
+                            }&email=${encodeURIComponent(state.email)}&state=${state.state}&businessType=${state.businessType}&score=${scores.total}&websiteUrl=${encodeURIComponent(state.websiteUrl)}`;
+                            return (
+                                <Card className="rounded-2xl border-2 border-emerald-500/30 bg-emerald-50/50">
+                                    <CardContent className="pt-5 pb-5 space-y-3">
+                                        <div className="flex items-start gap-2">
+                                            <MapPin className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                                            <div>
+                                                <div className="font-semibold text-sm">Your territory may be unclaimed</div>
+                                                <div className="text-sm text-muted-foreground mt-1">
+                                                    Your findability score suggests local traffic leakage.
+                                                    Claim your ZIP code to capture 100% of nearby searches.
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <Button className="rounded-2xl w-full bg-emerald-600 hover:bg-emerald-700" asChild>
+                                            <Link href={claimHref}>
+                                                Check ZIP Availability <ArrowRight className="w-4 h-4 ml-2" />
+                                            </Link>
+                                        </Button>
+                                    </CardContent>
+                                </Card>
+                            );
+                        })()}
                     </div>
                 </div>
             </div>

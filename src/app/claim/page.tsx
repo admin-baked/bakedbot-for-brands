@@ -1,5 +1,5 @@
 
-import { ZipCodeSearch } from "@/components/claim/zip-code-search";
+import { ZipCodeSearch, type AuditContext } from "@/components/claim/zip-code-search";
 import { Navbar } from "@/components/landing/navbar";
 import { LandingFooter } from "@/components/landing/footer";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,31 @@ export const metadata = {
   description: "Secure your local territory. Get exclusive traffic from thousands of SEO-generated 'dispensary near me' pages.",
 };
 
-export default function ClaimPage() {
+export default async function ClaimPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+
+  const auditContext: AuditContext | undefined =
+    params.source === "fff_audit" &&
+    typeof params.auditReportId === "string" &&
+    typeof params.emailLeadId === "string" &&
+    typeof params.email === "string"
+      ? {
+          auditReportId: params.auditReportId,
+          emailLeadId: params.emailLeadId,
+          email: params.email,
+          firstName: typeof params.firstName === "string" ? params.firstName : undefined,
+          businessType:
+            params.businessType === "brand" ? "brand" : "dispensary",
+          state: typeof params.state === "string" ? params.state : "IL",
+          websiteUrl: typeof params.websiteUrl === "string" ? params.websiteUrl : "",
+          score: parseInt(typeof params.score === "string" ? params.score : "0", 10),
+        }
+      : undefined;
+
   return (
     <div className="min-h-screen flex flex-col pt-16 bg-white">
       <Navbar />
@@ -36,7 +60,7 @@ export default function ClaimPage() {
               Claim yours to capture 100% of the traffic.
             </p>
 
-            <ZipCodeSearch className="mb-16" autoFocus />
+            <ZipCodeSearch className="mb-16" autoFocus auditContext={auditContext} />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left mt-8 max-w-4xl mx-auto opacity-80">
                 <div className="flex items-start gap-4">

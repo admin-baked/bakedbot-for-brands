@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Search, MapPin, Check, Loader2, Users, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,16 +9,31 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { createClaimOpportunity } from "@/server/actions/claim-opportunities";
+
+export interface AuditContext {
+  auditReportId: string;
+  emailLeadId: string;
+  email: string;
+  firstName?: string;
+  businessType: "dispensary" | "brand";
+  state: string;
+  websiteUrl: string;
+  score: number;
+}
 
 interface ZipCodeSearchProps {
   className?: string;
   autoFocus?: boolean;
+  auditContext?: AuditContext;
 }
 
-export function ZipCodeSearch({ className, autoFocus = false }: ZipCodeSearchProps) {
+export function ZipCodeSearch({ className, autoFocus = false, auditContext }: ZipCodeSearchProps) {
+  const router = useRouter();
   const [zip, setZip] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "available" | "taken">("idle");
   const [searchedZip, setSearchedZip] = useState("");
+  const [claimLoading, setClaimLoading] = useState(false);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,10 +115,36 @@ export function ZipCodeSearch({ className, autoFocus = false }: ZipCodeSearchPro
                      </span>
                 </div>
 
-                <Button size="lg" className="w-full h-12 text-lg bg-emerald-600 hover:bg-emerald-700 shadow-xl shadow-emerald-600/20" asChild>
-                    <Link href={`/get-started?plan=claim_pro&zip=${searchedZip}`}>
-                        Claim Territory for $99 <ArrowRight className="ml-2 w-5 h-5" />
-                    </Link>
+                <Button
+                    size="lg"
+                    className="w-full h-12 text-lg bg-emerald-600 hover:bg-emerald-700 shadow-xl shadow-emerald-600/20"
+                    disabled={claimLoading}
+                    onClick={async () => {
+                        if (auditContext) {
+                            setClaimLoading(true);
+                            try {
+                                await createClaimOpportunity({
+                                    emailLeadId: auditContext.emailLeadId,
+                                    auditReportId: auditContext.auditReportId,
+                                    email: auditContext.email,
+                                    firstName: auditContext.firstName,
+                                    businessType: auditContext.businessType,
+                                    state: auditContext.state,
+                                    websiteUrl: auditContext.websiteUrl,
+                                    zipCode: searchedZip,
+                                    score: auditContext.score,
+                                });
+                            } finally {
+                                setClaimLoading(false);
+                            }
+                            router.push(`/get-started?plan=signal&zip=${searchedZip}&auditReportId=${auditContext.auditReportId}`);
+                        } else {
+                            router.push(`/get-started?plan=signal&zip=${searchedZip}`);
+                        }
+                    }}
+                >
+                    {claimLoading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
+                    Claim Territory for $99 <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
                 <p className="text-xs text-muted-foreground mt-3">
                     30-day money-back guarantee. Cancel anytime.

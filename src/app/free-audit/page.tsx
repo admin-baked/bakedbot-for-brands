@@ -1,12 +1,12 @@
-'use client';
-
-import React from "react";
 import { FFFAuditTool } from "@/components/audit/fff-audit-tool";
 
-/**
- * FFF Audit Lead Magnet (Compact Preview)
- */
+export default async function FFFAuditLeadMagnetCompact({
+    searchParams,
+}: {
+    searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+    const params = await searchParams;
+    const initialUrl = typeof params.url === "string" ? decodeURIComponent(params.url) : "";
 
-export default function FFFAuditLeadMagnetCompact() {
-    return <FFFAuditTool isInternal={false} showHeader={true} />;
+    return <FFFAuditTool isInternal={false} showHeader={true} initialUrl={initialUrl} />;
 }
