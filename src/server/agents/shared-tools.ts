@@ -202,6 +202,73 @@ export interface UserManagementTools {
 // after all tool definition blocks (including semanticSearchToolDefs).
 
 // ============================================================================
+// REDDIT TOOL DEFINITIONS
+// Public Reddit JSON API — no auth, no API key, works in Cloud Run.
+// Agents: Ezal (competitive intel), Day Day (SEO/trends), Craig (campaign research)
+// ============================================================================
+
+export const redditToolDefs = [
+    {
+        name: "redditSearch",
+        description: "Search Reddit for cannabis consumer discussions, competitor mentions, product reviews, and market sentiment. Search across all of Reddit or within a specific community. Returns scored posts with engagement metrics.",
+        schema: z.object({
+            query: z.string().describe("Search query (e.g., 'cannabis dispensary New York delivery', 'Blue Dream review', 'cannabis terpenes effects')"),
+            subreddit: z.string().optional().describe("Limit to a specific subreddit (e.g., 'cannabusiness', 'weed', 'NYCcannabis', 'michiganents', 'ILents'). Omit to search all of Reddit."),
+            sort: z.enum(['relevance', 'hot', 'top', 'new']).optional().describe("Sort order (default: relevance)"),
+            limit: z.number().optional().describe("Number of results 1-25 (default: 10)")
+        })
+    },
+    {
+        name: "redditBrowseSubreddit",
+        description: "Browse the hot/top/new posts in a specific cannabis subreddit to monitor community sentiment, trending topics, and real consumer conversations. Best for proactive trend detection.",
+        schema: z.object({
+            subreddit: z.string().describe("Subreddit name without r/ prefix. Cannabis communities: cannabusiness, weed, trees, NYCcannabis, michiganents, ILents, CannabisCommunity, eldertrees"),
+            category: z.enum(['hot', 'top', 'new', 'rising']).optional().describe("Feed type (default: hot)"),
+            timeFilter: z.enum(['day', 'week', 'month', 'year', 'all']).optional().describe("Time window for 'top' category (default: week)"),
+            limit: z.number().optional().describe("Number of posts 1-25 (default: 10)")
+        })
+    },
+    {
+        name: "redditGetPost",
+        description: "Read the full content and top comments of a specific Reddit post. Use after finding an interesting post via redditSearch to get the full consumer discussion and sentiment.",
+        schema: z.object({
+            permalink: z.string().describe("Reddit permalink path starting with /r/ (e.g., '/r/cannabusiness/comments/abc123/title/')")
+        })
+    }
+];
+
+export interface RedditTools {
+    redditSearch(query: string, subreddit?: string, sort?: string, limit?: number): Promise<any>;
+    redditBrowseSubreddit(subreddit: string, category?: string, timeFilter?: string, limit?: number): Promise<any>;
+    redditGetPost(permalink: string): Promise<any>;
+}
+
+/**
+ * Factory: returns bound Reddit tool implementations.
+ * Spread into agent shimmedTools/allTools alongside redditToolDefs in toolsDef.
+ *
+ * Usage in agent act():
+ *   const toolsDef = [...agentTools, ...redditToolDefs, ...];
+ *   const allTools = { ...tools, ...makeRedditToolsImpl(), ... };
+ */
+export function makeRedditToolsImpl(): RedditTools {
+    return {
+        async redditSearch(query, subreddit, sort, limit) {
+            const { redditSearch } = await import('@/server/tools/reddit-tools');
+            return redditSearch(query, subreddit, (sort as any) ?? 'relevance', limit ?? 10);
+        },
+        async redditBrowseSubreddit(subreddit, category, timeFilter, limit) {
+            const { redditBrowseSubreddit } = await import('@/server/tools/reddit-tools');
+            return redditBrowseSubreddit(subreddit, (category as any) ?? 'hot', (timeFilter as any) ?? 'week', limit ?? 10);
+        },
+        async redditGetPost(permalink) {
+            const { redditGetPost } = await import('@/server/tools/reddit-tools');
+            return redditGetPost(permalink);
+        },
+    };
+}
+
+// ============================================================================
 // EXECUTIVE CONTEXT TOOL DEFINITIONS
 // Calendar, email, and web search for Executive Boardroom agents.
 // Implementations live in default-tools.ts (defaultExecutiveBoardTools).
@@ -335,7 +402,7 @@ export function makeSemanticSearchToolsImpl(orgId: string): SemanticSearchTools 
 // ALL SHARED TOOL DEFINITIONS (must be after all individual tool blocks)
 // ============================================================================
 
-export const allSharedToolDefs = [...contextOsToolDefs, ...lettaToolDefs, ...intuitionOsToolDefs, ...browserToolDefs, ...userManagementToolDefs, ...semanticSearchToolDefs];
+export const allSharedToolDefs = [...contextOsToolDefs, ...lettaToolDefs, ...intuitionOsToolDefs, ...browserToolDefs, ...userManagementToolDefs, ...semanticSearchToolDefs, ...redditToolDefs];
 
 // Extended interface with all tools
-export interface AllSharedTools extends SharedTools, IntuitionOsTools, BrowserTools, UserManagementTools, SemanticSearchTools {}
+export interface AllSharedTools extends SharedTools, IntuitionOsTools, BrowserTools, UserManagementTools, SemanticSearchTools, RedditTools {}
