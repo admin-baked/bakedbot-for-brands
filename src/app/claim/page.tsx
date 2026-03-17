@@ -32,6 +32,7 @@ export default async function ClaimPage({
           state: typeof params.state === "string" ? params.state : "IL",
           websiteUrl: typeof params.websiteUrl === "string" ? params.websiteUrl : "",
           score: parseInt(typeof params.score === "string" ? params.score : "0", 10),
+          findability: typeof params.findability === "string" ? parseInt(params.findability, 10) : undefined,
         }
       : undefined;
 
@@ -59,6 +60,17 @@ export default async function ClaimPage({
               We generate thousands of local SEO pages for every ZIP code. <br className="hidden md:inline" />
               Claim yours to capture 100% of the traffic.
             </p>
+
+            {auditContext && (
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 mb-8 text-left max-w-lg mx-auto">
+                <p className="text-xs font-bold text-amber-700 uppercase tracking-wider mb-1">Based on your audit</p>
+                <p className="text-sm text-amber-800">
+                  {auditContext.score < 60
+                    ? `Your findability score (${auditContext.score}/100) shows organic traffic leakage. Reserving your territory is the fastest path to capturing local search traffic while you improve your stack.`
+                    : `Your audit score is strong (${auditContext.score}/100). Reserving additional territory will accelerate your visibility without waiting for organic improvements.`}
+                </p>
+              </div>
+            )}
 
             <ZipCodeSearch className="mb-16" autoFocus auditContext={auditContext} />
 

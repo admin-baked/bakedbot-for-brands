@@ -2,18 +2,39 @@
 
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
-import type { ClaimOpportunity } from '@/types/fff-audit';
+import type { ClaimOpportunity, FFFClaimRecommendedType } from '@/types/fff-audit';
 
 export interface CreateClaimOpportunityRequest {
-    emailLeadId: string;
-    auditReportId: string;
-    email: string;
-    firstName?: string;
-    businessType: 'dispensary' | 'brand';
-    state: string;
-    websiteUrl: string;
-    zipCode: string;
-    score: number;
+    source: 'fff_audit' | 'claim_page' | 'homepage';
+    sourceDetail?: 'free_audit_unlock' | 'direct_claim' | 'hero_search';
+
+    auditReportId?: string;
+    emailLeadId?: string;
+
+    claimant: {
+        email: string;
+        firstName?: string;
+        phone?: string;
+        businessType: 'dispensary' | 'brand';
+        websiteUrl?: string;
+        companyName?: string;
+    };
+
+    opportunityType: FFFClaimRecommendedType;
+
+    market: {
+        zip?: string;
+        city?: string;
+        state?: string;
+        regionKey?: string;
+    };
+
+    auditSnapshot?: {
+        totalScore?: number;
+        findability?: number;
+        topLeakBuckets?: string[];
+        roiAnnualImpact?: number;
+    };
 }
 
 export interface CreateClaimOpportunityResponse {
@@ -30,63 +51,94 @@ export async function createClaimOpportunity(
         const db = getAdminFirestore();
         const now = Date.now();
 
-        // Dedupe: existing open/reserved/claimed request for same email + zip
-        const existing = await db
-            .collection('claim_opportunities')
-            .where('email', '==', request.email)
-            .where('zipCode', '==', request.zipCode)
-            .where('status', 'in', ['open', 'reserved', 'claimed'])
-            .limit(1)
-            .get();
+        // Dedupe: open/reserved/submitted claim for same email + market key
+        const marketKey = request.market.zip ?? request.market.city ?? request.market.regionKey;
+        if (marketKey && request.claimant.email) {
+            const existingQuery = await db
+                .collection('claim_opportunities')
+                .where('claimant.email', '==', request.claimant.email)
+                .where('status', 'in', ['initiated', 'reserved', 'submitted', 'claimed'])
+                .limit(20)
+                .get();
 
-        if (!existing.empty) {
-            const doc = existing.docs[0];
-            return {
-                success: true,
-                opportunityId: doc.id,
-                status: doc.get('status') as ClaimOpportunity['status'],
-            };
+            // Find one matching the same market
+            const match = existingQuery.docs.find((doc) => {
+                const m = doc.get('market') as ClaimOpportunity['market'] | undefined;
+                return (
+                    (request.market.zip && m?.zip === request.market.zip) ||
+                    (request.market.city && m?.city === request.market.city) ||
+                    (request.market.regionKey && m?.regionKey === request.market.regionKey)
+                );
+            });
+
+            if (match) {
+                return {
+                    success: true,
+                    opportunityId: match.id,
+                    status: match.get('status') as ClaimOpportunity['status'],
+                };
+            }
         }
 
         // Create new opportunity
         const opportunityData: Omit<ClaimOpportunity, 'id'> = {
-            emailLeadId: request.emailLeadId,
+            source: request.source,
+            sourceDetail: request.sourceDetail,
             auditReportId: request.auditReportId,
-            email: request.email,
-            firstName: request.firstName,
-            businessType: request.businessType,
-            state: request.state,
-            websiteUrl: request.websiteUrl,
-            zipCode: request.zipCode,
-            status: 'open',
-            score: request.score,
+            emailLeadId: request.emailLeadId,
+            claimant: {
+                email: request.claimant.email,
+                firstName: request.claimant.firstName,
+                phone: request.claimant.phone,
+                businessType: request.claimant.businessType,
+                websiteUrl: request.claimant.websiteUrl,
+                companyName: request.claimant.companyName,
+            },
+            opportunityType: request.opportunityType,
+            market: request.market,
+            status: 'initiated',
+            auditSnapshot: request.auditSnapshot,
             createdAt: now,
             updatedAt: now,
         };
 
         const docRef = await db.collection('claim_opportunities').add(opportunityData);
 
-        // Mark audit report with claim intent
-        await db.collection('fff_audit_reports').doc(request.auditReportId).update({
-            claimIntent: 'interested',
-            claimOpportunityId: docRef.id,
-        });
+        // Update linked audit report with click intent
+        if (request.auditReportId) {
+            await db.collection('fff_audit_reports').doc(request.auditReportId).update({
+                'claimIntent.clicked': true,
+                'claimIntent.clickedAt': now,
+                'claimIntent.opportunityType': request.opportunityType,
+                'claimIntent.zip': request.market.zip,
+                'claimIntent.state': request.market.state,
+                updatedAt: now,
+            });
+        }
 
-        // Upgrade lead to sql
-        await db.collection('email_leads').doc(request.emailLeadId).update({
-            fffLeadStatus: 'sql',
-            claimOpportunityId: docRef.id,
-            lastUpdated: now,
-        });
+        // Upgrade email lead to sql
+        if (request.emailLeadId) {
+            const leadDoc = await db.collection('email_leads').doc(request.emailLeadId).get();
+            const existingTags = (leadDoc.data()?.tags as string[]) || [];
+            const mergedTags = [...new Set([...existingTags, 'claim-clicked'])];
+
+            await db.collection('email_leads').doc(request.emailLeadId).update({
+                tags: mergedTags,
+                fffLeadStatus: 'sql',
+                claimOpportunityId: docRef.id,
+                lastUpdated: now,
+            });
+        }
 
         logger.info('[ClaimOpportunity] Created', {
             opportunityId: docRef.id,
-            email: request.email,
-            zipCode: request.zipCode,
-            score: request.score,
+            email: request.claimant.email,
+            market: marketKey,
+            opportunityType: request.opportunityType,
+            score: request.auditSnapshot?.totalScore,
         });
 
-        return { success: true, opportunityId: docRef.id, status: 'open' };
+        return { success: true, opportunityId: docRef.id, status: 'initiated' };
     } catch (error: unknown) {
         const err = error as Error;
         logger.error('[ClaimOpportunity] Error creating opportunity', { error: err.message });
