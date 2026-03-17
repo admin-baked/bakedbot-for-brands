@@ -333,7 +333,11 @@ export function FFFAuditTool({ isInternal = false, showHeader = true, initialUrl
     const [auditResult, setAuditResult] = useState<{
         auditReportId: string;
         emailLeadId: string;
-        claimRecommended: boolean;
+        claimRecommendation: {
+            recommended: boolean;
+            reason: string;
+            recommendedType: 'zip_claim' | 'city_claim' | 'brand_footprint_claim';
+        };
     } | null>(null);
 
     const [state, setState] = useState<FormState>({
@@ -772,10 +776,20 @@ export function FFFAuditTool({ isInternal = false, showHeader = true, initialUrl
                                                     setUnlockError(result.error || "Something went wrong. Please try again.");
                                                 } else {
                                                     if (result.auditReportId && result.emailLeadId) {
+                                                        const isBrand = state.businessType === "brand";
+                                                        const isWeak = scores.total < 60;
                                                         setAuditResult({
                                                             auditReportId: result.auditReportId,
                                                             emailLeadId: result.emailLeadId,
-                                                            claimRecommended: result.claimRecommended ?? claimRecommended,
+                                                            claimRecommendation: result.claimRecommendation ?? {
+                                                                recommended: claimRecommended,
+                                                                reason: isBrand
+                                                                    ? "Your strongest next move is footprint expansion. Claim your brand presence in the markets that matter most."
+                                                                    : isWeak
+                                                                    ? "Your biggest leak is discoverability. Claiming your territory gives you a faster path to visibility while you improve your stack."
+                                                                    : "Your foundation is strong. Claim more territory to grow visibility faster.",
+                                                                recommendedType: isBrand ? "brand_footprint_claim" : "zip_claim",
+                                                            },
                                                         });
                                                     }
                                                     setUnlocked(true);
@@ -846,27 +860,45 @@ export function FFFAuditTool({ isInternal = false, showHeader = true, initialUrl
                         )}
 
                         {/* Claim CTA — shown after unlock when claim is recommended */}
-                        {unlocked && (auditResult?.claimRecommended ?? claimRecommended) && (() => {
+                        {unlocked && (auditResult?.claimRecommendation?.recommended ?? claimRecommended) && (() => {
+                            const isBrand = state.businessType === "brand";
+                            const isWeak = scores.total < 60;
+                            const rec = auditResult?.claimRecommendation;
                             const claimHref = `/claim?source=fff_audit${
                                 auditResult ? `&auditReportId=${auditResult.auditReportId}&emailLeadId=${auditResult.emailLeadId}` : ''
-                            }&email=${encodeURIComponent(state.email)}&state=${state.state}&businessType=${state.businessType}&score=${scores.total}&websiteUrl=${encodeURIComponent(state.websiteUrl)}`;
+                            }&email=${encodeURIComponent(state.email)}&state=${state.state}&businessType=${state.businessType}&score=${scores.total}&findability=${scores.findability}&websiteUrl=${encodeURIComponent(state.websiteUrl)}`;
+
+                            const heading = isBrand
+                                ? "Claim your brand footprint"
+                                : isWeak ? "Your biggest leak is discoverability" : "Grow your visibility faster";
+
+                            const body = rec?.reason ?? (
+                                isBrand
+                                    ? "Your strongest next move is footprint expansion. Claim your brand presence in the markets that matter most."
+                                    : isWeak
+                                    ? "Your biggest leak is discoverability. Claiming your territory gives you a faster path to visibility while you improve your stack."
+                                    : "Your foundation is strong. Claim more territory to grow visibility faster."
+                            );
+
+                            const ctaLabel = isBrand ? "Claim My Brand Footprint" : "Claim My Territory";
+
                             return (
                                 <Card className="rounded-2xl border-2 border-emerald-500/30 bg-emerald-50/50">
                                     <CardContent className="pt-5 pb-5 space-y-3">
-                                        <div className="flex items-start gap-2">
-                                            <MapPin className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                                            <div>
-                                                <div className="font-semibold text-sm">Your territory may be unclaimed</div>
-                                                <div className="text-sm text-muted-foreground mt-1">
-                                                    Your findability score suggests local traffic leakage.
-                                                    Claim your ZIP code to capture 100% of nearby searches.
-                                                </div>
-                                            </div>
+                                        <div>
+                                            <Badge className="mb-2 text-xs bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-100">
+                                                Recommended next step
+                                            </Badge>
+                                            <div className="font-semibold text-sm">{heading}</div>
+                                            <div className="text-sm text-muted-foreground mt-1">{body}</div>
                                         </div>
                                         <Button className="rounded-2xl w-full bg-emerald-600 hover:bg-emerald-700" asChild>
                                             <Link href={claimHref}>
-                                                Check ZIP Availability <ArrowRight className="w-4 h-4 ml-2" />
+                                                {ctaLabel} <ArrowRight className="w-4 h-4 ml-2" />
                                             </Link>
+                                        </Button>
+                                        <Button variant="outline" className="rounded-2xl w-full" asChild>
+                                            <Link href="/contact">Book a Strategy Call</Link>
                                         </Button>
                                     </CardContent>
                                 </Card>

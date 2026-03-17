@@ -2,12 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, MapPin, Check, Loader2, Users, ArrowRight } from "lucide-react";
+import { MapPin, Check, Loader2, Users, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { createClaimOpportunity } from "@/server/actions/claim-opportunities";
 
@@ -20,6 +18,7 @@ export interface AuditContext {
   state: string;
   websiteUrl: string;
   score: number;
+  findability?: number;
 }
 
 interface ZipCodeSearchProps {
@@ -31,7 +30,7 @@ interface ZipCodeSearchProps {
 export function ZipCodeSearch({ className, autoFocus = false, auditContext }: ZipCodeSearchProps) {
   const router = useRouter();
   const [zip, setZip] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "available" | "taken">("idle");
+  const [status, setStatus] = useState<"idle" | "loading" | "reservable" | "waitlist" | "submitted">("idle");
   const [searchedZip, setSearchedZip] = useState("");
   const [claimLoading, setClaimLoading] = useState(false);
 
@@ -42,11 +41,9 @@ export function ZipCodeSearch({ className, autoFocus = false, auditContext }: Zi
     setStatus("loading");
     setSearchedZip(zip);
 
-    // Mock API call delay
+    // V1: conservative — all ZIPs are reservable until real availability logic exists
     setTimeout(() => {
-      // Mock logic: 90% chance available for demo purposes
-      const isAvailable = true; 
-      setStatus(isAvailable ? "available" : "taken");
+      setStatus("reservable");
     }, 1500);
   };
 
@@ -75,7 +72,7 @@ export function ZipCodeSearch({ className, autoFocus = false, auditContext }: Zi
                  <Button 
                     type="submit" 
                     disabled={zip.length < 5 || status === 'loading'} 
-                    className={cn("h-full px-6 transition-all", status === 'available' ? 'bg-emerald-600 hover:bg-emerald-700' : '')}
+                    className={cn("h-full px-6 transition-all", status === 'reservable' ? 'bg-emerald-600 hover:bg-emerald-700' : '')}
                 >
                     {status === 'loading' ? <Loader2 className="w-5 h-5 animate-spin" /> : "Check Availability"}
                 </Button>
@@ -91,9 +88,8 @@ export function ZipCodeSearch({ className, autoFocus = false, auditContext }: Zi
         </div>
       )}
 
-      {status === "available" && (
+      {status === "reservable" && (
         <Card className="border-2 border-emerald-500/20 shadow-2xl animate-in slide-in-from-bottom-4 duration-500 overflow-hidden">
-             
             <div className="bg-emerald-500/10 p-2 text-center border-b border-emerald-500/20">
                 <p className="text-emerald-700 text-sm font-bold uppercase tracking-wider flex items-center justify-center gap-2">
                     <Check className="w-4 h-4" /> Territory Available
@@ -102,16 +98,16 @@ export function ZipCodeSearch({ className, autoFocus = false, auditContext }: Zi
 
             <CardContent className="pt-6 pb-6 text-center">
                 <h3 className="text-2xl font-bold mb-2">
-                    {searchedZip} is unclaimed!
+                    {searchedZip} is available.
                 </h3>
                 <p className="text-muted-foreground mb-6">
-                    You can be the exclusive Pro partner for this territory.
+                    Reserve this territory and we'll build 50+ local SEO pages that funnel search traffic exclusively to you.
                 </p>
 
                 <div className="bg-amber-100 text-amber-800 border-amber-200 border rounded-lg p-3 text-sm mb-6 flex items-start gap-2 text-left">
                      <Users className="w-5 h-5 shrink-0 mt-0.5 text-amber-600" />
                      <span>
-                        <strong>High Demand:</strong> 82 people searched for "dispensary" in this area last week. Claim this traffic before a competitor does.
+                        <strong>Limited slots:</strong> Only one partner per ZIP. Reserve before a competitor does.
                      </span>
                 </div>
 
@@ -123,51 +119,73 @@ export function ZipCodeSearch({ className, autoFocus = false, auditContext }: Zi
                         if (auditContext) {
                             setClaimLoading(true);
                             try {
-                                await createClaimOpportunity({
-                                    emailLeadId: auditContext.emailLeadId,
+                                const result = await createClaimOpportunity({
+                                    source: 'fff_audit',
+                                    sourceDetail: 'free_audit_unlock',
                                     auditReportId: auditContext.auditReportId,
-                                    email: auditContext.email,
-                                    firstName: auditContext.firstName,
-                                    businessType: auditContext.businessType,
-                                    state: auditContext.state,
-                                    websiteUrl: auditContext.websiteUrl,
-                                    zipCode: searchedZip,
-                                    score: auditContext.score,
+                                    emailLeadId: auditContext.emailLeadId,
+                                    claimant: {
+                                        email: auditContext.email,
+                                        firstName: auditContext.firstName,
+                                        businessType: auditContext.businessType,
+                                        websiteUrl: auditContext.websiteUrl || undefined,
+                                    },
+                                    opportunityType: auditContext.businessType === 'brand' ? 'brand_footprint_claim' : 'zip_claim',
+                                    market: { zip: searchedZip, state: auditContext.state },
+                                    auditSnapshot: {
+                                        totalScore: auditContext.score,
+                                        findability: auditContext.findability,
+                                    },
                                 });
+                                if (result.success) {
+                                    setStatus("submitted");
+                                    return;
+                                }
                             } finally {
                                 setClaimLoading(false);
                             }
-                            router.push(`/get-started?plan=signal&zip=${searchedZip}&auditReportId=${auditContext.auditReportId}`);
-                        } else {
-                            router.push(`/get-started?plan=signal&zip=${searchedZip}`);
                         }
+                        router.push(`/get-started?plan=signal&zip=${searchedZip}${auditContext ? `&auditReportId=${auditContext.auditReportId}` : ''}`);
                     }}
                 >
                     {claimLoading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
-                    Claim Territory for $99 <ArrowRight className="ml-2 w-5 h-5" />
+                    Reserve This Territory <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
                 <p className="text-xs text-muted-foreground mt-3">
-                    30-day money-back guarantee. Cancel anytime.
+                    A BakedBot specialist will reach out to confirm your territory.
                 </p>
             </CardContent>
         </Card>
       )}
 
-       {status === "taken" && (
-        <Card className="border-red-100 shadow-xl animate-in slide-in-from-bottom-4 duration-500">
-             <CardContent className="pt-6 pb-6 text-center">
-                <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+      {status === "submitted" && (
+        <Card className="border-2 border-emerald-500/20 shadow-2xl animate-in slide-in-from-bottom-4 duration-500">
+            <CardContent className="pt-6 pb-6 text-center">
+                <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Check className="w-6 h-6" />
+                </div>
+                <h3 className="text-xl font-bold mb-2 text-slate-800">
+                    {searchedZip} is reserved.
+                </h3>
+                <p className="text-muted-foreground mb-2">
+                    Your territory request is in. A BakedBot specialist will reach out to confirm your ZIP and get your pages live.
+                </p>
+            </CardContent>
+        </Card>
+      )}
+
+      {status === "waitlist" && (
+        <Card className="border-amber-100 shadow-xl animate-in slide-in-from-bottom-4 duration-500">
+            <CardContent className="pt-6 pb-6 text-center">
+                <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
                     <MapPin className="w-6 h-6" />
                 </div>
                 <h3 className="text-xl font-bold mb-2 text-slate-800">
                     {searchedZip} is currently taken.
                 </h3>
                 <p className="text-muted-foreground mb-6">
-                   Another dispensary has claimed this territory. Join the waitlist to be notified if it becomes available.
+                    Another partner has this territory. You're on the waitlist — we'll notify you if it opens up.
                 </p>
-                 <Button variant="outline" className="w-full">
-                    Join Waitlist
-                </Button>
             </CardContent>
         </Card>
       )}
