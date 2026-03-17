@@ -5,7 +5,7 @@ import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { calculateCampaignPriority } from '../algorithms/craig-algo';
 import { ai } from '@/ai/genkit';
-import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef, semanticSearchToolDefs, makeSemanticSearchToolsImpl } from './shared-tools';
+import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef, semanticSearchToolDefs, makeSemanticSearchToolsImpl, redditToolDefs, makeRedditToolsImpl } from './shared-tools';
 import { craigInboxToolDefs } from '../tools/inbox-tools';
 import { craigCrmToolDefs } from '../tools/crm-tools';
 import { craigCampaignToolDefs } from '../tools/campaign-tools';
@@ -361,6 +361,7 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
             ...craigSpecificTools,
             promotionScorecardTool,
             proactiveSearchToolDef,
+            ...redditToolDefs,
             ...contextOsToolDefs,
             ...lettaToolDefs,
             ...craigInboxToolDefs,
@@ -372,6 +373,7 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
             ...tools,
             ...analyticsImpl,
             ...makeSemanticSearchToolsImpl(orgId),
+            ...makeRedditToolsImpl(),
             searchOpportunities: async (query: string) => {
                 try {
                     const { searchWeb, formatSearchResults } = await import('@/server/tools/web-search');

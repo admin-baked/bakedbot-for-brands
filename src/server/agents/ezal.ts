@@ -4,7 +4,7 @@ import { logger } from '@/lib/logger';
 import { calculateGapScore } from '../algorithms/ezal-algo';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef, semanticSearchToolDefs, makeSemanticSearchToolsImpl } from './shared-tools';
+import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef, semanticSearchToolDefs, makeSemanticSearchToolsImpl, redditToolDefs, makeRedditToolsImpl } from './shared-tools';
 import { youtubeToolDefs, makeYouTubeToolsImpl } from '@/server/tools/youtube-tools';
 import {
     buildSquadRoster,
@@ -210,7 +210,7 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
             ];
 
             // Combine agent-specific tools with shared Context OS, Letta, YouTube, and proactive search tools
-            const toolsDef = [...ezalSpecificTools, proactiveSearchToolDef, ...youtubeToolDefs, ...contextOsToolDefs, ...lettaToolDefs, ...semanticSearchToolDefs];
+            const toolsDef = [...ezalSpecificTools, proactiveSearchToolDef, ...youtubeToolDefs, ...redditToolDefs, ...contextOsToolDefs, ...lettaToolDefs, ...semanticSearchToolDefs];
 
             // Resolve orgId for Drive auto-save
             const brandId = (brandMemory.brand_profile as { id?: string })?.id || 'unknown';
@@ -222,6 +222,7 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
                 ...tools,
                 ...youtubeTools,
                 ...makeSemanticSearchToolsImpl(ezalOrgId),
+                ...makeRedditToolsImpl(),
                 scanCompetitors: async (location: string) => {
                     logger.info(`[Ezal] Scanning competitors in ${location}...`);
                     // Use getCompetitiveIntel which is defined on EzalTools

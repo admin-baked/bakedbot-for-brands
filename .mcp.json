@@ -1,5 +1,14 @@
 {
   "mcpServers": {
+    "reddit": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["reddit-no-auth-mcp-server"],
+      "env": {
+        "REDDIT_TIMEOUT": "15.0",
+        "REDDIT_LOG_LEVEL": "WARNING"
+      }
+    },
     "jcodemunch": {
       "type": "stdio",
       "command": "uvx",

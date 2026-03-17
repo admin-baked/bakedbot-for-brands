@@ -3,7 +3,7 @@ import { AgentMemory } from './schemas';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { ai } from '@/ai/genkit';
-import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef, semanticSearchToolDefs, makeSemanticSearchToolsImpl } from './shared-tools';
+import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef, semanticSearchToolDefs, makeSemanticSearchToolsImpl, redditToolDefs, makeRedditToolsImpl } from './shared-tools';
 import {
     buildSquadRoster,
     buildIntegrationStatusSummary
@@ -183,13 +183,14 @@ export const dayDayAgent: AgentImplementation<AgentMemory, DayDayTools> = {
             };
 
             // Combine agent-specific tools with shared Context OS, Letta, and proactive search tools
-            const toolsDef = [...dayDaySpecificTools, proactiveSearchToolDef, ...contextOsToolDefs, ...lettaToolDefs, ...semanticSearchToolDefs];
+            const toolsDef = [...dayDaySpecificTools, proactiveSearchToolDef, ...redditToolDefs, ...contextOsToolDefs, ...lettaToolDefs, ...semanticSearchToolDefs];
 
             // Merge implementations
             const allTools = {
                 ...tools,
                 ...specificImplementations,
                 ...makeSemanticSearchToolsImpl(semanticSearchEntityId),
+                ...makeRedditToolsImpl(),
                 searchOpportunities: async (query: string) => {
                     try {
                         const { searchWeb, formatSearchResults } = await import('@/server/tools/web-search');
