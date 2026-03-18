@@ -295,6 +295,7 @@ export async function POST(req: NextRequest) {
       customer: {
         name: body.customer.name,
         email: sessionEmail || requestEmail,
+        phone: body.customer.phone,
       },
       items: resolvedItems.map((i) => ({
         productId: i.productId,

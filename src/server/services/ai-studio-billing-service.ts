@@ -516,7 +516,11 @@ export async function applyTopUpCredits(
     updatedAt: now,
   };
 
-  // Update balance
+  // Ensure balance doc has all required fields before incrementing top-up credits.
+  // A merge-only write creates a partial doc when no current-cycle balance exists,
+  // leaving numeric fields undefined and breaking downstream credit math.
+  await getOrInitBalance(orgId, cycleKey);
+
   const balanceDocRef = db
     .collection('org_ai_studio_balances')
     .doc(balanceDocId(orgId, cycleKey));
@@ -549,12 +553,9 @@ export async function applyTopUpCredits(
 export async function resetAIStudioBillingCycle(orgId: string): Promise<void> {
   const db = getAdminFirestore();
   const now = new Date();
-  const prevCycleKey = `${now.getFullYear()}-${String(now.getMonth()).padStart(2, '0')}` ||
-    (() => {
-      const prev = new Date(now);
-      prev.setMonth(prev.getMonth() - 1);
-      return `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`;
-    })();
+  const prevMonth = new Date(now);
+  prevMonth.setMonth(prevMonth.getMonth() - 1);
+  const prevCycleKey = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}`;
 
   const entitlement = await getEffectiveAIStudioEntitlement(orgId);
   const cycleKey = currentCycleKey();

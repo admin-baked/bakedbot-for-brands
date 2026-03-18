@@ -25,6 +25,7 @@ type PaymentSmokeyProps = {
     customerName?: string;
     customerEmail?: string;
     customerPhone?: string;
+    couponCode?: string;
     cartItems?: CartItem[];
     onSuccess: (paymentData: unknown) => void;
     onError: (error: string) => void;
@@ -38,6 +39,7 @@ export function PaymentSmokey({
     customerName = '',
     customerEmail = '',
     customerPhone = '',
+    couponCode,
     cartItems = [],
     onSuccess,
     onError,
@@ -86,6 +88,7 @@ export function PaymentSmokey({
                     tax,
                     fees: 0,
                     total,
+                    ...(couponCode ? { couponCode } : {}),
                 }),
             });
 
@@ -95,14 +98,15 @@ export function PaymentSmokey({
                 throw new Error(data.error ?? 'Payment failed. Please try again.');
             }
 
-            // Redirect to CannPay widget (external) or internal confirmation
+            // Redirect to CannPay widget or internal confirmation.
+            // onSuccess is intentionally NOT called here — the redirect navigates
+            // away from this component, and calling onSuccess would trigger
+            // CheckoutFlow's handleOrderSubmit a second time (duplicate order).
             if (data.checkoutUrl?.startsWith('http')) {
                 window.location.href = data.checkoutUrl;
-            } else {
-                router.push(data.checkoutUrl ?? `/order-confirmation/${data.orderId}`);
+                return; // hard navigation; nothing after this executes
             }
-
-            onSuccess({ method: 'cannpay', orderId: data.orderId, intentId: data.intentId });
+            router.push(data.checkoutUrl ?? `/order-confirmation/${data.orderId}`);
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : 'Unexpected error';
             setErrorMsg(msg);
