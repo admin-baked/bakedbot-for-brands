@@ -9,6 +9,7 @@ import { authorizePayment, CANNPAY_TRANSACTION_FEE_CENTS } from "@/lib/payments/
 import { z } from 'zod';
 
 import { logger } from '@/lib/logger';
+import { notifyOrderCreated } from '@/server/services/order-notifications';
 const DOCUMENT_ID_REGEX = /^[A-Za-z0-9_-]{1,128}$/;
 
 const checkoutItemSchema = z.object({
@@ -294,6 +295,7 @@ export async function POST(req: NextRequest) {
       customer: {
         name: body.customer.name,
         email: sessionEmail || requestEmail,
+        phone: body.customer.phone,
       },
       items: resolvedItems.map((i) => ({
         productId: i.productId,
@@ -326,6 +328,14 @@ export async function POST(req: NextRequest) {
     };
 
     await orderRef.set(orderData);
+
+    // Fire-and-forget: notify customer (SMS) + dispensary (Slack)
+    setImmediate(() => {
+      notifyOrderCreated(orderRef.id, orgId).catch((err) =>
+        logger.error('[smokey-pay] notifyOrderCreated failed', { err, orderId: orderRef.id })
+      );
+    });
+
     await emitEvent({
       orgId,
       type: "checkout.started",

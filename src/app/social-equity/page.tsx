@@ -103,7 +103,7 @@ export default function SocialEquityPage() {
                         <CardTitle className="text-2xl">Application Received</CardTitle>
                         <CardDescription className="text-base mt-2">
                             We'll verify your license and email you within 2–3 business days.
-                            Approved applicants receive a permanent 50% discount code.
+                            Approved applicants receive a permanent 25% discount code.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -128,24 +128,24 @@ export default function SocialEquityPage() {
                         Built for Equity, Priced for Access
                     </h1>
                     <p className="text-lg text-muted-foreground leading-relaxed">
-                        Licensed social equity dispensaries get <strong>50% off any plan — forever.</strong>{' '}
-                        Same tools. Same support. Half the price.
+                        Licensed social equity dispensaries get <strong>25% off any plan — forever.</strong>{' '}
+                        Same tools. Same support. Built for equitable access.
                     </p>
                     <div className="grid grid-cols-3 gap-4 pt-2 text-sm text-muted-foreground">
                         <div className="rounded-lg border border-border/50 bg-muted/20 p-3 text-center">
-                            <div className="font-semibold text-foreground">Pro</div>
-                            <div className="line-through opacity-60">$99/mo</div>
-                            <div className="text-emerald-600 font-bold">$49.50/mo</div>
+                            <div className="font-semibold text-foreground">Convert</div>
+                            <div className="line-through opacity-60">$499/mo</div>
+                            <div className="text-emerald-600 font-bold">$374/mo</div>
                         </div>
                         <div className="rounded-lg border border-border/50 bg-muted/20 p-3 text-center">
-                            <div className="font-semibold text-foreground">Growth</div>
-                            <div className="line-through opacity-60">$349/mo</div>
-                            <div className="text-emerald-600 font-bold">$174.50/mo</div>
+                            <div className="font-semibold text-foreground">Retain</div>
+                            <div className="line-through opacity-60">$799/mo</div>
+                            <div className="text-emerald-600 font-bold">$599/mo</div>
                         </div>
                         <div className="rounded-lg border border-border/50 bg-muted/20 p-3 text-center">
-                            <div className="font-semibold text-foreground">Empire</div>
-                            <div className="line-through opacity-60">$999/mo</div>
-                            <div className="text-emerald-600 font-bold">$499.50/mo</div>
+                            <div className="font-semibold text-foreground">Optimize</div>
+                            <div className="line-through opacity-60">$1,500/mo</div>
+                            <div className="text-emerald-600 font-bold">$1,125/mo</div>
                         </div>
                     </div>
                 </div>
@@ -271,7 +271,7 @@ export default function SocialEquityPage() {
 
                             <p className="text-xs text-center text-muted-foreground">
                                 We verify license numbers against state cannabis board databases (IL: IDFPR, MI: CRA, CA: DCC).
-                                Approved applicants receive a permanent 50% promo code via email.
+                                Approved applicants receive a permanent 25% promo code via email.
                             </p>
                         </form>
                     </CardContent>

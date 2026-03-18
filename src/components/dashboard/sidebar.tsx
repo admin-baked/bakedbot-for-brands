@@ -33,6 +33,7 @@ import { BrandSidebar } from '@/components/dashboard/brand-sidebar';
 import { DispensarySidebar } from '@/components/dashboard/dispensary-sidebar';
 import { GrowerSidebar } from '@/components/dashboard/grower-sidebar';
 import { SharedSidebarHistory } from '@/components/dashboard/shared-sidebar-history';
+import { PlanCreditMeter } from '@/components/dashboard/plan-credit-meter';
 import { logger } from '@/lib/logger';
 import { useSuperAdmin } from '@/hooks/use-super-admin';
 import { UserRole, isBrandRole, isDispensaryRole, isGrowerRole, normalizeRole } from '@/types/roles';
@@ -53,7 +54,7 @@ export function DashboardSidebar() {
   const { auth } = useFirebase();
   const { toast } = useToast();
   const { loginRoute, orgId } = useUserRole();
-  const { planName, planId, isScale, isEnterprise, isGrowthOrHigher, isPaid } = usePlanInfo();
+  const { planName, planId, isScale, isEnterprise, isGrowthOrHigher, isPaid, isOptimize, isRetain, isConvert, isSignal } = usePlanInfo();
   const { isSuperAdmin } = useSuperAdmin();
   const normalizedRole = role ? normalizeRole(role) : null;
 
@@ -129,6 +130,38 @@ export function DashboardSidebar() {
         </Badge>
       );
     }
+    if (isOptimize) {
+      return (
+        <Badge className="bg-gradient-to-r from-orange-500 to-amber-500 text-white border-0 gap-1">
+          <Crown className="h-3 w-3" />
+          Optimize
+        </Badge>
+      );
+    }
+    if (isRetain) {
+      return (
+        <Badge className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white border-0 gap-1">
+          <Sparkles className="h-3 w-3" />
+          Retain
+        </Badge>
+      );
+    }
+    if (isConvert) {
+      return (
+        <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-0 gap-1">
+          <Zap className="h-3 w-3" />
+          Convert
+        </Badge>
+      );
+    }
+    if (isSignal) {
+      return (
+        <Badge variant="secondary" className="gap-1">
+          Signal
+        </Badge>
+      );
+    }
+    // Legacy plan fallbacks
     if (isScale) {
       return (
         <Badge className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white border-0 gap-1">
@@ -257,10 +290,11 @@ export function DashboardSidebar() {
         )}
       </SidebarContent>
       <SidebarFooter>
-        {/* Plan Badge */}
+        {/* Plan Badge + Credit Meter */}
         {isPaid && (
-          <div className="px-2 mb-2 group-data-[collapsible=icon]:hidden">
+          <div className="px-2 mb-2 space-y-2 group-data-[collapsible=icon]:hidden">
             {getPlanBadge()}
+            <PlanCreditMeter />
           </div>
         )}
         {user && (

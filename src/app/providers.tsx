@@ -8,7 +8,7 @@ import { CartSheet } from '@/components/cart-sheet';
 import { DemoModeProvider } from '@/context/demo-mode';
 import { ServiceWorkerRegistration } from '@/components/pwa/service-worker-registration';
 import { PWAInstallPrompt } from '@/components/pwa/install-prompt';
-// FloatingCartPill removed - will be re-enabled when claimed pages support checkout
+import { FloatingCartPill } from '@/components/floating-cart-pill';
 import { ChatbotContextProvider } from '@/contexts/chatbot-context';
 
 /**
@@ -32,7 +32,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             </ErrorBoundary>
             <Toaster />
             <CartSheet />
-            {/* FloatingCartPill removed - checkout will be enabled for claimed pages */}
+            <FloatingCartPill />
             <PWAInstallPrompt />
           </ChatbotContextProvider>
         </ThemeProvider>

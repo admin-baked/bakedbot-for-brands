@@ -15,6 +15,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
+import {
+    checkAIStudioActionAllowed,
+    chargeAIStudioCredits,
+} from '@/server/services/ai-studio-billing-service';
+import {
+    classifyPlaybookStepType,
+    resolvePlaybookToolActionType,
+} from '@/lib/ai-studio/playbook-step-classifier';
+import type { AIStudioActionType } from '@/types/ai-studio';
 
 interface PlaybookStep {
     id: string;
@@ -25,6 +34,8 @@ interface PlaybookStep {
     task?: string;
     storeResultAs?: string;
     condition?: string;
+    /** Model tier override for this step (optional — defaults to economy for automation) */
+    modelTier?: 'economy' | 'premium_reasoning' | 'flagship';
     config?: Record<string, any>;
 }
 
@@ -38,11 +49,15 @@ interface Playbook {
     agent: string;
     steps: PlaybookStep[];
     enabled: boolean;
+    /** orgId of the org this playbook belongs to. Present on org playbooks; absent on system-internal playbooks. */
+    orgId?: string;
 }
 
 interface ExecutionContext {
     playbookId: string;
     playbookName: string;
+    playbookRunId: string;
+    orgId?: string;
     startTime: number;
     results: Record<string, any>;
     conditions: Record<string, boolean>;
@@ -70,7 +85,7 @@ function verifyCronAuth(request: NextRequest): boolean {
 }
 
 /**
- * Execute a playbook step
+ * Execute a playbook step — with AI Studio credit gating for ai_powered steps.
  */
 async function executeStep(
     step: PlaybookStep,
@@ -84,37 +99,133 @@ async function executeStep(
         return { skipped: true, reason: `condition_not_met: ${step.condition}` };
     }
 
+    // AI Studio credit gate for ai_powered steps
+    const stepCategory = classifyPlaybookStepType(step.type, step.tool);
+    if (stepCategory === 'ai_powered' && context.orgId) {
+        const actionType = resolvePlaybookActionType(step) as AIStudioActionType;
+        const check = await checkAIStudioActionAllowed({
+            orgId: context.orgId,
+            actionType,
+            automationTriggered: true,
+            playbookId: context.playbookId,
+            requestedModelTier: step.modelTier,
+        });
+
+        if (!check.allowed) {
+            logger.warn(`[PlaybookRunner] AI credit gate blocked step: ${step.name}`, {
+                orgId: context.orgId,
+                playbookId: context.playbookId,
+                actionType,
+                errorCode: check.errorCode,
+                reason: check.reason,
+            });
+            return {
+                skipped: true,
+                reason: `ai_credit_denied:${check.errorCode}`,
+                creditDenied: true,
+                errorCode: check.errorCode,
+            };
+        }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let result: any;
     try {
         switch (step.type) {
             case 'tool_call':
-                return await executeToolCall(step, context);
+                result = await executeToolCall(step, context);
+                break;
 
             case 'delegate':
-                return await executeDelegation(step, context);
+                result = await executeDelegation(step, context);
+                break;
 
             case 'synthesize':
-                return await executeSynthesis(step, context);
+                result = await executeSynthesis(step, context);
+                break;
 
             case 'notify':
-                return await executeNotification(step, context);
+                result = await executeNotification(step, context);
+                break;
 
             case 'create_thread':
-                return await executeThreadCreation(step, context);
+                result = await executeThreadCreation(step, context);
+                break;
 
             case 'condition':
-                return await evaluateCondition(step, context);
+                result = await evaluateCondition(step, context);
+                break;
 
             default:
                 logger.warn(`[PlaybookRunner] Unknown step type: ${step.type}`);
-                return { error: `Unknown step type: ${step.type}` };
+                result = { error: `Unknown step type: ${step.type}` };
         }
+
+        // Charge AI credits after successful ai_powered step execution
+        if (stepCategory === 'ai_powered' && context.orgId) {
+            const actionType = resolvePlaybookActionType(step) as AIStudioActionType;
+            const stepSuccess = !result?.error;
+            chargeAIStudioCredits({
+                orgId: context.orgId,
+                actionType,
+                sourceSurface: 'playbooks',
+                automationTriggered: true,
+                playbookId: context.playbookId,
+                playbookRunId: context.playbookRunId,
+                success: stepSuccess,
+                modelTier: step.modelTier,
+            }).catch((err: unknown) =>
+                logger.error('[PlaybookRunner] Credit charge failed', {
+                    orgId: context.orgId,
+                    stepId: step.id,
+                    err,
+                })
+            );
+        }
+
+        return result;
     } catch (error: any) {
         logger.error(`[PlaybookRunner] Step execution failed: ${step.name}`, {
             error: error.message,
             step: step.id,
         });
+
+        // Still charge for failed AI steps (action was attempted and resources consumed)
+        if (stepCategory === 'ai_powered' && context.orgId) {
+            const actionType = resolvePlaybookActionType(step) as AIStudioActionType;
+            chargeAIStudioCredits({
+                orgId: context.orgId,
+                actionType,
+                sourceSurface: 'playbooks',
+                automationTriggered: true,
+                playbookId: context.playbookId,
+                playbookRunId: context.playbookRunId,
+                success: false,
+                errorCode: error.message,
+                modelTier: step.modelTier,
+            }).catch((chargeErr: unknown) =>
+                logger.error('[PlaybookRunner] Credit charge on failure failed', {
+                    orgId: context.orgId,
+                    stepId: step.id,
+                    chargeErr,
+                })
+            );
+        }
+
         return { error: error.message, step: step.id };
     }
+}
+
+/**
+ * Resolve the AIStudioActionType for a playbook step.
+ */
+function resolvePlaybookActionType(step: PlaybookStep): string {
+    if (step.type === 'synthesize') return 'research';
+    if (step.type === 'delegate') return 'research';
+    if (step.type === 'tool_call' && step.tool) {
+        return resolvePlaybookToolActionType(step.tool);
+    }
+    return 'chat';
 }
 
 async function executeToolCall(step: PlaybookStep, context: ExecutionContext): Promise<any> {
@@ -210,6 +321,8 @@ async function executePlaybook(playbook: Playbook): Promise<ExecutionContext> {
     const context: ExecutionContext = {
         playbookId: playbook.id,
         playbookName: playbook.name,
+        playbookRunId: `run_${playbook.id}_${Date.now()}`,
+        orgId: playbook.orgId,
         startTime: Date.now(),
         results: {},
         conditions: {},

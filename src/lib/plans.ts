@@ -1,5 +1,5 @@
 
-export type PlanId = "scout" | "pro" | "growth" | "empire" | "free" | "claim_pro" | "founders_claim" | "growth_5" | "scale_10" | "pro_25" | "custom_25" | "enterprise";
+export type PlanId = "scout" | "pro" | "growth" | "empire" | "free" | "claim_pro" | "founders_claim" | "growth_5" | "scale_10" | "pro_25" | "custom_25" | "enterprise" | "signal" | "convert" | "retain" | "optimize";
 
 export interface PlanConfig {
   id: PlanId;
@@ -72,6 +72,11 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     includedLocations: 999,
     extraPerLocation: null,
   },
+  // Current plans (2026)
+  signal:   { id: "signal",   name: "Signal",   description: "Know your market.",          baseAmount: 149,  includedLocations: 1,   extraPerLocation: null },
+  convert:  { id: "convert",  name: "Convert",  description: "Turn traffic into sales.",   baseAmount: 499,  includedLocations: 1,   extraPerLocation: null },
+  retain:   { id: "retain",   name: "Retain",   description: "Turn buyers into repeat buyers.", baseAmount: 799, includedLocations: 3, extraPerLocation: 99 },
+  optimize: { id: "optimize", name: "Optimize", description: "Run a smarter operation.",   baseAmount: 1500, includedLocations: 10,  extraPerLocation: 75 },
   // Legacy mappings for safety
   free: { id: "scout", name: "The Scout", description: "", baseAmount: 0, includedLocations: 1, extraPerLocation: null },
   claim_pro: { id: "pro", name: "Pro", description: "", baseAmount: 99, includedLocations: 1, extraPerLocation: 49 },
