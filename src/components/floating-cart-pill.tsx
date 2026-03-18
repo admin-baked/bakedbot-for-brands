@@ -10,6 +10,13 @@ import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
 import { formatNumber } from '@/lib/utils';
 
+// Set by BrandMenuClient when a claimed page is active
+declare global {
+  interface Window {
+    __BRAND_CHECKOUT_ENABLED__?: boolean;
+  }
+}
+
 /**
  * Get context-aware cart label based on the current page
  */
@@ -60,6 +67,12 @@ export function FloatingCartPill() {
     if (itemCount === 0) return null; // Use itemCount for consistency with original logic
     if (pathname?.startsWith('/dashboard')) return null;
     if (pathname === '/checkout') return null;
+
+    // On brand slug pages (/:slug), only show when checkout is enabled (claimed page with orgId)
+    const isBrandSlugPath = pathname
+        ? /^\/[a-z0-9-]+$/.test(pathname) && !['smokey-pay', 'pricing', 'login', 'signup', 'auth', 'help', 'brands', 'cities', 'dispensaries'].includes(pathname.slice(1))
+        : false;
+    if (isBrandSlugPath && !window.__BRAND_CHECKOUT_ENABLED__) return null;
 
     return (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
