@@ -27,14 +27,145 @@ import {
 import {
   Activity, Cpu, MemoryStick, Server, Clock, AlertTriangle, AlertCircle, Info,
   CheckCircle, RefreshCcw, Zap, XCircle, Download, Settings, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight,
+  DollarSign,
 } from 'lucide-react';
 import {
   getSystemHealth, getSystemConfiguration, exportMetricsCSV,
   getAlertThresholdConfig, updateAlertThresholds,
 } from '@/server/actions/system-health';
 import type { SystemHealthSummary, AlertThresholdConfig } from '@/types/system-health';
+import { getPlatformAIBudgetStatus, getAgentTelemetrySummary } from '@/server/actions/ai-economics';
+import type { PlatformAIBudgetStatus, AgentTelemetrySummary } from '@/server/actions/ai-economics';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { HeartbeatDiagnosticPanel } from '@/components/system/heartbeat-diagnostic-panel';
+
+function AISpendSection({
+  spendToday,
+  spendWeek,
+  spendLoading,
+}: {
+  spendToday: PlatformAIBudgetStatus | null;
+  spendWeek: AgentTelemetrySummary | null;
+  spendLoading: boolean;
+}) {
+  const budgetColor = (pct: number) =>
+    pct > 80 ? 'bg-red-500' : pct > 50 ? 'bg-yellow-500' : 'bg-green-500';
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold flex items-center gap-2">
+        <DollarSign className="h-5 w-5" />
+        AI Spend
+      </h3>
+      <div className="grid gap-4 md:grid-cols-3">
+        {/* Today vs Budget */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Today vs Budget</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {spendLoading ? (
+              <Skeleton className="h-10 w-full" />
+            ) : spendToday ? (
+              <>
+                <div className="text-2xl font-bold">${spendToday.todayCostUsd.toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground">of ${spendToday.dailyBudget} daily budget</p>
+                <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className={`h-full transition-all ${budgetColor(spendToday.percentUsed)}`}
+                    style={{ width: `${Math.min(spendToday.percentUsed, 100)}%` }}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">{spendToday.percentUsed}% used</p>
+                {spendToday.agentsOverThreshold.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {spendToday.agentsOverThreshold.map(a => (
+                      <Badge key={a.agentName} variant="destructive" className="text-xs mr-1">
+                        {a.agentName} ${a.costUsd.toFixed(2)}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">No spend today</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* This Week */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">This Week</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {spendLoading ? (
+              <Skeleton className="h-10 w-full" />
+            ) : spendWeek ? (
+              <>
+                <div className="text-2xl font-bold">${spendWeek.totalCostUsd.toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground">
+                  {spendWeek.totalInvocations.toLocaleString()} invocations
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  ~${spendWeek.budgetStatus.projectedMonthly.toFixed(0)}/mo projected
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">Telemetry warming up</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Top Agents */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Top Agents (Week)</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {spendLoading ? (
+              <Skeleton className="h-10 w-full" />
+            ) : spendWeek && spendWeek.byAgent.length > 0 ? (
+              <div className="space-y-1.5">
+                {spendWeek.byAgent.slice(0, 5).map(a => (
+                  <div key={a.agentName} className="flex justify-between items-center text-xs">
+                    <span className="text-muted-foreground capitalize">{a.agentName}</span>
+                    <span className="font-mono font-medium">${a.costUsd.toFixed(3)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No data yet — telemetry warming up after deploy</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* By Model */}
+      {spendWeek && spendWeek.byModel.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">By Model (Week)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+              {spendWeek.byModel.slice(0, 6).map(m => (
+                <div key={m.model} className="space-y-0.5">
+                  <p className="text-xs text-muted-foreground truncate">{m.model.replace('googleai/', '')}</p>
+                  <p className="text-sm font-bold font-mono">${m.costUsd.toFixed(3)}</p>
+                  <p className="text-xs text-muted-foreground">{m.tokens.toLocaleString()} tok</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
 
 export default function SystemHealthTab() {
   const [data, setData] = useState<SystemHealthSummary | null>(null);
@@ -45,20 +176,28 @@ export default function SystemHealthTab() {
   const [thresholdDialogOpen, setThresholdDialogOpen] = useState(false);
   const [thresholds, setThresholds] = useState<AlertThresholdConfig | null>(null);
   const [savingThresholds, setSavingThresholds] = useState(false);
+  const [spendToday, setSpendToday] = useState<PlatformAIBudgetStatus | null>(null);
+  const [spendWeek, setSpendWeek] = useState<AgentTelemetrySummary | null>(null);
+  const [spendLoading, setSpendLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     try {
-      const [healthData, configData] = await Promise.all([
+      const [healthData, configData, todayResult, weekResult] = await Promise.all([
         getSystemHealth(showComparison),
         getSystemConfiguration(),
+        getPlatformAIBudgetStatus().catch(() => null),
+        getAgentTelemetrySummary('week').catch(() => null),
       ]);
       setData(healthData);
       setConfig(configData);
+      if (todayResult?.success) setSpendToday(todayResult.data);
+      if (weekResult?.success) setSpendWeek(weekResult.data);
     } catch (error) {
       console.error('Failed to fetch system health:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setSpendLoading(false);
     }
   }, [showComparison]);
 
@@ -170,11 +309,17 @@ export default function SystemHealthTab() {
 
   if (!data) {
     return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>Failed to load system health metrics.</AlertDescription>
-      </Alert>
+      <div className="space-y-6">
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertTitle>Metrics Pending</AlertTitle>
+          <AlertDescription>
+            System health metrics are not yet instrumented. GCP Monitoring integration is pending configuration.
+          </AlertDescription>
+        </Alert>
+        {/* Still render AI Spend even when infra metrics unavailable */}
+        <AISpendSection spendToday={spendToday} spendWeek={spendWeek} spendLoading={spendLoading} />
+      </div>
     );
   }
 
@@ -486,6 +631,9 @@ export default function SystemHealthTab() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* AI Spend */}
+      <AISpendSection spendToday={spendToday} spendWeek={spendWeek} spendLoading={spendLoading} />
 
       {/* Alert Threshold Configuration Dialog */}
       <Dialog open={thresholdDialogOpen} onOpenChange={setThresholdDialogOpen}>

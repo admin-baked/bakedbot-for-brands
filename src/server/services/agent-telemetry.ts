@@ -16,12 +16,19 @@
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 
-// === Pricing (per 1M tokens, as of Feb 2026) ===
+// === Pricing (per 1M tokens, as of Mar 2026) ===
 const MODEL_PRICING: Record<string, { inputPer1M: number; outputPer1M: number }> = {
+    // Claude (Anthropic)
     'claude-sonnet-4-6': { inputPer1M: 3.0, outputPer1M: 15.0 },
     'claude-opus-4-6': { inputPer1M: 15.0, outputPer1M: 75.0 },
+    'claude-haiku-4-5-20251001': { inputPer1M: 0.80, outputPer1M: 4.0 },
+    // Gemini (Google) — 2.5 Flash / Pro
+    'googleai/gemini-2.5-flash': { inputPer1M: 0.30, outputPer1M: 2.50 },
+    'googleai/gemini-2.5-pro': { inputPer1M: 1.25, outputPer1M: 10.00 },
+    'gemini-2.5-flash': { inputPer1M: 0.30, outputPer1M: 2.50 },
+    'gemini-2.5-pro': { inputPer1M: 1.25, outputPer1M: 10.00 },
 };
-const DEFAULT_PRICING = { inputPer1M: 3.0, outputPer1M: 15.0 };
+const DEFAULT_PRICING = { inputPer1M: 0.30, outputPer1M: 2.50 }; // Gemini 2.5 Flash as default
 
 // === Types ===
 

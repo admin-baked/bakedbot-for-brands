@@ -149,6 +149,7 @@ import { zodToClaudeSchema } from '@/server/utils/zod-to-json';
 import { persistWorkflowFromHarness } from '@/server/services/letta/procedural-memory';
 import { sleepTimeService } from '@/server/services/letta/sleeptime-agent';
 import { sanitizeForPrompt, wrapUserData, embedCanaryToken, validateOutputWithCanary } from '@/server/security';
+import { buildTelemetryEvent, recordAgentTelemetry } from '@/server/services/agent-telemetry';
 
 // ============================================================================
 // VALIDATION HOOK TYPES
@@ -194,6 +195,7 @@ export interface MultiStepContext {
     useGLMSynthesis?: boolean;
 
     // === TELEMETRY ===
+    agentName?: string; // agent name for cost tracking (e.g. 'smokey', 'craig', 'ezal')
     orgId?: string;   // org that triggered this task (for per-customer cost tracking)
     brandId?: string; // brand context if applicable
 
@@ -612,7 +614,18 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
             `${systemInstructions}\n\n${wrapUserData(sanitizedQuery, 'user_request', false)}`,
             claudeTools,
             executor,
-            { maxIterations, orgId: context.orgId, brandId: context.brandId }
+            {
+                maxIterations,
+                orgId: context.orgId,
+                brandId: context.brandId,
+                // Wire agentContext so claude.ts fires recordAgentTelemetry automatically
+                agentContext: context.agentName ? {
+                    name: context.agentName,
+                    role: 'Agent',
+                    capabilities: [],
+                    groundingRules: [],
+                } : undefined,
+            }
         );
 
         return { finalResult: result.content, steps };
@@ -622,6 +635,31 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
 
     const steps: Array<{ tool: string; args: any; result: any }> = [];
     let iteration = 0;
+    const _gemStart = Date.now();
+    let _gemInTok = 0;
+    let _gemOutTok = 0;
+    const _gemModel = (model !== 'claude' && model !== 'gemini' && model) ? model : 'googleai/gemini-2.5-flash';
+
+    // Helper: fire-and-forget telemetry for the Gemini path
+    const _recordGeminiTelemetry = (success: boolean) => {
+        if (!context.agentName) return;
+        recordAgentTelemetry(buildTelemetryEvent({
+            agentName: context.agentName,
+            model: _gemModel,
+            orgId: context.orgId,
+            brandId: context.brandId,
+            inputTokens: _gemInTok,
+            outputTokens: _gemOutTok,
+            toolExecutions: steps.map(s => ({
+                name: s.tool,
+                durationMs: 0,
+                status: (s.result?.error ? 'error' : 'success') as 'success' | 'error',
+            })),
+            totalLatencyMs: Date.now() - _gemStart,
+            success,
+            availableToolCount: toolsDef.length,
+        })).catch(() => {});
+    };
 
     // Build tool names enum dynamically
     const toolNames = [...toolsDef.map(t => t.name), 'null'] as const;
@@ -666,6 +704,8 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
                 })
             }
         });
+        _gemInTok += plan.usage?.inputTokens ?? 0;
+        _gemOutTok += plan.usage?.outputTokens ?? 0;
 
         const decision = plan.output as MultiStepPlan;
 
@@ -682,6 +722,9 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
                     Synthesize a comprehensive response for the user based on the original request.
                 `
             });
+            _gemInTok += final.usage?.inputTokens ?? 0;
+            _gemOutTok += final.usage?.outputTokens ?? 0;
+            _recordGeminiTelemetry(true);
 
             return { finalResult: final.text, steps };
         }
@@ -763,6 +806,9 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
             Synthesize the best possible response given the work completed based on the original request.
         `
     });
+    _gemInTok += final.usage?.inputTokens ?? 0;
+    _gemOutTok += final.usage?.outputTokens ?? 0;
+    _recordGeminiTelemetry(false);
 
     return { finalResult: final.text, steps };
 }
