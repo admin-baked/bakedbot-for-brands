@@ -104,15 +104,15 @@ export function PricingUI() {
                             </p>
                             <ul className="space-y-2 mb-6 text-sm">
                                 <li className="flex justify-between">
-                                    <span>Scout Tier</span>
+                                    <span>Signal</span>
                                     <span className="font-medium">0 / mo</span>
                                 </li>
                                 <li className="flex justify-between">
-                                    <span>Pro Tier</span>
+                                    <span>Convert</span>
                                     <span className="font-medium">10 / mo</span>
                                 </li>
                                 <li className="flex justify-between">
-                                    <span>Growth Tier</span>
+                                    <span>Retain+</span>
                                     <span className="font-medium">50 / mo</span>
                                 </li>
                             </ul>
@@ -189,6 +189,30 @@ function PricingCard({ plan }: { plan: PricingPlan }) {
                      {plan.setup && <p className="text-xs text-muted-foreground mt-2 italic">{plan.setup}</p>}
                 </div>
                 
+                {plan.includedCredits !== undefined && (
+                    <div className="mb-5 flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2 text-sm">
+                        <span className="font-medium text-muted-foreground flex items-center gap-1.5">
+                            <Zap className="h-3.5 w-3.5 text-yellow-500" />
+                            AI Credits / mo
+                        </span>
+                        <span className="font-semibold tabular-nums">
+                            {plan.includedCredits.toLocaleString()}
+                            {plan.creditRollover && (
+                                <span className="ml-1.5 text-xs text-emerald-600 font-normal">(rollover)</span>
+                            )}
+                        </span>
+                    </div>
+                )}
+                {plan.includedCredits === undefined && plan.id === 'enterprise' && (
+                    <div className="mb-5 flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2 text-sm">
+                        <span className="font-medium text-muted-foreground flex items-center gap-1.5">
+                            <Zap className="h-3.5 w-3.5 text-yellow-500" />
+                            AI Credits / mo
+                        </span>
+                        <span className="font-semibold">Negotiated</span>
+                    </div>
+                )}
+
                 <div className="space-y-4">
                     <p className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Includes:</p>
                     <ul className="space-y-3">
