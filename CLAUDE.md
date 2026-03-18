@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-03-18 (Slack GLM primary synthesis, Event Subscriptions URL, SLACK_BOT_TOKEN@5, DM messaging enabled)
+**Current Status:** 🟢 Passing | **Last update:** 2026-03-18 (FFF Audit funnel Phase 1-2-P3, CRM lead sync, Leads tab FFF filters)
 
 ---
 
