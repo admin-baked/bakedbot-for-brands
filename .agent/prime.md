@@ -19,11 +19,11 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — FFF Audit → Claim funnel complete (P1-P2-P3), CRM lead sync live.
+**Current Status:** 🟢 Passing — Brand Guide magic buttons, archetype save fix, tier-aware model selection deployed.
 
-## Session 2026-03-18 (FFF Audit → Claim Funnel)
-- **Phase 1+2** (`eaee397c9`, `87e4f31e4`): audit unlock gate, fff_audit_reports collection, claim CTA, ZipCodeSearch audit context flow
-- **P3 CRM sync** (`acc3ccf29`): createFFFAuditLead(), CRMLead FFF fields, Leads tab source filter + FFF score badges
+## Session 2026-03-18 (Brand Guide Magic Buttons + Fixes)
+- **Magic buttons** (`6a3f9c75f`): generateBrandMessagingContent, generateBrandDisclaimers, suggestVocabularyTerms; Sonnet for growth/empire, Haiku for scout/pro
+- **Archetype save + scanner fixes** (`d294e5ecc`): Timestamp serialization fix, neutral color placeholders, dialog scrollability, scan progress bar
 
 ## Session 2026-03-12 (Playbook artifact repo + runtime memory layer)
 - **Artifact repo path made real**: Playbook V2 now persists spec snapshots, run manifests, failure artifacts, approval records, delivery manifests, and `summary_for_ai_engineers.md` through the shared artifact runtime. Runtime writes go to blob storage + Firestore metadata + the dedicated Git repo `admin-baked/bakedbot-artifacts-prod` when App Hosting is running with the new repo env/secret config.
