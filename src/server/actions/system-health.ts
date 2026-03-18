@@ -113,109 +113,141 @@ async function getCurrentMetrics(memoryAllocatedMB: number): Promise<{
 export async function getSystemHealth(includeComparison: boolean = false): Promise<SystemHealthSummary> {
   await requireUser(['super_user']);
 
-  const memoryAllocatedMB = 2048;
-  const cpuCores = 1;
-  const minInstances = 0;
-  const maxInstances = 10;
-  const now = new Date();
-
-  const metrics = await getCurrentMetrics(memoryAllocatedMB);
-
-  // Get deployment info
-  let lastDeployment: Date | null = null;
-  let currentVersion: string | null = null;
-  try {
-    const db = getAdminFirestore();
-    const snap = await db.collection('deployments').orderBy('timestamp', 'desc').limit(1).get();
-    if (!snap.empty) {
-      const d = snap.docs[0].data();
-      lastDeployment = d.timestamp instanceof Timestamp ? d.timestamp.toDate() : new Date(d.timestamp);
-      currentVersion = d.version || d.commitSha || null;
-    }
-  } catch {
-    // Not set up
-  }
-
-  // Load custom thresholds
-  const thresholds = await getAlertThresholds();
-
-  let deploymentStatus: SystemHealthMetrics['deploymentStatus'] = 'healthy';
-  if (metrics.source === 'not_instrumented') {
-    deploymentStatus = 'unknown';
-  } else if (
-    (metrics.errorRate != null && metrics.errorRate > thresholds.errorRate.critical) ||
-    (metrics.memoryUsagePercent != null && metrics.memoryUsagePercent > thresholds.memory.critical)
-  ) {
-    deploymentStatus = 'unhealthy';
-  } else if (
-    (metrics.errorRate != null && metrics.errorRate > thresholds.errorRate.warning) ||
-    (metrics.memoryUsagePercent != null && metrics.memoryUsagePercent > thresholds.memory.warning)
-  ) {
-    deploymentStatus = 'degraded';
-  }
-
-  const current: SystemHealthMetrics = {
-    timestamp: now,
-    memoryAllocatedMB,
-    memoryUsedMB: metrics.memoryUsedMB,
-    memoryUsagePercent: metrics.memoryUsagePercent,
-    cpuCores,
-    cpuUsagePercent: metrics.cpuUsagePercent,
-    instanceCount: metrics.instanceCount,
-    minInstances,
-    maxInstances,
-    requestsPerSecond: metrics.requestsPerSecond,
-    avgLatencyMs: metrics.avgLatencyMs,
-    p95LatencyMs: metrics.p95LatencyMs,
-    p99LatencyMs: metrics.p99LatencyMs,
-    errorRate: metrics.errorRate,
-    errorCount: metrics.errorCount,
-    deploymentStatus,
-    lastDeployment,
-    currentVersion,
-    source: metrics.source,
+  const _safeNow = new Date();
+  const _safeFallback: SystemHealthSummary = {
+    current: {
+      timestamp: _safeNow,
+      memoryAllocatedMB: 2048,
+      memoryUsedMB: null,
+      memoryUsagePercent: null,
+      cpuCores: 1,
+      cpuUsagePercent: null,
+      instanceCount: null,
+      minInstances: 0,
+      maxInstances: 10,
+      requestsPerSecond: null,
+      avgLatencyMs: null,
+      p95LatencyMs: null,
+      p99LatencyMs: null,
+      errorRate: null,
+      errorCount: null,
+      deploymentStatus: 'unknown',
+      lastDeployment: null,
+      currentVersion: null,
+      source: 'not_instrumented',
+    },
+    timeseries: [],
+    alerts: [],
   };
 
-  // Get historical timeseries
-  let timeseries: SystemHealthTimeseries[] = [];
   try {
-    if (metrics.source === 'gcp') {
-      const { getGCPTimeseries } = await import('@/server/services/gcp-monitoring');
-      timeseries = await getGCPTimeseries(24);
+    const memoryAllocatedMB = 2048;
+    const cpuCores = 1;
+    const minInstances = 0;
+    const maxInstances = 10;
+    const now = new Date();
+
+    const metrics = await getCurrentMetrics(memoryAllocatedMB);
+
+    // Get deployment info
+    let lastDeployment: Date | null = null;
+    let currentVersion: string | null = null;
+    try {
+      const db = getAdminFirestore();
+      const snap = await db.collection('deployments').orderBy('timestamp', 'desc').limit(1).get();
+      if (!snap.empty) {
+        const d = snap.docs[0].data();
+        lastDeployment = d.timestamp instanceof Timestamp ? d.timestamp.toDate() : new Date(d.timestamp);
+        currentVersion = d.version || d.commitSha || null;
+      }
+    } catch {
+      // Not set up
     }
-    if (timeseries.length === 0) {
-      timeseries = await getHistoricalMetrics(24);
+
+    // Load custom thresholds
+    const thresholds = await getAlertThresholds();
+
+    let deploymentStatus: SystemHealthMetrics['deploymentStatus'] = 'healthy';
+    if (metrics.source === 'not_instrumented') {
+      deploymentStatus = 'unknown';
+    } else if (
+      (metrics.errorRate != null && metrics.errorRate > thresholds.errorRate.critical) ||
+      (metrics.memoryUsagePercent != null && metrics.memoryUsagePercent > thresholds.memory.critical)
+    ) {
+      deploymentStatus = 'unhealthy';
+    } else if (
+      (metrics.errorRate != null && metrics.errorRate > thresholds.errorRate.warning) ||
+      (metrics.memoryUsagePercent != null && metrics.memoryUsagePercent > thresholds.memory.warning)
+    ) {
+      deploymentStatus = 'degraded';
     }
+
+    const current: SystemHealthMetrics = {
+      timestamp: now,
+      memoryAllocatedMB,
+      memoryUsedMB: metrics.memoryUsedMB,
+      memoryUsagePercent: metrics.memoryUsagePercent,
+      cpuCores,
+      cpuUsagePercent: metrics.cpuUsagePercent,
+      instanceCount: metrics.instanceCount,
+      minInstances,
+      maxInstances,
+      requestsPerSecond: metrics.requestsPerSecond,
+      avgLatencyMs: metrics.avgLatencyMs,
+      p95LatencyMs: metrics.p95LatencyMs,
+      p99LatencyMs: metrics.p99LatencyMs,
+      errorRate: metrics.errorRate,
+      errorCount: metrics.errorCount,
+      deploymentStatus,
+      lastDeployment,
+      currentVersion,
+      source: metrics.source,
+    };
+
+    // Get historical timeseries
+    let timeseries: SystemHealthTimeseries[] = [];
+    try {
+      if (metrics.source === 'gcp') {
+        const { getGCPTimeseries } = await import('@/server/services/gcp-monitoring');
+        timeseries = await getGCPTimeseries(24);
+      }
+      if (timeseries.length === 0) {
+        timeseries = await getHistoricalMetrics(24);
+      }
+    } catch {
+      // No data
+    }
+    if (timeseries.length === 0 && process.env.NODE_ENV !== 'production') {
+      for (let i = 23; i >= 0; i--) {
+        timeseries.push({
+          timestamp: new Date(now.getTime() - i * 60 * 60 * 1000),
+          memoryUsagePercent: Math.round(40 + Math.random() * 30),
+          cpuUsagePercent: Math.round(20 + Math.random() * 40),
+          requestsPerSecond: Math.round(5 + Math.random() * 15),
+          errorRate: Math.random() * 2,
+        });
+      }
+    }
+
+    // Generate alerts
+    const alerts = generateAlerts(current, thresholds);
+
+    // Fire-and-forget notifications
+    if (alerts.length > 0) {
+      processAlertNotifications(alerts).catch(() => {});
+    }
+
+    // Comparison mode
+    let comparison: SystemHealthComparison | undefined;
+    if (includeComparison) {
+      comparison = await getComparison();
+    }
+
+    return { current, timeseries, alerts, comparison };
   } catch {
-    // No data
+    // Never break the dashboard — return safe not_instrumented fallback
+    return _safeFallback;
   }
-  if (timeseries.length === 0 && process.env.NODE_ENV !== 'production') {
-    for (let i = 23; i >= 0; i--) {
-      timeseries.push({
-        timestamp: new Date(now.getTime() - i * 60 * 60 * 1000),
-        memoryUsagePercent: Math.round(40 + Math.random() * 30),
-        cpuUsagePercent: Math.round(20 + Math.random() * 40),
-        requestsPerSecond: Math.round(5 + Math.random() * 15),
-        errorRate: Math.random() * 2,
-      });
-    }
-  }
-
-  // Generate alerts
-  const alerts = generateAlerts(current, thresholds);
-
-  // Fire-and-forget notifications
-  if (alerts.length > 0) {
-    processAlertNotifications(alerts).catch(() => {});
-  }
-
-  // Comparison mode
-  let comparison: SystemHealthComparison | undefined;
-  if (includeComparison) {
-    comparison = await getComparison();
-  }
-
-  return { current, timeseries, alerts, comparison };
 }
 
 function generateAlerts(
