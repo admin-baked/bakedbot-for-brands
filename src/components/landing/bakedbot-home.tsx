@@ -116,7 +116,7 @@ export function BakedBotHome() {
   const year = new Date().getFullYear();
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans selection:bg-emerald-500/30">
+    <div className="min-h-screen overflow-x-hidden bg-background text-foreground font-sans selection:bg-emerald-500/30">
       <header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
