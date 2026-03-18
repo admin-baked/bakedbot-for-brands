@@ -1,0 +1,102 @@
+Set-ExecutionPolicy : Object reference not set to an instance of an object.
+At line:1 char:1
++ Set-ExecutionPolicy -Scope Process Bypass; $env:npm_node_execpath='C: ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [Set-ExecutionPolicy], NullReferenceException
+    + FullyQualifiedErrorId : System.NullReferenceException,Microsoft.PowerShell.Commands.SetExecutionPolicyCommand
+ 
+⚠ Compiled with warnings in 10.4min
+
+./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/index.js
+./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/index.js
+./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/index.js
+./node_modules/@prisma/instrumentation/dist/index.js
+./node_modules/@sentry/node/build/cjs/integrations/tracing/prisma.js
+./node_modules/@sentry/node/build/cjs/index.js
+./node_modules/@sentry/nextjs/build/cjs/index.server.js
+./src/lib/logger.ts
+./src/app/global-error.tsx
+
+./node_modules/apify-client/dist/utils.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/apify-client/dist/utils.js
+./node_modules/apify-client/dist/resource_clients/actor.js
+./node_modules/apify-client/dist/index.js
+./node_modules/apify-client/dist/index.mjs
+./src/server/services/integrations/leafly.ts
+./src/skills/domain/intel/competitor-analyzer/index.ts
+./src/skills/ lazy ^\.\/.*\/index$ namespace object
+./src/skills/loader.ts
+./src/server/agents/agent-runner.ts
+./src/app/api/cron/slack-reports/route.ts
+
+./node_modules/@fastify/otel/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@fastify/otel/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+./node_modules/@fastify/otel/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/index.js
+./node_modules/@fastify/otel/node_modules/@opentelemetry/instrumentation/build/esm/platform/index.js
+./node_modules/@fastify/otel/node_modules/@opentelemetry/instrumentation/build/esm/index.js
+./node_modules/@fastify/otel/index.js
+./node_modules/@sentry/node/build/cjs/integrations/tracing/fastify/index.js
+./node_modules/@sentry/node/build/cjs/index.js
+./node_modules/@sentry/nextjs/build/cjs/index.server.js
+./src/lib/logger.ts
+./src/app/api/admin/backfill-orders/route.ts
+
+./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/index.js
+./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/index.js
+./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/index.js
+./node_modules/@prisma/instrumentation/dist/index.js
+./node_modules/@sentry/node/build/cjs/integrations/tracing/prisma.js
+./node_modules/@sentry/node/build/cjs/index.js
+./node_modules/@sentry/nextjs/build/cjs/index.server.js
+./src/lib/logger.ts
+./src/app/api/admin/backfill-orders/route.ts
+
+(node:8804) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+{
+  "timestamp": "2026-03-13T05:37:21.630Z",
+  "level": "warn",
+  "message": "SENDGRID_API_KEY is missing. Emails will not be sent."
+}
+{
+  "timestamp": "2026-03-13T05:37:21.669Z",
+  "level": "warn",
+  "message": "MAILJET_API_KEY or MAILJET_SECRET_KEY is missing."
+}
+Failed to read treasury memory from Firestore: Error: Treasury memory document not found in Firestore
+    at i.read (C:\Users\admin\BakedBot for Brands\bakedbot-for-brands\.next\server\app\admin\treasury\page.js:6:10045)
+    at async i (C:\Users\admin\BakedBot for Brands\bakedbot-for-brands\.next\server\app\admin\treasury\page.js:1:2065)
+    at async k (C:\Users\admin\BakedBot for Brands\bakedbot-for-brands\.next\server\app\admin\treasury\page.js:4:7999)
+Failed to fetch treasury overview: Error: Treasury memory document not found in Firestore
+    at i.read (C:\Users\admin\BakedBot for Brands\bakedbot-for-brands\.next\server\app\admin\treasury\page.js:6:10045)
+    at async i (C:\Users\admin\BakedBot for Brands\bakedbot-for-brands\.next\server\app\admin\treasury\page.js:1:2065)
+    at async k (C:\Users\admin\BakedBot for Brands\bakedbot-for-brands\.next\server\app\admin\treasury\page.js:4:7999)
+(node:18196) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+No Firebase app associated with site studio-567050101-bc6e8, injecting project default config.
+  You can link a Web app to a Hosting site here https://console.firebase.google.com/project/studio-567050101-bc6e8/settings/general/web
+
+WARNING: Your package.json contains a custom build that is being ignored. Only the Next.js default build script (e.g, "next build") is respected. If you have a more advanced build process you should build a custom integration https://firebase.google.com/docs/hosting/express
+
+Warning: Global esbuild version (0.27.3) does not match the required version (^0.19.2).
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: 'nextn@0.1.0',
+npm warn EBADENGINE   required: { node: '20' },
+npm warn EBADENGINE   current: { node: 'v22.13.1', npm: '10.9.2' }
+npm warn EBADENGINE }

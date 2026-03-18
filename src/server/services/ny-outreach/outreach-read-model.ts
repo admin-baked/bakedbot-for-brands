@@ -12,6 +12,7 @@ export interface OutreachResult {
     emailSent: boolean;
     sendError?: string;
     timestamp: number;
+    action?: string;
 }
 
 export interface OutreachStats {
@@ -44,6 +45,7 @@ export async function getOutreachStats(since?: number): Promise<OutreachStats> {
             emailSent: d.emailSent === true,
             sendError: typeof d.sendError === 'string' ? d.sendError : undefined,
             timestamp: typeof d.timestamp === 'number' ? d.timestamp : Date.now(),
+            action: typeof d.action === 'string' ? d.action : undefined,
         };
     });
 

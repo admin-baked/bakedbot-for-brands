@@ -3,7 +3,7 @@ import { sendOrderConfirmationEmail as sendSG } from './sendgrid';
 import { sendOrderConfirmationEmail as sendMJ } from './mailjet';
 import { getAdminFirestore } from '@/firebase/admin';
 import { getGmailToken } from '@/server/integrations/gmail/token-storage';
-import { sendGmail } from '@/server/integrations/gmail/send';
+import { sendGmail, createGmailDraft as gmailCreateDraft } from '@/server/integrations/gmail/send';
 
 // Simple in-memory cache for provider setting to avoid Firestore hit on every email
 // invalidates every 60 seconds
@@ -33,7 +33,7 @@ async function getProvider(): Promise<'sendgrid' | 'mailjet'> {
 export async function sendOrderConfirmationEmail(data: any): Promise<boolean> {
     const provider = await getProvider();
     console.log(`Sending email using provider: ${provider}`);
-    
+
     if (provider === 'mailjet') {
         return sendMJ(data);
     } else {
@@ -44,6 +44,30 @@ export async function sendOrderConfirmationEmail(data: any): Promise<boolean> {
 // Static imports to avoid bundling issues in server actions
 import { sendGenericEmail as sendSGGeneric } from './sendgrid';
 import { sendGenericEmail as sendMJGeneric } from './mailjet';
+
+export async function createGmailDraft(data: {
+    userId: string;
+    to: string;
+    subject: string;
+    htmlBody: string;
+}): Promise<{ success: boolean; error?: string; draftId?: string; threadId?: string }> {
+    try {
+        const result = await gmailCreateDraft({
+            userId: data.userId,
+            to: [data.to],
+            subject: data.subject,
+            html: data.htmlBody,
+        });
+        return {
+            success: true,
+            draftId: result.id,
+            threadId: result.message?.threadId,
+        };
+    } catch (err: any) {
+        console.error('[dispatcher] createGmailDraft failed', { error: err.message, userId: data.userId });
+        return { success: false, error: err.message };
+    }
+}
 
 export async function sendGenericEmail(data: {
     to: string;
@@ -114,16 +138,16 @@ export async function sendGenericEmail(data: {
                 result = mjResult;
             }
         } catch (mjError: any) {
-             console.warn(`Mailjet Exception: ${mjError.message}. Failing over to SendGrid...`);
-             const sgResult = await attemptSendGrid();
-             if (!sgResult.success) {
+            console.warn(`Mailjet Exception: ${mjError.message}. Failing over to SendGrid...`);
+            const sgResult = await attemptSendGrid();
+            if (!sgResult.success) {
                 result = {
                     success: false,
                     error: `Mailjet Exception: ${mjError.message} | SendGrid Failed: ${sgResult.error}`
                 };
-             } else {
+            } else {
                 result = sgResult;
-             }
+            }
         }
     }
 
@@ -140,8 +164,8 @@ export async function sendGenericEmail(data: {
                 agentName: data.agentName,
                 campaignId: data.campaignId,
                 provider,
-            }).catch(() => {}); // silently fail - don't break email sending
-        }).catch(() => {});
+            }).catch(() => { }); // silently fail - don't break email sending
+        }).catch(() => { });
     }
 
     return result;

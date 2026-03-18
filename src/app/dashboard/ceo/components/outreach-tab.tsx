@@ -21,7 +21,7 @@ import { Input } from '@/components/ui/input';
 import {
     Loader2, Mail, Search, Play, TestTube2, RefreshCcw, Users,
     AlertTriangle, CheckCircle2, XCircle, FileText, Send,
-    Pencil, ChevronDown, ChevronUp, Link2, Zap,
+    Pencil, ChevronDown, ChevronUp, Link2, Zap, ExternalLink
 } from 'lucide-react';
 import {
     getOutreachDashboardData,
@@ -59,6 +59,7 @@ interface OutreachStats {
         emailSent: boolean;
         sendError?: string;
         timestamp: number;
+        action?: string;
     }>;
 }
 
@@ -100,13 +101,12 @@ interface DashboardData {
 // Draft Card (per-draft approve/edit/reject)
 // ────────────────────────────────────────────────────────────────────────────
 
-function DraftCard({
-    draft,
-    onAction,
-}: {
+interface DraftCardProps {
     draft: OutreachDraft;
-    onAction: () => void;
-}) {
+    onUpdate: () => void;
+}
+
+function DraftCard({ draft, onUpdate }: DraftCardProps) {
     const [status, setStatus] = useState<'idle' | 'approving' | 'rejecting' | 'saving' | 'sent' | 'rejected' | 'failed'>(
         draft.status === 'sent' ? 'sent' : draft.status === 'rejected' ? 'rejected' : 'idle'
     );
@@ -114,74 +114,85 @@ function DraftCard({
     const [editSubject, setEditSubject] = useState(draft.subject);
     const [editBody, setEditBody] = useState(draft.textBody);
     const [bodyOpen, setBodyOpen] = useState(false);
-    const [errorMsg, setErrorMsg] = useState<string>();
+    const [error, setError] = useState<string | null>(null);
 
-    async function handleApprove() {
+    const handleApprove = async () => {
         setStatus('approving');
-        setErrorMsg(undefined);
+        setError(null);
         try {
             const result = await approveAndSendDraft(draft.id);
             if (result.success) {
                 setStatus('sent');
-                onAction();
+                onUpdate();
             } else {
-                setStatus('failed');
-                setErrorMsg(result.error || 'Send failed');
+                setError(result.error || 'Failed to approve');
+                setStatus('idle');
             }
-        } catch (e) {
-            setStatus('failed');
-            setErrorMsg((e as Error).message);
+        } catch (err) {
+            setError(String(err));
+            setStatus('idle');
         }
-    }
+    };
 
-    async function handleReject() {
+    const handleReject = async () => {
         setStatus('rejecting');
-        setErrorMsg(undefined);
+        setError(null);
         try {
             const result = await rejectDraft(draft.id);
             if (result.success) {
                 setStatus('rejected');
-                onAction();
+                onUpdate();
             } else {
-                setErrorMsg(result.error || 'Reject failed');
+                setError(result.error || 'Failed to reject');
                 setStatus('idle');
             }
-        } catch (e) {
-            setErrorMsg((e as Error).message);
+        } catch (err) {
+            setError(String(err));
             setStatus('idle');
         }
-    }
+    };
 
-    async function handleSaveEdit() {
+    const handleSave = async () => {
         setStatus('saving');
-        setErrorMsg(undefined);
+        setError(null);
         try {
             const result = await updateOutreachDraft(draft.id, {
                 subject: editSubject,
-                textBody: editBody,
+                htmlBody: editBody,
             });
             if (result.success) {
                 setEditing(false);
                 setStatus('idle');
+                onUpdate();
             } else {
-                setErrorMsg(result.error || 'Save failed');
+                setError(result.error || 'Failed to update');
                 setStatus('idle');
             }
-        } catch (e) {
-            setErrorMsg((e as Error).message);
+        } catch (err) {
+            setError(String(err));
             setStatus('idle');
         }
-    }
+    };
 
     const isForm = draft.outreachType === 'form';
+    const isGmailDrafted = draft.status === 'gmail_drafted';
 
-    if (status === 'sent') {
+    if (status === 'sent' || isGmailDrafted) {
         return (
-            <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+            <div className={`rounded-lg border p-4 ${isGmailDrafted ? 'border-blue-200 bg-blue-50' : 'border-green-200 bg-green-50'}`}>
                 <div className="flex items-center gap-2 text-green-800">
-                    <CheckCircle2 className="h-4 w-4" />
-                    <span className="font-medium text-sm">{isForm ? 'Form Submitted' : 'Sent via Gmail'}</span>
-                    <span className="text-xs text-green-600 ml-auto">{draft.dispensaryName}</span>
+                    {isGmailDrafted ? (
+                        <>
+                            <Mail className="h-4 w-4 text-blue-600" />
+                            <span className="font-medium text-sm text-blue-900">Gmail draft created</span>
+                        </>
+                    ) : (
+                        <>
+                            <CheckCircle2 className="h-4 w-4" />
+                            <span className="font-medium text-sm">{isForm ? 'Form Submitted' : 'Sent via Gmail'}</span>
+                        </>
+                    )}
+                    <span className="text-xs text-muted-foreground ml-auto">{draft.dispensaryName}</span>
                 </div>
             </div>
         );
@@ -289,12 +300,12 @@ function DraftCard({
             )}
 
             {/* Error */}
-            {errorMsg && <p className="text-xs text-destructive">{errorMsg}</p>}
+            {error && <p className="text-xs text-destructive">{error}</p>}
 
             {/* Action buttons */}
             {editing ? (
                 <div className="flex gap-2">
-                    <Button size="sm" className="gap-1.5 text-xs h-8" onClick={handleSaveEdit} disabled={status === 'saving'}>
+                    <Button size="sm" className="gap-1.5 text-xs h-8" onClick={handleSave} disabled={status === 'saving'}>
                         {status === 'saving' ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
                         Save
                     </Button>
@@ -317,10 +328,11 @@ function DraftCard({
                             </Button>
                             <Button
                                 size="sm"
-                                className="gap-1.5 text-xs h-8 bg-green-600 hover:bg-green-700"
+                                className="gap-1.5 text-xs h-8 bg-green-600 hover:bg-green-700 text-white border-0"
                                 onClick={handleApprove}
+                                disabled={status === 'approving'}
                             >
-                                <CheckCircle2 className="h-3 w-3" />
+                                {status === 'approving' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
                                 Mark Submitted
                             </Button>
                         </>
@@ -331,7 +343,7 @@ function DraftCard({
                             onClick={handleApprove}
                         >
                             <Send className="h-3 w-3" />
-                            Approve &amp; Send
+                            Create Gmail Draft
                         </Button>
                     )}
                     <Button
@@ -356,7 +368,7 @@ function DraftCard({
             ) : (
                 <div className="flex items-center gap-2 py-2 text-muted-foreground text-sm">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    {status === 'approving' ? (isForm ? 'Marking submitted…' : 'Sending via Gmail…') : 'Rejecting…'}
+                    {status === 'approving' ? (isForm ? 'Marking submitted…' : 'Creating Gmail draft…') : 'Rejecting…'}
                 </div>
             )}
         </div>
@@ -437,7 +449,7 @@ export default function OutreachTab() {
     const loadDrafts = useCallback(async () => {
         try {
             setDraftsLoading(true);
-            const result = await getOutreachDrafts('draft');
+            const result = await getOutreachDrafts();
             if (result.success && result.drafts) {
                 setDrafts(result.drafts as OutreachDraft[]);
             }
@@ -482,7 +494,7 @@ export default function OutreachTab() {
             if (result.success) {
                 setActionResult({
                     type: 'success',
-                    message: `Sent ${result.sent || 0} emails via Gmail, ${result.failed || 0} failed`,
+                    message: `Created ${result.sent || 0} Gmail drafts, ${result.failed || 0} failed`,
                 });
                 await Promise.all([loadData(), loadDrafts()]);
             } else {
@@ -634,11 +646,10 @@ export default function OutreachTab() {
 
             {/* Gmail Connection Status */}
             {gmailConnected !== null && (
-                <div className={`flex items-center gap-2 rounded-lg border p-3 ${
-                    gmailConnected
-                        ? 'border-green-200 bg-green-50 text-green-800'
-                        : 'border-amber-200 bg-amber-50 text-amber-800'
-                }`}>
+                <div className={`flex items-center gap-2 rounded-lg border p-3 ${gmailConnected
+                    ? 'border-green-200 bg-green-50 text-green-800'
+                    : 'border-amber-200 bg-amber-50 text-amber-800'
+                    }`}>
                     <Mail className="h-4 w-4" />
                     {gmailConnected ? (
                         <span className="text-sm">
@@ -665,11 +676,10 @@ export default function OutreachTab() {
 
             {/* Action Result Banner */}
             {actionResult && (
-                <div className={`flex items-center gap-2 rounded-lg border p-3 ${
-                    actionResult.type === 'success'
-                        ? 'border-green-200 bg-green-50 text-green-800'
-                        : 'border-red-200 bg-red-50 text-red-800'
-                }`}>
+                <div className={`flex items-center gap-2 rounded-lg border p-3 ${actionResult.type === 'success'
+                    ? 'border-green-200 bg-green-50 text-green-800'
+                    : 'border-red-200 bg-red-50 text-red-800'
+                    }`}>
                     {actionResult.type === 'success' ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
                     <span className="text-sm">{actionResult.message}</span>
                     <Button variant="ghost" size="sm" className="ml-auto h-6 px-2" onClick={() => setActionResult(null)}>
@@ -735,11 +745,10 @@ export default function OutreachTab() {
                         {/* Progress bar */}
                         <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
                             <div
-                                className={`h-full rounded-full transition-all ${
-                                    apolloCredits.percentUsed >= 90 ? 'bg-red-500' :
+                                className={`h-full rounded-full transition-all ${apolloCredits.percentUsed >= 90 ? 'bg-red-500' :
                                     apolloCredits.percentUsed >= 70 ? 'bg-amber-500' :
-                                    'bg-green-500'
-                                }`}
+                                        'bg-green-500'
+                                    }`}
                                 style={{ width: `${Math.min(apolloCredits.percentUsed, 100)}%` }}
                             />
                         </div>
@@ -851,14 +860,14 @@ export default function OutreachTab() {
                     <CardTitle className="flex items-center gap-2">
                         <FileText className="h-5 w-5" />
                         Pending Drafts for Review
-                        {drafts.length > 0 && (
+                        {drafts.filter(d => d.status === 'draft').length > 0 && (
                             <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 ml-2">
-                                {drafts.length}
+                                {drafts.filter(d => d.status === 'draft').length}
                             </Badge>
                         )}
                     </CardTitle>
                     <CardDescription>
-                        Review, edit, and approve email drafts before sending via Gmail
+                        Review, edit, and approve outreach drafts before preparing them in Gmail
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -866,12 +875,12 @@ export default function OutreachTab() {
                         <div className="flex items-center justify-center py-8">
                             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                         </div>
-                    ) : drafts.length > 0 ? (
+                    ) : drafts.filter(d => d.status === 'draft').length > 0 ? (
                         <div className="space-y-4">
                             {/* Bulk approve bar */}
                             <div className="flex items-center gap-3 px-3 py-2 rounded-md bg-muted/50 border">
                                 <span className="text-sm text-muted-foreground flex-1">
-                                    {drafts.length} draft{drafts.length !== 1 ? 's' : ''} awaiting approval
+                                    {drafts.filter(d => d.status === 'draft').length} draft{drafts.filter(d => d.status === 'draft').length !== 1 ? 's' : ''} awaiting approval
                                 </span>
                                 <Button
                                     size="sm"
@@ -884,16 +893,16 @@ export default function OutreachTab() {
                                     ) : (
                                         <Send className="h-3 w-3" />
                                     )}
-                                    Approve &amp; Send All ({drafts.length})
+                                    Create Gmail Drafts ({drafts.filter(d => d.status === 'draft').length})
                                 </Button>
                             </div>
 
                             {/* Individual draft cards */}
-                            {drafts.map((draft) => (
+                            {drafts.filter(d => d.status === 'draft').map((draft) => (
                                 <DraftCard
                                     key={draft.id}
                                     draft={draft}
-                                    onAction={() => { loadData(); loadDrafts(); }}
+                                    onUpdate={() => { loadData(); loadDrafts(); }}
                                 />
                             ))}
                         </div>
@@ -901,6 +910,62 @@ export default function OutreachTab() {
                         <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
                             <FileText className="h-8 w-8 mb-2 opacity-50" />
                             <p>No pending drafts. Click &ldquo;Generate Drafts&rdquo; to create email previews.</p>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* ═══════════════════════════════════════════════════════════════════ */}
+            {/* Ready in Gmail folder                                             */}
+            {/* ═══════════════════════════════════════════════════════════════════ */}
+            <Card className="border-blue-200 bg-blue-50/10">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                    <div className="space-y-1">
+                        <CardTitle className="flex items-center gap-2 text-blue-900">
+                            <Mail className="h-5 w-5" />
+                            Ready in Gmail
+                            {drafts.filter(d => d.status === 'gmail_drafted').length > 0 && (
+                                <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 ml-2">
+                                    {drafts.filter(d => d.status === 'gmail_drafted').length}
+                                </Badge>
+                            )}
+                        </CardTitle>
+                        <CardDescription className="text-blue-700/70">
+                            Drafts created in your account — final review and send from Gmail
+                        </CardDescription>
+                    </div>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 gap-1.5 border-blue-200 text-blue-700 hover:bg-blue-50"
+                        onClick={() => window.open('https://mail.google.com/mail/u/0/#drafts', '_blank')}
+                    >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        Open Gmail
+                    </Button>
+                </CardHeader>
+                <CardContent>
+                    {draftsLoading ? (
+                        <div className="flex items-center justify-center py-4">
+                            <Loader2 className="h-5 w-5 animate-spin text-blue-400" />
+                        </div>
+                    ) : drafts.filter(d => d.status === 'gmail_drafted').length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {drafts
+                                .filter(d => d.status === 'gmail_drafted')
+                                .sort((a, b) => (b.approvedAt || 0) - (a.approvedAt || 0))
+                                .map((draft) => (
+                                    <DraftCard
+                                        key={draft.id}
+                                        draft={draft}
+                                        onUpdate={() => { loadData(); loadDrafts(); }}
+                                    />
+                                ))}
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center py-6 text-blue-400/60">
+                            <Mail className="h-8 w-8 mb-2 opacity-30" />
+                            <p className="text-sm italic">No drafts waiting in Gmail folder</p>
                         </div>
                     )}
                 </CardContent>
@@ -938,7 +1003,11 @@ export default function OutreachTab() {
                                             </td>
                                             <td className="p-2 text-center">
                                                 {r.emailSent ? (
-                                                    <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Sent</Badge>
+                                                    r.action === 'gmail_draft_created' ? (
+                                                        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Drafted</Badge>
+                                                    ) : (
+                                                        <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Sent</Badge>
+                                                    )
                                                 ) : (
                                                     <Badge variant="destructive" className="text-xs">{r.sendError || 'Failed'}</Badge>
                                                 )}
@@ -1025,12 +1094,11 @@ export default function OutreachTab() {
                                         <div className="flex items-center gap-2">
                                             <Badge
                                                 variant="outline"
-                                                className={`text-xs ${
-                                                    contact.status === 'contacted' ? 'border-green-300 text-green-700' :
+                                                className={`text-xs ${contact.status === 'contacted' ? 'border-green-300 text-green-700' :
                                                     contact.status === 'replied' ? 'border-blue-300 text-blue-700' :
-                                                    contact.status === 'converted' ? 'border-purple-300 text-purple-700' :
-                                                    'border-red-300 text-red-700'
-                                                }`}
+                                                        contact.status === 'converted' ? 'border-purple-300 text-purple-700' :
+                                                            'border-red-300 text-red-700'
+                                                    }`}
                                             >
                                                 {contact.status}
                                             </Badge>

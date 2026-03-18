@@ -288,7 +288,7 @@ export interface OutreachDraft {
     textBody: string;
 
     // Status lifecycle
-    status: 'draft' | 'approved' | 'sent' | 'rejected' | 'failed';
+    status: 'draft' | 'approved' | 'sent' | 'rejected' | 'failed' | 'gmail_drafted';
 
     // Tracking
     createdAt: number;
@@ -300,6 +300,10 @@ export interface OutreachDraft {
     rejectionReason?: string;
     sentAt?: number;
     sendError?: string;
+
+    // Gmail draft metadata
+    gmailDraftId?: string;
+    gmailThreadId?: string;
 
     // Email verification
     emailVerified?: boolean;

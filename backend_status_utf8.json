@@ -1,0 +1,29 @@
+﻿{
+  "status": "success",
+  "result": {
+    "name": "projects/studio-567050101-bc6e8/locations/us-central1/backends/bakedbot-prod",
+    "createTime": "2025-12-20T19:03:38.047592769Z",
+    "updateTime": "2026-03-18T03:40:28.002251Z",
+    "labels": {
+      "deployment-tool": "cli-firebase"
+    },
+    "uri": "bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app",
+    "managedResources": [
+      {
+        "runService": {
+          "service": "projects/1016399212569/locations/us-central1/services/bakedbot-prod"
+        }
+      }
+    ],
+    "codebase": {
+      "repository": "projects/studio-567050101-bc6e8/locations/us-central1/connections/apphosting-github-conn-izgqmtq/gitRepositoryLinks/admin-baked-bakedbot-for-brands",
+      "rootDirectory": "/"
+    },
+    "uid": "cf8fc05b-c18e-416d-96b0-d1bfe5827b9d",
+    "etag": "QBlyHLWTZ1syeMIWGCUcxKb0Pm-m-xxStGmp2OVCsyQ",
+    "reconciling": false,
+    "servingLocality": "GLOBAL_ACCESS",
+    "serviceAccount": "firebase-app-hosting-compute@studio-567050101-bc6e8.iam.gserviceaccount.com",
+    "appId": "1:1016399212569:web:d9c43842ea4d824e13ba88"
+  }
+}

@@ -15,7 +15,9 @@
 
 import { requireUser } from '@/server/auth/auth';
 import { getAdminFirestore } from '@/firebase/admin';
+import { FieldValue } from 'firebase-admin/firestore';
 import { logger } from '@/lib/logger';
+import { createGmailDraft, sendGenericEmail } from '@/lib/email/dispatcher';
 import type { ApolloCreditStatus } from '@/server/services/ny-outreach/apollo-enrichment';
 import type { OutreachEmailData } from '@/server/services/ny-outreach/email-templates';
 import type { OutreachDraft, OutreachLead } from '@/server/services/ny-outreach/outreach-service';
@@ -363,7 +365,7 @@ export async function generateOutreachDrafts(): Promise<{
 
         // Cast result as indexed type — TypeScript strips index signatures from object literal spreads,
         // so we assert the whole expression to preserve property access on lead fields
-        const allLeads = leadsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as { id: string; [key: string]: unknown }));
+        const allLeads = leadsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as { id: string;[key: string]: unknown }));
 
         // Split into two tracks
         const emailLeads = allLeads
@@ -645,8 +647,7 @@ export async function rejectDraft(
 // =============================================================================
 
 /**
- * Approve and send a single draft via Gmail (or Mailjet fallback).
- * Uses sendGenericEmail({ userId }) which routes to Gmail when connected.
+ * Approve and Prepare (Create Gmail Draft or Submit Form)
  */
 export async function approveAndSendDraft(draftId: string): Promise<{
     success: boolean;
@@ -655,10 +656,7 @@ export async function approveAndSendDraft(draftId: string): Promise<{
     try {
         const user = await requireUser(['super_user']);
         if (!user) return { success: false, error: 'Unauthorized' };
-        const [{ sendGenericEmail }, { trackInCRM }] = await Promise.all([
-            import('@/lib/email/dispatcher'),
-            import('@/server/services/ny-outreach/outreach-service'),
-        ]);
+        const { trackInCRM } = await import('@/server/services/ny-outreach/outreach-service');
 
         const db = getAdminFirestore();
         const ref = db.collection('ny_outreach_drafts').doc(draftId);
@@ -668,15 +666,16 @@ export async function approveAndSendDraft(draftId: string): Promise<{
         const draft = { id: doc.id, ...doc.data() } as OutreachDraft;
         if (draft.status !== 'draft') return { success: false, error: `Draft is already "${draft.status}"` };
 
-        // Mark as approved
+        // Mark as approved (common start)
         await ref.update({
-            status: 'approved',
             approvedAt: Date.now(),
             approvedBy: user.uid,
         });
 
-        // ── Form-submission track: user manually submitted the contact form ──
+        let sentVia: 'gmail_draft' | 'contact_form' = 'gmail_draft';
+
         if (draft.outreachType === 'form') {
+            // ── Form-submission track: user manually submitted the contact form ──
             await ref.update({ status: 'sent', sentAt: Date.now(), sentVia: 'contact_form' });
             await db.collection('ny_dispensary_leads').doc(draft.leadId).update({
                 outreachSent: true,
@@ -684,6 +683,7 @@ export async function approveAndSendDraft(draftId: string): Promise<{
                 outreachResult: 'form_submitted',
                 status: 'contacted',
                 updatedAt: Date.now(),
+                outreachCount: FieldValue.increment(1),
             });
             await db.collection('ny_outreach_log').add({
                 dispensaryName: draft.dispensaryName,
@@ -697,37 +697,43 @@ export async function approveAndSendDraft(draftId: string): Promise<{
                 sentVia: 'contact_form',
                 approvedBy: user.uid,
             });
+
+            // Write CRM activity
+            await db.collection('crm_activities').add({
+                leadId: draft.leadId,
+                type: 'outreach',
+                description: `Contact form marked submitted: ${draft.templateId}`,
+                timestamp: Date.now(),
+                userId: user.uid,
+            });
+
             return { success: true };
         }
 
-        // ── Email track: send via Gmail (userId routes to Gmail, Mailjet fallback) ──
-        const result = await sendGenericEmail({
-            to: draft.email as string,
-            name: draft.contactName || draft.dispensaryName,
-            fromEmail: 'martez@bakedbot.ai',
-            fromName: 'Martez — BakedBot AI',
-            subject: draft.subject,
-            htmlBody: draft.htmlBody,
-            textBody: draft.textBody,
-            communicationType: 'manual',
-            agentName: 'martez-outreach',
+        // ── Email track: create Gmail Draft instead of sending ──
+        const result = await createGmailDraft({
             userId: user.uid,
+            to: draft.email as string,
+            subject: draft.subject,
+            htmlBody: draft.htmlBody || draft.textBody,
         });
 
         if (result.success) {
-            // Update draft status
+            // Update draft status and metadata
             await ref.update({
-                status: 'sent',
-                sentAt: Date.now(),
+                status: 'gmail_drafted',
+                gmailDraftId: result.id,
+                gmailThreadId: result.threadId,
             });
 
             // Update lead status
             await db.collection('ny_dispensary_leads').doc(draft.leadId).update({
                 outreachSent: true,
                 outreachSentAt: Date.now(),
-                outreachResult: 'sent',
+                outreachResult: 'gmail_drafted',
                 status: 'contacted',
                 updatedAt: Date.now(),
+                outreachCount: FieldValue.increment(1),
             });
 
             // Log to outreach log
@@ -738,12 +744,13 @@ export async function approveAndSendDraft(draftId: string): Promise<{
                 templateName: draft.templateName,
                 subject: draft.subject,
                 emailVerified: draft.emailVerified ?? true,
-                emailSent: true,
-                status: 'sent',
+                emailSent: false, // Draft created, not sent yet
+                status: 'gmail_drafted',
                 timestamp: Date.now(),
                 createdAt: Date.now(),
-                sentVia: 'gmail',
+                sentVia: 'gmail_draft',
                 approvedBy: user.uid,
+                gmailDraftId: result.id,
             });
 
             // Track in CRM
@@ -763,20 +770,29 @@ export async function approveAndSendDraft(draftId: string): Promise<{
                 email: draft.email as string,
                 templateId: draft.templateId,
                 emailVerified: draft.emailVerified ?? true,
-                emailSent: true,
+                emailSent: false,
                 timestamp: Date.now(),
+            });
+
+            // Write CRM activity
+            await db.collection('crm_activities').add({
+                leadId: draft.leadId,
+                type: 'outreach',
+                description: `Gmail draft created: ${draft.subject}`,
+                timestamp: Date.now(),
+                userId: user.uid,
             });
 
             return { success: true };
         } else {
             await ref.update({
                 status: 'failed',
-                sendError: result.error || 'Send failed',
+                sendError: result.error || 'Draft creation failed',
             });
-            return { success: false, error: result.error || 'Email send failed' };
+            return { success: false, error: result.error || 'Gmail draft creation failed' };
         }
     } catch (err) {
-        logger.error('[OutreachDashboard] Approve+send failed', { draftId, error: String(err) });
+        logger.error('[OutreachDashboard] Approve+prepare failed', { draftId, error: String(err) });
         return { success: false, error: String(err) };
     }
 }

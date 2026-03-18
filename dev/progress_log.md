@@ -651,6 +651,26 @@ Commit: `193b2d0d` - "feat(heartbeat): add proactive agent monitoring with playb
 
 ---
 
+## Session: 2026-03-18 (Fix Super User Proactive Outreach Gmail Drafts)
+### Task ID
+fix_super_user_outreach_gmail_drafts
+
+### Summary
+Successfully implemented the "National Discovery Layer" requirement for outreach: approved drafts are now created as Gmail drafts instead of being sent immediately. This allows Martez to perform a final manual review in Gmail before sending. Updated backend logic, added status tracking, and refined the Outreach UI with a dedicated "Ready in Gmail" section.
+
+### Key Changes
+*   **FEATURE**: `src/server/integrations/gmail/send.ts` - Added `createGmailDraft` function.
+*   **FEATURE**: `src/server/services/ny-outreach/outreach-service.ts` - Added `gmail_drafted` status and metadata fields to `OutreachDraft`.
+*   **FIX**: `src/server/actions/ny-outreach-dashboard.ts` - Refactored `approveAndSendDraft` and `approveAndSendAllDrafts` to use the Gmail Draft flow.
+*   **UI**: `src/app/dashboard/ceo/components/outreach-tab.tsx` - Added "Ready in Gmail" Card section, updated labels ("Create Gmail Draft"), and improved history table status mapping.
+*   **REFACTOR**: `src/server/services/ny-outreach/outreach-read-model.ts` - Added `action` field to outreach stats for better history tracking.
+
+### Verification Results
+*   **Unit Tests**: ✅ PASS (`src/server/integrations/gmail/__tests__/draft.test.ts`)
+*   **UI Verification**: ✅ Verified "Ready in Gmail" section and label updates in component code.
+
+---
+
 ## Session: 2026-02-10 (Google OAuth Setup & Secret Manager Integration)
 ### Task ID
 google_oauth_setup_and_redeploy
