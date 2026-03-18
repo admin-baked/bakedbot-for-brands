@@ -19,11 +19,11 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — Skills Lab Super User dashboard live; eval framework aligned to 10-criterion binary spec.
+**Current Status:** 🟢 Passing — Canonical agent registry + intent router live; all 7 agents wired end-to-end.
 
-## Session 2026-03-18h (Skills Lab + Eval Framework v2)
+## Session 2026-03-18i (Agent Ownership System — Phases A–D + Intent Router)
 **Recent work (2026-03-18):** See `memory/MEMORY.md` for full log.
-Key completed: [Skills Lab dashboard] (`e9ca4d58a`), [10-criterion eval spec] (`77f11984c`), [spinner hang fix] (`3d766dd26`)
+Key completed: [registry + route ownership] (`00b9ce987`), [intent router] (`35c7b966b`)
 
 ## Session 2026-03-12 (Playbook artifact repo + runtime memory layer)
 - **Artifact repo path made real**: Playbook V2 now persists spec snapshots, run manifests, failure artifacts, approval records, delivery manifests, and `summary_for_ai_engineers.md` through the shared artifact runtime. Runtime writes go to blob storage + Firestore metadata + the dedicated Git repo `admin-baked/bakedbot-artifacts-prod` when App Hosting is running with the new repo env/secret config.
