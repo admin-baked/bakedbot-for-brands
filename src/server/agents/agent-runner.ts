@@ -3,6 +3,7 @@ import { ai } from '@/ai/genkit';
 import { getAllTalkTracks } from '@/server/repos/talkTrackRepo';
 import type { RoutingResult } from '@/server/agents/agent-router';
 import { getGenerateOptions } from '@/ai/model-selector';
+import { classifyFastPathQuery } from '@/server/agents/fast-path-query';
 import { runAgent } from '@/server/agents/harness';
 import { persistence } from '@/server/agents/persistence';
 import { craigAgent } from '@/server/agents/craig';
@@ -488,27 +489,7 @@ export async function runAgentCore(
 
     // === FAST PATH: Simple queries that don't need KB search, talk tracks, or agent routing ===
     // This dramatically reduces cost and latency for common simple interactions
-    const FAST_PATH_PATTERNS = [
-        // Greetings
-        /^(hi|hello|hey|yo|sup|greetings|good\s+(morning|afternoon|evening))[\s!?.]*$/i,
-        // Agent status queries
-        /^(show|list|what\s+are)\s+(all\s+)?(active\s+)?agents/i,
-        /^(who|what)\s+(are\s+)?(the\s+)?agents/i,
-        /^agent\s+(status|list|squad)/i,
-        // Help queries
-        /^(help|how\s+do\s+I|what\s+can\s+you\s+do)/i,
-        // Meta queries (Model/Version)
-        /\b(?:model|version|engine|brain)\b/i,
-        // Meta queries (Performance)
-        /\b(?:latency|slow|fast|speed|lag|wait|performance)\b/i,
-        // Simple acknowledgments
-        /^(thanks|thank\s+you|ok|okay|got\s+it|understood)[\s!?.]*$/i,
-    ];
-
-    const isFastPathQuery = FAST_PATH_PATTERNS.some(pattern => pattern.test(userMessage.trim()));
-
-    // Check for agent status queries specifically
-    const isAgentStatusQuery = /show.*agents|agent.*status|list.*agents|agents.*active/i.test(userMessage.trim());
+    const { isFastPathQuery, isAgentStatusQuery } = classifyFastPathQuery(userMessage);
 
     if (isFastPathQuery && !extraOptions?.attachments?.length && !extraOptions?.audioInput) {
         await emitThought(jobId, 'Fast Path', 'Handling simple query directly...');
