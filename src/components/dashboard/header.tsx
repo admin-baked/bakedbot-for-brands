@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { NotificationBell } from '@/components/dashboard/notification-bell';
 import { UserStreakComponent } from '@/components/gamification/user-streak';
 import { HeartbeatIndicator } from '@/components/system/heartbeat-indicator';
+import { RouteAgentBadge } from '@/components/dashboard/agent-owner-badge';
 
 export function DashboardHeader() {
   const { current } = useDashboardConfig();
@@ -28,7 +29,10 @@ export function DashboardHeader() {
       <SidebarTrigger className="-ml-1" />
       <Separator orientation="vertical" className="mr-2 h-4" />
       <div className="relative flex-1 min-w-0">
-        <h1 className="text-xl md:text-3xl font-bold tracking-tight truncate">{current.label}</h1>
+        <div className="flex items-center gap-2 flex-wrap">
+          <h1 className="text-xl md:text-3xl font-bold tracking-tight truncate">{current.label}</h1>
+          <RouteAgentBadge />
+        </div>
         <p className="text-sm md:text-base text-muted-foreground line-clamp-1">{current.description}</p>
         {brandId && <ImportProgress brandId={brandId} />}
       </div>

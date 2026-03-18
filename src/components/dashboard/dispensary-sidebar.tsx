@@ -65,6 +65,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { InviteUserDialog } from "@/components/dashboard/admin/invite-user-dialog";
 import { useUserRole } from "@/hooks/use-user-role";
 import { getInviteAllowedRoles } from '@/types/roles';
+import { AgentOwnerBadge } from '@/components/dashboard/agent-owner-badge';
 
 export const DispensarySidebar = memo(function DispensarySidebar() {
     const pathname = usePathname();
@@ -122,7 +123,10 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
 
             {/* Strategy - Planning & Analytics */}
             <SidebarGroup>
-                <SidebarGroupLabel>Strategy</SidebarGroupLabel>
+                <SidebarGroupLabel className="flex items-center justify-between">
+                    Strategy
+                    <AgentOwnerBadge agentId="pops" />
+                </SidebarGroupLabel>
                 <SidebarGroupContent>
                     <SidebarMenu>
                         <SidebarMenuItem>
@@ -229,7 +233,10 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
 
             {/* Customers - CRM & Engagement */}
             <SidebarGroup>
-                <SidebarGroupLabel>Customers</SidebarGroupLabel>
+                <SidebarGroupLabel className="flex items-center justify-between">
+                    Customers
+                    <AgentOwnerBadge agentId="mrs_parker" />
+                </SidebarGroupLabel>
                 <SidebarGroupContent>
                     <SidebarMenu>
                         <SidebarMenuItem>
@@ -339,8 +346,9 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
             <SidebarGroup>
                 <Collapsible defaultOpen={false} className="group/intel">
                     <SidebarGroupLabel asChild>
-                        <CollapsibleTrigger className="flex w-full items-center">
+                        <CollapsibleTrigger className="flex w-full items-center gap-2">
                             Intelligence
+                            <AgentOwnerBadge agentId="ezal" />
                             <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/intel:rotate-90" />
                         </CollapsibleTrigger>
                     </SidebarGroupLabel>
