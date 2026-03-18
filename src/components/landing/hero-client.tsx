@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AgentPlayground } from '@/components/landing/agent-playground';
 import { LiveStats } from '@/components/landing/live-stats';
 import { Search, ArrowRight, Store, Building2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -31,7 +30,7 @@ export function HeroClient() {
     };
 
     return (
-        <section className="relative overflow-hidden min-h-[90vh] flex flex-col justify-center">
+        <section className="relative overflow-x-hidden min-h-[90vh] flex flex-col justify-center">
             {/* Background Gradients — clamped to viewport width to prevent horizontal scroll */}
             <div className="absolute inset-0 -z-10 pointer-events-none overflow-hidden">
                 <div className="absolute -top-40 left-1/2 h-[400px] w-[400px] sm:h-[600px] sm:w-[600px] -translate-x-1/2 rounded-full bg-emerald-500/10 blur-[120px] opacity-60" />
@@ -104,7 +103,7 @@ export function HeroClient() {
                                 )}
                             </h1>
 
-                            <p className="mt-6 text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+                            <p className="mt-6 text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
                                 {userType === 'dispensary'
                                     ? "Launch search-friendly menu pages, convert shoppers with Smokey, automate retention, and make smarter pricing and inventory decisions from one workspace."
                                     : "Find new retail opportunities, power branded product discovery, launch compliant campaigns, and track market signals from one workspace."
@@ -132,21 +131,7 @@ export function HeroClient() {
                         </form>
                     </div>
 
-                    {/* Agent Playground */}
-                    <div className="mt-16 text-left relative z-10">
-                        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background/80 pointer-events-none -bottom-24 z-20"></div>
-                        <AgentPlayground />
-
-                        {/* Floating Agent Chips */}
-                        <div className="hidden lg:block absolute -right-20 top-0 animate-float-slow pointer-events-none">
-                            <AgentChip name="Smokey" role="Budtender" color="bg-emerald-500" />
-                        </div>
-                        <div className="hidden lg:block absolute -left-20 top-20 animate-float-slower pointer-events-none">
-                            <AgentChip name="Craig" role="Marketer" color="bg-purple-500" />
-                        </div>
-                    </div>
-
-                    <div className="mt-8 relative z-30">
+                    <div className="mt-10 relative z-30">
                         <LiveStats />
                     </div>
                 </div>
@@ -159,19 +144,5 @@ export function HeroClient() {
                 </div>
             </div>
         </section>
-    );
-}
-
-function AgentChip({ name, role, color }: { name: string; role: string; color: string }) {
-    return (
-        <div className="flex items-center gap-3 p-2 pr-4 bg-background/60 backdrop-blur-md border border-white/10 rounded-full shadow-xl">
-            <div className={`w-8 h-8 rounded-full ${color} flex items-center justify-center text-white font-bold text-xs`}>
-                {name[0]}
-            </div>
-            <div className="text-left">
-                <div className="text-xs font-bold text-foreground leading-none">{name}</div>
-                <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{role}</div>
-            </div>
-        </div>
     );
 }
