@@ -1,0 +1,122 @@
+/**
+ * Intent Router
+ *
+ * Maps free-text user input to the canonical agent that owns that domain.
+ * Used to resolve 'auto' agent threads — routes the first message to the
+ * right specialist instead of falling through to the generic puff agent.
+ *
+ * No LLM required. Pure keyword matching with priority-ordered rules.
+ *
+ * Usage:
+ *   getAgentForIntent("spy on competitor pricing near me")  → 'ezal'
+ *   getAgentForIntent("who churned this month?")            → 'mrs_parker'
+ *   getAgentForIntent("write a campaign for 420")           → 'craig'
+ *   getAgentForIntent("what is the margin on this SKU?")    → 'money_mike'
+ */
+
+import type { AgentId } from './registry';
+
+/** Intent rule — ordered by priority (first match wins) */
+interface IntentRule {
+    agentId: AgentId;
+    patterns: RegExp[];
+}
+
+/**
+ * Rules are evaluated in order. Higher-specificity patterns should come first.
+ * Add synonyms liberally — false positives are better than wrong routing.
+ */
+const INTENT_RULES: IntentRule[] = [
+    // ── Compliance / Legal ──────────────────────────────────────────────────
+    {
+        agentId: 'deebo',
+        patterns: [
+            /\b(compli(ance|ant)|regulat(ion|ory|ed)|legal|law|audit|policy|policies|violation|banned|restricted|age.?gate|age.?verif|age.?check|health.?claim|disclaimer|flag)\b/i,
+            /\b(deebo|scan.*risk|risk.*scan|review.*content|content.*review|out.of.compli)\b/i,
+        ],
+    },
+
+    // ── Competitive Intelligence / Market Research ───────────────────────────
+    {
+        agentId: 'ezal',
+        patterns: [
+            /\b(compet(itor|itive|ition)|spy|rival|market.?(scan|research|intel)|pricing.*near|near.*pricing|who.*deal|deal.*who|dispens(ary|aries).*pric|pric.*dispens)\b/i,
+            /\b(ezal|competitive.?intel|intelligence|market.?opportunit|external.*research|research.*external|distribution.*target|dispensar.*target|retail.*partner)\b/i,
+            /\b(what.?s.*trending|trend.*cannabis|industry.*trend|market.*trend)\b/i,
+        ],
+    },
+
+    // ── Analytics / Goals / Reporting ────────────────────────────────────────
+    {
+        agentId: 'pops',
+        patterns: [
+            /\b(analytic|report|goal|metric|dashb|funnel|retention.?(rate|report)|revenue.?(report|forecast|trend)|churn.?(rate|report|analytic)|performance|forecast|KPI|insight.*data|data.*insight)\b/i,
+            /\b(pops|mrr|arr|ltv|cohort|conversion.?rate|click.?through|open.?rate|roi|roas)\b/i,
+            /\b(last (month|quarter|week|year).*revenue|revenue.*(last|this) (month|quarter|week))\b/i,
+        ],
+    },
+
+    // ── Loyalty / CRM / Retention ────────────────────────────────────────────
+    {
+        agentId: 'mrs_parker',
+        patterns: [
+            /\b(loyalt|crm|vip|segment|retention|churn.*customer|customer.*churn|re.?engag|reactivat|dormant.*customer|customer.*dormant|laps|winback|win.?back|points|reward|referral)\b/i,
+            /\b(mrs.?parker|parker|customer.?success|who (is|are|has) (at risk|churn)|at.?risk.*customer)\b/i,
+        ],
+    },
+
+    // ── Pricing / Margin / Bundles / Profitability ───────────────────────────
+    {
+        agentId: 'money_mike',
+        patterns: [
+            /\b(pric(e|ing)|margin|profit(abilit)?|bundle|upsell|up.?sell|cost|markup|discount|deal.*creat|creat.*deal|slow.?mov|highest.?margin|lowest.?margin|sku.*margin|margin.*sku)\b/i,
+            /\b(money.?mike|mike|financ|billing|revenue.?optim|optim.*revenue|monetiz)\b/i,
+        ],
+    },
+
+    // ── Campaigns / Creative / Marketing ─────────────────────────────────────
+    {
+        agentId: 'craig',
+        patterns: [
+            /\b(campaign|creative|content|copy|email|sms|text.*messag|messag.*text|subject.?line|hero.?banner|banner|playbook|launch|promo|promotion|announce|blast|broadcast|draft.*message|message.*draft)\b/i,
+            /\b(craig|marketer|vibe.*studio|studio.*vibe|brand.*voice|voice.*brand|write.*post|post.*write|generate.*caption|caption.*generat)\b/i,
+        ],
+    },
+
+    // ── Menu / Products / Commerce ────────────────────────────────────────────
+    {
+        agentId: 'smokey',
+        patterns: [
+            /\b(menu|product|strain|flower|edible|vape|concentrate|tincture|topical|pre.?roll|cart|cartridge|recomm|budtend|inventory|stock|in.?stock|out.?of.?stock|what.*carry|carry.*what|find.*product|product.*find)\b/i,
+            /\b(smokey|budtender|cannabis.*concierge|concierge.*cannabis|shop|order|add.*cart)\b/i,
+        ],
+    },
+];
+
+/**
+ * Returns the best agent for a given user input string.
+ * Returns null when no rule matches — let the caller decide the fallback.
+ */
+export function getAgentForIntent(input: string): AgentId | null {
+    const text = input.trim();
+    if (!text) return null;
+
+    for (const rule of INTENT_RULES) {
+        if (rule.patterns.some(p => p.test(text))) {
+            return rule.agentId;
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Returns the best `InboxAgentPersona`-compatible ID for the input,
+ * falling back to a provided default.
+ */
+export function resolveInboxAgent(
+    input: string,
+    fallback: AgentId = 'craig'
+): AgentId {
+    return getAgentForIntent(input) ?? fallback;
+}

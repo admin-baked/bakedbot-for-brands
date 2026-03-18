@@ -38,6 +38,7 @@ import type { ResearchReportArtifactData } from '@/types/inbox';
 import type { VmRunArtifactData } from '@/types/agent-vm';
 import { resolveVmToolApproval } from '@/server/actions/agent-vm';
 import { mapVmRunStatusToInboxStatus, queueVmRunResume, resolveVmRunApproval } from '@/types/agent-vm';
+import { resolveInboxAgent } from '@/lib/agents/intent-router';
 import {
     isPlaceholderCustomerIdentity,
     resolveCustomerDisplayName,
@@ -1174,11 +1175,17 @@ export async function runInboxAgentChat(
             linus: 'linus',
             glenda: 'glenda',
             mike: 'mike_exec',
-            // Auto-routing
-            auto: 'puff', // Auto routes through Puff for intelligent routing
+            // Auto-routing — resolved below based on message intent
+            auto: 'puff',
         };
 
-        const personaId = personaMap[thread.primaryAgent] || 'puff';
+        // When the thread is set to auto, use intent-based routing instead of puff
+        const resolvedAgent: InboxAgentPersona =
+            thread.primaryAgent === 'auto'
+                ? (resolveInboxAgent(userMessage) as InboxAgentPersona)
+                : thread.primaryAgent;
+
+        const personaId = personaMap[resolvedAgent] || 'puff';
 
         // Build context for the agent based on thread type
         const threadContext = await buildThreadContext(thread);
