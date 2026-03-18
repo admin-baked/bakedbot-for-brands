@@ -12,6 +12,7 @@ import { requireUser } from '@/server/auth/auth';
 import { logger } from '@/lib/logger';
 import { v4 as uuidv4 } from 'uuid';
 import { generateImageFromPrompt } from '@/ai/flows/generate-social-image';
+import { buildOgImageUrl, deriveOgTemplate } from '@/ai/generators/og';
 import { generateCreativeQR } from '@/lib/qr/creative-qr';
 import { withImageTracking } from '@/server/services/media-tracking';
 import type {
@@ -234,35 +235,49 @@ export async function generateContent(
 
         // Run image generation + caption generation in parallel to save time
         const [imageUrl, caption] = await Promise.all([
-            withImageTracking(
-                request.tenantId,
-                userId,
-                request.tier === 'free' ? 'gemini-flash' : 'gemini-pro',
-                imagePrompt,
-                () => generateImageFromPrompt(imagePrompt, {
-                    brandName: request.productName,
-                    tier: request.tier || 'free',
+            request.imageMode === 'branded'
+                // Branded mode: server-side OG renderer (next/og) — instant, free, supports text overlays
+                ? Promise.resolve(buildOgImageUrl({
+                    template: deriveOgTemplate(request.imageStyle ?? '', !!request.backgroundImageUrl),
+                    headline: request.prompt.split('.')[0].trim().substring(0, 80),
+                    subtext: request.prompt.split('.')[1]?.trim().substring(0, 120),
+                    bgColor: request.bgColor,
+                    accentColor: request.accentColor,
+                    brandName: request.brandName,
+                    logoUrl: request.logoUrl,
+                    imageUrl: request.backgroundImageUrl,
                     platform: request.platform,
-                }).then((generatedImageUrl) => ({ imageUrl: generatedImageUrl })),
-                {
-                    metadata: {
-                        source: 'creative_content',
+                }))
+                // Photo mode (default): fal.ai FLUX.1 — AI-generated photography, no text
+                : withImageTracking(
+                    request.tenantId,
+                    userId,
+                    request.tier === 'free' ? 'gemini-flash' : 'gemini-pro',
+                    imagePrompt,
+                    () => generateImageFromPrompt(imagePrompt, {
+                        brandName: request.productName,
+                        tier: request.tier || 'free',
                         platform: request.platform,
-                        brandId: request.brandId,
-                        productName: request.productName || null,
+                    }).then((generatedImageUrl) => ({ imageUrl: generatedImageUrl })),
+                    {
+                        metadata: {
+                            source: 'creative_content',
+                            platform: request.platform,
+                            brandId: request.brandId,
+                            productName: request.productName || null,
+                        },
                     },
-                },
-            )
-                .then((result) => result.imageUrl)
-                .catch((imgErr) => {
-                    // Image generation can fail (model unavailable, safety filter, timeout)
-                    // Fall back gracefully — content is still usable without the image
-                    logger.warn('[creative-content] Image generation failed, using placeholder', {
-                        error: String(imgErr),
-                        prompt: request.prompt.substring(0, 80)
-                    });
-                    return IMAGE_PLACEHOLDER;
-                }),
+                )
+                    .then((result) => result.imageUrl)
+                    .catch((imgErr) => {
+                        // Image generation can fail (model unavailable, safety filter, timeout)
+                        // Fall back gracefully — content is still usable without the image
+                        logger.warn('[creative-content] Image generation failed, using placeholder', {
+                            error: String(imgErr),
+                            prompt: request.prompt.substring(0, 80)
+                        });
+                        return IMAGE_PLACEHOLDER;
+                    }),
             generateCaption(request).catch((captionErr) => {
                 // Caption generation can fail (AI service unavailable, API rate limits, etc.)
                 // Fall back gracefully — use a default caption template
