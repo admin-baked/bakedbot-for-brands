@@ -55,8 +55,10 @@ import { BundleDealsSection } from '@/components/demo/bundle-deals-section';
 import { CartSlideOver } from '@/components/demo/cart-slide-over';
 import { CheckoutFlow } from '@/components/checkout/checkout-flow';
 import { ShippingCheckoutFlow } from '@/components/checkout/shipping-checkout-flow';
+import { SmokeyAgentCheckout } from '@/components/checkout/smokey-agent-checkout';
 import { isShippingCheckoutEnabled } from '@/lib/feature-flags';
 import Chatbot from '@/components/chatbot';
+import type { CheckoutRetailer } from '@/components/checkout/retailer-selector';
 
 // Dispensary Menu Components
 import { DemoHeader } from '@/components/demo/demo-header';
@@ -196,6 +198,32 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
 
   // Determine menu design mode
   const isDispensaryMenu = brand.menuDesign === 'dispensary' || brand.type === 'dispensary';
+
+  // Claimed page checkout — enable SmokeyPay cart pill and checkout flow
+  const isClaimed = brand.claimStatus === 'claimed' && !!brand.orgId;
+  const checkoutRetailers: CheckoutRetailer[] = retailers.map((r) => ({
+    id: r.id,
+    name: r.name,
+    address: r.address,
+    city: r.city,
+    state: r.state,
+    distance: r.distance,
+  }));
+
+  // Inform FloatingCartPill whether checkout is enabled on this page
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.__BRAND_CHECKOUT_ENABLED__ = isClaimed;
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.__BRAND_CHECKOUT_ENABLED__ = false;
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isClaimed]);
+
+  const [smokeyCheckoutOpen, setSmokeyCheckoutOpen] = useState(false);
 
   // Load favorites from localStorage on mount
   useEffect(() => {
@@ -538,7 +566,31 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
     );
   }
 
-  // Local Pickup Checkout view
+  // Claimed page checkout (SmokeyPay) — no dispensary selection needed
+  if (brandView === 'checkout' && isClaimed && cartItems.length > 0) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <BrandMenuHeader
+          brandName={brand.name}
+          brandLogo={brand.logoUrl}
+          useLogoInHeader={brand.useLogoInHeader}
+          brandColors={brandColors}
+          verified={brand.verificationStatus === 'verified'}
+          tagline={brand.tagline || ''}
+          cartItemCount={cartItems.length}
+          purchaseModel={purchaseModel}
+          selectedDispensary={selectedDispensary}
+          onCartClick={() => setBrandView('checkout')}
+          onLocationClick={() => setBrandView('locator')}
+        />
+        <main className="flex-1 container mx-auto px-4 py-8 max-w-4xl">
+          <CheckoutFlow orgId={brand.orgId} retailers={checkoutRetailers} />
+        </main>
+      </div>
+    );
+  }
+
+  // Local Pickup Checkout view (unclaimed / non-SmokeyPay)
   if (brandView === 'checkout' && selectedDispensary && cartItems.length > 0) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
@@ -889,6 +941,17 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
           initialOpen={false}
           chatbotConfig={brand.chatbotConfig}
         />
+
+        {/* Smokey AI Checkout drawer — claimed pages only */}
+        {isClaimed && (
+          <SmokeyAgentCheckout
+            open={smokeyCheckoutOpen}
+            orgId={brand.orgId!}
+            retailers={checkoutRetailers}
+            onClose={() => setSmokeyCheckoutOpen(false)}
+            onProceedToCheckout={() => { setSmokeyCheckoutOpen(false); setBrandView('checkout'); }}
+          />
+        )}
       </div>
     );
   }
@@ -1322,6 +1385,17 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
         initialOpen={false}
         chatbotConfig={brand.chatbotConfig}
       />
+
+      {/* Smokey AI Checkout drawer — claimed pages only */}
+      {isClaimed && (
+        <SmokeyAgentCheckout
+          open={smokeyCheckoutOpen}
+          orgId={brand.orgId!}
+          retailers={checkoutRetailers}
+          onClose={() => setSmokeyCheckoutOpen(false)}
+          onProceedToCheckout={() => { setSmokeyCheckoutOpen(false); setBrandView('checkout'); }}
+        />
+      )}
 
       {/* Back to Top Button */}
       {showBackToTop && (

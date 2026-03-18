@@ -27,6 +27,7 @@ export type Brand = {
     dispensaryCount?: number;
     slug?: string;
     claimStatus?: 'claimed' | 'unclaimed';
+    orgId?: string;           // BakedBot org ID — present when page is claimed
     description?: string;
     website?: string;
 

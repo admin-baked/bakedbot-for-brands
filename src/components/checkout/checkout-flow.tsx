@@ -30,17 +30,28 @@ import { CheckoutAuthRequired } from './checkout-auth-required';
 import { logger } from '@/lib/logger';
 import { ProductUpsellRow } from '@/components/upsell/product-upsell-row';
 import { fetchCheckoutUpsells } from '@/server/actions/upsell';
+import { RetailerSelector, type CheckoutRetailer } from './retailer-selector';
 import type { Product } from '@/types/domain';
 
-type CheckoutStep = 'fulfillment' | 'details' | 'payment' | 'confirmation';
+type CheckoutStep = 'retailer' | 'fulfillment' | 'details' | 'payment' | 'confirmation';
 
-export function CheckoutFlow() {
+type CheckoutFlowProps = {
+    orgId?: string;
+    retailers?: CheckoutRetailer[];
+};
+
+export function CheckoutFlow({ orgId, retailers = [] }: CheckoutFlowProps) {
     const { cartItems, getCartTotal, selectedRetailerId, clearCart, addToCart, addToCartForShipping, purchaseMode, selectedBrandId } = useStore();
     const { user, isUserLoading } = useUser();
     const { toast } = useToast();
     const router = useRouter();
 
-    const [step, setStep] = useState<CheckoutStep>('fulfillment');
+    // Start at retailer step when multiple retailers exist, otherwise skip to fulfillment
+    const initialStep: CheckoutStep = retailers.length > 1 ? 'retailer' : 'fulfillment';
+    const [step, setStep] = useState<CheckoutStep>(initialStep);
+    const [selectedClaimedRetailerId, setSelectedClaimedRetailerId] = useState<string | null>(
+        retailers.length === 1 ? retailers[0].id : null
+    );
     const [verified, setVerified] = useState(false);
     const [loading, setLoading] = useState(false);
     const [couponCode, setCouponCode] = useState('');
@@ -84,15 +95,20 @@ export function CheckoutFlow() {
         }
     }, [user]);
 
+    // On claimed brand pages, default to SmokeyPay (CannPay)
     useEffect(() => {
+        if (orgId) {
+            setPaymentMethod('cannpay');
+            return;
+        }
         if (selectedRetailerId && paymentMethod === 'card') {
             setPaymentMethod('cash');
         }
-
         if (!selectedRetailerId && (paymentMethod === 'cash' || paymentMethod === 'cannpay')) {
             setPaymentMethod('card');
         }
-    }, [selectedRetailerId, paymentMethod]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [orgId, selectedRetailerId]);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -386,6 +402,24 @@ export function CheckoutFlow() {
                 </div>
             </div>
 
+            {/* Retailer Selection Step (claimed pages with multiple locations) */}
+            {step === 'retailer' && retailers.length > 1 && (
+                <div className="space-y-4">
+                    <RetailerSelector
+                        retailers={retailers}
+                        selected={selectedClaimedRetailerId}
+                        onSelect={(id) => setSelectedClaimedRetailerId(id)}
+                    />
+                    <Button
+                        className="w-full"
+                        disabled={!selectedClaimedRetailerId}
+                        onClick={() => setStep('fulfillment')}
+                    >
+                        Continue
+                    </Button>
+                </div>
+            )}
+
             {/* Fulfillment Selection Step */}
             {step === 'fulfillment' && (
                 <>
@@ -593,6 +627,13 @@ export function CheckoutFlow() {
                     {paymentMethod === 'cannpay' && (
                         <PaymentSmokey
                             amount={total}
+                            orgId={orgId}
+                            dispensaryId={selectedClaimedRetailerId ?? selectedRetailerId ?? undefined}
+                            pickupLocationId={selectedClaimedRetailerId ?? selectedRetailerId ?? undefined}
+                            customerName={customerDetails.name}
+                            customerEmail={customerDetails.email}
+                            customerPhone={customerDetails.phone}
+                            cartItems={cartItems}
                             onSuccess={(result) => handleOrderSubmit(result)}
                             onError={(err) => toast({ variant: 'destructive', title: 'Payment Failed', description: err })}
                         />
