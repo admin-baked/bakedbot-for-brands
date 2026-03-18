@@ -19,10 +19,11 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — Brand Guide improvements backlog identified; no new code this session.
+**Current Status:** 🟢 Passing — Skills Lab Super User dashboard live; eval framework aligned to 10-criterion binary spec.
 
-## Session 2026-03-18g (Brand Guide Requirements Identified — not yet implemented)
-- **Key backlog**: logo auto-save on scan, Smokey icon everywhere (replace robot), brand-name in archetype preview, NY state save error fix, 100% completeness roadmap
+## Session 2026-03-18h (Skills Lab + Eval Framework v2)
+**Recent work (2026-03-18):** See `memory/MEMORY.md` for full log.
+Key completed: [Skills Lab dashboard] (`e9ca4d58a`), [10-criterion eval spec] (`77f11984c`), [spinner hang fix] (`3d766dd26`)
 
 ## Session 2026-03-12 (Playbook artifact repo + runtime memory layer)
 - **Artifact repo path made real**: Playbook V2 now persists spec snapshots, run manifests, failure artifacts, approval records, delivery manifests, and `summary_for_ai_engineers.md` through the shared artifact runtime. Runtime writes go to blob storage + Firestore metadata + the dedicated Git repo `admin-baked/bakedbot-artifacts-prod` when App Hosting is running with the new repo env/secret config.

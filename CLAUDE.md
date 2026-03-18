@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-03-18 (Brand Guide improvements backlog: logo auto-save on scan, Smokey icon, brand-name previews, 100% completeness roadmap)
+**Current Status:** 🟢 Passing | **Last update:** 2026-03-18 (Skills Lab Super User dashboard, 10-criterion binary eval spec, champion/challenger framework)
 
 ---
 
