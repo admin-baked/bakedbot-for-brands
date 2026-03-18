@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-03-18 (AI Studio billing, SmokyPay checkout, CannMenus-first CI waterfall, Haiku/Opus cost controls)
+**Current Status:** 🟢 Passing | **Last update:** 2026-03-18 (Slack GLM primary synthesis, Event Subscriptions URL, SLACK_BOT_TOKEN@5, DM messaging enabled)
 
 ---
 

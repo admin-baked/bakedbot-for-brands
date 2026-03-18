@@ -19,11 +19,11 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — AI Studio billing + SmokyPay + cost controls deployed to prod.
+**Current Status:** 🟢 Passing — Slack fully live: GLM primary, DMs enabled, Event Subscriptions wired, token @5.
 
-## Session 2026-03-18 (AI Studio + Cost Controls)
-- **AI Studio billing** (`66c7c0187`): plan entitlements, credit metering, model routing, action-cost ledger, SmokyPay checkout flow
-- **Cost controls + CannMenus CI waterfall** (`c88be744d`): Haiku extraction pinning, Opus threshold 500→2000, CannMenus-first competitor discovery
+## Session 2026-03-18 (Slack GLM + Slack App Config)
+- **GLM primary synthesis** (`44b57d932`): Slack source skips Claude tool-calling entirely; GLM handles synthesis, Gemini fallback
+- **Slack app fully configured** (`4727188a1`): Event Subscriptions URL, message.im + channels/groups:history scopes, DM tab enabled, SLACK_BOT_TOKEN@5
 
 ## Session 2026-03-12 (Playbook artifact repo + runtime memory layer)
 - **Artifact repo path made real**: Playbook V2 now persists spec snapshots, run manifests, failure artifacts, approval records, delivery manifests, and `summary_for_ai_engineers.md` through the shared artifact runtime. Runtime writes go to blob storage + Firestore metadata + the dedicated Git repo `admin-baked/bakedbot-artifacts-prod` when App Hosting is running with the new repo env/secret config.
