@@ -408,6 +408,18 @@ export interface GenerateContentRequest {
      *  Kept separate from `prompt` so image model receives a clean visual description
      *  while caption generation receives the full marketing context. */
     imageStyle?: string;
+    /**
+     * Image generation mode:
+     *   'photo'    → fal.ai FLUX.1 (AI-generated photography, no text)   [default]
+     *   'branded'  → next/og OG renderer (text + brand colors, instant, free)
+     */
+    imageMode?: 'photo' | 'branded';
+    /** Brand primary color for branded OG images (hex, e.g. '#FF6B35') */
+    bgColor?: string;
+    /** Brand accent / text color for branded OG images (hex, e.g. '#ffffff') */
+    accentColor?: string;
+    /** Background photo URL for branded text-on-photo template */
+    backgroundImageUrl?: string;
 }
 
 /**
