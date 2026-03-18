@@ -497,6 +497,10 @@ export async function runAgentCore(
         /^agent\s+(status|list|squad)/i,
         // Help queries
         /^(help|how\s+do\s+I|what\s+can\s+you\s+do)/i,
+        // Meta queries (Model/Version)
+        /\b(?:model|version|engine|brain)\b/i,
+        // Meta queries (Performance)
+        /\b(?:latency|slow|fast|speed|lag|wait|performance)\b/i,
         // Simple acknowledgments
         /^(thanks|thank\s+you|ok|okay|got\s+it|understood)[\s!?.]*$/i,
     ];

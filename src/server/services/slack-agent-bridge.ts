@@ -302,12 +302,12 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
         // time due to multi-step tool calling (15 iterations × ~20s per Claude call).
         // Slack has already received a "thinking" message, so there's no hard ACK deadline.
         const AGENT_TIMEOUTS: Record<string, number> = {
-            linus: 240_000,   // 4 min — Claude API + multi-tool (run_health_check, run_command)
-            leo:   120_000,   // 2 min — COO operations may chain multiple tools
-            jack:  120_000,   // 2 min — CRO revenue analysis
-            glenda: 120_000,  // 2 min — CMO strategy
+            linus: 600_000,   // 10 min — Claude API + multi-tool (run_health_check, run_command)
+            leo: 300_000,   // 5 min — COO operations may chain multiple tools
+            jack: 300_000,   // 5 min — CRO revenue analysis
+            glenda: 300_000,  // 5 min — CMO strategy
         };
-        const agentTimeoutMs = AGENT_TIMEOUTS[personaId] ?? 55_000;
+        const agentTimeoutMs = AGENT_TIMEOUTS[personaId] ?? 90_000;
         const agentTimeoutSec = Math.round(agentTimeoutMs / 1000);
 
         let result;
