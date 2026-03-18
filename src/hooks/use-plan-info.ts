@@ -10,7 +10,12 @@ import { useFirebase } from '@/firebase/provider';
 import { doc, getDoc } from 'firebase/firestore';
 import { PRICING_PLANS } from '@/lib/config/pricing';
 
-export type PlanId = 'free' | 'claim_pro' | 'founders_claim' | 'growth' | 'scale' | 'enterprise';
+export type PlanId =
+    // Current plans (2026)
+    | 'signal' | 'convert' | 'retain' | 'optimize' | 'enterprise'
+    // Legacy plans
+    | 'free' | 'claim_pro' | 'founders_claim' | 'growth' | 'scale';
+
 export type PlanTier = 'unclaimed' | 'claim' | 'subscription';
 
 export interface PlanInfo {
@@ -81,6 +86,35 @@ const PLAN_FEATURES: Record<PlanId, PlanInfo['features']> = {
     },
     enterprise: {
         maxZips: -1, // unlimited
+        advancedReporting: true,
+        prioritySupport: true,
+        coveragePacksEnabled: true,
+        maxPlaybooks: -1 // unlimited
+    },
+    // Current plans (2026)
+    signal: {
+        maxZips: 5,
+        advancedReporting: false,
+        prioritySupport: false,
+        coveragePacksEnabled: false,
+        maxPlaybooks: 5
+    },
+    convert: {
+        maxZips: 25,
+        advancedReporting: false,
+        prioritySupport: false,
+        coveragePacksEnabled: true,
+        maxPlaybooks: 10
+    },
+    retain: {
+        maxZips: 50,
+        advancedReporting: true,
+        prioritySupport: false,
+        coveragePacksEnabled: true,
+        maxPlaybooks: 25
+    },
+    optimize: {
+        maxZips: 200,
         advancedReporting: true,
         prioritySupport: true,
         coveragePacksEnabled: true,
@@ -178,12 +212,21 @@ export function usePlanInfo() {
         };
     }, [user, firestore]);
 
+    const pid = planInfo.planId;
     return {
         ...planInfo,
         isLoading,
         isPaid: planInfo.tier !== 'unclaimed',
-        isScale: planInfo.planId === 'scale',
-        isEnterprise: planInfo.planId === 'enterprise',
-        isGrowthOrHigher: ['growth', 'scale', 'enterprise'].includes(planInfo.planId)
+        // Legacy flags
+        isScale: pid === 'scale',
+        isEnterprise: pid === 'enterprise',
+        isGrowthOrHigher: ['growth', 'scale', 'enterprise', 'retain', 'optimize'].includes(pid),
+        // Current plan tier flags
+        isSignal:   pid === 'signal',
+        isConvert:  pid === 'convert',
+        isRetain:   pid === 'retain',
+        isOptimize: pid === 'optimize',
+        isRetainOrHigher: ['retain', 'optimize', 'enterprise'].includes(pid),
+        isOptimizeOrHigher: ['optimize', 'enterprise'].includes(pid),
     };
 }

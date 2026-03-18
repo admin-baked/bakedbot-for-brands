@@ -17,6 +17,10 @@ export interface PricingPlan {
     pillHref?: string;
     tier: "directory" | "platform";
     scarcity?: string;
+    // AI Credit allocation
+    includedCredits?: number;        // Monthly credits included
+    creditRollover?: boolean;        // Whether unused credits roll over
+    creditTopUpRate?: number;        // Cost per 100 additional credits
 }
 
 // ----------------------------------------------------------------------
@@ -63,6 +67,9 @@ export const PUBLIC_PLANS: PricingPlan[] = [
         pillHref: "/onboarding?plan=signal",
         highlight: false,
         tier: "directory",
+        includedCredits: 500,
+        creditRollover: false,
+        creditTopUpRate: 5,
     },
     {
         id: "convert",
@@ -87,6 +94,9 @@ export const PUBLIC_PLANS: PricingPlan[] = [
         pillHref: "/onboarding?plan=convert",
         highlight: false,
         tier: "directory",
+        includedCredits: 1500,
+        creditRollover: false,
+        creditTopUpRate: 4,
     },
     {
         id: "retain",
@@ -114,6 +124,9 @@ export const PUBLIC_PLANS: PricingPlan[] = [
         pillHref: "/onboarding?plan=retain",
         highlight: true,
         tier: "platform",
+        includedCredits: 3000,
+        creditRollover: true,
+        creditTopUpRate: 3,
     },
     {
         id: "optimize",
@@ -140,6 +153,9 @@ export const PUBLIC_PLANS: PricingPlan[] = [
         pillHref: "/contact",
         highlight: false,
         tier: "platform",
+        includedCredits: 7500,
+        creditRollover: true,
+        creditTopUpRate: 2,
     },
     {
         id: "enterprise",
@@ -162,6 +178,9 @@ export const PUBLIC_PLANS: PricingPlan[] = [
         pillHref: "/contact",
         highlight: false,
         tier: "platform",
+        includedCredits: undefined, // Custom — negotiated
+        creditRollover: true,
+        creditTopUpRate: 1,
     },
 ];
 
