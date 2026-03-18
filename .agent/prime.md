@@ -19,10 +19,11 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — champion/challenger skill optimization platform shipped; build clean (3x tsc exit 0).
+**Current Status:** 🟢 Passing — AI Studio billing + SmokyPay + cost controls deployed to prod.
 
-## Session 2026-03-16 (Brand Guide polish)
-- **Brand Guide fixes** (`d294e5ecc`): archetype save serialization, scan color hallucination, FAB overlap, dialog scrollability, scan progress bar
+## Session 2026-03-18 (AI Studio + Cost Controls)
+- **AI Studio billing** (`66c7c0187`): plan entitlements, credit metering, model routing, action-cost ledger, SmokyPay checkout flow
+- **Cost controls + CannMenus CI waterfall** (`c88be744d`): Haiku extraction pinning, Opus threshold 500→2000, CannMenus-first competitor discovery
 
 ## Session 2026-03-12 (Playbook artifact repo + runtime memory layer)
 - **Artifact repo path made real**: Playbook V2 now persists spec snapshots, run manifests, failure artifacts, approval records, delivery manifests, and `summary_for_ai_engineers.md` through the shared artifact runtime. Runtime writes go to blob storage + Firestore metadata + the dedicated Git repo `admin-baked/bakedbot-artifacts-prod` when App Hosting is running with the new repo env/secret config.
