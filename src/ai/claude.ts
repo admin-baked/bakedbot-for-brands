@@ -162,9 +162,12 @@ export function detectTaskComplexity(prompt: string, contextTokens?: number): Co
         };
     }
 
-    // Check prompt length as a proxy for complexity
+    // Check prompt length as a proxy for complexity.
+    // Threshold raised from 500 → 2000: structured extraction prompts (brand guide, compliance,
+    // campaign NLP) are long but not strategically complex — they should stay on Sonnet/Haiku.
+    // Only upgrade to Opus for truly verbose reasoning tasks (multi-page documents, etc.).
     const wordCount = prompt.split(/\s+/).length;
-    if (wordCount > 500) {
+    if (wordCount > 2000) {
         return {
             complexity: 'complex',
             reasoning: 'Long prompt suggests complex task',

@@ -55,6 +55,8 @@ export const POST = withProtection(
                     data: {
                         competitor: result.competitor,
                         dataSource: result.dataSource,
+                        cannMenusMatch: result.cannMenusMatch,
+                        sourceType: result.dataSource.sourceType,
                     },
                 });
             }

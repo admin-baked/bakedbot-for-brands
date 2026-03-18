@@ -401,8 +401,74 @@ export async function getSourcesDue(
     });
 }
 
+// =============================================================================
+// CANNMENUS LOOKUP HELPER
+// =============================================================================
+
 /**
- * Quick setup: Create competitor + menu data source in one call
+ * Try to resolve a competitor to a CannMenus retailer ID.
+ *
+ * Waterfall:
+ *   1. Search CannMenus by name + state (exact/fuzzy)
+ *   2. If a result's name is close enough (≥60% match), treat as found
+ *   3. Returns retailerId + canonical name, or null if not indexed
+ *
+ * This is a best-effort lookup — callers must handle null gracefully.
+ */
+export async function lookupCannMenusRetailer(
+    name: string,
+    state: string
+): Promise<{ retailerId: string; retailerName: string; menuUrl?: string } | null> {
+    try {
+        const { searchRetailersByName } = await import('@/lib/cannmenus-api');
+        const results = await searchRetailersByName(name, state, 5);
+
+        if (results.length === 0) return null;
+
+        // Simple similarity: does the CannMenus name contain the query (or vice versa)?
+        const queryLower = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        for (const r of results) {
+            const candidateLower = r.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (
+                candidateLower.includes(queryLower) ||
+                queryLower.includes(candidateLower)
+            ) {
+                logger.info('[Ezal] CannMenus retailer matched', {
+                    query: name, matched: r.name, retailerId: r.id, state,
+                });
+                return { retailerId: r.id, retailerName: r.name, menuUrl: r.menuUrl };
+            }
+        }
+
+        // Fallback: take top result if very short name (≤4 chars can't do substring)
+        if (queryLower.length <= 4 && results[0]) {
+            return { retailerId: results[0].id, retailerName: results[0].name, menuUrl: results[0].menuUrl };
+        }
+
+        return null;
+    } catch (err) {
+        logger.warn('[Ezal] CannMenus retailer lookup failed (non-fatal)', {
+            name, state, error: err instanceof Error ? err.message : String(err),
+        });
+        return null;
+    }
+}
+
+// =============================================================================
+// QUICK SETUP
+// =============================================================================
+
+/**
+ * Quick setup: Create competitor + menu data source in one call.
+ *
+ * Data source waterfall (in priority order):
+ *   1. CannMenus API  — structured JSON, no scraping, most reliable
+ *   2. Jina Reader    — clean markdown from any URL, handles JS-rendered menus
+ *   3. HTML scrape    — raw HTML fallback (requires parser profile)
+ *
+ * CannMenus is attempted automatically via name+state lookup. If found, the
+ * data source is set to sourceType='cann_menus' with the retailerId stored in
+ * metadata. The caller-provided menuUrl is preserved as primaryDomain regardless.
  */
 export async function quickSetupCompetitor(
     tenantId: string,
@@ -418,11 +484,14 @@ export async function quickSetupCompetitor(
         frequencyMinutes?: number;
         planId?: string; // Determines update frequency
     }
-): Promise<{ competitor: Competitor; dataSource: DataSource }> {
+): Promise<{ competitor: Competitor; dataSource: DataSource; cannMenusMatch: boolean }> {
     // Get frequency from plan limits if not explicitly provided
     const { getEzalLimits } = await import('@/lib/plan-limits');
     const ezalLimits = getEzalLimits(params.planId || 'free');
     const frequency = params.frequencyMinutes ?? ezalLimits.frequencyMinutes;
+
+    // --- Stage 1: Try CannMenus lookup ---
+    const cannMenusMatch = await lookupCannMenusRetailer(params.name, params.state);
 
     const competitor = await createCompetitor(tenantId, {
         name: params.name,
@@ -435,18 +504,52 @@ export async function quickSetupCompetitor(
         active: true,
     });
 
-    const dataSource = await createDataSource(tenantId, {
-        competitorId: competitor.id,
-        kind: 'menu',
-        sourceType: 'html',
-        baseUrl: params.menuUrl,
-        frequencyMinutes: frequency,
-        robotsAllowed: true, // Would be verified in production
-        parserProfileId: params.parserProfileId,
-        timezone: 'America/New_York',
-        priority: 5,
-        active: true,
-    });
+    let dataSource: DataSource;
 
-    return { competitor, dataSource };
+    if (cannMenusMatch) {
+        // --- Stage 1 hit: CannMenus structured API ---
+        dataSource = await createDataSource(tenantId, {
+            competitorId: competitor.id,
+            kind: 'menu',
+            sourceType: 'cann_menus',
+            baseUrl: params.menuUrl, // preserved for reference / fallback
+            frequencyMinutes: frequency,
+            robotsAllowed: true,
+            parserProfileId: params.parserProfileId,
+            timezone: 'America/New_York',
+            priority: 8, // Higher priority — structured data is more valuable
+            active: true,
+            metadata: {
+                retailerId: cannMenusMatch.retailerId,
+                retailerName: cannMenusMatch.retailerName,
+                state: params.state,
+                cannMenusMatchedAt: new Date().toISOString(),
+            },
+        });
+
+        logger.info('[Ezal] Competitor set up with CannMenus source', {
+            tenantId, competitorId: competitor.id, retailerId: cannMenusMatch.retailerId,
+        });
+    } else {
+        // --- Stage 2: Jina Reader (preferred over raw HTML) ---
+        // Jina handles JS-rendered menus, returns clean markdown, no parser profile needed
+        dataSource = await createDataSource(tenantId, {
+            competitorId: competitor.id,
+            kind: 'menu',
+            sourceType: 'jina',
+            baseUrl: params.menuUrl,
+            frequencyMinutes: frequency,
+            robotsAllowed: true,
+            parserProfileId: params.parserProfileId,
+            timezone: 'America/New_York',
+            priority: 5,
+            active: true,
+        });
+
+        logger.info('[Ezal] Competitor set up with Jina fallback source', {
+            tenantId, competitorId: competitor.id, menuUrl: params.menuUrl,
+        });
+    }
+
+    return { competitor, dataSource, cannMenusMatch: !!cannMenusMatch };
 }

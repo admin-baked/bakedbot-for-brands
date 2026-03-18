@@ -438,6 +438,59 @@ export async function reverseGeocode(lat: number, lng: number): Promise<{ city: 
 }
 
 /**
+ * Search CannMenus retailers by name and state — no lat/lng required.
+ * Used by Ezal's competitor setup waterfall to check whether a competitor
+ * is already indexed in CannMenus before falling back to web scraping.
+ *
+ * Returns an array of matching retailer IDs + names, sorted by name similarity.
+ */
+export async function searchRetailersByName(
+    name: string,
+    state: string,
+    limit: number = 5
+): Promise<Array<{ id: string; name: string; city: string; state: string; postalCode: string; menuUrl?: string }>> {
+    try {
+        const stateAbbr = normalizeStateAbbr(state);
+        const params = new URLSearchParams({
+            name,
+            states: stateAbbr,
+            limit: limit.toString(),
+            sort: 'relevance',
+        });
+
+        const response = await fetch(
+            `${CANNMENUS_BASE_URL}/v1/retailers?${params}`,
+            {
+                headers: {
+                    'X-Token': CANNMENUS_API_KEY!,
+                    'Accept': 'application/json',
+                    'User-Agent': 'BakedBot/1.0',
+                },
+                signal: AbortSignal.timeout(10000),
+            }
+        );
+
+        if (!response.ok) {
+            logger.warn('[CannMenus] searchRetailersByName failed', { status: response.status, name, state });
+            return [];
+        }
+
+        const data = await response.json();
+        return (data.data || []).map((r: Record<string, unknown>) => ({
+            id: (r.id ?? r.retailer_id)?.toString() ?? '',
+            name: (r.dispensary_name ?? r.name ?? '') as string,
+            city: (r.city ?? '') as string,
+            state: (r.state ?? '') as string,
+            postalCode: (r.zip_code ?? r.postal_code ?? '') as string,
+            menuUrl: (r.website_url ?? r.menu_url ?? undefined) as string | undefined,
+        })).filter((r: { id: string }) => r.id);
+    } catch (error) {
+        logger.error('CannMenus searchRetailersByName error', error instanceof Error ? error : new Error(String(error)));
+        return [];
+    }
+}
+
+/**
  * Search products by brand and state
  */
 export async function getProducts(brandId: string, state?: string): Promise<any[]> {

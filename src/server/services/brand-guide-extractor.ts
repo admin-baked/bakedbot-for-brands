@@ -550,6 +550,7 @@ Return ONLY a valid JSON object (no markdown, no code blocks) with this exact st
         systemPrompt:
           'You are a brand identity expert specializing in cannabis companies, brands, and technology platforms. Extract visual brand elements and return ONLY valid JSON, no other text.',
         maxTokens: 2000,
+        model: 'claude-haiku-4-5-20251001', // Extraction task — Haiku is sufficient, no Opus routing
       });
 
       // Parse AI response - be flexible with whitespace and code blocks
@@ -635,6 +636,7 @@ Return a JSON object with this structure:
         systemPrompt:
           'You are a brand voice expert. Analyze writing style and return valid JSON only.',
         maxTokens: 2000,
+        model: 'claude-haiku-4-5-20251001', // Extraction task — Haiku is sufficient, no Opus routing
       });
 
       const jsonMatch = response.match(/\{[\s\S]*\}/);
@@ -732,6 +734,7 @@ Return ONLY a valid JSON object (no markdown formatting):
         systemPrompt:
           'You are a cannabis ecosystem brand strategist. Extract messaging elements from the provided content and return ONLY valid JSON, no markdown or code blocks.',
         maxTokens: 2000,
+        model: 'claude-haiku-4-5-20251001', // Extraction task — Haiku is sufficient, no Opus routing
       });
 
       // Try to extract JSON from code block first, then fallback to direct parsing
