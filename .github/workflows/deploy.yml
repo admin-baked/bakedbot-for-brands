@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch: # Allow manual trigger from GitHub Actions UI
 
 jobs:
   deploy:
@@ -11,7 +12,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
@@ -25,4 +30,5 @@ jobs:
           firebase apphosting:rollouts:create bakedbot-prod \
             --git-branch main \
             --project studio-567050101-bc6e8 \
+            --force \
             --non-interactive || echo "Rollout already queued or in progress — skipping."
