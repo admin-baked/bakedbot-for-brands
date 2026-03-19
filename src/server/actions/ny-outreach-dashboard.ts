@@ -54,6 +54,18 @@ const EMPTY_OUTREACH_STATS: DashboardStats = {
     recentResults: [],
 };
 
+async function warnOutreachDashboard(message: string, data?: Record<string, unknown>) {
+    try {
+        await logger.warn(message, data);
+    } catch (error) {
+        console.warn('[OutreachDashboard] Logger warn failed', {
+            message,
+            data,
+            error: String(error),
+        });
+    }
+}
+
 async function loadOutreachStats(since?: number): Promise<DashboardStats> {
     const { getOutreachStats } = await import('@/server/services/ny-outreach/outreach-read-model');
     return getOutreachStats(since);
@@ -111,7 +123,7 @@ async function getCountWithFallback(
             throw error;
         }
 
-        logger.warn(`[OutreachDashboard] Missing Firestore index, falling back to document scan for ${logLabel}`, {
+        await warnOutreachDashboard(`[OutreachDashboard] Missing Firestore index, falling back to document scan for ${logLabel}`, {
             error: String(error),
         });
         const snapshot = await query.get();
@@ -137,7 +149,7 @@ async function getSentTodayCount(db: FirebaseFirestore.Firestore): Promise<numbe
             throw error;
         }
 
-        logger.warn('[OutreachDashboard] Missing Firestore index, falling back to client-side sent-today count', {
+        await warnOutreachDashboard('[OutreachDashboard] Missing Firestore index, falling back to client-side sent-today count', {
             error: String(error),
         });
 
@@ -230,7 +242,7 @@ export async function getOutreachDashboardData(): Promise<{
                         throw error;
                     }
 
-                    logger.warn('[OutreachDashboard] Missing Firestore index, falling back to unsorted queue preview', {
+                    await warnOutreachDashboard('[OutreachDashboard] Missing Firestore index, falling back to unsorted queue preview', {
                         error: String(error),
                     });
 
@@ -263,7 +275,7 @@ export async function getOutreachDashboardData(): Promise<{
         });
 
         if (partialFailures.length > 0) {
-            logger.warn('[OutreachDashboard] Loaded with partial data', {
+            await warnOutreachDashboard('[OutreachDashboard] Loaded with partial data', {
                 partialFailures,
                 userId: user.uid,
             });
@@ -544,7 +556,7 @@ export async function getOutreachDrafts(status?: string): Promise<{
                     throw error;
                 }
 
-                logger.warn('[OutreachDashboard] Missing Firestore index, falling back to client-side draft sort', {
+                await warnOutreachDashboard('[OutreachDashboard] Missing Firestore index, falling back to client-side draft sort', {
                     error: String(error),
                     status,
                 });

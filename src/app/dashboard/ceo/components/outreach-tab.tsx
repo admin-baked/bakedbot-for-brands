@@ -417,6 +417,8 @@ export default function OutreachTab() {
 
             if (dashResult?.success && dashResult.data) {
                 setData(dashResult.data as DashboardData);
+            } else if (dashResult && !dashResult.success && !errorSource) {
+                errorSource = dashResult.error ? `Outreach dashboard data: ${dashResult.error}` : 'Outreach dashboard data';
             }
             setGmailConnected(gmailResult?.connected ?? false);
             setGmailEmail(gmailResult?.email);
@@ -426,6 +428,8 @@ export default function OutreachTab() {
 
             if (errorSource) {
                 setActionResult({ type: 'error', message: `Failed to load: ${errorSource}` });
+            } else {
+                setActionResult(null);
             }
         } catch (err) {
             setActionResult({ type: 'error', message: `Failed to load data: ${String(err)}` });
