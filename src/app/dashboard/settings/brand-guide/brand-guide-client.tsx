@@ -149,15 +149,15 @@ export function BrandGuideClient({
       </Dialog>
       {/* Page Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Brand Guide</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold">Brand Guide</h1>
         <p className="text-muted-foreground mt-2">
           Manage your brand identity, voice, messaging, and assets
         </p>
       </div>
 
       {/* Status and actions */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Badge variant={brandGuide.status === 'active' ? 'default' : 'secondary'}>
             {brandGuide.status}
           </Badge>
@@ -170,7 +170,7 @@ export function BrandGuideClient({
             </div>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm">
             <Share2 className="w-4 h-4 mr-2" />
             Share
@@ -219,44 +219,46 @@ export function BrandGuideClient({
 
       {/* Main tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-9">
-          <TabsTrigger value="visual" className="flex items-center gap-2">
-            <Palette className="w-4 h-4" />
-            Visual
-          </TabsTrigger>
-          <TabsTrigger value="voice" className="flex items-center gap-2">
-            <MessageSquare className="w-4 h-4" />
-            Voice
-          </TabsTrigger>
-          <TabsTrigger value="messaging" className="flex items-center gap-2">
-            <Target className="w-4 h-4" />
-            Messaging
-          </TabsTrigger>
-          <TabsTrigger value="compliance" className="flex items-center gap-2">
-            <Shield className="w-4 h-4" />
-            Compliance
-          </TabsTrigger>
-          <TabsTrigger value="assets" className="flex items-center gap-2">
-            <ImageIcon className="w-4 h-4" />
-            Assets
-          </TabsTrigger>
-          <TabsTrigger value="competitors" className="flex items-center gap-2">
-            <Search className="w-4 h-4" />
-            Competitors
-          </TabsTrigger>
-          <TabsTrigger value="abtesting" className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4" />
-            A/B Testing
-          </TabsTrigger>
-          <TabsTrigger value="history" className="flex items-center gap-2">
-            <History className="w-4 h-4" />
-            History
-          </TabsTrigger>
-          <TabsTrigger value="export" className="flex items-center gap-2">
-            <FileText className="w-4 h-4" />
-            Export
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-1 px-1 pb-1">
+          <TabsList className="flex w-max min-w-full sm:grid sm:w-full sm:grid-cols-9">
+            <TabsTrigger value="visual" className="flex items-center gap-1.5 flex-shrink-0">
+              <Palette className="w-4 h-4" />
+              <span className="hidden sm:inline">Visual</span>
+            </TabsTrigger>
+            <TabsTrigger value="voice" className="flex items-center gap-1.5 flex-shrink-0">
+              <MessageSquare className="w-4 h-4" />
+              <span className="hidden sm:inline">Voice</span>
+            </TabsTrigger>
+            <TabsTrigger value="messaging" className="flex items-center gap-1.5 flex-shrink-0">
+              <Target className="w-4 h-4" />
+              <span className="hidden sm:inline">Messaging</span>
+            </TabsTrigger>
+            <TabsTrigger value="compliance" className="flex items-center gap-1.5 flex-shrink-0">
+              <Shield className="w-4 h-4" />
+              <span className="hidden sm:inline">Compliance</span>
+            </TabsTrigger>
+            <TabsTrigger value="assets" className="flex items-center gap-1.5 flex-shrink-0">
+              <ImageIcon className="w-4 h-4" />
+              <span className="hidden sm:inline">Assets</span>
+            </TabsTrigger>
+            <TabsTrigger value="competitors" className="flex items-center gap-1.5 flex-shrink-0">
+              <Search className="w-4 h-4" />
+              <span className="hidden sm:inline">Competitors</span>
+            </TabsTrigger>
+            <TabsTrigger value="abtesting" className="flex items-center gap-1.5 flex-shrink-0">
+              <TrendingUp className="w-4 h-4" />
+              <span className="hidden sm:inline">A/B Testing</span>
+            </TabsTrigger>
+            <TabsTrigger value="history" className="flex items-center gap-1.5 flex-shrink-0">
+              <History className="w-4 h-4" />
+              <span className="hidden sm:inline">History</span>
+            </TabsTrigger>
+            <TabsTrigger value="export" className="flex items-center gap-1.5 flex-shrink-0">
+              <FileText className="w-4 h-4" />
+              <span className="hidden sm:inline">Export</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <div className="mt-6">
           <TabsContent value="visual">
@@ -948,14 +950,14 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
   return (
     <div className="max-w-6xl mx-auto">
       {/* Header Section */}
-      <div className="flex justify-between items-start mb-8">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Brand Guide</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Brand Guide</h1>
           <p className="text-gray-500 mt-1">
             Manage your brand identity, voice, messaging, and visual assets.
           </p>
         </div>
-        <Button variant="outline" className="gap-2">
+        <Button variant="outline" className="gap-2 self-start">
           <PlayCircle className="w-4 h-4 text-baked-green" />
           Watch Tutorial
         </Button>
