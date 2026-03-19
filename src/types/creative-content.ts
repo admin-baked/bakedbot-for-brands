@@ -135,6 +135,9 @@ export interface CreativeContentBase {
         | 'veo'
         | 'sora'
         | 'sora-pro'
+        | 'kling'
+        | 'wan'
+        | 'remotion'
         | 'manual';
 
     /** Render aspect ratio */

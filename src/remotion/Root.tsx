@@ -6,7 +6,12 @@
  */
 
 import { Composition } from 'remotion';
+import type { ComponentType } from 'react';
 import { BrandedSlideshow, type BrandedSlideshowProps } from './compositions/BrandedSlideshow';
+
+// Remotion's Composition generic requires ComponentType<Record<string, unknown>>.
+// Cast once here so all three registrations stay clean.
+const BrandedSlideshowComp = BrandedSlideshow as unknown as ComponentType<Record<string, unknown>>;
 
 const DEFAULT_PROPS: BrandedSlideshowProps = {
     brandName: 'BakedBot AI',
@@ -27,7 +32,7 @@ export const RemotionRoot: React.FC = () => {
             {/* 16:9 — landscape (social feed, LinkedIn, Twitter) */}
             <Composition
                 id="BrandedSlideshow-16x9"
-                component={BrandedSlideshow}
+                component={BrandedSlideshowComp}
                 durationInFrames={150}
                 fps={30}
                 width={1280}
@@ -38,7 +43,7 @@ export const RemotionRoot: React.FC = () => {
             {/* 9:16 — vertical (TikTok, Instagram Reels, Stories) */}
             <Composition
                 id="BrandedSlideshow-9x16"
-                component={BrandedSlideshow}
+                component={BrandedSlideshowComp}
                 durationInFrames={150}
                 fps={30}
                 width={720}
@@ -49,7 +54,7 @@ export const RemotionRoot: React.FC = () => {
             {/* 1:1 — square (Instagram feed) */}
             <Composition
                 id="BrandedSlideshow-1x1"
-                component={BrandedSlideshow}
+                component={BrandedSlideshowComp}
                 durationInFrames={150}
                 fps={30}
                 width={1080}
