@@ -53,6 +53,10 @@ const INTENT_RULES: IntentRule[] = [
             /\b(analytic|report|goal|metric|dashb|funnel|retention.?(rate|report)|revenue.?(report|forecast|trend)|churn.?(rate|report|analytic)|performance|forecast|KPI|insight.*data|data.*insight)\b/i,
             /\b(pops|mrr|arr|ltv|cohort|conversion.?rate|click.?through|open.?rate|roi|roas)\b/i,
             /\b(last (month|quarter|week|year).*revenue|revenue.*(last|this) (month|quarter|week))\b/i,
+            /\b(lifecycle|life.?cycle|customer.*journey|journey.*customer|visit|returning.*customer|customer.*return|drop.?off|dropout|fall.?off|where.*losing|losing.*customer)\b/i,
+            /\b(first.*visit|second.*visit|third.*visit|\d+.?visit|visit.*frequen|visit.*count|repeat.*purchas|purchas.*repeat|purchase.*pattern|trend.*data|data.*trend)\b/i,
+            /\b(last (3|6|12|two|three|six|twelve|nine).?(month|months|week|weeks|quarter|quarters))\b/i,
+            /\b(pull.*data|data.*pull|show.*data|data.*show|breakdown|break.*down|by percent|percent.*breakdown|where.*customer|how.*customer)\b/i,
         ],
     },
 
@@ -116,7 +120,7 @@ export function getAgentForIntent(input: string): AgentId | null {
  */
 export function resolveInboxAgent(
     input: string,
-    fallback: AgentId = 'craig'
+    fallback: AgentId = 'pops'
 ): AgentId {
     return getAgentForIntent(input) ?? fallback;
 }
