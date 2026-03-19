@@ -103,6 +103,19 @@ export interface CustomerProfile {
     }[];
     tierProgress?: number; // 0-100 percentage to next tier
 
+    // Retention Score (rule-based composite, updated weekly)
+    retentionScore?: number;           // 0-100 composite
+    retentionTier?: RetentionTier;     // champion|engaged|at_risk|dormant
+    scoreTrend?: 'rising' | 'stable' | 'falling';
+    scoreBreakdown?: RetentionScoreBreakdown;
+    retentionScoredAt?: Date;
+
+    // Churn prediction (from ChurnPredictionService, updated weekly)
+    churnProbability?: number;         // 0-100
+    churnRiskLevel?: 'low' | 'medium' | 'high' | 'critical';
+    churnReasoning?: string;
+    churnPredictedAt?: Date;
+
     // Metadata
     createdAt: Date;
     updatedAt: Date;
@@ -131,6 +144,21 @@ export interface CustomerActivity {
     description: string;
     metadata?: Record<string, any>;
     createdAt: Date;
+}
+
+// ==========================================
+// Retention Score Types
+// ==========================================
+
+/** Retention tier based on 0-100 composite score */
+export type RetentionTier = 'champion' | 'engaged' | 'at_risk' | 'dormant';
+
+/** Score breakdown showing contribution of each component */
+export interface RetentionScoreBreakdown {
+    recency: number;           // 0-30 (30% weight)
+    frequencyMonetary: number; // 0-30 (30% weight)
+    churnInverse: number;      // 0-25 (25% weight)
+    engagement: number;        // 0-15 (15% weight)
 }
 
 /**

@@ -594,6 +594,10 @@ export async function getAtRiskCustomers(
         orderCount: number;
         lastOrderDate: string | null;
         daysSinceLastOrder: number | undefined;
+        retentionScore: number | undefined;
+        retentionTier: string | undefined;
+        scoreTrend: string | undefined;
+        churnProbability: number | undefined;
     }> = [];
 
     snap.docs.forEach(doc => {
@@ -624,6 +628,10 @@ export async function getAtRiskCustomers(
                 orderCount: orders,
                 lastOrderDate: lastDate?.toISOString() || null,
                 daysSinceLastOrder: daysSince,
+                retentionScore: data.retentionScore,
+                retentionTier: data.retentionTier,
+                scoreTrend: data.scoreTrend,
+                churnProbability: data.churnProbability,
             });
         }
     });
@@ -644,7 +652,9 @@ Top ${limited.length} by lifetime value:
 
 ${limited.map((c, i) => {
     const segInfo = getSegmentInfo(c.segment as CustomerSegment);
-    return `${i + 1}. **${c.name}** (${segInfo.label}) - $${c.totalSpent.toLocaleString()} LTV, ${c.orderCount} orders${c.daysSinceLastOrder ? `, ${c.daysSinceLastOrder}d inactive` : ''}`;
+    const retScore = c.retentionScore !== undefined ? ` | Score: ${c.retentionScore}/100 (${c.retentionTier ?? '?'})` : '';
+    const trend = c.scoreTrend && c.scoreTrend !== 'stable' ? ` ${c.scoreTrend === 'falling' ? '↓' : '↑'}` : '';
+    return `${i + 1}. **${c.name}** (${segInfo.label}) - $${c.totalSpent.toLocaleString()} LTV, ${c.orderCount} orders${c.daysSinceLastOrder ? `, ${c.daysSinceLastOrder}d inactive` : ''}${retScore}${trend}`;
 }).join('\n')}
 
 **Recommended actions:** Target the top customers with personalized win-back offers. Higher-LTV customers should get premium incentives.`;

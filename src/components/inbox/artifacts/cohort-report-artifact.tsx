@@ -21,7 +21,7 @@ interface CohortReportArtifactProps {
 
 export function CohortReportArtifact({ artifact }: CohortReportArtifactProps) {
     const router = useRouter();
-    const data = artifact.data as CustomerVisitCohortResult;
+    const data = artifact.data as unknown as CustomerVisitCohortResult;
 
     if (!data || !data.buckets) {
         return (

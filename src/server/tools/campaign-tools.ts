@@ -32,7 +32,8 @@ const createCampaignDraftDef = {
             'restock_alert', 'vip_appreciation', 'product_launch', 'event_promo', 'awareness',
         ]).describe('Campaign goal'),
         channels: z.array(z.enum(['email', 'sms'])).describe('Delivery channels'),
-        segments: z.array(z.string()).optional().describe('Target customer segments'),
+        segments: z.array(z.string()).optional().describe('Target customer segments (e.g. "at_risk", "vip", "new")'),
+        retentionTiers: z.array(z.enum(['champion', 'engaged', 'at_risk', 'dormant'])).optional().describe('Target by retention tier — champion (80-100), engaged (55-79), at_risk (30-54), dormant (0-29). Use instead of or alongside segments for precision retention campaigns.'),
         emailSubject: z.string().optional().describe('Email subject line'),
         emailBody: z.string().optional().describe('Email body text (supports {{firstName}}, {{segment}}, {{totalSpent}} variables)'),
         smsBody: z.string().optional().describe('SMS message text'),
@@ -92,6 +93,7 @@ export async function createCampaignDraft(params: {
     goal: CampaignGoal;
     channels: CampaignChannel[];
     segments?: string[];
+    retentionTiers?: ('champion' | 'engaged' | 'at_risk' | 'dormant')[];
     emailSubject?: string;
     emailBody?: string;
     smsBody?: string;
@@ -130,8 +132,9 @@ export async function createCampaignDraft(params: {
         status: 'draft',
         channels: params.channels,
         audience: {
-            type: params.segments?.length ? 'segment' : 'all',
+            type: (params.segments?.length || params.retentionTiers?.length) ? 'segment' : 'all',
             segments: params.segments || [],
+            retentionTiers: params.retentionTiers || [],
             estimatedCount: 0, // Will be resolved at send time
         },
         content,
@@ -148,7 +151,12 @@ export async function createCampaignDraft(params: {
         agent: params.agentName,
     });
 
-    const segmentLabels = params.segments?.map(s => getSegmentInfo(s as CustomerSegment).label).join(', ') || 'All customers';
+    const segmentLabels = [
+        ...(params.segments?.map(s => {
+            try { return getSegmentInfo(s as CustomerSegment).label; } catch { return s; }
+        }) || []),
+        ...(params.retentionTiers?.map(t => `${t[0].toUpperCase() + t.slice(1)} (retention)`) || []),
+    ].join(', ') || 'All customers';
     const channelStr = params.channels.join(' + ').toUpperCase();
 
     const summary = `:::campaign:draft:${params.name}
