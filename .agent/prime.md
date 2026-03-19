@@ -40,9 +40,9 @@ npm run check:types
 3. `git push origin main --force-with-lease`
 4. Dismiss alerts via `gh api --method PATCH repos/admin-baked/bakedbot-for-brands/secret-scanning/alerts/$id -f state=resolved -f resolution=revoked`
 
-## Session 2026-03-18i (Agent Ownership System — Phases A–D + Intent Router)
+## Session 2026-03-18j (Video providers + Gmail-direct outreach + Skills Lab eval v2)
 **Recent work (2026-03-18):** See `memory/MEMORY.md` for full log.
-Key completed: [registry + route ownership] (`00b9ce987`), [intent router] (`35c7b966b`)
+Key completed: [fal.ai Kling/Wan + Remotion video] (`feat/video`), [NY outreach Gmail-direct send + intent router] (`6d8c3afc0`, `e933000a1`), [Skills Lab 10-criterion eval spec v2] (`77f11984c`)
 
 ## Session 2026-03-12 (Playbook artifact repo + runtime memory layer)
 - **Artifact repo path made real**: Playbook V2 now persists spec snapshots, run manifests, failure artifacts, approval records, delivery manifests, and `summary_for_ai_engineers.md` through the shared artifact runtime. Runtime writes go to blob storage + Firestore metadata + the dedicated Git repo `admin-baked/bakedbot-artifacts-prod` when App Hosting is running with the new repo env/secret config.
