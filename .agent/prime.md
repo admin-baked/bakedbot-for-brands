@@ -21,6 +21,25 @@ npm run check:types
 
 **Current Status:** 🟢 Passing — Canonical agent registry + intent router live; all 7 agents wired end-to-end.
 
+## 🚨 SECURITY GOTCHA: Never Commit These Files
+
+**Triggered 2026-03-18** — GitHub secret scanning found 14 exposed secrets. Required full git history rewrite + force push.
+
+**NEVER commit these files:**
+| File | Why |
+|------|-----|
+| `.env` | Contains real API keys — use `.env.local` instead (already gitignored) |
+| `service-account.json` | GCP service account private key |
+| `PRODUCTION_SETUP.md` | Contained SendGrid + GCP keys in plain text |
+| `.codex-firebase-deploy.{out,err}.log` | Firebase deploy output includes API keys |
+| `.claude/settings.local.json` | Claude Code local settings can include tokens |
+
+**All 5 are now in `.gitignore`.** If you see a GitHub secret scanning alert:
+1. Rotate the exposed credential immediately (GCP Console / SendGrid / etc.)
+2. Run `git filter-branch` to scrub history (see session 2026-03-18 in MEMORY.md)
+3. `git push origin main --force-with-lease`
+4. Dismiss alerts via `gh api --method PATCH repos/admin-baked/bakedbot-for-brands/secret-scanning/alerts/$id -f state=resolved -f resolution=revoked`
+
 ## Session 2026-03-18i (Agent Ownership System — Phases A–D + Intent Router)
 **Recent work (2026-03-18):** See `memory/MEMORY.md` for full log.
 Key completed: [registry + route ownership] (`00b9ce987`), [intent router] (`35c7b966b`)
