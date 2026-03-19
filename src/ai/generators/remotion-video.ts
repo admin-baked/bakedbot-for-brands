@@ -21,6 +21,9 @@ import { logger } from '@/lib/logger';
 import type { GenerateVideoInput, GenerateVideoOutput } from '../video-types';
 import type { BrandedSlideshowProps } from '@/remotion/compositions/BrandedSlideshow';
 
+type RemotionRendererModule = typeof import('@remotion/renderer');
+type RemotionBundlerModule = typeof import('@remotion/bundler');
+
 // Map aspect ratio to Remotion composition ID
 const COMPOSITION_MAP: Record<string, string> = {
     '16:9': 'BrandedSlideshow-16x9',
@@ -39,6 +42,33 @@ export interface RemotionVideoInput extends GenerateVideoInput {
     ctaText?: string;
     websiteUrl?: string;
     headline?: string;
+}
+
+async function loadRemotionRenderer(): Promise<Pick<RemotionRendererModule, 'renderMedia' | 'selectComposition'>> {
+    try {
+        const mod = await import(/* webpackIgnore: true */ '@remotion/renderer' as string);
+        return {
+            renderMedia: mod.renderMedia,
+            selectComposition: mod.selectComposition,
+        };
+    } catch (error) {
+        logger.warn('[Remotion] Renderer package unavailable', {
+            error: error instanceof Error ? error.message : String(error),
+        });
+        throw new Error('[Remotion] @remotion/renderer not available in this environment. Falling back to Kling.');
+    }
+}
+
+async function loadRemotionBundler(): Promise<RemotionBundlerModule['bundle']> {
+    try {
+        const mod = await import(/* webpackIgnore: true */ '@remotion/bundler' as string);
+        return mod.bundle;
+    } catch (error) {
+        logger.warn('[Remotion] Bundler package unavailable', {
+            error: error instanceof Error ? error.message : String(error),
+        });
+        throw new Error('[Remotion] @remotion/bundler not available in this environment.');
+    }
 }
 
 /**
@@ -70,8 +100,8 @@ export async function generateRemotionVideo(
     };
 
     // Dynamic import — @remotion/renderer is heavy and server-only.
-    // Listed in next.config.js serverExternalPackages so webpack doesn't bundle it.
-    const { renderMedia, selectComposition } = await import('@remotion/renderer');
+    // webpackIgnore keeps Next/App Hosting from resolving it during the framework build.
+    const { renderMedia, selectComposition } = await loadRemotionRenderer();
 
     // Path to the compiled Remotion bundle
     // In dev: `npx remotion bundle` creates dist; in prod: we pre-bundle at build time
@@ -154,7 +184,7 @@ export async function generateRemotionVideo(
  * Outputs to .remotion/bundle/
  */
 export async function bundleRemotionProject(): Promise<string> {
-    const { bundle } = await import('@remotion/bundler');
+    const bundle = await loadRemotionBundler();
 
     const bundleLocation = await bundle({
         entryPoint: path.resolve(process.cwd(), 'src/remotion/index.ts'),
