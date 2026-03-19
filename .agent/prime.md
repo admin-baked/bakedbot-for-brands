@@ -21,6 +21,9 @@ npm run check:types
 
 **Current Status:** 🟢 Passing — champion/challenger skill optimization platform shipped; build clean (3x tsc exit 0).
 
+## Session 2026-03-19 (Fast-path meta query regression fix)
+- **Fast-path meta matching narrowed** (`1856eeff9`): extracted fast-path classification from `agent-runner`, limited model/performance shortcuts to explicit meta questions, and added regression coverage so prompts like “pricing model” and “performance marketing plan” keep full routing/context/tool execution
+
 ## Session 2026-03-16 (Brand Guide polish)
 - **Brand Guide fixes** (`d294e5ecc`): archetype save serialization, scan color hallucination, FAB overlap, dialog scrollability, scan progress bar
 
@@ -279,8 +282,8 @@ Do NOT wait for the user to say "P1" or "file a bug first" — triage, file, and
 
 ---
 
-**Recent work (2026-03-14):** See `MEMORY.md` for full log.
-Key completed: [Wallet passes + Slack loyalty alerts] (`d1acc0eef`), [Sandbox code artifact + VM run] (`9e924f109`)
+**Recent work (2026-03-19):** See `MEMORY.md` for full log.
+Key completed: [Fast-path meta query regression fix] (`1856eeff9`), [Wallet passes + Slack loyalty alerts] (`d1acc0eef`), [Sandbox code artifact + VM run] (`9e924f109`)
 
 ---
 
