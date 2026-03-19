@@ -35,7 +35,7 @@ async function verifySafeSuperAdmin() {
 // --- Video Provider ---
 
 interface UpdateVideoProviderInput {
-    provider: 'veo' | 'sora' | 'sora-pro';
+    provider: 'veo' | 'sora' | 'sora-pro' | 'kling' | 'wan' | 'remotion';
 }
 
 export async function getSafeVideoProviderAction() {

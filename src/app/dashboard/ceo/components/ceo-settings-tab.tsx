@@ -12,7 +12,7 @@ export default function CeoSettingsTab() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [emailProvider, setEmailProvider] = useState<'sendgrid' | 'mailjet'>('sendgrid');
-    const [videoProvider, setVideoProvider] = useState<'veo' | 'sora' | 'sora-pro'>('veo');
+    const [videoProvider, setVideoProvider] = useState<'veo' | 'sora' | 'sora-pro' | 'kling' | 'wan' | 'remotion'>('kling');
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -24,7 +24,7 @@ export default function CeoSettingsTab() {
         ])
         .then(([emailRes, videoRes]) => {
             if (emailRes) setEmailProvider(emailRes as 'sendgrid' | 'mailjet');
-            if (videoRes) setVideoProvider(videoRes as 'veo' | 'sora' | 'sora-pro');
+            if (videoRes) setVideoProvider(videoRes as 'veo' | 'sora' | 'sora-pro' | 'kling' | 'wan' | 'remotion');
         })
         .catch(err => {
             console.error('Failed to load settings:', err);
@@ -75,47 +75,88 @@ export default function CeoSettingsTab() {
                 <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>Video Provider</h3>
                 <p style={{ color: '#666', marginBottom: 10 }}>Select the primary AI model for video generation.</p>
                 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 20 }}>
-                    <div 
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                    {/* ── fal.ai row ── */}
+                    <div
+                        onClick={() => setVideoProvider('kling')}
+                        style={{
+                            cursor: 'pointer',
+                            border: videoProvider === 'kling' ? '2px solid #22c55e' : '2px solid #ddd',
+                            padding: 15, borderRadius: 6,
+                            backgroundColor: videoProvider === 'kling' ? '#f0fdf4' : 'white'
+                        }}
+                    >
+                        <strong>⭐ Kling v2 Master</strong>
+                        <p style={{ color: '#16a34a', fontWeight: 600 }}>fal.ai — $0.045/sec</p>
+                        <p style={{ fontSize: 12, color: '#666' }}>Cinema motion quality. 8× cheaper than Veo. Recommended for pilots.</p>
+                    </div>
+
+                    <div
+                        onClick={() => setVideoProvider('wan')}
+                        style={{
+                            cursor: 'pointer',
+                            border: videoProvider === 'wan' ? '2px solid #22c55e' : '2px solid #ddd',
+                            padding: 15, borderRadius: 6,
+                            backgroundColor: videoProvider === 'wan' ? '#f0fdf4' : 'white'
+                        }}
+                    >
+                        <strong>Wan 2.1</strong>
+                        <p style={{ color: '#16a34a', fontWeight: 600 }}>fal.ai — $0.01/sec</p>
+                        <p style={{ fontSize: 12, color: '#666' }}>Ultra-cheap drafts. 35× cheaper than Veo. High volume campaigns.</p>
+                    </div>
+
+                    <div
+                        onClick={() => setVideoProvider('remotion')}
+                        style={{
+                            cursor: 'pointer',
+                            border: videoProvider === 'remotion' ? '2px solid #8b5cf6' : '2px solid #ddd',
+                            padding: 15, borderRadius: 6,
+                            backgroundColor: videoProvider === 'remotion' ? '#faf5ff' : 'white'
+                        }}
+                    >
+                        <strong>Remotion React</strong>
+                        <p style={{ color: '#7c3aed', fontWeight: 600 }}>Branded — $0 render cost</p>
+                        <p style={{ fontSize: 12, color: '#666' }}>Brand colors, logo, CTA. Needs Cloud Run + bundle. Falls back to Kling.</p>
+                    </div>
+
+                    {/* ── legacy row ── */}
+                    <div
                         onClick={() => setVideoProvider('veo')}
-                        style={{ 
-                            cursor: 'pointer', 
+                        style={{
+                            cursor: 'pointer',
                             border: videoProvider === 'veo' ? '2px solid blue' : '2px solid #ddd',
-                            padding: 15,
-                            borderRadius: 6,
+                            padding: 15, borderRadius: 6,
                             backgroundColor: videoProvider === 'veo' ? '#f0f9ff' : 'white'
                         }}
                     >
                         <strong>Google Veo 3</strong>
-                        <p>Vertex AI (Default)</p>
+                        <p style={{ color: '#666', fontSize: 12 }}>$0.35/sec — Preview access required</p>
                     </div>
 
-                    <div 
+                    <div
                         onClick={() => setVideoProvider('sora')}
-                        style={{ 
-                            cursor: 'pointer', 
+                        style={{
+                            cursor: 'pointer',
                             border: videoProvider === 'sora' ? '2px solid blue' : '2px solid #ddd',
-                            padding: 15,
-                            borderRadius: 6,
+                            padding: 15, borderRadius: 6,
                             backgroundColor: videoProvider === 'sora' ? '#f0f9ff' : 'white'
                         }}
                     >
                         <strong>OpenAI Sora 2</strong>
-                        <p>Social Media (Fast)</p>
+                        <p style={{ color: '#666', fontSize: 12 }}>Social media speed</p>
                     </div>
 
-                    <div 
+                    <div
                         onClick={() => setVideoProvider('sora-pro')}
-                        style={{ 
-                            cursor: 'pointer', 
+                        style={{
+                            cursor: 'pointer',
                             border: videoProvider === 'sora-pro' ? '2px solid blue' : '2px solid #ddd',
-                            padding: 15,
-                            borderRadius: 6,
+                            padding: 15, borderRadius: 6,
                             backgroundColor: videoProvider === 'sora-pro' ? '#f0f9ff' : 'white'
                         }}
                     >
                         <strong>OpenAI Sora 2 Pro</strong>
-                        <p>Marketing Quality</p>
+                        <p style={{ color: '#666', fontSize: 12 }}>Marketing quality</p>
                     </div>
                 </div>
             </div>

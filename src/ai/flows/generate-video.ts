@@ -17,6 +17,8 @@ import {
 
 import { generateSoraVideo } from '../generators/sora';
 import { generateVeoVideo } from '../generators/veo';
+import { generateKlingVideo, generateWanVideo } from '../generators/fal-video';
+import { generateRemotionVideo } from '../generators/remotion-video';
 import { getSafeVideoProviderAction } from '@/server/actions/super-admin/safe-settings';
 
 const FALLBACK_VIDEO_URL = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4';
@@ -59,7 +61,43 @@ async function runVideoGeneration(
     console.log(`[generateVideoFlow] Input: ${JSON.stringify(input)}`);
     console.log(`[generateVideoFlow] ========================================`);
 
-    if (provider === 'sora' || provider === 'sora-pro') {
+    // fal.ai providers — Kling v2 Master and Wan 2.1
+    if (provider === 'kling') {
+        try {
+            console.log('[generateVideoFlow] Attempting Kling v2 Master (fal.ai)...');
+            return await generateKlingVideo(input);
+        } catch (err: unknown) {
+            console.error('[generateVideoFlow] Kling failed:', (err as Error).message);
+        }
+        // Fallback: Wan
+        try {
+            console.log('[generateVideoFlow] Kling fallback → Wan 2.1...');
+            return await generateWanVideo(input);
+        } catch (err: unknown) {
+            console.error('[generateVideoFlow] Wan fallback failed:', (err as Error).message);
+        }
+    } else if (provider === 'wan') {
+        try {
+            console.log('[generateVideoFlow] Attempting Wan 2.1 (fal.ai)...');
+            return await generateWanVideo(input);
+        } catch (err: unknown) {
+            console.error('[generateVideoFlow] Wan failed:', (err as Error).message);
+        }
+    } else if (provider === 'remotion') {
+        try {
+            console.log('[generateVideoFlow] Attempting Remotion branded render...');
+            return await generateRemotionVideo(input);
+        } catch (err: unknown) {
+            console.error('[generateVideoFlow] Remotion failed:', (err as Error).message);
+            // Fallback: Kling
+            try {
+                console.log('[generateVideoFlow] Remotion fallback → Kling v2...');
+                return await generateKlingVideo(input);
+            } catch (klingErr: unknown) {
+                console.error('[generateVideoFlow] Kling fallback failed:', (klingErr as Error).message);
+            }
+        }
+    } else if (provider === 'sora' || provider === 'sora-pro') {
         const isPro = provider === 'sora-pro';
         const modelId = isPro ? 'sora-2-pro' : 'sora-2';
 
