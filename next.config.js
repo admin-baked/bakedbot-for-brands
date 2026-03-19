@@ -26,6 +26,9 @@ const nextConfig = {
     ],
   },
   serverExternalPackages: [
+    'remotion',
+    '@remotion/renderer',
+    '@remotion/bundler',
     '@lancedb/lancedb',
     '@lancedb/lancedb-darwin-arm64',
     '@lancedb/lancedb-linux-arm64-gnu',
