@@ -25,6 +25,7 @@ import {
     BarChart2,
     Newspaper,
     Mail,
+    Users,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -44,6 +45,7 @@ import { AnalyticsChartArtifact } from './artifacts/analytics-chart-artifact';
 import { AnalyticsBriefingArtifact } from './artifacts/analytics-briefing-artifact';
 import { OutreachDraftCard } from './artifacts/outreach-draft-card';
 import { ExecutiveProactiveCheckArtifact, type ExecProactiveCheckData } from './artifacts/executive-proactive-check-artifact';
+import { CohortReportArtifact } from './artifacts/cohort-report-artifact';
 import { CreativeMediaPreview } from './artifacts/creative-media-preview';
 import { VmRunView } from '@/components/artifacts';
 import { mapVmRunStatusToInboxStatus, resolveVmRunApproval, type VmRunArtifactData } from '@/types/agent-vm';
@@ -64,6 +66,7 @@ const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
     creative_content: Palette,
     analytics_chart: BarChart2,
     analytics_briefing: Newspaper,
+    cohort_report: Users,
     outreach_draft: Mail,
     executive_proactive_check: Sparkles,
     vm_run: Sparkles,
@@ -490,6 +493,9 @@ export function InboxArtifactPanel({ artifacts, className }: InboxArtifactPanelP
                                     )}
                                     {selectedArtifact.type === 'analytics_briefing' && (
                                         <AnalyticsBriefingArtifact artifact={selectedArtifact} />
+                                    )}
+                                    {selectedArtifact.type === 'cohort_report' && (
+                                        <CohortReportArtifact artifact={selectedArtifact} />
                                     )}
                                     {selectedArtifact.type === 'outreach_draft' && (
                                         <OutreachDraftCard artifact={selectedArtifact} />

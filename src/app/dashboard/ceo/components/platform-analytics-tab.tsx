@@ -7,10 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import {
-    Users, TrendingUp, Activity, Zap, Bot,
+    Users, TrendingUp, TrendingDown, Activity, Zap, Bot,
     BarChart3,
-    ArrowUpRight, ArrowDownRight, RefreshCw
+    ArrowUpRight, ArrowDownRight, RefreshCw, ArrowRight
 } from 'lucide-react';
+import type { CustomerVisitCohortResult } from '@/server/actions/cohort-analytics';
 import { useMockData } from '@/hooks/use-mock-data';
 import { useEffect } from 'react';
 import Link from 'next/link';
@@ -108,9 +109,12 @@ import { getPlatformAnalytics } from '../actions/data-actions';
 import { getSeoKpis } from '../actions/seo-actions';
 import { type PlatformAnalyticsData } from '../actions/types';
 import type { SeoKpis } from '@/lib/seo-kpis';
+import { getCustomerVisitCohort } from '@/server/actions/cohort-analytics';
 
 import { calculateMrrLadder } from '@/lib/mrr-ladder';
 import SeoKpisWidget from './seo-kpis-widget';
+
+const COHORT_ORG_ID = 'org_thrive_syracuse'; // Primary pilot org
 
 export default function PlatformAnalyticsTab() {
     const [refreshing, setRefreshing] = useState(false);
@@ -119,6 +123,9 @@ export default function PlatformAnalyticsTab() {
     const [seoKpis, setSeoKpis] = useState<SeoKpis | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [cohortData, setCohortData] = useState<CustomerVisitCohortResult | null>(null);
+    const [cohortDays, setCohortDays] = useState<90 | 180 | 365>(90);
+    const [cohortLoading, setCohortLoading] = useState(false);
 
     const fetchMetrics = async () => {
         setLoading(true);
@@ -166,12 +173,25 @@ export default function PlatformAnalyticsTab() {
     useEffect(() => {
         if (!isMockLoading) {
             fetchMetrics();
+            if (!isMock) fetchCohort(cohortDays);
         }
     }, [isMock, isMockLoading]);
 
     const handleRefresh = () => {
         setRefreshing(true);
         fetchMetrics();
+    };
+
+    const fetchCohort = async (days: 90 | 180 | 365) => {
+        setCohortLoading(true);
+        try {
+            const result = await getCustomerVisitCohort(COHORT_ORG_ID, days);
+            setCohortData(result);
+        } catch {
+            // silently fail — cohort is non-critical
+        } finally {
+            setCohortLoading(false);
+        }
     };
 
     if (loading || isMockLoading) {
@@ -451,6 +471,111 @@ export default function PlatformAnalyticsTab() {
                                     ))}
                                 </tbody>
                             </table>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* Customer Visit Cohort */}
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <CardTitle className="flex items-center gap-2">
+                                <Users className="h-5 w-5 text-primary" />
+                                Customer Visit Funnel
+                            </CardTitle>
+                            <CardDescription>Where customers drop off — 1st through 5th+ visit</CardDescription>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            {([90, 180, 365] as const).map(d => (
+                                <Button
+                                    key={d}
+                                    variant={cohortDays === d ? 'default' : 'outline'}
+                                    size="sm"
+                                    className="text-xs h-7 px-2"
+                                    disabled={cohortLoading}
+                                    onClick={() => {
+                                        setCohortDays(d);
+                                        fetchCohort(d);
+                                    }}
+                                >
+                                    {d}d
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    {cohortLoading ? (
+                        <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+                            <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                            Loading cohort data...
+                        </div>
+                    ) : !cohortData ? (
+                        <div className="py-6 text-center">
+                            <p className="text-sm text-muted-foreground mb-3">Load cohort data for Thrive Syracuse</p>
+                            <Button size="sm" variant="outline" onClick={() => fetchCohort(cohortDays)}>
+                                Load Cohort
+                            </Button>
+                        </div>
+                    ) : cohortData.totalCustomers === 0 ? (
+                        <p className="text-sm text-muted-foreground py-4">No customer data available for this period.</p>
+                    ) : (
+                        <div className="space-y-4">
+                            {/* Summary row */}
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="text-center p-3 rounded-lg bg-muted/30">
+                                    <p className="text-2xl font-bold">{cohortData.totalCustomers.toLocaleString()}</p>
+                                    <p className="text-xs text-muted-foreground">Active customers</p>
+                                </div>
+                                <div className="text-center p-3 rounded-lg bg-muted/30">
+                                    <p className="text-2xl font-bold text-primary">{cohortData.repeatCustomerRate}%</p>
+                                    <p className="text-xs text-muted-foreground">Repeat rate</p>
+                                </div>
+                                <div className="text-center p-3 rounded-lg bg-red-50 dark:bg-red-950/20">
+                                    <p className="text-2xl font-bold text-red-500">{cohortData.topDropoffPct}%</p>
+                                    <p className="text-xs text-muted-foreground">Drop at visit {cohortData.topDropoffVisit}→{cohortData.topDropoffVisit + 1}</p>
+                                </div>
+                            </div>
+
+                            {/* Funnel bars */}
+                            <div className="space-y-2 pt-1">
+                                {cohortData.buckets.map((bucket) => {
+                                    const isWorst = bucket.visits - 1 === cohortData.topDropoffVisit && bucket.visits > 1;
+                                    const barWidth = cohortData.totalCustomers > 0
+                                        ? Math.round((bucket.count / cohortData.totalCustomers) * 100)
+                                        : 0;
+                                    return (
+                                        <div key={bucket.visits} className="space-y-1">
+                                            <div className="flex items-center justify-between text-xs">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-medium w-20">{bucket.label}</span>
+                                                    <span className="text-muted-foreground">{bucket.count.toLocaleString()} customers</span>
+                                                    {bucket.dropoffPct !== null && (
+                                                        <span className={`flex items-center gap-0.5 ${isWorst ? 'text-red-500 font-medium' : 'text-muted-foreground'}`}>
+                                                            <ArrowRight className="h-2.5 w-2.5" />
+                                                            {bucket.retentionPct}% retained{isWorst ? ' ⚠️' : ''}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <span className="font-mono text-muted-foreground">{bucket.pct}%</span>
+                                            </div>
+                                            <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                                <div
+                                                    className={`h-full rounded-full ${isWorst ? 'bg-red-400' : bucket.visits === 1 ? 'bg-primary' : 'bg-primary/65'}`}
+                                                    style={{ width: `${barWidth}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Pops insight */}
+                            <div className="rounded-lg bg-muted/40 p-3 mt-2">
+                                <p className="text-xs text-muted-foreground whitespace-pre-line leading-relaxed">{cohortData.summary}</p>
+                            </div>
                         </div>
                     )}
                 </CardContent>

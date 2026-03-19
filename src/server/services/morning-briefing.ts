@@ -862,4 +862,28 @@ export async function postMorningBriefingToInbox(orgId: string): Promise<void> {
         meetings: briefing.meetings?.length ?? 0,
         emailUnread: briefing.emailDigest?.unreadCount ?? 0,
     });
+
+    // Weekly cohort report — emit if not posted in the last 7 days
+    try {
+        const { getLastCohortReportDate, computeCohortData, postCohortReportToInbox } = await import('@/server/actions/cohort-analytics');
+        const lastPosted = await getLastCohortReportDate(orgId);
+        const sevenDaysAgo = new Date(Date.now() - 7 * 86_400_000);
+        if (!lastPosted || lastPosted < sevenDaysAgo) {
+            const cohortData = await computeCohortData(orgId, 90);
+            if (cohortData.totalCustomers > 0) {
+                await postCohortReportToInbox(orgId, cohortData);
+                logger.info('[MorningBriefing] Posted weekly cohort report', {
+                    orgId,
+                    totalCustomers: cohortData.totalCustomers,
+                    repeatRate: cohortData.repeatCustomerRate,
+                });
+            }
+        }
+    } catch (cohortErr) {
+        // Non-blocking — briefing always succeeds even if cohort fails
+        logger.warn('[MorningBriefing] Cohort report failed (non-blocking)', {
+            orgId,
+            error: String(cohortErr),
+        });
+    }
 }

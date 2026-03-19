@@ -1,13 +1,14 @@
 /**
  * Dispensary Analytics Tools
  *
- * 4 tools for dispensary business intelligence:
- *   1. promotion_scorecard   — pre/during/post GP delta for any date range
+ * 5 tools for dispensary business intelligence:
+ *   1. promotion_scorecard    — pre/during/post GP delta for any date range
  *   2. sku_profitability_view — per-SKU contribution margin (heroes vs. drains)
  *   3. inventory_health_score — aging buckets + $ at risk
  *   4. vendor_scorecard       — per-brand sell-through + margin tier
+ *   5. customer_visit_cohort  — visit-frequency funnel (1st→2nd→3rd→4th→5+ visits)
  *
- * Used by: MoneyMike (all 4), Pops (all 4), Craig (promotion_scorecard only)
+ * Used by: MoneyMike (1-4), Pops (all 5), Craig (1 only)
  */
 
 import { z } from 'zod';
@@ -834,6 +835,17 @@ for shelf space, renegotiate, or rationalize. Use for buy-side decisions and ven
       lookbackDays: z.number().default(30).describe('Days of sales history to evaluate'),
     }),
   },
+  {
+    name: 'customer_visit_cohort',
+    description: `Customer visit-frequency funnel analysis. Shows what percentage of customers
+returned for a 2nd, 3rd, 4th, and 5th+ visit. Identifies the biggest dropout point in the
+customer lifecycle (e.g. "73% of customers never return after visit 1").
+Use when asked about customer lifecycle, retention, repeat visits, dropping off, or visit patterns.
+Default period is 90 days; supports 90, 180, or 365 days.`,
+    schema: z.object({
+      daysBack: z.union([z.literal(90), z.literal(180), z.literal(365)]).default(90).describe('Analysis window in days'),
+    }),
+  },
 ];
 
 // =============================================================================
@@ -868,6 +880,11 @@ export function makeAnalyticsToolsImpl(orgId: string) {
     async vendor_scorecard(input: { lookbackDays?: number }) {
       return vendorScorecard(orgId, input);
     },
+
+    async customer_visit_cohort(input: { daysBack?: 90 | 180 | 365 }) {
+      const { computeCohortData } = await import('@/server/actions/cohort-analytics');
+      return computeCohortData(orgId, input.daysBack ?? 90);
+    },
   };
 }
 
@@ -894,6 +911,9 @@ export async function executeDispensaryAnalyticsTool(
 
     case 'vendor_scorecard':
       return impl.vendor_scorecard(args as Parameters<typeof impl.vendor_scorecard>[0]);
+
+    case 'customer_visit_cohort':
+      return impl.customer_visit_cohort(args as Parameters<typeof impl.customer_visit_cohort>[0]);
 
     default:
       throw new Error(`Unknown dispensary analytics tool: ${toolName}`);

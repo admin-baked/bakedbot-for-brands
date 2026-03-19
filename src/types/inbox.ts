@@ -254,6 +254,7 @@ export type InboxArtifactType =
     | 'analytics_chart'     // Recharts chart from agent analytics tool output
     | 'analytics_briefing'  // Morning proactive briefing with metrics + news
     | 'executive_proactive_check' // Executive intelligence brief from 9 AM proactive cron
+    | 'cohort_report'       // Customer visit-frequency funnel (1st→2nd→3rd→4th→5+ visits)
     // ---- Code & Execution Artifacts ----
     | 'code_sandbox';       // Live editable code with sandboxed iframe preview
 
@@ -1403,7 +1404,7 @@ export const InboxArtifactTypeSchema = z.enum([
     'release_notes', 'onboarding_checklist', 'content_calendar', 'okr_document', 'meeting_notes',
     'board_deck', 'budget_model', 'job_spec', 'research_brief', 'compliance_brief',
     // Analytics Artifacts
-    'analytics_chart', 'analytics_briefing',
+    'analytics_chart', 'analytics_briefing', 'cohort_report',
     // Code & Execution Artifacts
     'code_sandbox',
 ]);
@@ -1782,7 +1783,7 @@ export function getArtifactTypesForThreadType(type: InboxThreadType): InboxArtif
         // Customer
         product_discovery: [],
         support: [],
-        general: [],
+        general: ['cohort_report'],
         // Super User: Growth Management
         growth_review: ['growth_report'],
         churn_risk: ['churn_scorecard'],
