@@ -1,7 +1,7 @@
 'use server';
 
 import { createServerClient } from '@/firebase/server-client';
-import { ChatSession } from '@/lib/store/agent-chat-store';
+import type { ChatSession } from '@/lib/store/agent-chat-store';
 import { logger } from '@/lib/monitoring';
 import { requireUser } from '@/server/auth/auth';
 
