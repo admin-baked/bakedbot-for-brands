@@ -1,8 +1,7 @@
 import { checkGmailConnection, getOutreachDashboardData, triggerCRMLeadSync } from '@/server/actions/ny-outreach-dashboard';
 import { requireUser } from '@/server/auth/auth';
 import { getAdminFirestore } from '@/firebase/admin';
-import { getOutreachStats } from '@/server/services/ny-outreach/outreach-service';
-import { getGmailToken } from '@/server/integrations/gmail/token-storage';
+import { getOutreachStats } from '@/server/services/ny-outreach/outreach-read-model';
 import { syncCRMDispensariesToOutreachQueue } from '@/server/services/ny-outreach/crm-queue-sync';
 
 jest.mock('@/server/auth/auth', () => ({
@@ -13,8 +12,11 @@ jest.mock('@/firebase/admin', () => ({
     getAdminFirestore: jest.fn(),
 }));
 
-jest.mock('@/server/services/ny-outreach/outreach-service', () => ({
+jest.mock('@/server/services/ny-outreach/outreach-read-model', () => ({
     getOutreachStats: jest.fn(),
+}));
+
+jest.mock('@/server/services/ny-outreach/outreach-service', () => ({
     sendTestOutreachBatch: jest.fn(),
     trackInCRM: jest.fn(),
 }));
@@ -55,10 +57,6 @@ jest.mock('@/server/services/glm-usage', () => ({
     getGLMUsageStatus: jest.fn(),
 }));
 
-jest.mock('@/server/integrations/gmail/token-storage', () => ({
-    getGmailToken: jest.fn(),
-}));
-
 jest.mock('@/lib/logger', () => ({
     logger: {
         info: jest.fn(),
@@ -79,18 +77,49 @@ describe('ny-outreach-dashboard actions', () => {
         jest.clearAllMocks();
     });
 
-    it('reports Gmail connection using the canonical token helper', async () => {
+    it('reports Gmail connection using the stored integration document', async () => {
         (requireUser as jest.Mock).mockResolvedValue({
             uid: 'user-1',
             email: 'martez@bakedbot.ai',
         });
-        (getGmailToken as jest.Mock).mockResolvedValue({
-            refresh_token: 'refresh-token',
+        (getAdminFirestore as jest.Mock).mockReturnValue({
+            collection: jest.fn((name: string) => {
+                if (name !== 'users') {
+                    throw new Error(`Unexpected collection: ${name}`);
+                }
+
+                return {
+                    doc: jest.fn((id: string) => {
+                        expect(id).toBe('user-1');
+
+                        return {
+                            collection: jest.fn((subcollection: string) => {
+                                if (subcollection !== 'integrations') {
+                                    throw new Error(`Unexpected subcollection: ${subcollection}`);
+                                }
+
+                                return {
+                                    doc: jest.fn((docId: string) => {
+                                        expect(docId).toBe('gmail');
+                                        return {
+                                            get: jest.fn().mockResolvedValue({
+                                                exists: true,
+                                                data: () => ({
+                                                    refreshTokenEncrypted: 'encrypted-refresh-token',
+                                                }),
+                                            }),
+                                        };
+                                    }),
+                                };
+                            }),
+                        };
+                    }),
+                };
+            }),
         });
 
         const result = await checkGmailConnection();
 
-        expect(getGmailToken).toHaveBeenCalledWith('user-1');
         expect(result).toEqual({
             connected: true,
             email: 'martez@bakedbot.ai',

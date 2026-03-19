@@ -13,7 +13,10 @@ const createJestConfig = nextJest({
 // Add any custom config to be passed to Jest
 const customJestConfig = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-  modulePathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/usr/', '<rootDir>/.firebase', '<rootDir>/coverage/', '<rootDir>/dist/'],
+  roots: ['<rootDir>/src', '<rootDir>/tests', '<rootDir>/cloud-run'],
+  modulePathIgnorePatterns: [
+    '<rootDir>[\\\\/](?:\\.next|usr|\\.firebase|coverage|dist|\\.w)[\\\\/]',
+  ],
   moduleNameMapper: {
     // Specific mocks (Must come before generic aliases)
     '^@/ai/genkit$': '<rootDir>/tests/__mocks__/ai-genkit.ts',
@@ -34,6 +37,8 @@ const customJestConfig = {
     '^jsonpath-plus$': '<rootDir>/tests/__mocks__/jsonpath-plus.js',
   },
   testEnvironment: 'jsdom',
+  testPathIgnorePatterns: ['<rootDir>[\\\\/]\\.w[\\\\/]'],
+  watchPathIgnorePatterns: ['<rootDir>[\\\\/]\\.w[\\\\/]'],
   testMatch: [
     '**/tests/**/*.spec.ts',
     '**/tests/**/*.spec.tsx',
