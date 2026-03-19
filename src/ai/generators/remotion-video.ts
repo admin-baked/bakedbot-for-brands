@@ -69,8 +69,19 @@ export async function generateRemotionVideo(
         headline: input.headline,
     };
 
-    // Dynamic import — @remotion/renderer is heavy and server-only
-    const { renderMedia, selectComposition } = await import('@remotion/renderer');
+    // Dynamic import — @remotion/renderer is heavy and server-only.
+    // webpackIgnore: true prevents webpack from trying to bundle this at build time.
+    // If the package isn't installed (Cloud Run without Chrome), this throws and the
+    // caller's fallback chain (Kling) kicks in.
+    let renderMedia: (typeof import('@remotion/renderer'))['renderMedia'];
+    let selectComposition: (typeof import('@remotion/renderer'))['selectComposition'];
+    try {
+        const mod = await import(/* webpackIgnore: true */ '@remotion/renderer' as string);
+        renderMedia = mod.renderMedia;
+        selectComposition = mod.selectComposition;
+    } catch {
+        throw new Error('[Remotion] @remotion/renderer not available in this environment. Falling back to Kling.');
+    }
 
     // Path to the compiled Remotion bundle
     // In dev: `npx remotion bundle` creates dist; in prod: we pre-bundle at build time
@@ -153,7 +164,7 @@ export async function generateRemotionVideo(
  * Outputs to .remotion/bundle/
  */
 export async function bundleRemotionProject(): Promise<string> {
-    const { bundle } = await import('@remotion/renderer');
+    const { bundle } = await import(/* webpackIgnore: true */ '@remotion/renderer' as string);
 
     const bundleLocation = await bundle({
         entryPoint: path.resolve(process.cwd(), 'src/remotion/index.ts'),
