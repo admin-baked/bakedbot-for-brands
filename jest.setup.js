@@ -143,4 +143,6 @@ jest.mock('genkit', () => ({
         defineFlow: jest.fn(() => jest.fn()),
     })),
     Genkit: jest.fn(),
+    tool: jest.fn((_config, impl) => impl),
+    z: require('zod'),
 }));

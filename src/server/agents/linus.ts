@@ -1632,6 +1632,35 @@ const LINUS_TOOLS: ClaudeTool[] = [
     }
 ];
 
+type LinusToolMode = 'full' | 'slack';
+
+const LINUS_SLACK_TOOL_NAMES = new Set([
+    'run_health_check',
+    'read_file',
+    'write_file',
+    'run_command',
+    'bash',
+    'archive_work',
+    'query_work_history',
+    'search_codebase',
+    'find_files',
+    'git_log',
+    'git_diff',
+    'git_blame',
+    'analyze_stack_trace',
+    'run_specific_test',
+    'list_directory',
+    'run_browser_test',
+]);
+
+function getLinusTools(mode: LinusToolMode = 'full'): ClaudeTool[] {
+    if (mode === 'full') {
+        return LINUS_TOOLS;
+    }
+
+    return LINUS_TOOLS.filter(tool => LINUS_SLACK_TOOL_NAMES.has(tool.name));
+}
+
 // ============================================================================
 // TOOL EXECUTOR
 // ============================================================================
@@ -4086,7 +4115,8 @@ test('${scenario.slice(0, 50)}', async ({ page }) => {
 
 export interface LinusRequest {
     prompt: string;
-    maxIterations?: number; // Default: 15 for direct use, 8 for Slack/harness context
+    maxIterations?: number; // Default: 15 for direct use, 5 for Slack/harness context
+    toolMode?: LinusToolMode;
     context?: {
         userId?: string;
         sessionId?: string;
@@ -4100,6 +4130,15 @@ export interface LinusResponse {
     toolExecutions: ClaudeResult['toolExecutions'];
     decision?: string;
     model: string;
+}
+
+function getLinusCodebaseContext(claudeContext: string, toolMode: LinusToolMode): string {
+    if (toolMode !== 'slack') {
+        return claudeContext;
+    }
+
+    // Slack runs need enough grounding to stay accurate, but not the full file.
+    return claudeContext.split(/\r?\n/).slice(0, 120).join('\n');
 }
 
 // Build dynamic system prompt with grounding
@@ -4297,6 +4336,8 @@ export async function runLinus(request: LinusRequest): Promise<LinusResponse> {
     if (!isClaudeAvailable()) {
         throw new Error('Claude API is required for Linus. Set CLAUDE_API_KEY environment variable.');
     }
+
+    const toolMode = request.toolMode ?? 'full';
     
     // Read CLAUDE.md for codebase context (Claude Code convention)
     let claudeContext = '';
@@ -4310,10 +4351,17 @@ export async function runLinus(request: LinusRequest): Promise<LinusResponse> {
     
     const fullPrompt = `${LINUS_SYSTEM_PROMPT}
 
+${toolMode === 'slack' ? `
+## SLACK EXECUTION MODE
+- Optimize for a fast first useful answer.
+- Prefer the smallest viable tool set and the fewest tool calls needed to unblock the user.
+- If a full fix will take longer, summarize the root cause or next safe action clearly instead of stalling.
+` : ''}
+
 ---
 
 ## CODEBASE CONTEXT (from CLAUDE.md)
-${claudeContext}
+${getLinusCodebaseContext(claudeContext, toolMode)}
 
 ---
 
@@ -4321,13 +4369,13 @@ User Request: ${request.prompt}`;
     
     const result = await executeWithTools(
         fullPrompt,
-        LINUS_TOOLS,
+        getLinusTools(toolMode),
         linusToolExecutor,
         {
             userId: request.context?.userId,
             orgId: request.context?.orgId,
             brandId: request.context?.brandId,
-            maxIterations: request.maxIterations ?? 15, // Default 15; callers may lower for Slack context
+            maxIterations: request.maxIterations ?? (toolMode === 'slack' ? 5 : 15),
             agentContext: LINUS_AGENT_CONTEXT,
         }
     );
@@ -4401,8 +4449,11 @@ export const linusAgent: AgentImplementation<AgentMemory, any> = {
                 if (pattern.test(stimulus)) {
                     logger.info('[Linus] Detected super power command — executing directly', { command: stimulus });
                     const { spawn } = await import('child_process');
-                    const command = stimulus.startsWith('npm run') ? stimulus : `npm run ${stimulus}`;
-                    const child = spawn('npm', ['run', command], {
+                    const normalizedStimulus = stimulus.trim();
+                    const command = normalizedStimulus.startsWith('npm run')
+                        ? normalizedStimulus
+                        : `npm run ${normalizedStimulus}`;
+                    const child = spawn(command, {
                         cwd: process.cwd(),
                         stdio: 'inherit',
                         shell: true,
@@ -4421,9 +4472,9 @@ export const linusAgent: AgentImplementation<AgentMemory, any> = {
             // === END PRE-CLASSIFIER ===
 
             try {
-                // Slack/harness context: limit to 8 iterations for faster, focused responses.
-                // Full 15 iterations is reserved for direct CTO-mode invocations.
-                const result = await runLinus({ prompt: stimulus, maxIterations: 8 });
+                // Slack/harness context: keep the tool surface narrow and the loop short
+                // so Linus can respond inside Slack before users assume the bot is broken.
+                const result = await runLinus({ prompt: stimulus, maxIterations: 5, toolMode: 'slack' });
                 
                 return {
                     updatedMemory: agentMemory,

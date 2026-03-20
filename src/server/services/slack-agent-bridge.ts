@@ -33,7 +33,7 @@ const SLACK_SYSTEM_USER: DecodedIdToken = {
 // ---------------------------------------------------------------------------
 const KEYWORD_MAP: Array<{ keywords: string[]; personaId: string }> = [
     { keywords: ['leo', 'coo', 'operations', 'ops'], personaId: 'leo' },
-    { keywords: ['linus', 'cto', 'tech', 'build', 'code', 'deploy', 'bug', 'error'], personaId: 'linus' },
+    { keywords: ['linus', 'cto', 'tech', 'build', 'code', 'deploy', 'bug', 'error', 'fix', 'broken', 'timeout', 'slow', 'latency'], personaId: 'linus' },
     { keywords: ['jack', 'cro', 'revenue', 'sales', 'pipeline', 'deal'], personaId: 'jack' },
     { keywords: ['glenda', 'cmo', 'brand', 'marketing'], personaId: 'glenda' },
     { keywords: ['ezal', 'intel', 'competitive', 'lookout', 'competitor'], personaId: 'ezal' },
@@ -159,6 +159,13 @@ export async function resolveMentions(userIds: string[], requestorSlackId: strin
 export function detectAgent(text: string, channelName: string, isDm: boolean): string {
     const lower = text.toLowerCase();
 
+    // Linus-specific meta/runtime questions often arrive in DMs without an
+    // explicit "linus" keyword. Route them to CTO instead of the default DM agent.
+    if (/\b(what|which)\s+model\b|\bmodel\s+are\s+you\s+using\b|\bwhat\s+are\s+you\s+running\s+on\b/i.test(lower)) {
+        logger.info(`[SlackBridge] detectAgent → Tier0(runtime question) → linus | channel="${channelName}"`);
+        return 'linus';
+    }
+
     // Agent names that count as an explicit invocation (not generic keywords)
     const EXPLICIT_NAMES = [
         'leo', 'linus', 'jack', 'glenda', 'ezal', 'craig',
@@ -185,7 +192,7 @@ export function detectAgent(text: string, channelName: string, isDm: boolean): s
 
     // 3. Generic keyword match (lower priority — only if no channel match)
     const GENERIC_KEYWORDS = [
-        'operations', 'ops', 'tech', 'build', 'code', 'deploy', 'bug', 'error',
+        'operations', 'ops', 'tech', 'build', 'code', 'deploy', 'bug', 'error', 'fix', 'broken', 'timeout', 'slow', 'latency',
         'revenue', 'sales', 'pipeline', 'deal', 'brand', 'marketing',
         'intel', 'competitive', 'lookout', 'competitor', 'social', 'campaign',
         'post', 'content', 'analytics', 'data', 'report', 'metrics',
@@ -207,6 +214,25 @@ export function detectAgent(text: string, channelName: string, isDm: boolean): s
     const defaultAgent = isDm ? 'leo' : 'puff';
     logger.info(`[SlackBridge] detectAgent → Tier4(default) → ${defaultAgent} | channel="${channelName}" isDm=${isDm}`);
     return defaultAgent;
+}
+
+function buildInitialSlackStatus(personaId: string, cleanText: string): string {
+    const personaName = getPersonaName(personaId);
+    const lower = cleanText.toLowerCase();
+
+    if (personaId === 'linus') {
+        if (/\b(what|which)\s+model\b|\bmodel\s+are\s+you\s+using\b/.test(lower)) {
+            return `_${personaName} is on it: checking the current runtime and reply path..._`;
+        }
+
+        if (/\b(fix|bug|broken|error|timeout|timed out|slow|latency|build|deploy|test)\b/.test(lower)) {
+            return `_${personaName} is on it: tracing the failing path and lining up the safest fix..._`;
+        }
+
+        return `_${personaName} is on it: reviewing the request and pulling the right tools..._`;
+    }
+
+    return `_${personaName} is thinking..._`;
 }
 
 // ---------------------------------------------------------------------------
@@ -284,10 +310,33 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
         }
 
         // 5. Post a "thinking" indicator so user gets immediate feedback
-        const thinkingResult = await slackService.postInThread(channel, threadTs, `_${getPersonaName(personaId)} is thinking..._`);
+        const thinkingResult = await slackService.postInThread(
+            channel,
+            threadTs,
+            buildInitialSlackStatus(personaId, cleanText),
+        );
         if (!thinkingResult.sent) {
             logger.error(`[SlackBridge] Failed to post thinking message: ${thinkingResult.error} — check SLACK_BOT_TOKEN and bot channel membership`);
         }
+        const workingMessageTs = thinkingResult.sent ? thinkingResult.ts : undefined;
+
+        const sendOrUpdateThreadMessage = async (text: string, blocks?: any[]) => {
+            if (workingMessageTs) {
+                const updateResult = await slackService.updateMessage(channel, workingMessageTs, text, blocks);
+                if (updateResult.sent) {
+                    return updateResult;
+                }
+
+                logger.warn('[SlackBridge] Failed to update working message, posting a fresh thread reply instead', {
+                    channel,
+                    threadTs,
+                    workingMessageTs,
+                    error: updateResult.error,
+                });
+            }
+
+            return slackService.postInThread(channel, threadTs, text, blocks);
+        };
 
         // 6. Convert Slack files to agent attachments if present
         const attachments = files.length > 0 ? convertSlackFilesToAttachments(files) : undefined;
@@ -324,8 +373,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             ) as any;
         } catch (agentErr: any) {
             logger.error('[SlackBridge] Agent execution error:', agentErr.message);
-            await slackService.postInThread(
-                channel, threadTs,
+            await sendOrUpdateThreadMessage(
                 `⚠️ ${getPersonaName(personaId)} encountered an issue: ${agentErr.message}. The team has been notified.`
             );
             return;
@@ -333,8 +381,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
 
         if (!result.content) {
             logger.warn('[SlackBridge] Agent returned empty content');
-            await slackService.postInThread(
-                channel, threadTs,
+            await sendOrUpdateThreadMessage(
                 `Sorry, ${getPersonaName(personaId)} had trouble generating a response. Please try again.`
             );
             return;
@@ -371,9 +418,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                 approvalId
             );
 
-            const approvalResult = await slackService.postInThread(
-                channel,
-                threadTs,
+            const approvalResult = await sendOrUpdateThreadMessage(
                 '⚠️ Approval Required',
                 approvalBlocks
             );
@@ -409,7 +454,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
         const blocks = SlackService.formatAgentResponse(result.content, personaId);
         const fallbackText = `${getPersonaName(personaId)}: ${result.content.slice(0, 200)}`;
 
-        await slackService.postInThread(channel, threadTs, fallbackText, blocks);
+        await sendOrUpdateThreadMessage(fallbackText, blocks);
 
         // 10. Archive response for audit trail
         const requestType = isDm ? 'dm' : isChannelMsg ? 'channel' : 'mention';

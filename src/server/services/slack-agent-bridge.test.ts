@@ -3,7 +3,54 @@
  * Tests agent routing, message processing, and welcome messages
  */
 
-import { detectAgent, stripBotMention } from './slack-agent-bridge';
+jest.mock('@/server/agents/agent-runner', () => ({
+    __esModule: true,
+    runAgentCore: jest.fn(),
+}));
+
+jest.mock('@/lib/request-context', () => ({
+    __esModule: true,
+    requestContext: {
+        run: jest.fn((_ctx, fn) => fn()),
+    },
+}));
+
+jest.mock('./communications/slack', () => ({
+    __esModule: true,
+    slackService: {
+        postInThread: jest.fn(),
+        updateMessage: jest.fn(),
+        getUserInfo: jest.fn(),
+        postMessage: jest.fn(),
+    },
+    SlackService: {
+        formatAgentResponse: jest.fn(),
+    },
+}));
+
+jest.mock('./slack-response-archive', () => ({
+    __esModule: true,
+    archiveSlackResponse: jest.fn(),
+}));
+
+jest.mock('./slack-approval', () => ({
+    __esModule: true,
+    detectRiskyAction: jest.fn(() => ({ isRisky: false })),
+    createApprovalRequest: jest.fn(),
+    formatApprovalBlocks: jest.fn(),
+    setApprovalMessageTs: jest.fn(),
+}));
+
+jest.mock('@/lib/logger', () => ({
+    __esModule: true,
+    logger: {
+        info: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+    },
+}));
+
+const { detectAgent, stripBotMention } = require('./slack-agent-bridge');
 
 describe('Slack Agent Bridge', () => {
     // =========================================================================
@@ -69,6 +116,13 @@ describe('Slack Agent Bridge', () => {
                 expect(detectAgent('deploy update', '', true)).toBe('linus');
                 expect(detectAgent('bug report', '', true)).toBe('linus');
                 expect(detectAgent('error log', '', true)).toBe('linus');
+                expect(detectAgent('please fix this timeout', '', true)).toBe('linus');
+                expect(detectAgent('the agent is broken and slow', '', true)).toBe('linus');
+            });
+
+            it('should detect linus runtime/model questions', () => {
+                expect(detectAgent('what model are you using?', '', true)).toBe('linus');
+                expect(detectAgent('which model are you on right now?', '', true)).toBe('linus');
             });
 
             it('should be case-insensitive', () => {

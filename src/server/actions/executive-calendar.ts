@@ -73,6 +73,9 @@ function firestoreToBooking(id: string, data: Record<string, unknown>): MeetingB
         confirmationEmailSentAt: data.confirmationEmailSentAt
             ? (data.confirmationEmailSentAt as Timestamp).toDate()
             : null,
+        hostNotificationEmailSentAt: data.hostNotificationEmailSentAt
+            ? (data.hostNotificationEmailSentAt as Timestamp).toDate()
+            : null,
         oneHourReminderSentAt: data.oneHourReminderSentAt
             ? (data.oneHourReminderSentAt as Timestamp).toDate()
             : null,
@@ -157,6 +160,7 @@ export async function getAvailableSlots(
                 actionItems: [],
                 calendarEventId: null,
                 confirmationEmailSentAt: null,
+                hostNotificationEmailSentAt: null,
                 createdAt: new Date(),
                 updatedAt: new Date(),
             }));
@@ -257,6 +261,7 @@ export async function createBooking(
         meetingNotes: null,
         actionItems: [],
         confirmationEmailSentAt: null,
+        hostNotificationEmailSentAt: null,
         oneHourReminderSentAt: null,
         startNotificationSentAt: null,
         createdAt: now,
@@ -273,11 +278,33 @@ export async function createBooking(
         endAt: Timestamp.fromDate(endAt),
     });
     try {
-        await sendConfirmationEmail(fullBooking, profile);
-        await bookingRef.update({
-            confirmationEmailSentAt: Timestamp.now(),
-            updatedAt: Timestamp.now(),
-        });
+        const emailDelivery = await sendConfirmationEmail(fullBooking, profile);
+        const emailTimestamp = Timestamp.now();
+        const emailUpdates: Record<string, unknown> = {
+            updatedAt: emailTimestamp,
+        };
+
+        if (emailDelivery.guest.success) {
+            emailUpdates.confirmationEmailSentAt = emailTimestamp;
+        }
+
+        if (emailDelivery.host.success) {
+            emailUpdates.hostNotificationEmailSentAt = emailTimestamp;
+        }
+
+        await bookingRef.update(emailUpdates);
+
+        if (!emailDelivery.guest.success || !emailDelivery.host.success) {
+            logger.warn('[ExecCalendar] Partial booking email delivery', {
+                bookingId,
+                profileSlug,
+                guestDelivered: emailDelivery.guest.success,
+                hostDelivered: emailDelivery.host.success,
+                guestError: emailDelivery.guest.error,
+                hostError: emailDelivery.host.error,
+                senderUserIdResolved: Boolean(emailDelivery.senderUserId),
+            });
+        }
     } catch (err) {
         logger.error('[ExecCalendar] Confirmation email failed:', err instanceof Error ? { message: err.message } : { error: String(err) });
     }

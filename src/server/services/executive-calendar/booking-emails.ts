@@ -7,6 +7,7 @@
 import { sendGenericEmail } from '@/lib/email/dispatcher';
 import { MeetingBooking, ExecutiveProfile } from '@/types/executive-calendar';
 import { logger } from '@/lib/logger';
+import { getAdminAuth } from '@/firebase/admin';
 
 function formatDatetime(date: Date, timezone: string): string {
     return new Intl.DateTimeFormat('en-US', {
@@ -21,19 +22,55 @@ function formatDatetime(date: Date, timezone: string): string {
     }).format(date);
 }
 
+interface EmailDeliveryResult {
+    success: boolean;
+    error?: string;
+}
+
+export interface BookingConfirmationEmailResult {
+    guest: EmailDeliveryResult;
+    host: EmailDeliveryResult;
+    senderUserId: string | null;
+}
+
+async function resolveExecutiveSenderUserId(profile: ExecutiveProfile): Promise<string | null> {
+    if (profile.userId?.trim()) {
+        return profile.userId.trim();
+    }
+
+    const executiveEmail = profile.emailAddress.trim().toLowerCase();
+    if (!executiveEmail) {
+        return null;
+    }
+
+    try {
+        const userRecord = await getAdminAuth().getUserByEmail(executiveEmail);
+        return userRecord.uid;
+    } catch (err) {
+        logger.warn('[BookingEmails] Could not resolve executive Firebase user from email; provider fallback only', {
+            profileSlug: profile.profileSlug,
+            executiveEmail,
+            error: err instanceof Error ? err.message : String(err),
+        });
+        return null;
+    }
+}
+
 /**
  * Sends a booking confirmation to the external guest + notification to the exec.
  */
 export async function sendConfirmationEmail(
     booking: MeetingBooking,
     profile: ExecutiveProfile,
-): Promise<void> {
+): Promise<BookingConfirmationEmailResult> {
     const formattedTime = formatDatetime(booking.startAt, profile.availability.timezone);
+    const senderUserId = await resolveExecutiveSenderUserId(profile);
 
     // Email to the external guest
     const guestResult = await sendGenericEmail({
         to: booking.externalEmail,
         name: booking.externalName,
+        fromName: profile.displayName,
         subject: `Your meeting with ${profile.displayName} is confirmed ✓`,
         htmlBody: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #111;">
@@ -71,6 +108,7 @@ export async function sendConfirmationEmail(
             </div>
         `,
         communicationType: 'transactional',
+        userId: senderUserId ?? undefined,
     });
 
     if (!guestResult.success) {
@@ -81,6 +119,7 @@ export async function sendConfirmationEmail(
     const execResult = await sendGenericEmail({
         to: profile.emailAddress,
         name: profile.displayName,
+        fromName: profile.displayName,
         subject: `📅 New meeting: ${booking.externalName} — ${booking.meetingTypeName}`,
         htmlBody: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #111;">
@@ -98,11 +137,26 @@ export async function sendConfirmationEmail(
             </div>
         `,
         communicationType: 'transactional',
+        userId: senderUserId ?? undefined,
     });
 
     if (!execResult.success) {
         logger.warn(`[BookingEmails] Failed to send exec notification: ${execResult.error}`);
     }
+
+    logger.info('[BookingEmails] Confirmation delivery summary', {
+        bookingId: booking.id,
+        profileSlug: booking.profileSlug,
+        senderUserIdResolved: Boolean(senderUserId),
+        guestDelivered: guestResult.success,
+        hostDelivered: execResult.success,
+    });
+
+    return {
+        guest: guestResult,
+        host: execResult,
+        senderUserId,
+    };
 }
 
 /**

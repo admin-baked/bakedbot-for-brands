@@ -1,0 +1,31 @@
+﻿On branch fix/crm-embedding-model
+Your branch is ahead of 'origin/fix/crm-embedding-model' by 1 commit.
+  (use "git push" to publish your local commits)
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   jest.setup.js
+	modified:   public/embed/chatbot.css
+	modified:   public/embed/chatbot.js
+	modified:   public/embed/locator.css
+	modified:   public/embed/locator.js
+	modified:   src/server/actions/executive-calendar.ts
+	modified:   src/server/agents/linus.ts
+	modified:   src/server/services/executive-calendar/booking-emails.ts
+	modified:   src/server/services/slack-agent-bridge.test.ts
+	modified:   src/server/services/slack-agent-bridge.ts
+	modified:   src/types/executive-calendar.ts
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	.r/
+	.vscode/
+	.w/
+	scripts/query-jobs.js
+	src/app/api/debug/
+	src/server/services/executive-calendar/booking-emails.test.ts
+	status.txt
+	tmp/
+
+no changes added to commit (use "git add" and/or "git commit -a")
