@@ -285,8 +285,14 @@ async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOver
     while (attempts < MAX_RETRIES) {
         attempts++;
 
-        // A. Generate (Run Agent)
-        const logEntry = await runAgent(brandId, persistence, agentImpl as any, tools, currentStimulus);
+        // A. Generate (Run Agent) with Timeout protection
+        const AGENT_RUN_TIMEOUT = 240000; // 4 minutes
+        const runPromise = runAgent(brandId, persistence, agentImpl as any, tools, currentStimulus);
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error(`Agent run timed out after ${AGENT_RUN_TIMEOUT/1000}s`)), AGENT_RUN_TIMEOUT)
+        );
+
+        const logEntry = await Promise.race([runPromise, timeoutPromise]) as any;
         const resultText = logEntry?.result || '';
 
         // B. Verify (Run Gauntlet)
@@ -1520,12 +1526,18 @@ All agents are online and ready. Type an agent name or describe your task to get
             }
         }
 
+        const GENERATE_TIMEOUT = 120000; // 2 minutes
+        const generatePromise = ai.generate({
+            ...getGenerateOptions(effectiveModelLevel),
+            prompt,
+        });
+        const genTimeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error(`AI generation timed out after ${GENERATE_TIMEOUT/1000}s`)), GENERATE_TIMEOUT)
+        );
+
         const response = glmGeneratedText
             ? { text: glmGeneratedText }
-            : await ai.generate({
-                ...getGenerateOptions(effectiveModelLevel),
-                prompt,
-            });
+            : await Promise.race([generatePromise, genTimeoutPromise]) as any;
 
         await emitThought(jobId, 'Complete', 'Task finished.');
 

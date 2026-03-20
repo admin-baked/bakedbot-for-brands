@@ -22,7 +22,38 @@ function getClient(): SecretManagerServiceClient {
     return client;
 }
 
-const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || process.env.GCLOUD_PROJECT || 'studio-567050101-bc6e8';
+// Default Project ID fallback
+const DEFAULT_PROJECT_ID = 'studio-567050101-bc6e8';
+
+/**
+ * Get the Project ID from environment or fallback
+ * This is crucial for local dev on Windows to avoid hitting the metadata server/Secret Manager
+ * which causes indefinite hangs.
+ */
+function getProjectId(): string {
+    // 1. Check explicit env vars
+    if (process.env.FIREBASE_PROJECT_ID) return process.env.FIREBASE_PROJECT_ID;
+    if (process.env.GCLOUD_PROJECT) return process.env.GCLOUD_PROJECT;
+
+    // 2. Try to extract from Service Account Key if present
+    const saKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+    if (saKey) {
+        try {
+            const decoded = JSON.parse(Buffer.from(saKey, 'base64').toString('utf8'));
+            if (decoded.project_id) {
+                console.log(`[Secrets] Extracted project_id from service account: ${decoded.project_id}`);
+                return decoded.project_id;
+            }
+        } catch (e) {
+            console.warn('[Secrets] Failed to parse service account key for project_id extraction');
+        }
+    }
+
+    // 3. Fallback to hardcoded default
+    return DEFAULT_PROJECT_ID;
+}
+
+const PROJECT_ID = getProjectId();
 
 /**
  * Fetches a secret from Google Cloud Secret Manager
@@ -47,10 +78,19 @@ export async function getSecret(secretName: string, version: string = 'latest'):
         const client = getClient();
         const name = `projects/${PROJECT_ID}/secrets/${secretName}/versions/${version}`;
         
-        const [accessResponse] = await client.accessSecretVersion({ name });
+        console.log(`[Secrets] Accessing Secret Manager: ${name}`);
+
+        // Create a wrapper for the promise with a timeout
+        const accessPromise = client.accessSecretVersion({ name });
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error(`Secret Manager Timeout: ${secretName}`)), 5000)
+        );
+
+        const [accessResponse] = await Promise.race([accessPromise, timeoutPromise]) as [any];
         const secretValue = accessResponse.payload?.data?.toString();
 
         if (secretValue) {
+            console.log(`[Secrets] Successfully retrieved secret: ${secretName}`);
             // Cache the secret
             secretCache.set(secretName, {
                 value: secretValue,
@@ -61,12 +101,7 @@ export async function getSecret(secretName: string, version: string = 'latest'):
 
         return null;
     } catch (error: any) {
-        // In development, we might not have access to Secret Manager
-        if (process.env.NODE_ENV === 'development') {
-            console.warn(`[secrets] Could not fetch ${secretName}:`, error.message);
-            return null;
-        }
-        console.error(`[secrets] Error fetching ${secretName}:`, error);
+        console.warn(`[Secrets] Error fetching ${secretName} from ${PROJECT_ID}:`, error.message || error);
         return null;
     }
 }

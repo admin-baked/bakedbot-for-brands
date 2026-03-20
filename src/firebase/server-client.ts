@@ -1,22 +1,28 @@
-
 // src/firebase/server-client.ts
 import {
   getApps,
-  getApp,
   initializeApp,
   App,
   cert,
   applicationDefault,
 } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
-import { getAuth, DecodedIdToken } from "firebase-admin/auth";
+import { getFirestore, Firestore } from "firebase-admin/firestore";
+import { getAuth, DecodedIdToken, Auth } from "firebase-admin/auth";
+import { getStorage, Storage } from "firebase-admin/storage";
 import { DomainUserProfile } from "@/types/domain";
 
-let app: App;
+// Singleton instances
+let serverApp: App | null = null;
+let cachedServiceAccount: any = null;
 
+/**
+ * Loads and normalizes the Firebase service account credentials.
+ * Includes caching and PEM private key normalization.
+ */
 function getServiceAccount() {
+  if (cachedServiceAccount) return cachedServiceAccount;
+
   let serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-  console.log('Initializing Firebase Admin. Key present:', !!serviceAccountKey);
 
   if (!serviceAccountKey) {
     try {
@@ -24,59 +30,48 @@ function getServiceAccount() {
       const fs = require('fs');
       const path = require('path');
       const cwd = process.cwd();
-      console.log(`[server-client] Current working directory: ${cwd}`);
-
-      // Search paths for service-account.json
+      
       const searchPaths = [
         path.resolve(cwd, 'service-account.json'),
         path.resolve(cwd, '..', 'service-account.json'),
         path.resolve(cwd, '..', '..', 'service-account.json'),
-        // User-specific fallback paths
-        'C:\\Users\\admin\\BakedBot for Brands\\bakedbot-for-brands\\service-account.json',
-        'C:\\Users\\marte\\Baked for Brands\\bakedbot-for-brands\\service-account.json'
+        'C:\\Users\\admin\\BakedBot for Brands\\bakedbot-for-brands\\service-account.json'
       ];
 
       for (const tryPath of searchPaths) {
-        console.log(`[server-client] Checking for SA at: ${tryPath}`);
         if (fs.existsSync(tryPath)) {
           serviceAccountKey = fs.readFileSync(tryPath, 'utf-8');
-          console.log(`[server-client] LOADED credentials from: ${tryPath}`);
+          console.log(`[ServerClient] Loaded credentials from: ${tryPath}`);
           break;
         }
       }
     } catch (e) {
-      console.warn('[server-client] Failed to check for local service-account.json:', e);
+      console.warn('[ServerClient] Failed to check for local service-account.json:', e);
     }
-  } else {
-    console.log('[server-client] Using credentials from FIREBASE_SERVICE_ACCOUNT_KEY env var');
   }
 
   if (!serviceAccountKey) {
-    console.warn("FIREBASE_SERVICE_ACCOUNT_KEY not set and no local file found. Using default credentials.");
+    console.warn("[ServerClient] FIREBASE_SERVICE_ACCOUNT_KEY not set. Using Application Default Credentials.");
     return null;
   }
 
-  let serviceAccount;
-
+  let sa;
   try {
-    // First try to parse as raw JSON
-    serviceAccount = JSON.parse(serviceAccountKey);
-  } catch (e) {
-    try {
+    // Try to parse as raw JSON or Base64
+    if (serviceAccountKey.trim().startsWith('{')) {
+      sa = JSON.parse(serviceAccountKey);
+    } else {
       const json = Buffer.from(serviceAccountKey, "base64").toString("utf8");
-      serviceAccount = JSON.parse(json);
-    } catch (decodeError) {
-      console.error("Failed to parse service account key from Base64.", decodeError);
-      throw new Error("FIREBASE_SERVICE_ACCOUNT_KEY is not a valid JSON string or Base64-encoded JSON string.");
+      sa = JSON.parse(json);
     }
+  } catch (e) {
+    console.error("[ServerClient] Failed to parse service account key:", e);
+    return null;
   }
 
-  // Sanitize private_key to prevent "Unparsed DER bytes" errors
-  // Sanitize private_key to prevent "Unparsed DER bytes" errors
-  if (serviceAccount && typeof serviceAccount.private_key === 'string') {
-    const rawKey = serviceAccount.private_key;
-
-    // Pattern to capture Header (group 1), Body (group 2), Footer (group 3)
+  // Normalize private_key
+  if (sa && typeof sa.private_key === 'string') {
+    const rawKey = sa.private_key;
     const pemPattern = /(-+BEGIN\s+.*PRIVATE\s+KEY-+)([\s\S]+?)(-+END\s+.*PRIVATE\s+KEY-+)/;
     const match = rawKey.match(pemPattern);
 
@@ -86,70 +81,57 @@ function getServiceAccount() {
       const bodyRaw = match[2];
       let bodyClean = bodyRaw.replace(/[^a-zA-Z0-9+/=]/g, '');
 
-      // 4n+1 length invalid. Try 1 byte (xx==).
-      if (bodyClean.length % 4 === 1) {
-        console.log(`[src/firebase/server-client.ts] Truncating 4n+1 and forcing double padding: ${bodyClean.length} -> 1628 (xx==)`);
-        bodyClean = bodyClean.slice(0, -1);
-        bodyClean = bodyClean.slice(0, -2) + '==';
-      }
-
-      // Fix Padding
-      while (bodyClean.length % 4 !== 0) {
-        bodyClean += '=';
-      }
+      if (bodyClean.length % 4 === 1) bodyClean = bodyClean.slice(0, -1);
+      while (bodyClean.length % 4 !== 0) bodyClean += '=';
 
       const bodyFormatted = bodyClean.match(/.{1,64}/g)?.join('\n') || bodyClean;
-      serviceAccount.private_key = `${header}\n${bodyFormatted}\n${footer}\n`;
-
-      console.log(`[src/firebase/server-client.ts] Key Normalized. BodyLen: ${bodyClean.length}`);
+      sa.private_key = `${header}\n${bodyFormatted}\n${footer}\n`;
     } else {
-      serviceAccount.private_key = rawKey.trim().replace(/\\n/g, '\n');
+      sa.private_key = rawKey.trim().replace(/\\n/g, '\n');
     }
   }
 
-  return serviceAccount;
+  cachedServiceAccount = sa;
+  return sa;
 }
 
 /**
  * Creates a server-side Firebase client (admin SDK).
- * This function is idempotent, ensuring the app is initialized only once.
+ * Ensures the app is initialized only once as a singleton named 'server-client-app'.
  */
-// function getServiceAccount is defined above, let's use it.
-
-export async function createServerClient() {
-  // Ensure we use a unique app name to avoid "already exists" errors or race conditions
-  // with other parts of the app that usually initialize the [DEFAULT] app.
+export async function createServerClient(): Promise<{ auth: Auth; firestore: Firestore; storage: Storage }> {
   const appName = 'server-client-app';
-  const existingApps = getApps().filter(a => a.name === appName);
-
-  if (existingApps.length === 0) {
-    // USE THE ROBUST HELPER FUNCTION
-    const serviceAccountObj = getServiceAccount();
-
-    if (serviceAccountObj) {
-      app = initializeApp({
-        credential: cert(serviceAccountObj)
-      }, appName);
-      console.log('Firebase initialized with Service Account config (isolated app)');
+  
+  if (!serverApp) {
+    const apps = getApps();
+    const existingApp = apps.find(a => a.name === appName);
+    
+    if (existingApp) {
+      serverApp = existingApp;
     } else {
-      console.log('Using Application Default Credentials (isolated app)');
-      app = initializeApp({
-        credential: applicationDefault(),
-        projectId: process.env.FIREBASE_PROJECT_ID || 'studio-567050101-bc6e8'
-      }, appName);
+      const sa = getServiceAccount();
+      const config = {
+        credential: sa ? cert(sa) : applicationDefault(),
+        projectId: sa ? sa.project_id : (process.env.FIREBASE_PROJECT_ID || 'studio-567050101-bc6e8'),
+        storageBucket: sa ? `${sa.project_id}.firebasestorage.app` : undefined
+      };
+      
+      console.log(`[ServerClient] Initializing isolated app: ${appName} (Project: ${config.projectId})`);
+      serverApp = initializeApp(config, appName);
     }
-  } else {
-    app = existingApps[0]!;
   }
 
-  const auth = getAuth(app);
-  const firestore = getFirestore(app);
+  const auth = getAuth(serverApp);
+  const firestore = getFirestore(serverApp);
+  const storage = getStorage(serverApp);
+
   try {
     firestore.settings({ ignoreUndefinedProperties: true });
   } catch (e) {
-    // Ignore if settings already applied
+    // Already applied
   }
-  return { auth, firestore };
+
+  return { auth, firestore, storage };
 }
 
 /**
@@ -166,12 +148,7 @@ export async function verifyIdToken(token: string): Promise<DecodedIdToken> {
 export async function getUserProfile(uid: string): Promise<DomainUserProfile | null> {
   const { firestore } = await createServerClient();
   const userDoc = await firestore.collection('users').doc(uid).get();
-
-  if (!userDoc.exists) {
-    return null;
-  }
-
-  return userDoc.data() as DomainUserProfile;
+  return userDoc.exists ? (userDoc.data() as DomainUserProfile) : null;
 }
 
 /**
@@ -184,18 +161,15 @@ export async function getUserClaims(uid: string): Promise<Record<string, any>> {
 }
 
 /**
- * Set custom claims for a user (admin only)
+ * Set custom claims for a user
  */
-export async function setUserClaims(
-  uid: string,
-  claims: Record<string, any>
-): Promise<void> {
+export async function setUserClaims(uid: string, claims: Record<string, any>): Promise<void> {
   const { auth } = await createServerClient();
   await auth.setCustomUserClaims(uid, claims);
 }
 
 /**
- * Set user role (convenience function)
+ * Convenience function to set user role
  */
 export async function setUserRole(
   uid: string,
