@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
+import {
     getSafeEmailProviderAction as getEmail,
     updateSafeEmailProviderAction as updateEmail,
-    getSafeVideoProviderAction as getVideo,
-    updateSafeVideoProviderAction as updateVideo
+    getOrgVideoProviderAction as getVideo,
+    updateOrgVideoProviderAction as updateVideo,
 } from '@/server/actions/super-admin/safe-settings';
 
 export default function CeoSettingsTab() {
