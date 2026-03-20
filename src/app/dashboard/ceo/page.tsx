@@ -8,11 +8,10 @@ import { InvitationsList } from '@/components/invitations/invitations-list';
  * Protected by super admin check
  */
 
-import { useEffect, useState, useCallback, Suspense } from 'react';
-import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useEffect, useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import nextDynamic from 'next/dynamic';
-import { getChatSessions } from '@/server/actions/chat-persistence'; // Added for global hydration
-import { getSuperUserStatusCounts, type SuperUserStatusCounts } from '@/server/actions/ny-outreach-dashboard';
+import type { SuperUserStatusCounts } from '@/server/actions/ny-outreach-dashboard';
 
 const TabLoader = () => <div className="flex h-[400px] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
 
@@ -76,7 +75,6 @@ import { useAgentChatStore } from '@/lib/store/agent-chat-store';
 function CeoDashboardContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const pathname = usePathname();
     const { user, isLoading: isAuthLoading, isSuperUser } = useUserRole();
     const { clearCurrentSession } = useAgentChatStore();
 
@@ -96,29 +94,35 @@ function CeoDashboardContent() {
             clearCurrentSession();
             // Hydrate sessions globally on dashboard load
             if (user?.uid) {
-                getChatSessions(user.uid).then(result => {
-                    if (result.success && Array.isArray(result.sessions)) {
-                        // Revive dates from ISO strings
-                        const hydratedSessions = result.sessions.map((s: any) => ({
-                            ...s,
-                            timestamp: new Date(s.timestamp),
-                            messages: Array.isArray(s.messages) ? s.messages.map((m: any) => ({
-                                ...m,
-                                timestamp: new Date(m.timestamp)
-                            })) : []
-                        }));
-                        // Update store with loaded sessions
-                        useAgentChatStore.getState().hydrateSessions(hydratedSessions);
-                    }
+                import('@/server/actions/chat-persistence').then(({ getChatSessions }) => {
+                    getChatSessions(user.uid).then(result => {
+                        if (result.success && Array.isArray(result.sessions)) {
+                            // Revive dates from ISO strings
+                            const hydratedSessions = result.sessions.map((s: any) => ({
+                                ...s,
+                                timestamp: new Date(s.timestamp),
+                                messages: Array.isArray(s.messages) ? s.messages.map((m: any) => ({
+                                    ...m,
+                                    timestamp: new Date(m.timestamp)
+                                })) : []
+                            }));
+                            // Update store with loaded sessions
+                            useAgentChatStore.getState().hydrateSessions(hydratedSessions);
+                        }
+                    }).catch(err => {
+                        console.error("Failed to hydrate sessions (client):", err);
+                    });
                 }).catch(err => {
-                    console.error("Failed to hydrate sessions (client):", err);
+                    console.error("Failed to load chat persistence actions:", err);
                 });
 
                 // Load proactive status counts (non-blocking — banner appears after auth)
-                getSuperUserStatusCounts().then(result => {
-                    if (result.success && result.counts) {
-                        setStatusCounts(result.counts);
-                    }
+                import('@/server/actions/ny-outreach-dashboard').then(({ getSuperUserStatusCounts }) => {
+                    getSuperUserStatusCounts().then(result => {
+                        if (result.success && result.counts) {
+                            setStatusCounts(result.counts);
+                        }
+                    }).catch(() => { /* non-critical — banner just stays hidden */ });
                 }).catch(() => { /* non-critical — banner just stays hidden */ });
             }
         }

@@ -23,24 +23,14 @@ import {
     AlertTriangle, CheckCircle2, XCircle, FileText, Send,
     Pencil, ChevronDown, ChevronUp, Link2, Zap,
 } from 'lucide-react';
-import {
-    getOutreachDashboardData,
-    generateOutreachDrafts,
-    getOutreachDrafts,
-    updateOutreachDraft,
-    approveAndSendDraft,
-    approveAndSendAllDrafts,
-    rejectDraft,
-    triggerTestBatch,
-    triggerCRMLeadSync,
-    triggerContactResearch,
-    triggerBulkNYImport,
-    triggerNYLeadEnrichment,
-    checkGmailConnection,
-    getApolloCreditsAction,
-} from '@/server/actions/ny-outreach-dashboard';
 import type { OutreachDraft } from '@/server/services/ny-outreach/outreach-service';
 import type { ApolloCreditStatus } from '@/server/actions/ny-outreach-dashboard';
+
+type OutreachDashboardActions = typeof import('@/server/actions/ny-outreach-dashboard');
+
+async function loadOutreachDashboardActions(): Promise<OutreachDashboardActions> {
+    return import('@/server/actions/ny-outreach-dashboard');
+}
 
 // ────────────────────────────────────────────────────────────────────────────
 // Types
@@ -120,6 +110,7 @@ function DraftCard({
         setStatus('approving');
         setErrorMsg(undefined);
         try {
+            const { approveAndSendDraft } = await loadOutreachDashboardActions();
             const result = await approveAndSendDraft(draft.id);
             if (result.success) {
                 setStatus('sent');
@@ -138,6 +129,7 @@ function DraftCard({
         setStatus('rejecting');
         setErrorMsg(undefined);
         try {
+            const { rejectDraft } = await loadOutreachDashboardActions();
             const result = await rejectDraft(draft.id);
             if (result.success) {
                 setStatus('rejected');
@@ -156,6 +148,7 @@ function DraftCard({
         setStatus('saving');
         setErrorMsg(undefined);
         try {
+            const { updateOutreachDraft } = await loadOutreachDashboardActions();
             const result = await updateOutreachDraft(draft.id, {
                 subject: editSubject,
                 textBody: editBody,
@@ -387,10 +380,15 @@ export default function OutreachTab() {
     const loadData = useCallback(async () => {
         try {
             setLoading(true);
+            const {
+                getOutreachDashboardData,
+                checkGmailConnection,
+                getApolloCreditsAction,
+            } = await loadOutreachDashboardActions();
             // Try each action individually to isolate the error
-            let dashResult: Awaited<ReturnType<typeof getOutreachDashboardData>> | null = null;
-            let gmailResult: Awaited<ReturnType<typeof checkGmailConnection>> | null = null;
-            let apolloResult: Awaited<ReturnType<typeof getApolloCreditsAction>> | null = null;
+            let dashResult: Awaited<ReturnType<OutreachDashboardActions['getOutreachDashboardData']>> | null = null;
+            let gmailResult: Awaited<ReturnType<OutreachDashboardActions['checkGmailConnection']>> | null = null;
+            let apolloResult: Awaited<ReturnType<OutreachDashboardActions['getApolloCreditsAction']>> | null = null;
             let errorSource = '';
 
             try {
@@ -441,6 +439,7 @@ export default function OutreachTab() {
     const loadDrafts = useCallback(async () => {
         try {
             setDraftsLoading(true);
+            const { getOutreachDrafts } = await loadOutreachDashboardActions();
             const result = await getOutreachDrafts('draft');
             if (result.success && result.drafts) {
                 setDrafts(result.drafts as OutreachDraft[]);
@@ -461,6 +460,7 @@ export default function OutreachTab() {
         setActionLoading('drafts');
         setActionResult(null);
         try {
+            const { generateOutreachDrafts } = await loadOutreachDashboardActions();
             const result = await generateOutreachDrafts();
             if (result.success) {
                 setActionResult({
@@ -482,6 +482,7 @@ export default function OutreachTab() {
         setActionLoading('approveAll');
         setActionResult(null);
         try {
+            const { approveAndSendAllDrafts } = await loadOutreachDashboardActions();
             const result = await approveAndSendAllDrafts();
             if (result.success) {
                 setActionResult({
@@ -503,6 +504,7 @@ export default function OutreachTab() {
         setActionLoading('test');
         setActionResult(null);
         try {
+            const { triggerTestBatch } = await loadOutreachDashboardActions();
             const result = await triggerTestBatch();
             if (result.success) {
                 setActionResult({
@@ -524,6 +526,7 @@ export default function OutreachTab() {
         setActionLoading('research');
         setActionResult(null);
         try {
+            const { triggerContactResearch } = await loadOutreachDashboardActions();
             const result = await triggerContactResearch();
             if (result.success) {
                 setActionResult({
@@ -545,6 +548,7 @@ export default function OutreachTab() {
         setActionLoading('crm-sync');
         setActionResult(null);
         try {
+            const { triggerCRMLeadSync } = await loadOutreachDashboardActions();
             const result = await triggerCRMLeadSync();
             if (result.success) {
                 const synced = (result.created || 0) + (result.updated || 0);
@@ -570,6 +574,7 @@ export default function OutreachTab() {
         setActionLoading('nyapi-bulk');
         setActionResult(null);
         try {
+            const { triggerBulkNYImport } = await loadOutreachDashboardActions();
             const result = await triggerBulkNYImport();
             if (result.success) {
                 setActionResult({
@@ -591,6 +596,7 @@ export default function OutreachTab() {
         setActionLoading('nyapi-enrich');
         setActionResult(null);
         try {
+            const { triggerNYLeadEnrichment } = await loadOutreachDashboardActions();
             const result = await triggerNYLeadEnrichment();
             if (result.success) {
                 const msg = result.enriched === 0
