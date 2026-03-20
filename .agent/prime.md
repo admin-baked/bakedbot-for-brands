@@ -40,9 +40,9 @@ npm run check:types
 3. `git push origin main --force-with-lease`
 4. Dismiss alerts via `gh api --method PATCH repos/admin-baked/bakedbot-for-brands/secret-scanning/alerts/$id -f state=resolved -f resolution=revoked`
 
-## Session 2026-03-19 (Retention Score + Cohort Fix + CI Deploy Fix)
-**Recent work (2026-03-19):** See `memory/MEMORY.md` for full log.
-Key completed: [Customer Retention Score system] (`8625ccfe2`), [cohort intent router + inbox fix] (`8616bda01`), [GitHub Actions deploy.yml fix] (`019703279`)
+## Session 2026-03-20 (Smokey Budtender Production Fix)
+**Recent work (2026-03-20):** See `memory/MEMORY.md` for full log.
+Key completed: [Smokey "yes"→checkout + menu search fix] (`2d52f6e16`)
 
 ## Session 2026-03-12 (Playbook artifact repo + runtime memory layer)
 - **Artifact repo path made real**: Playbook V2 now persists spec snapshots, run manifests, failure artifacts, approval records, delivery manifests, and `summary_for_ai_engineers.md` through the shared artifact runtime. Runtime writes go to blob storage + Firestore metadata + the dedicated Git repo `admin-baked/bakedbot-artifacts-prod` when App Hosting is running with the new repo env/secret config.
