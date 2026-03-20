@@ -10,6 +10,7 @@
     "build": "npm run build:embed && npm run check:structure && next build --webpack",
     "build:embed": "tsup",
     "start": "next start",
+    "postinstall": "node scripts/patch-punycode-deprecation.mjs",
     "deploy:apphosting:rollout": "powershell -ExecutionPolicy Bypass -File ./scripts/deploy-apphosting-rollout.ps1",
     "deploy:firebase:local": "powershell -ExecutionPolicy Bypass -File ./scripts/deploy-firebase-production.ps1",
     "lint": "next lint",
