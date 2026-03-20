@@ -19,7 +19,7 @@ jest.mock('@/server/auth/auth', () => ({
     isSuperUser: jest.fn(),
 }));
 jest.mock('@/ai/genkit', () => ({
-    ai: { embed: jest.fn() }
+    ai: { embed: jest.fn() },
 }));
 jest.mock('@/firebase/server-client', () => ({
     createServerClient: jest.fn()

@@ -22,14 +22,7 @@ jest.mock('@/server/auth/auth', () => ({
     isSuperUser: jest.fn()
 }));
 
-// 2. Mock Genkit - Importable mock to configure
-jest.mock('@/ai/genkit', () => ({
-    ai: {
-        embed: jest.fn()
-    }
-}));
-
-// 3. Mock Firebase - Jest mock factory must be self-contained or use strictly hoisted vars
+// 2. Mock Firebase - Jest mock factory must be self-contained or use strictly hoisted vars
 jest.mock('@/firebase/admin', () => ({
     getAdminFirestore: jest.fn()
 }));
@@ -38,17 +31,22 @@ jest.mock('@/firebase/server-client', () => ({
     createServerClient: jest.fn()
 }));
 
-// 4. Mock global fetch for scrapeUrlAction
+jest.mock('@/ai/utils/generate-embedding', () => ({
+    generateEmbedding: jest.fn(),
+    EMBEDDING_MODEL_NAME: 'gemini-embedding-001',
+}));
+
+// 3. Mock global fetch for scrapeUrlAction
 global.fetch = jest.fn();
 
 import { requireUser, isSuperUser } from '@/server/auth/auth';
-import { ai } from '@/ai/genkit';
+import { generateEmbedding } from '@/ai/utils/generate-embedding';
 import { getAdminFirestore } from '@/firebase/admin';
 import { createServerClient } from '@/firebase/server-client';
 
 describe('Knowledge Base Actions', () => {
     // Define spies/mocks here to be accessible in tests
-    const mockEmbed = ai.embed as jest.Mock;
+    const mockGenerateEmbedding = generateEmbedding as jest.Mock;
     const mockRequireUser = requireUser as jest.Mock;
     const mockIsSuperUser = isSuperUser as jest.Mock;
     const mockGetAdminFirestore = getAdminFirestore as jest.Mock;
@@ -124,7 +122,7 @@ describe('Knowledge Base Actions', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         mockGet.mockReset();
-        mockEmbed.mockReset();
+        mockGenerateEmbedding.mockReset();
 
         // Setup default Auth
         mockRequireUser.mockResolvedValue({
@@ -136,7 +134,7 @@ describe('Knowledge Base Actions', () => {
         mockIsSuperUser.mockResolvedValue(false);
 
         // Setup default Genkit
-        mockEmbed.mockResolvedValue([{ embedding: [0.1, 0.2, 0.3] }]);
+        mockGenerateEmbedding.mockResolvedValue(new Array(768).fill(0.1));
 
         // Setup default Firestore
         const firestoreMock = createFirestoreMock();
@@ -295,19 +293,31 @@ describe('Knowledge Base Actions', () => {
 
     describe('searchKnowledgeBaseAction', () => {
         it('should search using cosine similarity fallback', async () => {
-            mockEmbed.mockReset();
-            mockEmbed.mockResolvedValue([{ embedding: [1, 0, 0] }]);
+            mockGenerateEmbedding.mockReset();
+            mockGenerateEmbedding.mockResolvedValue(
+                new Array(768).fill(0).map((_, index) => (index === 0 ? 1 : 0))
+            );
 
             // Mock stored documents with embeddings
             mockGet.mockResolvedValueOnce({
                 forEach: (cb: any) => {
                     cb({
                         id: 'doc1',
-                        data: () => ({ title: 'Relevant', content: 'A', source: 'paste', embedding: [1, 0, 0] })
+                        data: () => ({
+                            title: 'Relevant',
+                            content: 'A',
+                            source: 'paste',
+                            embedding: new Array(768).fill(0).map((_, index) => (index === 0 ? 1 : 0))
+                        })
                     });
                     cb({
                         id: 'doc2',
-                        data: () => ({ title: 'Irrelevant', content: 'B', source: 'paste', embedding: [0, 1, 0] })
+                        data: () => ({
+                            title: 'Irrelevant',
+                            content: 'B',
+                            source: 'paste',
+                            embedding: new Array(768).fill(0).map((_, index) => (index === 1 ? 1 : 0))
+                        })
                     });
                 }
             });

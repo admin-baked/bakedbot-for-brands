@@ -10,7 +10,7 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { DecisionTrace } from './types';
 
 const COLLECTION_NAME = 'context_os_decisions';
-const EMBEDDING_DIMENSION = 768; // text-embedding-004 produces 768-dim vectors
+const EMBEDDING_DIMENSION = 768; // gemini-embedding-001 output reduced to 768 dims
 
 /**
  * Get Firestore instance
@@ -20,7 +20,7 @@ function getDb() {
 }
 
 /**
- * Generate embedding for text using Google's text-embedding-004
+ * Generate embedding for text using the shared Gemini embedding helper.
  */
 async function generateEmbedding(text: string): Promise<number[]> {
   try {

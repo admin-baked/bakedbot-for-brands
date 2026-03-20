@@ -59,7 +59,7 @@ The application is a modern, full-stack TypeScript monorepo built on Next.js and
 -   **AI Framework**: **Genkit**, a Google-native, open-source framework for building production-ready AI applications.
 -   **AI Models**: We leverage **Google AI** models through the `@genkit-ai/google-genai` plugin.
     -   **LLMs**: **Gemini 2.5 Flash** for most chat and reasoning tasks due to its excellent balance of performance and cost.
-    -   **Embeddings**: **`text-embedding-004`** for generating vector embeddings for our RAG pipeline.
+    -   **Embeddings**: **`gemini-embedding-001`** for generating vector embeddings for our RAG pipeline.
     -   **Image Generation**: **`gemini-2.5-flash-image-preview`** for creating social media marketing assets.
 
 ### Event-Driven Architecture

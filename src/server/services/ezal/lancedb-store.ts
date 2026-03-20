@@ -7,7 +7,7 @@
  *   - insights: Semantic-searchable competitive insights
  *
  * Storage: Local disk for dev, GCS (gs://bucket/lancedb) for production.
- * Embeddings: Google text-embedding-004 via existing generateEmbedding().
+ * Embeddings: Google gemini-embedding-001 via existing generateEmbedding().
  *
  * This module is additive — it does NOT replace Firestore for real-time
  * UI data. It's a parallel store optimized for:
@@ -65,7 +65,7 @@ async function getConnection(): Promise<lancedb.Connection> {
   return _connection;
 }
 
-// Embedding dimension for text-embedding-004
+// Embedding dimension for gemini-embedding-001 with reduced output size
 const EMBEDDING_DIM = 768;
 
 // =============================================================================

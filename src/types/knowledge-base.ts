@@ -106,7 +106,7 @@ export interface KnowledgeDocument {
     metadata?: Record<string, any>;
 
     // Vector Search (Firestore Vector)
-    embedding?: number[]; // Semantic vector (768 dimensions for text-embedding-004)
+    embedding?: number[]; // Semantic vector (768 dimensions from gemini-embedding-001)
     tokenCount?: number;
     byteSize: number; // Track document size
 

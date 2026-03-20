@@ -1,10 +1,13 @@
 'use server';
 
 import { z } from 'zod';
-import { ai } from '@/ai/genkit';
 import { createServerClient } from '@/firebase/server-client';
 import { getAdminFirestore } from '@/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import {
+    EMBEDDING_MODEL_NAME,
+    generateEmbedding,
+} from '@/ai/utils/generate-embedding';
 import {
     KnowledgeBase,
     KnowledgeDocument,
@@ -23,10 +26,8 @@ import { requireUser, isSuperUser } from '@/server/auth/auth';
 
 /**
  * Text Embedding Model
- * Using Google's text-embedding-004 which produces 768-dimensional vectors
+ * Using Google's gemini-embedding-001 with reduced 768-dimensional vectors
  */
-const EMBEDDING_MODEL = 'googleai/text-embedding-004';
-const EMBEDDING_DIMENSIONS = 768;
 
 // --- HELPER FUNCTIONS ---
 
@@ -135,18 +136,6 @@ async function getUserPlanId(userId: string): Promise<string> {
     const { firestore } = await createServerClient();
     const userDoc = await firestore.collection('users').doc(userId).get();
     return userDoc.data()?.planId || 'free';
-}
-
-/**
- * Generate embedding using Genkit
- */
-async function generateEmbedding(content: string): Promise<number[]> {
-    const response: any = await ai.embed({
-        embedder: EMBEDDING_MODEL,
-        content: content
-    });
-    const embedding = Array.isArray(response) ? response[0].embedding : response.embedding;
-    return embedding as number[];
 }
 
 // --- ACTIONS ---
@@ -441,17 +430,14 @@ export async function addDocumentAction(input: z.infer<typeof AddDocumentSchema>
 
         // Generate embedding
         console.log('[addDocumentAction] Generating embedding for content length:', input.content.length);
-        const response: any = await ai.embed({
-            embedder: EMBEDDING_MODEL,
-            content: input.content
-        });
-        console.log('[addDocumentAction] Embedding response keys:', Object.keys(response));
-        
-        const embedding = Array.isArray(response) ? response[0].embedding : response.embedding;
+        const embedding = await generateEmbedding(input.content);
         if (!embedding) {
-            console.error('[addDocumentAction] Embedding generation failed. Response:', JSON.stringify(response).substring(0, 200));
             throw new Error('Failed to generate embedding: Output is missing.');
         }
+        console.log('[addDocumentAction] Generated embedding.', {
+            model: EMBEDDING_MODEL_NAME,
+            dimensions: embedding.length,
+        });
 
         const byteSize = new Blob([input.content]).size;
 
