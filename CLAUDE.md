@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-03-18 (fal.ai Kling/Wan + Remotion video providers, NY outreach Gmail-direct send, intent router, Skills Lab eval spec v2)
+**Current Status:** 🟢 Passing | **Last update:** 2026-03-19 (Customer Retention Score system, cohort analytics inbox fix, GitHub Actions deploy fix)
 
 ---
 
