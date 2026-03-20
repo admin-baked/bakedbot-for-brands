@@ -23,23 +23,37 @@ export const PERSONA_META: Record<string, { emoji: string; role: string }> = {
 
 export class SlackService {
     private client: WebClient | null = null;
+    private missingTokenWarningLogged = false;
 
     constructor() {
         if (process.env.SLACK_BOT_TOKEN) {
             this.client = new WebClient(process.env.SLACK_BOT_TOKEN);
-        } else {
-            logger.warn('[Slack] Missing SLACK_BOT_TOKEN');
         }
     }
 
+    private getClient(action: string): WebClient | null {
+        if (this.client) {
+            return this.client;
+        }
+
+        if (!this.missingTokenWarningLogged) {
+            logger.warn('[Slack] Missing SLACK_BOT_TOKEN; Slack operations will be skipped', {
+                action,
+            });
+            this.missingTokenWarningLogged = true;
+        }
+
+        return null;
+    }
+
     async postMessage(channel: string, text: string, blocks?: any[]): Promise<any> {
-        if (!this.client) {
-             logger.warn('[Slack] Message skipped (No Token): ' + text);
+        const client = this.getClient('postMessage');
+        if (!client) {
              return { sent: false, error: 'No Token' };
         }
 
         try {
-            const result = await this.client.chat.postMessage({
+            const result = await client.chat.postMessage({
                 channel,
                 text,
                 blocks
@@ -52,13 +66,13 @@ export class SlackService {
     }
 
     async postInThread(channel: string, threadTs: string, text: string, blocks?: any[]): Promise<any> {
-        if (!this.client) {
-            logger.warn('[Slack] Thread reply skipped (No Token)');
+        const client = this.getClient('postInThread');
+        if (!client) {
             return { sent: false, error: 'No Token' };
         }
 
         try {
-            const result = await this.client.chat.postMessage({
+            const result = await client.chat.postMessage({
                 channel,
                 thread_ts: threadTs,
                 text,
@@ -72,10 +86,11 @@ export class SlackService {
     }
 
     async listChannels(): Promise<any[]> {
-        if (!this.client) return [];
+        const client = this.getClient('listChannels');
+        if (!client) return [];
 
         try {
-            const result = await this.client.conversations.list({ types: 'public_channel,private_channel', limit: 100 });
+            const result = await client.conversations.list({ types: 'public_channel,private_channel', limit: 100 });
             return result.channels?.map(c => ({
                 id: c.id,
                 name: c.name,
@@ -99,13 +114,13 @@ export class SlackService {
     }
 
     async createChannel(name: string): Promise<{ id: string; name: string } | null> {
-        if (!this.client) {
-            logger.warn('[Slack] Create channel skipped (No Token)');
+        const client = this.getClient('createChannel');
+        if (!client) {
             return null;
         }
 
         try {
-            const result = await this.client.conversations.create({
+            const result = await client.conversations.create({
                 name,
                 is_private: false
             });
@@ -125,13 +140,13 @@ export class SlackService {
     }
 
     async setChannelTopic(channelId: string, topic: string): Promise<void> {
-        if (!this.client) {
-            logger.warn('[Slack] Set topic skipped (No Token)');
+        const client = this.getClient('setChannelTopic');
+        if (!client) {
             return;
         }
 
         try {
-            await this.client.conversations.setTopic({
+            await client.conversations.setTopic({
                 channel: channelId,
                 topic
             });
@@ -141,13 +156,13 @@ export class SlackService {
     }
 
     async joinChannel(channelId: string): Promise<void> {
-        if (!this.client) {
-            logger.warn('[Slack] Join channel skipped (No Token)');
+        const client = this.getClient('joinChannel');
+        if (!client) {
             return;
         }
 
         try {
-            await this.client.conversations.join({
+            await client.conversations.join({
                 channel: channelId
             });
         } catch (e: any) {
@@ -159,13 +174,13 @@ export class SlackService {
     }
 
     async updateMessage(channel: string, ts: string, text: string, blocks?: any[]): Promise<any> {
-        if (!this.client) {
-            logger.warn('[Slack] Update message skipped (No Token)');
+        const client = this.getClient('updateMessage');
+        if (!client) {
             return { sent: false, error: 'No Token' };
         }
 
         try {
-            const result = await this.client.chat.update({
+            const result = await client.chat.update({
                 channel,
                 ts,
                 text,
@@ -183,12 +198,13 @@ export class SlackService {
      * since Slack Events API does not include channel_name in event payloads).
      */
     async getChannelInfo(channelId: string): Promise<{ id: string; name: string } | null> {
-        if (!this.client) {
+        const client = this.getClient('getChannelInfo');
+        if (!client) {
             return null;
         }
 
         try {
-            const result = await this.client.conversations.info({ channel: channelId });
+            const result = await client.conversations.info({ channel: channelId });
             if (result.channel) {
                 return {
                     id: result.channel.id || channelId,
@@ -204,13 +220,13 @@ export class SlackService {
     }
 
     async getUserInfo(slackUserId: string): Promise<{ id: string; name: string; email: string } | null> {
-        if (!this.client) {
-            logger.warn('[Slack] Get user info skipped (No Token)');
+        const client = this.getClient('getUserInfo');
+        if (!client) {
             return null;
         }
 
         try {
-            const result = await this.client.users.info({
+            const result = await client.users.info({
                 user: slackUserId
             });
 

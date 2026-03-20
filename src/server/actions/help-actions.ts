@@ -4,6 +4,8 @@ import { createServerClient } from '@/firebase/server-client';
 import { FieldValue } from 'firebase-admin/firestore';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
+import { getRuntimeErrorMessage, isFirestoreUnavailableError, isProductionBuildPhase } from '@/lib/firestore-runtime';
+import { logger } from '@/lib/logger';
 
 export interface HelpArticleMeta {
   slug: string;
@@ -55,9 +57,35 @@ export async function getArticleBySlug(
     // Get Firestore metadata (views, ratings)
     // Replace / with -- for Firestore doc ID
     const docId = key.replace(/\//g, '--');
-    const { firestore: db } = await createServerClient();
-    const doc = await db.collection('helpArticles').doc(docId).get();
-    const metadata = doc.data();
+    let metadata:
+      | {
+          views?: number;
+          avgRating?: number;
+          totalRatings?: number;
+        }
+      | undefined;
+
+    try {
+      const { firestore: db } = await createServerClient();
+      const doc = await db.collection('helpArticles').doc(docId).get();
+      metadata = doc.data();
+    } catch (error) {
+      const errorMessage = getRuntimeErrorMessage(error);
+
+      if (isProductionBuildPhase() && isFirestoreUnavailableError(error)) {
+        logger.info('[HelpArticles] Firestore unavailable during production build, using file metadata defaults', {
+          category,
+          slug,
+          error: errorMessage,
+        });
+      } else {
+        logger.warn('[HelpArticles] Failed to load Firestore metadata, using file metadata defaults', {
+          category,
+          slug,
+          error: errorMessage,
+        });
+      }
+    }
 
     return {
       ...articleMeta,
@@ -119,6 +147,10 @@ export async function trackArticleView(
   articleId: string,
   userId?: string
 ): Promise<void> {
+  if (isProductionBuildPhase()) {
+    return;
+  }
+
   try {
     // Convert articleId format (category/slug -> category--slug)
     const docId = articleId.replace(/\//g, '--');

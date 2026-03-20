@@ -41,6 +41,20 @@ function hasInsightsComposite(indexes: FirestoreIndex[]): boolean {
     });
 }
 
+function hasPlatformBlogPublishedComposite(indexes: FirestoreIndex[]): boolean {
+    return indexes.some((index) => {
+        if (index.collectionGroup !== 'blog_posts') return false;
+        const fields = index.fields;
+        return (
+            fields.length >= 2 &&
+            fields[0]?.fieldPath === 'status' &&
+            fields[0]?.order === 'ASCENDING' &&
+            fields[1]?.fieldPath === 'publishedAt' &&
+            fields[1]?.order === 'DESCENDING'
+        );
+    });
+}
+
 describe('firestore.indexes.json (Thrive/Loyalty additions)', () => {
     const indexesPath = path.join(process.cwd(), 'firestore.indexes.json');
     const indexesFile = JSON.parse(fs.readFileSync(indexesPath, 'utf-8')) as {
@@ -59,5 +73,9 @@ describe('firestore.indexes.json (Thrive/Loyalty additions)', () => {
 
     it('contains the insights composite needed by the inbox proactive briefing query', () => {
         expect(hasInsightsComposite(indexesFile.indexes)).toBe(true);
+    });
+
+    it('contains the platform blog composite needed for published post sorting', () => {
+        expect(hasPlatformBlogPublishedComposite(indexesFile.indexes)).toBe(true);
     });
 });

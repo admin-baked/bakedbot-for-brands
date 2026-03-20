@@ -1,4 +1,4 @@
-import { HelpArticleMeta } from '@/server/actions/help-actions';
+import type { HelpArticleMeta } from '@/server/actions/help-actions';
 
 /**
  * Help Article Registry

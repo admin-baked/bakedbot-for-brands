@@ -56,7 +56,6 @@ export class FileMemoryAdapter implements ITreasuryMemoryAdapter {
             const data = await fs.readFile(this.filePath, 'utf-8');
             return JSON.parse(data) as TreasuryDomainMemory;
         } catch (error) {
-            console.error('Failed to read treasury memory:', error);
             throw new Error(`Could not read treasury memory from ${this.filePath}`);
         }
     }
@@ -65,7 +64,6 @@ export class FileMemoryAdapter implements ITreasuryMemoryAdapter {
         try {
             await fs.writeFile(this.filePath, JSON.stringify(memory, null, 2), 'utf-8');
         } catch (error) {
-            console.error('Failed to write treasury memory:', error);
             throw new Error(`Could not write treasury memory to ${this.filePath}`);
         }
     }

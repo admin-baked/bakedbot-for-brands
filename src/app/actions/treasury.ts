@@ -1,7 +1,8 @@
 'use server';
 
+import { getRuntimeErrorMessage, isFirestoreUnavailableError, isProductionBuildPhase } from '@/lib/firestore-runtime';
+import { logger } from '@/lib/logger';
 import { treasuryMemory } from '@/treasury/memory/adapter';
-import { revalidatePath } from 'next/cache';
 
 export async function getTreasuryOverview() {
     // In a real implementation, we would add AUTH check here
@@ -31,7 +32,20 @@ export async function getTreasuryOverview() {
             }
         };
     } catch (error) {
-        console.error('Failed to fetch treasury overview:', error);
+        const message = getRuntimeErrorMessage(error);
+
+        if (message === 'Treasury memory document not found in Firestore') {
+            return { success: false, error: 'Treasury memory is not configured yet' };
+        }
+
+        if (isProductionBuildPhase() && isFirestoreUnavailableError(error)) {
+            logger.info('Treasury overview unavailable during production build, returning fallback error state', {
+                error: message,
+            });
+            return { success: false, error: 'Failed to fetch treasury data' };
+        }
+
+        logger.error('Failed to fetch treasury overview', { error: message });
         return { success: false, error: 'Failed to fetch treasury data' };
     }
 }

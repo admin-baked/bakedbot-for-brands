@@ -35,11 +35,6 @@ service cloud.firestore {
     }
 
     // Dispensary role helpers
-    function isDispensaryAdmin(locationId) {
-      return (isRole('dispensary') || isRole('dispensary_admin'))
-             && request.auth.token.locationId == locationId;
-    }
-
     function isDispensaryStaff(locationId) {
       return (isRole('dispensary') || isRole('dispensary_admin') || isRole('dispensary_staff'))
              && request.auth.token.locationId == locationId;
@@ -47,17 +42,6 @@ service cloud.firestore {
 
     function isBudtender(locationId) {
       return isRole('budtender') && request.auth.token.locationId == locationId;
-    }
-
-    function isDispensaryRole(locationId) {
-      return isDispensaryAdmin(locationId) ||
-             isDispensaryStaff(locationId) ||
-             isBudtender(locationId);
-    }
-
-    // Legacy compatibility
-    function isDispensaryManager(locationId) {
-      return isDispensaryAdmin(locationId);
     }
 
     // --- Public Collections (Read-Only) ---
@@ -391,14 +375,6 @@ service cloud.firestore {
     // DIRECTORY COLLECTIONS (Public SEO Graph)
     // See: dev/data-architecture.md
     // ===========================================================================
-
-    // Helper: Check if user has tenant claim matching directory link
-    function isTenantOwnerOfEntity(entityType, entityId) {
-      return request.auth != null &&
-             request.auth.token.tenantId != null &&
-             exists(/databases/$(database)/documents/directory/tenantLinks/$(entityType + ':' + entityId)) &&
-             get(/databases/$(database)/documents/directory/tenantLinks/$(entityType + ':' + entityId)).data.tenantId == request.auth.token.tenantId;
-    }
 
     // Directory Brands - Public read, no client writes
     match /directory/brands/{brandId} {

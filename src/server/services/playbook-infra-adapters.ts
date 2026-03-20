@@ -333,7 +333,22 @@ export class GitHubArtifactRepoStore implements ArtifactRepoStore {
 }
 
 export class GitArtifactRepoMock implements ArtifactRepoStore {
+    private missingRepoWarningLogged = false;
+
+    private warnMissingRepoConfig(operation: 'writeFile' | 'writeFiles') {
+        if (this.missingRepoWarningLogged) {
+            return;
+        }
+
+        logger.warn('[ArtifactRepoStore] Artifact repo not configured; using mock store', {
+            operation,
+        });
+        this.missingRepoWarningLogged = true;
+    }
+
     async writeFile(input: { repoPath: string; body: string; message: string }): Promise<void> {
+        this.warnMissingRepoConfig('writeFile');
+
         // In production, this would use a git client to push to the artifacts repo
         logger.info('[GitRepoMock] Committing artifact:', {
             path: input.repoPath,
@@ -346,6 +361,8 @@ export class GitArtifactRepoMock implements ArtifactRepoStore {
     }
 
     async writeFiles(input: { files: Array<{ repoPath: string; body: string }>; message: string }): Promise<void> {
+        this.warnMissingRepoConfig('writeFiles');
+
         logger.info('[GitRepoMock] Committing batch:', {
             fileCount: input.files.length,
             message: input.message,
@@ -368,10 +385,6 @@ export function createPlaybookArtifactRepoStore(): ArtifactRepoStore {
         || 'artifacts@bakedbot.ai';
 
     if (!owner || !repo) {
-        logger.warn('[ArtifactRepoStore] Artifact repo not configured; using mock store', {
-            hasOwner: Boolean(owner),
-            hasRepo: Boolean(repo),
-        });
         return new GitArtifactRepoMock();
     }
 

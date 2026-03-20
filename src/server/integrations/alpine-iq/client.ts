@@ -11,13 +11,21 @@ export interface AlpineLoyaltyProfile {
 export class AlpineIQClient {
     private apiKey: string;
     private apiUrl = 'https://api.alpineiq.com/v2';
+    private mockModeWarningLogged = false;
 
     constructor() {
         this.apiKey = process.env.ALPINE_IQ_API_KEY || '';
+    }
 
-        if (!this.apiKey) {
-            logger.warn('[AlpineIQ] No API key found in environment, running in Mock Mode');
+    private warnMockMode(action: string): void {
+        if (this.mockModeWarningLogged || this.apiKey) {
+            return;
         }
+
+        logger.warn('[AlpineIQ] No API key found in environment, running in Mock Mode', {
+            action,
+        });
+        this.mockModeWarningLogged = true;
     }
 
     private get headers() {
@@ -29,6 +37,7 @@ export class AlpineIQClient {
 
     async getLoyaltyProfile(phone: string): Promise<AlpineLoyaltyProfile | null> {
         if (!this.apiKey) {
+            this.warnMockMode('getLoyaltyProfile');
             return {
                 id: 'mock_user_123',
                 points: 420,
@@ -61,7 +70,10 @@ export class AlpineIQClient {
     async sendSms(phone: string, message: string): Promise<boolean> {
         logger.info(`[AlpineIQ] Sending SMS to ${phone}: "${message}"`);
 
-        if (!this.apiKey) return true; // Mock success
+        if (!this.apiKey) {
+            this.warnMockMode('sendSms');
+            return true; // Mock success
+        }
 
         try {
             const response = await fetch(`${this.apiUrl}/messages/send`, {

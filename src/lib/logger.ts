@@ -18,6 +18,14 @@ interface LogEntry {
     level?: LogLevel;
 }
 
+function isServerProductionRuntime(): boolean {
+    return (
+        typeof window === 'undefined' &&
+        process.env.NODE_ENV === 'production' &&
+        process.env.NEXT_PHASE !== 'phase-production-build'
+    );
+}
+
 // Lazy-loaded GCP logging instance (server-side only)
 let gcpLogInitialized = false;
 let gcpLog: any = null;
@@ -29,10 +37,12 @@ async function initGCPLogging() {
     if (gcpLogInitialized) return gcpLog;
 
     // Only initialize on server in production
-    if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
+    if (isServerProductionRuntime()) {
         try {
             // Dynamic import prevents webpack from bundling for client
-            const { Logging } = await import('@google-cloud/logging');
+            const { Logging } = await import(
+                /* webpackIgnore: true */ '@google-cloud/logging' as string
+            );
             const logging = new Logging({
                 projectId: process.env.FIREBASE_PROJECT_ID || 'studio-567050101-bc6e8'
             });
@@ -64,7 +74,7 @@ async function writeLog({ message, data = {}, level = 'INFO' }: LogEntry) {
     }
 
     // Server-side production logging to GCP
-    if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
+    if (isServerProductionRuntime()) {
         const log = await initGCPLogging();
         if (log) {
             try {

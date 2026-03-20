@@ -21,6 +21,24 @@
 import { logger } from '@/lib/logger';
 import type { WalletPassData, AppleDeviceRegistration } from './types';
 
+type AppleApnNotification = {
+  payload: Record<string, never>;
+  topic: string;
+};
+
+type AppleApnModule = {
+  Provider: new (options: {
+    cert: Buffer;
+    key: Buffer;
+    passphrase: string;
+    production: boolean;
+  }) => {
+    send: (notification: AppleApnNotification, token: string) => Promise<unknown>;
+    shutdown: () => void;
+  };
+  Notification: new () => AppleApnNotification;
+};
+
 // ==========================================
 // Config check
 // ==========================================
@@ -34,6 +52,32 @@ export function isAppleConfigured(): boolean {
     process.env.APPLE_WALLET_WWDR_CERT &&
     !process.env.APPLE_WALLET_CERT.startsWith('PLACEHOLDER')
   );
+}
+
+async function loadAppleApnModule(): Promise<AppleApnModule> {
+  try {
+    const imported = (await import(
+      /* webpackIgnore: true */ '@parse/node-apn' as string
+    )) as unknown;
+    const moduleCandidate = imported as Partial<AppleApnModule> & {
+      default?: Partial<AppleApnModule>;
+    };
+    const apn = moduleCandidate.default ?? moduleCandidate;
+
+    if (!apn.Provider || !apn.Notification) {
+      throw new Error('APNs module missing Provider or Notification export');
+    }
+
+    return {
+      Provider: apn.Provider,
+      Notification: apn.Notification,
+    };
+  } catch (error) {
+    logger.warn('[AppleWallet] APNs module unavailable', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw new Error('[AppleWallet] @parse/node-apn not available in this environment.');
+  }
 }
 
 // ==========================================
@@ -176,7 +220,7 @@ export async function pushAppleUpdate(
   let sent = 0;
 
   try {
-    const { default: apn } = await import('@parse/node-apn' as string) as { default: any };
+    const apn = await loadAppleApnModule();
 
     const provider = new apn.Provider({
       cert: Buffer.from(process.env.APPLE_WALLET_CERT!, 'base64'),

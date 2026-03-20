@@ -24,6 +24,7 @@ import {
 import { Timestamp } from '@google-cloud/firestore';
 import { requireUser } from '@/server/auth/auth';
 import { logger } from '@/lib/logger';
+import { getRuntimeErrorMessage, isFirestoreUnavailableError, isProductionBuildPhase } from '@/lib/firestore-runtime';
 import { generateBlogDraft as generateDraft, BlogGeneratorInput } from '@/server/services/blog-generator';
 import { checkBlogCompliance } from '@/server/services/blog-compliance';
 
@@ -106,6 +107,28 @@ function clampInt(value: unknown, min: number, max: number, fallback: number): n
     const parsed = Number.isFinite(Number(value)) ? Number(value) : fallback;
     const intValue = Math.floor(parsed);
     return Math.min(max, Math.max(min, intValue));
+}
+
+function isMissingIndexError(error: unknown): boolean {
+    const candidate = error as { code?: unknown; message?: unknown } | null;
+    const code = typeof candidate?.code === 'number' ? candidate.code : null;
+    const message =
+        typeof candidate?.message === 'string'
+            ? candidate.message.toLowerCase()
+            : '';
+
+    return code === 9 || message.includes('failed_precondition') || message.includes('requires an index');
+}
+
+function logPublishedPlatformPostsMissingIndex(data: Record<string, unknown>): void {
+    const message = '[getPublishedPlatformPosts] Missing Firestore index, falling back to client-side status filtering';
+
+    if (isProductionBuildPhase()) {
+        logger.info(message, data);
+        return;
+    }
+
+    logger.warn(message, data);
 }
 
 async function getBlogPostDocById(firestore: any, postId: string) {
@@ -1028,31 +1051,77 @@ export async function getPublishedPlatformPosts(
 ): Promise<BlogPost[]> {
     try {
         const { firestore } = await createServerClient();
-
-        let query = firestore
+        const postsCollection = firestore
             .collection('tenants')
             .doc(PLATFORM_ORG_ID)
-            .collection('blog_posts')
+            .collection('blog_posts');
+        const safeLimit =
+            options.limit !== undefined
+                ? clampInt(options.limit, 1, 100, 25)
+                : undefined;
+        const safeOffset =
+            options.offset !== undefined
+                ? clampInt(options.offset, 0, 10000, 0)
+                : 0;
+
+        let query = postsCollection
             .where('status', '==', 'published')
             .orderBy('publishedAt', 'desc') as any;
 
-        if (options.limit !== undefined) {
-            const safeLimit = clampInt(options.limit, 1, 100, 25);
+        if (safeLimit !== undefined) {
             query = query.limit(safeLimit);
         }
 
-        if (options.offset !== undefined) {
-            const safeOffset = clampInt(options.offset, 0, 10000, 0);
+        if (safeOffset > 0) {
             query = query.offset(safeOffset);
         }
 
-        const snapshot = await query.get();
+        let snapshot: any;
+        try {
+            snapshot = await query.get();
+        } catch (error) {
+            if (!isMissingIndexError(error)) {
+                throw error;
+            }
+
+            logPublishedPlatformPostsMissingIndex({
+                orgId: PLATFORM_ORG_ID,
+                limit: safeLimit ?? null,
+                offset: safeOffset,
+                error: error instanceof Error ? error.message : String(error),
+            });
+
+            const fallbackSnapshot = await postsCollection
+                .orderBy('publishedAt', 'desc')
+                .get();
+
+            const fallbackPosts = fallbackSnapshot.docs
+                .map((doc: any) => ({
+                    id: doc.id,
+                    ...doc.data()
+                }) as BlogPost)
+                .filter(post => post.status === 'published');
+
+            const start = safeOffset;
+            const end = safeLimit !== undefined ? start + safeLimit : undefined;
+            return fallbackPosts.slice(start, end);
+        }
 
         return snapshot.docs.map((doc: any) => ({
             id: doc.id,
             ...doc.data()
         })) as BlogPost[];
     } catch (error) {
+        const errorMessage = getRuntimeErrorMessage(error);
+
+        if (isProductionBuildPhase() && isFirestoreUnavailableError(error)) {
+            logger.info('[getPublishedPlatformPosts] Firestore unavailable during production build, returning empty platform posts', {
+                orgId: PLATFORM_ORG_ID,
+                error: errorMessage,
+            });
+            return [];
+        }
+
         logger.error('[getPublishedPlatformPosts] Error fetching platform posts', { error });
         return [];
     }

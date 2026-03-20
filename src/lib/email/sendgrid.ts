@@ -7,10 +7,24 @@ const API_KEY = process.env.SENDGRID_API_KEY?.trim();
 const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || 'orders@bakedbot.ai';
 const FROM_NAME = process.env.SENDGRID_FROM_NAME || 'BakedBot Orders';
 
-if (API_KEY) {
-  sgMail.setApiKey(API_KEY);
-} else {
-  logger.warn('SENDGRID_API_KEY is missing. Emails will not be sent.');
+let sendGridInitialized = false;
+let sendGridMissingConfigLogged = false;
+
+function ensureSendGridClient(): boolean {
+  if (!API_KEY) {
+    if (!sendGridMissingConfigLogged) {
+      logger.warn('SENDGRID_API_KEY is missing. Emails will not be sent.');
+      sendGridMissingConfigLogged = true;
+    }
+    return false;
+  }
+
+  if (!sendGridInitialized) {
+    sgMail.setApiKey(API_KEY);
+    sendGridInitialized = true;
+  }
+
+  return true;
 }
 
 type OrderEmailData = {
@@ -31,7 +45,7 @@ type OrderEmailData = {
 };
 
 export async function sendOrderConfirmationEmail(data: OrderEmailData): Promise<boolean> {
-  if (!API_KEY) return false;
+  if (!ensureSendGridClient()) return false;
 
   const itemsHtml = data.items.map(item => `
     <tr>
@@ -113,8 +127,7 @@ export type GenericEmailData = {
 };
 
 export async function sendGenericEmail(data: GenericEmailData): Promise<{ success: boolean; error?: string }> {
-  if (!API_KEY) {
-    logger.warn('SendGrid API key not configured');
+  if (!ensureSendGridClient()) {
     return { success: false, error: 'SendGrid API key is missing in server environment.' };
   }
 

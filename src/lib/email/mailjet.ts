@@ -8,15 +8,33 @@ const SECRET_KEY = process.env.MAILJET_SECRET_KEY?.trim();
 const FROM_EMAIL = process.env.MAILJET_SENDER_EMAIL || 'orders@bakedbot.ai';
 const FROM_NAME = process.env.MAILJET_SENDER_NAME || 'BakedBot AI';
 
-let mailjetClient: any = null;
-
-if (API_KEY && SECRET_KEY) {
-    mailjetClient = new Mailjet({
-        apiKey: API_KEY,
-        apiSecret: SECRET_KEY
+function createMailjetClient() {
+    return new Mailjet({
+        apiKey: API_KEY!,
+        apiSecret: SECRET_KEY!
     });
-} else {
-    logger.warn('MAILJET_API_KEY or MAILJET_SECRET_KEY is missing.');
+}
+
+type MailjetClient = ReturnType<typeof createMailjetClient>;
+
+let mailjetClient: MailjetClient | null = null;
+let mailjetMissingConfigLogged = false;
+
+function getMailjetClient(): MailjetClient | null {
+    if (mailjetClient) {
+        return mailjetClient;
+    }
+
+    if (!API_KEY || !SECRET_KEY) {
+        if (!mailjetMissingConfigLogged) {
+            logger.warn('MAILJET_API_KEY or MAILJET_SECRET_KEY is missing.');
+            mailjetMissingConfigLogged = true;
+        }
+        return null;
+    }
+
+    mailjetClient = createMailjetClient();
+    return mailjetClient;
 }
 
 type OrderEmailData = {
@@ -37,7 +55,9 @@ type OrderEmailData = {
 };
 
 export async function sendOrderConfirmationEmail(data: OrderEmailData): Promise<boolean> {
-    if (!mailjetClient) return false;
+    const client = getMailjetClient();
+
+    if (!client) return false;
 
     const itemsHtml = data.items.map(item => `
     <tr>
@@ -86,7 +106,7 @@ export async function sendOrderConfirmationEmail(data: OrderEmailData): Promise<
     `;
 
     try {
-        const result = await mailjetClient
+        const result = await client
             .post("send", { 'version': 'v3.1' })
             .request({
                 "Messages": [
@@ -139,13 +159,14 @@ export type GenericEmailData = {
 };
 
 export async function sendGenericEmail(data: GenericEmailData): Promise<{ success: boolean; error?: string }> {
-    if (!mailjetClient) {
-        logger.warn('Mailjet client not initialized');
+    const client = getMailjetClient();
+
+    if (!client) {
         return { success: false, error: 'Mailjet API keys are missing in server environment.' };
     }
 
     try {
-        const result = await mailjetClient
+        const result = await client
             .post("send", { 'version': 'v3.1' })
             .request({
                 "Messages": [

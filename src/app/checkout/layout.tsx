@@ -7,6 +7,7 @@ import CheckoutLayoutClient from './checkout-layout-client';
 import { cookies } from 'next/headers';
 import { DEMO_BRAND_ID } from '@/lib/config';
 
+import { isFirestoreUnavailableError, isProductionBuildPhase } from '@/lib/firestore-runtime';
 import { logger } from '@/lib/logger';
 export const revalidate = 60; // Revalidate every 60 seconds
 
@@ -50,7 +51,11 @@ async function getCheckoutData() {
                 });
             } catch (error) {
                 const normalizedError = error instanceof Error ? error : new Error(String(error || 'unknown'));
-                if (isProduction) {
+                if (isProductionBuildPhase() && isFirestoreUnavailableError(normalizedError)) {
+                    logger.info('[CheckoutLayout] Firestore unavailable during production build, using demo data fallback.', {
+                        error: normalizedError.message,
+                    });
+                } else if (isProduction) {
                     logger.error(`[CheckoutLayout] Failed to fetch Firestore data:`, normalizedError);
                 } else {
                     logger.warn(`[CheckoutLayout] Firestore unavailable in local/dev, using demo data fallback.`, { error: normalizedError.message });
@@ -61,7 +66,11 @@ async function getCheckoutData() {
     } catch (error) {
         // If any operation fails, gracefully fallback to demo data
         const normalizedError = error instanceof Error ? error : new Error(String(error || 'unknown'));
-        if (isProduction) {
+        if (isProductionBuildPhase() && isFirestoreUnavailableError(normalizedError)) {
+            logger.info('[CheckoutLayout] getCheckoutData unavailable during production build, using demo data fallback.', {
+                error: normalizedError.message,
+            });
+        } else if (isProduction) {
             logger.error(`[CheckoutLayout] getCheckoutData failed:`, normalizedError);
         } else {
             logger.warn(`[CheckoutLayout] getCheckoutData fallback in local/dev.`, { error: normalizedError.message });
