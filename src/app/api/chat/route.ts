@@ -22,7 +22,7 @@ export const POST = withProtection(
     async (req: NextRequest, data?: ChatRequest) => {
         try {
             // Data is already validated by middleware
-            const { query, userId, sessionId, brandId = '10982', state = 'Illinois' } = data!;
+            const { query, userId, sessionId, brandId = '10982', state = 'Illinois', pendingProductId } = data!;
 
             // 0️⃣ SECURITY: Validate input for prompt injection attempts
             const inputValidation = validateInput(query, { maxLength: 1000, allowedRole: 'customer' });
@@ -85,6 +85,7 @@ export const POST = withProtection(
                 state,
                 products: contextProducts,
                 conversationHistory: conversationContext,
+                pendingProductId,
             });
 
             const safeMessage = agentResponse.message;

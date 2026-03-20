@@ -89,6 +89,13 @@ type Message = {
   imageUrl?: string;
 };
 
+// Affirmative responses that trigger cart checkout when a product is pending
+const CHECKOUT_AFFIRMATIONS = new Set([
+  'yes', 'yep', 'yeah', 'yup', 'sure', 'ok', 'okay', 'add it', 'add to cart',
+  'checkout', 'check out', 'proceed', 'sounds good', "let's do it", 'get it',
+  'buy it', 'buy', 'purchase', 'perfect', 'great', 'do it', 'go ahead',
+]);
+
 /** Parse upsell products from API response */
 function parseUpsells(data: any): UpsellProduct[] | undefined {
   if (!data?.upsells || !Array.isArray(data.upsells) || data.upsells.length === 0) return undefined;
@@ -385,6 +392,8 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
   const [isBotTyping, setIsBotTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  // Track the product currently being discussed so "yes" can short-circuit to checkout
+  const [pendingProduct, setPendingProduct] = useState<Product | null>(null);
   const { user } = useAuth();
   const userId = user?.uid || 'anonymous';
 
@@ -401,6 +410,7 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
     setSessionId(null);
     setMessages([]);
     setHasStartedChat(false);
+    setPendingProduct(null);
     toast({
       title: 'Context Cleared',
       description: 'Starting fresh conversation',
@@ -446,30 +456,52 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
   }
 
   const handleAskSmokey = useCallback(async (product: Product) => {
-    // This is a placeholder for a real AI call.
     setChatMode('chat');
     setIsOnboarding(false);
-    if (!hasStartedChat) {
-      setHasStartedChat(true);
-    }
+    if (!hasStartedChat) setHasStartedChat(true);
+
+    // Track this product — if user says "yes" next, we short-circuit to cart
+    setPendingProduct(product);
 
     const userMessage: Message = { id: Date.now(), text: `Tell me about ${product.name}.`, sender: 'user' };
     setMessages(prev => [...prev, userMessage]);
-
     setIsBotTyping(true);
 
-    setTimeout(() => {
-      const botResponseText = `The ${product.name} is a fantastic choice! It's a ${product.category} known for its relaxing and euphoric effects. People often say it's great for unwinding after a long day. Would you like to add it to your cart?`;
-      const botMessage: Message = {
-        id: Date.now() + 1,
-        text: botResponseText,
-        sender: 'bot'
+    try {
+      const payload: any = {
+        query: `Tell me about ${product.name}. It's a ${product.category} priced at $${product.price}. Would you recommend it and would the customer like to add it to their cart?`,
+        userId,
+        sessionId,
+        brandId: effectiveDispensaryId || effectiveBrandId || undefined,
+        state: effectiveState,
+        pendingProductId: product.id,
+        products: [product],
       };
-      setMessages(prev => [...prev, botMessage]);
-      setIsBotTyping(false);
-    }, 1500);
 
-  }, [hasStartedChat]);
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+      if (data.sessionId) setSessionId(data.sessionId);
+
+      setMessages(prev => [...prev, {
+        id: Date.now() + 1,
+        text: data.message || `The ${product.name} is a great ${product.category}. Would you like to add it to your cart?`,
+        sender: 'bot',
+        upsellSuggestions: parseUpsells(data),
+      }]);
+    } catch {
+      setMessages(prev => [...prev, {
+        id: Date.now() + 1,
+        text: `The ${product.name} is a great ${product.category}. Would you like to add it to your cart?`,
+        sender: 'bot',
+      }]);
+    } finally {
+      setIsBotTyping(false);
+    }
+  }, [hasStartedChat, effectiveBrandId, effectiveDispensaryId, effectiveState, sessionId, userId]);
 
   const handleOnboardingComplete = useCallback(async (answers: OnboardingAnswers) => {
     setIsOnboarding(false);
@@ -554,6 +586,31 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
     e.preventDefault();
     if (inputValue.trim() === '' || isBotTyping) return;
 
+    // --- AFFIRMATION SHORT-CIRCUIT ---
+    // If a product is pending and the user's reply is a confirmation, skip the API
+    // and add directly to cart. Faster UX, no hallucination risk.
+    const normalizedInput = inputValue.trim().toLowerCase();
+    if (pendingProduct && CHECKOUT_AFFIRMATIONS.has(normalizedInput)) {
+      const product = pendingProduct;
+      setMessages(prev => [
+        ...prev,
+        { id: Date.now(), text: inputValue, sender: 'user' },
+        {
+          id: Date.now() + 1,
+          text: `Perfect! I've added **${product.name}** to your cart. Ready to checkout when you are! 🛒`,
+          sender: 'bot',
+        },
+      ]);
+      setInputValue('');
+      setPendingProduct(null);
+      addToCart(
+        { ...product, brandId: product.brandId || effectiveBrandId || 'unknown' } as Product,
+        effectiveDispensaryId || 'unknown'
+      );
+      setCartSheetOpen(true);
+      return;
+    }
+
     const userMessage: Message = { id: Date.now(), text: inputValue, sender: 'user' };
     setMessages((prev) => [...prev, userMessage]);
 
@@ -561,6 +618,9 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
       setHasStartedChat(true);
       setIsOnboarding(false);
     }
+
+    // Clear pending product when the user moves on to a different question
+    setPendingProduct(null);
 
     const currentQuery = inputValue;
     setInputValue('');
@@ -651,7 +711,7 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
       setIsBotTyping(false);
     }
 
-  }, [effectiveBrandId, effectiveDispensaryId, effectiveEntityName, effectiveState, hasStartedChat, inputValue, isBotTyping, sessionId, userId]);
+  }, [effectiveBrandId, effectiveDispensaryId, effectiveEntityName, effectiveState, hasStartedChat, inputValue, isBotTyping, sessionId, userId, pendingProduct, addToCart, setCartSheetOpen]);
 
   const handleFeedback = (productId: string, type: 'like' | 'dislike') => {
     startTransition(async () => {
