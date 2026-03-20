@@ -9,6 +9,9 @@ import { handlePlaybookStageJob } from '@/server/services/playbook-stage-runner'
 // Force dynamic rendering - prevents build-time evaluation of agent dependencies
 export const dynamic = 'force-dynamic';
 
+// Allow 5 minutes for agent execution on App Hosting / Vercel
+export const maxDuration = 300;
+
 function getInboxThreadId(options: Record<string, any> | undefined): string | null {
     if (options?.source !== 'inbox') {
         return null;

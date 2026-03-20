@@ -1,6 +1,7 @@
 import { getCloudTasksClient, getQueuePath } from './client';
 import { AgentPersona } from '../../app/dashboard/ceo/agents/personas';
 import { ThinkingLevel } from '../../app/dashboard/ceo/components/model-selector';
+import { createServerClient } from '@/firebase/server-client';
 
 /**
  * Dispatch Agent Job
@@ -25,6 +26,19 @@ export interface AgentJobPayload {
 
 export async function dispatchAgentJob(payload: AgentJobPayload) {
     try {
+        // 1. Initialize the job document in Firestore with 'pending' status
+        // This prevents the frontend polling race condition where the document
+        // doesn't exist yet because the background worker hasn't started.
+        const { firestore } = await createServerClient();
+        await firestore.collection('jobs').doc(payload.jobId).set({
+            status: 'pending',
+            userId: payload.userId,
+            agentId: payload.persona,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        });
+
+        // 2. Dispatch the Cloud Task
         const tasksClient = await getCloudTasksClient();
         const parent = await getQueuePath('agent-queue'); // Dedicated queue
 
@@ -55,6 +69,20 @@ export async function dispatchAgentJob(payload: AgentJobPayload) {
         return { success: true, taskId: response.data.name };
     } catch (error: any) {
         console.error('Failed to dispatch agent job:', error);
+        
+        // Try to update the job doc to failed if task creation fails
+        try {
+            const { firestore } = await createServerClient();
+            await firestore.collection('jobs').doc(payload.jobId).update({
+                status: 'failed',
+                error: `Cloud Tasks dispatch failed: ${error.message}`,
+                failedAt: new Date(),
+                updatedAt: new Date()
+            });
+        } catch (e) {
+            console.error('Also failed to write failure state to job doc:', e);
+        }
+
         return { success: false, error: `Cloud Tasks dispatch failed: ${error.message}` };
     }
 }
