@@ -104,4 +104,25 @@ describe('Gmail Send', () => {
         await expect(sendGmail({ userId: 'u1', to: ['test@test.com'], subject: 'Hi', html: '<b>Hi</b>' }))
             .rejects.toThrow('Failed to send email: Gmail API 401: Unauthorized');
     });
+
+    it('should RFC 2047 encode unicode headers in the raw payload', async () => {
+        (getGmailToken as jest.Mock).mockResolvedValue({ refresh_token: 'valid_refresh' });
+
+        await sendGmail({
+            userId: 'u1',
+            to: ['recipient@example.com'],
+            subject: '📅 New meeting: BakedBot Booking Smoke Test — Discovery Call',
+            html: '<p>Hello</p>',
+            from: 'Martez — BakedBot AI',
+        });
+
+        const [, requestInit] = (global.fetch as jest.Mock).mock.calls[0];
+        const requestBody = JSON.parse(requestInit.body as string);
+        const raw = requestBody.raw.replace(/-/g, '+').replace(/_/g, '/');
+        const padding = raw.length % 4 === 0 ? '' : '='.repeat(4 - (raw.length % 4));
+        const decoded = Buffer.from(raw + padding, 'base64').toString('utf8');
+
+        expect(decoded).toContain('Subject: =?UTF-8?B?8J+ThSBOZXcgbWVldGluZzogQmFrZWRCb3QgQm9va2luZyBTbW9rZSBUZXN0IOKAlCBEaXNjb3ZlcnkgQ2FsbA==?=');
+        expect(decoded).toContain('From: =?UTF-8?B?TWFydGV6IOKAlCBCYWtlZEJvdCBBSQ==?=');
+    });
 });

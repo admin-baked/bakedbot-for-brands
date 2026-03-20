@@ -17,6 +17,15 @@ interface SendEmailOptions {
     from?: string; // Optional custom 'from' (must be alias of account)
 }
 
+function encodeHeaderValue(value: string): string {
+    // Gmail raw MIME payloads need RFC 2047 encoding for non-ASCII headers.
+    if (/^[\x20-\x7E]*$/.test(value)) {
+        return value;
+    }
+
+    return `=?UTF-8?B?${Buffer.from(value, 'utf8').toString('base64')}?=`;
+}
+
 export async function sendGmail(options: SendEmailOptions) {
     const { userId, to, subject, html, from } = options;
 
@@ -56,9 +65,9 @@ export async function sendGmail(options: SendEmailOptions) {
 
     // Create raw email in RFC 2822 format
     const emailContent = [
-        from ? `From: ${from}` : null,
+        from ? `From: ${encodeHeaderValue(from)}` : null,
         `To: ${to.join(', ')}`,
-        `Subject: ${subject}`,
+        `Subject: ${encodeHeaderValue(subject)}`,
         'MIME-Version: 1.0',
         'Content-Type: text/html; charset=utf-8',
         '',

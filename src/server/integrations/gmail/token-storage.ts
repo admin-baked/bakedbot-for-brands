@@ -20,11 +20,14 @@ export async function saveGmailToken(userId: string, tokens: Credentials) {
     const { firestore } = await createServerClient();
     if (!tokens.refresh_token && !tokens.access_token) return;
 
+    const connectedAt = new Date();
     // We only really care about refresh_token for long-term access.
     // Access tokens expire quickly.
 
     const payload: any = {
-        updatedAt: new Date(),
+        status: 'connected',
+        connectedAt,
+        updatedAt: connectedAt,
         scopes: tokens.scope ? tokens.scope.split(' ') : [],
     };
 
@@ -35,6 +38,7 @@ export async function saveGmailToken(userId: string, tokens: Credentials) {
     // We might also want to store expiry to know when to refresh without trying
     if (tokens.expiry_date) {
         payload.expiryDate = tokens.expiry_date;
+        payload.expiresAt = new Date(tokens.expiry_date).toISOString();
     }
 
     await firestore.collection('users').doc(userId).collection('integrations').doc('gmail').set(payload, { merge: true });

@@ -42,14 +42,23 @@ describe('Gmail Token Storage', () => {
     describe('saveGmailToken', () => {
         it('should save encrypted refresh token', async () => {
             const userId = 'user123';
-            const tokens = { refresh_token: 'refresh123', scope: 'email profile' };
+            const tokens = {
+                refresh_token: 'refresh123',
+                scope: 'email profile',
+                expiry_date: Date.parse('2026-03-20T21:00:00Z'),
+            };
 
             await saveGmailToken(userId, tokens);
 
             expect(encrypt).toHaveBeenCalledWith('refresh123');
             expect(mockSet).toHaveBeenCalledWith(expect.objectContaining({
+                status: 'connected',
+                connectedAt: expect.any(Date),
+                updatedAt: expect.any(Date),
                 scopes: ['email', 'profile'],
-                refreshTokenEncrypted: 'encrypted_refresh123'
+                refreshTokenEncrypted: 'encrypted_refresh123',
+                expiryDate: Date.parse('2026-03-20T21:00:00Z'),
+                expiresAt: '2026-03-20T21:00:00.000Z',
             }), { merge: true });
         });
 
