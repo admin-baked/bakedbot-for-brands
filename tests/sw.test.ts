@@ -6,6 +6,7 @@
 describe('Service Worker Caching Logic', () => {
     // Test the isDynamicBrandPage function logic
     const staticPaths = ['dashboard', 'api', 'pricing', 'checkout', 'onboarding', 'brand-login', 'claim', '_next', 'static'];
+    const noCachePathPrefixes = ['/dashboard', '/_next/'];
 
     function isDynamicBrandPage(pathname: string): boolean {
         const segments = pathname.split('/').filter(Boolean);
@@ -19,6 +20,18 @@ describe('Service Worker Caching Logic', () => {
             return true;
         }
         return false;
+    }
+
+    function matchesPathPrefix(pathname: string, prefix: string): boolean {
+        if (prefix.endsWith('/')) {
+            return pathname.startsWith(prefix);
+        }
+
+        return pathname === prefix || pathname.startsWith(`${prefix}/`);
+    }
+
+    function shouldBypassCache(pathname: string): boolean {
+        return noCachePathPrefixes.some((prefix) => matchesPathPrefix(pathname, prefix));
     }
 
     describe('isDynamicBrandPage', () => {
@@ -79,37 +92,36 @@ describe('Service Worker Caching Logic', () => {
 
             dashboardPaths.forEach(path => {
                 // Dashboard pages should NOT be cached
-                expect(path.includes('/dashboard')).toBe(true);
+                expect(shouldBypassCache(path)).toBe(true);
             });
         });
 
-        it('should use cache-first for static assets', () => {
-            // Static assets are identified by content-type in the SW, not by path
-            // The isDynamicBrandPage function only excludes known app routes
-            // Static assets like /manifest.json are handled separately via content-type check
-
-            // These paths with extensions are filtered by the SW's content-type check
-            const staticAssets = [
-                '/manifest.json',
-                '/icon-192.png',
-                '/offline.html'
+        it('should bypass the SW cache for Next.js build assets', () => {
+            const nextAssets = [
+                '/_next/static/chunks/main.js',
+                '/_next/static/css/app.css',
+                '/_next/image',
             ];
 
-            // The SW checks content-type (javascript, css, image, font) for caching decisions
-            // These assets will be cached based on their response headers, not path matching
+            nextAssets.forEach(asset => {
+                expect(shouldBypassCache(asset)).toBe(true);
+            });
+        });
+
+        it('should allow cache-first behavior for truly static assets outside /_next', () => {
+            const staticAssets = ['/manifest.json', '/icon-192.png', '/offline.html'];
+
             staticAssets.forEach(asset => {
-                // These would be cached based on content-type in the actual SW
-                expect(asset.includes('.')).toBe(true); // Has file extension
+                expect(shouldBypassCache(asset)).toBe(false);
             });
         });
     });
 
     describe('Cache Version', () => {
         it('should have updated cache version to invalidate old caches', () => {
-            // The cache name was bumped from v1 to v2
-            const expectedCacheName = 'bakedbot-v2';
-            // This ensures old caches with wrong brand page data are cleared
-            expect(expectedCacheName).toBe('bakedbot-v2');
+            // The cache name was bumped to clear old /_next asset caches after deploys
+            const expectedCacheName = 'bakedbot-v3';
+            expect(expectedCacheName).toBe('bakedbot-v3');
         });
     });
 });

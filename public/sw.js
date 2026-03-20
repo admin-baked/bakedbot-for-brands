@@ -2,7 +2,7 @@
 // BakedBot PWA Service Worker
 // Provides offline functionality and caching
 
-const CACHE_NAME = 'bakedbot-v2'; // Bump version to invalidate old caches
+const CACHE_NAME = 'bakedbot-v3'; // Bump version to invalidate old caches
 const OFFLINE_URL = '/offline.html';
 
 // Assets to cache on install
@@ -11,12 +11,26 @@ const STATIC_ASSETS = [
   '/manifest.json',
 ];
 
-// Paths that should NEVER be cached (dynamic content)
-const NO_CACHE_PATHS = [
-  '/api/',
-  '/dashboard/',
-  '/_next/webpack-hmr', // HMR for dev
+// Paths that should NEVER be served from the service worker cache.
+// Next.js already fingerprint-hashes these assets, and stale SW cache entries can
+// keep old Server Action IDs alive across deploys.
+const NO_CACHE_PATH_PREFIXES = [
+  '/dashboard',
+  '/_next/',
 ];
+
+function matchesPathPrefix(pathname, prefix) {
+  if (prefix.endsWith('/')) {
+    return pathname.startsWith(prefix);
+  }
+
+  return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
+function shouldBypassCache(url) {
+  const pathname = new URL(url).pathname;
+  return NO_CACHE_PATH_PREFIXES.some((prefix) => matchesPathPrefix(pathname, prefix));
+}
 
 // Check if a URL is a dynamic brand page (single segment after root)
 function isDynamicBrandPage(url) {
@@ -80,9 +94,10 @@ self.addEventListener('fetch', (event) => {
   }
 
   const url = event.request.url;
+  const pathname = new URL(url).pathname;
 
   // Network-first strategy for API calls
-  if (url.includes('/api/')) {
+  if (pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(event.request)
         .catch(() => {
@@ -96,7 +111,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Network-first (no cache) for dashboard and dynamic brand pages
-  if (url.includes('/dashboard/') || isDynamicBrandPage(url)) {
+  if (shouldBypassCache(url) || isDynamicBrandPage(url)) {
     event.respondWith(
       fetch(event.request)
         .then((response) => {

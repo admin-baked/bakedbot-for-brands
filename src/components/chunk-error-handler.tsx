@@ -2,6 +2,15 @@
 
 import { useEffect } from 'react';
 
+import {
+    isDeploymentMismatchError,
+    isServerActionMismatchResponse,
+    isServerActionRequest,
+    shouldAttemptDeploymentReload,
+    startDeploymentReload,
+} from '@/lib/deployment-mismatch';
+import { logger } from '@/lib/logger';
+
 /**
  * Global handler for chunk loading errors that occur outside React's error boundary.
  * These can happen during dynamic imports before React catches them.
@@ -10,58 +19,84 @@ import { useEffect } from 'react';
  */
 export function ChunkErrorHandler() {
     useEffect(() => {
+        const attemptDeploymentReload = (error: unknown, source: string) => {
+            if (!isDeploymentMismatchError(error)) {
+                return false;
+            }
+
+            if (!shouldAttemptDeploymentReload(window.sessionStorage)) {
+                return false;
+            }
+
+            logger.info('Deployment mismatch detected in global handler, reloading fresh assets', {
+                error: error instanceof Error ? error.message : String(error ?? ''),
+                source,
+            });
+            void startDeploymentReload();
+            return true;
+        };
+
         const handleError = (event: ErrorEvent) => {
-            const error = event.error;
-            const message = error?.message?.toLowerCase() || event.message?.toLowerCase() || '';
-
-            const isChunkError =
-                error?.name === 'ChunkLoadError' ||
-                message.includes('loading chunk') ||
-                message.includes('failed to fetch dynamically imported module') ||
-                message.includes('failed to load chunk');
-
-            if (isChunkError) {
-                event.preventDefault(); // Prevent default error handling
-
-                // Check if we recently reloaded to avoid infinite loops
-                const lastReload = sessionStorage.getItem('bakedbot_last_chunk_reload');
-                const now = Date.now();
-
-                if (!lastReload || (now - parseInt(lastReload, 10)) > 30000) {
-                    sessionStorage.setItem('bakedbot_last_chunk_reload', now.toString());
-                    // Hard reload to get fresh chunks
-                    window.location.reload();
-                }
+            if (attemptDeploymentReload(event.error ?? event.message, 'window.error')) {
+                event.preventDefault();
             }
         };
 
         const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-            const reason = event.reason;
-            const message = reason?.message?.toLowerCase() || String(reason).toLowerCase();
-
-            const isChunkError =
-                reason?.name === 'ChunkLoadError' ||
-                message.includes('loading chunk') ||
-                message.includes('failed to fetch dynamically imported module') ||
-                message.includes('failed to load chunk');
-
-            if (isChunkError) {
+            if (attemptDeploymentReload(event.reason, 'window.unhandledrejection')) {
                 event.preventDefault();
-
-                const lastReload = sessionStorage.getItem('bakedbot_last_chunk_reload');
-                const now = Date.now();
-
-                if (!lastReload || (now - parseInt(lastReload, 10)) > 30000) {
-                    sessionStorage.setItem('bakedbot_last_chunk_reload', now.toString());
-                    window.location.reload();
-                }
             }
         };
 
+        const originalFetch = window.fetch.bind(window);
+        const patchedFetch: typeof window.fetch = async (input, init) => {
+            const response = await originalFetch(input, init);
+
+            if (!response.ok && response.status >= 404 && isServerActionRequest(input, init)) {
+                const inspectionResponse = response.clone();
+
+                void inspectionResponse
+                    .text()
+                    .then((bodyText) => {
+                        if (!isServerActionMismatchResponse(response.status, bodyText)) {
+                            return;
+                        }
+
+                        if (!shouldAttemptDeploymentReload(window.sessionStorage)) {
+                            return;
+                        }
+
+                        const requestUrl =
+                            typeof input === 'string'
+                                ? input
+                                : input instanceof URL
+                                    ? input.toString()
+                                    : input.url;
+
+                        logger.info('Stale server action response detected, reloading fresh assets', {
+                            status: response.status,
+                            url: requestUrl,
+                        });
+                        void startDeploymentReload();
+                    })
+                    .catch((error) => {
+                        logger.warn('Failed to inspect server action response for deployment mismatch', {
+                            error,
+                        });
+                    });
+            }
+
+            return response;
+        };
+
+        window.fetch = patchedFetch;
         window.addEventListener('error', handleError);
         window.addEventListener('unhandledrejection', handleUnhandledRejection);
 
         return () => {
+            if (window.fetch === patchedFetch) {
+                window.fetch = originalFetch;
+            }
             window.removeEventListener('error', handleError);
             window.removeEventListener('unhandledrejection', handleUnhandledRejection);
         };

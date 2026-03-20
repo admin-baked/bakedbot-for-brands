@@ -5,71 +5,13 @@ import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
+import {
+    clearDeploymentReloadMark,
+    isDeploymentMismatchError,
+    shouldAttemptDeploymentReload,
+    startDeploymentReload,
+} from '@/lib/deployment-mismatch';
 import { logger } from '@/lib/logger';
-
-/**
- * Detects if an error is a chunk loading failure (deployment mismatch)
- * These occur when cached JS references chunks from an old deployment
- */
-function isChunkLoadError(error: Error): boolean {
-    const message = error.message?.toLowerCase() || '';
-    const name = error.name?.toLowerCase() || '';
-
-    return (
-        name === 'chunkloaderror' ||
-        message.includes('loading chunk') ||
-        message.includes('failed to fetch dynamically imported module') ||
-        message.includes('failed to load chunk') ||
-        // Server Action mismatch from deployment
-        message.includes('server action') && message.includes('not found')
-    );
-}
-
-/**
- * Detects if an error is a Server Action ID mismatch
- * This happens when client has old cached code calling server actions with old IDs
- */
-function isServerActionMismatch(error: Error): boolean {
-    const message = error.message?.toLowerCase() || '';
-    return (
-        message.includes('server action') ||
-        message.includes('unrecognizedactionerror') ||
-        (message.includes('was not found') && message.includes('server'))
-    );
-}
-
-/**
- * Detects if an error is a Firestore SDK internal assertion failure
- * These can occur due to network issues, browser extensions blocking requests,
- * or rapid auth state changes. They're typically recoverable with a refresh.
- */
-function isFirestoreAssertionError(error: Error): boolean {
-    const message = error.message || '';
-    return (
-        message.includes('INTERNAL ASSERTION FAILED') ||
-        message.includes('Unexpected state') ||
-        (message.includes('FIRESTORE') && message.includes('assertion'))
-    );
-}
-
-/**
- * Detects if an error is a React hooks ordering error
- * These can occur due to hydration mismatches or stale cached code.
- * Error codes: #300 (fewer hooks), #310 (more hooks), #418, #423 (hooks rules)
- */
-function isReactHooksError(error: Error): boolean {
-    const message = error.message || '';
-    return (
-        message.includes('Rendered fewer hooks than expected') ||
-        message.includes('Rendered more hooks than expected') ||
-        message.includes('Minified React error #300') ||
-        message.includes('Minified React error #310') ||
-        message.includes('Minified React error #418') ||
-        message.includes('Minified React error #423') ||
-        message.includes('react.dev/errors/300') ||
-        message.includes('react.dev/errors/310')
-    );
-}
 
 interface ErrorBoundaryProps {
     children: React.ReactNode;
@@ -93,34 +35,27 @@ export class ErrorBoundary extends React.Component<
     }
 
     static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
-        // Treat Firestore assertion errors and React hooks errors like deployment mismatches - they're recoverable with refresh
-        const isDeploymentMismatch = isChunkLoadError(error) || isServerActionMismatch(error) || isFirestoreAssertionError(error) || isReactHooksError(error);
+        const isDeploymentMismatch = isDeploymentMismatchError(error);
         return { hasError: true, error, isDeploymentMismatch };
     }
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-        const isDeploymentMismatch = isChunkLoadError(error) || isServerActionMismatch(error) || isFirestoreAssertionError(error) || isReactHooksError(error);
+        const isDeploymentMismatch = isDeploymentMismatchError(error);
 
         // Log error to monitoring service
         logger.error('Error boundary caught error:', { error, errorInfo, isDeploymentMismatch });
 
         // For deployment mismatches, attempt automatic reload (once)
         if (isDeploymentMismatch && typeof window !== 'undefined') {
-            const reloadKey = 'bakedbot_chunk_reload_' + Date.now().toString().slice(0, -4); // ~10s window
-            const lastReload = sessionStorage.getItem('bakedbot_last_chunk_reload');
-            const now = Date.now();
-
-            // Only auto-reload if we haven't tried in the last 30 seconds
-            if (!lastReload || (now - parseInt(lastReload, 10)) > 30000) {
-                sessionStorage.setItem('bakedbot_last_chunk_reload', now.toString());
-                logger.info('Deployment mismatch detected, reloading to get fresh code');
-                // Hard reload bypassing cache
-                window.location.reload();
+            if (shouldAttemptDeploymentReload(window.sessionStorage)) {
+                logger.info('Deployment mismatch detected, reloading fresh assets', {
+                    message: error.message,
+                });
+                void startDeploymentReload();
                 return;
-            } else {
-                // We already tried reloading recently, show the error UI
-                this.setState({ reloadAttempted: true });
             }
+
+            this.setState({ reloadAttempted: true });
         }
 
         // Track in analytics
@@ -139,9 +74,8 @@ export class ErrorBoundary extends React.Component<
 
     handleHardReload = () => {
         if (typeof window !== 'undefined') {
-            // Clear the reload throttle and force reload
-            sessionStorage.removeItem('bakedbot_last_chunk_reload');
-            window.location.reload();
+            clearDeploymentReloadMark(window.sessionStorage);
+            void startDeploymentReload({ force: true });
         }
     };
 
