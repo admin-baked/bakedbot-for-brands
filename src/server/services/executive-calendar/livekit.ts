@@ -7,10 +7,16 @@
 import { AccessToken, RoomServiceClient } from 'livekit-server-sdk';
 import { logger } from '@/lib/logger';
 
-function getLiveKitConfig() {
+export function getLiveKitConfig() {
     const apiKey = process.env.LIVEKIT_API_KEY;
     const apiSecret = process.env.LIVEKIT_API_SECRET;
-    const url = process.env.LIVEKIT_URL ?? 'wss://bakedbot.livekit.cloud';
+    let url = process.env.LIVEKIT_URL || 'wss://bakedbot.livekit.cloud';
+
+    // Ensure URL starts with wss:// for the client
+    if (!url.startsWith('wss://') && !url.startsWith('ws://')) {
+        url = `wss://${url}`;
+    }
+
     if (!apiKey || !apiSecret) {
         throw new Error('[LiveKit] LIVEKIT_API_KEY and LIVEKIT_API_SECRET are required');
     }
@@ -35,8 +41,8 @@ export async function createMeetingRoom(
     const { apiKey, apiSecret, url } = getLiveKitConfig();
 
     try {
-        const wsUrl = url.startsWith('wss://') ? url : `wss://${url}`;
-        const httpUrl = wsUrl.replace('wss://', 'https://');
+        const wsUrl = url;
+        const httpUrl = wsUrl.replace('wss://', 'https://').replace('ws://', 'http://');
         const roomService = new RoomServiceClient(httpUrl, apiKey, apiSecret);
         await roomService.createRoom({
             name: roomName,
@@ -62,7 +68,7 @@ export async function deleteMeetingRoom(roomName: string): Promise<void> {
     logger.info(`[LiveKit] Deleting room: ${roomName}`);
     try {
         const { apiKey, apiSecret, url } = getLiveKitConfig();
-        const httpUrl = url.replace('wss://', 'https://');
+        const httpUrl = url.replace('wss://', 'https://').replace('ws://', 'http://');
         const roomService = new RoomServiceClient(httpUrl, apiKey, apiSecret);
         await roomService.deleteRoom(roomName);
     } catch (err) {
@@ -84,7 +90,10 @@ export async function generateAccessToken(
     ttlSeconds = 14400,
 ): Promise<string> {
     const { apiKey, apiSecret } = getLiveKitConfig();
-    const identity = `${participantName.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`;
+
+    // STABLE IDENTITY: Prevents duplicate participants on page refresh.
+    // Hash-like slug + room name ensures uniqueness per room but stability per user.
+    const identity = `${participantName.toLowerCase().replace(/\s+/g, '-')}-${roomName.slice(-8)}`;
 
     const at = new AccessToken(apiKey, apiSecret, {
         identity,

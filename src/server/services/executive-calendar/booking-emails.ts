@@ -160,3 +160,100 @@ export async function sendFollowUpEmail(
         logger.error(`[BookingEmails] Failed to send follow-up: ${result.error}`);
     }
 }
+
+/**
+ * Sends a 1-hour reminder email to the guest.
+ */
+export async function sendOneHourReminderEmail(
+    booking: MeetingBooking,
+    profile: ExecutiveProfile,
+): Promise<void> {
+    const formattedTime = formatDatetime(booking.startAt, profile.availability.timezone);
+
+    const result = await sendGenericEmail({
+        to: booking.externalEmail,
+        name: booking.externalName,
+        subject: `Reminder: Your meeting with ${profile.displayName} starts in 1 hour`,
+        htmlBody: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #111;">
+                <div style="background: #000; padding: 24px; text-align: center;">
+                    <h1 style="color: #fff; font-size: 20px; margin: 0;">Meeting Reminder</h1>
+                </div>
+                <div style="padding: 32px 24px;">
+                    <p>Hi ${booking.externalName},</p>
+                    <p>This is a friendly reminder that your meeting with <strong>${profile.displayName}</strong> starts in 1 hour.</p>
+
+                    <div style="background: #f9f9f9; border-left: 4px solid #16a34a; padding: 16px 20px; margin: 24px 0; border-radius: 4px;">
+                        <p style="margin: 0 0 8px;"><strong>📅 When:</strong> ${formattedTime}</p>
+                        <p style="margin: 0 0 8px;"><strong>📋 Topic:</strong> ${booking.purpose}</p>
+                    </div>
+
+                    <div style="text-align: center; margin: 32px 0;">
+                        <a href="${booking.videoRoomUrl}"
+                           style="background: #16a34a; color: white; padding: 14px 32px; text-decoration: none;
+                                  border-radius: 8px; font-size: 16px; font-weight: bold; display: inline-block;">
+                            🎥 Join Meeting
+                        </a>
+                    </div>
+
+                    <p style="color: #666; font-size: 14px;">
+                        Use the button above to join when it's time. See you soon!
+                    </p>
+                </div>
+                <div style="background: #f3f4f6; padding: 16px; text-align: center; font-size: 12px; color: #9ca3af;">
+                    Powered by BakedBot AI · bakedbot.ai
+                </div>
+            </div>
+        `,
+        communicationType: 'transactional',
+    });
+
+    if (!result.success) {
+        logger.error(`[BookingEmails] Failed to send 1-hour reminder: ${result.error}`);
+    }
+}
+
+/**
+ * Sends a "Starting Now" email to the guest.
+ */
+export async function sendMeetingStartedEmail(
+    booking: MeetingBooking,
+    profile: ExecutiveProfile,
+): Promise<void> {
+    const result = await sendGenericEmail({
+        to: booking.externalEmail,
+        name: booking.externalName,
+        subject: `Your meeting with ${profile.displayName} is starting now 🎥`,
+        htmlBody: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #111;">
+                <div style="background: #16a34a; padding: 24px; text-align: center;">
+                    <h1 style="color: #fff; font-size: 20px; margin: 0;">Meeting Starting Now</h1>
+                </div>
+                <div style="padding: 32px 24px; text-align: center;">
+                    <p style="font-size: 18px;">Hi ${booking.externalName},</p>
+                    <p style="font-size: 16px;">Your meeting with <strong>${profile.displayName}</strong> is starting right now.</p>
+
+                    <div style="margin: 32px 0;">
+                        <a href="${booking.videoRoomUrl}"
+                           style="background: #111; color: white; padding: 16px 40px; text-decoration: none;
+                                  border-radius: 8px; font-size: 18px; font-weight: bold; display: inline-block;">
+                            🚀 Join Room
+                        </a>
+                    </div>
+
+                    <p style="color: #666; font-size: 14px;">
+                        Click above to join the video call immediately.
+                    </p>
+                </div>
+                <div style="background: #f3f4f6; padding: 16px; text-align: center; font-size: 12px; color: #9ca3af;">
+                    Powered by BakedBot AI · bakedbot.ai
+                </div>
+            </div>
+        `,
+        communicationType: 'transactional',
+    });
+
+    if (!result.success) {
+        logger.error(`[BookingEmails] Failed to send start notification: ${result.error}`);
+    }
+}

@@ -26,7 +26,10 @@ async function handleFollowUps() {
     for (const booking of meetings) {
         try {
             const profile = await getExecutiveProfile(booking.profileSlug);
-            if (!profile) continue;
+            if (!profile) {
+                logger.warn(`[MeetingFollowUp] Skipping booking ${booking.id}: profile not found for slug ${booking.profileSlug}`);
+                continue;
+            }
 
             // Use stored notes if Felisha already processed the transcript,
             // otherwise generate a generic follow-up via Craig

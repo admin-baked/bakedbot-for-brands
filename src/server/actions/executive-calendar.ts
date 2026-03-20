@@ -73,6 +73,12 @@ function firestoreToBooking(id: string, data: Record<string, unknown>): MeetingB
         confirmationEmailSentAt: data.confirmationEmailSentAt
             ? (data.confirmationEmailSentAt as Timestamp).toDate()
             : null,
+        oneHourReminderSentAt: data.oneHourReminderSentAt
+            ? (data.oneHourReminderSentAt as Timestamp).toDate()
+            : null,
+        startNotificationSentAt: data.startNotificationSentAt
+            ? (data.startNotificationSentAt as Timestamp).toDate()
+            : null,
         createdAt: (data.createdAt as Timestamp)?.toDate() ?? new Date(),
         updatedAt: (data.updatedAt as Timestamp)?.toDate() ?? new Date(),
     };
@@ -144,6 +150,8 @@ export async function getAvailableSlots(
                 prepBriefGenerated: false,
                 prepBriefSentAt: null,
                 followUpSentAt: null,
+                oneHourReminderSentAt: null,
+                startNotificationSentAt: null,
                 transcript: null,
                 meetingNotes: null,
                 actionItems: [],
@@ -249,6 +257,8 @@ export async function createBooking(
         meetingNotes: null,
         actionItems: [],
         confirmationEmailSentAt: null,
+        oneHourReminderSentAt: null,
+        startNotificationSentAt: null,
         createdAt: now,
         updatedAt: now,
     };
@@ -256,45 +266,41 @@ export async function createBooking(
     await bookingRef.set(booking);
     logger.info(`[ExecCalendar] Booking created: ${bookingId} for ${profileSlug}`);
 
-    // Send confirmation emails (non-blocking)
+    // Send confirmation emails (awaited — setImmediate is unreliable in serverless)
     const fullBooking = firestoreToBooking(bookingId, {
         ...booking,
         startAt: Timestamp.fromDate(startAt),
         endAt: Timestamp.fromDate(endAt),
     });
-    setImmediate(async () => {
-        try {
-            await sendConfirmationEmail(fullBooking, profile);
-            await bookingRef.update({
-                confirmationEmailSentAt: Timestamp.now(),
-                updatedAt: Timestamp.now(),
-            });
-        } catch (err) {
-            logger.error('[ExecCalendar] Confirmation email failed:', err instanceof Error ? { message: err.message } : { error: String(err) });
-        }
-    });
-
-    // Create Google Calendar event (non-blocking — booking confirmed regardless)
-    if (profile.googleCalendarTokens?.refresh_token) {
-        setImmediate(async () => {
-            try {
-                const eventId = await createGoogleCalendarEvent(profile.googleCalendarTokens!, {
-                    summary: `${meetingType.name} with ${input.externalName}`,
-                    description: input.purpose || `Meeting booked via BakedBot — ${meetingType.name}`,
-                    startAt,
-                    endAt,
-                    timezone: profile.availability.timezone,
-                    attendeeEmails: [input.externalEmail, profile.emailAddress],
-                    videoRoomUrl,
-                });
-                if (eventId) {
-                    await bookingRef.update({ calendarEventId: eventId, updatedAt: Timestamp.now() });
-                    logger.info(`[ExecCalendar] Google Calendar event linked: ${eventId} → ${bookingId}`);
-                }
-            } catch (err) {
-                logger.error(`[ExecCalendar] Google Calendar event creation failed for ${bookingId}: ${String(err)}`);
-            }
+    try {
+        await sendConfirmationEmail(fullBooking, profile);
+        await bookingRef.update({
+            confirmationEmailSentAt: Timestamp.now(),
+            updatedAt: Timestamp.now(),
         });
+    } catch (err) {
+        logger.error('[ExecCalendar] Confirmation email failed:', err instanceof Error ? { message: err.message } : { error: String(err) });
+    }
+
+    // Create Google Calendar event (awaited — must complete before response ends)
+    if (profile.googleCalendarTokens?.refresh_token) {
+        try {
+            const eventId = await createGoogleCalendarEvent(profile.googleCalendarTokens!, {
+                summary: `${meetingType.name} with ${input.externalName}`,
+                description: input.purpose || `Meeting booked via BakedBot — ${meetingType.name}`,
+                startAt,
+                endAt,
+                timezone: profile.availability.timezone,
+                attendeeEmails: [input.externalEmail, profile.emailAddress],
+                videoRoomUrl,
+            });
+            if (eventId) {
+                await bookingRef.update({ calendarEventId: eventId, updatedAt: Timestamp.now() });
+                logger.info(`[ExecCalendar] Google Calendar event linked: ${eventId} → ${bookingId}`);
+            }
+        } catch (err) {
+            logger.error(`[ExecCalendar] Google Calendar event creation failed for ${bookingId}: ${String(err)}`);
+        }
     }
 
     return {
@@ -488,7 +494,7 @@ export async function getMeetingsNeedingFollowUp(): Promise<MeetingBooking[]> {
 
     const snap = await firestore
         .collection('meeting_bookings')
-        .where('status', '==', 'confirmed')
+        .where('status', 'in', ['confirmed', 'completed'])
         .where('followUpSentAt', '==', null)
         .where('endAt', '>=', Timestamp.fromDate(windowStart))
         .where('endAt', '<=', Timestamp.fromDate(windowEnd))
@@ -525,6 +531,74 @@ export async function markFollowUpSent(bookingId: string): Promise<void> {
     const firestore = getAdminFirestore();
     await firestore.collection('meeting_bookings').doc(bookingId).update({
         followUpSentAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+    });
+}
+
+/**
+ * Finds meetings starting in 50-70 minutes that haven't had a 1-hour reminder.
+ */
+export async function getMeetingsNeedingOneHourReminder(): Promise<MeetingBooking[]> {
+    const firestore = getAdminFirestore();
+    const now = new Date();
+    const windowStart = new Date(now.getTime() + 50 * 60 * 1000);
+    const windowEnd = new Date(now.getTime() + 70 * 60 * 1000);
+
+    const snap = await firestore
+        .collection('meeting_bookings')
+        .where('status', '==', 'confirmed')
+        .where('oneHourReminderSentAt', '==', null)
+        .where('startAt', '>=', Timestamp.fromDate(windowStart))
+        .where('startAt', '<=', Timestamp.fromDate(windowEnd))
+        .get();
+
+    return snap.docs.map(d =>
+        firestoreToBooking(d.id, d.data() as Record<string, unknown>),
+    );
+}
+
+/**
+ * Marks 1-hour reminder as sent.
+ */
+export async function markOneHourReminderSent(bookingId: string): Promise<void> {
+    const firestore = getAdminFirestore();
+    await firestore.collection('meeting_bookings').doc(bookingId).update({
+        oneHourReminderSentAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+    });
+}
+
+/**
+ * Finds meetings starting in the next 5 minutes or that started in the last 5 minutes.
+ * Ensures we catch meetings precisely at start time.
+ */
+export async function getMeetingsNeedingStartNotification(): Promise<MeetingBooking[]> {
+    const firestore = getAdminFirestore();
+    const now = new Date();
+    // Look for meetings starting between 5 minutes ago and 5 minutes from now
+    const windowStart = new Date(now.getTime() - 5 * 60 * 1000);
+    const windowEnd = new Date(now.getTime() + 5 * 60 * 1000);
+
+    const snap = await firestore
+        .collection('meeting_bookings')
+        .where('status', '==', 'confirmed')
+        .where('startNotificationSentAt', '==', null)
+        .where('startAt', '>=', Timestamp.fromDate(windowStart))
+        .where('startAt', '<=', Timestamp.fromDate(windowEnd))
+        .get();
+
+    return snap.docs.map(d =>
+        firestoreToBooking(d.id, d.data() as Record<string, unknown>),
+    );
+}
+
+/**
+ * Marks start notification as sent.
+ */
+export async function markStartNotificationSent(bookingId: string): Promise<void> {
+    const firestore = getAdminFirestore();
+    await firestore.collection('meeting_bookings').doc(bookingId).update({
+        startNotificationSentAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
     });
 }

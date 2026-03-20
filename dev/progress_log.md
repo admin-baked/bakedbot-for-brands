@@ -1,3 +1,59 @@
+## Session: 2026-03-20 (Booking Email & GCal Sync Fix — setImmediate)
+### Task ID
+booking_setimmediate_fix
+
+### Summary
+Fixed the root cause of missing confirmation emails and unreliable Google Calendar sync. Both `sendConfirmationEmail` and `createGoogleCalendarEvent` were dispatched via `setImmediate()`, which is silently killed in serverless environments (Next.js App Router / Firebase App Hosting) when the response completes. Replaced with direct `await` calls wrapped in try/catch. Also fixed a secondary issue where refreshed Google OAuth access tokens were logged but never persisted back to Firestore, causing future API calls to fail.
+
+### Key Changes
+*   **FIX**: `src/server/actions/executive-calendar.ts` - Replaced `setImmediate` fire-and-forget with direct `await` for both email and GCal.
+*   **FIX**: `src/server/services/executive-calendar/google-calendar.ts` - Persists refreshed OAuth tokens back to `executive_profiles` in Firestore.
+
+### Verification Results
+*   **Logic Verification**: ✅ PASS (Both email and GCal calls now complete before response ends)
+
+---
+
+## Session: 2026-03-20 (Meeting Reminders & Start Notifications)
+### Task ID
+meeting_reminders_start_notifications
+
+### Summary
+Implemented two new automated email notifications for the booking system: a 1-hour reminder and a "Starting Now" alert. Updated the `MeetingBooking` schema to track these notifications, added the necessary server actions for window-based querying, and created a new `meeting-notifications` cron job that runs every 5 minutes to process the queue.
+
+### Key Changes
+*   **TYPE**: `src/types/executive-calendar.ts` - Added `oneHourReminderSentAt` and `startNotificationSentAt`.
+*   **FIX**: `src/server/actions/executive-calendar.ts` - Updated `firestoreToBooking` and `createBooking` to initialize and track new notification fields.
+*   **FEATURE**: `src/server/services/executive-calendar/booking-emails.ts` - Implemented `sendOneHourReminderEmail` and `sendMeetingStartedEmail`.
+*   **FEATURE**: `src/app/api/cron/meeting-notifications/route.ts` - New cron job for automated notification processing.
+
+### Verification Results
+*   **Logic Verification**: ✅ PASS (Schema alignment and query windows verified)
+*   **Build Health**: ✅ PASS (Typed and lint-free)
+
+---
+
+## Session: 2026-03-20 (Booking Calendar & Meeting Room Fixes)
+### Task ID
+booking_calendar_meeting_fixes
+
+### Summary
+Fixed critical issues in the booking follow-up flow and meeting room connectivity. Resolved a bug where 'completed' meetings were skipped by the follow-up cron. Normalized LiveKit Cloud configuration across frontend and backend, and stabilized participant session identities. Corrected the Google Calendar redirect URI to match the canonical production endpoint.
+
+### Key Changes
+*   **FIX**: `src/server/actions/executive-calendar.ts` - Updated `getMeetingsNeedingFollowUp` to include `completed` status in the Firestore query.
+*   **FIX**: `src/server/services/executive-calendar/livekit.ts` - Normalized `getLiveKitConfig` URL handling and implemented stable `identity` generation (slug-based) for participants.
+*   **FIX**: `src/app/meet/[roomId]/page.tsx` - Switched from hardcoded LiveKit URL to the normalized service configuration.
+*   **FIX**: `src/server/services/executive-calendar/google-calendar.ts` - Corrected `REDIRECT_URI` to `https://bakedbot.ai/api/auth/google/callback`.
+*   **ENHANCEMENT**: Added diagnostic logging to `api/cron/meeting-followup`.
+
+### Verification Results
+*   **Logic Verification**: ✅ PASS (Firestore query expansion verified)
+*   **URL Normalization**: ✅ PASS (Helper function ensures `wss://` prefix)
+*   **Build Health**: ✅ PASS (All touched files are type-safe and lint-free)
+
+---
+
 ## Session: 2026-03-01 (Inbox Primitives Enhancement)
 ### Task ID
 inbox_primitives_enhancement

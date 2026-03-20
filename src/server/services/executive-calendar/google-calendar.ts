@@ -201,10 +201,28 @@ export async function createGoogleCalendarEvent(
             logger.info(`[GCal] Event created: ${eventId}`);
         }
 
-        // If the access token was refreshed, log so caller can persist if needed
+        // Persist refreshed tokens back to Firestore so they don't go stale
         const updated = getUpdatedTokens();
         if (updated) {
-            logger.info('[GCal] Access token refreshed during event creation');
+            logger.info('[GCal] Access token refreshed during event creation — persisting to Firestore');
+            try {
+                const { getAdminFirestore } = await import('@/firebase/admin');
+                const firestore = getAdminFirestore();
+                // Find the executive profile that owns these tokens and update it
+                const profilesSnap = await firestore
+                    .collection('executive_profiles')
+                    .where('googleCalendarTokens.refresh_token', '==', tokens.refresh_token)
+                    .limit(1)
+                    .get();
+                if (!profilesSnap.empty) {
+                    await profilesSnap.docs[0].ref.update({
+                        googleCalendarTokens: updated,
+                    });
+                    logger.info(`[GCal] Tokens persisted for profile: ${profilesSnap.docs[0].id}`);
+                }
+            } catch (persistErr) {
+                logger.warn(`[GCal] Failed to persist refreshed tokens: ${String(persistErr)}`);
+            }
         }
 
         return eventId;

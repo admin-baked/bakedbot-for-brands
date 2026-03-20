@@ -6,7 +6,7 @@
 
 import { notFound } from 'next/navigation';
 import { getAdminFirestore } from '@/firebase/admin';
-import { generateAccessToken } from '@/server/services/executive-calendar/livekit';
+import { generateAccessToken, getLiveKitConfig } from '@/server/services/executive-calendar/livekit';
 import { MeetingRoomClient } from './components/meeting-room-client';
 import type { Metadata } from 'next';
 
@@ -47,7 +47,7 @@ export default async function MeetingRoomPage({ params, searchParams }: Props) {
 
     // Generate participant token server-side (keeps API secret out of the browser)
     const token = await generateAccessToken(roomId, participantName, isHost);
-    const livekitUrl = process.env.LIVEKIT_URL ?? 'wss://bakedbot-ai-oz7ikexv.livekit.cloud';
+    const { url: livekitUrl } = getLiveKitConfig();
 
     return (
         <MeetingRoomClient
