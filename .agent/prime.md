@@ -19,7 +19,8 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — Canonical agent registry + intent router live; all 7 agents wired end-to-end.
+**Current Status:** 🟢 Passing — Google Wallet loyalty passes live (demo mode); SA authorized; pilot test customers seeded.
+**Recent work (2026-03-21):** Google Wallet integration end-to-end (`c2a10e598`), wallet pass doc lookup fix, `it\'s` typo on rewards page.
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 

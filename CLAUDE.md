@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-03-20 (Smokey budtender "yes"→checkout fix, menu search for anonymous users, CannMenus embed integration)
+**Current Status:** 🟢 Passing | **Last update:** 2026-03-21 (Google Wallet loyalty passes live, SA authorized, wallet pass doc lookup fix, `it\'s` typo fix)
 
 ---
 
