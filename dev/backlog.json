@@ -3,7 +3,7 @@
         {
             "id": "task_test_inbox_ui_and_prompts",
             "title": "Unit Test: Inbox UI and Prompt Enhancements",
-            "status": "pending",
+            "status": "completed",
             "priority": "normal",
             "description": "Implement unit tests for the chat input clearing behavior in inbox-conversation.tsx and the global missing-integration directive in agent-runner.ts.",
             "acceptance_tests": [
@@ -12,7 +12,8 @@
             ],
             "owner": "ai_builder_swarm",
             "area": "testing",
-            "created_at": "2026-03-01T00:00:00Z"
+            "created_at": "2026-03-01T00:00:00Z",
+            "completed_at": "2026-03-21T23:59:00Z"
         },
         {
             "id": "feat_week2_feature_tests",
@@ -89,7 +90,7 @@
         {
             "id": "task_test_smokey_recommends",
             "title": "Unit Test: Smokey Recommends (Consumer Playbooks)",
-            "status": "pending",
+            "status": "completed",
             "priority": "normal",
             "description": "Fix unit tests for the Smokey Recommends component (src/app/dashboard/playbooks/components/smokey-recommends.tsx). Tests were skipped during initial implementation due to complex UI dependencies (Radix Tabs, Switch) requiring robust mocks.",
             "acceptance_tests": [
@@ -97,12 +98,13 @@
             ],
             "owner": "ai_builder_swarm",
             "area": "testing",
-            "created_at": "2026-01-12T17:15:00Z"
+            "created_at": "2026-01-12T17:15:00Z",
+            "completed_at": "2026-03-21T23:59:00Z"
         },
         {
             "id": "task_test_receipt_scanner",
             "title": "Unit Test: Receipt Scanner Service",
-            "status": "pending",
+            "status": "completed",
             "priority": "normal",
             "description": "Implement unit tests for src/server/services/vision/receipt-scanner.ts. Currently failing to run in Jest due to ESM issues with Genkit/Gemini dependencies and server-only imports. Logic verified manually and via Passport/Membership integration tests.",
             "acceptance_tests": [
@@ -110,7 +112,8 @@
             ],
             "owner": "ai_builder_swarm",
             "area": "testing",
-            "created_at": "2026-01-01T22:00:00Z"
+            "created_at": "2026-01-01T22:00:00Z",
+            "completed_at": "2026-03-21T23:59:00Z"
         },
         {
             "id": "task_test_super_admin_sidebar_invite",
@@ -129,7 +132,7 @@
         {
             "id": "task_test_onboarding_client",
             "title": "Unit Test: Onboarding Client (Signup Flow)",
-            "status": "pending",
+            "status": "completed",
             "priority": "normal",
             "description": "Create unit tests for src/app/onboarding/onboarding-client.tsx. Verify session cookie creation on signup. Previous attempt failed due to test environment configuration (module resolution).",
             "acceptance_tests": [
@@ -137,7 +140,8 @@
             ],
             "owner": "ai_builder_swarm",
             "area": "testing",
-            "created_at": "2025-12-30T19:30:00Z"
+            "created_at": "2025-12-30T19:30:00Z",
+            "completed_at": "2026-03-21T23:59:00Z"
         },
         {
             "id": "task_test_foot_traffic_actions",
@@ -168,7 +172,7 @@
                 "test_no_mock_data_in_prod"
             ],
             "phases": [
-                "Phase 1: CEO Dashboard ✅",
+                "Phase 1: CEO Dashboard \u2705",
                 "Phase 2: Brand Dashboard",
                 "Phase 3: Dispensary Dashboard",
                 "Phase 4: Customer Experience",
@@ -260,11 +264,11 @@
             ],
             "spec_doc": "docs/intuition-os-spec.md",
             "phases": [
-                "Phase 1: Foundation (agentEvents, security rules, starter packs) ✅",
-                "Phase 2: Customer Memory (profiles, embeddings, vector store) ✅",
-                "Phase 3: Heuristics Engine (JSON DSL, confidence scoring) ✅",
-                "Phase 4: Feedback Loop (outcomes, heuristic evolution) ✅",
-                "Phase 5: Multi-Agent (messaging, coordination, dream cycles) ✅"
+                "Phase 1: Foundation (agentEvents, security rules, starter packs) \u2705",
+                "Phase 2: Customer Memory (profiles, embeddings, vector store) \u2705",
+                "Phase 3: Heuristics Engine (JSON DSL, confidence scoring) \u2705",
+                "Phase 4: Feedback Loop (outcomes, heuristic evolution) \u2705",
+                "Phase 5: Multi-Agent (messaging, coordination, dream cycles) \u2705"
             ],
             "completed_at": "2025-12-10T21:32:00Z",
             "owner": "ai_architect",
@@ -429,26 +433,28 @@
         {
             "id": "feat_unit_test_lib_retry",
             "title": "Unit Tests: Retry Utility",
-            "status": "pending",
+            "status": "completed",
             "description": "Create unit tests for `src/lib/retry-utility.ts`. Verify exponential backoff and max retry logic.",
             "acceptance_tests": [
                 "test_lib_retry"
             ],
             "owner": "ai_builder_swarm",
             "dependencies": [],
-            "area": "backend"
+            "area": "backend",
+            "completed_at": "2026-03-21T23:59:00Z"
         },
         {
             "id": "feat_unit_test_lib_cannmenus_api",
             "title": "Unit Tests: CannMenus Low-Level API",
-            "status": "pending",
+            "status": "completed",
             "description": "Create unit tests for `src/lib/cannmenus-api.ts`. Verify header construction and response parsing.",
             "acceptance_tests": [
                 "test_lib_cannmenus_api"
             ],
             "owner": "ai_builder_swarm",
             "dependencies": [],
-            "area": "backend"
+            "area": "backend",
+            "completed_at": "2026-03-21T23:59:00Z"
         },
         {
             "id": "feat_unit_test_lib_payments",
@@ -710,9 +716,9 @@
                 "check_internal_linking_structure"
             ],
             "phases": [
-                "Phase 1: Competitive Intel (Ezal) ⏳",
-                "Phase 2: Page Upgrades (Smokey/Pops) ⏳",
-                "Phase 3: Scale Coverage (Wave 1: Illinois Soft Launch) 🔄"
+                "Phase 1: Competitive Intel (Ezal) \u23f3",
+                "Phase 2: Page Upgrades (Smokey/Pops) \u23f3",
+                "Phase 3: Scale Coverage (Wave 1: Illinois Soft Launch) \ud83d\udd04"
             ],
             "owner": "growth_orchestrator",
             "dependencies": [
@@ -792,7 +798,7 @@
             ],
             "phases": [
                 "Phase 1: Claimed Page Detection (show checkout only on verified pages)",
-                "Phase 2: Manual Checkout Flow (cart → address → payment → confirmation)",
+                "Phase 2: Manual Checkout Flow (cart \u2192 address \u2192 payment \u2192 confirmation)",
                 "Phase 3: Smokey Quick Checkout (AI recommendations + express checkout)",
                 "Phase 4: Dispensary Order Dashboard (receive, accept, fulfill orders)",
                 "Phase 5: Order Notifications (SMS/email for customers + dispensaries)"
@@ -818,7 +824,7 @@
                 "test_claim_status_display"
             ],
             "phases": [
-                "Phase 1: CRM Service (upsertBrand, upsertDispensary) ✅",
+                "Phase 1: CRM Service (upsertBrand, upsertDispensary) \u2705",
                 "Phase 2: Integration with Page Generator",
                 "Phase 3: CRM Tab UI (list, filter, search)",
                 "Phase 4: Claim Status Management"
@@ -894,9 +900,9 @@
                 "test_gmaps_ui_integration"
             ],
             "phases": [
-                "Phase 1: Types + Connector Service ✅",
-                "Phase 2: Firestore Ingestion ✅",
-                "Phase 3: Admin UI Integration ✅",
+                "Phase 1: Types + Connector Service \u2705",
+                "Phase 2: Firestore Ingestion \u2705",
+                "Phase 3: Admin UI Integration \u2705",
                 "Phase 4: Dispensary Enrichment Pipeline"
             ],
             "owner": "antigravity",
@@ -930,7 +936,7 @@
                 "lite_free_tier": "$0.05-0.12 per snapshot",
                 "deep_paid_tier": "$1-2+ per snapshot",
                 "cache_duration_days": 30,
-                "proxy_strategy": "ladder (none → datacenter → residential)"
+                "proxy_strategy": "ladder (none \u2192 datacenter \u2192 residential)"
             },
             "owner": "antigravity",
             "dependencies": [
@@ -1071,7 +1077,7 @@
         {
             "id": "task_test_crm_service",
             "title": "Unit Test: CRM Service Deletion",
-            "status": "pending",
+            "status": "completed",
             "priority": "high",
             "description": "Implement unit tests for deleteCrmEntity in src/server/services/crm-service.ts. Tests failed due to Jest environment issues with 'use server' and firebase-admin imports.",
             "acceptance_tests": [
@@ -1079,7 +1085,8 @@
             ],
             "owner": "ai_builder_swarm",
             "area": "testing",
-            "created_at": "2026-01-14T23:59:00Z"
+            "created_at": "2026-01-14T23:59:00Z",
+            "completed_at": "2026-03-21T23:59:00Z"
         },
         {
             "id": "feat_vibe_builder_testing_suite",
@@ -1105,8 +1112,8 @@
             "edge_cases_covered": [
                 "Reserved subdomains (www, admin, api, bakedbot, staging)",
                 "Domain validation (min/max length, special chars, international TLDs)",
-                "3-tier domain lookup fallback (subdomain → customDomain → domain_mappings)",
-                "Hybrid path routing (/shop → menu, / → vibe_site)",
+                "3-tier domain lookup fallback (subdomain \u2192 customDomain \u2192 domain_mappings)",
+                "Hybrid path routing (/shop \u2192 menu, / \u2192 vibe_site)",
                 "Cache hit/miss + stale scenarios",
                 "Firestore error handling + graceful fallbacks",
                 "Middleware pattern matching (case-insensitive, port stripping)",
@@ -1122,7 +1129,7 @@
             "title": "Vibe Builder: E2E Tests (User Workflows)",
             "status": "pending",
             "priority": "high",
-            "description": "End-to-end tests for complete Vibe Builder user workflows. Cover: create project → edit with GrapesJS → publish with subdomain → track analytics → custom domain routing.",
+            "description": "End-to-end tests for complete Vibe Builder user workflows. Cover: create project \u2192 edit with GrapesJS \u2192 publish with subdomain \u2192 track analytics \u2192 custom domain routing.",
             "acceptance_tests": [
                 "test_create_project_workflow",
                 "test_publish_workflow_with_subdomain",
@@ -1131,10 +1138,10 @@
                 "test_project_analytics_dashboard"
             ],
             "phases": [
-                "Phase 1: Create Project Flow (landing → editor → save)",
-                "Phase 2: Publish Flow (subdomain validation → DNS setup → deployment)",
-                "Phase 3: Custom Domain Flow (domain management → verification → routing)",
-                "Phase 4: Analytics Flow (view tracking → metrics dashboard)",
+                "Phase 1: Create Project Flow (landing \u2192 editor \u2192 save)",
+                "Phase 2: Publish Flow (subdomain validation \u2192 DNS setup \u2192 deployment)",
+                "Phase 3: Custom Domain Flow (domain management \u2192 verification \u2192 routing)",
+                "Phase 4: Analytics Flow (view tracking \u2192 metrics dashboard)",
                 "Phase 5: Integration Tests (full stack)"
             ],
             "owner": "ai_builder_swarm",
@@ -1206,18 +1213,18 @@
                 "test_accessibility_wcag2_a"
             ],
             "checklist": [
-                "✓ All 150 unit tests passing",
-                "✓ No TypeScript errors",
-                "✓ No console errors in editor",
-                "✓ Published sites load correctly",
-                "✓ Custom domain routing works",
-                "✓ Analytics tracking active",
-                "✓ Mobile editor works (responsive)",
-                "✓ WCAG 2.1 Level A compliance",
-                "⏳ E2E tests complete",
-                "⏳ Performance benchmarks acceptable",
-                "⏳ Security audit passed",
-                "⏳ Beta user feedback integrated"
+                "\u2713 All 150 unit tests passing",
+                "\u2713 No TypeScript errors",
+                "\u2713 No console errors in editor",
+                "\u2713 Published sites load correctly",
+                "\u2713 Custom domain routing works",
+                "\u2713 Analytics tracking active",
+                "\u2713 Mobile editor works (responsive)",
+                "\u2713 WCAG 2.1 Level A compliance",
+                "\u23f3 E2E tests complete",
+                "\u23f3 Performance benchmarks acceptable",
+                "\u23f3 Security audit passed",
+                "\u23f3 Beta user feedback integrated"
             ],
             "owner": "product_ceo",
             "dependencies": [
