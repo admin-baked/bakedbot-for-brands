@@ -240,13 +240,50 @@ Run every item in `.agent/review-checklist.md` against your own work.
 
 ### Stage 5: Ship + Record
 Only after Stages 0-4 are complete:
-1. Commit with structured message (see review-checklist.md for format).
-2. **Push to GitHub** — `git push origin main` **triggers Firebase App Hosting deployment to production**. Always push after committing finished work.
-3. Update `CLAUDE.md` line 15 — build status one-liner.
-4. Update `prime.md` recent work block — prepend new entry (commit hash + one-liner).
-5. Update `memory/MEMORY.md` — full session details, gotchas, decisions.
-6. Route to topic files if applicable (`memory/platform.md`, `memory/agents.md`, etc.).
-7. If feature-flagged → note flag name and canary status.
+1. **Run `/simplify`** — review git diff for reuse, quality, and efficiency issues. Fix anything found before committing.
+2. Commit with structured message (see review-checklist.md for format).
+3. **Push to GitHub** — `git push origin main` **triggers Firebase App Hosting deployment to production**. Always push after committing finished work.
+4. **Open a PR with full governance** — required on every branch push (PRs targeting `main` or `develop` trigger the governance bot):
+   ```bash
+   gh pr create --title "<title>" --body "$(cat <<'EOF'
+   # Summary
+   <bullet points of what changed>
+
+   # Risk Tier
+   - [ ] Tier 0 — Low Risk
+   - [ ] Tier 1 — Moderate Risk
+   - [ ] Tier 2 — High Risk
+   - [ ] Tier 3 — Critical Risk
+
+   # Canonical Reuse
+   <existing types/services/utilities reused>
+
+   # New Abstractions
+   <any new abstraction introduced; why reuse was insufficient>
+
+   # Failure Modes
+   <behavior on missing data, timeout, retry, duplicate, stale state>
+
+   # Verification
+   - [ ] Type-check passing (npm run check:types)
+   - [ ] Manual verification
+
+   # Observability
+   <how this will be debugged in production>
+
+   # Explainability
+   - [ ] I can explain the full flow without AI comments or generated annotations.
+   EOF
+   )"
+   # Then add the risk label (required — governance bot fails without it):
+   gh pr edit <number> --add-label "risk:tier0"  # or tier1/tier2/tier3
+   ```
+   **Risk label must always be set** — the governance check fails with 0 labels.
+5. Update `CLAUDE.md` line 15 — build status one-liner.
+6. Update `prime.md` recent work block — prepend new entry (commit hash + one-liner).
+7. Update `memory/MEMORY.md` — full session details, gotchas, decisions.
+8. Route to topic files if applicable (`memory/platform.md`, `memory/agents.md`, etc.).
+9. If feature-flagged → note flag name and canary status.
 
 ### Escape Hatches
 - **Hotfix (production down):** Skip Stages 0-1. Implement fix, run Stages 3-4, commit with `hotfix()` prefix. File retroactive PRD + spec within same session.
