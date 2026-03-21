@@ -9,4 +9,16 @@ describe('remotion video import boundary', () => {
     expect(source).toMatch(/webpackIgnore:\s*true[\s\S]*@remotion\/renderer/);
     expect(source).toMatch(/webpackIgnore:\s*true[\s\S]*@remotion\/bundler/);
   });
+
+  it('marks slideshow props as serializable input props for the renderer', () => {
+    const sourcePath = path.join(
+      process.cwd(),
+      'src/remotion/compositions/BrandedSlideshow.tsx'
+    );
+    const source = fs.readFileSync(sourcePath, 'utf8');
+
+    expect(source).toContain(
+      'export interface BrandedSlideshowProps extends Record<string, unknown>'
+    );
+  });
 });
