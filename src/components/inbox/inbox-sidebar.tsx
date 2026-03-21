@@ -842,11 +842,8 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
             {/* Thread List */}
             <ScrollArea className="flex-1">
                 <div className={cn('p-2 pb-16 sm:pb-2', collapsed && 'flex flex-col items-center gap-1')}>
-                    {/* Mobile: Today's Briefing above thread list */}
-                    {isMobile && !collapsed && (
-                        <div className="mb-3 px-1">
-                            <InsightCardsGrid maxCards={3} />
-                        </div>
+                    {isMobile && (
+                        <InsightCardsGrid maxCards={3} className="mb-3 px-1" />
                     )}
 
                     {/* Active Threads */}
