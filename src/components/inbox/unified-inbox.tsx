@@ -151,7 +151,7 @@ export function UnifiedInbox({ className }: UnifiedInboxProps) {
 
             {/* Sidebar - Thread list and quick actions */}
             <InboxSidebar
-                collapsed={isSidebarCollapsed}
+                collapsed={isMobile ? false : isSidebarCollapsed}
                 className={cn(
                     'relative z-10 transition-all duration-300',
                     isMobile

@@ -66,6 +66,7 @@ import type { Project } from '@/types/project';
 import { _pendingInputs } from './inbox-conversation';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { InsightCardsGrid } from './insight-cards-grid';
 
 // ============ Icon Mapping ============
 
@@ -841,6 +842,13 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
             {/* Thread List */}
             <ScrollArea className="flex-1">
                 <div className={cn('p-2 pb-16 sm:pb-2', collapsed && 'flex flex-col items-center gap-1')}>
+                    {/* Mobile: Today's Briefing above thread list */}
+                    {isMobile && !collapsed && (
+                        <div className="mb-3 px-1">
+                            <InsightCardsGrid maxCards={3} />
+                        </div>
+                    )}
+
                     {/* Active Threads */}
                     {activeThreads.length > 0 && (
                         <>
