@@ -38,6 +38,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useCreativeContent } from "@/hooks/use-creative-content";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import type { SocialPlatform, GenerateContentRequest } from "@/types/creative-content";
 import { useRouter } from "next/navigation";
@@ -101,6 +102,7 @@ const PLATFORM_ASPECT: Record<SocialPlatform | string, string> = {
 export default function CreativeCommandCenter() {
   const router = useRouter();
   const { user } = useUser();
+  const isMobile = useIsMobile();
 
   // Brand guide integration
   const brandId = (user as any)?.brandId || (user as any)?.orgId || '';
@@ -631,7 +633,7 @@ export default function CreativeCommandCenter() {
         </div>
 
         {/* Center: Platform selector pills */}
-        <div className="flex items-center gap-0.5 bg-muted/60 rounded-lg p-1">
+        <div className="flex items-center gap-0.5 bg-muted/60 rounded-lg p-1 overflow-x-auto scrollbar-none max-w-[180px] sm:max-w-none">
           {(['instagram', 'tiktok', 'linkedin', 'facebook'] as SocialPlatform[]).map(p => (
             <button
               key={p}
@@ -721,10 +723,18 @@ export default function CreativeCommandCenter() {
       </header>
 
       {/* ══ MAIN 3-PANEL WORKSPACE ══ */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
+
+        {/* Mobile backdrop — tap to close the left panel */}
+        {isMobile && activeLeftPanel && (
+          <div
+            className="absolute inset-0 z-20 bg-black/40"
+            onClick={() => setActiveLeftPanel(null)}
+          />
+        )}
 
         {/* ── LEFT ICON STRIP (56px) ── */}
-        <aside className="w-14 border-r border-border flex flex-col items-center pt-3 pb-2 gap-1 bg-muted/20 shrink-0">
+        <aside className="w-14 border-r border-border flex flex-col items-center pt-3 pb-2 gap-1 bg-muted/20 shrink-0 z-30">
           {LEFT_PANELS.map(({ id, icon: Icon, label }) => (
             <button
               key={id}
@@ -743,18 +753,21 @@ export default function CreativeCommandCenter() {
           ))}
         </aside>
 
-        {/* ── LEFT EXPANDABLE PANEL (slides in) ── */}
+        {/* ── LEFT EXPANDABLE PANEL (slides in; overlay on mobile) ── */}
         <AnimatePresence mode="wait">
           {activeLeftPanel && (
             <motion.div
               key={activeLeftPanel}
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 280, opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
+              initial={{ x: isMobile ? '-100%' : undefined, width: isMobile ? undefined : 0, opacity: 0 }}
+              animate={{ x: isMobile ? 0 : undefined, width: isMobile ? undefined : 280, opacity: 1 }}
+              exit={{ x: isMobile ? '-100%' : undefined, width: isMobile ? undefined : 0, opacity: 0 }}
               transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
-              className="border-r border-border bg-card overflow-hidden shrink-0"
+              className={cn(
+                "border-r border-border bg-card overflow-hidden shrink-0",
+                isMobile && "absolute left-14 top-0 bottom-0 z-30 w-[calc(100%-3.5rem)]"
+              )}
             >
-              <div className="w-[280px] h-full flex flex-col">
+              <div className={cn("h-full flex flex-col", isMobile ? "w-full" : "w-[280px]")}>
 
                 {/* ╌ Panel: AI Generate ╌ */}
                 {activeLeftPanel === 'generate' && (
@@ -1622,7 +1635,7 @@ export default function CreativeCommandCenter() {
           </AnimatePresence>
         </main>
 
-        {/* ── RIGHT PANEL: Deebo + Schedule + Assets ── */}
+        {/* ── RIGHT PANEL: Deebo + Schedule + Assets (desktop only) ── */}
         <DeeboCompliancePanel
           content={currentContent}
           currentUserRole={(user as any)?.role}
