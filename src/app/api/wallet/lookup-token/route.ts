@@ -9,13 +9,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
-import { buildPassToken } from '../token/route';
+import {
+  buildPassToken,
+  WALLET_PASS_TOKEN_TTL_MS,
+} from '@/server/services/wallet/pass-token';
 import type { CustomerProfile } from '@/types/customers';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-const TOKEN_TTL_MS = 15 * 60 * 1000;
 
 export async function POST(request: NextRequest) {
   try {
@@ -55,14 +56,14 @@ export async function POST(request: NextRequest) {
 
       const profile = snap.docs[0].data() as CustomerProfile;
       const resolvedId = profile.id || customerId;
-      const expiresAt = Date.now() + TOKEN_TTL_MS;
+      const expiresAt = Date.now() + WALLET_PASS_TOKEN_TTL_MS;
       const token = buildPassToken(resolvedId, orgId, expiresAt);
 
       logger.info('[WalletLookupToken] Token issued (by-id fallback)', { customerId: resolvedId, orgId });
       return NextResponse.json({ success: true, token, expiresAt: new Date(expiresAt).toISOString() });
     }
 
-    const expiresAt = Date.now() + TOKEN_TTL_MS;
+    const expiresAt = Date.now() + WALLET_PASS_TOKEN_TTL_MS;
     const token = buildPassToken(customerId, orgId, expiresAt);
 
     logger.info('[WalletLookupToken] Token issued', { customerId, orgId });

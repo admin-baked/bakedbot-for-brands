@@ -20,7 +20,7 @@ import {
   getOrCreateLoyaltyClass,
   isGoogleConfigured,
 } from '@/server/services/wallet/google-wallet';
-import { verifyPassToken } from '../token/route';
+import { verifyPassToken } from '@/server/services/wallet/pass-token';
 import type { WalletPassData } from '@/server/services/wallet/types';
 import type { CustomerProfile } from '@/types/customers';
 
