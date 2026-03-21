@@ -112,7 +112,7 @@ export async function generateRemotionVideo(
         selectedComposition = await selectComposition({
             serveUrl: bundlePath,
             id: compositionId,
-            inputProps: props,
+            inputProps: props as Record<string, unknown>,
         });
     } catch (err) {
         throw new Error(
@@ -134,7 +134,7 @@ export async function generateRemotionVideo(
         serveUrl: bundlePath,
         codec: 'h264',
         outputLocation: outputPath,
-        inputProps: props,
+        inputProps: props as Record<string, unknown>,
         onProgress: ({ progress }) => {
             logger.info('[Remotion] Render progress', { progress: Math.round(progress * 100) });
         },

@@ -145,7 +145,7 @@ export function DeeboCompliancePanel({
   const StatusIcon = cfg.icon;
 
   return (
-    <aside className="w-[280px] border-l border-border flex flex-col bg-card/50 shrink-0 overflow-hidden">
+    <aside className="hidden md:flex w-[280px] border-l border-border flex-col bg-card/50 shrink-0 overflow-hidden">
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-4">
 
