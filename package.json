@@ -29,7 +29,7 @@
     "audit:deep": "bash ./scripts/audit-code.sh",
     "pre-publish": "bash ./scripts/pre-publish.sh",
     "check:structure": "node scripts/check-app-structure.mjs",
-    "check:types": "node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc --noEmit --incremental false",
+    "check:types": "node --max-old-space-size=8192 ./node_modules/typescript/bin/tsc --noEmit --incremental false",
     "check:lint": "echo 'Skipping lint check due to known next-16 incompatibility' && exit 0",
     "check:routes": "node scripts/check-routes.mjs",
     "check:all": "npm run check:structure && npm run check:types && npm run check:lint",
@@ -61,7 +61,8 @@
     "audit:costs": "node scripts/audit-query-cost.mjs",
     "provision:ny-outreach": "node scripts/provision-ny-outreach.mjs",
     "switch-model": "node scripts/switch-claude-model.mjs",
-    "audit:agent-tools": "node scripts/audit-agent-tools.mjs"
+    "audit:agent-tools": "node scripts/audit-agent-tools.mjs",
+    "smoke:proactive": "node ./scripts/run-proactive-smoke.cjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.0",

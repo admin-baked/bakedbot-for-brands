@@ -18,6 +18,37 @@ const COLLECTION_PRICE_POINTS = 'price_points_competitive';
 const competitorNameCache = new Map<string, { name: string; expiry: number }>();
 const CACHE_TTL = 10 * 60 * 1000;
 
+function isMissingIndexError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes('requires an index') || message.includes('FAILED_PRECONDITION');
+}
+
+function toCapturedAtDate(value: unknown): Date | null {
+  if (!value) {
+    return null;
+  }
+
+  if (value instanceof Date) {
+    return value;
+  }
+
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'toDate' in value &&
+    typeof (value as { toDate: () => Date }).toDate === 'function'
+  ) {
+    return (value as { toDate: () => Date }).toDate();
+  }
+
+  if (typeof value === 'string' || typeof value === 'number') {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  return null;
+}
+
 // ============ Core Functions ============
 
 /**
@@ -163,21 +194,58 @@ async function getProductPriceHistory(
 ): Promise<PricePoint[]> {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - days);
+  const productRef = `tenants/${orgId}/${COLLECTION_PRODUCTS}/${productId}`;
 
-  const snapshot = await firestore
-    .collection('tenants')
-    .doc(orgId)
-    .collection(COLLECTION_PRICE_POINTS)
-    .where('productRef', '==', `tenants/${orgId}/${COLLECTION_PRODUCTS}/${productId}`)
-    .where('capturedAt', '>=', cutoff)
-    .orderBy('capturedAt', 'asc')
-    .limit(50)
-    .get();
+  try {
+    const snapshot = await firestore
+      .collection('tenants')
+      .doc(orgId)
+      .collection(COLLECTION_PRICE_POINTS)
+      .where('productRef', '==', productRef)
+      .where('capturedAt', '>=', cutoff)
+      .orderBy('capturedAt', 'asc')
+      .limit(50)
+      .get();
 
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as PricePoint[];
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as PricePoint[];
+  } catch (error) {
+    if (!isMissingIndexError(error)) {
+      throw error;
+    }
+
+    logger.warn('[Ezal Pricing] Missing price history index, using productRef fallback', {
+      orgId,
+      productId,
+      days,
+    });
+
+    const fallbackSnapshot = await firestore
+      .collection('tenants')
+      .doc(orgId)
+      .collection(COLLECTION_PRICE_POINTS)
+      .where('productRef', '==', productRef)
+      .limit(100)
+      .get();
+
+    return fallbackSnapshot.docs
+      .map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }) as PricePoint)
+      .filter((point) => {
+        const capturedAt = toCapturedAtDate(point.capturedAt);
+        return capturedAt !== null && capturedAt >= cutoff;
+      })
+      .sort((left, right) => {
+        const leftTime = toCapturedAtDate(left.capturedAt)?.getTime() ?? 0;
+        const rightTime = toCapturedAtDate(right.capturedAt)?.getTime() ?? 0;
+        return leftTime - rightTime;
+      })
+      .slice(0, 50);
+  }
 }
 
 /**

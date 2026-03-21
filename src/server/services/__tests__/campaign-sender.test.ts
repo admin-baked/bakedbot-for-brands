@@ -315,6 +315,46 @@ describe('resolveAudience', () => {
         expect(result.map(r => r.customerId).sort()).toEqual(['c1', 'c3']);
     });
 
+    it('filters by exact customer ids when audience type is "custom"', async () => {
+        mockGet.mockResolvedValue({
+            docs: [
+                mockDocSnap('c1', {
+                    email: 'a@b.com',
+                    segment: 'vip',
+                    totalSpent: 500,
+                    orderCount: 20,
+                }),
+                mockDocSnap('c2', {
+                    email: 'b@b.com',
+                    segment: 'vip',
+                    totalSpent: 400,
+                    orderCount: 10,
+                }),
+                mockDocSnap('c3', {
+                    email: 'c@b.com',
+                    segment: 'at_risk',
+                    totalSpent: 50,
+                    orderCount: 3,
+                }),
+            ],
+        });
+
+        const campaign = makeCampaign({
+            audience: {
+                type: 'custom',
+                customFilter: {
+                    customerIds: ['c2', 'c3'],
+                },
+                estimatedCount: 2,
+            },
+        });
+
+        const result = await resolveAudience(campaign);
+
+        expect(result).toHaveLength(2);
+        expect(result.map(r => r.customerId).sort()).toEqual(['c2', 'c3']);
+    });
+
     it('skips customers without email for email-only campaigns', async () => {
         mockGet.mockResolvedValue({
             docs: [

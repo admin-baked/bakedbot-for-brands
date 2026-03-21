@@ -32,11 +32,198 @@ interface ResolvedRecipient {
     loyaltyPoints?: number;
 }
 
+const DEDUP_LOOKBACK_DAYS = 30;
+const DEDUP_FALLBACK_BATCH_SIZE = 20;
+const DEDUP_FALLBACK_QUERY_LIMIT = 25;
+
+function normalizeTargetCustomerIds(customFilter?: Record<string, unknown>): Set<string> | null {
+    if (!customFilter) {
+        return null;
+    }
+
+    const rawIds = customFilter.customerIds;
+    if (!Array.isArray(rawIds)) {
+        return null;
+    }
+
+    const ids = rawIds
+        .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+        .map((value) => value.trim());
+
+    return ids.length > 0 ? new Set(ids) : null;
+}
+
+function normalizeEmail(value: unknown): string | null {
+    if (typeof value !== 'string') {
+        return null;
+    }
+
+    const normalized = value.trim().toLowerCase();
+    return normalized.length > 0 ? normalized : null;
+}
+
+function toDate(value: unknown): Date | null {
+    if (!value) {
+        return null;
+    }
+
+    if (value instanceof Date) {
+        return value;
+    }
+
+    if (
+        typeof value === 'object' &&
+        value !== null &&
+        'toDate' in value &&
+        typeof (value as { toDate: () => Date }).toDate === 'function'
+    ) {
+        return (value as { toDate: () => Date }).toDate();
+    }
+
+    if (typeof value === 'string' || typeof value === 'number') {
+        const parsed = new Date(value);
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    return null;
+}
+
+function getCampaignCommunicationType(goal: Campaign['goal']): string {
+    if (goal === 'winback') {
+        return 'winback';
+    }
+
+    if (goal === 'birthday') {
+        return 'birthday';
+    }
+
+    if (goal === 'retention' || goal === 'loyalty') {
+        return 'loyalty';
+    }
+
+    return 'campaign';
+}
+
+function isMissingIndexError(error: unknown): boolean {
+    const message = error instanceof Error ? error.message : String(error);
+    return message.includes('requires an index') || message.includes('FAILED_PRECONDITION');
+}
+
+async function loadRecentlyContactedEmailsFromIndexedQuery(input: {
+    firestore: FirebaseFirestore.Firestore;
+    orgId: string;
+    campaignType: string;
+    lookbackDate: Date;
+}): Promise<Set<string>> {
+    const { firestore, orgId, campaignType, lookbackDate } = input;
+    const recentCommsSnap = await firestore.collection('customer_communications')
+        .where('orgId', '==', orgId)
+        .where('type', '==', campaignType)
+        .where('sentAt', '>=', lookbackDate)
+        .get();
+
+    return new Set(
+        recentCommsSnap.docs
+            .map((doc) => normalizeEmail(doc.data().customerEmail))
+            .filter((email): email is string => email !== null)
+    );
+}
+
+async function loadRecentlyContactedEmailsFromPerRecipientFallback(input: {
+    firestore: FirebaseFirestore.Firestore;
+    orgId: string;
+    campaignType: string;
+    lookbackDate: Date;
+    recipients: ResolvedRecipient[];
+}): Promise<Set<string>> {
+    const { firestore, orgId, campaignType, lookbackDate, recipients } = input;
+    const recipientEmails = Array.from(
+        new Set(
+            recipients
+                .map((recipient) => normalizeEmail(recipient.email))
+                .filter((email): email is string => email !== null)
+        )
+    );
+    const recentlyContactedEmails = new Set<string>();
+
+    for (let index = 0; index < recipientEmails.length; index += DEDUP_FALLBACK_BATCH_SIZE) {
+        const batch = recipientEmails.slice(index, index + DEDUP_FALLBACK_BATCH_SIZE);
+        const batchMatches = await Promise.all(batch.map(async (email) => {
+            const communicationSnap = await firestore.collection('customer_communications')
+                .where('customerEmail', '==', email)
+                .where('orgId', '==', orgId)
+                .orderBy('createdAt', 'desc')
+                .limit(DEDUP_FALLBACK_QUERY_LIMIT)
+                .get();
+
+            const hasRecentMatch = communicationSnap.docs.some((doc) => {
+                const data = doc.data();
+                if (data.type !== campaignType) {
+                    return false;
+                }
+
+                const communicationAt = toDate(data.sentAt) ?? toDate(data.createdAt);
+                return communicationAt !== null && communicationAt >= lookbackDate;
+            });
+
+            return hasRecentMatch ? email : null;
+        }));
+
+        for (const email of batchMatches) {
+            if (email) {
+                recentlyContactedEmails.add(email);
+            }
+        }
+    }
+
+    return recentlyContactedEmails;
+}
+
+async function loadRecentlyContactedEmails(input: {
+    firestore: FirebaseFirestore.Firestore;
+    campaign: Campaign;
+    recipients: ResolvedRecipient[];
+    campaignType: string;
+    lookbackDate: Date;
+}): Promise<Set<string>> {
+    const { firestore, campaign, recipients, campaignType, lookbackDate } = input;
+
+    try {
+        return await loadRecentlyContactedEmailsFromIndexedQuery({
+            firestore,
+            orgId: campaign.orgId,
+            campaignType,
+            lookbackDate,
+        });
+    } catch (error) {
+        if (!isMissingIndexError(error)) {
+            throw error;
+        }
+
+        logger.warn('[CAMPAIGN_SENDER] Missing dedup index, falling back to per-recipient scan', {
+            campaignId: campaign.id,
+            orgId: campaign.orgId,
+            campaignType,
+            recipients: recipients.length,
+            lookbackDays: DEDUP_LOOKBACK_DAYS,
+        });
+
+        return loadRecentlyContactedEmailsFromPerRecipientFallback({
+            firestore,
+            orgId: campaign.orgId,
+            campaignType,
+            lookbackDate,
+            recipients,
+        });
+    }
+}
+
 /**
  * Resolve campaign audience to actual customer records.
  */
 export async function resolveAudience(campaign: Campaign): Promise<ResolvedRecipient[]> {
     const { firestore } = await createServerClient();
+    const targetCustomerIds = normalizeTargetCustomerIds(campaign.audience.customFilter);
 
     let query: FirebaseFirestore.Query = firestore.collection('customers')
         .where('orgId', '==', campaign.orgId);
@@ -47,6 +234,10 @@ export async function resolveAudience(campaign: Campaign): Promise<ResolvedRecip
 
     for (const doc of snap.docs) {
         const data = doc.data();
+
+        if (targetCustomerIds && !targetCustomerIds.has(doc.id)) {
+            continue;
+        }
 
         // Compute segment from data
         const segment = (data.segment as CustomerSegment) || 'new';
@@ -86,26 +277,21 @@ export async function resolveAudience(campaign: Campaign): Promise<ResolvedRecip
 
     // Deduplication: filter out customers already contacted in the last 30 days
     // for the same campaign type (prevents spam from repeated sends)
-    const DEDUP_LOOKBACK_DAYS = 30;
     const lookbackDate = new Date(Date.now() - DEDUP_LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
-
-    const campaignType = campaign.goal === 'winback' ? 'winback'
-        : campaign.goal === 'birthday' ? 'birthday'
-        : campaign.goal === 'retention' || campaign.goal === 'loyalty' ? 'loyalty'
-        : 'campaign';
-
-    const recentCommsSnap = await firestore.collection('customer_communications')
-        .where('orgId', '==', campaign.orgId)
-        .where('type', '==', campaignType)
-        .where('sentAt', '>=', lookbackDate)
-        .get();
-
-    const recentlyContactedEmails = new Set(
-        recentCommsSnap.docs.map(d => d.data().customerEmail as string).filter(Boolean)
-    );
+    const campaignType = getCampaignCommunicationType(campaign.goal);
+    const recentlyContactedEmails = await loadRecentlyContactedEmails({
+        firestore,
+        campaign,
+        recipients,
+        campaignType,
+        lookbackDate,
+    });
 
     const deduped = recentlyContactedEmails.size > 0
-        ? recipients.filter(r => !recentlyContactedEmails.has(r.email))
+        ? recipients.filter((recipient) => {
+            const normalizedEmail = normalizeEmail(recipient.email);
+            return !normalizedEmail || !recentlyContactedEmails.has(normalizedEmail);
+        })
         : recipients;
 
     if (deduped.length < recipients.length) {
@@ -122,6 +308,7 @@ export async function resolveAudience(campaign: Campaign): Promise<ResolvedRecip
     logger.info('[CAMPAIGN_SENDER] Audience resolved', {
         campaignId: campaign.id,
         total: deduped.length,
+        targetedCustomerIds: targetCustomerIds?.size ?? 0,
         segmentBreakdown: deduped.reduce((acc, r) => {
             acc[r.segment] = (acc[r.segment] || 0) + 1;
             return acc;

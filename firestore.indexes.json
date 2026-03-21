@@ -718,6 +718,24 @@
             ]
         },
         {
+            "collectionGroup": "customer_communications",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "orgId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "type",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "sentAt",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
             "collectionGroup": "campaigns",
             "queryScope": "COLLECTION",
             "fields": [
@@ -1625,6 +1643,23 @@
                 { "fieldPath": "status", "order": "ASCENDING" },
                 { "fieldPath": "outreachSent", "order": "ASCENDING" },
                 { "fieldPath": "createdAt", "order": "ASCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "price_points_competitive",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "productRef", "order": "ASCENDING" },
+                { "fieldPath": "capturedAt", "order": "ASCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "competitor_price_history",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "tenantId", "order": "ASCENDING" },
+                { "fieldPath": "productId", "order": "ASCENDING" },
+                { "fieldPath": "timestamp", "order": "DESCENDING" }
             ]
         },
         {

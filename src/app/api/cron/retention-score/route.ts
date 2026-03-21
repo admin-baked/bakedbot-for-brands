@@ -17,6 +17,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { RetentionScoreService } from '@/server/services/retention-score';
+import { runVipRetentionWatch } from '@/server/services/vip-retention-watch';
 import { getAdminFirestore } from '@/firebase/admin';
 
 export const runtime = 'nodejs';
@@ -49,7 +50,10 @@ export async function POST(request: NextRequest) {
             try {
                 logger.info('[Cron] Scoring retention for org', { orgId });
                 const result = await service.scoreOrg(orgId);
-                results.push(result);
+                const vipRetention = result.success
+                    ? await runVipRetentionWatch(orgId)
+                    : undefined;
+                results.push(vipRetention ? { ...result, vipRetention } : result);
             } catch (err) {
                 const error = err instanceof Error ? err.message : String(err);
                 logger.error('[Cron] Retention score failed for org', { orgId, error });
@@ -109,8 +113,11 @@ export async function GET(request: NextRequest) {
 
         const service = new RetentionScoreService();
         const result = await service.scoreOrg(orgId);
+        const vipRetention = result.success
+            ? await runVipRetentionWatch(orgId)
+            : undefined;
 
-        return NextResponse.json(result);
+        return NextResponse.json(vipRetention ? { ...result, vipRetention } : result);
     } catch (err) {
         const error = err instanceof Error ? err.message : String(err);
         logger.error('[Cron] Manual retention score trigger failed', { error });

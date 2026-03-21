@@ -31,6 +31,7 @@ import {
   checkCompetitorPriceChanges,
   sendPricingAlertEmails,
 } from '@/server/services/pricing-alerts';
+import { syncCompetitorPricingWatch } from '@/server/services/competitor-pricing-watch';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120; // 2 minutes max
@@ -85,12 +86,24 @@ export async function GET(req: NextRequest) {
 
       // Check for price changes
       const alerts = await checkCompetitorPriceChanges(tenantId, config);
+      let proactiveSync = null;
 
       if (alerts.length > 0) {
         // Send email alerts
         const result = await sendPricingAlertEmails(config, alerts);
         emailsSent += result.sent;
         totalAlerts += alerts.length;
+        proactiveSync = await syncCompetitorPricingWatch({
+          orgId: tenantId,
+          alerts,
+          emailsSent: result.sent,
+        });
+      } else {
+        proactiveSync = await syncCompetitorPricingWatch({
+          orgId: tenantId,
+          alerts,
+          emailsSent: 0,
+        });
       }
 
       // Update lastRun
@@ -100,6 +113,13 @@ export async function GET(req: NextRequest) {
         .collection('settings')
         .doc('pricing_alerts')
         .set({ lastRun: new Date() }, { merge: true });
+
+      if (proactiveSync && !proactiveSync.success) {
+        logger.warn('[Pricing Alerts Cron] Proactive sync failed for tenant', {
+          tenantId,
+          error: proactiveSync.error,
+        });
+      }
 
       tenantsChecked++;
     }
@@ -170,12 +190,18 @@ export async function POST(req: NextRequest) {
     if (alerts.length > 0) {
       emailResult = await sendPricingAlertEmails(config, alerts);
     }
+    const proactive = await syncCompetitorPricingWatch({
+      orgId: tenantId,
+      alerts,
+      emailsSent: emailResult.sent,
+    });
 
     return NextResponse.json({
       success: true,
       alertsTriggered: alerts.length,
       emailsSent: emailResult.sent,
       emailsFailed: emailResult.failed,
+      proactive,
       alerts: alerts.map((a) => ({
         productName: a.productName,
         alertType: a.alertType,

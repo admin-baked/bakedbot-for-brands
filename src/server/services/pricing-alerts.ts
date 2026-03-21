@@ -40,6 +40,83 @@ export interface PricingAlertConfig {
   };
 }
 
+function isMissingIndexError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes('requires an index') || message.includes('FAILED_PRECONDITION');
+}
+
+function toDate(value: unknown): Date | null {
+  if (!value) {
+    return null;
+  }
+
+  if (value instanceof Date) {
+    return value;
+  }
+
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'toDate' in value &&
+    typeof (value as { toDate: () => Date }).toDate === 'function'
+  ) {
+    return (value as { toDate: () => Date }).toDate();
+  }
+
+  if (typeof value === 'string' || typeof value === 'number') {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  return null;
+}
+
+async function getPreviousCompetitorHistoryEntry(input: {
+  db: FirebaseFirestore.Firestore;
+  tenantId: string;
+  productId: string;
+}): Promise<Record<string, unknown> | null> {
+  const { db, tenantId, productId } = input;
+
+  try {
+    const previousDataSnap = await db
+      .collection('competitor_price_history')
+      .where('tenantId', '==', tenantId)
+      .where('productId', '==', productId)
+      .orderBy('timestamp', 'desc')
+      .limit(1)
+      .get();
+
+    return previousDataSnap.empty ? null : previousDataSnap.docs[0].data();
+  } catch (error) {
+    if (!isMissingIndexError(error)) {
+      throw error;
+    }
+
+    logger.warn('[Pricing Alerts] Missing competitor history index, using tenant scan fallback', {
+      tenantId,
+      productId,
+    });
+
+    const fallbackSnap = await db
+      .collection('competitor_price_history')
+      .where('tenantId', '==', tenantId)
+      .limit(200)
+      .get();
+
+    const previousEntries = fallbackSnap.docs
+      .map((doc) => doc.data() as Record<string, unknown>)
+      .filter((entry) => entry.productId === productId)
+      .sort((left, right) => {
+        const leftTime = toDate(left.timestamp)?.getTime() ?? 0;
+        const rightTime = toDate(right.timestamp)?.getTime() ?? 0;
+        return rightTime - leftTime;
+      });
+
+    return previousEntries[0] ?? null;
+  }
+}
+
 // ============================================================================
 // PRICE MONITORING
 // ============================================================================
@@ -90,16 +167,14 @@ export async function checkCompetitorPriceChanges(
       const priceGapPercent = ((ourPrice - marketAvg) / marketAvg) * 100;
 
       // Get previous competitor data from cache
-      const previousDataSnap = await db
-        .collection('competitor_price_history')
-        .where('tenantId', '==', tenantId)
-        .where('productId', '==', productId)
-        .orderBy('timestamp', 'desc')
-        .limit(1)
-        .get();
-
-      const previousData = previousDataSnap.empty ? null : previousDataSnap.docs[0].data();
-      const previousAvg = previousData?.marketAvg || marketAvg;
+      const previousData = await getPreviousCompetitorHistoryEntry({
+        db,
+        tenantId,
+        productId,
+      });
+      const previousAvg = typeof previousData?.marketAvg === 'number'
+        ? previousData.marketAvg
+        : marketAvg;
 
       // Calculate change percentage
       const changePercent = previousAvg > 0 ? Math.abs(((marketAvg - previousAvg) / previousAvg) * 100) : 0;

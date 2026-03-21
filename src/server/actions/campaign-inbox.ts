@@ -21,7 +21,7 @@ import { sendGenericEmail } from '@/lib/email/dispatcher';
 import { deebo } from '@/server/agents/deebo';
 import { resolveAudience, personalize } from '@/server/services/campaign-sender';
 import type { OutreachDraftData } from '@/types/inbox';
-import type { Campaign, CampaignContent } from '@/types/campaign';
+import type { Campaign, CampaignAudience, CampaignContent } from '@/types/campaign';
 import type { Playbook, PlaybookTrigger, PlaybookStep } from '@/types/playbook';
 
 // ---------------------------------------------------------------------------
@@ -117,6 +117,28 @@ async function patchArtifactData(
         data: { ...existing, ...patch },
         updatedAt: new Date(),
     });
+}
+
+function buildCampaignAudienceFromDraft(data: OutreachDraftData): CampaignAudience {
+    const targetCustomerIds = Array.isArray(data.targetCustomerIds)
+        ? data.targetCustomerIds.filter((id) => typeof id === 'string' && id.trim().length > 0)
+        : [];
+
+    if (targetCustomerIds.length > 0) {
+        return {
+            type: 'custom',
+            customFilter: {
+                customerIds: targetCustomerIds,
+            },
+            estimatedCount: data.estimatedRecipients ?? targetCustomerIds.length,
+        };
+    }
+
+    return {
+        type: data.targetSegments?.length ? 'segment' : 'all',
+        segments: data.targetSegments?.length ? data.targetSegments : undefined,
+        estimatedCount: data.estimatedRecipients ?? 0,
+    };
 }
 
 // ---------------------------------------------------------------------------
@@ -229,20 +251,17 @@ export async function sendCampaignFromInbox(params: {
             htmlBody: data.htmlBody || `<p>${data.body.replace(/\n/g, '<br>')}</p>`,
             complianceStatus: 'passed',
         };
+        const inferredGoal = data.targetCustomerIds?.length ? 'winback' : 'drive_sales';
 
         const campaign: Campaign = {
             id: campaignId,
             orgId,
             createdBy: user.uid,
             name: params.campaignName || `Inbox Campaign — ${now.toLocaleDateString()}`,
-            goal: 'drive_sales',
+            goal: inferredGoal,
             status: 'approved',
             channels: ['email'],
-            audience: {
-                type: data.targetSegments?.length ? 'segment' : 'all',
-                segments: data.targetSegments?.length ? data.targetSegments : undefined,
-                estimatedCount: data.estimatedRecipients ?? 0,
-            },
+            audience: buildCampaignAudienceFromDraft(data),
             content: { email: emailContent },
             complianceStatus: 'passed',
             complianceReviewedAt: now,
@@ -496,20 +515,17 @@ export async function scheduleCampaignFromInbox(params: {
             htmlBody: data.htmlBody || `<p>${data.body.replace(/\n/g, '<br>')}</p>`,
             complianceStatus: 'passed',
         };
+        const inferredGoal = data.targetCustomerIds?.length ? 'winback' : 'drive_sales';
 
         await campaignRef.set({
             id: campaignId,
             orgId,
             createdBy: user.uid,
             name: params.campaignName || `Scheduled Campaign — ${scheduledAt.toLocaleDateString()}`,
-            goal: 'drive_sales',
+            goal: inferredGoal,
             status: 'scheduled',
             channels: ['email'],
-            audience: {
-                type: data.targetSegments?.length ? 'segment' : 'all',
-                segments: data.targetSegments?.length ? data.targetSegments : undefined,
-                estimatedCount: data.estimatedRecipients ?? 0,
-            },
+            audience: buildCampaignAudienceFromDraft(data),
             content: { email: emailContent },
             complianceStatus: 'passed',
             complianceReviewedAt: now,
