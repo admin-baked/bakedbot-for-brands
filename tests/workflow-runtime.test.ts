@@ -9,6 +9,21 @@ jest.mock('@/lib/logger', () => ({
     logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
 }));
 
+const mockAppendProactiveEvent = jest.fn();
+const mockGetProactiveTask = jest.fn();
+const mockLinkTaskToInbox = jest.fn();
+const mockTransitionProactiveTask = jest.fn();
+
+jest.mock('@/server/services/proactive-event-log', () => ({
+    appendProactiveEvent: (...args: unknown[]) => mockAppendProactiveEvent(...args),
+}));
+
+jest.mock('@/server/services/proactive-task-service', () => ({
+    getProactiveTask: (...args: unknown[]) => mockGetProactiveTask(...args),
+    linkTaskToInbox: (...args: unknown[]) => mockLinkTaskToInbox(...args),
+    transitionProactiveTask: (...args: unknown[]) => mockTransitionProactiveTask(...args),
+}));
+
 // Mock Firebase server client (avoid real Firestore)
 jest.mock('@/firebase/server-client', () => {
     const mockUpdateFn = jest.fn().mockResolvedValue(undefined);
@@ -80,6 +95,27 @@ function makeWorkflow(overrides: Partial<WorkflowDefinition> = {}): WorkflowDefi
     };
 }
 
+function makeProactiveTask(status: string = 'detected') {
+    return {
+        id: 'task-123',
+        tenantId: 'tenant-123',
+        organizationId: 'org_123',
+        workflowKey: 'daily_dispensary_health',
+        agentKey: 'pops',
+        status,
+        priority: 50,
+        severity: 'medium',
+        title: 'Daily health check',
+        summary: 'Daily proactive digest',
+        businessObjectType: 'organization',
+        businessObjectId: 'org_123',
+        dedupeKey: 'daily_health:org_123:2026_03_20',
+        createdBy: 'system',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+    };
+}
+
 const defaultOptions = { triggeredBy: 'test', dryRun: true };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -89,6 +125,12 @@ const defaultOptions = { triggeredBy: 'test', dryRun: true };
 beforeEach(() => {
     clearRegistry();
     jest.clearAllMocks();
+    mockGetProactiveTask.mockResolvedValue(makeProactiveTask());
+    mockLinkTaskToInbox.mockResolvedValue(undefined);
+    mockAppendProactiveEvent.mockResolvedValue(undefined);
+    mockTransitionProactiveTask.mockImplementation(
+        async (_taskId: string, nextStatus: string) => makeProactiveTask(nextStatus)
+    );
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -127,6 +169,36 @@ describe('executeWorkflowDefinition — basic', () => {
         const wf = makeWorkflow();
         const result = await executeWorkflowDefinition(wf, { triggeredBy: 'test', orgId: 'org_123', dryRun: true });
         expect(result.orgId).toBe('org_123');
+    });
+
+    test('links proactive task execution and emits proactive lifecycle events', async () => {
+        const wf = makeWorkflow();
+        const result = await executeWorkflowDefinition(wf, {
+            triggeredBy: 'cron',
+            orgId: 'org_123',
+            dryRun: false,
+            proactiveTaskId: 'task-123',
+        });
+
+        expect(result.status).toBe('completed');
+        expect(result.proactiveTaskId).toBe('task-123');
+        expect(mockGetProactiveTask).toHaveBeenCalledWith('task-123');
+        expect(mockLinkTaskToInbox).toHaveBeenCalledWith('task-123', {
+            workflowExecutionId: 'exec_mock_id',
+        });
+        expect(mockAppendProactiveEvent).toHaveBeenCalledWith(expect.objectContaining({
+            taskId: 'task-123',
+            eventType: 'workflow.started',
+        }));
+        expect(mockAppendProactiveEvent).toHaveBeenCalledWith(expect.objectContaining({
+            taskId: 'task-123',
+            eventType: 'workflow.completed',
+        }));
+        expect(mockTransitionProactiveTask).toHaveBeenCalledWith(
+            'task-123',
+            'triaged',
+            'workflow_started'
+        );
     });
 });
 

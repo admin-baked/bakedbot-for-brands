@@ -1,5 +1,5 @@
-
 import { UserRole, Permission } from '@/server/auth/rbac';
+import type { ProactiveSeverity } from './proactive';
 
 // ============================================================================
 // 1. Tool Contracts
@@ -53,8 +53,20 @@ export interface ToolRequest {
     idempotencyKey?: string;
     /** Optional approval request that authorizes a single side-effect retry. */
     approvedApprovalId?: string;
+    /** Optional proactive task linkage for durable workflow state. */
+    taskId?: string;
+    /** Optional agent key that originated the approval-bound action. */
+    requestedByAgent?: string;
+    /** Optional human-readable rationale captured on approval requests. */
+    approvalRationale?: string;
+    /** Optional risk score for approval surfaces and audit review. */
+    riskClass?: ProactiveSeverity;
     /** The actual arguments for the tool. */
     inputs: Record<string, any>;
+    /** Optional evidence references surfaced with an approval request. */
+    evidenceRefs?: string[];
+    /** Optional approval expiry timestamp in epoch milliseconds. */
+    expiresAt?: number;
 }
 
 /**
@@ -130,8 +142,14 @@ export interface ApprovalRequest {
     id: string;
     tenantId: string;
     createdAt: number;
-    status: 'pending' | 'approved' | 'rejected';
+    status: 'pending' | 'approved' | 'rejected' | 'expired';
     toolName?: string;
+    taskId?: string;
+    requestedByAgent?: string;
+    rationale?: string;
+    riskClass?: ProactiveSeverity;
+    evidenceRefs?: string[];
+    expiresAt?: number;
 
     requestedBy: {
         userId: string;
@@ -146,4 +164,5 @@ export interface ApprovalRequest {
     approverId?: string;
     approvedAt?: number;
     rejectionReason?: string;
+    decisionReason?: string;
 }

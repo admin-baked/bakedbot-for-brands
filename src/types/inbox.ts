@@ -15,6 +15,7 @@ import type { VmRunArtifactData } from './agent-vm';
 import type { ChatMessage } from '@/lib/store/agent-chat-store';
 import type { CustomerSegment } from './customers';
 import { ALL_ROLES } from './roles';
+import type { ProactiveSeverity, ProactiveWorkflowKey } from './proactive';
 
 // ============ Thread Types ============
 
@@ -412,6 +413,15 @@ export interface AnalyticsBriefing {
     pulseType?: 'morning' | 'midday' | 'evening'; // Which check generated this
 }
 
+export interface InboxArtifactProactiveMetadata {
+    taskId: string;
+    workflowKey: ProactiveWorkflowKey;
+    severity: ProactiveSeverity;
+    evidence: Array<{ label: string; value: string }>;
+    requiresApproval?: boolean;
+    nextActionLabel?: string;
+}
+
 /**
  * An artifact created through inbox conversation
  */
@@ -431,6 +441,7 @@ export interface InboxArtifact {
 
     // Agent rationale for the suggestion
     rationale?: string;
+    proactive?: InboxArtifactProactiveMetadata;
 
     // Drive integration — set when artifact has a corresponding BakedBot Drive file
     driveFileId?: string;

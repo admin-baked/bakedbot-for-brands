@@ -138,6 +138,7 @@ import { runAgentChat } from '@/app/dashboard/ceo/agents/actions';
 import { lookupCustomer } from '@/server/tools/crm-tools';
 import {
     createInboxThread,
+    createInboxArtifact,
     getInboxThreads,
     getInboxThread,
     updateInboxThread,
@@ -485,6 +486,60 @@ describe('Inbox Server Actions', () => {
 
             expect(result.success).toBe(false);
             expect(result.error).toBe('Unauthorized');
+        });
+    });
+
+    describe('createInboxArtifact', () => {
+        it('persists proactive metadata on newly created artifacts', async () => {
+            mockDocRef.get.mockResolvedValue({
+                exists: true,
+                data: () => ({
+                    id: 'thread-1',
+                    userId: 'user-123',
+                    orgId: 'org-123',
+                    artifactIds: [],
+                }),
+            });
+
+            const result = await createInboxArtifact({
+                threadId: 'thread-1',
+                type: 'creative_content',
+                data: {
+                    id: '',
+                    tenantId: 'org-123',
+                    brandId: 'org-123',
+                    platform: 'instagram',
+                    status: 'draft',
+                    complianceStatus: 'review_needed',
+                    caption: 'VIP retention creative',
+                    mediaUrls: [],
+                    mediaType: 'image',
+                    generatedBy: 'nano-banana',
+                    createdBy: 'agent',
+                    createdAt: Date.now(),
+                    updatedAt: Date.now(),
+                },
+                proactive: {
+                    taskId: 'task-1',
+                    workflowKey: 'vip_retention_watch',
+                    severity: 'high',
+                    evidence: [{ label: 'Segment', value: 'VIP churn risk' }],
+                    requiresApproval: true,
+                    nextActionLabel: 'Approve send',
+                },
+            });
+
+            expect(result.success).toBe(true);
+            expect(mockDocRef.set).toHaveBeenCalledWith(expect.objectContaining({
+                proactive: {
+                    taskId: 'task-1',
+                    workflowKey: 'vip_retention_watch',
+                    severity: 'high',
+                    evidence: [{ label: 'Segment', value: 'VIP churn risk' }],
+                    requiresApproval: true,
+                    nextActionLabel: 'Approve send',
+                },
+            }));
         });
     });
 

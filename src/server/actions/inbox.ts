@@ -21,6 +21,7 @@ import type {
     InboxArtifactType,
     InboxArtifactStatus,
     AgentHandoff,
+    InboxArtifactProactiveMetadata,
 } from '@/types/inbox';
 import { parseArtifactsFromContent } from '@/types/artifact';
 import {
@@ -558,6 +559,7 @@ export async function createInboxArtifact(input: {
     type: InboxArtifactType;
     data: Carousel | BundleDeal | CreativeContent | ResearchReportArtifactData | VmRunArtifactData;
     rationale?: string;
+    proactive?: InboxArtifactProactiveMetadata;
 }): Promise<{ success: boolean; artifact?: InboxArtifact; error?: string }> {
     try {
         const user = await getServerSessionUser();
@@ -588,17 +590,23 @@ export async function createInboxArtifact(input: {
             status: 'draft',
             data: input.data,
             rationale: input.rationale,
+            proactive: input.proactive,
             createdAt: new Date(),
             updatedAt: new Date(),
             createdBy: user.uid,
         };
 
         // Create artifact document
-        await db.collection(INBOX_ARTIFACTS_COLLECTION).doc(artifactId).set({
+        const artifactData: Record<string, unknown> = {
             ...artifact,
             createdAt: FieldValue.serverTimestamp(),
             updatedAt: FieldValue.serverTimestamp(),
-        });
+        };
+        if (!input.proactive) {
+            delete artifactData.proactive;
+        }
+
+        await db.collection(INBOX_ARTIFACTS_COLLECTION).doc(artifactId).set(artifactData);
 
         // Update thread with artifact reference
         await db.collection(INBOX_THREADS_COLLECTION).doc(input.threadId).update({

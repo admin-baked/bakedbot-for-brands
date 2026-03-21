@@ -5,9 +5,42 @@ import {
     AuditLogEntry,
     ToolDefinition
 } from '@/types/agent-toolkit';
+import { logger } from '@/lib/logger';
 import { getToolDefinition } from './registry';
 import { v4 as uuidv4 } from 'uuid';
 import { hasRolePermission } from '@/server/auth/rbac';
+
+function normalizeApprovalValue(value: unknown): unknown {
+    if (Array.isArray(value)) {
+        return value.map((entry) => normalizeApprovalValue(entry));
+    }
+
+    if (value && typeof value === 'object') {
+        const normalized: Record<string, unknown> = {};
+        for (const key of Object.keys(value as Record<string, unknown>).sort()) {
+            const entry = (value as Record<string, unknown>)[key];
+            if (entry !== undefined) {
+                normalized[key] = normalizeApprovalValue(entry);
+            }
+        }
+        return normalized;
+    }
+
+    return value;
+}
+
+function matchesApprovedPayload(
+    expectedInputs: Record<string, unknown> | null,
+    requestInputs: Record<string, unknown>
+): boolean {
+    if (!expectedInputs) {
+        return false;
+    }
+
+    const expected = JSON.stringify(normalizeApprovalValue(expectedInputs));
+    const actual = JSON.stringify(normalizeApprovalValue(requestInputs));
+    return expected === actual;
+}
 
 // In a real implementation, we would import the actual implementation functions here
 // or use a dynamic import map. For Phase 1, we will mock the dispatch or leave it abstract.
@@ -51,12 +84,19 @@ export async function routeToolCall(request: ToolRequest): Promise<ToolResponse>
     // 4. Side-Effect Gate
     if (definition.category === 'side-effect') {
         let hasApprovedOverride = false;
+        let approvedPayloadMismatch = false;
         if (request.approvedApprovalId && request.tenantId) {
-            const { getApprovalRequest } = await import('../approvals/service');
+            const { getApprovalRequest, getApprovalPayload } = await import('../approvals/service');
             const approval = await getApprovalRequest(request.tenantId, request.approvedApprovalId);
             hasApprovedOverride =
                 approval?.status === 'approved'
                 && approval.toolName === toolName;
+
+            if (hasApprovedOverride) {
+                const approvedPayload = await getApprovalPayload(request.tenantId, request.approvedApprovalId);
+                hasApprovedOverride = matchesApprovedPayload(approvedPayload, inputs);
+                approvedPayloadMismatch = !hasApprovedOverride;
+            }
         }
 
         if (hasApprovedOverride) {
@@ -66,18 +106,44 @@ export async function routeToolCall(request: ToolRequest): Promise<ToolResponse>
             const { createApprovalRequest } = await import('../approvals/service');
             if (!request.tenantId) throw new Error('Side-effects require tenant context.');
 
-            const approval = await createApprovalRequest(
-                request.tenantId,
+            const approval = await createApprovalRequest({
+                tenantId: request.tenantId,
                 toolName,
                 inputs,
-                actor.userId,
-                actor.role
-            );
+                actorId: actor.userId,
+                actorRole: actor.role,
+                options: {
+                    taskId: request.taskId,
+                    requestedByAgent: request.requestedByAgent,
+                    rationale: request.approvalRationale,
+                    riskClass: request.riskClass,
+                    evidenceRefs: request.evidenceRefs,
+                    expiresAt: request.expiresAt,
+                },
+            });
+
+            if (request.taskId) {
+                try {
+                    const { linkTaskToInbox } = await import('@/server/services/proactive-task-service');
+                    await linkTaskToInbox(request.taskId, { approvalId: approval.id });
+                } catch (error) {
+                    logger.warn('[ToolRouter] Failed to link proactive task to approval', {
+                        taskId: request.taskId,
+                        approvalId: approval.id,
+                        error: error instanceof Error ? error.message : String(error),
+                    });
+                }
+            }
 
             const response: ToolResponse = {
                 status: 'blocked',
-                error: `Approval required. Request ID: ${approval.id}`,
-                data: { approvalId: approval.id }
+                error: approvedPayloadMismatch
+                    ? `Approval did not match the exact tool payload. New approval required. Request ID: ${approval.id}`
+                    : `Approval required. Request ID: ${approval.id}`,
+                data: {
+                    approvalId: approval.id,
+                    ...(request.taskId ? { taskId: request.taskId } : {}),
+                }
             };
 
             await logAudit(request, startTime, response);

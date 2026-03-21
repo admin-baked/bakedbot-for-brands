@@ -164,6 +164,7 @@ export interface WorkflowExecution {
     // Provenance
     triggeredBy: string;            // 'cron' | 'manual' | userId
     orgId?: string;
+    proactiveTaskId?: string;
 
     // Retry tracking
     retryCount?: number;
@@ -262,6 +263,7 @@ export interface ExecuteWorkflowOptions {
     triggeredBy: string;
     variables?: Record<string, unknown>;
     dryRun?: boolean;
+    proactiveTaskId?: string;
     /** Execute a specific version from the version registry */
     version?: number;
 }

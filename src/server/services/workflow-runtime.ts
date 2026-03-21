@@ -20,7 +20,14 @@ import type {
     WorkflowStepResult,
     ExecuteWorkflowOptions,
 } from '@/types/workflow';
+import type { ProactiveTaskRecord, ProactiveTaskStatus } from '@/types/proactive';
 import { getWorkflow } from './workflow-registry';
+import { appendProactiveEvent } from './proactive-event-log';
+import {
+    getProactiveTask,
+    linkTaskToInbox,
+    transitionProactiveTask,
+} from './proactive-task-service';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -269,6 +276,138 @@ interface WorkflowContext {
     dryRun: boolean;
 }
 
+interface ProactiveWorkflowState {
+    task: ProactiveTaskRecord | null;
+    pendingApprovalId?: string;
+}
+
+function extractApprovalId(output: unknown): string | undefined {
+    if (!output || typeof output !== 'object') {
+        return undefined;
+    }
+
+    const record = output as {
+        approvalId?: unknown;
+        data?: { approvalId?: unknown };
+        blocked?: unknown;
+        status?: unknown;
+    };
+
+    if (typeof record.approvalId === 'string') {
+        return record.approvalId;
+    }
+
+    if (record.data && typeof record.data === 'object' && typeof record.data.approvalId === 'string') {
+        return record.data.approvalId;
+    }
+
+    return undefined;
+}
+
+async function tryAppendProactiveEvent(
+    proactiveState: ProactiveWorkflowState,
+    context: WorkflowContext,
+    eventType: string,
+    payload: Record<string, unknown>
+): Promise<void> {
+    if (context.dryRun || !proactiveState.task) {
+        return;
+    }
+
+    try {
+        await appendProactiveEvent({
+            tenantId: proactiveState.task.tenantId,
+            organizationId: proactiveState.task.organizationId,
+            taskId: proactiveState.task.id,
+            actorType: 'system',
+            eventType,
+            businessObjectType: proactiveState.task.businessObjectType,
+            businessObjectId: proactiveState.task.businessObjectId,
+            payload,
+        });
+    } catch (error) {
+        logger.warn('[WorkflowRuntime] Failed to append proactive event', {
+            taskId: proactiveState.task.id,
+            eventType,
+            error: error instanceof Error ? error.message : String(error),
+        });
+    }
+}
+
+async function tryTransitionProactiveTask(
+    proactiveState: ProactiveWorkflowState,
+    context: WorkflowContext,
+    nextStatus: ProactiveTaskStatus,
+    reason: string
+): Promise<void> {
+    if (context.dryRun || !proactiveState.task) {
+        return;
+    }
+
+    try {
+        proactiveState.task = await transitionProactiveTask(proactiveState.task.id, nextStatus, reason);
+    } catch (error) {
+        logger.warn('[WorkflowRuntime] Failed proactive task transition', {
+            taskId: proactiveState.task.id,
+            nextStatus,
+            reason,
+            error: error instanceof Error ? error.message : String(error),
+        });
+    }
+}
+
+async function initializeProactiveWorkflowState(
+    proactiveTaskId: string | undefined,
+    context: WorkflowContext,
+    execution: WorkflowExecution
+): Promise<ProactiveWorkflowState> {
+    if (!proactiveTaskId || context.dryRun) {
+        return { task: null };
+    }
+
+    let task: ProactiveTaskRecord | null = null;
+    try {
+        task = await getProactiveTask(proactiveTaskId);
+    } catch (error) {
+        logger.warn('[WorkflowRuntime] Failed to load proactive task for workflow execution', {
+            proactiveTaskId,
+            workflowId: execution.workflowId,
+            error: error instanceof Error ? error.message : String(error),
+        });
+        return { task: null };
+    }
+
+    if (!task) {
+        logger.warn('[WorkflowRuntime] Proactive task not found for workflow execution', {
+            proactiveTaskId,
+            workflowId: execution.workflowId,
+        });
+        return { task: null };
+    }
+
+    const proactiveState: ProactiveWorkflowState = { task };
+
+    try {
+        await linkTaskToInbox(task.id, { workflowExecutionId: execution.id });
+    } catch (error) {
+        logger.warn('[WorkflowRuntime] Failed to link workflow execution to proactive task', {
+            taskId: task.id,
+            executionId: execution.id,
+            error: error instanceof Error ? error.message : String(error),
+        });
+    }
+
+    await tryAppendProactiveEvent(proactiveState, context, 'workflow.started', {
+        workflowId: execution.workflowId,
+        workflowName: execution.workflowName,
+        executionId: execution.id,
+        triggeredBy: execution.triggeredBy,
+    });
+    await tryTransitionProactiveTask(proactiveState, context, 'triaged', 'workflow_started');
+
+    return proactiveState;
+}
+
 // ---------------------------------------------------------------------------
 // Main Executor
 // ---------------------------------------------------------------------------
@@ -320,6 +459,7 @@ export async function executeWorkflowDefinition(
         stepResults: [],
         triggeredBy: options.triggeredBy,
         orgId: options.orgId,
+        proactiveTaskId: options.proactiveTaskId,
     };
 
     // Persist execution record (skip in dry-run)
@@ -334,6 +474,7 @@ export async function executeWorkflowDefinition(
                 startedAt,
                 triggeredBy: options.triggeredBy,
                 orgId: options.orgId,
+                proactiveTaskId: options.proactiveTaskId ?? null,
                 stepResults: [],
             });
             execution.id = executionRef.id;
@@ -351,6 +492,12 @@ export async function executeWorkflowDefinition(
         dryRun: context.dryRun,
     });
 
+    const proactiveState = await initializeProactiveWorkflowState(
+        options.proactiveTaskId,
+        context,
+        execution
+    );
+
     try {
         // Evaluate gates
         if (definition.gates) {
@@ -367,7 +514,7 @@ export async function executeWorkflowDefinition(
 
         // Execute steps with workflow-level timeout
         await withTimeout(
-            executeSteps(definition.steps, context, execution, executionRef),
+            executeSteps(definition.steps, context, execution, executionRef, proactiveState),
             workflowTimeoutMs,
             `workflow:${definition.id}`,
         );
@@ -377,6 +524,30 @@ export async function executeWorkflowDefinition(
         execution.completedAt = new Date();
         execution.durationMs = execution.completedAt.getTime() - startedAt.getTime();
         execution.context = context.variables;
+
+        await tryAppendProactiveEvent(proactiveState, context, 'workflow.completed', {
+            workflowId: definition.id,
+            executionId: execution.id,
+            stepCount: execution.stepResults.length,
+            status: execution.status,
+        });
+
+        const hasFailedSteps = execution.stepResults.some(
+            (stepResult) => stepResult.status === 'failed' || stepResult.status === 'timed_out'
+        );
+
+        if (
+            proactiveState.task
+            && proactiveState.task.status !== 'awaiting_approval'
+            && !hasFailedSteps
+        ) {
+            await tryTransitionProactiveTask(
+                proactiveState,
+                context,
+                'resolved',
+                'workflow_completed'
+            );
+        }
 
     } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
@@ -391,6 +562,22 @@ export async function executeWorkflowDefinition(
             executionId: execution.id,
             error: errorMsg,
         });
+
+        await tryAppendProactiveEvent(proactiveState, context, 'workflow.failed', {
+            workflowId: definition.id,
+            executionId: execution.id,
+            status: execution.status,
+            error: errorMsg,
+        });
+
+        if (proactiveState.task && proactiveState.task.status !== 'awaiting_approval') {
+            await tryTransitionProactiveTask(
+                proactiveState,
+                context,
+                'blocked',
+                isTimeout ? 'workflow_timed_out' : 'workflow_failed'
+            );
+        }
     }
 
     // Persist final state
@@ -429,6 +616,7 @@ async function executeSteps(
     context: WorkflowContext,
     execution: WorkflowExecution,
     executionRef: FirebaseFirestore.DocumentReference | null,
+    proactiveState: ProactiveWorkflowState,
 ): Promise<void> {
     // Build step ID → index map for goto resolution
     const stepIndexMap = new Map<string, number>();
@@ -466,9 +654,24 @@ async function executeSteps(
                     stepResult.completedAt = new Date();
                     stepResult.durationMs = 0;
                     execution.stepResults.push(stepResult);
+                    await tryAppendProactiveEvent(proactiveState, context, 'workflow.step.skipped', {
+                        workflowId: execution.workflowId,
+                        executionId: execution.id,
+                        stepId,
+                        action: step.action,
+                    });
                     stepIndex++;
                     continue;
                 }
+            }
+
+            if (proactiveState.task && proactiveState.task.status !== 'awaiting_approval') {
+                await tryTransitionProactiveTask(
+                    proactiveState,
+                    context,
+                    'investigating',
+                    `step_started:${stepId}`
+                );
             }
 
             // Compliance gate (pre-step)
@@ -482,6 +685,19 @@ async function executeSteps(
                     stepResult.completedAt = new Date();
                     stepResult.durationMs = (stepResult.completedAt.getTime() - stepResult.startedAt!.getTime());
                     execution.stepResults.push(stepResult);
+                    await tryAppendProactiveEvent(proactiveState, context, 'workflow.step.failed', {
+                        workflowId: execution.workflowId,
+                        executionId: execution.id,
+                        stepId,
+                        action: step.action,
+                        error: stepResult.error,
+                    });
+                    await tryTransitionProactiveTask(
+                        proactiveState,
+                        context,
+                        'blocked',
+                        `compliance_failed:${stepId}`
+                    );
 
                     // Handle onFailure
                     const nextIndex = resolveGoto(step.onFailure, stepIndexMap);
@@ -542,10 +758,40 @@ async function executeSteps(
             stepResult.completedAt = new Date();
             stepResult.durationMs = stepResult.completedAt.getTime() - stepResult.startedAt!.getTime();
 
+            const approvalId = extractApprovalId(output);
+            if (approvalId) {
+                proactiveState.pendingApprovalId = approvalId;
+                await tryTransitionProactiveTask(
+                    proactiveState,
+                    context,
+                    'awaiting_approval',
+                    `approval_requested:${stepId}`
+                );
+
+                if (proactiveState.task && !context.dryRun) {
+                    try {
+                        await linkTaskToInbox(proactiveState.task.id, { approvalId });
+                    } catch (error) {
+                        logger.warn('[WorkflowRuntime] Failed to link approval to proactive task', {
+                            taskId: proactiveState.task.id,
+                            approvalId,
+                            error: error instanceof Error ? error.message : String(error),
+                        });
+                    }
+                }
+            }
+
             // Handle onSuccess goto
             const successTarget = resolveGoto(step.onSuccess, stepIndexMap);
             if (successTarget !== null) {
                 execution.stepResults.push(stepResult);
+                await tryAppendProactiveEvent(proactiveState, context, 'workflow.step.completed', {
+                    workflowId: execution.workflowId,
+                    executionId: execution.id,
+                    stepId,
+                    action: step.action,
+                    approvalId,
+                });
                 stepIndex = successTarget;
                 continue;
             }
@@ -567,6 +813,20 @@ async function executeSteps(
             const failureTarget = resolveGoto(step.onFailure, stepIndexMap);
             if (failureTarget !== null) {
                 execution.stepResults.push(stepResult);
+                await tryAppendProactiveEvent(proactiveState, context, 'workflow.step.failed', {
+                    workflowId: execution.workflowId,
+                    executionId: execution.id,
+                    stepId,
+                    action: step.action,
+                    error: errorMsg,
+                    status: stepResult.status,
+                });
+                await tryTransitionProactiveTask(
+                    proactiveState,
+                    context,
+                    'blocked',
+                    `step_failed:${stepId}`
+                );
                 stepIndex = failureTarget;
                 continue;
             }
@@ -574,16 +834,50 @@ async function executeSteps(
             // If onFailure is 'continue', proceed to next step
             if (step.onFailure === 'continue') {
                 execution.stepResults.push(stepResult);
+                await tryAppendProactiveEvent(proactiveState, context, 'workflow.step.failed', {
+                    workflowId: execution.workflowId,
+                    executionId: execution.id,
+                    stepId,
+                    action: step.action,
+                    error: errorMsg,
+                    status: stepResult.status,
+                });
+                await tryTransitionProactiveTask(
+                    proactiveState,
+                    context,
+                    'blocked',
+                    `step_failed:${stepId}`
+                );
                 stepIndex++;
                 continue;
             }
 
             // Default: abort workflow on step failure
             execution.stepResults.push(stepResult);
+            await tryAppendProactiveEvent(proactiveState, context, 'workflow.step.failed', {
+                workflowId: execution.workflowId,
+                executionId: execution.id,
+                stepId,
+                action: step.action,
+                error: errorMsg,
+                status: stepResult.status,
+            });
+            await tryTransitionProactiveTask(
+                proactiveState,
+                context,
+                'blocked',
+                `step_failed:${stepId}`
+            );
             throw error;
         }
 
         execution.stepResults.push(stepResult);
+        await tryAppendProactiveEvent(proactiveState, context, 'workflow.step.completed', {
+            workflowId: execution.workflowId,
+            executionId: execution.id,
+            stepId,
+            action: step.action,
+        });
 
         // Persist step progress (non-blocking)
         if (executionRef && !context.dryRun) {
