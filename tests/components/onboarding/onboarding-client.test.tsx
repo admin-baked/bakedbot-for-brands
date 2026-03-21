@@ -123,8 +123,8 @@ describe('OnboardingClient Signup Flow', () => {
     it('shows signup modal when unauthenticated user attempts to finish', async () => {
         render(<OnboardingPage />);
 
-        // 1. Select Customer role (jumps to review)
-        fireEvent.click(screen.getByText('A Customer'));
+        // 1. Select Customer role (jumps to review) — button text is "Customer"
+        fireEvent.click(screen.getByText('Customer'));
 
         // 2. Click "Complete Setup"
         const finishButton = screen.getByText('Complete Setup');
@@ -142,7 +142,7 @@ describe('OnboardingClient Signup Flow', () => {
 
         render(<OnboardingPage />);
 
-        fireEvent.click(screen.getByText('A Customer'));
+        fireEvent.click(screen.getByText('Customer'));
         fireEvent.click(screen.getByText('Complete Setup'));
 
         const googleButton = screen.getByText('Sign Up with Google');
@@ -165,7 +165,7 @@ describe('OnboardingClient Signup Flow', () => {
 
         render(<OnboardingPage />);
 
-        fireEvent.click(screen.getByText('A Customer'));
+        fireEvent.click(screen.getByText('Customer'));
         fireEvent.click(screen.getByText('Complete Setup'));
 
         fireEvent.change(screen.getByPlaceholderText('name@example.com'), { target: { value: 'test@example.com' } });
@@ -183,14 +183,16 @@ describe('OnboardingClient Signup Flow', () => {
     });
 
     it('preserves the selected pricing plan through the review step', () => {
+        // 'empire' is a legacy alias that maps to the 'optimize' plan (name: "Optimize")
         (useSearchParams as jest.Mock).mockReturnValue(new URLSearchParams('plan=empire'));
 
         render(<OnboardingPage />);
 
-        fireEvent.click(screen.getByText('A Customer'));
+        fireEvent.click(screen.getByText('Customer'));
 
         expect(screen.getByText('Selected Plan')).toBeInTheDocument();
-        expect(screen.getByText('Empire')).toBeInTheDocument();
+        // Legacy alias 'empire' → resolved plan name is 'Optimize'
+        expect(screen.getByText('Optimize')).toBeInTheDocument();
         const planInput = document.querySelector('input[name="planId"]') as HTMLInputElement | null;
         expect(planInput?.value).toBe('empire');
     });

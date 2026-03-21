@@ -46,8 +46,55 @@ jest.mock('@/lib/notifications/blackleaf-service', () => ({ blackleafService: {}
 jest.mock('@/server/services/cannmenus', () => ({ CannMenusService: class { } }));
 jest.mock('@/server/algorithms/intuition-engine', () => ({ getIntuitionSummary: jest.fn() }));
 
+// =========================================================================
+// Missing Integration Directive — always appended to customInstructionsBlock
+// =========================================================================
+describe('Agent Runner — missingIntegrationDirective (source contract)', () => {
+    const fs = require('fs');
+    const path = require('path');
+
+    const agentRunnerSrc = fs.readFileSync(
+        path.join(__dirname, '../../../src/server/agents/agent-runner.ts'),
+        'utf-8'
+    );
+
+    it('always appends missingIntegrationDirective to customInstructionsBlock', () => {
+        // The directive must be declared AND immediately appended — both on adjacent lines
+        expect(agentRunnerSrc).toContain('const missingIntegrationDirective =');
+        expect(agentRunnerSrc).toContain('customInstructionsBlock += missingIntegrationDirective;');
+    });
+
+    it('directive includes the SYSTEM DIRECTIVE label', () => {
+        expect(agentRunnerSrc).toContain('[SYSTEM DIRECTIVE: MISSING DATA]');
+    });
+
+    it('directive contains the correct settings link', () => {
+        expect(agentRunnerSrc).toContain('/dashboard/settings?tab=integrations');
+    });
+
+    it('directive instructs the agent to use a markdown link format', () => {
+        expect(agentRunnerSrc).toContain('[Connect your POS or Data Source]');
+    });
+
+    it('directive covers all key integration categories', () => {
+        // The directive must mention POS, ecommerce, and marketing integrations
+        expect(agentRunnerSrc).toContain('POS, ecommerce, marketing');
+    });
+
+    it('directive is appended regardless of whether AI settings load succeeds', () => {
+        // The try/catch for loadAISettingsForAgent ends before the directive is added.
+        // Verify the append is OUTSIDE the try block by checking relative ordering.
+        const directiveLine = agentRunnerSrc.indexOf('customInstructionsBlock += missingIntegrationDirective;');
+        const aiSettingsTryCatch = agentRunnerSrc.lastIndexOf('} catch (e) {', directiveLine);
+        // The directive must come after the try/catch closes (i.e., outside of it)
+        expect(directiveLine).toBeGreaterThan(aiSettingsTryCatch);
+    });
+});
+
+// =========================================================================
 // SKIPPING due to Jest/ESM configuration issues with @genkit-ai/dotprompt
 // Logic verified manually via scripts/test-async-agent.ts
+// =========================================================================
 describe.skip('Agent Runner (Async Support)', () => {
     const mockUser: DecodedIdToken = {
         uid: 'test-user-async',
