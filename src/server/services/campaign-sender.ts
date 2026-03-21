@@ -10,6 +10,7 @@ import { logger } from '@/lib/logger';
 import { sendGenericEmail } from '@/lib/email/dispatcher';
 import { BlackleafService } from '@/lib/notifications/blackleaf-service';
 import { getUsageWithLimits, incrementUsage } from '@/lib/metering/usage-service';
+import { recordProactiveRuntimeDiagnostic } from '@/server/services/proactive-runtime-diagnostics';
 import type { Campaign, CampaignRecipient, CampaignPerformance, CampaignChannel } from '@/types/campaign';
 import type { CustomerSegment } from '@/types/customers';
 
@@ -122,6 +123,19 @@ async function loadRecentlyContactedEmailsFromIndexedQuery(input: {
         .where('sentAt', '>=', lookbackDate)
         .get();
 
+    await recordProactiveRuntimeDiagnostic({
+        tenantId: orgId,
+        organizationId: orgId,
+        source: 'campaign_sender_dedup',
+        mode: 'indexed',
+        message: 'Used composite index for recent customer communications deduplication.',
+        metadata: {
+            campaignType,
+            lookbackDate: lookbackDate.toISOString(),
+            resultCount: recentCommsSnap.size,
+        },
+    });
+
     return new Set(
         recentCommsSnap.docs
             .map((doc) => normalizeEmail(doc.data().customerEmail))
@@ -206,6 +220,20 @@ async function loadRecentlyContactedEmails(input: {
             campaignType,
             recipients: recipients.length,
             lookbackDays: DEDUP_LOOKBACK_DAYS,
+        });
+
+        await recordProactiveRuntimeDiagnostic({
+            tenantId: campaign.orgId,
+            organizationId: campaign.orgId,
+            source: 'campaign_sender_dedup',
+            mode: 'fallback',
+            message: 'Missing customer_communications dedup index; using per-recipient scan.',
+            metadata: {
+                campaignId: campaign.id,
+                campaignType,
+                recipients: recipients.length,
+                lookbackDays: DEDUP_LOOKBACK_DAYS,
+            },
         });
 
         return loadRecentlyContactedEmailsFromPerRecipientFallback({

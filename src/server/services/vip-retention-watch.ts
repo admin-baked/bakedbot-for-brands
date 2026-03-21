@@ -21,6 +21,7 @@ import {
     upsertCommitment,
 } from '@/server/services/proactive-commitment-service';
 import { recordProactiveOutcome } from '@/server/services/proactive-outcome-service';
+import { isProactiveWorkflowEnabled } from '@/server/services/proactive-settings';
 
 type CandidateSegment =
     | 'vip'
@@ -50,6 +51,8 @@ export interface VipRetentionWatchSummary {
     orgId: string;
     candidatesEvaluated: number;
     targetedCustomers: number;
+    skipped?: boolean;
+    reason?: string;
     taskId?: string;
     threadId?: string;
     artifactId?: string;
@@ -374,6 +377,19 @@ async function loadVipRetentionCandidates(orgId: string): Promise<VipRetentionCa
 
 export async function runVipRetentionWatch(orgId: string): Promise<VipRetentionWatchSummary> {
     try {
+        const enabled = await isProactiveWorkflowEnabled(orgId, 'vip_retention_watch');
+        if (!enabled) {
+            logger.info('[VipRetentionWatch] Workflow disabled by proactive pilot settings', { orgId });
+            return {
+                success: true,
+                orgId,
+                candidatesEvaluated: 0,
+                targetedCustomers: 0,
+                skipped: true,
+                reason: 'workflow_disabled',
+            };
+        }
+
         const candidates = await loadVipRetentionCandidates(orgId);
         if (candidates.length === 0) {
             logger.info('[VipRetentionWatch] No actionable VIP retention candidates', { orgId });

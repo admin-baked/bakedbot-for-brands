@@ -1,5 +1,6 @@
 import { createServerClient } from '@/firebase/server-client';
 import { encrypt, decrypt } from '@/server/utils/encryption';
+import { logger } from '@/lib/logger';
 import { Credentials } from 'google-auth-library';
 
 const COLLECTION = 'integrations'; // Sub-collection 'gmail' inside users or separate?
@@ -59,7 +60,11 @@ export async function getGmailToken(userId: string): Promise<Credentials | null>
         try {
             credentials.refresh_token = decrypt(data.refreshTokenEncrypted);
         } catch (e) {
-            console.error('Failed to decrypt refresh token', e);
+            logger.warn('[GmailTokenStorage] Failed to decrypt refresh token', {
+                userId,
+                error: e instanceof Error ? e.message : String(e),
+                hasEncryptionKey: Boolean(process.env.TOKEN_ENCRYPTION_KEY?.trim()),
+            });
             return null;
         }
     }

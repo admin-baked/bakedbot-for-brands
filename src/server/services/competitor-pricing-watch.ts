@@ -18,11 +18,14 @@ import {
 import { appendProactiveEvent } from '@/server/services/proactive-event-log';
 import { upsertCommitment } from '@/server/services/proactive-commitment-service';
 import { recordProactiveOutcome } from '@/server/services/proactive-outcome-service';
+import { isProactiveWorkflowEnabled } from '@/server/services/proactive-settings';
 
 export interface CompetitorPricingWatchSummary {
     success: boolean;
     orgId: string;
     alertCount: number;
+    skipped?: boolean;
+    reason?: string;
     taskId?: string;
     threadId?: string;
     artifactId?: string;
@@ -227,6 +230,18 @@ export async function syncCompetitorPricingWatch(input: {
     const { orgId, alerts, emailsSent } = input;
 
     try {
+        const enabled = await isProactiveWorkflowEnabled(orgId, 'competitor_pricing_watch');
+        if (!enabled) {
+            logger.info('[CompetitorPricingWatch] Workflow disabled by proactive pilot settings', { orgId });
+            return {
+                success: true,
+                orgId,
+                alertCount: alerts.length,
+                skipped: true,
+                reason: 'workflow_disabled',
+            };
+        }
+
         if (alerts.length === 0) {
             return {
                 success: true,

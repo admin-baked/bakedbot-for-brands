@@ -26,6 +26,7 @@ import {
     Newspaper,
     Mail,
     Users,
+    Clock,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -38,7 +39,13 @@ import type { InboxArtifact } from '@/types/inbox';
 import type { Carousel } from '@/types/carousels';
 import type { BundleDeal } from '@/types/bundles';
 import type { CreativeContent } from '@/types/creative-content';
-import { approveAndPublishArtifact, deleteInboxArtifact, resolveInboxVmRunApproval } from '@/server/actions/inbox';
+import {
+    approveAndPublishArtifact,
+    deleteInboxArtifact,
+    dismissProactiveArtifact,
+    resolveInboxVmRunApproval,
+    snoozeProactiveArtifact,
+} from '@/server/actions/inbox';
 import { ArtifactPipelineBar } from './artifact-pipeline-bar';
 import { InboxIntegrationCard } from './artifacts/integration-card';
 import { AnalyticsChartArtifact } from './artifacts/analytics-chart-artifact';
@@ -372,6 +379,8 @@ export function InboxArtifactPanel({ artifacts, className }: InboxArtifactPanelP
 
     const [isApproving, setIsApproving] = useState(false);
     const [isResolvingVmApproval, setIsResolvingVmApproval] = useState(false);
+    const [isSnoozing, setIsSnoozing] = useState(false);
+    const [isDismissing, setIsDismissing] = useState(false);
 
     const handleResolveVmApproval = async (approvalIndex: number, decision: 'approved' | 'rejected') => {
         if (!selectedArtifact || selectedArtifact.type !== 'vm_run') return;
@@ -404,6 +413,67 @@ export function InboxArtifactPanel({ artifacts, className }: InboxArtifactPanelP
         }
 
         setIsResolvingVmApproval(false);
+    };
+
+    const handleSnoozeProactive = async () => {
+        if (!selectedArtifact?.proactive) return;
+        setIsSnoozing(true);
+
+        const result = await snoozeProactiveArtifact(selectedArtifact.id);
+        if (result.success) {
+            updateArtifact(selectedArtifact.id, {
+                proactive: {
+                    ...selectedArtifact.proactive,
+                    feedbackState: 'snoozed',
+                    feedbackAt: new Date().toISOString(),
+                    snoozedUntil: result.snoozedUntil,
+                },
+            });
+            toast({
+                title: 'Proactive item snoozed',
+                description: result.snoozedUntil
+                    ? `We will surface it again after ${new Date(result.snoozedUntil).toLocaleString()}.`
+                    : 'We will bring it back later.',
+            });
+        } else {
+            toast({
+                title: 'Snooze failed',
+                description: result.error || 'Failed to snooze proactive item',
+                variant: 'destructive',
+            });
+        }
+
+        setIsSnoozing(false);
+    };
+
+    const handleDismissProactive = async () => {
+        if (!selectedArtifact?.proactive) return;
+        setIsDismissing(true);
+
+        const result = await dismissProactiveArtifact(selectedArtifact.id);
+        if (result.success) {
+            updateArtifact(selectedArtifact.id, {
+                status: 'rejected',
+                proactive: {
+                    ...selectedArtifact.proactive,
+                    feedbackState: 'dismissed',
+                    feedbackAt: new Date().toISOString(),
+                    snoozedUntil: undefined,
+                },
+            });
+            toast({
+                title: 'Proactive item dismissed',
+                description: 'The linked proactive task was closed out and commitments were cleared.',
+            });
+        } else {
+            toast({
+                title: 'Dismiss failed',
+                description: result.error || 'Failed to dismiss proactive item',
+                variant: 'destructive',
+            });
+        }
+
+        setIsDismissing(false);
     };
 
     return (
@@ -522,6 +592,51 @@ export function InboxArtifactPanel({ artifacts, className }: InboxArtifactPanelP
                     )}
                 </div>
             </ScrollArea>
+
+            {selectedArtifact?.proactive && (
+                <div className="p-4 border-t border-white/5 space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                        <div>
+                            <p className="text-sm font-medium">Proactive feedback</p>
+                            <p className="text-xs text-muted-foreground">
+                                Tell the runtime whether this item should wait or close out.
+                            </p>
+                        </div>
+                        {selectedArtifact.proactive.feedbackState && (
+                            <Badge variant="outline" className="capitalize">
+                                {selectedArtifact.proactive.feedbackState}
+                            </Badge>
+                        )}
+                    </div>
+
+                    {selectedArtifact.proactive.snoozedUntil && selectedArtifact.proactive.feedbackState === 'snoozed' && (
+                        <div className="rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                            Snoozed until {new Date(selectedArtifact.proactive.snoozedUntil).toLocaleString()}
+                        </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-2">
+                        <Button
+                            variant="outline"
+                            className="border-white/10 hover:bg-white/5"
+                            onClick={handleSnoozeProactive}
+                            disabled={isSnoozing || isDismissing}
+                        >
+                            {isSnoozing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Clock className="mr-2 h-4 w-4" />}
+                            Snooze 24h
+                        </Button>
+                        <Button
+                            variant="outline"
+                            className="border-red-500/20 text-red-500 hover:bg-red-500/10 hover:text-red-400"
+                            onClick={handleDismissProactive}
+                            disabled={isDismissing || isSnoozing}
+                        >
+                            {isDismissing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                            Dismiss
+                        </Button>
+                    </div>
+                </div>
+            )}
 
             {/* Actions - HitL Approval Workflow */}
             {/* outreach_draft and executive_proactive_check are informational — skip generic publish workflow */}

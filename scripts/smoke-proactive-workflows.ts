@@ -90,6 +90,7 @@ async function cleanSmokeOrg(db: Firestore, orgId: string): Promise<void> {
         { collection: 'proactive_commitments', field: 'tenantId' },
         { collection: 'proactive_events', field: 'tenantId' },
         { collection: 'proactive_outcomes', field: 'tenantId' },
+        { collection: 'proactive_runtime_diagnostics', field: 'tenantId' },
         { collection: 'pricing_alerts', field: 'tenantId' },
         { collection: 'competitor_price_history', field: 'tenantId' },
         { collection: 'campaigns', field: 'orgId' },
@@ -299,6 +300,25 @@ async function findLatestByField(
     return sorted[0] ?? null;
 }
 
+async function findLatestByFields(
+    db: Firestore,
+    collectionName: string,
+    filters: Array<{ field: string; value: string }>
+): Promise<FirebaseFirestore.QueryDocumentSnapshot | null> {
+    let query: FirebaseFirestore.Query = db.collection(collectionName);
+    for (const filter of filters) {
+        query = query.where(filter.field, '==', filter.value);
+    }
+
+    const snap = await query.get();
+    const sorted = [...snap.docs].sort((left, right) => {
+        const leftValue = left.data().updatedAt?.toDate?.()?.getTime?.() ?? left.data().createdAt?.toDate?.()?.getTime?.() ?? 0;
+        const rightValue = right.data().updatedAt?.toDate?.()?.getTime?.() ?? right.data().createdAt?.toDate?.()?.getTime?.() ?? 0;
+        return rightValue - leftValue;
+    });
+    return sorted[0] ?? null;
+}
+
 async function runSmoke(): Promise<void> {
     const orgId = getArg('orgId') || DEFAULT_ORG_ID;
     const cleanFirst = !hasFlag('skip-clean');
@@ -322,6 +342,15 @@ async function runSmoke(): Promise<void> {
     const pricingRoute = requireFromScript<{
         POST: (request: NextRequest) => Promise<Response>;
     }>('../src/app/api/cron/pricing-alerts/route.ts');
+    const morningBriefing = requireFromScript<{
+        postMorningBriefingToInbox: (orgId: string) => Promise<{
+            orgId: string;
+            threadId: string;
+            artifactId: string;
+            taskId?: string;
+            workflowEnabled: boolean;
+        }>;
+    }>('../src/server/services/morning-briefing.ts');
     const campaignSender = requireFromScript<{
         resolveAudience: (campaign: {
             id: string;
@@ -360,7 +389,10 @@ async function runSmoke(): Promise<void> {
     assert(vipTaskSnap && vipTaskSnap.data().tenantId === orgId, 'VIP proactive task was not written');
     const vipTask = vipTaskSnap.data();
 
-    const vipArtifactSnap = await findLatestByField(db, 'inbox_artifacts', 'orgId', orgId);
+    const vipArtifactSnap = await findLatestByFields(db, 'inbox_artifacts', [
+        { field: 'orgId', value: orgId },
+        { field: 'type', value: 'outreach_draft' },
+    ]);
     assert(vipArtifactSnap, 'No inbox artifact was created for the smoke org');
     const vipArtifact = vipArtifactSnap.data();
     assert(vipArtifact.type === 'outreach_draft', 'VIP workflow did not create an outreach draft artifact');
@@ -460,14 +492,36 @@ async function runSmoke(): Promise<void> {
     const pricingOutcomeSnap = await findLatestByField(db, 'proactive_outcomes', 'taskId', pricingTaskSnap.id);
     assert(pricingOutcomeSnap, 'Pricing outcome was not written');
 
+    const morningSummary = await morningBriefing.postMorningBriefingToInbox(orgId);
+    assert(morningSummary.workflowEnabled === true, 'Morning briefing proactive workflow was not enabled');
+    assert(!!morningSummary.taskId, 'Morning briefing did not return a proactive task id');
+
+    const morningTaskSnap = await findLatestByField(db, 'proactive_tasks', 'workflowKey', 'daily_dispensary_health');
+    assert(morningTaskSnap && morningTaskSnap.data().tenantId === orgId, 'Daily dispensary health task was not written');
+
+    const morningArtifactSnap = await findLatestByFields(db, 'inbox_artifacts', [
+        { field: 'orgId', value: orgId },
+        { field: 'type', value: 'analytics_briefing' },
+    ]);
+    assert(morningArtifactSnap, 'Morning briefing artifact was not written');
+    const morningArtifact = morningArtifactSnap.data();
+    assert(morningArtifact.proactive?.workflowKey === 'daily_dispensary_health',
+        'Morning briefing artifact missing proactive workflow metadata');
+
+    const morningOutcomeSnap = await findLatestByField(db, 'proactive_outcomes', 'taskId', morningSummary.taskId!);
+    assert(morningOutcomeSnap, 'Daily dispensary health outcome was not written');
+
     console.log('');
     console.log('[smoke] PASS');
     console.log(`  orgId: ${orgId}`);
-    console.log(`  vip task: ${vipTaskSnap.id}`);
-    console.log(`  vip artifact: ${vipArtifactSnap.id}`);
-    console.log(`  pricing task: ${pricingTaskSnap.id}`);
-    console.log(`  pricing alerts: ${pricingAlertSnap.size}`);
-    console.log(`  exact cohort recipients: ${resolvedIds.join(', ')}`);
+    console.log(`  checklist:`);
+    console.log(`    [x] VIP retention proactive task created (${vipTaskSnap.id})`);
+    console.log(`    [x] VIP draft artifact linked (${vipArtifactSnap.id})`);
+    console.log(`    [x] Exact cohort audience resolved (${resolvedIds.join(', ')})`);
+    console.log(`    [x] Competitor pricing task created (${pricingTaskSnap.id})`);
+    console.log(`    [x] Pricing alerts written (${pricingAlertSnap.size})`);
+    console.log(`    [x] Daily dispensary health task created (${morningTaskSnap.id})`);
+    console.log(`    [x] Morning briefing artifact linked (${morningArtifactSnap.id})`);
 }
 
 runSmoke().catch((error) => {

@@ -422,6 +422,9 @@ export interface InboxArtifactProactiveMetadata {
     evidence: Array<{ label: string; value: string }>;
     requiresApproval?: boolean;
     nextActionLabel?: string;
+    feedbackState?: 'active' | 'snoozed' | 'dismissed';
+    feedbackAt?: string;
+    snoozedUntil?: string;
 }
 
 /**

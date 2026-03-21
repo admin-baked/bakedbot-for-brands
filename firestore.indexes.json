@@ -1304,6 +1304,24 @@
                     "order": "ASCENDING"
                 },
                 {
+                    "fieldPath": "archived",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "__name__",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "customers",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "orgId",
+                    "order": "ASCENDING"
+                },
+                {
                     "fieldPath": "tierUpdatedAt",
                     "order": "ASCENDING"
                 },
@@ -1513,6 +1531,14 @@
                     "fieldPath": "updatedAt",
                     "order": "DESCENDING"
                 }
+            ]
+        },
+        {
+            "collectionGroup": "meeting_bookings",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "status", "order": "ASCENDING" },
+                { "fieldPath": "startAt", "order": "ASCENDING" }
             ]
         },
         {

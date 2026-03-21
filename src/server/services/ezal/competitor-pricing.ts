@@ -7,6 +7,7 @@
 
 import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
+import { recordProactiveRuntimeDiagnostic } from '@/server/services/proactive-runtime-diagnostics';
 import type { CompetitorPriceData } from '@/types/dynamic-pricing';
 import type { CompetitiveProduct, Competitor, PricePoint } from '@/types/ezal-discovery';
 
@@ -207,6 +208,20 @@ async function getProductPriceHistory(
       .limit(50)
       .get();
 
+    await recordProactiveRuntimeDiagnostic({
+      tenantId: orgId,
+      organizationId: orgId,
+      workflowKey: 'competitor_pricing_watch',
+      source: 'competitor_price_points',
+      mode: 'indexed',
+      message: 'Used composite index for competitive price history lookups.',
+      metadata: {
+        productId,
+        days,
+        resultCount: snapshot.size,
+      },
+    });
+
     return snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
@@ -220,6 +235,19 @@ async function getProductPriceHistory(
       orgId,
       productId,
       days,
+    });
+
+    await recordProactiveRuntimeDiagnostic({
+      tenantId: orgId,
+      organizationId: orgId,
+      workflowKey: 'competitor_pricing_watch',
+      source: 'competitor_price_points',
+      mode: 'fallback',
+      message: 'Missing competitive price history index; using productRef fallback scan.',
+      metadata: {
+        productId,
+        days,
+      },
     });
 
     const fallbackSnapshot = await firestore

@@ -3,6 +3,28 @@ export type ProactiveWorkflowKey =
     | 'vip_retention_watch'
     | 'competitor_pricing_watch';
 
+export interface ProactiveWorkflowToggles {
+    daily_dispensary_health: boolean;
+    vip_retention_watch: boolean;
+    competitor_pricing_watch: boolean;
+}
+
+export interface ProactivePilotSettings {
+    enabled: boolean;
+    diagnosticsEnabled: boolean;
+    defaultSnoozeHours: number;
+    workflows: ProactiveWorkflowToggles;
+}
+
+export interface OrgProactivePilotSettings {
+    orgId: string;
+    disabled: boolean;
+    workflows?: Partial<ProactiveWorkflowToggles>;
+    notes?: string;
+    updatedAt?: Date;
+    updatedBy?: string;
+}
+
 export type ProactiveTaskStatus =
     | 'detected'
     | 'triaged'
@@ -113,6 +135,7 @@ export interface ProactiveOutcomeRecord {
     workflowKey: ProactiveWorkflowKey;
     outcomeType:
         | 'opened'
+        | 'snoozed'
         | 'dismissed'
         | 'approved'
         | 'rejected'
@@ -121,5 +144,19 @@ export interface ProactiveOutcomeRecord {
         | 'business_lift';
     score?: number;
     payload: Record<string, unknown>;
+    createdAt: Date;
+}
+
+export type ProactiveRuntimeDiagnosticMode = 'indexed' | 'fallback';
+
+export interface ProactiveRuntimeDiagnosticRecord {
+    id: string;
+    tenantId: string;
+    organizationId: string;
+    workflowKey?: ProactiveWorkflowKey;
+    source: string;
+    mode: ProactiveRuntimeDiagnosticMode;
+    message?: string;
+    metadata: Record<string, unknown>;
     createdAt: Date;
 }

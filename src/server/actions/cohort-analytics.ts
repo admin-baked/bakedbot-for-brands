@@ -44,6 +44,11 @@ export interface CustomerVisitCohortResult {
 
 // ============ Core computation (no auth — callable from cron + server actions) ============
 
+function isMissingIndexError(error: unknown): boolean {
+    const message = error instanceof Error ? error.message : String(error);
+    return message.includes('requires an index') || message.includes('FAILED_PRECONDITION');
+}
+
 export async function computeCohortData(
     orgId: string,
     daysBack: 90 | 180 | 365
@@ -56,11 +61,28 @@ export async function computeCohortData(
 
     // Query customers active in the period (lastOrderDate >= cutoff)
     // We use the pre-cached orderCount field on CustomerProfile.
-    const snap = await db
-        .collection('customers')
-        .where('orgId', '==', orgId)
-        .where('archived', '!=', true)
-        .get();
+    let snap: FirebaseFirestore.QuerySnapshot;
+    try {
+        snap = await db
+            .collection('customers')
+            .where('orgId', '==', orgId)
+            .where('archived', '!=', true)
+            .get();
+    } catch (error) {
+        if (!isMissingIndexError(error)) {
+            throw error;
+        }
+
+        logger.warn('[CohortAnalytics] customers index missing, using org-scoped fallback', {
+            orgId,
+            error: error instanceof Error ? error.message : String(error),
+        });
+
+        snap = await db
+            .collection('customers')
+            .where('orgId', '==', orgId)
+            .get();
+    }
 
     // Filter to customers active in the period
     const activeDocs = snap.docs.filter(doc => {

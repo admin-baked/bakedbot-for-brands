@@ -59,6 +59,42 @@ function toDateFromFirestore(val: unknown): Date {
     return new Date();
 }
 
+function isMissingIndexError(error: unknown): boolean {
+    const message = error instanceof Error ? error.message : String(error);
+    return message.includes('requires an index') || message.includes('FAILED_PRECONDITION');
+}
+
+function appendBakedBotMeetings(
+    docs: FirebaseFirestore.QueryDocumentSnapshot[],
+    meetings: CalendarMeetingItem[],
+    bakedBotEventIds: Set<string>,
+    confirmedOnly = true,
+): void {
+    for (const doc of docs) {
+        const data = doc.data();
+        if (confirmedOnly && data.status !== 'confirmed') {
+            continue;
+        }
+
+        const startAt = toDateFromFirestore(data.startAt);
+        const endAt = toDateFromFirestore(data.endAt);
+
+        if (data.calendarEventId) {
+            bakedBotEventIds.add(data.calendarEventId as string);
+        }
+
+        meetings.push({
+            title: (data.meetingTypeName as string) ?? (data.type as string) ?? 'BakedBot Meeting',
+            startAt,
+            endAt,
+            startTime: formatTimeEST(startAt),
+            source: 'bakedbot',
+            attendee: (data.guestName as string) ?? (data.guestEmail as string) ?? undefined,
+            profileSlug: data.profileSlug as string | undefined,
+        });
+    }
+}
+
 // =============================================================================
 // Core Fetcher
 // =============================================================================
@@ -88,29 +124,23 @@ export async function getMeetingsForDay(targetDate: Date): Promise<CalendarMeeti
             .orderBy('startAt', 'asc')
             .get();
 
-        for (const doc of snap.docs) {
-            const data = doc.data();
-            const startAt = toDateFromFirestore(data.startAt);
-            const endAt = toDateFromFirestore(data.endAt);
-
-            // Track synced Google Calendar IDs so we skip them in step 2
-            if (data.calendarEventId) {
-                bakedBotEventIds.add(data.calendarEventId as string);
-            }
-
-            meetings.push({
-                title: (data.meetingTypeName as string) ?? (data.type as string) ?? 'BakedBot Meeting',
-                startAt,
-                endAt,
-                startTime: formatTimeEST(startAt),
-                source: 'bakedbot',
-                attendee: (data.guestName as string) ?? (data.guestEmail as string) ?? undefined,
-                profileSlug: data.profileSlug as string | undefined,
-            });
-        }
+        appendBakedBotMeetings(snap.docs, meetings, bakedBotEventIds);
         logger.info('[CalendarDigest] BakedBot bookings loaded', { count: meetings.length });
     } catch (err) {
-        logger.warn('[CalendarDigest] BakedBot bookings fetch failed', { error: String(err) });
+        if (isMissingIndexError(err)) {
+            logger.warn('[CalendarDigest] meeting_bookings index missing, using bounded fallback', { error: String(err) });
+
+            const fallbackSnap = await db.collection('meeting_bookings')
+                .where('startAt', '>=', dayStart)
+                .where('startAt', '<=', dayEnd)
+                .orderBy('startAt', 'asc')
+                .get();
+
+            appendBakedBotMeetings(fallbackSnap.docs, meetings, bakedBotEventIds);
+            logger.info('[CalendarDigest] BakedBot bookings loaded via fallback', { count: meetings.length });
+        } else {
+            logger.warn('[CalendarDigest] BakedBot bookings fetch failed', { error: String(err) });
+        }
     }
 
     // --- Step 2: Google Calendar events for each connected exec profile ---

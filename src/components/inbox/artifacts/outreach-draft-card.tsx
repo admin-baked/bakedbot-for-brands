@@ -364,6 +364,8 @@ export function OutreachDraftCard({ artifact }: OutreachDraftCardProps) {
         data.sendStatus ?? 'idle'
     );
     const [campaignId, setCampaignId] = useState(data.campaignId);
+    const [scheduledAtValue, setScheduledAtValue] = useState(data.scheduledAt);
+    const [recipientCount, setRecipientCount] = useState(data.recipientCount);
     const [playbookId, setPlaybookId] = useState<string>();
     const [complianceStatus, setComplianceStatus] = useState<'passed' | 'failed' | 'warning' | undefined>(
         data.complianceStatus === 'pending' ? undefined : data.complianceStatus
@@ -395,6 +397,7 @@ export function OutreachDraftCard({ artifact }: OutreachDraftCardProps) {
             if (result.success) {
                 setSendStatus('sent');
                 setCampaignId(result.campaignId);
+                setRecipientCount(result.recipientCount);
             } else {
                 setSendStatus(result.complianceStatus === 'failed' ? 'idle' : 'idle');
                 setErrorMsg(result.error);
@@ -434,6 +437,7 @@ export function OutreachDraftCard({ artifact }: OutreachDraftCardProps) {
             if (result.success) {
                 setSendStatus('scheduled');
                 setCampaignId(result.campaignId);
+                setScheduledAtValue(result.scheduledAt);
                 setMode('idle');
             } else {
                 setErrorMsg(result.error);
@@ -482,9 +486,9 @@ export function OutreachDraftCard({ artifact }: OutreachDraftCardProps) {
                     <CheckCircle2 className="h-6 w-6 text-emerald-400 shrink-0" />
                     <div>
                         <p className="font-semibold text-emerald-400">Campaign sent!</p>
-                        {data.recipientCount !== undefined && (
+                        {recipientCount !== undefined && (
                             <p className="text-sm text-muted-foreground">
-                                Delivered to {data.recipientCount} recipient{data.recipientCount !== 1 ? 's' : ''}
+                                Delivered to {recipientCount} recipient{recipientCount !== 1 ? 's' : ''}
                             </p>
                         )}
                     </div>
@@ -511,9 +515,9 @@ export function OutreachDraftCard({ artifact }: OutreachDraftCardProps) {
                     <CalendarClock className="h-6 w-6 text-blue-400 shrink-0" />
                     <div>
                         <p className="font-semibold text-blue-400">Campaign scheduled</p>
-                        {data.scheduledAt && (
+                        {scheduledAtValue && (
                             <p className="text-sm text-muted-foreground">
-                                Sends {new Date(data.scheduledAt).toLocaleString()}
+                                Sends {new Date(scheduledAtValue).toLocaleString()}
                             </p>
                         )}
                     </div>

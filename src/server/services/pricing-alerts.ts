@@ -7,6 +7,7 @@
 
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
+import { recordProactiveRuntimeDiagnostic } from '@/server/services/proactive-runtime-diagnostics';
 import { getCompetitorPricing } from './ezal/competitor-pricing';
 import type { CompetitorPriceData } from '@/types/dynamic-pricing';
 
@@ -87,6 +88,19 @@ async function getPreviousCompetitorHistoryEntry(input: {
       .limit(1)
       .get();
 
+    await recordProactiveRuntimeDiagnostic({
+      tenantId,
+      organizationId: tenantId,
+      workflowKey: 'competitor_pricing_watch',
+      source: 'competitor_price_history',
+      mode: 'indexed',
+      message: 'Used composite index for competitor history lookups.',
+      metadata: {
+        productId,
+        resultCount: previousDataSnap.size,
+      },
+    });
+
     return previousDataSnap.empty ? null : previousDataSnap.docs[0].data();
   } catch (error) {
     if (!isMissingIndexError(error)) {
@@ -96,6 +110,18 @@ async function getPreviousCompetitorHistoryEntry(input: {
     logger.warn('[Pricing Alerts] Missing competitor history index, using tenant scan fallback', {
       tenantId,
       productId,
+    });
+
+    await recordProactiveRuntimeDiagnostic({
+      tenantId,
+      organizationId: tenantId,
+      workflowKey: 'competitor_pricing_watch',
+      source: 'competitor_price_history',
+      mode: 'fallback',
+      message: 'Missing competitor history index; using tenant scan fallback.',
+      metadata: {
+        productId,
+      },
     });
 
     const fallbackSnap = await db

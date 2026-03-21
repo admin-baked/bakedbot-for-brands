@@ -19,6 +19,11 @@ import { logger } from '@/lib/logger';
 import { getMarketBenchmarks } from '@/server/services/market-benchmarks';
 import { getDispensaryGreenLedgerSummary } from '@/server/services/greenledger';
 import { getOutreachStats } from '@/server/services/ny-outreach/outreach-service';
+import {
+    computeCohortData,
+    getLastCohortReportDate,
+    postCohortReportToInbox,
+} from '@/server/actions/cohort-analytics';
 import { getMeetingsForDay, getUpcomingMeetingsToday, getTomorrowsMeetings } from '@/server/services/calendar-digest';
 import { getEmailDigest, findSuperUserUid } from '@/server/services/email-digest';
 import {
@@ -26,7 +31,32 @@ import {
     type ContentAnalyticsSnapshot,
 } from '@/server/services/content-engine/analytics-signals';
 import { jinaSearch } from '@/server/tools/jina-tools';
-import type { AnalyticsBriefing, BriefingMetric, BriefingNewsItem, BriefingMeeting, BriefingEmailDigest } from '@/types/inbox';
+import {
+    createOrReuseProactiveTask,
+    attachProactiveTaskEvidence,
+    linkTaskToInbox,
+    transitionProactiveTask,
+} from '@/server/services/proactive-task-service';
+import { appendProactiveEvent } from '@/server/services/proactive-event-log';
+import {
+    listOpenCommitments,
+    resolveCommitment,
+    upsertCommitment,
+} from '@/server/services/proactive-commitment-service';
+import { recordProactiveOutcome } from '@/server/services/proactive-outcome-service';
+import {
+    getResolvedProactiveSnoozeHours,
+    isProactiveWorkflowEnabled,
+} from '@/server/services/proactive-settings';
+import type {
+    AnalyticsBriefing,
+    BriefingMetric,
+    BriefingNewsItem,
+    BriefingMeeting,
+    BriefingEmailDigest,
+    InboxArtifactProactiveMetadata,
+} from '@/types/inbox';
+import type { ProactiveSeverity } from '@/types/proactive';
 import {
     createInboxThreadId,
     createInboxArtifactId,
@@ -779,26 +809,126 @@ export async function generateDayPulse(pulseType: 'midday' | 'evening'): Promise
 
 // ============ Inbox post functions ============
 
+function getDailyHealthSeverity(briefing: AnalyticsBriefing): ProactiveSeverity {
+    switch (briefing.urgencyLevel) {
+        case 'critical':
+            return 'critical';
+        case 'warning':
+            return 'high';
+        case 'info':
+            return 'medium';
+        default:
+            return 'low';
+    }
+}
+
+function buildDailyHealthEvidence(briefing: AnalyticsBriefing): Array<{ label: string; value: string }> {
+    return [
+        { label: 'Urgency', value: briefing.urgencyLevel },
+        { label: 'Metrics reviewed', value: String(briefing.metrics.length) },
+        { label: 'Actionable items', value: String(briefing.metrics.filter((metric) => metric.status !== 'good').length) },
+        { label: 'News items', value: String(briefing.newsItems.length) },
+    ];
+}
+
+function getDailyHealthSummary(briefing: AnalyticsBriefing): string {
+    const actionItems = briefing.metrics.filter((metric) => metric.status !== 'good').length;
+    if (actionItems === 0) {
+        return `${briefing.dayOfWeek}'s daily dispensary health check is clear.`;
+    }
+    return `${briefing.dayOfWeek}'s daily dispensary health check surfaced ${actionItems} item${actionItems === 1 ? '' : 's'} needing follow-up.`;
+}
+
+function serializeBriefingForArtifact(briefing: AnalyticsBriefing): AnalyticsBriefing {
+    const metrics = briefing.metrics.map((metric) => ({
+        title: metric.title,
+        value: metric.value,
+        trend: metric.trend,
+        vsLabel: metric.vsLabel,
+        status: metric.status,
+        ...(metric.actionable ? { actionable: metric.actionable } : {}),
+    }));
+
+    const newsItems = briefing.newsItems.map((item) => ({
+        headline: item.headline,
+        source: item.source,
+        relevance: item.relevance,
+        ...(item.url ? { url: item.url } : {}),
+    }));
+
+    const meetings = briefing.meetings?.map((meeting) => ({
+        title: meeting.title,
+        startTime: meeting.startTime,
+        source: meeting.source,
+        ...(meeting.attendee ? { attendee: meeting.attendee } : {}),
+        ...(meeting.profileSlug ? { profileSlug: meeting.profileSlug } : {}),
+    }));
+
+    const emailDigest = briefing.emailDigest
+        ? {
+            unreadCount: briefing.emailDigest.unreadCount,
+            checkedAt: briefing.emailDigest.checkedAt,
+            topEmails: briefing.emailDigest.topEmails.map((item) => ({
+                from: item.from,
+                subject: item.subject,
+            })),
+        }
+        : undefined;
+
+    return {
+        date: briefing.date,
+        dayOfWeek: briefing.dayOfWeek,
+        metrics,
+        newsItems,
+        urgencyLevel: briefing.urgencyLevel,
+        marketContext: briefing.marketContext,
+        ...(briefing.topAlert ? { topAlert: briefing.topAlert } : {}),
+        ...(meetings && meetings.length > 0 ? { meetings } : {}),
+        ...(emailDigest ? { emailDigest } : {}),
+        ...(briefing.pulseType ? { pulseType: briefing.pulseType } : {}),
+    };
+}
+
 /**
  * Post any AnalyticsBriefing to the org's Daily Briefing thread.
  * Used by midday-pulse and evening-pulse crons.
  */
-export async function postPulseToInbox(orgId: string, briefing: AnalyticsBriefing): Promise<void> {
+export async function postPulseToInbox(
+    orgId: string,
+    briefing: AnalyticsBriefing,
+    options?: {
+        proactive?: InboxArtifactProactiveMetadata;
+        existingThreadId?: string;
+        existingArtifactId?: string;
+        threadMetadata?: Record<string, unknown>;
+    }
+): Promise<{ threadId: string; artifactId: string }> {
     const db = getAdminFirestore();
     const THREADS = 'inbox_threads';
     const ARTIFACTS = 'inbox_artifacts';
 
-    let threadId: string;
-    const existing = await db
-        .collection(THREADS)
-        .where('orgId', '==', orgId)
-        .where('metadata.isBriefingThread', '==', true)
-        .limit(1)
-        .get();
+    let threadId: string | null = null;
+    if (options?.existingThreadId) {
+        const existingThread = await db.collection(THREADS).doc(options.existingThreadId).get();
+        if (existingThread.exists) {
+            threadId = options.existingThreadId;
+        }
+    }
 
-    if (!existing.empty) {
-        threadId = existing.docs[0].id;
-    } else {
+    if (!threadId) {
+        const existing = await db
+            .collection(THREADS)
+            .where('orgId', '==', orgId)
+            .where('metadata.isBriefingThread', '==', true)
+            .limit(1)
+            .get();
+
+        if (!existing.empty) {
+            threadId = existing.docs[0].id;
+        }
+    }
+
+    if (!threadId) {
         threadId = createInboxThreadId();
         await db.collection(THREADS).doc(threadId).set({
             id: threadId,
@@ -812,29 +942,56 @@ export async function postPulseToInbox(orgId: string, briefing: AnalyticsBriefin
             assignedAgents: ['pops'],
             artifactIds: [],
             messages: [],
-            metadata: { isBriefingThread: true },
+            metadata: {
+                isBriefingThread: true,
+                ...(options?.threadMetadata ?? {}),
+            },
             createdAt: FieldValue.serverTimestamp(),
             updatedAt: FieldValue.serverTimestamp(),
             lastActivityAt: FieldValue.serverTimestamp(),
         });
+    } else if (options?.threadMetadata) {
+        await db.collection(THREADS).doc(threadId).set({
+            metadata: {
+                isBriefingThread: true,
+                ...options.threadMetadata,
+            },
+            updatedAt: FieldValue.serverTimestamp(),
+        }, { merge: true });
     }
 
     const pulseLabels = { morning: 'morning briefing', midday: 'midday check-in', evening: 'evening preview' };
     const pulseLabel = pulseLabels[briefing.pulseType ?? 'morning'];
 
-    const artifactId = createInboxArtifactId();
-    await db.collection(ARTIFACTS).doc(artifactId).set({
+    if (!threadId) {
+        throw new Error('Daily briefing thread could not be resolved');
+    }
+
+    const artifactId = options?.existingArtifactId ?? createInboxArtifactId();
+    const artifactPayload: Record<string, unknown> = {
         id: artifactId,
         threadId,
         orgId,
         type: 'analytics_briefing',
         status: 'approved',
-        data: briefing,
+        data: serializeBriefingForArtifact(briefing),
         rationale: `Proactive ${pulseLabel} generated automatically`,
         createdBy: 'system',
-        createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
-    });
+    };
+
+    if (options?.proactive) {
+        artifactPayload.proactive = options.proactive;
+    }
+
+    if (options?.existingArtifactId) {
+        await db.collection(ARTIFACTS).doc(artifactId).set(artifactPayload, { merge: true });
+    } else {
+        await db.collection(ARTIFACTS).doc(artifactId).set({
+            ...artifactPayload,
+            createdAt: FieldValue.serverTimestamp(),
+        });
+    }
 
     await db.collection(THREADS).doc(threadId).update({
         artifactIds: FieldValue.arrayUnion(artifactId),
@@ -850,13 +1007,155 @@ export async function postPulseToInbox(orgId: string, briefing: AnalyticsBriefin
         pulseType: briefing.pulseType,
         urgencyLevel: briefing.urgencyLevel,
     });
+
+    return { threadId, artifactId };
 }
 
-export async function postMorningBriefingToInbox(orgId: string): Promise<void> {
+export async function postMorningBriefingToInbox(orgId: string): Promise<{
+    orgId: string;
+    threadId: string;
+    artifactId: string;
+    taskId?: string;
+    workflowEnabled: boolean;
+}> {
     const briefing = await generateMorningBriefing(orgId);
-    await postPulseToInbox(orgId, briefing);
+    const workflowEnabled = await isProactiveWorkflowEnabled(orgId, 'daily_dispensary_health');
+    let taskId: string | undefined;
+    let proactiveMetadata: InboxArtifactProactiveMetadata | undefined;
+    let existingThreadId: string | undefined;
+    let existingArtifactId: string | undefined;
+
+    if (workflowEnabled) {
+        const severity = getDailyHealthSeverity(briefing);
+        let task = await createOrReuseProactiveTask({
+            tenantId: orgId,
+            organizationId: orgId,
+            workflowKey: 'daily_dispensary_health',
+            agentKey: 'pops',
+            title: `${briefing.dayOfWeek} daily dispensary health`,
+            summary: getDailyHealthSummary(briefing),
+            severity,
+            businessObjectType: 'organization',
+            businessObjectId: orgId,
+            dedupeKey: `daily_dispensary_health:${orgId}:${briefing.date}`,
+            dueAt: new Date(Date.now() + 12 * 60 * 60 * 1000),
+            createdBy: 'system',
+        });
+
+        task = await transitionProactiveTask(task.id, 'triaged', 'briefing_generated').catch(() => task);
+        task = await transitionProactiveTask(task.id, 'investigating', 'briefing_ready_for_delivery').catch(() => task);
+
+        taskId = task.id;
+        existingThreadId = task.threadId;
+        existingArtifactId = task.artifactId;
+        proactiveMetadata = {
+            taskId: task.id,
+            workflowKey: 'daily_dispensary_health',
+            severity,
+            evidence: buildDailyHealthEvidence(briefing),
+            nextActionLabel: briefing.urgencyLevel === 'clean' ? 'Briefing posted' : 'Review briefing',
+        };
+    }
+
+    const { threadId, artifactId } = await postPulseToInbox(orgId, briefing, {
+        proactive: proactiveMetadata,
+        existingThreadId,
+        existingArtifactId,
+        threadMetadata: workflowEnabled
+            ? {
+                proactiveWorkflowKey: 'daily_dispensary_health',
+                isProactiveThread: true,
+            }
+            : undefined,
+    });
+
+    if (workflowEnabled && taskId) {
+        await linkTaskToInbox(taskId, { threadId, artifactId });
+
+        await attachProactiveTaskEvidence(taskId, {
+            taskId,
+            tenantId: orgId,
+            evidenceType: 'daily_health_briefing',
+            refId: artifactId,
+            payload: {
+                date: briefing.date,
+                urgencyLevel: briefing.urgencyLevel,
+                topAlert: briefing.topAlert ?? null,
+                metrics: briefing.metrics.map((metric) => ({
+                    title: metric.title,
+                    status: metric.status,
+                    actionable: metric.actionable ?? null,
+                })),
+            },
+        });
+
+        await appendProactiveEvent({
+            tenantId: orgId,
+            organizationId: orgId,
+            taskId,
+            actorType: 'system',
+            eventType: 'daily_dispensary_health.briefing_posted',
+            businessObjectType: 'organization',
+            businessObjectId: orgId,
+            payload: {
+                threadId,
+                artifactId,
+                urgencyLevel: briefing.urgencyLevel,
+            },
+        });
+
+        const openCommitments = await listOpenCommitments({
+            tenantId: orgId,
+            organizationId: orgId,
+            taskId,
+        });
+        const commitmentTitle = `Review ${briefing.dayOfWeek} daily health briefing`;
+
+        if (briefing.urgencyLevel === 'warning' || briefing.urgencyLevel === 'critical') {
+            const snoozeHours = await getResolvedProactiveSnoozeHours(orgId);
+            await upsertCommitment({
+                tenantId: orgId,
+                organizationId: orgId,
+                taskId,
+                commitmentType: 'follow_up',
+                title: commitmentTitle,
+                dueAt: new Date(Date.now() + snoozeHours * 60 * 60 * 1000),
+                payload: {
+                    threadId,
+                    artifactId,
+                    urgencyLevel: briefing.urgencyLevel,
+                },
+            });
+        } else {
+            for (const commitment of openCommitments) {
+                await resolveCommitment(commitment.id, 'resolved').catch(() => undefined);
+            }
+        }
+
+        await transitionProactiveTask(taskId, 'executing', 'briefing_delivery_started').catch(() => undefined);
+        await transitionProactiveTask(taskId, 'executed', 'briefing_delivered').catch(() => undefined);
+        await transitionProactiveTask(taskId, 'resolved', 'daily_health_loop_written_back').catch(() => undefined);
+
+        await recordProactiveOutcome({
+            tenantId: orgId,
+            organizationId: orgId,
+            taskId,
+            workflowKey: 'daily_dispensary_health',
+            outcomeType: 'executed',
+            payload: {
+                threadId,
+                artifactId,
+                urgencyLevel: briefing.urgencyLevel,
+            },
+        });
+    }
+
     logger.info('[MorningBriefing] Posted morning briefing', {
         orgId,
+        taskId,
+        threadId,
+        artifactId,
+        workflowEnabled,
         urgencyLevel: briefing.urgencyLevel,
         metricsCount: briefing.metrics.length,
         meetings: briefing.meetings?.length ?? 0,
@@ -865,7 +1164,6 @@ export async function postMorningBriefingToInbox(orgId: string): Promise<void> {
 
     // Weekly cohort report — emit if not posted in the last 7 days
     try {
-        const { getLastCohortReportDate, computeCohortData, postCohortReportToInbox } = await import('@/server/actions/cohort-analytics');
         const lastPosted = await getLastCohortReportDate(orgId);
         const sevenDaysAgo = new Date(Date.now() - 7 * 86_400_000);
         if (!lastPosted || lastPosted < sevenDaysAgo) {
@@ -886,4 +1184,11 @@ export async function postMorningBriefingToInbox(orgId: string): Promise<void> {
             error: String(cohortErr),
         });
     }
+    return {
+        orgId,
+        threadId,
+        artifactId,
+        taskId,
+        workflowEnabled,
+    };
 }

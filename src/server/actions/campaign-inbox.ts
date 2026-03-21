@@ -19,10 +19,22 @@ import type { UserRole } from '@/types/roles';
 import { logger } from '@/lib/logger';
 import { sendGenericEmail } from '@/lib/email/dispatcher';
 import { deebo } from '@/server/agents/deebo';
+import { appendProactiveEvent } from '@/server/services/proactive-event-log';
+import {
+    listOpenCommitments,
+    resolveCommitment,
+    upsertCommitment,
+} from '@/server/services/proactive-commitment-service';
+import { recordProactiveOutcome } from '@/server/services/proactive-outcome-service';
+import {
+    getProactiveTask,
+    transitionProactiveTask,
+} from '@/server/services/proactive-task-service';
 import { resolveAudience, personalize } from '@/server/services/campaign-sender';
 import type { OutreachDraftData } from '@/types/inbox';
 import type { Campaign, CampaignAudience, CampaignContent } from '@/types/campaign';
 import type { Playbook, PlaybookTrigger, PlaybookStep } from '@/types/playbook';
+import type { InboxArtifact } from '@/types/inbox';
 
 // ---------------------------------------------------------------------------
 // Role gate — same as campaign management
@@ -86,10 +98,15 @@ async function loadOutreachArtifact(artifactId: string, actor: ActorAccess) {
     if (!actor.isSuper && data.orgId !== actor.orgId) throw new Error('Unauthorized');
     if (data.type !== 'outreach_draft') throw new Error('Not an outreach draft');
 
+    const artifact: InboxArtifact = {
+        ...(data as InboxArtifact),
+        id: doc.id,
+    };
+
     return {
         doc,
         data: data.data as OutreachDraftData,
-        artifact: data,
+        artifact,
         artifactOrgId: data.orgId as string,
     };
 }
@@ -116,6 +133,132 @@ async function patchArtifactData(
     await db.collection('inbox_artifacts').doc(artifactId).update({
         data: { ...existing, ...patch },
         updatedAt: new Date(),
+    });
+}
+
+async function safelyTransitionProactiveTask(taskId: string, nextStatus: Parameters<typeof transitionProactiveTask>[1], reason: string) {
+    try {
+        await transitionProactiveTask(taskId, nextStatus, reason);
+    } catch (error) {
+        logger.warn('[CAMPAIGN_INBOX] Proactive task transition skipped', {
+            taskId,
+            nextStatus,
+            reason,
+            error: error instanceof Error ? error.message : String(error),
+        });
+    }
+}
+
+async function resolveOpenProactiveCommitments(orgId: string, taskId: string): Promise<void> {
+    const openCommitments = await listOpenCommitments({
+        tenantId: orgId,
+        organizationId: orgId,
+        taskId,
+    });
+
+    for (const commitment of openCommitments) {
+        await resolveCommitment(commitment.id, 'resolved').catch(() => undefined);
+    }
+}
+
+async function recordProactiveDraftApproval(input: {
+    artifact: InboxArtifact;
+    actorUid: string;
+    campaignId?: string;
+    scheduledAt?: string;
+}): Promise<void> {
+    const proactive = input.artifact.proactive;
+    if (!proactive?.taskId) {
+        return;
+    }
+
+    const task = await getProactiveTask(proactive.taskId);
+    if (!task) {
+        return;
+    }
+
+    await safelyTransitionProactiveTask(task.id, 'awaiting_approval', 'user_review_started');
+    await safelyTransitionProactiveTask(task.id, 'approved', 'user_approved_draft');
+    await resolveOpenProactiveCommitments(task.organizationId, task.id);
+
+    await appendProactiveEvent({
+        tenantId: task.tenantId,
+        organizationId: task.organizationId,
+        taskId: task.id,
+        actorType: 'user',
+        actorId: input.actorUid,
+        eventType: 'proactive_draft.approved',
+        businessObjectType: task.businessObjectType,
+        businessObjectId: task.businessObjectId,
+        payload: {
+            artifactId: input.artifact.id,
+            workflowKey: proactive.workflowKey,
+            campaignId: input.campaignId ?? null,
+            scheduledAt: input.scheduledAt ?? null,
+        },
+    });
+
+    await recordProactiveOutcome({
+        tenantId: task.tenantId,
+        organizationId: task.organizationId,
+        taskId: task.id,
+        workflowKey: proactive.workflowKey,
+        outcomeType: 'approved',
+        payload: {
+            artifactId: input.artifact.id,
+            campaignId: input.campaignId ?? null,
+            scheduledAt: input.scheduledAt ?? null,
+        },
+    });
+}
+
+async function recordProactiveDraftExecution(input: {
+    artifact: InboxArtifact;
+    actorUid: string;
+    campaignId: string;
+    recipientCount: number;
+}): Promise<void> {
+    const proactive = input.artifact.proactive;
+    if (!proactive?.taskId) {
+        return;
+    }
+
+    const task = await getProactiveTask(proactive.taskId);
+    if (!task) {
+        return;
+    }
+
+    await safelyTransitionProactiveTask(task.id, 'executing', 'outbound_send_started');
+    await safelyTransitionProactiveTask(task.id, 'executed', 'outbound_send_completed');
+    await safelyTransitionProactiveTask(task.id, 'resolved', 'proactive_send_completed');
+
+    await appendProactiveEvent({
+        tenantId: task.tenantId,
+        organizationId: task.organizationId,
+        taskId: task.id,
+        actorType: 'user',
+        actorId: input.actorUid,
+        eventType: 'proactive_draft.executed',
+        businessObjectType: task.businessObjectType,
+        businessObjectId: task.businessObjectId,
+        payload: {
+            artifactId: input.artifact.id,
+            campaignId: input.campaignId,
+            recipientCount: input.recipientCount,
+        },
+    });
+
+    await recordProactiveOutcome({
+        tenantId: task.tenantId,
+        organizationId: task.organizationId,
+        taskId: task.id,
+        workflowKey: proactive.workflowKey,
+        outcomeType: 'executed',
+        payload: {
+            artifactId: input.artifact.id,
+            campaignId: input.campaignId,
+            recipientCount: input.recipientCount,
+        },
     });
 }
 
@@ -155,6 +298,7 @@ export async function sendCampaignFromInbox(params: {
     success: boolean;
     sent?: number;
     failed?: number;
+    recipientCount?: number;
     campaignId?: string;
     complianceStatus?: 'passed' | 'failed' | 'warning';
     complianceViolations?: string[];
@@ -183,7 +327,7 @@ export async function sendCampaignFromInbox(params: {
             return { success: false, error: 'Missing organization context.' };
         }
 
-        const { data, artifactOrgId: loadedOrgId } = await loadOutreachArtifact(params.artifactId, actor);
+        const { data, artifact, artifactOrgId: loadedOrgId } = await loadOutreachArtifact(params.artifactId, actor);
         artifactOrgId = loadedOrgId;
         const orgId = loadedOrgId;
 
@@ -273,6 +417,11 @@ export async function sendCampaignFromInbox(params: {
 
         // ── 3. Persist campaign document ────────────────────────────────────
         await campaignRef.set({ ...campaign, status: 'sending', sentAt: now });
+        await recordProactiveDraftApproval({
+            artifact,
+            actorUid: user.uid,
+            campaignId,
+        });
 
         // ── 4. Resolve audience ─────────────────────────────────────────────
         const recipients = await resolveAudience(campaign);
@@ -285,7 +434,13 @@ export async function sendCampaignFromInbox(params: {
                 recipientCount: 0,
                 campaignId,
             });
-            return { success: true, sent: 0, failed: 0, campaignId };
+            await recordProactiveDraftExecution({
+                artifact,
+                actorUid: user.uid,
+                campaignId,
+                recipientCount: 0,
+            });
+            return { success: true, sent: 0, failed: 0, recipientCount: 0, campaignId };
         }
 
         // ── 5. Fetch org name for personalization ────────────────────────────
@@ -397,7 +552,20 @@ export async function sendCampaignFromInbox(params: {
             failed: failedCount,
         });
 
-        return { success: true, sent: sentCount, failed: failedCount, campaignId };
+        await recordProactiveDraftExecution({
+            artifact,
+            actorUid: user.uid,
+            campaignId,
+            recipientCount: sentCount,
+        });
+
+        return {
+            success: true,
+            sent: sentCount,
+            failed: failedCount,
+            recipientCount: sentCount,
+            campaignId,
+        };
     } catch (error) {
         logger.error('[CAMPAIGN_INBOX] sendCampaignFromInbox error', {
             error: (error as Error).message,
@@ -425,6 +593,7 @@ export async function scheduleCampaignFromInbox(params: {
 }): Promise<{
     success: boolean;
     campaignId?: string;
+    scheduledAt?: string;
     complianceStatus?: 'passed' | 'failed' | 'warning';
     complianceViolations?: string[];
     error?: string;
@@ -449,7 +618,7 @@ export async function scheduleCampaignFromInbox(params: {
             return { success: false, error: 'Missing organization context.' };
         }
 
-        const { data, artifactOrgId } = await loadOutreachArtifact(params.artifactId, actor);
+        const { data, artifact, artifactOrgId } = await loadOutreachArtifact(params.artifactId, actor);
         const orgId = artifactOrgId;
 
         if (!data.body) {
@@ -535,6 +704,12 @@ export async function scheduleCampaignFromInbox(params: {
             createdAt: now,
             updatedAt: now,
         });
+        await recordProactiveDraftApproval({
+            artifact,
+            actorUid: user.uid,
+            campaignId,
+            scheduledAt: scheduledAt.toISOString(),
+        });
 
         // ── 3. Update artifact ───────────────────────────────────────────────
         await patchArtifactData(params.artifactId, actor, {
@@ -550,7 +725,23 @@ export async function scheduleCampaignFromInbox(params: {
             scheduledAt: scheduledAt.toISOString(),
         });
 
-        return { success: true, campaignId };
+        if (artifact.proactive?.taskId) {
+            await upsertCommitment({
+                tenantId: orgId,
+                organizationId: orgId,
+                taskId: artifact.proactive.taskId,
+                commitmentType: 'follow_up',
+                title: `Monitor scheduled proactive send for ${scheduledAt.toLocaleDateString()}`,
+                dueAt: scheduledAt,
+                payload: {
+                    artifactId: artifact.id,
+                    campaignId,
+                    scheduledAt: scheduledAt.toISOString(),
+                },
+            });
+        }
+
+        return { success: true, campaignId, scheduledAt: scheduledAt.toISOString() };
     } catch (error) {
         logger.error('[CAMPAIGN_INBOX] scheduleCampaignFromInbox error', {
             error: (error as Error).message,

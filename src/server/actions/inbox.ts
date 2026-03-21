@@ -39,6 +39,18 @@ import type { VmRunArtifactData } from '@/types/agent-vm';
 import { resolveVmToolApproval } from '@/server/actions/agent-vm';
 import { mapVmRunStatusToInboxStatus, queueVmRunResume, resolveVmRunApproval } from '@/types/agent-vm';
 import { resolveInboxAgent } from '@/lib/agents/intent-router';
+import { appendProactiveEvent } from '@/server/services/proactive-event-log';
+import {
+    listOpenCommitments,
+    resolveCommitment,
+    upsertCommitment,
+} from '@/server/services/proactive-commitment-service';
+import { recordProactiveOutcome } from '@/server/services/proactive-outcome-service';
+import {
+    getProactiveTask,
+    transitionProactiveTask,
+} from '@/server/services/proactive-task-service';
+import { getResolvedProactiveSnoozeHours } from '@/server/services/proactive-settings';
 import {
     isPlaceholderCustomerIdentity,
     resolveCustomerDisplayName,
@@ -131,6 +143,31 @@ function serializeArtifact(artifact: InboxArtifact): InboxArtifact {
         approvedAt: artifact.approvedAt ? toDate(artifact.approvedAt) : undefined,
         publishedAt: artifact.publishedAt ? toDate(artifact.publishedAt) : undefined,
     };
+}
+
+async function safelyTransitionProactiveTask(taskId: string, nextStatus: Parameters<typeof transitionProactiveTask>[1], reason: string): Promise<void> {
+    try {
+        await transitionProactiveTask(taskId, nextStatus, reason);
+    } catch (error) {
+        logger.warn('[INBOX] Proactive task transition skipped', {
+            taskId,
+            nextStatus,
+            reason,
+            error: error instanceof Error ? error.message : String(error),
+        });
+    }
+}
+
+async function resolveAllOpenTaskCommitments(tenantId: string, organizationId: string, taskId: string): Promise<void> {
+    const openCommitments = await listOpenCommitments({
+        tenantId,
+        organizationId,
+        taskId,
+    });
+
+    for (const commitment of openCommitments) {
+        await resolveCommitment(commitment.id, 'resolved').catch(() => undefined);
+    }
 }
 
 // ============ Thread Actions ============
@@ -1040,6 +1077,60 @@ export async function approveAndPublishArtifact(
             });
         }
 
+        if (artifact.proactive?.taskId) {
+            const task = await getProactiveTask(artifact.proactive.taskId);
+            if (task) {
+                await safelyTransitionProactiveTask(task.id, 'awaiting_approval', 'artifact_review_started');
+                await safelyTransitionProactiveTask(task.id, 'approved', 'artifact_approved');
+                await safelyTransitionProactiveTask(task.id, 'executing', 'artifact_publish_started');
+                await safelyTransitionProactiveTask(task.id, 'executed', 'artifact_published');
+                await safelyTransitionProactiveTask(task.id, 'resolved', 'artifact_publish_completed');
+                await resolveAllOpenTaskCommitments(task.tenantId, task.organizationId, task.id);
+
+                await appendProactiveEvent({
+                    tenantId: task.tenantId,
+                    organizationId: task.organizationId,
+                    taskId: task.id,
+                    actorType: 'user',
+                    actorId: user.uid,
+                    eventType: 'proactive_artifact.published',
+                    businessObjectType: task.businessObjectType,
+                    businessObjectId: task.businessObjectId,
+                    payload: {
+                        artifactId,
+                        publishedId: publishedId ?? null,
+                        artifactType: artifact.type,
+                    },
+                });
+
+                await recordProactiveOutcome({
+                    tenantId: task.tenantId,
+                    organizationId: task.organizationId,
+                    taskId: task.id,
+                    workflowKey: artifact.proactive.workflowKey,
+                    outcomeType: 'approved',
+                    payload: {
+                        artifactId,
+                        publishedId: publishedId ?? null,
+                        artifactType: artifact.type,
+                    },
+                });
+
+                await recordProactiveOutcome({
+                    tenantId: task.tenantId,
+                    organizationId: task.organizationId,
+                    taskId: task.id,
+                    workflowKey: artifact.proactive.workflowKey,
+                    outcomeType: 'resolved',
+                    payload: {
+                        artifactId,
+                        publishedId: publishedId ?? null,
+                        artifactType: artifact.type,
+                    },
+                });
+            }
+        }
+
         logger.info('Approved and published inbox artifact', {
             artifactId,
             type: artifact.type,
@@ -1101,6 +1192,206 @@ export async function deleteInboxArtifact(
     } catch (error) {
         logger.error('Failed to delete inbox artifact', { error, artifactId });
         return { success: false, error: 'Failed to delete artifact' };
+    }
+}
+
+export async function dismissProactiveArtifact(
+    artifactId: string
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const user = await getServerSessionUser();
+        if (!user) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        const db = getDb();
+        const artifactRef = db.collection(INBOX_ARTIFACTS_COLLECTION).doc(artifactId);
+        const doc = await artifactRef.get();
+        if (!doc.exists) {
+            return { success: false, error: 'Artifact not found' };
+        }
+
+        const artifact = doc.data() as InboxArtifact;
+        if (!artifact.proactive?.taskId) {
+            return { success: false, error: 'Artifact is not a proactive item' };
+        }
+
+        const threadDoc = await db.collection(INBOX_THREADS_COLLECTION).doc(artifact.threadId).get();
+        if (!threadDoc.exists) {
+            return { success: false, error: 'Thread not found' };
+        }
+
+        const thread = threadDoc.data() as InboxThread;
+        if (thread.userId !== user.uid) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        const { snoozedUntil: _removedSnoozeUntil, ...restProactive } = artifact.proactive;
+        const proactive = {
+            ...restProactive,
+            feedbackState: 'dismissed' as const,
+            feedbackAt: new Date().toISOString(),
+        };
+
+        await artifactRef.update({
+            status: 'rejected',
+            proactive,
+            updatedAt: FieldValue.serverTimestamp(),
+        });
+
+        const task = await getProactiveTask(artifact.proactive.taskId);
+        if (task) {
+            await safelyTransitionProactiveTask(task.id, 'dismissed', 'user_dismissed_artifact');
+            const openCommitments = await listOpenCommitments({
+                tenantId: task.tenantId,
+                organizationId: task.organizationId,
+                taskId: task.id,
+            });
+            for (const commitment of openCommitments) {
+                await resolveCommitment(commitment.id, 'dismissed').catch(() => undefined);
+            }
+
+            await appendProactiveEvent({
+                tenantId: task.tenantId,
+                organizationId: task.organizationId,
+                taskId: task.id,
+                actorType: 'user',
+                actorId: user.uid,
+                eventType: 'proactive_artifact.dismissed',
+                businessObjectType: task.businessObjectType,
+                businessObjectId: task.businessObjectId,
+                payload: {
+                    artifactId,
+                    artifactType: artifact.type,
+                },
+            });
+
+            await recordProactiveOutcome({
+                tenantId: task.tenantId,
+                organizationId: task.organizationId,
+                taskId: task.id,
+                workflowKey: artifact.proactive.workflowKey,
+                outcomeType: 'dismissed',
+                payload: {
+                    artifactId,
+                    artifactType: artifact.type,
+                },
+            });
+        }
+
+        logger.info('[INBOX] Dismissed proactive artifact', { artifactId, taskId: artifact.proactive.taskId });
+        return { success: true };
+    } catch (error) {
+        logger.error('[INBOX] Failed to dismiss proactive artifact', { artifactId, error });
+        return { success: false, error: 'Failed to dismiss proactive artifact' };
+    }
+}
+
+export async function snoozeProactiveArtifact(
+    artifactId: string,
+    hours?: number
+): Promise<{ success: boolean; snoozedUntil?: string; error?: string }> {
+    try {
+        const user = await getServerSessionUser();
+        if (!user) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        const db = getDb();
+        const artifactRef = db.collection(INBOX_ARTIFACTS_COLLECTION).doc(artifactId);
+        const doc = await artifactRef.get();
+        if (!doc.exists) {
+            return { success: false, error: 'Artifact not found' };
+        }
+
+        const artifact = doc.data() as InboxArtifact;
+        if (!artifact.proactive?.taskId) {
+            return { success: false, error: 'Artifact is not a proactive item' };
+        }
+
+        const threadDoc = await db.collection(INBOX_THREADS_COLLECTION).doc(artifact.threadId).get();
+        if (!threadDoc.exists) {
+            return { success: false, error: 'Thread not found' };
+        }
+
+        const thread = threadDoc.data() as InboxThread;
+        if (thread.userId !== user.uid) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        const snoozeHours = hours && Number.isFinite(hours)
+            ? Math.max(1, Math.round(hours))
+            : await getResolvedProactiveSnoozeHours(artifact.orgId);
+        const snoozedUntil = new Date(Date.now() + snoozeHours * 60 * 60 * 1000).toISOString();
+        const proactive = {
+            ...artifact.proactive,
+            feedbackState: 'snoozed' as const,
+            feedbackAt: new Date().toISOString(),
+            snoozedUntil,
+        };
+
+        await artifactRef.update({
+            proactive,
+            updatedAt: FieldValue.serverTimestamp(),
+        });
+
+        const task = await getProactiveTask(artifact.proactive.taskId);
+        if (task) {
+            await upsertCommitment({
+                tenantId: task.tenantId,
+                organizationId: task.organizationId,
+                taskId: task.id,
+                commitmentType: 'follow_up',
+                title: `Follow up on ${artifact.type.replace(/_/g, ' ')} proactive item`,
+                dueAt: new Date(snoozedUntil),
+                payload: {
+                    artifactId,
+                    artifactType: artifact.type,
+                    snoozedUntil,
+                },
+            });
+
+            await appendProactiveEvent({
+                tenantId: task.tenantId,
+                organizationId: task.organizationId,
+                taskId: task.id,
+                actorType: 'user',
+                actorId: user.uid,
+                eventType: 'proactive_artifact.snoozed',
+                businessObjectType: task.businessObjectType,
+                businessObjectId: task.businessObjectId,
+                payload: {
+                    artifactId,
+                    artifactType: artifact.type,
+                    snoozedUntil,
+                    hours: snoozeHours,
+                },
+            });
+
+            await recordProactiveOutcome({
+                tenantId: task.tenantId,
+                organizationId: task.organizationId,
+                taskId: task.id,
+                workflowKey: artifact.proactive.workflowKey,
+                outcomeType: 'snoozed',
+                payload: {
+                    artifactId,
+                    artifactType: artifact.type,
+                    snoozedUntil,
+                    hours: snoozeHours,
+                },
+            });
+        }
+
+        logger.info('[INBOX] Snoozed proactive artifact', {
+            artifactId,
+            taskId: artifact.proactive.taskId,
+            snoozedUntil,
+        });
+        return { success: true, snoozedUntil };
+    } catch (error) {
+        logger.error('[INBOX] Failed to snooze proactive artifact', { artifactId, error });
+        return { success: false, error: 'Failed to snooze proactive artifact' };
     }
 }
 
