@@ -12,15 +12,88 @@ import {
     type SafeEmailProvider,
     type SafeOrgProactivePilotSettings,
     type SafeProactiveOpsSummary,
+    type SafeProactiveOpsSummaryFilters,
     type SafeVideoProvider,
 } from '@/server/actions/super-admin/safe-settings';
-import type { ProactivePilotSettings, ProactiveWorkflowKey } from '@/types/proactive';
+import type {
+    ProactivePilotSettings,
+    ProactiveSeverity,
+    ProactiveTaskStatus,
+    ProactiveWorkflowKey,
+} from '@/types/proactive';
 
 const WORKFLOW_LABELS: Record<ProactiveWorkflowKey, string> = {
     daily_dispensary_health: 'Daily dispensary health',
     vip_retention_watch: 'VIP retention watch',
     competitor_pricing_watch: 'Competitor pricing watch',
 };
+
+const TASK_STATUS_LABELS: Record<'all' | ProactiveTaskStatus, string> = {
+    all: 'All statuses',
+    detected: 'Detected',
+    triaged: 'Triaged',
+    investigating: 'Investigating',
+    draft_ready: 'Draft ready',
+    awaiting_approval: 'Awaiting approval',
+    approved: 'Approved',
+    executing: 'Executing',
+    executed: 'Executed',
+    blocked: 'Blocked',
+    resolved: 'Resolved',
+    expired: 'Expired',
+    dismissed: 'Dismissed',
+};
+
+const SEVERITY_LABELS: Record<'all' | ProactiveSeverity, string> = {
+    all: 'All severities',
+    low: 'Low',
+    medium: 'Medium',
+    high: 'High',
+    critical: 'Critical',
+};
+
+type OpsFilterValue<T extends string> = T | 'all';
+
+interface OpsFilterState {
+    workflowKey: OpsFilterValue<ProactiveWorkflowKey>;
+    taskStatus: OpsFilterValue<ProactiveTaskStatus>;
+    severity: OpsFilterValue<ProactiveSeverity>;
+}
+
+const DEFAULT_OPS_FILTERS: OpsFilterState = {
+    workflowKey: 'all',
+    taskStatus: 'all',
+    severity: 'all',
+};
+
+function buildOpsSummaryInput(
+    orgId: string | undefined,
+    filters: OpsFilterState
+): ({ orgId?: string } & SafeProactiveOpsSummaryFilters) | undefined {
+    const payload: { orgId?: string } & SafeProactiveOpsSummaryFilters = {};
+
+    if (orgId) {
+        payload.orgId = orgId;
+    }
+
+    if (filters.workflowKey !== 'all') {
+        payload.workflowKey = filters.workflowKey;
+    }
+
+    if (filters.taskStatus !== 'all') {
+        payload.taskStatus = filters.taskStatus;
+    }
+
+    if (filters.severity !== 'all') {
+        payload.severity = filters.severity;
+    }
+
+    return Object.keys(payload).length > 0 ? payload : undefined;
+}
+
+function hasActiveOpsFilters(filters: OpsFilterState): boolean {
+    return filters.workflowKey !== 'all' || filters.taskStatus !== 'all' || filters.severity !== 'all';
+}
 
 function createDefaultOrgSettings(orgId: string): SafeOrgProactivePilotSettings {
     return {
@@ -56,16 +129,17 @@ export default function CeoSettingsTab() {
         },
     });
     const [opsSummary, setOpsSummary] = useState<SafeProactiveOpsSummary | null>(null);
+    const [opsFilters, setOpsFilters] = useState<OpsFilterState>(DEFAULT_OPS_FILTERS);
     const [orgIdInput, setOrgIdInput] = useState('');
     const [orgSettings, setOrgSettings] = useState<SafeOrgProactivePilotSettings | null>(null);
 
-    async function loadAll(orgId?: string) {
+    async function loadAll(orgId?: string, filters: OpsFilterState = opsFilters) {
         setLoadingOps(true);
         try {
             const [settings, pilotSettings, summary] = await Promise.all([
                 getSettings(),
                 getSafeProactivePilotSettingsAction(),
-                getSafeProactiveOpsSummaryAction(orgId ? { orgId } : undefined),
+                getSafeProactiveOpsSummaryAction(buildOpsSummaryInput(orgId, filters)),
             ]);
 
             setEmailProvider(settings.emailProvider);
@@ -85,6 +159,11 @@ export default function CeoSettingsTab() {
         setMounted(true);
         void loadAll();
     }, []);
+
+    const applyOpsFilters = async (nextFilters: OpsFilterState) => {
+        setOpsFilters(nextFilters);
+        await loadAll(orgIdInput.trim() || undefined, nextFilters);
+    };
 
     if (!mounted) {
         return <div style={{ padding: 20 }}>Loading System Settings...</div>;
@@ -128,7 +207,7 @@ export default function CeoSettingsTab() {
         try {
             const [loadedOrgSettings, summary] = await Promise.all([
                 getSafeOrgProactivePilotSettingsAction(orgId),
-                getSafeProactiveOpsSummaryAction({ orgId }),
+                getSafeProactiveOpsSummaryAction(buildOpsSummaryInput(orgId, opsFilters)),
             ]);
 
             setOrgSettings(loadedOrgSettings ?? createDefaultOrgSettings(orgId));
@@ -448,7 +527,7 @@ export default function CeoSettingsTab() {
                         </p>
                     </div>
                     <button
-                        onClick={() => loadAll(orgIdInput.trim() || undefined)}
+                        onClick={() => loadAll(orgIdInput.trim() || undefined, opsFilters)}
                         disabled={loadingOps}
                         style={{
                             padding: '10px 16px',
@@ -464,6 +543,112 @@ export default function CeoSettingsTab() {
 
                 {opsSummary && (
                     <div style={{ display: 'grid', gap: 16 }}>
+                        <div
+                            style={{
+                                border: '1px solid #e5e7eb',
+                                borderRadius: 8,
+                                padding: 16,
+                                display: 'grid',
+                                gap: 12,
+                            }}
+                        >
+                            <div>
+                                <h4 style={{ marginTop: 0, marginBottom: 6 }}>Task Triage Filters</h4>
+                                <p style={{ color: '#666', margin: 0 }}>
+                                    Keep the overview global, then narrow the task queue by workflow, status, or severity.
+                                </p>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 }}>
+                                <label style={{ display: 'grid', gap: 6 }}>
+                                    <span style={{ fontSize: 12, color: '#666' }}>Workflow</span>
+                                    <select
+                                        value={opsFilters.workflowKey}
+                                        onChange={(event) =>
+                                            void applyOpsFilters({
+                                                ...opsFilters,
+                                                workflowKey: event.target.value as OpsFilterState['workflowKey'],
+                                            })
+                                        }
+                                        style={{ padding: 10, borderRadius: 6, border: '1px solid #d1d5db' }}
+                                    >
+                                        <option value="all">All workflows</option>
+                                        {Object.entries(WORKFLOW_LABELS).map(([workflowKey, label]) => (
+                                            <option key={workflowKey} value={workflowKey}>
+                                                {label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+
+                                <label style={{ display: 'grid', gap: 6 }}>
+                                    <span style={{ fontSize: 12, color: '#666' }}>Status</span>
+                                    <select
+                                        value={opsFilters.taskStatus}
+                                        onChange={(event) =>
+                                            void applyOpsFilters({
+                                                ...opsFilters,
+                                                taskStatus: event.target.value as OpsFilterState['taskStatus'],
+                                            })
+                                        }
+                                        style={{ padding: 10, borderRadius: 6, border: '1px solid #d1d5db' }}
+                                    >
+                                        {Object.entries(TASK_STATUS_LABELS).map(([status, label]) => (
+                                            <option key={status} value={status}>
+                                                {label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+
+                                <label style={{ display: 'grid', gap: 6 }}>
+                                    <span style={{ fontSize: 12, color: '#666' }}>Severity</span>
+                                    <select
+                                        value={opsFilters.severity}
+                                        onChange={(event) =>
+                                            void applyOpsFilters({
+                                                ...opsFilters,
+                                                severity: event.target.value as OpsFilterState['severity'],
+                                            })
+                                        }
+                                        style={{ padding: 10, borderRadius: 6, border: '1px solid #d1d5db' }}
+                                    >
+                                        {Object.entries(SEVERITY_LABELS).map(([severity, label]) => (
+                                            <option key={severity} value={severity}>
+                                                {label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+
+                                <div style={{ display: 'grid', gap: 6 }}>
+                                    <span style={{ fontSize: 12, color: '#666' }}>Current scope</span>
+                                    <button
+                                        onClick={() => void applyOpsFilters(DEFAULT_OPS_FILTERS)}
+                                        disabled={loadingOps || !hasActiveOpsFilters(opsFilters)}
+                                        style={{
+                                            padding: '10px 16px',
+                                            borderRadius: 6,
+                                            border: '1px solid #111827',
+                                            background: 'white',
+                                            cursor: loadingOps || !hasActiveOpsFilters(opsFilters) ? 'not-allowed' : 'pointer',
+                                            opacity: loadingOps || !hasActiveOpsFilters(opsFilters) ? 0.6 : 1,
+                                        }}
+                                    >
+                                        Clear task filters
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, fontSize: 13, color: '#374151' }}>
+                                <span>{opsSummary.filteredCounts.matchingTasks} matching tasks</span>
+                                <span>{opsSummary.filteredCounts.matchingOpenTasks} still open</span>
+                                <span>{opsSummary.filteredCounts.matchingAwaitingApprovalTasks} awaiting approval</span>
+                                <span>{opsSummary.filteredCounts.matchingBlockedTasks} blocked</span>
+                                <span>{opsSummary.filteredCounts.matchingCriticalTasks} critical</span>
+                            </div>
+                        </div>
+
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 }}>
                             {[
                                 ['Open tasks', opsSummary.counts.openTasks],
@@ -482,11 +667,62 @@ export default function CeoSettingsTab() {
                             ))}
                         </div>
 
+                        <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 16 }}>
+                            <h4 style={{ marginTop: 0 }}>Workflow Health</h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
+                                {opsSummary.workflowSummaries.map((summary) => (
+                                    <div key={summary.workflowKey} style={{ border: '1px solid #f3f4f6', borderRadius: 8, padding: 12 }}>
+                                        <div style={{ fontWeight: 600 }}>{WORKFLOW_LABELS[summary.workflowKey]}</div>
+                                        <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
+                                            {summary.lastTaskUpdatedAt
+                                                ? `Last task ${new Date(summary.lastTaskUpdatedAt).toLocaleString()}`
+                                                : 'No task activity recorded yet'}
+                                        </div>
+                                        <div style={{ fontSize: 13, color: '#374151', marginTop: 10, display: 'grid', gap: 4 }}>
+                                            <span>Open {summary.openTasks} | Draft ready {summary.draftReadyTasks}</span>
+                                            <span>Awaiting approval {summary.awaitingApprovalTasks} | Open commitments {summary.openCommitments}</span>
+                                            <span>Approvals 7d {summary.approvalsLast7Days} | Dismissals 7d {summary.dismissalsLast7Days}</span>
+                                            <span>Snoozes 7d {summary.snoozesLast7Days} | Executions 7d {summary.executionsLast7Days}</span>
+                                            <span>Resolved 7d {summary.resolvedLast7Days} | Fallbacks 7d {summary.fallbackEventsLast7Days}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 16 }}>
+                            <h4 style={{ marginTop: 0 }}>Runtime Path Health</h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
+                                {opsSummary.diagnosticSourceSummaries.length === 0 && (
+                                    <span style={{ color: '#666' }}>No runtime diagnostics recorded yet.</span>
+                                )}
+                                {opsSummary.diagnosticSourceSummaries.map((summary) => (
+                                    <div key={`${summary.source}-${summary.workflowKey || 'runtime'}`} style={{ border: '1px solid #f3f4f6', borderRadius: 8, padding: 12 }}>
+                                        <div style={{ fontWeight: 600 }}>
+                                            {summary.source} | {summary.workflowKey ? WORKFLOW_LABELS[summary.workflowKey] : 'Shared runtime'}
+                                        </div>
+                                        <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
+                                            Indexed 7d {summary.indexedEventsLast7Days} | Fallbacks 7d {summary.fallbackEventsLast7Days}
+                                        </div>
+                                        <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
+                                            {summary.lastSeenAt ? `Last seen ${new Date(summary.lastSeenAt).toLocaleString()}` : 'No recent activity'}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
                             <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 16 }}>
                                 <h4 style={{ marginTop: 0 }}>Recent Tasks</h4>
                                 <div style={{ display: 'grid', gap: 10 }}>
-                                    {opsSummary.recentTasks.length === 0 && <span style={{ color: '#666' }}>No proactive tasks yet.</span>}
+                                    {opsSummary.recentTasks.length === 0 && (
+                                        <span style={{ color: '#666' }}>
+                                            {hasActiveOpsFilters(opsFilters)
+                                                ? 'No proactive tasks match the current filters.'
+                                                : 'No proactive tasks yet.'}
+                                        </span>
+                                    )}
                                     {opsSummary.recentTasks.map((task) => (
                                         <div key={task.id} style={{ borderBottom: '1px solid #f3f4f6', paddingBottom: 8 }}>
                                             <div style={{ fontWeight: 600 }}>{task.title}</div>
