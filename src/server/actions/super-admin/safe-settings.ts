@@ -3,6 +3,8 @@
 import 'server-only';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
+import { logger } from '@/lib/logger';
+import type { SafeEmailProvider, SafeVideoProvider, SafeSystemSettings } from './safe-settings-types';
 
 // Helper to lazy load admin to avoid circular deps or client leakage
 async function getFirebase() {
@@ -32,43 +34,96 @@ async function verifySafeSuperAdmin() {
     }
 }
 
+export type { SafeEmailProvider, SafeVideoProvider, SafeSystemSettings } from './safe-settings-types';
+
+const DEFAULT_SAFE_SYSTEM_SETTINGS: SafeSystemSettings = {
+    emailProvider: 'sendgrid',
+    videoProvider: 'veo',
+};
+
+async function loadSafeSystemSettings(): Promise<SafeSystemSettings> {
+    const { getAdminFirestore } = await getFirebase();
+    const firestore = getAdminFirestore();
+    const doc = await firestore.collection('settings').doc('system').get();
+
+    return {
+        emailProvider: doc.exists ? (doc.data()?.emailProvider || DEFAULT_SAFE_SYSTEM_SETTINGS.emailProvider) : DEFAULT_SAFE_SYSTEM_SETTINGS.emailProvider,
+        videoProvider: doc.exists ? (doc.data()?.videoProvider || DEFAULT_SAFE_SYSTEM_SETTINGS.videoProvider) : DEFAULT_SAFE_SYSTEM_SETTINGS.videoProvider,
+    };
+}
+
+async function saveSafeSystemSettings(
+    input: Partial<SafeSystemSettings> & { updatedBy?: string }
+): Promise<void> {
+    const { getAdminFirestore } = await getFirebase();
+    const firestore = getAdminFirestore();
+    await firestore.collection('settings').doc('system').set({
+        ...input,
+        updatedAt: new Date(),
+    }, { merge: true });
+}
+
+export async function getSafeSystemSettingsAction(): Promise<SafeSystemSettings> {
+    try {
+        return await loadSafeSystemSettings();
+    } catch (error: unknown) {
+        logger.error('[safe-settings] Failed to get system settings', {
+            error: error instanceof Error ? error.message : String(error),
+        });
+        return DEFAULT_SAFE_SYSTEM_SETTINGS;
+    }
+}
+
+export async function updateSafeSystemSettingsAction(input: SafeSystemSettings) {
+    try {
+        const decoded = await verifySafeSuperAdmin();
+        await saveSafeSystemSettings({
+            emailProvider: input.emailProvider,
+            videoProvider: input.videoProvider,
+            updatedBy: decoded.uid,
+        });
+
+        revalidatePath('/dashboard/ceo');
+        return { success: true };
+    } catch (error: unknown) {
+        logger.error('[safe-settings] Failed to update system settings', {
+            error: error instanceof Error ? error.message : String(error),
+        });
+        throw new Error('Failed to update system settings.');
+    }
+}
+
 // --- Video Provider ---
 
 interface UpdateVideoProviderInput {
-    provider: 'veo' | 'sora' | 'sora-pro' | 'kling' | 'wan' | 'remotion';
+    provider: SafeVideoProvider;
 }
 
 export async function getSafeVideoProviderAction() {
     try {
-        // Allow public/internal read access for AI generation
-        // await verifySafeSuperAdmin(); 
-        const { getAdminFirestore } = await getFirebase();
-        const firestore = getAdminFirestore();
-        const doc = await firestore.collection('settings').doc('system').get();
-        const provider = doc.exists ? (doc.data()?.videoProvider || 'veo') : 'veo';
-        
-        console.log(`[safe-settings] getSafeVideoProviderAction: ${provider}`);
-        return provider;
+        return (await loadSafeSystemSettings()).videoProvider;
     } catch (error: unknown) {
-        console.error('[safe-settings] Failed to get video provider:', error instanceof Error ? error.message : String(error));
-        return 'veo';
+        logger.error('[safe-settings] Failed to get video provider', {
+            error: error instanceof Error ? error.message : String(error),
+        });
+        return DEFAULT_SAFE_SYSTEM_SETTINGS.videoProvider;
     }
 }
 
 export async function updateSafeVideoProviderAction(input: UpdateVideoProviderInput) {
     try {
-        await verifySafeSuperAdmin();
-        const { getAdminFirestore } = await getFirebase();
-        const firestore = getAdminFirestore();
-        await firestore.collection('settings').doc('system').set({
+        const decoded = await verifySafeSuperAdmin();
+        await saveSafeSystemSettings({
             videoProvider: input.provider,
-            updatedAt: new Date()
-        }, { merge: true });
+            updatedBy: decoded.uid,
+        });
 
-        revalidatePath('/dashboard/ceo/settings');
+        revalidatePath('/dashboard/ceo');
         return { success: true };
     } catch (error: unknown) {
-        console.error('[safe-settings] Failed to update video provider:', error instanceof Error ? error.message : String(error));
+        logger.error('[safe-settings] Failed to update video provider', {
+            error: error instanceof Error ? error.message : String(error),
+        });
         throw new Error('Failed to update video settings.');
     }
 }
@@ -139,40 +194,34 @@ export async function updateOrgVideoProviderAction(input: UpdateVideoProviderInp
 // --- Email Provider ---
 
 interface UpdateEmailProviderInput {
-    provider: 'sendgrid' | 'mailjet';
+    provider: SafeEmailProvider;
 }
 
 export async function getSafeEmailProviderAction() {
     try {
-        // Allow public/internal read access
-        // await verifySafeSuperAdmin();
-        const { getAdminFirestore } = await getFirebase();
-        const firestore = getAdminFirestore();
-        const doc = await firestore.collection('settings').doc('system').get();
-        const provider = doc.exists ? (doc.data()?.emailProvider || 'sendgrid') : 'sendgrid';
-        
-        console.log(`[safe-settings] getSafeEmailProviderAction: ${provider}`);
-        return provider;
+        return (await loadSafeSystemSettings()).emailProvider;
     } catch (error: unknown) {
-        console.error('[safe-settings] Failed to get email provider:', error instanceof Error ? error.message : String(error));
-        return 'sendgrid';
+        logger.error('[safe-settings] Failed to get email provider', {
+            error: error instanceof Error ? error.message : String(error),
+        });
+        return DEFAULT_SAFE_SYSTEM_SETTINGS.emailProvider;
     }
 }
 
 export async function updateSafeEmailProviderAction(input: UpdateEmailProviderInput) {
     try {
-        await verifySafeSuperAdmin();
-        const { getAdminFirestore } = await getFirebase();
-        const firestore = getAdminFirestore();
-        await firestore.collection('settings').doc('system').set({
+        const decoded = await verifySafeSuperAdmin();
+        await saveSafeSystemSettings({
             emailProvider: input.provider,
-            updatedAt: new Date()
-        }, { merge: true });
+            updatedBy: decoded.uid,
+        });
 
-        revalidatePath('/dashboard/ceo/settings');
+        revalidatePath('/dashboard/ceo');
         return { success: true };
     } catch (error: unknown) {
-        console.error('[safe-settings] Failed to update email provider:', error instanceof Error ? error.message : String(error));
+        logger.error('[safe-settings] Failed to update email provider', {
+            error: error instanceof Error ? error.message : String(error),
+        });
         throw new Error('Failed to update email settings.');
     }
 }
