@@ -67,9 +67,48 @@ export interface SafeProactiveDiagnosticSummary {
     message?: string;
 }
 
+export interface SafeProactiveOpsSummaryFilters {
+    workflowKey?: ProactiveWorkflowKey;
+    taskStatus?: ProactiveTaskStatus;
+    severity?: ProactiveSeverity;
+}
+
+export interface SafeProactiveOpsFilteredCounts {
+    matchingTasks: number;
+    matchingOpenTasks: number;
+    matchingCriticalTasks: number;
+    matchingBlockedTasks: number;
+    matchingAwaitingApprovalTasks: number;
+}
+
+export interface SafeProactiveOpsWorkflowSummary {
+    workflowKey: ProactiveWorkflowKey;
+    openTasks: number;
+    draftReadyTasks: number;
+    awaitingApprovalTasks: number;
+    openCommitments: number;
+    approvalsLast7Days: number;
+    dismissalsLast7Days: number;
+    snoozesLast7Days: number;
+    executionsLast7Days: number;
+    resolvedLast7Days: number;
+    fallbackEventsLast7Days: number;
+    indexedEventsLast7Days: number;
+    lastTaskUpdatedAt?: string;
+}
+
+export interface SafeProactiveDiagnosticSourceSummary {
+    source: string;
+    workflowKey?: ProactiveWorkflowKey;
+    indexedEventsLast7Days: number;
+    fallbackEventsLast7Days: number;
+    lastSeenAt?: string;
+}
+
 export interface SafeProactiveOpsSummary {
     settings: ProactivePilotSettings;
     orgSettings: SafeOrgProactivePilotSettings | null;
+    filters: SafeProactiveOpsSummaryFilters;
     counts: {
         openTasks: number;
         draftReadyTasks: number;
@@ -80,6 +119,9 @@ export interface SafeProactiveOpsSummary {
         outcomesLast7Days: number;
         fallbackEventsLast7Days: number;
     };
+    filteredCounts: SafeProactiveOpsFilteredCounts;
+    workflowSummaries: SafeProactiveOpsWorkflowSummary[];
+    diagnosticSourceSummaries: SafeProactiveDiagnosticSourceSummary[];
     recentTasks: SafeProactiveOpsTaskSummary[];
     recentCommitments: SafeProactiveOpsCommitmentSummary[];
     recentOutcomes: SafeProactiveOpsOutcomeSummary[];
