@@ -16,7 +16,7 @@ import {
     Sequence,
 } from 'remotion';
 
-export interface BrandedSlideshowProps {
+export interface BrandedSlideshowProps extends Record<string, unknown> {
     brandName: string;
     tagline: string;
     primaryColor: string;

@@ -1,5 +1,4 @@
-
-'use server';
+import 'server-only';
 
 import { ai } from '@/ai/genkit';
 
