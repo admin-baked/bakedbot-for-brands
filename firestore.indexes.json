@@ -1538,7 +1538,8 @@
             "queryScope": "COLLECTION",
             "fields": [
                 { "fieldPath": "status", "order": "ASCENDING" },
-                { "fieldPath": "startAt", "order": "ASCENDING" }
+                { "fieldPath": "startAt", "order": "ASCENDING" },
+                { "fieldPath": "__name__", "order": "ASCENDING" }
             ]
         },
         {
