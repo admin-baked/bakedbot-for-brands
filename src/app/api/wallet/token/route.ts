@@ -12,46 +12,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/firebase/server-client';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
-import { createHmac } from 'crypto';
+import {
+  buildPassToken,
+  WALLET_PASS_TOKEN_TTL_MS,
+} from '@/server/services/wallet/pass-token';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-const TOKEN_TTL_MS = 15 * 60 * 1000; // 15 minutes
-
-function signToken(payload: string): string {
-  const secret = process.env.CRON_SECRET || 'dev-secret';
-  return createHmac('sha256', secret).update(payload).digest('hex');
-}
-
-export function buildPassToken(customerId: string, orgId: string, expiresAt: number): string {
-  const payload = `${customerId}:${orgId}:${expiresAt}`;
-  const sig = signToken(payload);
-  return Buffer.from(`${payload}:${sig}`).toString('base64url');
-}
-
-export function verifyPassToken(
-  token: string
-): { customerId: string; orgId: string } | null {
-  try {
-    const decoded = Buffer.from(token, 'base64url').toString('utf-8');
-    const parts = decoded.split(':');
-    if (parts.length !== 4) return null;
-
-    const [customerId, orgId, expiresAtStr, sig] = parts;
-    const expiresAt = parseInt(expiresAtStr, 10);
-
-    if (Date.now() > expiresAt) return null;
-
-    const payload = `${customerId}:${orgId}:${expiresAtStr}`;
-    const expectedSig = signToken(payload);
-    if (sig !== expectedSig) return null;
-
-    return { customerId, orgId };
-  } catch {
-    return null;
-  }
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -105,7 +72,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
-    const expiresAt = Date.now() + TOKEN_TTL_MS;
+    const expiresAt = Date.now() + WALLET_PASS_TOKEN_TTL_MS;
     const token = buildPassToken(customerId, orgId, expiresAt);
 
     logger.info('[WalletToken] Token issued', { customerId, orgId, uid: decoded.uid });
