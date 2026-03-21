@@ -33,6 +33,7 @@ import { BRAND_CHECKS } from './checks/brand';
 import { PLAYBOOK_CHECKS } from './checks/playbooks';
 import { dispatchNotifications } from './notifier';
 import { integrateWithHiveMind } from './hive-mind-integration';
+import { bridgeHeartbeatResultsToProactiveRuntime } from '@/server/services/heartbeat-proactive-bridge';
 
 // =============================================================================
 // CHECK REGISTRY
@@ -177,6 +178,17 @@ export async function executeHeartbeat(
     const checkResults = await Promise.all(checkPromises);
     results.push(...checkResults.filter((r): r is HeartbeatCheckResult => r !== null));
 
+    let proactiveBridge = { processed: 0, skipped: 0, taskIds: [] as string[] };
+    try {
+        proactiveBridge = await bridgeHeartbeatResultsToProactiveRuntime(request.tenantId, results);
+    } catch (error) {
+        logger.error('[Heartbeat] Proactive bridge failed', {
+            executionId,
+            tenantId: request.tenantId,
+            error: error instanceof Error ? error.message : String(error),
+        });
+    }
+
     // Integrate with Hive Mind (Agent Bus, Letta Memory, Sleep-Time)
     let hiveMindIntegration = { agentBusMessages: 0, persistedToMemory: false, triggeredSleepTime: false };
     try {
@@ -268,6 +280,7 @@ export async function executeHeartbeat(
                 persistedToMemory: hiveMindIntegration.persistedToMemory,
                 triggeredSleepTime: hiveMindIntegration.triggeredSleepTime,
             },
+            proactiveBridge,
         });
     } catch (error) {
         logger.error('[Heartbeat] Failed to save execution record', { error });
@@ -278,6 +291,7 @@ export async function executeHeartbeat(
         checksRun: checksToRun.length,
         resultsCount: results.length,
         notificationsSent,
+        proactiveBridgeProcessed: proactiveBridge.processed,
         durationMs: completedAt.getTime() - startedAt.getTime(),
     });
 
