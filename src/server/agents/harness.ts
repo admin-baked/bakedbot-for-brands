@@ -103,7 +103,7 @@ export async function runAgent<TMemory extends AgentMemory, TTools = any>(
                 id: logEntry.id, // Align IDs for traceability
                 tenantId: brandId,
                 agent: agentName as any, // Cast to AgentName
-                sessionId: 'harness_session', // TODO: Pass session ID through harness
+                sessionId: `${brandId}_${agentName}_${logEntry.id}`,
                 type: 'task_completed',
                 payload: {
                     action: result.logEntry.action,

@@ -149,7 +149,7 @@ import {
 } from '@/app/dashboard/ceo/agents/default-tools';
 
 async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOverride?: string) {
-    const brandId = brandIdOverride || 'demo-brand-123';
+    const brandId = brandIdOverride || 'general';
     const agentImpl = AGENT_MAP[agentName as keyof typeof AGENT_MAP];
     if (!agentImpl) throw new Error(`Unknown agent: ${agentName}`);
 
@@ -256,22 +256,31 @@ async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOver
     // This ensures ALL agents going through the harness (Executive Board + Support Staff)
     // get relevant memory context, not just the primary chat path in runAgentCore().
     let lettaContext = '';
-    if (brandId && brandId !== 'general' && brandId !== 'demo-brand-123') {
+    if (brandId && brandId !== 'general') {
         try {
-            const { memoryBridgeService } = await import('@/server/services/letta/memory-bridge');
-            const memResults = await memoryBridgeService.unifiedSearch(
-                brandId,
-                stimulus || '',
-                { includeFirestore: true, includeLetta: true, limit: 3 }
-            );
+            const lettaCacheKey = CacheKeys.lettaMemory(agentName, stimulus || '', brandId);
+            const cachedLetta = agentCache.get<{ context: string }>(lettaCacheKey);
 
-            const allResults = [
-                ...memResults.lettaResults.map(r => sanitizeForPrompt(r, 300)),
-                ...memResults.firestoreResults.map(r => sanitizeForPrompt(r.content, 300)),
-            ].slice(0, 3);
+            if (cachedLetta) {
+                lettaContext = cachedLetta.context;
+            } else {
+                const { memoryBridgeService } = await import('@/server/services/letta/memory-bridge');
+                const memResults = await memoryBridgeService.unifiedSearch(
+                    brandId,
+                    stimulus || '',
+                    { includeFirestore: true, includeLetta: true, limit: 3 }
+                );
 
-            if (allResults.length > 0) {
-                lettaContext = `\n\n[AGENT MEMORY]\nRelevant context from organizational memory:\n${allResults.map(r => `- ${r}`).join('\n')}\n`;
+                const allResults = [
+                    ...memResults.lettaResults.map(r => sanitizeForPrompt(r, 300)),
+                    ...memResults.firestoreResults.map(r => sanitizeForPrompt(r.content, 300)),
+                ].slice(0, 3);
+
+                if (allResults.length > 0) {
+                    lettaContext = `\n\n[AGENT MEMORY]\nRelevant context from organizational memory:\n${allResults.map(r => `- ${r}`).join('\n')}\n`;
+                }
+
+                agentCache.set(lettaCacheKey, { context: lettaContext }, CacheTTL.LETTA_MEMORY);
             }
         } catch (e) {
             // Non-blocking — memory retrieval should never break agent execution
