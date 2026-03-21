@@ -624,6 +624,41 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     } = useInboxStore();
     const isPending = isThreadPending(thread.id);
     const { toast } = useToast();
+    const resetInlineGenerators = React.useCallback(() => {
+        setShowQRGenerator(false);
+        setShowCarouselGenerator(false);
+        setShowHeroGenerator(false);
+        setShowBundleGenerator(false);
+        setShowLaunchCoordinator(false);
+        setShowImageGenerator(false);
+        setShowSocialPostGenerator(false);
+        setShowPricingGenerator(false);
+        setShowVideoGenerator(false);
+        setShowCampaignPlanner(false);
+        setShowPerformanceReview(false);
+        setShowOutreachGenerator(false);
+        setShowEventPlanner(false);
+        setShowCrmCoordinator(false);
+        setShowProductDiscovery(false);
+        setShowWholesaleInventory(false);
+
+        hasAutoShownQR.current = false;
+        hasAutoShownCarousel.current = false;
+        hasAutoShownHero.current = false;
+        hasAutoShownBundle.current = false;
+        hasAutoShownLaunch.current = false;
+        hasAutoShownImage.current = false;
+        hasAutoShownSocialPost.current = false;
+        hasAutoShownPricing.current = false;
+        hasAutoShownVideo.current = false;
+        hasAutoShownCampaign.current = false;
+        hasAutoShownPerformance.current = false;
+        hasAutoShownOutreach.current = false;
+        hasAutoShownEvent.current = false;
+        hasAutoShownCrm.current = false;
+        hasAutoShownProductDiscovery.current = false;
+        hasAutoShownWholesaleInventory.current = false;
+    }, []);
 
     // Use Firestore real-time job polling instead of broken HTTP polling
     const { job, thoughts, isComplete, error: jobError } = useJobPoller(currentJobId ?? undefined);
@@ -705,6 +740,10 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             }
         };
     }, []);
+
+    useEffect(() => {
+        resetInlineGenerators();
+    }, [thread.id, resetInlineGenerators]);
 
     useEffect(() => {
         const pending = _pendingInputs.get(thread.id);
@@ -1048,13 +1087,8 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                 setShowQRGenerator(true);
             }
             hasAutoShownQR.current = true;
-        } else {
-            if (showQRGenerator) {
-                setShowQRGenerator(false);
-            }
-            hasAutoShownQR.current = false;
         }
-    }, [thread.id, thread.type, showQRGenerator]);
+    }, [thread.type, showQRGenerator]);
 
     // Auto-open Carousel generator for carousel threads
     useEffect(() => {
@@ -1063,13 +1097,8 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                 setShowCarouselGenerator(true);
             }
             hasAutoShownCarousel.current = true;
-        } else {
-            if (showCarouselGenerator) {
-                setShowCarouselGenerator(false);
-            }
-            hasAutoShownCarousel.current = false;
         }
-    }, [thread.id, thread.type, showCarouselGenerator]);
+    }, [thread.type, showCarouselGenerator]);
 
     // Auto-open Hero generator for hero threads
     useEffect(() => {
@@ -1078,13 +1107,8 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                 setShowHeroGenerator(true);
             }
             hasAutoShownHero.current = true;
-        } else {
-            if (showHeroGenerator) {
-                setShowHeroGenerator(false);
-            }
-            hasAutoShownHero.current = false;
         }
-    }, [thread.id, thread.type, showHeroGenerator]);
+    }, [thread.type, showHeroGenerator]);
 
     // Auto-open Bundle generator for bundle threads
     useEffect(() => {
@@ -1093,13 +1117,8 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                 setShowBundleGenerator(true);
             }
             hasAutoShownBundle.current = true;
-        } else {
-            if (showBundleGenerator) {
-                setShowBundleGenerator(false);
-            }
-            hasAutoShownBundle.current = false;
         }
-    }, [thread.id, thread.type, showBundleGenerator]);
+    }, [thread.type, showBundleGenerator]);
 
     // Auto-open Launch coordinator for launch threads
     useEffect(() => {
@@ -1108,13 +1127,8 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                 setShowLaunchCoordinator(true);
             }
             hasAutoShownLaunch.current = true;
-        } else {
-            if (showLaunchCoordinator) {
-                setShowLaunchCoordinator(false);
-            }
-            hasAutoShownLaunch.current = false;
         }
-    }, [thread.id, thread.type, showLaunchCoordinator]);
+    }, [thread.type, showLaunchCoordinator]);
 
     // Auto-open Image generator for image threads
     useEffect(() => {
@@ -1123,13 +1137,8 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                 setShowImageGenerator(true);
             }
             hasAutoShownImage.current = true;
-        } else {
-            if (showImageGenerator) {
-                setShowImageGenerator(false);
-            }
-            hasAutoShownImage.current = false;
         }
-    }, [thread.id, thread.type, showImageGenerator]);
+    }, [thread.type, showImageGenerator]);
 
     // Auto-open Social Post generator for creative threads
     useEffect(() => {
@@ -1138,13 +1147,8 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                 setShowSocialPostGenerator(true);
             }
             hasAutoShownSocialPost.current = true;
-        } else {
-            if (showSocialPostGenerator) {
-                setShowSocialPostGenerator(false);
-            }
-            hasAutoShownSocialPost.current = false;
         }
-    }, [thread.id, thread.type, showSocialPostGenerator]);
+    }, [thread.type, showSocialPostGenerator]);
 
     // Auto-open Dynamic Pricing generator for inventory_promo threads
     useEffect(() => {
@@ -1153,101 +1157,72 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                 setShowPricingGenerator(true);
             }
             hasAutoShownPricing.current = true;
-        } else {
-            if (showPricingGenerator) {
-                setShowPricingGenerator(false);
-            }
-            hasAutoShownPricing.current = false;
         }
-    }, [thread.id, thread.type, showPricingGenerator]);
+    }, [thread.type, showPricingGenerator]);
 
     // Auto-open Video generator for video threads
     useEffect(() => {
         if (thread.type === 'video') {
             if (!showVideoGenerator) setShowVideoGenerator(true);
             hasAutoShownVideo.current = true;
-        } else {
-            if (showVideoGenerator) setShowVideoGenerator(false);
-            hasAutoShownVideo.current = false;
         }
-    }, [thread.id, thread.type, showVideoGenerator]);
+    }, [thread.type, showVideoGenerator]);
 
     // Auto-open Campaign planner for campaign threads
     useEffect(() => {
         if (thread.type === 'campaign') {
             if (!showCampaignPlanner) setShowCampaignPlanner(true);
             hasAutoShownCampaign.current = true;
-        } else {
-            if (showCampaignPlanner) setShowCampaignPlanner(false);
-            hasAutoShownCampaign.current = false;
         }
-    }, [thread.id, thread.type, showCampaignPlanner]);
+    }, [thread.type, showCampaignPlanner]);
 
     // Auto-open Performance review for performance threads
     useEffect(() => {
         if (thread.type === 'performance') {
             if (!showPerformanceReview) setShowPerformanceReview(true);
             hasAutoShownPerformance.current = true;
-        } else {
-            if (showPerformanceReview) setShowPerformanceReview(false);
-            hasAutoShownPerformance.current = false;
         }
-    }, [thread.id, thread.type, showPerformanceReview]);
+    }, [thread.type, showPerformanceReview]);
 
     // Auto-open Outreach generator for outreach threads
     useEffect(() => {
         if (thread.type === 'outreach') {
             if (!showOutreachGenerator) setShowOutreachGenerator(true);
             hasAutoShownOutreach.current = true;
-        } else {
-            if (showOutreachGenerator) setShowOutreachGenerator(false);
-            hasAutoShownOutreach.current = false;
         }
-    }, [thread.id, thread.type, showOutreachGenerator]);
+    }, [thread.type, showOutreachGenerator]);
 
     // Auto-open Event planner for event threads
     useEffect(() => {
         if (thread.type === 'event') {
             if (!showEventPlanner) setShowEventPlanner(true);
             hasAutoShownEvent.current = true;
-        } else {
-            if (showEventPlanner) setShowEventPlanner(false);
-            hasAutoShownEvent.current = false;
         }
-    }, [thread.id, thread.type, showEventPlanner]);
+    }, [thread.type, showEventPlanner]);
 
     // Auto-open CRM coordinator for crm_customer threads
     useEffect(() => {
         if (thread.type === 'crm_customer') {
             if (!showCrmCoordinator) setShowCrmCoordinator(true);
             hasAutoShownCrm.current = true;
-        } else {
-            if (showCrmCoordinator) setShowCrmCoordinator(false);
-            hasAutoShownCrm.current = false;
         }
-    }, [thread.id, thread.type, showCrmCoordinator]);
+    }, [thread.type, showCrmCoordinator]);
 
     // Auto-open Product Discovery for product_discovery threads
     useEffect(() => {
         if (thread.type === 'product_discovery') {
             if (!showProductDiscovery) setShowProductDiscovery(true);
             hasAutoShownProductDiscovery.current = true;
-        } else {
-            if (showProductDiscovery) setShowProductDiscovery(false);
-            hasAutoShownProductDiscovery.current = false;
         }
-    }, [thread.id, thread.type, showProductDiscovery]);
+    }, [thread.type, showProductDiscovery]);
 
     // Auto-open Wholesale Inventory for wholesale_inventory threads
     useEffect(() => {
         if (thread.type === 'wholesale_inventory') {
             if (!showWholesaleInventory) setShowWholesaleInventory(true);
             hasAutoShownWholesaleInventory.current = true;
-        } else {
-            if (showWholesaleInventory) setShowWholesaleInventory(false);
-            hasAutoShownWholesaleInventory.current = false;
         }
-    }, [thread.id, thread.type, showWholesaleInventory]);
+    }, [thread.type, showWholesaleInventory]);
 
     const handleSubmit = async () => {
         if ((!input.trim() && attachments.length === 0) || isSubmitting || isPending) return;
@@ -1360,7 +1335,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         const crmKeywords = ['win back customers', 'birthday campaign', 'vip appreciation', 'segment analysis', 'restock alert', 'customer retention', 'crm campaign', 'customer lifecycle'];
         const isCrmRequest = crmKeywords.some((keyword) => lowerInput.includes(keyword));
 
-        if (isCrmRequest) {
+        if (thread.type === 'crm_customer' && isCrmRequest) {
             const userMessage: ChatMessage = {
                 id: `msg-${Date.now()}`,
                 type: 'user',
