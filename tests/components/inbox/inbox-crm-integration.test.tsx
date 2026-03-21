@@ -44,6 +44,19 @@ describe('InboxConversation - CrmCampaignInline Integration', () => {
         expect(content).toContain('setShowCrmCoordinator(true)');
     });
 
+    it('does not hijack general chat messages with CRM keywords', async () => {
+        const fs = require('fs');
+        const path = require('path');
+
+        const componentPath = path.join(
+            process.cwd(),
+            'src/components/inbox/inbox-conversation.tsx'
+        );
+        const content = fs.readFileSync(componentPath, 'utf-8');
+
+        expect(content).toContain("if (thread.type === 'crm_customer' && isCrmRequest)");
+    });
+
     it('renders CrmCampaignInline with org and CRM context props', async () => {
         const fs = require('fs');
         const path = require('path');

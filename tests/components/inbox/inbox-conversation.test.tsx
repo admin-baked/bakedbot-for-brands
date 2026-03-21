@@ -101,6 +101,21 @@ describe('InboxConversation Job Polling', () => {
             expect(content).toContain('setIsSubmitting(true)');
         });
 
+        it('should reset inline generators on thread change instead of auto-closing manual launches', async () => {
+            const fs = require('fs');
+            const path = require('path');
+
+            const componentPath = path.join(
+                process.cwd(),
+                'src/components/inbox/inbox-conversation.tsx'
+            );
+            const content = fs.readFileSync(componentPath, 'utf-8');
+
+            expect(content).toContain('const resetInlineGenerators = React.useCallback(() => {');
+            expect(content).toContain('resetInlineGenerators();');
+            expect(content).toContain('}, [thread.id, resetInlineGenerators]);');
+        });
+
         it('should only show the Bundle Creator button for bundle threads', async () => {
             const fs = require('fs');
             const path = require('path');
