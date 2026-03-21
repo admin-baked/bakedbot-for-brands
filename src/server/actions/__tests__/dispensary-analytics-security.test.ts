@@ -89,6 +89,7 @@ describe('dispensary-analytics security', () => {
 
     expect(result.success).toBe(true);
     expect(tenantsCollection.doc).toHaveBeenCalledWith('org-current');
+    expect(productsCollection.where).toHaveBeenCalledWith('orgId', '==', 'org-current');
     expect(productsCollection.where).toHaveBeenCalledWith('dispensaryId', '==', 'org-current');
   });
 

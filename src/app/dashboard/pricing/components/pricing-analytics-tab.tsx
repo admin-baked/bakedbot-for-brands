@@ -154,10 +154,10 @@ export function PricingAnalyticsTab() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <DollarSign className="h-5 w-5 text-emerald-500" />
-              Revenue Impact
+              Revenue Under Dynamic Pricing
             </CardTitle>
             <CardDescription>
-              Daily revenue from dynamic pricing vs baseline
+              Estimated daily revenue from products currently under dynamic pricing
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -213,10 +213,10 @@ export function PricingAnalyticsTab() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Zap className="h-5 w-5 text-blue-500" />
-              Rule Applications
+              Pricing Updates
             </CardTitle>
             <CardDescription>
-              Number of times pricing rules were applied per day
+              Product pricing updates observed by day
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -251,7 +251,7 @@ export function PricingAnalyticsTab() {
                   <Legend />
                   <Bar
                     dataKey="applications"
-                    name="Applications"
+                    name="Updates"
                     fill={COLORS.applications}
                     radius={[4, 4, 0, 0]}
                   />
@@ -272,7 +272,7 @@ export function PricingAnalyticsTab() {
               Top Performing Rules
             </CardTitle>
             <CardDescription>
-              Rules ranked by revenue impact
+              Rules ranked by current revenue impact across live pricing
             </CardDescription>
           </CardHeader>
           <CardContent>

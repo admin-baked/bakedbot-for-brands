@@ -19,6 +19,7 @@ import { ProductsAnalyticsTab } from '@/app/dashboard/products/components/analyt
 import { OrdersAnalyticsTab } from '@/app/dashboard/orders/components/analytics-tab';
 import { MenuAnalyticsTab } from '@/app/dashboard/menu/components/analytics-tab';
 import { UpsellAnalytics } from '@/app/dashboard/upsells/components/upsell-analytics';
+import { PricingAnalyticsTab } from '@/app/dashboard/pricing/components/pricing-analytics-tab';
 import { AgentOwnerBadge } from '@/components/dashboard/agent-owner-badge';
 
 // ---------------------------------------------------------------------------
@@ -37,7 +38,7 @@ const TABS = [
   { id: 'menu',      label: 'Menu',      Icon: UtensilsCrossed, roles: DISPENSARY_ROLES, placeholder: false },
   { id: 'upsells',   label: 'Upsells',   Icon: TrendingUp,      roles: UPSELLS_ROLES,    placeholder: false },
   { id: 'delivery',  label: 'Delivery',  Icon: Truck,           roles: ALL_ROLES,        placeholder: true  },
-  { id: 'pricing',   label: 'Pricing',   Icon: Tag,             roles: ALL_ROLES,        placeholder: true  },
+  { id: 'pricing',   label: 'Pricing',   Icon: Tag,             roles: ALL_ROLES,        placeholder: false },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
@@ -144,10 +145,7 @@ export default function AnalyticsDashboard({
         />
       )}
       {resolvedTab === 'pricing' && (
-        <PlaceholderTab
-          name="Pricing"
-          description="Price elasticity, competitor benchmarking, margin optimization, and promo lift analysis."
-        />
+        <PricingAnalyticsTab />
       )}
     </div>
   );

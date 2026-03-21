@@ -9,13 +9,8 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-  TrendingUp,
-  TrendingDown,
-  ArrowUpRight,
-  ArrowDownRight,
   Zap,
   Package,
   Percent,
@@ -82,26 +77,22 @@ export function PricingKPIGrid() {
   }
 
   const { overview } = analytics;
-
-  // Calculate trends (mock for now - would compare to previous period)
-  const trends = {
-    rules: { value: '+2', isPositive: true },
-    coverage: { value: '+12%', isPositive: true },
-    discount: { value: '-3%', isPositive: true }, // Lower discount is good
-    revenue: { value: '+8%', isPositive: true },
-  };
+  const liveRules = analytics.rulePerformance.length;
+  const appliedRules = analytics.rulePerformance.filter((rule) => rule.timesApplied > 0).length;
+  const catalogCoverage = overview.totalProducts > 0
+    ? (overview.productsWithDynamicPricing / overview.totalProducts) * 100
+    : 0;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {/* Active Rules */}
       <KPICard
         title="Active Rules"
-        value={analytics.rulePerformance.filter((r) => r.timesApplied > 0).length.toString()}
-        subtitle={`of ${analytics.rulePerformance.length} total`}
+        value={liveRules.toString()}
+        subtitle={appliedRules > 0 ? `${appliedRules} currently influencing live pricing` : 'No live pricing impact yet'}
         icon={Zap}
         iconColor="text-amber-500"
         iconBgColor="bg-amber-500/10"
-        trend={trends.rules}
         tooltip="Number of pricing rules currently active and being applied"
       />
 
@@ -109,11 +100,10 @@ export function PricingKPIGrid() {
       <KPICard
         title="Products with Pricing"
         value={overview.productsWithDynamicPricing.toString()}
-        subtitle={`${((overview.productsWithDynamicPricing / overview.totalProducts) * 100).toFixed(0)}% of catalog`}
+        subtitle={`${catalogCoverage.toFixed(0)}% of catalog`}
         icon={Package}
         iconColor="text-blue-500"
         iconBgColor="bg-blue-500/10"
-        trend={trends.coverage}
         tooltip="Products currently eligible for dynamic pricing"
       />
 
@@ -121,11 +111,10 @@ export function PricingKPIGrid() {
       <KPICard
         title="Avg Discount"
         value={`${overview.avgDiscountPercent.toFixed(1)}%`}
-        subtitle="across all rules"
+        subtitle={overview.productsWithDynamicPricing > 0 ? 'across live dynamically priced products' : 'No dynamic discounts live'}
         icon={Percent}
         iconColor="text-green-500"
         iconBgColor="bg-green-500/10"
-        trend={trends.discount}
         tooltip="Average discount percentage applied by active rules"
       />
 
@@ -137,9 +126,7 @@ export function PricingKPIGrid() {
         icon={DollarSign}
         iconColor={overview.revenueImpact >= 0 ? 'text-green-500' : 'text-red-500'}
         iconBgColor={overview.revenueImpact >= 0 ? 'bg-green-500/10' : 'bg-red-500/10'}
-        trend={trends.revenue}
         tooltip="Revenue change compared to baseline pricing (30-day period)"
-        isRevenue
       />
     </div>
   );
@@ -154,9 +141,7 @@ interface KPICardProps {
   icon: React.ElementType;
   iconColor: string;
   iconBgColor: string;
-  trend?: { value: string; isPositive: boolean };
   tooltip: string;
-  isRevenue?: boolean;
 }
 
 function KPICard({
@@ -166,9 +151,7 @@ function KPICard({
   icon: Icon,
   iconColor,
   iconBgColor,
-  trend,
   tooltip,
-  isRevenue = false,
 }: KPICardProps) {
   return (
     <Card className="group hover:border-primary/50 transition-colors cursor-pointer">
@@ -192,23 +175,8 @@ function KPICard({
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
-        <div className="flex items-center justify-between mt-1">
+        <div className="mt-1">
           <p className="text-xs text-muted-foreground">{subtitle}</p>
-          {trend && (
-            <div
-              className={cn(
-                'flex items-center gap-1 text-xs font-medium',
-                trend.isPositive ? 'text-green-500' : 'text-red-500'
-              )}
-            >
-              {trend.isPositive ? (
-                <ArrowUpRight className="h-3 w-3" />
-              ) : (
-                <ArrowDownRight className="h-3 w-3" />
-              )}
-              {trend.value}
-            </div>
-          )}
         </div>
       </CardContent>
     </Card>

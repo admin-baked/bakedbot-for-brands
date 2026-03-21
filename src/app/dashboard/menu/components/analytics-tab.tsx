@@ -103,6 +103,12 @@ export function MenuAnalyticsTab({ orgId }: Props) {
 
     // Sorted category performance
     const sortedCategories = [...data.categoryPerformance].sort((a, b) => {
+        if (sortKey === 'category') {
+            return sortDir === 'desc'
+                ? b.category.localeCompare(a.category)
+                : a.category.localeCompare(b.category);
+        }
+
         const av = a[sortKey] as number;
         const bv = b[sortKey] as number;
         return sortDir === 'desc' ? bv - av : av - bv;

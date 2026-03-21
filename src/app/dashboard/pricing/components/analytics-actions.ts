@@ -6,7 +6,8 @@
  * Server actions for fetching competitor pricing and analytics data.
  */
 
-import { getAdminFirestore } from '@/firebase/admin';
+import { getPricingAnalytics, getRulePerformanceData } from '../actions';
+import { loadCatalogAnalyticsProducts } from '@/server/services/catalog-analytics-source';
 import { getCompetitorPricing } from '@/server/services/ezal/competitor-pricing';
 
 /**
@@ -28,19 +29,8 @@ export async function getCompetitorPriceAlerts(
   error?: string;
 }> {
   try {
-    const db = getAdminFirestore();
-
-    // Get our products
-    const productsSnap = await db
-      .collection('tenants')
-      .doc(orgId)
-      .collection('publicViews')
-      .doc('products')
-      .collection('items')
-      .limit(50)
-      .get();
-
-    if (productsSnap.empty) {
+    const products = await loadCatalogAnalyticsProducts(orgId);
+    if (products.length === 0) {
       return { success: true, data: [] };
     }
 
@@ -52,10 +42,9 @@ export async function getCompetitorPriceAlerts(
     }> = [];
 
     // Check each product against competitors
-    for (const doc of productsSnap.docs) {
-      const product = doc.data();
-      const productName = product.name || product.productName;
-      const ourPrice = product.price || 0;
+    for (const product of products.slice(0, 50)) {
+      const productName = product.name;
+      const ourPrice = product.price;
 
       if (!productName || ourPrice <= 0) continue;
 
@@ -122,26 +111,31 @@ export async function getRuleDailyStats(
     avgDiscount: number;
   }>;
   error?: string;
-}> {
+  }> {
   try {
-    // TODO: When we have event logging, query actual events
-    // For now, generate sample data based on rule stats
+    const [seriesResult, analytics] = await Promise.all([
+      getRulePerformanceData(orgId, days),
+      getPricingAnalytics(orgId),
+    ]);
 
-    const data = Array.from({ length: days }, (_, i) => {
-      const date = new Date(Date.now() - (days - i) * 24 * 60 * 60 * 1000);
-      // Add some variation to make charts interesting
-      const baseApplications = 10 + Math.floor(Math.random() * 30);
-      const dayOfWeek = date.getDay();
-      // Weekend bump
-      const weekendMultiplier = dayOfWeek === 0 || dayOfWeek === 6 ? 1.5 : 1;
-
+    if (!seriesResult.success || !seriesResult.data) {
       return {
-        date: date.toISOString().split('T')[0],
-        applications: Math.floor(baseApplications * weekendMultiplier),
-        revenue: Math.round((baseApplications * 15 + Math.random() * 200) * weekendMultiplier),
-        avgDiscount: 10 + Math.random() * 10,
+        success: false,
+        error: seriesResult.error ?? 'Failed to load pricing series',
       };
-    });
+    }
+
+    const selectedRule = ruleId
+      ? analytics.rulePerformance.find((rule) => rule.ruleId === ruleId)
+      : null;
+    const avgDiscount = selectedRule?.avgDiscount ?? analytics.overview.avgDiscountPercent;
+
+    const data = seriesResult.data.map((row) => ({
+      date: row.date,
+      applications: row.applications,
+      revenue: row.revenue,
+      avgDiscount,
+    }));
 
     return { success: true, data };
   } catch (error) {
@@ -173,41 +167,19 @@ export async function getTopProductsByPricing(
     estimatedRevenue: number;
   }>;
   error?: string;
-}> {
+  }> {
   try {
-    const db = getAdminFirestore();
-
-    // Get products
-    const productsSnap = await db
-      .collection('tenants')
-      .doc(orgId)
-      .collection('publicViews')
-      .doc('products')
-      .collection('items')
-      .limit(100)
-      .get();
-
-    // TODO: Join with actual pricing application logs
-    // For now, return sample data based on product info
-
-    const products = productsSnap.docs.slice(0, limit).map((doc) => {
-      const data = doc.data();
-      const basePrice = data.price || 0;
-      const discountPercent = 10 + Math.random() * 15;
-      const avgDynamicPrice = basePrice * (1 - discountPercent / 100);
-
-      return {
-        productId: doc.id,
-        productName: data.name || data.productName || 'Unknown Product',
-        basePrice,
-        avgDynamicPrice: Math.round(avgDynamicPrice * 100) / 100,
-        timesDiscounted: Math.floor(Math.random() * 50),
-        estimatedRevenue: Math.round(avgDynamicPrice * Math.random() * 20),
-      };
-    });
-
-    // Sort by estimated revenue
-    products.sort((a, b) => b.estimatedRevenue - a.estimatedRevenue);
+    const analytics = await getPricingAnalytics(orgId);
+    const products = analytics.productPerformance
+      .slice(0, limit)
+      .map((product) => ({
+        productId: product.productId,
+        productName: product.productName,
+        basePrice: product.basePrice,
+        avgDynamicPrice: product.avgDynamicPrice,
+        timesDiscounted: product.avgDynamicPrice < product.basePrice ? 1 : 0,
+        estimatedRevenue: Math.round(product.revenue),
+      }));
 
     return { success: true, data: products };
   } catch (error) {

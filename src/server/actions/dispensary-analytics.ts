@@ -11,6 +11,7 @@
 import { requireUser } from '@/server/auth/auth';
 import { getAdminFirestore } from '@/firebase/admin';
 import { getMarketBenchmarks } from '@/server/services/market-benchmarks';
+import { loadCatalogAnalyticsProducts, toAnalyticsDate, type CatalogAnalyticsProduct } from '@/server/services/catalog-analytics-source';
 import type { MarketBenchmarks } from '@/types/market-benchmarks';
 import { logger } from '@/lib/logger';
 
@@ -127,39 +128,32 @@ async function verifyOrgAccess(orgId: string): Promise<void> {
 // Helper: load products from tenant catalog
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface RawProduct {
-    id: string;
-    name: string;
-    category: string;
-    price: number;
-    cost?: number;
-    stock?: number;
-    salesLast7Days?: number;
-    salesLast30Days?: number;
-    salesVelocity?: number;
-    lastSaleAt?: { _seconds: number } | Date | string | null;
-    source?: string;
+function toFiniteNumber(value: unknown): number | null {
+    if (typeof value === 'number') {
+        return Number.isFinite(value) ? value : null;
+    }
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (!trimmed) return null;
+        const normalized = trimmed.replace(/[^0-9.-]/g, '');
+        if (!normalized) return null;
+        const parsed = Number(normalized);
+        return Number.isFinite(parsed) ? parsed : null;
+    }
+    return null;
 }
 
-async function loadProducts(orgId: string): Promise<RawProduct[]> {
-    const db = getAdminFirestore();
-    const snap = await db
-        .collection('tenants').doc(orgId)
-        .collection('publicViews').doc('products')
-        .collection('items')
-        .limit(500)
-        .get();
+function toNonNegativeNumber(value: unknown, fallback = 0): number {
+    const parsed = toFiniteNumber(value);
+    return parsed == null ? fallback : Math.max(parsed, 0);
+}
 
-    if (snap.empty) {
-        // Fallback: query products collection directly
-        const fallback = await db.collection('products')
-            .where('dispensaryId', '==', orgId)
-            .limit(500)
-            .get();
-        return fallback.docs.map(d => ({ id: d.id, ...d.data() } as RawProduct));
+function toLookupToken(value: unknown): string | undefined {
+    if (typeof value !== 'string' || value.trim().length === 0) {
+        return undefined;
     }
 
-    return snap.docs.map(d => ({ id: d.id, ...d.data() } as RawProduct));
+    return value.toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -168,86 +162,167 @@ async function loadProducts(orgId: string): Promise<RawProduct[]> {
 
 interface RawOrder {
     id: string;
-    createdAt?: { _seconds: number } | Date | string | null;
-    total?: number;
-    subtotal?: number;
-    discountAmount?: number;
-    items?: Array<{ qty: number; price: number; name?: string }>;
+    createdAt?: unknown;
+    total?: unknown;
+    subtotal?: unknown;
+    discountAmount?: unknown;
+    totals?: {
+        total?: unknown;
+        subtotal?: unknown;
+        discount?: unknown;
+    };
+    coupon?: {
+        discount?: unknown;
+    };
+    items?: Array<{ qty?: unknown; quantity?: unknown; price?: unknown; name?: string }>;
     source?: string;
     type?: string;
+    channel?: string;
+    mode?: string;
+    status?: string;
+}
+
+const ANALYTICS_ORDER_STATUSES = ['submitted', 'confirmed', 'ready', 'completed'];
+
+async function queryOrdersByField(
+    field: 'brandId' | 'orgId',
+    orgId: string,
+): Promise<RawOrder[]> {
+    const db = getAdminFirestore();
+
+    try {
+        const snap = await db.collection('orders')
+            .where(field, '==', orgId)
+            .where('status', 'in', ANALYTICS_ORDER_STATUSES)
+            .limit(2000)
+            .get();
+        return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as RawOrder));
+    } catch (error) {
+        logger.warn('[dispensary-analytics] Order query failed, retrying without status filter', {
+            orgId,
+            field,
+            error: String(error),
+        });
+
+        const fallback = await db.collection('orders')
+            .where(field, '==', orgId)
+            .limit(2000)
+            .get()
+            .catch((fallbackError) => {
+                logger.error('[dispensary-analytics] Order fallback query failed', {
+                    orgId,
+                    field,
+                    error: String(fallbackError),
+                });
+                return null;
+            });
+
+        if (!fallback) return [];
+
+        return fallback.docs
+            .map((doc) => ({ id: doc.id, ...doc.data() } as RawOrder))
+            .filter((order) => {
+                const status = toLookupToken(order.status);
+                return status ? ANALYTICS_ORDER_STATUSES.includes(status) : true;
+            });
+    }
 }
 
 async function loadOrders(orgId: string, lookbackDays = 30): Promise<RawOrder[]> {
-    const db = getAdminFirestore();
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - lookbackDays);
 
-    const snap = await db.collection('orders')
-        .where('orgId', '==', orgId)
-        .orderBy('createdAt', 'desc')
-        .limit(2000)
-        .get();
+    const byBrand = await queryOrdersByField('brandId', orgId);
+    const orders = byBrand.length > 0 ? byBrand : await queryOrdersByField('orgId', orgId);
 
-    return snap.docs
-        .map(d => ({ id: d.id, ...d.data() } as RawOrder))
-        .filter(o => {
-            const ts = toDate(o.createdAt);
-            return ts ? ts >= cutoff : true;
+    if (byBrand.length === 0 && orders.length > 0) {
+        logger.info('[dispensary-analytics] Orders fallback query by orgId used', {
+            orgId,
+            count: orders.length,
         });
-}
+    }
 
-function toDate(val: unknown): Date | null {
-    if (!val) return null;
-    if (val instanceof Date) return val;
-    if (typeof val === 'object' && '_seconds' in (val as object)) {
-        return new Date((val as { _seconds: number })._seconds * 1000);
-    }
-    if (typeof val === 'string' || typeof val === 'number') {
-        const d = new Date(val);
-        return isNaN(d.getTime()) ? null : d;
-    }
-    return null;
+    return orders.filter((order) => {
+        const ts = toAnalyticsDate(order.createdAt);
+        return ts ? ts >= cutoff : true;
+    });
 }
 
 function daysSince(val: unknown): number {
-    const d = toDate(val);
+    const d = toAnalyticsDate(val);
     if (!d) return 999;
     return Math.floor((Date.now() - d.getTime()) / 86400000);
 }
 
+function getOrderTotal(order: RawOrder): number {
+    return toNonNegativeNumber(order.total ?? order.totals?.total ?? order.subtotal ?? order.totals?.subtotal);
+}
+
+function getOrderDiscount(order: RawOrder): number {
+    return toNonNegativeNumber(order.discountAmount ?? order.totals?.discount ?? order.coupon?.discount);
+}
+
+function getOrderUnits(order: RawOrder): number {
+    const units = order.items?.reduce((sum, item) => {
+        return sum + toNonNegativeNumber(item.qty ?? item.quantity, 1);
+    }, 0) ?? 0;
+
+    return units > 0 ? units : 1;
+}
+
+function isOnlineOrder(order: RawOrder): boolean {
+    const channel = toLookupToken(order.source ?? order.type ?? order.channel ?? order.mode);
+    return channel === 'online' || channel === 'web' || channel === 'ecommerce';
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// Helper: generate synthetic 30-day velocity series from snapshot data
+// Helper: derive a 30-day revenue run-rate series from snapshot data
 // ─────────────────────────────────────────────────────────────────────────────
 
 function buildVelocitySeries(
-    products: RawProduct[],
+    products: CatalogAnalyticsProduct[],
     days = 30,
 ): Array<{ date: string; [category: string]: number | string }> {
-    // Group products by category, get their 30-day velocity contribution
-    const catMap: Record<string, number> = {};
+    // Use actual 7-day and 30-day run rates to derive a deterministic trend.
+    const catMap: Record<string, { olderDailyRevenue: number; recentDailyRevenue: number }> = {};
     for (const p of products) {
         const cat = normalizeCat(p.category);
-        const dailyUnits = p.salesVelocity ?? (p.salesLast7Days != null ? p.salesLast7Days / 7 : 0);
-        catMap[cat] = (catMap[cat] ?? 0) + dailyUnits * p.price;
+        const recentDailyUnits = p.salesLast7Days > 0
+            ? p.salesLast7Days / 7
+            : p.salesVelocity > 0
+                ? p.salesVelocity
+                : p.salesLast30Days / 30;
+        const priorWindowUnits = Math.max(p.salesLast30Days - p.salesLast7Days, 0);
+        const priorWindowDays = p.salesLast7Days > 0 ? 23 : 30;
+        const olderDailyUnits = priorWindowUnits > 0
+            ? priorWindowUnits / priorWindowDays
+            : recentDailyUnits;
+
+        if (!catMap[cat]) {
+            catMap[cat] = { olderDailyRevenue: 0, recentDailyRevenue: 0 };
+        }
+
+        catMap[cat].olderDailyRevenue += olderDailyUnits * p.price;
+        catMap[cat].recentDailyRevenue += recentDailyUnits * p.price;
     }
 
-    // Top 3 categories by revenue velocity
     const topCats = Object.entries(catMap)
-        .sort((a, b) => b[1] - a[1])
+        .sort((a, b) => b[1].recentDailyRevenue - a[1].recentDailyRevenue)
         .slice(0, 3)
         .map(([cat]) => cat);
 
     const series: Array<{ date: string; [k: string]: number | string }> = [];
+    const denominator = Math.max(days - 1, 1);
     for (let i = days - 1; i >= 0; i--) {
         const d = new Date();
         d.setDate(d.getDate() - i);
         const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         const row: { date: string; [k: string]: number | string } = { date: dateStr };
         for (const cat of topCats) {
-            const base = catMap[cat] ?? 0;
-            // Add realistic variance ±25%
-            const variance = 0.75 + Math.random() * 0.5;
-            row[cat] = Math.round(base * variance);
+            const base = catMap[cat];
+            const progress = (days - 1 - i) / denominator;
+            const runRate = (base.olderDailyRevenue * (1 - progress)) + (base.recentDailyRevenue * progress);
+            row[cat] = Math.round(runRate);
         }
         series.push(row);
     }
@@ -278,11 +353,11 @@ export async function getProductsAnalytics(
         await verifyOrgAccess(orgId);
 
         const [products, benchmarks] = await Promise.all([
-            loadProducts(orgId),
+            loadCatalogAnalyticsProducts(orgId),
             getMarketBenchmarks(orgId).catch(() => null),
         ]);
 
-        // Velocity chart (top 3 categories, 30-day synthetic series)
+        // Velocity chart (top 3 categories, derived from 7-day and 30-day run rates)
         const velocityData = buildVelocitySeries(products);
 
         // Margin drains — top-revenue SKUs with contributionMarginPct < 0.15
@@ -402,13 +477,13 @@ export async function getOrdersAnalytics(
         let inStoreCount = 0;
 
         for (const o of orders) {
-            const ts = toDate(o.createdAt);
+            const ts = toAnalyticsDate(o.createdAt);
             if (!ts) continue;
             const key = ts.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
             if (dayMap[key]) {
-                const total = o.total ?? o.subtotal ?? 0;
-                const units = o.items?.reduce((s, item) => s + (item.qty ?? 1), 0) ?? 1;
-                const discount = o.discountAmount ?? 0;
+                const total = getOrderTotal(o);
+                const units = getOrderUnits(o);
+                const discount = getOrderDiscount(o);
                 dayMap[key].totalBasket += total;
                 dayMap[key].totalUnits += units;
                 dayMap[key].totalDiscount += discount;
@@ -423,7 +498,7 @@ export async function getOrdersAnalytics(
             heatmap[hk] = (heatmap[hk] ?? 0) + 1;
 
             // Online vs in-store
-            if (o.source === 'online' || o.type === 'online') onlineCount++;
+            if (isOnlineOrder(o)) onlineCount++;
             else inStoreCount++;
         }
 
@@ -488,7 +563,7 @@ export async function getMenuAnalytics(
     try {
         await verifyOrgAccess(orgId);
 
-        const products = await loadProducts(orgId);
+        const products = await loadCatalogAnalyticsProducts(orgId);
 
         // Category performance
         interface CatAgg { revenue: number; gpSum: number; units: number; stock: number; skuCount: number; }

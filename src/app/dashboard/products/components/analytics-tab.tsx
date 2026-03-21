@@ -115,7 +115,7 @@ export function ProductsAnalyticsTab({ orgId }: Props) {
                         <div className="flex items-center justify-between">
                             <div>
                                 <CardTitle className="text-sm">Revenue Velocity</CardTitle>
-                                <CardDescription className="text-xs">30-day daily revenue by top categories</CardDescription>
+                                <CardDescription className="text-xs">Derived run-rate trend from 7-day and 30-day sales snapshots</CardDescription>
                             </div>
                             <AskPopsButton message="Analyze my revenue velocity trends and tell me which categories are underperforming" />
                         </div>

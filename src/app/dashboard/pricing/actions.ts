@@ -4,11 +4,21 @@
  * Pricing Dashboard Server Actions
  *
  * Server-side functions for fetching pricing analytics and rule performance data.
+ * These actions intentionally reuse the shared catalog analytics source so the
+ * pricing dashboard and proactive workflows read the same normalized product truth.
  */
 
-import { getAdminFirestore } from '@/firebase/admin';
 import { getPricingRules } from '@/app/actions/dynamic-pricing';
+import { logger } from '@/lib/logger';
+import {
+  loadCatalogAnalyticsProducts,
+  toAnalyticsDate,
+  type CatalogAnalyticsProduct,
+} from '@/server/services/catalog-analytics-source';
 import type { DynamicPricingRule, PricingAnalytics } from '@/types/dynamic-pricing';
+
+const DEFAULT_LOOKBACK_DAYS = 30;
+const MILLIS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export interface ScopeProduct {
   id: string;
@@ -17,119 +27,308 @@ export interface ScopeProduct {
   price: number;
   discountedPrice: number;
   discountPercent: number;
-  cost?: number; // COGS — used to warn when discounting without margin data
+  cost?: number;
 }
 
 export interface RuleScope {
   count: number;
   totalProducts: number;
   products: ScopeProduct[];
-  hasRuntimeConditions: boolean; // inventory age, time, etc. — can't pre-filter
+  hasRuntimeConditions: boolean;
+}
+
+type PricingSeriesRow = { date: string; revenue: number; applications: number };
+
+function roundCurrency(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+function roundPercent(value: number): number {
+  return Math.round(value * 10) / 10;
+}
+
+function normalizeToken(value: string | undefined): string | null {
+  if (!value || value.trim().length === 0) {
+    return null;
+  }
+
+  return value.trim().toLowerCase();
+}
+
+function getCategoryToken(product: CatalogAnalyticsProduct): string {
+  return normalizeToken(product.category) ?? 'other';
+}
+
+function getBasePrice(product: CatalogAnalyticsProduct): number {
+  return product.originalPrice != null && product.originalPrice > 0
+    ? product.originalPrice
+    : product.price;
+}
+
+function getProductDiscountPercent(product: CatalogAnalyticsProduct): number {
+  const basePrice = getBasePrice(product);
+  if (basePrice <= 0 || product.price >= basePrice) {
+    return 0;
+  }
+
+  return ((basePrice - product.price) / basePrice) * 100;
+}
+
+function deriveDailyUnits(product: CatalogAnalyticsProduct): number {
+  if (product.salesLast7Days > 0) {
+    return product.salesLast7Days / 7;
+  }
+
+  if (product.salesVelocity > 0) {
+    return product.salesVelocity;
+  }
+
+  if (product.salesLast30Days > 0) {
+    return product.salesLast30Days / 30;
+  }
+
+  return 0;
+}
+
+function hasRuntimeConditions(conditions: DynamicPricingRule['conditions']): boolean {
+  return Boolean(
+    conditions.inventoryAge ||
+    conditions.stockLevel ||
+    conditions.stockLevelPercent ||
+    conditions.competitorPrice ||
+    conditions.timeRange ||
+    conditions.daysOfWeek ||
+    conditions.trafficLevel ||
+    conditions.customerTier ||
+    conditions.dateRange
+  );
+}
+
+function matchesStaticConditions(
+  product: CatalogAnalyticsProduct,
+  conditions: DynamicPricingRule['conditions'],
+): boolean {
+  if (conditions.productIds && conditions.productIds.length > 0) {
+    const allowedIds = new Set(
+      conditions.productIds
+        .map((value) => normalizeToken(value))
+        .filter((value): value is string => Boolean(value)),
+    );
+    const productIds = [
+      normalizeToken(product.id),
+      normalizeToken(product.externalId),
+      normalizeToken(product.skuId),
+    ].filter((value): value is string => Boolean(value));
+
+    if (!productIds.some((value) => allowedIds.has(value))) {
+      return false;
+    }
+  }
+
+  if (conditions.categories && conditions.categories.length > 0) {
+    const category = getCategoryToken(product);
+    const matchesCategory = conditions.categories.some((candidate) => {
+      const token = normalizeToken(candidate);
+      if (!token) {
+        return false;
+      }
+
+      return category === token || category.includes(token);
+    });
+
+    if (!matchesCategory) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function buildScopeProducts(
+  products: CatalogAnalyticsProduct[],
+  rule: Pick<DynamicPricingRule, 'conditions' | 'priceAdjustment'>,
+): ScopeProduct[] {
+  return products
+    .filter((product) => matchesStaticConditions(product, rule.conditions))
+    .slice(0, 50)
+    .map((product) => {
+      const price = product.price;
+      const discountedPrice = applyAdjustment(price, rule.priceAdjustment);
+      const discountPercent = price > 0
+        ? roundPercent(((price - discountedPrice) / price) * 100)
+        : 0;
+
+      return {
+        id: product.id,
+        name: product.name,
+        category: product.category,
+        price: roundCurrency(price),
+        discountedPrice,
+        discountPercent,
+        cost: product.cost,
+      };
+    });
+}
+
+function getPricingStartDate(
+  product: CatalogAnalyticsProduct,
+  fallbackDate: Date,
+): Date {
+  const parsed = toAnalyticsDate(product.dynamicPricingUpdatedAt);
+  return parsed ?? fallbackDate;
+}
+
+function getRevenueImpact(product: CatalogAnalyticsProduct): number {
+  return product.salesLast30Days * (product.price - getBasePrice(product));
+}
+
+function getMarginImpact(product: CatalogAnalyticsProduct): number {
+  if (product.cost == null) {
+    return 0;
+  }
+
+  const basePrice = getBasePrice(product);
+  return product.salesLast30Days * ((product.price - product.cost) - (basePrice - product.cost));
+}
+
+function buildRulePerformance(
+  rules: DynamicPricingRule[],
+  products: CatalogAnalyticsProduct[],
+): PricingAnalytics['rulePerformance'] {
+  return rules
+    .map((rule) => {
+      const scopedProducts = products.filter((product) => matchesStaticConditions(product, rule.conditions));
+      const activeScopedProducts = scopedProducts.filter((product) => product.dynamicPricingApplied);
+      const scopedDiscounts = activeScopedProducts
+        .map(getProductDiscountPercent)
+        .filter((value) => value > 0);
+      const derivedRevenue = activeScopedProducts.reduce((sum, product) => sum + getRevenueImpact(product), 0);
+      const derivedApplications = activeScopedProducts.length;
+
+      let avgDiscount = 0;
+      if (scopedDiscounts.length > 0) {
+        avgDiscount = scopedDiscounts.reduce((sum, value) => sum + value, 0) / scopedDiscounts.length;
+      } else if (rule.priceAdjustment.type === 'percentage') {
+        avgDiscount = rule.priceAdjustment.value * 100;
+      } else if (rule.priceAdjustment.type === 'fixed_amount' && scopedProducts.length > 0) {
+        const averageBasePrice = scopedProducts.reduce((sum, product) => sum + product.price, 0) / scopedProducts.length;
+        avgDiscount = averageBasePrice > 0 ? (rule.priceAdjustment.value / averageBasePrice) * 100 : 0;
+      }
+
+      return {
+        ruleId: rule.id,
+        ruleName: rule.name,
+        timesApplied: Math.max(rule.timesApplied ?? 0, derivedApplications),
+        avgDiscount: roundPercent(avgDiscount),
+        conversionRate: roundPercent(rule.avgConversionRate ?? 0),
+        revenue: roundCurrency((rule.revenueImpact ?? 0) || derivedRevenue),
+      };
+    })
+    .sort((a, b) => b.revenue - a.revenue);
+}
+
+function buildProductPerformance(
+  products: CatalogAnalyticsProduct[],
+): PricingAnalytics['productPerformance'] {
+  return products
+    .filter((product) => product.dynamicPricingApplied || product.salesLast30Days > 0)
+    .map((product) => ({
+      productId: product.id,
+      productName: product.name,
+      basePrice: roundCurrency(getBasePrice(product)),
+      avgDynamicPrice: roundCurrency(product.price),
+      unitsSold: product.salesLast30Days,
+      revenue: roundCurrency(product.salesLast30Days * product.price),
+      marginPercent: product.cost != null && product.price > 0
+        ? roundPercent(((product.price - product.cost) / product.price) * 100)
+        : 0,
+    }))
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 25);
+}
+
+function buildPricingSeries(
+  products: CatalogAnalyticsProduct[],
+  days: number,
+): PricingSeriesRow[] {
+  const safeDays = Math.max(1, Math.min(days, 90));
+  const endDate = new Date();
+  endDate.setHours(0, 0, 0, 0);
+
+  const startDate = new Date(endDate);
+  startDate.setDate(startDate.getDate() - (safeDays - 1));
+
+  const rows = new Map<string, PricingSeriesRow>();
+  for (let i = 0; i < safeDays; i++) {
+    const current = new Date(startDate);
+    current.setDate(startDate.getDate() + i);
+    const key = current.toISOString().split('T')[0];
+    rows.set(key, { date: key, revenue: 0, applications: 0 });
+  }
+
+  for (const product of products.filter((entry) => entry.dynamicPricingApplied)) {
+    const pricingStart = getPricingStartDate(product, startDate);
+    const effectiveStart = pricingStart > endDate ? null : (pricingStart < startDate ? startDate : pricingStart);
+    if (!effectiveStart) {
+      continue;
+    }
+
+    const startKey = effectiveStart.toISOString().split('T')[0];
+    const startRow = rows.get(startKey);
+    if (startRow) {
+      startRow.applications += 1;
+    }
+
+    const dailyRevenue = deriveDailyUnits(product) * product.price;
+    if (dailyRevenue <= 0) {
+      continue;
+    }
+
+    const rollingCursor = new Date(effectiveStart);
+    while (rollingCursor <= endDate) {
+      const key = rollingCursor.toISOString().split('T')[0];
+      const row = rows.get(key);
+      if (row) {
+        row.revenue += dailyRevenue;
+      }
+      rollingCursor.setDate(rollingCursor.getDate() + 1);
+    }
+  }
+
+  return Array.from(rows.values()).map((row) => ({
+    date: row.date,
+    revenue: roundCurrency(row.revenue),
+    applications: row.applications,
+  }));
 }
 
 /**
  * Preview which products a pricing rule would affect.
- * Filters by static conditions (categories, productIds).
- * Runtime conditions (inventoryAge, timeRange, etc.) are flagged but not pre-evaluated.
+ * Filters by static conditions only and flags runtime-only conditions separately.
  */
 export async function previewRuleScope(
   orgId: string,
-  rule: Pick<DynamicPricingRule, 'conditions' | 'priceAdjustment'>
+  rule: Pick<DynamicPricingRule, 'conditions' | 'priceAdjustment'>,
 ): Promise<{ success: boolean; data?: RuleScope; error?: string }> {
   try {
-    const db = getAdminFirestore();
-    const baseRef = db
-      .collection('tenants')
-      .doc(orgId)
-      .collection('publicViews')
-      .doc('products')
-      .collection('items');
-
-    // Fetch products — apply category filter at query level if possible
-    let query: FirebaseFirestore.Query = baseRef;
-    const { conditions } = rule;
-
-    const hasRuntimeConditions = !!(
-      conditions.inventoryAge ||
-      conditions.stockLevel ||
-      conditions.stockLevelPercent ||
-      conditions.competitorPrice ||
-      conditions.timeRange ||
-      conditions.daysOfWeek ||
-      conditions.trafficLevel
-    );
-
-    // If specific product IDs — fetch only those
-    if (conditions.productIds && conditions.productIds.length > 0) {
-      const docs = await Promise.all(
-        conditions.productIds.slice(0, 50).map((id) => baseRef.doc(id).get())
-      );
-      const products: ScopeProduct[] = docs
-        .filter((d) => d.exists)
-        .map((d) => {
-          const data = d.data()!;
-          const price = data.price ?? 0;
-          const discountedPrice = applyAdjustment(price, rule.priceAdjustment);
-          const discountPercent = price > 0 ? Math.round(((price - discountedPrice) / price) * 100) : 0;
-          return {
-            id: d.id,
-            name: data.name ?? 'Unknown',
-            category: data.category ?? '',
-            price,
-            discountedPrice,
-            discountPercent,
-            cost: data.cost ?? undefined,
-          };
-        });
-      return {
-        success: true,
-        data: {
-          count: products.length,
-          totalProducts: products.length,
-          products,
-          hasRuntimeConditions,
-        },
-      };
-    }
-
-    // Fetch up to 200 products (enough for counts + preview list)
-    const snap = await query.limit(200).get();
-    const allProducts = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Array<{ id: string; name: string; category: string; price: number; cost?: number }>;
-
-    // Filter by category if specified
-    let filtered = allProducts;
-    if (conditions.categories && conditions.categories.length > 0) {
-      const cats = conditions.categories.map((c) => c.toLowerCase());
-      filtered = allProducts.filter((p) =>
-        cats.some((c) => (p.category ?? '').toLowerCase().includes(c))
-      );
-    }
-
-    const products: ScopeProduct[] = filtered.slice(0, 50).map((p) => {
-      const price = p.price ?? 0;
-      const discountedPrice = applyAdjustment(price, rule.priceAdjustment);
-      const discountPercent = price > 0 ? Math.round(((price - discountedPrice) / price) * 100) : 0;
-      return {
-        id: p.id,
-        name: p.name ?? 'Unknown',
-        category: p.category ?? '',
-        price,
-        discountedPrice,
-        discountPercent,
-        cost: p.cost ?? undefined,
-      };
-    });
+    const products = await loadCatalogAnalyticsProducts(orgId);
+    const filteredProducts = products.filter((product) => matchesStaticConditions(product, rule.conditions));
 
     return {
       success: true,
       data: {
-        count: filtered.length,
-        totalProducts: allProducts.length,
-        products,
-        hasRuntimeConditions,
+        count: filteredProducts.length,
+        totalProducts: products.length,
+        products: buildScopeProducts(products, rule),
+        hasRuntimeConditions: hasRuntimeConditions(rule.conditions),
       },
     };
   } catch (error) {
+    logger.error('[pricing-actions] Failed to preview rule scope', {
+      orgId,
+      error: String(error),
+    });
+
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to preview rule scope',
@@ -139,137 +338,90 @@ export async function previewRuleScope(
 
 function applyAdjustment(
   price: number,
-  adj: DynamicPricingRule['priceAdjustment']
+  adjustment: DynamicPricingRule['priceAdjustment'],
 ): number {
-  if (price <= 0) return price;
-  switch (adj.type) {
+  if (price <= 0) {
+    return price;
+  }
+
+  switch (adjustment.type) {
     case 'percentage': {
-      const discounted = price * (1 - adj.value);
-      const floored = adj.minPrice ? Math.max(discounted, adj.minPrice) : discounted;
-      return Math.round(floored * 100) / 100;
+      const discounted = price * (1 - adjustment.value);
+      const floored = adjustment.minPrice != null ? Math.max(discounted, adjustment.minPrice) : discounted;
+      return roundCurrency(floored);
     }
     case 'fixed_amount': {
-      const discounted = price - adj.value;
-      const floored = adj.minPrice ? Math.max(discounted, adj.minPrice) : discounted;
-      return Math.round(Math.max(floored, 0) * 100) / 100;
+      const discounted = price - adjustment.value;
+      const floored = adjustment.minPrice != null ? Math.max(discounted, adjustment.minPrice) : discounted;
+      return roundCurrency(Math.max(floored, 0));
     }
     case 'set_price':
-      return adj.value;
+      return roundCurrency(adjustment.value);
     default:
-      return price;
+      return roundCurrency(price);
   }
 }
 
 /**
- * Get comprehensive pricing analytics for an organization
- *
- * @param orgId - Organization ID
- * @returns Analytics data with overview and performance metrics
+ * Get comprehensive pricing analytics for an organization.
  */
 export async function getPricingAnalytics(orgId: string): Promise<PricingAnalytics> {
+  const dateRange = {
+    start: new Date(Date.now() - DEFAULT_LOOKBACK_DAYS * MILLIS_PER_DAY),
+    end: new Date(),
+  };
+
   try {
-    const db = getAdminFirestore();
+    const [rulesResult, products] = await Promise.all([
+      getPricingRules(orgId),
+      loadCatalogAnalyticsProducts(orgId),
+    ]);
+    const rules = rulesResult.data ?? [];
+    const activeRules = rules.filter((rule) => rule.active);
+    const pricedProducts = products.filter((product) => product.dynamicPricingApplied);
+    const productsWithDiscount = pricedProducts.filter((product) => getProductDiscountPercent(product) > 0);
 
-    // Get all pricing rules
-    const rulesResult = await getPricingRules(orgId);
-    const rules = rulesResult.data || [];
+    const avgDiscountPercent = productsWithDiscount.length > 0
+      ? productsWithDiscount.reduce((sum, product) => sum + getProductDiscountPercent(product), 0) / productsWithDiscount.length
+      : 0;
 
-    // Get product count
-    const productsSnap = await db
-      .collection('tenants')
-      .doc(orgId)
-      .collection('publicViews')
-      .doc('products')
-      .collection('items')
-      .count()
-      .get();
+    const totalRevenue = products.reduce((sum, product) => sum + (product.salesLast30Days * product.price), 0);
+    const revenueImpact = pricedProducts.reduce((sum, product) => sum + getRevenueImpact(product), 0);
+    const marginImpact = pricedProducts.reduce((sum, product) => sum + getMarginImpact(product), 0);
+    const productPerformance = buildProductPerformance(products);
+    const rulePerformance = buildRulePerformance(activeRules, products);
 
-    const totalProducts = productsSnap.data().count;
-
-    // Calculate active rules
-    const activeRules = rules.filter((r) => r.active);
-
-    // Calculate products with dynamic pricing
-    // (For now, estimate based on conditions - would need actual calculation in production)
-    let productsWithPricing = 0;
-    activeRules.forEach((rule) => {
-      if (rule.conditions.productIds) {
-        productsWithPricing += rule.conditions.productIds.length;
-      } else if (rule.conditions.categories) {
-        // Estimate: each category has ~10 products on average
-        productsWithPricing += rule.conditions.categories.length * 10;
-      } else {
-        // Rule applies to all products
-        productsWithPricing = totalProducts;
-      }
+    logger.info('[pricing-actions] Computed pricing analytics', {
+      orgId,
+      totalProducts: products.length,
+      productsWithDynamicPricing: pricedProducts.length,
+      activeRules: activeRules.length,
+      revenueImpact: roundCurrency(revenueImpact),
     });
-
-    // Cap at total products
-    productsWithPricing = Math.min(productsWithPricing, totalProducts);
-
-    // Calculate average discount
-    let totalDiscount = 0;
-    let discountCount = 0;
-
-    activeRules.forEach((rule) => {
-      if (rule.priceAdjustment.type === 'percentage') {
-        totalDiscount += rule.priceAdjustment.value * 100;
-        discountCount++;
-      }
-    });
-
-    const avgDiscountPercent =
-      discountCount > 0 ? totalDiscount / discountCount : 0;
-
-    // Calculate revenue impact (aggregate from rule stats)
-    const totalRevenue = rules.reduce(
-      (sum, rule) => sum + (rule.revenueImpact || 0),
-      0
-    );
-
-    // Build rule performance data
-    const rulePerformance = rules.map((rule) => ({
-      ruleId: rule.id,
-      ruleName: rule.name,
-      timesApplied: rule.timesApplied || 0,
-      avgDiscount:
-        rule.priceAdjustment.type === 'percentage'
-          ? rule.priceAdjustment.value * 100
-          : 0,
-      conversionRate: rule.avgConversionRate || 0,
-      revenue: rule.revenueImpact || 0,
-    }));
-
-    // Sort by revenue impact
-    rulePerformance.sort((a, b) => b.revenue - a.revenue);
 
     return {
       orgId,
-      dateRange: {
-        start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
-        end: new Date(),
-      },
+      dateRange,
       overview: {
-        totalProducts,
-        productsWithDynamicPricing: productsWithPricing,
-        avgDiscountPercent,
-        totalRevenue,
-        revenueImpact: totalRevenue, // vs baseline (would calculate in production)
-        marginImpact: 0, // Would calculate with COGS data
+        totalProducts: products.length,
+        productsWithDynamicPricing: pricedProducts.length,
+        avgDiscountPercent: roundPercent(avgDiscountPercent),
+        totalRevenue: roundCurrency(totalRevenue),
+        revenueImpact: roundCurrency(revenueImpact),
+        marginImpact: roundCurrency(marginImpact),
       },
       rulePerformance,
-      productPerformance: [], // TODO: Implement product-level analytics
+      productPerformance,
     };
   } catch (error) {
-    console.error('[getPricingAnalytics] Error:', error);
+    logger.error('[pricing-actions] Failed to compute pricing analytics', {
+      orgId,
+      error: String(error),
+    });
 
-    // Return empty analytics on error
     return {
       orgId,
-      dateRange: {
-        start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-        end: new Date(),
-      },
+      dateRange,
       overview: {
         totalProducts: 0,
         productsWithDynamicPricing: 0,
@@ -285,37 +437,36 @@ export async function getPricingAnalytics(orgId: string): Promise<PricingAnalyti
 }
 
 /**
- * Get rule performance data for charts
- *
- * @param orgId - Organization ID
- * @param days - Number of days to analyze (default: 30)
- * @returns Time-series performance data
+ * Get time-series pricing performance data for charts.
+ * Revenue is the estimated daily revenue of products currently under dynamic pricing,
+ * and applications are product pricing updates observed on each day.
  */
 export async function getRulePerformanceData(
   orgId: string,
-  days: number = 30
+  days: number = DEFAULT_LOOKBACK_DAYS,
 ): Promise<{
   success: boolean;
   data?: Array<{ date: string; revenue: number; applications: number }>;
   error?: string;
 }> {
   try {
-    // TODO: Implement time-series analytics
-    // Would query application logs/events from Firestore
-    // Group by date and aggregate metrics
+    const products = await loadCatalogAnalyticsProducts(orgId);
+    const data = buildPricingSeries(products, days);
 
-    // Mock data for now
-    const data = Array.from({ length: days }, (_, i) => {
-      const date = new Date(Date.now() - (days - i) * 24 * 60 * 60 * 1000);
-      return {
-        date: date.toISOString().split('T')[0],
-        revenue: Math.random() * 1000,
-        applications: Math.floor(Math.random() * 50),
-      };
+    logger.info('[pricing-actions] Built pricing performance series', {
+      orgId,
+      days,
+      pricedProducts: products.filter((product) => product.dynamicPricingApplied).length,
     });
 
     return { success: true, data };
   } catch (error) {
+    logger.error('[pricing-actions] Failed to build pricing performance series', {
+      orgId,
+      days,
+      error: String(error),
+    });
+
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -328,27 +479,25 @@ export async function getRulePerformanceData(
  * Used by the "Applies to" scope picker in rule creation.
  */
 export async function getProductCategories(
-  orgId: string
+  orgId: string,
 ): Promise<{ success: boolean; categories?: string[]; error?: string }> {
   try {
-    const db = getAdminFirestore();
-    const snap = await db
-      .collection('tenants')
-      .doc(orgId)
-      .collection('publicViews')
-      .doc('products')
-      .collection('items')
-      .limit(500)
-      .get();
+    const products = await loadCatalogAnalyticsProducts(orgId);
+    const categories = Array.from(
+      new Set(
+        products
+          .map((product) => product.category?.trim())
+          .filter((value): value is string => Boolean(value)),
+      ),
+    ).sort((left, right) => left.localeCompare(right));
 
-    const seen = new Set<string>();
-    snap.docs.forEach((d) => {
-      const cat = d.data().category as string | undefined;
-      if (cat && cat.trim()) seen.add(cat.trim());
+    return { success: true, categories };
+  } catch (error) {
+    logger.error('[pricing-actions] Failed to load pricing categories', {
+      orgId,
+      error: String(error),
     });
 
-    return { success: true, categories: Array.from(seen).sort() };
-  } catch (error) {
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to load categories',
