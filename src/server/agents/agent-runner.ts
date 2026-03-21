@@ -1179,7 +1179,12 @@ All agents are online and ready. Type an agent name or describe your task to get
         // SECURITY: Check role restrictions before handoff
         const canAccessAgent = agentInfo ? canRoleAccessAgent(role, agentInfo.id as any) : false;
 
-        if (agentInfo && routing.confidence > 0.6 && agentInfo.id !== 'general' && agentInfo.id !== 'puff' && canAccessAgent) {
+        // Skip the heavy Claude harness for Slack messages — GLM handles Slack responses
+        // directly via the synthesis path below. Running the harness from Slack causes
+        // 240s+ timeouts because it chains multi-step Claude tool calls.
+        const isSlackSource = extraOptions?.source === 'slack';
+
+        if (agentInfo && routing.confidence > 0.6 && agentInfo.id !== 'general' && agentInfo.id !== 'puff' && canAccessAgent && !isSlackSource) {
             try {
                 await emitThought(jobId, 'Handing off', `Transferring control to specialized agent: ${agentInfo.name}`);
                 const res = await triggerAgentRun(agentInfo.id, userMessage, userBrandId);
