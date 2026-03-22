@@ -5,6 +5,9 @@ import { createServerClient } from '@/firebase/server-client';
 import { CannMenusService } from '@/server/services/cannmenus';
 import { logger } from '@/lib/monitoring';
 import { FieldValue } from 'firebase-admin/firestore';
+import { getEzalLimits } from '@/lib/plan-limits';
+import { findPricingPlan } from '@/lib/config/pricing';
+import { getAIStudioUsageSummary } from '@/server/services/ai-studio-billing-service';
 
 export type CompetitorEntry = {
     id: string;
@@ -18,6 +21,28 @@ export type CompetitorEntry = {
     menuUrl?: string;
 };
 
+export type CompetitiveIntelPlanSummary = {
+    rawPlanId: string;
+    planId: string;
+    name: string;
+    tagline?: string;
+    description: string;
+    priceDisplay: string;
+    activationFeeDisplay: string | null;
+    isActive: boolean;
+};
+
+export type CompetitiveIntelCreditsSummary = {
+    planId: string;
+    billingCycleKey: string;
+    totalAvailable: number;
+    totalUsed: number;
+    totalRemaining: number;
+    automationBudgetTotal: number;
+    automationBudgetUsed: number;
+    automationBudgetRemaining: number;
+};
+
 export type CompetitorSnapshot = {
     competitors: CompetitorEntry[];
     lastUpdated: Date;
@@ -25,29 +50,119 @@ export type CompetitorSnapshot = {
     updateFrequency: 'weekly' | 'daily' | 'live';
     canRefresh: boolean;
     maxCompetitors: number; // Plan-based limit (scout=3, pro=10, growth=20, empire=1000)
+    plan: CompetitiveIntelPlanSummary;
+    credits: CompetitiveIntelCreditsSummary | null;
 };
+
+function pickFirstString(...values: Array<unknown>): string | null {
+    for (const value of values) {
+        if (typeof value === 'string' && value.trim()) {
+            return value.trim();
+        }
+    }
+
+    return null;
+}
+
+function toCreditsSummary(
+    usage: Awaited<ReturnType<typeof getAIStudioUsageSummary>> | null
+): CompetitiveIntelCreditsSummary | null {
+    if (!usage) return null;
+
+    return {
+        planId: usage.planId,
+        billingCycleKey: usage.billingCycleKey,
+        totalAvailable: usage.totalCreditsAvailable,
+        totalUsed: usage.totalCreditsUsed,
+        totalRemaining: Math.max(0, usage.totalCreditsAvailable - usage.totalCreditsUsed),
+        automationBudgetTotal: usage.automationBudgetTotal,
+        automationBudgetUsed: usage.automationBudgetUsed,
+        automationBudgetRemaining: Math.max(
+            0,
+            usage.automationBudgetTotal - usage.automationBudgetUsed
+        ),
+    };
+}
+
+async function loadCompetitiveIntelContext(
+    firestore: FirebaseFirestore.Firestore,
+    orgId: string
+): Promise<{
+    orgData: Record<string, any>;
+    limits: ReturnType<typeof getEzalLimits>;
+    plan: CompetitiveIntelPlanSummary;
+    credits: CompetitiveIntelCreditsSummary | null;
+}> {
+    const [orgDoc, subscriptionDoc, aiSummary] = await Promise.all([
+        firestore.collection('organizations').doc(orgId).get(),
+        firestore
+            .collection('organizations')
+            .doc(orgId)
+            .collection('subscription')
+            .doc('current')
+            .get(),
+        getAIStudioUsageSummary(orgId).catch((error) => {
+            logger.warn('Failed to load AI Studio usage summary for competitive intel', {
+                orgId,
+                error,
+            });
+            return null;
+        }),
+    ]);
+
+    const orgData = orgDoc?.data?.() || {};
+    const subscriptionData = subscriptionDoc?.data?.() || {};
+    const rawPlanId =
+        pickFirstString(
+            orgData?.billing?.planId,
+            orgData?.planId,
+            subscriptionData?.planId,
+            subscriptionData?.tierId,
+            orgData?.subscription?.tierId,
+            orgData?.plan,
+            aiSummary?.planId
+        ) || 'signal';
+
+    const pricingPlan = findPricingPlan(rawPlanId) || findPricingPlan('signal');
+    const resolvedPlanId = pricingPlan?.id || 'signal';
+    const limits = getEzalLimits(resolvedPlanId);
+    const isPlanActive =
+        orgData?.billing?.subscriptionStatus === 'active' ||
+        subscriptionData?.status === 'active' ||
+        orgData?.subscriptionStatus === 'active';
+
+    return {
+        orgData,
+        limits,
+        plan: {
+            rawPlanId,
+            planId: resolvedPlanId,
+            name: pricingPlan?.name || rawPlanId,
+            tagline: pricingPlan?.tagline,
+            description: pricingPlan?.desc || 'Competitive intelligence access',
+            priceDisplay: pricingPlan?.priceDisplay || 'Custom',
+            activationFeeDisplay: pricingPlan?.activationFee
+                ? `$${pricingPlan.activationFee.toLocaleString()} activation`
+                : null,
+            isActive: Boolean(isPlanActive),
+        },
+        credits: toCreditsSummary(aiSummary),
+    };
+}
 
 /**
  * Get competitors for an organization (auto-discovered + manual)
  */
 export async function getCompetitors(orgId: string): Promise<CompetitorSnapshot> {
-    const user = await requireUser(['dispensary', 'super_user', 'brand']);
+    await requireUser(['dispensary', 'super_user', 'brand']);
     const { firestore } = await createServerClient();
 
-    // Get org settings to check plan
-    const orgDoc = await firestore.collection('organizations').doc(orgId).get();
-    const orgData = orgDoc.data() || {};
-    const plan = orgData.plan || 'free';
-    const marketState = orgData.marketState;
-
-    // Import plan limits for proper frequency calculation
-    const { getEzalLimits } = await import('@/lib/plan-limits');
-    const limits = getEzalLimits(plan as any);
+    const context = await loadCompetitiveIntelContext(firestore, orgId);
+    const { limits } = context;
 
     // Determine update frequency based on plan
     const updateFrequency =
-        limits.frequencyMinutes <= 15 ? 'live' :
-        limits.frequencyMinutes <= 60 ? 'live' :
+        limits.frequencyMinutes <= 60 * 6 ? 'live' :
         limits.frequencyMinutes <= 1440 ? 'daily' : 'weekly';
 
     // Get stored competitors from BOTH old and new systems
@@ -133,6 +248,8 @@ export async function getCompetitors(orgId: string): Promise<CompetitorSnapshot>
         updateFrequency,
         canRefresh,
         maxCompetitors: limits.maxCompetitors,
+        plan: context.plan,
+        credits: context.credits,
     };
 }
 
@@ -143,13 +260,11 @@ export async function autoDiscoverCompetitors(orgId: string, forceRefresh = fals
     const user = await requireUser(['dispensary', 'super_user', 'brand']);
     const { firestore } = await createServerClient();
 
-    // Check if refresh is allowed
-    const orgDoc = await firestore.collection('organizations').doc(orgId).get();
-    const orgData = orgDoc.data() || {};
-    const plan = orgData.plan || 'free';
+    const context = await loadCompetitiveIntelContext(firestore, orgId);
+    const { orgData, plan, limits } = context;
     const marketState = orgData.marketState;
 
-    if (!forceRefresh && plan === 'free') {
+    if (!forceRefresh) {
         // Check last update time
         const lastMeta = await firestore
             .collection('organizations')
@@ -161,9 +276,14 @@ export async function autoDiscoverCompetitors(orgId: string, forceRefresh = fals
         if (lastMeta.exists) {
             const lastUpdated = lastMeta.data()?.lastAutoDiscovery?.toDate?.();
             if (lastUpdated) {
-                const daysSince = (Date.now() - lastUpdated.getTime()) / (1000 * 60 * 60 * 24);
-                if (daysSince < 7) {
-                    return { discovered: 0 }; // Too soon for free plan
+                const nextAllowedRefresh = lastUpdated.getTime() + limits.frequencyMinutes * 60 * 1000;
+                if (Date.now() < nextAllowedRefresh) {
+                    logger.info('Competitive intel refresh blocked by plan cadence', {
+                        orgId,
+                        planId: plan.planId,
+                        nextAllowedRefresh: new Date(nextAllowedRefresh).toISOString(),
+                    });
+                    return { discovered: 0 };
                 }
             }
         }

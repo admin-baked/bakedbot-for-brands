@@ -15,6 +15,17 @@ jest.mock('@/server/auth/auth', () => ({
     requireUser: jest.fn().mockResolvedValue({ uid: 'test-user', role: 'brand' })
 }));
 
+jest.mock('@/server/services/ai-studio-billing-service', () => ({
+    getAIStudioUsageSummary: jest.fn().mockResolvedValue({
+        planId: 'optimize',
+        billingCycleKey: '2026-03',
+        totalCreditsAvailable: 7500,
+        totalCreditsUsed: 1200,
+        automationBudgetTotal: 2000,
+        automationBudgetUsed: 400,
+    }),
+}));
+
 jest.mock('@/firebase/server-client', () => ({
     createServerClient: jest.fn().mockResolvedValue({
         firestore: {
@@ -22,7 +33,7 @@ jest.mock('@/firebase/server-client', () => ({
                 doc: jest.fn().mockReturnValue({
                     get: jest.fn().mockResolvedValue({
                         exists: true,
-                        data: () => ({ plan: 'free', marketState: 'IL' })
+                        data: () => ({ billing: { planId: 'optimize', subscriptionStatus: 'active' }, marketState: 'IL' })
                     }),
                     collection: jest.fn().mockReturnValue({
                         orderBy: jest.fn().mockReturnThis(),
@@ -86,13 +97,15 @@ describe('Competitive Intel Actions', () => {
 
             expect(result).toBeDefined();
             expect(result.competitors).toBeInstanceOf(Array);
-            expect(result.updateFrequency).toBe('weekly'); // free plan
+            expect(result.updateFrequency).toBe('live');
+            expect(result.plan.name).toBe('Optimize');
+            expect(result.credits?.totalRemaining).toBe(6300);
         });
 
-        it('should indicate correct update frequency for free plan', async () => {
+        it('should indicate correct update frequency for optimize plan alias', async () => {
             const result = await getCompetitors('org_123');
 
-            expect(result.updateFrequency).toBe('weekly');
+            expect(result.updateFrequency).toBe('live');
         });
 
         it('should include maxCompetitors from plan limits', async () => {
@@ -172,7 +185,7 @@ describe('Competitive Intel Actions', () => {
                             return {
                                 doc: jest.fn().mockReturnValue({
                                     get: jest.fn().mockResolvedValue({
-                                        data: () => ({ plan: 'empire', marketState: 'NY' }),
+                                        data: () => ({ billing: { planId: 'optimize', subscriptionStatus: 'active' }, marketState: 'NY' }),
                                     }),
                                     collection: jest.fn().mockReturnValue(mkCollectionQuery(oldSnap)),
                                 }),
@@ -256,7 +269,7 @@ describe('Competitive Intel Actions', () => {
                         if (col === 'organizations') {
                             return {
                                 doc: jest.fn().mockReturnValue({
-                                    get: jest.fn().mockResolvedValue({ data: () => ({ plan: 'free' }) }),
+                                    get: jest.fn().mockResolvedValue({ data: () => ({ billing: { planId: 'signal' } }) }),
                                     collection: jest.fn().mockReturnValue(mkCollectionQuery(oldSnap2)),
                                 }),
                             };
@@ -318,7 +331,18 @@ describe('Competitive Intel Actions', () => {
                 lastUpdated: new Date(),
                 nextUpdate: new Date(),
                 updateFrequency: 'weekly',
-                canRefresh: true
+                canRefresh: true,
+                maxCompetitors: 5,
+                plan: {
+                    rawPlanId: 'signal',
+                    planId: 'signal',
+                    name: 'Signal',
+                    description: 'Know your market before you change anything.',
+                    priceDisplay: '$149',
+                    activationFeeDisplay: null,
+                    isActive: true,
+                },
+                credits: null,
             };
 
             expect(snapshot.updateFrequency).toBe('weekly');
