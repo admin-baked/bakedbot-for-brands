@@ -21,7 +21,7 @@ export const BAKEDBOT_COMPETITIVE_CONTEXT = [
     },
     {
         question: "Who is our pilot customer?",
-        answer: "Thrive Syracuse (org_thrive_syracuse) is our flagship pilot customer. They are on the Empire plan and use our full suite: Alleaves POS integration, competitive intelligence (Ezal), native loyalty (not SpringBig), and Aeropay/CannPay payment processing.",
+        answer: "Thrive Syracuse (org_thrive_syracuse) is our flagship pilot customer. They are on the Optimize plan and use our full suite: Alleaves POS integration, competitive intelligence (Ezal), native loyalty (not SpringBig), and Aeropay/CannPay payment processing.",
         category: "customers",
         tags: ["pilot", "thrive_syracuse"],
     },
@@ -87,7 +87,7 @@ export const BAKEDBOT_COMPETITIVE_CONTEXT = [
     },
     {
         question: "What are BakedBot's pricing tiers?",
-        answer: "Our pricing tiers are: (1) Starter - $499/month for small dispensaries, (2) Growth - $999/month for mid-market, (3) Empire - $1,999/month for enterprise customers like Thrive Syracuse with full feature access. We also have custom enterprise pricing for large multi-location operators.",
+        answer: "Our core public pricing tiers are: (1) Signal - $149/month for market visibility, (2) Convert - $499/month for commerce performance, (3) Retain - $799/month for lifecycle revenue, (4) Optimize - $1,500/month plus $2,500 activation for advanced analytics, competitor alerts, executive digests, and pricing recommendations, and (5) Enterprise - custom pricing for MSOs, complex integrations, and partner deals.",
         category: "pricing",
         tags: ["plans", "revenue"],
     },

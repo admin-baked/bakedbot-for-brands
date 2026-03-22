@@ -2,7 +2,7 @@
  * Set Custom Claims for Thrive Syracuse User
  *
  * Sets Firebase custom claims for thrivesyracuse@bakedbot.ai
- * Run once to enable dashboard access
+ * Run once to enable dashboard access on Optimize.
  */
 
 const admin = require('firebase-admin');
@@ -34,12 +34,13 @@ async function setThriveClaims() {
     const user = await admin.auth().getUserByEmail(email);
     console.log('Found user:', user.uid);
 
-    // Set custom claims for Thrive Syracuse (Empire tier pilot customer - dispensary)
+    // Set custom claims for Thrive Syracuse (Optimize pilot customer - dispensary)
     const customClaims = {
       role: 'dispensary_admin',
-      locationId: 'org_thrive_syracuse',
       orgId: 'org_thrive_syracuse',
-      planId: 'empire',
+      currentOrgId: 'org_thrive_syracuse',
+      brandId: 'org_thrive_syracuse',
+      planId: 'optimize',
       email: email,
     };
 

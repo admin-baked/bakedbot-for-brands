@@ -29,9 +29,10 @@ async function verifyThriveUser() {
 
     // Expected claims for Thrive Syracuse
     const expectedClaims = {
-      role: 'dispensary',
+      role: 'dispensary_admin',
       orgId: 'org_thrive_syracuse',
-      planId: 'empire',
+      currentOrgId: 'org_thrive_syracuse',
+      planId: 'optimize',
       brandId: 'org_thrive_syracuse',
     };
 

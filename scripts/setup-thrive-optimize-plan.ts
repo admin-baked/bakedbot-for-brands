@@ -1,233 +1,344 @@
 /**
- * Activate Thrive Syracuse on the Optimize Plan
+ * Provision Thrive Syracuse onto the Optimize plan.
  *
- * This script:
- * 1. Sets org_thrive_syracuse billing to Optimize plan (active)
- * 2. Marks thrivesyracuse brand page as claimed
- * 3. Configures ZIP code coverage with socially-conscious flags
- * 4. Initializes AI credit allocation for Optimize tier
+ * Why this exists:
+ * - Competitive Intel now reads canonical plan + AI credit state.
+ * - Thrive needs Optimize-level Ezal cadence and AI credits for full pilot testing.
+ * - Older setup scripts still assume Empire-era plan labels.
  *
- * Run with: npx tsx scripts/setup-thrive-optimize-plan.ts
+ * Usage:
+ *   npx tsx scripts/setup-thrive-optimize-plan.ts
+ *   npx tsx scripts/setup-thrive-optimize-plan.ts --apply
  */
 
-import { initializeApp, cert, getApps } from 'firebase-admin/app';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
-
-// Initialize Firebase Admin
-if (getApps().length === 0) {
-    const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-    if (!serviceAccountKey) {
-        console.error('❌ FIREBASE_SERVICE_ACCOUNT_KEY environment variable not set');
-        process.exit(1);
-    }
-
-    try {
-        const serviceAccount = JSON.parse(serviceAccountKey);
-        initializeApp({
-            credential: cert(serviceAccount),
-        });
-    } catch (error) {
-        console.error('❌ Failed to parse service account key:', error);
-        process.exit(1);
-    }
-}
-
-const db = getFirestore();
+import fs from 'node:fs';
+import path from 'node:path';
+import { applicationDefault, cert, getApps, initializeApp } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
+import { findPricingPlan } from '../src/lib/config/pricing';
+import { getEzalLimits } from '../src/lib/plan-limits';
 
 const ORG_ID = 'org_thrive_syracuse';
-const BRAND_SLUG = 'thrivesyracuse';
+const USER_EMAIL = 'thrivesyracuse@bakedbot.ai';
+const OPTIMIZE_PLAN_ID = 'optimize';
 
-// ZIP code coverage configuration
-// Primary: 13224 (Thrive's home zip — Erie Blvd E)
-// Secondary: 13214, 13210, 13206
-// Extended: 13066, 13203, 13057
-// Socially conscious: 13210, 13203
-const ZIP_COVERAGE = [
-    {
-        zip: '13224',
-        label: 'Primary',
-        priority: 1,
-        socialllyConscious: false,
-        note: 'Home ZIP — Erie Blvd E',
-    },
-    {
-        zip: '13214',
-        label: 'Secondary',
-        priority: 2,
-        socialllyConscious: false,
-        note: 'DeWitt / East Syracuse',
-    },
-    {
-        zip: '13210',
-        label: 'Secondary',
-        priority: 2,
-        sociallyConscious: true,
-        note: 'South Side — socially conscious community',
-        sociallyConsciousMessage: "Thrive is proud to serve the South Side community. As a socially conscious dispensary, we're committed to reinvesting in neighborhoods that were most impacted by the War on Drugs.",
-    },
-    {
-        zip: '13206',
-        label: 'Secondary',
-        priority: 2,
-        sociallyConscious: false,
-        note: 'North Side',
-    },
-    {
-        zip: '13066',
-        label: 'Extended',
-        priority: 3,
-        sociallyConscious: false,
-        note: 'Fayetteville / Manlius',
-    },
-    {
-        zip: '13203',
-        label: 'Extended',
-        priority: 3,
-        sociallyConscious: true,
-        note: 'Near West Side — socially conscious community',
-        sociallyConsciousMessage: "Thrive believes equitable cannabis access starts in communities like ours. Near West Side residents get priority attention and community-focused care from our team.",
-    },
-    {
-        zip: '13057',
-        label: 'Extended',
-        priority: 3,
-        sociallyConscious: false,
-        note: 'East Syracuse / Minoa',
-    },
-];
+const OPTIMIZE_PLAN = findPricingPlan(OPTIMIZE_PLAN_ID);
 
-async function activateThriveOptimizePlan() {
-    console.log('🚀 Activating Thrive Syracuse on Optimize Plan...\n');
-
-    // ----------------------------------------------------------------
-    // 1. Update organization billing
-    // ----------------------------------------------------------------
-    console.log(`📋 Step 1: Updating ${ORG_ID} billing to Optimize plan...`);
-
-    const orgRef = db.collection('organizations').doc(ORG_ID);
-    const orgSnap = await orgRef.get();
-
-    if (!orgSnap.exists) {
-        console.error(`❌ Organization ${ORG_ID} not found in Firestore`);
-        process.exit(1);
-    }
-
-    await orgRef.update({
-        'billing.planId': 'optimize',
-        'billing.subscriptionStatus': 'active',
-        'billing.currentPeriodStart': FieldValue.serverTimestamp(),
-        'billing.monthlyAmount': 1500,
-        'billing.includedCredits': 7500,
-        'billing.creditRollover': true,
-        'billing.creditTopUpRate': 2,
-        'billing.activatedAt': FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-    });
-
-    console.log('✅ Org billing updated → Optimize ($1,500/mo, 7,500 credits/mo)\n');
-
-    // ----------------------------------------------------------------
-    // 2. Initialize AI credit ledger
-    // ----------------------------------------------------------------
-    console.log('💳 Step 2: Initializing AI credit ledger...');
-
-    const creditsRef = db
-        .collection('organizations')
-        .doc(ORG_ID)
-        .collection('billing')
-        .doc('credits');
-
-    await creditsRef.set({
-        planId: 'optimize',
-        includedCreditsTotal: 7500,
-        includedCreditsUsed: 0,
-        rolloverCreditsTotal: 0,
-        rolloverCreditsUsed: 0,
-        topUpCreditsTotal: 0,
-        topUpCreditsUsed: 0,
-        periodStart: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-    }, { merge: true });
-
-    console.log('✅ Credit ledger initialized (7,500 included credits)\n');
-
-    // ----------------------------------------------------------------
-    // 3. Mark brand page as claimed
-    // ----------------------------------------------------------------
-    console.log(`🏷️  Step 3: Marking brand page '${BRAND_SLUG}' as claimed...`);
-
-    const brandsQuery = await db
-        .collection('brands')
-        .where('slug', '==', BRAND_SLUG)
-        .limit(1)
-        .get();
-
-    if (brandsQuery.empty) {
-        // Try by document ID
-        const brandByIdSnap = await db.collection('brands').doc(BRAND_SLUG).get();
-        if (!brandByIdSnap.exists) {
-            console.warn(`⚠️  Brand '${BRAND_SLUG}' not found — skipping claim update`);
-        } else {
-            await brandByIdSnap.ref.update({
-                claimStatus: 'claimed',
-                orgId: ORG_ID,
-                updatedAt: FieldValue.serverTimestamp(),
-            });
-            console.log(`✅ Brand doc '${BRAND_SLUG}' marked as claimed (orgId: ${ORG_ID})\n`);
-        }
-    } else {
-        const brandDoc = brandsQuery.docs[0];
-        await brandDoc.ref.update({
-            claimStatus: 'claimed',
-            orgId: ORG_ID,
-            updatedAt: FieldValue.serverTimestamp(),
-        });
-        console.log(`✅ Brand '${BRAND_SLUG}' (${brandDoc.id}) marked as claimed (orgId: ${ORG_ID})\n`);
-    }
-
-    // ----------------------------------------------------------------
-    // 4. Configure ZIP code coverage
-    // ----------------------------------------------------------------
-    console.log('📍 Step 4: Configuring ZIP code coverage...');
-
-    const coverageRef = db
-        .collection('organizations')
-        .doc(ORG_ID)
-        .collection('config')
-        .doc('coverage');
-
-    await coverageRef.set({
-        primaryZip: '13224',
-        zips: ZIP_COVERAGE,
-        sociallyConsciousZips: ZIP_COVERAGE
-            .filter(z => z.sociallyConscious)
-            .map(z => z.zip),
-        updatedAt: FieldValue.serverTimestamp(),
-    }, { merge: false });
-
-    console.log('✅ ZIP coverage configured:');
-    ZIP_COVERAGE.forEach(z => {
-        const scFlag = z.sociallyConscious ? ' 🫶 [socially conscious]' : '';
-        console.log(`   ${z.zip} (${z.label})${scFlag}`);
-    });
-    console.log();
-
-    // ----------------------------------------------------------------
-    // 5. Summary
-    // ----------------------------------------------------------------
-    console.log('─────────────────────────────────────────────');
-    console.log('✅ Thrive Syracuse activation complete!\n');
-    console.log('  Org:          org_thrive_syracuse');
-    console.log('  Plan:         Optimize ($1,500/mo)');
-    console.log('  Credits:      7,500/mo (rollover enabled)');
-    console.log('  Brand:        thrivesyracuse → claimed');
-    console.log('  SmokeyPay:    Enabled (claimed page checkout)');
-    console.log('  ZIP codes:    13224 (primary), 13214, 13210*, 13206, 13066, 13203*, 13057');
-    console.log('  * = socially conscious flag + custom messaging');
-    console.log('─────────────────────────────────────────────');
+if (!OPTIMIZE_PLAN) {
+    throw new Error('Optimize pricing plan could not be resolved.');
 }
 
-activateThriveOptimizePlan().catch((err) => {
-    console.error('❌ Script failed:', err);
+const OPTIMIZE_CREDITS = OPTIMIZE_PLAN.includedCredits ?? 7500;
+const OPTIMIZE_AUTOMATION_BUDGET = 2000;
+const OPTIMIZE_PLAYBOOK_LIMIT = 25;
+const EZAL_LIMITS = getEzalLimits(OPTIMIZE_PLAN_ID);
+
+type FirestoreDoc = Record<string, unknown>;
+
+function ensureAdminApp() {
+    if (getApps().length > 0) {
+        return getApps()[0];
+    }
+
+    const serviceAccountPath = path.resolve(process.cwd(), 'service-account.json');
+    if (fs.existsSync(serviceAccountPath)) {
+        const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf-8'));
+        return initializeApp({
+            credential: cert(serviceAccount),
+        });
+    }
+
+    return initializeApp({
+        credential: applicationDefault(),
+        projectId: process.env.FIREBASE_PROJECT_ID || 'studio-567050101-bc6e8',
+    });
+}
+
+function getAdminFirestore() {
+    return getFirestore(ensureAdminApp());
+}
+
+function getAdminAuth() {
+    return getAuth(ensureAdminApp());
+}
+
+function currentCycleKey(date = new Date()): string {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function buildOptimizeEntitlement(now: number) {
+    return {
+        orgId: ORG_ID,
+        planId: OPTIMIZE_PLAN_ID,
+        monthlyCreditsIncluded: OPTIMIZE_CREDITS,
+        rolloverCapPct: 0.25,
+        canPurchaseTopUps: true,
+        requiresApprovalAfterDepletion: false,
+        allowChat: true,
+        allowResearch: true,
+        allowImages: true,
+        allowCreativeBatch: true,
+        allowShortVideo: true,
+        allowFullVideo: true,
+        maxActivePlaybooks: OPTIMIZE_PLAYBOOK_LIMIT,
+        allowCustomPlaybooks: true,
+        monthlyAutomationCreditBudget: OPTIMIZE_AUTOMATION_BUDGET,
+        allowAutomationVideo: true,
+        requireApprovalForHighCostAutomationSteps: false,
+        effectiveAt: now,
+        updatedAt: now,
+    };
+}
+
+function buildOptimizeBalance(existing: FirestoreDoc | undefined, now: number) {
+    const nowDate = new Date();
+    const cycleStart = new Date(nowDate.getFullYear(), nowDate.getMonth(), 1);
+    const cycleEnd = new Date(nowDate.getFullYear(), nowDate.getMonth() + 1, 1);
+
+    return {
+        orgId: ORG_ID,
+        billingCycleKey: currentCycleKey(nowDate),
+        includedCreditsTotal: Math.max(
+            Number(existing?.includedCreditsTotal ?? 0),
+            OPTIMIZE_CREDITS
+        ),
+        includedCreditsUsed: Number(existing?.includedCreditsUsed ?? 0),
+        rolloverCreditsTotal: Number(existing?.rolloverCreditsTotal ?? 0),
+        rolloverCreditsUsed: Number(existing?.rolloverCreditsUsed ?? 0),
+        topUpCreditsTotal: Number(existing?.topUpCreditsTotal ?? 0),
+        topUpCreditsUsed: Number(existing?.topUpCreditsUsed ?? 0),
+        automationBudgetTotal: Math.max(
+            Number(existing?.automationBudgetTotal ?? 0),
+            OPTIMIZE_AUTOMATION_BUDGET
+        ),
+        automationBudgetUsed: Number(existing?.automationBudgetUsed ?? 0),
+        manualCreditsUsed: Number(existing?.manualCreditsUsed ?? 0),
+        automationCreditsUsed: Number(existing?.automationCreditsUsed ?? 0),
+        alertsSent:
+            typeof existing?.alertsSent === 'object' && existing?.alertsSent !== null
+                ? existing.alertsSent
+                : {},
+        cycleStartedAt: Number(existing?.cycleStartedAt ?? cycleStart.getTime()),
+        cycleEndsAt: Number(existing?.cycleEndsAt ?? cycleEnd.getTime()),
+        createdAt: Number(existing?.createdAt ?? now),
+        updatedAt: now,
+    };
+}
+
+function summarizePlanState(label: string, data: {
+    org?: FirestoreDoc;
+    subscription?: FirestoreDoc;
+    entitlement?: FirestoreDoc;
+    balance?: FirestoreDoc;
+    claims?: Record<string, unknown> | null;
+}) {
+    console.log(`\n${label}`);
+    console.log('-'.repeat(label.length));
+    console.log('Org billing plan:', data.org?.billing && typeof data.org.billing === 'object'
+        ? (data.org.billing as FirestoreDoc).planId ?? '(missing)'
+        : '(missing)');
+    console.log('Org subscription status:', data.org?.billing && typeof data.org.billing === 'object'
+        ? (data.org.billing as FirestoreDoc).subscriptionStatus ?? '(missing)'
+        : '(missing)');
+    console.log('Subscription/current planId:', data.subscription?.planId ?? '(missing)');
+    console.log('Subscription/current tierId:', data.subscription?.tierId ?? '(missing)');
+    console.log('AI entitlement plan:', data.entitlement?.planId ?? '(missing)');
+    console.log(
+        'AI entitlement monthly credits:',
+        data.entitlement?.monthlyCreditsIncluded ?? '(missing)'
+    );
+    console.log(
+        'Current-cycle credits total:',
+        data.balance?.includedCreditsTotal ?? '(missing)'
+    );
+    console.log(
+        'Current-cycle automation budget:',
+        data.balance?.automationBudgetTotal ?? '(missing)'
+    );
+    console.log('Custom claims planId:', data.claims?.planId ?? '(missing)');
+    console.log('Custom claims role:', data.claims?.role ?? '(missing)');
+}
+
+async function loadState() {
+    const db = getAdminFirestore();
+    const auth = getAdminAuth();
+    const cycleKey = currentCycleKey();
+
+    const [orgSnap, subscriptionSnap, entitlementSnap, balanceSnap] = await Promise.all([
+        db.collection('organizations').doc(ORG_ID).get(),
+        db.collection('organizations').doc(ORG_ID).collection('subscription').doc('current').get(),
+        db.collection('org_ai_studio_entitlements').doc(ORG_ID).get(),
+        db.collection('org_ai_studio_balances').doc(`${ORG_ID}-${cycleKey}`).get(),
+    ]);
+
+    let authUser: Awaited<ReturnType<typeof auth.getUserByEmail>> | null = null;
+    try {
+        authUser = await auth.getUserByEmail(USER_EMAIL);
+    } catch {
+        authUser = null;
+    }
+
+    return {
+        org: orgSnap.exists ? (orgSnap.data() as FirestoreDoc) : undefined,
+        subscription: subscriptionSnap.exists
+            ? (subscriptionSnap.data() as FirestoreDoc)
+            : undefined,
+        entitlement: entitlementSnap.exists
+            ? (entitlementSnap.data() as FirestoreDoc)
+            : undefined,
+        balance: balanceSnap.exists ? (balanceSnap.data() as FirestoreDoc) : undefined,
+        authUser,
+        claims: authUser?.customClaims ?? null,
+    };
+}
+
+async function applyUpgrade() {
+    const db = getAdminFirestore();
+    const auth = getAdminAuth();
+    const now = Date.now();
+    const cycleKey = currentCycleKey();
+    const state = await loadState();
+
+    const currentBilling =
+        state.org?.billing && typeof state.org.billing === 'object'
+            ? (state.org.billing as FirestoreDoc)
+            : {};
+    const currentSubscription = state.subscription ?? {};
+
+    const nextBilling = {
+        ...currentBilling,
+        planId: OPTIMIZE_PLAN_ID,
+        planName: OPTIMIZE_PLAN.name,
+        subscriptionStatus: 'active',
+        status: 'active',
+        monthlyPrice: OPTIMIZE_PLAN.price ?? currentBilling.monthlyPrice ?? 0,
+        activationFee: OPTIMIZE_PLAN.activationFee ?? currentBilling.activationFee ?? null,
+        includedCredits: OPTIMIZE_CREDITS,
+        updatedAt: now,
+    };
+
+    const nextOrg = {
+        plan: OPTIMIZE_PLAN_ID,
+        planId: OPTIMIZE_PLAN_ID,
+        updatedAt: now,
+        billing: nextBilling,
+        competitiveIntel: {
+            ...(state.org?.competitiveIntel && typeof state.org.competitiveIntel === 'object'
+                ? (state.org.competitiveIntel as FirestoreDoc)
+                : {}),
+            enabled: true,
+            planId: OPTIMIZE_PLAN_ID,
+            maxCompetitors: EZAL_LIMITS.maxCompetitors,
+            frequencyMinutes: EZAL_LIMITS.frequencyMinutes,
+            updatedAt: now,
+        },
+    };
+
+    const nextSubscription = {
+        ...currentSubscription,
+        planId: OPTIMIZE_PLAN_ID,
+        planName: OPTIMIZE_PLAN.name,
+        status: 'active',
+        updatedAt: now,
+    };
+
+    const nextEntitlement = buildOptimizeEntitlement(now);
+    const nextBalance = buildOptimizeBalance(state.balance, now);
+
+    const batch = db.batch();
+    batch.set(db.collection('organizations').doc(ORG_ID), nextOrg, { merge: true });
+    batch.set(
+        db.collection('organizations').doc(ORG_ID).collection('subscription').doc('current'),
+        nextSubscription,
+        { merge: true }
+    );
+    batch.set(db.collection('org_ai_studio_entitlements').doc(ORG_ID), nextEntitlement, {
+        merge: true,
+    });
+    batch.set(
+        db.collection('org_ai_studio_balances').doc(`${ORG_ID}-${cycleKey}`),
+        nextBalance,
+        { merge: true }
+    );
+
+    if (state.authUser) {
+        const userDocRef = db.collection('users').doc(state.authUser.uid);
+        batch.set(
+            userDocRef,
+            {
+                currentOrgId: ORG_ID,
+                billing: {
+                    planId: OPTIMIZE_PLAN_ID,
+                    planName: OPTIMIZE_PLAN.name,
+                    status: 'active',
+                    monthlyPrice: OPTIMIZE_PLAN.price ?? 0,
+                },
+                updatedAt: now,
+            },
+            { merge: true }
+        );
+    }
+
+    await batch.commit();
+
+    if (state.authUser) {
+        const existingClaims = state.authUser.customClaims || {};
+        const existingRole = typeof existingClaims.role === 'string' ? existingClaims.role : null;
+        const nextClaims: Record<string, unknown> = {
+            ...existingClaims,
+            role:
+                existingRole === 'dispensary' ||
+                existingRole === 'dispensary_admin' ||
+                existingRole === 'dispensary_staff'
+                    ? existingRole
+                    : 'dispensary_admin',
+            orgId: ORG_ID,
+            currentOrgId: ORG_ID,
+            planId: OPTIMIZE_PLAN_ID,
+            email: USER_EMAIL,
+        };
+
+        if (!nextClaims.brandId) {
+            nextClaims.brandId = ORG_ID;
+        }
+
+        await auth.setCustomUserClaims(state.authUser.uid, nextClaims);
+        await auth.revokeRefreshTokens(state.authUser.uid);
+    }
+
+    return loadState();
+}
+
+async function main() {
+    const shouldApply = process.argv.includes('--apply');
+
+    console.log(`Thrive Syracuse Optimize Provisioning${shouldApply ? ' (apply)' : ' (dry run)'}`);
+    console.log('='.repeat(48));
+    console.log(`Target org: ${ORG_ID}`);
+    console.log(`Target user: ${USER_EMAIL}`);
+    console.log(`Optimize monthly price: ${OPTIMIZE_PLAN.priceDisplay}${OPTIMIZE_PLAN.period}`);
+    console.log(`Optimize activation fee: ${OPTIMIZE_PLAN.activationFee ? `$${OPTIMIZE_PLAN.activationFee.toLocaleString()}` : 'Included'}`);
+    console.log(`Optimize credits: ${OPTIMIZE_CREDITS.toLocaleString()}`);
+    console.log(`Optimize automation budget: ${OPTIMIZE_AUTOMATION_BUDGET.toLocaleString()}`);
+    console.log(`Ezal cadence: every ${EZAL_LIMITS.frequencyMinutes} minutes`);
+    console.log(`Ezal competitor slots: ${EZAL_LIMITS.maxCompetitors}`);
+
+    const before = await loadState();
+    summarizePlanState('Before', before);
+
+    if (!shouldApply) {
+        console.log('\nDry run only. Re-run with --apply to provision Thrive onto Optimize.');
+        return;
+    }
+
+    const after = await applyUpgrade();
+    summarizePlanState('After', after);
+    console.log('\nThrive Syracuse is now provisioned for Optimize testing.');
+}
+
+main().catch((error) => {
+    console.error('\nFailed to provision Thrive Optimize plan.');
+    console.error(error);
     process.exit(1);
 });
