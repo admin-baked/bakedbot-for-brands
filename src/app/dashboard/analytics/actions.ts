@@ -5,8 +5,11 @@ import { orderConverter, type OrderDoc } from '@/firebase/converters';
 import { requireUser } from '@/server/auth/auth';
 import { logger } from '@/lib/logger';
 import { unstable_noStore as noStore } from 'next/cache';
+import { getDispensaryRetailerId, getLocationId } from '@/app/dashboard/orders/order-context';
 
 const ANALYTICS_ALLOWED_ROLES = ['brand', 'brand_admin', 'brand_member', 'dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender', 'super_user', 'super_admin'] as const;
+const DISPENSARY_ANALYTICS_ROLES = ['dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender'] as const;
+const ANALYTICS_ORDER_STATUSES = ['submitted', 'confirmed', 'ready', 'completed'] as const;
 
 export interface DailyAnalytics {
   date: string;
@@ -75,30 +78,109 @@ function userCanAccessEntity(user: Record<string, unknown>, entityId: string): b
   return candidates.includes(entityId) || orgIds.includes(entityId);
 }
 
-async function fetchOrdersWithFallback(firestore: FirebaseFirestore.Firestore, entityId: string): Promise<OrderDoc[]> {
-  const statuses = ['submitted', 'confirmed', 'ready', 'completed'];
+async function fetchOrdersWithFallback(
+  firestore: FirebaseFirestore.Firestore,
+  entityId: string,
+  user: Record<string, unknown>,
+): Promise<OrderDoc[]> {
+  const role = typeof user.role === 'string' ? user.role : '';
+  const isDispensaryRole = DISPENSARY_ANALYTICS_ROLES.includes(role as (typeof DISPENSARY_ANALYTICS_ROLES)[number]);
+  const locationId = getLocationId(user);
+  const currentOrgId = typeof user.currentOrgId === 'string' ? user.currentOrgId : undefined;
+  const orgId = typeof user.orgId === 'string' ? user.orgId : undefined;
+  const brandId = typeof user.brandId === 'string' ? user.brandId : undefined;
 
-  const byBrandSnap = await firestore.collection('orders')
-    .where('brandId', '==', entityId)
-    .where('status', 'in', statuses)
-    .withConverter(orderConverter as any)
-    .get();
+  const queryPlans: Array<{
+    field: 'brandId' | 'orgId' | 'retailerId';
+    ids: string[];
+  }> = isDispensaryRole
+    ? [
+        {
+          field: 'retailerId',
+          ids: [
+            getDispensaryRetailerId({ locationId, orgId: currentOrgId || orgId || entityId }) || '',
+            locationId || '',
+            entityId,
+          ],
+        },
+        { field: 'brandId', ids: [brandId || '', entityId] },
+        { field: 'orgId', ids: [currentOrgId || '', orgId || '', entityId] },
+      ]
+    : [
+        { field: 'brandId', ids: [entityId, brandId || ''] },
+        { field: 'orgId', ids: [entityId, currentOrgId || '', orgId || ''] },
+      ];
 
-  if (!byBrandSnap.empty) {
-    return byBrandSnap.docs.map((doc: any) => doc.data()) as OrderDoc[];
+  for (const plan of queryPlans) {
+    const uniqueIds = Array.from(new Set(plan.ids.filter(Boolean)));
+    for (const candidateId of uniqueIds) {
+      const orders = await queryOrdersByField(firestore, plan.field, candidateId);
+      if (orders.length > 0) {
+        if (plan.field !== 'brandId' || candidateId !== entityId) {
+          logger.info('[Analytics] Orders fallback query used', {
+            entityId,
+            field: plan.field,
+            candidateId,
+            count: orders.length,
+          });
+        }
+        return orders;
+      }
+    }
   }
 
-  const byOrgSnap = await firestore.collection('orders')
-    .where('orgId', '==', entityId)
-    .where('status', 'in', statuses)
-    .withConverter(orderConverter as any)
-    .get();
+  return [];
+}
 
-  if (!byOrgSnap.empty) {
-    logger.info('[Analytics] Fallback orders query by orgId used', { entityId, count: byOrgSnap.size });
+function normalizeOrderStatus(status: unknown): string {
+  return typeof status === 'string' ? status.trim().toLowerCase() : '';
+}
+
+function hasAllowedAnalyticsStatus(order: OrderDoc): boolean {
+  const normalized = normalizeOrderStatus(order.status);
+  return normalized ? ANALYTICS_ORDER_STATUSES.includes(normalized as (typeof ANALYTICS_ORDER_STATUSES)[number]) : true;
+}
+
+async function queryOrdersByField(
+  firestore: FirebaseFirestore.Firestore,
+  field: 'brandId' | 'orgId' | 'retailerId',
+  entityId: string,
+): Promise<OrderDoc[]> {
+  try {
+    const snap = await firestore.collection('orders')
+      .where(field, '==', entityId)
+      .where('status', 'in', [...ANALYTICS_ORDER_STATUSES])
+      .withConverter(orderConverter as any)
+      .get();
+    return snap.docs.map((doc: any) => doc.data()) as OrderDoc[];
+  } catch (error) {
+    logger.warn('[Analytics] Order query failed, retrying without status filter', {
+      entityId,
+      field,
+      error: error instanceof Error ? error.message : String(error),
+    });
+
+    const fallback = await firestore.collection('orders')
+      .where(field, '==', entityId)
+      .withConverter(orderConverter as any)
+      .get()
+      .catch((fallbackError) => {
+        logger.error('[Analytics] Order fallback query failed', {
+          entityId,
+          field,
+          error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
+        });
+        return null;
+      });
+
+    if (!fallback) {
+      return [];
+    }
+
+    return fallback.docs
+      .map((doc: any) => doc.data() as OrderDoc)
+      .filter(hasAllowedAnalyticsStatus);
   }
-
-  return byOrgSnap.docs.map((doc: any) => doc.data()) as OrderDoc[];
 }
 
 function getOrderEmail(order: OrderDoc): string | null {
@@ -123,7 +205,7 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
   const { firestore } = await createServerClient();
 
   // Fetch orders (brandId first, orgId fallback)
-  const orders = await fetchOrdersWithFallback(firestore, brandId);
+  const orders = await fetchOrdersWithFallback(firestore, brandId, user as unknown as Record<string, unknown>);
 
   // --- COHORT ANALYSIS LOGIC (Task 401) ---
   const customerFirstOrderDate = new Map<string, string>(); // email -> YYYY-MM
