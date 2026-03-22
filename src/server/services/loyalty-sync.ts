@@ -209,17 +209,21 @@ export class LoyaltySyncService {
       // First sync = enrollment: send loyalty card via SMS/email (fire-and-forget)
       const isFirstSync = !existingData?.loyaltyEnrolledAt;
       if (isFirstSync && (existingData?.phone || existingData?.email)) {
-        sendLoyaltyCardOnEnrollment({
-          customerId,
-          orgId,
-          brandName: 'Your Dispensary',
-          brandSlug: orgId,
-          customerName: [existingData.firstName, existingData.lastName].filter(Boolean).join(' ') || 'Member',
-          points: finalPoints,
-          tier: finalTier,
-          primaryColor: '#16a34a',
-          phone: existingData.phone,
-          email: existingData.email,
+        const customerName = [existingData.firstName, existingData.lastName].filter(Boolean).join(' ') || 'Member';
+        const phone = existingData.phone;
+        const email = existingData.email;
+        // Fetch brand guide inside fire-and-forget — doesn't block sync
+        this.firestore.collection('brandGuides').doc(orgId).get().then(bgDoc => {
+          const bg = bgDoc.exists ? bgDoc.data() : null;
+          const brandName = bg?.brandName || 'Your Dispensary';
+          const primaryColor = bg?.visualIdentity?.colors?.primary?.hex || '#16a34a';
+          return this.firestore.collection('organizations').doc(orgId).get().then(orgDoc => {
+            const brandSlug = orgDoc.exists ? (orgDoc.data()?.slug || orgId) : orgId;
+            return sendLoyaltyCardOnEnrollment({
+              customerId, orgId, brandName, brandSlug, customerName,
+              points: finalPoints, tier: finalTier, primaryColor, phone, email,
+            });
+          });
         }).catch(() => {});
       }
 

@@ -70,6 +70,7 @@ export interface CustomerProfile {
     loyaltyReconciled?: boolean;       // Are calculated and Alpine in sync?
     loyaltyDiscrepancy?: number;       // Difference between sources
     lastDiscrepancyAlertAt?: Date;     // Last Slack alert timestamp (dedup window: 24h)
+    loyaltyEnrolledAt?: Date;          // Timestamp of first loyalty sync (enrollment detection)
     alpineUserId?: string;             // Alpine IQ user code from Alleaves
 
     // Wallet pass identifiers

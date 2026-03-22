@@ -8,13 +8,14 @@
  * - Web Push subscription for point update notifications
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Smartphone, Bell, BellOff, Download, RotateCcw } from 'lucide-react';
 import QRCode from 'qrcode';
+import { LOYALTY_TIER_COLORS } from '@/lib/constants/loyalty';
 
 interface LoyaltyCardSectionProps {
   orgId: string;
@@ -33,15 +34,10 @@ interface CustomerData {
 
 type InstallPromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
 
-const TIER_COLORS: Record<string, string> = {
-  Silver: '#94a3b8',
-  Gold: '#f59e0b',
-  Platinum: '#8b5cf6',
-  Bronze: '#b45309',
-};
 
 export function LoyaltyCardSection({ orgId, brandName, brandSlug, primaryColor }: LoyaltyCardSectionProps) {
   const [lookup, setLookup] = useState('');
+  const lookupRef = useRef('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [customer, setCustomer] = useState<CustomerData | null>(null);
@@ -50,7 +46,6 @@ export function LoyaltyCardSection({ orgId, brandName, brandSlug, primaryColor }
   const [isInstalled, setIsInstalled] = useState(false);
   const [pushGranted, setPushGranted] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Capture "Add to Home Screen" prompt
   useEffect(() => {
@@ -73,17 +68,16 @@ export function LoyaltyCardSection({ orgId, brandName, brandSlug, primaryColor }
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
-  // Generate QR code when customer loaded
+  // Generate QR code once on mount — URL only depends on brandSlug, never changes
   useEffect(() => {
-    if (!customer) return;
     const rewardsUrl = `${window.location.origin}/${brandSlug}/rewards`;
     QRCode.toDataURL(rewardsUrl, { width: 140, margin: 1, color: { dark: '#1a1a1a', light: '#ffffff' } })
       .then(setQrDataUrl)
       .catch(() => {});
-  }, [customer, brandSlug]);
+  }, [brandSlug]);
 
   const handleLookup = useCallback(async () => {
-    const val = lookup.trim();
+    const val = lookupRef.current.trim();
     if (!val) return;
     setLoading(true);
     setError('');
@@ -106,7 +100,7 @@ export function LoyaltyCardSection({ orgId, brandName, brandSlug, primaryColor }
     } finally {
       setLoading(false);
     }
-  }, [lookup, orgId]);
+  }, [orgId]);
 
   const handleInstall = async () => {
     if (!installPrompt) return;
@@ -129,7 +123,7 @@ export function LoyaltyCardSection({ orgId, brandName, brandSlug, primaryColor }
 
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey).buffer as ArrayBuffer,
       });
 
       await fetch('/api/push/subscribe', {
@@ -146,7 +140,7 @@ export function LoyaltyCardSection({ orgId, brandName, brandSlug, primaryColor }
     }
   };
 
-  const tierColor = customer ? (TIER_COLORS[customer.tier] || primaryColor) : primaryColor;
+  const tierColor = customer ? (LOYALTY_TIER_COLORS[customer.tier] || primaryColor) : primaryColor;
 
   return (
     <section className="py-16 bg-muted/20">
@@ -165,7 +159,7 @@ export function LoyaltyCardSection({ orgId, brandName, brandSlug, primaryColor }
               <Input
                 placeholder="Phone number or email"
                 value={lookup}
-                onChange={e => setLookup(e.target.value)}
+                onChange={e => { setLookup(e.target.value); lookupRef.current = e.target.value; }}
                 onKeyDown={e => e.key === 'Enter' && handleLookup()}
                 className="text-center"
               />
@@ -224,43 +218,47 @@ export function LoyaltyCardSection({ orgId, brandName, brandSlug, primaryColor }
             </div>
 
             {/* Actions */}
-            <div className="grid grid-cols-2 gap-3">
-              {/* Add to Home Screen */}
-              {!isInstalled && installPrompt && (
-                <Button
-                  variant="outline"
-                  className="flex items-center gap-2 text-sm"
-                  onClick={handleInstall}
-                >
-                  <Download className="w-4 h-4" />
-                  Add to Home Screen
-                </Button>
-              )}
-              {isInstalled && (
-                <Button variant="outline" className="flex items-center gap-2 text-sm" disabled>
-                  <Download className="w-4 h-4" />
-                  Added to Home Screen
-                </Button>
-              )}
-
-              {/* Push notifications */}
-              {!pushGranted ? (
-                <Button
-                  variant="outline"
-                  className="flex items-center gap-2 text-sm"
-                  onClick={handlePushSubscribe}
-                  disabled={pushLoading}
-                >
-                  <Bell className="w-4 h-4" />
-                  {pushLoading ? 'Enabling…' : 'Point Alerts'}
-                </Button>
-              ) : (
-                <Button variant="outline" className="flex items-center gap-2 text-sm" disabled>
-                  <BellOff className="w-4 h-4" />
-                  Alerts On
-                </Button>
-              )}
-            </div>
+            {(() => {
+              const showInstall = !isInstalled && !!installPrompt;
+              const showInstalledState = isInstalled;
+              const hasInstallSlot = showInstall || showInstalledState;
+              return (
+                <div className={`grid gap-3 ${hasInstallSlot ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                  {showInstall && (
+                    <Button
+                      variant="outline"
+                      className="flex items-center gap-2 text-sm"
+                      onClick={handleInstall}
+                    >
+                      <Download className="w-4 h-4" />
+                      Add to Home Screen
+                    </Button>
+                  )}
+                  {showInstalledState && (
+                    <Button variant="outline" className="flex items-center gap-2 text-sm" disabled>
+                      <Download className="w-4 h-4" />
+                      Added to Home Screen
+                    </Button>
+                  )}
+                  {!pushGranted ? (
+                    <Button
+                      variant="outline"
+                      className="flex items-center gap-2 text-sm"
+                      onClick={handlePushSubscribe}
+                      disabled={pushLoading}
+                    >
+                      <Bell className="w-4 h-4" />
+                      {pushLoading ? 'Enabling…' : 'Point Alerts'}
+                    </Button>
+                  ) : (
+                    <Button variant="outline" className="flex items-center gap-2 text-sm" disabled>
+                      <BellOff className="w-4 h-4" />
+                      Alerts On
+                    </Button>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Look up different account */}
             <button
@@ -277,8 +275,6 @@ export function LoyaltyCardSection({ orgId, brandName, brandSlug, primaryColor }
         )}
       </div>
 
-      {/* Hidden canvas for QR fallback */}
-      <canvas ref={canvasRef} className="hidden" />
     </section>
   );
 }

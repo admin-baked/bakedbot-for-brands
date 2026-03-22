@@ -39,8 +39,12 @@ export async function notifyCustomer(
     if (!configured) return;
 
     const db = getAdminFirestore();
-    let doc = await db.collection('customers').doc(`${orgId}_${customerId}`).get();
-    if (!doc.exists) doc = await db.collection('customers').doc(customerId).get();
+    const col = db.collection('customers');
+    const [compound, bare] = await Promise.all([
+      col.doc(`${orgId}_${customerId}`).get(),
+      col.doc(customerId).get(),
+    ]);
+    const doc = compound.exists ? compound : bare;
     if (!doc.exists) return;
 
     const sub = doc.data()?.pushSubscription;
@@ -54,9 +58,9 @@ export async function notifyCustomer(
     if (errMsg.includes('410') || errMsg.includes('404')) {
       try {
         const db = getAdminFirestore();
-        let ref = db.collection('customers').doc(`${orgId}_${customerId}`);
-        const exists = (await ref.get()).exists;
-        if (!exists) ref = db.collection('customers').doc(customerId);
+        const col = db.collection('customers');
+        const [c, b] = await Promise.all([col.doc(`${orgId}_${customerId}`).get(), col.doc(customerId).get()]);
+        const ref = c.exists ? c.ref : b.ref;
         await ref.set({ pushSubscription: null }, { merge: true });
       } catch {
         // best effort

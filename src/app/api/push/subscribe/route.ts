@@ -19,13 +19,12 @@ export async function POST(request: NextRequest) {
     }
 
     const db = getAdminFirestore();
-
-    // Try compound doc ID first, then bare
-    let docRef = db.collection('customers').doc(`${orgId}_${customerId}`);
-    const compound = await docRef.get();
-    if (!compound.exists) {
-      docRef = db.collection('customers').doc(customerId);
-    }
+    const col = db.collection('customers');
+    const [compound, bare] = await Promise.all([
+      col.doc(`${orgId}_${customerId}`).get(),
+      col.doc(customerId).get(),
+    ]);
+    const docRef = (compound.exists ? compound : bare).ref;
 
     await docRef.set(
       {

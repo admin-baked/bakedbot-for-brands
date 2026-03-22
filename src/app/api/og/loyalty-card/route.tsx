@@ -5,6 +5,7 @@
  */
 import { ImageResponse } from 'next/og';
 import { NextRequest } from 'next/server';
+import { LOYALTY_TIER_COLORS } from '@/lib/constants/loyalty';
 
 export const runtime = 'edge';
 
@@ -17,13 +18,7 @@ export async function GET(request: NextRequest) {
   const color = searchParams.get('color') || '#16a34a';
   const loyaltyId = searchParams.get('id') || '';
 
-  const tierColors: Record<string, string> = {
-    Silver: '#94a3b8',
-    Gold: '#f59e0b',
-    Platinum: '#8b5cf6',
-    Bronze: '#b45309',
-  };
-  const tierColor = tierColors[tier] || color;
+  const tierColor = LOYALTY_TIER_COLORS[tier] || color;
 
   return new ImageResponse(
     (
