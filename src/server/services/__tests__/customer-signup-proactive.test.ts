@@ -1,4 +1,9 @@
-import { getCustomerSignupOpportunity } from '../customer-signup-proactive';
+import {
+  CUSTOMER_SIGNUP_IMPORT_DIGEST_THRESHOLD,
+  getCustomerSignupImportMode,
+  getCustomerSignupOpportunity,
+  summarizeCustomerSignupImportOpportunities,
+} from '../customer-signup-proactive';
 
 describe('customer signup proactive gap detection', () => {
   const orgId = 'org_test';
@@ -56,5 +61,36 @@ describe('customer signup proactive gap detection', () => {
         businessObjectId: 'new@example.com',
       })
     );
+  });
+
+  it('uses digest mode only when import size crosses the batching threshold', () => {
+    expect(getCustomerSignupImportMode(CUSTOMER_SIGNUP_IMPORT_DIGEST_THRESHOLD)).toBe('individual');
+    expect(getCustomerSignupImportMode(CUSTOMER_SIGNUP_IMPORT_DIGEST_THRESHOLD + 1)).toBe('digest');
+  });
+
+  it('summarizes imported customer onboarding gaps into one cohort digest', () => {
+    const digest = summarizeCustomerSignupImportOpportunities({
+      orgId,
+      payloads: [
+        { customerId: 'cust_1', email: 'one@example.com', firstName: 'One' },
+        { customerId: 'cust_2', firstName: 'Two', lastName: 'NoEmail' },
+        { customerId: 'cust_3', email: 'three@example.com', firstName: 'Three' },
+      ],
+      welcomeAutomationState: 'missing',
+      now: new Date('2026-03-21T12:00:00.000Z'),
+    });
+
+    expect(digest).toEqual(
+      expect.objectContaining({
+        title: 'Imported customers need onboarding review (3)',
+        severity: 'high',
+        businessObjectId: 'customer_import_2026-03-21',
+      })
+    );
+    expect(digest?.reasonCounts).toEqual({
+      welcome_automation_missing: 2,
+      missing_contact_channel: 1,
+    });
+    expect(digest?.sampleCustomers).toHaveLength(3);
   });
 });

@@ -24,6 +24,7 @@ import {
     createWinbackEmailPlaybook,
     type PilotEmailConfig,
 } from '@/server/actions/pilot-setup';
+import { syncCustomerSignupProactiveGap } from '@/server/services/customer-signup-proactive';
 import {
     CustomerProfile,
     CustomerSegment,
@@ -984,8 +985,9 @@ export async function upsertCustomer(
     };
 
     let docId: string;
+    const isNewCustomer = existing.empty;
 
-    if (!existing.empty) {
+    if (!isNewCustomer) {
         docId = existing.docs[0].id;
         await firestore.collection('customers').doc(docId).update(customerData);
     } else {
@@ -994,6 +996,26 @@ export async function upsertCustomer(
             createdAt: FieldValue.serverTimestamp(),
         });
         docId = docRef.id;
+    }
+
+    if (isNewCustomer) {
+        const proactiveResult = await syncCustomerSignupProactiveGap(orgId, {
+            customerId: docId,
+            email: profile.email,
+            phone: profile.phone,
+            name: profile.displayName,
+            firstName: profile.firstName,
+            lastName: profile.lastName,
+        });
+
+        if (!proactiveResult.success && !proactiveResult.skipped) {
+            logger.warn('[CUSTOMERS] Failed to sync customer signup proactive gap after manual upsert', {
+                orgId,
+                customerId: docId,
+                email: profile.email.toLowerCase(),
+                error: proactiveResult.error,
+            });
+        }
     }
 
     return {

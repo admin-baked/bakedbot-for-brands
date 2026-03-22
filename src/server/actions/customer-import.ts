@@ -15,6 +15,7 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import type { CustomerProfile, CustomerSegment } from '@/types/customers';
 import { calculateSegment } from '@/types/customers';
+import { syncImportedCustomerSignupProactiveGaps } from '@/server/services/customer-signup-proactive';
 import {
     buildColumnMapping,
     getMappingSummary,
@@ -280,6 +281,14 @@ export async function importCustomers(
         let imported = 0;
         let updated = 0;
         let skipped = 0;
+        const importedSignupPayloads: Array<{
+            customerId: string;
+            email?: string | null;
+            phone?: string | null;
+            name?: string | null;
+            firstName?: string | null;
+            lastName?: string | null;
+        }> = [];
 
         // Process in batches of 500
         const batchSize = 500;
@@ -339,6 +348,14 @@ export async function importCustomers(
                         }
 
                         batch.set(newRef, customer);
+                        importedSignupPayloads.push({
+                            customerId: newRef.id,
+                            email: customer.email ?? null,
+                            phone: customer.phone ?? null,
+                            name: customer.displayName ?? null,
+                            firstName: customer.firstName ?? null,
+                            lastName: customer.lastName ?? null,
+                        });
                         imported++;
                     }
                 } catch (error) {
@@ -381,6 +398,23 @@ export async function importCustomers(
         } catch (activityError) {
             // Activity logging is non-critical, don't fail the import
             logger.warn('[CustomerImport] Could not log activity:', { error: activityError });
+        }
+
+        if (importedSignupPayloads.length > 0) {
+            const proactiveResult = await syncImportedCustomerSignupProactiveGaps(
+                orgId,
+                importedSignupPayloads,
+                fileType === 'xlsx' ? 'xlsx_import' : 'csv_import'
+            );
+
+            if (!proactiveResult.success && !proactiveResult.skipped) {
+                logger.warn('[CustomerImport] Failed to sync imported customer onboarding gaps', {
+                    orgId,
+                    importedCount: importedSignupPayloads.length,
+                    mode: proactiveResult.mode,
+                    error: proactiveResult.error,
+                });
+            }
         }
 
         return {

@@ -60,6 +60,7 @@ function createQuery(snapshot: ReturnType<typeof createSnapshot>) {
 describe('customer CRM actions', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        jest.useFakeTimers().setSystemTime(new Date('2026-03-11T10:00:00Z'));
 
         const now = new Date('2026-03-11T10:00:00Z');
         const oldDate = new Date('2025-11-01T10:00:00Z');
@@ -143,6 +144,10 @@ describe('customer CRM actions', () => {
             totalActive: 0,
             customConfigs: {},
         });
+    });
+
+    afterEach(() => {
+        jest.useRealTimers();
     });
 
     it('returns lifecycle playbook suggestions with launch metadata', async () => {
