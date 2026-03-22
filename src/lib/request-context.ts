@@ -15,6 +15,13 @@ import { AsyncLocalStorage } from 'async_hooks';
 export interface RequestContext {
     /** Route synthesis step to GLM instead of Claude (non-PII, cost savings). */
     useGLMSynthesis?: boolean;
+    /**
+     * Model level hint for sub-agent runs spawned via triggerAgentRun.
+     * Prevents sub-agents from inheriting a heavy caller model (e.g., advanced/expert).
+     * Agents that read this should cap their model tier accordingly.
+     * Default per-agent: mrs_parker → 'lite', craig → 'lite', others → 'standard'.
+     */
+    subAgentModelLevel?: string;
 }
 
 export const requestContext = new AsyncLocalStorage<RequestContext>();

@@ -328,6 +328,90 @@ export class PlaybookArtifactMemoryService {
         });
     }
 
+    /**
+     * Write a mid-run stage checkpoint to the artifact repo.
+     *
+     * Called immediately after a stage transitions to 'running', before the executor
+     * fires. The checkpoint JSON is lightweight — it records the stage name, attempt,
+     * start time, and run status so that:
+     *   1. Operators can see which stage a long run is currently in.
+     *   2. A Cloud Tasks retry can detect the in-progress stage and skip already-
+     *      completed work (resumable state hook — consumers should check this file
+     *      before re-running expensive sub-steps).
+     */
+    async persistStageCheckpoint(input: {
+        run: PlaybookRunRecord;
+        stageName: string;
+        attempt: number;
+        startedAt: string;
+    }): Promise<void> {
+        await this.artifactService.persist({
+            runId: input.run.id,
+            workspaceId: input.run.orgId,
+            playbookId: input.run.playbookId,
+            stageName: input.stageName,
+            artifactType: 'stage_checkpoint',
+            filename: `checkpoint_${input.stageName}_attempt${input.attempt}.json`,
+            body: stableJson({
+                runId: input.run.id,
+                playbookId: input.run.playbookId,
+                orgId: input.run.orgId,
+                stageName: input.stageName,
+                attempt: input.attempt,
+                status: 'running',
+                startedAt: input.startedAt,
+                runStartedAt: input.run.startedAt,
+                stageStatuses: input.run.stageStatuses,
+            }),
+            contentType: 'application/json',
+            // Non-blocking write — don't commit to git repo (too chatty mid-run),
+            // just persist to blob storage + Firestore metadata.
+            commitToRepo: false,
+            runDate: input.run.startedAt,
+        });
+    }
+
+    /**
+     * Finalize the stage checkpoint after the executor returns.
+     *
+     * Overwrites the 'running' checkpoint written by persistStageCheckpoint with a
+     * terminal status ('completed' | 'failed') and the stage duration.  A Cloud Tasks
+     * retry that reads this file and sees status='completed' can safely skip the stage
+     * and proceed to the next one — enabling resumable runs without re-executing work.
+     */
+    async finalizeStageCheckpoint(input: {
+        run: PlaybookRunRecord;
+        stageName: string;
+        attempt: number;
+        startedAt: string;
+        status: 'completed' | 'failed';
+        durationMs: number;
+    }): Promise<void> {
+        await this.artifactService.persist({
+            runId: input.run.id,
+            workspaceId: input.run.orgId,
+            playbookId: input.run.playbookId,
+            stageName: input.stageName,
+            artifactType: 'stage_checkpoint',
+            filename: `checkpoint_${input.stageName}_attempt${input.attempt}.json`,
+            body: stableJson({
+                runId: input.run.id,
+                playbookId: input.run.playbookId,
+                orgId: input.run.orgId,
+                stageName: input.stageName,
+                attempt: input.attempt,
+                status: input.status,
+                startedAt: input.startedAt,
+                completedAt: new Date().toISOString(),
+                durationMs: input.durationMs,
+                runStartedAt: input.run.startedAt,
+            }),
+            contentType: 'application/json',
+            commitToRepo: false,
+            runDate: input.run.startedAt,
+        });
+    }
+
     async safePersist<T>(label: string, operation: () => Promise<T>): Promise<T | null> {
         try {
             return await operation();

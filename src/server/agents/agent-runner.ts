@@ -52,7 +52,7 @@ engine.register(new DeeboComplianceEval());
 
 import { executeWithTools, isClaudeAvailable } from '@/ai/claude';
 import { getUniversalClaudeTools, createToolExecutor, shouldUseClaudeTools } from '@/server/agents/tools/claude-tools';
-import { getRequestContext } from '@/lib/request-context';
+import { requestContext, getRequestContext } from '@/lib/request-context';
 
 
 // Verification Layer (Gauntlet)
@@ -207,8 +207,13 @@ async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOver
 
     const GAUNTLET_ENABLED = process.env.ENABLE_GAUNTLET_VERIFICATION === 'true';
 
-    // 1. Configure Evaluators (only if feature flag is enabled)
-    const AGENT_EVALUATORS: Record<string, any[]> = GAUNTLET_ENABLED ? {
+    // Gauntlet is always on for Craig running under Thrive (pilot org) — marketing
+    // content must pass cannabis compliance before delivery regardless of the global flag.
+    const isThriveBrand = brandId.toLowerCase().includes('thrive');
+    const craigGauntletEnabled = agentName === 'craig' && isThriveBrand;
+
+    // 1. Configure Evaluators
+    const AGENT_EVALUATORS: Record<string, any[]> = (GAUNTLET_ENABLED || craigGauntletEnabled) ? {
         'craig': [new DeeboEvaluator()], // Craig marketing content audited by Deebo
         // Future: Add more evaluators as needed
         // 'money_mike': [new FinancialEvaluator()],
@@ -288,16 +293,42 @@ async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOver
         }
     }
 
-    let currentStimulus = (stimulus || '') + trainingContext + lettaContext;
+    // --- PER-AGENT MODEL DEFAULTS ---
+    // Sub-agents (mrs_parker, craig) run on Lite to avoid inheriting a heavy
+    // caller model level (e.g., advanced / expert from an executive session).
+    const SUB_AGENT_MODEL_DEFAULTS: Record<string, string> = {
+        mrs_parker: 'lite',
+        craig: 'lite',
+    };
+    const subAgentModelLevel = SUB_AGENT_MODEL_DEFAULTS[agentName] ?? 'standard';
+
+    // --- CONTEXT COMPACTION ---
+    // Prevent the accumulated stimulus (talk tracks + Letta memory) from ballooning
+    // to the point where the sub-agent's context window fills up. Cap at ~12 k chars
+    // (~3 k tokens). Content beyond this limit is truncated — recent content kept.
+    const MAX_STIMULUS_CHARS = 12_000;
+    let rawStimulus = (stimulus || '') + trainingContext + lettaContext;
+    if (rawStimulus.length > MAX_STIMULUS_CHARS) {
+        const head = (stimulus || '').slice(0, Math.min((stimulus || '').length, 4_000));
+        const tail = rawStimulus.slice(rawStimulus.length - (MAX_STIMULUS_CHARS - head.length));
+        rawStimulus = head + '\n\n[... context compacted ...]\n\n' + tail;
+        logger.info(`[AgentRunner:triggerAgentRun] Compacted stimulus for ${agentName}: ${rawStimulus.length} chars`);
+    }
+
+    let currentStimulus = rawStimulus;
     let attempts = 0;
 
     while (attempts < MAX_RETRIES) {
         attempts++;
 
-        // A. Generate (Run Agent) with Timeout protection
+        // A. Generate (Run Agent) with Timeout protection, wrapped in a request context
+        // that caps the model level for this sub-agent and marks synthesis mode.
         const AGENT_RUN_TIMEOUT = 240000; // 4 minutes
-        const runPromise = runAgent(brandId, persistence, agentImpl as any, tools, currentStimulus);
-        const timeoutPromise = new Promise((_, reject) => 
+        const runPromise = requestContext.run(
+            { ...getRequestContext(), subAgentModelLevel },
+            () => runAgent(brandId, persistence, agentImpl as any, tools, currentStimulus)
+        );
+        const timeoutPromise = new Promise((_, reject) =>
             setTimeout(() => reject(new Error(`Agent run timed out after ${AGENT_RUN_TIMEOUT/1000}s`)), AGENT_RUN_TIMEOUT)
         );
 

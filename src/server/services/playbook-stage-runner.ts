@@ -161,6 +161,20 @@ export async function handlePlaybookStageJob(context: unknown): Promise<void> {
 
     await appendRunningStage(run, payload);
 
+    // Phase checkpoint — write a lightweight artifact immediately after the stage
+    // transitions to 'running', before the executor fires.  This gives operators
+    // visibility into which stage a long run is in, and gives Cloud Tasks retries
+    // a resumable-state anchor they can inspect before re-running expensive work.
+    const stageStartedAt = new Date().toISOString();
+    await artifactMemory.safePersist('persistStageCheckpoint', () =>
+        artifactMemory.persistStageCheckpoint({
+            run,
+            stageName: payload.stageName,
+            attempt: payload.attempt,
+            startedAt: stageStartedAt,
+        })
+    );
+
     const startedAt = Date.now();
     let result: StageExecutionResult;
     try {
@@ -212,6 +226,19 @@ export async function handlePlaybookStageJob(context: unknown): Promise<void> {
         result,
         validationReport,
     });
+
+    // Finalize the stage checkpoint with terminal status + duration.
+    // A Cloud Tasks retry can read this and skip already-completed stages (resumable state).
+    await artifactMemory.safePersist('finalizeStageCheckpoint', () =>
+        artifactMemory.finalizeStageCheckpoint({
+            run,
+            stageName: payload.stageName,
+            attempt: payload.attempt,
+            startedAt: stageStartedAt,
+            status: result.status === 'completed' ? 'completed' : 'failed',
+            durationMs: Date.now() - startedAt,
+        })
+    );
 
     if (
         payload.stageName === 'delivering' &&
