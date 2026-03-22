@@ -29,6 +29,7 @@ export default async function BrandLayout({
     return (
         <div className="min-h-screen bg-background text-foreground">
             <link rel="ai-content" href={`/${brand}/llm.txt`} />
+            <link rel="manifest" href={`/api/brand-manifest/${brand}`} />
             {children}
         </div>
     );

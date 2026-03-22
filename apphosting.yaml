@@ -529,6 +529,17 @@ env:
     secret: SLACK_WEBHOOK_LOYALTY@2
     availability: [ RUNTIME ]
 
+  # Web Push VAPID keys (for PWA loyalty card push notifications)
+  - variable: NEXT_PUBLIC_VAPID_PUBLIC_KEY
+    value: BJrN_eseP14P-8OLDWmJI6XU4TA2QnRf0YHqePsTF4thrSWYBxC2YzRdVNAGa68baqWuj4FXI9l-pdu0W2bu72E
+    availability: [ RUNTIME, BUILD ]
+  - variable: VAPID_EMAIL
+    value: mailto:jack@bakedbot.ai
+    availability: [ RUNTIME ]
+  - variable: VAPID_PRIVATE_KEY
+    secret: VAPID_PRIVATE_KEY@1
+    availability: [ RUNTIME ]
+
 runConfig:
   minInstances: 1
   maxInstances: 10

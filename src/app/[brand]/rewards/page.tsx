@@ -1,6 +1,6 @@
 import { fetchBrandPageData } from '@/lib/brand-data';
 import { notFound } from 'next/navigation';
-import { PublicWalletCta } from '@/components/brand-pages/public-wallet-cta';
+import { LoyaltyCardSection } from '@/components/brand-pages/loyalty-card-section';
 import { DemoHeader } from '@/components/demo/demo-header';
 import { DemoFooter } from '@/components/demo/demo-footer';
 import { Card, CardContent } from '@/components/ui/card';
@@ -270,10 +270,11 @@ export default async function RewardsPage({ params }: { params: Promise<{ brand:
                         )}
                     </div>
                 </section>
-                {/* Save to Wallet CTA — renders for all orgs; gracefully shows "coming soon" if unconfigured */}
-                <PublicWalletCta
+                {/* PWA Loyalty Card — installable, QR code, Web Push */}
+                <LoyaltyCardSection
                     orgId={brandOrgId || brandSlug}
                     brandName={brand.name}
+                    brandSlug={brandSlug}
                     primaryColor={brandColors.primary}
                 />
             </main>

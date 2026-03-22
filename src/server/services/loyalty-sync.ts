@@ -18,6 +18,8 @@ import {
   notifyBatchSyncSummary,
 } from './loyalty-notifications';
 import { triggerWalletUpdate } from './wallet/updater';
+import { notifyPointsUpdate } from './push-notify';
+import { sendLoyaltyCardOnEnrollment } from './loyalty-card-message';
 
 // ==========================================
 // Types
@@ -198,10 +200,28 @@ export class LoyaltySyncService {
           : {}),
       });
 
-      // Fire-and-forget: push updated points to wallet cards if customer has one
+      // Fire-and-forget: push updated points to wallet cards + PWA push notification
       triggerWalletUpdate(customerId, orgId).catch(err =>
         logger.error('[LoyaltySync] wallet update failed', { customerId, err })
       );
+      notifyPointsUpdate(customerId, orgId, finalPoints, 'Your Dispensary', orgId).catch(() => {});
+
+      // First sync = enrollment: send loyalty card via SMS/email (fire-and-forget)
+      const isFirstSync = !existingData?.loyaltyEnrolledAt;
+      if (isFirstSync && (existingData?.phone || existingData?.email)) {
+        sendLoyaltyCardOnEnrollment({
+          customerId,
+          orgId,
+          brandName: 'Your Dispensary',
+          brandSlug: orgId,
+          customerName: [existingData.firstName, existingData.lastName].filter(Boolean).join(' ') || 'Member',
+          points: finalPoints,
+          tier: finalTier,
+          primaryColor: '#16a34a',
+          phone: existingData.phone,
+          email: existingData.email,
+        }).catch(() => {});
+      }
 
       const duration = Date.now() - startTime;
 
