@@ -415,6 +415,17 @@ export interface AnalyticsBriefing {
     pulseType?: 'morning' | 'midday' | 'evening'; // Which check generated this
 }
 
+export interface InboxOwnerBriefingSummary {
+    date: string;
+    urgencyLevel: AnalyticsBriefing['urgencyLevel'];
+    happenedYesterday: string;
+    happenedYesterdayDetail?: string;
+    workOnToday: string;
+    priorities: string[];
+    topAlert?: string;
+    openCommitments: number;
+}
+
 export interface InboxArtifactProactiveMetadata {
     taskId: string;
     workflowKey: ProactiveWorkflowKey;

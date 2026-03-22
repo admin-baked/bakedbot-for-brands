@@ -21,6 +21,8 @@ import type {
     InboxArtifactType,
     InboxArtifactStatus,
     AgentHandoff,
+    AnalyticsBriefing,
+    InboxOwnerBriefingSummary,
 } from '@/types/inbox';
 import { parseArtifactsFromContent } from '@/types/artifact';
 import {
@@ -55,6 +57,10 @@ import {
     isPlaceholderCustomerIdentity,
     resolveCustomerDisplayName,
 } from '@/lib/customers/profile-derivations';
+import {
+    buildInboxOwnerBriefingSummary,
+    selectLatestOwnerBriefingArtifact,
+} from '@/server/services/inbox-owner-briefing';
 
 // ============ Firestore Collections ============
 
@@ -879,6 +885,76 @@ export async function getInboxArtifacts(
     } catch (error) {
         logger.error('Failed to get inbox artifacts', { error, threadId });
         return { success: false, error: 'Failed to get artifacts' };
+    }
+}
+
+/**
+ * Get the latest owner-facing daily briefing summary for the current org.
+ * Reuses the canonical analytics_briefing artifact plus proactive commitments.
+ */
+export async function getInboxOwnerBriefingSummary(
+    orgId?: string
+): Promise<{ success: boolean; summary?: InboxOwnerBriefingSummary | null; error?: string }> {
+    try {
+        const user = await getServerSessionUser();
+        if (!user) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        const actorOrgId = getActorOrgId(user);
+        if (!actorOrgId || !isValidOrgId(actorOrgId)) {
+            return { success: false, error: 'Missing organization context' };
+        }
+
+        const requestedOrgId = orgId ?? actorOrgId;
+        if (!isValidOrgId(requestedOrgId)) {
+            return { success: false, error: 'Invalid organization context' };
+        }
+
+        if (!isSuperRole(user.role) && requestedOrgId !== actorOrgId) {
+            return { success: false, error: 'Unauthorized org context' };
+        }
+
+        const db = getDb();
+        const threadSnapshot = await db
+            .collection(INBOX_THREADS_COLLECTION)
+            .where('orgId', '==', requestedOrgId)
+            .where('metadata.isBriefingThread', '==', true)
+            .limit(1)
+            .get();
+
+        if (threadSnapshot.empty) {
+            return { success: true, summary: null };
+        }
+
+        const threadId = threadSnapshot.docs[0].id;
+        const artifactsSnapshot = await db
+            .collection(INBOX_ARTIFACTS_COLLECTION)
+            .where('threadId', '==', threadId)
+            .get();
+
+        const artifacts = artifactsSnapshot.docs.map((doc) => serializeArtifact(doc.data() as InboxArtifact));
+        const latestBriefingArtifact = selectLatestOwnerBriefingArtifact(artifacts);
+        if (!latestBriefingArtifact) {
+            return { success: true, summary: null };
+        }
+
+        const briefing = latestBriefingArtifact.data as AnalyticsBriefing;
+        const commitments = await listOpenCommitments({
+            tenantId: requestedOrgId,
+            organizationId: requestedOrgId,
+        });
+
+        return {
+            success: true,
+            summary: buildInboxOwnerBriefingSummary({
+                briefing,
+                commitments,
+            }),
+        };
+    } catch (error) {
+        logger.error('Failed to get inbox owner briefing summary', { error, orgId });
+        return { success: false, error: 'Failed to load owner briefing summary' };
     }
 }
 

@@ -64,4 +64,27 @@ describe('normalizePersistedInsightCard', () => {
     });
     expect(result.lastUpdated).toEqual(generatedAt);
   });
+
+  it('rewrites legacy loyalty revenue copy to tracked LTV context', () => {
+    const result = normalizePersistedInsightCard('insight_loyalty_1', {
+      category: 'customer',
+      agentId: 'smokey',
+      agentName: 'Smokey',
+      title: 'LOYALTY PERFORMANCE',
+      headline: '2 VIP customers generating 65% of revenue',
+      subtext: '$1,086 avg LTV | 1 Loyal (34% combined)',
+      severity: 'success',
+      actionable: true,
+      ctaLabel: 'VIP Rewards Program',
+      threadPrompt: 'Create a VIP program for our 2 best customers (65% of revenue).',
+      dataSource: 'insights',
+      generatedAt: { toDate: () => new Date('2026-03-22T12:00:00.000Z') },
+    });
+
+    expect(result.headline).toBe('2 VIP customers hold 65% of tracked LTV');
+    expect(result.subtext).toContain('CRM lifetime spend basis');
+    expect(result.severity).toBe('warning');
+    expect(result.ctaLabel).toBe('Reduce Concentration Risk');
+    expect(result.threadPrompt).toContain('65% of tracked lifetime value');
+  });
 });

@@ -7,7 +7,7 @@
  * Features contextual preset suggestions and custom text input.
  */
 
-import React, { useState, useRef, KeyboardEvent } from 'react';
+import React, { useState, useRef, KeyboardEvent, useEffect } from 'react';
 import {
     Inbox,
     Images,
@@ -34,10 +34,11 @@ import { useInboxStore } from '@/lib/store/inbox-store';
 import { useContextualPresets } from '@/hooks/use-contextual-presets';
 import { useUserRole } from '@/hooks/use-user-role';
 import { INLINE_GENERATOR_THREAD_TYPES, type InboxQuickAction } from '@/types/inbox';
-import { createInboxThread } from '@/server/actions/inbox';
+import { createInboxThread, getInboxOwnerBriefingSummary } from '@/server/actions/inbox';
 import { useToast } from '@/hooks/use-toast';
 import { InsightCardsGrid } from './insight-cards-grid';
 import { _pendingInputs } from './inbox-conversation';
+import type { InboxOwnerBriefingSummary } from '@/types/inbox';
 
 // ============ Props ============
 
@@ -104,7 +105,12 @@ function PresetChip({ action, hasCustomText, onSelect, isCreating }: PresetChipP
 // ============ Main Component ============
 
 export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) {
-    const { role } = useUserRole();
+    const {
+        role,
+        hasBrandAdminAccess,
+        hasDispensaryAdminAccess,
+        isSuperUser,
+    } = useUserRole();
     const {
         createThread,
         deleteThread,
@@ -122,9 +128,37 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
     const [customText, setCustomText] = useState('');
     const [isCreating, setIsCreating] = useState(false);
     const [queryDialogAction, setQueryDialogAction] = useState<InboxQuickAction | null>(null);
+    const [ownerBriefing, setOwnerBriefing] = useState<InboxOwnerBriefingSummary | null>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     const hasCustomText = customText.trim().length > 0;
+    const shouldShowOwnerBriefing = hasBrandAdminAccess || hasDispensaryAdminAccess || isSuperUser;
+
+    useEffect(() => {
+        let active = true;
+
+        if (!currentOrgId || !shouldShowOwnerBriefing) {
+            setOwnerBriefing(null);
+            return () => {
+                active = false;
+            };
+        }
+
+        void (async () => {
+            const result = await getInboxOwnerBriefingSummary(currentOrgId);
+            if (!active) {
+                return;
+            }
+
+            if (result.success) {
+                setOwnerBriefing(result.summary ?? null);
+            }
+        })();
+
+        return () => {
+            active = false;
+        };
+    }, [currentOrgId, shouldShowOwnerBriefing]);
 
     // Handle preset selection (with optional custom text)
     const handlePresetSelect = async (action: InboxQuickAction) => {
@@ -315,9 +349,48 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
                     </div>
                     <h1 className="text-2xl font-bold mb-2">{greeting}!</h1>
                     <p className="text-muted-foreground max-w-md mx-auto">
-                        {suggestion}
+                        {ownerBriefing
+                            ? 'Here is what changed yesterday and what needs your attention today.'
+                            : suggestion}
                     </p>
                 </div>
+
+                {ownerBriefing && (
+                    <div className="grid gap-3 md:grid-cols-2">
+                        <div className="rounded-xl border bg-card p-4 text-left space-y-2">
+                            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                What Happened Yesterday
+                            </p>
+                            <p className="text-sm font-semibold text-foreground">
+                                {ownerBriefing.happenedYesterday}
+                            </p>
+                            {ownerBriefing.happenedYesterdayDetail && (
+                                <p className="text-xs text-muted-foreground">
+                                    {ownerBriefing.happenedYesterdayDetail}
+                                </p>
+                            )}
+                        </div>
+                        <div className="rounded-xl border bg-card p-4 text-left space-y-2">
+                            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                What To Work On Today
+                            </p>
+                            <p className="text-sm font-semibold text-foreground">
+                                {ownerBriefing.workOnToday}
+                            </p>
+                            {ownerBriefing.priorities.length > 0 ? (
+                                <ul className="space-y-1 text-xs text-muted-foreground">
+                                    {ownerBriefing.priorities.map((priority) => (
+                                        <li key={priority}>{priority}</li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p className="text-xs text-muted-foreground">
+                                    No open blockers were pulled into today&apos;s brief.
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 {/* Custom Text Input */}
                 <div className="relative">

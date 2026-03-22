@@ -476,15 +476,15 @@ export async function getSegmentSummary(
         return { summary: `No customers found for organization ${orgId}.`, segments: {} };
     }
 
-    const segments: Record<CustomerSegment, { count: number; totalSpent: number; avgSpend: number }> = {
-        vip: { count: 0, totalSpent: 0, avgSpend: 0 },
-        loyal: { count: 0, totalSpent: 0, avgSpend: 0 },
-        frequent: { count: 0, totalSpent: 0, avgSpend: 0 },
-        high_value: { count: 0, totalSpent: 0, avgSpend: 0 },
-        new: { count: 0, totalSpent: 0, avgSpend: 0 },
-        slipping: { count: 0, totalSpent: 0, avgSpend: 0 },
-        at_risk: { count: 0, totalSpent: 0, avgSpend: 0 },
-        churned: { count: 0, totalSpent: 0, avgSpend: 0 },
+    const segments: Record<CustomerSegment, { count: number; totalSpent: number; avgSpend: number; recentActiveCount: number }> = {
+        vip: { count: 0, totalSpent: 0, avgSpend: 0, recentActiveCount: 0 },
+        loyal: { count: 0, totalSpent: 0, avgSpend: 0, recentActiveCount: 0 },
+        frequent: { count: 0, totalSpent: 0, avgSpend: 0, recentActiveCount: 0 },
+        high_value: { count: 0, totalSpent: 0, avgSpend: 0, recentActiveCount: 0 },
+        new: { count: 0, totalSpent: 0, avgSpend: 0, recentActiveCount: 0 },
+        slipping: { count: 0, totalSpent: 0, avgSpend: 0, recentActiveCount: 0 },
+        at_risk: { count: 0, totalSpent: 0, avgSpend: 0, recentActiveCount: 0 },
+        churned: { count: 0, totalSpent: 0, avgSpend: 0, recentActiveCount: 0 },
     };
 
     let totalCustomers = 0;
@@ -504,6 +504,9 @@ export async function getSegmentSummary(
         if (segments[seg as CustomerSegment]) {
             segments[seg as CustomerSegment].count++;
             segments[seg as CustomerSegment].totalSpent += spent;
+            if (daysSince !== undefined && daysSince < 30) {
+                segments[seg as CustomerSegment].recentActiveCount++;
+            }
         }
 
         totalCustomers++;
@@ -559,7 +562,7 @@ ${activeSegments.map(seg => {
 
 **Key Insights:**
 - At-risk revenue: $${Math.round(segments.at_risk.totalSpent + segments.slipping.totalSpent).toLocaleString()} across ${segments.at_risk.count + segments.slipping.count} customers
-- VIP concentration: ${segments.vip.count} VIPs account for $${Math.round(segments.vip.totalSpent).toLocaleString()} (${totalLTV > 0 ? ((segments.vip.totalSpent / totalLTV) * 100).toFixed(1) : 0}% of total LTV)
+- VIP concentration: ${segments.vip.count} VIPs account for $${Math.round(segments.vip.totalSpent).toLocaleString()} (${totalLTV > 0 ? ((segments.vip.totalSpent / totalLTV) * 100).toFixed(1) : 0}% of total tracked customer LTV); ${segments.vip.recentActiveCount} ordered in the last 30 days
 - Dedup window: 30 days (customers contacted in last 30 days for same campaign type are automatically excluded)`;
 
     return { summary, segments: segments as unknown as Record<string, unknown> };

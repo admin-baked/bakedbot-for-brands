@@ -74,6 +74,44 @@ function toInsightTrend(value: unknown): InsightTrend | undefined {
     : undefined;
 }
 
+function rewriteLegacyLoyaltyCopy(normalized: InsightCard): InsightCard {
+  if (
+    normalized.category !== 'customer' ||
+    normalized.title !== 'LOYALTY PERFORMANCE'
+  ) {
+    return normalized;
+  }
+
+  const legacyMatch = normalized.headline.match(
+    /^(\d+)\s+VIP customers generating (\d+)% of revenue$/i
+  );
+
+  if (!legacyMatch) {
+    return normalized;
+  }
+
+  const vipCount = Number(legacyMatch[1]);
+  const share = Number(legacyMatch[2]);
+  const hasConcentrationRisk = vipCount > 0 && vipCount <= 3 && share >= 50;
+
+  return {
+    ...normalized,
+    headline: `${vipCount} VIP customers hold ${share}% of tracked LTV`,
+    subtext: normalized.subtext
+      ? `${normalized.subtext} | CRM lifetime spend basis`
+      : 'CRM lifetime spend basis, not yesterday sales',
+    severity: hasConcentrationRisk ? 'warning' : normalized.severity,
+    ctaLabel: hasConcentrationRisk ? 'Reduce Concentration Risk' : normalized.ctaLabel,
+    threadPrompt: normalized.threadPrompt
+      ? normalized.threadPrompt.replace(`${share}% of revenue`, `${share}% of tracked lifetime value`)
+      : normalized.threadPrompt,
+    dataSource:
+      normalized.dataSource === 'insights' || normalized.dataSource === 'Customer segments (CRM)'
+        ? 'Customer segments (CRM lifetime spend)'
+        : normalized.dataSource,
+  };
+}
+
 export function normalizePersistedInsightCard(
   docId: string,
   data: Record<string, unknown>
@@ -129,5 +167,5 @@ export function normalizePersistedInsightCard(
     normalized.threadPrompt = data.threadPrompt;
   }
 
-  return normalized;
+  return rewriteLegacyLoyaltyCopy(normalized);
 }

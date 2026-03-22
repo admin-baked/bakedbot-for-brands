@@ -10,16 +10,6 @@ import { getSegmentSummary, getAtRiskCustomers } from '@/server/tools/crm-tools'
 import { logger } from '@/lib/logger';
 import type { InsightCard } from '@/types/insight-cards';
 
-// ============ Types ============
-
-interface SegmentData {
-  [key: string]: {
-    count: number;
-    totalSpent: number;
-    avgSpent: number;
-  };
-}
-
 // ============ Generator ============
 
 export class CustomerInsightsGenerator extends InsightGeneratorBase {
@@ -170,6 +160,7 @@ export class CustomerInsightsGenerator extends InsightGeneratorBase {
   private createLoyaltyInsight(segments: Record<string, unknown>): InsightCard {
     const vipCount = ((segments.vip as any)?.count || 0) as number;
     const vipLTV = ((segments.vip as any)?.totalSpent || 0) as number;
+    const vipRecentActiveCount = ((segments.vip as any)?.recentActiveCount || 0) as number;
     const loyalCount = ((segments.loyal as any)?.count || 0) as number;
     const loyalLTV = ((segments.loyal as any)?.totalSpent || 0) as number;
 
@@ -179,28 +170,34 @@ export class CustomerInsightsGenerator extends InsightGeneratorBase {
 
     const avgVIPSpend = vipCount > 0 ? Math.round(totalVIPLTV / vipCount) : 0;
 
-    // Calculate concentration of VIP spend
+    // Calculate concentration of VIP lifetime value in the tracked CRM base.
     const totalAllSpent = Object.values(segments).reduce((sum: number, s) => sum + (((s as any)?.totalSpent || 0) as number), 0);
     const vipConcentration =
       totalAllSpent > 0 ? Math.round((totalVIPLTV / (totalAllSpent as number)) * 100) : 0;
+    const combinedLoyaltyShare =
+      combinedLTV > 0 ? Math.round((totalLoyalLTV / combinedLTV) * 100) : 0;
+    const hasConcentrationRisk = vipCount > 0 && vipCount <= 3 && vipConcentration >= 50;
 
     return this.createInsight({
       title: 'LOYALTY PERFORMANCE',
-      headline: `${vipCount} VIP customers generating ${vipConcentration}% of revenue`,
+      headline: vipCount > 0
+        ? `${vipCount} VIP customers hold ${vipConcentration}% of tracked LTV`
+        : 'No VIP concentration detected',
       subtext:
         avgVIPSpend > 0
-          ? `$${avgVIPSpend.toLocaleString()} avg LTV | ${loyalCount} Loyal (${Math.round((loyalLTV / (vipLTV + loyalLTV)) * 100)}% combined)`
-          : `${loyalCount} Loyal customers | $${Math.round(loyalLTV).toLocaleString()} combined LTV`,
+          ? `CRM LTV basis | ${vipRecentActiveCount} active in last 30d | $${avgVIPSpend.toLocaleString()} avg LTV | ${loyalCount} Loyal (${combinedLoyaltyShare}% of VIP+Loyal LTV)`
+          : `CRM LTV basis | ${loyalCount} Loyal customers | $${Math.round(loyalLTV).toLocaleString()} combined LTV`,
       value: vipCount,
       unit: 'VIPs',
-      severity: 'success',
-      trend: 'up',
-      trendValue: `${vipConcentration}%`,
+      severity: hasConcentrationRisk ? 'warning' : 'success',
+      trendValue: `${vipConcentration}% of tracked LTV`,
       actionable: true,
-      ctaLabel: 'VIP Rewards Program',
+      ctaLabel: hasConcentrationRisk ? 'Reduce Concentration Risk' : 'VIP Rewards Program',
       threadType: 'campaign',
-      threadPrompt: `Create an exclusive VIP rewards program for our ${vipCount} best customers (${vipConcentration}% of revenue). They have $${Math.round(totalVIPLTV).toLocaleString()} combined LTV with $${avgVIPSpend.toLocaleString()} average value each.`,
-      dataSource: 'Customer segments (CRM)',
+      threadPrompt: hasConcentrationRisk
+        ? `Review our customer concentration risk. ${vipCount} VIP customers account for ${vipConcentration}% of tracked lifetime value, and ${vipRecentActiveCount} were active in the last 30 days. Help me build the loyal layer beyond these top customers.`
+        : `Create an exclusive VIP rewards program for our ${vipCount} best customers. They hold ${vipConcentration}% of tracked lifetime value, with $${Math.round(totalVIPLTV).toLocaleString()} combined LTV and $${avgVIPSpend.toLocaleString()} average value each.`,
+      dataSource: 'Customer segments (CRM lifetime spend)',
     });
   }
 }
