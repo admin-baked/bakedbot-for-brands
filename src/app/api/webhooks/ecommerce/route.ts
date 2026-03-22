@@ -15,6 +15,7 @@ import * as crypto from 'crypto';
 import { logger } from '@/lib/logger';
 import { dispatchPlaybookEvent } from '@/server/services/playbook-event-dispatcher';
 import { resolveEcommerceCustomer } from '@/server/services/ecommerce-customer-mapper';
+import { syncCustomerSignupProactiveGap } from '@/server/services/customer-signup-proactive';
 
 export const maxDuration = 30;
 
@@ -24,6 +25,9 @@ interface NormalizedEvent {
   orderId?: string;
   customerId?: string;
   customerEmail: string;
+  customerName?: string;
+  firstName?: string;
+  lastName?: string;
   orderTotal?: number;
   lineItems?: Array<{ productId: string; name: string; qty: number; price: number }>;
 }
@@ -92,22 +96,22 @@ function verifyBakedBotSignature(rawBody: string, signature: string | null): boo
 /**
  * Normalize Shopify payload to BakedBot schema
  */
-function normalizeShopifyEvent(payload: any): NormalizedEvent {
-  const topic = payload.topic || 'orders/create';
+function normalizeShopifyEvent(payload: any, topicHeader?: string | null): NormalizedEvent {
+  const topic = topicHeader || payload.topic || 'orders/create';
   let event = 'order.created';
 
-  if (topic.includes('order/fulfilled')) {
+  if (topic.includes('orders/fulfilled') || topic.includes('order/fulfilled')) {
     event = 'order.completed';
-  } else if (topic.includes('order/cancelled')) {
+  } else if (topic.includes('orders/cancelled') || topic.includes('order/cancelled')) {
     event = 'order.cancelled';
-  } else if (topic.includes('checkout/create')) {
+  } else if (topic.includes('checkouts/create') || topic.includes('checkout/create')) {
     event = 'checkout.started';
-  } else if (topic.includes('checkout/update')) {
+  } else if (topic.includes('checkouts/update') || topic.includes('checkout/update')) {
     event = 'checkout.completed';
-  } else if (topic.includes('cart/create')) {
+  } else if (topic.includes('carts/create') || topic.includes('cart/create')) {
     event = 'cart.created';
-  } else if (topic.includes('customer/create')) {
-    event = 'customer.created';
+  } else if (topic.includes('customers/create') || topic.includes('customer/create')) {
+    event = 'customer.signup';
   }
 
   return {
@@ -116,6 +120,9 @@ function normalizeShopifyEvent(payload: any): NormalizedEvent {
     orderId: payload.id?.toString(),
     customerId: payload.customer?.id?.toString(),
     customerEmail: payload.customer?.email || payload.email || '',
+    customerName: [payload.first_name, payload.last_name].filter(Boolean).join(' ').trim() || undefined,
+    firstName: payload.first_name || undefined,
+    lastName: payload.last_name || undefined,
     orderTotal: payload.total_price ? parseFloat(payload.total_price) : undefined,
     lineItems: payload.line_items?.map((item: any) => ({
       productId: item.product_id?.toString(),
@@ -178,7 +185,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
       }
       const payload = JSON.parse(rawBody);
-      normalizedEvent = normalizeShopifyEvent(payload);
+      normalizedEvent = normalizeShopifyEvent(payload, topic);
       platform = 'shopify';
     } else if (wooSignature) {
       if (!verifyWooCommerceSignature(rawBody, wooSignature)) {
@@ -228,6 +235,24 @@ export async function POST(request: NextRequest) {
       normalizedEvent.customerEmail,
       normalizedEvent.customerId
     );
+
+    if (normalizedEvent.event === 'customer.signup') {
+      const proactiveResult = await syncCustomerSignupProactiveGap(orgId, {
+        customerId: bakedBotCustomerId || normalizedEvent.customerId,
+        email: normalizedEvent.customerEmail,
+        name: normalizedEvent.customerName,
+        firstName: normalizedEvent.firstName,
+        lastName: normalizedEvent.lastName,
+      });
+
+      if (!proactiveResult.success && !proactiveResult.skipped) {
+        logger.warn('[ECOMMERCE] Failed to sync customer signup proactive gap', {
+          orgId,
+          customerId: bakedBotCustomerId || normalizedEvent.customerId,
+          error: proactiveResult.error,
+        });
+      }
+    }
 
     // Dispatch to playbook system (fire-and-forget)
     dispatchPlaybookEvent(orgId, normalizedEvent.event, {

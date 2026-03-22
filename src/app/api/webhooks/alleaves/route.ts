@@ -17,6 +17,7 @@ import { posCache, cacheKeys } from '@/lib/cache/pos-cache';
 import { logger } from '@/lib/logger';
 import { revalidatePath } from 'next/cache';
 import { dispatchPlaybookEvent } from '@/server/services/playbook-event-dispatcher';
+import { syncCustomerSignupProactiveGap } from '@/server/services/customer-signup-proactive';
 import * as crypto from 'crypto';
 
 export const maxDuration = 30;
@@ -121,6 +122,24 @@ export async function POST(request: NextRequest) {
         switch (payload.event) {
             case 'customer.created':
                 await handleCustomerEvent(orgId, payload.data, 'customer.signup');
+                {
+                    const proactiveResult = await syncCustomerSignupProactiveGap(orgId, {
+                        customerId: payload.data.id,
+                        email: payload.data.email,
+                        phone: payload.data.phone,
+                        name: payload.data.name,
+                        firstName: payload.data.firstName ?? payload.data.first_name,
+                        lastName: payload.data.lastName ?? payload.data.last_name,
+                    });
+
+                    if (!proactiveResult.success && !proactiveResult.skipped) {
+                        logger.warn('[WEBHOOK] Failed to sync customer signup proactive gap', {
+                            orgId,
+                            customerId: payload.data.id,
+                            error: proactiveResult.error,
+                        });
+                    }
+                }
                 // Dispatch to playbook system (fire-and-forget)
                 dispatchPlaybookEvent(orgId, 'customer.signup', {
                     customerId: payload.data.id,

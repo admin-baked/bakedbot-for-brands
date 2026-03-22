@@ -878,17 +878,17 @@ export async function createWelcomeEmailPlaybook(
         const welcomePlaybook: Partial<Playbook> = {
             id: playbookId,
             name: 'Personalized Welcome Email',
-            description: 'Send personalized welcome email to new customers via Mrs. Parker and Mailjet',
+            description: 'Send personalized welcome email when a new customer signs up via Mrs. Parker and Mailjet',
             status: 'active',
             agent: 'mrs_parker',
             category: 'marketing',
             icon: 'Mail',
             yaml: `name: Personalized Welcome Email
-description: Send personalized welcome email when new customer is created
+description: Send personalized welcome email when a new customer signs up
 
 triggers:
   - type: event
-    eventName: customer.created
+    eventName: customer.signup
 
 steps:
   - action: generate
@@ -913,7 +913,7 @@ steps:
             triggers: [
                 {
                     type: 'event',
-                    eventName: 'customer.created',
+                    eventName: 'customer.signup',
                     enabled: true,
                 } as PlaybookTrigger,
             ],

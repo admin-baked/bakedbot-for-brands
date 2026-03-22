@@ -41,6 +41,25 @@ interface DeadLetterEvent {
   createdAt: Date;
 }
 
+const PLAYBOOK_EVENT_COMPATIBILITY_ALIASES: Record<string, string[]> = {
+  'customer.signup': ['customer.created'],
+};
+
+function dedupeCompatibleEventNames(eventNames: string[]): string[] {
+  return Array.from(new Set(eventNames));
+}
+
+export function getCompatiblePlaybookEventNames(eventName: string): string[] {
+  return dedupeCompatibleEventNames([
+    eventName,
+    ...(PLAYBOOK_EVENT_COMPATIBILITY_ALIASES[eventName] ?? []),
+  ]);
+}
+
+export function getCompatiblePlaybookDedupTypes(eventName: string): string[] {
+  return getCompatiblePlaybookEventNames(eventName).map((name) => `playbook_event_${name}`);
+}
+
 /**
  * Execute playbook with retry logic
  */
@@ -142,16 +161,25 @@ export async function dispatchPlaybookEvent(
 ): Promise<void> {
   try {
     const { firestore } = await createServerClient();
+    const compatibleEventNames = getCompatiblePlaybookEventNames(eventName);
 
-    // Query active event listeners for this org + event
-    const listenersSnap = await firestore
-      .collection('playbook_event_listeners')
-      .where('orgId', '==', orgId)
-      .where('eventName', '==', eventName)
-      .where('status', '==', 'active')
-      .get();
+    const listenerSnaps = await Promise.all(
+      compatibleEventNames.map((compatibleEventName) =>
+        firestore
+          .collection('playbook_event_listeners')
+          .where('orgId', '==', orgId)
+          .where('eventName', '==', compatibleEventName)
+          .where('status', '==', 'active')
+          .get()
+      )
+    );
 
-    if (listenersSnap.empty) {
+    const listenerDocs = listenerSnaps.flatMap((snap) => snap.docs);
+    const uniqueListeners = Array.from(
+      new Map(listenerDocs.map((doc) => [doc.id, doc])).values()
+    );
+
+    if (uniqueListeners.length === 0) {
       logger.debug('[EventDispatcher] No active listeners', { orgId, eventName });
       return;
     }
@@ -163,21 +191,26 @@ export async function dispatchPlaybookEvent(
     const now = new Date();
     const lookback24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-    const dedupQuery = firestore
-      .collection('customer_communications')
-      .where('orgId', '==', orgId)
-      .where('type', '==', `playbook_event_${eventName}`)
-      .where('sentAt', '>=', lookback24h);
+    const dedupTypes = getCompatiblePlaybookDedupTypes(eventName);
+    const dedupSnaps = await Promise.all(
+      dedupTypes.map((dedupType) => {
+        let dedupQuery = firestore
+          .collection('customer_communications')
+          .where('orgId', '==', orgId)
+          .where('type', '==', dedupType)
+          .where('sentAt', '>=', lookback24h);
 
-    if (customerId) {
-      dedupQuery.where('customerId', '==', customerId);
-    } else if (customerEmail) {
-      dedupQuery.where('customerEmail', '==', customerEmail);
-    }
+        if (customerId) {
+          dedupQuery = dedupQuery.where('customerId', '==', customerId);
+        } else if (customerEmail) {
+          dedupQuery = dedupQuery.where('customerEmail', '==', customerEmail);
+        }
 
-    const dedupSnap = await dedupQuery.get();
+        return dedupQuery.get();
+      })
+    );
 
-    if (!dedupSnap.empty) {
+    if (dedupSnaps.some((snap) => !snap.empty)) {
       logger.info('[EventDispatcher] Event dedupped (24h window)', {
         orgId,
         eventName,
@@ -187,7 +220,7 @@ export async function dispatchPlaybookEvent(
     }
 
     // Dispatch each matching listener asynchronously (fire-and-forget)
-    for (const doc of listenersSnap.docs) {
+    for (const doc of uniqueListeners) {
       const listener = doc.data();
       const playbookId = listener.playbookId;
 

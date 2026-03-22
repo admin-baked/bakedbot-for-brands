@@ -3,6 +3,7 @@ import crypto from 'crypto';
 
 const mockDispatchPlaybookEvent = jest.fn();
 const mockResolveEcommerceCustomer = jest.fn();
+const mockSyncCustomerSignupProactiveGap = jest.fn();
 
 jest.mock('next/server', () => {
   class MockNextRequest {
@@ -52,6 +53,10 @@ jest.mock('@/server/services/ecommerce-customer-mapper', () => ({
   resolveEcommerceCustomer: (...args: unknown[]) => mockResolveEcommerceCustomer(...args),
 }));
 
+jest.mock('@/server/services/customer-signup-proactive', () => ({
+  syncCustomerSignupProactiveGap: (...args: unknown[]) => mockSyncCustomerSignupProactiveGap(...args),
+}));
+
 jest.mock('@/lib/logger', () => ({
   logger: {
     info: jest.fn(),
@@ -75,6 +80,7 @@ describe('POST /api/webhooks/ecommerce signature validation', () => {
 
     mockResolveEcommerceCustomer.mockResolvedValue({ bakedBotCustomerId: 'customer_1' });
     mockDispatchPlaybookEvent.mockResolvedValue(undefined);
+    mockSyncCustomerSignupProactiveGap.mockResolvedValue({ success: true });
 
     ({ POST } = await import('../route'));
     ({ NextRequest: NextRequestCtor } = await import('next/server'));
@@ -143,6 +149,63 @@ describe('POST /api/webhooks/ecommerce signature validation', () => {
       'order.created',
       expect.objectContaining({
         customerId: 'customer_1',
+      })
+    );
+  });
+
+  it('normalizes Shopify customer creation to customer.signup and syncs proactive onboarding gaps', async () => {
+    process.env = {
+      ...process.env,
+      SHOPIFY_WEBHOOK_SECRET: 'shopify-secret',
+    };
+
+    const body = JSON.stringify({
+      id: 123,
+      email: 'new@example.com',
+      first_name: 'New',
+      last_name: 'Customer',
+      customer: {
+        id: 999,
+        email: 'new@example.com',
+      },
+    });
+
+    const signature = crypto
+      .createHmac('sha256', 'shopify-secret')
+      .update(body, 'utf8')
+      .digest('base64');
+
+    const req = new NextRequestCtor('https://example.com/api/webhooks/ecommerce?orgId=org_1', {
+      method: 'POST',
+      body,
+      headers: {
+        'x-shopify-hmac-sha256': signature,
+        'x-shopify-topic': 'customers/create',
+      },
+    });
+
+    const response = await POST(req);
+    const responseBody = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(responseBody.event).toBe('customer.signup');
+    expect(mockResolveEcommerceCustomer).toHaveBeenCalledWith('org_1', 'new@example.com', '999');
+    expect(mockSyncCustomerSignupProactiveGap).toHaveBeenCalledWith(
+      'org_1',
+      expect.objectContaining({
+        customerId: 'customer_1',
+        email: 'new@example.com',
+        name: 'New Customer',
+        firstName: 'New',
+        lastName: 'Customer',
+      })
+    );
+    expect(mockDispatchPlaybookEvent).toHaveBeenCalledWith(
+      'org_1',
+      'customer.signup',
+      expect.objectContaining({
+        customerId: 'customer_1',
+        customerEmail: 'new@example.com',
       })
     );
   });
