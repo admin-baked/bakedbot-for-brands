@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
     Users, UserPlus, AlertTriangle, Crown, Search,
-    Download, Upload, Loader2, TrendingUp, Filter, Sparkles, CheckCircle2, Rocket
+    Download, Upload, Loader2, TrendingUp, Sparkles, CheckCircle2, Rocket, MessageSquare
 } from 'lucide-react';
 import {
     Dialog,
@@ -21,6 +21,8 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { CustomerProfile, CustomerSegment, CRMStats, getSegmentInfo, SegmentSuggestion, calculateSegment } from '@/types/customers';
+import type { CustomerVisitCohortResult } from '@/server/actions/cohort-analytics';
+import { getCustomerVisitCohort } from '@/server/actions/cohort-analytics';
 import { getCustomers, getSuggestedSegments, launchLifecyclePlaybook, type CustomersData } from './actions';
 import { CustomerImport } from '@/components/crm/customer-import';
 import { SegmentChart } from '@/components/crm/segment-chart';
@@ -44,6 +46,8 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
     const [spendingCustomerCount, setSpendingCustomerCount] = useState(0);
     const [spendingMeta, setSpendingMeta] = useState<{ cached: boolean; duration: number | null } | null>(null);
     const [launchingPlaybook, setLaunchingPlaybook] = useState<SegmentSuggestion['playbookKind'] | null>(null);
+    const [cohortData, setCohortData] = useState<CustomerVisitCohortResult | null>(null);
+    const [cohortLoading, setCohortLoading] = useState(false);
     const spendingFetchedRef = useRef(false);
 
     const loadSuggestions = useCallback(async () => {
@@ -73,6 +77,28 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
             setLoading(false);
         }
     }, [brandId, loadSuggestions, toast]);
+
+    const loadCohortData = useCallback(async () => {
+        setCohortLoading(true);
+        try {
+            const result = await getCustomerVisitCohort(brandId, 90);
+            setCohortData(result);
+        } catch (error) {
+            console.error('Failed to load cohort data:', error);
+            setCohortData(null);
+        } finally {
+            setCohortLoading(false);
+        }
+    }, [brandId]);
+
+    const openVisitRetentionWinBack = useCallback(() => {
+        const params = new URLSearchParams({
+            newThread: 'outreach',
+            agent: 'mrs_parker',
+            prompt: 'Draft a win-back campaign for first-time customers who never returned after their first visit. Use the visit retention snapshot as context and recommend the audience, offer, and success metric.',
+        });
+        router.push(`/dashboard/inbox?${params.toString()}`);
+    }, [router]);
 
     useEffect(() => {
         if (!initialData) {
@@ -485,6 +511,111 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
             {spendingLoaded && stats && (
                 <SegmentChart stats={stats} />
             )}
+
+            <Card>
+                <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between gap-4">
+                        <div>
+                            <CardTitle>Visit Retention Snapshot</CardTitle>
+                            <CardDescription>
+                                How well your store converts first visits into repeat customers over the last 90 days.
+                            </CardDescription>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                size="sm"
+                                onClick={openVisitRetentionWinBack}
+                                disabled={!cohortData || cohortData.totalCustomers === 0}
+                            >
+                                <MessageSquare className="h-4 w-4 mr-2" />
+                                Ask Mrs. Parker
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={loadCohortData}
+                                disabled={cohortLoading}
+                            >
+                                <Loader2 className={`h-4 w-4 mr-2 ${cohortLoading ? 'animate-spin' : ''}`} />
+                                Refresh
+                            </Button>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {cohortLoading && !cohortData ? (
+                        <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Loading visit cohort...
+                        </div>
+                    ) : cohortData ? (
+                        <>
+                            <div className="grid gap-4 md:grid-cols-3">
+                                <div className="rounded-lg border p-4">
+                                    <div className="text-xs uppercase tracking-wide text-muted-foreground">Repeat rate</div>
+                                    <div className="mt-2 text-3xl font-bold">{cohortData.repeatCustomerRate}%</div>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        {cohortData.buckets[1]?.count.toLocaleString() || 0} customers returned for a second visit.
+                                    </p>
+                                </div>
+                                <div className="rounded-lg border p-4">
+                                    <div className="text-xs uppercase tracking-wide text-muted-foreground">Biggest dropoff</div>
+                                    <div className="mt-2 text-3xl font-bold">
+                                        {cohortData.topDropoffVisit}{'->'}{cohortData.topDropoffVisit + 1}
+                                    </div>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        {cohortData.topDropoffPct}% of customers did not make that next visit.
+                                    </p>
+                                </div>
+                                <div className="rounded-lg border p-4">
+                                    <div className="text-xs uppercase tracking-wide text-muted-foreground">Active customers</div>
+                                    <div className="mt-2 text-3xl font-bold">{cohortData.totalCustomers.toLocaleString()}</div>
+                                    <p className="mt-1 text-xs text-muted-foreground">{cohortData.periodLabel}</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                {cohortData.buckets.map((bucket, index) => {
+                                    const maxCount = cohortData.buckets[0]?.count || 1;
+                                    const width = maxCount > 0 ? Math.max(6, Math.round((bucket.count / maxCount) * 100)) : 0;
+                                    const isWorstDropoff = index > 0 && bucket.visits - 1 === cohortData.topDropoffVisit;
+
+                                    return (
+                                        <div key={bucket.visits} className="space-y-1">
+                                            <div className="flex items-center justify-between text-sm">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="w-20 font-medium">{bucket.label}</span>
+                                                    <span className="text-muted-foreground">{bucket.count.toLocaleString()} customers</span>
+                                                    {bucket.retentionPct !== null && (
+                                                        <span className={isWorstDropoff ? 'text-orange-600 font-medium' : 'text-muted-foreground'}>
+                                                            {bucket.retentionPct}% retained
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <span className="text-xs text-muted-foreground">{bucket.pct}%</span>
+                                            </div>
+                                            <div className="h-2 rounded-full bg-muted overflow-hidden">
+                                                <div
+                                                    className={`h-full rounded-full ${isWorstDropoff ? 'bg-orange-500' : 'bg-primary/80'}`}
+                                                    style={{ width: `${width}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="rounded-lg bg-muted/50 p-4 text-sm text-muted-foreground whitespace-pre-line">
+                                {cohortData.summary}
+                            </div>
+                        </>
+                    ) : (
+                        <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
+                            No visit cohort data yet. Once POS-backed customer visit history is available, this panel will show where your store is losing repeat visits.
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
 
             {/* Segment Tabs & Customer Table */}
             <Card>

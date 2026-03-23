@@ -14,9 +14,10 @@
 
 import { FieldValue } from 'firebase-admin/firestore';
 import { getAdminFirestore } from '@/firebase/admin';
-import { requireSuperUser } from '@/server/auth/auth';
+import { requireUser } from '@/server/auth/auth';
 import { logger } from '@/lib/logger';
 import { createInboxArtifactId, createInboxThreadId } from '@/types/inbox';
+import { isBrandRole, isDispensaryRole } from '@/types/roles';
 
 // ============ Types ============
 
@@ -35,14 +36,51 @@ export interface CustomerVisitCohortResult {
     periodLabel: string;    // "Last 90 days"
     totalCustomers: number;
     buckets: CohortBucket[];
-    topDropoffVisit: number; // visit # with highest dropoff (e.g. 1 = "1st→2nd has worst drop")
+    topDropoffVisit: number; // visit # with highest dropoff (e.g. 1 = "1st->2nd has worst drop")
     topDropoffPct: number;   // dropout % at that step
     repeatCustomerRate: number; // % with 2+ visits
     summary: string;        // Pops AI text summary
     generatedAt: string;    // ISO timestamp
 }
 
-// ============ Core computation (no auth — callable from cron + server actions) ============
+async function resolveAccessibleCohortOrgId(requestedOrgId: string): Promise<string> {
+    const user = await requireUser([
+        'brand',
+        'brand_admin',
+        'brand_member',
+        'dispensary',
+        'dispensary_admin',
+        'dispensary_staff',
+        'budtender',
+        'super_user',
+    ]);
+
+    const role = String((user as { role?: string }).role || '');
+    if (role === 'super_user' || role === 'super_admin') {
+        return requestedOrgId;
+    }
+
+    if (isBrandRole(role)) {
+        const userBrandId = (user as { brandId?: string }).brandId;
+        if (!userBrandId || userBrandId !== requestedOrgId) {
+            throw new Error('Forbidden: Cannot access another brand\'s cohort analytics');
+        }
+        return requestedOrgId;
+    }
+
+    if (isDispensaryRole(role)) {
+        const dispensaryUser = user as { orgId?: string; currentOrgId?: string; locationId?: string };
+        const userOrgId = dispensaryUser.orgId || dispensaryUser.currentOrgId || dispensaryUser.locationId;
+        if (!userOrgId || userOrgId !== requestedOrgId) {
+            throw new Error('Forbidden: Cannot access another dispensary\'s cohort analytics');
+        }
+        return requestedOrgId;
+    }
+
+    throw new Error('Forbidden: You do not have access to cohort analytics');
+}
+
+// ============ Core computation (no auth - callable from cron + server actions) ============
 
 function isMissingIndexError(error: unknown): boolean {
     const message = error instanceof Error ? error.message : String(error);
@@ -155,7 +193,7 @@ export async function computeCohortData(
         };
     });
 
-    // Find biggest dropoff step (1→2, 2→3, 3→4, 4→5+)
+    // Find biggest dropoff step (1->2, 2->3, 3->4, 4->5+)
     let topDropoffVisit = 1;
     let topDropoffPct = 0;
     for (const b of buckets) {
@@ -184,17 +222,17 @@ export async function computeCohortData(
     };
 }
 
-// ============ Server Action — authenticated, for CEO dashboard ============
+// ============ Server Action - authenticated, for CEO dashboard ============
 
 export async function getCustomerVisitCohort(
     orgId: string,
     daysBack: 90 | 180 | 365 = 90
 ): Promise<CustomerVisitCohortResult> {
-    await requireSuperUser();
-    return computeCohortData(orgId, daysBack);
+    const accessibleOrgId = await resolveAccessibleCohortOrgId(orgId);
+    return computeCohortData(accessibleOrgId, daysBack);
 }
 
-// ============ Inbox posting — for cron + manual trigger ============
+// ============ Inbox posting - for cron + manual trigger ============
 
 /**
  * Check if a cohort_report artifact was posted for this org in the last N days.
@@ -219,7 +257,7 @@ export async function getLastCohortReportDate(orgId: string): Promise<Date | nul
 
 /**
  * Post a cohort_report artifact to the org's Daily Briefing inbox thread.
- * No auth — called from cron context.
+ * No auth - called from cron context.
  */
 export async function postCohortReportToInbox(
     orgId: string,
@@ -269,7 +307,7 @@ export async function postCohortReportToInbox(
         type: 'cohort_report',
         status: 'approved',
         data,
-        rationale: `Weekly customer visit cohort — ${data.periodLabel}`,
+        rationale: `Weekly customer visit cohort - ${data.periodLabel}`,
         createdBy: 'system',
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
@@ -279,7 +317,7 @@ export async function postCohortReportToInbox(
         artifactIds: FieldValue.arrayUnion(artifactId),
         lastActivityAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
-        preview: `Visit cohort update — ${data.repeatCustomerRate}% repeat rate, biggest drop at visit ${data.topDropoffVisit}`,
+        preview: `Visit cohort update - ${data.repeatCustomerRate}% repeat rate, biggest drop at visit ${data.topDropoffVisit}`,
     });
 
     logger.info('[CohortAnalytics] Posted cohort report to inbox', {
@@ -323,14 +361,14 @@ function buildSummary(
 
     const lines: string[] = [];
     lines.push(`Of ${total.toLocaleString()} customers active in the ${periodLabel(daysBack).toLowerCase()}:`);
-    lines.push(`• ${repeatRate}% returned for a 2nd visit (${b2.count.toLocaleString()} customers)`);
-    lines.push(`• Biggest dropout: visit ${topDropoffVisit}→${topDropoffVisit + 1} — ${topDropoffPct}% of customers who reached visit ${topDropoffVisit} did not return`);
-    lines.push(`• ${oneTimers.toLocaleString()} customers (${100 - repeatRate}%) visited only once — prime win-back targets`);
+    lines.push(`- ${repeatRate}% returned for a 2nd visit (${b2.count.toLocaleString()} customers)`);
+    lines.push(`- Biggest dropout: visit ${topDropoffVisit}->${topDropoffVisit + 1} - ${topDropoffPct}% of customers who reached visit ${topDropoffVisit} did not return`);
+    lines.push(`- ${oneTimers.toLocaleString()} customers (${100 - repeatRate}%) visited only once - prime win-back targets`);
 
     if (repeatRate < 30) {
-        lines.push(`⚠️ Repeat rate below 30% — Mrs. Parker should run a first-purchase win-back sequence immediately.`);
+        lines.push('Action: Repeat rate below 30% - Mrs. Parker should run a first-purchase win-back sequence immediately.');
     } else if (repeatRate >= 60) {
-        lines.push(`✅ Strong repeat rate — focus on converting 3rd→4th visit loyals into VIP tier.`);
+        lines.push('Signal: Strong repeat rate - focus on converting 3rd->4th visit loyals into VIP tier.');
     }
 
     return lines.join('\n');

@@ -18,7 +18,11 @@ import { InboxConversation } from './inbox-conversation';
 import { InboxArtifactPanel } from './inbox-artifact-panel';
 import { InboxEmptyState } from './inbox-empty-state';
 import { CrmContextPanel } from './crm/crm-context-panel';
-import type { InboxThreadType } from '@/types/inbox';
+import {
+    InboxAgentPersonaSchema,
+    InboxThreadTypeSchema,
+} from '@/types/inbox';
+import type { InboxAgentPersona, InboxThreadType } from '@/types/inbox';
 import { getInboxThreads, createInboxThread } from '@/server/actions/inbox';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -30,7 +34,6 @@ export function UnifiedInbox({ className }: UnifiedInboxProps) {
     const searchParams = useSearchParams();
     const { role, orgId } = useUserRole();
 
-    // Store state
     const {
         activeThreadId,
         isArtifactPanelOpen,
@@ -48,7 +51,6 @@ export function UnifiedInbox({ className }: UnifiedInboxProps) {
     const activeThread = useActiveThread();
     const activeArtifacts = useActiveThreadArtifacts();
 
-    // Initialize store with user context
     useEffect(() => {
         if (role) {
             setCurrentRole(role);
@@ -58,15 +60,16 @@ export function UnifiedInbox({ className }: UnifiedInboxProps) {
         }
     }, [role, orgId, setCurrentRole, setCurrentOrgId]);
 
-    // Handle URL params for type filter (e.g., /inbox?type=carousel)
     useEffect(() => {
         const typeParam = searchParams.get('type');
-        if (typeParam && ['carousel', 'bundle', 'creative', 'image', 'video', 'campaign', 'launch', 'crm_customer', 'general', 'product_discovery', 'wholesale_inventory', 'support'].includes(typeParam)) {
+        if (
+            typeParam
+            && ['carousel', 'bundle', 'creative', 'image', 'video', 'campaign', 'launch', 'crm_customer', 'general', 'product_discovery', 'wholesale_inventory', 'support'].includes(typeParam)
+        ) {
             setThreadFilter({ type: typeParam as InboxThreadType });
         }
     }, [searchParams, setThreadFilter]);
 
-    // Load threads from server on mount
     useEffect(() => {
         async function loadThreads() {
             setLoading(true);
@@ -87,69 +90,122 @@ export function UnifiedInbox({ className }: UnifiedInboxProps) {
         }
     }, [role, orgId, hydrateThreads, setLoading]);
 
-    // Handle newThread URL params (e.g., /inbox?newThread=crm_customer&customerId=X&customerName=Y)
-    const newThreadHandled = useRef(false);
+    const handledThreadSeedRef = useRef<string | null>(null);
     useEffect(() => {
-        if (newThreadHandled.current) return;
-        const newThreadType = searchParams.get('newThread') as InboxThreadType | null;
-        if (!newThreadType || !role) return;
-
+        const rawThreadType = searchParams.get('newThread');
+        const rawAgent = searchParams.get('agent');
+        const rawPrompt = searchParams.get('prompt')?.trim() || '';
         const customerId = searchParams.get('customerId') || undefined;
         const customerName = searchParams.get('customerName') || undefined;
         const customerEmail = searchParams.get('customerEmail') || undefined;
 
-        newThreadHandled.current = true;
+        const parsedThreadType = rawThreadType
+            ? InboxThreadTypeSchema.safeParse(rawThreadType)
+            : null;
+        const newThreadType: InboxThreadType | null = parsedThreadType?.success
+            ? parsedThreadType.data
+            : (rawAgent || rawPrompt ? 'general' : null);
 
-        // Create CRM thread with customer context
+        if (!newThreadType || !role) {
+            handledThreadSeedRef.current = null;
+            return;
+        }
+
+        const parsedAgent = rawAgent
+            ? InboxAgentPersonaSchema.safeParse(rawAgent)
+            : null;
+        const primaryAgent: InboxAgentPersona | undefined = parsedAgent?.success
+            ? parsedAgent.data
+            : undefined;
+
+        const seedSignature = JSON.stringify({
+            newThreadType,
+            primaryAgent,
+            rawPrompt,
+            customerId,
+            customerName,
+            customerEmail,
+            orgId,
+        });
+
+        if (handledThreadSeedRef.current === seedSignature) {
+            return;
+        }
+
+        handledThreadSeedRef.current = seedSignature;
+
+        const initialMessage = rawPrompt
+            ? {
+                id: `seed-message-${Date.now()}`,
+                type: 'user' as const,
+                content: rawPrompt,
+                timestamp: new Date(),
+            }
+            : undefined;
+
         const title = customerName
-            ? `${customerName} — CRM`
-            : `New ${newThreadType} conversation`;
+            ? `${customerName} - CRM`
+            : rawPrompt
+                ? rawPrompt.slice(0, 72)
+                : `New ${newThreadType} conversation`;
 
         const thread = createThread(newThreadType, {
             title,
+            initialMessage,
+            primaryAgent,
             brandId: orgId || undefined,
             dispensaryId: orgId || undefined,
         });
 
-        // Attach CRM fields if present
         if (customerId) thread.customerId = customerId;
         if (customerEmail) thread.customerEmail = customerEmail;
 
         setActiveThread(thread.id);
 
-        // Persist to server
         createInboxThread({
             id: thread.id,
             type: newThreadType,
             title,
+            primaryAgent,
             brandId: orgId || undefined,
             dispensaryId: orgId || undefined,
             customerId,
             customerEmail,
+            initialMessage,
         }).catch((err) => {
-            // Log but don't crash — thread remains in local store until next sync
             console.error('[UnifiedInbox] Failed to persist thread to server:', err);
         });
+
+        if (typeof window !== 'undefined') {
+            const nextParams = new URLSearchParams(window.location.search);
+            nextParams.delete('newThread');
+            nextParams.delete('agent');
+            nextParams.delete('prompt');
+            nextParams.delete('customerId');
+            nextParams.delete('customerName');
+            nextParams.delete('customerEmail');
+            const nextQuery = nextParams.toString();
+            const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}`;
+            window.history.replaceState({}, '', nextUrl);
+        }
     }, [searchParams, role, orgId, createThread, setActiveThread]);
 
     const isMobile = useIsMobile();
-
-    // Determine if CRM panel should show
     const showCrmPanel = activeThread?.type === 'crm_customer' && activeThread?.customerId;
 
     return (
-        <div className={cn(
-            'relative flex h-full w-full overflow-hidden',
-            'bg-gradient-to-br from-background via-background to-baked-950/10',
-            className
-        )}>
-            {/* Subtle animated background orbs for premium feel */}
+        <div
+            className={cn(
+                'relative flex h-full w-full overflow-hidden',
+                'bg-gradient-to-br from-background via-background to-baked-950/10',
+                className
+            )}
+        >
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute -top-1/4 -left-1/4 w-1/2 h-1/2 bg-baked-500/5 rounded-full blur-3xl" />
                 <div className="absolute -bottom-1/4 -right-1/4 w-1/2 h-1/2 bg-baked-600/5 rounded-full blur-3xl" />
             </div>
 
-            {/* Sidebar - Thread list and quick actions */}
             <InboxSidebar
                 collapsed={isMobile ? false : isSidebarCollapsed}
                 className={cn(
@@ -160,16 +216,18 @@ export function UnifiedInbox({ className }: UnifiedInboxProps) {
                 )}
             />
 
-            {/* Main Content Area */}
-            <div className={cn(
-                'relative z-10 flex overflow-hidden',
-                isMobile ? (activeThreadId ? 'flex-1' : 'hidden') : 'flex-1'
-            )}>
-                {/* Conversation Area */}
-                <div className={cn(
-                    'flex-1 min-h-0 flex flex-col overflow-hidden transition-all duration-300',
-                    isArtifactPanelOpen && 'mr-0'
-                )}>
+            <div
+                className={cn(
+                    'relative z-10 flex overflow-hidden',
+                    isMobile ? (activeThreadId ? 'flex-1' : 'hidden') : 'flex-1'
+                )}
+            >
+                <div
+                    className={cn(
+                        'flex-1 min-h-0 flex flex-col overflow-hidden transition-all duration-300',
+                        isArtifactPanelOpen && 'mr-0'
+                    )}
+                >
                     <AnimatePresence mode="wait">
                         {activeThread ? (
                             <motion.div
@@ -202,7 +260,6 @@ export function UnifiedInbox({ className }: UnifiedInboxProps) {
                     </AnimatePresence>
                 </div>
 
-                {/* Right Panel — CRM Context or Artifact Panel */}
                 <AnimatePresence>
                     {showCrmPanel && (
                         <motion.div

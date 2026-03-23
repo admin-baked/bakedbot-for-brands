@@ -4,7 +4,7 @@
  * CohortReportArtifact
  *
  * Renders a customer visit-frequency funnel card in the inbox artifact panel.
- * Shows 1st→2nd→3rd→4th→5th+ visit progression, dropout %, and a win-back CTA.
+ * Shows 1st->2nd->3rd->4th->5th+ visit progression, dropout %, and a win-back CTA.
  */
 
 import React from 'react';
@@ -32,7 +32,12 @@ export function CohortReportArtifact({ artifact }: CohortReportArtifactProps) {
     }
 
     const handleWinBackCTA = () => {
-        router.push('/dashboard/inbox?agent=mrs_parker&prompt=Run a win-back campaign for first-time customers who never returned');
+        const params = new URLSearchParams({
+            newThread: 'outreach',
+            agent: 'mrs_parker',
+            prompt: 'Draft a win-back campaign for first-time customers who never returned after their first visit. Use the visit retention snapshot as context and recommend the audience, offer, and success metric.',
+        });
+        router.push(`/dashboard/inbox?${params.toString()}`);
     };
 
     const maxCount = data.buckets[0]?.count || 1;
@@ -76,7 +81,7 @@ export function CohortReportArtifact({ artifact }: CohortReportArtifactProps) {
                         ? <TrendingDown className="h-3 w-3 text-red-500" />
                         : <TrendingUp className="h-3 w-3 text-green-500" />
                     }
-                    Biggest dropout: Visit {data.topDropoffVisit} → {data.topDropoffVisit + 1}
+                    Biggest dropout: Visit {data.topDropoffVisit} {'->'} {data.topDropoffVisit + 1}
                 </p>
                 <p className="text-xs text-muted-foreground">
                     {data.topDropoffPct}% of customers who made visit {data.topDropoffVisit} did not return
@@ -135,7 +140,7 @@ function FunnelRow({
                         }`}>
                             <ArrowRight className="h-2.5 w-2.5" />
                             {bucket.retentionPct}% retained
-                            {isWorstDropoff && ' ⚠️'}
+                            {isWorstDropoff && ' warning'}
                         </span>
                     )}
                 </div>

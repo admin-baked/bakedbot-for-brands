@@ -189,3 +189,43 @@ export interface ProactiveRuntimeDiagnosticRecord {
     metadata: Record<string, unknown>;
     createdAt: Date;
 }
+
+// ---------------------------------------------------------------------------
+// Approval Policy (PRD §23)
+// ---------------------------------------------------------------------------
+
+export type ProactiveApprovalPolicyMode =
+    | 'none'                     // No approval gate; execute immediately
+    | 'auto_for_low_risk'        // Auto-approve severity=low; human for medium+
+    | 'human_required'           // Always require a human to approve
+    | 'compliance_then_human';   // Deebo compliance review first, then human
+
+export type ProactiveApprovalStatus =
+    | 'pending'
+    | 'auto_approved'
+    | 'approved'
+    | 'rejected'
+    | 'expired';
+
+export interface ProactiveApprovalRecord {
+    id: string;
+    taskId: string;
+    tenantId: string;
+    organizationId: string;
+    workflowKey: ProactiveWorkflowKey;
+    artifactId?: string;
+    policyMode: ProactiveApprovalPolicyMode;
+    status: ProactiveApprovalStatus;
+    severity: ProactiveSeverity;
+    /** Set when policyMode = 'compliance_then_human' and compliance passed */
+    compliancePassedAt?: Date;
+    /** User or agent who approved/rejected */
+    resolvedBy?: string;
+    resolvedAt?: Date;
+    rejectionReason?: string;
+    /** Context passed through to the executing service */
+    payload: Record<string, unknown>;
+    createdAt: Date;
+    updatedAt: Date;
+    expiresAt?: Date;
+}

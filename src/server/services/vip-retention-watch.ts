@@ -22,6 +22,10 @@ import {
 } from '@/server/services/proactive-commitment-service';
 import { recordProactiveOutcome } from '@/server/services/proactive-outcome-service';
 import { isProactiveWorkflowEnabled } from '@/server/services/proactive-settings';
+import {
+    createProactiveApproval,
+    resolveApprovalPolicy,
+} from '@/server/services/proactive-approval-service';
 
 type CandidateSegment =
     | 'vip'
@@ -435,6 +439,27 @@ export async function runVipRetentionWatch(orgId: string): Promise<VipRetentionW
         });
 
         await linkTaskToInbox(task.id, { threadId, artifactId });
+
+        // Create approval record and atomically back-link to task (batched write)
+        const approvalPolicy = resolveApprovalPolicy('vip_retention_watch');
+        await createProactiveApproval({
+            taskId: task.id,
+            tenantId: task.tenantId,
+            organizationId: task.organizationId,
+            workflowKey: 'vip_retention_watch',
+            artifactId,
+            policyMode: approvalPolicy,
+            severity,
+            linkedTaskId: task.id,
+            payload: {
+                weekBucket,
+                targetedCustomerIds: candidates.map((c) => c.id),
+                artifactId,
+                threadId,
+            },
+        });
+
+        task = await safelyTransitionTask(task, 'awaiting_approval', 'approval_record_created');
 
         await attachProactiveTaskEvidence(task.id, {
             taskId: task.id,
