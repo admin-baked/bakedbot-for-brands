@@ -136,7 +136,7 @@ export async function runAgent<TMemory extends AgentMemory, TTools = any>(
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { getGenerateOptions } from '@/ai/model-selector';
+import { getGenerateOptions, HARNESS_PLANNING_MODEL, HARNESS_SUBAGENT_MODEL } from '@/ai/model-selector';
 
 export interface MultiStepPlan {
     thought: string;
@@ -183,7 +183,7 @@ export interface MultiStepContext {
     tools: any;
     maxIterations?: number;
     model?: string;
-    /** Override planning model for hybrid path (default: gemini-2.5-flash) */
+    /** Override planning model for hybrid path (default: HARNESS_PLANNING_MODEL = gemini-3-pro-preview) */
     planningModel?: string;
     /** Agent ID for validation pipeline selection */
     agentId?: string;
@@ -329,7 +329,7 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
     // regardless of what the agent impl hardcoded (e.g. gemini-3-pro, claude-sonnet).
     const _subAgentLevel = getRequestContext().subAgentModelLevel;
     const effectiveModel = _subAgentLevel
-        ? getGenerateOptions(_subAgentLevel).model  // e.g. 'googleai/gemini-2.5-flash-lite'
+        ? getGenerateOptions(_subAgentLevel).model  // e.g. HARNESS_SUBAGENT_MODEL = gemini-3-flash-preview
         : model;
 
     // SECURITY: Sanitize user query before interpolation into planning prompts
@@ -376,7 +376,7 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
             `;
 
             const plan = await ai.generate({
-                model: context.planningModel || 'googleai/gemini-2.5-flash', // Default: 2.5 Flash; override with Gemini 3 for paid users
+                model: context.planningModel || HARNESS_PLANNING_MODEL,
                 prompt: planPrompt,
                 output: {
                     schema: z.object({
@@ -647,7 +647,7 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
     const _gemStart = Date.now();
     let _gemInTok = 0;
     let _gemOutTok = 0;
-    const _gemModel = (effectiveModel !== 'claude' && effectiveModel !== 'gemini' && effectiveModel) ? effectiveModel : 'googleai/gemini-2.5-flash';
+    const _gemModel = (effectiveModel !== 'claude' && effectiveModel !== 'gemini' && effectiveModel) ? effectiveModel : HARNESS_SUBAGENT_MODEL;
 
     // Helper: fire-and-forget telemetry for the Gemini path
     const _recordGeminiTelemetry = (success: boolean) => {

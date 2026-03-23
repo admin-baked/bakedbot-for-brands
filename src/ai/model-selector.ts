@@ -109,6 +109,17 @@ export const AGENTIC_MODEL = 'googleai/gemini-3-pro-preview';
  */
 export const SIMPLE_QUERY_MODEL = 'googleai/gemini-2.5-flash-lite';
 
+// ============================================================================
+// HARNESS MODEL POLICY
+// Canonical defaults for the three roles in every orchestration plan:
+//   PLANNING   — Gemini 3 Pro Preview  (high-quality reasoning for tool selection)
+//   TOOLS      — Claude Sonnet 4.6     (best-in-class tool calling / synthesis)
+//   SUB_AGENTS — Gemini 3 Flash        (cost-efficient worker execution)
+// ============================================================================
+export const HARNESS_PLANNING_MODEL = 'googleai/gemini-3-pro-preview';
+export const HARNESS_TOOL_MODEL     = CLAUDE_TOOL_MODEL;                    // 'claude-sonnet-4-6'
+export const HARNESS_SUBAGENT_MODEL = 'googleai/gemini-3-flash-preview';
+
 /**
  * Weekly usage limits for free tier users.
  * These reset every 7 days from the user's first usage.
