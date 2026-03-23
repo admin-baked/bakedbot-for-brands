@@ -13,6 +13,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/firebase/server-client';
+import { Timestamp } from 'firebase-admin/firestore';
 import { posCache, cacheKeys } from '@/lib/cache/pos-cache';
 import { logger } from '@/lib/logger';
 import { revalidatePath } from 'next/cache';
@@ -283,7 +284,8 @@ async function handleCustomerEvent(
 }
 
 /**
- * Handle order webhook events
+ * Handle order webhook events — invalidates cache + persists to Firestore.
+ * Persisting keeps analytics up to date without requiring periodic backfills.
  */
 async function handleOrderEvent(
     orgId: string,
@@ -296,16 +298,78 @@ async function handleOrderEvent(
         eventName,
     });
 
-    // Invalidate orders cache to force refresh
+    // Invalidate orders + customers cache
     posCache.invalidate(cacheKeys.orders(orgId));
-
-    // Also invalidate customers cache since order affects customer stats
     posCache.invalidate(cacheKeys.customers(orgId));
 
-    logger.debug('[WEBHOOK] Invalidated order and customer caches', { orgId });
+    // Persist/update the order doc in Firestore so analytics stays current
+    const orderId = orderData.id?.toString();
+    if (!orderId) return;
 
-    // Optional: Send real-time notification to dashboard
-    // This could use Server-Sent Events or WebSockets
+    try {
+        const { firestore } = await createServerClient();
+
+        // Resolve retailerId from the org's POS config locationId
+        let retailerId = orderData.locationId?.toString() || orgId;
+        const locSnap = await firestore.collection('locations')
+            .where('orgId', '==', orgId)
+            .limit(1)
+            .get();
+        if (!locSnap.empty) {
+            retailerId = locSnap.docs[0].data()?.posConfig?.locationId || retailerId;
+        }
+
+        const mapStatus = (s: string): string => {
+            const map: Record<string, string> = {
+                pending: 'pending', submitted: 'submitted', confirmed: 'confirmed',
+                preparing: 'preparing', ready: 'ready', completed: 'completed',
+                cancelled: 'cancelled', processing: 'preparing', delivered: 'completed',
+            };
+            return map[s?.toLowerCase()] || 'pending';
+        };
+
+        const rawDate = orderData.date_created || orderData.created_at;
+        const orderDate = rawDate ? new Date(rawDate) : new Date();
+
+        const customerName =
+            orderData.customer?.name ||
+            `${orderData.name_first || orderData.customer_first_name || ''} ${orderData.name_last || orderData.customer_last_name || ''}`.trim() ||
+            'Unknown';
+        const customerEmail = orderData.customer?.email || orderData.email || orderData.customer_email || 'no-email@alleaves.local';
+
+        await firestore.collection('orders').doc(`alleaves_${orderId}`).set({
+            id: `alleaves_${orderId}`,
+            brandId: orgId,
+            retailerId,
+            userId: orderData.customer?.id?.toString() || orderData.id_customer?.toString() || 'alleaves_customer',
+            status: mapStatus(orderData.status),
+            customer: { name: customerName, email: customerEmail, phone: orderData.customer?.phone || orderData.phone || '' },
+            items: (orderData.items || []).map((item: any) => ({
+                productId: item.id_item?.toString() || item.product_id?.toString() || 'unknown',
+                name: item.item || item.product_name || 'Unknown Item',
+                qty: parseInt(item.quantity || 1),
+                price: parseFloat(item.price || item.unit_price || 0),
+                category: item.category || 'other',
+            })),
+            totals: {
+                subtotal: parseFloat(orderData.subtotal || 0),
+                tax: parseFloat(orderData.tax || 0),
+                discount: parseFloat(orderData.discount || 0),
+                total: parseFloat(orderData.total || orderData.amount || 0),
+            },
+            mode: 'live',
+            source: 'alleaves',
+            createdAt: Timestamp.fromDate(orderDate),
+            updatedAt: Timestamp.fromDate(new Date()),
+        }, { merge: true });
+
+        logger.info('[WEBHOOK] Order upserted to Firestore', { orgId, orderId, eventName });
+    } catch (error) {
+        // Non-fatal — cache invalidation still ensures live dashboard freshness
+        logger.error('[WEBHOOK] Failed to persist order to Firestore', {
+            orgId, orderId, error: String(error),
+        });
+    }
 }
 
 /**
