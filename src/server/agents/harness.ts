@@ -136,6 +136,7 @@ export async function runAgent<TMemory extends AgentMemory, TTools = any>(
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import { getGenerateOptions } from '@/ai/model-selector';
 
 export interface MultiStepPlan {
     thought: string;
@@ -324,6 +325,13 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
 }> {
     const { userQuery, systemInstructions, toolsDef, tools, maxIterations = 5, onStepComplete, model = 'hybrid' } = context;
 
+    // Sub-agent model override: if running inside triggerAgentRun, cap to Flash
+    // regardless of what the agent impl hardcoded (e.g. gemini-3-pro, claude-sonnet).
+    const _subAgentLevel = getRequestContext().subAgentModelLevel;
+    const effectiveModel = _subAgentLevel
+        ? getGenerateOptions(_subAgentLevel).model  // e.g. 'googleai/gemini-2.5-flash-lite'
+        : model;
+
     // SECURITY: Sanitize user query before interpolation into planning prompts
     const sanitizedQuery = sanitizeForPrompt(userQuery, 2000);
 
@@ -334,7 +342,7 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
     );
 
     // === HYBRID EXECUTION PATH (Gemini Planning + Claude Synthesis) ===
-    if (model === 'hybrid') {
+    if (effectiveModel === 'hybrid') {
         const steps: Array<{ tool: string; args: any; result: any }> = [];
         let iteration = 0;
 
@@ -539,8 +547,9 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
     }
 
     // === CLAUDE EXECUTION PATH (LOGIC MASTER) ===
-    // Routing: Trigger if model is explicitly 'claude' OR if it's a specific Anthropic model string
-    if (model === 'claude' || (model && model.startsWith('claude-'))) {
+    // Routing: Trigger if model is explicitly 'claude' OR if it's a specific Anthropic model string.
+    // Note: sub-agent context overrides this — effectiveModel will be a Gemini Flash string.
+    if (effectiveModel === 'claude' || (effectiveModel && effectiveModel.startsWith('claude-'))) {
         const { executeWithTools } = await import('@/ai/claude');
         const { zodToClaudeSchema } = await import('@/server/utils/zod-to-json');
 
@@ -638,7 +647,7 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
     const _gemStart = Date.now();
     let _gemInTok = 0;
     let _gemOutTok = 0;
-    const _gemModel = (model !== 'claude' && model !== 'gemini' && model) ? model : 'googleai/gemini-2.5-flash';
+    const _gemModel = (effectiveModel !== 'claude' && effectiveModel !== 'gemini' && effectiveModel) ? effectiveModel : 'googleai/gemini-2.5-flash';
 
     // Helper: fire-and-forget telemetry for the Gemini path
     const _recordGeminiTelemetry = (success: boolean) => {

@@ -294,11 +294,13 @@ async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOver
     }
 
     // --- PER-AGENT MODEL DEFAULTS ---
-    // Sub-agents (mrs_parker, craig) run on Lite to avoid inheriting a heavy
-    // caller model level (e.g., advanced / expert from an executive session).
+    // Sub-agents run on Gemini Flash (standard = gemini-3-flash-preview) to avoid
+    // inheriting the orchestrator's heavier model (e.g. Pro / expert tier).
+    // The harness reads subAgentModelLevel from requestContext and overrides any
+    // hardcoded model passed by the agent impl (e.g. gemini-3-pro, claude-sonnet).
     const SUB_AGENT_MODEL_DEFAULTS: Record<string, string> = {
-        mrs_parker: 'lite',
-        craig: 'lite',
+        mrs_parker: 'standard',  // Flash — context-heavy CRM work, Pro not needed
+        craig: 'standard',       // Flash — marketing copy via Gemini instead of Claude
     };
     const subAgentModelLevel = SUB_AGENT_MODEL_DEFAULTS[agentName] ?? 'standard';
 
