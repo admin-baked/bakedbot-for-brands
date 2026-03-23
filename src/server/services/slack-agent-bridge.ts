@@ -381,13 +381,13 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
         //   - Tool-requiring messages → Claude Sonnet with full tool suite + vision
         //   - Simple conversational messages → GLM (free)
         // All other agents use GLM synthesis path.
-        const AGENT_TIMEOUTS: Record<string, number> = {
+        const AGENT_TIMEOUTS = {
             linus:  180_000,  // 3 min — Claude tool-calling with up to 8 iterations
             leo:   120_000,   // 2 min — COO operations may chain multiple tools
             jack:  120_000,   // 2 min — CRO revenue analysis
             glenda: 120_000,  // 2 min — CMO strategy
-        };
-        const agentTimeoutMs = AGENT_TIMEOUTS[personaId] ?? 55_000;
+        } satisfies Partial<Record<string, number>>;
+        const agentTimeoutMs = AGENT_TIMEOUTS[personaId as keyof typeof AGENT_TIMEOUTS] ?? 55_000;
         const agentTimeoutSec = Math.round(agentTimeoutMs / 1000);
 
         // For Linus: download image files from Slack only when Claude will actually be invoked.
