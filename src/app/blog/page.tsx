@@ -14,16 +14,25 @@ import { format } from 'date-fns';
 import { BlogSignupCta } from '@/components/blog/blog-signup-cta';
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = {
-    title: 'Blog — Cannabis Industry Insights & Trends',
-    description: 'Expert insights on cannabis technology, marketing, compliance, and industry trends from the BakedBot team.',
-    openGraph: {
-        title: 'BakedBot Blog — Cannabis Industry Insights',
-        description: 'Expert insights on cannabis technology, marketing, compliance, and industry trends.',
-        type: 'website',
-        url: 'https://bakedbot.ai/blog',
-    },
-};
+export async function generateMetadata(): Promise<Metadata> {
+    const posts = await getPublishedPlatformPosts({ limit: 5 });
+    const shouldIndex = posts.length >= 3;
+
+    return {
+        title: 'Blog — Cannabis Industry Insights & Trends',
+        description: 'Expert insights on cannabis technology, marketing, compliance, and industry trends from the BakedBot team.',
+        robots: {
+            index: shouldIndex,
+            follow: true,
+        },
+        openGraph: {
+            title: 'BakedBot Blog — Cannabis Industry Insights',
+            description: 'Expert insights on cannabis technology, marketing, compliance, and industry trends.',
+            type: 'website',
+            url: 'https://bakedbot.ai/blog',
+        },
+    };
+}
 
 export default async function BlogIndexPage() {
     const posts = await getPublishedPlatformPosts({ limit: 50 });

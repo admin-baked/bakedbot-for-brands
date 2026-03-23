@@ -227,9 +227,10 @@ export function findPricingPlan(planId: string): PricingPlan | undefined {
 
 export interface OverageRow {
     k: string;
-    pro: string;
-    growth: string;
-    empire: string;
+    signal: string;
+    convert: string;
+    retain: string;
+    optimize: string;
 }
 
 /**
@@ -237,11 +238,11 @@ export interface OverageRow {
  * Always notify customers at 80% usage — no throttling, no surprise bills.
  */
 export const OVERAGES_TABLE: OverageRow[] = [
-    { k: "SMS Messages",           pro: "$0.05/msg",    growth: "$0.04/msg",    empire: "$0.03/msg" },
-    { k: "Emails",                 pro: "$0.002/email", growth: "$0.002/email", empire: "$0.001/email" },
-    { k: "Creative Assets",        pro: "$2.00/asset",  growth: "$1.50/asset",  empire: "Included" },
-    { k: "Additional ZIP Codes",   pro: "$10/mo each",  growth: "$8/mo each",   empire: "Included" },
-    { k: "Additional Competitors", pro: "$5/mo each",   growth: "$4/mo each",   empire: "Included" },
+    { k: "SMS Messages",           signal: "$0.05/msg",    convert: "$0.04/msg",    retain: "$0.04/msg",    optimize: "$0.03/msg" },
+    { k: "Emails",                 signal: "$0.002/email", convert: "$0.002/email", retain: "$0.002/email", optimize: "$0.001/email" },
+    { k: "Creative Assets",        signal: "$2.00/asset",  convert: "$1.50/asset",  retain: "$1.50/asset",  optimize: "Included" },
+    { k: "Additional ZIP Codes",   signal: "$10/mo each",  convert: "$8/mo each",   retain: "$8/mo each",   optimize: "Included" },
+    { k: "Additional Competitors", signal: "$5/mo each",   convert: "$4/mo each",   retain: "$4/mo each",   optimize: "Included" },
 ];
 
 // Legacy flat OVERAGES kept for backwards compatibility

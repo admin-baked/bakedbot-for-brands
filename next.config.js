@@ -266,6 +266,35 @@ const nextConfig = {
   async redirects() {
     return [
       {
+        source: '/pricing',
+        has: [{ type: 'query', key: 'plan', value: 'empire' }],
+        destination: '/pricing/launch',
+        permanent: true,
+      },
+      {
+        source: '/checkout/subscription',
+        has: [{ type: 'query', key: 'plan', value: 'pro' }],
+        destination: '/pricing/launch',
+        permanent: true,
+      },
+      {
+        source: '/checkout/subscription',
+        has: [{ type: 'query', key: 'plan', value: 'growth' }],
+        destination: '/pricing/launch',
+        permanent: true,
+      },
+      {
+        source: '/checkout/subscription',
+        has: [{ type: 'query', key: 'plan', value: 'scout' }],
+        destination: '/pricing/launch',
+        permanent: true,
+      },
+      {
+        source: '/executive/:id',
+        destination: '/demo-shop',
+        permanent: true,
+      },
+      {
         source: '/demo-menu',
         destination: '/demo-shop',
         permanent: true,

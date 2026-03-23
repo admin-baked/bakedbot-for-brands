@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { Check, X, ArrowRight, Globe, Lock, Coins, Search } from "lucide-react";
+import type { Metadata } from 'next';
 import { Navbar } from "@/components/landing/navbar";
 import { LandingFooter } from "@/components/landing/footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "BakedBot vs Leafly | Stop Renting Your Customers",
   description: "Leafly and Weedmaps own your traffic. BakedBot's discovery pages capture SEO demand and funnel it directly to YOUR menu. Take back control.",
 };
@@ -142,7 +143,7 @@ export default function VsLeaflyPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-slate-300">
-                    Marketplaces take a cut or charge per order. BakedBot is a flat subscription. Whether you sell $10k or $100k, the price is $99.
+                    Marketplaces take a cut or charge per order. BakedBot is a flat subscription. Whether you sell $10k or $100k, your subscription cost remains predictable and transparent.
                   </p>
                 </CardContent>
               </Card>

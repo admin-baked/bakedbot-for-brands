@@ -1,22 +1,34 @@
-// import { CategoryNav } from '@/components/dispensary/category-nav';
-// import { DealsCarousel } from '@/components/dispensary/deals-carousel';
-import Chatbot from '@/components/chatbot';
-import { ProductGrid } from '@/components/product-grid';
-import { demoProducts } from '@/lib/demo/demo-data';
-import { fetchBrandPageData } from '@/lib/brand-data';
+import { createServerClient } from '@/firebase/server-client';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import DispensaryLocator from '@/components/dispensary-locator';
-import { DispensaryHeader } from '@/components/dispensary/dispensary-header';
-import { BrandMenuClient } from './brand-menu-client';
+
+// Actions & Data
+import { fetchBrandPageData } from '@/lib/brand-data';
 import { getActiveBundles } from '@/app/actions/bundles';
 import { getHeroSlides } from '@/app/actions/hero-slides';
-import { MenuWithAgeGate } from '@/components/menu/menu-with-age-gate';
 import { getPublicMenuSettings } from '@/server/actions/loyalty-settings';
+import { demoProducts } from '@/lib/demo/demo-data';
+
+// Components
+import { MenuWithAgeGate } from '@/components/menu/menu-with-age-gate';
+import { BrandMenuClient } from './brand-menu-client';
+import { DispensaryHeader } from '@/components/dispensary/dispensary-header';
+import { ProductGrid } from '@/components/product-grid';
+import DispensaryLocator from '@/components/dispensary-locator';
+import Chatbot from '@/components/chatbot';
 
 // Disable caching to ensure fresh data on each request
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+
+export async function generateMetadata({ params }: { params: Promise<{ brand: string }> }): Promise<Metadata> {
+    const { brand } = await params;
+    const isDemo = ['demo', 'demo-shop', 'demo-brand', 'demo-40tons'].includes(brand);
+
+    return {
+        robots: isDemo ? { index: false, follow: true } : undefined,
+    };
+}
 
 export default async function BrandPage({ params }: { params: Promise<{ brand: string }> }) {
     const { brand: brandParam } = await params;
@@ -33,6 +45,7 @@ export default async function BrandPage({ params }: { params: Promise<{ brand: s
         'academy',
         '_next',
         'favicon.ico',
+        'onboarding',
     ];
 
     // If this is a reserved path, let Next.js handle it with the proper route

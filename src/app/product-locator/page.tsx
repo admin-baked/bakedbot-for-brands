@@ -1,5 +1,10 @@
-// app/product-locator/page.tsx
 import { DispensaryLocatorSection } from '@/components/dispensary-locator-section';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: 'Dispensary & Product Locator | BakedBot AI',
+    description: 'Find licensed cannabis dispensaries and specific products near you with the BakedBot AI locator.',
+};
 
 export default function ProductLocatorPage() {
   return (

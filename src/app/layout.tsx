@@ -39,7 +39,7 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 
   return {
-    title: 'BakedBot AI',
+    title: 'AI Commerce OS for Cannabis Dispensaries | BakedBot AI',
     description: 'The first cannabis commerce platform built for both the human web and the agent web.',
     manifest: '/manifest.json',
     icons: {
@@ -61,8 +61,6 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
 };
-
-// ... imports
 
 export default async function RootLayout({
   children,

@@ -5,8 +5,8 @@ import { PRICING_PLANS, OVERAGES_TABLE } from '@/lib/config/pricing';
 
 export function PricingSection() {
     const getPlanCtaHref = (planId: string) => {
-        if (planId === 'scout') return '/get-started?plan=scout';
-        if (planId === 'empire') return '/contact';
+        if (planId === 'signal') return '/get-started?plan=signal';
+        if (planId === 'optimize') return '/contact';
         return `/get-started?plan=${planId}`;
     };
 
@@ -57,7 +57,7 @@ export function PricingSection() {
                             borderRadius: '8px',
                             marginTop: 'auto'
                         }}>
-                            {plan.id === 'scout' ? 'Hire a Scout' : `Start ${plan.name}`}
+                            {plan.id === 'signal' ? 'Hire a Scout' : `Start ${plan.name}`}
                         </Link>
                     </div>
                 ))}
@@ -67,7 +67,7 @@ export function PricingSection() {
             <div style={{ marginTop: '40px', padding: '24px', background: '#f8fafc', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '4px' }}>Need more ZIP coverage? Add ZIPs to any plan.</h3>
                 <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px' }}>
-                    Pro includes <strong>3 ZIPs</strong> · Growth includes <strong>10 ZIPs</strong> · Empire includes <strong>unlimited ZIPs</strong>
+                    Convert includes <strong>3 ZIPs</strong> · Retain includes <strong>10 ZIPs</strong> · Optimize includes <strong>unlimited ZIPs</strong>
                 </p>
 
                 <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '16px' }}>
@@ -75,9 +75,9 @@ export function PricingSection() {
                         const zipRow = OVERAGES_TABLE.find(r => r.k === 'Additional ZIP Codes');
                         if (!zipRow) return null;
                         return [
-                            { label: 'Pro', rate: zipRow.pro },
-                            { label: 'Growth', rate: zipRow.growth },
-                            { label: 'Empire', rate: zipRow.empire },
+                            { label: 'Convert', rate: zipRow.convert },
+                            { label: 'Retain', rate: zipRow.retain },
+                            { label: 'Optimize', rate: zipRow.optimize },
                         ].map(({ label, rate }) => (
                             <div key={label} style={{ background: 'white', padding: '12px 20px', borderRadius: '8px', border: '1px solid #cbd5e1', display: 'flex', alignItems: 'center', gap: '10px' }}>
                                 <span style={{ fontWeight: 700 }}>{label}</span>
@@ -94,7 +94,7 @@ export function PricingSection() {
 
             {/* Tiny Print Rules */}
             <div style={{ marginTop: '24px', fontSize: '11px', color: '#94a3b8', textAlign: 'center' }}>
-                <p>• <strong>Pro features are included inside Growth + Empire</strong> (no double-charging to claim).</p>
+                <p>• <strong>Convert features are included inside Retain + Optimize</strong> (no double-charging to claim).</p>
                 <p>• Compliance guardrails apply by market (Deebo pre-checks public copy + CTAs).</p>
             </div>
 

@@ -3,6 +3,13 @@ import type { NextRequest } from 'next/server';
 import { getCorsHeaders, CORS_PREFLIGHT_HEADERS, isOriginAllowed } from './lib/cors';
 import { checkRateLimit } from './middleware/rate-limit';
 
+const IS_BOT_REGEX = /googlebot|bingbot|yandexbot|duckduckbot|baiduspider|facebot|facebookexternalhit|twitterbot|rogerbot|linkedinbot|embedly|quora\slink\spreview|showyoubot|outbrain|pinterest\/0\.|slackbot|vkShare|W3C_Validator|whatsapp/i;
+
+function isBot(userAgent?: string | null): boolean {
+  if (!userAgent) return false;
+  return IS_BOT_REGEX.test(userAgent);
+}
+
 type HostResolveResult = {
     success: boolean;
     path?: string;
@@ -155,9 +162,16 @@ export async function proxy(request: NextRequest) {
     }
 
     // Use x-forwarded-host in cloud environments (Firebase/Cloud Run), fall back to host
-    const hostname = request.headers.get('x-forwarded-host')
-        || request.headers.get('host')
-        || '';
+    const hostname = (request.headers.get('x-forwarded-host') || request.headers.get('host') || '').toLowerCase();
+    const userAgent = request.headers.get('user-agent');
+    const isSearchBot = isBot(userAgent);
+
+    // 1. Handle noindex for specific subdomains/hostnames
+    if (hostname === 'andrewsdevelopments.bakedbot.ai') {
+        const response = await rewriteToResolvedPath(request, '/');
+        response.headers.set('X-Robots-Tag', 'noindex');
+        return response;
+    }
 
     // ============================
     // LEAD MAGNET SUBDOMAINS
@@ -351,13 +365,16 @@ export async function proxy(request: NextRequest) {
 
     if (isMenuRoute) {
         const ageVerified = request.cookies.get('age_verified');
+        const isAgeVerified = !!ageVerified;
 
         // If no age verification cookie, redirect to server-rendered age gate
         // This prevents bypass via JavaScript disabling
-        if (!ageVerified) {
+        // Bots are allowed to bypass the 302 redirect to /verify-age so they can crawl content,
+        // but they should still see the gate component if it's part of the page HTML.
+        if (!isAgeVerified && !isSearchBot) {
             const url = request.nextUrl.clone();
             url.pathname = '/verify-age';
-            url.searchParams.set('return_to', pathname + request.nextUrl.search);
+            url.searchParams.set('from', pathname + request.nextUrl.search);
             return NextResponse.redirect(url);
         }
     }

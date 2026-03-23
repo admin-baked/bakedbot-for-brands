@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from 'next';
 import { Check, X, Bot, Zap, Coins, Sliders } from "lucide-react";
 import { Navbar } from "@/components/landing/navbar";
 import { LandingFooter } from "@/components/landing/footer";
@@ -6,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "BakedBot vs Terpli | Smarter AI Budtender at 1/5th the Price",
-  description: "Compare BakedBot's Smokey AI against Terpli. Get a fully conversational AI budtender plus a complete commerce OS for $99/mo vs $499/mo.",
+  description: "Compare BakedBot's Smokey AI against Terpli. Get a fully conversational AI budtender plus a complete commerce OS starting at $149/mo vs $499/mo.",
 };
 
 export default function VsTerpliPage() {
@@ -28,7 +29,7 @@ export default function VsTerpliPage() {
             </h1>
              <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto mb-10 text-balance">
               Terpli charges ~$499/mo just for a recommendation quiz. <br />
-              BakedBot gives you a <strong>conversational AI agent + headless menu + CRM</strong> for $99.
+              BakedBot gives you a <strong>conversational AI agent + headless menu + CRM</strong> starting at $149.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button size="lg" className="h-12 px-8 text-base bg-emerald-600 hover:bg-emerald-700" asChild>

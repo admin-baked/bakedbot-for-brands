@@ -160,6 +160,11 @@ export function PricingClient() {
                                                 </p>
                                             )}
                                             {t.price !== null && !t.activationFee && (
+                                                <p className="mt-1 text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                                                    {t.includedCredits ? `${t.includedCredits.toLocaleString()} Credits Included` : 'Custom Credits'}
+                                                </p>
+                                            )}
+                                            {t.price !== null && !t.activationFee && (
                                                 <p className="mt-1 text-xs text-muted-foreground">billed monthly</p>
                                             )}
                                         </div>
@@ -273,7 +278,8 @@ export function PricingClient() {
                                     <thead>
                                         <tr className="border-b border-border/50">
                                             <th className="text-left py-3 pr-6 font-semibold text-foreground">Usage Type</th>
-                                            <th className="text-center py-3 px-4 font-semibold text-foreground">Signal / Convert</th>
+                                            <th className="text-center py-3 px-4 font-semibold text-foreground">Signal</th>
+                                            <th className="text-center py-3 px-4 font-semibold text-foreground">Convert</th>
                                             <th className="text-center py-3 px-4 font-semibold text-foreground">Retain</th>
                                             <th className="text-center py-3 px-4 font-semibold text-foreground">Optimize</th>
                                         </tr>
@@ -282,13 +288,14 @@ export function PricingClient() {
                                         {OVERAGES_TABLE.map((row) => (
                                             <tr key={row.k} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
                                                 <td className="py-3 pr-6 font-medium text-foreground">{row.k}</td>
-                                                <td className="py-3 px-4 text-center text-muted-foreground">{row.pro}</td>
-                                                <td className="py-3 px-4 text-center text-muted-foreground">{row.growth}</td>
+                                                <td className="py-3 px-4 text-center text-muted-foreground">{row.signal}</td>
+                                                <td className="py-3 px-4 text-center text-muted-foreground">{row.convert}</td>
+                                                <td className="py-3 px-4 text-center text-muted-foreground">{row.retain}</td>
                                                 <td className="py-3 px-4 text-center">
-                                                    {row.empire === "Included" ? (
+                                                    {row.optimize === "Included" ? (
                                                         <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">Included</Badge>
                                                     ) : (
-                                                        <span className="text-muted-foreground">{row.empire}</span>
+                                                        <span className="text-muted-foreground">{row.optimize}</span>
                                                     )}
                                                 </td>
                                             </tr>

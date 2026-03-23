@@ -2,6 +2,8 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
+import { TrendingUp } from "lucide-react";
 
 import Logo from "@/components/logo";
 
@@ -35,11 +37,26 @@ export default function CaseStudiesPage() {
                 <div className="space-y-16">
                     {/* Ultra Cannabis */}
                     <section className="grid md:grid-cols-2 gap-8 items-center">
-                        <div className="bg-muted aspect-video rounded-2xl flex items-center justify-center text-muted-foreground font-medium">
-                            Ultra Cannabis Imagery
+                        <div className="relative aspect-video rounded-2xl overflow-hidden border bg-muted shadow-lg">
+                            <Image 
+                                src="/case-studies/ultra-bg.png" 
+                                alt="Ultra Cannabis Detroit" 
+                                fill
+                                className="object-cover"
+                            />
                         </div>
                         <div>
-                            <h2 className="text-2xl font-semibold">Ultra Cannabis (Detroit)</h2>
+                            <div className="flex items-center gap-4 mb-3">
+                                <div className="relative h-10 w-10 shrink-0 rounded-lg overflow-hidden border bg-white p-0.5">
+                                    <Image 
+                                        src="/case-studies/ultra-logo.png" 
+                                        alt="Ultra Logo" 
+                                        fill
+                                        className="object-contain"
+                                    />
+                                </div>
+                                <h2 className="text-2xl font-semibold">Ultra Cannabis (Detroit)</h2>
+                            </div>
                             <div className="mt-2 text-3xl font-bold text-emerald-600">3X Visibility</div>
                             <p className="mt-4 text-muted-foreground">
                                 Ultra Cannabis needed to stand out in the crowded Detroit market. By switching to BakedBot's headless SEO menu, they saw a massive uptick in organic search traffic.
@@ -49,15 +66,30 @@ export default function CaseStudiesPage() {
                                 <li className="flex gap-2">✓ 85% automation of customer service chat</li>
                                 <li className="flex gap-2">✓ Top ranking for local "dispensary near me" phrases</li>
                             </ul>
+                            <div className="mt-8">
+                                <Link href="/case-studies/ultra-cannabis" className="inline-flex items-center gap-2 text-primary font-semibold hover:underline">
+                                    Read Full Case Study <TrendingUp className="h-4 w-4" />
+                                </Link>
+                            </div>
                         </div>
                     </section>
 
                     <hr className="border-border" />
 
                     {/* Zaza Factory */}
-                    <section className="grid md:grid-cols-2 gap-8 items-center md:flex-row-reverse">
+                    <section className="grid md:grid-cols-2 gap-8 items-center">
                         <div className="order-last md:order-first">
-                            <h2 className="text-2xl font-semibold">Zaza Factory</h2>
+                            <div className="flex items-center gap-4 mb-3">
+                                <div className="relative h-10 w-10 shrink-0 rounded-lg overflow-hidden border bg-white p-0.5">
+                                    <Image 
+                                        src="/case-studies/zaza-logo.jpg" 
+                                        alt="Zaza Logo" 
+                                        fill
+                                        className="object-contain"
+                                    />
+                                </div>
+                                <h2 className="text-2xl font-semibold">Zaza Factory</h2>
+                            </div>
                             <div className="mt-2 text-3xl font-bold text-emerald-600">60% Open Rate Boost</div>
                             <p className="mt-4 text-muted-foreground">
                                 Zaza Factory used "Craig" (Marketing Automation) to overhaul their customer lifecycle. Instead of generic blasts, they sent compliant, targeted SMS and emails.
@@ -67,9 +99,19 @@ export default function CaseStudiesPage() {
                                 <li className="flex gap-2">✓ 25% reduction in marketing software costs</li>
                                 <li className="flex gap-2">✓ Zero compliance flags with Deebo checks</li>
                             </ul>
+                            <div className="mt-8">
+                                <Link href="/case-studies/zaza-factory" className="inline-flex items-center gap-2 text-primary font-semibold hover:underline">
+                                    Read Full Case Study <TrendingUp className="h-4 w-4" />
+                                </Link>
+                            </div>
                         </div>
-                        <div className="bg-muted aspect-video rounded-2xl flex items-center justify-center text-muted-foreground font-medium">
-                            Zaza Factory Imagery
+                        <div className="relative aspect-video rounded-2xl overflow-hidden border bg-muted shadow-lg">
+                            <Image 
+                                src="/case-studies/zaza-bg.png" 
+                                alt="Zaza Factory Dashboard" 
+                                fill
+                                className="object-cover"
+                            />
                         </div>
                     </section>
                 </div>

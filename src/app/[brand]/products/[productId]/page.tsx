@@ -67,13 +67,16 @@ export async function generateMetadata(
 
     const previousImages = (await parent).openGraph?.images || [];
 
+    const isDemo = ['demo', 'demo-shop', 'demo-brand', 'demo-40tons'].includes(brandSlug);
+
     return {
         title: `${product.name} | ${brand.name}`,
         description: product.description || `Buy ${product.name} from ${brand.name}.`,
+        robots: isDemo ? { index: false, follow: true } : undefined,
         openGraph: {
             title: product.name,
             description: product.description,
-            images: [product.imageUrl, ...previousImages],
+            images: product.imageUrl ? [product.imageUrl, ...previousImages] : previousImages,
         },
     };
 }

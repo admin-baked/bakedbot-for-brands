@@ -2,13 +2,14 @@ import Link from "next/link";
 import { Check, X, Mail, MessageSquare, Zap, Target } from "lucide-react";
 import { Navbar } from "@/components/landing/navbar";
 import { LandingFooter } from "@/components/landing/footer";
+import type { Metadata } from 'next';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 
-export const metadata = {
-  title: "BakedBot vs Springbig | Marketing + AI for Half the Price",
-  description: "Springbig is great for texts. BakedBot includes texts, email, AI agents, and SEO menus—for less.",
+export const metadata: Metadata = {
+    title: 'BakedBot vs Springbig | Next-Gen Cannabis Retention & Loyalty',
+    description: 'Compare BakedBot AI with Springbig. See how our AI agents automate customer lifecycle and loyalty more effectively.',
 };
 
 export default function VsSpringbigPage() {
