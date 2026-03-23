@@ -933,7 +933,12 @@ export async function getCRMUserStats(): Promise<{
 
     // Use getPlatformUsers() for lifecycle + active counts so stats always match
     // the crmListUsers tool (same subscription-aware inference logic).
-    const allUsers = await getPlatformUsers();
+    let allUsers: Awaited<ReturnType<typeof getPlatformUsers>> = [];
+    try {
+        allUsers = await getPlatformUsers();
+    } catch (error) {
+        console.error('[CRM] Failed to load users for stats:', error);
+    }
 
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);

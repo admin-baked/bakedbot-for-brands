@@ -28,7 +28,7 @@ const SuperAdminAgentChat = nextDynamic(() => import("./components/super-admin-a
 const SuperUserPlaybooksPage = nextDynamic(() => import("./playbooks/page"), { loading: TabLoader, ssr: false });
 const OperationsTab = nextDynamic(() => import("./components/operations-tab"), { loading: TabLoader });
 const UnifiedAnalyticsPage = nextDynamic(() => import("./components/unified-analytics-page"), { loading: TabLoader });
-const CRMTab = nextDynamic(() => import("./components/crm-tab"), { loading: TabLoader });
+const CRMTab = nextDynamic(() => import("./components/crm-tab"), { loading: TabLoader, ssr: false });
 const AccountManagementTab = nextDynamic(() => import("@/components/admin/account-management-tab").then(mod => mod.AccountManagementTab), { loading: TabLoader });
 const SystemKnowledgeBase = nextDynamic(() => import("./components/system-knowledge-base").then(mod => mod.SystemKnowledgeBase), { loading: TabLoader, ssr: false });
 const CeoSettingsTab = nextDynamic(() => import("./components/ceo-settings-tab"), { loading: TabLoader });
