@@ -1,12 +1,41 @@
 export type ProactiveWorkflowKey =
+    // Dispensary
     | 'daily_dispensary_health'
     | 'vip_retention_watch'
-    | 'competitor_pricing_watch';
+    | 'competitor_pricing_watch'
+    | 'slow_inventory_watch'
+    | 'campaign_opportunity_watch'
+    // Brand
+    | 'competitor_creative_watch'
+    | 'market_narrative_watch'
+    | 'product_launch_prep'
+    | 'retail_partner_outreach_watch'
+    // Super User
+    | 'executive_morning_intelligence'
+    | 'pipeline_risk_watch'
+    // Grower
+    | 'yield_anomaly_watch'
+    | 'wholesale_availability_prep';
 
 export interface ProactiveWorkflowToggles {
+    // Dispensary (on by default)
     daily_dispensary_health: boolean;
     vip_retention_watch: boolean;
     competitor_pricing_watch: boolean;
+    // Dispensary extended (off by default)
+    slow_inventory_watch: boolean;
+    campaign_opportunity_watch: boolean;
+    // Brand (off by default — enabled per org)
+    competitor_creative_watch: boolean;
+    market_narrative_watch: boolean;
+    product_launch_prep: boolean;
+    retail_partner_outreach_watch: boolean;
+    // Super User (off by default)
+    executive_morning_intelligence: boolean;
+    pipeline_risk_watch: boolean;
+    // Grower (off by default)
+    yield_anomaly_watch: boolean;
+    wholesale_availability_prep: boolean;
 }
 
 export interface ProactivePilotSettings {

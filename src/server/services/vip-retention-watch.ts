@@ -123,12 +123,16 @@ function getDaysSinceLastOrder(data: Record<string, unknown>): number {
 }
 
 function isRetentionTarget(candidate: VipRetentionCandidate): boolean {
+    // Include any repeat customer — even loyal/frequent are worth retaining for
+    // smaller dispensaries where the VIP pool is limited.
     const highValue =
         candidate.segment === 'vip' ||
         candidate.segment === 'high_value' ||
-        candidate.lifetimeValue >= 500;
+        candidate.segment === 'loyal' ||
+        candidate.segment === 'frequent' ||
+        candidate.lifetimeValue >= 200;
     const needsAttention =
-        candidate.daysSinceLastOrder >= 30 ||
+        candidate.daysSinceLastOrder >= 21 ||
         candidate.retentionTier === 'at_risk' ||
         candidate.retentionTier === 'dormant' ||
         candidate.scoreTrend === 'falling' ||
@@ -182,24 +186,21 @@ function buildEvidence(candidates: VipRetentionCandidate[]): Array<{ label: stri
 function buildDraftData(candidates: VipRetentionCandidate[]): OutreachDraftData {
     return {
         channel: 'email',
-        subject: 'We saved something special for you at {{orgName}}',
+        subject: "We miss you — come back to {{orgName}}",
         body: [
             'Hi {{firstName}},',
             '',
-            "It's been {{daysSinceLastVisit}} days since we've seen you at {{orgName}}, and we wanted to reach out personally.",
+            "It's been a while since we've seen you at {{orgName}}, and we wanted to reach out personally.",
             '',
-            "You've been one of our most valuable customers, so we put together a VIP-friendly reason to come back this week.",
-            '',
-            "Reply to this email or stop by soon and we'll make sure you're taken care of.",
+            "We appreciate your loyalty and put together a reason to come back this week — stop by or reply to this email and we'll take care of you.",
             '',
             'See you soon,',
             '{{orgName}}',
         ].join('\n'),
         htmlBody: [
             '<p>Hi {{firstName}},</p>',
-            "<p>It's been {{daysSinceLastVisit}} days since we've seen you at {{orgName}}, and we wanted to reach out personally.</p>",
-            "<p>You've been one of our most valuable customers, so we put together a VIP-friendly reason to come back this week.</p>",
-            "<p>Reply to this email or stop by soon and we'll make sure you're taken care of.</p>",
+            "<p>It's been a while since we've seen you at {{orgName}}, and we wanted to reach out personally.</p>",
+            "<p>We appreciate your loyalty and put together a reason to come back this week — stop by or reply to this email and we'll take care of you.</p>",
             '<p>See you soon,<br />{{orgName}}</p>',
         ].join(''),
         targetSegments: Array.from(new Set(candidates.map((candidate) => candidate.segment))),
@@ -212,7 +213,7 @@ function buildDraftData(candidates: VipRetentionCandidate[]): OutreachDraftData 
 
 function getSummary(candidates: VipRetentionCandidate[]): string {
     const totalLtv = candidates.reduce((sum, candidate) => sum + candidate.lifetimeValue, 0);
-    return `${candidates.length} at-risk VIP customers identified for win-back, with $${Math.round(totalLtv).toLocaleString()} in lifetime value at risk.`;
+    return `${candidates.length} at-risk customer${candidates.length === 1 ? '' : 's'} identified for win-back, with $${Math.round(totalLtv).toLocaleString()} in lifetime value at risk.`;
 }
 
 async function safelyTransitionTask(

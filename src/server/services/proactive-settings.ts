@@ -8,9 +8,24 @@ import type {
 } from '@/types/proactive';
 
 export const DEFAULT_PROACTIVE_WORKFLOW_TOGGLES: ProactiveWorkflowToggles = {
+    // Dispensary — on by default
     daily_dispensary_health: true,
     vip_retention_watch: true,
     competitor_pricing_watch: true,
+    // Dispensary extended — off by default
+    slow_inventory_watch: false,
+    campaign_opportunity_watch: false,
+    // Brand — off by default, enable per org
+    competitor_creative_watch: false,
+    market_narrative_watch: false,
+    product_launch_prep: false,
+    retail_partner_outreach_watch: false,
+    // Super User — off by default
+    executive_morning_intelligence: false,
+    pipeline_risk_watch: false,
+    // Grower — off by default
+    yield_anomaly_watch: false,
+    wholesale_availability_prep: false,
 };
 
 export const DEFAULT_PROACTIVE_PILOT_SETTINGS: ProactivePilotSettings = {
@@ -43,9 +58,21 @@ function toDate(value: unknown): Date | undefined {
 
 function sanitizeWorkflowToggles(input?: Partial<Record<ProactiveWorkflowKey, unknown>>): ProactiveWorkflowToggles {
     return {
+        // Dispensary — on unless explicitly disabled
         daily_dispensary_health: input?.daily_dispensary_health !== false,
         vip_retention_watch: input?.vip_retention_watch !== false,
         competitor_pricing_watch: input?.competitor_pricing_watch !== false,
+        // All others — off unless explicitly enabled
+        slow_inventory_watch: input?.slow_inventory_watch === true,
+        campaign_opportunity_watch: input?.campaign_opportunity_watch === true,
+        competitor_creative_watch: input?.competitor_creative_watch === true,
+        market_narrative_watch: input?.market_narrative_watch === true,
+        product_launch_prep: input?.product_launch_prep === true,
+        retail_partner_outreach_watch: input?.retail_partner_outreach_watch === true,
+        executive_morning_intelligence: input?.executive_morning_intelligence === true,
+        pipeline_risk_watch: input?.pipeline_risk_watch === true,
+        yield_anomaly_watch: input?.yield_anomaly_watch === true,
+        wholesale_availability_prep: input?.wholesale_availability_prep === true,
     };
 }
 
