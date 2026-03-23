@@ -5,6 +5,7 @@ import { FieldPath, FieldValue } from 'firebase-admin/firestore';
 import { requireUser } from '@/server/auth/auth';
 import { isBrandRole, isDispensaryRole, normalizeRole } from '@/types/roles';
 import { PLANS } from '@/lib/plans';
+import { logger } from '@/lib/logger';
 import type { CRMLifecycleStage, CRMUser } from './crm-types';
 
 export interface CRMBrand {
@@ -705,7 +706,7 @@ export async function getPlatformUsers(filters: CRMFilters = {}): Promise<CRMUse
             topLevelSubsByEmail.set(email, existing);
         });
     } catch (error) {
-        console.error('[CRM] Failed to load top-level subscriptions:', error);
+        logger.error('[CRM] Failed to load top-level subscriptions:', { error });
     }
 
     let users = rawUsers.map(({ id, data }) => {
@@ -927,17 +928,17 @@ export async function getCRMUserStats(): Promise<{
 
         totalMRR = Math.round(totalMRR * 100) / 100;
     } catch (error) {
-        console.error('[CRM] Failed to aggregate MRR from subscriptions:', error);
+        logger.error('[CRM] Failed to aggregate MRR from subscriptions:', { error });
         totalMRR = 0;
     }
 
     // Use getPlatformUsers() for lifecycle + active counts so stats always match
     // the crmListUsers tool (same subscription-aware inference logic).
-    let allUsers: Awaited<ReturnType<typeof getPlatformUsers>> = [];
+    let allUsers: CRMUser[] = [];
     try {
         allUsers = await getPlatformUsers();
     } catch (error) {
-        console.error('[CRM] Failed to load users for stats:', error);
+        logger.error('[CRM] Failed to load users for stats:', { error });
     }
 
     const sevenDaysAgo = new Date();
@@ -1082,7 +1083,7 @@ export async function deleteCrmEntity(
             await auth.deleteUser(id);
         } catch (error: any) {
             if (error.code !== 'auth/user-not-found') {
-                console.error('Error deleting user from Auth:', error);
+                logger.error('[CRM] Error deleting user from Auth:', { error });
             }
         }
         // 2. Delete all subcollections
@@ -1135,7 +1136,7 @@ export async function deleteUserByEmail(email: string): Promise<string> {
         }
 
     } catch (e: any) {
-        console.error('Error in deleteUserByEmail:', e);
+        logger.error('[CRM] Error in deleteUserByEmail:', { error: e });
         throw new Error(e.message);
     }
     
