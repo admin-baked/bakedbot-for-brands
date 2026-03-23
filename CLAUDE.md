@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-03-23 (Linus Slack DM routing fixed, short+long-term memory wired, 3-agent pre-push quality gate in prime.md)
+**Current Status:** 🟢 Passing | **Last update:** 2026-03-23 (CRM SSR error fixed, duplicate Firestore scans eliminated, all CEO dashboard tabs get ssr:false)
 
 ---
 

@@ -19,8 +19,8 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — Linus Slack DM routing live; short+long-term memory wired; 3-agent pre-push gate in prime.md.
-**Recent work (2026-03-23):** Linus DM fix + memory (`0b6e9e29f`), fast-path audit + simplify (`a117fbfdf`), pre-push quality gate (`7f88ac07d`).
+**Current Status:** 🟢 Passing — CRM SSR error fixed; duplicate Firestore scans eliminated; all CEO dashboard tabs ssr:false.
+**Recent work (2026-03-23):** CRM SSR + perf fix (`1599a82a7`), Linus DM fix + memory (`0b6e9e29f`), pre-push quality gate (`7f88ac07d`).
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
