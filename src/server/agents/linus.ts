@@ -4123,6 +4123,7 @@ export interface LinusRequest {
         orgId?: string;
         brandId?: string;
     };
+    images?: Array<{ data: string; mimeType: string }>; // Base64 images for vision (Slack screenshots etc.)
 }
 
 export interface LinusResponse {
@@ -4377,6 +4378,7 @@ User Request: ${request.prompt}`;
             brandId: request.context?.brandId,
             maxIterations: request.maxIterations ?? (toolMode === 'slack' ? 5 : 15),
             agentContext: LINUS_AGENT_CONTEXT,
+            imageAttachments: request.images,
         }
     );
 

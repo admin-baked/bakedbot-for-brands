@@ -40,6 +40,7 @@ export interface ClaudeContext {
     autoRouteModel?: boolean; // Auto-select Opus for complex tasks (default: true)
     contextTokens?: number; // Estimated context size for model selection
     agentContext?: AgentContext; // Agent identity + capabilities for system prompt
+    imageAttachments?: Array<{ data: string; mimeType: string }>; // Base64 images for vision (e.g. screenshots from Slack)
 }
 
 export interface ToolExecution {
@@ -284,8 +285,17 @@ export async function executeWithTools(
         console.log(`[Claude] Auto-routing to Opus 4.5: ${complexity.reasoning}`);
     }
 
+    // Build initial user message — include base64 image blocks if provided (e.g. Slack screenshots)
+    const imageBlocks = (context.imageAttachments ?? []).map(img => ({
+        type: 'image' as const,
+        source: { type: 'base64' as const, media_type: img.mimeType as 'image/png' | 'image/jpeg' | 'image/gif' | 'image/webp', data: img.data },
+    }));
+    const firstMessageContent = imageBlocks.length > 0
+        ? ([...imageBlocks, { type: 'text' as const, text: prompt }] as any)
+        : prompt;
+
     const messages: MessageParam[] = [
-        { role: 'user', content: prompt }
+        { role: 'user', content: firstMessageContent }
     ];
 
     const toolExecutions: ToolExecution[] = [];

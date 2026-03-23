@@ -12,6 +12,26 @@ import {
 } from './slack-approval';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 
+// ---------------------------------------------------------------------------
+// Linus tool classifier — determines if a message warrants Claude tool-calling
+// (vs. free GLM for simple conversational replies). Module-level so regexes
+// are compiled once, not recreated per message.
+// ---------------------------------------------------------------------------
+const LINUS_TOOL_PATTERNS = [
+    /\b(fix|bug|broken|error|crash|failing|fail|debug|trace|diagnose)\b/,
+    /\b(run|execute|check|test|build|deploy|push|commit|merge|revert)\b/,
+    /\b(read|open|show|find|search|look|grep|locate|list)\b.*\b(file|code|function|class|route|component|error|log)\b/,
+    /\b(write|edit|update|change|modify|add|remove|delete|refactor|rename)\b.*\b(file|code|function|class|route|component)\b/,
+    /\b(git|npm|gcloud|firebase|super.?power|script|cron|index|schema|secret|migration)\b/,
+    /\b(review|the\s+repo|codebase|letta|memory|what.s.broken|health|status)\b/,
+    /npm\s+run|git\s+(log|diff|status|push|pull|commit|blame)|`/,
+];
+
+function linusNeedsTools(text: string): boolean {
+    const lower = text.toLowerCase();
+    return LINUS_TOOL_PATTERNS.some(p => p.test(lower));
+}
+
 // System-level identity injected for Slack requests.
 // Slack messages are already authenticated via HMAC-SHA256 signature,
 // so we bypass Firebase Auth and run as super_user.
@@ -157,8 +177,16 @@ export async function resolveMentions(userIds: string[], requestorSlackId: strin
  * Channels like #linus-cto are "dedicated" — messages there should always reach
  * the named agent unless the user explicitly mentions a different agent by name.
  */
-export function detectAgent(text: string, channelName: string, isDm: boolean): string {
+export function detectAgent(text: string, channelName: string, isDm: boolean, appId?: string): string {
     const lower = text.toLowerCase();
+
+    // If the message arrived via the dedicated Linus Slack App, always route to Linus.
+    // SLACK_LINUS_APP_ID should be set to the api_app_id of the "Linus CTO" Slack app.
+    const linusAppId = process.env.SLACK_LINUS_APP_ID;
+    if (linusAppId && appId && appId === linusAppId) {
+        logger.info(`[SlackBridge] detectAgent → Tier0(linus app_id match) → linus | appId="${appId}"`);
+        return 'linus';
+    }
 
     // Linus-specific meta/runtime questions often arrive in DMs without an
     // explicit "linus" keyword. Route them to CTO instead of the default DM agent.
@@ -250,10 +278,11 @@ export interface SlackMessageContext {
     isChannelMsg?: boolean; // true if this is a public channel message (not @mention, not DM)
     isThreadReply?: boolean; // true if this is a reply within a thread (has parent ts)
     files?: any[];          // Optional: Slack file objects from the message
+    appId?: string;         // Slack api_app_id — used to route DMs to the correct agent app
 }
 
 export async function processSlackMessage(ctx: SlackMessageContext): Promise<void> {
-    const { text, slackUserId, channel, threadTs, channelName = '', isDm = false, isChannelMsg = false, isThreadReply = false, files = [] } = ctx;
+    const { text, slackUserId, channel, threadTs, channelName = '', isDm = false, isChannelMsg = false, isThreadReply = false, files = [], appId = '' } = ctx;
 
     try {
         // 1. Strip bot mention and clean up text
@@ -280,7 +309,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
         logger.info(`[SlackBridge] Processing from ${slackUserId} in ${channel}: "${cleanText.slice(0, 80)}"`);
 
         // 4. Detect which agent to route to
-        let personaId = detectAgent(cleanText, channelName, isDm);
+        let personaId = detectAgent(cleanText, channelName, isDm, appId);
         logger.info(`[SlackBridge] Routing to persona: ${personaId}`);
 
         // For public channel messages (not @mentions, not DMs), only respond if a
@@ -348,24 +377,10 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
         // 7. Run the agent with enriched text (includes team context), attachments, and system user
         // (avoids requireUser() cookie lookup in async context)
         //
-        // Linus routing strategy (cost control):
-        //   - Messages that need TOOLS (fix, run, read, deploy, git, etc.) → Claude Sonnet with full tool suite
-        //   - Simple conversational messages (greetings, status questions) → GLM (free)
-        // All other agents continue to use GLM synthesis.
-        const linusNeedsTools = (text: string): boolean => {
-            const lower = text.toLowerCase();
-            return /\b(fix|bug|broken|error|crash|failing|fail|debug|trace|diagnose)\b/.test(lower)
-                || /\b(run|execute|check|test|build|deploy|push|commit|merge|revert)\b/.test(lower)
-                || /\b(read|open|show|find|search|look|grep|locate|list)\b.*\b(file|code|function|class|route|component|error|log)\b/.test(lower)
-                || /\b(write|edit|update|change|modify|add|remove|delete|refactor|rename)\b.*\b(file|code|function|class|route|component)\b/.test(lower)
-                || /\b(git|npm|gcloud|firebase|super.?power|script|cron|index|schema|secret|migration)\b/.test(lower)
-                || /\b(review|the\s+repo|codebase|letta|memory|what.s.broken|health|status)\b/.test(lower)
-                || /npm\s+run|git\s+(log|diff|status|push|pull|commit|blame)|`/.test(lower);
-        };
-
-        // Timeouts are agent-aware: Claude-based agents (linus, executive board) need more
-        // time due to multi-step tool calling (15 iterations × ~20s per Claude call).
-        // Slack has already received a "thinking" message, so there's no hard ACK deadline.
+        // Linus routing (cost control):
+        //   - Tool-requiring messages → Claude Sonnet with full tool suite + vision
+        //   - Simple conversational messages → GLM (free)
+        // All other agents use GLM synthesis path.
         const AGENT_TIMEOUTS: Record<string, number> = {
             linus:  180_000,  // 3 min — Claude tool-calling with up to 8 iterations
             leo:   120_000,   // 2 min — COO operations may chain multiple tools
@@ -375,18 +390,46 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
         const agentTimeoutMs = AGENT_TIMEOUTS[personaId] ?? 55_000;
         const agentTimeoutSec = Math.round(agentTimeoutMs / 1000);
 
+        // For Linus: download image files from Slack only when Claude will actually be invoked.
+        // Gated on linusNeedsTools() to avoid wasted network I/O for conversational messages.
+        // Downloads are parallelized (Promise.all) to minimize added latency.
+        let linusImages: Array<{ data: string; mimeType: string }> | undefined;
+        if (personaId === 'linus' && linusNeedsTools(enrichedText) && files.length > 0) {
+            const botToken = process.env.SLACK_BOT_TOKEN;
+            const imageFiles = files.filter((f: any) => /^image\//.test(f.mimetype || '')).slice(0, 3);
+            if (botToken && imageFiles.length > 0) {
+                const results = await Promise.all(
+                    imageFiles.map(async (f: any) => {
+                        try {
+                            const res = await fetch(f.url_private, { headers: { Authorization: `Bearer ${botToken}` } });
+                            if (!res.ok) return null;
+                            const buf = Buffer.from(await res.arrayBuffer());
+                            logger.info(`[SlackBridge] Downloaded image for Linus vision: ${f.name} (${buf.length} bytes)`);
+                            return { data: buf.toString('base64'), mimeType: f.mimetype as string };
+                        } catch (imgErr: any) {
+                            logger.warn(`[SlackBridge] Failed to download image ${f.name}: ${imgErr.message}`);
+                            return null;
+                        }
+                    })
+                );
+                const downloaded = results.filter((r): r is { data: string; mimeType: string } => r !== null);
+                if (downloaded.length > 0) linusImages = downloaded;
+            }
+        }
+
         let result;
         try {
-            // Linus: tool-requiring messages → Claude (full tool access);
+            // Linus: tool-requiring messages OR image attachments → Claude (full tool access + vision);
             // simple conversational messages → GLM (free, fast).
             // All other agents use GLM synthesis path.
-            if (personaId === 'linus' && linusNeedsTools(enrichedText)) {
+            if (personaId === 'linus' && (linusNeedsTools(enrichedText) || linusImages)) {
                 const linusResult = await Promise.race([
                     runLinus({
                         prompt: enrichedText,
                         maxIterations: 8,
                         toolMode: 'slack',
-                        context: { userId: SLACK_SYSTEM_USER.uid, orgId: undefined, brandId: undefined },
+                        context: { userId: SLACK_SYSTEM_USER.uid },
+                        images: linusImages,
                     }),
                     new Promise<never>((_, reject) =>
                         setTimeout(() => reject(new Error(`Linus timeout after ${agentTimeoutSec} seconds`)), agentTimeoutMs)
