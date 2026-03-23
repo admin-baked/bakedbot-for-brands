@@ -241,9 +241,43 @@ Run every item in `.agent/review-checklist.md` against your own work.
 
 ### Stage 5: Ship + Record
 Only after Stages 0-4 are complete:
-1. **Run `/simplify`** — review git diff for reuse, quality, and efficiency issues. Fix anything found before committing.
-2. Commit with structured message (see review-checklist.md for format).
-3. **Push to GitHub** — `git push origin main` **triggers Firebase App Hosting deployment to production**. Always push after committing finished work.
+
+#### 🔍 Pre-Push Quality Gate (MANDATORY — run before every commit)
+
+Run `/simplify` OR execute the three review agents in parallel manually:
+
+```
+Launch all three agents in a single message (parallel):
+
+Agent 1 — Code Reuse Review
+  "You are doing a CODE REUSE review of the following git diff.
+   Find places where newly written code duplicates existing utilities
+   or could use existing helpers. Search for existing utilities that
+   could replace newly written code. Flag any new function that
+   duplicates existing functionality. Flag inline logic that could
+   use an existing utility (hand-rolled string manipulation, manual
+   path handling, custom env checks, ad-hoc type guards).
+   Diff: [paste git diff]"
+
+Agent 2 — Code Quality Review
+  "You are doing a CODE QUALITY review of the following git diff.
+   Find: redundant state, parameter sprawl, copy-paste with slight
+   variation, leaky abstractions, stringly-typed code, unnecessary
+   JSX nesting.
+   Diff: [paste git diff]"
+
+Agent 3 — Efficiency Review
+  "You are doing an EFFICIENCY review of the following git diff.
+   Find: unnecessary work, missed concurrency (sequential ops that
+   could be parallel), hot-path bloat, recurring no-op updates,
+   unnecessary existence checks, memory leaks, overly broad reads.
+   Diff: [paste git diff]"
+```
+
+Wait for all three agents to complete. Fix every confirmed finding before proceeding to commit.
+
+1. **Commit** with structured message (see review-checklist.md for format).
+2. **Push to GitHub** — `git push origin main` **triggers Firebase App Hosting deployment to production**. Always push after committing finished work.
 4. **Open a PR with full governance** — required on every branch push (PRs targeting `main` or `develop` trigger the governance bot):
    ```bash
    gh pr create --title "<title>" --body "$(cat <<'EOF'
