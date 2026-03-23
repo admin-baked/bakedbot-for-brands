@@ -1,6 +1,7 @@
 import { logger } from '@/lib/logger';
 import { slackService, SlackService } from './communications/slack';
 import { runAgentCore } from '@/server/agents/agent-runner';
+import { runLinus } from '@/server/agents/linus';
 import { requestContext } from '@/lib/request-context';
 import { archiveSlackResponse } from './slack-response-archive';
 import {
@@ -351,7 +352,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
         // time due to multi-step tool calling (15 iterations × ~20s per Claude call).
         // Slack has already received a "thinking" message, so there's no hard ACK deadline.
         const AGENT_TIMEOUTS: Record<string, number> = {
-            linus:  90_000,   // 90s — GLM synthesis path (Slack skips Claude harness)
+            linus:  180_000,  // 3 min — Claude tool-calling with up to 8 iterations
             leo:   120_000,   // 2 min — COO operations may chain multiple tools
             jack:  120_000,   // 2 min — CRO revenue analysis
             glenda: 120_000,  // 2 min — CMO strategy
@@ -361,6 +362,22 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
 
         let result;
         try {
+            // Linus bypasses GLM and runs with full Claude tool access (read/write files,
+            // bash, git, super powers). Other agents still use the GLM synthesis path.
+            if (personaId === 'linus') {
+                const linusResult = await Promise.race([
+                    runLinus({
+                        prompt: enrichedText,
+                        maxIterations: 8,
+                        toolMode: 'slack',
+                        context: { userId: SLACK_SYSTEM_USER.uid, orgId: undefined, brandId: undefined },
+                    }),
+                    new Promise<never>((_, reject) =>
+                        setTimeout(() => reject(new Error(`Linus timeout after ${agentTimeoutSec} seconds`)), agentTimeoutMs)
+                    ),
+                ]);
+                result = { content: linusResult.content, toolCalls: linusResult.toolExecutions };
+            } else {
             const extraOptions = { ...(attachments ? { attachments } : {}), source: 'slack' };
             result = await requestContext.run(
                 { useGLMSynthesis: true },
@@ -371,6 +388,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                     ),
                 ])
             ) as any;
+            }
         } catch (agentErr: any) {
             logger.error('[SlackBridge] Agent execution error:', agentErr.message);
             await sendOrUpdateThreadMessage(
