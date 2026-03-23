@@ -348,6 +348,21 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
         // 7. Run the agent with enriched text (includes team context), attachments, and system user
         // (avoids requireUser() cookie lookup in async context)
         //
+        // Linus routing strategy (cost control):
+        //   - Messages that need TOOLS (fix, run, read, deploy, git, etc.) → Claude Sonnet with full tool suite
+        //   - Simple conversational messages (greetings, status questions) → GLM (free)
+        // All other agents continue to use GLM synthesis.
+        const linusNeedsTools = (text: string): boolean => {
+            const lower = text.toLowerCase();
+            return /\b(fix|bug|broken|error|crash|failing|fail|debug|trace|diagnose)\b/.test(lower)
+                || /\b(run|execute|check|test|build|deploy|push|commit|merge|revert)\b/.test(lower)
+                || /\b(read|open|show|find|search|look|grep|locate|list)\b.*\b(file|code|function|class|route|component|error|log)\b/.test(lower)
+                || /\b(write|edit|update|change|modify|add|remove|delete|refactor|rename)\b.*\b(file|code|function|class|route|component)\b/.test(lower)
+                || /\b(git|npm|gcloud|firebase|super.?power|script|cron|index|schema|secret|migration)\b/.test(lower)
+                || /\b(review|the\s+repo|codebase|letta|memory|what.s.broken|health|status)\b/.test(lower)
+                || /npm\s+run|git\s+(log|diff|status|push|pull|commit|blame)|`/.test(lower);
+        };
+
         // Timeouts are agent-aware: Claude-based agents (linus, executive board) need more
         // time due to multi-step tool calling (15 iterations × ~20s per Claude call).
         // Slack has already received a "thinking" message, so there's no hard ACK deadline.
@@ -362,9 +377,10 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
 
         let result;
         try {
-            // Linus bypasses GLM and runs with full Claude tool access (read/write files,
-            // bash, git, super powers). Other agents still use the GLM synthesis path.
-            if (personaId === 'linus') {
+            // Linus: tool-requiring messages → Claude (full tool access);
+            // simple conversational messages → GLM (free, fast).
+            // All other agents use GLM synthesis path.
+            if (personaId === 'linus' && linusNeedsTools(enrichedText)) {
                 const linusResult = await Promise.race([
                     runLinus({
                         prompt: enrichedText,
