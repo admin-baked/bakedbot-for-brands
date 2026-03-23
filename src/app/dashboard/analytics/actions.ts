@@ -6,10 +6,11 @@ import { requireUser } from '@/server/auth/auth';
 import { logger } from '@/lib/logger';
 import { unstable_noStore as noStore } from 'next/cache';
 import { getDispensaryRetailerId, getLocationId } from '@/app/dashboard/orders/order-context';
+import { getOrdersFromAlleaves } from '@/app/dashboard/orders/actions';
 
 const ANALYTICS_ALLOWED_ROLES = ['brand', 'brand_admin', 'brand_member', 'dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender', 'super_user', 'super_admin'] as const;
 const DISPENSARY_ANALYTICS_ROLES = ['dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender'] as const;
-const ANALYTICS_ORDER_STATUSES = ['submitted', 'confirmed', 'ready', 'completed'] as const;
+const ANALYTICS_ORDER_STATUSES = ['pending', 'submitted', 'confirmed', 'preparing', 'ready', 'completed'] as const;
 
 export interface DailyAnalytics {
   date: string;
@@ -126,6 +127,19 @@ async function fetchOrdersWithFallback(
         }
         return orders;
       }
+    }
+  }
+
+  // Final fallback for dispensary roles: fetch live from Alleaves POS.
+  // Orders for Alleaves dispensaries are not always backfilled to Firestore.
+  if (isDispensaryRole) {
+    const alleavesOrders = await getOrdersFromAlleaves(entityId, firestore);
+    if (alleavesOrders.length > 0) {
+      logger.info('[Analytics] Using Alleaves live orders fallback', {
+        entityId,
+        count: alleavesOrders.length,
+      });
+      return alleavesOrders;
     }
   }
 

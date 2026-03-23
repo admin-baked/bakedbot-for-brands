@@ -128,9 +128,10 @@ export async function updateOrderStatus(
 }
 
 /**
- * Get orders from Alleaves POS if configured
+ * Get orders from Alleaves POS if configured.
+ * Exported so the analytics dashboard can use the same live-data path.
  */
-async function getOrdersFromAlleaves(
+export async function getOrdersFromAlleaves(
     orgId: string,
     firestore: FirebaseFirestore.Firestore,
     startDate?: string,
