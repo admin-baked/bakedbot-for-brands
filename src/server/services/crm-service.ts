@@ -2,6 +2,7 @@
 
 import { getAdminFirestore, getAdminAuth } from '@/firebase/admin';
 import { FieldPath, FieldValue } from 'firebase-admin/firestore';
+import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import { requireUser } from '@/server/auth/auth';
 import { isBrandRole, isDispensaryRole, normalizeRole } from '@/types/roles';
 import { PLANS } from '@/lib/plans';
@@ -158,35 +159,19 @@ async function loadSubscriptionCurrentByOrgIds(
     firestore: FirebaseFirestore.Firestore,
     orgIds: Set<string>
 ): Promise<Map<string, any>> {
+    if (orgIds.size === 0) return new Map();
     const results = new Map<string, any>();
-    const ids = Array.from(orgIds).filter(Boolean);
-
-    // Keep request fanout bounded.
-    const chunkSize = 25;
-    for (let i = 0; i < ids.length; i += chunkSize) {
-        const chunk = ids.slice(i, i + chunkSize);
-        const snaps = await Promise.all(
-            chunk.map(async (orgId) => {
-                try {
-                    return await firestore
-                        .collection('organizations')
-                        .doc(orgId)
-                        .collection('subscription')
-                        .doc('current')
-                        .get();
-                } catch {
-                    return null;
-                }
-            })
-        );
-
-        snaps.forEach((snap, idx) => {
-            if (snap && snap.exists) {
-                results.set(chunk[idx], snap.data());
-            }
-        });
-    }
-
+    // Single collectionGroup query replaces N individual doc reads.
+    const snapshot = await firestore
+        .collectionGroup('subscription')
+        .where(FieldPath.documentId(), '==', 'current')
+        .get();
+    snapshot.docs.forEach((doc) => {
+        const orgId = doc.ref.parent.parent?.id;
+        if (orgId && orgIds.has(orgId)) {
+            results.set(orgId, doc.data());
+        }
+    });
     return results;
 }
 
@@ -477,15 +462,15 @@ export interface CRMLead {
 export async function getPlatformLeads(filters: CRMFilters = {}): Promise<CRMLead[]> {
     await requireUser(['super_user']);
     const firestore = getAdminFirestore();
-    let query = firestore
+    let query: FirebaseFirestore.Query = firestore
         .collection('leads')
         .orderBy('createdAt', 'desc');
 
-    if (filters.limit) {
-        query = query.limit(filters.limit);
-    } else {
-        query = query.limit(100);
+    if (filters.source) {
+        query = query.where('source', '==', filters.source);
     }
+
+    query = query.limit(filters.limit ?? 100);
 
     const snapshot = await query.get();
 
@@ -510,11 +495,6 @@ export async function getPlatformLeads(filters: CRMFilters = {}): Promise<CRMLea
             auditReportId: data.auditReportId,
         } as CRMLead;
     });
-
-    // Filter by source (client-side)
-    if (filters.source) {
-        leads = leads.filter(l => l.source === filters.source);
-    }
 
     // Filter by search (client-side)
     if (filters.search) {
@@ -604,9 +584,24 @@ export async function createFFFAuditLead(req: CreateFFFLeadRequest): Promise<str
 // ============================================================================
 
 /**
+ * Pre-fetch the top-level subscriptions collection. Pass the result to
+ * getPlatformUsers and getCRMUserStats via their preloadedTopLevelSubsDocs
+ * param to avoid scanning the collection twice on the same request.
+ */
+export async function getTopLevelSubsDocs(): Promise<QueryDocumentSnapshot[]> {
+    await requireUser(['super_user']);
+    const firestore = getAdminFirestore();
+    const snapshot = await firestore.collection('subscriptions').get();
+    return snapshot.docs;
+}
+
+/**
  * Get all platform users with lifecycle tracking and MRR
  */
-export async function getPlatformUsers(filters: CRMFilters = {}): Promise<CRMUser[]> {
+export async function getPlatformUsers(
+    filters: CRMFilters = {},
+    preloadedTopLevelSubsDocs?: QueryDocumentSnapshot[]
+): Promise<CRMUser[]> {
     await requireUser(['super_user']);
     const firestore = getAdminFirestore();
     const snapshot = await firestore.collection('users').get();
@@ -656,8 +651,8 @@ export async function getPlatformUsers(filters: CRMFilters = {}): Promise<CRMUse
 
     const topLevelSubsByEmail = new Map<string, Map<string, TopLevelSub>>();
     try {
-        const subsSnapshot = await firestore.collection('subscriptions').get();
-        subsSnapshot.docs.forEach((doc) => {
+        const subsDocs = preloadedTopLevelSubsDocs ?? (await firestore.collection('subscriptions').get()).docs;
+        subsDocs.forEach((doc) => {
             const data = doc.data() as any;
 
             const status = String(data?.status || '').toLowerCase();
@@ -830,7 +825,10 @@ export async function getPlatformUsers(filters: CRMFilters = {}): Promise<CRMUse
 /**
  * Get CRM user stats for dashboard
  */
-export async function getCRMUserStats(preloadedUsers?: CRMUser[]): Promise<{
+export async function getCRMUserStats(
+    preloadedUsers?: CRMUser[],
+    preloadedTopLevelSubsDocs?: QueryDocumentSnapshot[]
+): Promise<{
     totalUsers: number;
     activeUsers: number;
     totalMRR: number;
@@ -889,12 +887,12 @@ export async function getCRMUserStats(preloadedUsers?: CRMUser[]): Promise<{
         });
 
         // 2) Add-ons / legacy: top-level subscriptions collection
-        const subsDocs = await firestore.collection('subscriptions').get();
+        const topLevelDocs = preloadedTopLevelSubsDocs ?? (await firestore.collection('subscriptions').get()).docs;
 
         // Dedupe within the top-level collection too to avoid double counting legacy duplicates.
         const topLevelByKey = new Map<string, number>();
 
-        subsDocs.docs.forEach((doc) => {
+        topLevelDocs.forEach((doc) => {
             const data = doc.data() as any;
             const status = String(data?.status || '').toLowerCase();
             // MRR should reflect revenue from active subscriptions only (exclude trialing).

@@ -27,11 +27,13 @@ export async function getCRMUserStats() {
     return crm.getCRMUserStats();
 }
 
-/** Fetch users once and compute user stats from the same data — avoids a duplicate users scan. */
+/** Fetch users + stats sharing subscription data — avoids duplicate collection scans. */
 export async function getCRMUsersAndStats(filters: CRMFilters = {}) {
     const crm = await import('@/server/services/crm-service');
-    const users = await crm.getPlatformUsers(filters);
-    const userStats = await crm.getCRMUserStats(users);
+    // Pre-fetch top-level subscriptions once; passed to both functions to skip duplicate reads.
+    const topLevelSubsDocs = await crm.getTopLevelSubsDocs();
+    const users = await crm.getPlatformUsers(filters, topLevelSubsDocs);
+    const userStats = await crm.getCRMUserStats(users, topLevelSubsDocs);
     return { users, userStats };
 }
 
