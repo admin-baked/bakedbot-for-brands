@@ -239,8 +239,9 @@ export function detectAgent(text: string, channelName: string, isDm: boolean, ap
         }
     }
 
-    // 4. Default: Leo for DMs (trusted direct channel), puff for general channels
-    const defaultAgent = isDm ? 'leo' : 'puff';
+    // 4. Default: Linus for DMs (Linus CTO App is the primary DM entry point),
+    //    puff for general channels. Users can still reach other agents by name in DMs.
+    const defaultAgent = isDm ? 'linus' : 'puff';
     logger.info(`[SlackBridge] detectAgent → Tier4(default) → ${defaultAgent} | channel="${channelName}" isDm=${isDm}`);
     return defaultAgent;
 }

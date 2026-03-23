@@ -131,14 +131,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     const channelType: string = body.event?.channel_type ?? '';
-    const isDm = channelType === 'im';
-    const isChannelMsg = channelType === 'channel';
-
-    // Only handle DMs and public channel messages (not group DMs or private groups)
-    if (event.type === 'message' && !isDm && !isChannelMsg) {
-        return response;
-    }
-
     const text: string = event.text ?? '';
     const slackUserId: string = event.user ?? '';
     const channel: string = event.channel ?? '';
@@ -146,6 +138,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const threadTs: string = event.thread_ts ?? '';
     const files: any[] = event.files ?? [];
     const appId: string = body.api_app_id ?? '';
+
+    // DM channel IDs start with 'D' — use that as fallback when channel_type is absent.
+    // Slack does not always include channel_type (e.g. older app configurations).
+    const isDm = channelType === 'im' || (!channelType && channel.startsWith('D'));
+    const isChannelMsg = channelType === 'channel';
+
+    logger.info(`[Slack/Events] event.type=${event.type} channel=${channel} channel_type="${channelType}" isDm=${isDm} appId="${appId}"`);
+
+    // Only handle DMs and public channel messages (not group DMs or private groups)
+    if (event.type === 'message' && !isDm && !isChannelMsg) {
+        logger.info(`[Slack/Events] Skipping — not a DM or channel message (channel_type="${channelType}")`);
+        return response;
+    }
 
     // Detect if this is a reply within a thread (thread_ts exists and differs from ts)
     const isThreadReply = !!threadTs && threadTs !== ts;
