@@ -18,12 +18,19 @@ import type { DecodedIdToken } from 'firebase-admin/auth';
 // are compiled once, not recreated per message.
 // ---------------------------------------------------------------------------
 const LINUS_TOOL_PATTERNS = [
-    /\b(fix|bug|broken|error|crash|failing|fail|debug|trace|diagnose)\b/,
+    // Bug / error diagnosis — includes plurals (errors, bugs, crashes)
+    /\b(fix|bugs?|broken|errors?|crash(es|ing)?|failing|fail(ed|s)?|debug|trace|diagnose)\b/,
+    // Actions on the repo / infra
     /\b(run|execute|check|test|build|deploy|push|commit|merge|revert)\b/,
-    /\b(read|open|show|find|search|look|grep|locate|list)\b.*\b(file|code|function|class|route|component|error|log)\b/,
-    /\b(write|edit|update|change|modify|add|remove|delete|refactor|rename)\b.*\b(file|code|function|class|route|component)\b/,
-    /\b(git|npm|gcloud|firebase|super.?power|script|cron|index|schema|secret|migration)\b/,
+    // Read/find with a target noun — handles plurals (files, functions, routes, logs)
+    /\b(read|open|show|find|search|look|grep|locate|list)\b.{0,40}\b(files?|codes?|functions?|class(es)?|routes?|components?|errors?|logs?)\b/,
+    // Write/modify with a target noun — handles plurals
+    /\b(write|edit|update|change|modify|add|remove|delete|refactor|rename)\b.{0,40}\b(files?|codes?|functions?|class(es)?|routes?|components?)\b/,
+    // Infra / tooling keywords
+    /\b(git|npm|gcloud|firebase|super.?power|scripts?|crons?|index(es)?|schema|secret|migration)\b/,
+    // Repo-level review / health / memory queries
     /\b(review|the\s+repo|codebase|letta|memory|what.s.broken|health|status)\b/,
+    // Explicit shell commands or backtick code
     /npm\s+run|git\s+(log|diff|status|push|pull|commit|blame)|`/,
 ];
 
@@ -399,29 +406,48 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
         if (personaId === 'linus') {
             const willUseTools = linusNeedsTools(enrichedText);
 
-            // Run image download + history fetch + Letta memory in parallel
-            const [historyMessages, lettaSnippets] = await Promise.all([
-                // Thread/DM history — only when in a thread or DM (not first message)
-                (isThreadReply || isDm)
-                    ? slackService.getConversationHistory(channel, isThreadReply ? threadTs : undefined, 12)
-                        .catch(() => [])
-                    : Promise.resolve([]),
+            if (willUseTools) {
+                // Tool path only: fetch history + Letta + images in parallel.
+                // GLM (conversational) path skips all of this — stays fast and free.
+                const [historyMessages, lettaSnippets] = await Promise.all([
+                    // Thread/DM history
+                    (isThreadReply || isDm)
+                        ? slackService.getConversationHistory(channel, isThreadReply ? threadTs : undefined, 12)
+                            .catch(() => [])
+                        : Promise.resolve([]),
 
-                // Letta long-term memory — search using the current message as query
-                (async () => {
-                    try {
-                        const { memoryBridgeService } = await import('@/server/services/letta/memory-bridge');
-                        const memResults = await memoryBridgeService.unifiedSearch(
-                            'org_bakedbot_internal',
-                            enrichedText,
-                            { includeFirestore: false, includeLetta: true, limit: 3 },
-                        );
-                        return memResults.lettaResults.slice(0, 3);
-                    } catch {
-                        return [];
-                    }
-                })(),
-            ]);
+                    // Letta long-term memory
+                    (async () => {
+                        try {
+                            const { memoryBridgeService } = await import('@/server/services/letta/memory-bridge');
+                            const memResults = await memoryBridgeService.unifiedSearch(
+                                'org_bakedbot_internal',
+                                enrichedText,
+                                { includeFirestore: false, includeLetta: true, limit: 3 },
+                            );
+                            return memResults.lettaResults.slice(0, 3);
+                        } catch {
+                            return [];
+                        }
+                    })(),
+                ]);
+
+                // Build context prefix from history (exclude the last message — that's enrichedText)
+                const historyToShow = historyMessages.slice(0, -1);
+                if (historyToShow.length > 0) {
+                    const lines = historyToShow.map(m =>
+                        `${m.isBot ? 'Linus' : `User<${m.user}>`}: ${m.text}`
+                    );
+                    linusContextPrefix += `[SLACK CONVERSATION HISTORY]\n${lines.join('\n')}\n\n`;
+                    logger.info(`[SlackBridge] Injecting ${historyToShow.length} history messages for Linus`);
+                }
+
+                if (lettaSnippets.length > 0) {
+                    const sanitized = lettaSnippets.map(s => `- ${String(s).slice(0, 300)}`).join('\n');
+                    linusContextPrefix += `[AGENT MEMORY]\nRelevant context from organizational memory:\n${sanitized}\n\n`;
+                    logger.info(`[SlackBridge] Injecting ${lettaSnippets.length} Letta memory snippets for Linus`);
+                }
+            }
 
             // Image downloads (only when Claude will be invoked)
             if (willUseTools && files.length > 0) {
@@ -447,21 +473,6 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                 }
             }
 
-            // Build context prefix from history (exclude the last message — that's enrichedText)
-            const historyToShow = historyMessages.slice(0, -1); // drop current message
-            if (historyToShow.length > 0) {
-                const lines = historyToShow.map(m =>
-                    `${m.isBot ? 'Linus' : `User<${m.user}>`}: ${m.text}`
-                );
-                linusContextPrefix += `[SLACK CONVERSATION HISTORY]\n${lines.join('\n')}\n\n`;
-                logger.info(`[SlackBridge] Injecting ${historyToShow.length} history messages for Linus`);
-            }
-
-            if (lettaSnippets.length > 0) {
-                const sanitized = lettaSnippets.map(s => `- ${String(s).slice(0, 300)}`).join('\n');
-                linusContextPrefix += `[AGENT MEMORY]\nRelevant context from organizational memory:\n${sanitized}\n\n`;
-                logger.info(`[SlackBridge] Injecting ${lettaSnippets.length} Letta memory snippets for Linus`);
-            }
         }
 
         let result;
