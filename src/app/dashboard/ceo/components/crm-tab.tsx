@@ -30,6 +30,7 @@ import {
     getPlatformUsers,
     getCRMUserStats,
     getCRMStats,
+    getCRMUsersAndStats,
     deleteCrmEntity,
     deleteUserByEmail,
     markAccountAsTest,
@@ -250,11 +251,10 @@ export default function CRMTab() {
     } = usePagination(users, 10);
 
     useEffect(() => {
-        loadStats();
+        loadData();
         loadBrands();
         loadDispensaries();
         loadLeads();
-        loadUsers();
         loadOutreachLeads();
         loadAIInsights();
         loadDataQuality();
@@ -263,13 +263,30 @@ export default function CRMTab() {
 
     const loadStats = async () => {
         try {
-            const data = await getCRMStats();
+            const [data, uStats] = await Promise.all([getCRMStats(), getCRMUserStats()]);
             setStats(data);
-            // Also load user stats
-            const uStats = await getCRMUserStats();
             setUserStats(uStats);
         } catch (e: any) {
-            console.error('Failed to load CRM stats', e);
+            toast({ variant: 'destructive', title: 'Error', description: e.message });
+        }
+    };
+
+    /** Initial mount: fetch users + stats in one pass (avoids duplicate users scan). */
+    const loadData = async () => {
+        setUsersLoading(true);
+        try {
+            const [crmStats, { users: data, userStats: uStats }] = await Promise.all([
+                getCRMStats(),
+                getCRMUsersAndStats({ limit: 200, includeTest: showTestAccounts }),
+            ]);
+            setStats(crmStats);
+            setUsers(data);
+            setUserStats(uStats);
+            setUsersPage(1);
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Error', description: e.message });
+        } finally {
+            setUsersLoading(false);
         }
     };
 
@@ -501,8 +518,8 @@ export default function CRMTab() {
             if (result.success && result.insights) {
                 setAiInsights(result.insights);
             }
-        } catch (e: any) {
-            console.error('Failed to load AI insights', e);
+        } catch {
+            // Non-critical — insights panel stays empty on failure
         } finally {
             setAiInsightsLoading(false);
         }
@@ -564,8 +581,8 @@ export default function CRMTab() {
         try {
             const result = await getNYLeadDataQuality();
             if (result.success) setDataQuality(result);
-        } catch (e: any) {
-            console.error('Data quality load failed', e);
+        } catch {
+            // Non-critical — data quality panel stays empty on failure
         } finally {
             setDataQualityLoading(false);
         }
@@ -630,7 +647,7 @@ export default function CRMTab() {
                     </h2>
                     <p className="text-muted-foreground">AI-native CRM powered by Jack · lifecycle tracking · MRR</p>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => { loadAIInsights(); loadStats(); loadUsers(); }} disabled={aiInsightsLoading}>
+                <Button variant="outline" size="sm" onClick={() => { loadAIInsights(); loadData(); }} disabled={aiInsightsLoading}>
                     <RefreshCw className={`h-4 w-4 mr-2 ${aiInsightsLoading ? 'animate-spin' : ''}`} />
                     Refresh
                 </Button>

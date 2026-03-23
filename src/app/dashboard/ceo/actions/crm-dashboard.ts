@@ -27,6 +27,14 @@ export async function getCRMUserStats() {
     return crm.getCRMUserStats();
 }
 
+/** Fetch users once and compute user stats from the same data — avoids a duplicate users scan. */
+export async function getCRMUsersAndStats(filters: CRMFilters = {}) {
+    const crm = await import('@/server/services/crm-service');
+    const users = await crm.getPlatformUsers(filters);
+    const userStats = await crm.getCRMUserStats(users);
+    return { users, userStats };
+}
+
 export async function getCRMStats() {
     const crm = await import('@/server/services/crm-service');
     return crm.getCRMStats();

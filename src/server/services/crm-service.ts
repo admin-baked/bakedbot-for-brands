@@ -706,7 +706,7 @@ export async function getPlatformUsers(filters: CRMFilters = {}): Promise<CRMUse
             topLevelSubsByEmail.set(email, existing);
         });
     } catch (error) {
-        logger.error('[CRM] Failed to load top-level subscriptions:', { error });
+        logger.error('[CRM] Failed to load top-level subscriptions:', { error: String(error) });
     }
 
     let users = rawUsers.map(({ id, data }) => {
@@ -830,7 +830,7 @@ export async function getPlatformUsers(filters: CRMFilters = {}): Promise<CRMUse
 /**
  * Get CRM user stats for dashboard
  */
-export async function getCRMUserStats(): Promise<{
+export async function getCRMUserStats(preloadedUsers?: CRMUser[]): Promise<{
     totalUsers: number;
     activeUsers: number;
     totalMRR: number;
@@ -928,17 +928,20 @@ export async function getCRMUserStats(): Promise<{
 
         totalMRR = Math.round(totalMRR * 100) / 100;
     } catch (error) {
-        logger.error('[CRM] Failed to aggregate MRR from subscriptions:', { error });
+        logger.error('[CRM] Failed to aggregate MRR from subscriptions:', { error: String(error) });
         totalMRR = 0;
     }
 
     // Use getPlatformUsers() for lifecycle + active counts so stats always match
     // the crmListUsers tool (same subscription-aware inference logic).
-    let allUsers: CRMUser[] = [];
-    try {
-        allUsers = await getPlatformUsers();
-    } catch (error) {
-        logger.error('[CRM] Failed to load users for stats:', { error });
+    // If callers pre-fetch users they can pass them here to avoid a duplicate scan.
+    let allUsers: CRMUser[] = preloadedUsers ?? [];
+    if (!preloadedUsers) {
+        try {
+            allUsers = await getPlatformUsers();
+        } catch (error) {
+            logger.error('[CRM] Failed to load users for stats:', { error: String(error) });
+        }
     }
 
     const sevenDaysAgo = new Date();
@@ -1083,7 +1086,7 @@ export async function deleteCrmEntity(
             await auth.deleteUser(id);
         } catch (error: any) {
             if (error.code !== 'auth/user-not-found') {
-                logger.error('[CRM] Error deleting user from Auth:', { error });
+                logger.error('[CRM] Error deleting user from Auth:', { error: String(error) });
             }
         }
         // 2. Delete all subcollections
@@ -1135,9 +1138,9 @@ export async function deleteUserByEmail(email: string): Promise<string> {
             result += 'No orphaned documents found.';
         }
 
-    } catch (e: any) {
-        logger.error('[CRM] Error in deleteUserByEmail:', { error: e });
-        throw new Error(e.message);
+    } catch (error: any) {
+        logger.error('[CRM] Error in deleteUserByEmail:', { error: String(error) });
+        throw error;
     }
     
     return result;
