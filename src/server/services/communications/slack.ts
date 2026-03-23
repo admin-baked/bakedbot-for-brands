@@ -193,6 +193,24 @@ export class SlackService {
         }
     }
 
+    async authTest(): Promise<{ bot_id?: string; app_id?: string; user_id?: string; team?: string; url?: string } | null> {
+        const client = this.getClient('authTest');
+        if (!client) return null;
+        try {
+            const result = await client.auth.test();
+            return {
+                bot_id: result.bot_id,
+                app_id: (result as any).app_id,
+                user_id: result.user_id,
+                team: result.team as string | undefined,
+                url: result.url,
+            };
+        } catch (e: any) {
+            logger.warn(`[Slack] auth.test failed: ${e.message}`);
+            return null;
+        }
+    }
+
     /**
      * Fetch the message history for a thread or DM conversation.
      * - Thread replies: pass the parent message ts as threadTs
