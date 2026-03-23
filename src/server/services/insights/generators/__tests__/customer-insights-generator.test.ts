@@ -42,6 +42,7 @@ describe('CustomerInsightsGenerator', () => {
         severity: 'warning',
         ctaLabel: 'Reduce Concentration Risk',
         dataSource: 'Customer segments (CRM lifetime spend)',
+        tooltipText: 'LTV is based on lifetime spend. Concentration alerts occur when top VIPs account for most revenue, creating risk if they churn.',
       })
     );
     expect(loyaltyInsight?.subtext).toContain('CRM LTV basis');

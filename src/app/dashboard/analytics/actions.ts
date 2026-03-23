@@ -212,11 +212,27 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
   const cohortsMap = new Map<string, { initialSize: number, retained: Map<number, Set<string>> }>();
 
   // 1. Determine Acquisition Month for each customer
-  orders.sort((a, b) => a.createdAt.toMillis() - b.createdAt.toMillis()); // Ensure chronological
+  orders.sort((a, b) => {
+    const timeA = a.createdAt?.toMillis?.() || (a.createdAt ? new Date(a.createdAt as any).getTime() : 0);
+    const timeB = b.createdAt?.toMillis?.() || (b.createdAt ? new Date(b.createdAt as any).getTime() : 0);
+    return timeA - timeB;
+  }); // Ensure chronological
   orders.forEach(order => {
     const email = getOrderEmail(order);
     if (!email) return;
-    const month = order.createdAt.toDate().toISOString().substring(0, 7); // YYYY-MM
+    
+    let month = '';
+    try {
+      if (order.createdAt?.toDate) {
+        month = order.createdAt.toDate().toISOString().substring(0, 7);
+      } else if (order.createdAt) {
+        month = new Date(order.createdAt as any).toISOString().substring(0, 7);
+      } else {
+        month = new Date().toISOString().substring(0, 7);
+      }
+    } catch (e) {
+      month = new Date().toISOString().substring(0, 7);
+    }
 
     if (!customerFirstOrderDate.has(email)) {
       customerFirstOrderDate.set(email, month);
@@ -401,7 +417,16 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
   if (dailyStats.length === 0 && orders.length > 0) {
     const ordersByDate = new Map<string, number>();
     orders.forEach(o => {
-      const d = o.createdAt.toDate().toISOString().split('T')[0];
+      let d = new Date().toISOString().split('T')[0];
+      try {
+        if (o.createdAt?.toDate) {
+          d = o.createdAt.toDate().toISOString().split('T')[0];
+        } else if (o.createdAt) {
+          d = new Date(o.createdAt as any).toISOString().split('T')[0];
+        }
+      } catch (e) {
+        // Ignore date parsing errors
+      }
       ordersByDate.set(d, (ordersByDate.get(d) || 0) + getOrderTotal(o));
     });
     for (let i = 0; i < 30; i++) {

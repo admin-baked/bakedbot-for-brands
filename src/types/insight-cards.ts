@@ -58,6 +58,7 @@ export interface InsightCard {
     unit?: string;
     trend?: InsightTrend;
     trendValue?: string;      // e.g., "+12%"
+    tooltipText?: string;     // Explanatory tooltip for metrics
 
     // Status
     severity: InsightSeverity;

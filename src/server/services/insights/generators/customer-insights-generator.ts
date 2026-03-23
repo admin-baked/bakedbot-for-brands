@@ -180,6 +180,7 @@ export class CustomerInsightsGenerator extends InsightGeneratorBase {
 
     return this.createInsight({
       title: 'LOYALTY PERFORMANCE',
+      tooltipText: 'LTV is based on lifetime spend. Concentration alerts occur when top VIPs account for most revenue, creating risk if they churn.',
       headline: vipCount > 0
         ? `${vipCount} VIP customers hold ${vipConcentration}% of tracked LTV`
         : 'No VIP concentration detected',

@@ -30,6 +30,7 @@ import {
     TrendingDown,
     Minus,
     ArrowRight,
+    Info,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { InsightCard as InsightCardType } from '@/types/insight-cards';
@@ -141,9 +142,21 @@ export function InsightCard({
                     </div>
 
                     {/* Title */}
-                    <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
-                        {insight.title}
-                    </h4>
+                    <div className="flex items-center gap-1 mb-1">
+                        <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            {insight.title}
+                        </h4>
+                        {insight.tooltipText && (
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div className="cursor-help"><Info className="h-3.5 w-3.5 text-muted-foreground/50 hover:text-muted-foreground transition-colors" /></div>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="max-w-[250px]">
+                                    <p className="text-xs">{insight.tooltipText}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        )}
+                    </div>
 
                     {/* Headline */}
                     <p

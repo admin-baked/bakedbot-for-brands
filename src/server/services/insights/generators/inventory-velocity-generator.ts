@@ -343,6 +343,7 @@ export class InventoryVelocityGenerator extends InsightGeneratorBase {
 
     return this.createInsight({
       title: 'SLOW MOVERS',
+      tooltipText: 'Products that have been sitting in inventory for 30+ days without selling.',
       headline: `${products.length} slow-moving products`,
       subtext:
         totalStock > 0

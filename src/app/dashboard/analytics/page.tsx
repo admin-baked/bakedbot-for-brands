@@ -87,7 +87,10 @@ export default async function DashboardAnalyticsPage() {
   }
 
   const [analyticsData, prefs] = await Promise.all([
-    getAnalyticsData(orgId).catch(() => EMPTY_ANALYTICS),
+    getAnalyticsData(orgId).catch((err) => {
+      console.error('[Analytics Page] Error fetching data:', err);
+      return EMPTY_ANALYTICS;
+    }),
     getAnalyticsPrefs().catch(() => EMPTY_PREFS),
   ]);
 
