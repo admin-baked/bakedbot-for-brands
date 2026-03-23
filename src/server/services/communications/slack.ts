@@ -194,6 +194,51 @@ export class SlackService {
     }
 
     /**
+     * Fetch the message history for a thread or DM conversation.
+     * - Thread replies: pass the parent message ts as threadTs
+     * - DM history: pass the DM channel ID (starts with 'D'); threadTs ignored
+     * Returns messages oldest-first, capped at `limit`.
+     */
+    async getConversationHistory(
+        channel: string,
+        threadTs?: string,
+        limit = 15,
+    ): Promise<Array<{ user: string; text: string; ts: string; isBot: boolean }>> {
+        const client = this.getClient('getConversationHistory');
+        if (!client) return [];
+
+        try {
+            let messages: any[];
+            if (threadTs) {
+                // Threaded reply — fetch the full thread
+                const result = await client.conversations.replies({
+                    channel,
+                    ts: threadTs,
+                    limit,
+                });
+                messages = result.messages ?? [];
+            } else {
+                // DM or channel — fetch recent history
+                const result = await client.conversations.history({
+                    channel,
+                    limit,
+                });
+                messages = (result.messages ?? []).reverse(); // oldest-first
+            }
+
+            return messages.map((m: any) => ({
+                user: m.user ?? m.username ?? (m.bot_id ? 'BakedBot' : 'unknown'),
+                text: (m.text ?? '').trim(),
+                ts: m.ts ?? '',
+                isBot: !!m.bot_id,
+            }));
+        } catch (e: any) {
+            logger.warn(`[Slack] getConversationHistory failed for ${channel}: ${e.message}`);
+            return [];
+        }
+    }
+
+    /**
      * Get channel info by ID. Returns the channel name (needed for agent routing
      * since Slack Events API does not include channel_name in event payloads).
      */

@@ -391,30 +391,76 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
         const agentTimeoutMs = AGENT_TIMEOUTS[personaId as keyof typeof AGENT_TIMEOUTS] ?? 55_000;
         const agentTimeoutSec = Math.round(agentTimeoutMs / 1000);
 
-        // For Linus: download image files from Slack only when Claude will actually be invoked.
-        // Gated on linusNeedsTools() to avoid wasted network I/O for conversational messages.
-        // Downloads are parallelized (Promise.all) to minimize added latency.
+        // For Linus: fetch conversation history + Letta memory (in parallel with image downloads)
+        // so he has full context without relying on the caller to re-state prior messages.
         let linusImages: Array<{ data: string; mimeType: string }> | undefined;
-        if (personaId === 'linus' && linusNeedsTools(enrichedText) && files.length > 0) {
-            const botToken = process.env.SLACK_BOT_TOKEN;
-            const imageFiles = files.filter((f: any) => /^image\//.test(f.mimetype || '')).slice(0, 3);
-            if (botToken && imageFiles.length > 0) {
-                const results = await Promise.all(
-                    imageFiles.map(async (f: any) => {
-                        try {
-                            const res = await fetch(f.url_private, { headers: { Authorization: `Bearer ${botToken}` } });
-                            if (!res.ok) return null;
-                            const buf = Buffer.from(await res.arrayBuffer());
-                            logger.info(`[SlackBridge] Downloaded image for Linus vision: ${f.name} (${buf.length} bytes)`);
-                            return { data: buf.toString('base64'), mimeType: f.mimetype as string };
-                        } catch (imgErr: any) {
-                            logger.warn(`[SlackBridge] Failed to download image ${f.name}: ${imgErr.message}`);
-                            return null;
-                        }
-                    })
+        let linusContextPrefix = '';
+
+        if (personaId === 'linus') {
+            const willUseTools = linusNeedsTools(enrichedText);
+
+            // Run image download + history fetch + Letta memory in parallel
+            const [historyMessages, lettaSnippets] = await Promise.all([
+                // Thread/DM history — only when in a thread or DM (not first message)
+                (isThreadReply || isDm)
+                    ? slackService.getConversationHistory(channel, isThreadReply ? threadTs : undefined, 12)
+                        .catch(() => [])
+                    : Promise.resolve([]),
+
+                // Letta long-term memory — search using the current message as query
+                (async () => {
+                    try {
+                        const { memoryBridgeService } = await import('@/server/services/letta/memory-bridge');
+                        const memResults = await memoryBridgeService.unifiedSearch(
+                            'org_bakedbot_internal',
+                            enrichedText,
+                            { includeFirestore: false, includeLetta: true, limit: 3 },
+                        );
+                        return memResults.lettaResults.slice(0, 3);
+                    } catch {
+                        return [];
+                    }
+                })(),
+            ]);
+
+            // Image downloads (only when Claude will be invoked)
+            if (willUseTools && files.length > 0) {
+                const botToken = process.env.SLACK_BOT_TOKEN;
+                const imageFiles = files.filter((f: any) => /^image\//.test(f.mimetype || '')).slice(0, 3);
+                if (botToken && imageFiles.length > 0) {
+                    const results = await Promise.all(
+                        imageFiles.map(async (f: any) => {
+                            try {
+                                const res = await fetch(f.url_private, { headers: { Authorization: `Bearer ${botToken}` } });
+                                if (!res.ok) return null;
+                                const buf = Buffer.from(await res.arrayBuffer());
+                                logger.info(`[SlackBridge] Downloaded image for Linus vision: ${f.name} (${buf.length} bytes)`);
+                                return { data: buf.toString('base64'), mimeType: f.mimetype as string };
+                            } catch (imgErr: any) {
+                                logger.warn(`[SlackBridge] Failed to download image ${f.name}: ${imgErr.message}`);
+                                return null;
+                            }
+                        })
+                    );
+                    const downloaded = results.filter((r): r is { data: string; mimeType: string } => r !== null);
+                    if (downloaded.length > 0) linusImages = downloaded;
+                }
+            }
+
+            // Build context prefix from history (exclude the last message — that's enrichedText)
+            const historyToShow = historyMessages.slice(0, -1); // drop current message
+            if (historyToShow.length > 0) {
+                const lines = historyToShow.map(m =>
+                    `${m.isBot ? 'Linus' : `User<${m.user}>`}: ${m.text}`
                 );
-                const downloaded = results.filter((r): r is { data: string; mimeType: string } => r !== null);
-                if (downloaded.length > 0) linusImages = downloaded;
+                linusContextPrefix += `[SLACK CONVERSATION HISTORY]\n${lines.join('\n')}\n\n`;
+                logger.info(`[SlackBridge] Injecting ${historyToShow.length} history messages for Linus`);
+            }
+
+            if (lettaSnippets.length > 0) {
+                const sanitized = lettaSnippets.map(s => `- ${String(s).slice(0, 300)}`).join('\n');
+                linusContextPrefix += `[AGENT MEMORY]\nRelevant context from organizational memory:\n${sanitized}\n\n`;
+                logger.info(`[SlackBridge] Injecting ${lettaSnippets.length} Letta memory snippets for Linus`);
             }
         }
 
@@ -424,9 +470,10 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             // simple conversational messages → GLM (free, fast).
             // All other agents use GLM synthesis path.
             if (personaId === 'linus' && (linusNeedsTools(enrichedText) || linusImages)) {
+                const fullPrompt = linusContextPrefix + enrichedText;
                 const linusResult = await Promise.race([
                     runLinus({
-                        prompt: enrichedText,
+                        prompt: fullPrompt,
                         maxIterations: 8,
                         toolMode: 'slack',
                         context: { userId: SLACK_SYSTEM_USER.uid },
@@ -438,11 +485,13 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                 ]);
                 result = { content: linusResult.content, toolCalls: linusResult.toolExecutions };
             } else {
+            // For GLM path: include history prefix in the prompt when it exists (Linus conversational, or other agents)
+            const glmPrompt = linusContextPrefix ? linusContextPrefix + enrichedText : enrichedText;
             const extraOptions = { ...(attachments ? { attachments } : {}), source: 'slack' };
             result = await requestContext.run(
                 { useGLMSynthesis: true },
                 () => Promise.race([
-                    runAgentCore(enrichedText, personaId, extraOptions, SLACK_SYSTEM_USER),
+                    runAgentCore(glmPrompt, personaId, extraOptions, SLACK_SYSTEM_USER),
                     new Promise((_, reject) =>
                         setTimeout(() => reject(new Error(`Agent response timeout after ${agentTimeoutSec} seconds`)), agentTimeoutMs)
                     ),
