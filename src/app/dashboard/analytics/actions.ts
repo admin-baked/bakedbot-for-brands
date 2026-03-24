@@ -51,7 +51,14 @@ export interface AnalyticsData {
   }[];
   repeatCustomerRate: number;
   churnRate: number;
-  cohorts: CohortData[]; // Added
+  cohorts: CohortData[];
+  // Period comparison (last 30d vs prior 30d)
+  last30DaysRevenue: number;
+  last30DaysOrders: number;
+  prev30DaysRevenue: number;
+  prev30DaysOrders: number;
+  uniqueCustomerCount: number; // identified customers (excludes anonymous placeholders)
+  dataNote: string; // e.g. "Based on 3,554 orders (all-time)"
 }
 
 export interface CohortData {
@@ -199,9 +206,23 @@ async function queryOrdersByField(
   }
 }
 
+// Alleaves backfill uses this placeholder for orders without a customer email.
+// Treating all such orders as the same customer skews repeat-rate and cohort metrics.
+const ANONYMOUS_EMAIL_PLACEHOLDER = 'no-email@alleaves.local';
+
 function getOrderEmail(order: OrderDoc): string | null {
   const email = order.customer?.email;
-  return typeof email === 'string' && email.trim().length > 0 ? email.trim().toLowerCase() : null;
+  if (typeof email !== 'string' || email.trim().length === 0) return null;
+  const normalized = email.trim().toLowerCase();
+  return normalized === ANONYMOUS_EMAIL_PLACEHOLDER ? null : normalized;
+}
+
+function getOrderDate(order: OrderDoc): Date | null {
+  try {
+    if (order.createdAt?.toDate) return order.createdAt.toDate();
+    if (order.createdAt) return new Date(order.createdAt as any);
+  } catch { /* ignore */ }
+  return null;
 }
 
 function getOrderTotal(order: OrderDoc): number {
@@ -250,18 +271,8 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
     const email = getOrderEmail(order);
     if (!email) return;
     
-    let month = '';
-    try {
-      if (order.createdAt?.toDate) {
-        month = order.createdAt.toDate().toISOString().substring(0, 7);
-      } else if (order.createdAt) {
-        month = new Date(order.createdAt as any).toISOString().substring(0, 7);
-      } else {
-        month = new Date().toISOString().substring(0, 7);
-      }
-    } catch (e) {
-      month = new Date().toISOString().substring(0, 7);
-    }
+    const orderDateObj = getOrderDate(order);
+    const month = orderDateObj ? orderDateObj.toISOString().substring(0, 7) : new Date().toISOString().substring(0, 7);
 
     if (!customerFirstOrderDate.has(email)) {
       customerFirstOrderDate.set(email, month);
@@ -361,6 +372,30 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
   const totalOrders = orders.length;
   const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
+  // Period comparison: last 30 days vs prior 30 days
+  const now = new Date();
+  const ms30d = 30 * 24 * 60 * 60 * 1000;
+  const cutoff30 = new Date(now.getTime() - ms30d);
+  const cutoff60 = new Date(now.getTime() - 2 * ms30d);
+
+  let last30DaysRevenue = 0;
+  let last30DaysOrders = 0;
+  let prev30DaysRevenue = 0;
+  let prev30DaysOrders = 0;
+
+  orders.forEach(o => {
+    const d = getOrderDate(o);
+    if (!d) return;
+    const rev = getOrderTotal(o);
+    if (d >= cutoff30) {
+      last30DaysRevenue += rev;
+      last30DaysOrders++;
+    } else if (d >= cutoff60) {
+      prev30DaysRevenue += rev;
+      prev30DaysOrders++;
+    }
+  });
+
   const salesByProduct = Array.from(salesByProductMap.values())
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, 10);
@@ -446,17 +481,9 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
   if (dailyStats.length === 0 && orders.length > 0) {
     const ordersByDate = new Map<string, number>();
     orders.forEach(o => {
-      let d = new Date().toISOString().split('T')[0];
-      try {
-        if (o.createdAt?.toDate) {
-          d = o.createdAt.toDate().toISOString().split('T')[0];
-        } else if (o.createdAt) {
-          d = new Date(o.createdAt as any).toISOString().split('T')[0];
-        }
-      } catch (e) {
-        // Ignore date parsing errors
-      }
-      ordersByDate.set(d, (ordersByDate.get(d) || 0) + getOrderTotal(o));
+      const d = getOrderDate(o);
+      const dateStr = d ? d.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+      ordersByDate.set(dateStr, (ordersByDate.get(dateStr) || 0) + getOrderTotal(o));
     });
     for (let i = 0; i < 30; i++) {
       const d = new Date();
@@ -491,12 +518,18 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
     averageOrderValue,
     salesByProduct,
     salesByCategory,
-    affinityPairs, // Added
+    affinityPairs,
     dailyStats,
     conversionFunnel,
     channelPerformance,
     repeatCustomerRate,
     churnRate,
-    cohorts // Added
+    cohorts,
+    last30DaysRevenue,
+    last30DaysOrders,
+    prev30DaysRevenue,
+    prev30DaysOrders,
+    uniqueCustomerCount: customerOrderCounts.size,
+    dataNote: `Based on ${totalOrders.toLocaleString()} orders (all-time)`,
   };
 }

@@ -23,6 +23,12 @@ const EMPTY_ANALYTICS = {
   repeatCustomerRate: 0,
   churnRate: 0,
   cohorts: [],
+  last30DaysRevenue: 0,
+  last30DaysOrders: 0,
+  prev30DaysRevenue: 0,
+  prev30DaysOrders: 0,
+  uniqueCustomerCount: 0,
+  dataNote: 'No data yet',
 };
 
 const EMPTY_PREFS = {
