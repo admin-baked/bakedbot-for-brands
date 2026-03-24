@@ -1,7 +1,7 @@
 'use server';
 
 import { createServerClient } from '@/firebase/server-client';
-import { orderConverter, type OrderDoc } from '@/firebase/converters';
+import type { OrderDoc } from '@/firebase/converters';
 import { requireUser } from '@/server/auth/auth';
 import { logger } from '@/lib/logger';
 import { unstable_noStore as noStore } from 'next/cache';
@@ -160,13 +160,17 @@ async function queryOrdersByField(
   field: 'brandId' | 'orgId' | 'retailerId',
   entityId: string,
 ): Promise<OrderDoc[]> {
+  // Map admin SDK doc snapshot to OrderDoc without using the client SDK converter
+  // (mixing client/admin SDK converters can silently return empty data in server contexts)
+  const toOrderDoc = (doc: any): OrderDoc => ({ id: doc.id, ...doc.data() } as OrderDoc);
+
   try {
     const snap = await firestore.collection('orders')
       .where(field, '==', entityId)
       .where('status', 'in', [...ANALYTICS_ORDER_STATUSES])
-      .withConverter(orderConverter as any)
       .get();
-    return snap.docs.map((doc: any) => doc.data()) as OrderDoc[];
+    logger.info('[Analytics] queryOrdersByField primary', { field, entityId, count: snap.size });
+    return snap.docs.map(toOrderDoc);
   } catch (error) {
     logger.warn('[Analytics] Order query failed, retrying without status filter', {
       entityId,
@@ -176,7 +180,6 @@ async function queryOrdersByField(
 
     const fallback = await firestore.collection('orders')
       .where(field, '==', entityId)
-      .withConverter(orderConverter as any)
       .get()
       .catch((fallbackError) => {
         logger.error('[Analytics] Order fallback query failed', {
@@ -191,9 +194,8 @@ async function queryOrdersByField(
       return [];
     }
 
-    return fallback.docs
-      .map((doc: any) => doc.data() as OrderDoc)
-      .filter(hasAllowedAnalyticsStatus);
+    logger.info('[Analytics] queryOrdersByField fallback', { field, entityId, count: fallback.size });
+    return fallback.docs.map(toOrderDoc).filter(hasAllowedAnalyticsStatus);
   }
 }
 
