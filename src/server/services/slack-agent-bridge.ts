@@ -262,6 +262,14 @@ function buildInitialSlackStatus(personaId: string, cleanText: string): string {
     const lower = cleanText.toLowerCase();
 
     if (personaId === 'linus') {
+        const isToolMode = linusNeedsTools(cleanText);
+        if (!isToolMode) {
+             if (/^(hello|hi|hey|morning|gm|thanks|ty|what's up)/.test(lower)) {
+                 return `_${personaName} is typing..._`;
+             }
+             return `_${personaName} is reading the conversation..._`;
+        }
+
         if (/\b(what|which)\s+model\b|\bmodel\s+are\s+you\s+using\b/.test(lower)) {
             return `_${personaName} is on it: checking the current runtime and reply path..._`;
         }
@@ -399,87 +407,83 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             jack:  120_000,   // 2 min — CRO revenue analysis
             glenda: 120_000,  // 2 min — CMO strategy
         } satisfies Partial<Record<string, number>>;
-        const agentTimeoutMs = AGENT_TIMEOUTS[personaId as keyof typeof AGENT_TIMEOUTS] ?? 55_000;
-        const agentTimeoutSec = Math.round(agentTimeoutMs / 1000);
-
-        // For Linus tool path: fetch history + Letta + images all in parallel.
-        // GLM (conversational) path skips all of this — stays fast and free.
+        const agentTimeoutMs = AGENT_TIMEOUTS[personaId as keyof typeof AGENT_TIMEOUTS] ?? 55_000;        // Context variables
         let linusImages: Array<{ data: string; mimeType: string }> | undefined;
-        let linusContextPrefix = '';
-        // Hoist so the execution branch below can reuse without a second call
-        const willUseLinusTools = personaId === 'linus' && linusNeedsTools(enrichedText);
+        let contextPrefix = '';
+        
+        const isLinus = personaId === 'linus';
+        const willUseLinusTools = isLinus && linusNeedsTools(enrichedText);
+        const botToken = process.env.SLACK_BOT_TOKEN;
+        const imageFiles = files.filter((f: any) => /^image\//.test(f.mimetype || '')).slice(0, 3);
 
-        if (willUseLinusTools) {
-            const botToken = process.env.SLACK_BOT_TOKEN;
-            const imageFiles = files.filter((f: any) => /^image\//.test(f.mimetype || '')).slice(0, 3);
+        // Always fetch context (history for everyone; Letta for Linus) concurrently with image downloads
+        const [historyMessages, lettaSnippets, rawImages] = await Promise.all([
+            // Thread/DM history (fetch 12; will drop the current msg which is last)
+            (isThreadReply || isDm)
+                ? slackService.getConversationHistory(channel, isThreadReply ? threadTs : undefined, 12).catch(() => [])
+                : Promise.resolve([] as Awaited<ReturnType<typeof slackService.getConversationHistory>>),
 
-            const [historyMessages, lettaSnippets, rawImages] = await Promise.all([
-                // Thread/DM history (fetch 12; will drop the current msg which is last)
-                (isThreadReply || isDm)
-                    ? slackService.getConversationHistory(channel, isThreadReply ? threadTs : undefined, 12)
-                        .catch(() => [])
-                    : Promise.resolve([] as Awaited<ReturnType<typeof slackService.getConversationHistory>>),
+            // Letta long-term memory (Linus only)
+            (isLinus) ? (async () => {
+                try {
+                    const { memoryBridgeService } = await import('@/server/services/letta/memory-bridge');
+                    const memResults = await memoryBridgeService.unifiedSearch(
+                        BAKEDBOT_INTERNAL_ORG,
+                        enrichedText,
+                        { includeFirestore: false, includeLetta: true, limit: 3 },
+                    );
+                    return memResults.lettaResults.slice(0, 3);
+                } catch {
+                    return [];
+                }
+            })() : Promise.resolve([]),
 
-                // Letta long-term memory
-                (async () => {
+            // Image downloads (Linus only, when tools/vision needed)
+            (isLinus && botToken && imageFiles.length > 0)
+                ? Promise.all(imageFiles.map(async (f: any) => {
                     try {
-                        const { memoryBridgeService } = await import('@/server/services/letta/memory-bridge');
-                        const memResults = await memoryBridgeService.unifiedSearch(
-                            BAKEDBOT_INTERNAL_ORG,
-                            enrichedText,
-                            { includeFirestore: false, includeLetta: true, limit: 3 },
-                        );
-                        return memResults.lettaResults.slice(0, 3);
-                    } catch {
-                        return [];
+                        const res = await fetch(f.url_private, { headers: { Authorization: `Bearer ${botToken}` } });
+                        if (!res.ok) return null;
+                        const buf = Buffer.from(await res.arrayBuffer());
+                        logger.info(`[SlackBridge] Downloaded image for Linus vision: ${f.name} (${buf.length} bytes)`);
+                        return { data: buf.toString('base64'), mimeType: f.mimetype as string };
+                    } catch (imgErr: any) {
+                        logger.warn(`[SlackBridge] Failed to download image ${f.name}: ${imgErr.message}`);
+                        return null;
                     }
-                })(),
+                }))
+                : Promise.resolve([] as Array<{ data: string; mimeType: string } | null>),
+        ]);
 
-                // Image downloads
-                botToken && imageFiles.length > 0
-                    ? Promise.all(imageFiles.map(async (f: any) => {
-                        try {
-                            const res = await fetch(f.url_private, { headers: { Authorization: `Bearer ${botToken}` } });
-                            if (!res.ok) return null;
-                            const buf = Buffer.from(await res.arrayBuffer());
-                            logger.info(`[SlackBridge] Downloaded image for Linus vision: ${f.name} (${buf.length} bytes)`);
-                            return { data: buf.toString('base64'), mimeType: f.mimetype as string };
-                        } catch (imgErr: any) {
-                            logger.warn(`[SlackBridge] Failed to download image ${f.name}: ${imgErr.message}`);
-                            return null;
-                        }
-                    }))
-                    : Promise.resolve([] as Array<{ data: string; mimeType: string } | null>),
-            ]);
+        const downloaded = rawImages.filter((r): r is { data: string; mimeType: string } => r !== null);
+        if (downloaded.length > 0) linusImages = downloaded;
 
-            const downloaded = rawImages.filter((r): r is { data: string; mimeType: string } => r !== null);
-            if (downloaded.length > 0) linusImages = downloaded;
-
-            // Build context prefix — array+join is safer than string +=
-            const contextParts: string[] = [];
-            const historyToShow = historyMessages.slice(0, -1); // drop current msg (last entry)
-            if (historyToShow.length > 0) {
-                const lines = historyToShow.map(m =>
-                    `${m.isBot ? 'Linus' : `User<${m.user}>`}: ${m.text}`
-                );
-                contextParts.push(`[SLACK CONVERSATION HISTORY]\n${lines.join('\n')}`);
-                logger.info(`[SlackBridge] Injecting ${historyToShow.length} history messages for Linus`);
-            }
-            if (lettaSnippets.length > 0) {
-                const sanitized = lettaSnippets.map(s => `- ${sanitizeForPrompt(String(s), 300)}`).join('\n');
-                contextParts.push(`[AGENT MEMORY]\nRelevant context from organizational memory:\n${sanitized}`);
-                logger.info(`[SlackBridge] Injecting ${lettaSnippets.length} Letta memory snippets for Linus`);
-            }
-            if (contextParts.length > 0) linusContextPrefix = contextParts.join('\n\n') + '\n\n';
+        // Build context prefix
+        const contextParts: string[] = [];
+        const historyToShow = historyMessages.slice(0, -1); // drop current msg (last entry)
+        if (historyToShow.length > 0) {
+            const lines = historyToShow.map(m =>
+                `${m.isBot ? getPersonaName(personaId) : \`User<\${m.user}>\`}: ${m.text}`
+            );
+            contextParts.push(`[SLACK CONVERSATION HISTORY]\n${lines.join('\n')}`);
+            logger.info(`[SlackBridge] Injecting ${historyToShow.length} history messages for ${personaId}`);
         }
+        if (lettaSnippets.length > 0) {
+            const sanitized = lettaSnippets.map(s => `- ${sanitizeForPrompt(String(s), 300)}`).join('\n');
+            contextParts.push(`[AGENT MEMORY]\nRelevant context from organizational memory:\n${sanitized}`);
+            logger.info(`[SlackBridge] Injecting ${lettaSnippets.length} Letta memory snippets for ${personaId}`);
+        }
+        if (contextParts.length > 0) contextPrefix = contextParts.join('\n\n') + '\n\n';
 
         let result;
         try {
+            // Prepend the fetched history and memory to the current message
+            const fullPrompt = contextPrefix + enrichedText;
+
             // Linus: tool-requiring messages OR image attachments → Claude (full tool access + vision);
             // simple conversational messages → GLM (free, fast).
             // All other agents use GLM synthesis path.
             if (willUseLinusTools || linusImages) {
-                const fullPrompt = linusContextPrefix + enrichedText;
                 const linusResult = await Promise.race([
                     runLinus({
                         prompt: fullPrompt,
@@ -494,14 +498,18 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                 ]);
                 result = { content: linusResult.content, toolCalls: linusResult.toolExecutions };
             } else {
-            // GLM path — conversational replies, other agents
-            const extraOptions = { ...(attachments ? { attachments } : {}), source: 'slack' };
-            result = await requestContext.run(
-                { useGLMSynthesis: true },
-                () => Promise.race([
-                    runAgentCore(enrichedText, personaId, extraOptions, SLACK_SYSTEM_USER),
-                    new Promise((_, reject) =>
-                        setTimeout(() => reject(new Error(`Agent response timeout after ${agentTimeoutSec} seconds`)), agentTimeoutMs)
+                // GLM path — conversational replies, other agents
+                const extraOptions = { ...(attachments ? { attachments } : {}), source: 'slack' };
+                result = await requestContext.run(
+                    { useGLMSynthesis: true },
+                    () => Promise.race([
+                        runAgentCore(fullPrompt, personaId, extraOptions, SLACK_SYSTEM_USER),
+                        new Promise((_, reject) =>
+                            setTimeout(() => reject(new Error(`Agent response timeout after ${agentTimeoutSec} seconds`)), agentTimeoutMs)
+                        ),
+                    ])
+                ) as any;
+            }
                     ),
                 ])
             ) as any;
