@@ -24,6 +24,7 @@ import {
     buildSquadRoster,
     buildIntegrationStatusSummary
 } from './agent-definitions';
+import { githubPushToolDef, executeGithubPush, GithubPushParams } from '../tools/github-tools';
 
 // ============================================================================
 // SECURITY: HIGH-RISK COMMAND SAFETY CHECKS
@@ -216,6 +217,29 @@ const LINUS_TOOLS: ClaudeTool[] = [
             required: ['url'] // simplifying required fields for now
         }
     })),
+    {
+        name: githubPushToolDef.name,
+        description: githubPushToolDef.description,
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                files: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'Array of relative file paths from project root that have been modified or created'
+                },
+                commitMessage: {
+                    type: 'string',
+                    description: 'The git commit message'
+                },
+                branch: {
+                    type: 'string',
+                    description: 'The branch to push to. Defaults to "main"'
+                }
+            },
+            required: ['files', 'commitMessage']
+        }
+    },
     {
         name: 'run_health_check',
         description: 'Run a health check on the codebase. Checks build status, test status, and lint errors.',
@@ -1636,6 +1660,7 @@ type LinusToolMode = 'full' | 'slack';
 
 const LINUS_SLACK_TOOL_NAMES = new Set([
     'run_health_check',
+    'github_push_api',
     'read_file',
     'write_file',
     'run_command',
@@ -1675,6 +1700,9 @@ const PROJECT_ROOT = process.cwd();
 
 async function linusToolExecutor(toolName: string, input: Record<string, unknown>): Promise<unknown> {
     switch (toolName) {
+        case 'github_push_api': {
+            return await executeGithubPush(input as GithubPushParams);
+        }
         case 'run_health_check': {
             const scope = input.scope as string || 'full';
             const results: Record<string, unknown> = {};
