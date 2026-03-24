@@ -532,7 +532,7 @@ export async function addMessageToInboxThread(
 
         await threadRef.update({
             messages: FieldValue.arrayUnion(messageToAdd),
-            preview: message.content.slice(0, 50),
+            preview: (message.content ?? '').slice(0, 50),
             updatedAt: FieldValue.serverTimestamp(),
             lastActivityAt: FieldValue.serverTimestamp(),
         });
