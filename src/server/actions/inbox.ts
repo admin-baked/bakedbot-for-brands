@@ -519,11 +519,16 @@ export async function addMessageToInboxThread(
             return { success: false, error: 'Unauthorized' };
         }
 
-        // Add message with serialized timestamp
-        const messageToAdd = {
+        // Add message with serialized timestamp.
+        // Strip undefined fields — Firestore rejects documents containing undefined values,
+        // which silently drops agent messages that have optional fields (thinking, metadata, attachments).
+        const raw = {
             ...message,
             timestamp: message.timestamp instanceof Date ? message.timestamp.toISOString() : message.timestamp,
         };
+        const messageToAdd = Object.fromEntries(
+            Object.entries(raw).filter(([, v]) => v !== undefined)
+        );
 
         await threadRef.update({
             messages: FieldValue.arrayUnion(messageToAdd),

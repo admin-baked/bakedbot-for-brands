@@ -14,6 +14,7 @@ import { getMarketBenchmarks } from '@/server/services/market-benchmarks';
 import { loadCatalogAnalyticsProducts, toAnalyticsDate, type CatalogAnalyticsProduct } from '@/server/services/catalog-analytics-source';
 import type { MarketBenchmarks } from '@/types/market-benchmarks';
 import { logger } from '@/lib/logger';
+import { ANALYTICS_ORDER_STATUSES } from '@/app/dashboard/orders/order-utils';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared result wrapper
@@ -182,7 +183,8 @@ interface RawOrder {
     status?: string;
 }
 
-const ANALYTICS_ORDER_STATUSES = ['submitted', 'confirmed', 'ready', 'completed'];
+// ANALYTICS_ORDER_STATUSES imported from order-utils (shared with analytics/actions.ts)
+// includes: pending, submitted, confirmed, preparing, ready, completed
 
 async function queryOrdersByField(
     field: 'brandId' | 'orgId',
@@ -193,7 +195,7 @@ async function queryOrdersByField(
     try {
         const snap = await db.collection('orders')
             .where(field, '==', orgId)
-            .where('status', 'in', ANALYTICS_ORDER_STATUSES)
+            .where('status', 'in', [...ANALYTICS_ORDER_STATUSES])
             .limit(2000)
             .get();
         return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as RawOrder));
@@ -223,7 +225,7 @@ async function queryOrdersByField(
             .map((doc) => ({ id: doc.id, ...doc.data() } as RawOrder))
             .filter((order) => {
                 const status = toLookupToken(order.status);
-                return status ? ANALYTICS_ORDER_STATUSES.includes(status) : true;
+                return status ? ANALYTICS_ORDER_STATUSES.includes(status as (typeof ANALYTICS_ORDER_STATUSES)[number]) : true;
             });
     }
 }
