@@ -129,6 +129,14 @@ function coerceNumber(value: any): number {
     return Number.isFinite(n) ? n : 0;
 }
 
+function extractProviderId(data: any): string {
+    return typeof data?.providerSubscriptionId === 'string'
+        ? data.providerSubscriptionId.trim()
+        : typeof data?.authorizeNetSubscriptionId === 'string'
+            ? data.authorizeNetSubscriptionId.trim()
+            : '';
+}
+
 function resolveOrgIdFromUserDoc(data: any): string | null {
     const candidates: unknown[] = [
         data?.currentOrgId,
@@ -161,17 +169,35 @@ async function loadSubscriptionCurrentByOrgIds(
 ): Promise<Map<string, any>> {
     if (orgIds.size === 0) return new Map();
     const results = new Map<string, any>();
-    // Single collectionGroup query replaces N individual doc reads.
-    const snapshot = await firestore
-        .collectionGroup('subscription')
-        .where(FieldPath.documentId(), '==', 'current')
-        .get();
-    snapshot.docs.forEach((doc) => {
-        const orgId = doc.ref.parent.parent?.id;
-        if (orgId && orgIds.has(orgId)) {
-            results.set(orgId, doc.data());
+    const ids = Array.from(orgIds).filter(Boolean);
+
+    // Individual reads — run all concurrently. collectionGroup queries on
+    // 'subscription' require a composite index that may not exist.
+    const snaps = await Promise.all(
+        ids.map(async (orgId) => {
+            try {
+                return {
+                    orgId,
+                    snap: await firestore
+                        .collection('organizations')
+                        .doc(orgId)
+                        .collection('subscription')
+                        .doc('current')
+                        .get(),
+                };
+            } catch (err) {
+                logger.error('[CRM] Failed to fetch subscription for org:', { orgId, error: String(err) });
+                return null;
+            }
+        })
+    );
+
+    for (const entry of snaps) {
+        if (entry && entry.snap.exists) {
+            results.set(entry.orgId, entry.snap.data());
         }
-    });
+    }
+
     return results;
 }
 
@@ -659,12 +685,7 @@ export async function getPlatformUsers(
             // Keep this list small; we only need enough to infer lifecycle + revenue.
             if (!['active', 'trialing', 'past_due', 'canceled', 'cancelled'].includes(status)) return;
 
-            const providerId =
-                typeof data?.providerSubscriptionId === 'string'
-                    ? data.providerSubscriptionId.trim()
-                    : typeof data?.authorizeNetSubscriptionId === 'string'
-                        ? data.authorizeNetSubscriptionId.trim()
-                        : '';
+            const providerId = extractProviderId(data);
             if (providerId && orgProviderSubscriptionIds.has(providerId)) return;
 
             const rawEmail =
@@ -862,29 +883,23 @@ export async function getCRMUserStats(
 
         const orgProviderSubscriptionIds = new Set<string>();
 
-        // 1) Primary: org subscription docs
-        const orgSubsSnapshot = await firestore
-            .collectionGroup('subscription')
-            .where(FieldPath.documentId(), '==', 'current')
-            .where('status', '==', 'active')
-            .get();
+        // 1) Primary: org subscription docs via individual reads (no composite index needed)
+        const orgIds = new Set<string>(
+            (preloadedUsers ?? []).map(u => u.orgId).filter((id): id is string => Boolean(id))
+        );
+        if (orgIds.size > 0) {
+            const orgSubDocs = await loadSubscriptionCurrentByOrgIds(firestore, orgIds);
+            orgSubDocs.forEach((data, _orgId) => {
+                const status = String(data?.status || '').toLowerCase();
+                if (status !== 'active') return;
 
-        orgSubsSnapshot.docs.forEach((doc) => {
-            // Ensure we're only counting organization subscriptions.
-            if (doc.ref.parent.parent?.parent?.id !== 'organizations') return;
+                const providerId = extractProviderId(data);
+                if (providerId) orgProviderSubscriptionIds.add(providerId);
 
-            const data = doc.data() as any;
-            const providerId =
-                typeof data?.providerSubscriptionId === 'string'
-                    ? data.providerSubscriptionId.trim()
-                    : typeof data?.authorizeNetSubscriptionId === 'string'
-                        ? data.authorizeNetSubscriptionId.trim()
-                        : '';
-            if (providerId) orgProviderSubscriptionIds.add(providerId);
-
-            const amount = coerceAmount(data?.amount);
-            if (amount > 0) totalMRR += amount;
-        });
+                const amount = coerceAmount(data?.amount);
+                if (amount > 0) totalMRR += amount;
+            });
+        }
 
         // 2) Add-ons / legacy: top-level subscriptions collection
         const topLevelDocs = preloadedTopLevelSubsDocs ?? (await firestore.collection('subscriptions').get()).docs;
@@ -898,12 +913,7 @@ export async function getCRMUserStats(
             // MRR should reflect revenue from active subscriptions only (exclude trialing).
             if (status !== 'active') return;
 
-            const providerId =
-                typeof data?.providerSubscriptionId === 'string'
-                    ? data.providerSubscriptionId.trim()
-                    : typeof data?.authorizeNetSubscriptionId === 'string'
-                        ? data.authorizeNetSubscriptionId.trim()
-                        : '';
+            const providerId = extractProviderId(data);
             if (providerId && orgProviderSubscriptionIds.has(providerId)) return;
 
             const amount = coerceAmount(data?.price ?? data?.amount);
