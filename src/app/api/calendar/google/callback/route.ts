@@ -16,10 +16,23 @@ import { logger } from '@/lib/logger';
 export async function GET(request: NextRequest) {
     const { searchParams } = request.nextUrl;
     const code = searchParams.get('code');
-    const profileSlug = searchParams.get('state') as ExecProfileSlug;
+    const rawState = searchParams.get('state');
     const error = searchParams.get('error');
 
     const dashboardUrl = '/dashboard/ceo?tab=calendar&calendarSync=';
+
+    // State is encoded as JSON by getGoogleAuthUrl: { service, profileSlug, redirect }
+    // Fall back to treating the raw value as a plain slug for backwards compatibility.
+    let profileSlug: ExecProfileSlug | null = null;
+    if (rawState) {
+        try {
+            const parsed = JSON.parse(rawState) as { profileSlug?: string };
+            profileSlug = (parsed.profileSlug ?? null) as ExecProfileSlug | null;
+        } catch {
+            // Plain string state (legacy)
+            profileSlug = rawState as ExecProfileSlug;
+        }
+    }
 
     if (error) {
         logger.warn(`[GCal] OAuth denied for ${profileSlug}: ${error}`);
@@ -27,6 +40,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!code || !profileSlug || !['martez', 'jack'].includes(profileSlug)) {
+        logger.warn(`[GCal] Invalid OAuth callback — code=${!!code} slug=${profileSlug} rawState=${rawState}`);
         return NextResponse.redirect(new URL(`${dashboardUrl}invalid`, request.url));
     }
 
