@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-03-24 (Build errors fixed, /simplify auto-protocol deployed, Thrive loyalty tablet kiosk + 24h meeting reminder wired)
+**Current Status:** 🟢 Passing | **Last update:** 2026-03-24 (fal.ai Kling/Wan + Remotion video generators shipped; TS build fixes; Skills Lab eval spec v2 aligned)
 
 ---
 

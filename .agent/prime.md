@@ -19,8 +19,8 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — Thrive loyalty tablet kiosk built; 24h meeting reminder wired.
-**Recent work (2026-03-24):** Loyalty tablet check-in flow + Smokey mood recs (`af13bdce1`), CRM SSR + perf fix (`1599a82a7`).
+**Current Status:** 🟢 Passing — Brand Guide fixes + magic buttons; 'use server' type fix deployed; PR #48 open.
+**Recent work (2026-03-24):** Brand Guide magic buttons + tier-aware AI (`6a3f9c75f`), 'use server' fix + wallet/inbox/remotion refactors (`abda7d8e2`, PR #48).
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
