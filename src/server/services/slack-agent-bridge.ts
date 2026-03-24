@@ -407,7 +407,9 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             jack:  120_000,   // 2 min — CRO revenue analysis
             glenda: 120_000,  // 2 min — CMO strategy
         } satisfies Partial<Record<string, number>>;
-        const agentTimeoutMs = AGENT_TIMEOUTS[personaId as keyof typeof AGENT_TIMEOUTS] ?? 55_000;        // Context variables
+        const agentTimeoutMs = AGENT_TIMEOUTS[personaId as keyof typeof AGENT_TIMEOUTS] ?? 55_000;
+        const agentTimeoutSec = Math.round(agentTimeoutMs / 1000);
+        // Context variables
         let linusImages: Array<{ data: string; mimeType: string }> | undefined;
         let contextPrefix = '';
         
@@ -463,7 +465,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
         const historyToShow = historyMessages.slice(0, -1); // drop current msg (last entry)
         if (historyToShow.length > 0) {
             const lines = historyToShow.map(m =>
-                `${m.isBot ? getPersonaName(personaId) : \`User<\${m.user}>\`}: ${m.text}`
+                `${m.isBot ? getPersonaName(personaId) : ('User<' + m.user + '>')}: ${m.text}`
             );
             contextParts.push(`[SLACK CONVERSATION HISTORY]\n${lines.join('\n')}`);
             logger.info(`[SlackBridge] Injecting ${historyToShow.length} history messages for ${personaId}`);
@@ -509,10 +511,6 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                         ),
                     ])
                 ) as any;
-            }
-                    ),
-                ])
-            ) as any;
             }
         } catch (agentErr: any) {
             logger.error('[SlackBridge] Agent execution error:', agentErr.message);
