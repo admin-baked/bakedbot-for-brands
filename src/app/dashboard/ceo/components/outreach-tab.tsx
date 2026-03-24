@@ -394,7 +394,8 @@ export default function OutreachTab() {
             try {
                 dashResult = await getOutreachDashboardData();
             } catch (e) {
-                errorSource = 'Outreach dashboard data';
+                const detail = String(e).replace(/^Error:\s*/, '').slice(0, 200);
+                errorSource = detail ? `Outreach dashboard data: ${detail}` : 'Outreach dashboard data';
                 console.error('[OutreachTab] getOutreachDashboardData failed:', String(e));
             }
 
