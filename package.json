@@ -62,7 +62,8 @@
     "provision:ny-outreach": "node scripts/provision-ny-outreach.mjs",
     "switch-model": "node scripts/switch-claude-model.mjs",
     "audit:agent-tools": "node scripts/audit-agent-tools.mjs",
-    "smoke:proactive": "node ./scripts/run-proactive-smoke.cjs"
+    "smoke:proactive": "node ./scripts/run-proactive-smoke.cjs",
+    "smoke:analytics": "node --env-file=.env.local scripts/smoke-analytics.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.0",

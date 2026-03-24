@@ -273,7 +273,7 @@ export async function getOrdersFromAlleaves(
 /**
  * Map Alleaves order status to BakedBot OrderStatus
  */
-function mapAlleavesStatus(alleavesStatus: string): OrderStatus {
+export function mapAlleavesStatus(alleavesStatus: string): OrderStatus {
     const statusMap: Record<string, OrderStatus> = {
         'pending': 'pending',
         'submitted': 'submitted',
@@ -284,6 +284,7 @@ function mapAlleavesStatus(alleavesStatus: string): OrderStatus {
         'cancelled': 'cancelled',
         'processing': 'preparing',
         'delivered': 'completed',
+        'voided': 'cancelled',
     };
 
     return statusMap[alleavesStatus?.toLowerCase()] || 'pending';

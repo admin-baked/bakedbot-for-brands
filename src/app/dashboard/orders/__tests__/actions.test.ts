@@ -1,4 +1,4 @@
-import { getOrders, updateOrderStatus } from '../actions';
+import { getOrders, updateOrderStatus, mapAlleavesStatus } from '../actions';
 import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
 
@@ -67,10 +67,10 @@ describe('Orders Management Actions', () => {
                 docs: [{ id: 'order1', data: () => ({ total: 100 }) }]
             });
 
-            const orders = await getOrders('ignored_org');
+            const result = await getOrders('ignored_org');
 
             expect(mockFirestore.where).toHaveBeenCalledWith('retailerId', '==', 'loc123');
-            expect(orders).toHaveLength(1);
+            expect(result.data).toHaveLength(1);
         });
 
         it('scopes by brandId for brand users', async () => {
@@ -155,5 +155,33 @@ describe('Orders Management Actions', () => {
             expect(result.error).toBe(true);
             expect(result.message).toContain('Cannot transition from \'completed\' to \'preparing\'');
         });
+    });
+});
+
+describe('mapAlleavesStatus', () => {
+    const expectedMappings: Array<[string, string]> = [
+        ['pending', 'pending'],
+        ['submitted', 'submitted'],
+        ['confirmed', 'confirmed'],
+        ['preparing', 'preparing'],
+        ['ready', 'ready'],
+        ['completed', 'completed'],
+        ['cancelled', 'cancelled'],
+        // Alleaves-specific aliases
+        ['processing', 'preparing'],
+        ['delivered', 'completed'],
+        ['voided', 'cancelled'],
+        // Case insensitivity
+        ['COMPLETED', 'completed'],
+        ['Pending', 'pending'],
+    ];
+
+    test.each(expectedMappings)('maps "%s" → "%s"', (input, expected) => {
+        expect(mapAlleavesStatus(input)).toBe(expected);
+    });
+
+    it('defaults unknown statuses to "pending"', () => {
+        expect(mapAlleavesStatus('unknown_status')).toBe('pending');
+        expect(mapAlleavesStatus('')).toBe('pending');
     });
 });
