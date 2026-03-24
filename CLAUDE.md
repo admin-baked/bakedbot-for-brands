@@ -12,7 +12,24 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-03-24 (Thrive loyalty tablet kiosk + 24h meeting reminder wired)
+**Current Status:** 🟢 Passing | **Last update:** 2026-03-24 (Build errors fixed, /simplify auto-protocol deployed, Thrive loyalty tablet kiosk + 24h meeting reminder wired)
+
+---
+
+## 🔄 Auto-Simplify Protocol (MANDATORY)
+
+After completing ANY code modifications, you **MUST** run `/simplify` before committing:
+
+1. **Find changes:** Run `git diff HEAD` to capture all modified code. If empty, use `git diff HEAD~1`.
+2. **3 parallel reviews against the diff:**
+   - **Code Reuse:** Flag newly written code that duplicates existing utilities/helpers.
+   - **Code Quality:** Flag redundant state, parameter sprawl, copy-paste, leaky abstractions, silent catches.
+   - **Efficiency:** Flag redundant work, sequential calls that could be parallel, N+1 patterns, memory leaks.
+3. **Fix every confirmed finding** directly in the code.
+4. **Run `npm run check:types`** to verify fixes don't break the build.
+5. **Summarize** what was changed.
+
+> This is NOT optional. Every code session ends with `/simplify`. See `.agent/workflows/simplify.md` for the full protocol.
 
 ---
 
