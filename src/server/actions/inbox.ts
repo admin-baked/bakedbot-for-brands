@@ -11,6 +11,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { getAdminFirestore } from '@/firebase/admin';
 import { getServerSessionUser } from '@/server/auth/session';
 import { logger } from '@/lib/logger';
+import { omitUndefinedDeep } from '@/lib/utils';
 import type { ChatMessage } from '@/lib/store/agent-chat-store';
 import type {
     InboxThread,
@@ -519,16 +520,13 @@ export async function addMessageToInboxThread(
             return { success: false, error: 'Unauthorized' };
         }
 
-        // Add message with serialized timestamp.
-        // Strip undefined fields — Firestore rejects documents containing undefined values,
-        // which silently drops agent messages that have optional fields (thinking, metadata, attachments).
-        const raw = {
+        // Normalize timestamp and strip undefined at all depths.
+        // omitUndefinedDeep handles nested objects (metadata, attachments, etc.)
+        // since Firestore rejects undefined values anywhere in a document.
+        const messageToAdd = omitUndefinedDeep({
             ...message,
             timestamp: message.timestamp instanceof Date ? message.timestamp.toISOString() : message.timestamp,
-        };
-        const messageToAdd = Object.fromEntries(
-            Object.entries(raw).filter(([, v]) => v !== undefined)
-        );
+        });
 
         await threadRef.update({
             messages: FieldValue.arrayUnion(messageToAdd),
