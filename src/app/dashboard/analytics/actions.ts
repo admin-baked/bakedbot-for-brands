@@ -7,10 +7,10 @@ import { logger } from '@/lib/logger';
 import { unstable_noStore as noStore } from 'next/cache';
 import { getDispensaryRetailerId, getLocationId } from '@/app/dashboard/orders/order-context';
 import { getOrdersFromAlleaves } from '@/app/dashboard/orders/actions';
+import { ANALYTICS_ORDER_STATUSES } from '@/app/dashboard/orders/order-utils';
 
 const ANALYTICS_ALLOWED_ROLES = ['brand', 'brand_admin', 'brand_member', 'dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender', 'super_user', 'super_admin'] as const;
 const DISPENSARY_ANALYTICS_ROLES = ['dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender'] as const;
-const ANALYTICS_ORDER_STATUSES = ['pending', 'submitted', 'confirmed', 'preparing', 'ready', 'completed'] as const;
 
 export interface DailyAnalytics {
   date: string;
@@ -214,7 +214,8 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
   noStore();
 
   const user = await requireUser([...ANALYTICS_ALLOWED_ROLES]);
-  const u = user as any;
+  const u = user as Record<string, unknown>;
+  const canAccess = userCanAccessEntity(u, brandId);
   logger.info('[Analytics] getAnalyticsData called', {
     brandId,
     userRole: u.role,
@@ -222,17 +223,17 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
     userCurrentOrgId: u.currentOrgId,
     userBrandId: u.brandId,
     userLocationId: u.locationId,
-    canAccess: userCanAccessEntity(u as Record<string, unknown>, brandId),
+    canAccess,
   });
 
-  if (!userCanAccessEntity(u as Record<string, unknown>, brandId)) {
+  if (!canAccess) {
     throw new Error('Forbidden: You do not have permission to access this data.');
   }
 
   const { firestore } = await createServerClient();
 
   // Fetch orders (brandId first, orgId fallback)
-  const orders = await fetchOrdersWithFallback(firestore, brandId, u as Record<string, unknown>);
+  const orders = await fetchOrdersWithFallback(firestore, brandId, u);
   logger.info('[Analytics] Orders fetched', { brandId, count: orders.length });
 
   // --- COHORT ANALYSIS LOGIC (Task 401) ---

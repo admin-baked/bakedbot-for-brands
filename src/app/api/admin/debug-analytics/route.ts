@@ -10,29 +10,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
+import { ANALYTICS_ORDER_STATUSES } from '@/app/dashboard/orders/order-utils';
 
 const CRON_SECRET = process.env.CRON_SECRET;
-const ANALYTICS_STATUSES = ['pending', 'submitted', 'confirmed', 'preparing', 'ready', 'completed'];
 
 async function countQuery(
     firestore: FirebaseFirestore.Firestore,
     field: string,
     value: string,
 ): Promise<{ raw: number; withStatus: number | string }> {
-    const raw = await firestore.collection('orders').where(field, '==', value).get()
-        .then((s) => s.size)
-        .catch(() => 0);
-
-    const withStatus = await firestore
-        .collection('orders')
-        .where(field, '==', value)
-        .where('status', 'in', ANALYTICS_STATUSES)
-        .get()
-        .then((s) => s.size)
-        .catch((err: Error) =>
-            err.message.includes('index') ? 'needs_composite_index' : `error: ${err.message.slice(0, 60)}`
-        );
-
+    const [raw, withStatus] = await Promise.all([
+        firestore.collection('orders').where(field, '==', value).get()
+            .then((s) => s.size)
+            .catch(() => 0),
+        firestore.collection('orders')
+            .where(field, '==', value)
+            .where('status', 'in', [...ANALYTICS_ORDER_STATUSES])
+            .get()
+            .then((s) => s.size)
+            .catch((err: Error) =>
+                err.message.includes('index') ? 'needs_composite_index' : `error: ${err.message.slice(0, 60)}`
+            ),
+    ]);
     return { raw, withStatus };
 }
 

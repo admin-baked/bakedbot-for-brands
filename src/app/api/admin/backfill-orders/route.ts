@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/firebase/server-client';
 import { ALLeavesClient, type ALLeavesConfig } from '@/lib/pos/adapters/alleaves';
 import { logger } from '@/lib/logger';
+import { mapAlleavesStatus } from '@/app/dashboard/orders/order-utils';
 
 const CRON_SECRET = process.env.CRON_SECRET;
 const BATCH_SIZE = 400; // Firestore max is 500
@@ -29,15 +30,6 @@ async function persistOrdersToFirestore(
     let batchCount = 0;
     let total = 0;
     let skipped = 0;
-
-    const mapStatus = (s: string): string => {
-        const map: Record<string, string> = {
-            pending: 'pending', submitted: 'submitted', confirmed: 'confirmed',
-            preparing: 'preparing', ready: 'ready', completed: 'completed',
-            cancelled: 'cancelled', processing: 'preparing', delivered: 'completed',
-        };
-        return map[s?.toLowerCase()] || 'pending';
-    };
 
     for (const ao of rawOrders) {
         const orderId = ao.id?.toString() || ao.id_order?.toString();
@@ -65,7 +57,7 @@ async function persistOrdersToFirestore(
             brandId: orgId,
             retailerId: locationId,
             userId: ao.customer?.id?.toString() || ao.id_customer?.toString() || 'alleaves_customer',
-            status: mapStatus(ao.status),
+            status: mapAlleavesStatus(ao.status),
             customer: { name: customerName, email: customerEmail, phone: customerPhone },
             items: (ao.items || []).map((item: any) => ({
                 productId: item.id_item?.toString() || item.product_id?.toString() || 'unknown',
