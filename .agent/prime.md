@@ -19,8 +19,8 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — CRM SSR error fixed; duplicate Firestore scans eliminated; all CEO dashboard tabs ssr:false.
-**Recent work (2026-03-23):** CRM SSR + perf fix (`1599a82a7`), Linus DM fix + memory (`0b6e9e29f`), pre-push quality gate (`7f88ac07d`).
+**Current Status:** 🟢 Passing — Thrive loyalty tablet kiosk built; 24h meeting reminder wired.
+**Recent work (2026-03-24):** Loyalty tablet check-in flow + Smokey mood recs (`af13bdce1`), CRM SSR + perf fix (`1599a82a7`).
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
