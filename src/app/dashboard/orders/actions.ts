@@ -17,6 +17,7 @@ import { callClaude } from '@/ai/claude';
 
 import { logger } from '@/lib/logger';
 import { getDispensaryRetailerId, shouldRetryWithOrgFallback } from './order-context';
+import { mapAlleavesStatus } from './order-utils';
 const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   pending: ['submitted', 'cancelled'],
   submitted: ['confirmed', 'cancelled'],
@@ -270,25 +271,6 @@ export async function getOrdersFromAlleaves(
     }
 }
 
-/**
- * Map Alleaves order status to BakedBot OrderStatus
- */
-export function mapAlleavesStatus(alleavesStatus: string): OrderStatus {
-    const statusMap: Record<string, OrderStatus> = {
-        'pending': 'pending',
-        'submitted': 'submitted',
-        'confirmed': 'confirmed',
-        'preparing': 'preparing',
-        'ready': 'ready',
-        'completed': 'completed',
-        'cancelled': 'cancelled',
-        'processing': 'preparing',
-        'delivered': 'completed',
-        'voided': 'cancelled',
-    };
-
-    return statusMap[alleavesStatus?.toLowerCase()] || 'pending';
-}
 
 /**
  * Fetch orders for a brand or dispensary

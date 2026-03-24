@@ -1,4 +1,5 @@
-import { getOrders, updateOrderStatus, mapAlleavesStatus } from '../actions';
+import { getOrders, updateOrderStatus } from '../actions';
+import { mapAlleavesStatus } from '../order-utils';
 import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
 

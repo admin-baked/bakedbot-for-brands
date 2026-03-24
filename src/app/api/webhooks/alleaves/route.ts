@@ -17,7 +17,7 @@ import { Timestamp } from 'firebase-admin/firestore';
 import { posCache, cacheKeys } from '@/lib/cache/pos-cache';
 import { logger } from '@/lib/logger';
 import { revalidatePath } from 'next/cache';
-import { mapAlleavesStatus } from '@/app/dashboard/orders/actions';
+import { mapAlleavesStatus } from '@/app/dashboard/orders/order-utils';
 import { dispatchPlaybookEvent } from '@/server/services/playbook-event-dispatcher';
 import { syncCustomerSignupProactiveGap } from '@/server/services/customer-signup-proactive';
 import * as crypto from 'crypto';
