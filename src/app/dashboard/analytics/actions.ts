@@ -212,14 +212,26 @@ export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> 
   noStore();
 
   const user = await requireUser([...ANALYTICS_ALLOWED_ROLES]);
-  if (!userCanAccessEntity(user as unknown as Record<string, unknown>, brandId)) {
+  const u = user as any;
+  logger.info('[Analytics] getAnalyticsData called', {
+    brandId,
+    userRole: u.role,
+    userOrgId: u.orgId,
+    userCurrentOrgId: u.currentOrgId,
+    userBrandId: u.brandId,
+    userLocationId: u.locationId,
+    canAccess: userCanAccessEntity(u as Record<string, unknown>, brandId),
+  });
+
+  if (!userCanAccessEntity(u as Record<string, unknown>, brandId)) {
     throw new Error('Forbidden: You do not have permission to access this data.');
   }
 
   const { firestore } = await createServerClient();
 
   // Fetch orders (brandId first, orgId fallback)
-  const orders = await fetchOrdersWithFallback(firestore, brandId, user as unknown as Record<string, unknown>);
+  const orders = await fetchOrdersWithFallback(firestore, brandId, u as Record<string, unknown>);
+  logger.info('[Analytics] Orders fetched', { brandId, count: orders.length });
 
   // --- COHORT ANALYSIS LOGIC (Task 401) ---
   const customerFirstOrderDate = new Map<string, string>(); // email -> YYYY-MM
