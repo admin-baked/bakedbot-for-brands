@@ -1653,6 +1653,116 @@ const LINUS_TOOLS: ClaudeTool[] = [
             },
             required: ['title', 'area', 'priority', 'steps', 'expected', 'actual']
         }
+    },
+    // ========================================================================
+    // PHASE 1: PRODUCT MANAGER & DATABASE SCHEMA
+    // ========================================================================
+    {
+        name: 'query_database_schema',
+        description: 'Query the Firestore database to discover root collections, or sample a specific collection to infer its document schema/structure.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                action: {
+                    type: 'string',
+                    enum: ['list_collections', 'sample_collection'],
+                    description: 'Whether to list all collections or sample a specific collection.'
+                },
+                collectionName: {
+                    type: 'string',
+                    description: 'The name of the collection to sample. Required if action is sample_collection.'
+                },
+                sampleSize: {
+                    type: 'number',
+                    description: 'Number of documents to sample (default 1, max 5).'
+                }
+            },
+            required: ['action']
+        }
+    },
+    {
+        name: 'ops_linear_create_issue',
+        description: 'Create a new issue in Linear for engineering/product tracking.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                title: { type: 'string', description: 'Very short summary of the issue' },
+                description: { type: 'string', description: 'Detailed markdown description of the issue' },
+                priority: { type: 'number', description: 'Priority level (0 = No Priority, 1 = Urgent, 2 = High, 3 = Medium, 4 = Low)' }
+            },
+            required: ['title', 'description']
+        }
+    },
+    {
+        name: 'ops_linear_get_issues',
+        description: 'List recent issues from Linear.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                filter: { type: 'string', description: 'Optional status filter' }
+            },
+            required: []
+        }
+    },
+    // ========================================================================
+    // PHASE 2: INCIDENT COMMANDER
+    // ========================================================================
+    {
+        name: 'fetch_production_logs',
+        description: 'Fetch recent application or error logs directly from Google Cloud Logging for production troubleshooting.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                query: { type: 'string', description: 'Optional GCP advanced logs query string. (e.g. "severity=ERROR")' },
+                limit: { type: 'number', description: 'Max number of logs to return. Default 20, Max 100.' }
+            },
+            required: []
+        }
+    },
+    {
+        name: 'create_incident_room',
+        description: 'Create a dedicated Slack channel for a production incident, invite key personnel, and post an initial context brief.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                channelName: { type: 'string', description: 'Name of the incident channel (e.g., inc-auth-failure, must be lowercase, no spaces). Max 80 chars.' },
+                topic: { type: 'string', description: 'Short topic description for the channel.' },
+                initialBriefing: { type: 'string', description: 'The initial message to post in the room stating what is broken and the current status.' }
+            },
+            required: ['channelName', 'topic', 'initialBriefing']
+        }
+    },
+    // ========================================================================
+    // PHASE 3: LEAD MAINTAINER
+    // ========================================================================
+    {
+        name: 'github_create_pr',
+        description: 'Commit code changes to a new branch and automatically open a Pull Request.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                branchName: { type: 'string', description: 'Name of the new branch to create (e.g. feature/auth-fix)' },
+                files: { type: 'array', items: { type: 'string' }, description: 'Array of relative file paths from project root to commit' },
+                commitMessage: { type: 'string', description: 'The git commit message' },
+                prTitle: { type: 'string', description: 'The title of the Pull Request' },
+                prBody: { type: 'string', description: 'Markdown description of the Pull Request proposed changes' }
+            },
+            required: ['branchName', 'files', 'commitMessage', 'prTitle', 'prBody']
+        }
+    },
+    {
+        name: 'github_review_pr',
+        description: 'Fetch the diff of an open Pull Request or submit a formal review (Approve, Request Changes, Comment).',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                action: { type: 'string', enum: ['get_diff', 'submit_review'], description: 'Whether to fetch the diff or submit a review.' },
+                prNumber: { type: 'number', description: 'The GitHub Pull Request number' },
+                reviewBody: { type: 'string', description: 'Markdown review body. Required if submit_review.' },
+                reviewEvent: { type: 'string', enum: ['APPROVE', 'REQUEST_CHANGES', 'COMMENT'], description: 'Type of review. Required if submit_review.' }
+            },
+            required: ['action', 'prNumber']
+        }
     }
 ];
 
@@ -1676,6 +1786,13 @@ const LINUS_SLACK_TOOL_NAMES = new Set([
     'run_specific_test',
     'list_directory',
     'run_browser_test',
+    'query_database_schema',
+    'ops_linear_create_issue',
+    'ops_linear_get_issues',
+    'fetch_production_logs',
+    'create_incident_room',
+    'github_create_pr',
+    'github_review_pr',
 ]);
 
 function getLinusTools(mode: LinusToolMode = 'full'): ClaudeTool[] {
@@ -1700,8 +1817,40 @@ const PROJECT_ROOT = process.cwd();
 
 async function linusToolExecutor(toolName: string, input: Record<string, unknown>): Promise<unknown> {
     switch (toolName) {
+        case 'query_database_schema': {
+            const { queryDatabaseSchemaToolDef } = await import('../tools/database-tools');
+            return await queryDatabaseSchemaToolDef.execute(input);
+        }
+        case 'ops_linear_create_issue': {
+            const { linearService } = await import('../services/ops/linear');
+            return await linearService.createIssue(
+                input.title as string,
+                input.description as string,
+                input.priority as number
+            );
+        }
+        case 'ops_linear_get_issues': {
+            const { linearService } = await import('../services/ops/linear');
+            return await linearService.getIssues(input.filter as string | undefined);
+        }
+        case 'fetch_production_logs': {
+            const { fetchProductionLogsToolDef } = await import('../tools/incident-tools');
+            return await fetchProductionLogsToolDef.execute(input);
+        }
+        case 'create_incident_room': {
+            const { createIncidentRoomToolDef } = await import('../tools/incident-tools');
+            return await createIncidentRoomToolDef.execute(input);
+        }
         case 'github_push_api': {
             return await executeGithubPush(input as GithubPushParams);
+        }
+        case 'github_create_pr': {
+            const { executeGithubCreatePr } = await import('../tools/github-tools');
+            return await executeGithubCreatePr(input as any);
+        }
+        case 'github_review_pr': {
+            const { executeGithubReviewPr } = await import('../tools/github-tools');
+            return await executeGithubReviewPr(input as any);
         }
         case 'run_health_check': {
             const scope = input.scope as string || 'full';
