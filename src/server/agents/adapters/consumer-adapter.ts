@@ -12,7 +12,7 @@ import { getSafeProductImageUrl, normalizeCategoryName } from '@/lib/utils/produ
  *
  * CannMenus is NOT used for Thrive/Ecstatic — they use Alleaves POS data always.
  */
-async function fetchMenuProducts(brandId: string): Promise<any[]> {
+export async function fetchMenuProducts(brandId: string): Promise<any[]> {
     if (!brandId || brandId === '10982') return []; // default placeholder — no real org
 
     // CannMenus embed: numeric retailer ID

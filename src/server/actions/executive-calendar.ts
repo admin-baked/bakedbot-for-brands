@@ -76,6 +76,9 @@ function firestoreToBooking(id: string, data: Record<string, unknown>): MeetingB
         hostNotificationEmailSentAt: data.hostNotificationEmailSentAt
             ? (data.hostNotificationEmailSentAt as Timestamp).toDate()
             : null,
+        twentyFourHourReminderSentAt: data.twentyFourHourReminderSentAt
+            ? (data.twentyFourHourReminderSentAt as Timestamp).toDate()
+            : null,
         oneHourReminderSentAt: data.oneHourReminderSentAt
             ? (data.oneHourReminderSentAt as Timestamp).toDate()
             : null,
@@ -262,6 +265,7 @@ export async function createBooking(
         actionItems: [],
         confirmationEmailSentAt: null,
         hostNotificationEmailSentAt: null,
+        twentyFourHourReminderSentAt: null,
         oneHourReminderSentAt: null,
         startNotificationSentAt: null,
         createdAt: now,
@@ -591,6 +595,39 @@ export async function markOneHourReminderSent(bookingId: string): Promise<void> 
     const firestore = getAdminFirestore();
     await firestore.collection('meeting_bookings').doc(bookingId).update({
         oneHourReminderSentAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+    });
+}
+
+/**
+ * Finds meetings starting in 23-25 hours that haven't had a 24-hour reminder.
+ */
+export async function getMeetingsNeeding24HourReminder(): Promise<MeetingBooking[]> {
+    const firestore = getAdminFirestore();
+    const now = new Date();
+    const windowStart = new Date(now.getTime() + 23 * 60 * 60 * 1000);
+    const windowEnd = new Date(now.getTime() + 25 * 60 * 60 * 1000);
+
+    const snap = await firestore
+        .collection('meeting_bookings')
+        .where('status', '==', 'confirmed')
+        .where('twentyFourHourReminderSentAt', '==', null)
+        .where('startAt', '>=', Timestamp.fromDate(windowStart))
+        .where('startAt', '<=', Timestamp.fromDate(windowEnd))
+        .get();
+
+    return snap.docs.map(d =>
+        firestoreToBooking(d.id, d.data() as Record<string, unknown>),
+    );
+}
+
+/**
+ * Marks 24-hour reminder as sent.
+ */
+export async function mark24HourReminderSent(bookingId: string): Promise<void> {
+    const firestore = getAdminFirestore();
+    await firestore.collection('meeting_bookings').doc(bookingId).update({
+        twentyFourHourReminderSentAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
     });
 }

@@ -8,14 +8,17 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { 
-    getMeetingsNeedingOneHourReminder, 
+import {
+    getMeetingsNeeding24HourReminder,
+    mark24HourReminderSent,
+    getMeetingsNeedingOneHourReminder,
     markOneHourReminderSent,
     getMeetingsNeedingStartNotification,
     markStartNotificationSent,
     getExecutiveProfile
 } from '@/server/actions/executive-calendar';
-import { 
+import {
+    send24HourReminderEmail,
     sendOneHourReminderEmail,
     sendMeetingStartedEmail
 } from '@/server/services/executive-calendar/booking-emails';
@@ -24,10 +27,28 @@ import { logger } from '@/lib/logger';
 export const maxDuration = 120;
 
 async function handleNotifications() {
+    let reminder24Count = 0;
     let reminderCount = 0;
     let startCount = 0;
 
-    // 1. Handle 1-hour reminders
+    // 1. Handle 24-hour reminders
+    const reminder24Meetings = await getMeetingsNeeding24HourReminder();
+    for (const booking of reminder24Meetings) {
+        try {
+            const profile = await getExecutiveProfile(booking.profileSlug);
+            if (!profile) continue;
+
+            await send24HourReminderEmail(booking, profile);
+            await mark24HourReminderSent(booking.id);
+            reminder24Count++;
+
+            logger.info(`[MeetingNotifications] 24-hour reminder sent: ${booking.id}`);
+        } catch (err) {
+            logger.error(`[MeetingNotifications] 24h reminder failed for ${booking.id}: ${String(err)}`);
+        }
+    }
+
+    // 2. Handle 1-hour reminders
     const reminderMeetings = await getMeetingsNeedingOneHourReminder();
     for (const booking of reminderMeetings) {
         try {
@@ -61,7 +82,7 @@ async function handleNotifications() {
         }
     }
 
-    return { reminders: reminderCount, startingNow: startCount };
+    return { reminders24h: reminder24Count, reminders1h: reminderCount, startingNow: startCount };
 }
 
 export async function POST(request: NextRequest) {

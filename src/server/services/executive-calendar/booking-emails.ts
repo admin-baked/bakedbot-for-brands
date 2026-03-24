@@ -66,7 +66,7 @@ export async function sendConfirmationEmail(
     const formattedTime = formatDatetime(booking.startAt, profile.availability.timezone);
     const senderUserId = await resolveExecutiveSenderUserId(profile);
 
-    // Email to the external guest
+    // Email to the external guest — always use transactional path (no Gmail dependency)
     const guestResult = await sendGenericEmail({
         to: booking.externalEmail,
         name: booking.externalName,
@@ -96,10 +96,10 @@ export async function sendConfirmationEmail(
                     </div>
 
                     <p style="color: #666; font-size: 14px;">
-                        Use the button above at meeting time. No downloads required — runs in your browser.
+                        Bookmark this email — you'll need the button above to join at meeting time. No downloads required.
                     </p>
                     <p style="color: #666; font-size: 14px;">
-                        Need to cancel? Reply to this email or contact us at hello@bakedbot.ai
+                        Need to cancel or reschedule? Reply to this email or reach us at hello@bakedbot.ai
                     </p>
                 </div>
                 <div style="background: #f3f4f6; padding: 16px; text-align: center; font-size: 12px; color: #9ca3af;">
@@ -108,7 +108,7 @@ export async function sendConfirmationEmail(
             </div>
         `,
         communicationType: 'transactional',
-        userId: senderUserId ?? undefined,
+        // No userId — guest emails always go via Mailjet/SendGrid, not Jack's personal Gmail
     });
 
     if (!guestResult.success) {
@@ -212,6 +212,63 @@ export async function sendFollowUpEmail(
 
     if (!result.success) {
         logger.error(`[BookingEmails] Failed to send follow-up: ${result.error}`);
+    }
+}
+
+/**
+ * Sends a 24-hour "see you tomorrow" reminder to the guest.
+ */
+export async function send24HourReminderEmail(
+    booking: MeetingBooking,
+    profile: ExecutiveProfile,
+): Promise<void> {
+    const formattedTime = formatDatetime(booking.startAt, profile.availability.timezone);
+    const firstName = booking.externalName.split(' ')[0];
+
+    const result = await sendGenericEmail({
+        to: booking.externalEmail,
+        name: booking.externalName,
+        subject: `See you tomorrow, ${firstName} — meeting with ${profile.displayName}`,
+        htmlBody: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #111;">
+                <div style="background: #000; padding: 24px; text-align: center;">
+                    <h1 style="color: #fff; font-size: 20px; margin: 0;">See You Tomorrow 👋</h1>
+                </div>
+                <div style="padding: 32px 24px;">
+                    <p>Hi ${firstName},</p>
+                    <p>Just a friendly heads-up — your meeting with <strong>${profile.displayName}</strong> is <strong>tomorrow</strong>. We're looking forward to it.</p>
+
+                    <div style="background: #f9f9f9; border-left: 4px solid #16a34a; padding: 16px 20px; margin: 24px 0; border-radius: 4px;">
+                        <p style="margin: 0 0 8px;"><strong>📅 When:</strong> ${formattedTime}</p>
+                        <p style="margin: 0 0 8px;"><strong>⏱ Duration:</strong> ${booking.durationMinutes} minutes</p>
+                        <p style="margin: 0 0 8px;"><strong>📋 Topic:</strong> ${booking.purpose}</p>
+                    </div>
+
+                    <div style="text-align: center; margin: 32px 0;">
+                        <a href="${booking.videoRoomUrl}"
+                           style="background: #16a34a; color: white; padding: 14px 32px; text-decoration: none;
+                                  border-radius: 8px; font-size: 16px; font-weight: bold; display: inline-block;">
+                            🎥 Join Meeting
+                        </a>
+                    </div>
+
+                    <p style="color: #666; font-size: 14px;">
+                        The link above will be live at meeting time. No downloads required — works directly in your browser.
+                    </p>
+                    <p style="color: #666; font-size: 14px;">
+                        Can't make it? Reply to this email and we'll find a better time.
+                    </p>
+                </div>
+                <div style="background: #f3f4f6; padding: 16px; text-align: center; font-size: 12px; color: #9ca3af;">
+                    Powered by BakedBot AI · bakedbot.ai
+                </div>
+            </div>
+        `,
+        communicationType: 'transactional',
+    });
+
+    if (!result.success) {
+        logger.error(`[BookingEmails] Failed to send 24-hour reminder: ${result.error}`);
     }
 }
 

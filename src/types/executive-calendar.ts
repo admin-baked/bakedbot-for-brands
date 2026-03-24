@@ -80,7 +80,8 @@ export interface MeetingBooking {
     actionItems: string[];
     confirmationEmailSentAt: Date | null;
     hostNotificationEmailSentAt?: Date | null;
-    oneHourReminderSentAt: Date | null;
+    twentyFourHourReminderSentAt?: Date | null;
+    oneHourReminderSentAt?: Date | null;
     startNotificationSentAt: Date | null;
     createdAt: Date;
     updatedAt: Date;
