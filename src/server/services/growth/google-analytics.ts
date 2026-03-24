@@ -73,7 +73,7 @@ export class GoogleAnalyticsService {
         return {
             analytics: google.analyticsdata({ version: 'v1beta', auth: oauth2Client }),
             authMode: 'oauth',
-            propertyId: this.propertyId,
+            propertyId: propertyId,
         };
     }
 

@@ -94,7 +94,7 @@ export class SearchConsoleService {
         return {
             webmasters: google.webmasters({ version: 'v3', auth: oauth2Client }),
             authMode: 'oauth',
-            siteUrl: this.siteUrl,
+            siteUrl: siteUrl,
         };
     }
 

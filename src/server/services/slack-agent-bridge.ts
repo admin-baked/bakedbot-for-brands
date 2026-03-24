@@ -495,7 +495,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                         images: linusImages,
                     }),
                     new Promise<never>((_, reject) =>
-                        setTimeout(() => reject(new Error(`Linus timeout after ${agentTimeoutSec} seconds`)), agentTimeoutMs)
+                        setTimeout(() => reject(new Error(`Linus timeout after ${Math.floor(agentTimeoutMs / 1000)} seconds`)), agentTimeoutMs)
                     ),
                 ]);
                 result = { content: linusResult.content, toolCalls: linusResult.toolExecutions };
@@ -507,7 +507,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                     () => Promise.race([
                         runAgentCore(fullPrompt, personaId, extraOptions, SLACK_SYSTEM_USER),
                         new Promise((_, reject) =>
-                            setTimeout(() => reject(new Error(`Agent response timeout after ${agentTimeoutSec} seconds`)), agentTimeoutMs)
+                            setTimeout(() => reject(new Error(`Agent response timeout after ${Math.floor(agentTimeoutMs / 1000)} seconds`)), agentTimeoutMs)
                         ),
                     ])
                 ) as any;
