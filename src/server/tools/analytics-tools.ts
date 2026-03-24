@@ -784,6 +784,114 @@ async function vendorScorecard(
 }
 
 // =============================================================================
+// TOOL 6: TOP SELLERS COMPARISON
+// =============================================================================
+
+interface TopSellerItem {
+  productId: string;
+  name: string;
+  category: string;
+  brand: string;
+  currentUnits: number;
+  currentRevenue: number;
+  previousUnits: number;
+  previousRevenue: number;
+  revenueChangePct: number;
+}
+
+interface TopSellersComparisonResult {
+  currentPeriod: { startDate: string; endDate: string };
+  previousPeriod: { startDate: string; endDate: string };
+  topSellers: TopSellerItem[];
+}
+
+async function topSellersComparison(
+  orgId: string,
+  input: {
+    startDate: string;
+    endDate: string;
+    comparisonStartDate?: string;
+    comparisonEndDate?: string;
+    limit?: number;
+    category?: string;
+  }
+): Promise<TopSellersComparisonResult> {
+  logger.info('[analytics-tools] top_sellers_comparison', { orgId, ...input });
+
+  const currentStart = new Date(input.startDate);
+  const currentEnd = new Date(input.endDate);
+  const currentDays = Math.max(daysBetween(currentStart, currentEnd), 1);
+
+  const prevStart = input.comparisonStartDate
+    ? new Date(input.comparisonStartDate)
+    : new Date(currentStart.getTime() - currentDays * 86_400_000);
+  const prevEnd = input.comparisonEndDate
+    ? new Date(input.comparisonEndDate)
+    : new Date(currentStart.getTime() - 86_400_000);
+
+  const limit = input.limit ?? 10;
+
+  const [products, currentOrders, prevOrders] = await Promise.all([
+    fetchProducts(orgId),
+    fetchOrders(orgId, currentStart, currentEnd),
+    fetchOrders(orgId, prevStart, prevEnd),
+  ]);
+
+  const filteredProducts = input.category
+    ? products.filter(p => p.category?.toLowerCase() === input.category!.toLowerCase())
+    : products;
+
+  const currentMetrics = new Map<string, { units: number; revenue: number }>();
+  for (const order of currentOrders) {
+    for (const item of order.items || []) {
+      const prev = currentMetrics.get(item.productId) || { units: 0, revenue: 0 };
+      currentMetrics.set(item.productId, {
+        units: prev.units + item.quantity,
+        revenue: prev.revenue + (item.price * item.quantity),
+      });
+    }
+  }
+
+  const prevMetrics = new Map<string, { units: number; revenue: number }>();
+  for (const order of prevOrders) {
+    for (const item of order.items || []) {
+      const prev = prevMetrics.get(item.productId) || { units: 0, revenue: 0 };
+      prevMetrics.set(item.productId, {
+        units: prev.units + item.quantity,
+        revenue: prev.revenue + (item.price * item.quantity),
+      });
+    }
+  }
+
+  const items: TopSellerItem[] = filteredProducts.map(p => {
+    const curr = currentMetrics.get(p.id) || { units: 0, revenue: 0 };
+    const prev = prevMetrics.get(p.id) || { units: 0, revenue: 0 };
+    const revChange = pct(curr.revenue - prev.revenue, prev.revenue || 1);
+
+    return {
+      productId: p.id,
+      name: p.name,
+      category: p.category || 'Unknown',
+      brand: p.brandName || 'Unknown',
+      currentUnits: curr.units,
+      currentRevenue: Math.round(curr.revenue),
+      previousUnits: prev.units,
+      previousRevenue: Math.round(prev.revenue),
+      revenueChangePct: Math.round(revChange * 1000) / 1000,
+    };
+  });
+
+  // Sort descending by current revenue
+  items.sort((a, b) => b.currentRevenue - a.currentRevenue);
+
+  return {
+    currentPeriod: { startDate: currentStart.toISOString().split('T')[0], endDate: currentEnd.toISOString().split('T')[0] },
+    previousPeriod: { startDate: prevStart.toISOString().split('T')[0], endDate: prevEnd.toISOString().split('T')[0] },
+    topSellers: items.slice(0, limit),
+  };
+}
+
+// =============================================================================
 // TOOL DEFINITIONS (for agent toolsDef arrays)
 // =============================================================================
 
@@ -801,6 +909,20 @@ Use before recommending new promotions and when reviewing past campaigns.`,
       promotionName: z.string().optional().describe('Label for this promotion'),
       comparisonStartDate: z.string().optional().describe('Comparison period start (defaults to same-length prior period)'),
       comparisonEndDate: z.string().optional().describe('Comparison period end'),
+    }),
+  },
+  {
+    name: 'top_sellers_comparison',
+    description: `Compare top-selling products for a specific time period against a previous period.
+Returns ranked products by revenue including week-over-week or period-over-period percentage changes in unit volume and revenue.
+Use when asked "What were the top sellers this week vs last week" or similar product-level performance queries.`,
+    schema: z.object({
+      startDate: z.string().describe("Current period start date 'YYYY-MM-DD'"),
+      endDate: z.string().describe("Current period end date 'YYYY-MM-DD'"),
+      comparisonStartDate: z.string().optional().describe("Comparison period start (defaults to same-length prior period)"),
+      comparisonEndDate: z.string().optional().describe("Comparison period end"),
+      limit: z.number().optional().describe('Number of top sellers to return (default: 10)'),
+      category: z.string().optional().describe('Filter by product category (e.g. flower, edibles, vapes)'),
     }),
   },
   {
@@ -864,6 +986,17 @@ export function makeAnalyticsToolsImpl(orgId: string) {
       return promotionScorecard(orgId, input);
     },
 
+    async top_sellers_comparison(input: {
+      startDate: string;
+      endDate: string;
+      comparisonStartDate?: string;
+      comparisonEndDate?: string;
+      limit?: number;
+      category?: string;
+    }) {
+      return topSellersComparison(orgId, input);
+    },
+
     async sku_profitability_view(input: {
       category?: string;
       minContribMarginPct?: number;
@@ -902,6 +1035,9 @@ export async function executeDispensaryAnalyticsTool(
   switch (toolName) {
     case 'promotion_scorecard':
       return impl.promotion_scorecard(args as Parameters<typeof impl.promotion_scorecard>[0]);
+
+    case 'top_sellers_comparison':
+      return impl.top_sellers_comparison(args as Parameters<typeof impl.top_sellers_comparison>[0]);
 
     case 'sku_profitability_view':
       return impl.sku_profitability_view(args as Parameters<typeof impl.sku_profitability_view>[0]);

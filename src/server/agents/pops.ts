@@ -216,7 +216,7 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
                 output: {
                     schema: z.object({
                         thought: z.string(),
-                        toolName: z.enum(['analyzeData', 'detectAnomalies', 'lettaSaveFact', 'lettaUpdateCoreMemory', 'lettaMessageAgent', 'getSearchConsoleStats', 'getGA4Traffic', 'findSEOOpportunities', 'promotion_scorecard', 'sku_profitability_view', 'inventory_health_score', 'vendor_scorecard', 'customer_visit_cohort', 'null']),
+                        toolName: z.enum(['analyzeData', 'detectAnomalies', 'lettaSaveFact', 'lettaUpdateCoreMemory', 'lettaMessageAgent', 'getSearchConsoleStats', 'getGA4Traffic', 'findSEOOpportunities', 'promotion_scorecard', 'top_sellers_comparison', 'sku_profitability_view', 'inventory_health_score', 'vendor_scorecard', 'customer_visit_cohort', 'null']),
                         args: z.record(z.any())
                     })
                 }
@@ -261,6 +261,7 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
                 output = await allTools.findSEOOpportunities(decision.args);
             } else if (
                 decision.toolName === 'promotion_scorecard' ||
+                decision.toolName === 'top_sellers_comparison' ||
                 decision.toolName === 'sku_profitability_view' ||
                 decision.toolName === 'inventory_health_score' ||
                 decision.toolName === 'vendor_scorecard' ||

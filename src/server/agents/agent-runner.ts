@@ -31,7 +31,6 @@ import { requestIntegration } from '@/server/tools/integration-tools';
 import { calendarAction, CalendarParams } from '@/server/tools/calendar';
 import { sheetsAction, SheetsParams } from '@/server/tools/sheets';
 import { leaflinkAction, LeafLinkParams } from '@/server/tools/leaflink';
-import { dutchieAction, DutchieParams } from '@/server/tools/dutchie';
 import { blackleafService } from '@/lib/notifications/blackleaf-service';
 import { PERSONAS, AgentPersona } from '@/app/dashboard/ceo/agents/personas';
 import { CannMenusService } from '@/server/services/cannmenus';
