@@ -163,13 +163,8 @@ export async function executeGithubCreatePr(params: z.infer<typeof githubCreateP
     try {
         const { branchName, files, commitMessage, prTitle, prBody } = params;
         
-<<<<<<< HEAD
-        let token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
-        if (!token) token = await getSecret('GITHUB_TOKEN') ?? undefined;
-=======
         let token: string | undefined | null = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
         if (!token) token = await getSecret('GITHUB_TOKEN');
->>>>>>> 7e610f1eb (fix(build): resolve all TypeScript compilation errors blocking deployment)
         if (!token) return 'Error: GITHUB_TOKEN is not configured.';
 
         const { Octokit } = await import('@octokit/rest');
@@ -246,13 +241,8 @@ export async function executeGithubReviewPr(params: z.infer<typeof githubReviewP
     try {
         const { action, prNumber, reviewBody, reviewEvent } = params;
         
-<<<<<<< HEAD
-        let token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
-        if (!token) token = await getSecret('GITHUB_TOKEN') ?? undefined;
-=======
         let token: string | undefined | null = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
         if (!token) token = await getSecret('GITHUB_TOKEN');
->>>>>>> 7e610f1eb (fix(build): resolve all TypeScript compilation errors blocking deployment)
         if (!token) return 'Error: GITHUB_TOKEN is not configured.';
 
         const { Octokit } = await import('@octokit/rest');
@@ -264,14 +254,8 @@ export async function executeGithubReviewPr(params: z.infer<typeof githubReviewP
         if (action === 'get_diff') {
             const { data: diff } = await octokit.pulls.get({
                 owner, repo, pull_number: prNumber, mediaType: { format: 'diff' }
-<<<<<<< HEAD
-            });
-            const diffStr = diff as unknown as string;
-            return (typeof diffStr === 'string' ? diffStr : JSON.stringify(diffStr)).slice(0, 15000); // Caps diff output to preserve context
-=======
             }) as { data: any };
             return typeof diff === 'string' ? (diff as string).slice(0, 15000) : JSON.stringify(diff).slice(0, 15000); // Caps diff output to preserve context
->>>>>>> 7e610f1eb (fix(build): resolve all TypeScript compilation errors blocking deployment)
         } 
         
         if (action === 'submit_review') {

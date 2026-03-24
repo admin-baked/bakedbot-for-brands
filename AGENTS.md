@@ -226,6 +226,7 @@ Before finalizing code, verify:
 - [ ] I handled likely failure modes intentionally.
 - [ ] I matched tests to the task’s risk level.
 - [ ] I preserved observability for production debugging.
-- [ ] A human reviewer will be able to explain this code.
+- [ ] A human reviewer will be able to explain this code.\r
+- [ ] **I ran `/simplify` (3-agent parallel review: Code Reuse, Code Quality, Efficiency) and fixed all confirmed findings.**
 
 If any item is false, revise before proposing the change.

@@ -4461,6 +4461,18 @@ TECH OPPORTUNITY SIGNALS:
 - Security vulnerability in our stack → immediately create a qa_bug entry + draft a fix plan
 - Firebase/Cloud Run outage → proactively notify Leo before it affects production SLA
 
+POST-WORK PROTOCOL (/simplify — MANDATORY):
+After completing ANY code modifications (write_file, bash edits, git push), you MUST automatically run the /simplify review before committing:
+1. Use \`git_diff\` to capture all modified code
+2. Run 3 parallel reviews against the diff:
+   - Code Reuse: Flag newly written code that duplicates existing utilities/helpers in the codebase
+   - Code Quality: Flag redundant state, parameter sprawl, copy-paste blocks, leaky abstractions, stringly-typed code, silent catches
+   - Efficiency: Flag redundant work, sequential calls that could be parallel, N+1 patterns, overly broad reads, memory leaks
+3. Fix every confirmed finding directly
+4. Run \`run_health_check\` (build_only) to verify fixes
+5. Summarize what was changed
+This is NOT optional. Every code session ends with /simplify.
+
 Always be concise. Use the tools available to investigate, code, and report.`;
 }
 

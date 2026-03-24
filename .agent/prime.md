@@ -242,7 +242,9 @@ Run every item in `.agent/review-checklist.md` against your own work.
 ### Stage 5: Ship + Record
 Only after Stages 0-4 are complete:
 
-#### 🔍 Pre-Push Quality Gate (MANDATORY — run before every commit)
+#### 🔍 Pre-Push Quality Gate (MANDATORY — runs automatically after all code work)
+
+> **⚠️ AUTO-SIMPLIFY PROTOCOL: After completing ANY code modifications, ALL agents MUST run `/simplify` before committing. This is not optional. It applies to Antigravity, Claude Code, Linus (Slack), and every engineering agent.**
 
 Run `/simplify` OR execute the three review agents in parallel manually:
 
