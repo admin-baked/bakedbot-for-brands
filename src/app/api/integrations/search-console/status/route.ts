@@ -11,7 +11,8 @@ import { searchConsoleService } from '@/server/services/growth/search-console';
 export async function GET() {
     try {
         const user = await requireUser();
-        const status = await searchConsoleService.getConnectionStatus(user.uid);
+        const orgId = (user as any).brandId || (user as any).locationId || (user as any).orgId || (user as any).currentOrgId || user.uid;
+        const status = await searchConsoleService.getConnectionStatus(user.uid, orgId);
         return NextResponse.json(status);
     } catch (error) {
         return NextResponse.json({

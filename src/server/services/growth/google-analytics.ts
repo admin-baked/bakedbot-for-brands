@@ -3,6 +3,7 @@ import { GoogleAuth } from 'google-auth-library';
 import { logger } from '@/lib/logger';
 import { getOAuth2ClientAsync } from '@/server/integrations/gmail/oauth';
 import { getGoogleAnalyticsToken } from '@/server/integrations/google-analytics/token-storage';
+import { createServerClient } from '@/firebase/server-client';
 
 export type GoogleIntegrationMode = 'oauth' | 'service_account' | 'disconnected';
 
@@ -35,11 +36,29 @@ interface AnalyticsResolution {
 type AnalyticsAuth = analyticsdata_v1beta.Options['auth'];
 
 export class GoogleAnalyticsService {
-    private readonly propertyId = process.env.GA4_PROPERTY_ID;
     private readonly scope = 'https://www.googleapis.com/auth/analytics.readonly';
 
-    private async resolveOauthAnalytics(userId: string): Promise<AnalyticsResolution | null> {
-        if (!this.propertyId) {
+    private async getTenantConfig(orgId?: string): Promise<{ propertyId: string | null }> {
+        if (orgId) {
+            try {
+                const { firestore } = await createServerClient();
+                const doc = await firestore.collection('tenants').doc(orgId).get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    if (data?.ga4PropertyId) {
+                        return { propertyId: data.ga4PropertyId };
+                    }
+                }
+            } catch (error) {
+                logger.warn('[GA4] Failed to fetch tenant config', { error: error instanceof Error ? error.message : String(error) });
+            }
+        }
+        return { propertyId: process.env.GA4_PROPERTY_ID || null };
+    }
+
+    private async resolveOauthAnalytics(userId: string, orgId?: string): Promise<AnalyticsResolution | null> {
+        const { propertyId } = await this.getTenantConfig(orgId);
+        if (!propertyId) {
             return null;
         }
 
@@ -58,8 +77,9 @@ export class GoogleAnalyticsService {
         };
     }
 
-    private async resolveServiceAccountAnalytics(): Promise<AnalyticsResolution | null> {
-        if (!this.propertyId) {
+    private async resolveServiceAccountAnalytics(orgId?: string): Promise<AnalyticsResolution | null> {
+        const { propertyId } = await this.getTenantConfig(orgId);
+        if (!propertyId) {
             return null;
         }
 
@@ -72,14 +92,14 @@ export class GoogleAnalyticsService {
         return {
             analytics: google.analyticsdata({ version: 'v1beta', auth: auth as AnalyticsAuth }),
             authMode: 'service_account',
-            propertyId: this.propertyId,
+            propertyId: propertyId,
         };
     }
 
-    private async resolveAnalytics(userId?: string): Promise<AnalyticsResolution | null> {
+    private async resolveAnalytics(userId?: string, orgId?: string): Promise<AnalyticsResolution | null> {
         if (userId) {
             try {
-                const oauthResolution = await this.resolveOauthAnalytics(userId);
+                const oauthResolution = await this.resolveOauthAnalytics(userId, orgId);
                 if (oauthResolution) {
                     return oauthResolution;
                 }
@@ -92,7 +112,7 @@ export class GoogleAnalyticsService {
         }
 
         try {
-            return await this.resolveServiceAccountAnalytics();
+            return await this.resolveServiceAccountAnalytics(orgId);
         } catch (error) {
             logger.warn('[GA4] Service account resolution failed', {
                 error: error instanceof Error ? error.message : String(error),
@@ -101,10 +121,10 @@ export class GoogleAnalyticsService {
         }
     }
 
-    async getConnectionStatus(userId?: string): Promise<GoogleAnalyticsConnectionStatus> {
+    async getConnectionStatus(userId?: string, orgId?: string): Promise<GoogleAnalyticsConnectionStatus> {
         if (userId) {
             try {
-                const oauthResolution = await this.resolveOauthAnalytics(userId);
+                const oauthResolution = await this.resolveOauthAnalytics(userId, orgId);
                 if (oauthResolution) {
                     return {
                         connected: true,
@@ -122,7 +142,7 @@ export class GoogleAnalyticsService {
         }
 
         try {
-            const serviceAccountResolution = await this.resolveServiceAccountAnalytics();
+            const serviceAccountResolution = await this.resolveServiceAccountAnalytics(orgId);
             if (serviceAccountResolution) {
                 return {
                     connected: true,
@@ -137,25 +157,27 @@ export class GoogleAnalyticsService {
             });
         }
 
+        const { propertyId } = await this.getTenantConfig(orgId);
         return {
             connected: false,
             mode: 'disconnected',
-            propertyId: this.propertyId ?? null,
-            propertyConfigured: Boolean(this.propertyId),
+            propertyId: propertyId ?? null,
+            propertyConfigured: Boolean(propertyId),
         };
     }
 
     async getTrafficReport(
         startDate: string = '7daysAgo',
         endDate: string = 'today',
-        options?: { userId?: string }
+        options?: { userId?: string, orgId?: string }
     ): Promise<GoogleAnalyticsTrafficReport> {
-        const resolution = await this.resolveAnalytics(options?.userId);
+        const resolution = await this.resolveAnalytics(options?.userId, options?.orgId);
         if (!resolution) {
+            const { propertyId } = await this.getTenantConfig(options?.orgId);
             return {
                 rows: [],
                 authMode: 'disconnected',
-                error: this.propertyId ? 'Google Analytics authentication is not configured' : 'GA4 property is not configured',
+                error: propertyId ? 'Google Analytics authentication is not configured' : 'GA4 property is not configured',
             };
         }
 

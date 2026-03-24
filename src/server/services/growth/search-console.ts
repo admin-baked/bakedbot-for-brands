@@ -10,6 +10,7 @@ import { logger } from '@/lib/logger';
 import { GoogleAuth } from 'google-auth-library';
 import { getOAuth2ClientAsync } from '@/server/integrations/gmail/oauth';
 import { getGoogleSearchConsoleToken } from '@/server/integrations/google-search-console/token-storage';
+import { createServerClient } from '@/firebase/server-client';
 import type { GoogleIntegrationMode } from './google-analytics';
 
 export interface SearchPerformanceData {
@@ -56,11 +57,29 @@ interface SearchConsoleResolution {
 type SearchConsoleAuth = webmasters_v3.Options['auth'];
 
 export class SearchConsoleService {
-    private readonly siteUrl = process.env.SEARCH_CONSOLE_SITE_URL;
     private readonly scope = 'https://www.googleapis.com/auth/webmasters.readonly';
 
-    private async resolveOauthWebmasters(userId: string): Promise<SearchConsoleResolution | null> {
-        if (!this.siteUrl) {
+    private async getTenantConfig(orgId?: string): Promise<{ siteUrl: string | null }> {
+        if (orgId) {
+            try {
+                const { firestore } = await createServerClient();
+                const doc = await firestore.collection('tenants').doc(orgId).get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    if (data?.searchConsoleSiteUrl) {
+                        return { siteUrl: data.searchConsoleSiteUrl };
+                    }
+                }
+            } catch (error) {
+                logger.warn('[GSC] Failed to fetch tenant config', { error: error instanceof Error ? error.message : String(error) });
+            }
+        }
+        return { siteUrl: process.env.SEARCH_CONSOLE_SITE_URL || null };
+    }
+
+    private async resolveOauthWebmasters(userId: string, orgId?: string): Promise<SearchConsoleResolution | null> {
+        const { siteUrl } = await this.getTenantConfig(orgId);
+        if (!siteUrl) {
             return null;
         }
 
@@ -79,8 +98,9 @@ export class SearchConsoleService {
         };
     }
 
-    private async resolveServiceAccountWebmasters(): Promise<SearchConsoleResolution | null> {
-        if (!this.siteUrl) {
+    private async resolveServiceAccountWebmasters(orgId?: string): Promise<SearchConsoleResolution | null> {
+        const { siteUrl } = await this.getTenantConfig(orgId);
+        if (!siteUrl) {
             return null;
         }
 
@@ -93,14 +113,14 @@ export class SearchConsoleService {
         return {
             webmasters: google.webmasters({ version: 'v3', auth: auth as SearchConsoleAuth }),
             authMode: 'service_account',
-            siteUrl: this.siteUrl,
+            siteUrl: siteUrl,
         };
     }
 
-    private async resolveWebmasters(userId?: string): Promise<SearchConsoleResolution | null> {
+    private async resolveWebmasters(userId?: string, orgId?: string): Promise<SearchConsoleResolution | null> {
         if (userId) {
             try {
-                const oauthResolution = await this.resolveOauthWebmasters(userId);
+                const oauthResolution = await this.resolveOauthWebmasters(userId, orgId);
                 if (oauthResolution) {
                     return oauthResolution;
                 }
@@ -113,7 +133,7 @@ export class SearchConsoleService {
         }
 
         try {
-            return await this.resolveServiceAccountWebmasters();
+            return await this.resolveServiceAccountWebmasters(orgId);
         } catch (error) {
             logger.warn('[GSC] Service-account resolution failed', {
                 error: error instanceof Error ? error.message : String(error),
@@ -122,10 +142,10 @@ export class SearchConsoleService {
         }
     }
 
-    async getConnectionStatus(userId?: string): Promise<SearchConsoleConnectionStatus> {
+    async getConnectionStatus(userId?: string, orgId?: string): Promise<SearchConsoleConnectionStatus> {
         if (userId) {
             try {
-                const oauthResolution = await this.resolveOauthWebmasters(userId);
+                const oauthResolution = await this.resolveOauthWebmasters(userId, orgId);
                 if (oauthResolution) {
                     return {
                         connected: true,
@@ -143,7 +163,7 @@ export class SearchConsoleService {
         }
 
         try {
-            const serviceAccountResolution = await this.resolveServiceAccountWebmasters();
+            const serviceAccountResolution = await this.resolveServiceAccountWebmasters(orgId);
             if (serviceAccountResolution) {
                 return {
                     connected: true,
@@ -158,11 +178,12 @@ export class SearchConsoleService {
             });
         }
 
+        const { siteUrl } = await this.getTenantConfig(orgId);
         return {
             connected: false,
             mode: 'disconnected',
-            siteUrl: this.siteUrl ?? null,
-            siteConfigured: Boolean(this.siteUrl),
+            siteUrl: siteUrl ?? null,
+            siteConfigured: Boolean(siteUrl),
         };
     }
 
@@ -194,9 +215,9 @@ export class SearchConsoleService {
         startDate: string = this.getDateDaysAgo(28),
         endDate: string = this.getDateDaysAgo(1),
         limit: number = 50,
-        options?: { userId?: string }
+        options?: { userId?: string, orgId?: string }
     ): Promise<TopQueriesReport> {
-        const resolution = await this.resolveWebmasters(options?.userId);
+        const resolution = await this.resolveWebmasters(options?.userId, options?.orgId);
         if (!resolution) {
             return this.buildEmptyTopQueriesReport(startDate, endDate);
         }
@@ -238,7 +259,7 @@ export class SearchConsoleService {
      */
     async findLowCompetitionOpportunities(
         limit: number = 20,
-        options?: { userId?: string }
+        options?: { userId?: string, orgId?: string }
     ): Promise<LowCompetitionOpportunity[]> {
         const report = await this.getTopQueries(this.getDateDaysAgo(28), this.getDateDaysAgo(1), 500, options);
 
@@ -279,9 +300,9 @@ export class SearchConsoleService {
         pagePaths: string[],
         startDate: string = this.getDateDaysAgo(7),
         endDate: string = this.getDateDaysAgo(1),
-        options?: { userId?: string }
+        options?: { userId?: string, orgId?: string }
     ): Promise<Record<string, SearchPerformanceData[]>> {
-        const resolution = await this.resolveWebmasters(options?.userId);
+        const resolution = await this.resolveWebmasters(options?.userId, options?.orgId);
         if (!resolution) {
             return {};
         }
@@ -333,7 +354,7 @@ export class SearchConsoleService {
      */
     async getSiteSummary(
         days: number = 7,
-        options?: { userId?: string }
+        options?: { userId?: string, orgId?: string }
     ): Promise<{
         clicks: number;
         impressions: number;
@@ -343,7 +364,7 @@ export class SearchConsoleService {
     }> {
         const startDate = this.getDateDaysAgo(days);
         const endDate = this.getDateDaysAgo(1);
-        const resolution = await this.resolveWebmasters(options?.userId);
+        const resolution = await this.resolveWebmasters(options?.userId, options?.orgId);
 
         if (!resolution) {
             return { clicks: 0, impressions: 0, ctr: 0, avgPosition: 0, dateRange: { start: startDate, end: endDate } };

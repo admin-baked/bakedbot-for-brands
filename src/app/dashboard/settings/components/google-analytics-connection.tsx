@@ -6,6 +6,7 @@ import { BarChart3, Check, AlertCircle, Link as LinkIcon } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 
 type GoogleIntegrationMode = 'oauth' | 'service_account' | 'disconnected';
 
@@ -31,6 +32,8 @@ export function GoogleAnalyticsConnection({
         propertyConfigured: false,
     });
     const [isLoading, setIsLoading] = useState(true);
+    const [inputValue, setInputValue] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
 
     const success = searchParams.get('success');
     const error = searchParams.get('error');
@@ -60,6 +63,25 @@ export function GoogleAnalyticsConnection({
     const handleConnect = () => {
         const encodedRedirect = encodeURIComponent(redirectPath);
         window.location.href = `/api/auth/google?service=google_analytics&redirect=${encodedRedirect}`;
+    };
+
+    const handleSavePropertyId = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!inputValue.trim()) return;
+        setIsSaving(true);
+        try {
+            const res = await fetch('/api/integrations/google-analytics/configure', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ propertyId: inputValue })
+            });
+            if (res.ok) {
+                setStatus(prev => ({ ...prev, propertyId: inputValue, propertyConfigured: true }));
+                setInputValue('');
+            }
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     useEffect(() => {
@@ -155,9 +177,37 @@ export function GoogleAnalyticsConnection({
                     </div>
                 )}
 
-                {!status.propertyConfigured && (
+                {!status.propertyConfigured ? (
                     <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-                        `GA4_PROPERTY_ID` is not configured yet. Even with OAuth connected, the dashboard needs a GA4 property to query.
+                        <p className="mb-2 font-medium">GA4 Property is not configured.</p>
+                        <form onSubmit={handleSavePropertyId} className="flex gap-2 items-center">
+                            <Input 
+                                value={inputValue} 
+                                onChange={(e) => setInputValue(e.target.value)} 
+                                placeholder="properties/..." 
+                                className="bg-white h-8 text-xs" 
+                                disabled={isSaving}
+                            />
+                            <Button type="submit" size="sm" className="h-8" disabled={isSaving}>
+                                {isSaving ? 'Saving...' : 'Save'}
+                            </Button>
+                        </form>
+                    </div>
+                ) : (
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-900 flex flex-col gap-2">
+                        <p>GA4 Target Profile: <strong className="font-mono text-xs">{status.propertyId}</strong></p>
+                        <form onSubmit={handleSavePropertyId} className="flex gap-2 items-center">
+                            <Input 
+                                value={inputValue} 
+                                onChange={(e) => setInputValue(e.target.value)} 
+                                placeholder="Update property ID..." 
+                                className="bg-white h-8 text-xs" 
+                                disabled={isSaving}
+                            />
+                            <Button type="submit" variant="secondary" size="sm" className="h-8 shadow-none" disabled={isSaving}>
+                                {isSaving ? 'Saving...' : 'Update'}
+                            </Button>
+                        </form>
                     </div>
                 )}
 

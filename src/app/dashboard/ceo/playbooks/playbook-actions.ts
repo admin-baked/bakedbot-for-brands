@@ -256,22 +256,27 @@ export async function toggleSuperUserPlaybook(
     playbookId: string,
     isActive: boolean
 ): Promise<{ success: boolean; error?: string }> {
+    console.log(`[toggleSuperUserPlaybook] Initiated for ${playbookId} to active=${isActive}`);
     try {
         const { firestore } = await createServerClient();
-        await requireUser(['super_user']);
+        const user = await requireUser(['super_user']);
+        console.log(`[toggleSuperUserPlaybook] Authenticated user ${user.uid}`);
 
         const docRef = firestore.collection('playbooks').doc(playbookId);
         const snap = await docRef.get();
 
         if (!snap.exists) {
+            console.error(`[toggleSuperUserPlaybook] Playbook ${playbookId} not found in Firestore`);
             return { success: false, error: 'Playbook not found' };
         }
 
+        console.log(`[toggleSuperUserPlaybook] Found playbook ${playbookId}, updating status...`);
         await docRef.update({
             status: isActive ? 'active' : 'paused',
             active: isActive,
             updatedAt: new Date(),
         });
+        console.log(`[toggleSuperUserPlaybook] Firestore update successful for ${playbookId}`);
 
         // Keep Pulse schedules in sync (best-effort).
         try {
@@ -305,9 +310,10 @@ export async function toggleSuperUserPlaybook(
             console.warn('[SuperUserPlaybooks] Failed to sync schedules:', e);
         }
 
+        console.log(`[toggleSuperUserPlaybook] Completed successfully for ${playbookId}`);
         return { success: true };
     } catch (error: any) {
-        console.error('[SuperUserPlaybooks] toggleSuperUserPlaybook failed:', error);
+        console.error('[SuperUserPlaybooks] toggleSuperUserPlaybook failed abruptly:', error);
         return { success: false, error: error.message };
     }
 }
@@ -435,9 +441,11 @@ export interface InstallDefaultSuperUserPlaybooksResult {
 export async function installDefaultSuperUserPlaybooks(
     playbookIds?: string[],
 ): Promise<InstallDefaultSuperUserPlaybooksResult> {
+    console.log(`[installDefaultSuperUserPlaybooks] Initiated with ids: ${playbookIds?.join(', ') || 'ALL'}`);
     try {
         const { firestore } = await createServerClient();
         const user = await requireUser(['super_user']);
+        console.log(`[installDefaultSuperUserPlaybooks] Authenticated user ${user.uid}`);
 
         const requestedTemplates = (playbookIds?.length
             ? playbookIds
@@ -449,18 +457,24 @@ export async function installDefaultSuperUserPlaybooks(
         const skipped: string[] = [];
         const errors: string[] = [];
 
+        console.log(`[installDefaultSuperUserPlaybooks] Found ${requestedTemplates.length} templates to process`);
+
         for (const template of requestedTemplates) {
             try {
+                console.log(`[installDefaultSuperUserPlaybooks] Processing template ${template.id}`);
                 const docRef = firestore.collection('playbooks').doc(template.id);
                 const existing = await docRef.get();
 
                 if (existing.exists) {
+                    console.log(`[installDefaultSuperUserPlaybooks] Template ${template.id} already exists`);
                     skipped.push(template.id);
                     continue;
                 }
 
+                console.log(`[installDefaultSuperUserPlaybooks] Building and saving playbook for ${template.id}`);
                 const playbook = buildDefaultSuperUserPlaybook(template, user);
                 await docRef.set(playbook);
+                console.log(`[installDefaultSuperUserPlaybooks] Saved playbook document ${template.id}`);
 
                 const scheduleTriggers = (playbook.triggers || []).filter(
                     (trigger: any) => trigger?.type === 'schedule' && typeof trigger?.cron === 'string' && trigger.cron.trim(),
@@ -479,11 +493,12 @@ export async function installDefaultSuperUserPlaybooks(
 
                 installed.push(template.id);
             } catch (error: any) {
-                console.error('[SuperUserPlaybooks] installDefaultSuperUserPlaybooks failed:', error);
+                console.error(`[installDefaultSuperUserPlaybooks] Failed to install template ${template.id}:`, error);
                 errors.push(`${template.id}: ${error?.message || 'Unknown error'}`);
             }
         }
 
+        console.log(`[installDefaultSuperUserPlaybooks] Complete: ${installed.length} installed, ${skipped.length} skipped, ${errors.length} errors`);
         return {
             success: errors.length === 0,
             installed,
@@ -491,7 +506,7 @@ export async function installDefaultSuperUserPlaybooks(
             errors,
         };
     } catch (error: any) {
-        console.error('[SuperUserPlaybooks] installDefaultSuperUserPlaybooks failed:', error);
+        console.error('[SuperUserPlaybooks] installDefaultSuperUserPlaybooks failed abruptly:', error);
         return {
             success: false,
             installed: [],

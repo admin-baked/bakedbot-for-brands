@@ -1,5 +1,24 @@
-## Session: 2026-03-20 (Booking Email & GCal Sync Fix — setImmediate)
+## Session: 2026-03-24 (Multi-Tenant Analytics Configuration & Playbook Diagnostics)
 ### Task ID
+feat_multi_tenant_analytics_playbooks_logs
+
+### Summary
+Transitioned Google Analytics and Search Console integrations from global environment variables to a multi-tenant architecture backed by Firestore. Super Users can now map specific Property IDs and Site URLs to distinct pilot organizations (e.g., Thrive Syracuse) directly via the dashboard `Settings > Integrations` UI. Also instrumented the `toggleSuperUserPlaybook` and `installDefaultSuperUserPlaybooks` server actions with aggressive diagnostic logging to isolate silent failures in the Playbooks grid.
+
+### Key Changes
+*   **FEATURE**: Created per-tenant configuration endpoints (`/api/integrations/google-analytics/configure` & `/search-console/configure`).
+*   **REFACTOR**: Updated `GoogleAnalyticsService` & `SearchConsoleService` to dynamically resolve `tenants/{orgId}` properties before falling back to `process.env`.
+*   **UI**: Expanded `GoogleAnalyticsConnection` and `SearchConsoleConnection` settings cards with inline credential forms.
+*   **DIAGNOSTICS**: Injected deep tracing logs into `src/app/dashboard/ceo/playbooks/playbook-actions.ts` to capture where playbook activation silently drops updates.
+*   **WORKFLOWS**: Documented 11 Super Power workflows for future execution via `/.agent/workflows/sp[x].md`.
+
+### Verification Results
+*   **API & Service**: ✅ PASS (New endpoints successfully map and write custom variables to Firestore). 
+*   **UI Controls**: ✅ PASS (React components show forms correctly based on existing credential states).
+
+---
+
+## Session: 2026-03-20 (Booking Email & GCal Sync Fix — setImmediate)
 booking_setimmediate_fix
 
 ### Summary
