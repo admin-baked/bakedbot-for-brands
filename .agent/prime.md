@@ -19,8 +19,8 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — Brand Guide fixes + magic buttons; 'use server' type fix deployed; PR #48 open.
-**Recent work (2026-03-24):** Brand Guide magic buttons + tier-aware AI (`6a3f9c75f`), 'use server' fix + wallet/inbox/remotion refactors (`abda7d8e2`, PR #48).
+**Current Status:** 🟢 Passing — GCal OAuth fix; EXEC_PROFILE_SLUGS const; Remotion bundler cleanup; PR #48 open.
+**Recent work (2026-03-24):** 'use server' fix + GCal OAuth state parse (`abda7d8e2`, `86bbaf877`), EXEC_PROFILE_SLUGS simplify (`9b0d17919`).
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
