@@ -40,9 +40,10 @@ Maximize margins and optimize cart values.
 ## 6. Customers (Mrs. Parker)
 Your loyalty and retention engine.
 
-*   **Customers & Segments:** Build deep CRM profiles based on purchasing behavior. 
+*   **Customers & Segments:** Build deep CRM profiles based on purchasing behavior.
 *   **Loyalty & Loyalty Settings:** Define your points engine, configure reward tiers (e.g., VIP, Gold, Platinum), and automate tier-advancement mechanics.
 *   **QR Sign-up:** Generate unique, store-specific or campaign-specific QR codes to capture customer loyalty data instantly on the actual dispensary floor.
+*   **Digital Loyalty Card:** Every customer has a branded loyalty card at `/{brand}/rewards` — live points, tier badge, QR code. Installable as a home screen app (no app store). Supports Web Push notifications on point updates. Craig sends the card automatically on enrollment via SMS or email.
 
 ## 7. Marketing
 Your digital growth engine, powered by *Craig*.
@@ -80,6 +81,10 @@ Back-office configuration and foundation.
 1.  Open **Customers > Loyalty Settings**. Configure your points-per-dollar ratio and set up your VIP tiers.
 2.  Navigate to **Customers > QR Sign-up**. Generate a QR code flyer and instruct staff to display it at checkout.
 3.  Head to **Pricing > Smart Upsells**. Turn on AI pairing to increase cart sizes for new sign-ups.
+4.  **Digital Loyalty Card:** Direct customers to your rewards page (e.g., `bakedbot.ai/thrivesyracuse/rewards`). Customers enter their phone or email to pull up their loyalty card — complete with live points, tier badge, and a scannable QR code.
+    - On **Android (Chrome)** or **desktop (Edge/Chrome)**: customers tap **"Add to Home Screen"** to install the rewards page as an app — no app store required.
+    - Customers can tap **"Point Alerts"** to subscribe to push notifications. They'll receive an automatic notification every time their points balance updates after a visit.
+    - On enrollment, *Craig* automatically sends a branded loyalty card image via SMS or email so the customer has their card immediately.
 
 ### Day 3: Creative Setup & First Outreach
 1.  Enter **Marketing > Brand Guide** to define your dispensary's unique tone (e.g., "Educated but casual"). 
