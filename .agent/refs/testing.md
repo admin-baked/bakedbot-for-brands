@@ -257,6 +257,11 @@ Test production via BakedBot Chrome Extension.
 7. extension_end_session({ sessionId })
 ```
 
+### 5. Day-by-Day Dispense Simulation
+We have a custom persistent QA playbook that acts as the source-of-truth for testing the entire platform in a simulated dispensary owner week. 
+- Playbook location: `dev/testing/dispensary_owner_week_simulation.md`
+- Agents should execute this loop continuously to catch end-to-end bugs.
+
 ---
 
 ## Triggering Linus for Test Fixes
