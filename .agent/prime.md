@@ -19,8 +19,8 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — Secret scanning cleared; git history purged of all exposed credentials.
-**Recent work (2026-03-24):** Secret scan purge — 14 alerts resolved, filter-branch history rewrite, `.gitignore` hardened.
+**Current Status:** 🟢 Passing — Brand Guide magic buttons + video providers live; settings 500 fixed.
+**Recent work (2026-03-24):** Brand Guide fixes + magic buttons + tier-aware model (`6a3f9c75f`), fal.ai Kling/Wan + Remotion wired (`6b76554e8`), settings 500 fix (`abda7d8e2`).
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 

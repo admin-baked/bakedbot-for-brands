@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-03-24 (Secret scanning cleared — 14 alerts resolved, git history purged, all 5 sensitive file types in .gitignore)
+**Current Status:** 🟢 Passing | **Last update:** 2026-03-24 (Brand Guide fixes + magic buttons + fal.ai/Remotion video providers + settings 500 fix)
 
 ---
 
