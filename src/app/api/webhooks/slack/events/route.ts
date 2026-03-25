@@ -10,6 +10,28 @@ import { slackService } from '@/server/services/communications/slack';
 export const dynamic = 'force-dynamic';
 
 // ---------------------------------------------------------------------------
+// In-memory deduplication guard — Slack retries events if it doesn't get
+// a 200 within 3 seconds. We ACK immediately, but a slow cold-start or
+// network blip can cause the same event to be delivered twice.
+// We keep processed event_ids for 5 minutes (well beyond Slack's retry window).
+// ---------------------------------------------------------------------------
+const processedEventIds = new Map<string, number>(); // eventId → expiresAt ms
+const EVENT_DEDUP_TTL_MS = 5 * 60 * 1000;
+
+function isDuplicateEvent(eventId: string): boolean {
+    const now = Date.now();
+    // Collect expired keys first, then delete — safe iteration without mutation mid-loop
+    const expired: string[] = [];
+    for (const [id, exp] of processedEventIds) {
+        if (now > exp) expired.push(id);
+    }
+    for (const id of expired) processedEventIds.delete(id);
+    if (processedEventIds.has(eventId)) return true;
+    processedEventIds.set(eventId, now + EVENT_DEDUP_TTL_MS);
+    return false;
+}
+
+// ---------------------------------------------------------------------------
 // Slack signature verification
 // ---------------------------------------------------------------------------
 
@@ -91,6 +113,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // Event Callback
     // ---------------------------------------------------------------------------
     if (body.type !== 'event_callback') {
+        return NextResponse.json({ ok: true });
+    }
+
+    // Deduplicate: Slack retries on timeout — ignore events we've already accepted
+    const eventId: string = body.event_id ?? '';
+    if (eventId && isDuplicateEvent(eventId)) {
+        logger.info(`[Slack/Events] Duplicate event_id=${eventId} — skipping`);
         return NextResponse.json({ ok: true });
     }
 

@@ -16,6 +16,9 @@ import type { DecodedIdToken } from 'firebase-admin/auth';
 // Org ID for Letta memory lookups in the Slack/Linus path
 const BAKEDBOT_INTERNAL_ORG = 'org_bakedbot_internal';
 
+// Image MIME types accepted by Claude's vision API — used to filter Slack attachments
+const CLAUDE_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'] as const;
+
 // ---------------------------------------------------------------------------
 // Linus tool classifier — determines if a message warrants Claude tool-calling
 // (vs. free GLM for simple conversational replies). Module-level so regexes
@@ -30,8 +33,8 @@ const LINUS_TOOL_PATTERNS = [
     /\b(read|open|show|find|search|look|grep|locate|list)\b.{0,40}\b(files?|codes?|functions?|class(es)?|routes?|components?|errors?|logs?)\b/,
     // Write/modify with a target noun — handles plurals
     /\b(write|edit|update|change|modify|add|remove|delete|refactor|rename)\b.{0,40}\b(files?|codes?|functions?|class(es)?|routes?|components?)\b/,
-    // Infra / tooling keywords
-    /\b(git|npm|gcloud|firebase|super.?power|scripts?|crons?|index(es)?|schema|secret|migration)\b/,
+    // Infra / tooling keywords (god.?mode = alias for super powers)
+    /\b(git|npm|gcloud|firebase|super.?power|god.?mode|scripts?|crons?|index(es)?|schema|secret|migration)\b/,
     // Repo-level review / health / memory queries
     /\b(review|the\s+repo|codebase|letta|memory|what.s.broken|health|status)\b/,
     // Explicit shell commands or backtick code
@@ -408,11 +411,10 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             glenda: 120_000,  // 2 min — CMO strategy
         } satisfies Partial<Record<string, number>>;
         const agentTimeoutMs = AGENT_TIMEOUTS[personaId as keyof typeof AGENT_TIMEOUTS] ?? 55_000;
-        const agentTimeoutSec = Math.round(agentTimeoutMs / 1000);
         // Context variables
         let linusImages: Array<{ data: string; mimeType: string }> | undefined;
         let contextPrefix = '';
-        
+
         const isLinus = personaId === 'linus';
         const willUseLinusTools = isLinus && linusNeedsTools(enrichedText);
         const botToken = process.env.SLACK_BOT_TOKEN;
@@ -420,9 +422,9 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
 
         // Always fetch context (history for everyone; Letta for Linus) concurrently with image downloads
         const [historyMessages, lettaSnippets, rawImages] = await Promise.all([
-            // Thread/DM history (fetch 12; will drop the current msg which is last)
+            // Thread/DM history (fetch 30; will drop the current msg which is last)
             (isThreadReply || isDm)
-                ? slackService.getConversationHistory(channel, isThreadReply ? threadTs : undefined, 12).catch(() => [])
+                ? slackService.getConversationHistory(channel, isThreadReply ? threadTs : undefined, 30).catch(() => [])
                 : Promise.resolve([] as Awaited<ReturnType<typeof slackService.getConversationHistory>>),
 
             // Letta long-term memory (Linus only)
@@ -440,13 +442,26 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                 }
             })() : Promise.resolve([]),
 
-            // Image downloads (Linus only, when tools/vision needed)
+            // Image downloads (Linus only, when tools/vision needed).
+            // Only pass Claude-supported formats; skip small/empty downloads (likely redirects/403s).
             (isLinus && botToken && imageFiles.length > 0)
                 ? Promise.all(imageFiles.map(async (f: any) => {
+                    if (!(CLAUDE_IMAGE_TYPES as readonly string[]).includes(f.mimetype)) {
+                        logger.warn(`[SlackBridge] Skipping image with unsupported MIME type: ${f.mimetype}`);
+                        return null;
+                    }
                     try {
                         const res = await fetch(f.url_private, { headers: { Authorization: `Bearer ${botToken}` } });
-                        if (!res.ok) return null;
+                        if (!res.ok) {
+                            logger.warn(`[SlackBridge] Image download failed (${res.status}): ${f.name}`);
+                            return null;
+                        }
                         const buf = Buffer.from(await res.arrayBuffer());
+                        // Guard: < 500 bytes means we got a redirect page / 404 HTML, not a real image
+                        if (buf.length < 500) {
+                            logger.warn(`[SlackBridge] Image too small (${buf.length}b), skipping: ${f.name}`);
+                            return null;
+                        }
                         logger.info(`[SlackBridge] Downloaded image for Linus vision: ${f.name} (${buf.length} bytes)`);
                         return { data: buf.toString('base64'), mimeType: f.mimetype as string };
                     } catch (imgErr: any) {
@@ -462,11 +477,19 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
 
         // Build context prefix
         const contextParts: string[] = [];
-        const historyToShow = historyMessages.slice(0, -1); // drop current msg (last entry)
+        const personaName = getPersonaName(personaId);
+        // Compiled once — used to strip redundant "Name: " prefixes from both history and result
+        const personaPrefixRe = new RegExp(`^${personaName}:\\s*`, 'i');
+        const historyToShow = historyMessages
+            .slice(0, -1) // drop current msg (last entry)
+            .filter(m => !m.isBot || !m.text.startsWith('⚠️')); // drop bot error messages
         if (historyToShow.length > 0) {
-            const lines = historyToShow.map(m =>
-                `${m.isBot ? getPersonaName(personaId) : ('User<' + m.user + '>')}: ${m.text}`
-            );
+            const lines = historyToShow.map(m => {
+                const who = m.isBot ? personaName : `User<${m.user}>`;
+                // Strip any existing "Name: " prefix that was added in a previous formatting pass
+                const text = m.isBot ? m.text.replace(personaPrefixRe, '').trim() : m.text;
+                return `${who}: ${text}`;
+            });
             contextParts.push(`[SLACK CONVERSATION HISTORY]\n${lines.join('\n')}`);
             logger.info(`[SlackBridge] Injecting ${historyToShow.length} history messages for ${personaId}`);
         }
@@ -591,9 +614,11 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             return;
         }
 
-        // 9. Format as Slack Block Kit and post
-        const blocks = SlackService.formatAgentResponse(result.content, personaId);
-        const fallbackText = `${getPersonaName(personaId)}: ${result.content.slice(0, 200)}`;
+        // 9. Format as Slack Block Kit and post.
+        // Strip any leading "Name: " prefix the LLM may have added — we prepend it ourselves.
+        const cleanContent = result.content.replace(personaPrefixRe, '').trim();
+        const blocks = SlackService.formatAgentResponse(cleanContent, personaId);
+        const fallbackText = `${personaName}: ${cleanContent.slice(0, 200)}`;
 
         await sendOrUpdateThreadMessage(fallbackText, blocks);
 
@@ -607,9 +632,9 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             threadTs,
             userMessage: cleanText,
             agent: personaId,
-            agentName: getPersonaName(personaId),
-            agentResponse: result.content,
-            responseLength: result.content.length,
+            agentName: personaName,
+            agentResponse: cleanContent,
+            responseLength: cleanContent.length,
             isDm,
             isChannelMsg,
             requestType,
