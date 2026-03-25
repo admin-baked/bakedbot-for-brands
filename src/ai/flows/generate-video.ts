@@ -28,9 +28,9 @@ const FALLBACK_VIDEO_URL = 'https://commondatastorage.googleapis.com/gtv-videos-
  */
 export async function generateMarketingVideo(
     input: z.infer<typeof GenerateVideoInputSchema>,
-    options?: { allowFallbackDemo?: boolean }
+    options?: { allowFallbackDemo?: boolean; forceProvider?: string }
 ): Promise<z.infer<typeof GenerateVideoOutputSchema>> {
-    if (options?.allowFallbackDemo === false) {
+    if (options?.allowFallbackDemo === false || options?.forceProvider) {
         return runVideoGeneration(input, options);
     }
     return generateVideoFlow(input);
@@ -47,13 +47,17 @@ const generateVideoFlow = ai.defineFlow(
 
 async function runVideoGeneration(
     input: z.infer<typeof GenerateVideoInputSchema>,
-    options?: { allowFallbackDemo?: boolean }
+    options?: { allowFallbackDemo?: boolean; forceProvider?: string }
 ): Promise<z.infer<typeof GenerateVideoOutputSchema>> {
-    let provider = 'veo';
-    try {
-        provider = await getSafeVideoProviderAction();
-    } catch (e) {
-        console.warn('[generateVideoFlow] Failed to fetch provider setting, defaulting to Veo.');
+    // forceProvider bypasses CEO settings — used by Creative Center to route
+    // Kling (cinematic AI footage) vs Remotion (branded text slideshows) explicitly.
+    let provider = options?.forceProvider ?? 'veo';
+    if (!options?.forceProvider) {
+        try {
+            provider = await getSafeVideoProviderAction();
+        } catch (e) {
+            console.warn('[generateVideoFlow] Failed to fetch provider setting, defaulting to Veo.');
+        }
     }
 
     console.log(`[generateVideoFlow] ========================================`);

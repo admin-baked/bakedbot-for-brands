@@ -268,8 +268,8 @@ export default function CreativeCommandCenter() {
   // Image style hint from campaign template — passed into generation prompt for visual variety
   const [selectedImageStyle, setSelectedImageStyle] = useState('');
 
-  // Image/media mode: AI photo (FLUX.1) | Branded (next/og) | Video (Veo/Sora)
-  const [imageMode, setImageMode] = useState<'photo' | 'branded' | 'video'>('photo');
+  // Image/media mode: AI photo (FLUX.1) | Branded (next/og) | Video (Kling) | Slideshow (Remotion)
+  const [imageMode, setImageMode] = useState<'photo' | 'branded' | 'video' | 'slideshow'>('photo');
   const [localVideoUrl, setLocalVideoUrl] = useState<string | null>(null);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
 
@@ -398,14 +398,21 @@ export default function CreativeCommandCenter() {
     if (!campaignPrompt.trim()) { toast.error("Please enter a campaign description"); return; }
     setGenerationError(null);
 
-    // ── Video mode: call Veo/Sora directly, skip Craig/FLUX.1 ──
-    if (imageMode === 'video') {
+    // ── Video mode: Kling v2 — cinematic AI footage, no text overlays ──
+    if (imageMode === 'video' || imageMode === 'slideshow') {
       const aspectRatio = selectedPlatform === 'tiktok' ? '9:16'
         : (selectedPlatform === 'instagram' || selectedPlatform === 'facebook') ? '1:1'
         : '16:9';
       const brandPrefix = brandGuide?.brandName ? `${brandGuide.brandName} cannabis brand. ` : '';
       const voiceSuffix = brandVoiceString ? ` Tone: ${brandVoiceString}.` : '';
-      const videoPrompt = `${brandPrefix}${campaignPrompt.trim()}${voiceSuffix} Cannabis lifestyle marketing video, no text overlays, cinematic quality.`;
+      const isSlideshow = imageMode === 'slideshow';
+
+      const videoPrompt = isSlideshow
+        // Remotion slideshow: prompt used as tagline/headline — keep short, brand-focused
+        ? `${campaignPrompt.trim()}`
+        // Kling: cinematic lifestyle prompt
+        : `${brandPrefix}${campaignPrompt.trim()}${voiceSuffix} Cannabis lifestyle marketing video, no text overlays, cinematic quality.`;
+
       setIsGeneratingVideo(true);
       setLocalVideoUrl(null);
       try {
@@ -419,12 +426,13 @@ export default function CreativeCommandCenter() {
             secondaryColor: brandColors?.secondary,
             accentColor: brandColors?.accent,
             logoUrl: brandGuide?.visualIdentity?.logo?.primary,
-            tagline: brandGuide?.messaging?.tagline,
+            tagline: isSlideshow ? (brandGuide?.messaging?.tagline || campaignPrompt.trim().substring(0, 60)) : brandGuide?.messaging?.tagline,
           },
-          { allowFallbackDemo: false }
+          { allowFallbackDemo: false, forceProvider: isSlideshow ? 'remotion' : 'kling' }
         );
         setLocalVideoUrl(result.videoUrl);
-        toast.success(`Video ready! (${result.provider ?? 'veo'} · ${result.duration}s)`);
+        const label = isSlideshow ? 'Slideshow ready! (Remotion)' : `Video ready! (Kling · ${result.duration}s)`;
+        toast.success(label);
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Video generation failed';
         setGenerationError(msg);
@@ -700,7 +708,7 @@ export default function CreativeCommandCenter() {
             {(isGenerating || isGeneratingVideo) ? (
               <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {isGeneratingVideo ? 'Rendering...' : 'Generating'}</>
             ) : (
-              <><Sparkles className="w-3.5 h-3.5" /> {imageMode === 'video' ? 'Generate Video' : 'Generate'}</>
+              <><Sparkles className="w-3.5 h-3.5" /> {imageMode === 'video' ? 'Generate Video' : imageMode === 'slideshow' ? 'Generate Slideshow' : 'Generate'}</>
             )}
           </Button>
 
@@ -946,28 +954,33 @@ export default function CreativeCommandCenter() {
                         </Select>
                       </div>
 
-                      {/* Media mode toggle: AI Photo | Branded | Video */}
+                      {/* Media mode toggle: AI Photo | Branded | Video | Slideshow */}
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Media</label>
-                        <div className="flex rounded-lg border border-border bg-muted/40 p-0.5">
-                          {(['photo', 'branded', 'video'] as const).map(m => (
+                        <div className="flex rounded-lg border border-border bg-muted/40 p-0.5 gap-0.5">
+                          {(['photo', 'branded', 'video', 'slideshow'] as const).map(m => (
                             <button
                               key={m}
-                              onClick={() => { setImageMode(m); if (m !== 'video') setLocalVideoUrl(null); }}
+                              onClick={() => { setImageMode(m); if (m !== 'video' && m !== 'slideshow') setLocalVideoUrl(null); }}
                               className={cn(
-                                "flex-1 text-xs py-1.5 rounded-md font-medium transition-all",
+                                "flex-1 text-[10px] py-1.5 rounded-md font-medium transition-all",
                                 imageMode === m
                                   ? "bg-background shadow-sm text-foreground"
                                   : "text-muted-foreground hover:text-foreground",
                               )}
                             >
-                              {m === 'photo' ? '📷 Photo' : m === 'branded' ? '🎨 Branded' : '🎬 Video'}
+                              {m === 'photo' ? '📷 Photo' : m === 'branded' ? '🎨 Branded' : m === 'video' ? '🎬 Video' : '🎞️ Slideshow'}
                             </button>
                           ))}
                         </div>
                         {imageMode === 'video' && (
                           <p className="text-[10px] text-muted-foreground px-1 leading-tight">
-                            Veo 3.1 · 5s · brand prompt auto-built from guide{brandGuide?.brandName ? ` (${brandGuide.brandName})` : ''}
+                            Kling v2 · 5s · cinematic AI footage, no text overlays
+                          </p>
+                        )}
+                        {imageMode === 'slideshow' && (
+                          <p className="text-[10px] text-muted-foreground px-1 leading-tight">
+                            Remotion · 5s · branded text slideshow{brandGuide?.brandName ? ` · ${brandGuide.brandName} colors` : ''}
                           </p>
                         )}
                         {imageMode === 'branded' && (
@@ -1024,7 +1037,7 @@ export default function CreativeCommandCenter() {
                         {(isGenerating || isGeneratingVideo) ? (
                           <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{isGeneratingVideo ? 'Rendering Video...' : 'Generating...'}</>
                         ) : (
-                          <><Sparkles className="w-4 h-4 mr-2" />{imageMode === 'video' ? 'Generate Video' : 'Generate with Craig'}</>
+                          <><Sparkles className="w-4 h-4 mr-2" />{imageMode === 'video' ? 'Generate Video' : imageMode === 'slideshow' ? 'Generate Slideshow' : 'Generate with Craig'}</>
                         )}
                       </Button>
                     </div>
@@ -1415,8 +1428,12 @@ export default function CreativeCommandCenter() {
                 <div className="text-center px-4">
                   {isGeneratingVideo ? (
                     <>
-                      <p className="text-sm font-semibold">Veo is rendering...</p>
-                      <p className="text-xs text-muted-foreground mt-1">Video takes 1–3 min, please wait</p>
+                      <p className="text-sm font-semibold">
+                        {imageMode === 'slideshow' ? 'Remotion rendering...' : 'Kling is generating...'}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {imageMode === 'slideshow' ? 'Branded slideshow · ~10–30s' : 'Cinematic video · 1–3 min'}
+                      </p>
                     </>
                   ) : (
                     <>
