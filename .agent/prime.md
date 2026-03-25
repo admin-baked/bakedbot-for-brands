@@ -30,7 +30,7 @@ ls .w/ > /dev/null 2>&1 && cat ~/.code-index/_savings.json
 Before ANY work, verify the build is healthy:
 
 ```powershell
-npm run check:types
+.\scripts\npm-safe.cmd run check:types
 ```
 
 | If Build Is... | Action |
@@ -38,8 +38,8 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — Linus Slack audit + 7 bridge bug fixes.
-**Recent work (2026-03-26):** PR merges #33/#38/#39/#40/#41 (conflict resolution, sync guards, SSRF tests, semanticSearchEntityId). Brand Guide bug fix (`82a516cef`): Firestore serialization via `toSerializable` + featured Flower product image in URL scan.
+**Current Status:** 🟢 Passing — PWA loyalty card + Drive role-based sharing.
+**Recent work (2026-03-26):** PWA loyalty card + Web Push (`9cd0cb85a`), training deck PPTX generated + saved to Super User Drive, `sharedWithRoles` field for role-based Drive sharing (`2984d8e32`, `3f8de34d9`).
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
@@ -67,11 +67,11 @@ npm run check:types
 **Common symptoms:**
 | Symptom | What it usually means |
 |---------|------------------------|
-| `EPERM: lstat 'C:\\Users\\admin'` from Jest / Node startup | Sandbox filesystem boundary, not automatically a product regression |
-| `npm run check:types` timing out in sandbox | Command likely needs elevated execution, not a TypeScript fix |
+| `EPERM: lstat 'C:\\Users\\admin'` from Jest / Node startup | Default shell needs the repo-safe wrappers (`.\scripts\node-safe.cmd`, `.\scripts\npm-safe.cmd`) |
+| `npm run check:types` timing out in sandbox | First retry with `.\scripts\npm-safe.cmd run check:types`; if it still fails, command likely needs elevated execution |
 | Firebase / GitHub / gcloud commands failing after code changes | Network or credential boundary, rerun elevated before blaming the app |
 
-**Rule:** if a critical verification or live Firebase / GitHub command fails for sandbox reasons, rerun it in elevated mode before assuming the product is broken.
+**Rule:** for Node/npm/Jest in the default shell, use `.\scripts\node-safe.cmd` / `.\scripts\npm-safe.cmd` first so the process stays inside `.codex-jest-home`. If a critical verification or live Firebase / GitHub command still fails for sandbox reasons after that, rerun it in elevated mode before assuming the product is broken.
 
 ## Session 2026-03-20 (Smokey Budtender Production Fix)
 **Recent work (2026-03-20):** See `memory/MEMORY.md` for full log.
