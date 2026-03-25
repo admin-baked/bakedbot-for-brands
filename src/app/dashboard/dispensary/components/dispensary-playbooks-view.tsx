@@ -450,7 +450,8 @@ export function DispensaryPlaybooksView({ orgId }: DispensaryPlaybooksViewProps)
     }, {});
 
     const availableTabs = Object.keys(groupedPlaybooks).filter((t) => groupedPlaybooks[t].length > 0);
-    const activeCount = activeIds.size;
+    const tierPlaybookIds = new Set(tierPlaybooks.map(p => p.id));
+    const activeCount = [...activeIds].filter(id => tierPlaybookIds.has(id)).length;
     const totalCount = tierPlaybooks.length;
     const allActive = activeCount === totalCount && totalCount > 0;
 

@@ -20,25 +20,40 @@ export default async function IntelligencePage() {
     let maxCompetitors = 5;
     try {
         const user = await requireUser();
-        brandId = user.uid;
-        const planId = (user as any).planId as string || 'scout';
+        // Use org/brand/location ID — NOT user.uid — for dispensary and brand users
+        const profile = user as any;
+        brandId = profile.currentOrgId || profile.orgId || profile.brandId || profile.locationId || user.uid;
+        const planId = profile.planId as string || 'scout';
         const ezalLimits = getEzalLimits(planId);
         maxCompetitors = ezalLimits.maxCompetitors;
     } catch {
         redirect('/dashboard');
     }
 
-    // Fetch data in parallel
-    const [benchmarks, retailers, competitors] = await Promise.all([
-        getCategoryBenchmarks(brandId),
-        getBrandRetailers(brandId),
-        listCompetitors(brandId, { active: true })
-    ]);
+    // Fetch data in parallel — wrapped in try-catch to prevent page crash
+    let benchmarks: Awaited<ReturnType<typeof getCategoryBenchmarks>> = [];
+    let retailers: Awaited<ReturnType<typeof getBrandRetailers>> = [];
+    let competitors: Awaited<ReturnType<typeof listCompetitors>> = [];
+    let reportMarkdown: string | null = null;
 
-    // Generate Report if competitors exist
-    const reportMarkdown = competitors.length > 0 
-        ? await generateCompetitorReport(brandId) 
-        : null;
+    try {
+        [benchmarks, retailers, competitors] = await Promise.all([
+            getCategoryBenchmarks(brandId),
+            getBrandRetailers(brandId),
+            listCompetitors(brandId, { active: true })
+        ]);
+    } catch (error) {
+        console.error('[Intelligence] Failed to load data:', error);
+    }
+
+    // Generate Report if competitors exist — separate try-catch to avoid blocking page render
+    try {
+        reportMarkdown = competitors.length > 0 
+            ? await generateCompetitorReport(brandId) 
+            : null;
+    } catch (error) {
+        console.error('[Intelligence] Failed to generate report:', error);
+    }
 
     return (
         <div className="container mx-auto px-4 py-8">

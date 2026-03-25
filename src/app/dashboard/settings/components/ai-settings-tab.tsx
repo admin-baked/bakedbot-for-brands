@@ -37,7 +37,7 @@ export function AISettingsTab() {
 
     // User settings
     const [userInstructions, setUserInstructions] = useState('');
-    const [preferredTone, setPreferredTone] = useState<string>('');
+    const [preferredTone, setPreferredTone] = useState<string>('default');
     const [responseFormat, setResponseFormat] = useState('auto');
     const [experienceLevel, setExperienceLevel] = useState('intermediate');
     const [simpleLanguage, setSimpleLanguage] = useState(false);
@@ -65,7 +65,7 @@ export function AISettingsTab() {
             // Load user settings
             const userSettings = await getMyAISettings();
             setUserInstructions(userSettings.customInstructions || '');
-            setPreferredTone(userSettings.preferredTone || '');
+            setPreferredTone(userSettings.preferredTone || 'default');
             setResponseFormat(userSettings.responseFormat || 'auto');
             setExperienceLevel(userSettings.experienceLevel || 'intermediate');
             setSimpleLanguage(userSettings.accessibility?.simpleLanguage || false);
@@ -103,7 +103,7 @@ export function AISettingsTab() {
         try {
             const result = await saveUserAISettings({
                 customInstructions: userInstructions,
-                preferredTone: preferredTone as any || undefined,
+                preferredTone: preferredTone === 'default' ? undefined : preferredTone as any,
                 responseFormat: responseFormat as any,
                 experienceLevel: experienceLevel as any,
                 accessibility: {
@@ -218,7 +218,7 @@ export function AISettingsTab() {
                                     <SelectValue placeholder="Use org default" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="">Use org default</SelectItem>
+                                    <SelectItem value="default">Use org default</SelectItem>
                                     <SelectItem value="professional">Professional</SelectItem>
                                     <SelectItem value="casual">Casual</SelectItem>
                                     <SelectItem value="friendly">Friendly</SelectItem>

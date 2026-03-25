@@ -340,26 +340,31 @@ export async function saveProduct(prevState: ProductFormState, formData: FormDat
 }
 
 export async function getBrandStatus() {
-  const user = await requireUser(['brand', 'super_user']);
+  const user = await requireUser(['brand', 'super_user', 'dispensary', 'dispensary_admin', 'dispensary_staff']);
   const { firestore } = await createServerClient();
-  const brandId = user.brandId;
+  // Use canonical orgId resolution for both brand and dispensary users
+  const orgId = user.brandId || (user as any).currentOrgId || (user as any).orgId || user.locationId;
 
-  if (!brandId) return null;
+  if (!orgId) return null;
 
-  const orgDoc = await firestore.collection('organizations').doc(brandId).get();
-  const billing = orgDoc.data()?.billing;
+  const orgDoc = await firestore.collection('organizations').doc(orgId).get();
+  if (!orgDoc.exists) return null;
+
+  const orgData = orgDoc.data();
+  const billing = orgData?.billing;
   const isTrial = billing?.subscriptionStatus === 'trial';
 
   const currentProducts = await firestore.collection('products')
-    .where('brandId', '==', brandId)
+    .where('brandId', '==', orgId)
     .get();
 
   return {
     isTrial,
     count: currentProducts.size,
     max: FREE_ACCOUNT_LIMITS.brand.products,
-    nameLocked: !!orgDoc.data()?.nameLocked,
-    productsLinked: !!orgDoc.data()?.productsLinked
+    nameLocked: !!orgData?.nameLocked,
+    productsLinked: !!orgData?.productsLinked,
+    brandName: orgData?.name || orgData?.brandName || orgData?.displayName || '',
   };
 }
 
