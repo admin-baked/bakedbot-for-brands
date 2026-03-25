@@ -38,8 +38,8 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — Universal MCP (jcodemunch for Cursor/VS Code) + Claude tool caching + prompt cache telemetry.
-**Recent work (2026-03-25):** PowerPoint deck generation (`f71e8b33d`): pptxgenjs + GLM-5 scripting → Firebase Storage; Creative Center 5th media mode 📊 Deck (pitch/menu/training/campaign). Branded image cross-origin fix + Remotion/Kling routing split.
+**Current Status:** 🟢 Passing — review-sequence cron live; PowerPoint deck simplify fixes.
+**Recent work (2026-03-25):** Review-sequence cron (`743fa7648`): Day 0 checkout + Day 3 review nudge emails; Cloud Scheduler job `review-sequence-cron`. PowerPoint simplify (`e8ebb0d84`): slide count bug, label helper, mode toggle guard.
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
