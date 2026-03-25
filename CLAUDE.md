@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-03-24 (Brand Guide fixes; 'use server' type fix; GCal OAuth state parse + EXEC_PROFILE_SLUGS; Remotion bundler cleanup; PR #48 open)
+**Current Status:** 🟢 Passing | **Last update:** 2026-03-24 (Secret scanning cleared — 14 alerts resolved, git history purged, all 5 sensitive file types in .gitignore)
 
 ---
 

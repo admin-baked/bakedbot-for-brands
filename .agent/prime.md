@@ -19,8 +19,8 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — GCal OAuth fix; EXEC_PROFILE_SLUGS const; Remotion bundler cleanup; PR #48 open.
-**Recent work (2026-03-24):** 'use server' fix + GCal OAuth state parse (`abda7d8e2`, `86bbaf877`), EXEC_PROFILE_SLUGS simplify (`9b0d17919`).
+**Current Status:** 🟢 Passing — Secret scanning cleared; git history purged of all exposed credentials.
+**Recent work (2026-03-24):** Secret scan purge — 14 alerts resolved, filter-branch history rewrite, `.gitignore` hardened.
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
