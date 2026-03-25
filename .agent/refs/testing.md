@@ -262,6 +262,7 @@ We have custom persistent QA playbooks that act as the source-of-truth for testi
 - Dispensary Playbook: `dev/testing/dispensary_owner_week_simulation.md`
 - Brand E-Com Playbook: `dev/testing/brand_owner_week_simulation.md`
 - Grower Wholesale Playbook: `dev/testing/grower_owner_week_simulation.md`
+- Super User / Admin Playbook: `dev/testing/superuser_owner_week_simulation.md`
 - Agents should execute these loops continuously to catch end-to-end bugs.
 
 ---
