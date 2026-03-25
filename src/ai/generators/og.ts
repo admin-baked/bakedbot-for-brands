@@ -33,35 +33,39 @@ export interface OgImageParams {
 }
 
 /**
- * Build an absolute URL to the OG social image route.
+ * Build a URL to the OG social image route.
  *
- * The returned URL renders a PNG when fetched via GET and can be used:
- *   - As an `<img src>` in previews
- *   - Stored in Firestore as the generated imageUrl
- *   - Posted directly to social platforms
+ * Returns a relative path (/api/og/social?...) by default so the browser
+ * resolves it against whatever origin the page is running on — works in dev,
+ * staging, and production without base-URL mismatches.
+ *
+ * Pass an explicit `baseUrl` when you need an absolute URL (e.g. for email
+ * templates or social platform uploads).
  *
  * @param params    Template + content parameters
- * @param baseUrl   Override base URL (defaults to NEXT_PUBLIC_APP_URL or bakedbot.ai)
+ * @param baseUrl   Override base URL (only pass when absolute URL is required)
  */
 export function buildOgImageUrl(params: OgImageParams, baseUrl?: string): string {
-    const base = baseUrl
-        ?? process.env.NEXT_PUBLIC_APP_URL
-        ?? 'https://bakedbot.ai';
+    const qs = new URLSearchParams();
 
-    const url = new URL('/api/og/social', base);
+    qs.set('template', params.template);
+    qs.set('headline', params.headline);
 
-    url.searchParams.set('template', params.template);
-    url.searchParams.set('headline', params.headline);
+    if (params.subtext)     qs.set('subtext',     params.subtext);
+    if (params.bgColor)     qs.set('bgColor',     params.bgColor);
+    if (params.accentColor) qs.set('accentColor', params.accentColor);
+    if (params.brandName)   qs.set('brandName',   params.brandName);
+    if (params.logoUrl)     qs.set('logoUrl',     params.logoUrl);
+    if (params.imageUrl)    qs.set('imageUrl',    params.imageUrl);
+    if (params.platform)    qs.set('platform',    params.platform);
 
-    if (params.subtext)     url.searchParams.set('subtext',     params.subtext);
-    if (params.bgColor)     url.searchParams.set('bgColor',     params.bgColor);
-    if (params.accentColor) url.searchParams.set('accentColor', params.accentColor);
-    if (params.brandName)   url.searchParams.set('brandName',   params.brandName);
-    if (params.logoUrl)     url.searchParams.set('logoUrl',     params.logoUrl);
-    if (params.imageUrl)    url.searchParams.set('imageUrl',    params.imageUrl);
-    if (params.platform)    url.searchParams.set('platform',    params.platform);
+    const path = `/api/og/social?${qs.toString()}`;
 
-    return url.toString();
+    if (baseUrl) {
+        return `${baseUrl.replace(/\/$/, '')}${path}`;
+    }
+
+    return path;
 }
 
 /**

@@ -6,6 +6,12 @@ export const GenerateVideoInputSchema = z.object({
     duration: z.enum(['5', '10']).optional().default('5').describe('Video duration in seconds (5 or 10).'),
     aspectRatio: z.enum(['16:9', '9:16', '1:1']).optional().default('16:9').describe('Video aspect ratio.'),
     brandName: z.string().optional().describe('Brand name for watermark/context.'),
+    // Brand guide fields — used by Remotion renderer for fully branded video output
+    primaryColor: z.string().optional().describe('Hex brand primary color, e.g. #2E7D32'),
+    secondaryColor: z.string().optional().describe('Hex brand secondary color'),
+    accentColor: z.string().optional().describe('Hex brand accent color'),
+    logoUrl: z.string().optional().describe('Absolute URL to brand logo image'),
+    tagline: z.string().optional().describe('Brand tagline shown in outro slide'),
 });
 
 export type GenerateVideoInput = z.infer<typeof GenerateVideoInputSchema>;

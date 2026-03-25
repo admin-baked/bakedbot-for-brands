@@ -31,12 +31,7 @@ const COMPOSITION_MAP: Record<string, string> = {
 };
 
 export interface RemotionVideoInput extends GenerateVideoInput {
-    brandName?: string;
-    tagline?: string;
-    primaryColor?: string;
-    secondaryColor?: string;
-    accentColor?: string;
-    logoUrl?: string;
+    // Remotion-specific fields not in the base schema
     productImageUrl?: string;
     ctaText?: string;
     websiteUrl?: string;

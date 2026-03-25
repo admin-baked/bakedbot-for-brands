@@ -27,6 +27,10 @@
 import { ImageResponse } from 'next/og';
 import { type NextRequest } from 'next/server';
 
+// Edge runtime: uses Satori's pure-JS renderer (no native bindings) —
+// more reliable on Cloud Run and avoids @resvg/resvg-js compatibility issues.
+export const runtime = 'edge';
+
 // Platform → canvas dimensions
 function getDimensions(platform: string): { width: number; height: number } {
     switch (platform) {

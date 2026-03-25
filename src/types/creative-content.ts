@@ -138,6 +138,7 @@ export interface CreativeContentBase {
         | 'kling'
         | 'wan'
         | 'remotion'
+        | 'og-renderer'
         | 'manual';
 
     /** Render aspect ratio */

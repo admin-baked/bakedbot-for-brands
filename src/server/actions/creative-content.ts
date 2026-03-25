@@ -349,7 +349,9 @@ export async function generateContent(
             mediaUrls: [imageUrl],
             thumbnailUrl: imageUrl,
             mediaType: 'image',
-            generatedBy: request.tier === 'free' ? 'flux-schnell' : 'flux-pro',
+            generatedBy: request.imageMode === 'branded'
+                ? 'og-renderer'
+                : (request.tier === 'free' ? 'flux-schnell' : 'flux-pro'),
             generationPrompt: request.prompt,
             createdBy: userId,
             createdAt: now,

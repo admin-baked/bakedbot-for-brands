@@ -410,7 +410,17 @@ export default function CreativeCommandCenter() {
       setLocalVideoUrl(null);
       try {
         const result = await generateMarketingVideo(
-          { prompt: videoPrompt, duration: '5', aspectRatio, brandName: brandGuide?.brandName },
+          {
+            prompt: videoPrompt,
+            duration: '5',
+            aspectRatio,
+            brandName: brandGuide?.brandName,
+            primaryColor: brandColors?.primary,
+            secondaryColor: brandColors?.secondary,
+            accentColor: brandColors?.accent,
+            logoUrl: brandGuide?.visualIdentity?.logo?.primary,
+            tagline: brandGuide?.messaging?.tagline,
+          },
           { allowFallbackDemo: false }
         );
         setLocalVideoUrl(result.videoUrl);
