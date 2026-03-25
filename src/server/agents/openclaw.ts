@@ -334,7 +334,8 @@ export const openclawAgent: OpenClawAgent = {
                 toolExecutions: [],
                 model: 'unavailable',
                 inputTokens: 0,
-                outputTokens: 0
+                outputTokens: 0,
+                cachedTokens: 0
             };
         }
 
