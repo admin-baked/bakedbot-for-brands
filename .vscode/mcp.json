@@ -1,0 +1,22 @@
+{
+  "servers": {
+    "reddit": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["reddit-no-auth-mcp-server"],
+      "env": {
+        "REDDIT_TIMEOUT": "15.0",
+        "REDDIT_LOG_LEVEL": "WARNING"
+      }
+    },
+    "jcodemunch": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["jcodemunch-mcp"],
+      "env": {
+        "ANTHROPIC_API_KEY": "${ANTHROPIC_API_KEY}",
+        "JCODEMUNCH_SHARE_SAVINGS": "0"
+      }
+    }
+  }
+}

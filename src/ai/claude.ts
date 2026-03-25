@@ -58,6 +58,8 @@ export interface ClaudeResult {
     model: string;
     inputTokens: number;
     outputTokens: number;
+    cachedTokens: number;   // tokens served from Anthropic prompt cache (90% discount)
+    tokensSaved: number;    // estimated tokens that would have been billed without cache
 }
 
 // Default model for tool calling - Claude Sonnet 4.6 (optimized for agentic workflows)
@@ -301,13 +303,23 @@ export async function executeWithTools(
     const toolExecutions: ToolExecution[] = [];
     let totalInputTokens = 0;
     let totalOutputTokens = 0;
+    let totalCachedTokens = 0;
     let finalContent = '';
+
+    // Add cache_control to the last tool so Anthropic caches the entire tools array.
+    // On cache hit, all tool definitions are served at 90% discount (~10% of normal price).
+    const cachedTools: ClaudeTool[] = tools.length > 0
+        ? [
+            ...tools.slice(0, -1),
+            { ...tools[tools.length - 1], cache_control: { type: 'ephemeral' } } as ClaudeTool,
+          ]
+        : tools;
 
     for (let iteration = 0; iteration < maxIterations; iteration++) {
         const response = await client.messages.create({
             model: selectedModel,
             max_tokens: 4096,
-            tools,
+            tools: cachedTools,
             messages,
             // Use prompt caching for faster responses on repeated requests
             system: [
@@ -321,6 +333,7 @@ export async function executeWithTools(
 
         totalInputTokens += response.usage.input_tokens;
         totalOutputTokens += response.usage.output_tokens;
+        totalCachedTokens += (response.usage as any).cache_read_input_tokens ?? 0;
 
         // Check if we have tool use blocks
         const toolUseBlocks = response.content.filter(
@@ -397,12 +410,17 @@ export async function executeWithTools(
         messages.push({ role: 'user', content: toolResults });
     }
 
+    // Cached tokens are billed at ~10% of normal — savings = 90% of cached token cost
+    const tokensSaved = Math.round(totalCachedTokens * 0.9);
+
     const result: ClaudeResult = {
         content: finalContent,
         toolExecutions,
         model: selectedModel,
         inputTokens: totalInputTokens,
         outputTokens: totalOutputTokens,
+        cachedTokens: totalCachedTokens,
+        tokensSaved,
     };
 
     // Record telemetry when agent context is present (fire-and-forget)
@@ -415,6 +433,7 @@ export async function executeWithTools(
             brandId: context.brandId,
             inputTokens: totalInputTokens,
             outputTokens: totalOutputTokens,
+            cacheReadTokens: totalCachedTokens,
             toolExecutions: toolExecutions.map(t => ({
                 name: t.name,
                 durationMs: t.durationMs,
