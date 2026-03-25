@@ -271,6 +271,13 @@ export default function CreativeCommandCenter() {
 
   // Image/media mode: AI photo (FLUX.1) | Branded (next/og) | Video (Kling) | Slideshow (Remotion) | Deck (pptxgenjs)
   const [imageMode, setImageMode] = useState<'photo' | 'branded' | 'video' | 'slideshow' | 'deck'>('photo');
+
+  const getGenerateLabel = (mode: typeof imageMode, long = false): string => {
+    if (mode === 'video') return 'Generate Video';
+    if (mode === 'slideshow') return 'Generate Slideshow';
+    if (mode === 'deck') return 'Generate Deck';
+    return long ? 'Generate with Craig' : 'Generate';
+  };
   const [localVideoUrl, setLocalVideoUrl] = useState<string | null>(null);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
 
@@ -278,6 +285,7 @@ export default function CreativeCommandCenter() {
   const [deckPurpose, setDeckPurpose] = useState<DeckPurpose>('pitch');
   const [deckSlideCount, setDeckSlideCount] = useState(6);
   const [deckDownloadUrl, setDeckDownloadUrl] = useState<string | null>(null);
+  const [deckResultSlideCount, setDeckResultSlideCount] = useState<number | null>(null);
   const [isGeneratingDeck, setIsGeneratingDeck] = useState(false);
 
   // Proactive generation — fires once when brand guide loads and no content exists yet
@@ -427,6 +435,7 @@ export default function CreativeCommandCenter() {
         if (!resp.ok) throw new Error(`Deck generation failed (${resp.status})`);
         const data = await resp.json() as GeneratePowerPointOutput;
         setDeckDownloadUrl(data.downloadUrl);
+        setDeckResultSlideCount(data.slideCount);
         toast.success(`Deck ready! ${data.slideCount} slides · ${data.fileName}`);
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Deck generation failed';
@@ -750,7 +759,7 @@ export default function CreativeCommandCenter() {
             {(isGenerating || isGeneratingVideo || isGeneratingDeck) ? (
               <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {isGeneratingDeck ? 'Building...' : isGeneratingVideo ? 'Rendering...' : 'Generating'}</>
             ) : (
-              <><Sparkles className="w-3.5 h-3.5" /> {imageMode === 'video' ? 'Generate Video' : imageMode === 'slideshow' ? 'Generate Slideshow' : imageMode === 'deck' ? 'Generate Deck' : 'Generate'}</>
+              <><Sparkles className="w-3.5 h-3.5" /> {getGenerateLabel(imageMode)}</>
             )}
           </Button>
 
@@ -1004,9 +1013,10 @@ export default function CreativeCommandCenter() {
                             <button
                               key={m}
                               onClick={() => {
+                                if (imageMode === m) return;
                                 setImageMode(m);
                                 if (m !== 'video' && m !== 'slideshow') setLocalVideoUrl(null);
-                                if (m !== 'deck') setDeckDownloadUrl(null);
+                                if (m !== 'deck') { setDeckDownloadUrl(null); setDeckResultSlideCount(null); }
                               }}
                               className={cn(
                                 "flex-1 text-[10px] py-1.5 rounded-md font-medium transition-all",
@@ -1119,7 +1129,7 @@ export default function CreativeCommandCenter() {
                         {(isGenerating || isGeneratingVideo || isGeneratingDeck) ? (
                           <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{isGeneratingDeck ? 'Building Deck...' : isGeneratingVideo ? 'Rendering Video...' : 'Generating...'}</>
                         ) : (
-                          <><Sparkles className="w-4 h-4 mr-2" />{imageMode === 'video' ? 'Generate Video' : imageMode === 'slideshow' ? 'Generate Slideshow' : imageMode === 'deck' ? 'Generate Deck' : 'Generate with Craig'}</>
+                          <><Sparkles className="w-4 h-4 mr-2" />{getGenerateLabel(imageMode, true)}</>
                         )}
                       </Button>
                     </div>
@@ -1537,7 +1547,7 @@ export default function CreativeCommandCenter() {
                 <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center text-3xl">📊</div>
                 <div className="text-center">
                   <p className="text-sm font-semibold">Deck ready!</p>
-                  <p className="text-xs text-muted-foreground mt-1 capitalize">{deckPurpose} deck · {deckSlideCount}+ slides</p>
+                  <p className="text-xs text-muted-foreground mt-1 capitalize">{deckPurpose} deck · {deckResultSlideCount ?? deckSlideCount} slides</p>
                 </div>
                 <a
                   href={deckDownloadUrl}
