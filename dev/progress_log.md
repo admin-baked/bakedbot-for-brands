@@ -1,3 +1,22 @@
+## Session: 2026-03-25 (Default Shell Node/Jest Startup Fix)
+### Task ID
+default_shell_node_jest_startup_fix
+
+### Summary
+Unblocked Node, npm, and Jest startup in the default Windows shell by adding repo-safe wrappers that keep runtime home/cache/temp paths inside `.codex-jest-home` and preserve symlink resolution so sandboxed file execution no longer trips over `C:\Users\admin`.
+
+### Key Changes
+*   **FIX**: Added `scripts/node-safe.cmd`, `scripts/npm-safe.cmd`, and `scripts/set-workspace-node-home.cmd` for default-shell Node/npm execution.
+*   **REFACTOR**: Moved the Jest home bootstrap into `scripts/ensure-workspace-node-home.cjs` and reused it from `scripts/run-jest.cjs`.
+*   **DOCS**: Updated `CODEX.md` to use the safe wrapper for build/test commands in the default shell.
+
+### Verification Results
+*   **Node startup**: PASS (`.\scripts\node-safe.cmd -v`)
+*   **Jest startup**: PASS (`.\scripts\npm-safe.cmd test -- --help`)
+*   **Type check**: PASS (`.\scripts\npm-safe.cmd run -s check:types`)
+
+---
+
 ## Session: 2026-03-25 (Dispensary Dashboard QA Fixes)
 ### Task ID
 dispensary_dashboard_qa_fixes

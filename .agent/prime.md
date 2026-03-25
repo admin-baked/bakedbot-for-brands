@@ -38,8 +38,9 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — PWA loyalty card + Drive role-based sharing.
-**Recent work (2026-03-26):** PWA loyalty card + Web Push (`9cd0cb85a`), training deck PPTX generated + saved to Super User Drive, `sharedWithRoles` field for role-based Drive sharing (`2984d8e32`, `3f8de34d9`).
+**Current Status:** 🟢 Passing — default-shell Node/Jest wrappers + safe npm/node commands.
+**Recent work (2026-03-25):** See `MEMORY.md` for full log.
+Key completed: [Default-shell Node/Jest wrappers + repo-safe npm/node commands] (`1699974c2`).
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
