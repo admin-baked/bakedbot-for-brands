@@ -10,7 +10,10 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import type { MessageParam, Tool, ContentBlock, ToolUseBlock, ToolResultBlockParam } from '@anthropic-ai/sdk/resources/messages';
+import type { MessageParam, Tool, ContentBlock, ToolUseBlock, ToolResultBlockParam, Usage } from '@anthropic-ai/sdk/resources/messages';
+
+// SDK Usage type has cache_creation_input_tokens but not cache_read_input_tokens yet
+type UsageWithCache = Usage & { cache_read_input_tokens?: number | null };
 import { buildTelemetryEvent, recordAgentTelemetry } from '@/server/services/agent-telemetry';
 
 // Re-export types for convenience
@@ -59,7 +62,6 @@ export interface ClaudeResult {
     inputTokens: number;
     outputTokens: number;
     cachedTokens: number;   // tokens served from Anthropic prompt cache (90% discount)
-    tokensSaved: number;    // estimated tokens that would have been billed without cache
 }
 
 // Default model for tool calling - Claude Sonnet 4.6 (optimized for agentic workflows)
@@ -315,17 +317,19 @@ export async function executeWithTools(
           ]
         : tools;
 
+    // Hoist — context is immutable across all iterations
+    const systemPrompt = buildSystemPrompt(context);
+
     for (let iteration = 0; iteration < maxIterations; iteration++) {
         const response = await client.messages.create({
             model: selectedModel,
             max_tokens: 4096,
             tools: cachedTools,
             messages,
-            // Use prompt caching for faster responses on repeated requests
             system: [
                 {
                     type: 'text',
-                    text: buildSystemPrompt(context),
+                    text: systemPrompt,
                     cache_control: { type: 'ephemeral' }
                 }
             ],
@@ -333,7 +337,7 @@ export async function executeWithTools(
 
         totalInputTokens += response.usage.input_tokens;
         totalOutputTokens += response.usage.output_tokens;
-        totalCachedTokens += (response.usage as any).cache_read_input_tokens ?? 0;
+        totalCachedTokens += (response.usage as UsageWithCache).cache_read_input_tokens ?? 0;
 
         // Check if we have tool use blocks
         const toolUseBlocks = response.content.filter(
@@ -410,9 +414,6 @@ export async function executeWithTools(
         messages.push({ role: 'user', content: toolResults });
     }
 
-    // Cached tokens are billed at ~10% of normal — savings = 90% of cached token cost
-    const tokensSaved = Math.round(totalCachedTokens * 0.9);
-
     const result: ClaudeResult = {
         content: finalContent,
         toolExecutions,
@@ -420,7 +421,6 @@ export async function executeWithTools(
         inputTokens: totalInputTokens,
         outputTokens: totalOutputTokens,
         cachedTokens: totalCachedTokens,
-        tokensSaved,
     };
 
     // Record telemetry when agent context is present (fire-and-forget)
