@@ -4,6 +4,7 @@
  */
 
 export type ExecProfileSlug = 'martez' | 'jack';
+export const EXEC_PROFILE_SLUGS: ExecProfileSlug[] = ['martez', 'jack'];
 
 export interface AvailabilityWindow {
     /** 0=Sunday, 1=Monday, ..., 6=Saturday */

@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/firebase/admin';
 import { Timestamp } from '@google-cloud/firestore';
 import { exchangeCodeForTokens } from '@/server/services/executive-calendar/google-calendar';
-import { ExecProfileSlug } from '@/types/executive-calendar';
+import { ExecProfileSlug, EXEC_PROFILE_SLUGS } from '@/types/executive-calendar';
 import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(new URL(`${dashboardUrl}error`, request.url));
     }
 
-    if (!code || !profileSlug || !['martez', 'jack'].includes(profileSlug)) {
+    if (!code || !profileSlug || !(EXEC_PROFILE_SLUGS as string[]).includes(profileSlug)) {
         logger.warn(`[GCal] Invalid OAuth callback — code=${!!code} slug=${profileSlug} rawState=${rawState}`);
         return NextResponse.redirect(new URL(`${dashboardUrl}invalid`, request.url));
     }
