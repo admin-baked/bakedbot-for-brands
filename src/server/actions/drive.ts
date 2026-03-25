@@ -246,7 +246,7 @@ export async function getFolderContents(
       isSuperUser && folderId === null
         ? db
             .collection(COLLECTIONS.FILES)
-            .where('shareIds', 'array-contains', 'super_user')
+            .where('sharedWithRoles', 'array-contains', 'super_user')
             .where('isDeleted', '==', false)
             .limit(50)
             .get()

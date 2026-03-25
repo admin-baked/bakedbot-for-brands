@@ -149,7 +149,8 @@ export interface DriveFile {
 
   // Sharing
   isShared: boolean;
-  shareIds: string[];
+  shareIds: string[];        // Per-user share document IDs
+  sharedWithRoles?: string[]; // Role markers e.g. ['super_user']
 
   // Tracking
   viewCount: number;
@@ -405,6 +406,7 @@ export interface DriveFileDoc {
   source?: 'youtube_transcript' | 'meeting_transcript' | 'ai_generated' | 'user_upload';
   isShared: boolean;
   shareIds: string[];
+  sharedWithRoles?: string[];
   viewCount: number;
   downloadCount: number;
   lastAccessedAt?: number; // Unix timestamp
