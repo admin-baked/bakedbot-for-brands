@@ -237,6 +237,7 @@ export default function CRMTab() {
     // Users (Platform)
     const [users, setUsers] = useState<CRMUser[]>([]);
     const [usersLoading, setUsersLoading] = useState(true);
+    const [usersLoadError, setUsersLoadError] = useState<string | null>(null);
     const [userSearch, setUserSearch] = useState('');
     const [userLifecycleFilter, setUserLifecycleFilter] = useState<CRMLifecycleStage | 'all'>('all');
     const [userStats, setUserStats] = useState<{ totalUsers: number; activeUsers: number; totalMRR: number; byLifecycle: Record<CRMLifecycleStage, number> } | null>(null);
@@ -274,6 +275,7 @@ export default function CRMTab() {
     /** Initial mount: fetch users + stats in one pass (avoids duplicate users scan). */
     const loadData = async () => {
         setUsersLoading(true);
+        setUsersLoadError(null);
         try {
             const [crmStats, { users: data, userStats: uStats }] = await Promise.all([
                 getCRMStats(),
@@ -284,7 +286,9 @@ export default function CRMTab() {
             setUserStats(uStats);
             setUsersPage(1);
         } catch (e: any) {
-            toast({ variant: 'destructive', title: 'Error', description: e.message });
+            const msg = e?.digest ? `Server error (digest: ${e.digest})` : (e?.message || 'Failed to load users');
+            setUsersLoadError(msg);
+            toast({ variant: 'destructive', title: 'CRM load failed', description: msg });
         } finally {
             setUsersLoading(false);
         }
@@ -340,6 +344,7 @@ export default function CRMTab() {
 
     const loadUsers = async (overrideShowTest?: boolean) => {
         setUsersLoading(true);
+        setUsersLoadError(null);
         setAiSearchResult(null);
         try {
             const filters: CRMFilters = { limit: 200, includeTest: overrideShowTest ?? showTestAccounts };
@@ -349,7 +354,9 @@ export default function CRMTab() {
             setUsers(data);
             setUsersPage(1);
         } catch (e: any) {
-            toast({ variant: 'destructive', title: 'Error', description: e.message });
+            const msg = e?.digest ? `Server error (digest: ${e.digest})` : (e?.message || 'Failed to load users');
+            setUsersLoadError(msg);
+            toast({ variant: 'destructive', title: 'CRM load failed', description: msg });
         } finally {
             setUsersLoading(false);
         }
@@ -911,6 +918,15 @@ export default function CRMTab() {
                             {usersLoading ? (
                                 <div className="flex justify-center py-8">
                                     <Loader2 className="h-6 w-6 animate-spin" />
+                                </div>
+                            ) : usersLoadError ? (
+                                <div className="flex flex-col items-center gap-3 py-10 text-center">
+                                    <AlertTriangle className="h-6 w-6 text-destructive" />
+                                    <p className="text-sm font-medium text-destructive">Failed to load users</p>
+                                    <p className="text-xs text-muted-foreground max-w-sm">{usersLoadError}</p>
+                                    <Button size="sm" variant="outline" onClick={loadData}>
+                                        <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Retry
+                                    </Button>
                                 </div>
                             ) : users.length === 0 ? (
                                 <p className="text-center text-muted-foreground py-8">
