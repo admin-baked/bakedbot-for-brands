@@ -38,8 +38,8 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — review-sequence cron live; PowerPoint deck simplify fixes.
-**Recent work (2026-03-25):** Review-sequence cron (`743fa7648`): Day 0 checkout + Day 3 review nudge emails; Cloud Scheduler job `review-sequence-cron`. PowerPoint simplify (`e8ebb0d84`): slide count bug, label helper, mode toggle guard.
+**Current Status:** 🟢 Passing — Linus Slack audit + 7 bridge bug fixes.
+**Recent work (2026-03-26):** Linus audit (`554ef314b`): image validation, history 12→30, prefix dedup, god mode routing, error replay filter, event dedup. toDate refactor (`bb48ba507`): 18-file sweep → firestoreTimestampToDate.
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
