@@ -351,16 +351,16 @@ async function fetchFeaturedProductImage(
           .collection('tenants').doc(orgId)
           .collection('publicViews').doc('products')
           .collection('items')
-          .limit(40)
+          .limit(5)
           .get()
       ),
       ...orgIds.map((orgId) => () =>
-        firestore.collection('products').where('orgId', '==', orgId).limit(40).get()
+        firestore.collection('products').where('orgId', '==', orgId).limit(5).get()
       ),
       () =>
-        firestore.collection('products').where('brandId', '==', brandId).limit(40).get(),
+        firestore.collection('products').where('brandId', '==', brandId).limit(5).get(),
       ...orgIds.map((orgId) => () =>
-        firestore.collection('products').where('retailerIds', 'array-contains', orgId).limit(40).get()
+        firestore.collection('products').where('retailerIds', 'array-contains', orgId).limit(5).get()
       ),
     ];
 
@@ -741,50 +741,36 @@ export async function extractBrandGuideFromUrl(
     const messaging = (result.messaging || {}) as Record<string, unknown>;
     let competitorSuggestions: BrandGuideCompetitorSuggestion[] = [];
 
-    if (input.includeCompetitorAnalysis) {
-      try {
-        const competitorType = inferCompetitorType({
-          websiteTitle: result.websiteTitle,
-          messaging,
-        });
-        const brandName = cleanString(messaging.brandName);
-        const city = cleanString(messaging.city);
-        const state = cleanString(messaging.state);
-
-        competitorSuggestions = competitorType === 'dispensary'
-          ? await buildDispensaryCompetitorSuggestions({
-              brandId: input.brandId,
-              url: input.url,
-              brandName,
-              city,
-              state,
-              limit: 5,
-            })
-          : await buildBrandCompetitorSuggestions({
-              url: input.url,
-              brandName,
-              city,
-              state,
-              limit: 5,
-              type: competitorType,
-            });
-      } catch (competitorError) {
-        logger.warn('[extractBrandGuideFromUrl] Competitor suggestion lookup failed', {
-          url: input.url,
-          error: competitorError instanceof Error ? competitorError.message : String(competitorError),
-        });
-      }
-    }
-
     const organizationType = cleanString(messaging.organizationType) as Parameters<typeof isRetailCannabisOrganization>[0];
     const dispensaryType = cleanString(messaging.dispensaryType);
-
-    // Fetch a representative product image from the live catalog for retail/product cannabis orgs.
-    // Dispensaries prefer Flower menu items; brands fall back to any real product image.
     const preferFlowerImage = organizationType === 'dispensary' || Boolean(dispensaryType);
-    const featuredProductImage = input.brandId && isRetailCannabisOrganization(organizationType, dispensaryType)
-      ? await fetchFeaturedProductImage(input.brandId, { preferFlower: preferFlowerImage }).catch(() => null)
-      : null;
+
+    // Run competitor analysis and product image fetch in parallel — independent operations
+    const [competitorSuggestionsResult, featuredProductImage] = await Promise.all([
+      input.includeCompetitorAnalysis
+        ? (async () => {
+            try {
+              const competitorType = inferCompetitorType({ websiteTitle: result.websiteTitle, messaging });
+              const brandName = cleanString(messaging.brandName);
+              const city = cleanString(messaging.city);
+              const state = cleanString(messaging.state);
+              return competitorType === 'dispensary'
+                ? buildDispensaryCompetitorSuggestions({ brandId: input.brandId, url: input.url, brandName, city, state, limit: 5 })
+                : buildBrandCompetitorSuggestions({ url: input.url, brandName, city, state, limit: 5, type: competitorType });
+            } catch (competitorError) {
+              logger.warn('[extractBrandGuideFromUrl] Competitor suggestion lookup failed', {
+                url: input.url,
+                error: competitorError instanceof Error ? competitorError.message : String(competitorError),
+              });
+              return [];
+            }
+          })()
+        : Promise.resolve([]),
+      input.brandId && isRetailCannabisOrganization(organizationType, dispensaryType)
+        ? fetchFeaturedProductImage(input.brandId, { preferFlower: preferFlowerImage })
+        : Promise.resolve(null),
+    ]);
+    competitorSuggestions = competitorSuggestionsResult;
 
     logger.info('[extractBrandGuideFromUrl] Extraction result', {
       url: input.url,
