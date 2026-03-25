@@ -590,6 +590,7 @@ Only load these when needed to conserve context:
 | Pilot customer grounding | `src/server/grounding/` (inline docs) |
 | QA Simulation (Dispensary) | `dev/testing/dispensary_owner_week_simulation.md` |
 | QA Simulation (Brand) | `dev/testing/brand_owner_week_simulation.md` |
+| QA Simulation (Grower) | `dev/testing/grower_owner_week_simulation.md` |
 
 Full index in `refs/README.md`.
 
