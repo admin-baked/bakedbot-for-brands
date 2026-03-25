@@ -6,6 +6,7 @@
  */
 
 import { getAdminFirestore } from '@/firebase/admin';
+import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { logger } from '@/lib/logger';
 import { recordProactiveRuntimeDiagnostic } from '@/server/services/proactive-runtime-diagnostics';
 import { getCompetitorPricing } from './ezal/competitor-pricing';
@@ -46,31 +47,6 @@ function isMissingIndexError(error: unknown): boolean {
   return message.includes('requires an index') || message.includes('FAILED_PRECONDITION');
 }
 
-function toDate(value: unknown): Date | null {
-  if (!value) {
-    return null;
-  }
-
-  if (value instanceof Date) {
-    return value;
-  }
-
-  if (
-    typeof value === 'object' &&
-    value !== null &&
-    'toDate' in value &&
-    typeof (value as { toDate: () => Date }).toDate === 'function'
-  ) {
-    return (value as { toDate: () => Date }).toDate();
-  }
-
-  if (typeof value === 'string' || typeof value === 'number') {
-    const parsed = new Date(value);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-  }
-
-  return null;
-}
 
 async function getPreviousCompetitorHistoryEntry(input: {
   db: FirebaseFirestore.Firestore;
@@ -134,8 +110,8 @@ async function getPreviousCompetitorHistoryEntry(input: {
       .map((doc) => doc.data() as Record<string, unknown>)
       .filter((entry) => entry.productId === productId)
       .sort((left, right) => {
-        const leftTime = toDate(left.timestamp)?.getTime() ?? 0;
-        const rightTime = toDate(right.timestamp)?.getTime() ?? 0;
+        const leftTime = firestoreTimestampToDate(left.timestamp)?.getTime() ?? 0;
+        const rightTime = firestoreTimestampToDate(right.timestamp)?.getTime() ?? 0;
         return rightTime - leftTime;
       });
 

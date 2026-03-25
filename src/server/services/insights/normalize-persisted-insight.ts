@@ -1,4 +1,5 @@
 import type { InboxThreadType } from '@/types/inbox';
+import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import type {
   InsightCard,
   InsightCategory,
@@ -33,28 +34,6 @@ const INSIGHT_SEVERITIES = new Set<InsightSeverity>([
 
 const INSIGHT_TRENDS = new Set<InsightTrend>(['up', 'down', 'stable']);
 
-function toDate(value: unknown): Date | null {
-  if (value instanceof Date) {
-    return value;
-  }
-
-  if (
-    value &&
-    typeof value === 'object' &&
-    'toDate' in value &&
-    typeof (value as { toDate?: unknown }).toDate === 'function'
-  ) {
-    const date = (value as { toDate: () => Date }).toDate();
-    return Number.isNaN(date.getTime()) ? null : date;
-  }
-
-  if (typeof value === 'string' || typeof value === 'number') {
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? null : date;
-  }
-
-  return null;
-}
 
 function toInsightCategory(value: unknown): InsightCategory {
   return typeof value === 'string' && INSIGHT_CATEGORIES.has(value as InsightCategory)
@@ -129,7 +108,7 @@ export function normalizePersistedInsightCard(
         : 'No summary available',
     severity: toInsightSeverity(data.severity),
     actionable: Boolean(data.actionable),
-    lastUpdated: toDate(data.lastUpdated) ?? toDate(data.generatedAt) ?? new Date(),
+    lastUpdated: firestoreTimestampToDate(data.lastUpdated) ?? firestoreTimestampToDate(data.generatedAt) ?? new Date(),
     dataSource:
       typeof data.dataSource === 'string' && data.dataSource ? data.dataSource : 'insights',
   };

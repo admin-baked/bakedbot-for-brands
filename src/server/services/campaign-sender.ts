@@ -6,6 +6,7 @@
  */
 
 import { createServerClient } from '@/firebase/server-client';
+import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { logger } from '@/lib/logger';
 import { sendGenericEmail } from '@/lib/email/dispatcher';
 import { BlackleafService } from '@/lib/notifications/blackleaf-service';
@@ -63,31 +64,6 @@ function normalizeEmail(value: unknown): string | null {
     return normalized.length > 0 ? normalized : null;
 }
 
-function toDate(value: unknown): Date | null {
-    if (!value) {
-        return null;
-    }
-
-    if (value instanceof Date) {
-        return value;
-    }
-
-    if (
-        typeof value === 'object' &&
-        value !== null &&
-        'toDate' in value &&
-        typeof (value as { toDate: () => Date }).toDate === 'function'
-    ) {
-        return (value as { toDate: () => Date }).toDate();
-    }
-
-    if (typeof value === 'string' || typeof value === 'number') {
-        const parsed = new Date(value);
-        return Number.isNaN(parsed.getTime()) ? null : parsed;
-    }
-
-    return null;
-}
 
 function getCampaignCommunicationType(goal: Campaign['goal']): string {
     if (goal === 'winback') {
@@ -176,7 +152,7 @@ async function loadRecentlyContactedEmailsFromPerRecipientFallback(input: {
                     return false;
                 }
 
-                const communicationAt = toDate(data.sentAt) ?? toDate(data.createdAt);
+                const communicationAt = firestoreTimestampToDate(data.sentAt) ?? firestoreTimestampToDate(data.createdAt);
                 return communicationAt !== null && communicationAt >= lookbackDate;
             });
 

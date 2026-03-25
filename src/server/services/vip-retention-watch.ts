@@ -1,4 +1,5 @@
 import { FieldValue } from 'firebase-admin/firestore';
+import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import type { InboxArtifactProactiveMetadata, OutreachDraftData } from '@/types/inbox';
@@ -63,23 +64,6 @@ export interface VipRetentionWatchSummary {
     error?: string;
 }
 
-function toDate(value: unknown): Date | null {
-    if (!value) return null;
-    if (value instanceof Date) return value;
-    if (
-        typeof value === 'object' &&
-        value !== null &&
-        'toDate' in value &&
-        typeof (value as { toDate: () => Date }).toDate === 'function'
-    ) {
-        return (value as { toDate: () => Date }).toDate();
-    }
-    if (typeof value === 'string' || typeof value === 'number') {
-        const parsed = new Date(value);
-        return Number.isNaN(parsed.getTime()) ? null : parsed;
-    }
-    return null;
-}
 
 function normalizeSegment(value: unknown): CandidateSegment {
     switch (value) {
@@ -118,7 +102,7 @@ function getDaysSinceLastOrder(data: Record<string, unknown>): number {
         return Math.max(0, Math.floor(data.daysSinceLastOrder));
     }
 
-    const lastOrderDate = toDate(data.lastOrderDate);
+    const lastOrderDate = firestoreTimestampToDate(data.lastOrderDate);
     if (!lastOrderDate) {
         return 999;
     }

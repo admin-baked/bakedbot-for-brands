@@ -1,4 +1,5 @@
 import { FieldValue } from 'firebase-admin/firestore';
+import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import type { InboxArtifactProactiveMetadata } from '@/types/inbox';
@@ -60,14 +61,6 @@ function getWeekBucket(now: Date): string {
     return utc.toISOString().slice(0, 10);
 }
 
-function toDate(value: unknown): Date | null {
-    if (!value) return null;
-    if (value instanceof Date) return value;
-    if (typeof value === 'object' && 'toDate' in (value as object)) {
-        return (value as { toDate: () => Date }).toDate();
-    }
-    return null;
-}
 
 function getSeverity(signal: YieldAnomalySignal): ProactiveSeverity {
     const outOfStockRate = signal.totalProducts > 0
@@ -116,7 +109,7 @@ async function loadProductSnapshot(orgId: string): Promise<YieldAnomalySignal | 
             category: typeof d.category === 'string' ? d.category : 'unknown',
             inStock: d.inStock !== false,
             inventoryCount: typeof d.inventoryCount === 'number' ? d.inventoryCount : undefined,
-            updatedAt: toDate(d.updatedAt) ?? undefined,
+            updatedAt: firestoreTimestampToDate(d.updatedAt) ?? undefined,
         };
     });
 

@@ -1,36 +1,17 @@
 import { createServerClient } from '@/firebase/server-client';
+import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { logger } from '@/lib/logger';
 import { isProactiveDiagnosticsEnabled } from '@/server/services/proactive-settings';
 import type { ProactiveRuntimeDiagnosticRecord } from '@/types/proactive';
 
 export const PROACTIVE_RUNTIME_DIAGNOSTICS_COLLECTION = 'proactive_runtime_diagnostics';
 
-function toDate(value: unknown): Date | undefined {
-    if (!value) {
-        return undefined;
-    }
-
-    if (value instanceof Date) {
-        return value;
-    }
-
-    if (
-        typeof value === 'object' &&
-        value !== null &&
-        'toDate' in value &&
-        typeof (value as { toDate: () => Date }).toDate === 'function'
-    ) {
-        return (value as { toDate: () => Date }).toDate();
-    }
-
-    return undefined;
-}
 
 function toDiagnosticRecord(data: Record<string, unknown>, id: string): ProactiveRuntimeDiagnosticRecord {
     return {
         ...(data as Omit<ProactiveRuntimeDiagnosticRecord, 'id' | 'createdAt'>),
         id,
-        createdAt: toDate(data.createdAt) ?? new Date(),
+        createdAt: firestoreTimestampToDate(data.createdAt) ?? new Date(),
     };
 }
 

@@ -14,6 +14,7 @@
  */
 
 import { FieldValue } from 'firebase-admin/firestore';
+import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import { getMarketBenchmarks } from '@/server/services/market-benchmarks';
@@ -93,15 +94,6 @@ interface OrderRow {
     createdAt?: unknown;
 }
 
-function toDate(val: unknown): Date | null {
-    if (!val) return null;
-    if (val instanceof Date) return val;
-    if (typeof val === 'object' && '_seconds' in (val as Record<string, unknown>)) {
-        return new Date((val as { _seconds: number })._seconds * 1000);
-    }
-    if (typeof val === 'string' || typeof val === 'number') return new Date(val);
-    return null;
-}
 
 async function loadOrgProducts(orgId: string): Promise<ProductRow[]> {
     const db = getAdminFirestore();
@@ -432,7 +424,7 @@ function buildMetrics(
     // 4. Inventory At Risk (60+ days no sale)
     const now = Date.now();
     const atRisk = products.filter(p => {
-        const lastSale = toDate(p.lastSaleAt);
+        const lastSale = firestoreTimestampToDate(p.lastSaleAt);
         if (!lastSale) return (p.stock ?? 0) > 0;
         const days = (now - lastSale.getTime()) / 86_400_000;
         return days > 60 && (p.stock ?? 0) > 0;

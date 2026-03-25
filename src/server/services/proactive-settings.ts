@@ -1,4 +1,5 @@
 import { getAdminFirestore } from '@/firebase/admin';
+import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { logger } from '@/lib/logger';
 import type {
     OrgProactivePilotSettings,
@@ -35,26 +36,6 @@ export const DEFAULT_PROACTIVE_PILOT_SETTINGS: ProactivePilotSettings = {
     workflows: DEFAULT_PROACTIVE_WORKFLOW_TOGGLES,
 };
 
-function toDate(value: unknown): Date | undefined {
-    if (!value) {
-        return undefined;
-    }
-
-    if (value instanceof Date) {
-        return value;
-    }
-
-    if (
-        typeof value === 'object' &&
-        value !== null &&
-        'toDate' in value &&
-        typeof (value as { toDate: () => Date }).toDate === 'function'
-    ) {
-        return (value as { toDate: () => Date }).toDate();
-    }
-
-    return undefined;
-}
 
 function sanitizeWorkflowToggles(input?: Partial<Record<ProactiveWorkflowKey, unknown>>): ProactiveWorkflowToggles {
     return {
@@ -110,7 +91,7 @@ export function sanitizeOrgProactivePilotSettings(
             (pilot.workflows ?? {}) as Partial<Record<ProactiveWorkflowKey, unknown>>
         ),
         notes: typeof pilot.notes === 'string' ? pilot.notes : undefined,
-        updatedAt: toDate(pilot.updatedAt),
+        updatedAt: firestoreTimestampToDate(pilot.updatedAt) ?? undefined,
         updatedBy: typeof pilot.updatedBy === 'string' ? pilot.updatedBy : undefined,
     };
 }

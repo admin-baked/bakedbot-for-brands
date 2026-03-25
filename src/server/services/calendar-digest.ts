@@ -12,6 +12,7 @@
  */
 
 import { getAdminFirestore } from '@/firebase/admin';
+import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { listGoogleCalendarEvents } from './executive-calendar/google-calendar';
 import { logger } from '@/lib/logger';
 import type { GoogleCalendarTokens } from '@/types/executive-calendar';
@@ -46,18 +47,6 @@ function formatTimeEST(date: Date): string {
     }).format(date);
 }
 
-function toDateFromFirestore(val: unknown): Date {
-    if (!val) return new Date();
-    if (val instanceof Date) return val;
-    if (typeof val === 'object' && '_seconds' in (val as Record<string, unknown>)) {
-        return new Date((val as { _seconds: number })._seconds * 1000);
-    }
-    if (typeof val === 'object' && 'toDate' in (val as Record<string, unknown>)) {
-        return (val as { toDate: () => Date }).toDate();
-    }
-    if (typeof val === 'string' || typeof val === 'number') return new Date(val);
-    return new Date();
-}
 
 function isMissingIndexError(error: unknown): boolean {
     const message = error instanceof Error ? error.message : String(error);
@@ -76,8 +65,8 @@ function appendBakedBotMeetings(
             continue;
         }
 
-        const startAt = toDateFromFirestore(data.startAt);
-        const endAt = toDateFromFirestore(data.endAt);
+        const startAt = firestoreTimestampToDate(data.startAt) ?? new Date();
+        const endAt = firestoreTimestampToDate(data.endAt) ?? new Date();
 
         if (data.calendarEventId) {
             bakedBotEventIds.add(data.calendarEventId as string);

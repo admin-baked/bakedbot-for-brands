@@ -15,6 +15,7 @@
  */
 
 import { FieldValue } from 'firebase-admin/firestore';
+import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import { generateId } from '@/lib/utils';
@@ -30,18 +31,6 @@ import type {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function toDate(value: unknown): Date {
-    if (value instanceof Date) return value;
-    if (
-        typeof value === 'object' &&
-        value !== null &&
-        'toDate' in value &&
-        typeof (value as { toDate: () => Date }).toDate === 'function'
-    ) {
-        return (value as { toDate: () => Date }).toDate();
-    }
-    return new Date();
-}
 
 function deserializeApproval(id: string, data: FirebaseFirestore.DocumentData): ProactiveApprovalRecord {
     return {
@@ -54,14 +43,14 @@ function deserializeApproval(id: string, data: FirebaseFirestore.DocumentData): 
         policyMode: data.policyMode,
         status: data.status,
         severity: data.severity,
-        compliancePassedAt: data.compliancePassedAt ? toDate(data.compliancePassedAt) : undefined,
+        compliancePassedAt: data.compliancePassedAt ? firestoreTimestampToDate(data.compliancePassedAt) ?? new Date() : undefined,
         resolvedBy: data.resolvedBy,
-        resolvedAt: data.resolvedAt ? toDate(data.resolvedAt) : undefined,
+        resolvedAt: data.resolvedAt ? firestoreTimestampToDate(data.resolvedAt) ?? new Date() : undefined,
         rejectionReason: data.rejectionReason,
         payload: data.payload ?? {},
-        createdAt: toDate(data.createdAt),
-        updatedAt: toDate(data.updatedAt),
-        expiresAt: data.expiresAt ? toDate(data.expiresAt) : undefined,
+        createdAt: firestoreTimestampToDate(data.createdAt) ?? new Date(),
+        updatedAt: firestoreTimestampToDate(data.updatedAt) ?? new Date(),
+        expiresAt: data.expiresAt ? firestoreTimestampToDate(data.expiresAt) ?? new Date() : undefined,
     };
 }
 
