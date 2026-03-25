@@ -588,7 +588,8 @@ Only load these when needed to conserve context:
 | Past decisions | `refs/work-archive.md` |
 | Alleaves POS | `refs/alleaves-pos.md` |
 | Pilot customer grounding | `src/server/grounding/` (inline docs) |
-| QA Simulation Week | `dev/testing/dispensary_owner_week_simulation.md` |
+| QA Simulation (Dispensary) | `dev/testing/dispensary_owner_week_simulation.md` |
+| QA Simulation (Brand) | `dev/testing/brand_owner_week_simulation.md` |
 
 Full index in `refs/README.md`.
 

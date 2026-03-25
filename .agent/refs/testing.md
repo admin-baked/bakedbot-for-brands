@@ -258,9 +258,10 @@ Test production via BakedBot Chrome Extension.
 ```
 
 ### 5. Day-by-Day Dispense Simulation
-We have a custom persistent QA playbook that acts as the source-of-truth for testing the entire platform in a simulated dispensary owner week. 
-- Playbook location: `dev/testing/dispensary_owner_week_simulation.md`
-- Agents should execute this loop continuously to catch end-to-end bugs.
+We have custom persistent QA playbooks that act as the source-of-truth for testing the entire platform in simulated week-long sprints. 
+- Dispensary Playbook: `dev/testing/dispensary_owner_week_simulation.md`
+- Brand E-Com Playbook: `dev/testing/brand_owner_week_simulation.md`
+- Agents should execute these loops continuously to catch end-to-end bugs.
 
 ---
 
