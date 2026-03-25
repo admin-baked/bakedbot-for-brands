@@ -618,6 +618,20 @@
             ]
         },
         {
+            "collectionGroup": "drive_files",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "sharedWithRoles",
+                    "arrayConfig": "CONTAINS"
+                },
+                {
+                    "fieldPath": "isDeleted",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
             "collectionGroup": "drive_folders",
             "queryScope": "COLLECTION",
             "fields": [
