@@ -10,14 +10,18 @@
 **Objective**: Build the initial brand and app infrastructure.
 
 **1. Admin & Core Setup**
-- Navigate to **Admin -> Settings**.
-- Verify organization defaults and correct timezone.
+- Navigate to **Admin -> Settings** (*Full Profile Audit*).
+  - Update Organization Name and verify the "Save" toast notification appears.
+  - Upload a new Dispensary Logo and verify the preview thumbnail updates.
+  - Verify Organization Defaults (Timezone, Currency).
+  - Navigate to the "Team" or "Users" sub-tab and click "Invite Team Member". Simulate sending an invite to `test-manager@bakedbot.ai` with the 'Manager' role.
 - Navigate to **Admin -> Custom Domains**.
-- Attach a mock domain (e.g., `test-dispensary.shop`) and verify DNS status simulation.
+  - Attach a mock domain (e.g., `test-dispensary.shop`) and verify DNS status simulation.
 - Navigate to **Admin -> Email Warm-up**.
-- Verify IP warming status.
+  - Verify IP warming status block loads properly.
 - Navigate to **Admin -> App Store**.
-- Ensure the Alleaves POS integration is fully 'Connected'.
+  - Ensure the Alleaves POS integration is fully 'Connected'.
+  - Verify integration API keys can be revealed/hidden securely.
 
 **2. Customers (Mrs. Parker)**
 - Navigate to **Customers -> Loyalty Settings**.
@@ -80,10 +84,14 @@
 ## 📅 Day 4: Campaigns & Marketing
 **Objective**: Re-engage the VIP users created on Day 1.
 
-**1. Content Creation**
+**1. Content Creation (Creative Center)**
 - Navigate to **Marketing -> Creative Center**.
-- Prompt the Agent to generate an image for a "Friday Flower Drop". Wait for generation.
-- Save asset to the Library.
+  - Select "New Generation" and choose a specific target platform (e.g., "Instagram Square").
+  - Prompt the Creative AI: "A premium glass jar containing high-end cannabis flower, dramatic studio lighting, dark background."
+  - Wait for the fal.ai/FLUX.1 generation to complete and verify the image renders in the UI.
+  - Test the "Edit" or "Refine" tools: Ask the AI to "Add a subtle neon purple backlight."
+  - Save the finalized asset to the **Asset Library**.
+  - Optional: Assign the saved asset to the "Weekend Euphoria" Vibe preset created on Day 1.
 
 **2. Campaigns Dispatch**
 - Navigate to **Marketing -> Campaigns**.
