@@ -342,8 +342,10 @@ export async function saveProduct(prevState: ProductFormState, formData: FormDat
 export async function getBrandStatus() {
   const user = await requireUser(['brand', 'super_user', 'dispensary', 'dispensary_admin', 'dispensary_staff']);
   const { firestore } = await createServerClient();
+  
   // Use canonical orgId resolution for both brand and dispensary users
-  const orgId = user.brandId || (user as any).currentOrgId || (user as any).orgId || user.locationId;
+  const profile = user as any;
+  const orgId = profile.currentOrgId || profile.orgId || profile.brandId || profile.locationId;
 
   if (!orgId) return null;
 
@@ -397,8 +399,9 @@ export async function getProductsWithTiers(): Promise<ProductsDataWithTiers> {
         const { firestore } = await createServerClient();
         const user = await requireUser(['dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender', 'super_user']);
 
-        let locationId = user.locationId;
-        const orgId = (user as any).orgId || (user as any).currentOrgId || user.locationId;
+        const profile = user as any;
+        let locationId = profile.locationId;
+        const orgId = profile.currentOrgId || profile.orgId || profile.brandId || profile.locationId;
 
         logger.info('[PRODUCTS] getProductsWithTiers called', { locationId, orgId, role: user.role });
 

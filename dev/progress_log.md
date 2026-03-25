@@ -1,3 +1,25 @@
+## Session: 2026-03-25 (Dispensary Dashboard QA Fixes)
+### Task ID
+dispensary_dashboard_qa_fixes
+
+### Summary
+Resolved multiple bugs identified during the 7-day dispensary owner simulation. Fixed critical crashes in the AI Settings and Intelligence pages, corrected a data-fetching role restriction in Brand Status, and resolved a UI stats mismatch in Playbooks.
+
+### Key Changes
+*   **FIX**: `src/app/dashboard/settings/components/ai-settings-tab.tsx` - Resolved Radix UI `Select.Item` crash by replacing empty string with "default" value.
+*   **FIX**: `src/app/dashboard/intelligence/page.tsx` - Fixed server-side crash by using correct `orgId` resolution instead of `user.uid` and adding error boundaries for competitor reports.
+*   **FIX**: `src/app/dashboard/products/actions.ts` - Updated `getBrandStatus` to support dispensary roles, enabling the Brand Name field to populate correctly for Thrive Syracuse.
+*   **FIX**: `src/app/dashboard/dispensary/components/dispensary-playbooks-view.tsx` - Resolved stats mismatch ("22 Active" vs "0 Available") by scoping the active count to the current tier's playbook pool. Restored `availableTabs` logic.
+*   **VERIFY**: WordPress Plugin tab confirmed as functional (transient error).
+
+### Verification Results
+*   **AI Settings**: ✅ PASS (Local verification, no longer crashes on Radix value error)
+*   **Intelligence**: ✅ PASS (Local verification, loads correctly for dispensary role)
+*   **Playbooks Stats**: ✅ PASS (UI now shows consistent 0/0 or X/Y counts scoped to tier)
+*   **Brand Name**: ✅ PASS (Field now populates with 'Thrive Syracuse' from Firestore)
+
+---
+
 ## Session: 2026-03-24 (Build Failure Fix)
 ### Task ID
 fix_build_ts_errors

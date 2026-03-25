@@ -14,16 +14,24 @@ import { redirect } from 'next/navigation';
 import { listCompetitors } from '@/server/services/ezal/competitor-manager';
 import { generateCompetitorReport } from '@/server/services/ezal/report-generator';
 import { getEzalLimits } from '@/lib/plan-limits';
+import type { DecodedIdToken } from 'firebase-admin/auth';
 
 export default async function IntelligencePage() {
     let brandId = '';
     let maxCompetitors = 5;
+
     try {
         const user = await requireUser();
-        // Use org/brand/location ID — NOT user.uid — for dispensary and brand users
-        const profile = user as any;
+        // Use canonical orgId resolution chain for dispensary and brand users
+        const profile = user as DecodedIdToken & { 
+            currentOrgId?: string; 
+            orgId?: string; 
+            brandId?: string; 
+            locationId?: string;
+            planId?: string;
+        };
         brandId = profile.currentOrgId || profile.orgId || profile.brandId || profile.locationId || user.uid;
-        const planId = profile.planId as string || 'scout';
+        const planId = profile.planId || 'scout';
         const ezalLimits = getEzalLimits(planId);
         maxCompetitors = ezalLimits.maxCompetitors;
     } catch {

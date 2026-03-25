@@ -82,9 +82,9 @@ export function AISettingsTab() {
                     setAvoidTopics(tenantSettings.avoidTopics?.join(', ') || '');
                 }
 
-                // Get tenant ID
+                // Get tenant ID using canonical resolution chain
                 const profile = user as any;
-                setTenantId(profile?.brandId || profile?.locationId || profile?.orgId || null);
+                setTenantId(profile.currentOrgId || profile.orgId || profile.brandId || profile.locationId || null);
             }
         } catch (error) {
             console.error('Failed to load AI settings:', error);
