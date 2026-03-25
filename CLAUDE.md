@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-03-26 (Linus Slack audit — 7 bridge bugs fixed: image validation, context history ×2.5, prefix dedup, god mode routing, error replay, event dedup)
+**Current Status:** 🟢 Passing | **Last update:** 2026-03-26 (Brand Guide: Firestore serialization fix + PR merges #33/#38/#39/#40/#41 + featured Flower product image in scan)
 
 ---
 
