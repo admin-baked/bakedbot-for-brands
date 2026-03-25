@@ -406,12 +406,14 @@ export default function CreativeCommandCenter() {
       const brandPrefix = brandGuide?.brandName ? `${brandGuide.brandName} cannabis brand. ` : '';
       const voiceSuffix = brandVoiceString ? ` Tone: ${brandVoiceString}.` : '';
       const isSlideshow = imageMode === 'slideshow';
+      const trimmedPrompt = campaignPrompt.trim();
+      const brandTagline = brandGuide?.messaging?.tagline;
 
       const videoPrompt = isSlideshow
         // Remotion slideshow: prompt used as tagline/headline — keep short, brand-focused
-        ? `${campaignPrompt.trim()}`
+        ? trimmedPrompt
         // Kling: cinematic lifestyle prompt
-        : `${brandPrefix}${campaignPrompt.trim()}${voiceSuffix} Cannabis lifestyle marketing video, no text overlays, cinematic quality.`;
+        : `${brandPrefix}${trimmedPrompt}${voiceSuffix} Cannabis lifestyle marketing video, no text overlays, cinematic quality.`;
 
       setIsGeneratingVideo(true);
       setLocalVideoUrl(null);
@@ -426,7 +428,7 @@ export default function CreativeCommandCenter() {
             secondaryColor: brandColors?.secondary,
             accentColor: brandColors?.accent,
             logoUrl: brandGuide?.visualIdentity?.logo?.primary,
-            tagline: isSlideshow ? (brandGuide?.messaging?.tagline || campaignPrompt.trim().substring(0, 60)) : brandGuide?.messaging?.tagline,
+            tagline: isSlideshow ? (brandTagline || trimmedPrompt.substring(0, 60)) : brandTagline,
           },
           { allowFallbackDemo: false, forceProvider: isSlideshow ? 'remotion' : 'kling' }
         );

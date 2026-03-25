@@ -20,6 +20,7 @@ import { generateVeoVideo } from '../generators/veo';
 import { generateKlingVideo, generateWanVideo } from '../generators/fal-video';
 import { generateRemotionVideo } from '../generators/remotion-video';
 import { getSafeVideoProviderAction } from '@/server/actions/super-admin/safe-settings';
+import type { SafeVideoProvider } from '@/server/actions/super-admin/safe-settings-types';
 
 const FALLBACK_VIDEO_URL = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4';
 
@@ -28,7 +29,7 @@ const FALLBACK_VIDEO_URL = 'https://commondatastorage.googleapis.com/gtv-videos-
  */
 export async function generateMarketingVideo(
     input: z.infer<typeof GenerateVideoInputSchema>,
-    options?: { allowFallbackDemo?: boolean; forceProvider?: string }
+    options?: { allowFallbackDemo?: boolean; forceProvider?: SafeVideoProvider }
 ): Promise<z.infer<typeof GenerateVideoOutputSchema>> {
     if (options?.allowFallbackDemo === false || options?.forceProvider) {
         return runVideoGeneration(input, options);
@@ -47,7 +48,7 @@ const generateVideoFlow = ai.defineFlow(
 
 async function runVideoGeneration(
     input: z.infer<typeof GenerateVideoInputSchema>,
-    options?: { allowFallbackDemo?: boolean; forceProvider?: string }
+    options?: { allowFallbackDemo?: boolean; forceProvider?: SafeVideoProvider }
 ): Promise<z.infer<typeof GenerateVideoOutputSchema>> {
     // forceProvider bypasses CEO settings — used by Creative Center to route
     // Kling (cinematic AI footage) vs Remotion (branded text slideshows) explicitly.

@@ -101,7 +101,7 @@ function serializeOrgProactiveSettings(
 
 const DEFAULT_SAFE_SYSTEM_SETTINGS: SafeSystemSettings = {
     emailProvider: 'sendgrid',
-    videoProvider: 'veo',
+    videoProvider: 'kling',
 };
 
 async function loadSafeSystemSettings(): Promise<SafeSystemSettings> {
