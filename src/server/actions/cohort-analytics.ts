@@ -13,6 +13,7 @@
  */
 
 import { FieldValue } from 'firebase-admin/firestore';
+import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { getAdminFirestore } from '@/firebase/admin';
 import { requireUser } from '@/server/auth/auth';
 import { logger } from '@/lib/logger';
@@ -127,8 +128,8 @@ export async function computeCohortData(
         const data = doc.data();
         if (data.archived === true) return false;
         // Include if lastOrderDate >= cutoff OR firstOrderDate >= cutoff
-        const lastOrder = toDate(data.lastOrderDate);
-        const firstOrder = toDate(data.firstOrderDate);
+        const lastOrder = firestoreTimestampToDate(data.lastOrderDate);
+        const firstOrder = firestoreTimestampToDate(data.firstOrderDate);
         if (lastOrder && lastOrder >= cutoff) return true;
         if (firstOrder && firstOrder >= cutoff) return true;
         return false;
@@ -249,7 +250,7 @@ export async function getLastCohortReportDate(orgId: string): Promise<Date | nul
             .get();
         if (snap.empty) return null;
         const data = snap.docs[0].data();
-        return toDate(data.createdAt);
+        return firestoreTimestampToDate(data.createdAt);
     } catch {
         return null;
     }
@@ -373,16 +374,4 @@ function buildSummary(
 
     return lines.join('\n');
 }
-
-function toDate(val: unknown): Date | null {
-    if (!val) return null;
-    if (val instanceof Date) return val;
-    if (typeof val === 'object' && '_seconds' in (val as Record<string, unknown>)) {
-        return new Date((val as { _seconds: number })._seconds * 1000);
-    }
-    if (typeof (val as { toDate?: unknown }).toDate === 'function') {
-        return (val as { toDate: () => Date }).toDate();
-    }
-    if (typeof val === 'string' || typeof val === 'number') return new Date(val);
-    return null;
-}
+

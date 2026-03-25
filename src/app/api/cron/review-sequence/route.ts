@@ -10,6 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { getAdminFirestore } from '@/firebase/admin';
 import { sendGenericEmail } from '@/lib/email/dispatcher';
 import { requireCronSecret } from '@/server/auth/cron';
@@ -41,11 +42,6 @@ interface CheckinVisit {
     reviewSequence: ReviewSequence;
 }
 
-function toDate(val: FirebaseFirestore.Timestamp | Date | undefined): Date | null {
-    if (!val) return null;
-    if (val instanceof Date) return val;
-    return (val as FirebaseFirestore.Timestamp).toDate();
-}
 
 // Maps orgId → display name for email copy
 function getDispensaryName(orgId: string): string {
@@ -192,8 +188,8 @@ async function processVisit(
     }
 
     const dispensaryName = getDispensaryName(visit.orgId);
-    const checkoutScheduled = toDate(seq.checkoutEmailScheduledAt);
-    const nudgeScheduled = toDate(seq.reviewNudgeScheduledAt);
+    const checkoutScheduled = firestoreTimestampToDate(seq.checkoutEmailScheduledAt);
+    const nudgeScheduled = firestoreTimestampToDate(seq.reviewNudgeScheduledAt);
 
     // Build both email promises in parallel if both are due
     const emailTasks: Promise<void>[] = [];

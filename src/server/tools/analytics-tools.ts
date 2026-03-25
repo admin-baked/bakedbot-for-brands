@@ -12,6 +12,7 @@
  */
 
 import { z } from 'zod';
+import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { getAdminFirestore } from '@/firebase/admin';
 import { Timestamp } from 'firebase-admin/firestore';
 import { logger } from '@/lib/logger';
@@ -89,12 +90,6 @@ function effectiveCost(p: RawProduct): number | null {
   return null;
 }
 
-function toDate(v: Timestamp | Date | null | undefined): Date | null {
-  if (!v) return null;
-  if (v instanceof Date) return v;
-  if (typeof (v as Timestamp).toDate === 'function') return (v as Timestamp).toDate();
-  return null;
-}
 
 // =============================================================================
 // TOOL 1: PROMOTION SCORECARD
@@ -218,11 +213,11 @@ async function promotionScorecard(
   const allOrders = await fetchOrders(orgId, compStart, promoEnd);
 
   const promoOrders = allOrders.filter(o => {
-    const d = toDate(o.createdAt);
+    const d = firestoreTimestampToDate(o.createdAt);
     return d && d >= promoStart && d <= promoEnd;
   });
   const compOrders = allOrders.filter(o => {
-    const d = toDate(o.createdAt);
+    const d = firestoreTimestampToDate(o.createdAt);
     return d && d >= compStart && d <= compEnd;
   });
 
@@ -516,7 +511,7 @@ async function inventoryHealthScore(
   // Build last-sale date map (most recent order containing productId in 90d)
   const lastSaleMap = new Map<string, Date>();
   for (const order of orders90) {
-    const orderDate = toDate(order.createdAt);
+    const orderDate = firestoreTimestampToDate(order.createdAt);
     if (!orderDate) continue;
     for (const item of order.items || []) {
       const prev = lastSaleMap.get(item.productId);
@@ -539,7 +534,7 @@ async function inventoryHealthScore(
     : products;
 
   const items: InventoryItem[] = filtered.map(p => {
-    const lastSale = lastSaleMap.get(p.id) || (toDate(p.lastSaleAt) ?? null);
+    const lastSale = lastSaleMap.get(p.id) || (firestoreTimestampToDate(p.lastSaleAt) ?? null);
     const daysSince = lastSale ? daysBetween(lastSale, now) : 91; // no sale = bucket as 90+
     const currentStock = p.stockCount ?? 0;
     const units7 = units7Map.get(p.id) || 0;

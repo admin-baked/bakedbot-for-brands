@@ -1,6 +1,7 @@
 'use server';
 
 import { createServerClient } from '@/firebase/server-client';
+import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { requireUser } from '@/server/auth/auth';
 import { logger } from '@/lib/logger';
 import { analyzeCustomerPreferences } from '@/lib/analytics/customer-preferences';
@@ -220,19 +221,6 @@ function deriveTier(totalSpent: number): CustomerProfile['tier'] {
     return 'bronze';
 }
 
-function toDate(value: unknown): Date | undefined {
-    if (!value) return undefined;
-    if (value instanceof Date) return value;
-    if (typeof value === 'object' && value && 'toDate' in value && typeof (value as { toDate?: unknown }).toDate === 'function') {
-        return (value as { toDate: () => Date }).toDate();
-    }
-    if (typeof value === 'string' || typeof value === 'number') {
-        const date = new Date(value);
-        return Number.isNaN(date.getTime()) ? undefined : date;
-    }
-    return undefined;
-}
-
 function toIsoDate(value: Date | undefined): string | null {
     return value ? value.toISOString() : null;
 }
@@ -279,8 +267,8 @@ function mergeSpending(customer: CustomerProfile, spending: CustomerSpendingData
 
     const totalSpent = spending.totalSpent;
     const orderCount = spending.orderCount;
-    const lastOrderDate = toDate(spending.lastOrderDate);
-    const firstOrderDate = toDate(spending.firstOrderDate) ?? customer.firstOrderDate;
+    const lastOrderDate = (firestoreTimestampToDate(spending.lastOrderDate) ?? undefined);
+    const firstOrderDate = firestoreTimestampToDate(spending.firstOrderDate) ?? customer.firstOrderDate;
     const daysSinceLastOrder = lastOrderDate
         ? Math.floor((Date.now() - lastOrderDate.getTime()) / (1000 * 60 * 60 * 24))
         : customer.daysSinceLastOrder;
@@ -373,8 +361,8 @@ function buildCustomerFromCrmDoc(
 ): CustomerProfile {
     const totalSpent = data.totalSpent || data.lifetimeValue || 0;
     const orderCount = data.orderCount || 0;
-    const lastOrderDate = toDate(data.lastOrderDate);
-    const firstOrderDate = toDate(data.firstOrderDate);
+    const lastOrderDate = (firestoreTimestampToDate(data.lastOrderDate) ?? undefined);
+    const firstOrderDate = (firestoreTimestampToDate(data.firstOrderDate) ?? undefined);
     const avgOrderValue = data.avgOrderValue || (orderCount > 0 ? totalSpent / orderCount : 0);
     const daysSinceLastOrder = lastOrderDate
         ? Math.floor((Date.now() - lastOrderDate.getTime()) / (1000 * 60 * 60 * 24))
@@ -412,8 +400,8 @@ function buildCustomerFromCrmDoc(
         preferences: data.preferences,
         notes: data.notes,
         source: data.source || 'manual',
-        createdAt: toDate(data.createdAt) || new Date(),
-        updatedAt: toDate(data.updatedAt) || new Date(),
+        createdAt: (firestoreTimestampToDate(data.createdAt) ?? undefined) || new Date(),
+        updatedAt: (firestoreTimestampToDate(data.updatedAt) ?? undefined) || new Date(),
     });
 }
 
@@ -426,9 +414,9 @@ function buildCustomerFromAlleavesRecord(
     const identity = extractAlleavesCustomerIdentity(alleavesCustomer);
     const firstName = identity.firstName || '';
     const lastName = identity.lastName || '';
-    const lastOrderDate = toDate(spending?.lastOrderDate);
-    const firstOrderDate = toDate(spending?.firstOrderDate)
-        || toDate(alleavesCustomer.date_created);
+    const lastOrderDate = (firestoreTimestampToDate(spending?.lastOrderDate) ?? undefined);
+    const firstOrderDate = (firestoreTimestampToDate(spending?.firstOrderDate) ?? undefined)
+        || (firestoreTimestampToDate(alleavesCustomer.date_created) ?? undefined);
     const totalSpent = spending?.totalSpent ?? 0;
     const orderCount = spending?.orderCount ?? 0;
     const avgOrderValue = spending?.avgOrderValue ?? (orderCount > 0 ? totalSpent / orderCount : 0);
@@ -521,10 +509,10 @@ async function loadCustomerBaseDetail(
     if (fallback) {
         const fallbackCustomer = mergeSpending({
             ...fallback,
-            lastOrderDate: toDate(fallback.lastOrderDate),
-            firstOrderDate: toDate(fallback.firstOrderDate),
-            createdAt: toDate(fallback.createdAt) || new Date(),
-            updatedAt: toDate(fallback.updatedAt) || new Date(),
+            lastOrderDate: (firestoreTimestampToDate(fallback.lastOrderDate) ?? undefined),
+            firstOrderDate: (firestoreTimestampToDate(fallback.firstOrderDate) ?? undefined),
+            createdAt: (firestoreTimestampToDate(fallback.createdAt) ?? undefined) || new Date(),
+            updatedAt: (firestoreTimestampToDate(fallback.updatedAt) ?? undefined) || new Date(),
         }, spending);
 
         return {
@@ -558,7 +546,7 @@ function mapAlleavesOrder(order: ALLeavesOrder): CustomerOrder {
 }
 
 function mapCachedOrder(order: Record<string, unknown>): CustomerOrder {
-    const createdAt = toDate(order.date_created) || toDate(order.created_at) || new Date();
+    const createdAt = (firestoreTimestampToDate(order.date_created) ?? undefined) || (firestoreTimestampToDate(order.created_at) ?? undefined) || new Date();
     const items = Array.isArray(order.items) ? order.items : [];
 
     return {

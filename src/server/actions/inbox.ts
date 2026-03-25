@@ -8,6 +8,7 @@
  */
 
 import { FieldValue } from 'firebase-admin/firestore';
+import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { getAdminFirestore } from '@/firebase/admin';
 import { getServerSessionUser } from '@/server/auth/session';
 import { logger } from '@/lib/logger';
@@ -110,18 +111,6 @@ function getThreadCustomerDisplayName(thread: InboxThread): string | null {
 /**
  * Convert Firestore timestamp to Date
  */
-function toDate(timestamp: unknown): Date {
-    if (timestamp && typeof timestamp === 'object' && 'toDate' in timestamp) {
-        return (timestamp as { toDate: () => Date }).toDate();
-    }
-    if (timestamp instanceof Date) {
-        return timestamp;
-    }
-    if (typeof timestamp === 'string') {
-        return new Date(timestamp);
-    }
-    return new Date();
-}
 
 /**
  * Serialize thread for client (convert Dates to ISO strings)
@@ -129,12 +118,12 @@ function toDate(timestamp: unknown): Date {
 function serializeThread(thread: InboxThread): InboxThread {
     return {
         ...thread,
-        createdAt: toDate(thread.createdAt),
-        updatedAt: toDate(thread.updatedAt),
-        lastActivityAt: toDate(thread.lastActivityAt),
+        createdAt: (firestoreTimestampToDate(thread.createdAt) ?? new Date()),
+        updatedAt: (firestoreTimestampToDate(thread.updatedAt) ?? new Date()),
+        lastActivityAt: (firestoreTimestampToDate(thread.lastActivityAt) ?? new Date()),
         messages: thread.messages.map((msg) => ({
             ...msg,
-            timestamp: toDate(msg.timestamp),
+            timestamp: (firestoreTimestampToDate(msg.timestamp) ?? new Date()),
         })),
     };
 }
@@ -145,10 +134,10 @@ function serializeThread(thread: InboxThread): InboxThread {
 function serializeArtifact(artifact: InboxArtifact): InboxArtifact {
     return {
         ...artifact,
-        createdAt: toDate(artifact.createdAt),
-        updatedAt: toDate(artifact.updatedAt),
-        approvedAt: artifact.approvedAt ? toDate(artifact.approvedAt) : undefined,
-        publishedAt: artifact.publishedAt ? toDate(artifact.publishedAt) : undefined,
+        createdAt: (firestoreTimestampToDate(artifact.createdAt) ?? new Date()),
+        updatedAt: (firestoreTimestampToDate(artifact.updatedAt) ?? new Date()),
+        approvedAt: artifact.approvedAt ? (firestoreTimestampToDate(artifact.approvedAt) ?? new Date()) : undefined,
+        publishedAt: artifact.publishedAt ? (firestoreTimestampToDate(artifact.publishedAt) ?? new Date()) : undefined,
     };
 }
 

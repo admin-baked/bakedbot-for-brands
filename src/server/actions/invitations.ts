@@ -1,6 +1,7 @@
 'use server';
 
 import { z } from 'zod';
+import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { v4 as uuidv4 } from 'uuid';
 import { FieldValue } from 'firebase-admin/firestore';
 
@@ -75,15 +76,6 @@ function getInvitationCopy(role: InvitationRole, organizationName?: string) {
         `,
         text: `You've been invited!\n\nYou have been invited to join ${targetName} as a ${role}.\n\nAccept Invitation:\n__INVITE_LINK__\n\nThis link expires in 7 days. If you didn't expect this invitation, you can ignore this email.`,
     };
-}
-
-function toDateValue(value: unknown): Date {
-    if (value instanceof Date) return value;
-    if (value && typeof value === 'object' && 'toDate' in value && typeof (value as { toDate?: unknown }).toDate === 'function') {
-        return (value as { toDate: () => Date }).toDate();
-    }
-
-    return new Date(value as string | number | Date);
 }
 
 async function resolveInvitationOrganization(
@@ -290,8 +282,8 @@ export async function getInvitationsAction(orgId?: string) {
                 const data = doc.data();
                 return {
                     ...data,
-                    createdAt: toDateValue(data.createdAt),
-                    expiresAt: toDateValue(data.expiresAt),
+                    createdAt: (firestoreTimestampToDate(data.createdAt) ?? new Date()),
+                    expiresAt: (firestoreTimestampToDate(data.expiresAt) ?? new Date()),
                 } as Invitation;
             });
         }
@@ -308,8 +300,8 @@ export async function getInvitationsAction(orgId?: string) {
             const data = doc.data();
             return {
                 ...data,
-                createdAt: toDateValue(data.createdAt),
-                expiresAt: toDateValue(data.expiresAt),
+                createdAt: (firestoreTimestampToDate(data.createdAt) ?? new Date()),
+                expiresAt: (firestoreTimestampToDate(data.expiresAt) ?? new Date()),
             } as Invitation;
         });
     } catch (error: any) {
@@ -392,7 +384,7 @@ export async function validateInvitationAction(token: string) {
             return { valid: false, message: 'Invitation is no longer valid.' };
         }
 
-        if (new Date() > toDateValue(data.expiresAt)) {
+        if (new Date() > (firestoreTimestampToDate(data.expiresAt) ?? new Date())) {
             return { valid: false, message: 'Invitation has expired.' };
         }
 
@@ -400,8 +392,8 @@ export async function validateInvitationAction(token: string) {
             valid: true,
             invitation: {
                 ...data,
-                createdAt: toDateValue(data.createdAt),
-                expiresAt: toDateValue(data.expiresAt),
+                createdAt: (firestoreTimestampToDate(data.createdAt) ?? new Date()),
+                expiresAt: (firestoreTimestampToDate(data.expiresAt) ?? new Date()),
             } as Invitation,
         };
     } catch (error: any) {

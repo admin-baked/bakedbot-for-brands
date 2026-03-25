@@ -10,6 +10,7 @@ import type {
     SafeProactiveOpsTaskSummary,
     SafeProactiveOpsWorkflowSummary,
 } from './safe-settings-types';
+import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import type {
     ProactiveCommitmentRecord,
     ProactiveOutcomeRecord,
@@ -39,29 +40,8 @@ const PROACTIVE_WORKFLOW_KEYS: readonly ProactiveWorkflowKey[] = [
     'competitor_pricing_watch',
 ] as const;
 
-function toDate(value: unknown): Date | undefined {
-    if (!value) {
-        return undefined;
-    }
-
-    if (value instanceof Date) {
-        return value;
-    }
-
-    if (
-        typeof value === 'object' &&
-        value !== null &&
-        'toDate' in value &&
-        typeof (value as { toDate: () => Date }).toDate === 'function'
-    ) {
-        return (value as { toDate: () => Date }).toDate();
-    }
-
-    return undefined;
-}
-
 function toIsoString(value: unknown): string | undefined {
-    return toDate(value)?.toISOString();
+    return firestoreTimestampToDate(value)?.toISOString();
 }
 
 function countRecentDiagnostics(
@@ -74,7 +54,7 @@ function countRecentDiagnostics(
             return false;
         }
 
-        return (toDate(diagnostic.createdAt)?.getTime() ?? 0) >= cutoff;
+        return (firestoreTimestampToDate(diagnostic.createdAt)?.getTime() ?? 0) >= cutoff;
     }).length;
 }
 
@@ -88,7 +68,7 @@ function countRecentOutcomes(
             return false;
         }
 
-        return (toDate(outcome.createdAt)?.getTime() ?? 0) >= cutoff;
+        return (firestoreTimestampToDate(outcome.createdAt)?.getTime() ?? 0) >= cutoff;
     }).length;
 }
 
@@ -126,8 +106,8 @@ function sortByNewestTimestamp<T>(
     getValue: (item: T) => unknown
 ): T[] {
     return [...items].sort((left, right) => {
-        const leftTime = toDate(getValue(left))?.getTime() ?? 0;
-        const rightTime = toDate(getValue(right))?.getTime() ?? 0;
+        const leftTime = firestoreTimestampToDate(getValue(left))?.getTime() ?? 0;
+        const rightTime = firestoreTimestampToDate(getValue(right))?.getTime() ?? 0;
         return rightTime - leftTime;
     });
 }
@@ -233,7 +213,7 @@ function buildDiagnosticSourceSummaries(
     cutoff: number
 ): SafeProactiveDiagnosticSourceSummary[] {
     const recentDiagnostics = diagnostics.filter(
-        (diagnostic) => (toDate(diagnostic.createdAt)?.getTime() ?? 0) >= cutoff
+        (diagnostic) => (firestoreTimestampToDate(diagnostic.createdAt)?.getTime() ?? 0) >= cutoff
     );
     const bySource = new Map<string, SafeProactiveDiagnosticSourceSummary>();
 
@@ -364,7 +344,7 @@ export function buildSafeProactiveOpsSummary(input: {
             approvalsLast7Days: countRecentOutcomes(input.outcomes, 'approved', cutoff),
             dismissalsLast7Days: countRecentOutcomes(input.outcomes, 'dismissed', cutoff),
             outcomesLast7Days: input.outcomes.filter(
-                (outcome) => (toDate(outcome.createdAt)?.getTime() ?? 0) >= cutoff
+                (outcome) => (firestoreTimestampToDate(outcome.createdAt)?.getTime() ?? 0) >= cutoff
             ).length,
             fallbackEventsLast7Days: countRecentDiagnostics(input.diagnostics, 'fallback', cutoff),
         },

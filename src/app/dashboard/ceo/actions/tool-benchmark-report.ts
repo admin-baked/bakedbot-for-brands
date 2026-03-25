@@ -1,3 +1,4 @@
+import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 interface ToolCallLike {
     name?: string;
     status?: 'success' | 'error' | string;
@@ -102,31 +103,6 @@ export interface AgentToolBenchmarkReport {
     recommendations: string[];
 }
 
-function toDate(value: AgentTelemetryLike['timestamp']): Date | null {
-    if (!value) {
-        return null;
-    }
-
-    if (value instanceof Date) {
-        return value;
-    }
-
-    if (typeof value === 'string') {
-        const parsed = new Date(value);
-        return Number.isNaN(parsed.getTime()) ? null : parsed;
-    }
-
-    if (typeof value === 'object' && typeof value.toDate === 'function') {
-        try {
-            const parsed = value.toDate();
-            return Number.isNaN(parsed.getTime()) ? null : parsed;
-        } catch {
-            return null;
-        }
-    }
-
-    return null;
-}
 
 function asNumber(value: unknown, fallback = 0): number {
     const n = Number(value);
@@ -197,7 +173,7 @@ export function buildAgentToolBenchmarkReport(
 ): AgentToolBenchmarkReport {
     const cutoffMs = Date.now() - (windowDays * 24 * 60 * 60 * 1000);
     const scoped = events.filter((event) => {
-        const timestamp = toDate(event.timestamp);
+        const timestamp = firestoreTimestampToDate(event.timestamp);
         return !!timestamp && timestamp.getTime() >= cutoffMs;
     });
 

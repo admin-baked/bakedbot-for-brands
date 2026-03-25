@@ -1,5 +1,5 @@
 /**
- * Shared Firestore utility helpers — server-side only.
+ * Shared Firestore utility helpers — safe for both server and client.
  */
 
 /**
@@ -36,7 +36,8 @@ export function firestoreTimestampToDate(value: unknown): Date | null {
         '_seconds' in value &&
         typeof (value as { _seconds: unknown })._seconds === 'number'
     ) {
-        return new Date((value as { _seconds: number })._seconds * 1000);
+        const d = new Date((value as { _seconds: number })._seconds * 1000);
+        return Number.isNaN(d.getTime()) ? null : d;
     }
 
     if (typeof value === 'string' || typeof value === 'number') {
