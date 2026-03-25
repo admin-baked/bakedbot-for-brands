@@ -142,7 +142,7 @@ export async function generateBrandImagesForNewAccount(
  */
 export async function getBrandKitImages(
     brandId: string
-): Promise<{ url: string; name: string; type: string }[]> {
+): Promise<{ url: string; name: string; type: string; driveFileId?: string }[]> {
     try {
         const { firestore } = await createServerClient();
         const snapshot = await firestore
@@ -155,6 +155,7 @@ export async function getBrandKitImages(
             url: doc.data().downloadUrl as string,
             name: (doc.data().label || doc.data().imageType) as string,
             type: doc.data().imageType as string,
+            driveFileId: doc.data().driveFileId as string | undefined,
         }));
     } catch (err) {
         logger.error('[BrandImages] getBrandKitImages failed', { brandId, error: String(err) });

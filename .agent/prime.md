@@ -60,6 +60,19 @@ npm run check:types
 3. `git push origin main --force-with-lease`
 4. Dismiss alerts via `gh api --method PATCH repos/admin-baked/bakedbot-for-brands/secret-scanning/alerts/$id -f state=resolved -f resolution=revoked`
 
+## 🚨 ELEVATED MODE GOTCHA: Sandbox Failures Can Look Like App Bugs
+
+**Triggered 2026-03-25** — some required verification and live-ops commands time out or fail in the default sandbox even when app code is healthy.
+
+**Common symptoms:**
+| Symptom | What it usually means |
+|---------|------------------------|
+| `EPERM: lstat 'C:\\Users\\admin'` from Jest / Node startup | Sandbox filesystem boundary, not automatically a product regression |
+| `npm run check:types` timing out in sandbox | Command likely needs elevated execution, not a TypeScript fix |
+| Firebase / GitHub / gcloud commands failing after code changes | Network or credential boundary, rerun elevated before blaming the app |
+
+**Rule:** if a critical verification or live Firebase / GitHub command fails for sandbox reasons, rerun it in elevated mode before assuming the product is broken.
+
 ## Session 2026-03-20 (Smokey Budtender Production Fix)
 **Recent work (2026-03-20):** See `memory/MEMORY.md` for full log.
 Key completed: [Smokey "yes"→checkout + menu search fix] (`2d52f6e16`)
