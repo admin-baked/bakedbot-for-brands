@@ -39,7 +39,7 @@ npm run check:types
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
 **Current Status:** 🟢 Passing — Universal MCP (jcodemunch for Cursor/VS Code) + Claude tool caching + prompt cache telemetry.
-**Recent work (2026-03-25):** Universal MCP config + tool cache_control + cache token tracking (`9637bc06c`), simplify fixes: hoist systemPrompt, UsageWithCache type, remove dead field (`ab5c1f976`).
+**Recent work (2026-03-25):** PowerPoint deck generation (`f71e8b33d`): pptxgenjs + GLM-5 scripting → Firebase Storage; Creative Center 5th media mode 📊 Deck (pitch/menu/training/campaign). Branded image cross-origin fix + Remotion/Kling routing split.
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
