@@ -6,6 +6,25 @@
 
 ---
 
+## 🛠 STARTUP: Confirm jcodemunch
+
+Before anything else, verify the codebase index is active:
+
+```bash
+# Check .w/ exists (project index) + read savings
+ls .w/ > /dev/null 2>&1 && cat ~/.code-index/_savings.json
+```
+
+| Result | Action |
+|--------|--------|
+| `.w/` exists + savings JSON present | ✅ Report: "jcodemunch active — X tokens saved (~$Y)" |
+| `.w/` missing | ⚠️ Prompt user: "jcodemunch not detected. Run: `jcodemunch index` in the project root to activate context compression. Install at https://jcodemunch.com if needed." |
+| `_savings.json` missing | `.w/` present but no savings yet — first session, report tokens saved as 0 |
+
+**Dollar estimate:** `total_tokens_saved × $0.000003` (Sonnet input rate, $3/M tokens)
+
+---
+
 ## 🚨 PRIORITY ZERO: Build Health
 
 Before ANY work, verify the build is healthy:
@@ -19,8 +38,8 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — Creative Center: branded OG fix + Kling/Remotion split + brand guide colors.
-**Recent work (2026-03-24):** Branded OG image fix + brand guide wiring (`0c84526c7`), Kling/Remotion 4-mode split + SafeVideoProvider typing (`8ddb0e358`).
+**Current Status:** 🟢 Passing — Universal MCP (jcodemunch for Cursor/VS Code) + Claude tool caching + prompt cache telemetry.
+**Recent work (2026-03-25):** Universal MCP config + tool cache_control + cache token tracking (`9637bc06c`), simplify fixes: hoist systemPrompt, UsageWithCache type, remove dead field (`ab5c1f976`).
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 

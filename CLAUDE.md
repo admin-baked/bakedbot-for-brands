@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-03-24 (Creative Center: branded OG fix + Kling/Remotion split + brand guide colors in video)
+**Current Status:** 🟢 Passing | **Last update:** 2026-03-25 (Universal MCP jcodemunch + Claude tool caching + prompt cache telemetry)
 
 ---
 
