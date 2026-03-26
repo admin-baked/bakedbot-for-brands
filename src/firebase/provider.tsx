@@ -39,11 +39,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children, fi
     // Only run in the browser.
     if (typeof document === 'undefined') return;
 
-    // __session is httpOnly, so we use a companion flag cookie set by /api/auth/session.
-    const hasActiveServerSession = document.cookie.split('; ').some((c) => c.startsWith('__session_is_active=true'));
-    if (hasActiveServerSession) return;
-
-    // Prevent concurrent calls (onIdTokenChanged can fire multiple times).
+    // Prevent concurrent calls (onIdTokenChanged can fire multiple times on initial load).
     if (isEnsuringServerSessionRef.current) return;
     isEnsuringServerSessionRef.current = true;
 
