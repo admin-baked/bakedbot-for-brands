@@ -15,21 +15,8 @@ interface SearchResult {
   url: string;
 }
 
-type HelpSearchCategory =
-  | 'all'
-  | 'getting-started'
-  | 'products'
-  | 'agents'
-  | 'marketing'
-  | 'analytics'
-  | 'dispensary'
-  | 'integrations'
-  | 'troubleshooting';
-
 interface HelpSearchEnhancedProps {
   userRole?: string;
-  initialQuery?: string;
-  initialCategory?: HelpSearchCategory;
 }
 
 const categories = [
@@ -57,17 +44,13 @@ const sortOptions = [
   { value: 'title', label: 'Title (A-Z)' },
 ];
 
-export default function HelpSearchEnhanced({
-  userRole,
-  initialQuery,
-  initialCategory,
-}: HelpSearchEnhancedProps) {
+export default function HelpSearchEnhanced({ userRole }: HelpSearchEnhancedProps) {
   const router = useRouter();
-  const [query, setQuery] = useState(initialQuery ?? '');
+  const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<HelpSearchCategory>(initialCategory ?? 'all');
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedDifficulty, setSelectedDifficulty] = useState('all');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState('relevance');
@@ -93,16 +76,6 @@ export default function HelpSearchEnhanced({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  useEffect(() => {
-    setQuery(initialQuery ?? '');
-    setSelectedCategory(initialCategory ?? 'all');
-    setSelectedDifficulty('all');
-    setSelectedTags([]);
-    setSortBy('relevance');
-    setResults([]);
-    setShowSuggestions(false);
-  }, [initialCategory, initialQuery]);
 
   // Search function with filters
   const performSearch = useCallback(() => {
@@ -335,7 +308,7 @@ export default function HelpSearchEnhanced({
               </label>
               <select
                 value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value as HelpSearchCategory)}
+                onChange={(e) => setSelectedCategory(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {categories.map((cat) => (
