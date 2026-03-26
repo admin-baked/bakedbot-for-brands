@@ -109,6 +109,103 @@ describe('chat-persistence security', () => {
     expect(createServerClient).not.toHaveBeenCalled();
   });
 
+  it('serializes nested Firestore timestamps before returning chat sessions', async () => {
+    const iso = '2026-03-26T19:15:00.000Z';
+    const firestoreTimestamp = {
+      toDate: () => new Date(iso),
+    };
+
+    get.mockResolvedValueOnce({
+      docs: [
+        {
+          id: 'session-1',
+          data: () => ({
+            title: 'CEO CRM Session',
+            preview: 'Preview text',
+            timestamp: firestoreTimestamp,
+            messages: [
+              {
+                id: 'message-1',
+                type: 'agent',
+                content: 'hello',
+                timestamp: firestoreTimestamp,
+                artifacts: [
+                  {
+                    id: 'artifact-1',
+                    type: 'markdown',
+                    title: 'Nested Artifact',
+                    content: 'artifact body',
+                    createdAt: firestoreTimestamp,
+                    updatedAt: firestoreTimestamp,
+                  },
+                ],
+              },
+            ],
+            artifacts: [
+              {
+                id: 'artifact-2',
+                type: 'markdown',
+                title: 'Top Level Artifact',
+                content: 'top level body',
+                createdAt: firestoreTimestamp,
+                updatedAt: firestoreTimestamp,
+              },
+            ],
+          }),
+        },
+      ],
+    });
+
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'super-1',
+      role: 'super_user',
+    });
+
+    const result = await getChatSessions();
+
+    expect(result).toEqual({
+      success: true,
+      sessions: [
+        {
+          id: 'session-1',
+          title: 'CEO CRM Session',
+          preview: 'Preview text',
+          timestamp: iso,
+          messages: [
+            {
+              id: 'message-1',
+              type: 'agent',
+              content: 'hello',
+              timestamp: iso,
+              artifacts: [
+                {
+                  id: 'artifact-1',
+                  type: 'markdown',
+                  title: 'Nested Artifact',
+                  content: 'artifact body',
+                  createdAt: iso,
+                  updatedAt: iso,
+                },
+              ],
+            },
+          ],
+          role: undefined,
+          projectId: undefined,
+          artifacts: [
+            {
+              id: 'artifact-2',
+              type: 'markdown',
+              title: 'Top Level Artifact',
+              content: 'top level body',
+              createdAt: iso,
+              updatedAt: iso,
+            },
+          ],
+        },
+      ],
+    });
+  });
+
   it('rejects invalid chat session ids on save', async () => {
     (requireUser as jest.Mock).mockResolvedValue({
       uid: 'user-1',

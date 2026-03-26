@@ -8,7 +8,7 @@ import { InvitationsList } from '@/components/invitations/invitations-list';
  * Protected by super admin check
  */
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useRef, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import nextDynamic from 'next/dynamic';
 import type { SuperUserStatusCounts } from '@/server/actions/ny-outreach-dashboard';
@@ -70,7 +70,55 @@ import { RoleSwitcher } from '@/components/debug/role-switcher';
 import { MockDataToggle } from '@/components/debug/mock-data-toggle';
 import { DataImportDropdown } from '@/components/dashboard/data-import-dropdown';
 
-import { useAgentChatStore } from '@/lib/store/agent-chat-store';
+import { useAgentChatStore, type ChatMessage, type ChatSession } from '@/lib/store/agent-chat-store';
+import type { Artifact } from '@/types/artifact';
+
+type SerializedArtifact = Omit<Artifact, 'createdAt' | 'updatedAt'> & {
+    createdAt?: string | number | Date;
+    updatedAt?: string | number | Date;
+};
+
+type SerializedChatMessage = Omit<ChatMessage, 'timestamp' | 'artifacts'> & {
+    timestamp: string | number | Date;
+    artifacts?: SerializedArtifact[];
+};
+
+type SerializedChatSession = Omit<ChatSession, 'timestamp' | 'messages' | 'artifacts'> & {
+    timestamp: string | number | Date;
+    messages?: SerializedChatMessage[];
+    artifacts?: SerializedArtifact[];
+};
+
+function hydrateArtifactDates(artifact: SerializedArtifact): Artifact {
+    return {
+        ...artifact,
+        createdAt: artifact?.createdAt ? new Date(artifact.createdAt) : new Date(),
+        updatedAt: artifact?.updatedAt ? new Date(artifact.updatedAt) : new Date(),
+    };
+}
+
+function hydrateChatMessage(message: SerializedChatMessage): ChatMessage {
+    return {
+        ...message,
+        timestamp: new Date(message.timestamp),
+        artifacts: Array.isArray(message.artifacts)
+            ? message.artifacts.map(hydrateArtifactDates)
+            : [],
+    };
+}
+
+function hydrateChatSession(session: SerializedChatSession): ChatSession {
+    return {
+        ...session,
+        timestamp: new Date(session.timestamp),
+        messages: Array.isArray(session.messages)
+            ? session.messages.map(hydrateChatMessage)
+            : [],
+        artifacts: Array.isArray(session.artifacts)
+            ? session.artifacts.map(hydrateArtifactDates)
+            : [],
+    };
+}
 
 function CeoDashboardContent() {
     const router = useRouter();
@@ -84,18 +132,100 @@ function CeoDashboardContent() {
     // Server-side layout already enforces `requireSuperUser()`, but we keep
     // a client-side guard to handle expired sessions / client-only navigation.
     const canAccessCeo = Boolean(isSuperUser || isSuperAdminEmail(user?.email));
+    const userUid = user?.uid ?? null;
+    const hydratedSessionsUserRef = useRef<string | null>(null);
+    const statusCountsUserRef = useRef<string | null>(null);
+    const clearedDashboardSessionRef = useRef(false);
 
     // Sync tabs with URL ?tab=...
     const currentTab = searchParams?.get('tab') || 'boardroom'; // Default to Boardroom
 
+    useEffect(() => {
+        if (!canAccessCeo) {
+            clearedDashboardSessionRef.current = false;
+            return;
+        }
+
+        if (!clearedDashboardSessionRef.current) {
+            clearCurrentSession();
+            clearedDashboardSessionRef.current = true;
+        }
+    }, [canAccessCeo, clearCurrentSession]);
+
+    useEffect(() => {
+        if (!canAccessCeo || !userUid) {
+            hydratedSessionsUserRef.current = null;
+            return;
+        }
+
+        if (hydratedSessionsUserRef.current === userUid) {
+            return;
+        }
+
+        hydratedSessionsUserRef.current = userUid;
+
+        import('@/server/actions/chat-persistence').then(({ getChatSessions }) => {
+            getChatSessions(userUid).then(result => {
+                if (!result.success) {
+                    hydratedSessionsUserRef.current = null;
+                    console.error("Failed to hydrate sessions (client):", result.error || 'Unknown error');
+                    return;
+                }
+
+                if (Array.isArray(result.sessions)) {
+                    useAgentChatStore.getState().hydrateSessions(result.sessions.map(hydrateChatSession));
+                }
+            }).catch(err => {
+                hydratedSessionsUserRef.current = null;
+                console.error("Failed to hydrate sessions (client):", err);
+            });
+        }).catch(err => {
+            hydratedSessionsUserRef.current = null;
+            console.error("Failed to load chat persistence actions:", err);
+        });
+    }, [canAccessCeo, userUid]);
+
+    useEffect(() => {
+        if (!canAccessCeo || !userUid) {
+            statusCountsUserRef.current = null;
+            setStatusCounts(null);
+            return;
+        }
+
+        if (statusCountsUserRef.current === userUid) {
+            return;
+        }
+
+        statusCountsUserRef.current = userUid;
+
+        import('@/server/actions/ny-outreach-dashboard').then(({ getSuperUserStatusCounts }) => {
+            getSuperUserStatusCounts().then(result => {
+                if (result.success && result.counts) {
+                    setStatusCounts(result.counts);
+                    return;
+                }
+
+                statusCountsUserRef.current = null;
+                setStatusCounts(null);
+            }).catch(() => {
+                statusCountsUserRef.current = null;
+                setStatusCounts(null);
+            });
+        }).catch(() => {
+            statusCountsUserRef.current = null;
+            setStatusCounts(null);
+        });
+    }, [canAccessCeo, userUid]);
+
     // Clear chat session on mount to prevent leakage from public/customer context
     useEffect(() => {
-        if (canAccessCeo) {
-            clearCurrentSession();
+        return;
+
+        if (!canAccessCeo) {
             // Hydrate sessions globally on dashboard load
-            if (user?.uid) {
+            if (userUid) {
                 import('@/server/actions/chat-persistence').then(({ getChatSessions }) => {
-                    getChatSessions(user.uid).then(result => {
+                    getChatSessions(userUid ?? undefined).then(result => {
                         if (result.success && Array.isArray(result.sessions)) {
                             // Revive dates from ISO strings
                             const hydratedSessions = result.sessions.map((s: any) => ({

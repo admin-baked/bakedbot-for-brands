@@ -1,6 +1,7 @@
 'use server';
 
 import { createServerClient } from '@/firebase/server-client';
+import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import type { ChatSession } from '@/lib/store/agent-chat-store';
 import { logger } from '@/lib/monitoring';
 import { requireUser } from '@/server/auth/auth';
@@ -14,6 +15,49 @@ function isSuperRole(role: unknown): boolean {
 
 function isValidUserId(userId: string): boolean {
     return !!userId && !userId.includes('/');
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+    if (!value || typeof value !== 'object') {
+        return false;
+    }
+
+    const prototype = Object.getPrototypeOf(value);
+    return prototype === Object.prototype || prototype === null;
+}
+
+function serializeTemporalValue(value: unknown): string | null {
+    if (value instanceof Date) {
+        return Number.isNaN(value.getTime()) ? null : value.toISOString();
+    }
+
+    if (value && typeof value === 'object') {
+        return firestoreTimestampToDate(value)?.toISOString() ?? null;
+    }
+
+    return null;
+}
+
+function serializeForActionTransport<T>(value: T): T {
+    const serializedTemporalValue = serializeTemporalValue(value);
+    if (serializedTemporalValue) {
+        return serializedTemporalValue as T;
+    }
+
+    if (Array.isArray(value)) {
+        return value.map((entry) => serializeForActionTransport(entry)) as T;
+    }
+
+    if (isPlainObject(value)) {
+        return Object.fromEntries(
+            Object.entries(value).map(([key, entry]) => [
+                key,
+                serializeForActionTransport(entry),
+            ]),
+        ) as T;
+    }
+
+    return value;
 }
 
 export async function saveChatSession(session: ChatSession) {
@@ -76,14 +120,11 @@ export async function getChatSessions(userId?: string) {
                 title: data.title || 'Untitled Chat',
                 preview: data.preview || '',
                 // Return as ISO string for safety, client will hydrate
-                timestamp: data.timestamp?.toDate ? data.timestamp.toDate().toISOString() : new Date(data.timestamp || Date.now()).toISOString(),
-                messages: messagesArray.map((m: any) => ({
-                    ...m,
-                    timestamp: m.timestamp?.toDate ? m.timestamp.toDate().toISOString() : new Date(m.timestamp || Date.now()).toISOString()
-                })),
+                timestamp: serializeTemporalValue(data.timestamp) ?? new Date().toISOString(),
+                messages: serializeForActionTransport(messagesArray),
                 role: data.role,
                 projectId: data.projectId,
-                artifacts: artifactsArray
+                artifacts: serializeForActionTransport(artifactsArray),
             };
         });
 
