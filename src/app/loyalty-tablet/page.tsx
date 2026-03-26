@@ -44,8 +44,8 @@ export default function LoyaltyTabletPage() {
     const [firstName, setFirstName] = useState('');
     const [phone, setPhone] = useState('');
     const [email, setEmail] = useState('');
-    const [emailConsent, setEmailConsent] = useState(true);
-    const [smsConsent, setSmsConsent] = useState(true);
+    const [emailConsent, setEmailConsent] = useState(false);
+    const [smsConsent, setSmsConsent] = useState(false);
 
     // Mood + recs state
     const [selectedMood, setSelectedMood] = useState<TabletMoodId | null>(null);
@@ -67,8 +67,8 @@ export default function LoyaltyTabletPage() {
         setFirstName('');
         setPhone('');
         setEmail('');
-        setEmailConsent(true);
-        setSmsConsent(true);
+        setEmailConsent(false);
+        setSmsConsent(false);
         setSelectedMood(null);
         setProducts([]);
         setBundle(null);
@@ -394,7 +394,7 @@ export default function LoyaltyTabletPage() {
                             disabled={loading}
                             className="text-white/40 hover:text-white/60 disabled:opacity-40 text-sm"
                         >
-                            {loading ? 'Saving...' : 'Skip → Continue to budtender'}
+                            {loading ? 'Saving...' : 'Skip for now'}
                         </button>
                         <button onClick={() => setStep('email')} className="text-white/40 hover:text-white/60 text-sm">← Back</button>
                     </motion.div>
@@ -554,13 +554,13 @@ export default function LoyaltyTabletPage() {
                         <div>
                             <h1 className="text-5xl font-black text-white mb-3">
                                 {result?.isNewLead
-                                    ? `Welcome, ${firstName || 'friend'}! 🎉`
-                                    : `Good to see you, ${firstName || 'friend'}!`}
+                                    ? `You're checked in, ${firstName || 'friend'}!`
+                                    : `Welcome back, ${firstName || 'friend'}!`}
                             </h1>
                             <p className="text-xl text-purple-300">
                                 {result?.isNewLead
-                                    ? "You're now part of the Thrive family. Check your texts!"
-                                    : "Your loyalty is noted. Enjoy your visit!"}
+                                    ? 'Your Thrive follow-ups are set if you opted in.'
+                                    : 'Your check-in is recorded and your loyalty balance is ready.'}
                             </p>
                         </div>
 

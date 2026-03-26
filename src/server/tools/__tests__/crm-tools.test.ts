@@ -7,6 +7,7 @@
 
 import {
   lookupCustomer,
+  getTodayCheckins,
   getSegmentSummary,
   getTopCustomers,
   getAtRiskCustomers,
@@ -287,6 +288,16 @@ describe('lookupCustomer', () => {
     expect(result.summary).toContain('Bob Smith');
     expect(result.summary).toContain('12,000');
     expect(result.summary).toContain('Orders: 40');
+  });
+
+  it('normalizes phone lookups before querying customers', async () => {
+    mockDocGet.mockResolvedValue({ exists: false });
+    mockGet.mockResolvedValue(makeSnap([makeCustomerDoc('cust_phone')]));
+
+    const result = await lookupCustomer('(555) 123-4567', 'org_test');
+
+    expect(result.customer).not.toBeNull();
+    expect(mockWhere).toHaveBeenCalledWith('phone', '==', '+15551234567');
   });
 });
 
@@ -625,5 +636,34 @@ describe('getCustomerComms', () => {
 
     // Should have called where with channel filter
     expect(mockWhere).toHaveBeenCalledWith('channel', '==', 'sms');
+  });
+});
+
+describe('getTodayCheckins', () => {
+  it('counts today check-ins using visitedAt', async () => {
+    const countGet = jest.fn().mockResolvedValue({
+      data: () => ({ count: 7 }),
+    });
+    const count = jest.fn().mockReturnValue({ get: countGet });
+    const checkinWhere = jest.fn().mockReturnThis();
+    const collection = jest.fn().mockImplementation((name: string) => {
+      if (name === 'checkin_visits') {
+        return {
+          where: checkinWhere,
+          count,
+        };
+      }
+
+      return mockCollection(name);
+    });
+
+    (getAdminFirestore as jest.Mock).mockReturnValue({ collection });
+
+    const result = await getTodayCheckins('org_test');
+
+    expect(result).toBe(7);
+    expect(checkinWhere).toHaveBeenCalledWith('orgId', '==', 'org_test');
+    expect(checkinWhere).toHaveBeenCalledWith('visitedAt', '>=', expect.any(Date));
+    expect(count).toHaveBeenCalled();
   });
 });

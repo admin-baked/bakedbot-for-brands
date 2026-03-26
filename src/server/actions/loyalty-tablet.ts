@@ -7,11 +7,11 @@
  * Extended with mood-based Smokey recommendations and visit/review sequence tracking.
  */
 
-import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import { callClaude } from '@/ai/claude';
 import { fetchMenuProducts } from '@/server/agents/adapters/consumer-adapter';
 import { z } from 'zod';
+import { captureVisitorCheckin } from './visitor-checkin';
 
 // ============================================================
 // Types
@@ -196,143 +196,31 @@ export async function captureTabletLead(params: {
         const validated = captureSchema.parse(params);
         const { orgId, firstName, email, phone, emailConsent, smsConsent, mood, cartProductIds, bundleAdded } = validated;
 
-        if (!email && !phone) {
-            return { success: false, isNewLead: false, error: 'Email or phone required' };
+        if (!phone) {
+            return { success: false, isNewLead: false, error: 'Phone required' };
         }
 
-        const db = getAdminFirestore();
-        const now = new Date();
-        let isNewLead = false;
-
-        // 1. Create or update email_leads
-        if (email) {
-            const leadsRef = db.collection('email_leads');
-            const existingSnap = await leadsRef
-                .where('email', '==', email.toLowerCase())
-                .where('brandId', '==', orgId)
-                .limit(1)
-                .get();
-
-            if (existingSnap.empty) {
-                isNewLead = true;
-                await leadsRef.add({
-                    email: email.toLowerCase(),
-                    firstName,
-                    phone: phone || null,
-                    emailConsent,
-                    smsConsent,
-                    brandId: orgId,
-                    dispensaryId: orgId,
-                    source: 'loyalty_tablet',
-                    ageVerified: true,
-                    capturedAt: Date.now(),
-                    welcomeEmailSent: false,
-                    tags: [
-                        'in_store',
-                        'loyalty_tablet',
-                        emailConsent ? 'email_opt_in' : 'email_opt_out',
-                        ...(mood ? [`mood_${mood}`] : []),
-                    ],
-                });
-            } else {
-                const existingDoc = existingSnap.docs[0];
-                const updates: Record<string, unknown> = { updatedAt: now };
-                if (emailConsent && !existingDoc.data().emailConsent) updates.emailConsent = true;
-                if (smsConsent && !existingDoc.data().smsConsent) updates.smsConsent = true;
-                if (phone && !existingDoc.data().phone) updates.phone = phone;
-                await existingDoc.ref.update(updates);
-            }
-        }
-
-        // 2. Upsert customer profile
-        const customerId = email
-            ? `${orgId}_${email.toLowerCase().replace(/[^a-z0-9]/g, '_')}`
-            : `${orgId}_phone_${(phone || '').replace(/[^0-9]/g, '')}`;
-
-        const customerRef = db.collection('customers').doc(customerId);
-        const existingCustomer = await customerRef.get();
-
-        if (!existingCustomer.exists) {
-            await customerRef.set({
-                id: customerId,
-                orgId,
-                email: email || null,
-                phone: phone || null,
-                firstName,
-                totalSpent: 0,
-                orderCount: 0,
-                avgOrderValue: 0,
-                segment: 'new',
-                tier: 'bronze',
-                points: 0,
-                lifetimeValue: 0,
-                emailConsent,
-                smsConsent,
-                source: 'loyalty_tablet',
-                // TODO(Sprint 2): Wire to Welcome Playbook trigger once cron + playbook runner connected
-                welcomePlaybookEnrolledAt: now,
-                firstCheckinMood: mood || null,
-                createdAt: now,
-                updatedAt: now,
-            });
-            logger.info('[LoyaltyTablet] New customer created', { customerId, orgId });
-        } else {
-            const existing = existingCustomer.data() || {};
-            const updates: Record<string, unknown> = { updatedAt: now };
-            if (!existing.firstName && firstName) updates.firstName = firstName;
-            if (!existing.email && email) updates.email = email;
-            if (!existing.phone && phone) updates.phone = phone;
-            if (emailConsent) updates.emailConsent = true;
-            if (smsConsent) updates.smsConsent = true;
-            if (mood && !existing.firstCheckinMood) updates.firstCheckinMood = mood;
-            if (!existing.welcomePlaybookEnrolledAt) updates.welcomePlaybookEnrolledAt = now;
-            await customerRef.update(updates);
-        }
-
-        // 3. Create visit record — used for review sequence + Welcome Playbook
-        // TODO(Sprint 2): Add cron /api/cron/review-sequence to process checkoutEmailScheduledAt
-        // and reviewNudgeScheduledAt — send checkout email Day 0, review nudge Day 3 via Craig
-        const visitId = `${customerId}_visit_${Date.now()}`;
-        await db.collection('checkin_visits').doc(visitId).set({
-            visitId,
-            customerId,
+        const result = await captureVisitorCheckin({
             orgId,
             firstName,
-            email: email || null,
-            phone: phone || null,
-            mood: mood || null,
-            cartProductIds: cartProductIds || [],
-            bundleAdded: bundleAdded || false,
+            email: email || undefined,
+            phone,
             emailConsent,
             smsConsent,
-            visitedAt: now,
-            // Review sequence: send checkout email same day, review nudge at day 3 if no review
-            reviewSequence: {
-                status: 'pending',
-                checkoutEmailScheduledAt: now,
-                reviewNudgeScheduledAt: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
-                reviewLeft: false,
-            },
-        });
-
-        // Use already-fetched data — no second read needed
-        const loyaltyPoints = existingCustomer.exists ? ((existingCustomer.data()?.points) ?? 0) : 0;
-
-        logger.info('[LoyaltyTablet] Visit captured', {
-            orgId,
-            customerId,
-            visitId,
-            isNewLead,
+            source: 'loyalty_tablet_checkin',
+            ageVerifiedMethod: 'staff_visual_check',
             mood,
             cartProductIds,
+            bundleAdded,
         });
 
         return {
-            success: true,
-            isNewLead,
-            customerId,
-            visitId,
-            loyaltyPoints,
+            success: result.success,
+            isNewLead: result.isNewLead,
+            customerId: result.customerId,
+            loyaltyPoints: result.loyaltyPoints,
+            visitId: result.visitId,
+            error: result.error,
         };
     } catch (error) {
         if (error instanceof z.ZodError) {

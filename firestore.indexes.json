@@ -1755,6 +1755,22 @@
                 { "fieldPath": "status", "order": "ASCENDING" },
                 { "fieldPath": "createdAt", "order": "DESCENDING" }
             ]
+        },
+        {
+            "collectionGroup": "checkin_visits",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "orgId", "order": "ASCENDING" },
+                { "fieldPath": "visitedAt", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "checkin_visits",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "reviewSequence.status", "order": "ASCENDING" },
+                { "fieldPath": "visitedAt", "order": "ASCENDING" }
+            ]
         }
     ],
     "fieldOverrides": []

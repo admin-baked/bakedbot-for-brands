@@ -1,5 +1,6 @@
 import { fetchBrandPageData } from '@/lib/brand-data';
 import { notFound } from 'next/navigation';
+import { VisitorCheckinCard } from '@/components/checkin/visitor-checkin-card';
 import { LoyaltyCardSection } from '@/components/brand-pages/loyalty-card-section';
 import { DemoHeader } from '@/components/demo/demo-header';
 import { DemoFooter } from '@/components/demo/demo-footer';
@@ -34,6 +35,11 @@ export default async function RewardsPage({ params }: { params: Promise<{ brand:
     const user = await getCurrentUser(cookieStore.get('session')?.value);
     const brandOrgId = pageContent?.orgId ?? (brand as any).originalBrandId ?? null;
     const isAdmin = !!user && !!brandOrgId && (user.orgId === brandOrgId || user.role === 'super_user');
+    const isThriveCheckinPilot =
+        brandSlug === 'thrivesyracuse' || brandOrgId === 'org_thrive_syracuse';
+    const thriveCheckinOrgId =
+        brandOrgId ?? (brandSlug === 'thrivesyracuse' ? 'org_thrive_syracuse' : null);
+    const showVisitorCheckin = isThriveCheckinPilot && !!thriveCheckinOrgId;
 
     return (
         <div className="min-h-screen bg-background flex flex-col">
@@ -84,12 +90,33 @@ export default async function RewardsPage({ params }: { params: Promise<{ brand:
                                 </div>
                             )}
 
-                            <Button size="lg" style={{ backgroundColor: brandColors.primary }}>
-                                Sign Up Now
-                            </Button>
+                            {showVisitorCheckin ? (
+                                <Button size="lg" asChild style={{ backgroundColor: brandColors.primary }}>
+                                    <a href="#check-in">Check In Now</a>
+                                </Button>
+                            ) : (
+                                <Button size="lg" style={{ backgroundColor: brandColors.primary }}>
+                                    Sign Up Now
+                                </Button>
+                            )}
                         </div>
                     </div>
                 </section>
+
+                {showVisitorCheckin && thriveCheckinOrgId && (
+                    <section className="py-12">
+                        <div className="container mx-auto px-4">
+                            <div className="mx-auto max-w-4xl">
+                                <VisitorCheckinCard
+                                    orgId={thriveCheckinOrgId}
+                                    brandName={brand.name}
+                                    brandSlug={brandSlug}
+                                    primaryColor={brandColors.primary}
+                                />
+                            </div>
+                        </div>
+                    </section>
+                )}
 
                 {/* How It Works */}
                 <section className="py-16">

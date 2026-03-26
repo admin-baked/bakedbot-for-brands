@@ -18,6 +18,7 @@ import {
     isPlaceholderCustomerIdentity,
     resolveCustomerDisplayName,
 } from '@/lib/customers/profile-derivations';
+import { isNormalizedPhone, normalizePhone } from '@/lib/customer-import/column-mapping';
 import { calculateSegment, getSegmentInfo, type CustomerSegment } from '@/types/customers';
 import { mapSegmentToTier } from '@/lib/pricing/customer-tier-mapper';
 import { logger } from '@/lib/logger';
@@ -190,15 +191,17 @@ export async function lookupCustomer(
     }
 
     // Search by phone
-    if (/^\+?\d[\d\-\s]{7,}$/.test(identifier)) {
-        const normalized = identifier.replace(/[\s\-]/g, '');
-        const snap = await firestore.collection('customers')
-            .where('orgId', '==', orgId)
-            .where('phone', '==', normalized)
-            .limit(1)
-            .get();
-        if (!snap.empty) {
-            return formatCustomerResult(snap.docs[0].id, snap.docs[0].data(), orgId);
+    if (/^\+?[\d\s\-()]{10,}$/.test(identifier)) {
+        const normalized = normalizePhone(identifier);
+        if (isNormalizedPhone(normalized)) {
+            const snap = await firestore.collection('customers')
+                .where('orgId', '==', orgId)
+                .where('phone', '==', normalized)
+                .limit(1)
+                .get();
+            if (!snap.empty) {
+                return formatCustomerResult(snap.docs[0].id, snap.docs[0].data(), orgId);
+            }
         }
     }
 
@@ -870,7 +873,7 @@ export async function getTodayCheckins(orgId: string): Promise<number> {
     todayStart.setHours(0, 0, 0, 0);
     const snap = await db.collection('checkin_visits')
         .where('orgId', '==', orgId)
-        .where('createdAt', '>=', todayStart)
+        .where('visitedAt', '>=', todayStart)
         .count()
         .get();
     return snap.data().count;
