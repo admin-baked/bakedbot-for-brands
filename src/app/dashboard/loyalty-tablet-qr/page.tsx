@@ -36,7 +36,7 @@ const FLOW_STEPS = [
   {
     icon: ShieldCheck,
     title: 'Staff checks ID',
-    description: 'ID review happens at the door before BakedBot check-in starts.',
+    description: 'ID review happens at the door before the visitor check-in starts.',
   },
   {
     icon: Smartphone,
@@ -121,7 +121,7 @@ export default function LoyaltyTabletQRPage() {
       </head>
       <body>
         <h1>Visitor Check-In</h1>
-        <p>Scan to check in with BakedBot before shopping</p>
+        <p>Scan to check in for rewards before shopping</p>
         <img src="${qrDataUrl}" alt="Visitor Check-In QR Code" />
         <p style="font-size: 12px; color: #94a3b8;">${tabletUrl}</p>
         <div class="instructions">

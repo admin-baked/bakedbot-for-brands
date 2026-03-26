@@ -125,7 +125,7 @@ export function VisitorCheckinCard({
                             Front Door Check-In
                         </p>
                         <h2 className="text-3xl font-bold tracking-tight">
-                            Check in with BakedBot before you shop at {brandName}
+                            Check in before you shop at {brandName}
                         </h2>
                         <p className="text-sm text-muted-foreground">
                             Phone is required. Email is optional. You can opt out anytime.
@@ -249,7 +249,7 @@ export function VisitorCheckinCard({
                                 style={{ backgroundColor: primaryColor }}
                                 disabled={submitting}
                             >
-                                {submitting ? 'Checking In...' : 'Check In With BakedBot'}
+                                {submitting ? 'Checking In...' : 'Check In for Rewards'}
                             </Button>
                         </form>
                     )}

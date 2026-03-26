@@ -288,7 +288,7 @@ export const thriveGroundTruth: GroundTruthQASet = {
                 {
                     id: 'PD-003',
                     question: 'Do you have a loyalty program?',
-                    ideal_answer: 'Yes. Thrive Syracuse has a rewards program where you earn 1 point for every $1 spent and can redeem 100 points for $5 off. After staff checks your ID, you can check in with BakedBot using your first name and phone number, with email optional, and start earning rewards right away.',
+                    ideal_answer: 'Yes. Thrive Syracuse has a rewards program where you earn 1 point for every $1 spent and can redeem 100 points for $5 off. After staff checks your ID, you can complete a quick rewards check-in with your first name and phone number, with email optional, and start earning rewards right away.',
                     context: 'Loyalty program',
                     intent: 'Learn about rewards',
                     keywords: ['loyalty', 'rewards', 'points', '100 points', '$5 off', 'phone number'],

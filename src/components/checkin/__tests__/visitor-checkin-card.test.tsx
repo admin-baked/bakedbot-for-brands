@@ -21,15 +21,15 @@ describe('VisitorCheckinCard', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Check In With BakedBot' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Check In for Rewards' }));
     expect(screen.getByRole('alert')).toHaveTextContent('First name is required.');
 
     fireEvent.change(screen.getByLabelText('First name'), { target: { value: 'Jane' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Check In With BakedBot' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Check In for Rewards' }));
     expect(screen.getByRole('alert')).toHaveTextContent('Phone is required.');
 
     fireEvent.change(screen.getByLabelText('Phone number'), { target: { value: '3155551212' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Check In With BakedBot' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Check In for Rewards' }));
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Please confirm that a Thrive staff member checked your ID.',
     );
@@ -69,7 +69,7 @@ describe('VisitorCheckinCard', () => {
     fireEvent.change(screen.getByLabelText('First name'), { target: { value: 'Jane' } });
     fireEvent.change(screen.getByLabelText('Phone number'), { target: { value: '3155551212' } });
     fireEvent.click(screen.getByLabelText('A Thrive staff member already checked my ID today'));
-    fireEvent.click(screen.getByRole('button', { name: 'Check In With BakedBot' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Check In for Rewards' }));
 
     await waitFor(() => {
       expect(captureVisitorCheckin).toHaveBeenCalledWith(expect.objectContaining({
@@ -106,7 +106,7 @@ describe('VisitorCheckinCard', () => {
     fireEvent.change(screen.getByLabelText('First name'), { target: { value: 'Jane' } });
     fireEvent.change(screen.getByLabelText('Phone number'), { target: { value: '3155551212' } });
     fireEvent.click(screen.getByLabelText('A Thrive staff member already checked my ID today'));
-    fireEvent.click(screen.getByRole('button', { name: 'Check In With BakedBot' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Check In for Rewards' }));
 
     expect(await screen.findByText('Welcome back, Jane!')).toBeInTheDocument();
   });
@@ -131,7 +131,7 @@ describe('VisitorCheckinCard', () => {
     fireEvent.change(screen.getByLabelText('First name'), { target: { value: 'Jane' } });
     fireEvent.change(screen.getByLabelText('Phone number'), { target: { value: '3155551212' } });
     fireEvent.click(screen.getByLabelText('A Thrive staff member already checked my ID today'));
-    fireEvent.click(screen.getByRole('button', { name: 'Check In With BakedBot' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Check In for Rewards' }));
 
     expect(
       await screen.findByText('Check-in is temporarily unavailable. Staff can still let you in.'),
