@@ -337,8 +337,9 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
             action={queryDialogAction}
             onClose={() => setQueryDialogAction(null)}
         />
-        <div className={cn('flex items-center justify-center h-full p-8', className)}>
-            <div className="max-w-4xl w-full space-y-8">
+        <div className={cn('h-full overflow-y-auto', className)}>
+            <div className="mx-auto flex min-h-full w-full max-w-4xl items-start justify-center p-6 sm:p-8">
+            <div className="w-full space-y-8 py-2">
                 {/* Daily Briefing - Insight Cards */}
                 <InsightCardsGrid maxCards={5} />
 
@@ -470,6 +471,7 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
                             : 'Type a specific request or click a suggestion to get started'}
                     </p>
                 </div>
+            </div>
             </div>
         </div>
         </>

@@ -249,7 +249,7 @@ export function UnifiedInbox({ className }: UnifiedInboxProps) {
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
-                                className="flex-1"
+                                className="flex-1 min-h-0 overflow-hidden"
                             >
                                 <InboxEmptyState
                                     isLoading={isLoading}
