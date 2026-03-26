@@ -11,6 +11,10 @@ export const MCBA_PAGE_SLUG = 'mcba-power-hour-ama';
 export const MCBA_DRIVE_FOLDER_NAME = 'MCBA Power Hour AMA';
 export const MCBA_DRIVE_FOLDER_PATH = '/mcba-power-hour-ama';
 
+export const MCBA_HOST_LOGO_PUBLIC_URL =
+  'https://storage.googleapis.com/bakedbot-global-assets/Bakedbot_2024_vertical_logo-PNG%20transparent.png';
+export const MCBA_SMOKEY_HERO_IMAGE_SRC = '/assets/agents/smokey-main.png';
+
 export const MCBA_RECAP_STORAGE_PATH = 'campaigns/mcba-power-hour-ama/bakedbot-necann-recap-1.mp4';
 export const MCBA_SMOKEY_STORAGE_PATH = 'campaigns/mcba-power-hour-ama/smokeyai-4.mp4';
 

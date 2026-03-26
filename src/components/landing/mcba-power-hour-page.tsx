@@ -6,10 +6,12 @@ import { PageViewTracker, TrackableButton } from '@/components/analytics/PageVie
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
+  MCBA_HOST_LOGO_PUBLIC_URL,
   MCBA_ONBOARDING_HREF,
   MCBA_PAGE_ID,
   MCBA_PAGE_SLUG,
   MCBA_RECAP_PUBLIC_URL,
+  MCBA_SMOKEY_HERO_IMAGE_SRC,
   MCBA_SMOKEY_PUBLIC_URL,
 } from '@/lib/constants/mcba-power-hour-ama';
 
@@ -165,11 +167,13 @@ export function MCBAPowerHourPage() {
                       <p className="mt-1 text-lg font-semibold">Martez Knox, CEO of BakedBot.ai</p>
                     </div>
                     <Image
-                      src="/bakedbot-logo-horizontal.png"
-                      alt="BakedBot.ai"
-                      width={164}
-                      height={42}
-                      className="h-auto w-28 md:w-36"
+                      src={MCBA_HOST_LOGO_PUBLIC_URL}
+                      alt="BakedBot AI logo"
+                      width={120}
+                      height={48}
+                      sizes="(min-width: 768px) 144px, 112px"
+                      unoptimized
+                      className="h-10 w-auto md:h-12"
                     />
                   </div>
 
@@ -195,19 +199,24 @@ export function MCBAPowerHourPage() {
                     </div>
 
                     <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0.05))] px-4 pt-6">
+                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.12),transparent_58%)]" />
                       <div className="absolute inset-x-4 top-4 flex justify-end">
                         <div className="rounded-full border border-white/15 bg-black/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-100">
                           Smokey on deck
                         </div>
                       </div>
-                      <Image
-                        src="/assets/agents/smokey-main.png"
-                        alt="Smokey by BakedBot"
-                        width={640}
-                        height={640}
-                        priority
-                        className="mx-auto mt-6 h-auto w-full max-w-sm object-contain"
-                      />
+                      <div className="relative flex min-h-[320px] items-end justify-center pt-14">
+                        <Image
+                          src={MCBA_SMOKEY_HERO_IMAGE_SRC}
+                          alt="Smokey by BakedBot"
+                          width={691}
+                          height={692}
+                          sizes="(min-width: 1024px) 300px, 70vw"
+                          priority
+                          unoptimized
+                          className="h-auto w-full max-w-[290px] object-contain drop-shadow-[0_24px_60px_rgba(0,0,0,0.35)]"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>

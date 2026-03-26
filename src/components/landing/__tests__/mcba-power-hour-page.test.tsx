@@ -2,14 +2,16 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MCBAPowerHourPage } from '../mcba-power-hour-page';
 import {
+  MCBA_HOST_LOGO_PUBLIC_URL,
   MCBA_ONBOARDING_HREF,
   MCBA_RECAP_PUBLIC_URL,
+  MCBA_SMOKEY_HERO_IMAGE_SRC,
   MCBA_SMOKEY_PUBLIC_URL,
 } from '@/lib/constants/mcba-power-hour-ama';
 
 jest.mock('next/image', () => ({
   __esModule: true,
-  default: ({ alt, priority, ...props }: any) => <img alt={alt} {...props} />,
+  default: ({ alt, priority, unoptimized, ...props }: any) => <img alt={alt} {...props} />,
 }));
 
 jest.mock('@/components/landing/navbar', () => ({
@@ -51,5 +53,12 @@ describe('MCBAPowerHourPage', () => {
 
     expect(screen.getByTitle(/necann recap/i)).toHaveAttribute('src', MCBA_RECAP_PUBLIC_URL);
     expect(screen.getByTitle(/smokey ai campaign video/i)).toHaveAttribute('src', MCBA_SMOKEY_PUBLIC_URL);
+  });
+
+  it('renders the hero media with explicit logo and Smokey assets', () => {
+    render(<MCBAPowerHourPage />);
+
+    expect(screen.getByAltText('BakedBot AI logo')).toHaveAttribute('src', MCBA_HOST_LOGO_PUBLIC_URL);
+    expect(screen.getByAltText('Smokey by BakedBot')).toHaveAttribute('src', MCBA_SMOKEY_HERO_IMAGE_SRC);
   });
 });
