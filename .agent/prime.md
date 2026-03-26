@@ -40,7 +40,7 @@ Before ANY work, verify the build is healthy:
 
 **Current Status:** 🟢 Passing — default-shell Node/Jest wrappers + safe npm/node commands.
 **Recent work (2026-03-25):** See `MEMORY.md` for full log.
-Key completed: [Default-shell Node/Jest wrappers + repo-safe npm/node commands] (`1699974c2`).
+Key completed: [Thrive briefing freshness + grounded inbox/CRM fixes] (`7443082dc`), [Inbox UX + Deebo guard + deterministic routing cost controls] (`7443082dc`).
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 

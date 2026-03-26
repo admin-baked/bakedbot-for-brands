@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-03-25 (default-shell Node/Jest wrappers + safe npm/node commands via .codex-jest-home)
+**Current Status:** 🟢 Passing | **Last update:** 2026-03-25 (Thrive briefing freshness + inbox hardening + deterministic routing cost controls)
 
 ---
 
