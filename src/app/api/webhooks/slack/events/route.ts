@@ -171,13 +171,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // DM channel IDs start with 'D' — use that as fallback when channel_type is absent.
     // Slack does not always include channel_type (e.g. older app configurations).
     const isDm = channelType === 'im' || (!channelType && channel.startsWith('D'));
-    const isChannelMsg = channelType === 'channel';
+    // 'channel' = public channel, 'group' = private channel — both should be handled
+    const isChannelMsg = channelType === 'channel' || channelType === 'group';
 
     logger.info(`[Slack/Events] event.type=${event.type} channel=${channel} channel_type="${channelType}" isDm=${isDm} appId="${appId}"`);
 
-    // Only handle DMs and public channel messages (not group DMs or private groups)
+    // Only handle DMs, public channels, and private channels (not group DMs)
     if (event.type === 'message' && !isDm && !isChannelMsg) {
-        logger.info(`[Slack/Events] Skipping — not a DM or channel message (channel_type="${channelType}")`);
+        logger.info(`[Slack/Events] Skipping — not a DM, channel, or private channel (channel_type="${channelType}")`);
         return response;
     }
 

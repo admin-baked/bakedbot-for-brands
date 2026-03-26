@@ -82,6 +82,7 @@ const KEYWORD_MAP: Array<{ keywords: string[]; personaId: string }> = [
     { keywords: ['bigworm', 'research', 'market'], personaId: 'bigworm' },
     { keywords: ['day_day', 'dayday', 'growth', 'acquisition', 'leads'], personaId: 'day_day' },
     { keywords: ['felisha', 'fulfillment', 'delivery', 'driver'], personaId: 'felisha' },
+    { keywords: ['elroy', 'uncle elroy', 'store ops', 'thrive'], personaId: 'elroy' },
 ];
 
 // Channel name prefix → persona ID
