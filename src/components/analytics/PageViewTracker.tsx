@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { logPageView, logClick } from '@/server/actions/logPageView';
 
-type PageType = 'brand' | 'dispensary' | 'zip' | 'product' | 'creative';
+type PageType = 'brand' | 'dispensary' | 'zip' | 'product' | 'creative' | 'campaign';
 
 interface PageViewTrackerProps {
     pageType: PageType;

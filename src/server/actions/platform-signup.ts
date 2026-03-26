@@ -23,6 +23,8 @@ export interface PlatformSignupContext {
     brandId?: string;
     dispensaryId?: string;
     referrer?: string;
+    source?: string;
+    campaignId?: string;
     utmParams?: {
         source?: string;
         medium?: string;
@@ -40,11 +42,15 @@ export async function handlePlatformSignup(
 ): Promise<{ success: boolean; error?: string }> {
     try {
         const { userId, email, firstName, lastName, role, orgId, brandId, dispensaryId } = context;
+        const resolvedSource = context.source ?? 'bakedbot_platform';
+        const resolvedEventSource = context.source ?? 'platform_registration';
 
         logger.info('[PlatformSignup] Handling new user signup', {
             userId,
             email,
             role,
+            source: resolvedSource,
+            campaignId: context.campaignId ?? null,
         });
 
         // Determine user segment based on role
@@ -68,7 +74,8 @@ export async function handlePlatformSignup(
                 orgId,
                 brandId,
                 dispensaryId,
-                source: 'bakedbot_platform',
+                source: resolvedSource,
+                campaignId: context.campaignId ?? null,
                 referrer: context.referrer,
                 utmParams: context.utmParams,
             },
@@ -86,7 +93,7 @@ export async function handlePlatformSignup(
         await db.collection('events').add({
             type: 'user.signup.platform',
             eventPattern: 'user.signup.platform',
-            source: 'platform_registration',
+            source: resolvedEventSource,
             data: {
                 userId,
                 email,
@@ -98,6 +105,8 @@ export async function handlePlatformSignup(
                 brandId,
                 dispensaryId,
                 signupContext: 'platform',
+                signupSource: context.source ?? null,
+                signupCampaign: context.campaignId ?? null,
                 timestamp: Date.now(),
             },
             triggeredAt: Date.now(),

@@ -8,6 +8,12 @@ import { makeBrandRepo } from '@/server/repos/brandRepo';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logger } from '@/lib/logger';
 import { findPricingPlan } from '@/lib/config/pricing';
+import { grantManualAIStudioCredits } from '@/server/services/ai-studio-billing-service';
+import {
+  MCBA_SIGNUP_CAMPAIGN,
+  MCBA_SIGNUP_GRANT_KEY,
+  MCBA_SIGNUP_SOURCE,
+} from '@/lib/constants/mcba-power-hour-ama';
 
 // Define the schema for the form data
 const OnboardingSchema = z.object({
@@ -36,7 +42,10 @@ const OnboardingSchema = z.object({
   posDispensaryId: z.string().optional(), // For Jane or Dutchie ID
   features: z.string().optional(), // JSON string
   competitors: z.string().optional(), // JSON or comma-separated
-  selectedCompetitors: z.string().optional() // JSON array of competitor objects
+  selectedCompetitors: z.string().optional(), // JSON array of competitor objects
+  signupSource: z.string().optional(),
+  signupCampaign: z.string().optional(),
+  signupCreditGrantKey: z.string().optional(),
 });
 
 export async function completeOnboarding(prevState: any, formData: FormData) {
@@ -78,8 +87,14 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
       slug, zipCode,
       chatbotPersonality, chatbotTone, chatbotSellingPoints,
       posProvider, posApiKey, posDispensaryId,
-      competitors, selectedCompetitors
+      competitors, selectedCompetitors,
+      signupSource: rawSignupSource,
+      signupCampaign: rawSignupCampaign,
+      signupCreditGrantKey: rawSignupCreditGrantKey,
     } = validatedFields.data;
+    const signupSource = rawSignupSource?.trim() || undefined;
+    const signupCampaign = rawSignupCampaign?.trim() || undefined;
+    const signupCreditGrantKey = rawSignupCreditGrantKey?.trim() || undefined;
     const selectedPlan = planId ? findPricingPlan(planId) : undefined;
 
     // Proceed with Firestore logic...
@@ -108,7 +123,10 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
         chatbotTone: chatbotTone || null,
         chatbotSellingPoints: chatbotSellingPoints || null
       },
-      features
+      features,
+      ...(signupSource ? { signupSource } : {}),
+      ...(signupCampaign ? { signupCampaign } : {}),
+      ...(signupCreditGrantKey ? { signupCreditGrantKey } : {}),
     };
 
     if (selectedPlan) {
@@ -195,13 +213,15 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
             allowOverrides: true,
             hipaaMode: false
           },
+          ...(signupSource ? { signupSource } : {}),
+          ...(signupCampaign ? { signupCampaign } : {}),
           billing: {
             subscriptionStatus: 'trial',
             selectedPlanId: selectedPlan?.id || null,
             selectedPlanName: selectedPlan?.name || null,
           }
         });
-      } else if (marketState || selectedPlan) {
+      } else if (marketState || selectedPlan || signupSource || signupCampaign) {
         const orgUpdate: Record<string, any> = {
           updatedAt: FieldValue.serverTimestamp()
         };
@@ -213,6 +233,14 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
         if (selectedPlan) {
           orgUpdate['billing.selectedPlanId'] = selectedPlan.id;
           orgUpdate['billing.selectedPlanName'] = selectedPlan.name;
+        }
+
+        if (signupSource) {
+          orgUpdate.signupSource = signupSource;
+        }
+
+        if (signupCampaign) {
+          orgUpdate.signupCampaign = signupCampaign;
         }
 
         await orgRef.update(orgUpdate);
@@ -311,6 +339,58 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
 
     await userDocRef.set(finalProfile, { merge: true });
     await auth.setCustomUserClaims(uid, finalClaims);
+
+    let mcbaGrantApplied = false;
+    const isEligibleMcbaGrant =
+      signupSource === MCBA_SIGNUP_SOURCE &&
+      signupCampaign === MCBA_SIGNUP_CAMPAIGN &&
+      signupCreditGrantKey === MCBA_SIGNUP_GRANT_KEY &&
+      (finalRole === 'brand' || finalRole === 'dispensary') &&
+      Boolean(orgId);
+
+    if (signupSource || signupCampaign || signupCreditGrantKey) {
+      logger.info('[Onboarding] Campaign attribution received', {
+        uid,
+        orgId: orgId || null,
+        finalRole,
+        signupSource: signupSource ?? null,
+        signupCampaign: signupCampaign ?? null,
+        signupCreditGrantKey: signupCreditGrantKey ?? null,
+        isEligibleMcbaGrant,
+      });
+    }
+
+    if (isEligibleMcbaGrant && orgId) {
+      try {
+        const grantResult = await grantManualAIStudioCredits({
+          orgId,
+          credits: 150,
+          grantKey: MCBA_SIGNUP_GRANT_KEY,
+          purchasedByUserId: uid,
+          externalChargeId: `campaign:${MCBA_SIGNUP_CAMPAIGN}`,
+        });
+        mcbaGrantApplied = grantResult.applied;
+        logger.info('[Onboarding] MCBA credit grant processed', {
+          uid,
+          orgId,
+          finalRole,
+          signupSource,
+          signupCampaign,
+          signupCreditGrantKey,
+          grantResult,
+        });
+      } catch (grantError) {
+        logger.error('[Onboarding] MCBA credit grant failed', {
+          uid,
+          orgId,
+          finalRole,
+          signupSource,
+          signupCampaign,
+          signupCreditGrantKey,
+          error: grantError instanceof Error ? grantError.message : String(grantError),
+        });
+      }
+    }
 
     // --- QUEUE PRODUCT SYNC (NON-BLOCKING) ---
     let syncCount = 0;
@@ -492,11 +572,21 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
         orgId: orgId || undefined,
         brandId: finalBrandId || undefined,
         dispensaryId: locationId || undefined,
+        source: signupSource || undefined,
+        campaignId: signupCampaign || undefined,
+        utmParams: signupCampaign
+          ? {
+              source: signupSource || undefined,
+              campaign: signupCampaign,
+            }
+          : undefined,
       });
       logger.info('[Onboarding] Platform signup triggered - AI welcome email + playbook queued', {
         userId: uid,
         role: finalRole,
         orgId,
+        signupSource: signupSource ?? null,
+        signupCampaign: signupCampaign ?? null,
       });
     } catch (welcomeError) {
       // Don't fail onboarding if welcome email fails
@@ -508,8 +598,13 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
     revalidatePath('/dashboard');
     revalidatePath('/account');
 
+    let successMessage = 'Welcome! Your workspace is being prepared. Data import is running in the background.';
+    if (mcbaGrantApplied) {
+      successMessage += ' Your 150 MCBA credits are now available in your workspace.';
+    }
+
     return {
-      message: 'Welcome! Your workspace is being prepared. Data import is running in the background.',
+      message: successMessage,
       error: false
     };
 

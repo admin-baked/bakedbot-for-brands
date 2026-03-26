@@ -483,6 +483,100 @@ export async function getAIStudioBalance(orgId: string): Promise<AIStudioBalance
   return getOrInitBalance(orgId, cycleKey);
 }
 
+export interface ManualAIStudioGrantInput {
+  orgId: string;
+  credits: number;
+  grantKey: string;
+  purchasedByUserId?: string;
+  externalChargeId?: string;
+}
+
+export interface ManualAIStudioGrantResult {
+  applied: boolean;
+  duplicate: boolean;
+  purchaseId: string;
+}
+
+export async function grantManualAIStudioCredits(
+  input: ManualAIStudioGrantInput
+): Promise<ManualAIStudioGrantResult> {
+  if (!Number.isInteger(input.credits) || input.credits < 1 || input.credits > 100_000) {
+    throw new Error('Invalid manual AI Studio grant credit amount');
+  }
+
+  const grantKey = input.grantKey.trim();
+  if (!grantKey) {
+    throw new Error('Manual AI Studio grant key is required');
+  }
+
+  const db = getAdminFirestore();
+  const cycleKey = currentCycleKey();
+  const now = Date.now();
+  const purchaseId = `manual_grant_${input.orgId}_${grantKey}`;
+
+  await getOrInitBalance(input.orgId, cycleKey);
+
+  const purchaseRef = db.collection('ai_studio_topup_purchases').doc(purchaseId);
+  const balanceDocRef = db
+    .collection('org_ai_studio_balances')
+    .doc(balanceDocId(input.orgId, cycleKey));
+
+  const result = await db.runTransaction<ManualAIStudioGrantResult>(async (transaction) => {
+    const purchaseSnap = await transaction.get(purchaseRef);
+
+    if (purchaseSnap.exists) {
+      return {
+        applied: false,
+        duplicate: true,
+        purchaseId,
+      };
+    }
+
+    const purchase: AIStudioTopUpPurchase = {
+      id: purchaseId,
+      orgId: input.orgId,
+      packId: `manual_grant_${grantKey}`,
+      creditsAdded: input.credits,
+      priceCents: 0,
+      currency: 'usd',
+      status: 'paid',
+      billingProvider: 'manual',
+      externalChargeId: input.externalChargeId,
+      purchasedByUserId: input.purchasedByUserId,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    transaction.set(purchaseRef, purchase);
+    transaction.set(
+      balanceDocRef,
+      {
+        topUpCreditsTotal: FieldValue.increment(input.credits),
+        updatedAt: Timestamp.now(),
+      },
+      { merge: true }
+    );
+
+    return {
+      applied: true,
+      duplicate: false,
+      purchaseId,
+    };
+  });
+
+  logger.info('[AIStudio] Manual credits grant processed', {
+    orgId: input.orgId,
+    grantKey,
+    credits: input.credits,
+    purchaseId,
+    result: result.applied ? 'applied' : 'duplicate',
+    purchasedByUserId: input.purchasedByUserId ?? null,
+    externalChargeId: input.externalChargeId ?? null,
+  });
+
+  return result;
+}
+
 // ---------------------------------------------------------------------------
 // applyTopUpCredits
 // ---------------------------------------------------------------------------
