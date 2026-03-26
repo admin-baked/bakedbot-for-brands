@@ -4301,6 +4301,7 @@ export interface LinusRequest {
         brandId?: string;
     };
     images?: Array<{ data: string; mimeType: string }>; // Base64 images for vision (Slack screenshots etc.)
+    progressCallback?: (msg: string) => Promise<void>; // Called before each tool execution — use to post live Slack status updates
 }
 
 export interface LinusResponse {
@@ -4476,6 +4477,50 @@ This is NOT optional. Every code session ends with /simplify.
 Always be concise. Use the tools available to investigate, code, and report.`;
 }
 
+/**
+ * Maps a Linus tool call to a human-readable Slack status message.
+ * Shown as an update on the "thinking" message so users know Linus is working.
+ */
+function buildLinusProgressMessage(toolName: string, input: Record<string, unknown>): string {
+    switch (toolName) {
+        case 'run_command': {
+            const cmd = String(input.command ?? '').slice(0, 70);
+            return `_Linus is running: \`${cmd}\`..._`;
+        }
+        case 'bash': {
+            const desc = input.description ? String(input.description).slice(0, 70) : String(input.command ?? '').slice(0, 70);
+            return `_Linus is executing: \`${desc}\`..._`;
+        }
+        case 'read_file':
+            return `_Linus is reading \`${String(input.path ?? '').split('/').slice(-2).join('/')}\`..._`;
+        case 'write_file':
+            return `_Linus is writing \`${String(input.path ?? '').split('/').slice(-2).join('/')}\`..._`;
+        case 'search_codebase':
+            return `_Linus is searching the codebase for "${String(input.query ?? '').slice(0, 50)}"..._`;
+        case 'run_health_check':
+            return `_Linus is checking build health (${input.scope ?? 'full'})..._`;
+        case 'run_specific_test':
+            return `_Linus is running tests for \`${String(input.testPattern ?? '').slice(0, 50)}\`..._`;
+        case 'github_push':
+            return `_Linus is pushing to GitHub (${input.branch ?? 'main'})..._`;
+        case 'web_search':
+            return `_Linus is searching the web for "${String(input.query ?? '').slice(0, 50)}"..._`;
+        case 'firecrawl_scrape':
+            return `_Linus is scraping a URL for context..._`;
+        case 'git_log':
+        case 'git_diff':
+            return `_Linus is reviewing git history..._`;
+        case 'execute_super_power':
+            return `_Linus is running super power: \`${String(input.script ?? '').slice(0, 40)}\`..._`;
+        case 'make_deployment_decision':
+            return `_Linus is making deployment decision..._`;
+        case 'delegate_to_agent':
+            return `_Linus is delegating to ${input.agentId ?? 'another agent'}..._`;
+        default:
+            return `_Linus is using \`${toolName}\`..._`;
+    }
+}
+
 // Legacy constant for backwards compatibility
 const LINUS_SYSTEM_PROMPT = buildLinusSystemPrompt();
 
@@ -4557,6 +4602,11 @@ ${getLinusCodebaseContext(claudeContext, toolMode)}
 
 User Request: ${request.prompt}`;
     
+    const onToolCall = request.progressCallback
+        ? (toolName: string, input: Record<string, unknown>) =>
+              request.progressCallback!(buildLinusProgressMessage(toolName, input))
+        : undefined;
+
     const result = await executeWithTools(
         fullPrompt,
         getLinusTools(toolMode),
@@ -4568,6 +4618,7 @@ User Request: ${request.prompt}`;
             maxIterations: request.maxIterations ?? (toolMode === 'slack' ? 5 : 15),
             agentContext: LINUS_AGENT_CONTEXT,
             imageAttachments: request.images,
+            onToolCall,
         }
     );
 

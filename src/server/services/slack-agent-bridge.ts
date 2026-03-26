@@ -509,6 +509,19 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             // simple conversational messages → GLM (free, fast).
             // All other agents use GLM synthesis path.
             if (willUseLinusTools || linusImages) {
+                // Progress callback: update the working Slack message with each tool Linus uses
+                // so users know he's actively working on their request (not silently hung).
+                // Throttled to 1 update/sec — Slack's chat.update limit is ~1 req/sec per channel.
+                const linusProgress = workingMessageTs ? (() => {
+                    let lastSentAt = 0;
+                    return async (msg: string) => {
+                        const now = Date.now();
+                        if (now - lastSentAt < 1000) return;
+                        lastSentAt = now;
+                        await slackService.updateMessage(channel, workingMessageTs, msg).catch(() => {});
+                    };
+                })() : undefined;
+
                 const linusResult = await Promise.race([
                     runLinus({
                         prompt: fullPrompt,
@@ -516,6 +529,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                         toolMode: 'slack',
                         context: { userId: SLACK_SYSTEM_USER.uid },
                         images: linusImages,
+                        progressCallback: linusProgress,
                     }),
                     new Promise<never>((_, reject) =>
                         setTimeout(() => reject(new Error(`Linus timeout after ${Math.floor(agentTimeoutMs / 1000)} seconds`)), agentTimeoutMs)
