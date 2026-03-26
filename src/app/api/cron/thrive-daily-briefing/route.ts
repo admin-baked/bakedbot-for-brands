@@ -16,10 +16,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminFirestore } from '@/firebase/admin';
-import { getAtRiskCustomers, getSegmentSummary } from '@/server/tools/crm-tools';
+import { getAtRiskCustomers, getSegmentSummary, getTodayCheckins } from '@/server/tools/crm-tools';
 import { getLatestWeeklyReport } from '@/server/services/ezal/weekly-intel-report';
-import { fetchMenuProducts } from '@/server/agents/adapters/consumer-adapter';
+import { fetchMenuProducts, normalizeProduct } from '@/server/agents/adapters/consumer-adapter';
 import { slackService } from '@/server/services/communications/slack';
 import { callClaude } from '@/ai/claude';
 import { requireCronSecret } from '@/server/auth/cron';
@@ -39,7 +38,7 @@ export async function POST(request: NextRequest) {
             getSegmentSummary(ORG_ID),
             getAtRiskCustomers(ORG_ID, 5, true),
             getLatestWeeklyReport(ORG_ID),
-            getTodayCheckins(),
+            getTodayCheckins(ORG_ID),
             fetchMenuProducts(ORG_ID),
         ]);
 
@@ -109,20 +108,6 @@ export async function GET(request: NextRequest) {
 // Data helpers
 // ---------------------------------------------------------------------------
 
-async function getTodayCheckins(): Promise<number> {
-    const db = getAdminFirestore();
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-
-    const snap = await db.collection('checkin_visits')
-        .where('orgId', '==', ORG_ID)
-        .where('createdAt', '>=', todayStart)
-        .count()
-        .get();
-
-    return snap.data().count;
-}
-
 interface DiscountCandidate {
     name: string;
     category: string;
@@ -138,16 +123,12 @@ function identifyDiscountCandidates(products: any[]): DiscountCandidate[] {
     const candidates: DiscountCandidate[] = [];
 
     for (const p of products) {
-        const name = p.name ?? p.product_name ?? 'Unknown';
-        const category = p.category ?? p.category_name ?? '';
-        const price = Number(p.price ?? p.current_price ?? 0);
-        const qty = Number(p.quantity_available ?? p.stock ?? p.qty ?? -1);
-        const isOnSale = p.on_sale === true || p.sale_price != null;
+        const { name, category, price, stock, onSale } = normalizeProduct(p);
 
-        if (isOnSale) {
+        if (onSale) {
             candidates.push({ name, category, price, reason: 'Active sale — confirm in-store signage' });
-        } else if (qty > 20) {
-            candidates.push({ name, category, price, reason: `High stock (${qty} units) — consider a flash deal` });
+        } else if (stock > 20) {
+            candidates.push({ name, category, price, reason: `High stock (${stock} units) — consider a flash deal` });
         }
 
         if (candidates.length >= 5) break;

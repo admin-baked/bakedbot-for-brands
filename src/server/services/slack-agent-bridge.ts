@@ -2,6 +2,7 @@ import { logger } from '@/lib/logger';
 import { slackService, SlackService } from './communications/slack';
 import { runAgentCore } from '@/server/agents/agent-runner';
 import { runLinus } from '@/server/agents/linus';
+import { runElroy } from '@/server/agents/elroy';
 import { requestContext } from '@/lib/request-context';
 import { archiveSlackResponse } from './slack-response-archive';
 import { sanitizeForPrompt } from '@/server/security';
@@ -95,6 +96,7 @@ const CHANNEL_MAP: Array<{ prefix: string; personaId: string }> = [
     { prefix: 'cto', personaId: 'linus' },
     { prefix: 'coo', personaId: 'leo' },
     { prefix: 'cro', personaId: 'jack' },
+    { prefix: 'thrive-syracuse', personaId: 'elroy' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -213,7 +215,7 @@ export function detectAgent(text: string, channelName: string, isDm: boolean, ap
     const EXPLICIT_NAMES = [
         'leo', 'linus', 'jack', 'glenda', 'ezal', 'craig',
         'pops', 'smokey', 'parker', 'deebo', 'mike', 'bigworm',
-        'day_day', 'dayday', 'felisha',
+        'day_day', 'dayday', 'felisha', 'elroy',
     ];
 
     // 1. Check for explicit agent name in text (highest priority)
@@ -409,6 +411,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             leo:   120_000,   // 2 min — COO operations may chain multiple tools
             jack:  120_000,   // 2 min — CRO revenue analysis
             glenda: 120_000,  // 2 min — CMO strategy
+            elroy:  60_000,   // 1 min — store ops data lookup, max 5 tool iterations
         } satisfies Partial<Record<string, number>>;
         const agentTimeoutMs = AGENT_TIMEOUTS[personaId as keyof typeof AGENT_TIMEOUTS] ?? 55_000;
         // Context variables
@@ -416,6 +419,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
         let contextPrefix = '';
 
         const isLinus = personaId === 'linus';
+        const isElroy = personaId === 'elroy';
         const willUseLinusTools = isLinus && linusNeedsTools(enrichedText);
         const botToken = process.env.SLACK_BOT_TOKEN;
         const imageFiles = files.filter((f: any) => /^image\//.test(f.mimetype || '')).slice(0, 3);
@@ -428,7 +432,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                 : Promise.resolve([] as Awaited<ReturnType<typeof slackService.getConversationHistory>>),
 
             // Letta long-term memory (Linus only)
-            (isLinus) ? (async () => {
+            isLinus ? (async () => {
                 try {
                     const { memoryBridgeService } = await import('@/server/services/letta/memory-bridge');
                     const memResults = await memoryBridgeService.unifiedSearch(
@@ -511,16 +515,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             if (willUseLinusTools || linusImages) {
                 // Progress callback: update the working Slack message with each tool Linus uses
                 // so users know he's actively working on their request (not silently hung).
-                // Throttled to 1 update/sec — Slack's chat.update limit is ~1 req/sec per channel.
-                const linusProgress = workingMessageTs ? (() => {
-                    let lastSentAt = 0;
-                    return async (msg: string) => {
-                        const now = Date.now();
-                        if (now - lastSentAt < 1000) return;
-                        lastSentAt = now;
-                        await slackService.updateMessage(channel, workingMessageTs, msg).catch(() => {});
-                    };
-                })() : undefined;
+                const linusProgress = makeThrottledProgress(channel, workingMessageTs);
 
                 const linusResult = await Promise.race([
                     runLinus({
@@ -536,6 +531,22 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                     ),
                 ]);
                 result = { content: linusResult.content, toolCalls: linusResult.toolExecutions };
+            } else if (isElroy) {
+                // Uncle Elroy — store ops agent for Thrive Syracuse, always uses Claude tools
+                const elroyProgress = makeThrottledProgress(channel, workingMessageTs);
+
+                const elroyResult = await Promise.race([
+                    runElroy({
+                        prompt: fullPrompt,
+                        maxIterations: 5,
+                        context: { userId: SLACK_SYSTEM_USER.uid },
+                        progressCallback: elroyProgress,
+                    }),
+                    new Promise<never>((_, reject) =>
+                        setTimeout(() => reject(new Error(`Uncle Elroy timeout after ${Math.floor(agentTimeoutMs / 1000)} seconds`)), agentTimeoutMs)
+                    ),
+                ]);
+                result = { content: elroyResult.content, toolCalls: elroyResult.toolExecutions };
             } else {
                 // GLM path — conversational replies, other agents
                 const extraOptions = { ...(attachments ? { attachments } : {}), source: 'slack' };
@@ -701,12 +712,31 @@ Keep it friendly, brief, and genuine.`;
 // Utility
 // ---------------------------------------------------------------------------
 
+/**
+ * Create a throttled Slack message update callback (max 1 update/sec).
+ * Used by tool-calling agents to post live progress to the working message.
+ */
+function makeThrottledProgress(
+    channel: string,
+    workingMessageTs: string | undefined,
+): ((msg: string) => Promise<void>) | undefined {
+    if (!workingMessageTs) return undefined;
+    let lastSentAt = 0;
+    return async (msg: string) => {
+        const now = Date.now();
+        if (now - lastSentAt < 1000) return;
+        lastSentAt = now;
+        await slackService.updateMessage(channel, workingMessageTs, msg).catch(() => {});
+    };
+}
+
 function getPersonaName(personaId: string): string {
     const names: Record<string, string> = {
         leo: 'Leo', linus: 'Linus', jack: 'Jack', glenda: 'Glenda',
         ezal: 'Ezal', craig: 'Craig', pops: 'Pops', smokey: 'Smokey',
         mrs_parker: 'Mrs. Parker', deebo: 'Deebo', money_mike: 'Money Mike',
         bigworm: 'Big Worm', day_day: 'Day Day', felisha: 'Felisha', puff: 'BakedBot',
+        elroy: 'Uncle Elroy',
     };
     return names[personaId] ?? 'BakedBot';
 }

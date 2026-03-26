@@ -860,3 +860,18 @@ ${comms.slice(0, 10).map((c, i) => {
 
     return { summary, communications: comms as unknown as Record<string, unknown>[] };
 }
+
+/**
+ * Count check-ins for an org since the start of today (midnight local time).
+ */
+export async function getTodayCheckins(orgId: string): Promise<number> {
+    const db = getAdminFirestore();
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const snap = await db.collection('checkin_visits')
+        .where('orgId', '==', orgId)
+        .where('createdAt', '>=', todayStart)
+        .count()
+        .get();
+    return snap.data().count;
+}
