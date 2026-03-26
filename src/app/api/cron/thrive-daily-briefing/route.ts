@@ -70,8 +70,22 @@ export async function POST(request: NextRequest) {
             actionItems,
         });
 
+        // Ensure channel exists and bot is a member before posting
+        const channelName = SLACK_CHANNEL.replace(/^#/, '');
+        let channelId: string | undefined;
+        const existing = await slackService.findChannelByName(channelName);
+        if (existing) {
+            channelId = existing.id;
+        } else {
+            const created = await slackService.createChannel(channelName);
+            channelId = created?.id;
+        }
+        if (channelId) {
+            await slackService.joinChannel(channelId);
+        }
+
         const fallbackText = `🌿 Thrive Syracuse Daily Briefing — ${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}`;
-        const postResult = await slackService.postMessage(SLACK_CHANNEL, fallbackText, blocks);
+        const postResult = await slackService.postMessage(channelId ?? SLACK_CHANNEL, fallbackText, blocks);
 
         if (!postResult.sent) {
             logger.error('[ThriveDailyBriefing] Failed to post to Slack', { error: postResult.error });
