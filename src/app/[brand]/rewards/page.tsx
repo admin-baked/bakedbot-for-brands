@@ -12,6 +12,7 @@ import { getBrandPageBySlug } from '@/server/actions/brand-pages';
 import { cookies } from 'next/headers';
 import { getCurrentUser } from '@/lib/auth-helpers';
 import { PublicPageEditBar } from '@/components/brand-pages/public-page-edit-bar';
+import { getVisitorCheckinPilotOrgId } from '@/lib/checkin/visitor-checkin-pilot';
 
 export default async function RewardsPage({ params }: { params: Promise<{ brand: string }> }) {
     const { brand: brandSlug } = await params;
@@ -35,11 +36,13 @@ export default async function RewardsPage({ params }: { params: Promise<{ brand:
     const user = await getCurrentUser(cookieStore.get('session')?.value);
     const brandOrgId = pageContent?.orgId ?? (brand as any).originalBrandId ?? null;
     const isAdmin = !!user && !!brandOrgId && (user.orgId === brandOrgId || user.role === 'super_user');
-    const isThriveCheckinPilot =
-        brandSlug === 'thrivesyracuse' || brandOrgId === 'org_thrive_syracuse';
-    const thriveCheckinOrgId =
-        brandOrgId ?? (brandSlug === 'thrivesyracuse' ? 'org_thrive_syracuse' : null);
-    const showVisitorCheckin = isThriveCheckinPilot && !!thriveCheckinOrgId;
+    const thriveCheckinOrgId = getVisitorCheckinPilotOrgId({
+        brandSlug,
+        brandOrgId,
+        brandId: brand.id,
+        originalBrandId: (brand as any).originalBrandId ?? null,
+    });
+    const showVisitorCheckin = !!thriveCheckinOrgId;
 
     return (
         <div className="min-h-screen bg-background flex flex-col">

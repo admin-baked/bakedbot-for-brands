@@ -69,6 +69,8 @@ import type { PublicMenuSettings } from '@/components/demo/menu-info-bar';
 import { MenuFilterSidebar, type MenuFilters, EMPTY_FILTERS } from '@/components/demo/menu-filter-sidebar';
 import { CategoryTabsNav } from '@/components/demo/category-tabs-nav';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { VisitorCheckinPromo } from '@/components/checkin/visitor-checkin-promo';
+import { isVisitorCheckinPilot } from '@/lib/checkin/visitor-checkin-pilot';
 
 interface BrandMenuClientProps {
   brand: Brand;
@@ -198,6 +200,11 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
 
   // Determine menu design mode
   const isDispensaryMenu = brand.menuDesign === 'dispensary' || brand.type === 'dispensary';
+  const showVisitorCheckinPromo = isVisitorCheckinPilot({
+    brandSlug,
+    brandOrgId: brand.orgId ?? null,
+    brandId: brand.id,
+  });
 
   // Claimed page checkout — enable SmokeyPay cart pill and checkout flow
   const isClaimed = brand.claimStatus === 'claimed' && !!brand.orgId;
@@ -705,6 +712,14 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
             <MenuInfoBar settings={publicMenuSettings} primaryColor={primaryColor} />
           )}
 
+          {showVisitorCheckinPromo && (
+            <VisitorCheckinPromo
+              brandName={brand.name}
+              brandSlug={brandSlug}
+              primaryColor={primaryColor}
+            />
+          )}
+
           {/* Featured Brands */}
           <FeaturedBrandsCarousel
             title="Featured Brands"
@@ -1012,6 +1027,14 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
           onFindNearMe={() => !isOnlineOnly && setBrandView('locator')}
           onShopNow={() => document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' })}
         />
+
+        {showVisitorCheckinPromo && (
+          <VisitorCheckinPromo
+            brandName={brand.name}
+            brandSlug={brandSlug}
+            primaryColor={primaryColor}
+          />
+        )}
 
         {/* Selected Dispensary Banner - only for local pickup */}
         {!isOnlineOnly && selectedDispensary && (
