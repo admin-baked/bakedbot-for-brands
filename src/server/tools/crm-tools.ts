@@ -21,6 +21,7 @@ import {
 import { calculateSegment, getSegmentInfo, type CustomerSegment } from '@/types/customers';
 import { mapSegmentToTier } from '@/lib/pricing/customer-tier-mapper';
 import { logger } from '@/lib/logger';
+import { getTopCustomers as getDomainTopCustomers } from '@/server/agents/tools/domain/crm';
 
 // =============================================================================
 // TOOL DEFINITIONS (Zod schemas for agent toolsDef arrays)
@@ -50,6 +51,16 @@ const getSegmentSummaryDef = {
     description: `Get a summary of all customer segments for an organization. Returns segment counts, average spend, total LTV, and growth opportunities. Use this for strategic analysis of the customer base.`,
     schema: z.object({
         orgId: z.string().describe('Organization/tenant ID'),
+    }),
+};
+
+const getTopCustomersDef = {
+    name: 'getTopCustomers',
+    description: `Find the highest-value customers in an organization. Returns the top customers ranked by spend or order count. Use this for VIP outreach, concierge treatment, and answering "who are our top customers?"`,
+    schema: z.object({
+        orgId: z.string().describe('Organization/tenant ID'),
+        limit: z.number().optional().default(5).describe('Max customers to return'),
+        sortBy: z.enum(['totalSpent', 'orderCount', 'lifetimeValue']).optional().default('totalSpent').describe('How to rank the customers'),
     }),
 };
 
@@ -88,6 +99,7 @@ export const crmToolDefs = [
     lookupCustomerDef,
     getCustomerHistoryDef,
     getSegmentSummaryDef,
+    getTopCustomersDef,
     getAtRiskCustomersDef,
     getUpcomingBirthdaysDef,
     getCustomerCommsDef,
@@ -95,7 +107,7 @@ export const crmToolDefs = [
 
 /** Per-agent subsets */
 export const craigCrmToolDefs = [lookupCustomerDef, getAtRiskCustomersDef, getCustomerCommsDef, getSegmentSummaryDef];
-export const mrsParkerCrmToolDefs = [lookupCustomerDef, getUpcomingBirthdaysDef, getCustomerCommsDef, getAtRiskCustomersDef];
+export const mrsParkerCrmToolDefs = [lookupCustomerDef, getTopCustomersDef, getUpcomingBirthdaysDef, getCustomerCommsDef, getAtRiskCustomersDef];
 export const smokeyCrmToolDefs = [lookupCustomerDef, getCustomerHistoryDef];
 export const moneyMikeCrmToolDefs = [lookupCustomerDef, getSegmentSummaryDef, getCustomerHistoryDef];
 
@@ -566,6 +578,43 @@ ${activeSegments.map(seg => {
 - Dedup window: 30 days (customers contacted in last 30 days for same campaign type are automatically excluded)`;
 
     return { summary, segments: segments as unknown as Record<string, unknown> };
+}
+
+/**
+ * Get the top customers using the canonical CRM ranking logic.
+ */
+export async function getTopCustomers(
+    orgId: string,
+    limit: number = 5,
+    sortBy: 'totalSpent' | 'orderCount' | 'lifetimeValue' = 'totalSpent',
+): Promise<{ summary: string; customers: Record<string, unknown>[] }> {
+    logger.info('[crm-tools] getTopCustomers', { orgId, limit, sortBy });
+
+    const result = await getDomainTopCustomers(orgId, { limit, sortBy });
+    if (result.customers.length === 0) {
+        return {
+            summary: `No tracked customers found for organization ${orgId}.`,
+            customers: [],
+        };
+    }
+
+    const rankedCustomers = result.customers.map((customer) => ({
+        ...customer,
+        lifetimeValue: customer.totalSpent,
+    })) as Record<string, unknown>[];
+
+    const summary = `**Top Customers** (${sortBy === 'orderCount' ? 'ranked by order count' : 'ranked by spend'})
+
+${result.customers.map((customer, index) => (
+        `${index + 1}. **${customer.displayName || customer.email}** — $${customer.totalSpent.toLocaleString()} LTV, ${customer.orderCount} orders, ${customer.segment}`
+    )).join('\n')}
+
+${result.insight}`;
+
+    return {
+        summary,
+        customers: rankedCustomers,
+    };
 }
 
 /**

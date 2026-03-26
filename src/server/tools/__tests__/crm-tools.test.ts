@@ -8,6 +8,7 @@
 import {
   lookupCustomer,
   getSegmentSummary,
+  getTopCustomers,
   getAtRiskCustomers,
   getUpcomingBirthdays,
   getCustomerComms,
@@ -52,6 +53,10 @@ jest.mock('@/lib/pricing/customer-tier-mapper', () => ({
 
 jest.mock('@/lib/logger', () => ({
   logger: { info: jest.fn(), error: jest.fn(), warn: jest.fn() },
+}));
+
+jest.mock('@/server/agents/tools/domain/crm', () => ({
+  getTopCustomers: jest.fn(),
 }));
 
 // ---------------------------------------------------------------------------
@@ -147,16 +152,16 @@ beforeEach(() => {
 // ===========================================================================
 
 describe('CRM tool definition exports', () => {
-  it('crmToolDefs has 6 tools', () => {
-    expect(crmToolDefs).toHaveLength(6);
+  it('crmToolDefs has 7 tools', () => {
+    expect(crmToolDefs).toHaveLength(7);
   });
 
   it('craigCrmToolDefs has 4 tools', () => {
     expect(craigCrmToolDefs).toHaveLength(4);
   });
 
-  it('mrsParkerCrmToolDefs has 4 tools', () => {
-    expect(mrsParkerCrmToolDefs).toHaveLength(4);
+  it('mrsParkerCrmToolDefs has 5 tools', () => {
+    expect(mrsParkerCrmToolDefs).toHaveLength(5);
   });
 
   it('smokeyCrmToolDefs has 2 tools', () => {
@@ -344,6 +349,48 @@ describe('getSegmentSummary', () => {
     expect(result.summary).toContain('At-risk revenue');
     expect(result.summary).toContain('8,000');
     expect(result.summary).toContain('2 customers');
+  });
+});
+
+// ===========================================================================
+// getTopCustomers
+// ===========================================================================
+
+describe('getTopCustomers', () => {
+  it('returns ranked customers from the canonical CRM domain tool', async () => {
+    const { getTopCustomers: getDomainTopCustomers } = require('@/server/agents/tools/domain/crm');
+    (getDomainTopCustomers as jest.Mock).mockResolvedValue({
+      customers: [
+        {
+          email: 'jane@example.com',
+          displayName: 'Jane Doe',
+          segment: 'vip',
+          totalSpent: 12000,
+          orderCount: 40,
+          tier: 'gold',
+        },
+        {
+          email: 'bob@example.com',
+          displayName: 'Bob Smith',
+          segment: 'loyal',
+          totalSpent: 8000,
+          orderCount: 24,
+          tier: 'silver',
+        },
+      ],
+      insight: 'Your top 2 customers have spent a combined $20000.00.',
+    });
+
+    const result = await getTopCustomers('org_test', 2, 'totalSpent');
+
+    expect(getDomainTopCustomers).toHaveBeenCalledWith('org_test', {
+      limit: 2,
+      sortBy: 'totalSpent',
+    });
+    expect(result.customers).toHaveLength(2);
+    expect(result.summary).toContain('Top Customers');
+    expect(result.summary).toContain('Jane Doe');
+    expect(result.summary).toContain('Bob Smith');
   });
 });
 

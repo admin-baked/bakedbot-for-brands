@@ -159,36 +159,56 @@ export function getDefaultOrgProfile(archetype: BusinessArchetype, orgId: string
 // Used by agents so zero breaking change for existing orgs.
 // ─────────────────────────────────────────────────────────────────────────────
 
+function mapTenantOrganizationType(value: unknown): OrgProfileBrand['organizationType'] | undefined {
+  if (value === 'dispensary') return 'dispensary';
+  if (value === 'brand') return 'cannabis_brand';
+  if (value === 'platform' || value === 'super_user') return 'technology_platform';
+  return undefined;
+}
+
+function mapTenantBusinessModel(value: unknown): OrgProfileBrand['businessModel'] | undefined {
+  if (value === 'dispensary') return 'retail';
+  if (value === 'brand') return 'product_brand';
+  if (value === 'platform' || value === 'super_user') return 'saas_ai_platform';
+  return undefined;
+}
+
 export async function getOrgProfileFromLegacy(orgId: string): Promise<OrgProfile | null> {
   try {
     const db = getAdminFirestore();
-    const [brandSnap, intentSnap] = await Promise.all([
+    const [brandSnap, intentSnap, tenantSnap] = await Promise.all([
       db.collection('brands').doc(orgId).get(),
       db.collection('org_intent_profiles').doc(orgId).get(),
+      db.collection('tenants').doc(orgId).get(),
     ]);
 
-    if (!brandSnap.exists && !intentSnap.exists) return null;
+    if (!brandSnap.exists && !intentSnap.exists && !tenantSnap.exists) return null;
 
     const now = new Date().toISOString();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const brandData: any = brandSnap.exists ? brandSnap.data() : {};
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const intentData: any = intentSnap.exists ? intentSnap.data() : {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tenantData: any = tenantSnap.exists ? tenantSnap.data() : {};
+    const tenantOrganizationType = mapTenantOrganizationType(tenantData.type);
+    const tenantBusinessModel = mapTenantBusinessModel(tenantData.type);
 
     // Map brand guide fields
     const brand: OrgProfileBrand = {
-      name: brandData.brandName ?? brandData.name ?? '',
+      name: brandData.brandName ?? brandData.name ?? tenantData.name ?? tenantData.orgName ?? '',
       tagline: brandData.messaging?.tagline,
       organizationType:
         brandData.messaging?.organizationType
-        ?? (brandData.metadata?.dispensaryType ? 'dispensary' : undefined),
-      businessModel: brandData.messaging?.businessModel,
-      city: brandData.metadata?.city,
-      state: brandData.metadata?.state ?? brandData.compliance?.state,
+        ?? (brandData.metadata?.dispensaryType ? 'dispensary' : undefined)
+        ?? tenantOrganizationType,
+      businessModel: brandData.messaging?.businessModel ?? tenantBusinessModel,
+      city: brandData.metadata?.city ?? tenantData.city,
+      state: brandData.metadata?.state ?? brandData.compliance?.state ?? tenantData.state ?? tenantData.marketState,
       dispensaryType: brandData.metadata?.dispensaryType,
       instagramHandle: brandData.metadata?.instagramHandle,
       facebookHandle: brandData.metadata?.facebookHandle,
-      websiteUrl: brandData.source?.url,
+      websiteUrl: brandData.source?.url ?? tenantData.websiteUrl ?? tenantData.website ?? tenantData.url,
       visualIdentity: {
         colors: {
           primary: brandData.visualIdentity?.colors?.primary ?? { hex: '#4ade80', name: 'Primary', usage: '' },
@@ -212,7 +232,7 @@ export async function getOrgProfileFromLegacy(orgId: string): Promise<OrgProfile
         valuePropositions: brandData.messaging?.valuePropositions,
       },
       compliance: {
-        state: brandData.compliance?.state ?? brandData.metadata?.state,
+        state: brandData.compliance?.state ?? brandData.metadata?.state ?? tenantData.state ?? tenantData.marketState,
         ageDisclaimer: brandData.compliance?.ageDisclaimer,
         medicalClaimsGuidance: brandData.compliance?.medicalClaims?.guidance,
         restrictions: brandData.compliance?.contentRestrictions,
@@ -244,9 +264,9 @@ export async function getOrgProfileFromLegacy(orgId: string): Promise<OrgProfile
       version: '1.0.0',
       isDefault: !intentSnap.exists,
       completionPct: 0,
-      lastModifiedBy: intentData.lastModifiedBy ?? brandData.updatedBy ?? 'legacy',
-      createdAt: brandData.createdAt ?? now,
-      updatedAt: intentData.updatedAt ?? brandData.updatedAt ?? now,
+      lastModifiedBy: intentData.lastModifiedBy ?? brandData.updatedBy ?? tenantData.updatedBy ?? 'legacy',
+      createdAt: brandData.createdAt ?? tenantData.createdAt ?? now,
+      updatedAt: intentData.updatedAt ?? brandData.updatedAt ?? tenantData.updatedAt ?? now,
       brand,
       intent,
     };

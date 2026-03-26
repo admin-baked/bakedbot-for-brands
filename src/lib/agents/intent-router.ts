@@ -115,12 +115,14 @@ export function getAgentForIntent(input: string): AgentId | null {
 }
 
 /**
- * Returns the best `InboxAgentPersona`-compatible ID for the input,
- * falling back to a provided default.
+ * Returns the best inbox-compatible specialist for the input.
+ * If nothing matches, preserve the caller's fallback (for example `auto`)
+ * so the request can continue through the general assistant path.
  */
-export function resolveInboxAgent(
+export function resolveInboxAgent<TFallback extends string = 'auto'>(
     input: string,
-    fallback: AgentId = 'pops'
-): AgentId {
-    return getAgentForIntent(input) ?? fallback;
+    fallback?: TFallback
+): AgentId | TFallback {
+    const fallbackValue = (fallback ?? 'auto') as TFallback;
+    return getAgentForIntent(input) ?? fallbackValue;
 }

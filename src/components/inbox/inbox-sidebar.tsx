@@ -577,6 +577,17 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
             <div className={cn('p-3 border-b border-white/5', collapsed && 'flex flex-col items-center gap-2')}>
                 {collapsed ? (
                     <>
+                        {activeThreadId && (
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="w-10 h-10"
+                                title="Back to Briefing"
+                                onClick={() => setActiveThread(null)}
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                        )}
                         <Button
                             variant="default"
                             size="icon"
@@ -677,44 +688,56 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
 
                         {/* Desktop: existing layout (hidden on mobile) */}
                         <div className="hidden sm:block space-y-2">
-                        {/* New Chat Button */}
-                        <Button
-                            variant="default"
-                            size="sm"
-                            className="w-full justify-start gap-2 h-9"
-                            onClick={() => setActiveThread(null)}
-                        >
-                            <Plus className="h-4 w-4" />
-                            New Chat
-                        </Button>
+                            {activeThreadId && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-full justify-start gap-2 h-9"
+                                    onClick={() => setActiveThread(null)}
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                    Back to Briefing
+                                </Button>
+                            )}
 
-                        <div className="flex items-center justify-between px-1">
-                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                Quick Actions
-                            </p>
-                            <Button variant="ghost" size="sm" className="h-6 px-2 text-xs">
-                                <Star className="h-3 w-3 mr-1" />
-                                Favorites
+                            {/* New Chat Button */}
+                            <Button
+                                variant="default"
+                                size="sm"
+                                className="w-full justify-start gap-2 h-9"
+                                onClick={() => setActiveThread(null)}
+                            >
+                                <Plus className="h-4 w-4" />
+                                New Chat
                             </Button>
-                        </div>
 
-                        {/* Favorite Actions (Top 6) */}
-                        <div className="grid grid-cols-2 gap-2">
-                            {favoriteGridActions.map((action) => (
-                                <QuickActionButton key={action.id} action={action} />
-                            ))}
-                        </div>
+                            <div className="flex items-center justify-between px-1">
+                                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                    Quick Actions
+                                </p>
+                                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs">
+                                    <Star className="h-3 w-3 mr-1" />
+                                    Favorites
+                                </Button>
+                            </div>
 
-                        {/* More Actions Menu */}
-                        {quickActions.length > 6 && (
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="outline" size="sm" className="w-full gap-2 h-9">
-                                        <MoreHorizontalIcon className="h-4 w-4" />
-                                        More Actions ({quickActions.length - 6})
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="start" className="w-[min(280px,calc(100vw-2rem))] max-h-[400px] overflow-y-auto">
+                            {/* Favorite Actions (Top 6) */}
+                            <div className="grid grid-cols-2 gap-2">
+                                {favoriteGridActions.map((action) => (
+                                    <QuickActionButton key={action.id} action={action} />
+                                ))}
+                            </div>
+
+                            {/* More Actions Menu */}
+                            {quickActions.length > 6 && (
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" size="sm" className="w-full gap-2 h-9">
+                                            <MoreHorizontalIcon className="h-4 w-4" />
+                                            More Actions ({quickActions.length - 6})
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="start" className="w-[min(280px,calc(100vw-2rem))] max-h-[400px] overflow-y-auto">
                                     {(() => {
                                         const isSuper = currentRole === 'super_user' || currentRole === 'super_admin' || currentRole === 'owner';
                                         const isCustomer = currentRole === 'customer';
@@ -795,9 +818,9 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
                                                 </div>
                                             );
                                     })()}
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        )}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            )}
                         </div>{/* end hidden sm:block desktop layout */}
                     </div>
                 )}
@@ -844,6 +867,9 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
                 <div className={cn('p-2 pb-16 sm:pb-2', collapsed && 'flex flex-col items-center gap-1')}>
                     {isMobile && (
                         <InsightCardsGrid maxCards={3} className="mb-3 px-1" />
+                    )}
+                    {!isMobile && activeThreadId && !collapsed && (
+                        <InsightCardsGrid maxCards={2} className="mb-3 px-1" />
                     )}
 
                     {/* Active Threads */}

@@ -8,6 +8,7 @@ import { logger } from '@/lib/logger';
 import { omitUndefinedDeep } from '@/lib/utils';
 import { runAgentCore } from '@/server/agents/agent-runner';
 import { requireUser } from '@/server/auth/auth';
+import { buildSyntheticDecodedIdToken } from '@/server/auth/mock-token';
 import { dispatchAgentJob, type AgentJobPayload } from '@/server/jobs/dispatch';
 import { approveRequest } from './approvals';
 
@@ -61,23 +62,6 @@ function buildResumePayload(
             },
         }),
     };
-}
-
-function buildMockUserToken(user: DecodedIdToken, brandId?: string): DecodedIdToken {
-    return {
-        uid: user.uid,
-        email: user.email || '',
-        email_verified: true,
-        role: (user as { role?: string }).role || 'customer',
-        brandId: brandId || (user as { brandId?: string }).brandId || (user as { orgId?: string }).orgId || undefined,
-        auth_time: user.auth_time || Date.now() / 1000,
-        iat: user.iat || Date.now() / 1000,
-        exp: user.exp || (Date.now() / 1000) + 3600,
-        aud: user.aud || 'bakedbot',
-        iss: user.iss || 'https://securetoken.google.com/bakedbot',
-        sub: user.sub || user.uid,
-        firebase: user.firebase || { identities: {}, sign_in_provider: 'custom' },
-    } as DecodedIdToken;
 }
 
 async function launchResumeJob(
@@ -140,7 +124,7 @@ async function launchResumeJob(
             payload.userInput,
             payload.persona,
             payload.options,
-            buildMockUserToken(user, payload.options.brandId),
+            buildSyntheticDecodedIdToken(user, payload.options.brandId),
             payload.jobId
         );
 

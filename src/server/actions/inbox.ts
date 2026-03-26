@@ -1539,12 +1539,29 @@ export async function runInboxAgentChat(
         };
 
         // When the thread is set to auto, use intent-based routing instead of puff
-        const resolvedAgent: InboxAgentPersona =
+        const resolvedAgent =
             thread.primaryAgent === 'auto'
-                ? (resolveInboxAgent(userMessage) as InboxAgentPersona)
+                ? resolveInboxAgent(userMessage, 'auto')
                 : thread.primaryAgent;
 
-        const personaId = personaMap[resolvedAgent] || 'puff';
+        if (thread.primaryAgent === 'auto') {
+            logger.info('[INBOX] Auto agent routing', {
+                threadId,
+                matchedAgent: resolvedAgent === 'auto' ? 'puff' : resolvedAgent,
+                usedGeneralFallback: resolvedAgent === 'auto',
+            });
+        }
+
+        const personaId = resolvedAgent === 'auto'
+            ? 'puff'
+            : personaMap[resolvedAgent as InboxAgentPersona] || 'puff';
+        const conversationHistory = thread.messages
+            .filter((message) => typeof message.content === 'string' && message.content.trim().length > 0)
+            .map((message) => ({
+                role: message.type === 'user' ? 'user' : 'assistant',
+                content: message.content.trim(),
+            }))
+            .slice(-6);
 
         // Build context for the agent based on thread type
         const threadContext = await buildThreadContext(thread);
@@ -1622,6 +1639,7 @@ export async function runInboxAgentChat(
                     threadId,
                     threadType: thread.type,
                     orgId: thread.orgId,
+                    conversationHistory,
                 },
             }
         );
@@ -1847,7 +1865,8 @@ Generate outreach draft artifacts ready for review.`,
 
         campaign: `You are helping plan and execute a marketing campaign.
 Coordinate with other agents (Craig for content, Smokey for products, Money Mike for pricing).
-Break down the campaign into actionable artifacts.`,
+Break down the campaign into actionable artifacts.
+Use real campaign records when available, and say clearly when no campaign data is found instead of guessing status.`,
 
         qr_code: `You are helping create trackable QR codes for marketing campaigns.
 Generate QR codes for products, menus, promotions, events, or loyalty programs.
@@ -1887,7 +1906,9 @@ Create promotional materials, social content, and event-specific bundles.
 Generate coordinated artifacts for the event marketing package.`,
 
         general: `You are a helpful assistant for a cannabis dispensary or brand.
-Answer questions and help with various tasks related to marketing and operations.`,
+Answer questions and help with various tasks related to marketing and operations.
+Only state facts that are grounded in the org context, tools, or thread history.
+If the data is missing, say that explicitly instead of inferring.`,
 
         product_discovery: `You are Smokey, helping with product discovery.
 For shopper requests, make grounded product recommendations based on the menu and stated preferences.
@@ -1926,7 +1947,9 @@ Generate health scorecard artifacts with segment-level insights.`,
         market_intel: `You are Ezal, the competitive intelligence specialist.
 Analyze market positioning, competitor moves, and market share trends.
 Identify competitive threats and opportunities.
-Generate market analysis artifacts with strategic recommendations.`,
+Generate market analysis artifacts with strategic recommendations.
+Only cite competitor pricing, product availability, or local market facts when they are verified from tracked data.
+If verified competitor data is unavailable, say that clearly and avoid invented comparisons.`,
 
         bizdev: `You are Glenda, the CMO, helping with business development.
 Plan partnership outreach and expansion strategies.
@@ -2038,10 +2061,11 @@ Generate market analysis and research brief artifacts.`,
 
         // CRM / Customer Intelligence
         crm_customer: `You are managing a customer relationship for a cannabis dispensary.
-Use CRM tools (lookupCustomer, getCustomerHistory, getSegmentSummary, getAtRiskCustomers, getUpcomingBirthdays, getCustomerComms) to access real customer data.
+Use CRM tools (lookupCustomer, getCustomerHistory, getSegmentSummary, getTopCustomers, getAtRiskCustomers, getUpcomingBirthdays, getCustomerComms) to access real customer data.
 Personalize all outreach based on the customer's segment, spending patterns, and preferences.
 You can draft emails, SMS, loyalty offers, and win-back campaigns.
 When referencing customer data, be specific with names, amounts, and dates.
+If the CRM tools do not return verified data, say that directly instead of estimating.
 Always validate compliance with Deebo before sending any campaigns.`,
     };
 

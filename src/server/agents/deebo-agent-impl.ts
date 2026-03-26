@@ -2,13 +2,162 @@
 import { AgentImplementation } from './harness';
 import { DeeboMemory } from './schemas';
 import { logger } from '@/lib/logger';
-import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { deebo } from './deebo'; // Import the SDK we just saw
+import { deebo } from './deebo';
+import { getStateMarketingRules } from '@/server/data/state-marketing-rules';
 import {
     buildSquadRoster,
     buildIntegrationStatusSummary
 } from './agent-definitions';
+
+const STATE_QUERY_MATCHERS: Array<{ stateCode: string; pattern: RegExp }> = [
+    { stateCode: 'NY', pattern: /\bny-compliance\b|\bny compliance\b|\bnew york\b|\bny\b/i },
+    { stateCode: 'CA', pattern: /\bcalifornia\b|\bca\b/i },
+    { stateCode: 'IL', pattern: /\billinois\b|\bil\b/i },
+    { stateCode: 'MA', pattern: /\bmassachusetts\b|\bma\b/i },
+    { stateCode: 'CO', pattern: /\bcolorado\b|\bco\b/i },
+];
+
+const CHANNEL_QUERY_MATCHERS: Array<{ channel: string; pattern: RegExp }> = [
+    { channel: 'paid_social', pattern: /\bpaid social\b|\bpaid[_ -]?social\b|\bpaid ads?\b/i },
+    { channel: 'organic_social', pattern: /\borganic social\b|\borganic[_ -]?social\b|\bsocial post\b/i },
+    { channel: 'website', pattern: /\bwebsite\b|\bsite\b|\blanding page\b/i },
+    { channel: 'loyalty', pattern: /\bloyalty\b|\brewards?\b/i },
+    { channel: 'email', pattern: /\bemail\b|\bnewsletter\b/i },
+    { channel: 'sms', pattern: /\bsms\b|\btext\b|\btext message\b/i },
+    { channel: 'ooh', pattern: /\booh\b|\bout[- ]of[- ]home\b|\bbillboard\b/i },
+    { channel: 'digital', pattern: /\bdigital\b|\bonline\b|\bweb ad\b/i },
+];
+
+function detectStateCode(query: string): string | null {
+    for (const matcher of STATE_QUERY_MATCHERS) {
+        if (matcher.pattern.test(query)) {
+            return matcher.stateCode;
+        }
+    }
+
+    return null;
+}
+
+function detectChannel(query: string): string | null {
+    for (const matcher of CHANNEL_QUERY_MATCHERS) {
+        if (matcher.pattern.test(query)) {
+            return matcher.channel;
+        }
+    }
+
+    return null;
+}
+
+function isComplianceKnowledgeQuery(query: string): boolean {
+    return /\bcompliance\b|\brules?\b|\ballowed\b|\bprohibited\b|\bcan we\b|\bmay we\b|\brequirements?\b|\bny-compliance\b|\baudit\b|\breview\b|\bcheck\b|\bdraft\b|\bcopy\b|\bmessage\b|\bcontent\b/i.test(query);
+}
+
+function shouldRunComplianceAudit(query: string): boolean {
+    const asksForReview = /\baudit\b|\breview\b|\bcheck\b|\bapprove\b|\bis this\b|\bdoes this\b/i.test(query);
+    const includesDraftContent = /["'`]/.test(query)
+        || query.includes('\n')
+        || /:\s/.test(query)
+        || /\bcopy\b|\bmessage\b|\bcontent\b|\bdraft\b|\bcaption\b|\bheadline\b/i.test(query);
+
+    return asksForReview && includesDraftContent;
+}
+
+function formatComplianceSummary(stateCode: string, channel?: string | null): string {
+    const rules = getStateMarketingRules(stateCode);
+
+    if (channel) {
+        const channelRule = rules.channels[channel] ?? rules.channels.digital;
+        const status = channelRule.allowed === true
+            ? 'COMPLIANT'
+            : channelRule.allowed === false
+                ? 'NON-COMPLIANT'
+                : `CONDITIONAL - ${channelRule.condition ?? 'requirements apply'}`;
+
+        const requiredDisclosures = channelRule.requiredDisclosures.map(item => `- ${item}`).join('\n');
+        const prohibitedContent = channelRule.prohibitedContent.map(item => `- ${item}`).join('\n');
+        const citations = channelRule.citations.length > 0
+            ? channelRule.citations.join(', ')
+            : 'State cannabis advertising regulations';
+
+        return [
+            `### ${rules.stateName} ${channelRule.channel.toUpperCase()} Compliance`,
+            `Verdict: ${status}`,
+            '',
+            'Required disclosures:',
+            requiredDisclosures,
+            '',
+            'Prohibited content:',
+            prohibitedContent,
+            '',
+            `Citations: ${citations}`,
+            '',
+            'Ask me to audit a specific draft if you want a line-by-line review.',
+        ].join('\n');
+    }
+
+    const channelSummary = Object.values(rules.channels)
+        .map(rule => {
+            const status = rule.allowed === true
+                ? 'allowed'
+                : rule.allowed === false
+                    ? 'blocked'
+                    : `conditional - ${rule.condition ?? 'requirements apply'}`;
+            return `- ${rule.channel.toUpperCase()}: ${status}`;
+        })
+        .join('\n');
+    const generalProhibitions = rules.generalProhibitions.slice(0, 5).map(item => `- ${item}`).join('\n');
+
+    return [
+        `### ${rules.stateName} Compliance Snapshot`,
+        'Channel status:',
+        channelSummary,
+        '',
+        'Always prohibited:',
+        generalProhibitions,
+        '',
+        `Website requirement: ${rules.websiteRequirements}`,
+        '',
+        'Tell me the channel to get rule-specific disclosures and citations.',
+    ].join('\n');
+}
+
+export async function maybeAnswerComplianceGuidance(query: string): Promise<string | null> {
+    const stateCode = detectStateCode(query);
+    if (!stateCode || !isComplianceKnowledgeQuery(query)) {
+        return null;
+    }
+
+    const channel = detectChannel(query);
+
+    if (channel && shouldRunComplianceAudit(query)) {
+        const audit = await deebo.checkMarketingCompliance(stateCode, channel, query);
+        const violations = audit.violations.length > 0
+            ? audit.violations.map(item => `- ${item}`).join('\n')
+            : '- No explicit violations detected in the provided description.';
+        const suggestions = audit.suggestions.length > 0
+            ? audit.suggestions.map(item => `- ${item}`).join('\n')
+            : '- Keep required age-gating and disclosures in place.';
+        const citations = audit.citations.length > 0
+            ? audit.citations.join(', ')
+            : 'State cannabis advertising regulations';
+
+        return [
+            `### ${stateCode} ${channel.toUpperCase()} Audit`,
+            `Verdict: ${audit.verdict}`,
+            '',
+            'Findings:',
+            violations,
+            '',
+            'Next steps:',
+            suggestions,
+            '',
+            `Citations: ${citations}`,
+        ].join('\n');
+    }
+
+    return formatComplianceSummary(stateCode, channel);
+}
 
 // --- Tool Definitions ---
 
@@ -104,6 +253,29 @@ export const deeboAgent: AgentImplementation<DeeboMemory, DeeboTools> = {
          // === SCENARIO A: User Request (The "Planner" Flow) ===
         if (targetId === 'user_request' && stimulus) {
             const userQuery = stimulus;
+            const stateCode = detectStateCode(userQuery);
+            const channel = detectChannel(userQuery);
+
+            const complianceGuidance = await maybeAnswerComplianceGuidance(userQuery);
+            if (complianceGuidance) {
+                logger.info('[Deebo] Served grounded compliance guidance without planner', {
+                    stateCode,
+                    channel,
+                });
+
+                return {
+                    updatedMemory: agentMemory,
+                    logEntry: {
+                        action: 'compliance_guidance',
+                        result: complianceGuidance,
+                        metadata: {
+                            stateCode,
+                            channel,
+                            source: 'state_marketing_rules',
+                        }
+                    }
+                };
+            }
             
             // 1. Tool Definitions
             const toolsDef = [

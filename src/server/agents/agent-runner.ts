@@ -637,7 +637,9 @@ All agents are online and ready. Type an agent name or describe your task to get
 
         // Resolve orgId using the standard order: orgId > brandId > currentOrgId > uid
         // This ensures Thrive Syracuse (orgId: org_thrive_syracuse) and other tenants work correctly
-        const userBrandId = (user as any)?.orgId
+        const contextOrgId = typeof extraOptions?.context?.orgId === 'string' ? extraOptions.context.orgId : undefined;
+        const userBrandId = contextOrgId
+            || (user as any)?.orgId
             || (user as any)?.brandId
             || (user as any)?.currentOrgId
             || (isPaidUser ? user?.uid : 'general')
@@ -717,7 +719,7 @@ All agents are online and ready. Type an agent name or describe your task to get
         let customInstructionsBlock = '';
         try {
             // Resolve tenantId from user context
-            const tenantId = (user as any)?.orgId || (user as any)?.currentOrgId || userBrandId;
+            const tenantId = contextOrgId || (user as any)?.orgId || (user as any)?.currentOrgId || userBrandId;
             const userId = user?.uid;
 
             if (tenantId || userId) {

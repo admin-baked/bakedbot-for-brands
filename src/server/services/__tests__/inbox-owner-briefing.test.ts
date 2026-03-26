@@ -6,7 +6,7 @@ import type { InboxArtifact } from '@/types/inbox';
 import type { ProactiveCommitmentRecord } from '@/types/proactive';
 
 describe('inbox owner briefing summary', () => {
-  it('prefers the most recent morning briefing artifact', () => {
+  it('prefers the most recent briefing artifact regardless of pulse type', () => {
     const middayArtifact = {
       id: 'artifact_midday',
       threadId: 'thread_1',
@@ -47,7 +47,7 @@ describe('inbox owner briefing summary', () => {
       updatedAt: new Date('2026-03-22T13:00:00.000Z'),
     } as unknown as InboxArtifact;
 
-    expect(selectLatestOwnerBriefingArtifact([middayArtifact, morningArtifact])?.id).toBe('artifact_morning');
+    expect(selectLatestOwnerBriefingArtifact([middayArtifact, morningArtifact])?.id).toBe('artifact_midday');
   });
 
   it('builds owner-friendly yesterday and today summaries', () => {

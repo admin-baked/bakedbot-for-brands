@@ -77,14 +77,8 @@ export function selectLatestOwnerBriefingArtifact(
     return null;
   }
 
-  const morningArtifacts = briefingArtifacts.filter((artifact) => {
-    const data = artifact.data as AnalyticsBriefing;
-    return !data.pulseType || data.pulseType === 'morning';
-  });
-
-  const candidates = morningArtifacts.length > 0 ? morningArtifacts : briefingArtifacts;
-  candidates.sort((left, right) => getArtifactTimestamp(right) - getArtifactTimestamp(left));
-  return candidates[0] ?? null;
+  briefingArtifacts.sort((left, right) => getArtifactTimestamp(right) - getArtifactTimestamp(left));
+  return briefingArtifacts[0] ?? null;
 }
 
 export function buildInboxOwnerBriefingSummary(input: {
