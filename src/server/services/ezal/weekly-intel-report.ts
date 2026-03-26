@@ -13,9 +13,7 @@ import {
     getWeeklySnapshots,
     getCompetitorSummaries,
     CompetitorSnapshot,
-    SnapshotSummary,
 } from '@/server/repos/competitor-snapshots';
-import { listCompetitors } from '@/server/services/ezal/competitor-manager';
 import type { DriveFileDoc } from '@/types/drive';
 
 // =============================================================================
@@ -71,7 +69,33 @@ interface PricingGap {
     opportunity: string;
 }
 
+interface SnapshotOffer {
+    name: string;
+    price: number;
+    discount?: string;
+    category?: string;
+}
+
 const COLLECTION = 'weekly_reports';
+
+function getSnapshotOffers(snapshot: CompetitorSnapshot): SnapshotOffer[] {
+    if (snapshot.deals.length > 0) {
+        return snapshot.deals.map((deal) => ({
+            name: deal.name,
+            price: deal.price,
+            discount: deal.discount,
+            category: deal.category,
+        }));
+    }
+
+    return snapshot.products
+        .filter((product) => product.price > 0 && product.inStock !== false)
+        .map((product) => ({
+            name: product.name,
+            price: product.price,
+            category: product.category,
+        }));
+}
 
 // =============================================================================
 // REPORT GENERATION
@@ -93,36 +117,37 @@ export async function generateWeeklyIntelReport(
     weekStart.setDate(weekStart.getDate() - 7);
 
     // Fetch all weekly data
-    const [snapshots, summaries, competitors] = await Promise.all([
+    const [snapshots, summaries] = await Promise.all([
         getWeeklySnapshots(orgId),
         getCompetitorSummaries(orgId, 7),
-        listCompetitors(orgId, { active: true }),
     ]);
 
     // Build competitor sections
     const competitorSections: CompetitorReportSection[] = summaries.map(summary => {
         const compSnapshots = snapshots.filter(s => s.competitorId === summary.competitorId);
-        const allDeals = compSnapshots.flatMap(s => s.deals);
+        const allOffers = compSnapshots.flatMap(getSnapshotOffers);
         
         // Get top deals (lowest prices with highest discounts)
-        const topDeals = allDeals
+        const topDeals = allOffers
             .sort((a, b) => (a.price || 0) - (b.price || 0))
             .slice(0, 5)
-            .map(d => ({
+            .map((offer) => ({
                 competitorName: summary.competitorName,
-                dealName: d.name,
-                price: d.price,
-                discount: d.discount,
+                dealName: offer.name,
+                price: offer.price,
+                discount: offer.discount,
             }));
 
         // Determine pricing strategy
-        const priceStrategy = determinePricingStrategy(allDeals);
+        const priceStrategy = determinePricingStrategy(allOffers);
 
         return {
             competitorId: summary.competitorId,
             competitorName: summary.competitorName,
-            avgDealPrice: summary.avgDealPrice,
-            dealCount: summary.totalDeals,
+            avgDealPrice: allOffers.length > 0
+                ? allOffers.reduce((sum, offer) => sum + offer.price, 0) / allOffers.length
+                : summary.avgDealPrice,
+            dealCount: allOffers.length,
             productCount: summary.totalProducts,
             topDeals,
             priceStrategy,
@@ -130,19 +155,19 @@ export async function generateWeeklyIntelReport(
     });
 
     // Generate insights
-    const allDeals = snapshots.flatMap(s => s.deals.map(d => ({
-        ...d,
-        competitorName: s.competitorName,
+    const allDeals = snapshots.flatMap((snapshot) => getSnapshotOffers(snapshot).map((offer) => ({
+        ...offer,
+        competitorName: snapshot.competitorName,
     })));
 
     const topDeals = allDeals
         .sort((a, b) => (a.price || 0) - (b.price || 0))
         .slice(0, 10)
-        .map(d => ({
-            competitorName: d.competitorName || 'Unknown',
-            dealName: d.name,
-            price: d.price,
-            discount: d.discount,
+        .map((offer) => ({
+            competitorName: offer.competitorName || 'Unknown',
+            dealName: offer.name,
+            price: offer.price,
+            discount: offer.discount,
         }));
 
     const pricingGaps = calculatePricingGaps(competitorSections);
@@ -317,8 +342,8 @@ function generateMarketTrends(
     // Category trends
     const categories = new Set<string>();
     for (const snap of snapshots) {
-        for (const deal of snap.deals) {
-            if (deal.category) categories.add(deal.category);
+        for (const offer of getSnapshotOffers(snap)) {
+            if (offer.category) categories.add(offer.category);
         }
     }
     if (categories.size > 0) {

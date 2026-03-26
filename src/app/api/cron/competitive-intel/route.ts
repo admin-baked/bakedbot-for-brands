@@ -14,7 +14,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { generateWeeklyIntelReport } from '@/server/services/ezal/weekly-intel-report';
+import { refreshCompetitiveIntelWorkspace } from '@/server/services/ezal';
 import { logger } from '@/lib/logger';
 
 export const maxDuration = 300; // 5 minutes
@@ -39,25 +39,28 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        logger.info('[CompetitiveIntelCron] Starting report generation', { orgId });
+        logger.info('[CompetitiveIntelCron] Starting competitive intel refresh', { orgId });
 
-        const report = await generateWeeklyIntelReport(orgId);
+        const result = await refreshCompetitiveIntelWorkspace(orgId, { force: false, maxSources: 12 });
 
-        logger.info('[CompetitiveIntelCron] Report generated successfully', {
+        logger.info('[CompetitiveIntelCron] Refresh completed successfully', {
             orgId,
-            reportId: report.id,
-            competitors: report.competitors.length,
-            deals: report.totalDealsTracked,
+            reportId: result.report?.id,
+            sourcesRun: result.sourcesRun,
+            snapshots: result.report?.totalSnapshots,
+            deals: result.report?.totalDealsTracked,
         });
 
         return NextResponse.json({
             success: true,
-            reportId: report.id,
+            reportId: result.report?.id,
             orgId,
-            competitorsTracked: report.competitors.length,
-            totalDeals: report.totalDealsTracked,
-            totalSnapshots: report.totalSnapshots,
-            generatedAt: report.generatedAt,
+            sourcesRun: result.sourcesRun,
+            sourcesCreated: result.sourcesCreated,
+            sourcesUpdated: result.sourcesUpdated,
+            totalDeals: result.report?.totalDealsTracked || 0,
+            totalSnapshots: result.report?.totalSnapshots || 0,
+            generatedAt: result.report?.generatedAt || null,
         });
 
     } catch (error: any) {

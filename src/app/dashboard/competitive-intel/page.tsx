@@ -23,10 +23,10 @@ import { EzalSnapshotCard } from '@/components/dashboard/ezal-snapshot-card';
 import { useToast } from '@/hooks/use-toast';
 import {
     getCompetitors,
-    autoDiscoverCompetitors,
     addManualCompetitor,
     removeCompetitor,
     getLatestDailyReport,
+    refreshCompetitiveIntel,
 } from './actions';
 import type { CompetitorSnapshot } from './actions';
 import { CompetitorSetupWizard } from '../intelligence/components/competitor-setup-wizard';
@@ -103,17 +103,23 @@ export default function CompetitiveIntelPage() {
 
         setRefreshing(true);
         try {
-            const result = await autoDiscoverCompetitors(orgId, true);
+            const result = await refreshCompetitiveIntel(orgId);
+            if (!result.success) {
+                throw new Error(result.error || 'Refresh failed');
+            }
+
             toast({
-                title: 'Competitors Updated',
-                description: `Discovered ${result.discovered} competitors in your market.`,
+                title: 'Competitive Intel Refreshed',
+                description: result.failedSources > 0
+                    ? `Ran ${result.sourcesRun} sources, rebuilt the report from ${result.totalSnapshots} snapshots, and ${result.failedSources} source${result.failedSources === 1 ? '' : 's'} still need attention.`
+                    : `Ran ${result.sourcesRun} sources and rebuilt today's report from ${result.totalSnapshots} fresh snapshots.`,
             });
             await loadCompetitors();
         } catch (error) {
             toast({
                 variant: 'destructive',
                 title: 'Refresh Failed',
-                description: 'Could not update competitor data.',
+                description: error instanceof Error ? error.message : 'Could not refresh competitor intel.',
             });
         } finally {
             setRefreshing(false);

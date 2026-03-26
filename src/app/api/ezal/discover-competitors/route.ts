@@ -20,6 +20,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyIdToken } from '@/firebase/server-client';
 import { autoSetupCompetitors, discoverCompetitorsByLocation } from '@/server/services/ezal/competitor-discovery';
+import { getCompetitiveIntelPlanId } from '@/server/services/ezal';
 import { logger } from '@/lib/logger';
 
 export const maxDuration = 60;
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
     }
 
-    const { orgId, city, state, zip, orgName, maxNew, apply } = body as {
+    const { orgId, city, state, zip, orgName, maxNew, apply, planId } = body as {
         orgId?: string;
         city?: string;
         state?: string;
@@ -54,6 +55,7 @@ export async function POST(request: NextRequest) {
         orgName?: string;
         maxNew?: number;
         apply?: boolean;
+        planId?: string;
     };
 
     if (!orgId || !city || !state) {
@@ -68,12 +70,14 @@ export async function POST(request: NextRequest) {
     try {
         if (apply) {
             // Full pipeline with registration
+            const resolvedPlanId = planId || await getCompetitiveIntelPlanId(orgId);
             const result = await autoSetupCompetitors(orgId, {
                 city,
                 state,
                 zip: zip || '',
                 orgName,
                 maxNew: maxNew ?? 5,
+                planId: resolvedPlanId,
                 apply: true,
             });
 
