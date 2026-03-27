@@ -37,11 +37,12 @@ jest.mock('firebase-admin/auth', () => ({
 
 describe('Firebase Admin', () => {
     const mockApp = { name: '[DEFAULT]' } as App;
-    const mockFirestore = { collection: jest.fn() };
+    const mockFirestore = { collection: jest.fn(), settings: jest.fn() };
     const mockAuth = { verifyIdToken: jest.fn() };
 
     beforeEach(() => {
         jest.clearAllMocks();
+        jest.resetModules();
 
         // Reset environment
         delete process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
@@ -88,6 +89,17 @@ describe('Firebase Admin', () => {
             expect(mockGetFirestore).toHaveBeenCalledWith(expect.any(Object));
             // Verify it was NOT called without arguments
             expect(mockGetFirestore.mock.calls[0]).toHaveLength(1);
+        });
+
+        it('should apply ignoreUndefinedProperties to admin Firestore', async () => {
+            mockGetApps.mockReturnValue([mockApp]);
+
+            const { getAdminFirestore } = await import('../admin');
+            getAdminFirestore();
+
+            expect(mockFirestore.settings).toHaveBeenCalledWith({
+                ignoreUndefinedProperties: true,
+            });
         });
     });
 

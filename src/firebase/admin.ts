@@ -4,6 +4,8 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import { getStorage } from 'firebase-admin/storage';
 
+let firestoreSettingsApplied = false;
+
 function getServiceAccount() {
     // --------------------------------------------------------------------------
     // [MODIFIED] Check LOCAL service-account.json first to prevent race conds
@@ -107,6 +109,16 @@ export function getAdminFirestore() {
             throw new Error('[Firebase Admin] Failed to initialize Firebase app - no apps found after initialization attempt');
         }
         const db = getFirestore(app);
+
+        if (!firestoreSettingsApplied) {
+            try {
+                db.settings({ ignoreUndefinedProperties: true });
+            } catch (error) {
+                console.warn('[Firebase Admin] Failed to apply Firestore settings', error);
+            }
+            firestoreSettingsApplied = true;
+        }
+
         return db;
     } catch (error) {
         console.error('[Firebase Admin] Error in getAdminFirestore:', error);
