@@ -6,7 +6,7 @@
  * 4 fresh chips on every login/inbox refresh.
  */
 
-export type UserRoleForChat = 'owner' | 'admin' | 'brand' | 'dispensary' | 'editor' | 'customer' | 'super_admin' | 'concierge';
+export type UserRoleForChat = 'owner' | 'admin' | 'brand' | 'dispensary' | 'grower' | 'editor' | 'customer' | 'super_admin' | 'concierge';
 
 export interface RoleChatConfig {
     role: UserRoleForChat;
@@ -203,6 +203,36 @@ export const DISPENSARY_CHAT_CONFIG: RoleChatConfig = {
 };
 
 // ============================================================================
+// GROWER
+// ============================================================================
+export const GROWER_CHAT_CONFIG: RoleChatConfig = {
+    role: 'grower',
+    title: 'Cultivation Ops',
+    subtitle: 'AI support for yield, wholesale, and outbound inventory prep',
+    welcomeMessage: "Welcome back. I can help you review yield health, package wholesale inventory, and draft buyer outreach. What are we moving today?",
+    placeholder: 'Ask about yield trends, compliance, or wholesale outreach...',
+    promptSuggestions: [
+        'Review my latest yield and flag weak spots',
+        'Build this week\'s wholesale availability list',
+        'Draft outreach for new brand buyers',
+        'Check COAs and tags before the next transfer',
+        'Show which SKUs are ready for wholesale right now',
+        'Help me tighten pricing for our top flower lots',
+        'Which listings need fresh counts before outreach?',
+        'Prepare a buyer update for our current inventory'
+    ],
+    agentPersona: 'pops',
+    themeColor: 'emerald',
+    iconName: 'store',
+    enabledFeatures: {
+        modelSelector: true,
+        personaSelector: true,
+        triggers: true,
+        permissions: true
+    }
+};
+
+// ============================================================================
 // OWNER / ADMIN
 // ============================================================================
 export const OWNER_CHAT_CONFIG: RoleChatConfig = {
@@ -323,6 +353,7 @@ export function getChatConfigForRole(role: UserRoleForChat): RoleChatConfig {
         case 'customer':    return CUSTOMER_CHAT_CONFIG;
         case 'brand':       return BRAND_CHAT_CONFIG;
         case 'dispensary':  return DISPENSARY_CHAT_CONFIG;
+        case 'grower':      return GROWER_CHAT_CONFIG;
         case 'super_admin': return SUPER_ADMIN_CHAT_CONFIG;
         case 'concierge':   return CONCIERGE_CHAT_CONFIG;
         case 'owner':
@@ -337,6 +368,7 @@ export function getAllChatConfigs(): Record<UserRoleForChat, RoleChatConfig> {
         admin:       { ...OWNER_CHAT_CONFIG, role: 'admin' },
         brand:       BRAND_CHAT_CONFIG,
         dispensary:  DISPENSARY_CHAT_CONFIG,
+        grower:      GROWER_CHAT_CONFIG,
         editor:      EDITOR_CHAT_CONFIG,
         customer:    CUSTOMER_CHAT_CONFIG,
         super_admin: SUPER_ADMIN_CHAT_CONFIG,

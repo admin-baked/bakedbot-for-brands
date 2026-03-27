@@ -101,8 +101,37 @@ const QUICK_ACTION_CATEGORIES = {
     growth: ['growth-review', 'churn-analysis', 'revenue-forecast', 'pipeline-review', 'customer-health', 'market-intel', 'bizdev-outreach', 'growth-experiment'],
     company: ['daily-standup', 'sprint-planning', 'incident-response', 'release-prep', 'customer-onboarding', 'customer-pulse', 'content-brief', 'weekly-sync', 'cash-flow', 'board-update', 'compliance-audit', 'hiring-review'],
     research: ['deep-research', 'compliance-brief', 'market-analysis'],
+    grower: ['yield-analysis', 'wholesale-inventory', 'grower-brand-outreach', 'grower-compliance-check'],
     customer: ['find-products', 'my-routines', 'get-help'],
 };
+
+type QuickActionCategory = keyof typeof QUICK_ACTION_CATEGORIES;
+
+function getOrderedQuickActionCategories(role: string | null): QuickActionCategory[] {
+    const isSuper = role === 'super_user' || role === 'super_admin' || role === 'owner';
+    const isCustomer = role === 'customer';
+    const isGrower = role === 'grower';
+
+    if (isCustomer) {
+        return ['customer'];
+    }
+
+    if (isGrower) {
+        return ['grower'];
+    }
+
+    if (isSuper) {
+        return ['growth', 'company', 'research', 'marketing', 'operations'];
+    }
+
+    return ['marketing', 'operations'];
+}
+
+function getQuickActionCategoryLabel(category: QuickActionCategory): string {
+    if (category === 'company') return 'Company Ops';
+    if (category === 'grower') return 'Grower Ops';
+    return category.charAt(0).toUpperCase() + category.slice(1);
+}
 
 // Default favorites (most commonly used)
 function getDefaultFavoritesForRole(role: string | null): string[] {
@@ -125,7 +154,7 @@ function getDefaultFavoritesForRole(role: string | null): string[] {
 
     // Growers: focus on wholesale and B2B workflows
     if (role === 'grower') {
-        return ['new-carousel', 'review-performance', 'market-intel'];
+        return ['yield-analysis', 'wholesale-inventory', 'grower-brand-outreach', 'grower-compliance-check'];
     }
 
     // Default (brand/dispensary)
@@ -642,13 +671,7 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
                                         </SheetHeader>
                                         <div className="pb-6">
                                             {(() => {
-                                                const isSuper = currentRole === 'super_user' || currentRole === 'super_admin' || currentRole === 'owner';
-                                                const isCustomer = currentRole === 'customer';
-                                                const orderedCategories: Array<keyof typeof QUICK_ACTION_CATEGORIES> = isCustomer
-                                                    ? ['customer']
-                                                    : isSuper
-                                                        ? ['growth', 'company', 'research', 'marketing', 'operations']
-                                                        : ['marketing', 'operations'];
+                                                const orderedCategories = getOrderedQuickActionCategories(currentRole);
                                                 const categorized = new Set<string>();
                                                 Object.values(QUICK_ACTION_CATEGORIES).forEach((ids) => ids.forEach((id) => categorized.add(id)));
                                                 return orderedCategories.map((category) => {
@@ -657,7 +680,7 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
                                                     return (
                                                         <div key={category} className="mb-4">
                                                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
-                                                                {category === 'company' ? 'Company Ops' : category.charAt(0).toUpperCase() + category.slice(1)}
+                                                                {getQuickActionCategoryLabel(category)}
                                                             </p>
                                                             <div className="grid grid-cols-2 gap-2">
                                                                 {actions.map((action) => {
@@ -739,14 +762,7 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="start" className="w-[min(280px,calc(100vw-2rem))] max-h-[400px] overflow-y-auto">
                                     {(() => {
-                                        const isSuper = currentRole === 'super_user' || currentRole === 'super_admin' || currentRole === 'owner';
-                                        const isCustomer = currentRole === 'customer';
-
-                                        const orderedCategories: Array<keyof typeof QUICK_ACTION_CATEGORIES> = isCustomer
-                                            ? ['customer']
-                                            : isSuper
-                                                ? ['growth', 'company', 'research', 'marketing', 'operations']
-                                                : ['marketing', 'operations'];
+                                        const orderedCategories = getOrderedQuickActionCategories(currentRole);
 
                                         const categorized = new Set<string>();
                                         Object.values(QUICK_ACTION_CATEGORIES).forEach((ids) => {
@@ -765,7 +781,7 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
                                             blocks.push(
                                                 <React.Fragment key={category}>
                                                     <DropdownMenuLabel className="text-xs">
-                                                        {category === 'company' ? 'Company Ops' : category.charAt(0).toUpperCase() + category.slice(1)}
+                                                        {getQuickActionCategoryLabel(category)}
                                                     </DropdownMenuLabel>
                                                     {actions.map((action) => {
                                                         const Icon = getIcon(action.icon);
@@ -867,9 +883,6 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
                 <div className={cn('p-2 pb-16 sm:pb-2', collapsed && 'flex flex-col items-center gap-1')}>
                     {isMobile && (
                         <InsightCardsGrid maxCards={3} className="mb-3 px-1" />
-                    )}
-                    {!isMobile && activeThreadId && !collapsed && (
-                        <InsightCardsGrid maxCards={2} className="mb-3 px-1" />
                     )}
 
                     {/* Active Threads */}

@@ -28,14 +28,25 @@ jest.mock('@/hooks/use-job-poller', () => ({
 // Mock dependencies
 jest.mock('@/lib/store/inbox-store');
 jest.mock('@/hooks/use-user-role');
-jest.mock('@/components/inbox/unified-inbox', () => ({
+jest.mock('@/components/inbox', () => ({
     UnifiedInbox: () => <div data-testid="unified-inbox">Unified Inbox View</div>,
 }));
 jest.mock('@/components/chat/unified-agent-chat', () => ({
-    UnifiedAgentChat: () => <div data-testid="unified-agent-chat">Agent Chat View</div>,
+    UnifiedAgentChat: ({ role }: { role: string }) => (
+        <div data-testid="unified-agent-chat" data-role={role}>
+            Agent Chat View
+        </div>
+    ),
 }));
 jest.mock('@/components/inbox/inbox-view-toggle', () => ({
     InboxViewToggle: () => <div data-testid="inbox-view-toggle">Toggle</div>,
+}));
+jest.mock('@/components/inbox/inbox-workspace-briefing', () => ({
+    InboxWorkspaceBriefing: ({ className }: { className?: string }) => (
+        <div data-testid="inbox-workspace-briefing" className={className}>
+            Workspace Briefing
+        </div>
+    ),
 }));
 
 // Mock framer-motion to avoid animation issues in tests
@@ -146,6 +157,23 @@ describe('InboxPage', () => {
                 expect(screen.getByTestId('inbox-view-toggle')).toBeInTheDocument();
             });
         });
+
+        it('should render the desktop workspace briefing in the header', async () => {
+            (useInboxStore as unknown as jest.Mock).mockImplementation((selector) => {
+                if (typeof selector === 'function') {
+                    return selector({ viewMode: 'inbox', setViewMode: mockSetViewMode });
+                }
+                return { viewMode: 'inbox', setViewMode: mockSetViewMode };
+            });
+
+            (useUserRole as jest.Mock).mockReturnValue({ role: 'brand' });
+
+            render(<InboxPage />);
+
+            await waitFor(() => {
+                expect(screen.getByTestId('inbox-workspace-briefing')).toBeInTheDocument();
+            });
+        });
     });
 
     describe('Role-based Chat Configuration', () => {
@@ -163,6 +191,7 @@ describe('InboxPage', () => {
 
             await waitFor(() => {
                 expect(screen.getByTestId('unified-agent-chat')).toBeInTheDocument();
+                expect(screen.getByTestId('unified-agent-chat')).toHaveAttribute('data-role', 'brand');
             });
         });
 
@@ -180,6 +209,7 @@ describe('InboxPage', () => {
 
             await waitFor(() => {
                 expect(screen.getByTestId('unified-agent-chat')).toBeInTheDocument();
+                expect(screen.getByTestId('unified-agent-chat')).toHaveAttribute('data-role', 'dispensary');
             });
         });
 
@@ -197,6 +227,25 @@ describe('InboxPage', () => {
 
             await waitFor(() => {
                 expect(screen.getByTestId('unified-agent-chat')).toBeInTheDocument();
+                expect(screen.getByTestId('unified-agent-chat')).toHaveAttribute('data-role', 'super_admin');
+            });
+        });
+
+        it('should configure chat for growers', async () => {
+            (useInboxStore as unknown as jest.Mock).mockImplementation((selector) => {
+                if (typeof selector === 'function') {
+                    return selector({ viewMode: 'chat', setViewMode: mockSetViewMode });
+                }
+                return { viewMode: 'chat', setViewMode: mockSetViewMode };
+            });
+
+            (useUserRole as jest.Mock).mockReturnValue({ role: 'grower' });
+
+            render(<InboxPage />);
+
+            await waitFor(() => {
+                expect(screen.getByTestId('unified-agent-chat')).toBeInTheDocument();
+                expect(screen.getByTestId('unified-agent-chat')).toHaveAttribute('data-role', 'grower');
             });
         });
     });

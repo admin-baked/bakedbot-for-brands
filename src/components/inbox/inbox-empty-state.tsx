@@ -39,6 +39,7 @@ import { useToast } from '@/hooks/use-toast';
 import { InsightCardsGrid } from './insight-cards-grid';
 import { _pendingInputs } from './inbox-conversation';
 import type { InboxOwnerBriefingSummary } from '@/types/inbox';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // ============ Props ============
 
@@ -124,6 +125,7 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
         orgId: currentOrgId,
     });
     const { toast } = useToast();
+    const isMobile = useIsMobile();
 
     const [customText, setCustomText] = useState('');
     const [isCreating, setIsCreating] = useState(false);
@@ -341,7 +343,7 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
             <div className="mx-auto flex min-h-full w-full max-w-4xl items-start justify-center p-6 sm:p-8">
             <div className="w-full space-y-8 py-2">
                 {/* Daily Briefing - Insight Cards */}
-                <InsightCardsGrid maxCards={5} />
+                {isMobile && <InsightCardsGrid maxCards={5} />}
 
                 {/* Welcome Header with Contextual Greeting */}
                 <div className="text-center">

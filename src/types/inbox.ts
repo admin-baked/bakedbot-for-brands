@@ -1502,6 +1502,12 @@ export async function getQuickActionsForRoleAsync(
         return getQuickActionsForRole(role);
     }
 
+    // Grower quick actions do not have a ground-truth schema yet.
+    // Keep growers on the canonical hardcoded action set until that layer exists.
+    if (role === 'grower') {
+        return getQuickActionsForRole(role);
+    }
+
     try {
         // Dynamic import to avoid circular dependencies
         const { getPresetPrompts } = await import('@/server/actions/role-ground-truth');
