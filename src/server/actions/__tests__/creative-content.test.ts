@@ -29,6 +29,11 @@ jest.mock('@/ai/flows/generate-social-image', () => ({
     generateImageFromPrompt: jest.fn().mockResolvedValue('https://example.com/generated-image.jpg')
 }));
 
+jest.mock('@/ai/generators/og', () => ({
+    buildOgImageUrl: jest.fn().mockReturnValue('/api/og/social?template=product-spotlight'),
+    deriveOgTemplate: jest.fn().mockReturnValue('text-on-color'),
+}));
+
 jest.mock('@/ai/flows/generate-social-caption', () => ({
     generateSocialCaption: jest.fn().mockResolvedValue({
         primaryCaption: 'Check out our latest product! Quality cannabis you can trust.',
@@ -63,6 +68,16 @@ jest.mock('@/lib/logger', () => ({
         warn: jest.fn(),
         error: jest.fn()
     }
+}));
+
+jest.mock('@/server/services/media-tracking', () => ({
+    withImageTracking: jest.fn(async (
+        _tenantId: string,
+        _userId: string,
+        _model: string,
+        _prompt: string,
+        execute: () => Promise<{ imageUrl: string }>
+    ) => execute()),
 }));
 
 jest.mock('uuid', () => ({
@@ -164,7 +179,7 @@ describe('Creative Content Server Actions', () => {
             expect(result.content.id).toBe('content-uuid-123');
             expect(result.content.platform).toBe('instagram');
             expect(result.content.mediaUrls).toContain('https://example.com/generated-image.jpg');
-            expect(result.content.generatedBy).toBe('nano-banana');
+            expect(result.content.generatedBy).toBe('flux-schnell');
         });
 
         it('saves content to Firestore', async () => {
@@ -193,13 +208,47 @@ describe('Creative Content Server Actions', () => {
 
             const result = await generateContent({ ...mockRequest, tier: 'paid' });
 
-            expect(result.content.generatedBy).toBe('nano-banana-pro');
+            expect(result.content.generatedBy).toBe('flux-pro');
+        });
+
+        it('builds branded product spotlight images from the selected product', async () => {
+            const { buildOgImageUrl } = await import('@/ai/generators/og');
+
+            mockDoc.set.mockResolvedValue(undefined);
+
+            await generateContent({
+                ...mockRequest,
+                prompt: "Lets create an image post featuring one of our Products. Use our brand colors.",
+                imageMode: 'branded',
+                brandName: 'Thrive Syracuse',
+                productName: 'Ayrloom - Gummies 10pk - 2:1 Sunny Days - 100mg',
+                productImageUrl: 'https://example.com/ayrloom-sunny-days.png',
+                bgColor: '#2E7D32',
+                accentColor: '#F59E0B',
+            });
+
+            expect(buildOgImageUrl).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    template: 'product-spotlight',
+                    headline: 'Ayrloom - Gummies 10pk - 2:1 Sunny Days - 100mg',
+                    subtext: 'Available now at Thrive Syracuse',
+                    imageUrl: 'https://example.com/ayrloom-sunny-days.png',
+                    bgColor: '#2E7D32',
+                    accentColor: '#F59E0B',
+                })
+            );
         });
     });
 
     describe('approveContent', () => {
         it('updates content status to approved', async () => {
-            mockDoc.get.mockResolvedValue({ exists: true });
+            mockDoc.get.mockResolvedValue({
+                exists: true,
+                data: () => ({
+                    platform: 'instagram',
+                    caption: 'Approved caption',
+                }),
+            });
             mockDoc.update.mockResolvedValue(undefined);
 
             await approveContent({
@@ -217,7 +266,13 @@ describe('Creative Content Server Actions', () => {
         });
 
         it('sets scheduled status when scheduledAt provided', async () => {
-            mockDoc.get.mockResolvedValue({ exists: true });
+            mockDoc.get.mockResolvedValue({
+                exists: true,
+                data: () => ({
+                    platform: 'instagram',
+                    caption: 'Approved caption',
+                }),
+            });
             mockDoc.update.mockResolvedValue(undefined);
 
             await approveContent({

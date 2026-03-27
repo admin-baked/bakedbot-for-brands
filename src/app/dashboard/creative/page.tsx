@@ -70,6 +70,22 @@ interface MenuProduct {
   name: string;
   brandName?: string;
   brand?: string;
+  imageUrl?: string;
+}
+
+function formatMenuProductLabel(product: MenuProduct): string {
+  const name = product.name.trim();
+  const brandName = (product.brandName || product.brand || '').trim();
+
+  if (!brandName) {
+    return name;
+  }
+
+  if (name.toLowerCase().startsWith(brandName.toLowerCase())) {
+    return name;
+  }
+
+  return `${name} · ${brandName}`;
 }
 
 // Valid creative style types
@@ -145,7 +161,7 @@ export default function CreativeCommandCenter() {
   const [campaignPrompt, setCampaignPrompt] = useState("");
   const [contentType, setContentType] = useState("social-post");
   const [tone, setTone] = useState<CreativeStyle>("professional");
-  const [menuItem, setMenuItem] = useState("");
+  const [selectedMenuItemId, setSelectedMenuItemId] = useState("");
   const [revisionNote, setRevisionNote] = useState("");
 
   // Caption editing state
@@ -315,7 +331,7 @@ export default function CreativeCommandCenter() {
   const [isDragging, setIsDragging] = useState(false);
 
   // Menu items
-  const [menuItems, setMenuItems] = useState<Array<{ id: string; name: string; brandName?: string }>>([]);
+  const [menuItems, setMenuItems] = useState<MenuProduct[]>([]);
   const [isLoadingMenu, setIsLoadingMenu] = useState(false);
 
   // Fetch menu items on mount
@@ -328,6 +344,7 @@ export default function CreativeCommandCenter() {
           id: p.id,
           name: p.name,
           brandName: p.brandName || p.brand,
+          imageUrl: p.imageUrl,
         }));
         setMenuItems(items);
       } catch (err) {
@@ -339,6 +356,8 @@ export default function CreativeCommandCenter() {
     };
     fetchMenuItems();
   }, []);
+
+  const selectedMenuProduct = menuItems.find(item => item.id === selectedMenuItemId) ?? null;
 
   // Load brand kit images once org context is known so Drive status is visible across the page
   useEffect(() => {
@@ -551,6 +570,9 @@ export default function CreativeCommandCenter() {
             accentColor: brandColors?.accent,
             logoUrl: brandGuide?.visualIdentity?.logo?.primary,
             tagline: isSlideshow ? (brandTagline || trimmedPrompt.substring(0, 60)) : brandTagline,
+            headline: isSlideshow ? (selectedMenuProduct?.name || trimmedPrompt.substring(0, 60)) : undefined,
+            productImageUrl: isSlideshow ? (selectedMenuProduct?.imageUrl || undefined) : undefined,
+            ctaText: isSlideshow && textOverlay.cta ? textOverlay.cta : undefined,
           },
           { allowFallbackDemo: false, forceProvider: isSlideshow ? 'remotion' : 'kling' }
         );
@@ -580,7 +602,8 @@ export default function CreativeCommandCenter() {
         imageStyle: selectedImageStyle || undefined,
         style: tone,
         includeHashtags: true,
-        productName: menuItem || undefined,
+        productName: selectedMenuProduct?.name || undefined,
+        productImageUrl: selectedMenuProduct?.imageUrl || undefined,
         tier: "free",
         brandName: brandGuide?.brandName || undefined,
         brandVoice: brandVoiceString,
@@ -725,7 +748,16 @@ export default function CreativeCommandCenter() {
     toast.success(`Generating content for ${batchPlatforms.length} platforms...`);
     try {
       const results = await Promise.all(
-        batchPlatforms.map(platform => generate({ platform, prompt: campaignPrompt, imageStyle: selectedImageStyle || undefined, style: tone, includeHashtags: true, productName: menuItem || undefined, tier: "free" }))
+        batchPlatforms.map(platform => generate({
+          platform,
+          prompt: campaignPrompt,
+          imageStyle: selectedImageStyle || undefined,
+          style: tone,
+          includeHashtags: true,
+          productName: selectedMenuProduct?.name || undefined,
+          productImageUrl: selectedMenuProduct?.imageUrl || undefined,
+          tier: "free",
+        }))
       );
       // Show the first successful result on canvas immediately
       const firstResult = results.find(r => r !== null);
@@ -1102,15 +1134,14 @@ export default function CreativeCommandCenter() {
                       {/* Product */}
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Product</label>
-                        <Select value={menuItem} onValueChange={setMenuItem}>
+                        <Select value={selectedMenuItemId} onValueChange={setSelectedMenuItemId}>
                           <SelectTrigger className="h-8 text-xs bg-background border-border">
                             <SelectValue placeholder={isLoadingMenu ? "Loading..." : "Select product (optional)"} />
                           </SelectTrigger>
                           <SelectContent className="bg-muted border-border text-foreground max-h-48">
                             {menuItems.map(item => (
-                              <SelectItem key={item.id} value={item.name} className="text-xs">
-                                {item.name}
-                                {item.brandName && <span className="ml-1.5 text-muted-foreground">· {item.brandName}</span>}
+                              <SelectItem key={item.id} value={item.id} className="text-xs">
+                                {formatMenuProductLabel(item)}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -1661,7 +1692,7 @@ export default function CreativeCommandCenter() {
 
           {/* Canvas frame — platform-aware aspect ratio */}
           <motion.div
-            key={currentContent?.id ?? 'empty'}
+            key={localVideoUrl ?? currentContent?.id ?? 'empty'}
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.25 }}
@@ -1719,18 +1750,20 @@ export default function CreativeCommandCenter() {
                 </a>
               </div>
 
-            ) : imageMode === 'video' && localVideoUrl ? (
-              /* Video result */
+            ) : (imageMode === 'video' || imageMode === 'slideshow') && localVideoUrl ? (
+              /* Motion result */
               <>
                 {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                 <video src={localVideoUrl} controls autoPlay muted loop className="w-full h-full object-cover" />
                 <div className="absolute top-3 left-3">
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-black/60 text-white backdrop-blur-sm capitalize tracking-wide">
-                    {selectedPlatform} · video
+                    {selectedPlatform} · {imageMode === 'slideshow' ? 'slideshow' : 'video'}
                   </span>
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-                  <p className="text-white text-xs leading-relaxed line-clamp-2">{campaignPrompt}</p>
+                  <p className="text-white text-xs leading-relaxed line-clamp-2">
+                    {imageMode === 'slideshow' ? (selectedMenuProduct?.name || campaignPrompt) : campaignPrompt}
+                  </p>
                 </div>
               </>
 
