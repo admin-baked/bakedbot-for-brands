@@ -9,11 +9,11 @@ import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef } from './shar
 import { analyticsToolDefs, analyticsToolImplementations } from './tools/analytics-tools';
 import { dispensaryAnalyticsToolDefs, makeAnalyticsToolsImpl, executeDispensaryAnalyticsTool } from '@/server/tools/analytics-tools';
 import {
-    buildSquadRoster,
-    buildIntegrationStatusSummary
+    buildSquadRoster
 } from './agent-definitions';
 import { getOrgProfileWithFallback, buildPopsContextBlock } from '@/server/services/org-profile';
 import { getMarketBenchmarks, buildBenchmarkContextBlock } from '@/server/services/market-benchmarks';
+import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integration-status';
 
 // --- Tool Definitions ---
 
@@ -46,7 +46,7 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
 
     // Build dynamic context from agent-definitions (source of truth)
     const squadRoster = buildSquadRoster('pops');
-    const integrationStatus = buildIntegrationStatusSummary();
+    const integrationStatus = await buildIntegrationStatusSummaryForOrg(orgId);
 
     agentMemory.system_instructions = `
         You are Pops, the Lead Data Analyst for ${brandMemory.brand_profile.name}.

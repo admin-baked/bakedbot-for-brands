@@ -10,13 +10,13 @@ import { craigInboxToolDefs } from '../tools/inbox-tools';
 import { craigCrmToolDefs } from '../tools/crm-tools';
 import { craigCampaignToolDefs } from '../tools/campaign-tools';
 import {
-    buildSquadRoster,
-    buildIntegrationStatusSummary
+    buildSquadRoster
 } from './agent-definitions';
 import { loadAndBuildGoalDirective, loadActiveGoals, fetchMarginProductContext } from './goal-directive-builder';
 import { getOrgProfileWithFallback, buildCraigContextBlock } from '@/server/services/org-profile';
 import { getMarketBenchmarks, buildBenchmarkContextBlock } from '@/server/services/market-benchmarks';
 import { dispensaryAnalyticsToolDefs, makeAnalyticsToolsImpl } from '@/server/tools/analytics-tools';
+import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integration-status';
 
 // --- Tool Definitions ---
 
@@ -50,12 +50,13 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
       }
     });
     
+    const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id;
+
     // Build dynamic context from agent-definitions (source of truth)
     const squadRoster = buildSquadRoster('craig');
-    const integrationStatus = buildIntegrationStatusSummary();
+    const integrationStatus = await buildIntegrationStatusSummaryForOrg(orgId);
 
     // Load active goals for goal-driven directives
-    const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id;
     const [goalDirectives, orgProfile, benchmarks] = await Promise.all([
         orgId ? loadAndBuildGoalDirective(orgId) : Promise.resolve(''),
         orgId ? getOrgProfileWithFallback(orgId).catch(() => null) : Promise.resolve(null),

@@ -55,6 +55,14 @@ const getSegmentSummaryDef = {
     }),
 };
 
+const getCustomerEmailCoverageDef = {
+    name: 'getCustomerEmailCoverage',
+    description: `Count how many synced customer profiles have an email address on file. Use this whenever the user asks how many customers have emails, what the email capture rate is, or how many profiles are missing email.`,
+    schema: z.object({
+        orgId: z.string().describe('Organization/tenant ID'),
+    }),
+};
+
 const getTopCustomersDef = {
     name: 'getTopCustomers',
     description: `Find the highest-value customers in an organization. Returns the top customers ranked by spend or order count. Use this for VIP outreach, concierge treatment, and answering "who are our top customers?"`,
@@ -100,6 +108,7 @@ export const crmToolDefs = [
     lookupCustomerDef,
     getCustomerHistoryDef,
     getSegmentSummaryDef,
+    getCustomerEmailCoverageDef,
     getTopCustomersDef,
     getAtRiskCustomersDef,
     getUpcomingBirthdaysDef,
@@ -108,7 +117,7 @@ export const crmToolDefs = [
 
 /** Per-agent subsets */
 export const craigCrmToolDefs = [lookupCustomerDef, getAtRiskCustomersDef, getCustomerCommsDef, getSegmentSummaryDef];
-export const mrsParkerCrmToolDefs = [lookupCustomerDef, getTopCustomersDef, getUpcomingBirthdaysDef, getCustomerCommsDef, getAtRiskCustomersDef];
+export const mrsParkerCrmToolDefs = [lookupCustomerDef, getCustomerEmailCoverageDef, getTopCustomersDef, getUpcomingBirthdaysDef, getCustomerCommsDef, getAtRiskCustomersDef];
 export const smokeyCrmToolDefs = [lookupCustomerDef, getCustomerHistoryDef];
 export const moneyMikeCrmToolDefs = [lookupCustomerDef, getSegmentSummaryDef, getCustomerHistoryDef];
 
@@ -581,6 +590,74 @@ ${activeSegments.map(seg => {
 - Dedup window: 30 days (customers contacted in last 30 days for same campaign type are automatically excluded)`;
 
     return { summary, segments: segments as unknown as Record<string, unknown> };
+}
+
+/**
+ * Count customer profiles with contact data on file.
+ */
+export async function getCustomerEmailCoverage(
+    orgId: string,
+): Promise<{ summary: string; metrics: Record<string, unknown> }> {
+    logger.info('[crm-tools] getCustomerEmailCoverage', { orgId });
+    const firestore = getAdminFirestore();
+
+    const snap = await firestore.collection('customers')
+        .where('orgId', '==', orgId)
+        .select('email', 'phone')
+        .get();
+
+    if (snap.empty) {
+        return {
+            summary: `No synced customer profiles found for organization ${orgId}.`,
+            metrics: {
+                totalCustomers: 0,
+                customersWithEmail: 0,
+                customersWithoutEmail: 0,
+                emailCoveragePct: 0,
+                customersWithPhone: 0,
+                phoneCoveragePct: 0,
+            },
+        };
+    }
+
+    let customersWithEmail = 0;
+    let customersWithPhone = 0;
+
+    for (const doc of snap.docs) {
+        const data = doc.data();
+        const email = typeof data.email === 'string' ? data.email.trim() : '';
+        const phone = typeof data.phone === 'string' ? data.phone.trim() : '';
+
+        if (email.length > 0) {
+            customersWithEmail++;
+        }
+
+        if (phone.length > 0) {
+            customersWithPhone++;
+        }
+    }
+
+    const totalCustomers = snap.size;
+    const customersWithoutEmail = totalCustomers - customersWithEmail;
+    const emailCoveragePct = Number(((customersWithEmail / totalCustomers) * 100).toFixed(1));
+    const phoneCoveragePct = Number(((customersWithPhone / totalCustomers) * 100).toFixed(1));
+
+    const summary = `**Customer Contact Coverage**
+- Customers with email: ${customersWithEmail.toLocaleString()} of ${totalCustomers.toLocaleString()} (${emailCoveragePct}%)
+- Missing email: ${customersWithoutEmail.toLocaleString()}
+- Customers with phone: ${customersWithPhone.toLocaleString()} of ${totalCustomers.toLocaleString()} (${phoneCoveragePct}%)`;
+
+    return {
+        summary,
+        metrics: {
+            totalCustomers,
+            customersWithEmail,
+            customersWithoutEmail,
+            emailCoveragePct,
+            customersWithPhone,
+            phoneCoveragePct,
+        },
+    };
 }
 
 /**

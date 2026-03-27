@@ -6,9 +6,9 @@ import { z } from 'zod';
 import { deebo } from './deebo';
 import { getStateMarketingRules } from '@/server/data/state-marketing-rules';
 import {
-    buildSquadRoster,
-    buildIntegrationStatusSummary
+    buildSquadRoster
 } from './agent-definitions';
+import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integration-status';
 
 const STATE_QUERY_MATCHERS: Array<{ stateCode: string; pattern: RegExp }> = [
     { stateCode: 'NY', pattern: /\bny-compliance\b|\bny compliance\b|\bnew york\b|\bny\b/i },
@@ -177,8 +177,9 @@ export const deeboAgent: AgentImplementation<DeeboMemory, DeeboTools> = {
         logger.info('[Deebo] Initializing. Loading compliance rule packs...');
 
         // Build dynamic context from agent-definitions (source of truth)
+        const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || '';
         const squadRoster = buildSquadRoster('deebo');
-        const integrationStatus = buildIntegrationStatusSummary();
+        const integrationStatus = await buildIntegrationStatusSummaryForOrg(orgId);
 
         agentMemory.system_instructions = `
             You are Deebo, the Compliance Enforcer for ${brandMemory.brand_profile.name}.

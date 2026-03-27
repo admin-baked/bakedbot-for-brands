@@ -9,9 +9,9 @@ import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, AllSharedTools, 
 import {
     buildSquadRoster,
     getDelegatableAgentIds,
-    buildIntegrationStatusSummary,
     AgentId
 } from './agent-definitions';
+import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integration-status';
 
 export interface ExecutiveTools extends Partial<AllSharedTools> {
   // Common tools for the executive floor
@@ -66,8 +66,9 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
     }
 
     // Build dynamic squad roster from agent-definitions (source of truth)
+    const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || '';
     const squadRoster = buildSquadRoster();
-    const integrationStatus = buildIntegrationStatusSummary();
+    const integrationStatus = await buildIntegrationStatusSummaryForOrg(orgId);
 
     agentMemory.system_instructions = `
         You are an Executive Boardroom Member for ${brandMemory.brand_profile.name}.

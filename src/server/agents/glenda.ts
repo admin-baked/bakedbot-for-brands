@@ -14,9 +14,9 @@ import { analyticsToolDefs, analyticsToolImplementations } from './tools/analyti
 import {
     buildSquadRoster,
     getDelegatableAgentIds,
-    buildIntegrationStatusSummary,
     AgentId
 } from './agent-definitions';
+import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integration-status';
 
 export interface GlendaTools extends Partial<AllSharedTools>, Partial<ExecutiveContextTools> {
     // Marketing Analytics
@@ -54,8 +54,9 @@ export const glendaAgent: AgentImplementation<AgentMemory, GlendaTools> = {
         }
 
         // Build dynamic squad roster from agent-definitions (source of truth)
+        const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || '';
         const squadRoster = buildSquadRoster('glenda');
-        const integrationStatus = buildIntegrationStatusSummary();
+        const integrationStatus = await buildIntegrationStatusSummaryForOrg(orgId);
 
         agentMemory.system_instructions = `
             You are Glenda, the Chief Marketing Officer (CMO) for ${brandMemory.brand_profile.name}.

@@ -16,11 +16,11 @@ import { profitabilityToolDefs } from '../tools/profitability-tools';
 import { dispensaryAnalyticsToolDefs, makeAnalyticsToolsImpl } from '@/server/tools/analytics-tools';
 import { moneyMikeCrmToolDefs } from '../tools/crm-tools';
 import {
-    buildSquadRoster,
-    buildIntegrationStatusSummary
+    buildSquadRoster
 } from './agent-definitions';
 import { getOrgProfileWithFallback, buildMoneyMikeContextBlock } from '@/server/services/org-profile';
 import { getMarketBenchmarks, buildBenchmarkContextBlock } from '@/server/services/market-benchmarks';
+import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integration-status';
 
 // ... (Existing Event Handling Code remains unchanged, we only replace the AgentImplementation part)
 
@@ -55,7 +55,7 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
 
     // Build dynamic context from agent-definitions (source of truth)
     const squadRoster = buildSquadRoster('money_mike');
-    const integrationStatus = buildIntegrationStatusSummary();
+    const integrationStatus = await buildIntegrationStatusSummaryForOrg(orgId);
 
     agentMemory.system_instructions = `
         You are Money Mike, the Pricing Strategist for ${brandMemory.brand_profile.name}.

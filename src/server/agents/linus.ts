@@ -21,10 +21,10 @@ import { browserToolDefs } from '../tools/browser-tools';
 import { getAdminFirestore } from '@/firebase/admin';
 import { spawn } from 'child_process';
 import {
-    buildSquadRoster,
-    buildIntegrationStatusSummary
+    buildSquadRoster
 } from './agent-definitions';
 import { githubPushToolDef, executeGithubPush, GithubPushParams } from '../tools/github-tools';
+import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integration-status';
 
 // ============================================================================
 // SECURITY: HIGH-RISK COMMAND SAFETY CHECKS
@@ -4321,9 +4321,9 @@ function getLinusCodebaseContext(claudeContext: string, toolMode: LinusToolMode)
 }
 
 // Build dynamic system prompt with grounding
-function buildLinusSystemPrompt(): string {
+async function buildLinusSystemPrompt(orgId?: string): Promise<string> {
     const squadRoster = buildSquadRoster('linus');
-    const integrationStatus = buildIntegrationStatusSummary();
+    const integrationStatus = await buildIntegrationStatusSummaryForOrg(orgId);
 
     return `You are Linus, AI CTO of BakedBot. Welcome to the bridge.
 
@@ -4521,9 +4521,6 @@ function buildLinusProgressMessage(toolName: string, input: Record<string, unkno
     }
 }
 
-// Legacy constant for backwards compatibility
-const LINUS_SYSTEM_PROMPT = buildLinusSystemPrompt();
-
 /**
  * Linus agent context — injected into Claude's system prompt for persistent identity.
  * This ensures Linus never "forgets" his capabilities, even in long 15-iteration sessions.
@@ -4573,6 +4570,7 @@ export async function runLinus(request: LinusRequest): Promise<LinusResponse> {
     }
 
     const toolMode = request.toolMode ?? 'full';
+    const linusSystemPrompt = await buildLinusSystemPrompt(request.context?.orgId);
     
     // Read CLAUDE.md for codebase context (Claude Code convention)
     let claudeContext = '';
@@ -4584,7 +4582,7 @@ export async function runLinus(request: LinusRequest): Promise<LinusResponse> {
         claudeContext = '(CLAUDE.md not found - operating without codebase context)';
     }
     
-    const fullPrompt = `${LINUS_SYSTEM_PROMPT}
+    const fullPrompt = `${linusSystemPrompt}
 
 ${toolMode === 'slack' ? `
 ## SLACK EXECUTION MODE
@@ -4644,7 +4642,8 @@ export const linusAgent: AgentImplementation<AgentMemory, any> = {
         logger.info('[Linus] Initializing. Connecting to Hive Mind...');
 
         // Build dynamic system prompt with current squad/integration status
-        agentMemory.system_instructions = buildLinusSystemPrompt();
+        const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || '';
+        agentMemory.system_instructions = await buildLinusSystemPrompt(orgId);
 
         // === HIVE MIND INIT ===
         try {
