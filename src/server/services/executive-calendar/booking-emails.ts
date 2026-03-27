@@ -167,7 +167,7 @@ export async function sendFollowUpEmail(
     profile: ExecutiveProfile,
     meetingNotes: string,
     actionItems: string[],
-): Promise<void> {
+): Promise<EmailDeliveryResult> {
     const actionItemsHtml = actionItems.length > 0
         ? `<ul style="margin: 8px 0; padding-left: 20px;">${actionItems.map(a => `<li>${a}</li>`).join('')}</ul>`
         : '<p style="color: #666;">No specific action items captured.</p>';
@@ -213,6 +213,8 @@ export async function sendFollowUpEmail(
     if (!result.success) {
         logger.error(`[BookingEmails] Failed to send follow-up: ${result.error}`);
     }
+
+    return result;
 }
 
 /**
@@ -221,7 +223,7 @@ export async function sendFollowUpEmail(
 export async function send24HourReminderEmail(
     booking: MeetingBooking,
     profile: ExecutiveProfile,
-): Promise<void> {
+): Promise<EmailDeliveryResult> {
     const formattedTime = formatDatetime(booking.startAt, profile.availability.timezone);
     const firstName = booking.externalName.split(' ')[0];
 
@@ -270,6 +272,8 @@ export async function send24HourReminderEmail(
     if (!result.success) {
         logger.error(`[BookingEmails] Failed to send 24-hour reminder: ${result.error}`);
     }
+
+    return result;
 }
 
 /**
@@ -278,7 +282,7 @@ export async function send24HourReminderEmail(
 export async function sendOneHourReminderEmail(
     booking: MeetingBooking,
     profile: ExecutiveProfile,
-): Promise<void> {
+): Promise<EmailDeliveryResult> {
     const formattedTime = formatDatetime(booking.startAt, profile.availability.timezone);
 
     const result = await sendGenericEmail({
@@ -322,6 +326,8 @@ export async function sendOneHourReminderEmail(
     if (!result.success) {
         logger.error(`[BookingEmails] Failed to send 1-hour reminder: ${result.error}`);
     }
+
+    return result;
 }
 
 /**
@@ -330,7 +336,7 @@ export async function sendOneHourReminderEmail(
 export async function sendMeetingStartedEmail(
     booking: MeetingBooking,
     profile: ExecutiveProfile,
-): Promise<void> {
+): Promise<EmailDeliveryResult> {
     const result = await sendGenericEmail({
         to: booking.externalEmail,
         name: booking.externalName,
@@ -367,4 +373,6 @@ export async function sendMeetingStartedEmail(
     if (!result.success) {
         logger.error(`[BookingEmails] Failed to send start notification: ${result.error}`);
     }
+
+    return result;
 }

@@ -36,7 +36,17 @@ async function handleFollowUps() {
             const meetingNotes = booking.meetingNotes ?? await generateFollowUpNotes(booking, profile.displayName);
             const actionItems = booking.actionItems ?? [];
 
-            await sendFollowUpEmail(booking, profile, meetingNotes, actionItems);
+            const delivery = await sendFollowUpEmail(booking, profile, meetingNotes, actionItems);
+            if (!delivery.success) {
+                logger.warn('[MeetingFollowUp] Follow-up delivery failed; leaving booking unsent for retry', {
+                    bookingId: booking.id,
+                    profileSlug: booking.profileSlug,
+                    recipientEmail: booking.externalEmail,
+                    error: delivery.error ?? 'unknown',
+                });
+                continue;
+            }
+
             await markFollowUpSent(booking.id);
             processed++;
 

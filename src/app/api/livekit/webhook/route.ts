@@ -140,7 +140,16 @@ Generate concise meeting notes and action items. Return JSON only:
                 transcript,
             } as import('@/types/executive-calendar').MeetingBooking;
 
-            await sendFollowUpEmail(booking, profile, meetingNotes, actionItems);
+            const delivery = await sendFollowUpEmail(booking, profile, meetingNotes, actionItems);
+            if (!delivery.success) {
+                logger.warn('[LiveKit Webhook] Follow-up delivery failed; leaving booking unsent for cron retry', {
+                    bookingId,
+                    profileSlug,
+                    recipientEmail: booking.externalEmail,
+                    error: delivery.error ?? 'unknown',
+                });
+                return;
+            }
 
             await firestore.collection('meeting_bookings').doc(bookingId).update({
                 followUpSentAt: Timestamp.now(),

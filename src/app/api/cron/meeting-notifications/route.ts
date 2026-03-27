@@ -38,7 +38,17 @@ async function handleNotifications() {
             const profile = await getExecutiveProfile(booking.profileSlug);
             if (!profile) continue;
 
-            await send24HourReminderEmail(booking, profile);
+            const delivery = await send24HourReminderEmail(booking, profile);
+            if (!delivery.success) {
+                logger.warn('[MeetingNotifications] 24-hour reminder delivery failed; leaving booking unsent for retry', {
+                    bookingId: booking.id,
+                    profileSlug: booking.profileSlug,
+                    recipientEmail: booking.externalEmail,
+                    error: delivery.error ?? 'unknown',
+                });
+                continue;
+            }
+
             await mark24HourReminderSent(booking.id);
             reminder24Count++;
 
@@ -55,7 +65,17 @@ async function handleNotifications() {
             const profile = await getExecutiveProfile(booking.profileSlug);
             if (!profile) continue;
 
-            await sendOneHourReminderEmail(booking, profile);
+            const delivery = await sendOneHourReminderEmail(booking, profile);
+            if (!delivery.success) {
+                logger.warn('[MeetingNotifications] 1-hour reminder delivery failed; leaving booking unsent for retry', {
+                    bookingId: booking.id,
+                    profileSlug: booking.profileSlug,
+                    recipientEmail: booking.externalEmail,
+                    error: delivery.error ?? 'unknown',
+                });
+                continue;
+            }
+
             await markOneHourReminderSent(booking.id);
             reminderCount++;
             
@@ -72,7 +92,17 @@ async function handleNotifications() {
             const profile = await getExecutiveProfile(booking.profileSlug);
             if (!profile) continue;
 
-            await sendMeetingStartedEmail(booking, profile);
+            const delivery = await sendMeetingStartedEmail(booking, profile);
+            if (!delivery.success) {
+                logger.warn('[MeetingNotifications] Start notification delivery failed; leaving booking unsent for retry', {
+                    bookingId: booking.id,
+                    profileSlug: booking.profileSlug,
+                    recipientEmail: booking.externalEmail,
+                    error: delivery.error ?? 'unknown',
+                });
+                continue;
+            }
+
             await markStartNotificationSent(booking.id);
             startCount++;
 
