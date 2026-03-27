@@ -4569,7 +4569,8 @@ WHEN STUCK: Before spending multiple tool calls investigating, check if a super 
 export async function runLinus(request: LinusRequest): Promise<LinusResponse> {
     const toolMode = request.toolMode ?? 'full';
     const hasImages = (request.images?.length ?? 0) > 0;
-    const shouldUseGLMToolMode = toolMode === 'slack' && !hasImages && isGLMConfigured();
+    const glmConfigured = isGLMConfigured();
+    const shouldUseGLMToolMode = toolMode === 'slack' && !hasImages && glmConfigured;
 
     if (!shouldUseGLMToolMode && !isClaudeAvailable()) {
         throw new Error(
@@ -4582,7 +4583,7 @@ export async function runLinus(request: LinusRequest): Promise<LinusResponse> {
     if (toolMode === 'slack' && !shouldUseGLMToolMode) {
         logger.info('[Linus] Slack tool mode falling back to Claude', {
             hasImages,
-            glmConfigured: isGLMConfigured(),
+            glmConfigured,
         });
     } else if (shouldUseGLMToolMode) {
         logger.info('[Linus] Slack tool mode using GLM-5', {

@@ -221,7 +221,7 @@ export async function executeGLMWithTools(
 
     messages.push({
       role: 'assistant',
-      content: message?.content ?? '',
+      content: message?.content ?? null,
       tool_calls: toolCalls,
     });
 
