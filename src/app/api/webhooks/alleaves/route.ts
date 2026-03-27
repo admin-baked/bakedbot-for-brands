@@ -62,6 +62,24 @@ function verifyWebhookSignature(
     );
 }
 
+function dispatchPostPurchaseIfCompleted(orgId: string, orderData: any) {
+    if (mapAlleavesStatus(orderData.status) !== 'completed') {
+        return;
+    }
+
+    dispatchPlaybookEvent(orgId, 'order.post_purchase', {
+        orderId: orderData.id,
+        customerId: orderData.customer?.id || orderData.id_customer,
+        customerEmail: orderData.customer?.email || orderData.email || orderData.customer_email,
+        customerName: orderData.customer?.name,
+        totalAmount: orderData.total || orderData.amount,
+        items: orderData.items,
+        status: 'completed',
+    }).catch((err) =>
+        logger.error('[EventDispatcher] Failed to dispatch order.post_purchase', { orgId, error: err })
+    );
+}
+
 /**
  * Handle webhook POST request
  */
@@ -181,6 +199,7 @@ export async function POST(request: NextRequest) {
                 }).catch((err) =>
                     logger.error('[EventDispatcher] Failed to dispatch order.created', { orgId, error: err })
                 );
+                dispatchPostPurchaseIfCompleted(orgId, payload.data);
                 break;
 
             case 'order.updated':
@@ -194,6 +213,7 @@ export async function POST(request: NextRequest) {
                 }).catch((err) =>
                     logger.error('[EventDispatcher] Failed to dispatch order.updated', { orgId, error: err })
                 );
+                dispatchPostPurchaseIfCompleted(orgId, payload.data);
                 break;
 
             case 'inventory.updated':

@@ -19,6 +19,7 @@ export interface WelcomeEmailContext {
     brandId?: string;
     dispensaryId?: string;
     state?: string;
+    source?: string;
 }
 
 export interface WelcomeSmsContext {
@@ -28,6 +29,106 @@ export interface WelcomeSmsContext {
     brandId?: string;
     dispensaryId?: string;
     state?: string;
+    source?: string;
+}
+
+const THRIVE_WELCOME_ORG_ID = 'org_thrive_syracuse';
+const THRIVE_CHECKIN_SOURCES = new Set([
+    'brand_rewards_checkin',
+    'loyalty_tablet_checkin',
+]);
+
+function resolveWelcomeOrgId(context: {
+    brandId?: string;
+    dispensaryId?: string;
+}): string | undefined {
+    return context.dispensaryId || context.brandId;
+}
+
+function isThriveVipWelcome(context: {
+    brandId?: string;
+    dispensaryId?: string;
+    source?: string;
+}): boolean {
+    const orgId = resolveWelcomeOrgId(context);
+    return orgId === THRIVE_WELCOME_ORG_ID && THRIVE_CHECKIN_SOURCES.has(context.source ?? '');
+}
+
+function buildThriveVipWelcomeEmail(context: {
+    displayName: string;
+}): { subject: string; htmlBody: string; textBody: string } {
+    const { displayName } = context;
+    const subject = 'Welcome to Thrive VIP Rewards';
+    const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${subject}</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f7f2;font-family:Arial,sans-serif;color:#123524;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 12px;background:#f4f7f2;">
+        <tr>
+            <td align="center">
+                <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;">
+                    <tr>
+                        <td style="padding:36px 36px 24px;background:linear-gradient(135deg,#1d7d4d 0%,#74d693 100%);color:#ffffff;">
+                            <p style="margin:0 0 8px;font-size:13px;letter-spacing:0.18em;text-transform:uppercase;">Thrive Syracuse</p>
+                            <h1 style="margin:0;font-size:30px;line-height:1.2;">Welcome to VIP Rewards</h1>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:36px;">
+                            <p style="margin:0 0 16px;font-size:18px;line-height:1.6;">Hi ${displayName},</p>
+                            <p style="margin:0 0 16px;font-size:16px;line-height:1.7;">
+                                You are officially checked in with Thrive Syracuse VIP Rewards. We will use what you share with us to make recommendations faster, smarter, and more personal every time you come back.
+                            </p>
+                            <p style="margin:0 0 16px;font-size:16px;line-height:1.7;">
+                                Here is what you can expect:
+                            </p>
+                            <ul style="margin:0 0 24px 20px;padding:0;font-size:16px;line-height:1.8;">
+                                <li>Weekly deals from Thrive Syracuse</li>
+                                <li>Better budtender handoff before you shop</li>
+                                <li>Smokey-powered recommendations based on your feedback and favorites</li>
+                            </ul>
+                            <p style="margin:0 0 16px;font-size:16px;line-height:1.7;">
+                                Keep an eye on your inbox for new drops, VIP perks, and quick follow-ups after your purchases so we can keep improving your experience.
+                            </p>
+                            <p style="margin:0;font-size:15px;line-height:1.7;color:#456a57;">
+                                Thanks for being part of Thrive VIP Rewards.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+    `.trim();
+    const textBody = `
+Hi ${displayName},
+
+You are officially checked in with Thrive Syracuse VIP Rewards.
+
+We will use what you share with us to make recommendations faster, smarter, and more personal every time you come back.
+
+What to expect:
+- Weekly deals from Thrive Syracuse
+- Better budtender handoff before you shop
+- Smokey-powered recommendations based on your feedback and favorites
+
+Thanks for being part of Thrive VIP Rewards.
+    `.trim();
+
+    return { subject, htmlBody, textBody };
+}
+
+function buildThriveVipWelcomeSms(context: {
+    displayName: string;
+}): string {
+    return `Hi ${context.displayName}, welcome to Thrive VIP Rewards. Weekly deals are now on for your number, and Smokey can help with faster recommendations next time you shop. Reply STOP to opt out.`;
 }
 
 /**
@@ -36,12 +137,16 @@ export interface WelcomeSmsContext {
  */
 export async function sendWelcomeEmail(context: WelcomeEmailContext): Promise<{ success: boolean; error?: string }> {
     try {
-        const { email, firstName, brandId, leadId, dispensaryId, state } = context;
+        const { email, firstName, brandId, leadId, dispensaryId, state, source } = context;
+        const orgId = resolveWelcomeOrgId(context);
+        const isThriveCheckinWelcome = isThriveVipWelcome(context);
 
-        logger.info('[MrsParker:Welcome] Sending AI-generated welcome email', {
+        logger.info('[MrsParker:Welcome] Sending welcome email', {
             leadId,
             email,
             brandId,
+            source,
+            isThriveCheckinWelcome,
         });
 
         // === LETTA INTEGRATION ===
@@ -53,7 +158,7 @@ export async function sendWelcomeEmail(context: WelcomeEmailContext): Promise<{ 
                 firstName,
                 brandId,
                 state,
-                source: 'age_gate_welcome',
+                source: source || 'age_gate_welcome',
                 capturedAt: Date.now(),
             });
         } catch (lettaError) {
@@ -63,36 +168,61 @@ export async function sendWelcomeEmail(context: WelcomeEmailContext): Promise<{ 
             });
         }
 
-        // === AI-POWERED CONTENT GENERATION ===
-        // Import AI welcome service
-        const { generateWelcomeEmail } = await import('./mrs-parker-ai-welcome');
+        let subject: string;
+        let htmlBody: string;
+        let textBody: string | undefined;
+        let fromName: string | undefined;
+        let fromEmail: string | undefined;
 
-        // Build rich context for AI generation
-        const aiContext = {
-            leadId,
-            email,
-            firstName,
-            brandId,
-            dispensaryId,
-            state,
-            segment: 'customer' as const,
-            signupContext: 'age_gate' as const,
-            source: 'age_verification',
-            signupTimestamp: Date.now(),
-        };
+        if (isThriveCheckinWelcome) {
+            const thriveWelcome = buildThriveVipWelcomeEmail({
+                displayName: firstName || 'there',
+            });
+            subject = thriveWelcome.subject;
+            htmlBody = thriveWelcome.htmlBody;
+            textBody = thriveWelcome.textBody;
+            fromName = 'Thrive Syracuse';
+        } else {
+            // === AI-POWERED CONTENT GENERATION ===
+            const { generateWelcomeEmail } = await import('./mrs-parker-ai-welcome');
 
-        // Generate personalized content with Claude
-        const { subject, htmlBody, textBody, fromName, fromEmail } = await generateWelcomeEmail(aiContext);
+            const aiContext = {
+                leadId,
+                email,
+                firstName,
+                brandId,
+                dispensaryId,
+                state,
+                segment: 'customer' as const,
+                signupContext: 'age_gate' as const,
+                source: 'age_verification',
+                signupTimestamp: Date.now(),
+            };
+
+            const generated = await generateWelcomeEmail(aiContext);
+            subject = generated.subject;
+            htmlBody = generated.htmlBody;
+            textBody = generated.textBody;
+            fromName = generated.fromName;
+            fromEmail = generated.fromEmail;
+        }
 
         // Send email via Mailjet
-        await sendGenericEmail({
+        const sendResult = await sendGenericEmail({
             to: email,
             subject,
             textBody,
             htmlBody,
             fromName,
             fromEmail,
+            orgId,
+            communicationType: 'welcome',
+            agentName: 'mrs_parker',
         });
+
+        if (!sendResult.success) {
+            throw new Error(sendResult.error || 'Failed to send welcome email');
+        }
 
         logger.info('[MrsParker:Welcome] AI-generated welcome email sent successfully', {
             leadId,
@@ -122,7 +252,8 @@ export async function sendWelcomeEmail(context: WelcomeEmailContext): Promise<{ 
  */
 export async function sendWelcomeSms(context: WelcomeSmsContext): Promise<{ success: boolean; error?: string }> {
     try {
-        const { phone, firstName, brandId, leadId, state } = context;
+        const { phone, firstName, brandId, leadId, state, source } = context;
+        const isThriveCheckinWelcome = isThriveVipWelcome(context);
 
         // Get brand information for personalization
         const brandName = await getBrandName(brandId);
@@ -132,6 +263,8 @@ export async function sendWelcomeSms(context: WelcomeSmsContext): Promise<{ succ
             leadId,
             phone,
             brandId,
+            source,
+            isThriveCheckinWelcome,
         });
 
         // === LETTA INTEGRATION ===
@@ -143,7 +276,7 @@ export async function sendWelcomeSms(context: WelcomeSmsContext): Promise<{ succ
                 firstName,
                 brandId,
                 state,
-                source: 'age_gate_welcome',
+                source: source || 'age_gate_welcome',
                 capturedAt: Date.now(),
             });
         } catch (lettaError) {
@@ -154,10 +287,15 @@ export async function sendWelcomeSms(context: WelcomeSmsContext): Promise<{ succ
         }
 
         // Generate personalized SMS content (max 160 characters for single message)
-        const message = `Hey ${displayName}! Welcome to ${brandName}. Thanks for stopping by! We'll keep you updated on exclusive deals & new drops. Reply STOP to opt out.`;
+        const message = isThriveCheckinWelcome
+            ? buildThriveVipWelcomeSms({ displayName })
+            : `Hey ${displayName}! Welcome to ${brandName}. Thanks for stopping by! We'll keep you updated on exclusive deals & new drops. Reply STOP to opt out.`;
 
         // Send SMS via Blackleaf
-        await blackleafService.sendCustomMessage(phone, message);
+        const smsSent = await blackleafService.sendCustomMessage(phone, message);
+        if (!smsSent) {
+            throw new Error('Failed to send welcome SMS');
+        }
 
         logger.info('[MrsParker:Welcome] Welcome SMS sent successfully', {
             leadId,

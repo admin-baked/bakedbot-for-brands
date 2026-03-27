@@ -18,6 +18,17 @@ describe('playbook event canonicals', () => {
     ]);
   });
 
+  it('includes post-purchase listeners when order.completed is dispatched', () => {
+    expect(getCompatiblePlaybookEventNames('order.completed')).toEqual([
+      'order.completed',
+      'order.post_purchase',
+    ]);
+    expect(getCompatiblePlaybookDedupTypes('order.completed')).toEqual([
+      'playbook_event_order.completed',
+      'playbook_event_order.post_purchase',
+    ]);
+  });
+
   it('builds compatible dedup types for customer signup migration', () => {
     expect(getCompatiblePlaybookDedupTypes('customer.signup')).toEqual([
       'playbook_event_customer.signup',

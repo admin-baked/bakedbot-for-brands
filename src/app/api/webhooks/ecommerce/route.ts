@@ -267,6 +267,19 @@ export async function POST(request: NextRequest) {
       })
     );
 
+    if (normalizedEvent.event === 'order.completed') {
+      dispatchPlaybookEvent(orgId, 'order.post_purchase', {
+        ...normalizedEvent,
+        customerId: bakedBotCustomerId || normalizedEvent.customerId,
+      }).catch((err) =>
+        logger.error('[EventDispatcher] Failed to dispatch ecommerce post-purchase event', {
+          platform,
+          orgId,
+          error: err,
+        })
+      );
+    }
+
     return NextResponse.json({
       success: true,
       received: true,

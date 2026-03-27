@@ -44,6 +44,134 @@ export default async function RewardsPage({ params }: { params: Promise<{ brand:
     });
     const showVisitorCheckin = !!thriveCheckinOrgId;
 
+    if (showVisitorCheckin && thriveCheckinOrgId) {
+        return (
+            <div className="min-h-screen bg-[radial-gradient(circle_at_top,#f3fbf6_0%,#ffffff_55%,#f6f8f7_100%)]">
+                <header className="border-b border-border/60 bg-background/90 backdrop-blur">
+                    <div className="container mx-auto flex items-center justify-between px-4 py-4">
+                        <div className="flex items-center gap-3">
+                            {brand.logoUrl ? (
+                                <img src={brand.logoUrl} alt={brand.name} className="h-10 w-auto" />
+                            ) : (
+                                <div className="text-2xl font-bold" style={{ color: brandColors.primary }}>
+                                    {brand.name}
+                                </div>
+                            )}
+                            <div>
+                                <p className="text-sm font-semibold uppercase tracking-[0.18em]" style={{ color: brandColors.primary }}>
+                                    Thrive Syracuse
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                    Front door check-in and VIP rewards
+                                </p>
+                            </div>
+                        </div>
+                        <div className="text-right text-xs text-muted-foreground">
+                            <p>Open with staff ID check</p>
+                            <p>Built for faster budtender handoff</p>
+                        </div>
+                    </div>
+                </header>
+
+                <main className="container mx-auto px-4 py-10 md:py-14">
+                    <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
+                        <section className="space-y-6">
+                            <div className="space-y-4">
+                                <p className="text-sm font-semibold uppercase tracking-[0.22em]" style={{ color: brandColors.primary }}>
+                                    Thrive VIP Rewards
+                                </p>
+                                <h1 className="max-w-xl text-4xl font-black tracking-tight text-foreground md:text-5xl">
+                                    Check in faster. Give your budtender a better head start.
+                                </h1>
+                                <p className="max-w-xl text-base leading-7 text-muted-foreground">
+                                    This check-in flow is built to be useful right away. Returning customers can
+                                    see their last purchase, leave a quick Google review, get mood-based
+                                    recommendations, and chat with Smokey before they shop.
+                                </p>
+                            </div>
+
+                            <div className="grid gap-4 sm:grid-cols-3">
+                                <Card className="border-border/60 bg-background/80 shadow-sm">
+                                    <CardContent className="p-5">
+                                        <Icons.BadgeCheck className="h-8 w-8" style={{ color: brandColors.primary }} />
+                                        <p className="mt-3 font-semibold">Faster entry</p>
+                                        <p className="mt-2 text-sm text-muted-foreground">
+                                            Name, phone, and ID attestation up front so the front door moves quickly.
+                                        </p>
+                                    </CardContent>
+                                </Card>
+                                <Card className="border-border/60 bg-background/80 shadow-sm">
+                                    <CardContent className="p-5">
+                                        <Icons.Sparkles className="h-8 w-8" style={{ color: brandColors.primary }} />
+                                        <p className="mt-3 font-semibold">Better recommendations</p>
+                                        <p className="mt-2 text-sm text-muted-foreground">
+                                            Share how you want to feel so Smokey and your budtender can guide the visit.
+                                        </p>
+                                    </CardContent>
+                                </Card>
+                                <Card className="border-border/60 bg-background/80 shadow-sm">
+                                    <CardContent className="p-5">
+                                        <Icons.MessageCircleMore className="h-8 w-8" style={{ color: brandColors.primary }} />
+                                        <p className="mt-3 font-semibold">Weekly deals</p>
+                                        <p className="mt-2 text-sm text-muted-foreground">
+                                            One text per week unless you ask for more, plus smarter follow-ups over time.
+                                        </p>
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            <div className="rounded-3xl border border-emerald-500/20 bg-emerald-500/5 p-6">
+                                <p className="text-sm font-semibold uppercase tracking-[0.18em]" style={{ color: brandColors.primary }}>
+                                    What happens on step two
+                                </p>
+                                <div className="mt-4 grid gap-4 sm:grid-cols-3">
+                                    <div>
+                                        <p className="font-semibold">Last purchase context</p>
+                                        <p className="mt-2 text-sm text-muted-foreground">
+                                            Returning customers can quickly revisit what they bought last time.
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold">Smokey by text or voice</p>
+                                        <p className="mt-2 text-sm text-muted-foreground">
+                                            Ask for product guidance in the page instead of hunting through menus.
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold">1c pre-roll exchange</p>
+                                        <p className="mt-2 text-sm text-muted-foreground">
+                                            Trade one more useful detail for a staff-honored in-store offer.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <div className="lg:sticky lg:top-6">
+                            <VisitorCheckinCard
+                                orgId={thriveCheckinOrgId}
+                                brandName={brand.name}
+                                brandSlug={brandSlug}
+                                primaryColor={brandColors.primary}
+                            />
+                        </div>
+                    </div>
+                </main>
+
+                {isAdmin && brandOrgId && (
+                    <PublicPageEditBar
+                        orgId={brandOrgId}
+                        pageType="loyalty"
+                        initialContent={pageContent}
+                        brandColors={brandColors}
+                        brandName={brand.name}
+                        brandSlug={brandSlug}
+                    />
+                )}
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-background flex flex-col">
             <DemoHeader

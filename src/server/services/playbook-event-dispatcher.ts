@@ -43,6 +43,7 @@ interface DeadLetterEvent {
 
 const PLAYBOOK_EVENT_COMPATIBILITY_ALIASES: Record<string, string[]> = {
   'customer.signup': ['customer.created'],
+  'order.completed': ['order.post_purchase'],
 };
 
 function dedupeCompatibleEventNames(eventNames: string[]): string[] {

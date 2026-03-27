@@ -240,7 +240,15 @@ export async function captureEmailLead(request: CaptureEmailLeadRequest): Promis
 
             // Trigger welcome email via Craig (async, don't block)
             if (normalizedEmail && request.emailConsent) {
-                triggerWelcomeEmail(leadId, normalizedEmail, request.firstName, request.brandId, request.dispensaryId)
+                triggerWelcomeEmail(
+                    leadId,
+                    normalizedEmail,
+                    request.firstName,
+                    request.brandId,
+                    request.dispensaryId,
+                    request.state,
+                    request.source,
+                )
                     .catch(err => {
                         logger.error('[EmailCapture] Failed to trigger welcome email', {
                             leadId,
@@ -249,26 +257,29 @@ export async function captureEmailLead(request: CaptureEmailLeadRequest): Promis
                         });
                     });
 
-                const usesDedicatedCustomerSignup =
-                    request.source === 'brand_rewards_checkin' ||
-                    request.source === 'loyalty_tablet_checkin';
-
-                if (!usesDedicatedCustomerSignup) {
-                    // ALSO trigger Welcome Email Campaign playbook for tracking
-                    triggerWelcomePlaybook(leadId, normalizedEmail, request.firstName, request.brandId, request.dispensaryId)
-                        .catch(err => {
-                            logger.error('[EmailCapture] Failed to trigger welcome playbook', {
-                                leadId,
-                                email: normalizedEmail,
-                                error: err.message,
-                            });
+                // ALSO trigger Welcome Email Campaign playbook tracking for every opted-in email lead,
+                // including dedicated Thrive check-in traffic.
+                triggerWelcomePlaybook(leadId, normalizedEmail, request.firstName, request.brandId, request.dispensaryId)
+                    .catch(err => {
+                        logger.error('[EmailCapture] Failed to trigger welcome playbook', {
+                            leadId,
+                            email: normalizedEmail,
+                            error: err.message,
                         });
-                }
+                    });
             }
 
             // Trigger welcome SMS via Craig (async, don't block)
             if (normalizedPhone && request.smsConsent) {
-                triggerWelcomeSms(leadId, normalizedPhone, request.firstName, request.brandId, request.dispensaryId)
+                triggerWelcomeSms(
+                    leadId,
+                    normalizedPhone,
+                    request.firstName,
+                    request.brandId,
+                    request.dispensaryId,
+                    request.state,
+                    request.source,
+                )
                     .catch(err => {
                         logger.error('[EmailCapture] Failed to trigger welcome SMS', {
                             leadId,
@@ -304,7 +315,9 @@ async function triggerWelcomeEmail(
     email: string,
     firstName?: string,
     brandId?: string,
-    dispensaryId?: string
+    dispensaryId?: string,
+    state?: string,
+    source?: string,
 ): Promise<void> {
     try {
         const db = getAdminFirestore();
@@ -320,6 +333,8 @@ async function triggerWelcomeEmail(
                 firstName,
                 brandId,
                 dispensaryId,
+                state,
+                source,
                 emailType: 'welcome', // Mrs. Parker's sendPersonalizedEmail tool
             },
             createdAt: Date.now(),
@@ -356,7 +371,9 @@ async function triggerWelcomeSms(
     phone: string,
     firstName?: string,
     brandId?: string,
-    dispensaryId?: string
+    dispensaryId?: string,
+    state?: string,
+    source?: string,
 ): Promise<void> {
     try {
         const db = getAdminFirestore();
@@ -372,6 +389,8 @@ async function triggerWelcomeSms(
                 firstName,
                 brandId,
                 dispensaryId,
+                state,
+                source,
                 messageType: 'welcome', // For Mrs. Parker's SMS tool
             },
             createdAt: Date.now(),

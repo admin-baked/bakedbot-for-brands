@@ -3,7 +3,7 @@
 
 import { useState, useRef, useEffect, type FormEvent, useTransition, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
-import { Bot, MessageSquare, Send, X, ThumbsUp, ThumbsDown, Wand2, Sparkles, HelpCircle, ChevronRight, RotateCcw } from 'lucide-react';
+import { Bot, MessageSquare, Send, X, ThumbsUp, ThumbsDown, Wand2, Sparkles, HelpCircle, ChevronRight, RotateCcw, Mic, MicOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,7 @@ import ChatProductCarousel from './chatbot/chat-product-carousel';
 import { useAuth } from '@/hooks/use-auth';
 import { useChatbotContext } from '@/contexts/chatbot-context';
 import { getSafeProductImageUrl, normalizeCategoryName } from '@/lib/utils/product-image';
+import { useVoiceInput } from '@/hooks/use-voice-input';
 
 import { logger } from '@/lib/logger';
 
@@ -169,6 +170,7 @@ const ChatWindow = ({
   setMessages,
   setIsBotTyping,
   botName = 'Smokey',
+  allowVoiceInput = false,
 }: {
   products: Product[];
   onAskSmokey: (product: Product) => void;
@@ -198,9 +200,17 @@ const ChatWindow = ({
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   setIsBotTyping: (value: boolean) => void;
   botName?: string;
+  allowVoiceInput?: boolean;
 }) => {
   const { chatExperience, addToCart, setCartSheetOpen } = useStore();
   const pathname = usePathname();
+  const voiceInput = useVoiceInput();
+
+  useEffect(() => {
+    if (voiceInput.transcript) {
+      setInputValue(voiceInput.transcript.trim());
+    }
+  }, [setInputValue, voiceInput.transcript]);
 
   return (
     <div data-testid="chat-window" className={cn(
@@ -210,11 +220,13 @@ const ChatWindow = ({
       startClassName
     )}>
       <Card className="flex h-[75vh] max-h-[700px] flex-col border-0 relative">
-        <div className="absolute top-2 right-2 z-10">
-          <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full bg-background/50 hover:bg-background" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
+        {onClose ? (
+          <div className="absolute top-2 right-2 z-10">
+            <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full bg-background/50 hover:bg-background" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : null}
 
         {chatExperience === 'default' && hasStartedChat && (
           <div className="border-b">
@@ -319,6 +331,29 @@ const ChatWindow = ({
                     <p>Generate a brand image</p>
                   </TooltipContent>
                 </Tooltip>
+                {allowVoiceInput && voiceInput.isSupported ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={voiceInput.isListening ? voiceInput.stopListening : voiceInput.startListening}
+                        disabled={isBotTyping}
+                        aria-label={voiceInput.isListening ? 'Stop voice input' : 'Start voice input'}
+                      >
+                        {voiceInput.isListening ? (
+                          <MicOff className="h-5 w-5 text-primary" />
+                        ) : (
+                          <Mic className="h-5 w-5" />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <p>{voiceInput.isListening ? 'Stop voice input' : 'Start voice input'}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ) : null}
               </TooltipProvider>
 
               <Input
@@ -357,6 +392,7 @@ type ChatbotProps = {
   className?: string; // For the trigger button container
   windowClassName?: string; // For the chat window
   isSuperAdmin?: boolean; // New prop for Super Admin mode
+  allowVoiceInput?: boolean;
   // Chatbot config (from brand.chatbotConfig)
   chatbotConfig?: {
     enabled?: boolean;
@@ -366,10 +402,10 @@ type ChatbotProps = {
   };
 };
 
-export default function Chatbot({ products = [], brandId = "", dispensaryId, entityName, state, initialOpen = false, positionStrategy = 'fixed', className, windowClassName, isSuperAdmin = false, chatbotConfig }: ChatbotProps) {
+export default function Chatbot({ products = [], brandId = "", dispensaryId, entityName, state, initialOpen = false, positionStrategy = 'fixed', className, windowClassName, isSuperAdmin = false, allowVoiceInput = false, chatbotConfig }: ChatbotProps) {
   // If chatbot is explicitly disabled, don't render (Moved to bottom)
   // if (chatbotConfig?.enabled === false) return null;
-  const [isOpen, setIsOpen] = useState(initialOpen);
+  const [isOpen, setIsOpen] = useState(initialOpen || positionStrategy === 'relative');
   const [isOnboarding, setIsOnboarding] = useState(false);
   const [hasStartedChat, setHasStartedChat] = useState(false);
   const { chatExperience, addToCart, selectedRetailerId, setCartSheetOpen } = useStore();
@@ -837,24 +873,29 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
   if (chatbotConfig?.enabled === false) return null;
 
 
+  const showTrigger = positionStrategy !== 'relative';
+  const showWindow = positionStrategy === 'relative' || isOpen;
+
   return (
     <>
-      <div className={cn(
-        positionStrategy === 'fixed' ? "fixed bottom-6 right-6 z-[60]" : "absolute bottom-6 right-6 z-10",
-        className
-      )}>
-        <Button size="icon" className="h-20 w-20 rounded-full shadow-lg overflow-hidden p-0 bg-transparent hover:bg-transparent" onClick={() => setIsOpen(!isOpen)} aria-label="Toggle Chatbot">
-          {isOpen ? (
-            <X className="h-8 w-8 text-primary" />
-          ) : chatbotConfig?.mascotImageUrl ? (
-            <img src={chatbotConfig.mascotImageUrl} alt={chatbotConfig.botName || 'AI Assistant'} className="h-full w-full object-cover" />
-          ) : (
-            <ChatbotIcon />
-          )}
-        </Button>
-      </div>
+      {showTrigger ? (
+        <div className={cn(
+          positionStrategy === 'fixed' ? "fixed bottom-6 right-6 z-[60]" : "absolute bottom-6 right-6 z-10",
+          className
+        )}>
+          <Button size="icon" className="h-20 w-20 rounded-full shadow-lg overflow-hidden p-0 bg-transparent hover:bg-transparent" onClick={() => setIsOpen(!isOpen)} aria-label="Toggle Chatbot">
+            {isOpen ? (
+              <X className="h-8 w-8 text-primary" />
+            ) : chatbotConfig?.mascotImageUrl ? (
+              <img src={chatbotConfig.mascotImageUrl} alt={chatbotConfig.botName || 'AI Assistant'} className="h-full w-full object-cover" />
+            ) : (
+              <ChatbotIcon />
+            )}
+          </Button>
+        </div>
+      ) : null}
 
-      {isOpen && (
+      {showWindow && (
         <ChatWindow
           products={pathname === '/' && products.length === 0 ? DEMO_PRODUCTS : products}
           onAskSmokey={handleAskSmokey}
@@ -876,13 +917,14 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
           clearContext={clearContext}
           strategy={positionStrategy}
           startClassName={windowClassName}
-          onClose={() => setIsOpen(false)}
+          onClose={showTrigger ? () => setIsOpen(false) : undefined}
           handleQuickQuestion={handleQuickQuestion}
           setHasStartedChat={setHasStartedChat}
           setIsOnboarding={setIsOnboarding}
           setMessages={setMessages}
           setIsBotTyping={setIsBotTyping}
           botName={chatbotConfig?.botName || 'Smokey'}
+          allowVoiceInput={allowVoiceInput}
         />
       )}
     </>

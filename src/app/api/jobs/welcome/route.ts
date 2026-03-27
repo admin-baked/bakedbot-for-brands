@@ -67,6 +67,7 @@ export async function POST(request: NextRequest) {
                     brandId: job.data.brandId,
                     dispensaryId: job.data.dispensaryId,
                     state: job.data.state,
+                    source: job.data.source,
                 });
 
                 if (result.success) {
@@ -147,6 +148,7 @@ export async function POST(request: NextRequest) {
                     brandId: job.data.brandId,
                     dispensaryId: job.data.dispensaryId,
                     state: job.data.state,
+                    source: job.data.source,
                 });
 
                 if (result.success) {
