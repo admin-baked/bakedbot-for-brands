@@ -89,6 +89,8 @@ const EVENT_OPTION_GROUPS = [
     {
         group: 'System',
         events: [
+            { value: 'deployment.firebase.failed', label: 'Firebase deploy failed' },
+            { value: 'deployment.firebase.succeeded', label: 'Firebase deploy succeeded' },
             { value: 'owner.day3', label: 'Day 3 after owner signup' },
             { value: 'usage.at_80_percent', label: '80% usage threshold reached' },
             { value: 'usage.feature_ceiling', label: 'Feature ceiling reached' },

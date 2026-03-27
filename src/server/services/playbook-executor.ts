@@ -37,6 +37,7 @@ import {
 } from '@/server/services/playbook-infra-adapters';
 import { PlaybookArtifactMemoryService } from '@/server/services/playbook-artifact-memory';
 import { getPlaybookArtifactRuntime } from '@/server/services/playbook-artifact-runtime';
+import { executePlaybookCronStep } from '@/server/services/playbook-cron-step';
 import { runValidationHarness } from '@/server/services/playbook-validation';
 import type { Playbook } from '@/types/playbook';
 
@@ -285,6 +286,25 @@ async function executeNotify(
         channels,
         sentTo: to,
     };
+}
+
+export async function executeRunCron(
+    step: any,
+    context: ExecutionContext,
+): Promise<any> {
+    const triggerType = context.variables.trigger?.type;
+
+    return executePlaybookCronStep({
+        playbookId: String(context.variables.playbookId || 'unknown-playbook'),
+        playbookName: String(context.variables.playbookName || 'Playbook'),
+        orgId: context.orgId,
+        step,
+        triggeredBy:
+            triggerType === 'manual' || triggerType === 'schedule'
+                ? triggerType
+                : 'event',
+        eventData: context.variables.trigger?.data || {},
+    });
 }
 
 async function executeQuery(
@@ -1602,6 +1622,8 @@ export async function executePlaybook(
             orgId: request.orgId,
             userId: request.userId,
             variables: {
+                playbookId: request.playbookId,
+                playbookName: playbook.name,
                 user: { id: request.userId },
                 trigger: { type: request.triggeredBy, data: request.eventData },
                 ...request.eventData,
@@ -1646,6 +1668,9 @@ export async function executePlaybook(
                         break;
                     case 'notify':
                         output = await executeNotify(step, context);
+                        break;
+                    case 'run_cron':
+                        output = await executeRunCron(step, context);
                         break;
                     case 'query':
                         output = await executeQuery(step, context);

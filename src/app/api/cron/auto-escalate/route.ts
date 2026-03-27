@@ -19,6 +19,9 @@ import {
     type HeartbeatFailure,
     type LatencyBreach,
 } from '@/server/services/auto-escalator';
+import { dispatchPlaybookEvent } from '@/server/services/playbook-event-dispatcher';
+
+const SUPER_USER_ORG = 'bakedbot-internal';
 
 export const dynamic = 'force-dynamic';
 
@@ -72,6 +75,34 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ accepted: true, type: 'latency', message: 'Escalation queued' }, { status: 202 });
     }
 
+    if (type === 'deployment_failure') {
+        setImmediate(() => void dispatchPlaybookEvent(
+            SUPER_USER_ORG,
+            'deployment.firebase.failed',
+            {
+                ...data,
+                eventName: 'deployment.firebase.failed',
+            },
+        ).catch(err => {
+            logger.error('[AutoEscalate] Deployment failure playbook dispatch failed', { error: String(err) });
+        }));
+        return NextResponse.json({ accepted: true, type: 'deployment_failure', message: 'Deployment failure playbook queued' }, { status: 202 });
+    }
+
+    if (type === 'deployment_success') {
+        setImmediate(() => void dispatchPlaybookEvent(
+            SUPER_USER_ORG,
+            'deployment.firebase.succeeded',
+            {
+                ...data,
+                eventName: 'deployment.firebase.succeeded',
+            },
+        ).catch(err => {
+            logger.error('[AutoEscalate] Deployment success playbook dispatch failed', { error: String(err) });
+        }));
+        return NextResponse.json({ accepted: true, type: 'deployment_success', message: 'Deployment success playbook queued' }, { status: 202 });
+    }
+
     return NextResponse.json({ error: `Unknown escalation type: ${type}` }, { status: 400 });
 }
 
@@ -104,9 +135,54 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ accepted: true, type: 'latency', message: 'Test escalation queued' }, { status: 202 });
     }
 
+    if (testType === 'deployment_failure') {
+        logger.info('[AutoEscalate] Test deployment failure playbook triggered');
+        setImmediate(() => void dispatchPlaybookEvent(
+            SUPER_USER_ORG,
+            'deployment.firebase.failed',
+            {
+                eventName: 'deployment.firebase.failed',
+                workflowName: 'Deploy to Firebase App Hosting',
+                workflowFile: '.github/workflows/deploy.yml',
+                runNumber: 'test-1',
+                runUrl: 'https://github.com/bakedbot-ai/bakedbot-for-brands/actions/runs/test-1',
+                shortSha: 'test123',
+                branch: 'main',
+                failureSummary: 'Synthetic test deployment failure from GET /api/cron/auto-escalate?test=deployment_failure',
+                failureStep: 'Build',
+                deployTarget: 'bakedbot-prod',
+                provider: 'firebase-app-hosting',
+                triggeredAt: new Date().toISOString(),
+            },
+        ).catch(err => logger.error('[AutoEscalate] Test deployment failure error', { error: String(err) })));
+        return NextResponse.json({ accepted: true, type: 'deployment_failure', message: 'Test deployment failure queued' }, { status: 202 });
+    }
+
+    if (testType === 'deployment_success') {
+        logger.info('[AutoEscalate] Test deployment success playbook triggered');
+        setImmediate(() => void dispatchPlaybookEvent(
+            SUPER_USER_ORG,
+            'deployment.firebase.succeeded',
+            {
+                eventName: 'deployment.firebase.succeeded',
+                workflowName: 'Deploy to Firebase App Hosting',
+                workflowFile: '.github/workflows/deploy.yml',
+                runNumber: 'test-2',
+                runUrl: 'https://github.com/bakedbot-ai/bakedbot-for-brands/actions/runs/test-2',
+                shortSha: 'test456',
+                branch: 'main',
+                deployTarget: 'bakedbot-prod',
+                provider: 'firebase-app-hosting',
+                deployedUrl: 'https://bakedbot.ai',
+                triggeredAt: new Date().toISOString(),
+            },
+        ).catch(err => logger.error('[AutoEscalate] Test deployment success error', { error: String(err) })));
+        return NextResponse.json({ accepted: true, type: 'deployment_success', message: 'Test deployment success queued' }, { status: 202 });
+    }
+
     return NextResponse.json({
         status: 'ok',
-        usage: 'POST with { type: "heartbeat" | "latency", data: {...} }',
-        test: 'GET ?test=heartbeat or ?test=latency',
+        usage: 'POST with { type: "heartbeat" | "latency" | "deployment_failure" | "deployment_success", data: {...} }',
+        test: 'GET ?test=heartbeat or ?test=latency or ?test=deployment_failure or ?test=deployment_success',
     });
 }

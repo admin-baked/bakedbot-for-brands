@@ -26,9 +26,131 @@ jobs:
         run: npm install -g firebase-tools
 
       - name: Trigger App Hosting Rollout
+        id: rollout
+        shell: bash
         run: |
-          firebase apphosting:rollouts:create bakedbot-prod \
+          set +e
+          rollout_output=$(firebase apphosting:rollouts:create bakedbot-prod \
             --git-branch main \
             --project studio-567050101-bc6e8 \
             --force \
-            --non-interactive || echo "Rollout already queued or in progress — skipping."
+            --non-interactive 2>&1)
+          rollout_exit=$?
+          set -e
+
+          printf '%s\n' "$rollout_output"
+
+          {
+            echo "output<<EOF"
+            printf '%s\n' "$rollout_output"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          if [ "$rollout_exit" -ne 0 ]; then
+            if [[ "$rollout_output" == *"already queued or in progress"* ]]; then
+              echo "OK: App Hosting rollout is already queued or in progress for bakedbot-prod."
+              exit 0
+            fi
+
+            echo "ERROR: App Hosting rollout trigger failed."
+            exit "$rollout_exit"
+          fi
+
+      - name: Notify Firebase deployment failure
+        if: failure()
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          short_sha="${GITHUB_SHA::7}"
+          failure_summary=$(cat <<'EOF'
+          ${{ steps.rollout.outputs.output }}
+          EOF
+          )
+
+          payload=$(jq -n \
+            --arg workflowName "${{ github.workflow }}" \
+            --arg workflowFile ".github/workflows/deploy.yml" \
+            --arg runId "${{ github.run_id }}" \
+            --arg runNumber "${{ github.run_number }}" \
+            --arg runUrl "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --arg attempt "${{ github.run_attempt }}" \
+            --arg sha "${{ github.sha }}" \
+            --arg shortSha "$short_sha" \
+            --arg branch "${{ github.ref_name }}" \
+            --arg actor "${{ github.actor }}" \
+            --arg failureStep "Trigger App Hosting Rollout" \
+            --arg failureSummary "$failure_summary" \
+            --arg deployTarget "bakedbot-prod" \
+            --arg provider "firebase-app-hosting" \
+            --arg triggeredAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{
+              type: "deployment_failure",
+              data: {
+                workflowName: $workflowName,
+                workflowFile: $workflowFile,
+                runId: $runId,
+                runNumber: $runNumber,
+                runUrl: $runUrl,
+                attempt: $attempt,
+                sha: $sha,
+                shortSha: $shortSha,
+                branch: $branch,
+                actor: $actor,
+                failureStep: $failureStep,
+                failureSummary: $failureSummary,
+                deployTarget: $deployTarget,
+                provider: $provider,
+                triggeredAt: $triggeredAt
+              }
+            }')
+
+          curl -s -X POST https://bakedbot.ai/api/cron/auto-escalate \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Content-Type: application/json" \
+            -d "$payload" || echo "Warning: auto-escalate deployment failure call failed (non-fatal)"
+
+      - name: Notify Firebase deployment success
+        if: success()
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          short_sha="${GITHUB_SHA::7}"
+          payload=$(jq -n \
+            --arg workflowName "${{ github.workflow }}" \
+            --arg workflowFile ".github/workflows/deploy.yml" \
+            --arg runId "${{ github.run_id }}" \
+            --arg runNumber "${{ github.run_number }}" \
+            --arg runUrl "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --arg attempt "${{ github.run_attempt }}" \
+            --arg sha "${{ github.sha }}" \
+            --arg shortSha "$short_sha" \
+            --arg branch "${{ github.ref_name }}" \
+            --arg actor "${{ github.actor }}" \
+            --arg deployTarget "bakedbot-prod" \
+            --arg provider "firebase-app-hosting" \
+            --arg deployedUrl "https://bakedbot.ai" \
+            --arg triggeredAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{
+              type: "deployment_success",
+              data: {
+                workflowName: $workflowName,
+                workflowFile: $workflowFile,
+                runId: $runId,
+                runNumber: $runNumber,
+                runUrl: $runUrl,
+                attempt: $attempt,
+                sha: $sha,
+                shortSha: $shortSha,
+                branch: $branch,
+                actor: $actor,
+                deployTarget: $deployTarget,
+                provider: $provider,
+                deployedUrl: $deployedUrl,
+                triggeredAt: $triggeredAt
+              }
+            }')
+
+          curl -s -X POST https://bakedbot.ai/api/cron/auto-escalate \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Content-Type: application/json" \
+            -d "$payload" || echo "Warning: auto-escalate deployment success call failed (non-fatal)"

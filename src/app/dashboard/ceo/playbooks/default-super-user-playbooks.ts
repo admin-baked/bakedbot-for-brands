@@ -147,6 +147,39 @@ Book another meeting: {{executive.bookingUrl}}
     };
 }
 
+function buildFirebaseDeploymentIncidentPlaybookTemplate(): DefaultSuperUserPlaybookTemplate {
+    return {
+        id: 'firebase-deployment-incident-response',
+        name: 'Firebase Deployment Incident Response',
+        description: 'When Firebase deploys fail, brief Linus in Slack, dispatch the repair workflow, and post the recovery summary once Firebase is back green.',
+        category: 'ops',
+        agent: 'linus',
+        agents: ['Linus'],
+        triggers: [
+            { type: 'event', eventName: 'deployment.firebase.failed' },
+            { type: 'event', eventName: 'deployment.firebase.succeeded' },
+        ],
+        steps: [
+            {
+                id: 'route-firebase-deployment-incident',
+                action: 'run_cron',
+                label: 'Route deployment incident to Slack + Linus',
+                params: {
+                    endpoint: '/api/cron/playbooks/firebase-deployment-incident',
+                    description: 'Notify linus-cto, dispatch Linus, and thread the Firebase recovery summary.',
+                    channelName: 'linus-cto',
+                    maxIterations: 8,
+                },
+            },
+        ],
+        metadata: {
+            useCase: 'firebase_deployment_incident_response',
+            requiresEventContext: true,
+            defaultChannelName: 'linus-cto',
+        },
+    };
+}
+
 export const DEFAULT_SUPER_USER_PLAYBOOKS: DefaultSuperUserPlaybookTemplate[] = [
     {
         id: 'welcome-emails',
@@ -273,6 +306,7 @@ export const DEFAULT_SUPER_USER_PLAYBOOKS: DefaultSuperUserPlaybookTemplate[] = 
     },
     buildExecutiveBookingPlaybookTemplate('martez', 'Martez', 'Founder'),
     buildExecutiveBookingPlaybookTemplate('jack', 'Jack', 'Head of Revenue'),
+    buildFirebaseDeploymentIncidentPlaybookTemplate(),
 ];
 
 export function getDefaultSuperUserPlaybookTemplate(

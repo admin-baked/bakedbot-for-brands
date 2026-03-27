@@ -27,6 +27,7 @@ import {
     BarChart3,
     Shield,
     FileText,
+    Webhook,
 } from 'lucide-react';
 import { PlaybookStep } from '@/types/playbook';
 
@@ -39,9 +40,11 @@ const ACTIONS = [
     { id: 'generate', label: 'Generate Content', icon: <FileText className="h-4 w-4" /> },
     { id: 'deebo.check_content', label: 'Compliance Check', icon: <Shield className="h-4 w-4" /> },
     { id: 'notify', label: 'Notify', icon: <Mail className="h-4 w-4" /> },
+    { id: 'run_cron', label: 'Run Internal Cron', icon: <Webhook className="h-4 w-4" /> },
 ];
 
 const AGENTS = [
+    { id: 'linus', name: 'Linus' },
     { id: 'smokey', name: 'Smokey' },
     { id: 'craig', name: 'Craig' },
     { id: 'pops', name: 'Pops' },
@@ -71,6 +74,7 @@ export function PlaybookStepCard({
     const actionConfig = ACTIONS.find(a => a.id === step.action);
     const showAgentSelect = ['delegate', 'query', 'analyze', 'generate'].includes(step.action);
     const showEmailParams = ['gmail.send', 'notify'].includes(step.action);
+    const showCronParams = step.action === 'run_cron';
 
     return (
         <div className="flex items-start gap-2 p-3 border rounded-lg bg-white group hover:border-primary/50 transition-colors">
@@ -149,6 +153,53 @@ export function PlaybookStepCard({
                                 value={(step.params?.subject as string) || ''}
                                 onChange={(e) => onUpdate({ params: { ...step.params, subject: e.target.value } })}
                                 placeholder="Email subject"
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {showCronParams && (
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <Label className="text-xs">Endpoint</Label>
+                            <Input
+                                className="h-8"
+                                value={(step.params?.endpoint as string) || ''}
+                                onChange={(e) => onUpdate({ params: { ...step.params, endpoint: e.target.value } })}
+                                placeholder="/api/cron/playbooks/..."
+                            />
+                        </div>
+                        <div>
+                            <Label className="text-xs">Slack Channel</Label>
+                            <Input
+                                className="h-8"
+                                value={(step.params?.channelName as string) || ''}
+                                onChange={(e) => onUpdate({ params: { ...step.params, channelName: e.target.value } })}
+                                placeholder="linus-cto"
+                            />
+                        </div>
+                        <div className="col-span-2">
+                            <Label className="text-xs">Description</Label>
+                            <Input
+                                className="h-8"
+                                value={(step.params?.description as string) || ''}
+                                onChange={(e) => onUpdate({ params: { ...step.params, description: e.target.value } })}
+                                placeholder="What should this internal cron step do?"
+                            />
+                        </div>
+                        <div>
+                            <Label className="text-xs">Max Iterations</Label>
+                            <Input
+                                className="h-8"
+                                inputMode="numeric"
+                                value={step.params?.maxIterations != null ? String(step.params.maxIterations) : ''}
+                                onChange={(e) => onUpdate({
+                                    params: {
+                                        ...step.params,
+                                        maxIterations: e.target.value ? Number(e.target.value) : undefined,
+                                    },
+                                })}
+                                placeholder="8"
                             />
                         </div>
                     </div>

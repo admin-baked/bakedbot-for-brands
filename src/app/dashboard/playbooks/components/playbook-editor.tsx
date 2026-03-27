@@ -36,6 +36,7 @@ import { PlaybookStepCard } from './playbook-step-card';
 
 // Available agents
 const AGENTS = [
+    { id: 'linus', name: 'Linus', description: 'CTO & Technical Response' },
     { id: 'smokey', name: 'Smokey', description: 'Budtender & Recommendations' },
     { id: 'craig', name: 'Craig', description: 'Marketing & Content' },
     { id: 'pops', name: 'Pops', description: 'Analytics & Reporting' },
@@ -75,6 +76,8 @@ const EVENT_TYPES = [
     'checkout.started',
     'checkout.completed',
     'order.completed',
+    'deployment.firebase.failed',
+    'deployment.firebase.succeeded',
     'executive.booking.martez.confirmed',
     'executive.booking.martez.followup_ready',
     'executive.booking.jack.confirmed',

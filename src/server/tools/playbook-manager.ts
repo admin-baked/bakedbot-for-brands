@@ -10,6 +10,7 @@
 import { getAdminFirestore } from '@/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { scheduleTask } from './scheduler';
+import { executePlaybookCronStep } from '@/server/services/playbook-cron-step';
 
 export interface PlaybookStep {
     action: 'delegate' | 'notify' | 'parallel' | 'query' | 'generate' | 'run_cron';
@@ -110,60 +111,13 @@ async function executeCronStep(
     playbook: any,
     step: PlaybookStep
 ): Promise<StructuredStepResult> {
-    const endpoint = typeof step.params?.endpoint === 'string'
-        ? step.params.endpoint.trim()
-        : '';
-
-    if (!endpoint) {
-        throw new Error('run_cron step requires params.endpoint');
-    }
-
-    const cronSecret = process.env.CRON_SECRET;
-    if (!cronSecret) {
-        throw new Error('CRON_SECRET not configured');
-    }
-
-    const baseUrl =
-        process.env.NEXT_PUBLIC_APP_URL
-        || process.env.APP_URL
-        || 'http://localhost:3000';
-
-    const response = await fetch(`${baseUrl}${endpoint}`, {
-        method: 'POST',
-        headers: {
-            Authorization: `Bearer ${cronSecret}`,
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            triggeredBy: 'manual',
-            playbookId,
-            orgId: playbook.orgId || 'global',
-        }),
+    return executePlaybookCronStep({
+        playbookId,
+        playbookName: playbook.name || playbookId,
+        orgId: playbook.orgId || 'global',
+        step,
+        triggeredBy: 'manual',
     });
-
-    const contentType = response.headers.get('content-type') || '';
-    const payload = contentType.includes('application/json')
-        ? await response.json()
-        : await response.text();
-
-    if (!response.ok || (typeof payload === 'object' && payload && (payload as any).success === false)) {
-        const errorMessage =
-            typeof payload === 'object' && payload && typeof (payload as any).error === 'string'
-                ? (payload as any).error
-                : `Cron endpoint failed with status ${response.status}`;
-        throw new Error(errorMessage);
-    }
-
-    const description =
-        typeof step.params?.description === 'string' && step.params.description.trim().length > 0
-            ? step.params.description.trim()
-            : `Executed ${endpoint}`;
-
-    return {
-        action: step.action,
-        message: description,
-        data: payload,
-    };
 }
 
 async function executeNotifyStep(

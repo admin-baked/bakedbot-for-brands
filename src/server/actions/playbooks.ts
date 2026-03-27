@@ -618,9 +618,9 @@ export async function parseNaturalLanguage(prompt: string): Promise<{
 
 Available agents: smokey (products/recommendations), craig (marketing/content), pops (analytics/reporting), ezal (competitor intel), money_mike (pricing/finance), deebo (compliance), mrs_parker (loyalty/retention)
 
-Available actions: delegate, gmail.send, query, analyze, generate, deebo.check_content, notify, parallel
+Available actions: delegate, gmail.send, query, analyze, generate, deebo.check_content, notify, parallel, run_cron
 
-Available trigger types: manual, schedule (with cron), event (lead.created, page.claimed, order.completed, review.received, inventory.low)
+Available trigger types: manual, schedule (with cron), event (lead.created, page.claimed, order.completed, review.received, inventory.low, deployment.firebase.failed, deployment.firebase.succeeded)
 
 Return ONLY valid JSON with this exact structure:
 {
