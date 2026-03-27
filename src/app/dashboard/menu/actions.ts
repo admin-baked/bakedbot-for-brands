@@ -645,7 +645,11 @@ export async function getMenuData(): Promise<MenuData> {
         };
     } catch (error) {
         logger.error('[MENU_ACTION] Failed to fetch menu data', { error });
-        throw error;
+        return {
+            products: [],
+            source: 'none',
+            lastSyncedAt: null,
+        };
     }
 }
 

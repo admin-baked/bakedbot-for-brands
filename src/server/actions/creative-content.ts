@@ -15,6 +15,7 @@ import { generateImageFromPrompt } from '@/ai/flows/generate-social-image';
 import { buildOgImageUrl, deriveOgTemplate } from '@/ai/generators/og';
 import { generateCreativeQR } from '@/lib/qr/creative-qr';
 import { withImageTracking } from '@/server/services/media-tracking';
+import { isRenderableProductImage } from '@/lib/utils/product-image';
 import type {
     CreativeContent,
     ContentStatus,
@@ -234,6 +235,9 @@ export async function generateContent(
         const imagePrompt = deriveImagePrompt(request);
         const brandedTemplate = deriveBrandedTemplate(request);
         const brandedCopy = deriveBrandedCopy(request);
+        const brandedImageUrl = brandedTemplate === 'product-spotlight'
+            ? (isRenderableProductImage(request.productImageUrl) ? request.productImageUrl : undefined)
+            : request.backgroundImageUrl;
 
         // Run image generation + caption generation in parallel to save time
         const [imageUrl, caption] = await Promise.all([
@@ -247,9 +251,7 @@ export async function generateContent(
                     accentColor: request.accentColor,
                     brandName: request.brandName,
                     logoUrl: request.logoUrl,
-                    imageUrl: brandedTemplate === 'product-spotlight'
-                        ? request.productImageUrl
-                        : request.backgroundImageUrl,
+                    imageUrl: brandedImageUrl,
                     platform: request.platform,
                 }))
                 // Photo mode (default): fal.ai FLUX.1 — AI-generated photography, no text

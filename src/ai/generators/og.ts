@@ -33,6 +33,37 @@ export interface OgImageParams {
 }
 
 /**
+ * Normalize an OG asset URL into something next/og can reliably fetch.
+ * Relative paths are resolved against the provided base URL; unsupported
+ * protocols are dropped instead of breaking the whole image render.
+ */
+export function normalizeOgAssetUrl(assetUrl?: string, baseUrl?: string): string | undefined {
+    if (!assetUrl) {
+        return undefined;
+    }
+
+    const trimmed = assetUrl.trim();
+    if (!trimmed) {
+        return undefined;
+    }
+
+    if (/^data:/i.test(trimmed)) {
+        return trimmed;
+    }
+
+    try {
+        const resolved = baseUrl ? new URL(trimmed, baseUrl) : new URL(trimmed);
+        if (resolved.protocol !== 'http:' && resolved.protocol !== 'https:') {
+            return undefined;
+        }
+
+        return resolved.toString();
+    } catch {
+        return undefined;
+    }
+}
+
+/**
  * Build a URL to the OG social image route.
  *
  * Returns a relative path (/api/og/social?...) by default so the browser
