@@ -1,7 +1,5 @@
 'use client';
 
-
-
 /**
  * Heroes Management Page
  *
@@ -11,9 +9,10 @@
 import { Button } from '@/components/ui/button';
 import { Plus, Loader2, Image as ImageIcon, Wand2, List, Copy, Eye, Power, Trash2 } from 'lucide-react';
 import { useDispensaryId } from '@/hooks/use-dispensary-id';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { getHeroes, toggleHeroActive, duplicateHero, deleteHero } from '@/app/actions/heroes';
-import { Hero } from '@/types/heroes';
+import { Hero, HeroChannel } from '@/types/heroes';
 import { useToast } from '@/hooks/use-toast';
 import {
     Sheet,
@@ -41,6 +40,10 @@ import { HeroGeneratorInline } from '@/components/inbox/hero-generator-inline';
 
 export default function HeroesPage() {
     const { dispensaryId, loading: idLoading } = useDispensaryId();
+    const searchParams = useSearchParams();
+    const requestedChannel: HeroChannel = searchParams.get('channel') === 'weedmaps' ? 'weedmaps' : 'menu';
+    const isWeedmapsMode = requestedChannel === 'weedmaps';
+    const hasAutoOpenedRef = useRef(false);
     const [heroes, setHeroes] = useState<Hero[]>([]);
     const [loading, setLoading] = useState(true);
     const { toast } = useToast();
@@ -50,6 +53,11 @@ export default function HeroesPage() {
     const [previewHero, setPreviewHero] = useState<Hero | undefined>(undefined);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [heroToDelete, setHeroToDelete] = useState<Hero | undefined>(undefined);
+    const [formDefaultChannel, setFormDefaultChannel] = useState<HeroChannel>(requestedChannel);
+    const [activeTab, setActiveTab] = useState<'ai-builder' | 'heroes'>(isWeedmapsMode ? 'heroes' : 'ai-builder');
+    const visibleHeroes = isWeedmapsMode
+        ? heroes.filter((hero) => hero.channel === 'weedmaps')
+        : heroes;
 
     const fetchHeroes = useCallback(async () => {
         if (!dispensaryId) return;
@@ -75,13 +83,31 @@ export default function HeroesPage() {
         fetchHeroes();
     }, [dispensaryId, idLoading, fetchHeroes]);
 
-    const handleCreateOpen = () => {
+    useEffect(() => {
+        setActiveTab(isWeedmapsMode ? 'heroes' : 'ai-builder');
+        setFormDefaultChannel(requestedChannel);
+    }, [isWeedmapsMode, requestedChannel]);
+
+    useEffect(() => {
+        if (!isWeedmapsMode || hasAutoOpenedRef.current || isSheetOpen || selectedHero) {
+            return;
+        }
+
         setSelectedHero(undefined);
+        setFormDefaultChannel('weedmaps');
+        setIsSheetOpen(true);
+        hasAutoOpenedRef.current = true;
+    }, [isWeedmapsMode, isSheetOpen, selectedHero]);
+
+    const handleCreateOpen = (channel: HeroChannel = requestedChannel) => {
+        setSelectedHero(undefined);
+        setFormDefaultChannel(channel);
         setIsSheetOpen(true);
     };
 
     const handleEditOpen = (hero: Hero) => {
         setSelectedHero(hero);
+        setFormDefaultChannel(hero.channel || 'menu');
         setIsSheetOpen(true);
     };
 
@@ -161,18 +187,22 @@ export default function HeroesPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
-                    <h2 className="text-xl font-semibold">Hero Banners</h2>
-                    <p className="text-sm text-muted-foreground">Create stunning hero banners for your menu pages with AI.</p>
+                    <h2 className="text-xl font-semibold">Hero Banners & Weedmaps Assets</h2>
+                    <p className="text-sm text-muted-foreground">
+                        {isWeedmapsMode
+                            ? 'Create desktop and mobile Weedmaps listing banners with exact export sizes.'
+                            : 'Create stunning hero banners for your menu pages and Weedmaps listings.'}
+                    </p>
                 </div>
-                <Button onClick={handleCreateOpen}>
+                <Button onClick={() => handleCreateOpen(requestedChannel)}>
                     <Plus className="h-4 w-4 mr-2" />
-                    Manual Hero
+                    {isWeedmapsMode ? 'New Weedmaps Banner' : 'Manual Hero'}
                 </Button>
             </div>
 
-            <Tabs defaultValue="ai-builder" className="space-y-4">
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'ai-builder' | 'heroes')} className="space-y-4">
                 <TabsList>
                     <TabsTrigger value="ai-builder" className="flex items-center gap-2">
                         <Wand2 className="h-4 w-4" />
@@ -180,7 +210,7 @@ export default function HeroesPage() {
                     </TabsTrigger>
                     <TabsTrigger value="heroes" className="flex items-center gap-2">
                         <List className="h-4 w-4" />
-                        Your Heroes ({heroes.length})
+                        Your Assets ({visibleHeroes.length})
                     </TabsTrigger>
                 </TabsList>
 
@@ -195,125 +225,197 @@ export default function HeroesPage() {
 
                 <TabsContent value="heroes" className="space-y-4">
                     <div className="grid gap-4">
-                        {heroes.length === 0 ? (
+                        {visibleHeroes.length === 0 ? (
                             <div className="p-12 border border-dashed rounded-lg bg-card/50 text-center text-muted-foreground flex flex-col items-center">
                                 <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
                                     <ImageIcon className="h-6 w-6 text-muted-foreground" />
                                 </div>
-                                <h3 className="font-semibold text-lg mb-2">No hero banners yet</h3>
-                                <p className="mb-4 max-w-sm">Use the AI Builder to create your first hero banner, or create one manually.</p>
-                                <Button onClick={handleCreateOpen} variant="outline">Create Manually</Button>
+                                <h3 className="font-semibold text-lg mb-2">No assets yet</h3>
+                                <p className="mb-4 max-w-sm">
+                                    {isWeedmapsMode
+                                        ? 'Create your first Weedmaps desktop and mobile banner pack.'
+                                        : 'Use the AI Builder to create your first hero banner, or create one manually.'}
+                                </p>
+                                <Button onClick={() => handleCreateOpen(requestedChannel)} variant="outline">
+                                    {isWeedmapsMode ? 'Create Weedmaps Banner' : 'Create Manually'}
+                                </Button>
                             </div>
                         ) : (
                             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                {heroes.map(hero => (
-                                    <Card
-                                        key={hero.id}
-                                        className="p-4 hover:shadow-sm transition-shadow relative group overflow-hidden"
-                                    >
-                                        {/* Preview thumbnail */}
-                                        <div
-                                            className="h-32 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden cursor-pointer"
-                                            style={{
-                                                background: `linear-gradient(135deg, ${hero.primaryColor} 0%, ${hero.primaryColor}dd 50%, ${hero.primaryColor}aa 100%)`,
-                                            }}
-                                            onClick={() => handlePreviewOpen(hero)}
-                                        >
-                                            {hero.heroImage ? (
-                                                <img
-                                                    src={hero.heroImage}
-                                                    alt={hero.brandName}
-                                                    className="absolute inset-0 w-full h-full object-cover opacity-30"
-                                                />
-                                            ) : null}
-                                            <div className="relative z-10 text-white text-center px-4">
-                                                <h3 className="font-bold text-xl mb-1">{hero.brandName}</h3>
-                                                <p className="text-sm opacity-90">{hero.tagline}</p>
-                                            </div>
-                                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                <Eye className="h-8 w-8 text-white" />
-                                            </div>
-                                        </div>
+                                {visibleHeroes.map(hero => {
+                                    const isWeedmapsAsset = hero.channel === 'weedmaps';
+                                    const previewImage = isWeedmapsAsset
+                                        ? hero.weedmaps?.desktopImage || hero.heroImage
+                                        : hero.heroImage;
+                                    const previewTitle = isWeedmapsAsset
+                                        ? hero.weedmaps?.headline || hero.brandName
+                                        : hero.brandName;
+                                    const previewSubtitle = isWeedmapsAsset
+                                        ? hero.weedmaps?.subheadline || hero.tagline
+                                        : hero.tagline;
 
-                                        {/* Hero info */}
-                                        <div className="space-y-3">
-                                            <div className="flex items-center justify-between">
-                                                <Badge
-                                                    variant={hero.active ? 'default' : 'outline'}
-                                                    className={hero.active ? 'bg-green-500' : ''}
-                                                >
-                                                    {hero.active ? 'Active' : 'Draft'}
-                                                </Badge>
-                                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                                    <Badge variant="outline" className="text-xs">
-                                                        {hero.style}
-                                                    </Badge>
+                                    return (
+                                        <Card
+                                            key={hero.id}
+                                            className="p-4 hover:shadow-sm transition-shadow relative group overflow-hidden"
+                                        >
+                                            <div
+                                                className="h-32 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden cursor-pointer"
+                                                style={{
+                                                    background: `linear-gradient(135deg, ${hero.primaryColor} 0%, ${hero.primaryColor}dd 50%, ${hero.primaryColor}aa 100%)`,
+                                                }}
+                                                onClick={() => handlePreviewOpen(hero)}
+                                            >
+                                                {previewImage ? (
+                                                    <img
+                                                        src={previewImage}
+                                                        alt={hero.brandName}
+                                                        className="absolute inset-0 w-full h-full object-cover opacity-40"
+                                                    />
+                                                ) : null}
+                                                <div className="relative z-10 text-white text-center px-4">
+                                                    {!isWeedmapsAsset && (
+                                                        <h3 className="font-bold text-xl mb-1">{hero.brandName}</h3>
+                                                    )}
+                                                    <p className="font-bold text-lg leading-tight">{previewTitle}</p>
+                                                    <p className="text-xs opacity-90 mt-1">{previewSubtitle}</p>
+                                                </div>
+                                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                    <Eye className="h-8 w-8 text-white" />
                                                 </div>
                                             </div>
 
-                                            {hero.description && (
-                                                <p className="text-sm text-muted-foreground line-clamp-2">
-                                                    {hero.description}
-                                                </p>
-                                            )}
+                                            <div className="space-y-3">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <Badge variant="outline">
+                                                        {isWeedmapsAsset ? 'Weedmaps' : 'Menu Hero'}
+                                                    </Badge>
+                                                    {isWeedmapsAsset ? (
+                                                        <Badge variant="secondary">
+                                                            Draft Asset
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge
+                                                            variant={hero.active ? 'default' : 'outline'}
+                                                            className={hero.active ? 'bg-green-500' : ''}
+                                                        >
+                                                            {hero.active ? 'Active' : 'Draft'}
+                                                        </Badge>
+                                                    )}
+                                                </div>
 
-                                            {/* Actions */}
-                                            <div className="flex gap-2 pt-2 border-t">
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={() => handleToggleActive(hero)}
-                                                    className="flex-1"
-                                                >
-                                                    <Power className="h-3 w-3 mr-1" />
-                                                    {hero.active ? 'Deactivate' : 'Activate'}
-                                                </Button>
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={() => handleEditOpen(hero)}
-                                                >
-                                                    Edit
-                                                </Button>
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={() => handleDuplicate(hero)}
-                                                >
-                                                    <Copy className="h-3 w-3" />
-                                                </Button>
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={() => handleDeleteClick(hero)}
-                                                    className="text-destructive"
-                                                >
-                                                    <Trash2 className="h-3 w-3" />
-                                                </Button>
+                                                {previewSubtitle && (
+                                                    <p className="text-sm text-muted-foreground line-clamp-2">
+                                                        {previewSubtitle}
+                                                    </p>
+                                                )}
+
+                                                <div className="flex flex-wrap gap-2 pt-2 border-t">
+                                                    {isWeedmapsAsset ? (
+                                                        <>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() => handlePreviewOpen(hero)}
+                                                                className="flex-1"
+                                                            >
+                                                                <Eye className="h-3 w-3 mr-1" />
+                                                                Preview
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() => handleEditOpen(hero)}
+                                                            >
+                                                                Edit
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() => handleDuplicate(hero)}
+                                                            >
+                                                                <Copy className="h-3 w-3" />
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() => handleDeleteClick(hero)}
+                                                                className="text-destructive"
+                                                            >
+                                                                <Trash2 className="h-3 w-3" />
+                                                            </Button>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() => handleToggleActive(hero)}
+                                                                className="flex-1"
+                                                            >
+                                                                <Power className="h-3 w-3 mr-1" />
+                                                                {hero.active ? 'Deactivate' : 'Activate'}
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() => handleEditOpen(hero)}
+                                                            >
+                                                                Edit
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() => handleDuplicate(hero)}
+                                                            >
+                                                                <Copy className="h-3 w-3" />
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() => handleDeleteClick(hero)}
+                                                                className="text-destructive"
+                                                            >
+                                                                <Trash2 className="h-3 w-3" />
+                                                            </Button>
+                                                        </>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
-                                    </Card>
-                                ))}
+                                        </Card>
+                                    );
+                                })}
                             </div>
                         )}
                     </div>
                 </TabsContent>
             </Tabs>
 
-            {/* Edit/Create Sheet */}
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                 <SheetContent className="sm:max-w-xl overflow-y-auto">
                     <SheetHeader>
-                        <SheetTitle>{selectedHero ? 'Edit Hero Banner' : 'Create New Hero Banner'}</SheetTitle>
+                        <SheetTitle>
+                            {selectedHero
+                                ? selectedHero.channel === 'weedmaps'
+                                    ? 'Edit Weedmaps Banner'
+                                    : 'Edit Hero Banner'
+                                : formDefaultChannel === 'weedmaps'
+                                    ? 'Create Weedmaps Banner'
+                                    : 'Create New Hero Banner'}
+                        </SheetTitle>
                         <SheetDescription>
-                            Configure your hero banner appearance and content.
+                            {formDefaultChannel === 'weedmaps' || selectedHero?.channel === 'weedmaps'
+                                ? 'Build a Weedmaps desktop/mobile banner pair with editable promo copy.'
+                                : 'Configure your hero banner appearance and content.'}
                         </SheetDescription>
                     </SheetHeader>
                     {dispensaryId && (
                         <div className="mt-8">
                             <HeroForm
+                                key={selectedHero?.id || `new-${formDefaultChannel}`}
                                 initialData={selectedHero}
                                 orgId={dispensaryId}
+                                defaultChannel={formDefaultChannel}
                                 onSuccess={handleSuccess}
                                 onCancel={() => setIsSheetOpen(false)}
                             />
@@ -322,13 +424,16 @@ export default function HeroesPage() {
                 </SheetContent>
             </Sheet>
 
-            {/* Preview Sheet */}
             <Sheet open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
                 <SheetContent className="sm:max-w-4xl overflow-y-auto">
                     <SheetHeader>
-                        <SheetTitle>Hero Preview</SheetTitle>
+                        <SheetTitle>
+                            {previewHero?.channel === 'weedmaps' ? 'Weedmaps Banner Preview' : 'Hero Preview'}
+                        </SheetTitle>
                         <SheetDescription>
-                            See how your hero banner will look on the menu page.
+                            {previewHero?.channel === 'weedmaps'
+                                ? 'Review desktop and mobile Weedmaps layouts, then export exact-size files.'
+                                : 'See how your hero banner will look on the menu page.'}
                         </SheetDescription>
                     </SheetHeader>
                     {previewHero && (
@@ -339,7 +444,7 @@ export default function HeroesPage() {
                                     setIsPreviewOpen(false);
                                     handleEditOpen(previewHero);
                                 }}>
-                                    Edit This Hero
+                                    Edit This {previewHero.channel === 'weedmaps' ? 'Banner' : 'Hero'}
                                 </Button>
                                 <Button variant="outline" onClick={() => setIsPreviewOpen(false)}>
                                     Close
@@ -350,11 +455,10 @@ export default function HeroesPage() {
                 </SheetContent>
             </Sheet>
 
-            {/* Delete Confirmation Dialog */}
             <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Hero Banner?</AlertDialogTitle>
+                        <AlertDialogTitle>Delete Asset?</AlertDialogTitle>
                         <AlertDialogDescription>
                             Are you sure you want to delete &quot;{heroToDelete?.brandName}&quot;? This action cannot be undone.
                         </AlertDialogDescription>

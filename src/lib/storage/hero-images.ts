@@ -117,10 +117,10 @@ export function validateImageFile(
   file: Buffer,
   fileName: string
 ): { valid: boolean; error?: string } {
-  // Check file size (max 5MB)
-  const maxSize = 5 * 1024 * 1024; // 5MB
+  // Check file size (max 10MB)
+  const maxSize = 10 * 1024 * 1024; // 10MB
   if (file.length > maxSize) {
-    return { valid: false, error: 'Image must be smaller than 5MB' };
+    return { valid: false, error: 'Image must be smaller than 10MB' };
   }
 
   // Check file type
