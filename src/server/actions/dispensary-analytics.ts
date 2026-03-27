@@ -14,6 +14,8 @@ import { getMarketBenchmarks } from '@/server/services/market-benchmarks';
 import { loadCatalogAnalyticsProducts, toAnalyticsDate, type CatalogAnalyticsProduct } from '@/server/services/catalog-analytics-source';
 import type { MarketBenchmarks } from '@/types/market-benchmarks';
 import { logger } from '@/lib/logger';
+import { getOrdersFromAlleaves } from '@/app/dashboard/orders/actions';
+import { getDispensaryRetailerId, getLocationId } from '@/app/dashboard/orders/order-context';
 import { ANALYTICS_ORDER_STATUSES } from '@/app/dashboard/orders/order-utils';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -32,7 +34,18 @@ type AnalyticsActor = {
     orgId?: string;
     currentOrgId?: string;
     brandId?: string;
+    locationId?: string;
 };
+
+const DISPENSARY_ANALYTICS_ALLOWED_ROLES = [
+    'brand',
+    'brand_admin',
+    'dispensary',
+    'dispensary_admin',
+    'dispensary_staff',
+    'super_user',
+    'super_admin',
+] as const;
 
 function getActorOrgId(user: AnalyticsActor): string | null {
     return user.currentOrgId || user.orgId || user.brandId || null;
@@ -109,20 +122,20 @@ export interface MenuAnalyticsData {
 // Helper: verify org access
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function verifyOrgAccess(orgId: string): Promise<void> {
+async function verifyOrgAccess(orgId: string): Promise<AnalyticsActor> {
     if (!isValidOrgId(orgId)) {
         throw new Error('Forbidden: invalid org context');
     }
 
-    const user = await requireUser([
-        'brand', 'brand_admin', 'dispensary', 'dispensary_admin', 'super_user', 'super_admin',
-    ]);
+    const user = await requireUser([...DISPENSARY_ANALYTICS_ALLOWED_ROLES]);
     if (user.role !== 'super_user' && user.role !== 'super_admin') {
         const userOrgId = getActorOrgId(user as AnalyticsActor);
         if (userOrgId !== orgId) {
             throw new Error('Forbidden: org mismatch');
         }
     }
+
+    return user as AnalyticsActor;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -183,11 +196,18 @@ interface RawOrder {
     status?: string;
 }
 
+function hasAllowedAnalyticsStatus(order: RawOrder): boolean {
+    const status = toLookupToken(order.status);
+    return status
+        ? ANALYTICS_ORDER_STATUSES.includes(status as (typeof ANALYTICS_ORDER_STATUSES)[number])
+        : true;
+}
+
 // ANALYTICS_ORDER_STATUSES imported from order-utils (shared with analytics/actions.ts)
 // includes: pending, submitted, confirmed, preparing, ready, completed
 
 async function queryOrdersByField(
-    field: 'brandId' | 'orgId',
+    field: 'brandId' | 'orgId' | 'retailerId',
     orgId: string,
 ): Promise<RawOrder[]> {
     const db = getAdminFirestore();
@@ -223,31 +243,92 @@ async function queryOrdersByField(
 
         return fallback.docs
             .map((doc) => ({ id: doc.id, ...doc.data() } as RawOrder))
-            .filter((order) => {
-                const status = toLookupToken(order.status);
-                return status ? ANALYTICS_ORDER_STATUSES.includes(status as (typeof ANALYTICS_ORDER_STATUSES)[number]) : true;
-            });
+            .filter(hasAllowedAnalyticsStatus);
     }
 }
 
-async function loadOrders(orgId: string, lookbackDays = 30): Promise<RawOrder[]> {
+function filterOrdersByLookback(orders: RawOrder[], lookbackDays: number): RawOrder[] {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - lookbackDays);
-
-    const byBrand = await queryOrdersByField('brandId', orgId);
-    const orders = byBrand.length > 0 ? byBrand : await queryOrdersByField('orgId', orgId);
-
-    if (byBrand.length === 0 && orders.length > 0) {
-        logger.info('[dispensary-analytics] Orders fallback query by orgId used', {
-            orgId,
-            count: orders.length,
-        });
-    }
 
     return orders.filter((order) => {
         const ts = toAnalyticsDate(order.createdAt);
         return ts ? ts >= cutoff : true;
     });
+}
+
+async function loadOrders(
+    orgId: string,
+    actor: AnalyticsActor,
+    lookbackDays = 30,
+): Promise<RawOrder[]> {
+    const locationId = getLocationId(actor);
+    const queryPlans: Array<{
+        field: 'brandId' | 'orgId' | 'retailerId';
+        ids: string[];
+    }> = [
+        {
+            field: 'retailerId',
+            ids: [
+                getDispensaryRetailerId({ locationId, orgId }) || '',
+                locationId || '',
+                orgId,
+            ],
+        },
+        {
+            field: 'brandId',
+            ids: [actor.brandId || '', orgId],
+        },
+        {
+            field: 'orgId',
+            ids: [actor.currentOrgId || '', actor.orgId || '', orgId],
+        },
+    ];
+
+    for (const plan of queryPlans) {
+        const uniqueIds = Array.from(new Set(plan.ids.filter(Boolean)));
+        for (const candidateId of uniqueIds) {
+            const orders = await queryOrdersByField(plan.field, candidateId);
+            if (orders.length === 0) {
+                continue;
+            }
+
+            if (plan.field !== 'brandId' || candidateId !== orgId) {
+                logger.info('[dispensary-analytics] Orders fallback query used', {
+                    orgId,
+                    field: plan.field,
+                    candidateId,
+                    count: orders.length,
+                });
+            }
+
+            return filterOrdersByLookback(orders, lookbackDays);
+        }
+    }
+
+    const liveOrders = await getOrdersFromAlleaves(orgId, getAdminFirestore()).catch((error) => {
+        logger.warn('[dispensary-analytics] Alleaves live orders fallback failed', {
+            orgId,
+            error: String(error),
+        });
+        return [];
+    });
+
+    if (liveOrders.length === 0) {
+        return [];
+    }
+
+    logger.info('[dispensary-analytics] Using Alleaves live orders fallback', {
+        orgId,
+        count: liveOrders.length,
+    });
+
+    return filterOrdersByLookback(
+        liveOrders
+            .map((order) => ({ ...order } as RawOrder))
+            .filter(hasAllowedAnalyticsStatus),
+        lookbackDays,
+    );
 }
 
 function daysSince(val: unknown): number {
@@ -451,10 +532,10 @@ export async function getOrdersAnalytics(
     orgId: string,
 ): Promise<ActionResult<OrdersAnalyticsData>> {
     try {
-        await verifyOrgAccess(orgId);
+        const actor = await verifyOrgAccess(orgId);
 
         const [orders, benchmarks] = await Promise.all([
-            loadOrders(orgId, 30).catch(() => [] as RawOrder[]),
+            loadOrders(orgId, actor, 30).catch(() => [] as RawOrder[]),
             getMarketBenchmarks(orgId).catch(() => null),
         ]);
 

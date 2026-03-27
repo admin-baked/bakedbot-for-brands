@@ -6,6 +6,7 @@ import {
 import { requireUser } from '@/server/auth/auth';
 import { getAdminFirestore } from '@/firebase/admin';
 import { getMarketBenchmarks } from '@/server/services/market-benchmarks';
+import { getOrdersFromAlleaves } from '@/app/dashboard/orders/actions';
 
 jest.mock('@/server/auth/auth', () => ({
   requireUser: jest.fn(),
@@ -17,6 +18,10 @@ jest.mock('@/firebase/admin', () => ({
 
 jest.mock('@/server/services/market-benchmarks', () => ({
   getMarketBenchmarks: jest.fn(),
+}));
+
+jest.mock('@/app/dashboard/orders/actions', () => ({
+  getOrdersFromAlleaves: jest.fn(),
 }));
 
 jest.mock('@/lib/logger', () => ({
@@ -44,12 +49,14 @@ function makeFirestoreMock({
   tenantProducts = [],
   orgProducts = [],
   dispensaryProducts = [],
+  retailerOrders = [],
   brandOrders = [],
   orgOrders = [],
 }: {
   tenantProducts?: MockDocInput[];
   orgProducts?: MockDocInput[];
   dispensaryProducts?: MockDocInput[];
+  retailerOrders?: MockDocInput[];
   brandOrders?: MockDocInput[];
   orgOrders?: MockDocInput[];
 }) {
@@ -107,10 +114,12 @@ function makeFirestoreMock({
     };
   };
 
+  const retailerOrdersScope = makeOrdersScope(retailerOrders);
   const brandOrdersScope = makeOrdersScope(brandOrders);
   const orgOrdersScope = makeOrdersScope(orgOrders);
   const ordersCollection = {
     where: jest.fn((field: string) => {
+      if (field === 'retailerId') return retailerOrdersScope;
       if (field === 'brandId') return brandOrdersScope;
       if (field === 'orgId') return orgOrdersScope;
       throw new Error(`Unexpected orders field: ${field}`);
@@ -136,6 +145,7 @@ describe('dispensary analytics', () => {
       currentOrgId: 'org-1',
     });
     (getMarketBenchmarks as jest.Mock).mockRejectedValue(new Error('no benchmarks'));
+    (getOrdersFromAlleaves as jest.Mock).mockResolvedValue([]);
   });
 
   it('merges tenant catalog products with root sales rollups and keeps velocity deterministic', async () => {
@@ -255,6 +265,75 @@ describe('dispensary analytics', () => {
 
     expect(result.data.basketSizeTrend.some((row) => row.avgBasket === 75)).toBe(true);
     expect(result.data.discountRateTrend.some((row) => row.discountRate === 0.2)).toBe(true);
+    expect(result.data.onlineVsInStoreSplit.find((row) => row.name === 'Online')?.value).toBe(1);
+  });
+
+  it('allows dispensary staff and uses retailerId orders when location-scoped docs exist', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'staff-1',
+      role: 'dispensary_staff',
+      currentOrgId: 'org-1',
+      locationId: 'loc-1',
+    });
+    (getAdminFirestore as jest.Mock).mockReturnValue(makeFirestoreMock({
+      retailerOrders: [
+        {
+          id: 'order-retailer-1',
+          data: {
+            createdAt: { toDate: () => new Date() },
+            totals: {
+              total: 88,
+              discount: 8,
+            },
+            items: [
+              { quantity: 4, price: 22 },
+            ],
+            source: 'online',
+            status: 'completed',
+          },
+        },
+      ],
+    }));
+
+    const result = await getOrdersAnalytics('org-1');
+
+    expect(result.success).toBe(true);
+    if (!result.success || !result.data) {
+      throw new Error('Expected retailer-scoped order analytics data');
+    }
+
+    expect(result.data.basketSizeTrend.some((row) => row.avgBasket === 88)).toBe(true);
+    expect(result.data.discountRateTrend.some((row) => row.discountRate === 0.091)).toBe(true);
+    expect(result.data.onlineVsInStoreSplit.find((row) => row.name === 'Online')?.value).toBe(1);
+  });
+
+  it('falls back to live Alleaves orders when Firestore has no analytics orders', async () => {
+    (getAdminFirestore as jest.Mock).mockReturnValue(makeFirestoreMock({}));
+    (getOrdersFromAlleaves as jest.Mock).mockResolvedValue([
+      {
+        id: 'live-order-1',
+        createdAt: { toDate: () => new Date() },
+        totals: {
+          total: 54,
+          discount: 4,
+        },
+        items: [
+          { qty: 2, price: 27 },
+        ],
+        source: 'online',
+        status: 'completed',
+      },
+    ]);
+
+    const result = await getOrdersAnalytics('org-1');
+
+    expect(result.success).toBe(true);
+    if (!result.success || !result.data) {
+      throw new Error('Expected live Alleaves order analytics data');
+    }
+
+    expect(getOrdersFromAlleaves).toHaveBeenCalledWith('org-1', expect.anything());
+    expect(result.data.basketSizeTrend.some((row) => row.avgBasket === 54)).toBe(true);
     expect(result.data.onlineVsInStoreSplit.find((row) => row.name === 'Online')?.value).toBe(1);
   });
 });
