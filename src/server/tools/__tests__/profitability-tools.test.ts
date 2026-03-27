@@ -8,6 +8,7 @@
 import {
   profitabilityToolDefs,
   analyzePriceCompressionForAgent,
+  getCategoryCogsForAgent,
   executeProfitabilityTool,
 } from '../profitability-tools';
 
@@ -113,6 +114,68 @@ jest.mock('@/server/services/cannabis-tax', () => ({
   getTenantTaxConfig: jest.fn().mockResolvedValue(null),
 }));
 
+jest.mock('@/server/actions/profitability', () => ({
+  getProductProfitabilityData: jest.fn().mockResolvedValue({
+    products: [
+      {
+        id: 'preroll-1',
+        name: 'House Pre-Roll',
+        category: 'Pre-Rolls',
+        retailPrice: 10,
+        effectiveCost: 4,
+        costSource: 'cost_of_good',
+        marginPercent: 0.6,
+        marginAmount: 6,
+        stockCount: 10,
+        inventoryValue: 40,
+      },
+      {
+        id: 'preroll-2',
+        name: 'Infused Pre-Roll',
+        category: 'pre-roll',
+        retailPrice: 12,
+        effectiveCost: 5,
+        costSource: 'batch_cost',
+        marginPercent: 7 / 12,
+        marginAmount: 7,
+        stockCount: 20,
+        inventoryValue: 100,
+      },
+      {
+        id: 'preroll-3',
+        name: 'Budget Pre-Roll',
+        category: 'prerolls',
+        retailPrice: 8,
+        effectiveCost: null,
+        costSource: 'none',
+        marginPercent: null,
+        marginAmount: null,
+        stockCount: 5,
+        inventoryValue: null,
+      },
+      {
+        id: 'flower-1',
+        name: 'Blue Dream',
+        category: 'Flower',
+        retailPrice: 35,
+        effectiveCost: 15,
+        costSource: 'cost_of_good',
+        marginPercent: 20 / 35,
+        marginAmount: 20,
+        stockCount: 8,
+        inventoryValue: 120,
+      },
+    ],
+    summary: {
+      totalInventoryValue: 260,
+      totalRevenuePotential: 500,
+      avgMarginPercent: 0.58,
+      productsWithCogs: 3,
+      productsWithoutCogs: 1,
+    },
+  }),
+}));
+
 jest.mock('@/lib/logger', () => ({
   logger: {
     info: jest.fn(),
@@ -130,8 +193,8 @@ describe('Profitability Tools', () => {
   // TOOL DEFINITIONS TESTS
   // ==========================================================================
   describe('profitabilityToolDefs', () => {
-    it('should have 5 tool definitions', () => {
-      expect(profitabilityToolDefs).toHaveLength(5);
+    it('should have 6 tool definitions', () => {
+      expect(profitabilityToolDefs).toHaveLength(6);
     });
 
     it('should have analyze280ETax tool', () => {
@@ -153,6 +216,13 @@ describe('Profitability Tools', () => {
       expect(tool).toBeDefined();
       expect(tool?.description).toContain('gross margin');
       expect(tool?.description).toContain('benchmark');
+    });
+
+    it('should have getCategoryCogs tool', () => {
+      const tool = profitabilityToolDefs.find(t => t.name === 'getCategoryCogs');
+      expect(tool).toBeDefined();
+      expect(tool?.description).toContain('current synced COGS');
+      expect(tool?.description).toContain('prerolls');
     });
 
     it('should have analyzePriceCompression tool', () => {
@@ -203,6 +273,26 @@ describe('Profitability Tools', () => {
     });
   });
 
+  describe('getCategoryCogsForAgent', () => {
+    it('should return a category COGS snapshot from synced product data', async () => {
+      const result = await getCategoryCogsForAgent('prerolls');
+
+      expect(result.summary).toContain('Pre-Rolls COGS Snapshot');
+      expect(result.summary).toContain('Average unit COGS: $4.50');
+      expect(result.data).toMatchObject({
+        category: 'Pre-Rolls',
+        matchedProducts: 3,
+        productsWithCogs: 2,
+        productsWithoutCogs: 1,
+        averageUnitCogs: 4.5,
+        averageRetailPrice: 11,
+        currentInventoryCogs: 140,
+        unitsInStock: 30,
+      });
+      expect(result.lowestMarginProducts[0].name).toBe('Infused Pre-Roll');
+    });
+  });
+
   // ==========================================================================
   // TOOL EXECUTOR TESTS
   // ==========================================================================
@@ -241,6 +331,16 @@ describe('Profitability Tools', () => {
       expect((result as any).summary).toContain('Profitability Metrics');
       expect((result as any).metrics.grossMargin).toBeDefined();
       expect((result as any).categoryPerformance).toBeDefined();
+    });
+
+    it('should execute getCategoryCogs tool', async () => {
+      const result = await executeProfitabilityTool('getCategoryCogs', {
+        category: 'prerolls',
+      });
+
+      expect(result).toBeDefined();
+      expect((result as any).summary).toContain('Pre-Rolls COGS Snapshot');
+      expect((result as any).data.productsWithCogs).toBe(2);
     });
 
     it('should execute analyzePriceCompression tool', async () => {
@@ -307,6 +407,15 @@ describe('Profitability Tools', () => {
 
       // Should contain risk indicator
       expect((result as any).summary).toMatch(/Liquidity Risk:.*MEDIUM/i);
+    });
+
+    it('should format category COGS summary with inventory and margin context', async () => {
+      const result = await executeProfitabilityTool('getCategoryCogs', {
+        category: 'prerolls',
+      });
+
+      expect((result as any).summary).toContain('Current inventory COGS: $140.00');
+      expect((result as any).summary).toContain('Average gross margin: 59.2%');
     });
   });
 });

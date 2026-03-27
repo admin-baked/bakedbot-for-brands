@@ -6,6 +6,8 @@
  */
 
 import { z } from 'zod';
+import { normalizeCategoryName } from '@/lib/utils/product-image';
+import { getProductProfitabilityData } from '@/server/actions/profitability';
 import {
   calculate280EAnalysis,
   calculateNYTaxSummary,
@@ -51,6 +53,16 @@ export const profitabilityToolDefs = [
     schema: z.object({
       tenantId: z.string().describe('The tenant/org ID'),
       period: z.enum(['current_month', 'last_month', 'current_quarter', 'ytd']).default('current_month'),
+    }),
+  },
+  {
+    name: 'getCategoryCogs',
+    description: `Get current synced COGS for a product category from the tenant product catalog.
+    Uses Alleaves-backed product cost fields when available and returns category-level COGS, average unit cost,
+    average retail price, gross margin, and lowest-margin SKUs. Use this for questions like
+    "What is our COGS on prerolls?" or "What is our margin on vapes?"`,
+    schema: z.object({
+      category: z.string().describe('Product category like prerolls, flower, vapes, edibles, concentrates'),
     }),
   },
   {
@@ -291,6 +303,158 @@ ${metrics.revenuePerEmployee ? `| Revenue/Employee | $${metrics.revenuePerEmploy
   };
 }
 
+export async function getCategoryCogsForAgent(
+  category: string
+): Promise<{
+  summary: string;
+  data: {
+    category: string;
+    matchedProducts: number;
+    productsWithCogs: number;
+    productsWithoutCogs: number;
+    averageUnitCogs: number | null;
+    weightedAverageUnitCogs: number | null;
+    averageRetailPrice: number | null;
+    averageMarginPercent: number | null;
+    currentInventoryCogs: number;
+    unitsInStock: number;
+  };
+  lowestMarginProducts: Array<{
+    name: string;
+    retailPrice: number;
+    effectiveCost: number;
+    marginPercent: number;
+    costSource: 'cost_of_good' | 'batch_cost';
+  }>;
+}> {
+  logger.info('[profitability-tools] Getting category COGS', { category });
+
+  const normalizedCategory = normalizeCategoryName(category);
+  const { products } = await getProductProfitabilityData();
+  const categoryProducts = products.filter(
+    (product) => normalizeCategoryName(product.category) === normalizedCategory
+  );
+
+  if (categoryProducts.length === 0) {
+    return {
+      summary: `No synced products found for category ${normalizedCategory}.`,
+      data: {
+        category: normalizedCategory,
+        matchedProducts: 0,
+        productsWithCogs: 0,
+        productsWithoutCogs: 0,
+        averageUnitCogs: null,
+        weightedAverageUnitCogs: null,
+        averageRetailPrice: null,
+        averageMarginPercent: null,
+        currentInventoryCogs: 0,
+        unitsInStock: 0,
+      },
+      lowestMarginProducts: [],
+    };
+  }
+
+  const productsWithCogs = categoryProducts.filter(
+    (product): product is typeof product & {
+      effectiveCost: number;
+      marginPercent: number;
+      costSource: 'cost_of_good' | 'batch_cost';
+    } => (
+      product.effectiveCost !== null &&
+      product.marginPercent !== null &&
+      product.costSource !== 'none'
+    )
+  );
+
+  if (productsWithCogs.length === 0) {
+    return {
+      summary: `${normalizedCategory} has ${categoryProducts.length} synced products, but none have COGS fields populated in the current catalog sync.`,
+      data: {
+        category: normalizedCategory,
+        matchedProducts: categoryProducts.length,
+        productsWithCogs: 0,
+        productsWithoutCogs: categoryProducts.length,
+        averageUnitCogs: null,
+        weightedAverageUnitCogs: null,
+        averageRetailPrice: null,
+        averageMarginPercent: null,
+        currentInventoryCogs: 0,
+        unitsInStock: 0,
+      },
+      lowestMarginProducts: [],
+    };
+  }
+
+  const matchedProducts = categoryProducts.length;
+  const productsWithoutCogs = matchedProducts - productsWithCogs.length;
+  const totalUnitsInStock = productsWithCogs.reduce((sum, product) => sum + product.stockCount, 0);
+  const totalUnitCost = productsWithCogs.reduce((sum, product) => sum + product.effectiveCost, 0);
+  const totalRetailPrice = productsWithCogs.reduce((sum, product) => sum + product.retailPrice, 0);
+  const totalMarginPercent = productsWithCogs.reduce((sum, product) => sum + product.marginPercent, 0);
+  const weightedCostSum = productsWithCogs.reduce(
+    (sum, product) => sum + (product.effectiveCost * product.stockCount),
+    0
+  );
+  const currentInventoryCogs = productsWithCogs.reduce(
+    (sum, product) => sum + (product.inventoryValue ?? 0),
+    0
+  );
+
+  const averageUnitCogs = totalUnitCost / productsWithCogs.length;
+  const weightedAverageUnitCogs = totalUnitsInStock > 0
+    ? weightedCostSum / totalUnitsInStock
+    : null;
+  const averageRetailPrice = totalRetailPrice / productsWithCogs.length;
+  const averageMarginPercent = totalMarginPercent / productsWithCogs.length;
+
+  const lowestMarginProducts = [...productsWithCogs]
+    .sort((a, b) => a.marginPercent - b.marginPercent)
+    .slice(0, 3)
+    .map((product) => ({
+      name: product.name,
+      retailPrice: product.retailPrice,
+      effectiveCost: product.effectiveCost,
+      marginPercent: product.marginPercent,
+      costSource: product.costSource,
+    }));
+
+  const weightedCostLine = weightedAverageUnitCogs !== null
+    ? `- Weighted average unit COGS (in stock): $${weightedAverageUnitCogs.toFixed(2)}\n`
+    : '';
+  const lowestMarginLine = lowestMarginProducts.length > 0
+    ? `\nLowest-margin SKUs:\n${lowestMarginProducts.map((product, index) => (
+        `${index + 1}. ${product.name} — $${product.effectiveCost.toFixed(2)} COGS, ` +
+        `$${product.retailPrice.toFixed(2)} retail, ${(product.marginPercent * 100).toFixed(1)}% margin`
+      )).join('\n')}`
+    : '';
+
+  const summary = `**${normalizedCategory} COGS Snapshot** (current synced catalog)
+- Matched SKUs: ${matchedProducts}
+- SKUs with COGS: ${productsWithCogs.length}
+- SKUs missing COGS: ${productsWithoutCogs}
+- Average unit COGS: $${averageUnitCogs.toFixed(2)}
+${weightedCostLine}- Average retail price: $${averageRetailPrice.toFixed(2)}
+- Average gross margin: ${(averageMarginPercent * 100).toFixed(1)}%
+- Current inventory COGS: $${currentInventoryCogs.toFixed(2)} across ${totalUnitsInStock.toLocaleString()} units${lowestMarginLine}`;
+
+  return {
+    summary,
+    data: {
+      category: normalizedCategory,
+      matchedProducts,
+      productsWithCogs: productsWithCogs.length,
+      productsWithoutCogs,
+      averageUnitCogs,
+      weightedAverageUnitCogs,
+      averageRetailPrice,
+      averageMarginPercent,
+      currentInventoryCogs,
+      unitsInStock: totalUnitsInStock,
+    },
+    lowestMarginProducts,
+  };
+}
+
 function getMarginStatus(margin: number): string {
   if (margin >= 0.55) return '✅ Excellent';
   if (margin >= 0.45) return '✅ Good';
@@ -469,6 +633,9 @@ export async function executeProfitabilityTool(
         args.tenantId as string,
         (args.period as string) || 'current_month'
       );
+
+    case 'getCategoryCogs':
+      return getCategoryCogsForAgent(args.category as string);
 
     case 'analyzePriceCompression':
       return analyzePriceCompressionForAgent(

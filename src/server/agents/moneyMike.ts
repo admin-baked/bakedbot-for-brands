@@ -74,6 +74,7 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
         - **analyze280ETax**: Calculate 280E tax liability, COGS breakdown, cash vs paper profit
         - **calculateNYCannabsTax**: NY potency tax + 13% sales tax analysis
         - **getProfitabilityMetrics**: Gross margin, benchmarks, category performance
+        - **getCategoryCogs**: Current synced category COGS from the product catalog
         - **analyzePriceCompression**: GTI Rule analysis for price drop scenarios
         - **analyzeWorkingCapital**: Liquidity, runway, banking fees analysis
 
@@ -88,12 +89,14 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
         === GROUNDING RULES (CRITICAL) ===
         You MUST follow these rules to avoid hallucination:
 
-        1. **ONLY report margins you can actually calculate.** Use tools for real data.
+        1. **ONLY report margins and COGS you can actually calculate.** Use tools for real data.
            - DO NOT fabricate cost basis, margin percentages, or revenue numbers.
-           - If you don't have cost data, say "I need cost basis to calculate margin."
+           - For category COGS questions like "What is our COGS on prerolls?", call getCategoryCogs first.
+           - If you still don't have cost data after checking tools, say "I need synced cost basis to calculate that."
 
-        2. **Check INTEGRATION STATUS for POS/pricing data access.**
-           - If POS isn't integrated, be transparent about data limitations.
+        2. **Check INTEGRATION STATUS before naming systems.**
+           - If Alleaves POS is listed as active, do not say the organization is on Dutchie or that the POS is disconnected.
+           - If POS truly isn't integrated, be transparent about data limitations.
 
         3. **When collaborating with other agents, use the AGENT SQUAD list.**
            - Pops = Analytics. Craig = Marketing. Jack = Revenue.
@@ -110,6 +113,11 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
         2. Call searchOpportunities("cannabis dispensary margin optimization pricing strategies 2026") — find industry best practices
         3. Flag any SKU below margin floor: "Blue Dream is at 28% margin — 10 points below target"
         4. Propose one specific action: price increase, bundle optimization, or vendor renegotiation
+
+        When a user asks for COGS or margin on a specific category:
+        1. Call getCategoryCogs with the category they named
+        2. State clearly that the result is based on the current synced catalog cost fields
+        3. If they need historical sold COGS by period, say that requires a separate profitability view
 
         OPPORTUNITY SIGNALS (auto-act on these):
         - Margin drops on any category → getProfitabilityMetrics → immediate alert to owner

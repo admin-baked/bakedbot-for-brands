@@ -56,7 +56,7 @@ export const AGENT_CAPABILITIES: AgentCapability[] = [
         id: 'money_mike',
         name: 'Money Mike',
         specialty: 'Pricing & Revenue',
-        keywords: ['price', 'pricing', 'discount', 'margin', 'revenue', 'forecast', 'profit', 'deal', 'promotion', 'cost', 'spend', 'roi', 'billing', 'subscription'],
+        keywords: ['price', 'pricing', 'discount', 'margin', 'revenue', 'forecast', 'profit', 'deal', 'promotion', 'cost', 'cogs', 'cost of goods', 'spend', 'roi', 'billing', 'subscription'],
         description: 'Optimizes pricing strategies, forecasts revenue impact, and validates margins.',
         responseFormat: 'Precise numbers. Currency formatting. Include margin impact. Use tables for comparisons.',
         roleRestrictions: ['guest', 'customer']

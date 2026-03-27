@@ -29,6 +29,14 @@ import {
     submitCampaignForReview,
 } from '@/server/tools/campaign-tools';
 import {
+    analyze280ETax,
+    calculateNYCannabisTax,
+    getProfitabilityMetricsForAgent,
+    getCategoryCogsForAgent,
+    analyzePriceCompressionForAgent,
+    analyzeWorkingCapitalForAgent,
+} from '@/server/tools/profitability-tools';
+import {
     crmListUsersTool,
     crmGetStatsTool,
     crmUpdateLifecycleTool,
@@ -1386,6 +1394,14 @@ export const defaultUniversalTools = {
     getAtRiskCustomers,
     getUpcomingBirthdays,
     getCustomerComms,
+
+    // Profitability & COGS
+    analyze280ETax,
+    calculateNYCannabsTax: calculateNYCannabisTax,
+    getProfitabilityMetrics: getProfitabilityMetricsForAgent,
+    getCategoryCogs: getCategoryCogsForAgent,
+    analyzePriceCompression: analyzePriceCompressionForAgent,
+    analyzeWorkingCapital: analyzeWorkingCapitalForAgent,
 
     // Campaign Management
     createCampaignDraft,
