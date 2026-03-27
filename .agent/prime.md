@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — inbox finance routing + POS-grounded COGS responses hardened.
+**Current Status:** 🟢 Passing — desktop inbox pilot briefing + grower role support shipped.
 **Recent work (2026-03-27):** See `MEMORY.md` for full log.
-Key completed: preroll COGS/POS grounding fix for inbox agents, including Money Mike routing, canonical profitability tool reuse, and screenshot-aware response rules.
+Key completed: [Desktop inbox briefing for Thrive/Ecstatic/Native Black pilots] (`aa60b742d`), [Grower inbox role support across chat, insights, and quick actions] (`aa60b742d`).
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
