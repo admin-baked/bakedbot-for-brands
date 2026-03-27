@@ -93,7 +93,7 @@ function extractDeckScriptJson(raw: string): string {
     return raw.trim();
 }
 
-export function parseDeckScriptResponse(raw: string): DeckScript {
+function parseDeckScriptResponse(raw: string): DeckScript {
     const parsed = JSON.parse(extractDeckScriptJson(raw)) as DeckScript;
 
     if (!parsed || typeof parsed.deckTitle !== 'string' || !Array.isArray(parsed.slides)) {
