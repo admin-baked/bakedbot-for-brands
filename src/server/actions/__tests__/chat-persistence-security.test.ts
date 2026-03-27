@@ -10,7 +10,7 @@ jest.mock('@/firebase/server-client', () => ({
   createServerClient: jest.fn(),
 }));
 
-jest.mock('@/lib/monitoring', () => ({
+jest.mock('@/lib/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),
@@ -203,6 +203,29 @@ describe('chat-persistence security', () => {
           ],
         },
       ],
+    });
+  });
+
+  it('returns a structured error when Firestore throws a circular error object', async () => {
+    const circularError = new Error('Firestore read failed') as Error & {
+      code?: number;
+      self?: unknown;
+    };
+    circularError.code = 13;
+    circularError.self = circularError;
+
+    get.mockRejectedValueOnce(circularError);
+
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'super-1',
+      role: 'super_user',
+    });
+
+    const result = await getChatSessions();
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Firestore read failed',
     });
   });
 
