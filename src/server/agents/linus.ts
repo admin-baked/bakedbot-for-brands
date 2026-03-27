@@ -2,7 +2,8 @@
  * Linus - AI CTO Agent
  * 
  * Bridge between codebase and Executive Boardroom.
- * Uses Claude API exclusively for agentic coding tasks.
+ * Uses GLM-5 for Slack text-only tool workflows and Claude for
+ * full agentic coding plus vision-backed tasks.
  * 
  * Responsibilities:
  * - Synthesize 7-layer code evaluations
@@ -12,6 +13,7 @@
  */
 
 import { executeWithTools, isClaudeAvailable, ClaudeTool, ClaudeResult, AgentContext } from '@/ai/claude';
+import { executeGLMWithTools, GLM_MODELS, isGLMConfigured } from '@/ai/glm';
 import { z } from 'zod';
 import { AgentImplementation } from './harness';
 import { AgentMemory } from './schemas';
@@ -4565,11 +4567,29 @@ WHEN STUCK: Before spending multiple tool calls investigating, check if a super 
 };
 
 export async function runLinus(request: LinusRequest): Promise<LinusResponse> {
-    if (!isClaudeAvailable()) {
-        throw new Error('Claude API is required for Linus. Set CLAUDE_API_KEY environment variable.');
+    const toolMode = request.toolMode ?? 'full';
+    const hasImages = (request.images?.length ?? 0) > 0;
+    const shouldUseGLMToolMode = toolMode === 'slack' && !hasImages && isGLMConfigured();
+
+    if (!shouldUseGLMToolMode && !isClaudeAvailable()) {
+        throw new Error(
+            toolMode === 'slack'
+                ? 'Linus Slack tool mode requires ZAI_API_KEY for GLM-5 or CLAUDE_API_KEY for Claude.'
+                : 'Claude API is required for Linus. Set CLAUDE_API_KEY environment variable.'
+        );
     }
 
-    const toolMode = request.toolMode ?? 'full';
+    if (toolMode === 'slack' && !shouldUseGLMToolMode) {
+        logger.info('[Linus] Slack tool mode falling back to Claude', {
+            hasImages,
+            glmConfigured: isGLMConfigured(),
+        });
+    } else if (shouldUseGLMToolMode) {
+        logger.info('[Linus] Slack tool mode using GLM-5', {
+            hasImages,
+        });
+    }
+
     const linusSystemPrompt = await buildLinusSystemPrompt(request.context?.orgId);
     
     // Read CLAUDE.md for codebase context (Claude Code convention)
@@ -4605,20 +4625,35 @@ User Request: ${request.prompt}`;
               request.progressCallback!(buildLinusProgressMessage(toolName, input))
         : undefined;
 
-    const result = await executeWithTools(
-        fullPrompt,
-        getLinusTools(toolMode),
-        linusToolExecutor,
-        {
-            userId: request.context?.userId,
-            orgId: request.context?.orgId,
-            brandId: request.context?.brandId,
-            maxIterations: request.maxIterations ?? (toolMode === 'slack' ? 5 : 15),
-            agentContext: LINUS_AGENT_CONTEXT,
-            imageAttachments: request.images,
-            onToolCall,
-        }
-    );
+    const result = shouldUseGLMToolMode
+        ? await executeGLMWithTools(
+            fullPrompt,
+            getLinusTools(toolMode),
+            linusToolExecutor,
+            {
+                userId: request.context?.userId,
+                orgId: request.context?.orgId,
+                brandId: request.context?.brandId,
+                maxIterations: request.maxIterations ?? 5,
+                model: GLM_MODELS.STRATEGIC,
+                agentContext: LINUS_AGENT_CONTEXT,
+                onToolCall,
+            }
+        )
+        : await executeWithTools(
+            fullPrompt,
+            getLinusTools(toolMode),
+            linusToolExecutor,
+            {
+                userId: request.context?.userId,
+                orgId: request.context?.orgId,
+                brandId: request.context?.brandId,
+                maxIterations: request.maxIterations ?? (toolMode === 'slack' ? 5 : 15),
+                agentContext: LINUS_AGENT_CONTEXT,
+                imageAttachments: request.images,
+                onToolCall,
+            }
+        );
 
     
     // Extract decision if present

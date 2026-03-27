@@ -67,6 +67,17 @@ describe('model-router', () => {
     expect(route.model).toBe('glm-4-flash');
   });
 
+  it('routes strategic GLM work to glm-5 when available', async () => {
+    const route = await resolveTextModelRoute({
+      sensitivity: 'internal_non_pii',
+      task: 'strategic',
+      preferredProvider: 'glm',
+    });
+
+    expect(route.provider).toBe('glm');
+    expect(route.model).toBe('glm-5');
+  });
+
   it('falls back to Anthropic when GLM is unavailable', async () => {
     isGLMConfigured.mockReturnValue(false);
 

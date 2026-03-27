@@ -1459,14 +1459,23 @@ All agents are online and ready. Type an agent name or describe your task to get
                 let finalContent = claudeResult.content || 'Task completed.';
                 if (getRequestContext().useGLMSynthesis && finalContent) {
                     try {
-                        const { callGLM } = await import('@/ai/glm');
+                        const { callRoutedTextModel } = await import('@/ai/model-router');
+                        const glmTask = getRequestContext().glmTask ?? 'standard';
                         const toolSummary = executedTools.length > 0
                             ? `\n\nTools used: ${executedTools.map(t => `${t.name} → ${String(t.result).slice(0, 200)}`).join('; ')}`
                             : '';
-                        finalContent = await callGLM({
+                        const routed = await callRoutedTextModel({
+                            sensitivity: 'internal_non_pii',
+                            task: glmTask,
+                            preferredProvider: 'glm',
                             userMessage: `Original request: ${userMessage}${toolSummary}\n\nDraft response:\n${finalContent}\n\nReformat this response for Slack: use *bold* for emphasis, bullet points for lists. Keep all facts accurate. Do not add new information.`,
                         });
-                        logger.info('[AgentRunner] GLM re-synthesized Claude tool response');
+                        finalContent = routed.content;
+                        logger.info('[AgentRunner] Routed tool response through model router', {
+                            provider: routed.route.provider,
+                            model: routed.route.model,
+                            task: routed.route.task,
+                        });
                     } catch (glmErr: any) {
                         logger.warn('[AgentRunner] GLM re-synthesis failed, using Claude content:', glmErr?.message);
                     }
@@ -1524,9 +1533,20 @@ All agents are online and ready. Type an agent name or describe your task to get
         let glmGeneratedText: string | null = null;
         if (getRequestContext().useGLMSynthesis && typeof prompt === 'string') {
             try {
-                const { callGLM } = await import('@/ai/glm');
-                glmGeneratedText = await callGLM({ userMessage: prompt });
-                logger.info('[AgentRunner] GLM handled Gemini fallback response');
+                const { callRoutedTextModel } = await import('@/ai/model-router');
+                const glmTask = getRequestContext().glmTask ?? 'standard';
+                const routed = await callRoutedTextModel({
+                    sensitivity: 'internal_non_pii',
+                    task: glmTask,
+                    preferredProvider: 'glm',
+                    userMessage: prompt,
+                });
+                glmGeneratedText = routed.content;
+                logger.info('[AgentRunner] Routed fallback response through model router', {
+                    provider: routed.route.provider,
+                    model: routed.route.model,
+                    task: routed.route.task,
+                });
             } catch (glmErr: any) {
                 logger.warn('[AgentRunner] GLM fallback failed, using Gemini:', glmErr?.message);
             }

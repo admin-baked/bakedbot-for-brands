@@ -11,36 +11,72 @@ export interface LinusIncidentSlackMessage {
     fallbackText: string;
     source: 'auto-escalator' | 'support-ticket';
     incidentId?: string | null;
+    channelName?: string;
+    threadTs?: string;
+    webhookUrl?: string;
+}
+
+export interface LinusIncidentSlackResult {
+    sent: boolean;
+    channelId: string | null;
+    channelName: string | null;
+    ts: string | null;
+    delivery: 'channel' | 'thread' | 'webhook' | 'none';
 }
 
 function getIncidentWebhookUrl(): string | null {
     return process.env.SLACK_WEBHOOK_INCIDENTS || process.env.SLACK_WEBHOOK_URL || null;
 }
 
-async function postToIncidentChannel(message: LinusIncidentSlackMessage): Promise<boolean> {
+function getChannelName(message: LinusIncidentSlackMessage): string {
+    if (typeof message.channelName === 'string' && message.channelName.trim().length > 0) {
+        return message.channelName.trim();
+    }
+
+    return LINUS_INCIDENTS_CHANNEL;
+}
+
+async function postToIncidentChannel(message: LinusIncidentSlackMessage): Promise<LinusIncidentSlackResult> {
+    const channelName = getChannelName(message);
+
     try {
-        const channel = await slackService.findChannelByName(LINUS_INCIDENTS_CHANNEL);
+        const channel = await slackService.findChannelByName(channelName);
         if (!channel) {
             logger.warn('[IncidentNotifications] Slack channel not found', {
-                channelName: LINUS_INCIDENTS_CHANNEL,
+                channelName,
                 source: message.source,
                 incidentId: message.incidentId ?? null,
             });
-            return false;
+            return {
+                sent: false,
+                channelId: null,
+                channelName,
+                ts: null,
+                delivery: 'none',
+            };
         }
 
         await slackService.joinChannel(channel.id);
 
-        const result = await slackService.postMessage(channel.id, message.fallbackText, message.blocks);
+        const result = message.threadTs
+            ? await slackService.postInThread(channel.id, message.threadTs, message.fallbackText, message.blocks)
+            : await slackService.postMessage(channel.id, message.fallbackText, message.blocks);
         if (!result.sent) {
             logger.warn('[IncidentNotifications] Slack channel post failed', {
                 channelId: channel.id,
                 channelName: channel.name,
                 source: message.source,
                 incidentId: message.incidentId ?? null,
+                threadTs: message.threadTs ?? null,
                 error: result.error ?? 'unknown_error',
             });
-            return false;
+            return {
+                sent: false,
+                channelId: channel.id,
+                channelName: channel.name,
+                ts: null,
+                delivery: 'none',
+            };
         }
 
         logger.info('[IncidentNotifications] Slack channel post sent', {
@@ -48,27 +84,47 @@ async function postToIncidentChannel(message: LinusIncidentSlackMessage): Promis
             channelName: channel.name,
             source: message.source,
             incidentId: message.incidentId ?? null,
+            threadTs: message.threadTs ?? null,
+            delivery: message.threadTs ? 'thread' : 'channel',
         });
-        return true;
+        return {
+            sent: true,
+            channelId: String(result.channel || channel.id),
+            channelName: channel.name,
+            ts: typeof result.ts === 'string' ? result.ts : null,
+            delivery: message.threadTs ? 'thread' : 'channel',
+        };
     } catch (error) {
         logger.warn('[IncidentNotifications] Slack channel post threw', {
-            channelName: LINUS_INCIDENTS_CHANNEL,
+            channelName,
             source: message.source,
             incidentId: message.incidentId ?? null,
             error: error instanceof Error ? error.message : String(error),
         });
-        return false;
+        return {
+            sent: false,
+            channelId: null,
+            channelName,
+            ts: null,
+            delivery: 'none',
+        };
     }
 }
 
-async function postToIncidentWebhook(message: LinusIncidentSlackMessage): Promise<boolean> {
-    const webhookUrl = getIncidentWebhookUrl();
+async function postToIncidentWebhook(message: LinusIncidentSlackMessage): Promise<LinusIncidentSlackResult> {
+    const webhookUrl = message.webhookUrl || getIncidentWebhookUrl();
     if (!webhookUrl) {
         logger.warn('[IncidentNotifications] No Slack webhook configured', {
             source: message.source,
             incidentId: message.incidentId ?? null,
         });
-        return false;
+        return {
+            sent: false,
+            channelId: null,
+            channelName: null,
+            ts: null,
+            delivery: 'none',
+        };
     }
 
     const controller = new AbortController();
@@ -91,31 +147,49 @@ async function postToIncidentWebhook(message: LinusIncidentSlackMessage): Promis
                 source: message.source,
                 incidentId: message.incidentId ?? null,
             });
-            return false;
+            return {
+                sent: false,
+                channelId: null,
+                channelName: null,
+                ts: null,
+                delivery: 'none',
+            };
         }
 
         logger.info('[IncidentNotifications] Slack webhook sent', {
             source: message.source,
             incidentId: message.incidentId ?? null,
         });
-        return true;
+        return {
+            sent: true,
+            channelId: null,
+            channelName: null,
+            ts: null,
+            delivery: 'webhook',
+        };
     } catch (error) {
         logger.error('[IncidentNotifications] Slack webhook threw', {
             source: message.source,
             incidentId: message.incidentId ?? null,
             error: error instanceof Error ? error.message : String(error),
         });
-        return false;
+        return {
+            sent: false,
+            channelId: null,
+            channelName: null,
+            ts: null,
+            delivery: 'none',
+        };
     } finally {
         clearTimeout(timeout);
     }
 }
 
-export async function postLinusIncidentSlack(message: LinusIncidentSlackMessage): Promise<void> {
+export async function postLinusIncidentSlack(message: LinusIncidentSlackMessage): Promise<LinusIncidentSlackResult> {
     const postedToChannel = await postToIncidentChannel(message);
-    if (postedToChannel) {
-        return;
+    if (postedToChannel.sent) {
+        return postedToChannel;
     }
 
-    await postToIncidentWebhook(message);
+    return postToIncidentWebhook(message);
 }

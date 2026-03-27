@@ -3,9 +3,7 @@ import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
 import { verifySession, verifySuperAdmin } from '@/server/utils/auth-check';
 import { createTicketSchema } from '@/app/api/schemas';
-import { runAgent } from '@/server/agents/harness';
-import { persistence } from '@/server/agents/persistence';
-import { linusAgent } from '@/server/agents/linus';
+import { dispatchLinusIncidentResponse } from '@/server/services/linus-incident-response';
 import { postLinusIncidentSlack } from '@/server/services/incident-notifications';
 import { wrapUserData, buildSystemDirectives } from '@/server/security';
 
@@ -87,8 +85,9 @@ export async function POST(request: NextRequest) {
                     'Analyze the error and stack trace.',
                     'Search the codebase for the affected file/function.',
                     'Determine root cause.',
-                    'If fix is safe and obvious, propose a patch.',
-                    'Update the ticket with your findings.'
+                    'If the fix is safe and obvious, implement it, verify it, and push the repair.',
+                    'If you cannot safely repair it, explain the blocker and next action.',
+                    'Report back to Slack with a concise status: MISSION_READY, NEEDS_REVIEW, or BLOCKED. If you fixed it, say so explicitly in the summary.'
                 ]);
 
                 const linusPrompt = `CRITICAL INTERRUPT: A production error has been reported via support ticket.
@@ -113,8 +112,6 @@ ${wrapUserData(String(data.errorStack || 'No stack trace available'), 'stack_tra
                 const reporterEmail = String(newTicket.reporterEmail || 'anonymous');
                 const descriptionPreview = truncateSlackText(String(data.description || 'No description provided'), 500);
                 const stackPreview = String(data.errorStack || '').trim();
-
-                const linusDispatch = runAgent('system', persistence, linusAgent as any, {}, linusPrompt);
 
                 try {
                     await postLinusIncidentSlack({
@@ -187,16 +184,19 @@ ${wrapUserData(String(data.errorStack || 'No stack trace available'), 'stack_tra
                 }
 
                 // Fire-and-forget dispatch to Linus (don't block ticket creation)
-                // NOTE: This uses the standard harness signature (brandId, adapter, agent, tools, stimulus).
-                // Linus doesn't use the injected toolset here (it runs via Claude + internal tooling),
-                // so we pass an empty object for tools.
-                void linusDispatch
-                    .then(() => logger.info('[Tickets API] Linus dispatched', { ticketId: docRef.id }))
-                    .catch(err => logger.warn('[Tickets API] Linus dispatch failed (non-blocking)', { error: err }));
+                void dispatchLinusIncidentResponse({
+                    prompt: linusPrompt,
+                    source: 'support-ticket',
+                    incidentId: docRef.id,
+                    incidentLink: `<${CEO_TICKETS_URL}|Open Ticket Queue> • Ticket \`${docRef.id}\``,
+                    maxIterations: 10,
+                    analysisHeader: '🛠️ Linus — Repair Report',
+                    analysisFallbackPrefix: '🛠️ Linus repair report',
+                });
 
-                logger.info(`[Tickets API] Linus interrupt triggered for ticket ${docRef.id}`);
+                logger.info('[Tickets API] Linus repair loop triggered', { ticketId: docRef.id });
             } catch (linusError) {
-                // Don't fail ticket creation if Linus dispatch fails
+                // Don't fail ticket creation if Linus dispatch bootstrapping fails
                 logger.warn('[Tickets API] Failed to dispatch to Linus', { error: linusError });
             }
         }

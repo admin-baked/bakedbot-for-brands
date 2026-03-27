@@ -15,16 +15,8 @@ jest.mock('@/server/utils/auth-check', () => ({
     verifySuperAdmin: jest.fn(),
 }));
 
-jest.mock('@/server/agents/harness', () => ({
-    runAgent: jest.fn(),
-}));
-
-jest.mock('@/server/agents/persistence', () => ({
-    persistence: {},
-}));
-
-jest.mock('@/server/agents/linus', () => ({
-    linusAgent: { id: 'linus' },
+jest.mock('@/server/services/linus-incident-response', () => ({
+    dispatchLinusIncidentResponse: jest.fn(),
 }));
 
 jest.mock('@/server/services/incident-notifications', () => ({
@@ -38,7 +30,7 @@ jest.mock('@/server/security', () => ({
 
 const mockCreateServerClient = require('@/firebase/server-client').createServerClient as jest.Mock;
 const mockVerifySession = require('@/server/utils/auth-check').verifySession as jest.Mock;
-const mockRunAgent = require('@/server/agents/harness').runAgent as jest.Mock;
+const mockDispatchLinusIncidentResponse = require('@/server/services/linus-incident-response').dispatchLinusIncidentResponse as jest.Mock;
 const mockPostLinusIncidentSlack = require('@/server/services/incident-notifications').postLinusIncidentSlack as jest.Mock;
 const { POST } = require('../route') as typeof import('../route');
 
@@ -68,7 +60,7 @@ describe('POST /api/tickets', () => {
             firestore: { collection },
         });
         mockVerifySession.mockResolvedValue(null);
-        mockRunAgent.mockResolvedValue({ content: 'Linus is on it' });
+        mockDispatchLinusIncidentResponse.mockResolvedValue(undefined);
         mockPostLinusIncidentSlack.mockResolvedValue(undefined);
     });
 
@@ -96,7 +88,13 @@ describe('POST /api/tickets', () => {
                 fallbackText: expect.stringContaining('High system error'),
             }),
         );
-        expect(mockRunAgent).toHaveBeenCalledTimes(1);
+        expect(mockDispatchLinusIncidentResponse).toHaveBeenCalledWith(
+            expect.objectContaining({
+                source: 'support-ticket',
+                incidentId: 'ticket_123',
+                analysisHeader: expect.stringContaining('Repair Report'),
+            }),
+        );
     });
 
     it('does not notify Slack or Linus for non-critical tickets', async () => {
@@ -111,7 +109,7 @@ describe('POST /api/tickets', () => {
 
         expect(response.status).toBe(200);
         expect(mockPostLinusIncidentSlack).not.toHaveBeenCalled();
-        expect(mockRunAgent).not.toHaveBeenCalled();
+        expect(mockDispatchLinusIncidentResponse).not.toHaveBeenCalled();
     });
 
     it('still returns success when the Slack incident notification fails', async () => {
@@ -129,6 +127,6 @@ describe('POST /api/tickets', () => {
 
         expect(response.status).toBe(200);
         expect(body.id).toBe('ticket_123');
-        expect(mockRunAgent).toHaveBeenCalledTimes(1);
+        expect(mockDispatchLinusIncidentResponse).toHaveBeenCalledTimes(1);
     });
 });

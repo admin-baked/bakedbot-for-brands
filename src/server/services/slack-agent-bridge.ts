@@ -13,6 +13,7 @@ import {
     setApprovalMessageTs,
 } from './slack-approval';
 import type { DecodedIdToken } from 'firebase-admin/auth';
+import type { AITextTaskClass } from '@/types/ai-routing';
 
 // Org ID for Letta memory lookups in the Slack/Linus path
 const BAKEDBOT_INTERNAL_ORG = 'org_bakedbot_internal';
@@ -21,8 +22,8 @@ const BAKEDBOT_INTERNAL_ORG = 'org_bakedbot_internal';
 const CLAUDE_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'] as const;
 
 // ---------------------------------------------------------------------------
-// Linus tool classifier — determines if a message warrants Claude tool-calling
-// (vs. free GLM for simple conversational replies). Module-level so regexes
+// Linus tool classifier — determines if a message warrants agentic tool-calling
+// (vs. GLM synthesis for simple conversational replies). Module-level so regexes
 // are compiled once, not recreated per message.
 // ---------------------------------------------------------------------------
 const LINUS_TOOL_PATTERNS = [
@@ -45,6 +46,10 @@ const LINUS_TOOL_PATTERNS = [
 function linusNeedsTools(text: string): boolean {
     const lower = text.toLowerCase();
     return LINUS_TOOL_PATTERNS.some(p => p.test(lower));
+}
+
+export function getSlackGLMSynthesisTask(personaId: string): AITextTaskClass {
+    return personaId === 'linus' ? 'strategic' : 'standard';
 }
 
 // System-level identity injected for Slack requests.
@@ -404,11 +409,11 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
         // (avoids requireUser() cookie lookup in async context)
         //
         // Linus routing (cost control):
-        //   - Tool-requiring messages → Claude Sonnet with full tool suite + vision
-        //   - Simple conversational messages → GLM (free)
+        //   - Tool-requiring messages → Linus tool runner (GLM-5 for text, Claude for vision)
+        //   - Simple conversational messages → GLM synthesis
         // All other agents use GLM synthesis path.
         const AGENT_TIMEOUTS = {
-            linus:  180_000,  // 3 min — Claude tool-calling with up to 8 iterations
+            linus:  180_000,  // 3 min — GLM-5 / Claude tool-calling with up to 8 iterations
             leo:   120_000,   // 2 min — COO operations may chain multiple tools
             jack:  120_000,   // 2 min — CRO revenue analysis
             glenda: 120_000,  // 2 min — CMO strategy
@@ -448,7 +453,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             })() : Promise.resolve([]),
 
             // Image downloads (Linus only, when tools/vision needed).
-            // Only pass Claude-supported formats; skip small/empty downloads (likely redirects/403s).
+            // Vision still routes through Claude, so only pass Claude-supported formats.
             (isLinus && botToken && imageFiles.length > 0)
                 ? Promise.all(imageFiles.map(async (f: any) => {
                     if (!(CLAUDE_IMAGE_TYPES as readonly string[]).includes(f.mimetype)) {
@@ -510,8 +515,9 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             // Prepend the fetched history and memory to the current message
             const fullPrompt = contextPrefix + enrichedText;
 
-            // Linus: tool-requiring messages OR image attachments → Claude (full tool access + vision);
-            // simple conversational messages → GLM (free, fast).
+            // Linus: tool-requiring messages OR image attachments → Linus tool runner.
+            // Text-only Slack tool runs now prefer GLM-5; image-backed runs stay on Claude vision.
+            // Simple conversational messages → GLM synthesis.
             // All other agents use GLM synthesis path.
             if (willUseLinusTools || linusImages) {
                 // Progress callback: update the working Slack message with each tool Linus uses
@@ -531,6 +537,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                         setTimeout(() => reject(new Error(`Linus timeout after ${Math.floor(agentTimeoutMs / 1000)} seconds`)), agentTimeoutMs)
                     ),
                 ]);
+
                 result = { content: linusResult.content, toolCalls: linusResult.toolExecutions };
             } else if (isElroy) {
                 // Uncle Elroy — store ops agent for Thrive Syracuse, always uses Claude tools
@@ -552,7 +559,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                 // GLM path — conversational replies, other agents
                 const extraOptions = { ...(attachments ? { attachments } : {}), source: 'slack' };
                 result = await requestContext.run(
-                    { useGLMSynthesis: true },
+                    { useGLMSynthesis: true, glmTask: getSlackGLMSynthesisTask(personaId) },
                     () => Promise.race([
                         runAgentCore(fullPrompt, personaId, extraOptions, SLACK_SYSTEM_USER),
                         new Promise((_, reject) =>

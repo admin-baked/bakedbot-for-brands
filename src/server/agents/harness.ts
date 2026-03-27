@@ -150,6 +150,7 @@ import { persistWorkflowFromHarness } from '@/server/services/letta/procedural-m
 import { sleepTimeService } from '@/server/services/letta/sleeptime-agent';
 import { sanitizeForPrompt, wrapUserData, embedCanaryToken, validateOutputWithCanary } from '@/server/security';
 import { buildTelemetryEvent, recordAgentTelemetry } from '@/server/services/agent-telemetry';
+import type { AITextTaskClass } from '@/types/ai-routing';
 
 // ============================================================================
 // VALIDATION HOOK TYPES
@@ -193,6 +194,8 @@ export interface MultiStepContext {
      * Only applies to the hybrid execution path.
      */
     useGLMSynthesis?: boolean;
+    /** Preferred GLM task class for synthesis when GLM is enabled. */
+    glmTask?: AITextTaskClass;
 
     // === TELEMETRY ===
     agentName?: string; // agent name for cost tracking (e.g. 'smokey', 'craig', 'ezal')
@@ -393,11 +396,23 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
 
                 let synthesisContent = '';
                 const shouldUseGLM = context.useGLMSynthesis ?? getRequestContext().useGLMSynthesis ?? false;
+                const glmTask = context.glmTask ?? getRequestContext().glmTask ?? 'standard';
                 let glmFailed = false;
                 if (shouldUseGLM) {
                     try {
-                        const { callGLM } = await import('@/ai/glm');
-                        synthesisContent = await callGLM({ userMessage: synthesisPrompt });
+                        const { callRoutedTextModel } = await import('@/ai/model-router');
+                        const routed = await callRoutedTextModel({
+                            sensitivity: 'internal_non_pii',
+                            task: glmTask,
+                            preferredProvider: 'glm',
+                            userMessage: synthesisPrompt,
+                        });
+                        synthesisContent = routed.content;
+                        logger.info('[Harness] Routed synthesis through model router', {
+                            provider: routed.route.provider,
+                            model: routed.route.model,
+                            task: routed.route.task,
+                        });
                     } catch (glmErr: any) {
                         logger.warn('[Harness] GLM synthesis failed, falling back to Claude:', glmErr?.message ?? glmErr);
                         glmFailed = true;

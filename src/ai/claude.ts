@@ -466,7 +466,7 @@ export async function executeWithTools(
  * This prevents the "forgetting super powers" problem where agent instructions
  * buried in user messages lose salience in long multi-turn conversations.
  */
-function buildSystemPrompt(context: ClaudeContext): string {
+export function buildSystemPrompt(context: ClaudeContext): string {
     const parts: string[] = [];
 
     if (context.agentContext) {

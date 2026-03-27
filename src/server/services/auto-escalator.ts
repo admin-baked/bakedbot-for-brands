@@ -18,6 +18,7 @@
 import { getAdminFirestore } from '@/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logger } from '@/lib/logger';
+import { dispatchLinusIncidentResponse } from '@/server/services/linus-incident-response';
 import { postLinusIncidentSlack } from '@/server/services/incident-notifications';
 import type { QABugPriority } from '@/types/qa';
 
@@ -102,54 +103,6 @@ async function recentBugExists(priority: QABugPriority, titlePrefix: string): Pr
         });
     } catch {
         return false; // if check fails, don't block filing
-    }
-}
-
-// ── Internal: Linus Dispatch ──────────────────────────────────────────────────
-
-async function dispatchLinus(prompt: string, bugId: string | null): Promise<void> {
-    try {
-        // Dynamic import keeps this module from crashing if Claude API is unavailable
-        const { runLinus } = await import('@/server/agents/linus');
-
-        logger.info('[AutoEscalator] Dispatching Linus', { bugId });
-
-        const result = await runLinus({
-            prompt,
-            maxIterations: 5, // fast diagnosis only
-            context: { userId: 'auto-escalator' },
-        });
-
-        if (!result.content) return;
-
-        const bugLink = bugId
-            ? `<${DASHBOARD_URL}/dashboard/ceo?tab=qa&bugId=${bugId}|View Bug \`${bugId}\`>`
-            : 'Bug not filed';
-
-        await postLinusIncidentSlack({
-            blocks: [
-                {
-                    type: 'header',
-                    text: { type: 'plain_text', text: '🖥️ Linus — Incident Analysis', emoji: true },
-                },
-                {
-                    type: 'section',
-                    text: { type: 'mrkdwn', text: result.content.slice(0, 2900) },
-                },
-                {
-                    type: 'context',
-                    elements: [{ type: 'mrkdwn', text: bugLink }],
-                },
-            ],
-            fallbackText: `🖥️ Linus analysis complete — ${bugId ?? 'no bug ID'}`,
-            source: 'auto-escalator',
-            incidentId: bugId,
-        });
-
-        logger.info('[AutoEscalator] Linus analysis posted to Slack', { bugId, decision: result.decision });
-    } catch (err) {
-        logger.error('[AutoEscalator] Linus dispatch failed', { error: String(err), bugId });
-        // Non-fatal — the initial alert and bug are already filed
     }
 }
 
@@ -240,7 +193,19 @@ Please diagnose immediately:
 4. Should we rollback the last deploy or wait?
 Keep your response concise — this is a live P0 incident.`;
 
-    setImmediate(() => void dispatchLinus(linusPrompt, bugId));
+    const bugLink = bugId
+        ? `<${DASHBOARD_URL}/dashboard/ceo?tab=qa&bugId=${bugId}|View Bug \`${bugId}\`>`
+        : 'Bug not filed';
+
+    setImmediate(() => void dispatchLinusIncidentResponse({
+        prompt: linusPrompt,
+        source: 'auto-escalator',
+        incidentId: bugId,
+        incidentLink: bugLink,
+        maxIterations: 5,
+        analysisHeader: '🖥️ Linus — Incident Analysis',
+        analysisFallbackPrefix: '🖥️ Linus analysis complete',
+    }));
 }
 
 /**
@@ -337,5 +302,17 @@ Please diagnose:
 5. Recommend: wait-and-watch, rollback, or specific fix
 Keep response concise — focus on root cause and next action.`;
 
-    setImmediate(() => void dispatchLinus(linusPrompt, bugId));
+    const bugLink = bugId
+        ? `<${DASHBOARD_URL}/dashboard/ceo?tab=qa&bugId=${bugId}|View Bug \`${bugId}\`>`
+        : 'Bug not filed';
+
+    setImmediate(() => void dispatchLinusIncidentResponse({
+        prompt: linusPrompt,
+        source: 'auto-escalator',
+        incidentId: bugId,
+        incidentLink: bugLink,
+        maxIterations: 5,
+        analysisHeader: '🖥️ Linus — Incident Analysis',
+        analysisFallbackPrefix: '🖥️ Linus analysis complete',
+    }));
 }
