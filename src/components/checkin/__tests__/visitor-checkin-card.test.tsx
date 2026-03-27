@@ -12,12 +12,20 @@ jest.mock('@/server/actions/visitor-checkin', () => ({
 }));
 
 jest.mock('@/server/actions/loyalty-tablet', () => ({
-  TABLET_MOODS: [
-    { id: 'relaxed', label: 'Relaxed & Calm' },
-    { id: 'social', label: 'Social & Happy' },
-  ],
   getMoodRecommendations: jest.fn(),
 }));
+
+jest.mock('@/lib/checkin/loyalty-tablet-shared', () => {
+  const moods = [
+    { id: 'relaxed', emoji: '😌', label: 'Relaxed & Calm', context: 'calm' },
+    { id: 'social', emoji: '🎉', label: 'Social & Happy', context: 'social' },
+  ];
+
+  return {
+    TABLET_MOODS: moods,
+    getTabletMoodById: (moodId: string | null | undefined) => moods.find((mood) => mood.id === moodId) ?? null,
+  };
+});
 
 jest.mock('@/components/chatbot', () => ({
   __esModule: true,

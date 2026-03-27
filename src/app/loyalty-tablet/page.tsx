@@ -18,11 +18,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     captureTabletLead,
     getMoodRecommendations,
+} from '@/server/actions/loyalty-tablet';
+import {
     TABLET_MOODS,
+    getTabletMoodById,
     type TabletMoodId,
     type TabletProduct,
     type TabletBundle,
-} from '@/server/actions/loyalty-tablet';
+} from '@/lib/checkin/loyalty-tablet-shared';
 import {
     CheckCircle2, Phone, Mail, ArrowRight, Loader2, Star,
     ShoppingCart, Users, ChevronRight,
@@ -178,7 +181,7 @@ export default function LoyaltyTabletPage() {
         exit: { x: -60, opacity: 0 },
     };
 
-    const selectedMoodDef = TABLET_MOODS.find(m => m.id === selectedMood);
+    const selectedMoodDef = getTabletMoodById(selectedMood);
     const cartCount = cart.length + (bundleAdded ? (bundle?.products.length ?? 0) : 0);
 
     // ── Render ────────────────────────────────────────────────
@@ -380,7 +383,7 @@ export default function LoyaltyTabletPage() {
                             {TABLET_MOODS.map(mood => (
                                 <button
                                     key={mood.id}
-                                    onClick={() => handleMoodSelect(mood.id as TabletMoodId)}
+                                    onClick={() => handleMoodSelect(mood.id)}
                                     className="bg-white/10 hover:bg-purple-500/30 active:bg-purple-500/50 border border-white/20 hover:border-purple-400 rounded-2xl p-5 flex items-center gap-4 transition-all text-left"
                                 >
                                     <span className="text-4xl">{mood.emoji}</span>

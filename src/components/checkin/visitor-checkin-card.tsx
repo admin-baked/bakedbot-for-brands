@@ -14,11 +14,15 @@ import {
     type VisitorFavoriteCategory,
 } from '@/server/actions/visitor-checkin';
 import {
-    TABLET_MOODS,
     getMoodRecommendations,
+} from '@/server/actions/loyalty-tablet';
+import {
+    TABLET_MOODS,
+    getTabletMoodById,
+    type TabletMoodId,
     type TabletBundle,
     type TabletProduct,
-} from '@/server/actions/loyalty-tablet';
+} from '@/lib/checkin/loyalty-tablet-shared';
 
 const FAVORITE_CATEGORY_OPTIONS: VisitorFavoriteCategory[] = [
     'flower',
@@ -86,7 +90,7 @@ export function VisitorCheckinCard({
     const [idChecked, setIdChecked] = useState(false);
     const [context, setContext] = useState<VisitorCheckinContextResult>(EMPTY_CONTEXT);
     const [email, setEmail] = useState('');
-    const [selectedMood, setSelectedMood] = useState<string | null>(null);
+    const [selectedMood, setSelectedMood] = useState<TabletMoodId | null>(null);
     const [recommendationProducts, setRecommendationProducts] = useState<TabletProduct[]>([]);
     const [recommendationBundle, setRecommendationBundle] = useState<TabletBundle | null>(null);
     const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
@@ -104,7 +108,7 @@ export function VisitorCheckinCard({
     const trimmedEmail = email.trim().toLowerCase();
     const usingSavedEmail = enrichmentMode === 'favorite_categories' && Boolean(savedEmail);
     const selectedMoodLabel = useMemo(
-        () => TABLET_MOODS.find((mood) => mood.id === selectedMood)?.label || null,
+        () => getTabletMoodById(selectedMood)?.label || null,
         [selectedMood],
     );
 
@@ -172,7 +176,7 @@ export function VisitorCheckinCard({
         }
     };
 
-    const handleMoodSelect = async (moodId: string) => {
+    const handleMoodSelect = async (moodId: TabletMoodId) => {
         resetMessages();
         setSelectedMood(moodId);
         setLoadingRecommendations(true);

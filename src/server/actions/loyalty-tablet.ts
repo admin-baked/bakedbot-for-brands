@@ -7,10 +7,16 @@
  * Extended with mood-based Smokey recommendations and visit/review sequence tracking.
  */
 
+import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { callClaude } from '@/ai/claude';
 import { fetchMenuProducts } from '@/server/agents/adapters/consumer-adapter';
-import { z } from 'zod';
+import {
+    getTabletMoodById,
+    type MoodRecommendationsResult,
+    type TabletBundle,
+    type TabletProduct,
+} from '@/lib/checkin/loyalty-tablet-shared';
 import { captureVisitorCheckin } from './visitor-checkin';
 
 // ============================================================
@@ -25,46 +31,6 @@ export interface TabletLeadResult {
     visitId?: string;
     error?: string;
 }
-
-export interface TabletProduct {
-    productId: string;
-    name: string;
-    price: number;
-    category: string;
-    brandName?: string;
-    imageUrl?: string;
-    reason: string;
-}
-
-export interface TabletBundle {
-    name: string;
-    tagline: string;
-    products: TabletProduct[];
-    totalPrice: number;
-}
-
-export interface MoodRecommendationsResult {
-    success: boolean;
-    products?: TabletProduct[];
-    bundle?: TabletBundle;
-    error?: string;
-}
-
-// ============================================================
-// Mood definitions — maps UI selection to Smokey context
-// ============================================================
-
-export const TABLET_MOODS = [
-    { id: 'relaxed',   emoji: '😌', label: 'Relaxed & Calm',      context: 'indica dominant, CBD-heavy, body relaxation, stress relief, couch-friendly' },
-    { id: 'energized', emoji: '⚡', label: 'Energized & Creative', context: 'sativa dominant, uplifting, creative boost, clear-headed, daytime use' },
-    { id: 'sleep',     emoji: '😴', label: 'Need Sleep',           context: 'high indica, heavy sedation, sleep aid, nighttime, body high' },
-    { id: 'anxious',   emoji: '😰', label: 'Stressed / Anxious',   context: 'high CBD low THC, calming, anxiety relief, gentle, non-intoxicating' },
-    { id: 'social',    emoji: '🎉', label: 'Social & Happy',       context: 'hybrid balanced, euphoric, mood-lift, social, giggly, fun' },
-    { id: 'pain',      emoji: '😣', label: 'Pain / Discomfort',    context: 'high THC, topicals, pain relief, anti-inflammatory, muscle soreness' },
-    { id: 'new',       emoji: '🌱', label: 'New to Cannabis',      context: 'low dose, microdose, beginner friendly, CBD dominant, gentle onset, forgiving' },
-] as const;
-
-export type TabletMoodId = typeof TABLET_MOODS[number]['id'];
 
 // ============================================================
 // Server Actions
@@ -91,7 +57,7 @@ export async function getMoodRecommendations(
     moodId: string,
 ): Promise<MoodRecommendationsResult> {
     try {
-        const mood = TABLET_MOODS.find(m => m.id === moodId);
+        const mood = getTabletMoodById(moodId);
         if (!mood) {
             return { success: false, error: 'Unknown mood' };
         }
@@ -148,7 +114,7 @@ Respond ONLY with valid JSON in this exact format (no markdown, no explanation):
             autoRouteModel: false,
         });
 
-        // Parse JSON — strip any accidental markdown fences
+        // Parse JSON - strip any accidental markdown fences
         const json = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
         const parsed = JSON.parse(json);
 
@@ -226,6 +192,7 @@ export async function captureTabletLead(params: {
         if (error instanceof z.ZodError) {
             return { success: false, isNewLead: false, error: error.errors[0].message };
         }
+
         logger.error('[LoyaltyTablet] Capture failed', { error });
         return {
             success: false,
