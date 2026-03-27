@@ -311,4 +311,53 @@ describe('CreativeCommandCenter regressions', () => {
       expect(video?.getAttribute('src')).toContain('https://example.com/slideshow.mp4');
     });
   });
+
+  it('shows friendly deck language instead of backend model or tool names', async () => {
+    renderCreativeCenter();
+
+    fireEvent.click(screen.getByRole('button', { name: /Deck/i }));
+
+    expect(screen.getByText(/Brand-matched presentation deck/i)).toBeInTheDocument();
+    expect(screen.queryByText(/GLM-5/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/pptxgenjs/i)).not.toBeInTheDocument();
+  });
+
+  it('surfaces generation errors even when older content exists on the canvas', async () => {
+    mockGenerate.mockRejectedValueOnce(new Error('Image generation timed out'));
+
+    (useCreativeContent as jest.Mock).mockReturnValue({
+      content: [
+        {
+          id: 'existing-content',
+          platform: 'instagram',
+          status: 'pending',
+          caption: 'Existing preview content',
+          mediaUrls: ['https://example.com/existing-image.png'],
+          createdAt: Date.now(),
+        },
+      ],
+      loading: false,
+      error: null,
+      generate: mockGenerate,
+      approve: jest.fn(),
+      revise: jest.fn(),
+      editCaption: jest.fn(),
+      remove: jest.fn(),
+      refresh: jest.fn(),
+      isGenerating: false,
+      isApproving: null,
+    });
+
+    renderCreativeCenter();
+
+    fireEvent.change(screen.getByPlaceholderText(/Describe your campaign idea/i), {
+      target: { value: 'Create a fresh educational post for today.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Generate with Craig/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Generation failed/i)).toBeInTheDocument();
+      expect(screen.getByText(/Image generation timed out/i)).toBeInTheDocument();
+    });
+  });
 });

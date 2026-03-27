@@ -15,8 +15,9 @@
  * Cost: $0 render cost (compute only). ~5-15s render time locally.
  */
 
-import path from 'path';
 import os from 'os';
+import path from 'path';
+import fs from 'fs/promises';
 import { logger } from '@/lib/logger';
 import type { GenerateVideoInput, GenerateVideoOutput } from '../video-types';
 import type { BrandedSlideshowProps } from '@/remotion/compositions/BrandedSlideshow';
@@ -36,6 +37,22 @@ export interface RemotionVideoInput extends GenerateVideoInput {
     ctaText?: string;
     websiteUrl?: string;
     headline?: string;
+}
+
+async function resolveBrowserExecutable(): Promise<string | undefined> {
+    if (process.env.NODE_ENV !== 'production') {
+        return undefined;
+    }
+
+    try {
+        const chromium = (await import('@sparticuz/chromium')).default;
+        return await chromium.executablePath();
+    } catch (error) {
+        logger.warn('[Remotion] Failed to load bundled Chromium, using renderer default', {
+            error: error instanceof Error ? error.message : String(error),
+        });
+        return undefined;
+    }
 }
 
 async function loadRemotionRenderer(): Promise<Pick<RemotionRendererModule, 'renderMedia' | 'selectComposition'>> {
@@ -86,8 +103,12 @@ export async function generateRemotionVideo(
     const { renderMedia, selectComposition } = await loadRemotionRenderer();
 
     // Path to the compiled Remotion bundle
-    // In dev: `npx remotion bundle` creates dist; in prod: we pre-bundle at build time
+    // In dev + CI builds: `npm run remotion:bundle` writes the static bundle.
     const bundlePath = path.resolve(process.cwd(), '.remotion/bundle/index.html');
+    await fs.access(bundlePath).catch(() => {
+        throw new Error('[Remotion] Bundle missing. Run "npm run remotion:bundle" before rendering slideshows.');
+    });
+    const browserExecutable = await resolveBrowserExecutable();
 
     let selectedComposition;
     try {
@@ -95,11 +116,12 @@ export async function generateRemotionVideo(
             serveUrl: bundlePath,
             id: compositionId,
             inputProps: props as Record<string, unknown>,
+            browserExecutable,
         });
     } catch (err) {
         throw new Error(
             `[Remotion] Could not select composition "${compositionId}". ` +
-            `Run "npx remotion bundle" first to generate the bundle. Error: ${(err as Error).message}`
+            `Run "npm run remotion:bundle" first to generate the bundle. Error: ${(err as Error).message}`
         );
     }
 
@@ -117,6 +139,7 @@ export async function generateRemotionVideo(
         codec: 'h264',
         outputLocation: outputPath,
         inputProps: props as Record<string, unknown>,
+        browserExecutable,
         onProgress: ({ progress }) => {
             logger.info('[Remotion] Render progress', { progress: Math.round(progress * 100) });
         },
@@ -147,7 +170,6 @@ export async function generateRemotionVideo(
     const publicUrl = `https://storage.googleapis.com/${bucketName}/${fileName}`;
 
     // Clean up temp file
-    const fs = await import('fs/promises');
     await fs.unlink(outputPath).catch(() => { /* ignore cleanup errors */ });
 
     logger.info('[Remotion] Video ready', { publicUrl });
@@ -155,7 +177,7 @@ export async function generateRemotionVideo(
     return {
         videoUrl: publicUrl,
         thumbnailUrl: undefined,
-        duration: Math.round(150 / 30), // 5 seconds
+        duration: Math.round(selectedComposition.durationInFrames / selectedComposition.fps),
         provider: 'remotion',
         model: compositionId,
     };

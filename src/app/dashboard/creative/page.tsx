@@ -292,6 +292,7 @@ export default function CreativeCommandCenter() {
   // Image/media mode: AI photo | Branded | Video | Slideshow | Deck
   const [imageMode, setImageMode] = useState<'photo' | 'branded' | 'video' | 'slideshow' | 'deck'>('photo');
   const [videoDuration, setVideoDuration] = useState<'5' | '10'>('5');
+  const isImagePreviewMode = imageMode === 'photo' || imageMode === 'branded';
 
   const getGenerateLabel = (mode: typeof imageMode, long = false): string => {
     if (mode === 'video') return 'Generate Video';
@@ -424,6 +425,10 @@ export default function CreativeCommandCenter() {
   // Clear optimistic local content when platform changes — avoid showing stale image from a different platform
   useEffect(() => {
     setLocalContent(null);
+    setLocalVideoUrl(null);
+    setDeckDownloadUrl(null);
+    setDeckResultSlideCount(null);
+    setGenerationError(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPlatform]);
 
@@ -499,7 +504,9 @@ export default function CreativeCommandCenter() {
     // ── Deck mode: pptxgenjs + GLM — PowerPoint generation ──
     if (imageMode === 'deck') {
       setIsGeneratingDeck(true);
+      setLocalVideoUrl(null);
       setDeckDownloadUrl(null);
+      setDeckResultSlideCount(null);
       try {
         const resp = await fetch('/api/ai/powerpoint', {
           method: 'POST',
@@ -557,6 +564,8 @@ export default function CreativeCommandCenter() {
         : `${brandPrefix}${trimmedPrompt}${voiceSuffix} Cannabis lifestyle marketing video, no text overlays, cinematic quality.`;
 
       setIsGeneratingVideo(true);
+      setDeckDownloadUrl(null);
+      setDeckResultSlideCount(null);
       setLocalVideoUrl(null);
       try {
         const result = await generateMarketingVideo(
@@ -570,9 +579,12 @@ export default function CreativeCommandCenter() {
             accentColor: brandColors?.accent,
             logoUrl: brandGuide?.visualIdentity?.logo?.primary,
             tagline: isSlideshow ? (brandTagline || trimmedPrompt.substring(0, 60)) : brandTagline,
-            headline: isSlideshow ? (selectedMenuProduct?.name || trimmedPrompt.substring(0, 60)) : undefined,
+            headline: isSlideshow
+              ? (textOverlay.headline.trim() || selectedMenuProduct?.name || trimmedPrompt.substring(0, 60))
+              : undefined,
             productImageUrl: isSlideshow ? (selectedMenuProduct?.imageUrl || undefined) : undefined,
             ctaText: isSlideshow && textOverlay.cta ? textOverlay.cta : undefined,
+            websiteUrl: isSlideshow ? brandGuide?.source?.sourceUrl : undefined,
           },
           { allowFallbackDemo: false, forceProvider: isSlideshow ? 'remotion' : 'kling' }
         );
@@ -590,6 +602,10 @@ export default function CreativeCommandCenter() {
     }
 
     try {
+      setLocalVideoUrl(null);
+      setDeckDownloadUrl(null);
+      setDeckResultSlideCount(null);
+      setCanvasBackground(null);
       // Pass imageStyle separately so the server can send it directly to FLUX.1 as a
       // visual-first prompt, while the marketing copy (campaignPrompt + hashtags) goes
       // only to Craig for caption generation.
@@ -1158,6 +1174,7 @@ export default function CreativeCommandCenter() {
                               onClick={() => {
                                 if (imageMode === m) return;
                                 setImageMode(m);
+                                setGenerationError(null);
                                 if (m !== 'video' && m !== 'slideshow') setLocalVideoUrl(null);
                                 if (m !== 'deck') { setDeckDownloadUrl(null); setDeckResultSlideCount(null); }
                               }}
@@ -1206,15 +1223,15 @@ export default function CreativeCommandCenter() {
                             </div>
                             <p className="text-[10px] text-muted-foreground leading-tight">
                               {imageMode === 'slideshow'
-                                ? `Branded slideshow · ${videoDuration}s${brandGuide?.brandName ? ` · ${brandGuide.brandName} colors` : ''}`
-                                : `Short video · ${videoDuration}s · brand prompt auto-built from your guide`}
+                                ? `Animated brand story · ${videoDuration}s${brandGuide?.brandName ? ` · ${brandGuide.brandName} styling` : ''}`
+                                : `Short video · ${videoDuration}s · prompt shaped by your brand guide`}
                             </p>
                           </div>
                         )}
                         {imageMode === 'deck' && (
                           <div className="space-y-2 px-1">
                             <p className="text-[10px] text-muted-foreground leading-tight">
-                              GLM-5 + pptxgenjs · .pptx download{brandGuide?.brandName ? ` · ${brandGuide.brandName} colors` : ''}
+                              Brand-matched presentation deck · .pptx download{brandGuide?.brandName ? ` · ${brandGuide.brandName} styling` : ''}
                             </p>
                             <div className="grid grid-cols-2 gap-1.5">
                               <div>
@@ -1692,7 +1709,7 @@ export default function CreativeCommandCenter() {
 
           {/* Canvas frame — platform-aware aspect ratio */}
           <motion.div
-            key={localVideoUrl ?? currentContent?.id ?? 'empty'}
+            key={`${imageMode}:${localVideoUrl ?? deckDownloadUrl ?? currentContent?.id ?? generationError ?? 'empty'}`}
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.25 }}
@@ -1710,16 +1727,16 @@ export default function CreativeCommandCenter() {
                 <div className="text-center px-4">
                   {isGeneratingDeck ? (
                     <>
-                      <p className="text-sm font-semibold">GLM-5 is scripting your deck...</p>
-                      <p className="text-xs text-muted-foreground mt-1">pptxgenjs rendering · ~15–30s</p>
+                      <p className="text-sm font-semibold">Designing your presentation...</p>
+                      <p className="text-xs text-muted-foreground mt-1">Shaping the storyline and slides · ~15-30s</p>
                     </>
                   ) : isGeneratingVideo ? (
                     <>
                       <p className="text-sm font-semibold">
-                        {imageMode === 'slideshow' ? 'Your slideshow is rendering...' : 'Your video is rendering...'}
+                        {imageMode === 'slideshow' ? 'Your animated brand story is rendering...' : 'Your video is rendering...'}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {imageMode === 'slideshow' ? `${videoDuration}s branded slideshow · ~10–30s` : `${videoDuration}s motion clip · 1–3 min`}
+                        {imageMode === 'slideshow' ? `${videoDuration}s branded motion piece · ~10-30s` : `${videoDuration}s motion clip · 1-3 min`}
                       </p>
                     </>
                   ) : (
@@ -1767,7 +1784,29 @@ export default function CreativeCommandCenter() {
                 </div>
               </>
 
-            ) : currentContent ? (
+            ) : generationError ? (
+              /* Error state — visible in canvas so user can't miss it */
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-background p-4">
+                <div className="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center">
+                  <XCircle className="w-7 h-7 text-red-500" />
+                </div>
+                <div className="text-center px-2">
+                  <p className="text-sm font-semibold text-red-500">Generation failed</p>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed max-w-[200px]">
+                    {generationError}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => { setGenerationError(null); handleGenerate(); }}
+                  className="border-red-500/30 text-red-500 hover:bg-red-500/10 hover:border-red-500 text-xs"
+                >
+                  Try Again
+                </Button>
+              </div>
+
+            ) : isImagePreviewMode && currentContent ? (
               <>
                 {/* Media — canvasBackground overrides the AI-generated image (e.g. brand kit swap) */}
                 {(canvasBackground || currentContent.mediaUrls?.[0]) ? (
@@ -1857,28 +1896,6 @@ export default function CreativeCommandCenter() {
                   </span>
                 </div>
               </>
-
-            ) : generationError ? (
-              /* Error state — visible in canvas so user can't miss it */
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-background p-4">
-                <div className="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center">
-                  <XCircle className="w-7 h-7 text-red-500" />
-                </div>
-                <div className="text-center px-2">
-                  <p className="text-sm font-semibold text-red-500">Generation failed</p>
-                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed max-w-[200px]">
-                    {generationError}
-                  </p>
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => { setGenerationError(null); handleGenerate(); }}
-                  className="border-red-500/30 text-red-500 hover:bg-red-500/10 hover:border-red-500 text-xs"
-                >
-                  Try Again
-                </Button>
-              </div>
 
             ) : (
               /* Empty state */
