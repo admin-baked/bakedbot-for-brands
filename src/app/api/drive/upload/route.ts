@@ -16,16 +16,22 @@ function getDriveErrorStatus(error?: string): number {
   return 400;
 }
 
+function hasDriveUploadFileEntry(value: FormDataEntryValue | null): value is Exclude<FormDataEntryValue, string> {
+  return value !== null && typeof value !== 'string';
+}
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get('file');
-    const folderId = formData.get('folderId');
     const category = formData.get('category');
-    const description = formData.get('description');
-    const tags = formData.get('tags');
 
-    if (!(file instanceof File)) {
+    if (!hasDriveUploadFileEntry(file)) {
+      logger.warn('[API] Drive upload rejected: invalid multipart file payload', {
+        hasFileEntry: file !== null,
+        fileEntryType: typeof file,
+      });
+
       return NextResponse.json(
         { success: false, error: 'No file provided' },
         { status: 400 },
@@ -39,26 +45,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const uploadFormData = new FormData();
-    uploadFormData.append('file', file);
-
-    if (typeof folderId === 'string' && folderId.trim()) {
-      uploadFormData.append('folderId', folderId);
-    }
-
-    if (typeof category === 'string' && category.trim()) {
-      uploadFormData.append('category', category);
-    }
-
-    if (typeof description === 'string' && description.trim()) {
-      uploadFormData.append('description', description);
-    }
-
-    if (typeof tags === 'string' && tags.trim()) {
-      uploadFormData.append('tags', tags);
-    }
-
-    const result = await uploadFile(uploadFormData);
+    const result = await uploadFile(formData);
 
     if (!result.success || !result.data) {
       return NextResponse.json(

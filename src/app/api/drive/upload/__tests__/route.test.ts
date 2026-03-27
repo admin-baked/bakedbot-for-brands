@@ -31,6 +31,7 @@ jest.mock('@/server/actions/drive', () => ({
 
 jest.mock('@/lib/logger', () => ({
   logger: {
+    warn: jest.fn(),
     error: jest.fn(),
   },
 }));
@@ -110,6 +111,58 @@ describe('POST /api/drive/upload', () => {
       },
     });
     expect(uploadFile).toHaveBeenCalledTimes(1);
+    expect(uploadFile).toHaveBeenCalledWith(formData);
+  });
+
+  it('accepts file-like multipart payloads that are not native File instances', async () => {
+    (uploadFile as jest.Mock).mockResolvedValue({
+      success: true,
+      data: {
+        id: 'file-123',
+        name: 'logo.png',
+        storagePath: 'drive/user/images/logo.png',
+        downloadUrl: 'https://example.com/logo.png',
+      },
+    });
+
+    const fileLike = {
+      name: 'logo.png',
+      size: 5,
+      type: 'image/png',
+      arrayBuffer: async () => new ArrayBuffer(5),
+    };
+
+    const formData = {
+      get: (key: string) => {
+        switch (key) {
+          case 'file':
+            return fileLike;
+          case 'category':
+            return 'images';
+          default:
+            return null;
+        }
+      },
+    };
+
+    const request = {
+      formData: async () => formData,
+    };
+
+    const response = await POST(request as never);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toEqual({
+      success: true,
+      data: {
+        id: 'file-123',
+        name: 'logo.png',
+        storagePath: 'drive/user/images/logo.png',
+        downloadUrl: 'https://example.com/logo.png',
+      },
+    });
+    expect(uploadFile).toHaveBeenCalledWith(formData);
   });
 
   it('maps forbidden drive action failures to 403', async () => {

@@ -253,6 +253,15 @@ export function UploadDialog() {
     setIsUploading(false);
   };
 
+  const handleUrlInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter') {
+      return;
+    }
+
+    e.preventDefault();
+    void handleUploadFromUrl();
+  };
+
   const handleClose = () => {
     if (!isUploading) {
       setUploadQueue([]);
@@ -353,6 +362,7 @@ export function UploadDialog() {
                     </div>
                     {item.status === 'pending' && (
                       <Button
+                        type="button"
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
@@ -377,7 +387,7 @@ export function UploadDialog() {
 
             {/* Upload Button */}
             {pendingCount > 0 && (
-              <Button onClick={uploadAllFiles} disabled={isUploading} className="w-full">
+              <Button type="button" onClick={uploadAllFiles} disabled={isUploading} className="w-full">
                 {isUploading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -394,7 +404,7 @@ export function UploadDialog() {
 
             {/* Done Button */}
             {hasUploaded && pendingCount === 0 && (
-              <Button onClick={handleClose} className="w-full">
+              <Button type="button" onClick={handleClose} className="w-full">
                 Done
               </Button>
             )}
@@ -426,11 +436,12 @@ export function UploadDialog() {
                 placeholder="https://example.com/file.png"
                 value={urlInput}
                 onChange={(e) => setUrlInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleUploadFromUrl()}
+                onKeyDown={handleUrlInputKeyDown}
               />
             </div>
 
             <Button
+              type="button"
               onClick={handleUploadFromUrl}
               disabled={!urlInput.trim() || isUploading}
               className="w-full"

@@ -117,11 +117,11 @@ export function DriveToolbar({ onRefresh }: DriveToolbarProps) {
       {/* Upload & Create */}
       {!isTrashViewOpen && (
         <>
-          <Button onClick={openUploadDialog}>
+          <Button type="button" onClick={openUploadDialog}>
             <Upload className="h-4 w-4 mr-2" />
             Upload
           </Button>
-          <Button variant="outline" onClick={() => setIsCreateFolderOpen(true)}>
+          <Button type="button" variant="outline" onClick={() => setIsCreateFolderOpen(true)}>
             <FolderPlus className="h-4 w-4 mr-2" />
             New Folder
           </Button>
@@ -130,7 +130,7 @@ export function DriveToolbar({ onRefresh }: DriveToolbarProps) {
 
       {/* Empty Trash */}
       {isTrashViewOpen && (
-        <Button variant="destructive" onClick={() => setIsEmptyTrashOpen(true)}>
+        <Button type="button" variant="destructive" onClick={() => setIsEmptyTrashOpen(true)}>
           <Trash2 className="h-4 w-4 mr-2" />
           Empty Trash
         </Button>
@@ -147,6 +147,7 @@ export function DriveToolbar({ onRefresh }: DriveToolbarProps) {
         />
         {searchQuery && (
           <Button
+            type="button"
             variant="ghost"
             size="icon"
             className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
@@ -160,7 +161,7 @@ export function DriveToolbar({ onRefresh }: DriveToolbarProps) {
       {/* Category Filter */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm">
+          <Button type="button" variant="outline" size="sm">
             {categoryFilter ? DRIVE_CATEGORIES[categoryFilter].label : 'All Categories'}
           </Button>
         </DropdownMenuTrigger>
@@ -183,7 +184,7 @@ export function DriveToolbar({ onRefresh }: DriveToolbarProps) {
       {/* Sort */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="icon">
+          <Button type="button" variant="outline" size="icon">
             <SortAsc className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
@@ -206,6 +207,7 @@ export function DriveToolbar({ onRefresh }: DriveToolbarProps) {
       {/* View Toggle */}
       <div className="flex items-center border rounded-md">
         <Button
+          type="button"
           variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
           size="icon"
           className="rounded-r-none"
@@ -214,6 +216,7 @@ export function DriveToolbar({ onRefresh }: DriveToolbarProps) {
           <Grid3X3 className="h-4 w-4" />
         </Button>
         <Button
+          type="button"
           variant={viewMode === 'list' ? 'secondary' : 'ghost'}
           size="icon"
           className="rounded-l-none"
@@ -224,7 +227,7 @@ export function DriveToolbar({ onRefresh }: DriveToolbarProps) {
       </div>
 
       {/* Refresh */}
-      <Button variant="outline" size="icon" onClick={onRefresh}>
+      <Button type="button" variant="outline" size="icon" onClick={onRefresh}>
         <RefreshCw className="h-4 w-4" />
       </Button>
 
@@ -244,14 +247,19 @@ export function DriveToolbar({ onRefresh }: DriveToolbarProps) {
               value={newFolderName}
               onChange={(e) => setNewFolderName(e.target.value)}
               placeholder="My Folder"
-              onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  void handleCreateFolder();
+                }
+              }}
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateFolderOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => setIsCreateFolderOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreateFolder} disabled={!newFolderName.trim() || isCreating}>
+            <Button type="button" onClick={handleCreateFolder} disabled={!newFolderName.trim() || isCreating}>
               {isCreating ? 'Creating...' : 'Create'}
             </Button>
           </DialogFooter>
