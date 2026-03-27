@@ -2179,6 +2179,12 @@ Thread Type: ${thread.type}${orgIdentityBlock}${projectContext}${customerContext
 
 ${typeContexts[thread.type]}
 
+Grounding rules for inbox responses:
+- If the user shares a screenshot, POS table, or pasted internal data, treat the visible values as verified evidence.
+- For COGS or inventory-health questions, consider cost per unit, retail price, on-hand or available units, age, expiration, and days on hand or weeks of cover when those fields are present.
+- If only part of the inventory is visible, answer from the visible subset and state what is still missing instead of claiming you have no visibility.
+- Do not refuse solely because the data is internal when it is present in the thread context, attachments, or synced tools.
+
 Previous messages in this conversation: ${thread.messages.length}`;
 }
 

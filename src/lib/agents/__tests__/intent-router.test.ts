@@ -9,6 +9,10 @@ describe('intent-router', () => {
         expect(resolveInboxAgent('Show competitor pricing near Syracuse', 'auto')).toBe('ezal');
     });
 
+    it('routes COGS questions to Money Mike', () => {
+        expect(getAgentForIntent('What is our COGS on prerolls?')).toBe('money_mike');
+    });
+
     it('preserves the caller fallback when no specialist matches', () => {
         expect(resolveInboxAgent('Hey team, what can you help me with?', 'auto')).toBe('auto');
     });

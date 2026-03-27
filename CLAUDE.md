@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-03-25 (Thrive briefing freshness + inbox hardening + deterministic routing cost controls)
+**Current Status:** 🟢 Passing | **Last update:** 2026-03-27 (POS-grounded preroll COGS inbox fix + finance routing/tooling hardening)
 
 ---
 

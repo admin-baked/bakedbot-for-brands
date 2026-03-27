@@ -18,6 +18,11 @@ describe('shouldUseClaudeTools', () => {
         expect(shouldUseClaudeTools('Create an image banner for our 4/20 sale')).toBe(true);
     });
 
+    it('enables Claude tools for COGS and inventory-health questions', () => {
+        expect(shouldUseClaudeTools('What is our COGS on prerolls?')).toBe(true);
+        expect(shouldUseClaudeTools('Which categories have the worst days on hand right now?')).toBe(true);
+    });
+
     it('does not enable Claude tools for specialist compliance prompts', () => {
         expect(shouldUseClaudeTools('Check NY compliance for this campaign')).toBe(false);
     });

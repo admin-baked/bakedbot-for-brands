@@ -626,6 +626,36 @@ describe('Inbox Server Actions', () => {
             );
         });
 
+        it('adds POS grounding rules for inbox responses', async () => {
+            mockDocRef.get.mockResolvedValue({
+                exists: true,
+                data: () => ({
+                    ...mockThread,
+                    type: 'market_intel',
+                    primaryAgent: 'ezal',
+                    title: 'Market Intel',
+                }),
+            });
+
+            (runAgentChat as jest.Mock).mockResolvedValue({
+                content: 'Response',
+                metadata: {},
+            });
+
+            (parseArtifactsFromContent as jest.Mock).mockReturnValue({
+                artifacts: [],
+                cleanedContent: 'Response',
+            });
+
+            await runInboxAgentChat('thread-1', 'What is our COGS on prerolls?');
+
+            expect(runAgentChat).toHaveBeenCalledWith(
+                expect.stringContaining('treat the visible values as verified evidence'),
+                'ezal',
+                expect.any(Object),
+            );
+        });
+
         it('prefers CRM thread metadata when lookupCustomer returns placeholder identity', async () => {
             mockDocRef.get.mockResolvedValue({
                 exists: true,

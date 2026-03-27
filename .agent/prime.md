@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — default-shell Node/Jest wrappers + safe npm/node commands.
-**Recent work (2026-03-25):** See `MEMORY.md` for full log.
-Key completed: [Thrive briefing freshness + grounded inbox/CRM fixes] (`7443082dc`), [Inbox UX + Deebo guard + deterministic routing cost controls] (`7443082dc`).
+**Current Status:** 🟢 Passing — inbox finance routing + POS-grounded COGS responses hardened.
+**Recent work (2026-03-27):** See `MEMORY.md` for full log.
+Key completed: preroll COGS/POS grounding fix for inbox agents, including Money Mike routing, canonical profitability tool reuse, and screenshot-aware response rules.
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 

@@ -466,6 +466,31 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
         category: 'read',
         requiredPermission: 'read:analytics',
     },
+    'profitability.getCategoryCogs': {
+        name: 'profitability.getCategoryCogs',
+        description: 'Get the current synced COGS snapshot for a product category, including weighted unit COGS, average margin, and inventory COGS.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                category: { type: 'string', description: 'Product category like prerolls, flower, vapes, edibles, or concentrates' }
+            },
+            required: ['category']
+        },
+        category: 'read',
+        requiredPermission: 'read:analytics',
+    },
+    'analytics.inventoryHealthScore': {
+        name: 'analytics.inventoryHealthScore',
+        description: 'Analyze inventory aging and cover by category, including slow-moving buckets, days since last sale, weeks of cover, and dollar value at risk.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                category: { type: 'string', description: 'Optional product category filter like prerolls or flower' }
+            }
+        },
+        category: 'read',
+        requiredPermission: 'read:analytics',
+    },
     'intel.scanCompetitors': {
         name: 'intel.scanCompetitors',
         description: 'Discovers configured competitors for pricing and promotions.',

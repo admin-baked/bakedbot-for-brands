@@ -73,7 +73,7 @@ const INTENT_RULES: IntentRule[] = [
     {
         agentId: 'money_mike',
         patterns: [
-            /\b(pric(e|ing)|margin|profit(abilit)?|bundle|upsell|up.?sell|cost|markup|discount|deal.*creat|creat.*deal|slow.?mov|highest.?margin|lowest.?margin|sku.*margin|margin.*sku)\b/i,
+            /\b(pric(e|ing)|margin|gross.?margin|profit(abilit)?|bundle|upsell|up.?sell|cost|cost.?of.?goods|cogs|markup|discount|deal.*creat|creat.*deal|slow.?mov|highest.?margin|lowest.?margin|sku.*margin|margin.*sku|unit.?cost|cost.?\/.?unit|days.?on.?hand)\b/i,
             /\b(money.?mike|mike|financ|billing|revenue.?optim|optim.*revenue|monetiz)\b/i,
         ],
     },

@@ -61,6 +61,7 @@ export function getClaudeToolsForAgent(agentId: string, role: UserRole): ClaudeT
         ],
         pops: [
             'analytics.getKPIs',
+            'analytics.inventoryHealthScore',
             'docs.search',
             'context.getTenantProfile',
         ],
@@ -73,6 +74,8 @@ export function getClaudeToolsForAgent(agentId: string, role: UserRole): ClaudeT
         ],
         money_mike: [
             'analytics.getKPIs',
+            'profitability.getCategoryCogs',
+            'analytics.inventoryHealthScore',
             'context.getTenantProfile',
         ],
         mrs_parker: [
@@ -111,6 +114,8 @@ export function getUniversalClaudeTools(role: UserRole): ClaudeTool[] {
         'audit.log',
         'docs.search',
         'web.search',
+        'profitability.getCategoryCogs',
+        'analytics.inventoryHealthScore',
         'creative.generateImage',
         'creative.generateVideo',
     ];
@@ -180,6 +185,8 @@ const CLAUDE_RESEARCH_TARGET_PATTERN = /\b(web|internet|online|google|website|si
 const CLAUDE_ASSET_ACTION_PATTERN = /\b(generate|create|make|design|render|produce)\b/i;
 const CLAUDE_ASSET_TARGET_PATTERN = /\b(image|graphic|photo|poster|banner|thumbnail|mockup|video|animation|reel|asset)\b/i;
 const CLAUDE_EXPLICIT_TOOL_PATTERN = /\b(use|run)\b.{0,30}\b(web\s*search|docs?|documentation|knowledge\s*base|image|video)\b/i;
+const CLAUDE_FINANCE_TARGET_PATTERN = /\b(cogs|cost\s+of\s+goods|gross\s+margin|margin|profitability|unit\s+cost|cost\s*\/\s*unit|cost\s+per\s+unit)\b/i;
+const CLAUDE_INVENTORY_HEALTH_PATTERN = /\b(inventory\s+health|slow[-\s]?moving|dead\s+stock|aging\s+inventory|days\s+on\s+hand|weeks?\s+of\s+cover)\b/i;
 
 /**
  * Detect whether a message maps to the small universal Claude tool set.
@@ -200,10 +207,14 @@ export function shouldUseClaudeTools(message: string): boolean {
     const isExplicitAssetRequest =
         CLAUDE_ASSET_ACTION_PATTERN.test(text) &&
         CLAUDE_ASSET_TARGET_PATTERN.test(text);
+    const isExplicitFinanceOrInventoryRequest =
+        CLAUDE_FINANCE_TARGET_PATTERN.test(text) ||
+        CLAUDE_INVENTORY_HEALTH_PATTERN.test(text);
 
     return (
         isExplicitResearchRequest ||
         isExplicitAssetRequest ||
+        isExplicitFinanceOrInventoryRequest ||
         CLAUDE_EXPLICIT_TOOL_PATTERN.test(text)
     );
 }
