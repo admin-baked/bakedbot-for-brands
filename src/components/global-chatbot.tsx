@@ -8,16 +8,30 @@ interface GlobalChatbotProps {
   products: Product[];
 }
 
+function shouldHideGlobalChatbot(pathname: string | null): boolean {
+  if (!pathname) {
+    return false;
+  }
+
+  if (pathname.startsWith('/dashboard')) {
+    return true;
+  }
+
+  return /^\/[^/]+\/rewards\/?$/.test(pathname);
+}
+
 /**
  * Root-level chatbot mount for public/platform pages.
  *
  * Dashboard routes own their own support/test surfaces, so the global fixed
  * widget must stay out of those flows to avoid duplicate floating UI.
+ * Public rewards pages also have dense conversion UI, and the floating trigger
+ * can cover headings and CTAs on mobile.
  */
 export function GlobalChatbot({ products }: GlobalChatbotProps) {
   const pathname = usePathname();
 
-  if (pathname?.startsWith('/dashboard')) {
+  if (shouldHideGlobalChatbot(pathname)) {
     return null;
   }
 

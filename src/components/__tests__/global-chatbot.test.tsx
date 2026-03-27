@@ -42,4 +42,13 @@ describe('GlobalChatbot', () => {
     expect(container).toBeEmptyDOMElement();
     expect(mockChatbot).not.toHaveBeenCalled();
   });
+
+  it('hides the global chatbot on public rewards routes', () => {
+    mockUsePathname.mockReturnValue('/thrivesyracuse/rewards');
+
+    const { container } = render(<GlobalChatbot products={[]} />);
+
+    expect(container).toBeEmptyDOMElement();
+    expect(mockChatbot).not.toHaveBeenCalled();
+  });
 });
