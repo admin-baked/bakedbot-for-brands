@@ -65,7 +65,7 @@ function InboxContent() {
                 : 'Traditional chat experience with your AI agents.';
 
     return (
-        <div className="h-full flex flex-col">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden">
             {/* View Toggle Header */}
             <div className="flex flex-col gap-4 border-b bg-background/95 px-4 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:px-6 sm:py-5">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -86,7 +86,7 @@ function InboxContent() {
             </div>
 
             {/* View Content - Animated transitions */}
-            <div className="flex-1 overflow-hidden">
+            <div className="min-h-0 flex-1 overflow-hidden">
                 <AnimatePresence mode="wait">
                     {viewMode === 'inbox' ? (
                         <motion.div
@@ -95,7 +95,7 @@ function InboxContent() {
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: 20 }}
                             transition={{ duration: 0.2 }}
-                            className="h-full"
+                            className="h-full min-h-0 overflow-hidden"
                         >
                             <UnifiedInbox className="h-full" />
                         </motion.div>
@@ -125,7 +125,7 @@ function InboxContent() {
 
 export default function InboxPage() {
     return (
-        <div className="h-[calc(100vh-4rem)]">
+        <div className="h-[calc(100vh-4rem)] overflow-hidden">
             <Suspense fallback={<InboxLoading />}>
                 <InboxContent />
             </Suspense>

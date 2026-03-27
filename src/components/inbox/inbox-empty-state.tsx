@@ -320,6 +320,133 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
         }
     };
 
+    const renderComposer = (textareaClassName: string) => (
+        <>
+            <div className="relative">
+                <Textarea
+                    ref={textareaRef}
+                    value={customText}
+                    onChange={(e) => setCustomText(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="What would you like to work on? Type here or pick a suggestion below..."
+                    className={cn(
+                        'pr-12 resize-none',
+                        'bg-card border-muted-foreground/20 focus:border-primary/50',
+                        textareaClassName
+                    )}
+                    disabled={isCreating}
+                />
+                {hasCustomText && (
+                    <Button
+                        size="icon"
+                        className="absolute bottom-3 right-3"
+                        onClick={handleCustomSubmit}
+                        disabled={isCreating}
+                    >
+                        {isCreating ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                            <Send className="h-4 w-4" />
+                        )}
+                    </Button>
+                )}
+            </div>
+
+            {hasCustomText && (
+                <p className="text-xs text-center text-muted-foreground -mt-1">
+                    Press Enter to send, or click a suggestion below to combine
+                    it with your message
+                </p>
+            )}
+        </>
+    );
+
+    const renderPresetSuggestions = (
+        actions: InboxQuickAction[],
+        justifyClassName = 'justify-center'
+    ) => {
+        if (actions.length === 0) {
+            return null;
+        }
+
+        return (
+            <div className="space-y-3">
+                <div className="flex items-center justify-center gap-2">
+                    <h2 className="text-sm font-medium text-muted-foreground">
+                        Quick Suggestions
+                    </h2>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={refresh}
+                        disabled={isCreating}
+                        title="Refresh suggestions"
+                    >
+                        <RefreshCw className="h-3 w-3" />
+                    </Button>
+                </div>
+                <div className={cn('flex flex-wrap gap-2', justifyClassName)}>
+                    {actions.map((action) => (
+                        <PresetChip
+                            key={action.id}
+                            action={action}
+                            hasCustomText={hasCustomText}
+                            onSelect={() => handlePresetSelect(action)}
+                            isCreating={isCreating}
+                        />
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
+    const renderOwnerBriefing = (gridClassName: string) => {
+        if (!ownerBriefing) {
+            return null;
+        }
+
+        return (
+            <div className={gridClassName}>
+                <div className="rounded-xl border bg-card p-4 text-left space-y-2">
+                    <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                        What Happened Yesterday
+                    </p>
+                    <p className="text-sm font-semibold text-foreground">
+                        {ownerBriefing.happenedYesterday}
+                    </p>
+                    {ownerBriefing.happenedYesterdayDetail && (
+                        <p className="text-xs text-muted-foreground">
+                            {ownerBriefing.happenedYesterdayDetail}
+                        </p>
+                    )}
+                </div>
+                <div className="rounded-xl border bg-card p-4 text-left space-y-2">
+                    <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                        What To Work On Today
+                    </p>
+                    <p className="text-sm font-semibold text-foreground">
+                        {ownerBriefing.workOnToday}
+                    </p>
+                    {ownerBriefing.priorities.length > 0 ? (
+                        <ul className="space-y-1 text-xs text-muted-foreground">
+                            {ownerBriefing.priorities.map((priority) => (
+                                <li key={priority}>{priority}</li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="text-xs text-muted-foreground">
+                            No open blockers were pulled into today&apos;s brief.
+                        </p>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
+    const desktopPresets = presets.slice(0, 4);
+    const overflowPresets = presets.slice(4);
+
     if (isLoading || presetsLoading) {
         return (
             <div className={cn('flex items-center justify-center h-full', className)}>
@@ -339,143 +466,84 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
             action={queryDialogAction}
             onClose={() => setQueryDialogAction(null)}
         />
-        <div className={cn('h-full overflow-y-auto', className)}>
-            <div className="mx-auto flex min-h-full w-full max-w-4xl items-start justify-center p-6 sm:p-8">
-            <div className="w-full space-y-8 py-2">
-                {/* Daily Briefing - Insight Cards */}
-                {isMobile && <InsightCardsGrid maxCards={5} />}
+        {isMobile ? (
+            <div className={cn('h-full overflow-y-auto', className)} data-testid="inbox-empty-state-mobile">
+                <div className="mx-auto flex min-h-full w-full max-w-4xl items-start justify-center p-6 sm:p-8">
+                <div className="w-full space-y-8 py-2">
+                    {/* Daily Briefing - Insight Cards */}
+                    <InsightCardsGrid maxCards={5} />
 
-                {/* Welcome Header with Contextual Greeting */}
-                <div className="text-center">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-                        <Sparkles className="h-8 w-8 text-primary" />
+                    {/* Welcome Header with Contextual Greeting */}
+                    <div className="text-center">
+                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
+                            <Sparkles className="h-8 w-8 text-primary" />
+                        </div>
+                        <h1 className="text-2xl font-bold mb-2">{greeting}!</h1>
+                        <p className="text-muted-foreground max-w-md mx-auto">
+                            {ownerBriefing
+                                ? 'Here is what changed yesterday and what needs your attention today.'
+                                : suggestion}
+                        </p>
                     </div>
-                    <h1 className="text-2xl font-bold mb-2">{greeting}!</h1>
-                    <p className="text-muted-foreground max-w-md mx-auto">
-                        {ownerBriefing
-                            ? 'Here is what changed yesterday and what needs your attention today.'
-                            : suggestion}
-                    </p>
+
+                    {renderOwnerBriefing('grid gap-3 md:grid-cols-2')}
+
+                    {renderComposer('min-h-[100px]')}
+                    {renderPresetSuggestions(presets)}
+
+                    <div className="text-center">
+                        <p className="text-xs text-muted-foreground">
+                            {hasCustomText
+                                ? 'Click a suggestion to combine it with your message'
+                                : 'Type a specific request or click a suggestion to get started'}
+                        </p>
+                    </div>
                 </div>
-
-                {ownerBriefing && (
-                    <div className="grid gap-3 md:grid-cols-2">
-                        <div className="rounded-xl border bg-card p-4 text-left space-y-2">
-                            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                                What Happened Yesterday
-                            </p>
-                            <p className="text-sm font-semibold text-foreground">
-                                {ownerBriefing.happenedYesterday}
-                            </p>
-                            {ownerBriefing.happenedYesterdayDetail && (
-                                <p className="text-xs text-muted-foreground">
-                                    {ownerBriefing.happenedYesterdayDetail}
-                                </p>
-                            )}
-                        </div>
-                        <div className="rounded-xl border bg-card p-4 text-left space-y-2">
-                            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                                What To Work On Today
-                            </p>
-                            <p className="text-sm font-semibold text-foreground">
-                                {ownerBriefing.workOnToday}
-                            </p>
-                            {ownerBriefing.priorities.length > 0 ? (
-                                <ul className="space-y-1 text-xs text-muted-foreground">
-                                    {ownerBriefing.priorities.map((priority) => (
-                                        <li key={priority}>{priority}</li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <p className="text-xs text-muted-foreground">
-                                    No open blockers were pulled into today&apos;s brief.
-                                </p>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                {/* Custom Text Input */}
-                <div className="relative">
-                    <Textarea
-                        ref={textareaRef}
-                        value={customText}
-                        onChange={(e) => setCustomText(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        placeholder="What would you like to work on? Type here or pick a suggestion below..."
-                        className={cn(
-                            'min-h-[100px] pr-12 resize-none',
-                            'bg-card border-muted-foreground/20 focus:border-primary/50'
-                        )}
-                        disabled={isCreating}
-                    />
-                    {hasCustomText && (
-                        <Button
-                            size="icon"
-                            className="absolute bottom-3 right-3"
-                            onClick={handleCustomSubmit}
-                            disabled={isCreating}
-                        >
-                            {isCreating ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                                <Send className="h-4 w-4" />
-                            )}
-                        </Button>
-                    )}
-                </div>
-
-                {/* Contextual hint */}
-                {hasCustomText && (
-                    <p className="text-xs text-center text-muted-foreground -mt-4">
-                        Press Enter to send, or click a suggestion below to combine
-                        it with your message
-                    </p>
-                )}
-
-                {/* Preset Suggestions */}
-                {presets.length > 0 && (
-                    <div className="space-y-3">
-                        <div className="flex items-center justify-center gap-2">
-                            <h2 className="text-sm font-medium text-muted-foreground">
-                                Quick Suggestions
-                            </h2>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={refresh}
-                                disabled={isCreating}
-                                title="Refresh suggestions"
-                            >
-                                <RefreshCw className="h-3 w-3" />
-                            </Button>
-                        </div>
-                        <div className="flex flex-wrap justify-center gap-2">
-                            {presets.map((action) => (
-                                <PresetChip
-                                    key={action.id}
-                                    action={action}
-                                    hasCustomText={hasCustomText}
-                                    onSelect={() => handlePresetSelect(action)}
-                                    isCreating={isCreating}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Tips */}
-                <div className="text-center">
-                    <p className="text-xs text-muted-foreground">
-                        {hasCustomText
-                            ? 'Click a suggestion to combine it with your message'
-                            : 'Type a specific request or click a suggestion to get started'}
-                    </p>
                 </div>
             </div>
+        ) : (
+            <div className={cn('h-full overflow-hidden', className)} data-testid="inbox-empty-state-desktop">
+                <div className="flex h-full min-h-0 flex-col">
+                    <div className="border-b bg-background/95 px-6 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                        <div className="mx-auto w-full max-w-4xl space-y-4">
+                            <div className="space-y-2">
+                                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                                    Start Here
+                                </p>
+                                <h1 className="text-xl font-semibold text-foreground">
+                                    {greeting}!
+                                </h1>
+                                <p className="max-w-3xl text-sm text-muted-foreground">
+                                    {ownerBriefing
+                                        ? 'Jump straight into your next inbox task. The full desktop briefing stays above, so you can start typing without losing today’s context.'
+                                        : suggestion}
+                                </p>
+                            </div>
+
+                            {renderComposer('min-h-[72px]')}
+                            {renderPresetSuggestions(desktopPresets, 'justify-start')}
+                        </div>
+                    </div>
+
+                    <div className="min-h-0 flex-1 overflow-y-auto">
+                        <div className="mx-auto w-full max-w-4xl space-y-6 p-6">
+                            {renderOwnerBriefing('grid gap-3 xl:grid-cols-2')}
+
+                            {renderPresetSuggestions(overflowPresets, 'justify-start')}
+
+                            <div className="rounded-xl border bg-card/80 p-4">
+                                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                    Workspace Note
+                                </p>
+                                <p className="mt-2 text-sm text-muted-foreground">
+                                    The desktop briefing above stays visible for context. This lower pane is now reserved for starting work quickly, keeping your composer accessible without scrolling the page.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
+        )}
         </>
     );
 }
