@@ -14,7 +14,7 @@
 
 import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
-import { Playbook } from '@/types/playbook';
+import { Playbook, PlaybookTrigger } from '@/types/playbook';
 import {
     DEFAULT_SUPER_USER_PLAYBOOKS,
     getDefaultSuperUserPlaybookTemplate,
@@ -133,6 +133,75 @@ function normalizeTrigger(trigger: any): any | null {
     }
 
     return null;
+}
+
+function buildEventListenerDocId(playbookId: string, eventName: string): string {
+    return `super-user-listener:${playbookId}:${eventName}`.replaceAll('/', '_');
+}
+
+function getEventTriggers(triggers: unknown): Array<PlaybookTrigger & { type: 'event'; eventName: string }> {
+    if (!Array.isArray(triggers)) {
+        return [];
+    }
+
+    const eventTriggers = triggers
+        .map((trigger) => normalizeTrigger(trigger))
+        .filter((trigger): trigger is PlaybookTrigger & { type: 'event'; eventName: string } =>
+            Boolean(trigger && trigger.type === 'event' && typeof trigger.eventName === 'string' && trigger.eventName.trim()),
+        );
+
+    return Array.from(
+        new Map(eventTriggers.map((trigger) => [trigger.eventName, trigger])).values(),
+    );
+}
+
+async function syncPlaybookEventListeners(
+    firestore: FirebaseFirestore.Firestore,
+    playbookId: string,
+    playbook: {
+        orgId?: string;
+        triggers?: unknown;
+        status?: unknown;
+        active?: unknown;
+    },
+): Promise<void> {
+    const eventTriggers = getEventTriggers(playbook.triggers);
+    const listenerStatus = normalizeStatus(playbook.status) === 'active' || playbook.active === true
+        ? 'active'
+        : 'paused';
+    const now = new Date();
+    const listenersRef = firestore.collection('playbook_event_listeners');
+    const existingSnap = await listenersRef.where('playbookId', '==', playbookId).get();
+    const existingDocs = new Map(existingSnap.docs.map((doc) => [doc.id, doc]));
+    const desiredIds = new Set(eventTriggers.map((trigger) => buildEventListenerDocId(playbookId, trigger.eventName)));
+    const batch = firestore.batch();
+
+    existingSnap.docs.forEach((doc) => {
+        if (!desiredIds.has(doc.id)) {
+            batch.delete(doc.ref);
+        }
+    });
+
+    eventTriggers.forEach((trigger) => {
+        const listenerId = buildEventListenerDocId(playbookId, trigger.eventName);
+        const existingDoc = existingDocs.get(listenerId);
+
+        batch.set(
+            listenersRef.doc(listenerId),
+            {
+                playbookId,
+                orgId: typeof playbook.orgId === 'string' ? playbook.orgId : SUPER_USER_ORG,
+                eventName: trigger.eventName,
+                status: listenerStatus,
+                source: 'super_user_playbooks',
+                createdAt: existingDoc?.data()?.createdAt ?? now,
+                updatedAt: now,
+            },
+            { merge: true },
+        );
+    });
+
+    await batch.commit();
 }
 
 function normalizeSteps(steps: unknown, fallback: any[]): any[] {
@@ -269,6 +338,7 @@ export async function toggleSuperUserPlaybook(
             console.error(`[toggleSuperUserPlaybook] Playbook ${playbookId} not found in Firestore`);
             return { success: false, error: 'Playbook not found' };
         }
+        const existingData = snap.data() as Record<string, unknown>;
 
         console.log(`[toggleSuperUserPlaybook] Found playbook ${playbookId}, updating status...`);
         await docRef.update({
@@ -277,6 +347,13 @@ export async function toggleSuperUserPlaybook(
             updatedAt: new Date(),
         });
         console.log(`[toggleSuperUserPlaybook] Firestore update successful for ${playbookId}`);
+
+        await syncPlaybookEventListeners(firestore, playbookId, {
+            ...existingData,
+            orgId: typeof existingData.orgId === 'string' ? existingData.orgId : SUPER_USER_ORG,
+            status: isActive ? 'active' : 'paused',
+            active: isActive,
+        });
 
         // Keep Pulse schedules in sync (best-effort).
         try {
@@ -333,6 +410,14 @@ export async function runSuperUserPlaybook(
 
         if (!snap.exists) {
             return { success: false, error: 'Playbook not found' };
+        }
+
+        const playbook = snap.data() as Record<string, unknown>;
+        if (playbook?.metadata && typeof playbook.metadata === 'object' && (playbook.metadata as Record<string, unknown>).requiresEventContext === true) {
+            return {
+                success: false,
+                error: 'This playbook runs from event context and cannot be run manually.',
+            };
         }
 
         const { FieldValue } = await import('firebase-admin/firestore');
@@ -403,6 +488,7 @@ export async function updateSuperUserPlaybook(
         if (!snap.exists) {
             return { success: false, error: 'Playbook not found' };
         }
+        const existingData = snap.data() as Record<string, unknown>;
 
         const { FieldValue } = await import('firebase-admin/firestore');
         const updates: Record<string, unknown> = {
@@ -422,6 +508,14 @@ export async function updateSuperUserPlaybook(
 
         await docRef.update({
             ...updates,
+        });
+
+        await syncPlaybookEventListeners(firestore, playbookId, {
+            ...existingData,
+            orgId: typeof existingData.orgId === 'string' ? existingData.orgId : SUPER_USER_ORG,
+            triggers: patch.triggers !== undefined ? patch.triggers : existingData.triggers,
+            status: typeof existingData.status === 'string' ? existingData.status : 'paused',
+            active: existingData.active ?? false,
         });
 
         return { success: true };
@@ -475,6 +569,7 @@ export async function installDefaultSuperUserPlaybooks(
                 const playbook = buildDefaultSuperUserPlaybook(template, user);
                 await docRef.set(playbook);
                 console.log(`[installDefaultSuperUserPlaybooks] Saved playbook document ${template.id}`);
+                await syncPlaybookEventListeners(firestore, playbook.id, playbook);
 
                 const scheduleTriggers = (playbook.triggers || []).filter(
                     (trigger: any) => trigger?.type === 'schedule' && typeof trigger?.cron === 'string' && trigger.cron.trim(),
@@ -613,6 +708,8 @@ ${trimmedPrompt}`,
             version: FieldValue.increment(1),
         });
 
+        await syncPlaybookEventListeners(firestore, playbookId, normalizedPlaybook);
+
         return {
             success: true,
             playbook: buildUpdatedPlaybookResponse(
@@ -677,6 +774,7 @@ export async function createSuperUserPlaybook(
 
         await newDocRef.set(playbookData);
         console.log(`[SuperUserPlaybooks] Created playbook: ${data.name}`);
+        await syncPlaybookEventListeners(firestore, newDocRef.id, playbookData);
 
         // Pre-create schedule docs for any cron triggers, but keep them disabled until the playbook is activated.
         try {

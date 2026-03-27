@@ -25,7 +25,7 @@ import {
     getMeetingsNeedingFollowUp,
     markFollowUpSent,
 } from '@/server/actions/executive-calendar';
-import { sendFollowUpEmail } from '@/server/services/executive-calendar/booking-emails';
+import { dispatchPlaybookEventSync } from '@/server/services/playbook-event-dispatcher';
 import type { ExecutiveProfile, MeetingBooking } from '@/types/executive-calendar';
 
 jest.mock('@/server/actions/executive-calendar', () => ({
@@ -34,8 +34,8 @@ jest.mock('@/server/actions/executive-calendar', () => ({
     markFollowUpSent: jest.fn(),
 }));
 
-jest.mock('@/server/services/executive-calendar/booking-emails', () => ({
-    sendFollowUpEmail: jest.fn(),
+jest.mock('@/server/services/playbook-event-dispatcher', () => ({
+    dispatchPlaybookEventSync: jest.fn(),
 }));
 
 jest.mock('@/lib/logger', () => ({
@@ -49,7 +49,7 @@ jest.mock('@/lib/logger', () => ({
 const mockGetExecutiveProfile = getExecutiveProfile as jest.MockedFunction<typeof getExecutiveProfile>;
 const mockGetMeetingsNeedingFollowUp = getMeetingsNeedingFollowUp as jest.MockedFunction<typeof getMeetingsNeedingFollowUp>;
 const mockMarkFollowUpSent = markFollowUpSent as jest.MockedFunction<typeof markFollowUpSent>;
-const mockSendFollowUpEmail = sendFollowUpEmail as jest.MockedFunction<typeof sendFollowUpEmail>;
+const mockDispatchPlaybookEventSync = dispatchPlaybookEventSync as jest.MockedFunction<typeof dispatchPlaybookEventSync>;
 
 function buildProfile(overrides: Partial<ExecutiveProfile> = {}): ExecutiveProfile {
     return {
@@ -113,7 +113,11 @@ describe('POST /api/cron/meeting-followup', () => {
 
         mockGetMeetingsNeedingFollowUp.mockResolvedValue([]);
         mockGetExecutiveProfile.mockResolvedValue(buildProfile());
-        mockSendFollowUpEmail.mockResolvedValue({ success: true });
+        mockDispatchPlaybookEventSync.mockResolvedValue({
+            delivered: true,
+            deduped: false,
+            results: [{ playbookId: 'jack-booking-emails', status: 'success' }],
+        });
         mockMarkFollowUpSent.mockResolvedValue(undefined);
     });
 
@@ -123,7 +127,11 @@ describe('POST /api/cron/meeting-followup', () => {
 
     it('does not mark the booking sent when follow-up delivery fails', async () => {
         mockGetMeetingsNeedingFollowUp.mockResolvedValue([buildBooking()]);
-        mockSendFollowUpEmail.mockResolvedValue({ success: false, error: 'provider outage' });
+        mockDispatchPlaybookEventSync.mockResolvedValue({
+            delivered: false,
+            deduped: false,
+            results: [{ playbookId: 'jack-booking-emails', status: 'failed', error: 'provider outage' }],
+        });
 
         const response = await POST(new NextRequest('http://localhost/api/cron/meeting-followup', {
             method: 'POST',
@@ -140,6 +148,27 @@ describe('POST /api/cron/meeting-followup', () => {
 
     it('marks the booking sent after successful follow-up delivery', async () => {
         mockGetMeetingsNeedingFollowUp.mockResolvedValue([buildBooking()]);
+
+        const response = await POST(new NextRequest('http://localhost/api/cron/meeting-followup', {
+            method: 'POST',
+            headers: {
+                authorization: 'Bearer test-secret',
+            },
+        }));
+        const body = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(body).toEqual({ success: true, processed: 1 });
+        expect(mockMarkFollowUpSent).toHaveBeenCalledWith('booking-123');
+    });
+
+    it('marks the booking sent after a deduped follow-up dispatch', async () => {
+        mockGetMeetingsNeedingFollowUp.mockResolvedValue([buildBooking()]);
+        mockDispatchPlaybookEventSync.mockResolvedValue({
+            delivered: true,
+            deduped: true,
+            results: [{ playbookId: 'jack-booking-emails', status: 'deduped' }],
+        });
 
         const response = await POST(new NextRequest('http://localhost/api/cron/meeting-followup', {
             method: 'POST',

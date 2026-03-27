@@ -750,6 +750,28 @@
             ]
         },
         {
+            "collectionGroup": "customer_communications",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "orgId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "type",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "dedupeKey",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "sentAt",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
             "collectionGroup": "campaigns",
             "queryScope": "COLLECTION",
             "fields": [

@@ -78,6 +78,15 @@ const EVENT_OPTION_GROUPS = [
         ],
     },
     {
+        group: 'Executive Booking',
+        events: [
+            { value: 'executive.booking.martez.confirmed', label: 'Martez booking confirmed' },
+            { value: 'executive.booking.martez.followup_ready', label: 'Martez follow-up ready' },
+            { value: 'executive.booking.jack.confirmed', label: 'Jack booking confirmed' },
+            { value: 'executive.booking.jack.followup_ready', label: 'Jack follow-up ready' },
+        ],
+    },
+    {
         group: 'System',
         events: [
             { value: 'owner.day3', label: 'Day 3 after owner signup' },

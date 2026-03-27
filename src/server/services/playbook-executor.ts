@@ -1042,6 +1042,76 @@ export async function executeSendEmail(
     step: any,
     context: ExecutionContext
 ): Promise<any> {
+    const hasTemplatedBody =
+        typeof step.params?.htmlBody === 'string' || typeof step.params?.textBody === 'string';
+
+    if (hasTemplatedBody) {
+        try {
+            const { sendGenericEmail } = await import('@/lib/email/dispatcher');
+            const resolvedParams = resolveVariables(step.params || {}, context.variables) as {
+                to?: string;
+                subject?: string;
+                htmlBody?: string;
+                textBody?: string;
+                fromEmail?: string;
+                fromName?: string;
+                communicationType?: 'campaign' | 'transactional' | 'welcome' | 'winback' | 'birthday' | 'order_update' | 'loyalty' | 'manual';
+                agentName?: string;
+                orgId?: string;
+                userId?: string;
+            };
+            const to = resolvedParams.to?.trim() || '';
+            const subject = resolvedParams.subject?.trim() || '';
+            const textBody = typeof resolvedParams.textBody === 'string' ? resolvedParams.textBody : undefined;
+            const htmlBody = typeof resolvedParams.htmlBody === 'string' && resolvedParams.htmlBody.trim()
+                ? resolvedParams.htmlBody
+                : textBody
+                    ? `<div style="white-space: pre-wrap;">${escapeHtml(textBody)}</div>`
+                    : '';
+
+            if (!to || !subject || !htmlBody) {
+                return {
+                    success: false,
+                    error: 'Templated send_email step requires resolved to, subject, and body content.',
+                };
+            }
+
+            logger.info('[PlaybookExecutor] Sending templated email:', { to, subject });
+
+            const result = await sendGenericEmail({
+                to,
+                subject,
+                htmlBody,
+                textBody,
+                fromEmail: resolvedParams.fromEmail,
+                fromName: resolvedParams.fromName,
+                communicationType: resolvedParams.communicationType || 'manual',
+                agentName: resolvedParams.agentName || step.agent,
+                orgId: resolvedParams.orgId || context.orgId,
+                userId: resolvedParams.userId,
+            });
+
+            if (!result.success) {
+                return {
+                    success: false,
+                    error: result.error || 'Email send failed',
+                };
+            }
+
+            return {
+                success: true,
+                sentTo: to,
+                subject,
+            };
+        } catch (error) {
+            logger.error('[PlaybookExecutor] Failed to send templated email:', { error });
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+            };
+        }
+    }
+
     const to = resolveVariables(step.params?.to || '{{user.email}}', context.variables);
     const report = context.variables.competitorReport;
     const driveUrl = context.variables.driveFilePath;
@@ -1333,6 +1403,22 @@ function getNestedValue(obj: any, path: string): any {
     return path.split('.').reduce((current, key) => current?.[key], obj);
 }
 
+function escapeHtml(value: string): string {
+    return value
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+}
+
+function isFailedActionOutput(output: unknown): output is { success: false; error?: string } {
+    return typeof output === 'object'
+        && output !== null
+        && 'success' in output
+        && (output as { success?: boolean }).success === false;
+}
+
 // =============================================================================
 // VALIDATION - Self-Validating Agent Pattern
 // =============================================================================
@@ -1524,6 +1610,7 @@ export async function executePlaybook(
         };
 
         const stepResults: StepResult[] = [];
+        let hasStepFailure = false;
 
         // Execute each step
         for (let i = 0; i < steps.length; i++) {
@@ -1688,14 +1775,23 @@ export async function executePlaybook(
                     }
                 }
 
-                stepResult.status = 'completed';
-                stepResult.output = output;
-                stepResult.completedAt = new Date();
+                if (isFailedActionOutput(output)) {
+                    stepResult.status = 'failed';
+                    stepResult.error = output.error || `${step.action} failed`;
+                    stepResult.output = output;
+                    stepResult.completedAt = new Date();
+                    hasStepFailure = true;
+                } else {
+                    stepResult.status = 'completed';
+                    stepResult.output = output;
+                    stepResult.completedAt = new Date();
+                }
 
             } catch (error) {
                 stepResult.status = 'failed';
                 stepResult.error = error instanceof Error ? error.message : String(error);
                 stepResult.completedAt = new Date();
+                hasStepFailure = true;
                 logger.error('[PlaybookExecutor] Step failed:', {
                     stepIndex: i,
                     error: stepResult.error,
@@ -1711,22 +1807,48 @@ export async function executePlaybook(
             });
         }
 
-        // Mark as completed
         const completedAt = new Date();
+        if (hasStepFailure) {
+            await executionRef.update({
+                status: 'failed',
+                completedAt,
+                stepResults,
+                error: 'One or more steps failed.',
+            });
+
+            await playbookRef.update({
+                runCount: FieldValue.increment(1),
+                failureCount: FieldValue.increment(1),
+                lastRunAt: completedAt,
+            });
+
+            logger.warn('[PlaybookExecutor] Execution completed with failed steps:', {
+                executionId,
+                duration: completedAt.getTime() - startedAt.getTime(),
+            });
+
+            return {
+                executionId,
+                status: 'failed',
+                startedAt,
+                completedAt,
+                stepResults,
+                error: 'One or more steps failed.',
+            };
+        }
+
         await executionRef.update({
             status: 'completed',
             completedAt,
             stepResults,
         });
 
-        // Update playbook stats
         await playbookRef.update({
             runCount: FieldValue.increment(1),
             successCount: FieldValue.increment(1),
             lastRunAt: completedAt,
         });
 
-        // Record execution for revenue attribution (fire-and-forget)
         const templateId = playbook.playbookTemplateId || playbook.templateId;
         const customerId = context.variables.customerId || request.eventData?.customerId;
         if (templateId && customerId) {

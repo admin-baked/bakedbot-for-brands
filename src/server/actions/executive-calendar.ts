@@ -21,7 +21,12 @@ import {
 } from '@/types/executive-calendar';
 import { calculateAvailableSlots } from '@/server/services/executive-calendar/availability';
 import { createMeetingRoom, buildRoomName } from '@/server/services/executive-calendar/livekit';
-import { sendConfirmationEmail } from '@/server/services/executive-calendar/booking-emails';
+import { sendHostBookingNotificationEmail } from '@/server/services/executive-calendar/booking-emails';
+import {
+    buildExecutiveBookingEventData,
+    buildExecutiveBookingEventName,
+} from '@/server/services/executive-calendar/booking-playbook-events';
+import { dispatchPlaybookEventSync } from '@/server/services/playbook-event-dispatcher';
 import {
     getGoogleCalendarBusyTimes,
     createGoogleCalendarEvent,
@@ -282,31 +287,40 @@ export async function createBooking(
         endAt: Timestamp.fromDate(endAt),
     });
     try {
-        const emailDelivery = await sendConfirmationEmail(fullBooking, profile);
+        const hostDelivery = await sendHostBookingNotificationEmail(fullBooking, profile);
+        const confirmationSummary = await dispatchPlaybookEventSync(
+            'bakedbot-internal',
+            buildExecutiveBookingEventName(profile.profileSlug, 'confirmation'),
+            buildExecutiveBookingEventData({
+                booking: fullBooking,
+                profile,
+                stage: 'confirmation',
+            }),
+        );
         const emailTimestamp = Timestamp.now();
         const emailUpdates: Record<string, unknown> = {
             updatedAt: emailTimestamp,
         };
 
-        if (emailDelivery.guest.success) {
+        if (confirmationSummary.delivered) {
             emailUpdates.confirmationEmailSentAt = emailTimestamp;
         }
 
-        if (emailDelivery.host.success) {
+        if (hostDelivery.success) {
             emailUpdates.hostNotificationEmailSentAt = emailTimestamp;
         }
 
         await bookingRef.update(emailUpdates);
 
-        if (!emailDelivery.guest.success || !emailDelivery.host.success) {
+        if (!confirmationSummary.delivered || !hostDelivery.success) {
             logger.warn('[ExecCalendar] Partial booking email delivery', {
                 bookingId,
                 profileSlug,
-                guestDelivered: emailDelivery.guest.success,
-                hostDelivered: emailDelivery.host.success,
-                guestError: emailDelivery.guest.error,
-                hostError: emailDelivery.host.error,
-                senderUserIdResolved: Boolean(emailDelivery.senderUserId),
+                confirmationDelivered: confirmationSummary.delivered,
+                confirmationDeduped: confirmationSummary.deduped,
+                confirmationResults: confirmationSummary.results,
+                hostDelivered: hostDelivery.success,
+                hostError: hostDelivery.error,
             });
         }
     } catch (err) {

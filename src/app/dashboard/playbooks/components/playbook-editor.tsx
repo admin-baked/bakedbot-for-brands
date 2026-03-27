@@ -75,6 +75,10 @@ const EVENT_TYPES = [
     'checkout.started',
     'checkout.completed',
     'order.completed',
+    'executive.booking.martez.confirmed',
+    'executive.booking.martez.followup_ready',
+    'executive.booking.jack.confirmed',
+    'executive.booking.jack.followup_ready',
     // Legacy
     'lead.created',
     'page.claimed',
