@@ -6,10 +6,21 @@ import { createTicketSchema } from '@/app/api/schemas';
 import { runAgent } from '@/server/agents/harness';
 import { persistence } from '@/server/agents/persistence';
 import { linusAgent } from '@/server/agents/linus';
-import { sanitizeForPrompt, wrapUserData, buildSystemDirectives } from '@/server/security';
+import { postLinusIncidentSlack } from '@/server/services/incident-notifications';
+import { wrapUserData, buildSystemDirectives } from '@/server/security';
 
 // Force dynamic rendering - prevents build-time evaluation of agent dependencies
 export const dynamic = 'force-dynamic';
+
+const CEO_TICKETS_URL = 'https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app/dashboard/ceo?tab=admin&section=users&subtab=tickets';
+
+function truncateSlackText(value: string, maxLength: number): string {
+    if (value.length <= maxLength) {
+        return value;
+    }
+
+    return `${value.slice(0, maxLength - 3)}...`;
+}
 
 export async function GET(request: NextRequest) {
     try {
@@ -69,7 +80,7 @@ export async function POST(request: NextRequest) {
         const docRef = await firestore.collection('tickets').add(newTicket);
 
         // === LINUS INTERRUPT: Auto-dispatch for high-priority system errors ===
-        if (data.priority === 'high' && data.category === 'system_error') {
+        if (newTicket.priority === 'high' && newTicket.category === 'system_error') {
             try {
                 // SECURITY: Build structured prompt with sanitized user data
                 const directives = buildSystemDirectives([
@@ -92,16 +103,95 @@ ${wrapUserData(String(data.pageUrl || 'Unknown'), 'page_url', true, 200)}
 
 ${wrapUserData(String(data.errorStack || 'No stack trace available'), 'stack_trace', true, 2000)}
 
-${wrapUserData(String(data.errorDigest || 'N/A'), 'error_digest', true, 100)}
+                ${wrapUserData(String(data.errorDigest || 'N/A'), 'error_digest', true, 100)}
 
                 ${directives}`;
+
+                const ticketTitle = String(data.title || 'System Error');
+                const pageUrl = String(data.pageUrl || 'Unknown');
+                const errorDigest = String(data.errorDigest || 'N/A');
+                const reporterEmail = String(newTicket.reporterEmail || 'anonymous');
+                const descriptionPreview = truncateSlackText(String(data.description || 'No description provided'), 500);
+                const stackPreview = String(data.errorStack || '').trim();
+
+                const linusDispatch = runAgent('system', persistence, linusAgent as any, {}, linusPrompt);
+
+                try {
+                    await postLinusIncidentSlack({
+                        source: 'support-ticket',
+                        incidentId: docRef.id,
+                        fallbackText: `🔴 High system error: ${truncateSlackText(ticketTitle, 100)}`,
+                        blocks: [
+                            {
+                                type: 'header',
+                                text: { type: 'plain_text', text: '🔴 Linus Incident — System Error', emoji: true },
+                            },
+                            {
+                                type: 'section',
+                                text: { type: 'mrkdwn', text: `*${truncateSlackText(ticketTitle, 140)}*` },
+                            },
+                            {
+                                type: 'section',
+                                fields: [
+                                    { type: 'mrkdwn', text: `*Ticket*\n\`${docRef.id}\`` },
+                                    { type: 'mrkdwn', text: `*Page*\n${truncateSlackText(pageUrl, 150)}` },
+                                    { type: 'mrkdwn', text: `*Digest*\n\`${truncateSlackText(errorDigest, 120)}\`` },
+                                    { type: 'mrkdwn', text: `*Reporter*\n${truncateSlackText(reporterEmail, 80)}` },
+                                ],
+                            },
+                            {
+                                type: 'section',
+                                text: { type: 'mrkdwn', text: `*What happened*\n${descriptionPreview}` },
+                            },
+                            ...(stackPreview
+                                ? [{
+                                    type: 'section',
+                                    text: {
+                                        type: 'mrkdwn',
+                                        text: `*Stack Preview*\n\`\`\`${truncateSlackText(stackPreview, 500)}\`\`\``,
+                                    },
+                                }]
+                                : []),
+                            {
+                                type: 'section',
+                                text: {
+                                    type: 'mrkdwn',
+                                    text: '🛠️ Linus has been dispatched and is fixing this. You can discuss the incident with him in Slack by DMing Linus or using `/ask linus ...`.',
+                                },
+                            },
+                            {
+                                type: 'actions',
+                                elements: [
+                                    {
+                                        type: 'button',
+                                        text: { type: 'plain_text', text: 'Open Ticket Queue', emoji: true },
+                                        url: CEO_TICKETS_URL,
+                                        action_id: 'open_ticket_queue',
+                                        style: 'danger',
+                                    },
+                                ],
+                            },
+                        ],
+                    });
+
+                    logger.info('[Tickets API] Incident posted to Slack', {
+                        ticketId: docRef.id,
+                        pageUrl,
+                        reporterEmail,
+                    });
+                } catch (slackError) {
+                    logger.warn('[Tickets API] Failed to post incident to Slack', {
+                        ticketId: docRef.id,
+                        error: slackError,
+                    });
+                }
 
                 // Fire-and-forget dispatch to Linus (don't block ticket creation)
                 // NOTE: This uses the standard harness signature (brandId, adapter, agent, tools, stimulus).
                 // Linus doesn't use the injected toolset here (it runs via Claude + internal tooling),
                 // so we pass an empty object for tools.
-                runAgent('system', persistence, linusAgent as any, {}, linusPrompt)
-                    .then(result => logger.info('[Tickets API] Linus dispatched', { ticketId: docRef.id }))
+                void linusDispatch
+                    .then(() => logger.info('[Tickets API] Linus dispatched', { ticketId: docRef.id }))
                     .catch(err => logger.warn('[Tickets API] Linus dispatch failed (non-blocking)', { error: err }));
 
                 logger.info(`[Tickets API] Linus interrupt triggered for ticket ${docRef.id}`);

@@ -1,11 +1,11 @@
 'use client';
 
-import React, { Component, ErrorInfo, ReactNode, useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { AlertCircle, Bug, Copy, RefreshCw, Send } from 'lucide-react';
+import { Bug, Copy, RefreshCw, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface ErrorBoundaryProps {
@@ -122,7 +122,7 @@ export default function FelishaErrorBoundary({ error, reset }: ErrorBoundaryProp
                     </div>
                     <CardTitle className="text-lg">Something went wrong</CardTitle>
                     <CardDescription>
-                        A critical error occurred. Linus (AI CTO) has been automatically notified and is investigating.
+                        A critical error occurred. Linus (AI CTO) has been automatically notified, is fixing it, and you can discuss the incident with him in Slack.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
