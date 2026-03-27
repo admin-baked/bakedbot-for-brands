@@ -102,28 +102,12 @@ jobs:
             exit "$deploy_exit"
           fi
 
-      - name: Notify Firebase deployment failure
-        if: failure()
+      - name: Notify Firebase build failure
+        if: failure() && steps.build.outcome == 'failure'
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          FAILURE_SUMMARY: ${{ steps.build.outputs.output }}
         run: |
-          if [ "${{ steps.build.conclusion }}" = "failure" ]; then
-            failure_step="Build"
-            failure_summary=$(cat <<'EOF'
-${{ steps.build.outputs.output }}
-EOF
-)
-          elif [ "${{ steps.deploy.conclusion }}" = "failure" ]; then
-            failure_step="Deploy to Firebase (Manual)"
-            failure_summary=$(cat <<'EOF'
-${{ steps.deploy.outputs.output }}
-EOF
-)
-          else
-            failure_step="Unknown"
-            failure_summary="GitHub Actions reported a Firebase deployment failure."
-          fi
-
           short_sha="${GITHUB_SHA::7}"
           payload=$(jq -n \
             --arg workflowName "${{ github.workflow }}" \
@@ -136,8 +120,57 @@ EOF
             --arg shortSha "$short_sha" \
             --arg branch "${{ github.ref_name }}" \
             --arg actor "${{ github.actor }}" \
-            --arg failureStep "$failure_step" \
-            --arg failureSummary "$failure_summary" \
+            --arg failureStep "Build" \
+            --arg failureSummary "${FAILURE_SUMMARY:-GitHub Actions reported a Firebase build failure.}" \
+            --arg deployTarget "studio-567050101-bc6e8" \
+            --arg provider "firebase-hosting-functions" \
+            --arg triggeredAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{
+              type: "deployment_failure",
+              data: {
+                workflowName: $workflowName,
+                workflowFile: $workflowFile,
+                runId: $runId,
+                runNumber: $runNumber,
+                runUrl: $runUrl,
+                attempt: $attempt,
+                sha: $sha,
+                shortSha: $shortSha,
+                branch: $branch,
+                actor: $actor,
+                failureStep: $failureStep,
+                failureSummary: $failureSummary,
+                deployTarget: $deployTarget,
+                provider: $provider,
+                triggeredAt: $triggeredAt
+              }
+            }')
+
+          curl -s -X POST https://bakedbot.ai/api/cron/auto-escalate \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Content-Type: application/json" \
+            -d "$payload" || echo "Warning: auto-escalate deployment failure call failed (non-fatal)"
+
+      - name: Notify Firebase deploy failure
+        if: failure() && steps.deploy.outcome == 'failure'
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          FAILURE_SUMMARY: ${{ steps.deploy.outputs.output }}
+        run: |
+          short_sha="${GITHUB_SHA::7}"
+          payload=$(jq -n \
+            --arg workflowName "${{ github.workflow }}" \
+            --arg workflowFile ".github/workflows/production-deploy.yml" \
+            --arg runId "${{ github.run_id }}" \
+            --arg runNumber "${{ github.run_number }}" \
+            --arg runUrl "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --arg attempt "${{ github.run_attempt }}" \
+            --arg sha "${{ github.sha }}" \
+            --arg shortSha "$short_sha" \
+            --arg branch "${{ github.ref_name }}" \
+            --arg actor "${{ github.actor }}" \
+            --arg failureStep "Deploy to Firebase (Manual)" \
+            --arg failureSummary "${FAILURE_SUMMARY:-GitHub Actions reported a Firebase deploy failure.}" \
             --arg deployTarget "studio-567050101-bc6e8" \
             --arg provider "firebase-hosting-functions" \
             --arg triggeredAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \

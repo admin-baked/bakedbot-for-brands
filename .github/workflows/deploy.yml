@@ -47,7 +47,8 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
           if [ "$rollout_exit" -ne 0 ]; then
-            if [[ "$rollout_output" == *"already queued or in progress"* ]]; then
+            if [[ "$rollout_output" == *"already queued or in progress"* ]] || \
+               ([[ "$rollout_output" == *"HTTP Error: 409"* ]] && [[ "$rollout_output" == *"unable to queue the operation"* ]]); then
               echo "OK: App Hosting rollout is already queued or in progress for bakedbot-prod."
               exit 0
             fi
