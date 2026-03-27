@@ -444,9 +444,6 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
         );
     };
 
-    const desktopPresets = presets.slice(0, 4);
-    const overflowPresets = presets.slice(4);
-
     if (isLoading || presetsLoading) {
         return (
             <div className={cn('flex items-center justify-center h-full', className)}>
@@ -505,23 +502,27 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
             <div className={cn('h-full overflow-hidden', className)} data-testid="inbox-empty-state-desktop">
                 <div className="flex h-full min-h-0 flex-col">
                     <div className="border-b bg-background/95 px-6 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                        <div className="mx-auto w-full max-w-4xl space-y-4">
-                            <div className="space-y-2">
-                                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                                    Start Here
-                                </p>
-                                <h1 className="text-xl font-semibold text-foreground">
-                                    {greeting}!
-                                </h1>
-                                <p className="max-w-3xl text-sm text-muted-foreground">
-                                    {ownerBriefing
-                                        ? 'Jump straight into your next inbox task. The full desktop briefing stays above, so you can start typing without losing today’s context.'
-                                        : suggestion}
-                                </p>
+                        <div className="mx-auto w-full max-w-4xl space-y-3">
+                            <div className="grid gap-4 xl:grid-cols-[220px,minmax(0,1fr)] xl:items-start">
+                                <div className="space-y-2">
+                                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                                        Start Here
+                                    </p>
+                                    <h1 className="text-xl font-semibold text-foreground">
+                                        {greeting}!
+                                    </h1>
+                                </div>
+
+                                <div className="min-w-0">
+                                    {renderComposer('min-h-[56px]')}
+                                </div>
                             </div>
 
-                            {renderComposer('min-h-[72px]')}
-                            {renderPresetSuggestions(desktopPresets, 'justify-start')}
+                            <p className="max-w-3xl text-sm text-muted-foreground">
+                                {ownerBriefing
+                                    ? 'Jump straight into your next inbox task. The full desktop briefing stays above, so you can start typing without losing today’s context.'
+                                    : suggestion}
+                            </p>
                         </div>
                     </div>
 
@@ -529,7 +530,7 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
                         <div className="mx-auto w-full max-w-4xl space-y-6 p-6">
                             {renderOwnerBriefing('grid gap-3 xl:grid-cols-2')}
 
-                            {renderPresetSuggestions(overflowPresets, 'justify-start')}
+                            {renderPresetSuggestions(presets, 'justify-start')}
 
                             <div className="rounded-xl border bg-card/80 p-4">
                                 <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
