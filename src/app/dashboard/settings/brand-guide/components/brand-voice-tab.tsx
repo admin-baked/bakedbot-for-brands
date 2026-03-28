@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Plus, X, Sparkles } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { updateBrandGuide, analyzeBrandVoice, suggestVocabularyTerms } from '@/server/actions/brand-guide';
+import { updateBrandGuide, analyzeBrandVoice, suggestVocabularyTerms, generateSampleContent } from '@/server/actions/brand-guide';
 import { useToast } from '@/hooks/use-toast';
 import type { BrandGuide, BrandVoice, BrandPersonalityTrait, BrandTone, BrandWritingStyle } from '@/types/brand-guide';
 
@@ -85,6 +85,7 @@ export function BrandVoiceTab({ brandId, brandGuide, onUpdate }: BrandVoiceTabPr
   const [loading, setLoading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [suggestingTerms, setSuggestingTerms] = useState(false);
+  const [generatingSamples, setGeneratingSamples] = useState(false);
   const [contentSample, setContentSample] = useState('');
   const { toast } = useToast();
 
@@ -228,6 +229,20 @@ export function BrandVoiceTab({ brandId, brandGuide, onUpdate }: BrandVoiceTabPr
         avoid: voice.vocabulary.avoid.filter((_, i) => i !== index),
       },
     });
+  };
+
+  const handleGenerateSamples = async () => {
+    setGeneratingSamples(true);
+    try {
+      const result = await generateSampleContent(brandId);
+      if (!result.success || !result.samples) throw new Error(result.error || 'Generation failed');
+      setVoice(prev => ({ ...prev, sampleContent: result.samples! }));
+      toast({ title: 'Sample content generated', description: 'Review the posts below and save when ready.' });
+    } catch (err) {
+      toast({ title: 'Generation failed', description: (err as Error).message, variant: 'destructive' });
+    } finally {
+      setGeneratingSamples(false);
+    }
   };
 
   return (
@@ -504,6 +519,40 @@ export function BrandVoiceTab({ brandId, brandGuide, onUpdate }: BrandVoiceTabPr
               </Label>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Sample Content */}
+      <Card>
+        <CardHeader className="flex flex-row items-start justify-between gap-4">
+          <div>
+            <CardTitle>Sample Content</CardTitle>
+            <CardDescription>Example posts in your brand voice — required for 100% completeness</CardDescription>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleGenerateSamples} disabled={generatingSamples} className="shrink-0">
+            {generatingSamples ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+            Generate Samples
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {voice.sampleContent && voice.sampleContent.length > 0 ? (
+            voice.sampleContent.map((s, i) => (
+              <div key={i} className="space-y-1">
+                <Badge variant="outline" className="text-xs capitalize">{s.type.replace(/_/g, ' ')}</Badge>
+                <Textarea
+                  value={s.text}
+                  onChange={e => {
+                    const updated = [...voice.sampleContent];
+                    updated[i] = { ...updated[i], text: e.target.value };
+                    setVoice({ ...voice, sampleContent: updated });
+                  }}
+                  rows={3}
+                />
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground">No samples yet — click Generate Samples to create branded example posts.</p>
+          )}
         </CardContent>
       </Card>
 

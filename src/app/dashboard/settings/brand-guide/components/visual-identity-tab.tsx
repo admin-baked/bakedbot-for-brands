@@ -16,8 +16,8 @@ import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Upload, Check, AlertCircle, Info } from 'lucide-react';
-import { updateBrandGuide } from '@/server/actions/brand-guide';
+import { Loader2, Upload, Check, AlertCircle, Info, CloudUpload } from 'lucide-react';
+import { updateBrandGuide, mirrorLogoToStorage } from '@/server/actions/brand-guide';
 import { validateColorAccessibility } from '@/server/actions/brand-guide';
 import { useToast } from '@/hooks/use-toast';
 import type { BrandGuide, BrandVisualIdentity, BrandTypography } from '@/types/brand-guide';
@@ -71,6 +71,7 @@ export function VisualIdentityTab({ brandId, brandGuide, onUpdate }: VisualIdent
     normalizeVisualIdentity(brandGuide.visualIdentity)
   );
   const [loading, setLoading] = useState(false);
+  const [mirroringLogo, setMirroringLogo] = useState(false);
   const [accessibilityCheck, setAccessibilityCheck] = useState<any>(null);
   const [savedPrimary, setSavedPrimary] = useState<ArchetypeId | null>(
     brandGuide.archetype?.primary ?? null
@@ -133,6 +134,25 @@ export function VisualIdentityTab({ brandId, brandGuide, onUpdate }: VisualIdent
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleMirrorLogo = async () => {
+    const url = visualIdentity.logo?.primary;
+    if (!url || url.includes('storage.googleapis.com/bakedbot-global-assets')) {
+      toast({ title: 'Already saved', description: 'Logo is already in BakedBot storage.' });
+      return;
+    }
+    setMirroringLogo(true);
+    try {
+      const result = await mirrorLogoToStorage(brandId, url);
+      if (!result.success || !result.storageUrl) throw new Error(result.error || 'Upload failed');
+      setVisualIdentity(prev => ({ ...prev, logo: { ...prev.logo, primary: result.storageUrl! } }));
+      toast({ title: 'Logo saved to library', description: 'Now served from BakedBot storage.' });
+    } catch (err) {
+      toast({ title: 'Upload failed', description: (err as Error).message, variant: 'destructive' });
+    } finally {
+      setMirroringLogo(false);
     }
   };
 
@@ -218,7 +238,15 @@ export function VisualIdentityTab({ brandId, brandGuide, onUpdate }: VisualIdent
               <Button variant="outline" size="icon">
                 <Upload className="w-4 h-4" />
               </Button>
+              {visualIdentity.logo?.primary && !visualIdentity.logo.primary.includes('storage.googleapis.com/bakedbot-global-assets') && (
+                <Button variant="outline" size="sm" onClick={handleMirrorLogo} disabled={mirroringLogo} title="Save to BakedBot storage">
+                  {mirroringLogo ? <Loader2 className="h-4 w-4 animate-spin" /> : <CloudUpload className="h-4 w-4" />}
+                </Button>
+              )}
             </div>
+            {visualIdentity.logo?.primary?.includes('storage.googleapis.com/bakedbot-global-assets') && (
+              <p className="text-xs text-emerald-600 mt-1 flex items-center gap-1"><Check className="h-3 w-3" /> Saved in BakedBot storage</p>
+            )}
           </div>
 
           <div>
