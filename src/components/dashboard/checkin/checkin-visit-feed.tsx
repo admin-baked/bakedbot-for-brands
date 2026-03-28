@@ -12,17 +12,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle2, Circle, Clock, List, RefreshCw, Smartphone, Globe } from 'lucide-react';
 import type { CheckinVisitRow } from '@/server/actions/checkin-management';
+import { MOOD_EMOJI } from '@/lib/checkin/loyalty-tablet-shared';
 
 interface Props {
     visits: CheckinVisitRow[];
     onRefresh?: () => void;
     refreshing?: boolean;
 }
-
-const MOOD_EMOJI: Record<string, string> = {
-    relaxed: '😌', energized: '⚡', focused: '🎯',
-    creative: '🎨', social: '🎉', sleepy: '😴', anxious: '😤',
-};
 
 const REVIEW_STATUS_CONFIG: Record<string, { label: string; className: string }> = {
     pending: { label: 'Pending nudge', className: 'bg-amber-500/15 text-amber-600 border-amber-500/30' },

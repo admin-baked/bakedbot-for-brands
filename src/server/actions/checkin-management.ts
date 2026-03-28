@@ -17,6 +17,7 @@ import { cookies } from 'next/headers';
 import { logger } from '@/lib/logger';
 import { FieldValue } from 'firebase-admin/firestore';
 import { createInboxArtifactId, createInboxThreadId } from '@/types/inbox';
+import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { z } from 'zod';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -101,16 +102,6 @@ function todayStart(): Date {
     return d;
 }
 
-function toDateSafe(val: unknown): Date | null {
-    if (!val) return null;
-    if (val instanceof Date) return val;
-    if (typeof (val as { toDate?: () => Date }).toDate === 'function') {
-        return (val as { toDate: () => Date }).toDate();
-    }
-    const d = new Date(val as string);
-    return isNaN(d.getTime()) ? null : d;
-}
-
 // ── Config actions ─────────────────────────────────────────────────────────
 
 export async function getCheckinConfig(orgId: string): Promise<{ success: boolean; config: CheckinConfig; error?: string }> {
@@ -128,7 +119,7 @@ export async function getCheckinConfig(orgId: string): Promise<{ success: boolea
             inStoreOffer: data.inStoreOffer ?? DEFAULT_CHECKIN_CONFIG.inStoreOffer,
             welcomeHeadline: data.welcomeHeadline ?? DEFAULT_CHECKIN_CONFIG.welcomeHeadline,
             tabletIdleTimeoutSec: data.tabletIdleTimeoutSec ?? DEFAULT_CHECKIN_CONFIG.tabletIdleTimeoutSec,
-            updatedAt: toDateSafe(data.updatedAt)?.toISOString() ?? null,
+            updatedAt: firestoreTimestampToDate(data.updatedAt)?.toISOString() ?? null,
         };
         return { success: true, config };
     } catch (error) {
@@ -172,21 +163,20 @@ export async function getCheckinStats(orgId: string): Promise<{ success: boolean
         const [todaySnap, weekSnap, monthSnap, reviewSnap] = await Promise.all([
             col.where('orgId', '==', orgId).where('visitedAt', '>=', todayStart()).get(),
             col.where('orgId', '==', orgId).where('visitedAt', '>=', daysBefore(7)).get(),
-            col.where('orgId', '==', orgId).where('visitedAt', '>=', daysBefore(30)).get(),
+            col.where('orgId', '==', orgId).where('visitedAt', '>=', daysBefore(30)).count().get(),
             col.where('orgId', '==', orgId).where('reviewSequence.status', '==', 'pending').count().get(),
         ]);
 
         const todayDocs = todaySnap.docs.map(d => d.data());
         const weekDocs = weekSnap.docs.map(d => d.data());
 
-        // new vs returning (today)
+        // new vs returning (today) — uses isReturning field written at capture time
         let todayNew = 0;
         let todayReturning = 0;
         let smsTotal = 0;
         let emailTotal = 0;
         for (const doc of todayDocs) {
-            if (doc.source === 'brand_rewards_checkin') todayNew++;
-            else todayReturning++;
+            if (doc.isReturning) todayReturning++; else todayNew++;
             if (doc.smsConsent) smsTotal++;
             if (doc.emailConsent) emailTotal++;
         }
@@ -215,7 +205,7 @@ export async function getCheckinStats(orgId: string): Promise<{ success: boolean
             stats: {
                 todayCount,
                 weekCount: weekDocs.length,
-                monthCount: monthSnap.docs.length,
+                monthCount: monthSnap.data().count,
                 todayNew,
                 todayReturning,
                 smsConsentRate,
@@ -247,14 +237,14 @@ export async function getRecentCheckinVisits(orgId: string, limit = 25): Promise
             const d = doc.data();
             const phone = typeof d.phone === 'string' ? d.phone : '';
             const phoneLast4 = phone.replace(/\D/g, '').slice(-4) || '????';
-            const visitedAt = toDateSafe(d.visitedAt)?.toISOString() ?? new Date().toISOString();
+            const visitedAt = firestoreTimestampToDate(d.visitedAt)?.toISOString() ?? new Date().toISOString();
             return {
                 visitId: doc.id,
                 firstName: d.firstName ?? 'Unknown',
                 phoneLast4,
                 visitedAt,
                 source: d.source ?? 'unknown',
-                isReturning: d.source === 'loyalty_tablet_checkin',
+                isReturning: d.isReturning ?? false,
                 mood: d.mood ?? null,
                 smsConsent: Boolean(d.smsConsent),
                 emailConsent: Boolean(d.emailConsent),

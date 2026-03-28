@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { CheckinStats } from '@/server/actions/checkin-management';
+import { MOOD_EMOJI } from '@/lib/checkin/loyalty-tablet-shared';
 
 interface Props {
     stats: CheckinStats;
@@ -23,15 +24,6 @@ interface Props {
     refreshing?: boolean;
 }
 
-const MOOD_EMOJI: Record<string, string> = {
-    relaxed: '😌',
-    energized: '⚡',
-    focused: '🎯',
-    creative: '🎨',
-    social: '🎉',
-    sleepy: '😴',
-    anxious: '😤',
-};
 
 function StatCard({
     label,

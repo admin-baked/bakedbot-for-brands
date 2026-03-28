@@ -16,6 +16,11 @@ export const TABLET_MOODS = [
 export type TabletMood = (typeof TABLET_MOODS)[number];
 export type TabletMoodId = TabletMood['id'];
 
+/** Emoji lookup keyed by mood id — derived from TABLET_MOODS. */
+export const MOOD_EMOJI: Record<string, string> = Object.fromEntries(
+    TABLET_MOODS.map(m => [m.id, m.emoji])
+);
+
 export interface TabletProduct {
     productId: string;
     name: string;

@@ -19,16 +19,13 @@ import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import type { InboxArtifact } from '@/types/inbox';
 import type { CheckinBriefingData } from '@/server/actions/checkin-management';
+import { MOOD_EMOJI } from '@/lib/checkin/loyalty-tablet-shared';
 
 interface Props {
     artifact: InboxArtifact;
     className?: string;
 }
 
-const MOOD_EMOJI: Record<string, string> = {
-    relaxed: '😌', energized: '⚡', focused: '🎯',
-    creative: '🎨', social: '🎉', sleepy: '😴', anxious: '😤',
-};
 
 function RateBar({ rate, color }: { rate: number; color: string }) {
     return (

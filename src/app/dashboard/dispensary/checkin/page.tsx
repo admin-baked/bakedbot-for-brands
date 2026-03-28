@@ -50,7 +50,7 @@ export default function CheckInManagementPage() {
         const [configResult, statsResult, visitsResult] = await Promise.all([
             getCheckinConfig(orgId),
             getCheckinStats(orgId),
-            getRecentCheckinVisits(orgId, 25),
+            getRecentCheckinVisits(orgId),
         ]);
 
         if (configResult.success) setConfig(configResult.config);
