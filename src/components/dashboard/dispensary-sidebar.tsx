@@ -264,6 +264,14 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                         <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive('/dashboard/dispensary/checkin')}>
+                                <Link href="/dashboard/dispensary/checkin" prefetch={true}>
+                                    <QrCode />
+                                    <span>Check-In Manager</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/dashboard/loyalty-tablet-qr')}>
                                 <Link href="/dashboard/loyalty-tablet-qr" prefetch={true}>
                                     <QrCode />
