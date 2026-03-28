@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — desktop inbox pilot briefing + grower role support shipped.
+**Current Status:** 🟢 Passing — PR merges + brand guide Firestore fix + Flower product image shipped.
 **Recent work (2026-03-27):** See `MEMORY.md` for full log.
-Key completed: [Desktop inbox briefing for Thrive/Ecstatic/Native Black pilots] (`aa60b742d`), [Grower inbox role support across chat, insights, and quick actions] (`aa60b742d`).
+Key completed: [Merge PRs #38/#39/#40/#41/#33, close #37] (`82a516cef`), [Brand guide Firestore fix + Flower product image in scan] (`82a516cef`).
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
