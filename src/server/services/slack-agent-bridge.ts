@@ -208,12 +208,17 @@ export async function resolveMentions(userIds: string[], requestorSlackId: strin
 export function detectAgent(text: string, channelName: string, isDm: boolean, appId?: string): string {
     const lower = text.toLowerCase();
 
-    // If the message arrived via the dedicated Linus Slack App, always route to Linus.
-    // SLACK_LINUS_APP_ID should be set to the api_app_id of the "Linus CTO" Slack app.
+    // Dedicated Slack Apps — route by api_app_id before any keyword matching.
+    // Set SLACK_LINUS_APP_ID / SLACK_ELROY_APP_ID to each app's api_app_id in secrets.
     const linusAppId = process.env.SLACK_LINUS_APP_ID;
     if (linusAppId && appId && appId === linusAppId) {
-        logger.info(`[SlackBridge] detectAgent → Tier0(linus app_id match) → linus | appId="${appId}"`);
+        logger.info(`[SlackBridge] detectAgent → Tier0(linus app_id) → linus | appId="${appId}"`);
         return 'linus';
+    }
+    const elroyAppId = process.env.SLACK_ELROY_APP_ID;
+    if (elroyAppId && appId && appId === elroyAppId) {
+        logger.info(`[SlackBridge] detectAgent → Tier0(elroy app_id) → elroy | appId="${appId}"`);
+        return 'elroy';
     }
 
     // Linus-specific meta/runtime questions often arrive in DMs without an

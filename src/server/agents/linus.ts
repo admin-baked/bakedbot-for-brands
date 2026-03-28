@@ -1770,68 +1770,34 @@ const LINUS_TOOLS: ClaudeTool[] = [
 
 type LinusToolMode = 'full' | 'slack';
 
-const LINUS_SLACK_TOOL_NAMES = new Set([
-    // Core code ops
-    'run_health_check',
-    'github_push_api',
-    'read_file',
-    'write_file',
-    'run_command',
-    'bash',
-    'archive_work',
-    'archive_recent_commits',
-    'query_work_history',
-    'search_codebase',
-    'find_files',
-    'git_log',
-    'git_diff',
-    'git_blame',
-    'analyze_stack_trace',
-    'run_specific_test',
-    'list_directory',
-    'run_browser_test',
-    'query_database_schema',
-    'ops_linear_create_issue',
-    'ops_linear_get_issues',
-    'fetch_production_logs',
-    'create_incident_room',
-    'github_create_pr',
-    'github_review_pr',
-    // Web search & scraping — system prompt references these; missing them causes hallucination
-    'web_search',
-    'web_search_places',
-    'firecrawl_scrape',
-    'firecrawl_search',
-    'firecrawl_map_site',
-    // Super power scripts (execute_super_power is in the system prompt; must be available)
-    'execute_super_power',
-    // Long-term memory
-    'letta_search_memory',
-    'letta_save_fact',
-    'letta_update_personal_memory',
-    // Build monitor — super user observability tools
-    'build_monitor_get_recent',
-    'build_monitor_get_last_status',
-    'build_monitor_analyze_failure',
-    // QA
-    'check_qa_report',
-    'file_qa_bug',
-    // Browser automation (discovery / rtrvr)
-    'discovery_browser_automate',
-    'discovery_summarize_page',
-    'discovery_extract_data',
-    // E2E testing
-    'run_e2e_test',
-    // Approval workflow
-    'check_approval_status',
+// Tools blocked from Slack mode — too dangerous, side-effectful, or irrelevant for chat.
+// New tools added to LINUS_TOOLS are automatically Slack-available unless listed here.
+const LINUS_SLACK_TOOL_BLOCKLIST = new Set([
+    // Boardroom / reporting — async ops, not interactive
+    'read_backlog', 'run_layer_eval', 'make_deployment_decision', 'report_to_boardroom',
+    // Side effects with external recipients
+    'drive_upload_file', 'send_email',
+    // Kusho test generation suite — long-running, not chat-appropriate
+    'kusho_generate_tests', 'kusho_run_suite', 'kusho_analyze_coverage',
+    'kusho_record_ui', 'kusho_setup',
+    // Internal agent context primitives — not useful from chat
+    'context_log_decision', 'context_ask_why', 'context_get_agent_history',
+    'intuition_evaluate_heuristics', 'intuition_get_confidence', 'intuition_log_outcome',
+    // Browser extension automation — requires local extension install
+    'extension_create_session', 'extension_navigate', 'extension_click', 'extension_type',
+    'extension_screenshot', 'extension_get_console', 'extension_end_session',
+    'extension_run_workflow', 'extension_list_workflows',
+    // Playwright scaffold — write ops, not interactive
+    'generate_playwright_test', 'discovery_fill_form',
+    // Build monitor write ops — should only fire from CI, not chat
+    'build_monitor_notify_failure', 'build_monitor_record_status',
+    // Approval creation — separate UI flow; chat can only check status
+    'create_approval_request',
 ]);
 
 function getLinusTools(mode: LinusToolMode = 'full'): ClaudeTool[] {
-    if (mode === 'full') {
-        return LINUS_TOOLS;
-    }
-
-    return LINUS_TOOLS.filter(tool => LINUS_SLACK_TOOL_NAMES.has(tool.name));
+    if (mode === 'slack') return LINUS_TOOLS.filter(t => !LINUS_SLACK_TOOL_BLOCKLIST.has(t.name));
+    return LINUS_TOOLS;
 }
 
 // ============================================================================
