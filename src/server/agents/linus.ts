@@ -1771,6 +1771,7 @@ const LINUS_TOOLS: ClaudeTool[] = [
 type LinusToolMode = 'full' | 'slack';
 
 const LINUS_SLACK_TOOL_NAMES = new Set([
+    // Core code ops
     'run_health_check',
     'github_push_api',
     'read_file',
@@ -1778,6 +1779,7 @@ const LINUS_SLACK_TOOL_NAMES = new Set([
     'run_command',
     'bash',
     'archive_work',
+    'archive_recent_commits',
     'query_work_history',
     'search_codebase',
     'find_files',
@@ -1795,6 +1797,33 @@ const LINUS_SLACK_TOOL_NAMES = new Set([
     'create_incident_room',
     'github_create_pr',
     'github_review_pr',
+    // Web search & scraping — system prompt references these; missing them causes hallucination
+    'web_search',
+    'web_search_places',
+    'firecrawl_scrape',
+    'firecrawl_search',
+    'firecrawl_map_site',
+    // Super power scripts (execute_super_power is in the system prompt; must be available)
+    'execute_super_power',
+    // Long-term memory
+    'letta_search_memory',
+    'letta_save_fact',
+    'letta_update_personal_memory',
+    // Build monitor — super user observability tools
+    'build_monitor_get_recent',
+    'build_monitor_get_last_status',
+    'build_monitor_analyze_failure',
+    // QA
+    'check_qa_report',
+    'file_qa_bug',
+    // Browser automation (discovery / rtrvr)
+    'discovery_browser_automate',
+    'discovery_summarize_page',
+    'discovery_extract_data',
+    // E2E testing
+    'run_e2e_test',
+    // Approval workflow
+    'check_approval_status',
 ]);
 
 function getLinusTools(mode: LinusToolMode = 'full'): ClaudeTool[] {
@@ -4508,7 +4537,30 @@ function buildLinusProgressMessage(toolName: string, input: Record<string, unkno
         case 'web_search':
             return `_Linus is searching the web for "${String(input.query ?? '').slice(0, 50)}"..._`;
         case 'firecrawl_scrape':
-            return `_Linus is scraping a URL for context..._`;
+        case 'firecrawl_search':
+        case 'firecrawl_map_site':
+            return `_Linus is scraping/crawling a URL for context..._`;
+        case 'web_search_places':
+            return `_Linus is searching for places: "${String(input.query ?? '').slice(0, 50)}"..._`;
+        case 'letta_search_memory':
+            return `_Linus is searching long-term memory..._`;
+        case 'letta_save_fact':
+        case 'letta_update_personal_memory':
+            return `_Linus is updating agent memory..._`;
+        case 'build_monitor_get_recent':
+        case 'build_monitor_get_last_status':
+            return `_Linus is checking build monitor..._`;
+        case 'build_monitor_analyze_failure':
+            return `_Linus is analyzing build failure..._`;
+        case 'discovery_browser_automate':
+        case 'discovery_summarize_page':
+        case 'discovery_extract_data':
+            return `_Linus is browsing the web..._`;
+        case 'run_e2e_test':
+            return `_Linus is running E2E tests..._`;
+        case 'check_qa_report':
+        case 'file_qa_bug':
+            return `_Linus is reviewing QA report..._`;
         case 'git_log':
         case 'git_diff':
             return `_Linus is reviewing git history..._`;

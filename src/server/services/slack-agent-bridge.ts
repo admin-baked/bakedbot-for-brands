@@ -41,6 +41,12 @@ const LINUS_TOOL_PATTERNS = [
     /\b(review|the\s+repo|codebase|letta|memory|what.s.broken|health|status)\b/,
     // Explicit shell commands or backtick code
     /npm\s+run|git\s+(log|diff|status|push|pull|commit|blame)|`/,
+    // Web search / scraping / browsing requests
+    /\b(search\s+(the\s+)?web|google|look\s+up|browse|scrape|firecrawl|web\s+search)\b/,
+    // Super power execution
+    /\b(super\s*power|god\s*mode|run\s+script|execute\s+script|audit.?(index|schema|cost|consistency)|seed.?test|fix.?build)\b/,
+    // Production monitoring / builds
+    /\b(build\s+monitor|production\s+logs?|recent\s+builds?|last\s+build|deployment\s+status)\b/,
 ];
 
 function linusNeedsTools(text: string): boolean {
