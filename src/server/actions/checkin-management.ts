@@ -290,7 +290,11 @@ export async function getPublicBrandLogo(orgId: string): Promise<{ logoUrl: stri
         const snap = await db.collection('brandGuides').doc(orgId).get();
         if (!snap.exists) return { logoUrl: null };
         const data = snap.data() ?? {};
-        const logoUrl: string | null = data.logo?.primary ?? data.logo?.wordmark ?? null;
+        const logoUrl: string | null =
+            data.visualIdentity?.logo?.primary ||
+            data.visualIdentity?.logo?.wordmark ||
+            data.logo?.primary ||
+            null;
         return { logoUrl };
     } catch {
         return { logoUrl: null };
