@@ -42,6 +42,15 @@ export async function notifySlackOnCriticalInsights(
       return { notified: false, count: 0 };
     }
 
+    // Only post to the Slack webhook for the org it is configured for.
+    // SLACK_WEBHOOK_ORG_ID defaults to org_thrive_syracuse (the pilot channel).
+    // Insights for other orgs are surfaced via inbox threads only.
+    const webhookOrgId = process.env.SLACK_WEBHOOK_ORG_ID ?? 'org_thrive_syracuse';
+    if (orgId !== webhookOrgId) {
+      logger.info('[InsightNotifier] Skipping Slack notification — orgId does not match webhook org', { orgId, webhookOrgId });
+      return { notified: false, count: 0 };
+    }
+
     // Group by severity for better organization
     const critical = criticalInsights.filter((i) => i.severity === 'critical');
     const warning = criticalInsights.filter((i) => i.severity === 'warning');
