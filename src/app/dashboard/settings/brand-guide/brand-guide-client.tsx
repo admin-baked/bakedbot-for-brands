@@ -39,6 +39,8 @@ import {
   TrendingUp as StrategyIcon,
   RotateCcw,
   Loader2,
+  AlertCircle,
+  X,
 } from 'lucide-react';
 import type { BrandGuide, BrandGuideCompetitorSuggestion } from '@/types/brand-guide';
 import { VisualIdentityTab } from './components/visual-identity-tab';
@@ -83,6 +85,79 @@ interface BrandGuideClientProps {
   brandId: string;
   initialBrandGuide?: BrandGuide;
   userRole: string;
+}
+
+// ── Completeness checklist ────────────────────────────────────────────────
+
+interface MissingField { label: string; tab: string; points: number }
+
+function getMissingFields(g: BrandGuide): MissingField[] {
+  const missing: MissingField[] = [];
+  if (!g.visualIdentity?.logo?.primary)                                   missing.push({ label: 'Add your logo',                   tab: 'visual',     points: 5  });
+  if (!g.visualIdentity?.colors)                                           missing.push({ label: 'Set brand colors',                 tab: 'visual',     points: 10 });
+  if (!g.visualIdentity?.typography)                                       missing.push({ label: 'Set typography',                   tab: 'visual',     points: 10 });
+  if (!g.voice?.personality || g.voice.personality.length === 0)          missing.push({ label: 'Choose personality traits',        tab: 'voice',      points: 10 });
+  if (!g.voice?.tone)                                                      missing.push({ label: 'Set brand tone',                   tab: 'voice',      points: 5  });
+  if (!g.voice?.writingStyle)                                              missing.push({ label: 'Define writing style',             tab: 'voice',      points: 5  });
+  if (!g.voice?.sampleContent || g.voice.sampleContent.length === 0)      missing.push({ label: 'Generate sample content',          tab: 'voice',      points: 5  });
+  if (!g.messaging?.tagline)                                               missing.push({ label: 'Add a tagline',                    tab: 'messaging',  points: 10 });
+  if (!g.messaging?.positioning)                                           missing.push({ label: 'Write brand positioning',          tab: 'messaging',  points: 10 });
+  if (!g.messaging?.valuePropositions || g.messaging.valuePropositions.length === 0) missing.push({ label: 'Add value propositions', tab: 'messaging', points: 5 });
+  if (!g.compliance?.primaryState)                                         missing.push({ label: 'Set primary state',                tab: 'compliance', points: 5  });
+  if (!g.compliance?.requiredDisclaimers)                                  missing.push({ label: 'Generate disclaimers',             tab: 'compliance', points: 5  });
+  if (!g.compliance?.ageGateLanguage)                                      missing.push({ label: 'Add age gate language',            tab: 'compliance', points: 5  });
+  if (!g.assets?.heroImages || g.assets.heroImages.length === 0)          missing.push({ label: 'Upload a hero image',              tab: 'assets',     points: 5  });
+  if (!g.assets?.templates)                                                missing.push({ label: 'Add brand templates',              tab: 'assets',     points: 5  });
+  return missing;
+}
+
+const TAB_ICONS: Record<string, React.ReactNode> = {
+  visual:     <Palette className="h-3 w-3" />,
+  voice:      <MessageSquare className="h-3 w-3" />,
+  messaging:  <Target className="h-3 w-3" />,
+  compliance: <Shield className="h-3 w-3" />,
+  assets:     <ImageIcon className="h-3 w-3" />,
+};
+
+function CompletenessChecklist({ brandGuide, onTabChange }: { brandGuide: BrandGuide; onTabChange: (tab: string) => void }) {
+  const [dismissed, setDismissed] = useState(false);
+  const missing = getMissingFields(brandGuide);
+  if (dismissed || missing.length === 0) return null;
+
+  const pointsLeft = missing.reduce((sum, f) => sum + f.points, 0);
+
+  return (
+    <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+              {pointsLeft} points away from 100%
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">Complete these items to unlock full agent integration</p>
+          </div>
+        </div>
+        <button onClick={() => setDismissed(true)} className="text-muted-foreground hover:text-foreground shrink-0">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+        {missing.map((f) => (
+          <button
+            key={f.label}
+            onClick={() => onTabChange(f.tab)}
+            className="flex items-center gap-2 text-left px-3 py-2 rounded-md bg-background border border-border hover:border-amber-400 hover:bg-amber-500/5 transition-colors group"
+          >
+            <span className="text-muted-foreground group-hover:text-amber-500 shrink-0">{TAB_ICONS[f.tab]}</span>
+            <span className="text-sm flex-1 truncate">{f.label}</span>
+            <Badge variant="outline" className="text-xs shrink-0 text-amber-600 border-amber-400/50">+{f.points}pts</Badge>
+            <ChevronRight className="h-3 w-3 text-muted-foreground group-hover:text-amber-500 shrink-0" />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export function BrandGuideClient({
@@ -216,6 +291,9 @@ export function BrandGuideClient({
           style={{ width: `${brandGuide.completenessScore}%` }}
         />
       </div>
+
+      {/* Completeness checklist */}
+      {!isGuideComplete && <CompletenessChecklist brandGuide={brandGuide} onTabChange={setActiveTab} />}
 
       {/* Main tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
