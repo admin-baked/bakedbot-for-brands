@@ -55,7 +55,15 @@ const AGENT_ICONS: Record<string, React.ComponentType<{ className?: string }>> =
 
 // ============ Trend Indicator ============
 
-function TrendIndicator({ trend, value }: { trend?: string; value?: string }) {
+function TrendIndicator({
+    trend,
+    value,
+    dense = false,
+}: {
+    trend?: string;
+    value?: string;
+    dense?: boolean;
+}) {
     if (!trend) return null;
 
     const Icon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : Minus;
@@ -67,8 +75,14 @@ function TrendIndicator({ trend, value }: { trend?: string; value?: string }) {
               : 'text-muted-foreground';
 
     return (
-        <span className={cn('flex items-center gap-0.5 text-xs font-medium', color)}>
-            <Icon className="h-3 w-3" />
+        <span
+            className={cn(
+                'flex items-center gap-0.5 font-medium',
+                dense ? 'text-[11px]' : 'text-xs',
+                color
+            )}
+        >
+            <Icon className={cn(dense ? 'h-2.5 w-2.5' : 'h-3 w-3')} />
             {value}
         </span>
     );
@@ -81,6 +95,7 @@ interface InsightCardProps {
     onAction?: (insight: InsightCardType) => void;
     className?: string;
     compact?: boolean;
+    dense?: boolean;
 }
 
 // ============ Component ============
@@ -90,6 +105,7 @@ export function InsightCard({
     onAction,
     className,
     compact = false,
+    dense = false,
 }: InsightCardProps) {
     const AgentIcon = AGENT_ICONS[insight.agentId] || Bot;
     const agentColors = getAgentColors(insight.agentId);
@@ -115,21 +131,24 @@ export function InsightCard({
                 )}
                 onClick={handleClick}
             >
-                <CardContent className={cn('p-4', compact && 'p-3')}>
+                <CardContent className={cn('p-4', compact && 'p-3', dense && 'p-2.5')}>
                     {/* Header: Agent Badge + Trend */}
-                    <div className="flex items-center justify-between mb-2">
+                    <div className={cn('flex items-center justify-between', dense ? 'mb-1.5' : 'mb-2')}>
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Badge
                                     variant="outline"
                                     className={cn(
-                                        'text-[10px] font-semibold flex items-center gap-1',
+                                        'flex items-center gap-1 font-semibold',
+                                        dense
+                                            ? 'h-5 rounded-full px-2 text-[9px]'
+                                            : 'text-[10px]',
                                         agentColors.bg,
                                         agentColors.text,
                                         agentColors.border
                                     )}
                                 >
-                                    <AgentIcon className="h-3 w-3" />
+                                    <AgentIcon className={cn(dense ? 'h-2.5 w-2.5' : 'h-3 w-3')} />
                                     {insight.agentName}
                                 </Badge>
                             </TooltipTrigger>
@@ -138,12 +157,23 @@ export function InsightCard({
                             </TooltipContent>
                         </Tooltip>
 
-                        <TrendIndicator trend={insight.trend} value={insight.trendValue} />
+                        <TrendIndicator
+                            trend={insight.trend}
+                            value={insight.trendValue}
+                            dense={dense}
+                        />
                     </div>
 
                     {/* Title */}
-                    <div className="flex items-center gap-1 mb-1">
-                        <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <div className={cn('flex items-center gap-1', dense ? 'mb-0.5' : 'mb-1')}>
+                        <h4
+                            className={cn(
+                                'font-medium uppercase text-muted-foreground',
+                                dense
+                                    ? 'text-[11px] tracking-[0.16em]'
+                                    : 'text-xs tracking-wider'
+                            )}
+                        >
                             {insight.title}
                         </h4>
                         {insight.tooltipText && (
@@ -162,7 +192,11 @@ export function InsightCard({
                     <p
                         className={cn(
                             'font-bold text-foreground',
-                            compact ? 'text-lg' : 'text-xl'
+                            dense
+                                ? 'text-base leading-tight line-clamp-2'
+                                : compact
+                                    ? 'text-lg'
+                                    : 'text-xl'
                         )}
                     >
                         {insight.headline}
@@ -170,11 +204,20 @@ export function InsightCard({
 
                     {/* Subtext */}
                     {insight.subtext && (
-                        <p className="text-xs text-muted-foreground mt-1">{insight.subtext}</p>
+                        <p
+                            className={cn(
+                                'mt-1 text-muted-foreground',
+                                dense
+                                    ? 'line-clamp-2 text-[11px] leading-4'
+                                    : 'text-xs'
+                            )}
+                        >
+                            {insight.subtext}
+                        </p>
                     )}
 
                     {/* CTA Button (shown on hover or if critical) */}
-                    {insight.actionable && insight.ctaLabel && (
+                    {insight.actionable && insight.ctaLabel && !dense && (
                         <div
                             className={cn(
                                 'mt-3 transition-opacity duration-200',
@@ -190,6 +233,11 @@ export function InsightCard({
                                 {insight.ctaLabel}
                                 <ArrowRight className="h-3 w-3 ml-1" />
                             </Button>
+                        </div>
+                    )}
+                    {insight.actionable && dense && (
+                        <div className="pointer-events-none absolute bottom-2 right-2 rounded-full bg-background/95 p-1 opacity-0 shadow-sm transition-opacity duration-200 group-hover:opacity-100">
+                            <ArrowRight className={cn('h-3 w-3', severityColors.text)} />
                         </div>
                     )}
                 </CardContent>

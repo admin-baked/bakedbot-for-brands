@@ -12,6 +12,14 @@ describe('CEO dashboard server action import boundaries', () => {
     expect(source).toContain("import('@/server/actions/ny-outreach-dashboard')");
   });
 
+  it('hydrates chat sessions only on chat-enabled CEO tabs', () => {
+    const pagePath = path.join(process.cwd(), 'src/app/dashboard/ceo/page.tsx');
+    const source = fs.readFileSync(pagePath, 'utf8');
+
+    expect(source).toContain("const CHAT_HYDRATION_TABS = new Set(['agents', 'boardroom', 'playbooks', 'dev-console']);");
+    expect(source).toContain("if (!CHAT_HYDRATION_TABS.has(currentTab)) {");
+  });
+
   it('lazy-loads outreach tab server actions instead of eagerly importing the action module', () => {
     const tabPath = path.join(process.cwd(), 'src/app/dashboard/ceo/components/outreach-tab.tsx');
     const source = fs.readFileSync(tabPath, 'utf8');

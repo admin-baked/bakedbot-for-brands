@@ -1,6 +1,7 @@
 import { getChatSessions, saveChatSession } from '../chat-persistence';
 import { requireUser } from '@/server/auth/auth';
 import { createServerClient } from '@/firebase/server-client';
+import { logger } from '@/lib/logger';
 
 jest.mock('@/server/auth/auth', () => ({
   requireUser: jest.fn(),
@@ -227,6 +228,45 @@ describe('chat-persistence security', () => {
       success: false,
       error: 'Firestore read failed',
     });
+  });
+
+  it('still returns a structured error when logger.error throws while handling a read failure', async () => {
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    const firestoreError = new Error('Firestore read failed');
+    get.mockRejectedValueOnce(firestoreError);
+    (logger.error as jest.Mock).mockRejectedValueOnce(new Error('Sentry offline'));
+
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'super-1',
+      role: 'super_user',
+    });
+
+    const result = await getChatSessions();
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Firestore read failed',
+    });
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('still returns unauthorized when logger.warn throws during an access denial', async () => {
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    (logger.warn as jest.Mock).mockRejectedValueOnce(new Error('Sentry offline'));
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'user-1',
+      role: 'dispensary_admin',
+    });
+
+    const result = await getChatSessions('user-2');
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Unauthorized',
+    });
+
+    consoleErrorSpy.mockRestore();
   });
 
   it('rejects invalid chat session ids on save', async () => {

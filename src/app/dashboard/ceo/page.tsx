@@ -70,6 +70,7 @@ import { RoleSwitcher } from '@/components/debug/role-switcher';
 import { MockDataToggle } from '@/components/debug/mock-data-toggle';
 import { DataImportDropdown } from '@/components/dashboard/data-import-dropdown';
 
+import { logger } from '@/lib/logger';
 import { useAgentChatStore, type ChatMessage, type ChatSession } from '@/lib/store/agent-chat-store';
 import type { Artifact } from '@/types/artifact';
 
@@ -88,6 +89,8 @@ type SerializedChatSession = Omit<ChatSession, 'timestamp' | 'messages' | 'artif
     messages?: SerializedChatMessage[];
     artifacts?: SerializedArtifact[];
 };
+
+const CHAT_HYDRATION_TABS = new Set(['agents', 'boardroom', 'playbooks', 'dev-console']);
 
 function hydrateArtifactDates(artifact: SerializedArtifact): Artifact {
     return {
@@ -158,6 +161,10 @@ function CeoDashboardContent() {
             return;
         }
 
+        if (!CHAT_HYDRATION_TABS.has(currentTab)) {
+            return;
+        }
+
         if (hydratedSessionsUserRef.current === userUid) {
             return;
         }
@@ -168,7 +175,7 @@ function CeoDashboardContent() {
             getChatSessions(userUid).then(result => {
                 if (!result.success) {
                     hydratedSessionsUserRef.current = null;
-                    console.error("Failed to hydrate sessions (client):", result.error || 'Unknown error');
+                    void logger.error("Failed to hydrate sessions (client)", { error: result.error || 'Unknown error' });
                     return;
                 }
 
@@ -177,13 +184,13 @@ function CeoDashboardContent() {
                 }
             }).catch(err => {
                 hydratedSessionsUserRef.current = null;
-                console.error("Failed to hydrate sessions (client):", err);
+                void logger.error("Failed to hydrate sessions (client)", { error: String(err) });
             });
         }).catch(err => {
             hydratedSessionsUserRef.current = null;
-            console.error("Failed to load chat persistence actions:", err);
+            void logger.error("Failed to load chat persistence actions", { error: String(err) });
         });
-    }, [canAccessCeo, userUid]);
+    }, [canAccessCeo, currentTab, userUid]);
 
     useEffect(() => {
         if (!canAccessCeo || !userUid) {

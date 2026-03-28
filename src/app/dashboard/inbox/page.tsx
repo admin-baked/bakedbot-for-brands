@@ -67,13 +67,13 @@ function InboxContent() {
     return (
         <div className="flex h-full min-h-0 flex-col overflow-hidden">
             {/* View Toggle Header */}
-            <div className="flex flex-col gap-4 border-b bg-background/95 px-4 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:px-6 sm:py-5">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex flex-col gap-3 border-b bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:px-6 sm:py-4">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div className="space-y-1">
                         <h1 className="text-base font-semibold sm:text-lg">
                             {viewMode === 'inbox' ? 'Unified Inbox' : 'Agent Chat'}
                         </h1>
-                        <p className="max-w-2xl text-xs text-muted-foreground">
+                        <p className="max-w-2xl text-[11px] text-muted-foreground sm:text-xs">
                             {modeDescription}
                         </p>
                     </div>
@@ -125,7 +125,7 @@ function InboxContent() {
 
 export default function InboxPage() {
     return (
-        <div className="h-[calc(100vh-4rem)] overflow-hidden">
+        <div className="h-[calc(100dvh-4rem)] overflow-hidden">
             <Suspense fallback={<InboxLoading />}>
                 <InboxContent />
             </Suspense>

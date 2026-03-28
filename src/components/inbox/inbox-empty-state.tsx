@@ -76,9 +76,16 @@ interface PresetChipProps {
     hasCustomText: boolean;
     onSelect: () => void;
     isCreating: boolean;
+    compact?: boolean;
 }
 
-function PresetChip({ action, hasCustomText, onSelect, isCreating }: PresetChipProps) {
+function PresetChip({
+    action,
+    hasCustomText,
+    onSelect,
+    isCreating,
+    compact = false,
+}: PresetChipProps) {
     const Icon = getIcon(action.icon);
 
     return (
@@ -86,18 +93,26 @@ function PresetChip({ action, hasCustomText, onSelect, isCreating }: PresetChipP
             onClick={onSelect}
             disabled={isCreating}
             className={cn(
-                'group flex items-center gap-2 px-4 py-2 rounded-full border transition-all',
+                'group flex items-center rounded-full border transition-all',
+                compact ? 'gap-1.5 px-3 py-1.5' : 'gap-2 px-4 py-2',
                 'bg-card hover:bg-muted/50 hover:border-primary/30',
                 hasCustomText && 'ring-2 ring-primary/20 border-primary/30',
                 isCreating && 'opacity-70 cursor-not-allowed'
             )}
         >
             {isCreating ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className={cn(compact ? 'h-3.5 w-3.5' : 'h-4 w-4', 'animate-spin')} />
             ) : (
-                <Icon className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
+                <Icon
+                    className={cn(
+                        compact ? 'h-3.5 w-3.5' : 'h-4 w-4',
+                        'text-primary transition-transform group-hover:scale-110'
+                    )}
+                />
             )}
-            <span className="text-sm font-medium">{action.label}</span>
+            <span className={cn(compact ? 'text-xs' : 'text-sm', 'font-medium')}>
+                {action.label}
+            </span>
             {hasCustomText && <Plus className="h-3 w-3 text-muted-foreground" />}
         </button>
     );
@@ -363,22 +378,30 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
 
     const renderPresetSuggestions = (
         actions: InboxQuickAction[],
-        justifyClassName = 'justify-center'
+        {
+            justifyClassName = 'justify-center',
+            compact = false,
+            chipsClassName,
+        }: {
+            justifyClassName?: string;
+            compact?: boolean;
+            chipsClassName?: string;
+        } = {}
     ) => {
         if (actions.length === 0) {
             return null;
         }
 
         return (
-            <div className="space-y-3">
-                <div className="flex items-center justify-center gap-2">
-                    <h2 className="text-sm font-medium text-muted-foreground">
+            <div className={cn(compact ? 'space-y-2' : 'space-y-3')}>
+                <div className={cn('flex items-center gap-2', compact ? 'justify-start' : 'justify-center')}>
+                    <h2 className={cn(compact ? 'text-xs' : 'text-sm', 'font-medium text-muted-foreground')}>
                         Quick Suggestions
                     </h2>
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6"
+                        className={cn(compact ? 'h-5 w-5' : 'h-6 w-6')}
                         onClick={refresh}
                         disabled={isCreating}
                         title="Refresh suggestions"
@@ -386,7 +409,7 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
                         <RefreshCw className="h-3 w-3" />
                     </Button>
                 </div>
-                <div className={cn('flex flex-wrap gap-2', justifyClassName)}>
+                <div className={cn('flex flex-wrap gap-2', justifyClassName, chipsClassName)}>
                     {actions.map((action) => (
                         <PresetChip
                             key={action.id}
@@ -394,6 +417,7 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
                             hasCustomText={hasCustomText}
                             onSelect={() => handlePresetSelect(action)}
                             isCreating={isCreating}
+                            compact={compact}
                         />
                     ))}
                 </div>
@@ -401,41 +425,43 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
         );
     };
 
-    const renderOwnerBriefing = (gridClassName: string) => {
+    const renderOwnerBriefing = (gridClassName: string, compact = false) => {
         if (!ownerBriefing) {
             return null;
         }
 
         return (
             <div className={gridClassName}>
-                <div className="rounded-xl border bg-card p-4 text-left space-y-2">
-                    <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <div className={cn('rounded-xl border bg-card text-left', compact ? 'space-y-1.5 p-3' : 'space-y-2 p-4')}>
+                    <p className={cn(compact ? 'text-[11px]' : 'text-xs', 'font-medium uppercase tracking-wider text-muted-foreground')}>
                         What Happened Yesterday
                     </p>
-                    <p className="text-sm font-semibold text-foreground">
+                    <p className={cn(compact ? 'line-clamp-2 text-sm leading-5' : 'text-sm', 'font-semibold text-foreground')}>
                         {ownerBriefing.happenedYesterday}
                     </p>
                     {ownerBriefing.happenedYesterdayDetail && (
-                        <p className="text-xs text-muted-foreground">
+                        <p className={cn(compact ? 'line-clamp-2 text-[11px] leading-4' : 'text-xs', 'text-muted-foreground')}>
                             {ownerBriefing.happenedYesterdayDetail}
                         </p>
                     )}
                 </div>
-                <div className="rounded-xl border bg-card p-4 text-left space-y-2">
-                    <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <div className={cn('rounded-xl border bg-card text-left', compact ? 'space-y-1.5 p-3' : 'space-y-2 p-4')}>
+                    <p className={cn(compact ? 'text-[11px]' : 'text-xs', 'font-medium uppercase tracking-wider text-muted-foreground')}>
                         What To Work On Today
                     </p>
-                    <p className="text-sm font-semibold text-foreground">
+                    <p className={cn(compact ? 'line-clamp-2 text-sm leading-5' : 'text-sm', 'font-semibold text-foreground')}>
                         {ownerBriefing.workOnToday}
                     </p>
                     {ownerBriefing.priorities.length > 0 ? (
-                        <ul className="space-y-1 text-xs text-muted-foreground">
-                            {ownerBriefing.priorities.map((priority) => (
-                                <li key={priority}>{priority}</li>
+                        <ul className={cn(compact ? 'space-y-1 text-[11px] leading-4' : 'space-y-1 text-xs', 'text-muted-foreground')}>
+                            {ownerBriefing.priorities.slice(0, compact ? 2 : undefined).map((priority) => (
+                                <li key={priority} className={cn(compact && 'line-clamp-1')}>
+                                    {priority}
+                                </li>
                             ))}
                         </ul>
                     ) : (
-                        <p className="text-xs text-muted-foreground">
+                        <p className={cn(compact ? 'text-[11px] leading-4' : 'text-xs', 'text-muted-foreground')}>
                             No open blockers were pulled into today&apos;s brief.
                         </p>
                     )}
@@ -501,47 +527,43 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
         ) : (
             <div className={cn('h-full overflow-hidden', className)} data-testid="inbox-empty-state-desktop">
                 <div className="flex h-full min-h-0 flex-col">
-                    <div className="border-b bg-background/95 px-6 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                        <div className="mx-auto w-full max-w-4xl space-y-3">
-                            <div className="grid gap-4 xl:grid-cols-[220px,minmax(0,1fr)] xl:items-start">
-                                <div className="space-y-2">
-                                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    <div className="border-b bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                        <div className="mx-auto grid w-full max-w-4xl gap-3 xl:grid-cols-[180px,minmax(0,1fr)] xl:items-start">
+                            <div className="space-y-1.5">
+                                <div className="space-y-1">
+                                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                                         Start Here
                                     </p>
-                                    <h1 className="text-xl font-semibold text-foreground">
+                                    <h1 className="text-lg font-semibold text-foreground xl:text-xl">
                                         {greeting}!
                                     </h1>
                                 </div>
+                                <p className="max-w-[15rem] text-xs leading-5 text-muted-foreground">
+                                    {ownerBriefing
+                                        ? 'Keep the briefing above in view while you start the next inbox task here.'
+                                        : suggestion}
+                                </p>
+                            </div>
 
-                                <div className="min-w-0">
-                                    {renderComposer('min-h-[56px]')}
+                            <div className="min-w-0 space-y-2.5">
+                                {renderComposer('min-h-[68px] text-sm')}
+                                {renderPresetSuggestions(presets, {
+                                    justifyClassName: 'justify-start',
+                                    compact: true,
+                                    chipsClassName: 'flex-nowrap overflow-x-auto pb-1 pr-1',
+                                })}
                                 </div>
                             </div>
 
-                            <p className="max-w-3xl text-sm text-muted-foreground">
-                                {ownerBriefing
-                                    ? 'Jump straight into your next inbox task. The full desktop briefing stays above, so you can start typing without losing today’s context.'
-                                    : suggestion}
-                            </p>
-                        </div>
                     </div>
 
-                    <div className="min-h-0 flex-1 overflow-y-auto">
-                        <div className="mx-auto w-full max-w-4xl space-y-6 p-6">
-                            {renderOwnerBriefing('grid gap-3 xl:grid-cols-2')}
-
-                            {renderPresetSuggestions(presets, 'justify-start')}
-
-                            <div className="rounded-xl border bg-card/80 p-4">
-                                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                                    Workspace Note
-                                </p>
-                                <p className="mt-2 text-sm text-muted-foreground">
-                                    The desktop briefing above stays visible for context. This lower pane is now reserved for starting work quickly, keeping your composer accessible without scrolling the page.
-                                </p>
+                    {ownerBriefing && (
+                        <div className="border-b bg-background/70 px-4 py-3">
+                            <div className="mx-auto w-full max-w-4xl">
+                                {renderOwnerBriefing('grid gap-3 xl:grid-cols-2', true)}
                             </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             </div>
         )}

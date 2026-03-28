@@ -265,7 +265,7 @@ function QuickActionButton({ action, collapsed }: { action: InboxQuickAction; co
         <Button
             variant="outline"
             size="sm"
-            className="justify-start gap-2 h-9 text-sm font-normal"
+            className="h-8 justify-start gap-2 text-sm font-normal"
             onClick={handleClick}
             disabled={isCreating}
         >
@@ -577,20 +577,20 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
             className
         )}>
             {/* Header */}
-            <div className="p-4 border-b border-white/5">
+            <div className="border-b border-white/5 p-3">
                 <div className="flex items-center justify-between">
                     {!collapsed && (
                         <div className="flex items-center gap-2">
-                            <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                            <div className="rounded-lg bg-primary/10 p-1.5 text-primary">
                                 <InboxIcon className="h-4 w-4" />
                             </div>
-                            <h2 className="font-semibold">Inbox</h2>
+                            <h2 className="text-base font-semibold">Inbox</h2>
                         </div>
                     )}
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8"
+                        className="h-7 w-7"
                         onClick={() => setSidebarCollapsed(!isSidebarCollapsed)}
                     >
                         {collapsed ? (
@@ -603,7 +603,7 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
             </div>
 
             {/* Quick Actions */}
-            <div className={cn('p-3 border-b border-white/5', collapsed && 'flex flex-col items-center gap-2')}>
+            <div className={cn('border-b border-white/5 p-2.5', collapsed && 'flex flex-col items-center gap-2')}>
                 {collapsed ? (
                     <>
                         {activeThreadId && (
@@ -710,12 +710,12 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
                         </div>
 
                         {/* Desktop: existing layout (hidden on mobile) */}
-                        <div className="hidden sm:block space-y-2">
+                        <div className="hidden space-y-1.5 sm:block">
                             {activeThreadId && (
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    className="w-full justify-start gap-2 h-9"
+                                    className="h-8 w-full justify-start gap-2"
                                     onClick={() => setActiveThread(null)}
                                 >
                                     <ChevronLeft className="h-4 w-4" />
@@ -727,7 +727,7 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
                             <Button
                                 variant="default"
                                 size="sm"
-                                className="w-full justify-start gap-2 h-9"
+                                className="h-8 w-full justify-start gap-2"
                                 onClick={() => setActiveThread(null)}
                             >
                                 <Plus className="h-4 w-4" />
@@ -755,7 +755,7 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
                             {quickActions.length > 6 && (
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <Button variant="outline" size="sm" className="w-full gap-2 h-9">
+                                        <Button variant="outline" size="sm" className="h-8 w-full gap-2">
                                             <MoreHorizontalIcon className="h-4 w-4" />
                                             More Actions ({quickActions.length - 6})
                                         </Button>
@@ -844,7 +844,7 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
 
             {/* Search, Filter, and Project Selector */}
             {!collapsed && (
-                <div className="p-3 border-b border-white/5 space-y-2">
+                <div className="space-y-2 border-b border-white/5 p-2.5">
                     {/* Search Bar */}
                     <div className="relative flex-1">
                         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />

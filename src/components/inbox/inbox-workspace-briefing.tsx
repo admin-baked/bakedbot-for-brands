@@ -122,14 +122,14 @@ export function InboxWorkspaceBriefing({ className }: InboxWorkspaceBriefingProp
     }, [orgId, user]);
 
     return (
-        <section className={cn('rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm', className)}>
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                <div className="space-y-3">
+        <section className={cn('rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm', className)}>
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                <div className="space-y-2.5">
                     <div className="flex flex-wrap items-center gap-2">
-                        <Badge className={cn('border-0', meta.accentClassName)}>
+                        <Badge className={cn('border-0 text-[11px]', meta.accentClassName)}>
                             {meta.label}
                         </Badge>
-                        <Badge variant="outline" className="bg-background/80 text-foreground">
+                        <Badge variant="outline" className="bg-background/80 text-[11px] text-foreground">
                             {isLoadingName ? (
                                 <Skeleton className="h-3 w-28" />
                             ) : (
@@ -138,42 +138,42 @@ export function InboxWorkspaceBriefing({ className }: InboxWorkspaceBriefingProp
                         </Badge>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                         <div className="flex items-center gap-3">
-                            <div className="rounded-xl bg-background p-2 text-primary shadow-sm">
-                                <meta.Icon className="h-5 w-5" />
+                            <div className="rounded-xl bg-background p-1.5 text-primary shadow-sm">
+                                <meta.Icon className="h-4 w-4" />
                             </div>
                             <div>
-                                <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
                                     Desktop Briefing
                                 </p>
-                                <h2 className="text-lg font-semibold text-foreground">
+                                <h2 className="text-base font-semibold text-foreground lg:text-lg">
                                     {meta.title}
                                 </h2>
                             </div>
                         </div>
 
-                        <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
+                        <p className="max-w-3xl text-[13px] leading-5 text-muted-foreground">
                             {meta.description(orgName)}
                         </p>
                     </div>
                 </div>
 
-                <div className="rounded-xl border border-border/60 bg-background/70 px-4 py-3 xl:max-w-[240px]">
-                    <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                <div className="rounded-xl border border-border/60 bg-background/70 px-3 py-2.5 xl:max-w-[220px]">
+                    <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
                         Pilot Focus
                     </p>
                     <p className="mt-1 text-sm font-semibold text-foreground">
                         Briefing + conversations
                     </p>
-                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    <p className="mt-1 text-[11px] leading-4 text-muted-foreground">
                         Keep the live daily briefing on screen while your active inbox work stays in the workspace below.
                     </p>
                 </div>
             </div>
 
-            <div className="mt-5">
-                <InsightCardsGrid maxCards={5} />
+            <div className="mt-4">
+                <InsightCardsGrid maxCards={5} density="dense" />
             </div>
         </section>
     );

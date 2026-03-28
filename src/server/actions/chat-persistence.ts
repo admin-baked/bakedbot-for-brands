@@ -5,12 +5,13 @@ import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import type { ChatSession } from '@/lib/store/agent-chat-store';
 import { logger } from '@/lib/logger';
 import { requireUser } from '@/server/auth/auth';
+import { SUPER_USER_ROLES, type UserRole } from '@/types/roles';
 
 function isSuperRole(role: unknown): boolean {
     if (Array.isArray(role)) {
-        return role.includes('super_user') || role.includes('super_admin');
+        return role.some(r => SUPER_USER_ROLES.includes(r as UserRole));
     }
-    return role === 'super_user' || role === 'super_admin';
+    return SUPER_USER_ROLES.includes(role as UserRole);
 }
 
 function isValidUserId(userId: string): boolean {
@@ -142,6 +143,21 @@ function getErrorLogData(error: unknown): Record<string, unknown> {
     };
 }
 
+async function logSafely(
+    level: 'warn' | 'error',
+    message: string,
+    data: Record<string, unknown>,
+): Promise<void> {
+    try {
+        await logger[level](message, data);
+    } catch (loggingError: unknown) {
+        console.error(`[chat-persistence] ${message}`, {
+            ...data,
+            loggingError: getErrorMessage(loggingError, 'Unknown logging error'),
+        });
+    }
+}
+
 export async function saveChatSession(session: ChatSession) {
     const normalizedSessionId = typeof session.id === 'string' ? session.id.trim() : '';
 
@@ -161,7 +177,7 @@ export async function saveChatSession(session: ChatSession) {
 
         return { success: true };
     } catch (error: unknown) {
-        await logger.error('Failed to save chat session', {
+        await logSafely('error', 'Failed to save chat session', {
             sessionId: normalizedSessionId || null,
             ...getErrorLogData(error),
         });
@@ -184,7 +200,7 @@ export async function getChatSessions(userId?: string) {
         }
 
         if (requestedUserId && requestedUserId !== user.uid && !isSuperRole((user as { role?: string }).role)) {
-            await logger.warn('Unauthorized chat session access attempt', {
+            await logSafely('warn', 'Unauthorized chat session access attempt', {
                 userId: user.uid,
                 requestedUserId,
             });
@@ -220,7 +236,7 @@ export async function getChatSessions(userId?: string) {
 
         return { success: true, sessions };
     } catch (error: unknown) {
-        await logger.error('Failed to get chat sessions', {
+        await logSafely('error', 'Failed to get chat sessions', {
             requestedUserId: requestedUserId || null,
             ...getErrorLogData(error),
         });
