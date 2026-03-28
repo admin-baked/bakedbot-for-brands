@@ -278,6 +278,25 @@ export interface CheckinBriefingData {
     insight: string;
 }
 
+// ── Public brand logo ──────────────────────────────────────────────────────
+
+/**
+ * Returns just the logo URL for a given org — no auth required.
+ * Used by the public loyalty tablet page.
+ */
+export async function getPublicBrandLogo(orgId: string): Promise<{ logoUrl: string | null }> {
+    try {
+        const db = getAdminFirestore();
+        const snap = await db.collection('brandGuides').doc(orgId).get();
+        if (!snap.exists) return { logoUrl: null };
+        const data = snap.data() ?? {};
+        const logoUrl: string | null = data.logo?.primary ?? data.logo?.wordmark ?? null;
+        return { logoUrl };
+    } catch {
+        return { logoUrl: null };
+    }
+}
+
 export async function postCheckinBriefingToInbox(orgId: string): Promise<{ success: boolean; artifactId?: string; error?: string }> {
     const statsResult = await getCheckinStats(orgId);
     if (!statsResult.success || !statsResult.stats) {

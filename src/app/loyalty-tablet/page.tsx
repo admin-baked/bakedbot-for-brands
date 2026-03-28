@@ -19,6 +19,7 @@ import {
     captureTabletLead,
     getMoodRecommendations,
 } from '@/server/actions/loyalty-tablet';
+import { getPublicBrandLogo } from '@/server/actions/checkin-management';
 import {
     TABLET_MOODS,
     getTabletMoodById,
@@ -63,6 +64,8 @@ export default function LoyaltyTabletPage() {
     const [error, setError] = useState('');
     const [result, setResult] = useState<{ isNewLead: boolean; loyaltyPoints: number } | null>(null);
 
+    const [brandLogoUrl, setBrandLogoUrl] = useState<string | null>(null);
+
     const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const resetToWelcome = useCallback(() => {
@@ -89,6 +92,10 @@ export default function LoyaltyTabletPage() {
             idleTimer.current = setTimeout(resetToWelcome, IDLE_TIMEOUT_MS);
         }
     }, [step, resetToWelcome]);
+
+    useEffect(() => {
+        getPublicBrandLogo(orgId).then(r => setBrandLogoUrl(r.logoUrl));
+    }, [orgId]);
 
     useEffect(() => {
         resetIdleTimer();
@@ -194,7 +201,11 @@ export default function LoyaltyTabletPage() {
         >
             {/* Header */}
             <div className="absolute top-6 left-1/2 -translate-x-1/2 flex items-center gap-3">
-                <span className="text-2xl font-black tracking-tight text-purple-400">Thrive Syracuse</span>
+                {brandLogoUrl ? (
+                    <img src={brandLogoUrl} alt="Brand logo" className="h-10 w-auto object-contain max-w-[180px]" />
+                ) : (
+                    <span className="text-2xl font-black tracking-tight text-purple-400">Thrive Syracuse</span>
+                )}
                 {cartCount > 0 && step === 'recommendations' && (
                     <div className="bg-purple-600 text-white text-sm font-bold px-3 py-1 rounded-full flex items-center gap-1">
                         <ShoppingCart className="h-4 w-4" />
