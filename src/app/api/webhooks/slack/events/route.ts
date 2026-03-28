@@ -92,12 +92,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     // ---------------------------------------------------------------------------
-    // All real events require signature verification
+    // All real events require signature verification.
+    // Each Slack app has its own signing secret — pick the right one by api_app_id.
     // ---------------------------------------------------------------------------
-    const signingSecret = process.env.SLACK_SIGNING_SECRET;
+    const incomingAppId: string = body.api_app_id ?? '';
+    const elroyAppId = process.env.SLACK_ELROY_APP_ID ?? '';
+    const signingSecret = (elroyAppId && incomingAppId === elroyAppId)
+        ? process.env.SLACK_ELROY_SIGNING_SECRET
+        : process.env.SLACK_SIGNING_SECRET;
 
     if (!signingSecret) {
-        logger.error('[Slack/Events] SLACK_SIGNING_SECRET not configured — rejecting event');
+        logger.error('[Slack/Events] Signing secret not configured for app', { incomingAppId });
         return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
     }
 
@@ -105,7 +110,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const slackSignature = req.headers.get('x-slack-signature') ?? '';
 
     if (!verifySlackSignature(signingSecret, rawBody, timestamp, slackSignature)) {
-        logger.warn('[Slack/Events] Signature verification failed');
+        logger.warn('[Slack/Events] Signature verification failed', { incomingAppId });
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

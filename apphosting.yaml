@@ -355,6 +355,10 @@ env:
     secret: SLACK_ELROY_BOT_TOKEN@1
     availability:
       - RUNTIME
+  - variable: SLACK_ELROY_SIGNING_SECRET
+    secret: SLACK_ELROY_SIGNING_SECRET@1
+    availability:
+      - RUNTIME
   # Rate Limiting + Caching (Upstash Redis) - Production Readiness Week 1+2
   # Setup: Create Upstash Redis instance (free tier: 10k req/day) at upstash.com
   # Then run:
