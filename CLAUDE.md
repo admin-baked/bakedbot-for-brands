@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-03-27 (PR merges #38/#39/#40/#41/#33 + brand guide Firestore fix + featured Flower image)
+**Current Status:** 🟢 Passing | **Last update:** 2026-03-28 (inbox desktop compaction + chat-persistence hardening + Elroy Slack app)
 
 ---
 

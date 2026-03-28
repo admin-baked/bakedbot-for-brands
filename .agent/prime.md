@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — PR merges + brand guide Firestore fix + Flower product image shipped.
-**Recent work (2026-03-27):** See `MEMORY.md` for full log.
-Key completed: [Merge PRs #38/#39/#40/#41/#33, close #37] (`82a516cef`), [Brand guide Firestore fix + Flower product image in scan] (`82a516cef`).
+**Current Status:** 🟢 Passing — inbox desktop compaction + chat-persistence hardening + Elroy Slack shipped.
+**Recent work (2026-03-28):** See `MEMORY.md` for full log.
+Key completed: [Inbox desktop compaction + density prop + 100dvh] (`35d6d2ebf`), [chat-persistence safe serializer + SUPER_USER_ROLES guard + Elroy Slack secret] (`35d6d2ebf`).
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
