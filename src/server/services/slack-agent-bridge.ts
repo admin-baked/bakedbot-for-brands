@@ -21,6 +21,10 @@ const BAKEDBOT_INTERNAL_ORG = 'org_bakedbot_internal';
 // Image MIME types accepted by Claude's vision API — used to filter Slack attachments
 const CLAUDE_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'] as const;
 
+// Dedicated Slack App IDs — read once at module init, not on every message.
+const SLACK_LINUS_APP_ID = process.env.SLACK_LINUS_APP_ID;
+const SLACK_ELROY_APP_ID = process.env.SLACK_ELROY_APP_ID;
+
 // ---------------------------------------------------------------------------
 // Linus tool classifier — determines if a message warrants agentic tool-calling
 // (vs. GLM synthesis for simple conversational replies). Module-level so regexes
@@ -32,7 +36,7 @@ const LINUS_TOOL_PATTERNS = [
     // Actions on the repo / infra
     /\b(run|execute|check|test|build|deploy|push|commit|merge|revert)\b/,
     // Read/find with a target noun — handles plurals (files, functions, routes, logs)
-    /\b(read|open|show|find|search|look|grep|locate|list)\b.{0,40}\b(files?|codes?|functions?|class(es)?|routes?|components?|errors?|logs?)\b/,
+    /\b(read|open|show|find|search|look|grep|locate|list|load)\b.{0,40}\b(files?|codes?|functions?|class(es)?|routes?|components?|errors?|logs?)\b/,
     // Write/modify with a target noun — handles plurals
     /\b(write|edit|update|change|modify|add|remove|delete|refactor|rename)\b.{0,40}\b(files?|codes?|functions?|class(es)?|routes?|components?)\b/,
     // Infra / tooling keywords (god.?mode = alias for super powers)
@@ -47,6 +51,10 @@ const LINUS_TOOL_PATTERNS = [
     /\b(super\s*power|god\s*mode|run\s+script|execute\s+script|audit.?(index|schema|cost|consistency)|seed.?test|fix.?build)\b/,
     // Production monitoring / builds
     /\b(build\s+monitor|production\s+logs?|recent\s+builds?|last\s+build|deployment\s+status)\b/,
+    // File paths — anything with a slash, dot-extension, or .agent/ prefix
+    /\.(md|ts|tsx|js|jsx|json|yaml|yml|env|sh)\b|\.agent\/|src\/|scripts\//,
+    // Capability / tool-access questions — "can you read", "are you able to load", "do you have access"
+    /\b(can\s+you|are\s+you\s+able|do\s+you\s+have|wired\s+up|have\s+access|tool\s+access|read\s+access)\b/,
 ];
 
 function linusNeedsTools(text: string): boolean {
@@ -210,13 +218,11 @@ export function detectAgent(text: string, channelName: string, isDm: boolean, ap
 
     // Dedicated Slack Apps — route by api_app_id before any keyword matching.
     // Set SLACK_LINUS_APP_ID / SLACK_ELROY_APP_ID to each app's api_app_id in secrets.
-    const linusAppId = process.env.SLACK_LINUS_APP_ID;
-    if (linusAppId && appId && appId === linusAppId) {
+    if (SLACK_LINUS_APP_ID && appId && appId === SLACK_LINUS_APP_ID) {
         logger.info(`[SlackBridge] detectAgent → Tier0(linus app_id) → linus | appId="${appId}"`);
         return 'linus';
     }
-    const elroyAppId = process.env.SLACK_ELROY_APP_ID;
-    if (elroyAppId && appId && appId === elroyAppId) {
+    if (SLACK_ELROY_APP_ID && appId && appId === SLACK_ELROY_APP_ID) {
         logger.info(`[SlackBridge] detectAgent → Tier0(elroy app_id) → elroy | appId="${appId}"`);
         return 'elroy';
     }
