@@ -47,18 +47,20 @@ export default function CheckInManagementPage() {
         if (isRefresh) setRefreshing(true);
         else setLoading(true);
 
-        const [configResult, statsResult, visitsResult] = await Promise.all([
-            getCheckinConfig(orgId),
-            getCheckinStats(orgId),
-            getRecentCheckinVisits(orgId),
-        ]);
+        try {
+            const [configResult, statsResult, visitsResult] = await Promise.all([
+                getCheckinConfig(orgId),
+                getCheckinStats(orgId),
+                getRecentCheckinVisits(orgId),
+            ]);
 
-        if (configResult.success) setConfig(configResult.config);
-        if (statsResult.success && statsResult.stats) setStats(statsResult.stats);
-        if (visitsResult.success && visitsResult.visits) setVisits(visitsResult.visits);
-
-        if (isRefresh) setRefreshing(false);
-        else setLoading(false);
+            if (configResult.success) setConfig(configResult.config);
+            if (statsResult.success && statsResult.stats) setStats(statsResult.stats);
+            if (visitsResult.success && visitsResult.visits) setVisits(visitsResult.visits);
+        } finally {
+            if (isRefresh) setRefreshing(false);
+            else setLoading(false);
+        }
     }, []);
 
     useEffect(() => {

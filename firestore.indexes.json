@@ -1790,8 +1790,16 @@
             "collectionGroup": "checkin_visits",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "reviewSequence.status", "order": "ASCENDING" },
+                { "fieldPath": "orgId", "order": "ASCENDING" },
                 { "fieldPath": "visitedAt", "order": "ASCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "checkin_visits",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "orgId", "order": "ASCENDING" },
+                { "fieldPath": "reviewSequence.status", "order": "ASCENDING" }
             ]
         }
     ],
