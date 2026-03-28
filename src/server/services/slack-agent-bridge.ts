@@ -1,5 +1,5 @@
 import { logger } from '@/lib/logger';
-import { slackService, SlackService } from './communications/slack';
+import { slackService, elroySlackService, SlackService } from './communications/slack';
 import { runAgentCore } from '@/server/agents/agent-runner';
 import { runLinus } from '@/server/agents/linus';
 import { runElroy } from '@/server/agents/elroy';
@@ -381,20 +381,23 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             }
         }
 
-        // 5. Post a "thinking" indicator so user gets immediate feedback
-        const thinkingResult = await slackService.postInThread(
+        // 5. Post a "thinking" indicator so user gets immediate feedback.
+        // Uncle Elroy uses his own bot token so he appears as a distinct Slack user.
+        const activeSlack = personaId === 'elroy' ? elroySlackService : slackService;
+
+        const thinkingResult = await activeSlack.postInThread(
             channel,
             threadTs,
             buildInitialSlackStatus(personaId, cleanText),
         );
         if (!thinkingResult.sent) {
-            logger.error(`[SlackBridge] Failed to post thinking message: ${thinkingResult.error} — check SLACK_BOT_TOKEN and bot channel membership`);
+            logger.error(`[SlackBridge] Failed to post thinking message: ${thinkingResult.error} — check bot token and channel membership`);
         }
         const workingMessageTs = thinkingResult.sent ? thinkingResult.ts : undefined;
 
         const sendOrUpdateThreadMessage = async (text: string, blocks?: any[]) => {
             if (workingMessageTs) {
-                const updateResult = await slackService.updateMessage(channel, workingMessageTs, text, blocks);
+                const updateResult = await activeSlack.updateMessage(channel, workingMessageTs, text, blocks);
                 if (updateResult.sent) {
                     return updateResult;
                 }
@@ -407,7 +410,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                 });
             }
 
-            return slackService.postInThread(channel, threadTs, text, blocks);
+            return activeSlack.postInThread(channel, threadTs, text, blocks);
         };
 
         // 6. Convert Slack files to agent attachments if present
