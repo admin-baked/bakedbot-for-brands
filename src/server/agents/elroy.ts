@@ -99,6 +99,52 @@ const ELROY_TOOLS: ClaudeTool[] = [
             required: ['query'],
         },
     },
+    {
+        name: 'get_daily_sales',
+        description: 'Return today\'s sales figures for Thrive Syracuse: total revenue, transaction count, and average ticket size.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {},
+            required: [],
+        },
+    },
+    {
+        name: 'get_top_sellers',
+        description: 'Return the top-selling products at Thrive Syracuse over the last 7 days, ranked by units sold.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                limit: {
+                    type: 'number',
+                    description: 'Number of products to return (default 10)',
+                },
+            },
+            required: [],
+        },
+    },
+    {
+        name: 'get_recent_transactions',
+        description: 'Return the most recent customer transactions at Thrive Syracuse with items and totals.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                limit: {
+                    type: 'number',
+                    description: 'Number of transactions to return (default 20)',
+                },
+            },
+            required: [],
+        },
+    },
+    {
+        name: 'get_sales_summary',
+        description: 'Return a sales comparison for Thrive Syracuse: today vs yesterday vs 7-day average. Useful for spotting slow/busy days.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {},
+            required: [],
+        },
+    },
 ];
 
 // ============================================================================
@@ -189,6 +235,117 @@ async function elroyToolExecutor(toolName: string, input: Record<string, unknown
             }));
         }
 
+        case 'get_daily_sales': {
+            const db = getAdminFirestore();
+            const todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
+            const snap = await db.collection('orders')
+                .where('orgId', '==', ORG_ID)
+                .where('createdAt', '>=', todayStart)
+                .get();
+
+            if (snap.empty) return { revenue: 0, transactions: 0, averageTicket: 0, message: 'No transactions recorded yet today.' };
+
+            let revenue = 0;
+            snap.docs.forEach(d => {
+                const data = d.data() as any;
+                revenue += data.totals?.total ?? data.total ?? 0;
+            });
+            const transactions = snap.size;
+            return {
+                revenue: Math.round(revenue * 100) / 100,
+                transactions,
+                averageTicket: Math.round((revenue / transactions) * 100) / 100,
+                asOf: new Date().toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit' }) + ' ET',
+            };
+        }
+
+        case 'get_top_sellers': {
+            const limit = typeof input.limit === 'number' ? Math.min(input.limit, 20) : 10;
+            const db = getAdminFirestore();
+            const snap = await db.collection('products')
+                .where('orgId', '==', ORG_ID)
+                .orderBy('salesLast7Days', 'desc')
+                .limit(limit)
+                .get();
+
+            if (snap.empty) return { message: 'No product sales data available.' };
+
+            return snap.docs.map(d => {
+                const p = d.data() as any;
+                return {
+                    name: p.name ?? p.productName ?? 'Unknown',
+                    category: p.category ?? p.categoryName ?? null,
+                    price: p.price ?? p.basePrice ?? null,
+                    unitsSold7d: p.salesLast7Days ?? 0,
+                    unitsSold30d: p.salesLast30Days ?? null,
+                    trending: p.trending ?? false,
+                    inStock: p.inStock ?? p.available ?? true,
+                };
+            });
+        }
+
+        case 'get_recent_transactions': {
+            const limit = typeof input.limit === 'number' ? Math.min(input.limit, 50) : 20;
+            const db = getAdminFirestore();
+            const snap = await db.collection('orders')
+                .where('orgId', '==', ORG_ID)
+                .orderBy('createdAt', 'desc')
+                .limit(limit)
+                .get();
+
+            if (snap.empty) return { message: 'No recent transactions found.' };
+
+            return snap.docs.map(d => {
+                const o = d.data() as any;
+                const items: any[] = o.items ?? [];
+                return {
+                    id: d.id,
+                    total: Math.round((o.totals?.total ?? o.total ?? 0) * 100) / 100,
+                    itemCount: items.length,
+                    items: items.slice(0, 3).map((i: any) => `${i.name ?? i.productName}${i.qty > 1 ? ` ×${i.qty}` : ''}`).join(', '),
+                    createdAt: o.createdAt?.toDate?.()?.toISOString?.() ?? o.createdAt ?? null,
+                    status: o.status ?? null,
+                };
+            });
+        }
+
+        case 'get_sales_summary': {
+            const db = getAdminFirestore();
+            const now = new Date();
+
+            const todayStart = new Date(now);
+            todayStart.setHours(0, 0, 0, 0);
+
+            const yesterdayStart = new Date(todayStart);
+            yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+
+            const weekAgoStart = new Date(todayStart);
+            weekAgoStart.setDate(weekAgoStart.getDate() - 7);
+
+            const [todaySnap, yesterdaySnap, weekSnap] = await Promise.all([
+                db.collection('orders').where('orgId', '==', ORG_ID).where('createdAt', '>=', todayStart).get(),
+                db.collection('orders').where('orgId', '==', ORG_ID).where('createdAt', '>=', yesterdayStart).where('createdAt', '<', todayStart).get(),
+                db.collection('orders').where('orgId', '==', ORG_ID).where('createdAt', '>=', weekAgoStart).where('createdAt', '<', todayStart).get(),
+            ]);
+
+            const sumRevenue = (docs: FirebaseFirestore.QueryDocumentSnapshot[]) =>
+                docs.reduce((sum, d) => sum + ((d.data() as any).totals?.total ?? (d.data() as any).total ?? 0), 0);
+
+            const todayRev = sumRevenue(todaySnap.docs);
+            const yestRev = sumRevenue(yesterdaySnap.docs);
+            const weekRev = sumRevenue(weekSnap.docs);
+            const weekDailyAvg = weekRev / 7;
+
+            return {
+                today: { revenue: Math.round(todayRev * 100) / 100, transactions: todaySnap.size },
+                yesterday: { revenue: Math.round(yestRev * 100) / 100, transactions: yesterdaySnap.size },
+                sevenDayAvg: { revenue: Math.round(weekDailyAvg * 100) / 100, transactions: Math.round(weekSnap.size / 7) },
+                vsYesterday: yestRev > 0 ? `${((todayRev / yestRev - 1) * 100).toFixed(1)}%` : 'N/A',
+                vsDailyAvg: weekDailyAvg > 0 ? `${((todayRev / weekDailyAvg - 1) * 100).toFixed(1)}%` : 'N/A',
+            };
+        }
+
         default:
             return { error: `Unknown tool: ${toolName}` };
     }
@@ -206,6 +363,10 @@ You help store managers with:
 - What competitors are doing in the Syracuse market
 - How foot traffic and check-ins are trending
 - Any specific customer they need the scoop on
+- Today's sales revenue, transaction count, and average ticket
+- Top sellers over the last 7 days
+- Recent transaction history
+- Day-over-day and vs 7-day-average sales comparisons
 
 Your style: direct, friendly, a little old-school. You know every customer by name. You give real answers with real numbers — no fluff.
 
@@ -225,11 +386,18 @@ const ELROY_AGENT_CONTEXT: AgentContext = {
         'get_menu_inventory — live Alleaves menu',
         'get_competitor_intel — Syracuse market intel',
         'search_customer — individual customer lookup',
+        'get_daily_sales — today\'s revenue, transactions, avg ticket',
+        'get_top_sellers — top products last 7 days',
+        'get_recent_transactions — latest order history',
+        'get_sales_summary — today vs yesterday vs 7-day avg',
     ],
     groundingRules: [
         'Always use tools to fetch live data before answering',
         'Cite days-inactive and LTV when listing at-risk customers',
         'Flag staleness when reporting competitor intel',
+        'For revenue/sales questions, use get_daily_sales or get_sales_summary',
+        'For product performance questions, use get_top_sellers',
+        'Always include the asOf timestamp when reporting today\'s sales',
     ],
 };
 
