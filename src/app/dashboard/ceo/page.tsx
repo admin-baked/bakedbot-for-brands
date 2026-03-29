@@ -11,7 +11,7 @@ import { InvitationsList } from '@/components/invitations/invitations-list';
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import nextDynamic from 'next/dynamic';
-import type { SuperUserStatusCounts } from '@/server/actions/ny-outreach-dashboard';
+import type { SuperUserStatusCounts } from '@/server/actions/action-types';
 
 const TabLoader = () => <div className="flex h-[400px] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
 

@@ -20,7 +20,7 @@ import type { WarmupStatus, WarmupLog, WarmupScheduleType } from '@/server/servi
 import { requireUser } from '@/server/auth/auth';
 import { logger } from '@/lib/logger';
 
-export type { WarmupStatus, WarmupLog, WarmupScheduleType };
+// Removed re-export of Warmup types to avoid Turbopack reference errors
 
 const DOCUMENT_ID_REGEX = /^[A-Za-z0-9_-]{1,128}$/;
 const MAX_LOG_DAYS = 90;
@@ -82,7 +82,7 @@ async function verifyWarmupOrgAccess(orgId: string): Promise<void> {
 /**
  * Get current warm-up status for the caller's org.
  */
-export async function getMyWarmupStatus(orgId: string): Promise<WarmupStatus> {
+export async function getMyWarmupStatus(orgId: string): Promise<any> {
     try {
         await verifyWarmupOrgAccess(orgId);
         return await getWarmupStatusInternal(orgId);
@@ -125,7 +125,7 @@ export async function pauseEmailWarmup(orgId: string): Promise<{ success: boolea
 /**
  * Get warm-up send logs for the last N days.
  */
-export async function getEmailWarmupLogs(orgId: string, days = 14): Promise<WarmupLog[]> {
+export async function getEmailWarmupLogs(orgId: string, days = 14): Promise<any[]> {
     try {
         await verifyWarmupOrgAccess(orgId);
         const safeDays = clampInt(days, 1, MAX_LOG_DAYS, 14);
@@ -157,4 +157,4 @@ export async function recordWarmupSend(orgId: string, count: number): Promise<{
     }
 }
 
-export { getDailyLimit, isWarmupActive };
+// Removed re-exports of getDailyLimit and isWarmupActive to comply with 'use server' rules

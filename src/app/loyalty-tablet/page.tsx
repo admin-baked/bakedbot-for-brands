@@ -18,11 +18,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     captureTabletLead,
     getMoodRecommendations,
-    TABLET_MOODS,
-    type TabletMoodId,
     type TabletProduct,
     type TabletBundle,
 } from '@/server/actions/loyalty-tablet';
+import { TABLET_MOODS, type TabletMoodId } from '@/constants/loyalty-moods';
 import {
     CheckCircle2, Phone, Mail, ArrowRight, Loader2, Star,
     ShoppingCart, Users, ChevronRight,

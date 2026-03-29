@@ -26,10 +26,10 @@ export interface CRMBrand {
     seoPageId?: string | null;
     claimedOrgId?: string | null;
     claimStatus: 'unclaimed' | 'invited' | 'pending' | 'claimed';
-    discoveredAt: Date;
-    updatedAt: Date;
+    discoveredAt: number;
+    updatedAt: number;
     claimedBy?: string | null;
-    claimedAt?: Date | null;
+    claimedAt?: number | null;
 }
 
 export interface CRMDispensary {
@@ -48,12 +48,12 @@ export interface CRMDispensary {
     seoPageId?: string | null;
     claimedOrgId?: string | null;
     claimStatus: 'unclaimed' | 'invited' | 'pending' | 'claimed';
-    invitationSentAt?: Date | null;
-    discoveredAt: Date;
-    updatedAt: Date;
+    invitationSentAt?: number | null;
+    discoveredAt: number;
+    updatedAt: number;
     retailerId?: string | null;
     claimedBy?: string | null;
-    claimedAt?: Date | null;
+    claimedAt?: number | null;
 }
 
 export interface CRMFilters {
@@ -122,6 +122,10 @@ function coerceDate(value: any): Date | null {
         return new Date(value);
     }
     return null;
+}
+
+function toMillisOrZero(value: any): number {
+    return coerceDate(value)?.getTime() || 0;
 }
 
 function coerceNumber(value: any): number {
@@ -244,7 +248,7 @@ export async function upsertBrand(
             states,
             discoveredFrom,
             isNational: states.length >= 3,
-            updatedAt: new Date(),
+            updatedAt: FieldValue.serverTimestamp(),
             ...(data.logoUrl && { logoUrl: data.logoUrl }),
             ...(data.website && { website: data.website }),
             ...(data.description && { description: data.description }),
@@ -269,11 +273,13 @@ export async function upsertBrand(
             description: data.description || null,
             discoveredFrom: data.discoveredFrom || [],
             seoPageId: data.seoPageId || null,
-            discoveredAt: new Date(),
-            updatedAt: new Date(),
         };
 
-        await brandRef.set(brand);
+        await brandRef.set({
+            ...brand,
+            discoveredAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
+        });
 
         return brandRef.id;
     }
@@ -310,7 +316,7 @@ export async function upsertDispensary(
         // Create new dispensary
         const dispRef = collection.doc();
 
-        const dispensary: CRMDispensary = {
+        const dispensary: Omit<CRMDispensary, 'discoveredAt' | 'updatedAt'> = {
             id: dispRef.id,
             name,
             slug,
@@ -324,11 +330,13 @@ export async function upsertDispensary(
             claimStatus: 'unclaimed',
             retailerId: data.retailerId || null,
             seoPageId: data.seoPageId || null,
-            discoveredAt: new Date(),
-            updatedAt: new Date(),
         };
 
-        await dispRef.set(dispensary);
+        await dispRef.set({
+            ...dispensary,
+            discoveredAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
+        });
 
         return dispRef.id;
     }
@@ -359,9 +367,9 @@ export async function getBrands(filters: CRMFilters = {}): Promise<CRMBrand[]> {
         return {
             ...data,
             id: doc.id,
-            discoveredAt: data.discoveredAt?.toDate?.() || new Date(),
-            updatedAt: data.updatedAt?.toDate?.() || new Date(),
-            claimedAt: data.claimedAt?.toDate?.() || null,
+            discoveredAt: toMillisOrZero(data.discoveredAt) || Date.now(),
+            updatedAt: toMillisOrZero(data.updatedAt) || Date.now(),
+            claimedAt: data.claimedAt ? toMillisOrZero(data.claimedAt) : null,
         } as CRMBrand;
     });
 
@@ -404,10 +412,10 @@ export async function getDispensaries(filters: CRMFilters = {}): Promise<CRMDisp
         return {
             ...data,
             id: doc.id,
-            discoveredAt: data.discoveredAt?.toDate?.() || new Date(),
-            updatedAt: data.updatedAt?.toDate?.() || new Date(),
-            claimedAt: data.claimedAt?.toDate?.() || null,
-            invitationSentAt: data.invitationSentAt?.toDate?.() || null,
+            discoveredAt: toMillisOrZero(data.discoveredAt) || Date.now(),
+            updatedAt: toMillisOrZero(data.updatedAt) || Date.now(),
+            claimedAt: data.claimedAt ? toMillisOrZero(data.claimedAt) : null,
+            invitationSentAt: data.invitationSentAt ? toMillisOrZero(data.invitationSentAt) : null,
         } as CRMDispensary;
     });
 
@@ -469,7 +477,7 @@ export interface CRMLead {
     source: string;
     status: string;
     demoCount: number;
-    createdAt: Date;
+    createdAt: number;
     // FFF Audit fields (populated when source === 'fff_audit')
     firstName?: string;
     businessType?: 'dispensary' | 'brand';
@@ -509,7 +517,7 @@ export async function getPlatformLeads(filters: CRMFilters = {}): Promise<CRMLea
             source: data.source || 'unknown',
             status: data.status || data.fffLeadStatus || 'new',
             demoCount: data.demoCount || 0,
-            createdAt: data.createdAt?.toDate?.() || new Date(),
+            createdAt: toMillisOrZero(data.createdAt),
             firstName: data.firstName,
             businessType: data.businessType,
             websiteUrl: data.websiteUrl,
@@ -784,6 +792,7 @@ export async function getPlatformUsers(
 
         const signupAt = coerceDate(data.createdAt) || coerceDate(data.signupAt) || new Date(0);
         const lastLoginAt = coerceDate(data.lastLoginAt) || coerceDate(data.lastLogin) || null;
+        const isTestMarkedAt = coerceDate(data.isTestMarkedAt) || null;
 
         return {
             id,
@@ -792,8 +801,8 @@ export async function getPlatformUsers(
             photoUrl: data.photoURL || data.photoUrl || null,
             accountType,
             lifecycleStage,
-            signupAt,
-            lastLoginAt,
+            signupAt: signupAt.getTime(),
+            lastLoginAt: lastLoginAt?.getTime() || null,
             plan,
             mrr,
             orgId: resolvedOrgId,
@@ -801,7 +810,7 @@ export async function getPlatformUsers(
             notes: data.crmNotes || null,
             approvalStatus: data.approvalStatus || 'approved', // Default to approved for legacy/existing
             isTestAccount: data.isTestAccount === true,
-            isTestMarkedAt: coerceDate(data.isTestMarkedAt) || null,
+            isTestMarkedAt: isTestMarkedAt?.getTime() || null,
         } as CRMUser;
     });
 
@@ -828,14 +837,14 @@ export async function getPlatformUsers(
     // Filter by signup date (enables "who signed up this week?" queries)
     if (filters.signupAfter) {
         const cutoff = filters.signupAfter.getTime();
-        users = users.filter(u => u.signupAt.getTime() >= cutoff);
+        users = users.filter(u => u.signupAt >= cutoff);
     }
 
     // Sort by signupAt desc (Newest first)
     // Handle nulls by pushing them to the end or treating as old
     users.sort((a, b) => {
-        const timeA = a.signupAt ? new Date(a.signupAt).getTime() : 0;
-        const timeB = b.signupAt ? new Date(b.signupAt).getTime() : 0;
+        const timeA = a.signupAt || 0;
+        const timeB = b.signupAt || 0;
         return timeB - timeA;
     });
 

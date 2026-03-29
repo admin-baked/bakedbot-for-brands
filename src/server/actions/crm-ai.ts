@@ -13,34 +13,14 @@ import { requireUser } from '@/server/auth/auth';
 import { callClaude } from '@/ai/claude';
 import { logger } from '@/lib/logger';
 import { getPlatformUsers, getCRMUserStats, type CRMFilters } from '@/server/services/crm-service';
-import type { CRMUser, CRMLifecycleStage } from '@/server/services/crm-types';
-
-export type { CRMUser } from '@/server/services/crm-types';
 
 const HAIKU = 'claude-haiku-4-5-20251001';
 
-// =============================================================================
-// Types
-// =============================================================================
-
-export type CRMAIInsightType = 'flag' | 'opportunity' | 'alert';
-
-export interface CRMAIInsight {
-    id: string;
-    type: CRMAIInsightType;
-    message: string;
-    /** Optional CTA label (e.g. "View Prospects") */
-    action?: string;
-    /** Optional filter to apply when user clicks action */
-    filterHint?: Partial<CRMFilters>;
-    count?: number;
-}
-
-export interface CRMAISearchResult {
-    summary: string;
-    users: CRMUser[];
-    filtersApplied: string;
-}
+import {
+    CRMAIInsightType,
+    CRMAIInsight,
+    CRMAISearchResult
+} from './action-types';
 
 // =============================================================================
 // Jack AI Insights (proactive CRM flags)
@@ -50,11 +30,8 @@ export interface CRMAISearchResult {
  * Get Jack's proactive CRM insights based on current user snapshot.
  * Calls Claude Haiku — fast, cheap, and focused on actionable flags only.
  */
-export async function getCRMAIInsights(): Promise<{
-    success: boolean;
-    insights?: CRMAIInsight[];
-    error?: string;
-}> {
+export async function getCRMAIInsights(): Promise<any> {
+    logger.info('[JackAI] getCRMAIInsights started');
     try {
         await requireUser(['super_user']);
 
@@ -154,7 +131,7 @@ Rules:
 // Natural Language CRM Search
 // =============================================================================
 
-const VALID_STAGES: CRMLifecycleStage[] = [
+const VALID_STAGES: any[] = [
     'prospect', 'contacted', 'demo_scheduled', 'trial', 'customer', 'vip', 'churned', 'winback',
 ];
 
@@ -162,11 +139,8 @@ const VALID_STAGES: CRMLifecycleStage[] = [
  * Translate a natural language query into CRM filters and return matching users with an AI summary.
  * Uses Claude Haiku to parse the query; applies filters server-side.
  */
-export async function queryCRMWithAI(query: string): Promise<{
-    success: boolean;
-    result?: CRMAISearchResult;
-    error?: string;
-}> {
+export async function queryCRMWithAI(query: string): Promise<CRMAISearchResult> {
+    logger.info('[JackAI] queryCRMWithAI started', { query });
     try {
         await requireUser(['super_user']);
 
@@ -198,7 +172,7 @@ Only include fields that the query actually specifies. Return ONLY JSON.`;
         });
 
         let parsed: {
-            lifecycleStage?: CRMLifecycleStage | null;
+            lifecycleStage?: any | null;
             search?: string | null;
             signupAfterDays?: number | null;
             includeTest?: boolean;
@@ -236,6 +210,11 @@ Only include fields that the query actually specifies. Return ONLY JSON.`;
             filters.signupAfter ? `signup after: ${filters.signupAfter.toLocaleDateString()}` : null,
         ].filter(Boolean).join(', ') || 'all users';
 
+        logger.info('[JackAI] queryCRMWithAI completed', { 
+            userCount: results.length,
+            filters: completion.content[0].text 
+        });
+
         return {
             success: true,
             result: {
@@ -259,17 +238,13 @@ Only include fields that the query actually specifies. Return ONLY JSON.`;
  * Lightweight — single Claude Haiku call, returns a one-liner string.
  * Called lazily on row expand to avoid N+1 on initial load.
  */
-export async function getNextActionForUser(userId: string): Promise<{
-    success: boolean;
-    nextAction?: string;
-    error?: string;
-}> {
+export async function getNextActionForUser(userId: string): Promise<any> {
     try {
         await requireUser(['super_user']);
 
         const users = await getPlatformUsers({ search: userId, includeTest: true, limit: 1 });
         // Also try direct ID match if search didn't find it
-        let user: CRMUser | undefined = users.find(u => u.id === userId);
+        let user: any | undefined = users.find(u => u.id === userId);
 
         if (!user) {
             // Fall back: getPlatformUsers search works on email/name, try getting all and find by id

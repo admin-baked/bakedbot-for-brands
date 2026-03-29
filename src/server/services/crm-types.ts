@@ -37,8 +37,8 @@ export interface CRMUser {
     photoUrl?: string | null;
     accountType: 'brand' | 'dispensary' | 'superuser' | 'customer';
     lifecycleStage: CRMLifecycleStage;
-    signupAt: Date;
-    lastLoginAt?: Date | null;
+    signupAt: number;
+    lastLoginAt?: number | null;
     plan: string;
     mrr: number;  // From Authorize.net
     orgId?: string | null;
@@ -46,5 +46,5 @@ export interface CRMUser {
     notes?: string | null;
     approvalStatus?: 'pending' | 'approved' | 'rejected' | 'disabled';
     isTestAccount?: boolean;
-    isTestMarkedAt?: Date | null;
+    isTestMarkedAt?: number | null;
 }

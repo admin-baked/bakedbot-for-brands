@@ -10,10 +10,11 @@
  */
 
 import { config } from 'dotenv';
-import { resolve } from 'path';
+import { resolve, join } from 'path';
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
+import * as fs from 'fs';
 
 // Load environment variables from .env.local
 config({ path: resolve(process.cwd(), '.env.local') });
@@ -147,10 +148,7 @@ async function setupSuperUser() {
     console.log('✅ Custom token generated');
 
     // Save to a secure file (not committed to git)
-    const fs = require('fs');
-    const path = require('path');
-
-    const tokenFile = path.join(process.cwd(), '.super-user-token');
+    const tokenFile = join(process.cwd(), '.super-user-token');
     fs.writeFileSync(tokenFile, customToken, 'utf-8');
     console.log(`✅ Token saved to: ${tokenFile}`);
 

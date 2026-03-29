@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Fragment } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,14 +56,13 @@ import {
     getNYLeadDataQuality,
     deduplicateNYLeads,
     bulkDeleteNYLeads,
-    type NYOutreachCRMLead,
 } from '@/server/actions/ny-outreach-dashboard';
 import {
     getCRMAIInsights,
     queryCRMWithAI,
     getNextActionForUser,
-    type CRMAIInsight,
 } from '@/server/actions/crm-ai';
+import type { NYOutreachCRMLead, CRMAIInsight } from '@/server/actions/action-types';
 
 const US_STATES = [
     'All States',
@@ -947,7 +946,7 @@ export default function CRMTab() {
                                     </TableHeader>
                                     <TableBody>
                                         {paginatedUsers.map((user) => (
-                                            <>
+                                            <Fragment key={user.id}>
                                             <TableRow
                                                 key={user.id}
                                                 className={`cursor-pointer ${user.isTestAccount ? 'opacity-60 bg-muted/30' : ''}`}
@@ -1065,7 +1064,7 @@ export default function CRMTab() {
                                                     </TableCell>
                                                 </TableRow>
                                             )}
-                                            </>
+                                            </Fragment>
                                         ))}
                                     </TableBody>
                                 </Table>

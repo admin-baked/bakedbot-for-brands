@@ -27,8 +27,7 @@ import {
 import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
 
-// Re-export types for client use
-export type { PageClaim, ClaimEntityType, PageType };
+// Removed re-export of PageClaim types to avoid Turbopack reference errors
 
 function isClaimsAdminRole(role: unknown): boolean {
     if (Array.isArray(role)) {
@@ -120,8 +119,8 @@ export async function checkPageAvailability(
  */
 export async function getMyClaims(
     entityId: string,
-    entityType: ClaimEntityType
-): Promise<PageClaim[]> {
+    entityType: any
+): Promise<any[]> {
     try {
         return await getEntityClaims(entityId, entityType);
     } catch (error) {
@@ -236,10 +235,10 @@ export async function handleBillingActivation(
  */
 export async function getPageClaimDetails(
     pageId: string,
-    pageType: PageType,
+    pageType: any,
     entityId: string,
-    entityType: ClaimEntityType
-): Promise<PageClaim | null> {
+    entityType: any
+): Promise<any | null> {
     try {
         return await getClaimStatus(pageId, pageType, entityId, entityType);
     } catch (error) {
@@ -277,7 +276,7 @@ export async function getCurrentPageOwner(
 /**
  * Admin: Get all pending claims for review
  */
-export async function getPendingClaims(): Promise<PageClaim[]> {
+export async function getPendingClaims(): Promise<any[]> {
     const admin = await getAuthorizedClaimsAdmin();
     if (!admin) {
         return [];
@@ -306,7 +305,7 @@ export async function getPendingClaims(): Promise<PageClaim[]> {
 /**
  * Admin: Get all active claims
  */
-export async function getActiveClaims(limit: number = 100): Promise<PageClaim[]> {
+export async function getActiveClaims(limit: number = 100): Promise<any[]> {
     const admin = await getAuthorizedClaimsAdmin();
     if (!admin) {
         return [];

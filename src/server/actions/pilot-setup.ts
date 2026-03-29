@@ -9,104 +9,17 @@ import {
 } from '@/server/grounding';
 import { PILOT_CUSTOMER_SEGMENTS, THRIVE_SAMPLE_PRODUCTS } from './pilot-setup-constants';
 
-export interface PilotSetupResult {
-    success: boolean;
-    message: string;
-    data?: {
-        userId: string;
-        brandId: string;
-        orgId: string;
-        locationId?: string;
-        menuUrl: string;
-        groundTruth?: {
-            configured: boolean;
-            totalQAPairs?: number;
-            criticalCount?: number;
-            categories?: string[];
-        };
-    };
-    error?: string;
-}
-
-export interface BrandPilotConfig {
-    type: 'brand';
-    email: string;
-    password: string;
-    brandName: string;
-    brandSlug: string;
-    tagline?: string;
-    description?: string;
-    website?: string;
-    // Theme
-    primaryColor: string;
-    secondaryColor: string;
-    accentColor?: string;
-    // Purchase model
-    purchaseModel: 'online_only' | 'local_pickup' | 'hybrid';
-    shipsNationwide: boolean;
-    // Shipping address (for online_only)
-    shippingAddress?: {
-        street: string;
-        city: string;
-        state: string;
-        zip: string;
-    };
-    contactEmail?: string;
-    contactPhone?: string;
-    // Chatbot
-    chatbotEnabled: boolean;
-    chatbotName?: string;
-    chatbotWelcome?: string;
-    // Ground truth QA set (for Smokey AI training)
-    // If not provided, uses brandSlug as the brandId to look up ground truth
-    groundTruthBrandId?: string;
-}
-
-export interface DispensaryPilotConfig {
-    type: 'dispensary';
-    email: string;
-    password: string;
-    dispensaryName: string;
-    dispensarySlug: string;
-    tagline?: string;
-    description?: string;
-    website?: string;
-    // Theme
-    primaryColor: string;
-    secondaryColor: string;
-    // Location
-    address: string;
-    city: string;
-    state: string;
-    zip: string;
-    phone?: string;
-    licenseNumber?: string;
-    coordinates?: {
-        lat: number;
-        lng: number;
-    };
-    // Hours
-    hours?: {
-        monday?: string;
-        tuesday?: string;
-        wednesday?: string;
-        thursday?: string;
-        friday?: string;
-        saturday?: string;
-        sunday?: string;
-    };
-    // Chatbot
-    chatbotEnabled: boolean;
-    chatbotName?: string;
-    chatbotWelcome?: string;
-    // ZIP codes for SEO pages
-    zipCodes?: string[];
-    // Ground truth QA set (for Smokey AI training)
-    // If not provided, uses dispensarySlug as the brandId to look up ground truth
-    groundTruthBrandId?: string;
-}
-
-export type PilotConfig = BrandPilotConfig | DispensaryPilotConfig;
+import {
+    PilotSetupResult,
+    BrandPilotConfig,
+    DispensaryPilotConfig,
+    PilotConfig,
+    ImportedMenuData,
+    PilotPOSConfig,
+    PilotEmailConfig,
+    CreateTestCustomersResult,
+    CreateSampleOrdersResult
+} from './action-types';
 
 /**
  * Setup a pilot customer (brand or dispensary)
@@ -431,39 +344,6 @@ export async function addPilotProducts(
     }
 }
 
-export interface ImportedMenuData {
-    dispensary: {
-        name: string;
-        tagline?: string;
-        description?: string;
-        logoUrl?: string;
-        primaryColor?: string;
-        secondaryColor?: string;
-        phone?: string;
-        address?: string;
-        city?: string;
-        state?: string;
-        hours?: string;
-    };
-    products: Array<{
-        name: string;
-        brand?: string;
-        category: string;
-        price: number | null;
-        thcPercent?: number | null;
-        cbdPercent?: number | null;
-        strainType?: string;
-        description?: string;
-        imageUrl?: string;
-        effects?: string[];
-        weight?: string;
-    }>;
-    promotions?: Array<{
-        title: string;
-        subtitle?: string;
-        description?: string;
-    }>;
-}
 
 /**
  * Import menu data from a dispensary URL (Weedmaps, Dutchie, etc.)
@@ -562,47 +442,6 @@ import { logger } from '@/lib/logger';
 /**
  * POS Configuration for pilot setup
  */
-export interface PilotPOSConfig {
-    provider: POSProvider;
-    apiKey?: string;
-    storeId: string;
-    locationId?: string;  // For ALLeaves
-    partnerId?: string;   // For ALLeaves
-    environment?: 'sandbox' | 'production';
-    // ALLeaves JWT authentication fields
-    username?: string;    // ALLeaves username (email)
-    password?: string;    // ALLeaves password
-    pin?: string;         // ALLeaves PIN (may be required)
-}
-
-/**
- * Email Marketing Configuration for pilot setup
- */
-export interface PilotEmailConfig {
-    provider: 'mailjet';
-    senderEmail: string;
-    senderName: string;
-    replyToEmail?: string;
-    enableWelcomePlaybook: boolean;
-    enableWinbackPlaybook: boolean;
-    enableVIPPlaybook: boolean;
-}
-
-/**
- * Result type for test customer creation
- */
-export interface CreateTestCustomersResult {
-    success: boolean;
-    created: number;
-    customers: Array<{
-        id: string;
-        email: string;
-        segment: CustomerSegment;
-        firstName: string;
-        lastName: string;
-    }>;
-    error?: string;
-}
 
 /**
  * Create test customers for each segment
@@ -695,19 +534,6 @@ export async function createPilotTestCustomers(
 /**
  * Result type for sample orders creation
  */
-export interface CreateSampleOrdersResult {
-    success: boolean;
-    created: number;
-    orders: Array<{
-        id: string;
-        customerId: string;
-        customerEmail: string;
-        total: number;
-        itemCount: number;
-        createdAt: Date;
-    }>;
-    error?: string;
-}
 
 /**
  * Create sample orders for pilot test customers
@@ -823,7 +649,7 @@ export async function createPilotSampleOrders(
                     paymentMethod: Math.random() > 0.3 ? 'debit' : 'cash',
                     source: 'pilot_test',
                     notes: `Pilot test order for ${customer.segment} segment`,
-                    createdAt: orderDate,
+                    createdAt: orderDate.getTime(),
                     updatedAt: orderDate,
                     completedAt: orderDate,
                 };
@@ -836,7 +662,7 @@ export async function createPilotSampleOrders(
                     customerEmail: customer.email,
                     total: total,
                     itemCount: orderItems.length,
-                    createdAt: orderDate,
+                    createdAt: orderDate.getTime(),
                 });
             }
 

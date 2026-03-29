@@ -39,10 +39,9 @@ import {
     getContentAnalyticsSignals,
     getContentScorecard,
     generateMarketReports,
-    type NewsIdea,
-    type ContentScorecard,
-    type ContentAnalyticsSnapshot,
 } from '@/server/actions/blog-research';
+import type { NewsIdea, ContentScorecard } from '@/server/actions/action-types';
+import type { ContentAnalyticsSnapshot } from '@/server/services/content-engine/analytics-signals';
 import { getPublishedPlatformPosts } from '@/server/actions/blog';
 import { ResearchGeneratorSheet } from '@/components/blog/research-generator-sheet';
 import { formatSmartTime } from '@/lib/utils/format-time';

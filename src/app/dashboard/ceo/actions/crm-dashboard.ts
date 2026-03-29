@@ -1,5 +1,6 @@
 'use server';
 
+import { logger } from '@/lib/logger';
 import type { CRMFilters } from '@/server/services/crm-service';
 
 export async function getBrands(filters: CRMFilters = {}) {
@@ -29,12 +30,22 @@ export async function getCRMUserStats() {
 
 /** Fetch users + stats sharing subscription data — avoids duplicate collection scans. */
 export async function getCRMUsersAndStats(filters: CRMFilters = {}) {
-    const crm = await import('@/server/services/crm-service');
-    // Pre-fetch top-level subscriptions once; passed to both functions to skip duplicate reads.
-    const topLevelSubsDocs = await crm.getTopLevelSubsDocs();
-    const users = await crm.getPlatformUsers(filters, topLevelSubsDocs);
-    const userStats = await crm.getCRMUserStats(users, topLevelSubsDocs);
-    return { users, userStats };
+    logger.info('[CRMDashboard] getCRMUsersAndStats started', { filters });
+    try {
+        const crm = await import('@/server/services/crm-service');
+        // Pre-fetch top-level subscriptions once; passed to both functions to skip duplicate reads.
+        const topLevelSubsDocs = await crm.getTopLevelSubsDocs();
+        const users = await crm.getPlatformUsers(filters, topLevelSubsDocs);
+        const userStats = await crm.getCRMUserStats(users, topLevelSubsDocs);
+        logger.info('[CRMDashboard] getCRMUsersAndStats completed', { 
+            userCount: users.length,
+            statsCount: Object.keys(userStats).length 
+        });
+        return { users, userStats };
+    } catch (err) {
+        logger.error('[CRMDashboard] Failed to get users and stats', { error: String(err) });
+        throw err;
+    }
 }
 
 export async function getCRMStats() {

@@ -33,65 +33,26 @@ import {
 } from '@/server/services/industry-pulse';
 import { logger } from '@/lib/logger';
 import type { BlogCategory, BlogContentType } from '@/types/blog';
+import {
+    NewsIdea,
+    Citation,
+    ResearchBrief,
+    ContentScorecard,
+    NewsIdeasResult
+} from './action-types';
 
 const PLATFORM_ORG_ID = 'org_bakedbot_platform';
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
 
-export interface NewsIdea {
-    title: string;
-    url: string;
-    snippet: string;
-    suggestedAngle: string;
-    publishedDate?: string;
-}
-
-/** Preset topic keys the UI can pass to getCannabisNewsIdeas for instant cache reads. */
-export { PULSE_PRESET_KEYS };
-export type { PulseTopic };
-
-/** An attributable quote extracted from research sources */
-export interface Citation {
-    quote: string;
-    author: string;       // Person name, or publication name if no byline
-    company: string;      // Company, org, or publication
-    url: string;
-    sourceTitle: string;
-}
-
-export interface ResearchBrief {
-    topic: string;
-    keyFindings: string[];
-    suggestedAngles: string[];
-    competitorGaps: string[];
-    suggestedTitle: string;
-    suggestedKeywords: string[];
-    rawResearch: string;
-    citations: Citation[];
-    analyticsSignals?: ContentAnalyticsSnapshot | null;
-}
-
-export interface ContentScorecard {
-    hubCount: number;
-    spokeCount: number;
-    programmaticCount: number;
-    comparisonCount: number;
-    reportCount: number;
-    standardCount: number;
-    totalPublished: number;
-    hubTarget: number;
-    spokeTarget: number;
-    programmaticTarget: number;
-}
+/** Preset topic keys available in industry-pulse service */
+// Removed export { PULSE_PRESET_KEYS } to comply with 'use server' rules
+// Removed export type { PulseTopic } to avoid Turbopack reference errors
 
 // ─── 1. Cannabis News Ideas ───────────────────────────────────────────────────
 
-export interface NewsIdeasResult {
-    ideas: NewsIdea[];
-    cachedAt: string | null; // ISO string — cache timestamp or fresh fetch time; null on error/empty
-}
 
-export type { ContentAnalyticsSnapshot };
+// Removed export type { ContentAnalyticsSnapshot } to avoid Turbopack reference errors
 
 /**
  * Fetch cannabis industry news for content ideation using Jina Search.
@@ -107,7 +68,7 @@ export type { ContentAnalyticsSnapshot };
 export async function getCannabisNewsIdeas(
     topic?: string,
     forceRefresh = false
-): Promise<NewsIdeasResult> {
+): Promise<any> {
     await requireSuperUser();
 
     // Detect if topic is one of the pre-warmed presets
@@ -178,7 +139,7 @@ Respond with ONLY a JSON array of ${top8.length} strings. Example:
     }
 }
 
-export async function getContentAnalyticsSignals(): Promise<ContentAnalyticsSnapshot> {
+export async function getContentAnalyticsSignals(): Promise<any> {
     const user = await requireSuperUser();
     return getContentAnalyticsSnapshot(user.uid);
 }

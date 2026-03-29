@@ -24,7 +24,7 @@ import {
     Pencil, ChevronDown, ChevronUp, Link2, Zap,
 } from 'lucide-react';
 import type { OutreachDraft } from '@/server/services/ny-outreach/outreach-service';
-import type { ApolloCreditStatus } from '@/server/actions/ny-outreach-dashboard';
+import type { ApolloCreditStatus } from '@/server/services/ny-outreach/apollo-enrichment';
 
 type OutreachDashboardActions = typeof import('@/server/actions/ny-outreach-dashboard');
 

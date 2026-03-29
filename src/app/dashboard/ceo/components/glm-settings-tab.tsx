@@ -17,8 +17,8 @@ import {
 import {
     getGLMUsageAction,
     setGLMProviderAction,
-    type GLMUsageStatus,
 } from '@/server/actions/glm-actions';
+import type { GLMUsageStatus } from '@/server/services/glm-usage';
 import { logger } from '@/lib/logger';
 
 // Helper to format numbers

@@ -23,12 +23,14 @@ import {
     createVIPPlaybook,
     configurePilotPOS,
     flushPilotData,
-    type BrandPilotConfig,
-    type DispensaryPilotConfig,
-    type ImportedMenuData,
-    type PilotPOSConfig,
-    type PilotEmailConfig,
 } from '@/server/actions/pilot-setup';
+import type {
+    BrandPilotConfig,
+    DispensaryPilotConfig,
+    ImportedMenuData,
+    PilotPOSConfig,
+    PilotEmailConfig,
+} from '@/server/actions/action-types';
 import { Loader2, Rocket, Store, Building2, CheckCircle, Copy, ExternalLink, Plus, Trash2, Globe, Download, AlertCircle, Users, ShoppingCart, Mail, Database, RefreshCw, Crown } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Link from 'next/link';

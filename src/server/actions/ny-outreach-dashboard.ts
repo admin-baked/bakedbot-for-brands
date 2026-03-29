@@ -16,17 +16,16 @@
 import { requireUser } from '@/server/auth/auth';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
+import { NYOutreachCRMLead, SuperUserStatusCounts } from './action-types';
 import type { ApolloCreditStatus } from '@/server/services/ny-outreach/apollo-enrichment';
 import type { OutreachEmailData } from '@/server/services/ny-outreach/email-templates';
 import type { OutreachDraft, OutreachLead } from '@/server/services/ny-outreach/outreach-service';
 
-// Re-export Apollo credit type for UI
-export type { ApolloCreditStatus } from '@/server/services/ny-outreach/apollo-enrichment';
+// Removed re-export of ApolloCreditStatus to avoid Turbopack reference errors
 
 const DAILY_SEND_LIMIT = parseInt(process.env.NY_OUTREACH_DAILY_LIMIT || '5', 10);
 
-// Re-export for the UI
-export type { OutreachDraft } from '@/server/services/ny-outreach/outreach-service';
+// Removed re-export of OutreachDraft to avoid Turbopack reference errors
 
 type DashboardStats = {
     totalSent: number;
@@ -187,35 +186,7 @@ function selectTemplate(lead: { posSystem?: string }): string {
  */
 export async function getOutreachDashboardData(): Promise<{
     success: boolean;
-    data?: {
-        stats: DashboardStats;
-        queueDepth: number;
-        queueLeads: Array<{
-            id: string;
-            dispensaryName: string;
-            email?: string;
-            city: string;
-            state: string;
-            contactFormUrl?: string;
-            source: string;
-            createdAt: number;
-        }>;
-        crmContacts: Array<{
-            id: string;
-            dispensaryName: string;
-            email: string;
-            contactName?: string;
-            city: string;
-            state: string;
-            status: string;
-            outreachCount: number;
-            lastOutreachAt: number;
-            lastTemplateId: string;
-        }>;
-        dailyLimit: number;
-        sentToday: number;
-        pendingDrafts: number;
-    };
+    data?: any; // Use any to avoid Turbopack value reference errors
     error?: string;
 }> {
     try {
@@ -532,7 +503,7 @@ export async function generateOutreachDrafts(): Promise<{
  */
 export async function getOutreachDrafts(status?: string): Promise<{
     success: boolean;
-    drafts?: OutreachDraft[];
+    drafts?: any[]; // Use any to avoid Turbopack value reference errors
     error?: string;
 }> {
     try {
@@ -1044,28 +1015,6 @@ export async function triggerNYAPIImport(offset: number = 0): Promise<{
 // CRM View — NY Outreach Leads
 // =============================================================================
 
-export interface NYOutreachCRMLead {
-    id: string;
-    dispensaryName: string;
-    contactName: string | null;
-    email: string | null;
-    phone: string | null;
-    city: string;
-    address: string | null;
-    websiteUrl: string | null;
-    licenseNumber: string | null;
-    status: string;          // researched | draft_generated | contacted | responded | not_interested
-    outreachSent: boolean;
-    enriched: boolean;
-    notes: string | null;
-    createdAt: number;
-    updatedAt: number;
-    // Data quality fields
-    dataQualityScore?: number;  // 0–100: % of key fields filled
-    isDuplicate?: boolean;
-    duplicateOf?: string | null;
-}
-
 /**
  * Fetch NY outreach leads for the CRM view.
  * @param filter 'all' | 'has_email' | 'contacted' | 'no_email' | 'responded'
@@ -1260,19 +1209,9 @@ export async function getApolloCreditsAction(): Promise<{
 }
 
 // =============================================================================
+// =============================================================================
 // Super User Status Counts — CEO Dashboard Proactive Banner
 // =============================================================================
-
-export interface SuperUserStatusCounts {
-    pendingOutreachDrafts: number;  // ny_outreach_drafts where status='draft'
-    unenrichedLeads: number;        // ny_dispensary_leads where enriched=false
-    pendingBlogDrafts: number;      // blog_posts where status='draft'
-    leadQueueDepth: number;         // researched leads ready for outreach
-    apolloCreditsRemaining: number; // Apollo.io credits left this cycle
-    glmPercentUsed?: number;        // GLM usage percentage (0-100)
-    glmProvider?: 'glm' | 'anthropic';  // Current AI provider preference
-    glmCycleEnd?: number;            // Timestamp when GLM cycle resets
-}
 
 // Matches BIZ_DEV_CACHE_DOC in executive-context-prewarm/route.ts
 const BIZ_DEV_CACHE_DOC = 'biz_dev_context_today';
@@ -1292,6 +1231,7 @@ export async function getSuperUserStatusCounts(): Promise<{
     counts?: SuperUserStatusCounts;
     error?: string;
 }> {
+    logger.info('[OutreachDashboard] getSuperUserStatusCounts started');
     try {
         const user = await requireUser(['super_user']);
         if (!user) return { success: false, error: 'Unauthorized' };
@@ -1358,19 +1298,19 @@ export async function getSuperUserStatusCounts(): Promise<{
             getGLMUsageStatus(),
         ]);
 
-        return {
-            success: true,
-            counts: {
-                pendingOutreachDrafts: pendingDraftsSnap.data().count,
-                unenrichedLeads: unenrichedSnap.data().count,
-                pendingBlogDrafts: blogDraftsSnap.data().count,
-                leadQueueDepth: leadQueueSnap.data().count,
-                apolloCreditsRemaining: apolloCredits.remaining,
-                glmPercentUsed: glmStatus.percentUsed,
-                glmProvider: glmStatus.provider,
-                glmCycleEnd: glmStatus.cycleEnd,
-            },
+        const counts: SuperUserStatusCounts = {
+            pendingOutreachDrafts: pendingDraftsSnap.data().count,
+            unenrichedLeads: unenrichedSnap.data().count,
+            pendingBlogDrafts: blogDraftsSnap.data().count,
+            leadQueueDepth: leadQueueSnap.data().count,
+            apolloCreditsRemaining: apolloCredits.remaining,
+            glmPercentUsed: glmStatus.percentUsed,
+            glmProvider: glmStatus.provider,
+            glmCycleEnd: glmStatus.cycleEnd,
         };
+
+        logger.info('[OutreachDashboard] getSuperUserStatusCounts completed', { counts });
+        return { success: true, counts };
     } catch (err) {
         logger.error('[OutreachDashboard] Failed to load status counts', { error: String(err) });
         return { success: false, error: String(err) };

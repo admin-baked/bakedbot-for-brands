@@ -11,12 +11,11 @@ import { requireSuperUser } from '@/server/auth/auth';
 import {
     getGLMUsageStatus,
     setGLMProvider,
-    type GLMUsageStatus,
 } from '@/server/services/glm-usage';
+import type { GLMUsageStatus } from '@/server/services/glm-usage';
 import { logger } from '@/lib/logger';
 
-// Re-export for UI
-export type { GLMUsageStatus };
+// Removed export type { GLMUsageStatus } to avoid Turbopack reference errors
 
 /**
  * Get current GLM usage status.
@@ -24,7 +23,7 @@ export type { GLMUsageStatus };
  */
 export async function getGLMUsageAction(): Promise<{
     success: boolean;
-    data?: GLMUsageStatus;
+    data?: any; // Use any to avoid Turbopack value reference errors
     error?: string;
 }> {
     try {
