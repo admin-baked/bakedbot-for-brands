@@ -231,16 +231,16 @@ export async function createBooking(
     const bookingRef = firestore.collection('meeting_bookings').doc();
     const bookingId = bookingRef.id;
 
-    // Create Daily.co room (expires 30 min after meeting end)
+    // Create LiveKit room (expires 30 min after meeting end)
     const roomExpiry = new Date(endAt.getTime() + 30 * 60 * 1000);
     const roomName = buildRoomName(profileSlug, bookingId);
 
-    let videoRoomUrl = `https://bakedbot.daily.co/${roomName}`;
+    let videoRoomUrl = `https://meet.bakedbot.ai/${roomName}`;
     try {
         const room = await createMeetingRoom(roomName, roomExpiry);
         videoRoomUrl = room.url;
     } catch (err) {
-        logger.warn('[ExecCalendar] Daily.co room creation failed, using fallback URL:', err instanceof Error ? { message: err.message } : { error: String(err) });
+        logger.warn('[ExecCalendar] LiveKit room creation failed, using fallback URL:', err instanceof Error ? { message: err.message } : { error: String(err) });
     }
 
     const now = Timestamp.now();
