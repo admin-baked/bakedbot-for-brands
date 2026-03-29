@@ -51,10 +51,10 @@ const LINUS_TOOL_PATTERNS = [
     /\b(super\s*power|god\s*mode|run\s+script|execute\s+script|audit.?(index|schema|cost|consistency)|seed.?test|fix.?build)\b/,
     // Production monitoring / builds
     /\b(build\s+monitor|production\s+logs?|recent\s+builds?|last\s+build|deployment\s+status)\b/,
-    // File paths — anything with a slash, dot-extension, or .agent/ prefix
-    /\.(md|ts|tsx|js|jsx|json|yaml|yml|env|sh)\b|\.agent\/|src\/|scripts\//,
-    // Capability / tool-access questions — "can you read", "are you able to load", "do you have access"
-    /\b(can\s+you|are\s+you\s+able|do\s+you\s+have|wired\s+up|have\s+access|tool\s+access|read\s+access)\b/,
+    // Explicit file paths — requires a path separator or .agent/ to avoid matching bare words
+    /\.agent\/|(?:src|scripts|public|app|components|server|lib)\/\S+/,
+    // File with extension — must include a slash or be a known config file name to avoid false positives
+    /\b\w[\w-]*\.(ts|tsx|md|json|yaml|yml|sh)\b/,
 ];
 
 function linusNeedsTools(text: string): boolean {
