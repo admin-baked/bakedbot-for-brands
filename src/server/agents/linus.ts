@@ -1795,9 +1795,11 @@ const LINUS_SLACK_TOOL_BLOCKLIST = new Set([
     'create_approval_request',
 ]);
 
+// Memoized at module init — avoids re-filtering 60 tools on every Slack request.
+const LINUS_SLACK_TOOLS = LINUS_TOOLS.filter(t => !LINUS_SLACK_TOOL_BLOCKLIST.has(t.name));
+
 function getLinusTools(mode: LinusToolMode = 'full'): ClaudeTool[] {
-    if (mode === 'slack') return LINUS_TOOLS.filter(t => !LINUS_SLACK_TOOL_BLOCKLIST.has(t.name));
-    return LINUS_TOOLS;
+    return mode === 'slack' ? LINUS_SLACK_TOOLS : LINUS_TOOLS;
 }
 
 // ============================================================================
