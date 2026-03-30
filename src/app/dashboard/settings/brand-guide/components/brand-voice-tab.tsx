@@ -236,7 +236,7 @@ export function BrandVoiceTab({ brandId, brandGuide, onUpdate }: BrandVoiceTabPr
     try {
       const result = await generateSampleContent(brandId);
       if (!result.success || !result.samples) throw new Error(result.error || 'Generation failed');
-      setVoice(prev => ({ ...prev, sampleContent: result.samples!.map(s => ({ type: s.type, content: s.text, aiGenerated: true })) }));
+      setVoice(prev => ({ ...prev, sampleContent: result.samples!.map(s => ({ type: s.type as BrandVoiceSample['type'], content: s.text, aiGenerated: true })) }));
       toast({ title: 'Sample content generated', description: 'Review the posts below and save when ready.' });
     } catch (err) {
       toast({ title: 'Generation failed', description: (err as Error).message, variant: 'destructive' });
