@@ -1,6 +1,7 @@
 'use server';
 
 import { getAdminFirestore, getAdminAuth } from '@/firebase/admin';
+import { firestore } from 'firebase-admin';
 import { FieldPath, FieldValue } from 'firebase-admin/firestore';
 import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import { requireUser } from '@/server/auth/auth';
@@ -168,7 +169,7 @@ function planNameFromId(planId: unknown): string | null {
 }
 
 async function loadSubscriptionCurrentByOrgIds(
-    firestore: FirebaseFirestore.Firestore,
+    firestore: firestore.Firestore,
     orgIds: Set<string>
 ): Promise<Map<string, any>> {
     if (orgIds.size === 0) return new Map();
@@ -260,7 +261,7 @@ export async function upsertBrand(
         // Create new brand
         const brandRef = collection.doc();
 
-        const brand: CRMBrand = {
+        const brand: Omit<CRMBrand, 'discoveredAt' | 'updatedAt'> = {
             id: brandRef.id,
             name,
             slug,
@@ -496,7 +497,7 @@ export interface CRMLead {
 export async function getPlatformLeads(filters: CRMFilters = {}): Promise<CRMLead[]> {
     await requireUser(['super_user']);
     const firestore = getAdminFirestore();
-    let query: FirebaseFirestore.Query = firestore
+    let query: firestore.Query = firestore
         .collection('leads')
         .orderBy('createdAt', 'desc');
 
@@ -1060,7 +1061,7 @@ export async function getTestAccountCount(): Promise<number> {
  * Delete all documents in known user subcollections (batch delete, max 500 per collection)
  */
 async function deleteUserSubcollections(
-    firestore: FirebaseFirestore.Firestore,
+    firestore: firestore.Firestore,
     uid: string
 ): Promise<void> {
     const subcollections = [

@@ -8,6 +8,7 @@
 
 'use server';
 
+import { firestore } from 'firebase-admin';
 import { getAdminFirestore } from '@/firebase/admin';
 import { isNormalizedPhone, normalizePhone } from '@/lib/customer-import/column-mapping';
 import { logger } from '@/lib/logger';
@@ -81,7 +82,7 @@ function getActorOrgId(user: unknown): string | null {
     );
 }
 
-function mapLeadDoc(doc: FirebaseFirestore.QueryDocumentSnapshot): EmailLead {
+function mapLeadDoc(doc: firestore.QueryDocumentSnapshot): EmailLead {
     return {
         id: doc.id,
         ...doc.data(),
@@ -451,7 +452,7 @@ export async function getLeads(brandId?: string, dispensaryId?: string): Promise
                 .orderBy('capturedAt', 'desc')
                 .limit(1000)
                 .get();
-            snapshot.docs.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
+            snapshot.docs.forEach((doc: firestore.QueryDocumentSnapshot) => {
                 leadsById.set(doc.id, mapLeadDoc(doc));
             });
         };
@@ -462,7 +463,7 @@ export async function getLeads(brandId?: string, dispensaryId?: string): Promise
                 .orderBy('capturedAt', 'desc')
                 .limit(1000)
                 .get();
-            return snapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) => mapLeadDoc(doc));
+            return snapshot.docs.map((doc: firestore.QueryDocumentSnapshot) => mapLeadDoc(doc));
         }
 
         if (brandId) {
