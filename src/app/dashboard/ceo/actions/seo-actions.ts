@@ -607,9 +607,9 @@ export async function seedSeoPageAction(data: { zipCode: string; featuredDispens
                     zip: retailer.postalCode || zipCode,
                     source: 'discovery',
                     claimStatus: 'unclaimed',
-                    discoveredAt: Date.now(),
-                    updatedAt: Date.now(),
-                } as CRMDispensary)),
+                    discoveredAt: new Date(),
+                    updatedAt: new Date(),
+                } as unknown as CRMDispensary)),
                 true
             ),
             { merge: true }

@@ -13,9 +13,11 @@ import type { POSProvider } from '@/lib/pos/types';
 // =============================================================================
 
 export interface NewsIdea {
-    id: string;
+    id?: string;
     title: string;
-    description: string;
+    description?: string;
+    snippet?: string;
+    suggestedAngle?: string;
     source?: string;
     url?: string;
     publishedAt?: string;
@@ -23,26 +25,26 @@ export interface NewsIdea {
 }
 
 export interface Citation {
-    quote: string;
     text?: string;
     url: string;
     source?: string;
-    author: string;
-    company: string;
     sourceTitle?: string;
+    quote?: string;
+    author?: string;
+    company?: string;
 }
 
 export interface ResearchBrief {
     topic: string;
     summary?: string;
     keyPoints?: string[];
-    keyFindings: string[];
-    suggestedAngles: string[];
-    competitorGaps: string[];
+    keyFindings?: string[];
+    rawResearch?: string;
     citations: Citation[];
     suggestedTitle: string;
     suggestedKeywords: string[];
-    rawResearch?: string;
+    suggestedAngles?: string[];
+    competitorGaps?: string[];
     analyticsSignals?: any;
 }
 
@@ -79,9 +81,18 @@ export interface CRMAIInsight {
     count?: number;
 }
 
-export type CRMAISearchResult =
-    | { success: true; result: { summary: string; users: any[]; filtersApplied: string } }
-    | { success: false; error: string };
+export interface CRMAISearchResult {
+    success?: boolean;
+    result?: {
+        summary: string;
+        users: any[];
+        filtersApplied: string;
+    };
+    error?: string;
+    summary?: string;
+    users?: any[];
+    filtersApplied?: string;
+}
 
 // =============================================================================
 // NY Outreach Types
