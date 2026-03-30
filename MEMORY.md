@@ -1,6 +1,16 @@
 # BakedBot Session Memory
 
+## Session: 2026-03-27
+- **Desktop inbox pilot briefing shipped**: Added a dedicated desktop briefing workspace above inbox/chat so Thrive Syracuse, Ecstatic Edibles, and Native Black Cultivation keep their daily context visible while working threads. Commit: `aa60b742d`.
+- **Grower role became first-class in the inbox**: Wired grower chat config, insight types/mock data, server-side grower insight aggregation, and a safe quick-action fallback while DB-backed grower ground truth does not exist yet. Commit: `aa60b742d`.
+- **Simplify cleanup + verification**: Reused the canonical role helpers in the new inbox path, removed duplicate desktop briefing cards, added focused grower/desktop inbox tests, and passed the targeted Jest suite plus `npm run -s check:types` before pushing. Commit: `aa60b742d`.
+- **Gotcha**: When `NEXT_PUBLIC_USE_DB_QUICK_ACTIONS=true`, growers must stay on the hardcoded action set until a grower ground-truth schema exists or their wholesale/yield actions disappear.
+
 ## Session: 2026-03-25
+- **Thrive briefing freshness + grounding**: Fixed tenant org fallback, morning/inbox briefing freshness, truthful missing-data handling, and CRM top-customer grounding so Thrive Syracuse stops getting stale or hallucinated manager summaries. Commit: `7443082dc`.
+- **Unified inbox + Deebo hardening**: Added the back-to-briefing path and header spacing cleanup in the inbox UI, plus a shared mock-token helper and NY compliance fast path so Deebo avoids the invalid `seconds` planner failure. Commit: `7443082dc`.
+- **Agent cost controls**: Reused deterministic routing before specialist handoff, let unmatched inbox `auto` threads fall back to general instead of Pops, and narrowed Claude tool mode to explicit supported web/docs or image/video requests. Commit: `7443082dc`.
+- **Gotcha**: Inbox `auto` should preserve the general fallback when intent is unclear; forcing Pops on unmatched prompts hid routing misses and made stale or speculative answers look authoritative.
 - **Default-shell Node/Jest startup fixed**: Added repo-safe `scripts/node-safe.cmd` and `scripts/npm-safe.cmd` wrappers plus a shared bootstrap so sandboxed Node file execution stays inside `.codex-jest-home` and no longer fails on `C:\Users\admin`. Commit: `1699974c2`.
 - **Jest launcher reused the canonical bootstrap**: Extracted the existing env setup into `scripts/ensure-workspace-node-home.cjs` so direct Jest runs and wrapper-launched scripts share the same Node-side setup path.
 - **Verification**: `.\scripts\node-safe.cmd -v`, `.\scripts\npm-safe.cmd test -- --help`, and `.\scripts\npm-safe.cmd run -s check:types` all passed locally.

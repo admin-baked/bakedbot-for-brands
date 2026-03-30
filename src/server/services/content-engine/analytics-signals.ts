@@ -8,58 +8,14 @@ import type { BlogCategory, BlogContentType } from '@/types/blog';
 const BLOG_PATH_PREFIXES = ['/blog', '/resources'];
 const PRIMARY_COMPETITOR = 'AlpineIQ (AIQ)';
 
-export interface ContentAnalyticsKpis {
-    sessions28d: number | null;
-    blogSessions28d: number | null;
-    impressions28d: number | null;
-    clicks28d: number | null;
-    ctr28d: number | null;
-    avgPosition28d: number | null;
-    comparisonPosts: number;
-    aiqMentionPosts: number;
-}
-
-export interface ContentAnalyticsTopSource {
-    source: string;
-    sessions: number;
-}
-
-export interface ContentAnalyticsTopPage {
-    path: string;
-    sessions: number;
-}
-
-export interface ContentAnalyticsTopQuery {
-    query: string;
-    clicks: number;
-    impressions: number;
-    position: number;
-}
-
-export interface ContentAnalyticsRecommendation {
-    title: string;
-    topic: string;
-    reason: string;
-    source: 'search_console' | 'google_analytics' | 'competitive_intel';
-    contentType: BlogContentType;
-    category: BlogCategory;
-    supportingMetric: string;
-}
-
-export interface ContentAnalyticsSnapshot {
-    generatedAt: string;
-    gaConnected: boolean;
-    gscConnected: boolean;
-    gaMode: 'oauth' | 'service_account' | 'disconnected';
-    gscMode: 'oauth' | 'service_account' | 'disconnected';
-    primaryCompetitor: string;
-    competitorDifferentiators: string[];
-    kpis: ContentAnalyticsKpis;
-    topSources: ContentAnalyticsTopSource[];
-    topContentPages: ContentAnalyticsTopPage[];
-    topQueries: ContentAnalyticsTopQuery[];
-    recommendations: ContentAnalyticsRecommendation[];
-}
+import type {
+    ContentAnalyticsKpis,
+    ContentAnalyticsTopSource,
+    ContentAnalyticsTopPage,
+    ContentAnalyticsTopQuery,
+    ContentAnalyticsRecommendation,
+    ContentAnalyticsSnapshot,
+} from '@/types/blog-research';
 
 function isBlogPath(path: string): boolean {
     return BLOG_PATH_PREFIXES.some((prefix) => path.startsWith(prefix));

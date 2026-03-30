@@ -16,17 +16,7 @@ const GLM_USAGE_DOC_PATH = 'system_config/glm_usage';
 // =============================================================================
 // Types
 // =============================================================================
-
-export interface GLMUsageStatus {
-    used: number;              // Total GLM calls/tokens this cycle
-    limit: number;            // Monthly limit from z.ai (e.g., 1,000,000 tokens)
-    remaining: number;          // Calculated (limit - used)
-    cycleStart: number;         // Timestamp when current cycle started
-    cycleEnd: number;           // Timestamp when cycle resets
-    lastUpdated: number;         // Timestamp of last update
-    percentUsed: number;        // (used / limit) * 100
-    provider: 'glm' | 'anthropic';  // Currently active provider
-}
+import type { GLMUsageStatus } from '@/types/glm';
 
 // Default cycle limit (will be updated from z.ai API if available)
 const DEFAULT_MONTHLY_LIMIT = 1_000_000_000; // 1B tokens (placeholder, adjust as needed

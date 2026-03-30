@@ -11,12 +11,9 @@ import { requireSuperUser } from '@/server/auth/auth';
 import {
     getGLMUsageStatus,
     setGLMProvider,
-    type GLMUsageStatus,
 } from '@/server/services/glm-usage';
+import type { GLMUsageStatus } from '@/types/glm';
 import { logger } from '@/lib/logger';
-
-// Re-export for UI
-export type { GLMUsageStatus };
 
 /**
  * Get current GLM usage status.

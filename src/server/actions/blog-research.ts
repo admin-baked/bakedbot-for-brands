@@ -23,75 +23,26 @@ import { generateFromTemplate } from '@/server/services/content-engine/generator
 import {
     buildContentAnalyticsContext,
     getContentAnalyticsSignals as getContentAnalyticsSnapshot,
-    type ContentAnalyticsSnapshot,
 } from '@/server/services/content-engine/analytics-signals';
+import type {
+    NewsIdea,
+    Citation,
+    ResearchBrief,
+    ContentScorecard,
+    NewsIdeasResult,
+    ContentAnalyticsSnapshot,
+} from '@/types/blog-research';
 import {
-    PULSE_PRESET_KEYS,
     fetchAndCacheNewsForTopic,
     readCachedNews,
-    type PulseTopic,
 } from '@/server/services/industry-pulse';
+import { PULSE_PRESET_KEYS, type PulseTopic } from '@/types/pulse';
 import { logger } from '@/lib/logger';
 import type { BlogCategory, BlogContentType } from '@/types/blog';
 
 const PLATFORM_ORG_ID = 'org_bakedbot_platform';
 
-// ─── Interfaces ──────────────────────────────────────────────────────────────
-
-export interface NewsIdea {
-    title: string;
-    url: string;
-    snippet: string;
-    suggestedAngle: string;
-    publishedDate?: string;
-}
-
-/** Preset topic keys the UI can pass to getCannabisNewsIdeas for instant cache reads. */
-export { PULSE_PRESET_KEYS };
-export type { PulseTopic };
-
-/** An attributable quote extracted from research sources */
-export interface Citation {
-    quote: string;
-    author: string;       // Person name, or publication name if no byline
-    company: string;      // Company, org, or publication
-    url: string;
-    sourceTitle: string;
-}
-
-export interface ResearchBrief {
-    topic: string;
-    keyFindings: string[];
-    suggestedAngles: string[];
-    competitorGaps: string[];
-    suggestedTitle: string;
-    suggestedKeywords: string[];
-    rawResearch: string;
-    citations: Citation[];
-    analyticsSignals?: ContentAnalyticsSnapshot | null;
-}
-
-export interface ContentScorecard {
-    hubCount: number;
-    spokeCount: number;
-    programmaticCount: number;
-    comparisonCount: number;
-    reportCount: number;
-    standardCount: number;
-    totalPublished: number;
-    hubTarget: number;
-    spokeTarget: number;
-    programmaticTarget: number;
-}
-
 // ─── 1. Cannabis News Ideas ───────────────────────────────────────────────────
-
-export interface NewsIdeasResult {
-    ideas: NewsIdea[];
-    cachedAt: string | null; // ISO string — cache timestamp or fresh fetch time; null on error/empty
-}
-
-export type { ContentAnalyticsSnapshot };
 
 /**
  * Fetch cannabis industry news for content ideation using Jina Search.

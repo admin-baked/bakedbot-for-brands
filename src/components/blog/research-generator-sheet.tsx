@@ -33,8 +33,8 @@ import { Loader2, Search, FileText, ArrowRight, CheckCircle, X, RefreshCw } from
 import {
     generateResearchBrief,
     researchAndGenerateBlog,
-    type ResearchBrief,
 } from '@/server/actions/blog-research';
+import type { ResearchBrief } from '@/types/blog-research';
 import type { BlogCategory, BlogContentType } from '@/types/blog';
 
 interface ResearchGeneratorSheetProps {

@@ -1825,6 +1825,15 @@
                 { "fieldPath": "orgId", "order": "ASCENDING" },
                 { "fieldPath": "salesLast7Days", "order": "DESCENDING" }
             ]
+        },
+        {
+            "collectionGroup": "ny_dispensary_leads",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "enriched", "order": "ASCENDING" },
+                { "fieldPath": "createdAt", "order": "ASCENDING" },
+                { "fieldPath": "__name__", "order": "ASCENDING" }
+            ]
         }
     ],
     "fieldOverrides": []

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -1077,9 +1077,8 @@ export default function CRMTab() {
                                     </TableHeader>
                                     <TableBody>
                                         {paginatedUsers.map((user) => (
-                                            <>
+                                            <React.Fragment key={user.id}>
                                             <TableRow
-                                                key={user.id}
                                                 className={`cursor-pointer ${user.isTestAccount ? 'opacity-60 bg-muted/30' : ''}`}
                                                 onClick={() => handleToggleRow(user.id)}
                                             >
@@ -1195,7 +1194,7 @@ export default function CRMTab() {
                                                     </TableCell>
                                                 </TableRow>
                                             )}
-                                            </>
+                                            </React.Fragment>
                                         ))}
                                     </TableBody>
                                 </Table>

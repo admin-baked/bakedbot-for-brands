@@ -19,9 +19,13 @@ import { logger } from '@/lib/logger';
 // Topic Config (shared between server service + client UI constants)
 // =============================================================================
 
-export const PULSE_PRESET_KEYS = ['regulations', 'marketing', 'products', 'trends'] as const;
-export type PulsePresetKey = typeof PULSE_PRESET_KEYS[number];
-export type PulseTopic = 'default' | PulsePresetKey;
+import {
+    PULSE_PRESET_KEYS,
+    type PulsePresetKey,
+    type PulseTopic,
+    type PulseNewsItem,
+    type PulseTopicResult,
+} from '@/types/pulse';
 
 /** Used by both the cron (fetch+cache) and the server action (cache read). */
 export const PULSE_TOPIC_CONFIG: Record<PulseTopic, {
@@ -64,22 +68,6 @@ export const PULSE_TOPIC_CONFIG: Record<PulseTopic, {
 
 export const PULSE_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-// =============================================================================
-// Types
-// =============================================================================
-
-export interface PulseNewsItem {
-    title: string;
-    url: string;
-    snippet: string;
-    suggestedAngle: string;
-}
-
-export interface PulseTopicResult {
-    topic: PulseTopic;
-    count: number;
-    status: 'cached' | 'failed';
-}
 
 // =============================================================================
 // Core: Fetch + Cache a Single Topic
