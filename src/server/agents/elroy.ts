@@ -212,7 +212,7 @@ async function elroyToolExecutor(toolName: string, input: Record<string, unknown
                 .get();
 
             const matches = snap.docs
-                .map(d => ({ id: d.id, ...d.data() } as any))
+                .map((d: any) => ({ id: d.id, ...d.data() } as any))
                 .filter((u: any) => {
                     const name = (u.displayName ?? u.name ?? '').toLowerCase();
                     const phone = (u.phone ?? u.phoneNumber ?? '').replace(/\D/g, '');
@@ -247,7 +247,7 @@ async function elroyToolExecutor(toolName: string, input: Record<string, unknown
             if (snap.empty) return { revenue: 0, transactions: 0, averageTicket: 0, message: 'No transactions recorded yet today.' };
 
             let revenue = 0;
-            snap.docs.forEach(d => {
+            snap.docs.forEach((d: any) => {
                 const data = d.data() as any;
                 revenue += data.totals?.total ?? data.total ?? 0;
             });
@@ -271,7 +271,7 @@ async function elroyToolExecutor(toolName: string, input: Record<string, unknown
 
             if (snap.empty) return { message: 'No product sales data available.' };
 
-            return snap.docs.map(d => {
+            return snap.docs.map((d: any) => {
                 const p = d.data() as any;
                 return {
                     name: p.name ?? p.productName ?? 'Unknown',
@@ -296,7 +296,7 @@ async function elroyToolExecutor(toolName: string, input: Record<string, unknown
 
             if (snap.empty) return { message: 'No recent transactions found.' };
 
-            return snap.docs.map(d => {
+            return snap.docs.map((d: any) => {
                 const o = d.data() as any;
                 const items: any[] = o.items ?? [];
                 return {
@@ -329,7 +329,7 @@ async function elroyToolExecutor(toolName: string, input: Record<string, unknown
                 db.collection('orders').where('brandId', '==', ORG_ID).where('createdAt', '>=', weekAgoStart).where('createdAt', '<', todayStart).get(),
             ]);
 
-            const sumRevenue = (docs: FirebaseFirestore.QueryDocumentSnapshot[]) =>
+            const sumRevenue = (docs: any[]) =>
                 docs.reduce((sum, d) => sum + ((d.data() as any).totals?.total ?? (d.data() as any).total ?? 0), 0);
 
             const todayRev = sumRevenue(todaySnap.docs);

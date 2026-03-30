@@ -473,10 +473,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                 }
             })() : Promise.resolve([]),
 
-            // Image downloads for vision-capable agents (Linus + Elroy).
-            // Uses url_private_download (direct, no redirect) > url_private fallback.
-            // Validates Content-Type so HTML error pages can't slip through the 500-byte guard.
-            // Claude vision limit: ~5MB per image — we cap at 4MB to stay safely under.
+            // Image downloads for vision-capable agents (Linus + Elroy)
             ((isLinus || isElroy) && (botToken || elroyBotToken) && imageFiles.length > 0)
                 ? Promise.all(imageFiles.map(async (f: any) => {
                     if (!(CLAUDE_IMAGE_TYPES as readonly string[]).includes(f.mimetype)) {
