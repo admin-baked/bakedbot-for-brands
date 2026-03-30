@@ -1,5 +1,6 @@
 'use server';
 
+import { firestore } from 'firebase-admin';
 import { getAdminFirestore } from '@/firebase/admin';
 import {
     isNormalizedPhone,
@@ -134,8 +135,8 @@ export interface CaptureVisitorCheckinResult {
 }
 
 type CustomerSnapshot =
-    | FirebaseFirestore.DocumentSnapshot
-    | FirebaseFirestore.QueryDocumentSnapshot;
+    | firestore.DocumentSnapshot
+    | firestore.QueryDocumentSnapshot;
 
 type LeadScope = {
     brandId?: string;
