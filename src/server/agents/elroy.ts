@@ -409,6 +409,7 @@ export interface ElroyRequest {
     prompt: string;
     context?: { userId?: string };
     maxIterations?: number;
+    images?: Array<{ data: string; mimeType: string }>;
     progressCallback?: (msg: string) => Promise<void>;
 }
 
@@ -440,6 +441,7 @@ export async function runElroy(request: ElroyRequest): Promise<ElroyResponse> {
             orgId: ORG_ID,
             maxIterations: request.maxIterations ?? 5,
             agentContext: ELROY_AGENT_CONTEXT,
+            imageAttachments: request.images,
             onToolCall,
         }
     );

@@ -448,6 +448,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
         const isElroy = personaId === 'elroy';
         const willUseLinusTools = isLinus && linusNeedsTools(enrichedText);
         const botToken = process.env.SLACK_BOT_TOKEN;
+        const elroyBotToken = process.env.SLACK_ELROY_BOT_TOKEN;
         const imageFiles = files.filter((f: any) => /^image\//.test(f.mimetype || '')).slice(0, 3);
 
         // Always fetch context (history for everyone; Letta for Linus) concurrently with image downloads
@@ -472,27 +473,40 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                 }
             })() : Promise.resolve([]),
 
-            // Image downloads (Linus only, when tools/vision needed).
-            // Vision still routes through Claude, so only pass Claude-supported formats.
-            (isLinus && botToken && imageFiles.length > 0)
+            // Image downloads for vision-capable agents (Linus + Elroy).
+            // Uses url_private_download (direct, no redirect) > url_private fallback.
+            // Validates Content-Type so HTML error pages can't slip through the 500-byte guard.
+            // Claude vision limit: ~5MB per image — we cap at 4MB to stay safely under.
+            ((isLinus || isElroy) && (botToken || elroyBotToken) && imageFiles.length > 0)
                 ? Promise.all(imageFiles.map(async (f: any) => {
                     if (!(CLAUDE_IMAGE_TYPES as readonly string[]).includes(f.mimetype)) {
                         logger.warn(`[SlackBridge] Skipping image with unsupported MIME type: ${f.mimetype}`);
                         return null;
                     }
+                    const downloadToken = (isElroy ? elroyBotToken : botToken) || botToken;
+                    const downloadUrl = f.url_private_download || f.url_private;
                     try {
-                        const res = await fetch(f.url_private, { headers: { Authorization: `Bearer ${botToken}` } });
+                        const res = await fetch(downloadUrl, { headers: { Authorization: `Bearer ${downloadToken}` } });
                         if (!res.ok) {
                             logger.warn(`[SlackBridge] Image download failed (${res.status}): ${f.name}`);
                             return null;
                         }
+                        // Reject non-image responses (HTML auth/error pages)
+                        const contentType = res.headers.get('content-type') || '';
+                        if (!contentType.startsWith('image/')) {
+                            logger.warn(`[SlackBridge] Unexpected content-type "${contentType}" for image ${f.name}, skipping`);
+                            return null;
+                        }
                         const buf = Buffer.from(await res.arrayBuffer());
-                        // Guard: < 500 bytes means we got a redirect page / 404 HTML, not a real image
                         if (buf.length < 500) {
                             logger.warn(`[SlackBridge] Image too small (${buf.length}b), skipping: ${f.name}`);
                             return null;
                         }
-                        logger.info(`[SlackBridge] Downloaded image for Linus vision: ${f.name} (${buf.length} bytes)`);
+                        if (buf.length > 4 * 1024 * 1024) {
+                            logger.warn(`[SlackBridge] Image too large (${buf.length}b), skipping: ${f.name}`);
+                            return null;
+                        }
+                        logger.info(`[SlackBridge] Downloaded image for vision: ${f.name} (${buf.length}b) agent=${isElroy ? 'elroy' : 'linus'}`);
                         return { data: buf.toString('base64'), mimeType: f.mimetype as string };
                     } catch (imgErr: any) {
                         logger.warn(`[SlackBridge] Failed to download image ${f.name}: ${imgErr.message}`);
@@ -568,6 +582,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                         prompt: fullPrompt,
                         maxIterations: 5,
                         context: { userId: SLACK_SYSTEM_USER.uid },
+                        images: downloaded.length > 0 ? downloaded : undefined,
                         progressCallback: elroyProgress,
                     }),
                     new Promise<never>((_, reject) =>
