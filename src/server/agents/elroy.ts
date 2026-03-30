@@ -240,7 +240,7 @@ async function elroyToolExecutor(toolName: string, input: Record<string, unknown
             const todayStart = new Date();
             todayStart.setHours(0, 0, 0, 0);
             const snap = await db.collection('orders')
-                .where('orgId', '==', ORG_ID)
+                .where('brandId', '==', ORG_ID)
                 .where('createdAt', '>=', todayStart)
                 .get();
 
@@ -289,7 +289,7 @@ async function elroyToolExecutor(toolName: string, input: Record<string, unknown
             const limit = typeof input.limit === 'number' ? Math.min(input.limit, 50) : 20;
             const db = getAdminFirestore();
             const snap = await db.collection('orders')
-                .where('orgId', '==', ORG_ID)
+                .where('brandId', '==', ORG_ID)
                 .orderBy('createdAt', 'desc')
                 .limit(limit)
                 .get();
@@ -324,9 +324,9 @@ async function elroyToolExecutor(toolName: string, input: Record<string, unknown
             weekAgoStart.setDate(weekAgoStart.getDate() - 7);
 
             const [todaySnap, yesterdaySnap, weekSnap] = await Promise.all([
-                db.collection('orders').where('orgId', '==', ORG_ID).where('createdAt', '>=', todayStart).get(),
-                db.collection('orders').where('orgId', '==', ORG_ID).where('createdAt', '>=', yesterdayStart).where('createdAt', '<', todayStart).get(),
-                db.collection('orders').where('orgId', '==', ORG_ID).where('createdAt', '>=', weekAgoStart).where('createdAt', '<', todayStart).get(),
+                db.collection('orders').where('brandId', '==', ORG_ID).where('createdAt', '>=', todayStart).get(),
+                db.collection('orders').where('brandId', '==', ORG_ID).where('createdAt', '>=', yesterdayStart).where('createdAt', '<', todayStart).get(),
+                db.collection('orders').where('brandId', '==', ORG_ID).where('createdAt', '>=', weekAgoStart).where('createdAt', '<', todayStart).get(),
             ]);
 
             const sumRevenue = (docs: FirebaseFirestore.QueryDocumentSnapshot[]) =>
