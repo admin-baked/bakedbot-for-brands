@@ -587,18 +587,20 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
                             <h2 className="text-base font-semibold">Inbox</h2>
                         </div>
                     )}
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => setSidebarCollapsed(!isSidebarCollapsed)}
-                    >
-                        {collapsed ? (
-                            <ChevronRight className="h-4 w-4" />
-                        ) : (
-                            <ChevronLeft className="h-4 w-4" />
-                        )}
-                    </Button>
+                    {!isMobile && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => setSidebarCollapsed(!isSidebarCollapsed)}
+                        >
+                            {collapsed ? (
+                                <ChevronRight className="h-4 w-4" />
+                            ) : (
+                                <ChevronLeft className="h-4 w-4" />
+                            )}
+                        </Button>
+                    )}
                 </div>
             </div>
 
