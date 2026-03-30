@@ -50,7 +50,7 @@ jest.mock('@/lib/logger', () => ({
     },
 }));
 
-const { detectAgent, stripBotMention } = require('../slack-agent-bridge');
+const { detectAgent, getSlackGLMSynthesisTask, stripBotMention } = require('../slack-agent-bridge');
 
 describe('Slack Agent Bridge', () => {
     // =========================================================================
@@ -88,9 +88,9 @@ describe('Slack Agent Bridge', () => {
     // =========================================================================
     describe('detectAgent', () => {
         // Default routing
-        it('should route DM messages to leo by default', () => {
+        it('should route DM messages to linus by default', () => {
             const result = detectAgent('hello', '', true);
-            expect(result).toBe('leo');
+            expect(result).toBe('linus');
         });
 
         it('should route channel messages to puff by default', () => {
@@ -102,7 +102,6 @@ describe('Slack Agent Bridge', () => {
         describe('keyword detection', () => {
             it('should detect leo keywords', () => {
                 expect(detectAgent('leo please', '', true)).toBe('leo');
-                expect(detectAgent('coo update', '', true)).toBe('leo');
                 expect(detectAgent('operations status', '', true)).toBe('leo');
                 expect(detectAgent('ops summary', '', true)).toBe('leo');
             });
@@ -168,6 +167,17 @@ describe('Slack Agent Bridge', () => {
             it('should use default when no keyword and no channel prefix', () => {
                 expect(detectAgent('just a message', 'random-channel', false)).toBe('puff');
             });
+        });
+    });
+
+    describe('getSlackGLMSynthesisTask', () => {
+        it('uses strategic GLM for Linus Slack synthesis', () => {
+            expect(getSlackGLMSynthesisTask('linus')).toBe('strategic');
+        });
+
+        it('uses standard GLM for other Slack personas', () => {
+            expect(getSlackGLMSynthesisTask('leo')).toBe('standard');
+            expect(getSlackGLMSynthesisTask('craig')).toBe('standard');
         });
     });
 });

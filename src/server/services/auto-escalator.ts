@@ -18,9 +18,10 @@
 import { getAdminFirestore } from '@/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logger } from '@/lib/logger';
+import { dispatchLinusIncidentResponse } from '@/server/services/linus-incident-response';
+import { postLinusIncidentSlack } from '@/server/services/incident-notifications';
 import type { QABugPriority } from '@/types/qa';
 
-const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK_INCIDENTS || process.env.SLACK_WEBHOOK_URL;
 const DASHBOARD_URL = 'https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -105,77 +106,6 @@ async function recentBugExists(priority: QABugPriority, titlePrefix: string): Pr
     }
 }
 
-// ── Internal: Slack ───────────────────────────────────────────────────────────
-
-async function postToSlack(blocks: unknown[], fallbackText: string): Promise<void> {
-    if (!SLACK_WEBHOOK) {
-        logger.warn('[AutoEscalator] SLACK_WEBHOOK_INCIDENTS not configured');
-        return;
-    }
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-
-    try {
-        const res = await fetch(SLACK_WEBHOOK, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: fallbackText, blocks }),
-            signal: controller.signal,
-        });
-        if (!res.ok) {
-            logger.error('[AutoEscalator] Slack webhook failed', { status: res.status });
-        }
-    } catch (err) {
-        logger.error('[AutoEscalator] Slack post error', { error: String(err) });
-    } finally {
-        clearTimeout(timeout);
-    }
-}
-
-// ── Internal: Linus Dispatch ──────────────────────────────────────────────────
-
-async function dispatchLinus(prompt: string, bugId: string | null): Promise<void> {
-    try {
-        // Dynamic import keeps this module from crashing if Claude API is unavailable
-        const { runLinus } = await import('@/server/agents/linus');
-
-        logger.info('[AutoEscalator] Dispatching Linus', { bugId });
-
-        const result = await runLinus({
-            prompt,
-            maxIterations: 5, // fast diagnosis only
-            context: { userId: 'auto-escalator' },
-        });
-
-        if (!result.content) return;
-
-        const bugLink = bugId
-            ? `<${DASHBOARD_URL}/dashboard/ceo?tab=qa&bugId=${bugId}|View Bug \`${bugId}\`>`
-            : 'Bug not filed';
-
-        await postToSlack([
-            {
-                type: 'header',
-                text: { type: 'plain_text', text: '🖥️ Linus — Incident Analysis', emoji: true },
-            },
-            {
-                type: 'section',
-                text: { type: 'mrkdwn', text: result.content.slice(0, 2900) },
-            },
-            {
-                type: 'context',
-                elements: [{ type: 'mrkdwn', text: bugLink }],
-            },
-        ], `🖥️ Linus analysis complete — ${bugId ?? 'no bug ID'}`);
-
-        logger.info('[AutoEscalator] Linus analysis posted to Slack', { bugId, decision: result.decision });
-    } catch (err) {
-        logger.error('[AutoEscalator] Linus dispatch failed', { error: String(err), bugId });
-        // Non-fatal — the initial alert and bug are already filed
-    }
-}
-
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
@@ -211,35 +141,40 @@ export async function escalateHeartbeatFailure(failure: HeartbeatFailure): Promi
         ? `<${failure.githubRunUrl}|View GitHub Run>`
         : 'No run URL';
 
-    await postToSlack([
-        {
-            type: 'header',
-            text: { type: 'plain_text', text: '🔴 P0: Production Heartbeat Failed', emoji: true },
-        },
-        {
-            type: 'section',
-            fields: [
-                { type: 'mrkdwn', text: `*Endpoint*\n\`${failure.endpoint}\`` },
-                { type: 'mrkdwn', text: `*HTTP Status*\n${failure.httpStatus}` },
-                { type: 'mrkdwn', text: `*Time*\n${failure.failedAt}` },
-                { type: 'mrkdwn', text: `*Run*\n${runLink}` },
-            ],
-        },
-        {
-            type: 'section',
-            text: {
-                type: 'mrkdwn',
-                text: `*Response Body*\n\`\`\`${failure.responseBody.slice(0, 400)}\`\`\``,
+    await postLinusIncidentSlack({
+        blocks: [
+            {
+                type: 'header',
+                text: { type: 'plain_text', text: '🔴 P0: Production Heartbeat Failed', emoji: true },
             },
-        },
-        {
-            type: 'section',
-            text: {
-                type: 'mrkdwn',
-                text: `🖥️ Linus is analyzing... Bug \`${bugId ?? 'pending'}\` filed. Analysis incoming.`,
+            {
+                type: 'section',
+                fields: [
+                    { type: 'mrkdwn', text: `*Endpoint*\n\`${failure.endpoint}\`` },
+                    { type: 'mrkdwn', text: `*HTTP Status*\n${failure.httpStatus}` },
+                    { type: 'mrkdwn', text: `*Time*\n${failure.failedAt}` },
+                    { type: 'mrkdwn', text: `*Run*\n${runLink}` },
+                ],
             },
-        },
-    ], `🔴 P0: Production heartbeat failed — HTTP ${failure.httpStatus}`);
+            {
+                type: 'section',
+                text: {
+                    type: 'mrkdwn',
+                    text: `*Response Body*\n\`\`\`${failure.responseBody.slice(0, 400)}\`\`\``,
+                },
+            },
+            {
+                type: 'section',
+                text: {
+                    type: 'mrkdwn',
+                    text: `🖥️ Linus is analyzing... Bug \`${bugId ?? 'pending'}\` filed. Analysis incoming.`,
+                },
+            },
+        ],
+        fallbackText: `🔴 P0: Production heartbeat failed — HTTP ${failure.httpStatus}`,
+        source: 'auto-escalator',
+        incidentId: bugId,
+    });
 
     // 3. Linus async — non-blocking
     const linusPrompt = `🚨 PRODUCTION INCIDENT — P0 Heartbeat Failure
@@ -258,7 +193,19 @@ Please diagnose immediately:
 4. Should we rollback the last deploy or wait?
 Keep your response concise — this is a live P0 incident.`;
 
-    setImmediate(() => void dispatchLinus(linusPrompt, bugId));
+    const bugLink = bugId
+        ? `<${DASHBOARD_URL}/dashboard/ceo?tab=qa&bugId=${bugId}|View Bug \`${bugId}\`>`
+        : 'Bug not filed';
+
+    setImmediate(() => void dispatchLinusIncidentResponse({
+        prompt: linusPrompt,
+        source: 'auto-escalator',
+        incidentId: bugId,
+        incidentLink: bugLink,
+        maxIterations: 5,
+        analysisHeader: '🖥️ Linus — Incident Analysis',
+        analysisFallbackPrefix: '🖥️ Linus analysis complete',
+    }));
 }
 
 /**
@@ -304,30 +251,35 @@ export async function escalateLatencyBreach(breach: LatencyBreach): Promise<void
         ? `<${breach.githubRunUrl}|View GitHub Run>`
         : 'No run URL';
 
-    await postToSlack([
-        {
-            type: 'header',
-            text: { type: 'plain_text', text: '🟠 P1: Latency SLA Breach', emoji: true },
-        },
-        {
-            type: 'section',
-            fields: [
-                { type: 'mrkdwn', text: `*Overall p95*\n${breach.overallP95}ms _(SLA: 600ms)_` },
-                { type: 'mrkdwn', text: `*Worst Endpoint*\n\`${worstEndpoint}\` — ${worstMs}ms` },
-                { type: 'mrkdwn', text: `*\`/api/health\`*\n${breach.endpoints.health}ms` },
-                { type: 'mrkdwn', text: `*\`/thrivesyracuse\`*\n${breach.endpoints.menu}ms` },
-                { type: 'mrkdwn', text: `*\`/llm.txt\`*\n${breach.endpoints.llmTxt}ms` },
-                { type: 'mrkdwn', text: `*Run*\n${runLink}` },
-            ],
-        },
-        {
-            type: 'section',
-            text: {
-                type: 'mrkdwn',
-                text: `🖥️ Linus is analyzing... Bug \`${bugId ?? 'pending'}\` filed. Analysis incoming.`,
+    await postLinusIncidentSlack({
+        blocks: [
+            {
+                type: 'header',
+                text: { type: 'plain_text', text: '🟠 P1: Latency SLA Breach', emoji: true },
             },
-        },
-    ], `🟠 P1: Latency SLA breach — p95 ${breach.overallP95}ms`);
+            {
+                type: 'section',
+                fields: [
+                    { type: 'mrkdwn', text: `*Overall p95*\n${breach.overallP95}ms _(SLA: 600ms)_` },
+                    { type: 'mrkdwn', text: `*Worst Endpoint*\n\`${worstEndpoint}\` — ${worstMs}ms` },
+                    { type: 'mrkdwn', text: `*\`/api/health\`*\n${breach.endpoints.health}ms` },
+                    { type: 'mrkdwn', text: `*\`/thrivesyracuse\`*\n${breach.endpoints.menu}ms` },
+                    { type: 'mrkdwn', text: `*\`/llm.txt\`*\n${breach.endpoints.llmTxt}ms` },
+                    { type: 'mrkdwn', text: `*Run*\n${runLink}` },
+                ],
+            },
+            {
+                type: 'section',
+                text: {
+                    type: 'mrkdwn',
+                    text: `🖥️ Linus is analyzing... Bug \`${bugId ?? 'pending'}\` filed. Analysis incoming.`,
+                },
+            },
+        ],
+        fallbackText: `🟠 P1: Latency SLA breach — p95 ${breach.overallP95}ms`,
+        source: 'auto-escalator',
+        incidentId: bugId,
+    });
 
     // 3. Linus async — non-blocking
     const linusPrompt = `⚠️ LATENCY SLA BREACH — P1
@@ -350,5 +302,17 @@ Please diagnose:
 5. Recommend: wait-and-watch, rollback, or specific fix
 Keep response concise — focus on root cause and next action.`;
 
-    setImmediate(() => void dispatchLinus(linusPrompt, bugId));
+    const bugLink = bugId
+        ? `<${DASHBOARD_URL}/dashboard/ceo?tab=qa&bugId=${bugId}|View Bug \`${bugId}\`>`
+        : 'Bug not filed';
+
+    setImmediate(() => void dispatchLinusIncidentResponse({
+        prompt: linusPrompt,
+        source: 'auto-escalator',
+        incidentId: bugId,
+        incidentLink: bugLink,
+        maxIterations: 5,
+        analysisHeader: '🖥️ Linus — Incident Analysis',
+        analysisFallbackPrefix: '🖥️ Linus analysis complete',
+    }));
 }

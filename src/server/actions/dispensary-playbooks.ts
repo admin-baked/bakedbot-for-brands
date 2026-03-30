@@ -13,6 +13,7 @@ import { requireUser } from '@/server/auth/auth';
 import { PLAYBOOKS, getPlaybookIdsForTier } from '@/config/playbooks';
 import type { TierId } from '@/config/tiers';
 import { logger } from '@/lib/logger';
+import { normalizePlanIdToTierId } from '@/lib/get-org-tier';
 import { isUserAuthorizedForOrg } from '@/server/actions/dispensary-playbooks-auth';
 
 export interface PlaybookAssignmentStatus {
@@ -137,14 +138,14 @@ export async function getDispensaryPlaybookAssignments(orgId: string): Promise<D
     try {
         const orgSnap = await db.collection('organizations').doc(orgId).get();
         const orgTier = orgSnap.data()?.subscription?.tierId || orgSnap.data()?.planId;
-        if (orgTier) tierId = orgTier as TierId;
+        if (orgTier) tierId = normalizePlanIdToTierId(orgTier);
     } catch {
         // Fallback: check locations collection
         try {
             const locSnap = await db.collection('locations').where('orgId', '==', orgId).limit(1).get();
             if (!locSnap.empty) {
                 const planId = locSnap.docs[0].data()?.planId;
-                if (planId) tierId = planId as TierId;
+                if (planId) tierId = normalizePlanIdToTierId(planId);
             }
         } catch {
             logger.info('[DispensaryPlaybooks] Could not determine tier, defaulting to empire', { orgId });

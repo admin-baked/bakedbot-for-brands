@@ -44,6 +44,7 @@ export interface ClaudeContext {
     contextTokens?: number; // Estimated context size for model selection
     agentContext?: AgentContext; // Agent identity + capabilities for system prompt
     imageAttachments?: Array<{ data: string; mimeType: string }>; // Base64 images for vision (e.g. screenshots from Slack)
+    onToolCall?: (toolName: string, input: Record<string, unknown>) => Promise<void>; // Progress callback fired before each tool execution
 }
 
 export interface ToolExecution {
@@ -367,6 +368,11 @@ export async function executeWithTools(
             let output: unknown;
             let status: 'success' | 'error' = 'success';
 
+            // Fire progress callback before executing so callers can update status indicators
+            if (context.onToolCall) {
+                await context.onToolCall(toolUse.name, toolUse.input as Record<string, unknown>).catch(() => {});
+            }
+
             try {
                 output = await executor(toolUse.name, toolUse.input as Record<string, unknown>);
             } catch (error) {
@@ -460,7 +466,7 @@ export async function executeWithTools(
  * This prevents the "forgetting super powers" problem where agent instructions
  * buried in user messages lose salience in long multi-turn conversations.
  */
-function buildSystemPrompt(context: ClaudeContext): string {
+export function buildSystemPrompt(context: ClaudeContext): string {
     const parts: string[] = [];
 
     if (context.agentContext) {

@@ -7,11 +7,11 @@ import { z } from 'zod';
 import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef, semanticSearchToolDefs, makeSemanticSearchToolsImpl, redditToolDefs, makeRedditToolsImpl } from './shared-tools';
 import { youtubeToolDefs, makeYouTubeToolsImpl } from '@/server/tools/youtube-tools';
 import {
-    buildSquadRoster,
-    buildIntegrationStatusSummary
+    buildSquadRoster
 } from './agent-definitions';
 import { getOrgProfileWithFallback, buildEzalContextBlock } from '@/server/services/org-profile';
 import { getMarketBenchmarks, buildBenchmarkContextBlock } from '@/server/services/market-benchmarks';
+import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integration-status';
 
 // --- Tool Definitions ---
 
@@ -56,7 +56,7 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
 
         // Build dynamic context from agent-definitions (source of truth)
         const squadRoster = buildSquadRoster('ezal');
-        const integrationStatus = buildIntegrationStatusSummary();
+        const integrationStatus = await buildIntegrationStatusSummaryForOrg(orgId);
 
         agentMemory.system_instructions = `
       You are Ezal, the "Market Scout" and Competitive Intelligence agent for ${brandMemory.brand_profile.name}.

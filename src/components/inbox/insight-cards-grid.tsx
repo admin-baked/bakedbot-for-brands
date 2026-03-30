@@ -23,25 +23,32 @@ import type { InboxThreadType, InboxAgentPersona } from '@/types/inbox';
 
 // ============ Loading Skeleton ============
 
-function InsightCardSkeleton() {
+const SKELETON_INDICES = [1, 2, 3, 4, 5];
+
+function InsightCardSkeleton({ dense = false }: { dense?: boolean }) {
     return (
-        <div className="rounded-lg border bg-card p-3 space-y-2">
+        <div className={cn('rounded-lg border bg-card', dense ? 'space-y-1.5 p-2.5' : 'space-y-2 p-3')}>
             <div className="flex items-center justify-between">
-                <Skeleton className="h-5 w-20" />
-                <Skeleton className="h-4 w-12" />
+                <Skeleton className={cn(dense ? 'h-4 w-16' : 'h-5 w-20')} />
+                <Skeleton className={cn(dense ? 'h-3 w-10' : 'h-4 w-12')} />
             </div>
             <Skeleton className="h-3 w-16" />
-            <Skeleton className="h-6 w-28" />
+            <Skeleton className={cn(dense ? 'h-5 w-24' : 'h-6 w-28')} />
             <Skeleton className="h-3 w-24" />
         </div>
     );
 }
 
-function InsightCardsGridSkeleton() {
+function InsightCardsGridSkeleton({ dense = false }: { dense?: boolean }) {
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
-            {[1, 2, 3, 4, 5].map(i => (
-                <InsightCardSkeleton key={i} />
+        <div
+            className={cn(
+                'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5',
+                dense ? 'gap-2' : 'gap-3'
+            )}
+        >
+            {SKELETON_INDICES.map(i => (
+                <InsightCardSkeleton key={i} dense={dense} />
             ))}
         </div>
     );
@@ -72,9 +79,14 @@ function InsightCardsEmpty() {
 interface InsightCardsGridProps {
     className?: string;
     maxCards?: number;
+    density?: 'standard' | 'dense';
 }
 
-export function InsightCardsGrid({ className, maxCards = 5 }: InsightCardsGridProps) {
+export function InsightCardsGrid({
+    className,
+    maxCards = 5,
+    density = 'standard',
+}: InsightCardsGridProps) {
     const { toast } = useToast();
     const {
         createThread,
@@ -94,6 +106,7 @@ export function InsightCardsGrid({ className, maxCards = 5 }: InsightCardsGridPr
         getAllInsights,
         lastUpdated,
     } = useInsights({ refreshInterval: 60000 });
+    const isDense = density === 'dense';
 
     // Get prioritized insights (critical first, then warnings, limit to maxCards)
     const prioritizedInsights = React.useMemo(() => {
@@ -211,12 +224,12 @@ export function InsightCardsGrid({ className, maxCards = 5 }: InsightCardsGridPr
     // Loading state
     if (isLoading) {
         return (
-            <div className={cn('space-y-3', className)}>
+            <div className={cn(isDense ? 'space-y-2' : 'space-y-3', className)}>
                 <div className="flex items-center justify-between">
                     <Skeleton className="h-4 w-28" />
                     <Skeleton className="h-4 w-16" />
                 </div>
-                <InsightCardsGridSkeleton />
+                <InsightCardsGridSkeleton dense={isDense} />
             </div>
         );
     }
@@ -256,26 +269,26 @@ export function InsightCardsGrid({ className, maxCards = 5 }: InsightCardsGridPr
               : 'text-emerald-600 dark:text-emerald-400';
 
     return (
-        <div className={cn('space-y-3', className)}>
+        <div className={cn(isDense ? 'space-y-2' : 'space-y-3', className)}>
             {/* Header with refresh */}
             <div className="flex items-start justify-between">
                 <div className="space-y-0.5">
-                    <h3 className="text-sm font-semibold text-foreground">
+                    <h3 className={cn('font-semibold text-foreground', isDense ? 'text-[13px]' : 'text-sm')}>
                         {dayName}&apos;s Briefing
                         <span className="text-muted-foreground font-normal ml-1.5">· {dateStr}</span>
                     </h3>
-                    <p className={cn('text-xs font-medium', summaryColor)}>
+                    <p className={cn(isDense ? 'text-[11px]' : 'text-xs', 'font-medium', summaryColor)}>
                         {summaryLine}
                     </p>
                 </div>
-                <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-xs text-muted-foreground">
+                <div className={cn('mt-0.5 flex items-center', isDense ? 'gap-1.5' : 'gap-2')}>
+                    <span className={cn('text-muted-foreground', isDense ? 'text-[11px]' : 'text-xs')}>
                         {timeAgo(lastUpdated)}
                     </span>
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6"
+                        className={cn(isDense ? 'h-5 w-5' : 'h-6 w-6')}
                         onClick={refresh}
                         disabled={isRefreshing}
                     >
@@ -285,13 +298,19 @@ export function InsightCardsGrid({ className, maxCards = 5 }: InsightCardsGridPr
             </div>
 
             {/* Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+            <div
+                className={cn(
+                    'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5',
+                    isDense ? 'gap-2' : 'gap-3'
+                )}
+            >
                 {prioritizedInsights.map(insight => (
                     <InsightCard
                         key={insight.id}
                         insight={insight}
                         onAction={handleInsightAction}
                         compact
+                        dense={isDense}
                     />
                 ))}
             </div>

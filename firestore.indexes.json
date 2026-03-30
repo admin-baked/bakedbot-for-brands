@@ -618,6 +618,20 @@
             ]
         },
         {
+            "collectionGroup": "drive_files",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "sharedWithRoles",
+                    "arrayConfig": "CONTAINS"
+                },
+                {
+                    "fieldPath": "isDeleted",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
             "collectionGroup": "drive_folders",
             "queryScope": "COLLECTION",
             "fields": [
@@ -727,6 +741,28 @@
                 },
                 {
                     "fieldPath": "type",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "sentAt",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "customer_communications",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "orgId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "type",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "dedupeKey",
                     "order": "ASCENDING"
                 },
                 {
@@ -1740,6 +1776,54 @@
                 { "fieldPath": "organizationId", "order": "ASCENDING" },
                 { "fieldPath": "status", "order": "ASCENDING" },
                 { "fieldPath": "createdAt", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "checkin_visits",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "orgId", "order": "ASCENDING" },
+                { "fieldPath": "visitedAt", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "checkin_visits",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "orgId", "order": "ASCENDING" },
+                { "fieldPath": "visitedAt", "order": "ASCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "checkin_visits",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "orgId", "order": "ASCENDING" },
+                { "fieldPath": "reviewSequence.status", "order": "ASCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "orders",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "orgId", "order": "ASCENDING" },
+                { "fieldPath": "createdAt", "order": "ASCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "orders",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "orgId", "order": "ASCENDING" },
+                { "fieldPath": "createdAt", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "products",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "orgId", "order": "ASCENDING" },
+                { "fieldPath": "salesLast7Days", "order": "DESCENDING" }
             ]
         }
     ],

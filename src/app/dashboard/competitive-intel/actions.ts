@@ -1,5 +1,6 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { requireUser } from '@/server/auth/auth';
 import { createServerClient } from '@/firebase/server-client';
 import { CannMenusService } from '@/server/services/cannmenus';
@@ -62,6 +63,21 @@ function pickFirstString(...values: Array<unknown>): string | null {
     }
 
     return null;
+}
+
+function snapshotDocs<T = { id: string; data: () => Record<string, any> }>(snapshot: {
+    docs?: T[];
+    forEach?: (callback: (doc: T) => void) => void;
+} | null | undefined): T[] {
+    if (Array.isArray(snapshot?.docs)) {
+        return snapshot.docs;
+    }
+
+    const docs: T[] = [];
+    snapshot?.forEach?.((doc) => {
+        docs.push(doc);
+    });
+    return docs;
 }
 
 function toCreditsSummary(
@@ -165,8 +181,8 @@ export async function getCompetitors(orgId: string): Promise<CompetitorSnapshot>
         limits.frequencyMinutes <= 60 * 6 ? 'live' :
         limits.frequencyMinutes <= 1440 ? 'daily' : 'weekly';
 
-    // Get stored competitors from BOTH old and new systems
-    const [oldCompetitorsSnap, newCompetitorsSnap] = await Promise.all([
+    // Get stored competitors from BOTH old and new systems, plus Ezal freshness metadata.
+    const [oldCompetitorsSnap, newCompetitorsSnap, activeSourcesSnap, latestReportSnap, latestSnapshotSnap] = await Promise.all([
         firestore
             .collection('organizations')
             .doc(orgId)
@@ -180,7 +196,28 @@ export async function getCompetitors(orgId: string): Promise<CompetitorSnapshot>
             .collection('competitors')
             .where('active', '==', true)
             .limit(20)
-            .get()
+            .get(),
+        firestore
+            .collection('tenants')
+            .doc(orgId)
+            .collection('data_sources')
+            .where('active', '==', true)
+            .limit(100)
+            .get(),
+        firestore
+            .collection('tenants')
+            .doc(orgId)
+            .collection('weekly_reports')
+            .orderBy('generatedAt', 'desc')
+            .limit(1)
+            .get(),
+        firestore
+            .collection('tenants')
+            .doc(orgId)
+            .collection('competitor_snapshots')
+            .orderBy('scrapedAt', 'desc')
+            .limit(1)
+            .get(),
     ]);
 
     const competitors: CompetitorEntry[] = [];
@@ -234,12 +271,51 @@ export async function getCompetitors(orgId: string): Promise<CompetitorSnapshot>
         return true;
     });
 
-    // Calculate next update based on plan frequency
-    const updateIntervalMs = limits.frequencyMinutes * 60 * 1000;
-    const nextUpdate = new Date(lastUpdated.getTime() + updateIntervalMs);
+    const activeSources = snapshotDocs(activeSourcesSnap).map((doc) => {
+        const data = doc.data();
+        return {
+            lastDiscoveryAt: data.lastDiscoveryAt?.toDate?.() as Date | undefined,
+            nextDueAt: data.nextDueAt?.toDate?.() as Date | undefined,
+            updatedAt: data.updatedAt?.toDate?.() as Date | undefined,
+        };
+    });
 
-    // Can refresh if next update is in the past
-    const canRefresh = new Date() > nextUpdate;
+    for (const source of activeSources) {
+        const freshness = source.lastDiscoveryAt || source.updatedAt;
+        if (freshness && freshness > lastUpdated) {
+            lastUpdated = freshness;
+        }
+    }
+
+    const latestReportDocs = snapshotDocs(latestReportSnap);
+    const latestReportAt = latestReportDocs.length === 0
+        ? null
+        : latestReportDocs[0].data().generatedAt?.toDate?.() || null;
+    if (latestReportAt && latestReportAt > lastUpdated) {
+        lastUpdated = latestReportAt;
+    }
+
+    const latestSnapshotDocs = snapshotDocs(latestSnapshotSnap);
+    const latestSnapshotAt = latestSnapshotDocs.length === 0
+        ? null
+        : latestSnapshotDocs[0].data().scrapedAt?.toDate?.() || null;
+    if (latestSnapshotAt && latestSnapshotAt > lastUpdated) {
+        lastUpdated = latestSnapshotAt;
+    }
+
+    const updateIntervalMs = limits.frequencyMinutes * 60 * 1000;
+    const fallbackNextUpdate = new Date(lastUpdated.getTime() + updateIntervalMs);
+    const dueTimes = activeSources
+        .map((source) => source.nextDueAt)
+        .filter((value): value is Date => value instanceof Date);
+    const nextUpdate = dueTimes.length > 0
+        ? new Date(Math.min(...dueTimes.map((date) => date.getTime())))
+        : fallbackNextUpdate;
+
+    const now = new Date();
+    const canRefresh = activeSources.length === 0
+        ? now > nextUpdate
+        : activeSources.some((source) => !source.nextDueAt || source.nextDueAt <= now);
 
     return {
         competitors: uniqueCompetitors,
@@ -492,6 +568,67 @@ export async function fetchCompetitiveReport(orgId: string): Promise<string | nu
     }
 }
 
+export async function refreshCompetitiveIntel(orgId: string): Promise<{
+    success: boolean;
+    sourcesRun: number;
+    sourcesCreated: number;
+    sourcesUpdated: number;
+    failedSources: number;
+    totalSnapshots: number;
+    totalDealsTracked: number;
+    reportId?: string;
+    error?: string;
+}> {
+    await requireUser(['dispensary', 'super_user', 'brand']);
+
+    try {
+        const { refreshCompetitiveIntelWorkspace } = await import('@/server/services/ezal');
+        const result = await refreshCompetitiveIntelWorkspace(orgId, {
+            force: true,
+            maxSources: 12,
+        });
+
+        revalidatePath('/dashboard/competitive-intel');
+
+        if (result.sourcesRun > 0 && result.succeeded === 0) {
+            return {
+                success: false,
+                sourcesRun: result.sourcesRun,
+                sourcesCreated: result.sourcesCreated,
+                sourcesUpdated: result.sourcesUpdated,
+                failedSources: result.failed,
+                totalSnapshots: result.report?.totalSnapshots || 0,
+                totalDealsTracked: result.report?.totalDealsTracked || 0,
+                reportId: result.report?.id,
+                error: result.failures[0]?.error || 'All competitor refreshes failed',
+            };
+        }
+
+        return {
+            success: true,
+            sourcesRun: result.sourcesRun,
+            sourcesCreated: result.sourcesCreated,
+            sourcesUpdated: result.sourcesUpdated,
+            failedSources: result.failed,
+            totalSnapshots: result.report?.totalSnapshots || 0,
+            totalDealsTracked: result.report?.totalDealsTracked || 0,
+            reportId: result.report?.id,
+        };
+    } catch (error) {
+        logger.error('refreshCompetitiveIntel failed', { orgId, error });
+        return {
+            success: false,
+            sourcesRun: 0,
+            sourcesCreated: 0,
+            sourcesUpdated: 0,
+            failedSources: 0,
+            totalSnapshots: 0,
+            totalDealsTracked: 0,
+            error: error instanceof Error ? error.message : 'Unknown refresh error',
+        };
+    }
+}
+
 /**
  * Get the latest saved daily intelligence report from Firestore.
  * Reads from tenants/{orgId}/weekly_reports (generated by cron).
@@ -540,10 +677,10 @@ export async function getLatestDailyReport(orgId: string): Promise<string | null
         }
 
         if (insights.topDeals?.length) {
-            lines.push('## Top Competitor Deals');
+            lines.push('## Top Competitor Pricing');
             for (const deal of insights.topDeals.slice(0, 5)) {
                 const price = deal.price ? `$${deal.price}` : '';
-                const discount = deal.discount ? ` (${deal.discount} off)` : '';
+                const discount = deal.discount ? ` (${deal.discount})` : '';
                 lines.push(`- **${deal.competitorName}**: ${deal.dealName} ${price}${discount}`);
             }
             lines.push('');
@@ -552,14 +689,14 @@ export async function getLatestDailyReport(orgId: string): Promise<string | null
         if (competitors.length) {
             lines.push('## Competitors Tracked');
             for (const comp of competitors) {
-                const strategy = comp.priceStrategy ? ` — ${comp.priceStrategy} pricing` : '';
-                const deals = comp.dealCount ? ` | ${comp.dealCount} deals` : '';
+                const strategy = comp.priceStrategy ? ` - ${comp.priceStrategy} pricing` : '';
+                const deals = comp.dealCount ? ` | ${comp.dealCount} offers` : '';
                 lines.push(`- **${comp.competitorName}**${strategy}${deals}`);
             }
             lines.push('');
         }
 
-        lines.push(`*Tracked ${data.totalDealsTracked || 0} deals across ${data.totalSnapshots || 0} snapshots.*`);
+        lines.push(`*Tracked ${data.totalDealsTracked || 0} priced offers across ${data.totalSnapshots || 0} snapshots.*`);
 
         return lines.join('\n');
     } catch (error) {

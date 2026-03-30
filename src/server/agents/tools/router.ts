@@ -384,6 +384,25 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
         };
     }
 
+    if (def.name === 'profitability.getCategoryCogs') {
+        const { getCategoryCogsForAgent } = await import('@/server/tools/profitability-tools');
+        return {
+            status: 'success',
+            data: await getCategoryCogsForAgent(inputs.category)
+        };
+    }
+
+    if (def.name === 'analytics.inventoryHealthScore') {
+        if (!request.tenantId) throw new Error('Tool requires tenant context.');
+        const { executeDispensaryAnalyticsTool } = await import('@/server/tools/analytics-tools');
+        return {
+            status: 'success',
+            data: await executeDispensaryAnalyticsTool(request.tenantId, 'inventory_health_score', {
+                category: inputs.category
+            })
+        };
+    }
+
     if (def.name === 'intel.scanCompetitors') {
         if (!request.tenantId) throw new Error('Tool requires tenant context.');
         const { scanCompetitors } = await import('./domain/intel');

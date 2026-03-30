@@ -362,11 +362,11 @@ export const articles: Record<string, HelpArticleMeta> = {
     title: 'Dashboard Overview',
     description: 'Learn to navigate your BakedBot dashboard and access key features',
     roles: [], // Public
-    tags: ['getting-started', 'dashboard', 'navigation', 'interface'],
+    tags: ['getting-started', 'dashboard', 'navigation', 'interface', 'loyalty', 'check-in'],
     difficulty: 'beginner',
     estimatedTime: '8 minutes',
     filePath: './getting-started/dashboard-overview.mdx',
-    lastUpdated: '2026-02-05',
+    lastUpdated: '2026-03-26',
     author: 'BakedBot Team',
   },
 
@@ -376,11 +376,11 @@ export const articles: Record<string, HelpArticleMeta> = {
     title: 'Loyalty Program Setup',
     description: 'Build customer loyalty with rewards that drive repeat purchases',
     roles: ['brand', 'super_user', 'dispensary_admin'],
-    tags: ['dispensary', 'loyalty', 'rewards', 'retention', 'points'],
+    tags: ['dispensary', 'loyalty', 'rewards', 'retention', 'points', 'check-in'],
     difficulty: 'intermediate',
     estimatedTime: '15 minutes',
     filePath: './dispensary/loyalty-program.mdx',
-    lastUpdated: '2026-02-05',
+    lastUpdated: '2026-03-26',
     author: 'BakedBot Team',
   },
 

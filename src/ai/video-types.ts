@@ -12,6 +12,10 @@ export const GenerateVideoInputSchema = z.object({
     accentColor: z.string().optional().describe('Hex brand accent color'),
     logoUrl: z.string().optional().describe('Absolute URL to brand logo image'),
     tagline: z.string().optional().describe('Brand tagline shown in outro slide'),
+    headline: z.string().optional().describe('Primary branded slideshow headline'),
+    productImageUrl: z.string().optional().describe('Absolute URL to the selected product image'),
+    ctaText: z.string().optional().describe('Call-to-action text for branded slideshow outro'),
+    websiteUrl: z.string().optional().describe('Website URL shown on the branded slideshow outro'),
 });
 
 export type GenerateVideoInput = z.infer<typeof GenerateVideoInputSchema>;

@@ -101,8 +101,37 @@ const QUICK_ACTION_CATEGORIES = {
     growth: ['growth-review', 'churn-analysis', 'revenue-forecast', 'pipeline-review', 'customer-health', 'market-intel', 'bizdev-outreach', 'growth-experiment'],
     company: ['daily-standup', 'sprint-planning', 'incident-response', 'release-prep', 'customer-onboarding', 'customer-pulse', 'content-brief', 'weekly-sync', 'cash-flow', 'board-update', 'compliance-audit', 'hiring-review'],
     research: ['deep-research', 'compliance-brief', 'market-analysis'],
+    grower: ['yield-analysis', 'wholesale-inventory', 'grower-brand-outreach', 'grower-compliance-check'],
     customer: ['find-products', 'my-routines', 'get-help'],
 };
+
+type QuickActionCategory = keyof typeof QUICK_ACTION_CATEGORIES;
+
+function getOrderedQuickActionCategories(role: string | null): QuickActionCategory[] {
+    const isSuper = role === 'super_user' || role === 'super_admin' || role === 'owner';
+    const isCustomer = role === 'customer';
+    const isGrower = role === 'grower';
+
+    if (isCustomer) {
+        return ['customer'];
+    }
+
+    if (isGrower) {
+        return ['grower'];
+    }
+
+    if (isSuper) {
+        return ['growth', 'company', 'research', 'marketing', 'operations'];
+    }
+
+    return ['marketing', 'operations'];
+}
+
+function getQuickActionCategoryLabel(category: QuickActionCategory): string {
+    if (category === 'company') return 'Company Ops';
+    if (category === 'grower') return 'Grower Ops';
+    return category.charAt(0).toUpperCase() + category.slice(1);
+}
 
 // Default favorites (most commonly used)
 function getDefaultFavoritesForRole(role: string | null): string[] {
@@ -125,7 +154,7 @@ function getDefaultFavoritesForRole(role: string | null): string[] {
 
     // Growers: focus on wholesale and B2B workflows
     if (role === 'grower') {
-        return ['new-carousel', 'review-performance', 'market-intel'];
+        return ['yield-analysis', 'wholesale-inventory', 'grower-brand-outreach', 'grower-compliance-check'];
     }
 
     // Default (brand/dispensary)
@@ -236,7 +265,7 @@ function QuickActionButton({ action, collapsed }: { action: InboxQuickAction; co
         <Button
             variant="outline"
             size="sm"
-            className="justify-start gap-2 h-9 text-sm font-normal"
+            className="h-8 justify-start gap-2 text-sm font-normal"
             onClick={handleClick}
             disabled={isCreating}
         >
@@ -548,20 +577,20 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
             className
         )}>
             {/* Header */}
-            <div className="p-4 border-b border-white/5">
+            <div className="border-b border-white/5 p-3">
                 <div className="flex items-center justify-between">
                     {!collapsed && (
                         <div className="flex items-center gap-2">
-                            <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                            <div className="rounded-lg bg-primary/10 p-1.5 text-primary">
                                 <InboxIcon className="h-4 w-4" />
                             </div>
-                            <h2 className="font-semibold">Inbox</h2>
+                            <h2 className="text-base font-semibold">Inbox</h2>
                         </div>
                     )}
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8"
+                        className="h-7 w-7"
                         onClick={() => setSidebarCollapsed(!isSidebarCollapsed)}
                     >
                         {collapsed ? (
@@ -574,9 +603,20 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
             </div>
 
             {/* Quick Actions */}
-            <div className={cn('p-3 border-b border-white/5', collapsed && 'flex flex-col items-center gap-2')}>
+            <div className={cn('border-b border-white/5 p-2.5', collapsed && 'flex flex-col items-center gap-2')}>
                 {collapsed ? (
                     <>
+                        {activeThreadId && (
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="w-10 h-10"
+                                title="Back to Briefing"
+                                onClick={() => setActiveThread(null)}
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                        )}
                         <Button
                             variant="default"
                             size="icon"
@@ -631,13 +671,7 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
                                         </SheetHeader>
                                         <div className="pb-6">
                                             {(() => {
-                                                const isSuper = currentRole === 'super_user' || currentRole === 'super_admin' || currentRole === 'owner';
-                                                const isCustomer = currentRole === 'customer';
-                                                const orderedCategories: Array<keyof typeof QUICK_ACTION_CATEGORIES> = isCustomer
-                                                    ? ['customer']
-                                                    : isSuper
-                                                        ? ['growth', 'company', 'research', 'marketing', 'operations']
-                                                        : ['marketing', 'operations'];
+                                                const orderedCategories = getOrderedQuickActionCategories(currentRole);
                                                 const categorized = new Set<string>();
                                                 Object.values(QUICK_ACTION_CATEGORIES).forEach((ids) => ids.forEach((id) => categorized.add(id)));
                                                 return orderedCategories.map((category) => {
@@ -646,7 +680,7 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
                                                     return (
                                                         <div key={category} className="mb-4">
                                                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
-                                                                {category === 'company' ? 'Company Ops' : category.charAt(0).toUpperCase() + category.slice(1)}
+                                                                {getQuickActionCategoryLabel(category)}
                                                             </p>
                                                             <div className="grid grid-cols-2 gap-2">
                                                                 {actions.map((action) => {
@@ -676,54 +710,59 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
                         </div>
 
                         {/* Desktop: existing layout (hidden on mobile) */}
-                        <div className="hidden sm:block space-y-2">
-                        {/* New Chat Button */}
-                        <Button
-                            variant="default"
-                            size="sm"
-                            className="w-full justify-start gap-2 h-9"
-                            onClick={() => setActiveThread(null)}
-                        >
-                            <Plus className="h-4 w-4" />
-                            New Chat
-                        </Button>
+                        <div className="hidden space-y-1.5 sm:block">
+                            {activeThreadId && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 w-full justify-start gap-2"
+                                    onClick={() => setActiveThread(null)}
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                    Back to Briefing
+                                </Button>
+                            )}
 
-                        <div className="flex items-center justify-between px-1">
-                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                Quick Actions
-                            </p>
-                            <Button variant="ghost" size="sm" className="h-6 px-2 text-xs">
-                                <Star className="h-3 w-3 mr-1" />
-                                Favorites
+                            {/* New Chat Button */}
+                            <Button
+                                variant="default"
+                                size="sm"
+                                className="h-8 w-full justify-start gap-2"
+                                onClick={() => setActiveThread(null)}
+                            >
+                                <Plus className="h-4 w-4" />
+                                New Chat
                             </Button>
-                        </div>
 
-                        {/* Favorite Actions (Top 6) */}
-                        <div className="grid grid-cols-2 gap-2">
-                            {favoriteGridActions.map((action) => (
-                                <QuickActionButton key={action.id} action={action} />
-                            ))}
-                        </div>
+                            <div className="flex items-center justify-between px-1">
+                                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                    Quick Actions
+                                </p>
+                                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs">
+                                    <Star className="h-3 w-3 mr-1" />
+                                    Favorites
+                                </Button>
+                            </div>
 
-                        {/* More Actions Menu */}
-                        {quickActions.length > 6 && (
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="outline" size="sm" className="w-full gap-2 h-9">
-                                        <MoreHorizontalIcon className="h-4 w-4" />
-                                        More Actions ({quickActions.length - 6})
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="start" className="w-[min(280px,calc(100vw-2rem))] max-h-[400px] overflow-y-auto">
+                            {/* Favorite Actions (Top 6) */}
+                            <div className="grid grid-cols-2 gap-2">
+                                {favoriteGridActions.map((action) => (
+                                    <QuickActionButton key={action.id} action={action} />
+                                ))}
+                            </div>
+
+                            {/* More Actions Menu */}
+                            {quickActions.length > 6 && (
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" size="sm" className="h-8 w-full gap-2">
+                                            <MoreHorizontalIcon className="h-4 w-4" />
+                                            More Actions ({quickActions.length - 6})
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="start" className="w-[min(280px,calc(100vw-2rem))] max-h-[400px] overflow-y-auto">
                                     {(() => {
-                                        const isSuper = currentRole === 'super_user' || currentRole === 'super_admin' || currentRole === 'owner';
-                                        const isCustomer = currentRole === 'customer';
-
-                                        const orderedCategories: Array<keyof typeof QUICK_ACTION_CATEGORIES> = isCustomer
-                                            ? ['customer']
-                                            : isSuper
-                                                ? ['growth', 'company', 'research', 'marketing', 'operations']
-                                                : ['marketing', 'operations'];
+                                        const orderedCategories = getOrderedQuickActionCategories(currentRole);
 
                                         const categorized = new Set<string>();
                                         Object.values(QUICK_ACTION_CATEGORIES).forEach((ids) => {
@@ -742,7 +781,7 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
                                             blocks.push(
                                                 <React.Fragment key={category}>
                                                     <DropdownMenuLabel className="text-xs">
-                                                        {category === 'company' ? 'Company Ops' : category.charAt(0).toUpperCase() + category.slice(1)}
+                                                        {getQuickActionCategoryLabel(category)}
                                                     </DropdownMenuLabel>
                                                     {actions.map((action) => {
                                                         const Icon = getIcon(action.icon);
@@ -795,9 +834,9 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
                                                 </div>
                                             );
                                     })()}
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        )}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            )}
                         </div>{/* end hidden sm:block desktop layout */}
                     </div>
                 )}
@@ -805,7 +844,7 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
 
             {/* Search, Filter, and Project Selector */}
             {!collapsed && (
-                <div className="p-3 border-b border-white/5 space-y-2">
+                <div className="space-y-2 border-b border-white/5 p-2.5">
                     {/* Search Bar */}
                     <div className="relative flex-1">
                         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />

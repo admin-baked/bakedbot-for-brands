@@ -52,8 +52,11 @@ import { DeeboCompliancePanel } from "./components/deebo-compliance-panel";
 import { useBrandGuide, useBrandVoice, useBrandColors } from "@/hooks/use-brand-guide";
 import { sendCreativeToInbox } from "@/server/actions/creative-inbox";
 import { getBrandKitImages } from "@/server/actions/brand-images";
+import { getMyAIStudioUsageSummary } from "@/server/actions/ai-studio";
 import { generateMarketingVideo } from "@/ai/flows/generate-video";
 import { CreativeChatPanel } from "./components/creative-chat-panel";
+import type { AIStudioUsageSummary } from "@/types/ai-studio";
+import { findPricingPlan } from "@/lib/config/pricing";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -67,6 +70,22 @@ interface MenuProduct {
   name: string;
   brandName?: string;
   brand?: string;
+  imageUrl?: string;
+}
+
+function formatMenuProductLabel(product: MenuProduct): string {
+  const name = product.name.trim();
+  const brandName = (product.brandName || product.brand || '').trim();
+
+  if (!brandName) {
+    return name;
+  }
+
+  if (name.toLowerCase().startsWith(brandName.toLowerCase())) {
+    return name;
+  }
+
+  return `${name} · ${brandName}`;
 }
 
 // Valid creative style types
@@ -104,6 +123,7 @@ export default function CreativeCommandCenter() {
   const router = useRouter();
   const { user } = useUser();
   const isMobile = useIsMobile();
+  const campaignPromptRef = useRef<HTMLTextAreaElement | null>(null);
 
   // Brand guide integration
   const brandId = (user as any)?.brandId || (user as any)?.orgId || '';
@@ -141,7 +161,7 @@ export default function CreativeCommandCenter() {
   const [campaignPrompt, setCampaignPrompt] = useState("");
   const [contentType, setContentType] = useState("social-post");
   const [tone, setTone] = useState<CreativeStyle>("professional");
-  const [menuItem, setMenuItem] = useState("");
+  const [selectedMenuItemId, setSelectedMenuItemId] = useState("");
   const [revisionNote, setRevisionNote] = useState("");
 
   // Caption editing state
@@ -269,8 +289,10 @@ export default function CreativeCommandCenter() {
   // Image style hint from campaign template — passed into generation prompt for visual variety
   const [selectedImageStyle, setSelectedImageStyle] = useState('');
 
-  // Image/media mode: AI photo (FLUX.1) | Branded (next/og) | Video (Kling) | Slideshow (Remotion) | Deck (pptxgenjs)
+  // Image/media mode: AI photo | Branded | Video | Slideshow | Deck
   const [imageMode, setImageMode] = useState<'photo' | 'branded' | 'video' | 'slideshow' | 'deck'>('photo');
+  const [videoDuration, setVideoDuration] = useState<'5' | '10'>('5');
+  const isImagePreviewMode = imageMode === 'photo' || imageMode === 'branded';
 
   const getGenerateLabel = (mode: typeof imageMode, long = false): string => {
     if (mode === 'video') return 'Generate Video';
@@ -298,15 +320,19 @@ export default function CreativeCommandCenter() {
   const [canvasBackground, setCanvasBackground] = useState<string | null>(null);
 
   // Brand kit images pre-generated during onboarding
-  const [brandKitImages, setBrandKitImages] = useState<{ url: string; name: string; type: string }[]>([]);
+  const [brandKitImages, setBrandKitImages] = useState<{ url: string; name: string; type: string; driveFileId?: string }[]>([]);
   const [isLoadingBrandKit, setIsLoadingBrandKit] = useState(false);
+
+  // AI Studio plan / credit context
+  const [usageSummary, setUsageSummary] = useState<AIStudioUsageSummary | null>(null);
+  const [isLoadingUsageSummary, setIsLoadingUsageSummary] = useState(false);
 
   // Image upload state
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
 
   // Menu items
-  const [menuItems, setMenuItems] = useState<Array<{ id: string; name: string; brandName?: string }>>([]);
+  const [menuItems, setMenuItems] = useState<MenuProduct[]>([]);
   const [isLoadingMenu, setIsLoadingMenu] = useState(false);
 
   // Fetch menu items on mount
@@ -319,6 +345,7 @@ export default function CreativeCommandCenter() {
           id: p.id,
           name: p.name,
           brandName: p.brandName || p.brand,
+          imageUrl: p.imageUrl,
         }));
         setMenuItems(items);
       } catch (err) {
@@ -331,15 +358,52 @@ export default function CreativeCommandCenter() {
     fetchMenuItems();
   }, []);
 
-  // Load brand kit images when Media panel is opened
+  const selectedMenuProduct = menuItems.find(item => item.id === selectedMenuItemId) ?? null;
+
+  // Load brand kit images once org context is known so Drive status is visible across the page
   useEffect(() => {
-    if (activeLeftPanel !== 'upload' || !brandId) return;
+    if (!brandId) {
+      setBrandKitImages([]);
+      return;
+    }
+
     setIsLoadingBrandKit(true);
     getBrandKitImages(brandId)
       .then(images => setBrandKitImages(images))
       .catch(() => setBrandKitImages([]))
       .finally(() => setIsLoadingBrandKit(false));
-  }, [activeLeftPanel, brandId]);
+  }, [brandId]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!user?.uid) {
+      setUsageSummary(null);
+      return;
+    }
+
+    setIsLoadingUsageSummary(true);
+    getMyAIStudioUsageSummary()
+      .then(summary => {
+        if (!cancelled) {
+          setUsageSummary(summary);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setUsageSummary(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoadingUsageSummary(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.uid]);
 
   // Creative content hook — must be declared before the auto-generation useEffect below
   const {
@@ -361,6 +425,10 @@ export default function CreativeCommandCenter() {
   // Clear optimistic local content when platform changes — avoid showing stale image from a different platform
   useEffect(() => {
     setLocalContent(null);
+    setLocalVideoUrl(null);
+    setDeckDownloadUrl(null);
+    setDeckResultSlideCount(null);
+    setGenerationError(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPlatform]);
 
@@ -406,6 +474,26 @@ export default function CreativeCommandCenter() {
     ? content[0]
     : null;
   const currentContent = localContent || recentFirestoreContent || null;
+  const currentPlan = usageSummary ? findPricingPlan(usageSummary.planId) : null;
+  const totalCreditsRemaining = usageSummary
+    ? Math.max(0, usageSummary.totalCreditsAvailable - usageSummary.totalCreditsUsed)
+    : null;
+  const automationCreditsRemaining = usageSummary
+    ? Math.max(0, usageSummary.automationBudgetTotal - usageSummary.automationBudgetUsed)
+    : null;
+  const selectedBrandKitAsset = canvasBackground
+    ? brandKitImages.find((image) => image.url === canvasBackground) ?? null
+    : null;
+
+  const formatCount = (value: number) => new Intl.NumberFormat('en-US').format(value);
+
+  const openGeneratePanel = () => {
+    setGenerateMode('form');
+    setActiveLeftPanel('generate');
+    window.setTimeout(() => {
+      campaignPromptRef.current?.focus();
+    }, 60);
+  };
 
   // --- Handlers ---
 
@@ -416,7 +504,9 @@ export default function CreativeCommandCenter() {
     // ── Deck mode: pptxgenjs + GLM — PowerPoint generation ──
     if (imageMode === 'deck') {
       setIsGeneratingDeck(true);
+      setLocalVideoUrl(null);
       setDeckDownloadUrl(null);
+      setDeckResultSlideCount(null);
       try {
         const resp = await fetch('/api/ai/powerpoint', {
           method: 'POST',
@@ -449,6 +539,15 @@ export default function CreativeCommandCenter() {
 
     // ── Video mode: Kling v2 — cinematic AI footage, no text overlays ──
     if (imageMode === 'video' || imageMode === 'slideshow') {
+      if (usageSummary && !usageSummary.allowShortVideo) {
+        toast.error("Your plan does not include video generation yet.");
+        return;
+      }
+      if (usageSummary && videoDuration === '10' && !usageSummary.allowFullVideo) {
+        toast.error(`${currentPlan?.name ?? 'Your plan'} supports 5s clips only right now.`);
+        return;
+      }
+
       const aspectRatio = selectedPlatform === 'tiktok' ? '9:16'
         : (selectedPlatform === 'instagram' || selectedPlatform === 'facebook') ? '1:1'
         : '16:9';
@@ -465,12 +564,14 @@ export default function CreativeCommandCenter() {
         : `${brandPrefix}${trimmedPrompt}${voiceSuffix} Cannabis lifestyle marketing video, no text overlays, cinematic quality.`;
 
       setIsGeneratingVideo(true);
+      setDeckDownloadUrl(null);
+      setDeckResultSlideCount(null);
       setLocalVideoUrl(null);
       try {
         const result = await generateMarketingVideo(
           {
             prompt: videoPrompt,
-            duration: '5',
+            duration: videoDuration,
             aspectRatio,
             brandName: brandGuide?.brandName,
             primaryColor: brandColors?.primary,
@@ -478,11 +579,17 @@ export default function CreativeCommandCenter() {
             accentColor: brandColors?.accent,
             logoUrl: brandGuide?.visualIdentity?.logo?.primary,
             tagline: isSlideshow ? (brandTagline || trimmedPrompt.substring(0, 60)) : brandTagline,
+            headline: isSlideshow
+              ? (textOverlay.headline.trim() || selectedMenuProduct?.name || trimmedPrompt.substring(0, 60))
+              : undefined,
+            productImageUrl: isSlideshow ? (selectedMenuProduct?.imageUrl || undefined) : undefined,
+            ctaText: isSlideshow && textOverlay.cta ? textOverlay.cta : undefined,
+            websiteUrl: isSlideshow ? brandGuide?.source?.sourceUrl : undefined,
           },
           { allowFallbackDemo: false, forceProvider: isSlideshow ? 'remotion' : 'kling' }
         );
         setLocalVideoUrl(result.videoUrl);
-        const label = isSlideshow ? 'Slideshow ready! (Remotion)' : `Video ready! (Kling · ${result.duration}s)`;
+        const label = isSlideshow ? `Slideshow ready! (${result.duration}s)` : `Video ready! (${result.duration}s clip)`;
         toast.success(label);
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Video generation failed';
@@ -495,6 +602,10 @@ export default function CreativeCommandCenter() {
     }
 
     try {
+      setLocalVideoUrl(null);
+      setDeckDownloadUrl(null);
+      setDeckResultSlideCount(null);
+      setCanvasBackground(null);
       // Pass imageStyle separately so the server can send it directly to FLUX.1 as a
       // visual-first prompt, while the marketing copy (campaignPrompt + hashtags) goes
       // only to Craig for caption generation.
@@ -507,7 +618,8 @@ export default function CreativeCommandCenter() {
         imageStyle: selectedImageStyle || undefined,
         style: tone,
         includeHashtags: true,
-        productName: menuItem || undefined,
+        productName: selectedMenuProduct?.name || undefined,
+        productImageUrl: selectedMenuProduct?.imageUrl || undefined,
         tier: "free",
         brandName: brandGuide?.brandName || undefined,
         brandVoice: brandVoiceString,
@@ -603,7 +715,7 @@ export default function CreativeCommandCenter() {
     setTextOverlay({ enabled: true, headline: template.textOverlay.headline, cta: template.textOverlay.cta });
     // Store image style hint — included in generation prompt for visual variety
     setSelectedImageStyle(template.imageStyle);
-    setActiveLeftPanel('generate');
+    openGeneratePanel();
     toast.success(`${template.label} template loaded!`);
   };
 
@@ -652,7 +764,16 @@ export default function CreativeCommandCenter() {
     toast.success(`Generating content for ${batchPlatforms.length} platforms...`);
     try {
       const results = await Promise.all(
-        batchPlatforms.map(platform => generate({ platform, prompt: campaignPrompt, imageStyle: selectedImageStyle || undefined, style: tone, includeHashtags: true, productName: menuItem || undefined, tier: "free" }))
+        batchPlatforms.map(platform => generate({
+          platform,
+          prompt: campaignPrompt,
+          imageStyle: selectedImageStyle || undefined,
+          style: tone,
+          includeHashtags: true,
+          productName: selectedMenuProduct?.name || undefined,
+          productImageUrl: selectedMenuProduct?.imageUrl || undefined,
+          tier: "free",
+        }))
       );
       // Show the first successful result on canvas immediately
       const firstResult = results.find(r => r !== null);
@@ -706,7 +827,12 @@ export default function CreativeCommandCenter() {
           {(['instagram', 'tiktok', 'linkedin', 'facebook'] as SocialPlatform[]).map(p => (
             <button
               key={p}
-              onClick={() => setSelectedPlatform(p)}
+              onClick={() => {
+                setSelectedPlatform(p);
+                if (!currentContent) {
+                  openGeneratePanel();
+                }
+              }}
               className={cn(
                 "px-3 py-1.5 rounded-md text-xs font-medium transition-all capitalize",
                 selectedPlatform === p
@@ -790,6 +916,39 @@ export default function CreativeCommandCenter() {
           </DropdownMenu>
         </div>
       </header>
+
+      <div className="border-b border-border bg-muted/20 px-4 py-2">
+        <div className="flex flex-wrap items-center gap-2 text-[11px]">
+          <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 font-medium text-foreground">
+            {currentPlan?.name ?? usageSummary?.planId ?? 'Plan loading'}
+            <span className="text-muted-foreground">plan</span>
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-muted-foreground">
+            {isLoadingUsageSummary
+              ? 'Checking credits...'
+              : usageSummary && totalCreditsRemaining !== null
+                ? `${formatCount(totalCreditsRemaining)} credits left this cycle`
+                : 'Credits update when your workspace usage loads'}
+          </span>
+          {usageSummary && automationCreditsRemaining !== null && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-muted-foreground">
+              {formatCount(automationCreditsRemaining)} automation credits left
+            </span>
+          )}
+          <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-muted-foreground">
+            {isLoadingBrandKit
+              ? 'Checking brand kit...'
+              : brandKitImages.length > 0
+                ? `${brandKitImages.length} brand kit images saved in Drive`
+                : 'Brand kit images auto-save to Drive after setup'}
+          </span>
+          {(imageMode === 'video' || imageMode === 'slideshow') && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-muted-foreground">
+              {videoDuration}s motion selected
+            </span>
+          )}
+        </div>
+      </div>
 
       {/* ══ MAIN 3-PANEL WORKSPACE ══ */}
       <div className="flex flex-1 overflow-hidden relative">
@@ -913,6 +1072,7 @@ export default function CreativeCommandCenter() {
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Campaign Idea</label>
                         <Textarea
+                          ref={campaignPromptRef}
                           value={campaignPrompt}
                           onChange={e => { setCampaignPrompt(e.target.value); setSelectedImageStyle(''); }}
                           placeholder="Describe your campaign idea..."
@@ -990,15 +1150,14 @@ export default function CreativeCommandCenter() {
                       {/* Product */}
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Product</label>
-                        <Select value={menuItem} onValueChange={setMenuItem}>
+                        <Select value={selectedMenuItemId} onValueChange={setSelectedMenuItemId}>
                           <SelectTrigger className="h-8 text-xs bg-background border-border">
                             <SelectValue placeholder={isLoadingMenu ? "Loading..." : "Select product (optional)"} />
                           </SelectTrigger>
                           <SelectContent className="bg-muted border-border text-foreground max-h-48">
                             {menuItems.map(item => (
-                              <SelectItem key={item.id} value={item.name} className="text-xs">
-                                {item.name}
-                                {item.brandName && <span className="ml-1.5 text-muted-foreground">· {item.brandName}</span>}
+                              <SelectItem key={item.id} value={item.id} className="text-xs">
+                                {formatMenuProductLabel(item)}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -1015,6 +1174,7 @@ export default function CreativeCommandCenter() {
                               onClick={() => {
                                 if (imageMode === m) return;
                                 setImageMode(m);
+                                setGenerationError(null);
                                 if (m !== 'video' && m !== 'slideshow') setLocalVideoUrl(null);
                                 if (m !== 'deck') { setDeckDownloadUrl(null); setDeckResultSlideCount(null); }
                               }}
@@ -1029,20 +1189,49 @@ export default function CreativeCommandCenter() {
                             </button>
                           ))}
                         </div>
-                        {imageMode === 'video' && (
-                          <p className="text-[10px] text-muted-foreground px-1 leading-tight">
-                            Kling v2 · 5s · cinematic AI footage, no text overlays
-                          </p>
-                        )}
-                        {imageMode === 'slideshow' && (
-                          <p className="text-[10px] text-muted-foreground px-1 leading-tight">
-                            Remotion · 5s · branded text slideshow{brandGuide?.brandName ? ` · ${brandGuide.brandName} colors` : ''}
-                          </p>
+                        {(imageMode === 'video' || imageMode === 'slideshow') && (
+                          <div className="space-y-2 px-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                                Timing
+                              </span>
+                              <span className="text-[10px] text-muted-foreground">
+                                {usageSummary?.allowFullVideo ? 'Longer clips available on your plan' : '5s clips are recommended'}
+                              </span>
+                            </div>
+                            <div className="flex gap-1.5">
+                              {(['5', '10'] as const).map((duration) => {
+                                const isLocked = duration === '10' && usageSummary ? !usageSummary.allowFullVideo : false;
+                                return (
+                                  <button
+                                    key={duration}
+                                    type="button"
+                                    onClick={() => !isLocked && setVideoDuration(duration)}
+                                    disabled={isLocked}
+                                    className={cn(
+                                      "flex-1 rounded-md border px-2 py-1.5 text-xs transition-all",
+                                      videoDuration === duration
+                                        ? "border-primary bg-primary/10 text-primary"
+                                        : "border-border bg-background text-muted-foreground hover:text-foreground",
+                                      isLocked && "cursor-not-allowed opacity-50 hover:text-muted-foreground",
+                                    )}
+                                  >
+                                    {duration}s
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            <p className="text-[10px] text-muted-foreground leading-tight">
+                              {imageMode === 'slideshow'
+                                ? `Animated brand story · ${videoDuration}s${brandGuide?.brandName ? ` · ${brandGuide.brandName} styling` : ''}`
+                                : `Short video · ${videoDuration}s · prompt shaped by your brand guide`}
+                            </p>
+                          </div>
                         )}
                         {imageMode === 'deck' && (
                           <div className="space-y-2 px-1">
                             <p className="text-[10px] text-muted-foreground leading-tight">
-                              GLM-5 + pptxgenjs · .pptx download{brandGuide?.brandName ? ` · ${brandGuide.brandName} colors` : ''}
+                              Brand-matched presentation deck · .pptx download{brandGuide?.brandName ? ` · ${brandGuide.brandName} styling` : ''}
                             </p>
                             <div className="grid grid-cols-2 gap-1.5">
                               <div>
@@ -1300,6 +1489,9 @@ export default function CreativeCommandCenter() {
                         <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                           Brand Kit ({brandKitImages.length})
                         </label>
+                        <p className="text-[10px] text-muted-foreground leading-tight">
+                          These were created during onboarding and saved in Drive. Click one to apply it to the canvas.
+                        </p>
                         <div className="grid grid-cols-3 gap-2">
                           {brandKitImages.map((img) => (
                             <div
@@ -1329,6 +1521,16 @@ export default function CreativeCommandCenter() {
                             </div>
                           ))}
                         </div>
+                        {selectedBrandKitAsset?.driveFileId && (
+                          <button
+                            type="button"
+                            onClick={() => router.push(`/dashboard/drive?file=${selectedBrandKitAsset.driveFileId}`)}
+                            className="inline-flex items-center gap-1 text-[10px] text-primary hover:underline"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            Open selected brand kit image in Drive
+                          </button>
+                        )}
                         {canvasBackground && (
                           <button
                             onClick={() => setCanvasBackground(null)}
@@ -1337,6 +1539,11 @@ export default function CreativeCommandCenter() {
                             ✕ Clear background override
                           </button>
                         )}
+                      </div>
+                    )}
+                    {!isLoadingBrandKit && brandKitImages.length === 0 && (
+                      <div className="rounded-xl border border-dashed border-border p-3 text-xs text-muted-foreground">
+                        Your onboarding brand kit is still empty. When images finish generating, they will appear here and in Drive automatically.
                       </div>
                     )}
 
@@ -1502,7 +1709,7 @@ export default function CreativeCommandCenter() {
 
           {/* Canvas frame — platform-aware aspect ratio */}
           <motion.div
-            key={currentContent?.id ?? 'empty'}
+            key={`${imageMode}:${localVideoUrl ?? deckDownloadUrl ?? currentContent?.id ?? generationError ?? 'empty'}`}
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.25 }}
@@ -1520,16 +1727,16 @@ export default function CreativeCommandCenter() {
                 <div className="text-center px-4">
                   {isGeneratingDeck ? (
                     <>
-                      <p className="text-sm font-semibold">GLM-5 is scripting your deck...</p>
-                      <p className="text-xs text-muted-foreground mt-1">pptxgenjs rendering · ~15–30s</p>
+                      <p className="text-sm font-semibold">Designing your presentation...</p>
+                      <p className="text-xs text-muted-foreground mt-1">Shaping the storyline and slides · ~15-30s</p>
                     </>
                   ) : isGeneratingVideo ? (
                     <>
                       <p className="text-sm font-semibold">
-                        {imageMode === 'slideshow' ? 'Remotion rendering...' : 'Kling is generating...'}
+                        {imageMode === 'slideshow' ? 'Your animated brand story is rendering...' : 'Your video is rendering...'}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {imageMode === 'slideshow' ? 'Branded slideshow · ~10–30s' : 'Cinematic video · 1–3 min'}
+                        {imageMode === 'slideshow' ? `${videoDuration}s branded motion piece · ~10-30s` : `${videoDuration}s motion clip · 1-3 min`}
                       </p>
                     </>
                   ) : (
@@ -1560,22 +1767,46 @@ export default function CreativeCommandCenter() {
                 </a>
               </div>
 
-            ) : imageMode === 'video' && localVideoUrl ? (
-              /* Video result */
+            ) : (imageMode === 'video' || imageMode === 'slideshow') && localVideoUrl ? (
+              /* Motion result */
               <>
                 {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                 <video src={localVideoUrl} controls autoPlay muted loop className="w-full h-full object-cover" />
                 <div className="absolute top-3 left-3">
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-black/60 text-white backdrop-blur-sm capitalize tracking-wide">
-                    {selectedPlatform} · video
+                    {selectedPlatform} · {imageMode === 'slideshow' ? 'slideshow' : 'video'}
                   </span>
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-                  <p className="text-white text-xs leading-relaxed line-clamp-2">{campaignPrompt}</p>
+                  <p className="text-white text-xs leading-relaxed line-clamp-2">
+                    {imageMode === 'slideshow' ? (selectedMenuProduct?.name || campaignPrompt) : campaignPrompt}
+                  </p>
                 </div>
               </>
 
-            ) : currentContent ? (
+            ) : generationError ? (
+              /* Error state — visible in canvas so user can't miss it */
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-background p-4">
+                <div className="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center">
+                  <XCircle className="w-7 h-7 text-red-500" />
+                </div>
+                <div className="text-center px-2">
+                  <p className="text-sm font-semibold text-red-500">Generation failed</p>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed max-w-[200px]">
+                    {generationError}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => { setGenerationError(null); handleGenerate(); }}
+                  className="border-red-500/30 text-red-500 hover:bg-red-500/10 hover:border-red-500 text-xs"
+                >
+                  Try Again
+                </Button>
+              </div>
+
+            ) : isImagePreviewMode && currentContent ? (
               <>
                 {/* Media — canvasBackground overrides the AI-generated image (e.g. brand kit swap) */}
                 {(canvasBackground || currentContent.mediaUrls?.[0]) ? (
@@ -1666,28 +1897,6 @@ export default function CreativeCommandCenter() {
                 </div>
               </>
 
-            ) : generationError ? (
-              /* Error state — visible in canvas so user can't miss it */
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-background p-4">
-                <div className="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center">
-                  <XCircle className="w-7 h-7 text-red-500" />
-                </div>
-                <div className="text-center px-2">
-                  <p className="text-sm font-semibold text-red-500">Generation failed</p>
-                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed max-w-[200px]">
-                    {generationError}
-                  </p>
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => { setGenerationError(null); handleGenerate(); }}
-                  className="border-red-500/30 text-red-500 hover:bg-red-500/10 hover:border-red-500 text-xs"
-                >
-                  Try Again
-                </Button>
-              </div>
-
             ) : (
               /* Empty state */
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-background">
@@ -1703,7 +1912,7 @@ export default function CreativeCommandCenter() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => setActiveLeftPanel('generate')}
+                  onClick={openGeneratePanel}
                   className="border-primary/30 text-primary hover:bg-primary/10 hover:border-primary text-xs"
                 >
                   <Sparkles className="w-3.5 h-3.5 mr-1.5" />

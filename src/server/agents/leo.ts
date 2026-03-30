@@ -13,10 +13,9 @@ import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, executiveContext
 import {
     buildSquadRoster,
     getDelegatableAgentIds,
-    buildIntegrationStatusSummary,
-    KNOWN_INTEGRATIONS,
     AgentId
 } from './agent-definitions';
+import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integration-status';
 
 export interface LeoTools extends Partial<AllSharedTools>, Partial<ExecutiveContextTools> {
     // Multi-Agent Orchestration
@@ -62,8 +61,9 @@ export const leoAgent: AgentImplementation<LeoMemory, LeoTools> = {
         }
 
         // Build dynamic squad roster from agent-definitions (source of truth)
+        const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || '';
         const squadRoster = buildSquadRoster('leo');
-        const integrationStatus = buildIntegrationStatusSummary();
+        const integrationStatus = await buildIntegrationStatusSummaryForOrg(orgId);
 
         // Load NY10 pilot context for cross-org awareness (non-blocking)
         let ny10Context = '';

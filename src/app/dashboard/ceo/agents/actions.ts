@@ -6,6 +6,7 @@ import { getGenerateOptions } from '@/ai/model-selector';
 import { runAgent } from '@/server/agents/harness';
 import { persistence } from '@/server/agents/persistence';
 import { requireSuperUser } from '@/server/auth/auth';
+import { buildSyntheticDecodedIdToken } from '@/server/auth/mock-token';
 
 import { craigAgent } from '@/server/agents/craig';
 import { smokeyAgent } from '@/server/agents/smokey';
@@ -33,7 +34,8 @@ import { z } from 'zod';
 import { PERSONAS, AgentPersona } from './personas';
 import { CannMenusService } from '@/server/services/cannmenus';
 import { getCustomerMemory } from '@/server/intuition/customer-memory';
-import { analyzeQuery } from '@/ai/chat-query-handler';
+import { getAgentForIntent } from '@/lib/agents/intent-router';
+import { routeToAgent } from '@/server/agents/agent-router';
 
 import { deeboAgent } from '@/server/agents/deebo-agent-impl';
 import { bigWormAgent } from '@/server/agents/bigworm';
@@ -58,6 +60,16 @@ const AGENT_MAP = {
     glenda: executiveAgent,
     mike_exec: executiveAgent,
 };
+
+const AUTO_ROUTE_PERSONAS = new Set<AgentPersona>([
+    'smokey',
+    'craig',
+    'pops',
+    'ezal',
+    'money_mike',
+    'mrs_parker',
+    'deebo',
+]);
 
 import { 
     defaultCraigTools, 
@@ -465,30 +477,42 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
             };
         }
 
-        // Only route if no specific persona was forced (or if it's the default 'puff')
-        // We allow explicit persona selection to stick, but 'puff' implies "General Assistant" who delegates.
+        // Only route if no specific persona was forced (or if it's the default 'puff').
+        // Prefer deterministic routing here so we do not pay for an extra LLM
+        // classification before the core agent runner sees the request.
         if (!personaId || personaId === 'puff') {
-            try {
-                const analysis = await analyzeQuery(userMessage);
-                console.log('[runAgentChat] Routing Analysis:', analysis);
+            const deterministicPersonaId = getAgentForIntent(userMessage);
 
-                if (analysis.searchType === 'marketing') {
-                    finalPersonaId = 'craig';
-                } else if (analysis.searchType === 'competitive') {
-                    finalPersonaId = 'ezal';
-                } else if (analysis.searchType === 'compliance') {
-                    finalPersonaId = 'deebo';
-                } else if (analysis.searchType === 'analytics') {
-                    finalPersonaId = 'pops';
-                } else if (analysis.searchType === 'semantic' || analysis.searchType === 'keyword' || analysis.searchType === 'filtered') {
-                    // Product search -> Smokey
-                    finalPersonaId = 'smokey';
-                } else if (userMessage.toLowerCase().includes('price') || userMessage.toLowerCase().includes('cost') || userMessage.toLowerCase().includes('margin') || userMessage.toLowerCase().includes('billing')) {
-                     // Money Mike fallback for financial terms not caught by complex analysis
-                     finalPersonaId = 'money_mike';
+            if (deterministicPersonaId) {
+                finalPersonaId = deterministicPersonaId;
+                logger.info('[runAgentChat] Deterministic specialist route', {
+                    persona: deterministicPersonaId,
+                    source: 'intent-router',
+                });
+            } else {
+                try {
+                    const routing = await routeToAgent(userMessage);
+                    const routedPersona = routing.primaryAgent;
+
+                    if (AUTO_ROUTE_PERSONAS.has(routedPersona as AgentPersona) && routedPersona !== 'puff' && routing.confidence >= 0.6) {
+                        finalPersonaId = routedPersona as AgentPersona;
+                        logger.info('[runAgentChat] Broad keyword route', {
+                            persona: routedPersona,
+                            confidence: routing.confidence,
+                            reasoning: routing.reasoning,
+                            source: 'agent-router',
+                        });
+                    } else {
+                        logger.info('[runAgentChat] Retaining Puff fallback', {
+                            confidence: routing.confidence,
+                            reasoning: routing.reasoning,
+                        });
+                    }
+                } catch (error) {
+                    logger.warn('[runAgentChat] Broad routing failed, defaulting to Puff', {
+                        error: error instanceof Error ? error.message : String(error),
+                    });
                 }
-            } catch (e) {
-                console.warn('[runAgentChat] Routing failed, defaulting to Puff:', e);
             }
         }
 
@@ -575,27 +599,15 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
                 const { runAgentCore } = await import('@/server/agents/agent-runner');
 
                 // Construct mock user token for agent execution
-                const mockUserToken = {
-                    uid: user.uid,
-                    email: user.email || '',
-                    email_verified: true,
-                    role: (user as any).role || 'customer',
-                    brandId: user.brandId || undefined,
-                    auth_time: Date.now() / 1000,
-                    iat: Date.now() / 1000,
-                    exp: (Date.now() / 1000) + 3600,
-                    aud: 'bakedbot',
-                    iss: 'https://securetoken.google.com/bakedbot',
-                    sub: user.uid,
-                    firebase: { identities: {}, sign_in_provider: 'custom' }
-                };
+                const syntheticUser = user as typeof user & { brandId?: string; role?: string };
+                const mockUserToken = buildSyntheticDecodedIdToken(syntheticUser, syntheticUser.brandId);
 
                 // Run agent synchronously
                 const result = await runAgentCore(
                     userMessage,
                     payload.persona,
                     payload.options,
-                    mockUserToken as any,
+                    mockUserToken,
                     jobId
                 );
 

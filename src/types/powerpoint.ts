@@ -34,5 +34,5 @@ export interface GeneratePowerPointOutput {
     fileName: string;
     slideCount: number;
     purpose: DeckPurpose;
-    generatedBy: 'pptxgenjs';
+    generatedBy: 'deck-builder';
 }

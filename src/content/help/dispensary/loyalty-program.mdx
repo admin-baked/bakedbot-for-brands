@@ -292,6 +292,27 @@ Reply STOP to opt out
 - Budtenders mention program
 - QR code to sign up
 
+### Front Door Visitor Check-In
+
+If you use BakedBot as the entrance check-in flow, treat it as the top of your loyalty funnel:
+
+1. Staff visually checks ID before entry.
+2. BakedBot collects first name and required phone number.
+3. Email stays optional.
+4. SMS and email consent are collected separately and default off.
+5. Returning visitors are matched and logged as repeat check-ins.
+6. New opted-in visitors can immediately enter retention playbooks.
+
+**Recommended data policy:**
+- Store first name, phone, optional email, consent status, and visit timestamp.
+- Do not store date of birth, ID number, or ID images unless counsel requires it.
+
+**Operational tips:**
+- Add a homepage or rewards-page CTA that sends visitors to your check-in flow.
+- Keep a tablet or QR code at the front door during busy periods.
+- Train staff that marketing opt-in is optional and never a condition of entry.
+- Review check-in volume weekly and confirm `reviewSequence.status` is `pending` only when email consent exists.
+
 ## Managing Your Loyalty Program
 
 ### Member Management

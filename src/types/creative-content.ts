@@ -402,6 +402,7 @@ export interface GenerateContentRequest {
     /** Product reference if applicable */
     productId?: string;
     productName?: string;
+    productImageUrl?: string;
     /** Brand assets */
     brandName?: string;
     brandVoice?: string;

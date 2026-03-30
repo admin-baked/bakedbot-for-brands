@@ -39,6 +39,7 @@ import { useToast } from '@/hooks/use-toast';
 import { InsightCardsGrid } from './insight-cards-grid';
 import { _pendingInputs } from './inbox-conversation';
 import type { InboxOwnerBriefingSummary } from '@/types/inbox';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // ============ Props ============
 
@@ -75,9 +76,16 @@ interface PresetChipProps {
     hasCustomText: boolean;
     onSelect: () => void;
     isCreating: boolean;
+    compact?: boolean;
 }
 
-function PresetChip({ action, hasCustomText, onSelect, isCreating }: PresetChipProps) {
+function PresetChip({
+    action,
+    hasCustomText,
+    onSelect,
+    isCreating,
+    compact = false,
+}: PresetChipProps) {
     const Icon = getIcon(action.icon);
 
     return (
@@ -85,18 +93,26 @@ function PresetChip({ action, hasCustomText, onSelect, isCreating }: PresetChipP
             onClick={onSelect}
             disabled={isCreating}
             className={cn(
-                'group flex items-center gap-2 px-4 py-2 rounded-full border transition-all',
+                'group flex items-center rounded-full border transition-all',
+                compact ? 'gap-1.5 px-3 py-1.5' : 'gap-2 px-4 py-2',
                 'bg-card hover:bg-muted/50 hover:border-primary/30',
                 hasCustomText && 'ring-2 ring-primary/20 border-primary/30',
                 isCreating && 'opacity-70 cursor-not-allowed'
             )}
         >
             {isCreating ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className={cn(compact ? 'h-3.5 w-3.5' : 'h-4 w-4', 'animate-spin')} />
             ) : (
-                <Icon className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
+                <Icon
+                    className={cn(
+                        compact ? 'h-3.5 w-3.5' : 'h-4 w-4',
+                        'text-primary transition-transform group-hover:scale-110'
+                    )}
+                />
             )}
-            <span className="text-sm font-medium">{action.label}</span>
+            <span className={cn(compact ? 'text-xs' : 'text-sm', 'font-medium')}>
+                {action.label}
+            </span>
             {hasCustomText && <Plus className="h-3 w-3 text-muted-foreground" />}
         </button>
     );
@@ -124,6 +140,7 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
         orgId: currentOrgId,
     });
     const { toast } = useToast();
+    const isMobile = useIsMobile();
 
     const [customText, setCustomText] = useState('');
     const [isCreating, setIsCreating] = useState(false);
@@ -318,6 +335,141 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
         }
     };
 
+    const renderComposer = (textareaClassName: string) => (
+        <>
+            <div className="relative">
+                <Textarea
+                    ref={textareaRef}
+                    value={customText}
+                    onChange={(e) => setCustomText(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="What would you like to work on? Type here or pick a suggestion below..."
+                    className={cn(
+                        'pr-12 resize-none',
+                        'bg-card border-muted-foreground/20 focus:border-primary/50',
+                        textareaClassName
+                    )}
+                    disabled={isCreating}
+                />
+                {hasCustomText && (
+                    <Button
+                        size="icon"
+                        className="absolute bottom-3 right-3"
+                        onClick={handleCustomSubmit}
+                        disabled={isCreating}
+                    >
+                        {isCreating ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                            <Send className="h-4 w-4" />
+                        )}
+                    </Button>
+                )}
+            </div>
+
+            {hasCustomText && (
+                <p className="text-xs text-center text-muted-foreground -mt-1">
+                    Press Enter to send, or click a suggestion below to combine
+                    it with your message
+                </p>
+            )}
+        </>
+    );
+
+    const renderPresetSuggestions = (
+        actions: InboxQuickAction[],
+        {
+            justifyClassName = 'justify-center',
+            compact = false,
+            chipsClassName,
+        }: {
+            justifyClassName?: string;
+            compact?: boolean;
+            chipsClassName?: string;
+        } = {}
+    ) => {
+        if (actions.length === 0) {
+            return null;
+        }
+
+        return (
+            <div className={cn(compact ? 'space-y-2' : 'space-y-3')}>
+                <div className={cn('flex items-center gap-2', compact ? 'justify-start' : 'justify-center')}>
+                    <h2 className={cn(compact ? 'text-xs' : 'text-sm', 'font-medium text-muted-foreground')}>
+                        Quick Suggestions
+                    </h2>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className={cn(compact ? 'h-5 w-5' : 'h-6 w-6')}
+                        onClick={refresh}
+                        disabled={isCreating}
+                        title="Refresh suggestions"
+                    >
+                        <RefreshCw className="h-3 w-3" />
+                    </Button>
+                </div>
+                <div className={cn('flex flex-wrap gap-2', justifyClassName, chipsClassName)}>
+                    {actions.map((action) => (
+                        <PresetChip
+                            key={action.id}
+                            action={action}
+                            hasCustomText={hasCustomText}
+                            onSelect={() => handlePresetSelect(action)}
+                            isCreating={isCreating}
+                            compact={compact}
+                        />
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
+    const renderOwnerBriefing = (gridClassName: string, compact = false) => {
+        if (!ownerBriefing) {
+            return null;
+        }
+
+        return (
+            <div className={gridClassName}>
+                <div className={cn('rounded-xl border bg-card text-left', compact ? 'space-y-1.5 p-3' : 'space-y-2 p-4')}>
+                    <p className={cn(compact ? 'text-[11px]' : 'text-xs', 'font-medium uppercase tracking-wider text-muted-foreground')}>
+                        What Happened Yesterday
+                    </p>
+                    <p className={cn(compact ? 'line-clamp-2 text-sm leading-5' : 'text-sm', 'font-semibold text-foreground')}>
+                        {ownerBriefing.happenedYesterday}
+                    </p>
+                    {ownerBriefing.happenedYesterdayDetail && (
+                        <p className={cn(compact ? 'line-clamp-2 text-[11px] leading-4' : 'text-xs', 'text-muted-foreground')}>
+                            {ownerBriefing.happenedYesterdayDetail}
+                        </p>
+                    )}
+                </div>
+                <div className={cn('rounded-xl border bg-card text-left', compact ? 'space-y-1.5 p-3' : 'space-y-2 p-4')}>
+                    <p className={cn(compact ? 'text-[11px]' : 'text-xs', 'font-medium uppercase tracking-wider text-muted-foreground')}>
+                        What To Work On Today
+                    </p>
+                    <p className={cn(compact ? 'line-clamp-2 text-sm leading-5' : 'text-sm', 'font-semibold text-foreground')}>
+                        {ownerBriefing.workOnToday}
+                    </p>
+                    {ownerBriefing.priorities.length > 0 ? (
+                        <ul className={cn(compact ? 'space-y-1 text-[11px] leading-4' : 'space-y-1 text-xs', 'text-muted-foreground')}>
+                            {ownerBriefing.priorities.slice(0, compact ? 2 : undefined).map((priority) => (
+                                <li key={priority} className={cn(compact && 'line-clamp-1')}>
+                                    {priority}
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className={cn(compact ? 'text-[11px] leading-4' : 'text-xs', 'text-muted-foreground')}>
+                            No open blockers were pulled into today&apos;s brief.
+                        </p>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
     if (isLoading || presetsLoading) {
         return (
             <div className={cn('flex items-center justify-center h-full', className)}>
@@ -337,141 +489,84 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
             action={queryDialogAction}
             onClose={() => setQueryDialogAction(null)}
         />
-        <div className={cn('flex items-center justify-center h-full p-8', className)}>
-            <div className="max-w-4xl w-full space-y-8">
-                {/* Daily Briefing - Insight Cards */}
-                <InsightCardsGrid maxCards={5} />
+        {isMobile ? (
+            <div className={cn('h-full overflow-y-auto', className)} data-testid="inbox-empty-state-mobile">
+                <div className="mx-auto flex min-h-full w-full max-w-4xl items-start justify-center p-6 sm:p-8">
+                <div className="w-full space-y-8 py-2">
+                    {/* Daily Briefing - Insight Cards */}
+                    <InsightCardsGrid maxCards={5} />
 
-                {/* Welcome Header with Contextual Greeting */}
-                <div className="text-center">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-                        <Sparkles className="h-8 w-8 text-primary" />
+                    {/* Welcome Header with Contextual Greeting */}
+                    <div className="text-center">
+                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
+                            <Sparkles className="h-8 w-8 text-primary" />
+                        </div>
+                        <h1 className="text-2xl font-bold mb-2">{greeting}!</h1>
+                        <p className="text-muted-foreground max-w-md mx-auto">
+                            {ownerBriefing
+                                ? 'Here is what changed yesterday and what needs your attention today.'
+                                : suggestion}
+                        </p>
                     </div>
-                    <h1 className="text-2xl font-bold mb-2">{greeting}!</h1>
-                    <p className="text-muted-foreground max-w-md mx-auto">
-                        {ownerBriefing
-                            ? 'Here is what changed yesterday and what needs your attention today.'
-                            : suggestion}
-                    </p>
+
+                    {renderOwnerBriefing('grid gap-3 md:grid-cols-2')}
+
+                    {renderComposer('min-h-[100px]')}
+                    {renderPresetSuggestions(presets)}
+
+                    <div className="text-center">
+                        <p className="text-xs text-muted-foreground">
+                            {hasCustomText
+                                ? 'Click a suggestion to combine it with your message'
+                                : 'Type a specific request or click a suggestion to get started'}
+                        </p>
+                    </div>
                 </div>
-
-                {ownerBriefing && (
-                    <div className="grid gap-3 md:grid-cols-2">
-                        <div className="rounded-xl border bg-card p-4 text-left space-y-2">
-                            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                                What Happened Yesterday
-                            </p>
-                            <p className="text-sm font-semibold text-foreground">
-                                {ownerBriefing.happenedYesterday}
-                            </p>
-                            {ownerBriefing.happenedYesterdayDetail && (
-                                <p className="text-xs text-muted-foreground">
-                                    {ownerBriefing.happenedYesterdayDetail}
-                                </p>
-                            )}
-                        </div>
-                        <div className="rounded-xl border bg-card p-4 text-left space-y-2">
-                            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                                What To Work On Today
-                            </p>
-                            <p className="text-sm font-semibold text-foreground">
-                                {ownerBriefing.workOnToday}
-                            </p>
-                            {ownerBriefing.priorities.length > 0 ? (
-                                <ul className="space-y-1 text-xs text-muted-foreground">
-                                    {ownerBriefing.priorities.map((priority) => (
-                                        <li key={priority}>{priority}</li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <p className="text-xs text-muted-foreground">
-                                    No open blockers were pulled into today&apos;s brief.
-                                </p>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                {/* Custom Text Input */}
-                <div className="relative">
-                    <Textarea
-                        ref={textareaRef}
-                        value={customText}
-                        onChange={(e) => setCustomText(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        placeholder="What would you like to work on? Type here or pick a suggestion below..."
-                        className={cn(
-                            'min-h-[100px] pr-12 resize-none',
-                            'bg-card border-muted-foreground/20 focus:border-primary/50'
-                        )}
-                        disabled={isCreating}
-                    />
-                    {hasCustomText && (
-                        <Button
-                            size="icon"
-                            className="absolute bottom-3 right-3"
-                            onClick={handleCustomSubmit}
-                            disabled={isCreating}
-                        >
-                            {isCreating ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                                <Send className="h-4 w-4" />
-                            )}
-                        </Button>
-                    )}
-                </div>
-
-                {/* Contextual hint */}
-                {hasCustomText && (
-                    <p className="text-xs text-center text-muted-foreground -mt-4">
-                        Press Enter to send, or click a suggestion below to combine
-                        it with your message
-                    </p>
-                )}
-
-                {/* Preset Suggestions */}
-                {presets.length > 0 && (
-                    <div className="space-y-3">
-                        <div className="flex items-center justify-center gap-2">
-                            <h2 className="text-sm font-medium text-muted-foreground">
-                                Quick Suggestions
-                            </h2>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={refresh}
-                                disabled={isCreating}
-                                title="Refresh suggestions"
-                            >
-                                <RefreshCw className="h-3 w-3" />
-                            </Button>
-                        </div>
-                        <div className="flex flex-wrap justify-center gap-2">
-                            {presets.map((action) => (
-                                <PresetChip
-                                    key={action.id}
-                                    action={action}
-                                    hasCustomText={hasCustomText}
-                                    onSelect={() => handlePresetSelect(action)}
-                                    isCreating={isCreating}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Tips */}
-                <div className="text-center">
-                    <p className="text-xs text-muted-foreground">
-                        {hasCustomText
-                            ? 'Click a suggestion to combine it with your message'
-                            : 'Type a specific request or click a suggestion to get started'}
-                    </p>
                 </div>
             </div>
-        </div>
+        ) : (
+            <div className={cn('h-full overflow-hidden', className)} data-testid="inbox-empty-state-desktop">
+                <div className="flex h-full min-h-0 flex-col">
+                    <div className="border-b bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                        <div className="mx-auto grid w-full max-w-4xl gap-3 xl:grid-cols-[180px,minmax(0,1fr)] xl:items-start">
+                            <div className="space-y-1.5">
+                                <div className="space-y-1">
+                                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                                        Start Here
+                                    </p>
+                                    <h1 className="text-lg font-semibold text-foreground xl:text-xl">
+                                        {greeting}!
+                                    </h1>
+                                </div>
+                                <p className="max-w-[15rem] text-xs leading-5 text-muted-foreground">
+                                    {ownerBriefing
+                                        ? 'Keep the briefing above in view while you start the next inbox task here.'
+                                        : suggestion}
+                                </p>
+                            </div>
+
+                            <div className="min-w-0 space-y-2.5">
+                                {renderComposer('min-h-[68px] text-sm')}
+                                {renderPresetSuggestions(presets, {
+                                    justifyClassName: 'justify-start',
+                                    compact: true,
+                                    chipsClassName: 'flex-nowrap overflow-x-auto pb-1 pr-1',
+                                })}
+                                </div>
+                            </div>
+
+                    </div>
+
+                    {ownerBriefing && (
+                        <div className="border-b bg-background/70 px-4 py-3">
+                            <div className="mx-auto w-full max-w-4xl">
+                                {renderOwnerBriefing('grid gap-3 xl:grid-cols-2', true)}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        )}
         </>
     );
 }

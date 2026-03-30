@@ -53,6 +53,26 @@ export async function fetchMenuProducts(brandId: string): Promise<any[]> {
 }
 
 /**
+ * Normalize a raw POS product object (Alleaves, CannMenus, or manual upload)
+ * to a consistent shape. Handles variant field names across different POS systems.
+ */
+export function normalizeProduct(p: any): {
+    name: string;
+    category: string;
+    price: number;
+    stock: number;
+    onSale: boolean;
+} {
+    return {
+        name: p.name ?? p.product_name ?? 'Unknown',
+        category: p.category ?? p.category_name ?? '',
+        price: Number(p.price ?? p.current_price ?? 0),
+        stock: Number(p.quantity_available ?? p.stock ?? p.qty ?? -1),
+        onSale: p.on_sale === true || p.sale_price != null,
+    };
+}
+
+/**
  * Adapter to bridge the Consumer Chat API (/api/chat) with the central Agent Runner.
  * 
  * Responsibilities:

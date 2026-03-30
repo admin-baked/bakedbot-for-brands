@@ -78,8 +78,19 @@ const EVENT_OPTION_GROUPS = [
         ],
     },
     {
+        group: 'Executive Booking',
+        events: [
+            { value: 'executive.booking.martez.confirmed', label: 'Martez booking confirmed' },
+            { value: 'executive.booking.martez.followup_ready', label: 'Martez follow-up ready' },
+            { value: 'executive.booking.jack.confirmed', label: 'Jack booking confirmed' },
+            { value: 'executive.booking.jack.followup_ready', label: 'Jack follow-up ready' },
+        ],
+    },
+    {
         group: 'System',
         events: [
+            { value: 'deployment.firebase.failed', label: 'Firebase deploy failed' },
+            { value: 'deployment.firebase.succeeded', label: 'Firebase deploy succeeded' },
             { value: 'owner.day3', label: 'Day 3 after owner signup' },
             { value: 'usage.at_80_percent', label: '80% usage threshold reached' },
             { value: 'usage.feature_ceiling', label: 'Feature ceiling reached' },

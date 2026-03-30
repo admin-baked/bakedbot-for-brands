@@ -150,6 +150,12 @@ describe('Agent Router Cache', () => {
             expect(result.primaryAgent).toBe('smokey');
             expect(result.confidence).toBeGreaterThan(0.7);
         });
+
+        it('should route COGS questions to Money Mike', async () => {
+            const result = await routeToAgent('What is our COGS on prerolls?');
+            expect(result.primaryAgent).toBe('money_mike');
+            expect(result.confidence).toBeGreaterThan(0.6);
+        });
     });
 
     describe('Performance characteristics', () => {

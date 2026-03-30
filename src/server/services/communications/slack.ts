@@ -19,16 +19,16 @@ export const PERSONA_META: Record<string, { emoji: string; role: string }> = {
     day_day:     { emoji: '📈', role: 'Growth · Acquisition' },
     felisha:     { emoji: '🗂️', role: 'Ops · Fulfillment' },
     puff:        { emoji: '🤖', role: 'BakedBot AI' },
+    elroy:       { emoji: '🏪', role: 'Uncle Elroy · Store Ops' },
 };
 
 export class SlackService {
     private client: WebClient | null = null;
     private missingTokenWarningLogged = false;
 
-    constructor() {
-        if (process.env.SLACK_BOT_TOKEN) {
-            this.client = new WebClient(process.env.SLACK_BOT_TOKEN);
-        }
+    constructor(token?: string) {
+        const t = token ?? process.env.SLACK_BOT_TOKEN;
+        if (t) this.client = new WebClient(t);
     }
 
     private getClient(action: string): WebClient | null {
@@ -379,3 +379,10 @@ export class SlackService {
 }
 
 export const slackService = new SlackService();
+
+// Uncle Elroy — dedicated bot token for Thrive Syracuse store ops persona.
+// Uses SLACK_ELROY_BOT_TOKEN if set; falls back to shared token so the app
+// still works before the secret is provisioned.
+export const elroySlackService = new SlackService(
+    process.env.SLACK_ELROY_BOT_TOKEN ?? process.env.SLACK_BOT_TOKEN
+);

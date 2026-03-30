@@ -10,6 +10,10 @@ export type HeroPurchaseModel = 'online_only' | 'local_pickup' | 'hybrid';
 
 export type HeroCtaAction = 'find_near_me' | 'shop_now' | 'custom';
 
+export type HeroChannel = 'menu' | 'weedmaps';
+
+export type WeedmapsMobilePreset = 'documented' | 'legacy_square';
+
 export interface HeroStats {
   products?: number;
   retailers?: number;
@@ -25,11 +29,25 @@ export interface HeroCta {
   url?: string;
 }
 
+export interface WeedmapsHeroContent {
+  desktopImage?: string;
+  mobileImage?: string;
+  headline?: string;
+  subheadline?: string;
+  dealText?: string;
+  bundleText?: string;
+  ctaText?: string;
+  disclaimerText?: string;
+  licenseText?: string;
+  mobilePreset?: WeedmapsMobilePreset;
+}
+
 export interface Hero {
   id: string;
   orgId: string;
   brandId?: string;
   dispensaryId?: string;
+  channel?: HeroChannel;
 
   // Content
   brandName: string;
@@ -37,6 +55,7 @@ export interface Hero {
   tagline: string;
   description?: string;
   heroImage?: string;
+  weedmaps?: WeedmapsHeroContent;
 
   // Video Background (Phase 3)
   videoBackground?: {

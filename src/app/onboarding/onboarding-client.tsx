@@ -29,6 +29,7 @@ import {
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { findPricingPlan } from '@/lib/config/pricing';
 import { logger } from '@/lib/logger';
+import { MCBA_SIGNUP_GRANT_KEY } from '@/lib/constants/mcba-power-hour-ama';
 
 type BrandResult = {
   id: string;
@@ -88,8 +89,12 @@ export default function OnboardingPage() {
   // Handle URL params for pre-filling (e.g. coming from Claim Page)
   const searchParams = useSearchParams();
   const selectedPlanId = searchParams?.get('plan')?.trim() || '';
+  const signupSource = searchParams?.get('source')?.trim() || '';
+  const signupCampaign = searchParams?.get('campaign')?.trim() || '';
+  const signupCreditGrantKey = searchParams?.get('grant')?.trim() || '';
   const selectedPlan = selectedPlanId ? findPricingPlan(selectedPlanId) : undefined;
   const selectedPlanLabel = selectedPlan?.name || selectedPlanId;
+  const hasMcbaCampaignOffer = signupCreditGrantKey === MCBA_SIGNUP_GRANT_KEY;
 
   useEffect(() => {
     const roleParam = searchParams?.get('role');
@@ -553,6 +558,12 @@ export default function OnboardingPage() {
               <span className="font-semibold">{selectedPlanLabel}</span>
             </div>
           )}
+          {hasMcbaCampaignOffer && (
+            <div className="flex justify-between items-center py-2 border-t border-dashed">
+              <span className="text-muted-foreground">Campaign Offer</span>
+              <span className="font-semibold">150 free AI credits</span>
+            </div>
+          )}
         </div>
 
         <form action={formAction} ref={formRef} className="flex flex-col gap-4">
@@ -569,6 +580,9 @@ export default function OnboardingPage() {
           <input type="hidden" name="slug" value={slug} />
           <input type="hidden" name="zipCode" value={zipCode} />
           <input type="hidden" name="selectedCompetitors" value={JSON.stringify(selectedCompetitors)} />
+          <input type="hidden" name="signupSource" value={signupSource} />
+          <input type="hidden" name="signupCampaign" value={signupCampaign} />
+          <input type="hidden" name="signupCreditGrantKey" value={signupCreditGrantKey} />
 
           {/* Intercepted Submit Button */}
           <Button

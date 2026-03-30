@@ -15,6 +15,8 @@ import {
     lookupCustomer,
     getCustomerHistory,
     getSegmentSummary,
+    getCustomerEmailCoverage,
+    getTopCustomers,
     getAtRiskCustomers,
     getUpcomingBirthdays,
     getCustomerComms,
@@ -26,6 +28,14 @@ import {
     suggestAudience,
     submitCampaignForReview,
 } from '@/server/tools/campaign-tools';
+import {
+    analyze280ETax,
+    calculateNYCannabisTax,
+    getProfitabilityMetricsForAgent,
+    getCategoryCogsForAgent,
+    analyzePriceCompressionForAgent,
+    analyzeWorkingCapitalForAgent,
+} from '@/server/tools/profitability-tools';
 import {
     crmListUsersTool,
     crmGetStatsTool,
@@ -1379,9 +1389,19 @@ export const defaultUniversalTools = {
     lookupCustomer,
     getCustomerHistory,
     getSegmentSummary,
+    getCustomerEmailCoverage,
+    getTopCustomers,
     getAtRiskCustomers,
     getUpcomingBirthdays,
     getCustomerComms,
+
+    // Profitability & COGS
+    analyze280ETax,
+    calculateNYCannabsTax: calculateNYCannabisTax,
+    getProfitabilityMetrics: getProfitabilityMetricsForAgent,
+    getCategoryCogs: getCategoryCogsForAgent,
+    analyzePriceCompression: analyzePriceCompressionForAgent,
+    analyzeWorkingCapital: analyzeWorkingCapitalForAgent,
 
     // Campaign Management
     createCampaignDraft,
@@ -1454,9 +1474,18 @@ export const defaultExecutiveBoardTools = {
         // Gemini is always available via Genkit
         health.components['gemini_api'] = { status: '✅ ACTIVE', message: 'Gemini via Genkit ready' };
 
-        // 4. Check Integration Status (from registry)
-        const { KNOWN_INTEGRATIONS } = await import('@/server/agents/agent-definitions');
-        for (const integration of KNOWN_INTEGRATIONS) {
+        // 4. Check Integration Status for the current tenant
+        const currentUser = await requireUser().catch(() => null);
+        const currentOrgId =
+            currentUser?.orgId ||
+            (currentUser as any)?.currentOrgId ||
+            currentUser?.brandId ||
+            currentUser?.locationId ||
+            '';
+        const { resolveIntegrationStatusesForOrg } = await import('@/server/services/org-integration-status');
+        const integrationStatuses = await resolveIntegrationStatusesForOrg(currentOrgId);
+
+        for (const integration of integrationStatuses) {
             health.integrations[integration.id] = {
                 status: integration.status === 'active' ? '✅ ACTIVE' :
                     integration.status === 'configured' ? '⚙️ CONFIGURED' : '❌ NOT CONFIGURED',
@@ -1472,7 +1501,7 @@ export const defaultExecutiveBoardTools = {
         };
 
         // 6. Generate Recommendations
-        const notConfigured = KNOWN_INTEGRATIONS.filter(i => i.status === 'not_configured');
+        const notConfigured = integrationStatuses.filter(i => i.status === 'not_configured');
         if (notConfigured.length > 0) {
             health.recommendations.push(
                 `${notConfigured.length} integrations not yet configured: ${notConfigured.slice(0, 3).map(i => i.name).join(', ')}${notConfigured.length > 3 ? '...' : ''}`

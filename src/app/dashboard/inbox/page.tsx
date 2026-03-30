@@ -16,8 +16,10 @@ import { Loader2 } from 'lucide-react';
 import { UnifiedInbox } from '@/components/inbox';
 import { UnifiedAgentChat } from '@/components/chat/unified-agent-chat';
 import { InboxViewToggle } from '@/components/inbox/inbox-view-toggle';
+import { InboxWorkspaceBriefing } from '@/components/inbox/inbox-workspace-briefing';
 import { useInboxStore } from '@/lib/store/inbox-store';
 import { useUserRole } from '@/hooks/use-user-role';
+import { isBrandRole, isDispensaryRole, isGrowerRole } from '@/types/roles';
 import { motion, AnimatePresence } from 'framer-motion';
 
 function InboxLoading() {
@@ -36,35 +38,55 @@ function InboxContent() {
     const { role } = useUserRole();
 
     const isSuper = role === 'super_user' || role === 'super_admin';
+    const isGrower = isGrowerRole(role);
+    const isDispensary = isDispensaryRole(role);
 
     // Determine role for chat component
-    const chatRole = role === 'brand' || role === 'brand_admin' || role === 'brand_member'
+    const chatRole = isBrandRole(role)
         ? 'brand'
-        : role === 'dispensary' || role === 'dispensary_admin' || role === 'dispensary_staff'
+        : isDispensary
         ? 'dispensary'
+        : isGrower
+        ? 'grower'
         : isSuper
         ? 'super_admin'
         : 'customer';
 
+    const modeDescription = viewMode === 'inbox'
+        ? isGrower
+            ? 'Thread-based wholesale workflows for yield, buyer-ready inventory, and brand outreach.'
+            : isDispensary
+                ? 'Thread-based conversations for store ops, compliance, and daily retail decision-making.'
+                : 'Thread-based conversations with your AI agents.'
+        : isGrower
+            ? 'Direct chat for cultivation, transfer readiness, and wholesale execution.'
+            : isDispensary
+                ? 'Direct chat for store operations, pricing, and customer-facing follow-up.'
+                : 'Traditional chat experience with your AI agents.';
+
     return (
-        <div className="h-full flex flex-col">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden">
             {/* View Toggle Header */}
-            <div className="flex items-center justify-between px-3 sm:px-6 py-2 sm:py-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                <div>
-                    <h1 className="text-base sm:text-lg font-semibold">
-                        {viewMode === 'inbox' ? 'Unified Inbox' : 'Agent Chat'}
-                    </h1>
-                    <p className="hidden sm:block text-xs text-muted-foreground">
-                        {viewMode === 'inbox'
-                            ? 'Thread-based conversations with your AI agents'
-                            : 'Traditional chat experience with your AI agents'}
-                    </p>
+            <div className="flex flex-col gap-3 border-b bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:px-6 sm:py-4">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="space-y-1">
+                        <h1 className="text-base font-semibold sm:text-lg">
+                            {viewMode === 'inbox' ? 'Unified Inbox' : 'Agent Chat'}
+                        </h1>
+                        <p className="max-w-2xl text-[11px] text-muted-foreground sm:text-xs">
+                            {modeDescription}
+                        </p>
+                    </div>
+                    <div className="self-start sm:self-center">
+                        <InboxViewToggle />
+                    </div>
                 </div>
-                <InboxViewToggle />
+
+                <InboxWorkspaceBriefing className="hidden lg:block" />
             </div>
 
             {/* View Content - Animated transitions */}
-            <div className="flex-1 overflow-hidden">
+            <div className="min-h-0 flex-1 overflow-hidden">
                 <AnimatePresence mode="wait">
                     {viewMode === 'inbox' ? (
                         <motion.div
@@ -73,7 +95,7 @@ function InboxContent() {
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: 20 }}
                             transition={{ duration: 0.2 }}
-                            className="h-full"
+                            className="h-full min-h-0 overflow-hidden"
                         >
                             <UnifiedInbox className="h-full" />
                         </motion.div>
@@ -84,10 +106,10 @@ function InboxContent() {
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -20 }}
                             transition={{ duration: 0.2 }}
-                            className="h-full p-6"
+                            className="h-full min-h-0 p-6"
                         >
                             <UnifiedAgentChat
-                                role={chatRole as any}
+                                role={chatRole}
                                 showHeader={true}
                                 height="h-full"
                                 isAuthenticated={true}
@@ -103,7 +125,7 @@ function InboxContent() {
 
 export default function InboxPage() {
     return (
-        <div className="h-[calc(100vh-4rem)]">
+        <div className="h-[calc(100dvh-4rem)] overflow-hidden">
             <Suspense fallback={<InboxLoading />}>
                 <InboxContent />
             </Suspense>

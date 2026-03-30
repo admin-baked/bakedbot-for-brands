@@ -1,6 +1,7 @@
 import { getChatSessions, saveChatSession } from '../chat-persistence';
 import { requireUser } from '@/server/auth/auth';
 import { createServerClient } from '@/firebase/server-client';
+import { logger } from '@/lib/logger';
 
 jest.mock('@/server/auth/auth', () => ({
   requireUser: jest.fn(),
@@ -10,7 +11,7 @@ jest.mock('@/firebase/server-client', () => ({
   createServerClient: jest.fn(),
 }));
 
-jest.mock('@/lib/monitoring', () => ({
+jest.mock('@/lib/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),
@@ -107,6 +108,165 @@ describe('chat-persistence security', () => {
       error: 'Invalid user id',
     });
     expect(createServerClient).not.toHaveBeenCalled();
+  });
+
+  it('serializes nested Firestore timestamps before returning chat sessions', async () => {
+    const iso = '2026-03-26T19:15:00.000Z';
+    const firestoreTimestamp = {
+      toDate: () => new Date(iso),
+    };
+
+    get.mockResolvedValueOnce({
+      docs: [
+        {
+          id: 'session-1',
+          data: () => ({
+            title: 'CEO CRM Session',
+            preview: 'Preview text',
+            timestamp: firestoreTimestamp,
+            messages: [
+              {
+                id: 'message-1',
+                type: 'agent',
+                content: 'hello',
+                timestamp: firestoreTimestamp,
+                artifacts: [
+                  {
+                    id: 'artifact-1',
+                    type: 'markdown',
+                    title: 'Nested Artifact',
+                    content: 'artifact body',
+                    createdAt: firestoreTimestamp,
+                    updatedAt: firestoreTimestamp,
+                  },
+                ],
+              },
+            ],
+            artifacts: [
+              {
+                id: 'artifact-2',
+                type: 'markdown',
+                title: 'Top Level Artifact',
+                content: 'top level body',
+                createdAt: firestoreTimestamp,
+                updatedAt: firestoreTimestamp,
+              },
+            ],
+          }),
+        },
+      ],
+    });
+
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'super-1',
+      role: 'super_user',
+    });
+
+    const result = await getChatSessions();
+
+    expect(result).toEqual({
+      success: true,
+      sessions: [
+        {
+          id: 'session-1',
+          title: 'CEO CRM Session',
+          preview: 'Preview text',
+          timestamp: iso,
+          messages: [
+            {
+              id: 'message-1',
+              type: 'agent',
+              content: 'hello',
+              timestamp: iso,
+              artifacts: [
+                {
+                  id: 'artifact-1',
+                  type: 'markdown',
+                  title: 'Nested Artifact',
+                  content: 'artifact body',
+                  createdAt: iso,
+                  updatedAt: iso,
+                },
+              ],
+            },
+          ],
+          role: undefined,
+          projectId: undefined,
+          artifacts: [
+            {
+              id: 'artifact-2',
+              type: 'markdown',
+              title: 'Top Level Artifact',
+              content: 'top level body',
+              createdAt: iso,
+              updatedAt: iso,
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('returns a structured error when Firestore throws a circular error object', async () => {
+    const circularError = new Error('Firestore read failed') as Error & {
+      code?: number;
+      self?: unknown;
+    };
+    circularError.code = 13;
+    circularError.self = circularError;
+
+    get.mockRejectedValueOnce(circularError);
+
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'super-1',
+      role: 'super_user',
+    });
+
+    const result = await getChatSessions();
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Firestore read failed',
+    });
+  });
+
+  it('still returns a structured error when logger.error throws while handling a read failure', async () => {
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    const firestoreError = new Error('Firestore read failed');
+    get.mockRejectedValueOnce(firestoreError);
+    (logger.error as jest.Mock).mockRejectedValueOnce(new Error('Sentry offline'));
+
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'super-1',
+      role: 'super_user',
+    });
+
+    const result = await getChatSessions();
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Firestore read failed',
+    });
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('still returns unauthorized when logger.warn throws during an access denial', async () => {
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    (logger.warn as jest.Mock).mockRejectedValueOnce(new Error('Sentry offline'));
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'user-1',
+      role: 'dispensary_admin',
+    });
+
+    const result = await getChatSessions('user-2');
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Unauthorized',
+    });
+
+    consoleErrorSpy.mockRestore();
   });
 
   it('rejects invalid chat session ids on save', async () => {

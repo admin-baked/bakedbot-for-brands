@@ -13,12 +13,16 @@
 
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
+
 // Note: Cannot use @/lib/logger in Edge Runtime (middleware)
 // Google Cloud Logging is Node.js-only; use console for Edge
 
-// Initialize Redis client (lazy initialization — only if env vars present)
+// Initialize Redis client lazily only if env vars are present.
 let redis: Redis | null = null;
 let rateLimit: Ratelimit | null = null;
+let hasLoggedMissingConfig = false;
+
+const isDevelopment = process.env.NODE_ENV === 'development';
 
 function initializeRateLimit() {
     if (rateLimit) return rateLimit;
@@ -27,9 +31,19 @@ function initializeRateLimit() {
     const redisToken = process.env.UPSTASH_REDIS_TOKEN?.trim();
 
     if (!redisUrl || !redisToken) {
-        console.warn(
-            '[RateLimit] UPSTASH_REDIS_URL or UPSTASH_REDIS_TOKEN not configured — rate limiting disabled'
-        );
+        if (!hasLoggedMissingConfig) {
+            hasLoggedMissingConfig = true;
+
+            const message =
+                '[RateLimit] UPSTASH_REDIS_URL or UPSTASH_REDIS_TOKEN not configured - rate limiting disabled';
+
+            if (isDevelopment) {
+                console.info(message);
+            } else {
+                console.warn(message);
+            }
+        }
+
         return null;
     }
 
@@ -61,7 +75,7 @@ function initializeRateLimit() {
  * @returns { success: false, remaining: 0, reset: Date } if limit exceeded
  *
  * If rate limiting not configured (missing env vars), allows all requests (fail-open)
- * If Redis errors occur, allows requests (fail-open) — prevents outages from killing entire site
+ * If Redis errors occur, allows requests (fail-open) - prevents outages from killing entire site
  */
 export async function checkRateLimit(
     ip: string
@@ -69,7 +83,7 @@ export async function checkRateLimit(
     const limiter = initializeRateLimit();
 
     if (!limiter) {
-        // Rate limiting not configured — allow all requests (fail-open)
+        // Rate limiting not configured - allow all requests (fail-open)
         return { success: true };
     }
 
@@ -89,7 +103,7 @@ export async function checkRateLimit(
     } catch (error) {
         // On error (Redis down, network issue), fail open (allow request)
         // This prevents rate limiting from causing site-wide outages
-        console.error('[RateLimit] Failed to check rate limit — allowing request', {
+        console.error('[RateLimit] Failed to check rate limit - allowing request', {
             ip,
             error: error instanceof Error ? error.message : String(error),
         });

@@ -389,6 +389,10 @@ export function normalizePhone(value: string | undefined): string | undefined {
     return value; // Return original if we can't normalize
 }
 
+export function isNormalizedPhone(value: string | undefined): value is string {
+    return typeof value === 'string' && /^\+\d{10,15}$/.test(value);
+}
+
 /**
  * Clean and normalize email
  */

@@ -1,5 +1,10 @@
 # BakedBot Session Memory
 
+## Session: 2026-03-25
+- **Default-shell Node/Jest startup fixed**: Added repo-safe `scripts/node-safe.cmd` and `scripts/npm-safe.cmd` wrappers plus a shared bootstrap so sandboxed Node file execution stays inside `.codex-jest-home` and no longer fails on `C:\Users\admin`. Commit: `1699974c2`.
+- **Jest launcher reused the canonical bootstrap**: Extracted the existing env setup into `scripts/ensure-workspace-node-home.cjs` so direct Jest runs and wrapper-launched scripts share the same Node-side setup path.
+- **Verification**: `.\scripts\node-safe.cmd -v`, `.\scripts\npm-safe.cmd test -- --help`, and `.\scripts\npm-safe.cmd run -s check:types` all passed locally.
+
 ## Session: 2026-03-12
 - **Gmail tool send restored**: Confirmed the connected Gmail path was failing even after reconnect, enabled `gmail.googleapis.com` on `studio-567050101-bc6e8`, switched `src/server/integrations/gmail/send.ts` to direct Gmail REST bearer auth, and verified `sendGenericEmail()` succeeds with Mailjet and SendGrid disabled. Commits: `30505c5a3`, `3222c9933`.
 - **Provider triage completed**: Confirmed SendGrid keys still fail live send while Martez's Gmail token, scopes, and raw bearer token access were valid, which narrowed the issue to Gmail API/project setup plus the sender implementation rather than token storage.

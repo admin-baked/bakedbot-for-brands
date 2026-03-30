@@ -16,6 +16,7 @@ import {
     getAIStudioUsageSummary,
     applyTopUpCredits,
     checkAIStudioActionAllowed,
+    grantManualAIStudioCredits,
 } from '@/server/services/ai-studio-billing-service';
 import { upsertAIStudioEntitlement } from '@/lib/ai-studio/entitlements';
 import type {
@@ -220,39 +221,15 @@ export async function adminGrantAIStudioCredits(
 
         const db = getAdminFirestore();
         const session = await requireUser();
-        const now = Date.now();
+        const grantTimestamp = Date.now();
 
-        const cycleKey = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-        const docId = `${orgId}-${cycleKey}`;
-
-        // Create audit record
-        const purchaseRef = db.collection('ai_studio_topup_purchases').doc();
-        const purchase: AIStudioTopUpPurchase = {
-            id: purchaseRef.id,
+        await grantManualAIStudioCredits({
             orgId,
-            packId: 'manual_grant',
-            creditsAdded: amount,
-            priceCents: 0,
-            currency: 'usd',
-            status: 'paid',
-            billingProvider: 'manual',
+            credits: amount,
+            grantKey: `admin_${grantTimestamp}`,
             purchasedByUserId: session.uid,
-            createdAt: now,
-            updatedAt: now,
-        };
-
-        const { FieldValue } = await import('firebase-admin/firestore');
-
-        await Promise.all([
-            purchaseRef.set(purchase),
-            db.collection('org_ai_studio_balances').doc(docId).set(
-                {
-                    topUpCreditsTotal: FieldValue.increment(amount),
-                    updatedAt: Timestamp.now(),
-                },
-                { merge: true }
-            ),
-        ]);
+            externalChargeId: `admin:${session.uid}:${grantTimestamp}`,
+        });
 
         if (note) {
             await db.collection('org_ai_studio_overrides').doc(orgId).set(

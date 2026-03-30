@@ -441,14 +441,14 @@ function ThreadHeader({ thread }: { thread: InboxThread }) {
     const agent = AGENT_NAMES[thread.primaryAgent] || AGENT_NAMES.auto;
 
     return (
-        <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
-            <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-3 border-b border-white/5 bg-background/80 px-4 py-3.5 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 md:py-4">
+            <div className="flex items-start gap-3 flex-1 min-w-0">
                 {/* Mobile back button */}
                 {isMobile && (
                     <button
                         onClick={() => setActiveThread(null)}
-                        className="shrink-0 -ml-1 p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-                        aria-label="Back to inbox"
+                        className="shrink-0 -ml-1 mt-0.5 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        aria-label="Back to briefing"
                     >
                         <ArrowLeft className="h-5 w-5" />
                     </button>
@@ -461,12 +461,12 @@ function ThreadHeader({ thread }: { thread: InboxThread }) {
                 )}>
                     {agent.avatar.startsWith('http') ? <img src={agent.avatar} alt={agent.name} className="w-6 h-6 object-contain rounded" /> : <span className="text-xl">{agent.avatar}</span>}
                 </div>
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                <div className="flex-1 min-w-0 space-y-2">
+                    <div className="flex items-center gap-2 min-w-0">
                         {thread.isPinned && <Pin className="h-4 w-4 text-primary shrink-0" />}
                         <h2 className="font-semibold truncate">{thread.title}</h2>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                         <Badge variant="outline" className="h-5 px-1.5 border-white/10">
                             {getThreadTypeLabel(thread.type)}
                         </Badge>
@@ -492,7 +492,7 @@ function ThreadHeader({ thread }: { thread: InboxThread }) {
                 </div>
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 self-start shrink-0">
                 {/* Pin Toggle Button */}
                 <Button
                     variant={thread.isPinned ? "secondary" : "ghost"}

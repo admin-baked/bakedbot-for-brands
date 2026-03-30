@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "npm run build:embed && npm run check:structure && next build --webpack",
+    "build": "npm run build:embed && npm run remotion:bundle && npm run check:structure && next build --webpack",
     "build:embed": "tsup",
     "start": "next start",
     "postinstall": "node scripts/patch-punycode-deprecation.mjs",
@@ -62,6 +62,7 @@
     "provision:ny-outreach": "node scripts/provision-ny-outreach.mjs",
     "switch-model": "node scripts/switch-claude-model.mjs",
     "audit:agent-tools": "node scripts/audit-agent-tools.mjs",
+    "remotion:bundle": "node scripts/bundle-remotion.mjs",
     "smoke:proactive": "node ./scripts/run-proactive-smoke.cjs",
     "smoke:analytics": "node --env-file=.env.local scripts/smoke-analytics.mjs"
   },

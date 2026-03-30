@@ -116,10 +116,17 @@ Generate concise meeting notes and action items. Return JSON only:
         updatedAt: Timestamp.now(),
     });
 
-    // Send follow-up email (dynamic import to keep bundle small)
+    // Send follow-up email through the booking playbook (dynamic imports keep the route lean)
     try {
-        const { sendFollowUpEmail } = await import('@/server/services/executive-calendar/booking-emails');
-        const { getExecutiveProfile } = await import('@/server/actions/executive-calendar');
+        const [
+            { getExecutiveProfile },
+            { dispatchPlaybookEventSync },
+            { buildExecutiveBookingEventData, buildExecutiveBookingEventName },
+        ] = await Promise.all([
+            import('@/server/actions/executive-calendar'),
+            import('@/server/services/playbook-event-dispatcher'),
+            import('@/server/services/executive-calendar/booking-playbook-events'),
+        ]);
 
         const profileSlug = bookingData.profileSlug as string;
         const profile = await getExecutiveProfile(profileSlug);
@@ -140,7 +147,27 @@ Generate concise meeting notes and action items. Return JSON only:
                 transcript,
             } as import('@/types/executive-calendar').MeetingBooking;
 
-            await sendFollowUpEmail(booking, profile, meetingNotes, actionItems);
+            const summary = await dispatchPlaybookEventSync(
+                'bakedbot-internal',
+                buildExecutiveBookingEventName(profile.profileSlug, 'followup'),
+                buildExecutiveBookingEventData({
+                    booking,
+                    profile,
+                    stage: 'followup',
+                    meetingNotes,
+                    actionItems,
+                }),
+            );
+
+            if (!summary.delivered) {
+                logger.warn('[LiveKit Webhook] Follow-up delivery failed; leaving booking unsent for cron retry', {
+                    bookingId,
+                    profileSlug,
+                    recipientEmail: booking.externalEmail,
+                    results: summary.results,
+                });
+                return;
+            }
 
             await firestore.collection('meeting_bookings').doc(bookingId).update({
                 followUpSentAt: Timestamp.now(),

@@ -1,7 +1,8 @@
 import { logger } from '@/lib/logger';
-import { slackService, SlackService } from './communications/slack';
+import { slackService, elroySlackService, SlackService } from './communications/slack';
 import { runAgentCore } from '@/server/agents/agent-runner';
 import { runLinus } from '@/server/agents/linus';
+import { runElroy } from '@/server/agents/elroy';
 import { requestContext } from '@/lib/request-context';
 import { archiveSlackResponse } from './slack-response-archive';
 import { sanitizeForPrompt } from '@/server/security';
@@ -12,6 +13,7 @@ import {
     setApprovalMessageTs,
 } from './slack-approval';
 import type { DecodedIdToken } from 'firebase-admin/auth';
+import type { AITextTaskClass } from '@/types/ai-routing';
 
 // Org ID for Letta memory lookups in the Slack/Linus path
 const BAKEDBOT_INTERNAL_ORG = 'org_bakedbot_internal';
@@ -19,9 +21,13 @@ const BAKEDBOT_INTERNAL_ORG = 'org_bakedbot_internal';
 // Image MIME types accepted by Claude's vision API — used to filter Slack attachments
 const CLAUDE_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'] as const;
 
+// Dedicated Slack App IDs — read once at module init, not on every message.
+const SLACK_LINUS_APP_ID = process.env.SLACK_LINUS_APP_ID;
+const SLACK_ELROY_APP_ID = process.env.SLACK_ELROY_APP_ID;
+
 // ---------------------------------------------------------------------------
-// Linus tool classifier — determines if a message warrants Claude tool-calling
-// (vs. free GLM for simple conversational replies). Module-level so regexes
+// Linus tool classifier — determines if a message warrants agentic tool-calling
+// (vs. GLM synthesis for simple conversational replies). Module-level so regexes
 // are compiled once, not recreated per message.
 // ---------------------------------------------------------------------------
 const LINUS_TOOL_PATTERNS = [
@@ -30,7 +36,7 @@ const LINUS_TOOL_PATTERNS = [
     // Actions on the repo / infra
     /\b(run|execute|check|test|build|deploy|push|commit|merge|revert)\b/,
     // Read/find with a target noun — handles plurals (files, functions, routes, logs)
-    /\b(read|open|show|find|search|look|grep|locate|list)\b.{0,40}\b(files?|codes?|functions?|class(es)?|routes?|components?|errors?|logs?)\b/,
+    /\b(read|open|show|find|search|look|grep|locate|list|load)\b.{0,40}\b(files?|codes?|functions?|class(es)?|routes?|components?|errors?|logs?)\b/,
     // Write/modify with a target noun — handles plurals
     /\b(write|edit|update|change|modify|add|remove|delete|refactor|rename)\b.{0,40}\b(files?|codes?|functions?|class(es)?|routes?|components?)\b/,
     // Infra / tooling keywords (god.?mode = alias for super powers)
@@ -39,11 +45,25 @@ const LINUS_TOOL_PATTERNS = [
     /\b(review|the\s+repo|codebase|letta|memory|what.s.broken|health|status)\b/,
     // Explicit shell commands or backtick code
     /npm\s+run|git\s+(log|diff|status|push|pull|commit|blame)|`/,
+    // Web search / scraping / browsing requests
+    /\b(search\s+(the\s+)?web|google|look\s+up|browse|scrape|firecrawl|web\s+search)\b/,
+    // Super power execution
+    /\b(super\s*power|god\s*mode|run\s+script|execute\s+script|audit.?(index|schema|cost|consistency)|seed.?test|fix.?build)\b/,
+    // Production monitoring / builds
+    /\b(build\s+monitor|production\s+logs?|recent\s+builds?|last\s+build|deployment\s+status)\b/,
+    // Explicit file paths — requires a path separator or .agent/ to avoid matching bare words
+    /\.agent\/|(?:src|scripts|public|app|components|server|lib)\/\S+/,
+    // File with extension — must include a slash or be a known config file name to avoid false positives
+    /\b\w[\w-]*\.(ts|tsx|md|json|yaml|yml|sh)\b/,
 ];
 
 function linusNeedsTools(text: string): boolean {
     const lower = text.toLowerCase();
     return LINUS_TOOL_PATTERNS.some(p => p.test(lower));
+}
+
+export function getSlackGLMSynthesisTask(personaId: string): AITextTaskClass {
+    return personaId === 'linus' ? 'strategic' : 'standard';
 }
 
 // System-level identity injected for Slack requests.
@@ -81,6 +101,7 @@ const KEYWORD_MAP: Array<{ keywords: string[]; personaId: string }> = [
     { keywords: ['bigworm', 'research', 'market'], personaId: 'bigworm' },
     { keywords: ['day_day', 'dayday', 'growth', 'acquisition', 'leads'], personaId: 'day_day' },
     { keywords: ['felisha', 'fulfillment', 'delivery', 'driver'], personaId: 'felisha' },
+    { keywords: ['elroy', 'uncle elroy', 'store ops', 'thrive'], personaId: 'elroy' },
 ];
 
 // Channel name prefix → persona ID
@@ -95,6 +116,7 @@ const CHANNEL_MAP: Array<{ prefix: string; personaId: string }> = [
     { prefix: 'cto', personaId: 'linus' },
     { prefix: 'coo', personaId: 'leo' },
     { prefix: 'cro', personaId: 'jack' },
+    { prefix: 'thrive-syracuse', personaId: 'elroy' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -194,12 +216,15 @@ export async function resolveMentions(userIds: string[], requestorSlackId: strin
 export function detectAgent(text: string, channelName: string, isDm: boolean, appId?: string): string {
     const lower = text.toLowerCase();
 
-    // If the message arrived via the dedicated Linus Slack App, always route to Linus.
-    // SLACK_LINUS_APP_ID should be set to the api_app_id of the "Linus CTO" Slack app.
-    const linusAppId = process.env.SLACK_LINUS_APP_ID;
-    if (linusAppId && appId && appId === linusAppId) {
-        logger.info(`[SlackBridge] detectAgent → Tier0(linus app_id match) → linus | appId="${appId}"`);
+    // Dedicated Slack Apps — route by api_app_id before any keyword matching.
+    // Set SLACK_LINUS_APP_ID / SLACK_ELROY_APP_ID to each app's api_app_id in secrets.
+    if (SLACK_LINUS_APP_ID && appId && appId === SLACK_LINUS_APP_ID) {
+        logger.info(`[SlackBridge] detectAgent → Tier0(linus app_id) → linus | appId="${appId}"`);
         return 'linus';
+    }
+    if (SLACK_ELROY_APP_ID && appId && appId === SLACK_ELROY_APP_ID) {
+        logger.info(`[SlackBridge] detectAgent → Tier0(elroy app_id) → elroy | appId="${appId}"`);
+        return 'elroy';
     }
 
     // Linus-specific meta/runtime questions often arrive in DMs without an
@@ -213,7 +238,7 @@ export function detectAgent(text: string, channelName: string, isDm: boolean, ap
     const EXPLICIT_NAMES = [
         'leo', 'linus', 'jack', 'glenda', 'ezal', 'craig',
         'pops', 'smokey', 'parker', 'deebo', 'mike', 'bigworm',
-        'day_day', 'dayday', 'felisha',
+        'day_day', 'dayday', 'felisha', 'elroy',
     ];
 
     // 1. Check for explicit agent name in text (highest priority)
@@ -362,20 +387,23 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             }
         }
 
-        // 5. Post a "thinking" indicator so user gets immediate feedback
-        const thinkingResult = await slackService.postInThread(
+        // 5. Post a "thinking" indicator so user gets immediate feedback.
+        // Uncle Elroy uses his own bot token so he appears as a distinct Slack user.
+        const activeSlack = personaId === 'elroy' ? elroySlackService : slackService;
+
+        const thinkingResult = await activeSlack.postInThread(
             channel,
             threadTs,
             buildInitialSlackStatus(personaId, cleanText),
         );
         if (!thinkingResult.sent) {
-            logger.error(`[SlackBridge] Failed to post thinking message: ${thinkingResult.error} — check SLACK_BOT_TOKEN and bot channel membership`);
+            logger.error(`[SlackBridge] Failed to post thinking message: ${thinkingResult.error} — check bot token and channel membership`);
         }
         const workingMessageTs = thinkingResult.sent ? thinkingResult.ts : undefined;
 
         const sendOrUpdateThreadMessage = async (text: string, blocks?: any[]) => {
             if (workingMessageTs) {
-                const updateResult = await slackService.updateMessage(channel, workingMessageTs, text, blocks);
+                const updateResult = await activeSlack.updateMessage(channel, workingMessageTs, text, blocks);
                 if (updateResult.sent) {
                     return updateResult;
                 }
@@ -388,7 +416,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                 });
             }
 
-            return slackService.postInThread(channel, threadTs, text, blocks);
+            return activeSlack.postInThread(channel, threadTs, text, blocks);
         };
 
         // 6. Convert Slack files to agent attachments if present
@@ -401,14 +429,15 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
         // (avoids requireUser() cookie lookup in async context)
         //
         // Linus routing (cost control):
-        //   - Tool-requiring messages → Claude Sonnet with full tool suite + vision
-        //   - Simple conversational messages → GLM (free)
+        //   - Tool-requiring messages → Linus tool runner (GLM-5 for text, Claude for vision)
+        //   - Simple conversational messages → GLM synthesis
         // All other agents use GLM synthesis path.
         const AGENT_TIMEOUTS = {
-            linus:  180_000,  // 3 min — Claude tool-calling with up to 8 iterations
+            linus:  180_000,  // 3 min — GLM-5 / Claude tool-calling with up to 8 iterations
             leo:   120_000,   // 2 min — COO operations may chain multiple tools
             jack:  120_000,   // 2 min — CRO revenue analysis
             glenda: 120_000,  // 2 min — CMO strategy
+            elroy:  60_000,   // 1 min — store ops data lookup, max 5 tool iterations
         } satisfies Partial<Record<string, number>>;
         const agentTimeoutMs = AGENT_TIMEOUTS[personaId as keyof typeof AGENT_TIMEOUTS] ?? 55_000;
         // Context variables
@@ -416,6 +445,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
         let contextPrefix = '';
 
         const isLinus = personaId === 'linus';
+        const isElroy = personaId === 'elroy';
         const willUseLinusTools = isLinus && linusNeedsTools(enrichedText);
         const botToken = process.env.SLACK_BOT_TOKEN;
         const imageFiles = files.filter((f: any) => /^image\//.test(f.mimetype || '')).slice(0, 3);
@@ -428,7 +458,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                 : Promise.resolve([] as Awaited<ReturnType<typeof slackService.getConversationHistory>>),
 
             // Letta long-term memory (Linus only)
-            (isLinus) ? (async () => {
+            isLinus ? (async () => {
                 try {
                     const { memoryBridgeService } = await import('@/server/services/letta/memory-bridge');
                     const memResults = await memoryBridgeService.unifiedSearch(
@@ -443,7 +473,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             })() : Promise.resolve([]),
 
             // Image downloads (Linus only, when tools/vision needed).
-            // Only pass Claude-supported formats; skip small/empty downloads (likely redirects/403s).
+            // Vision still routes through Claude, so only pass Claude-supported formats.
             (isLinus && botToken && imageFiles.length > 0)
                 ? Promise.all(imageFiles.map(async (f: any) => {
                     if (!(CLAUDE_IMAGE_TYPES as readonly string[]).includes(f.mimetype)) {
@@ -505,10 +535,15 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             // Prepend the fetched history and memory to the current message
             const fullPrompt = contextPrefix + enrichedText;
 
-            // Linus: tool-requiring messages OR image attachments → Claude (full tool access + vision);
-            // simple conversational messages → GLM (free, fast).
+            // Linus: tool-requiring messages OR image attachments → Linus tool runner.
+            // Text-only Slack tool runs now prefer GLM-5; image-backed runs stay on Claude vision.
+            // Simple conversational messages → GLM synthesis.
             // All other agents use GLM synthesis path.
             if (willUseLinusTools || linusImages) {
+                // Progress callback: update the working Slack message with each tool Linus uses
+                // so users know he's actively working on their request (not silently hung).
+                const linusProgress = makeThrottledProgress(channel, workingMessageTs);
+
                 const linusResult = await Promise.race([
                     runLinus({
                         prompt: fullPrompt,
@@ -516,17 +551,35 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                         toolMode: 'slack',
                         context: { userId: SLACK_SYSTEM_USER.uid },
                         images: linusImages,
+                        progressCallback: linusProgress,
                     }),
                     new Promise<never>((_, reject) =>
                         setTimeout(() => reject(new Error(`Linus timeout after ${Math.floor(agentTimeoutMs / 1000)} seconds`)), agentTimeoutMs)
                     ),
                 ]);
+
                 result = { content: linusResult.content, toolCalls: linusResult.toolExecutions };
+            } else if (isElroy) {
+                // Uncle Elroy — store ops agent for Thrive Syracuse, always uses Claude tools
+                const elroyProgress = makeThrottledProgress(channel, workingMessageTs);
+
+                const elroyResult = await Promise.race([
+                    runElroy({
+                        prompt: fullPrompt,
+                        maxIterations: 5,
+                        context: { userId: SLACK_SYSTEM_USER.uid },
+                        progressCallback: elroyProgress,
+                    }),
+                    new Promise<never>((_, reject) =>
+                        setTimeout(() => reject(new Error(`Uncle Elroy timeout after ${Math.floor(agentTimeoutMs / 1000)} seconds`)), agentTimeoutMs)
+                    ),
+                ]);
+                result = { content: elroyResult.content, toolCalls: elroyResult.toolExecutions };
             } else {
                 // GLM path — conversational replies, other agents
                 const extraOptions = { ...(attachments ? { attachments } : {}), source: 'slack' };
                 result = await requestContext.run(
-                    { useGLMSynthesis: true },
+                    { useGLMSynthesis: true, glmTask: getSlackGLMSynthesisTask(personaId) },
                     () => Promise.race([
                         runAgentCore(fullPrompt, personaId, extraOptions, SLACK_SYSTEM_USER),
                         new Promise((_, reject) =>
@@ -687,12 +740,31 @@ Keep it friendly, brief, and genuine.`;
 // Utility
 // ---------------------------------------------------------------------------
 
+/**
+ * Create a throttled Slack message update callback (max 1 update/sec).
+ * Used by tool-calling agents to post live progress to the working message.
+ */
+function makeThrottledProgress(
+    channel: string,
+    workingMessageTs: string | undefined,
+): ((msg: string) => Promise<void>) | undefined {
+    if (!workingMessageTs) return undefined;
+    let lastSentAt = 0;
+    return async (msg: string) => {
+        const now = Date.now();
+        if (now - lastSentAt < 1000) return;
+        lastSentAt = now;
+        await slackService.updateMessage(channel, workingMessageTs, msg).catch(() => {});
+    };
+}
+
 function getPersonaName(personaId: string): string {
     const names: Record<string, string> = {
         leo: 'Leo', linus: 'Linus', jack: 'Jack', glenda: 'Glenda',
         ezal: 'Ezal', craig: 'Craig', pops: 'Pops', smokey: 'Smokey',
         mrs_parker: 'Mrs. Parker', deebo: 'Deebo', money_mike: 'Money Mike',
         bigworm: 'Big Worm', day_day: 'Day Day', felisha: 'Felisha', puff: 'BakedBot',
+        elroy: 'Uncle Elroy',
     };
     return names[personaId] ?? 'BakedBot';
 }

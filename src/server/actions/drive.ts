@@ -10,6 +10,7 @@
 import { getAdminFirestore } from '@/firebase/admin';
 import { requireUser } from '@/server/auth/auth';
 import { logger } from '@/lib/logger';
+import { SUPER_USER_ROLES } from '@/types/roles';
 import {
   getDriveStorageService,
   generateShareToken,
@@ -238,17 +239,39 @@ export async function getFolderContents(
 
     // Fetch pageSize+1 to check if there are more pages
     filesQuery = filesQuery.limit(pageSize + 1);
-    const filesSnapshot = await filesQuery.get();
-    const files = filesSnapshot.docs.map((doc) => toFile(doc.data() as DriveFileDoc));
 
-    // Check if there are more pages
-    const hasMore = files.length > pageSize;
+    // For super_users: also fetch files shared with the 'super_user' role (e.g. training decks)
+    const isSuperUser = SUPER_USER_ROLES.includes(user.role);
+    const sharedFilesPromise =
+      isSuperUser && folderId === null
+        ? db
+            .collection(COLLECTIONS.FILES)
+            .where('sharedWithRoles', 'array-contains', 'super_user')
+            .where('isDeleted', '==', false)
+            .limit(50)
+            .get()
+        : Promise.resolve(null);
+
+    const [filesSnapshot, sharedSnapshot] = await Promise.all([filesQuery.get(), sharedFilesPromise]);
+    const ownedFiles = filesSnapshot.docs.map((doc) => toFile(doc.data() as DriveFileDoc));
+
+    // Check pagination against owned files only (shared files are always fully fetched)
+    const hasMore = ownedFiles.length > pageSize;
     if (hasMore) {
-      files.pop(); // Remove the extra file
+      ownedFiles.pop(); // Remove the extra file
     }
 
-    // Next cursor is the ID of the last file
-    const nextCursor = hasMore && files.length > 0 ? files[files.length - 1].id : undefined;
+    // Merge shared files, excluding any already owned by this user
+    const ownedIds = new Set(ownedFiles.map((f) => f.id));
+    const sharedFiles = sharedSnapshot
+      ? sharedSnapshot.docs
+          .map((doc) => toFile(doc.data() as DriveFileDoc))
+          .filter((f) => !ownedIds.has(f.id))
+      : [];
+    const files = [...ownedFiles, ...sharedFiles];
+
+    // Next cursor is the ID of the last owned file (shared files are always appended)
+    const nextCursor = hasMore && ownedFiles.length > 0 ? ownedFiles[ownedFiles.length - 1].id : undefined;
 
     // Sort folders (in-memory, since no pagination)
     if (sortBy === 'name') {

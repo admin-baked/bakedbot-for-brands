@@ -14,7 +14,6 @@
  */
 
 import { FieldValue } from 'firebase-admin/firestore';
-import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import { getMarketBenchmarks } from '@/server/services/market-benchmarks';
@@ -62,6 +61,12 @@ import {
     createInboxThreadId,
     createInboxArtifactId,
 } from '@/types/inbox';
+import {
+    loadCatalogAnalyticsProducts,
+    toAnalyticsDate,
+    type CatalogAnalyticsProduct,
+} from '@/server/services/catalog-analytics-source';
+import { ANALYTICS_ORDER_STATUSES } from '@/app/dashboard/orders/order-utils';
 
 const PLATFORM_SIGNAL_ORG_IDS = new Set([
     'org_bakedbot_platform',
@@ -71,62 +76,130 @@ const PLATFORM_SIGNAL_ORG_IDS = new Set([
 
 // ============ Internal data loaders (no auth — cron context) ============
 
-interface ProductRow {
-    id: string;
-    name: string;
-    category?: string;
-    price?: number;
-    cost?: number;
-    salesLast30Days?: number;
-    salesLast7Days?: number;
-    salesVelocity?: number;
-    lastSaleAt?: unknown;
-    stock?: number;
-}
+type ProductRow = CatalogAnalyticsProduct;
 
 interface OrderRow {
     id: string;
+    orgId?: string;
+    brandId?: string;
     totalPrice?: number;
     subtotal?: number;
     discountAmount?: number;
     itemCount?: number;
     type?: string;
+    status?: string;
     createdAt?: unknown;
 }
 
 
 async function loadOrgProducts(orgId: string): Promise<ProductRow[]> {
-    const db = getAdminFirestore();
-    try {
-        const snap = await db
-            .collection('tenants')
-            .doc(orgId)
-            .collection('publicViews')
-            .doc('products')
-            .collection('items')
-            .limit(500)
-            .get();
-        if (!snap.empty) {
-            return snap.docs.map(d => ({ id: d.id, ...d.data() } as ProductRow));
-        }
-    } catch {
-        // fallback
+    return loadCatalogAnalyticsProducts(orgId);
+}
+
+function toFiniteNumber(value: unknown): number | null {
+    if (typeof value === 'number') {
+        return Number.isFinite(value) ? value : null;
     }
-    // Fallback: top-level products collection
+
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (!trimmed) return null;
+        const normalized = trimmed.replace(/[^0-9.-]/g, '');
+        if (!normalized) return null;
+        const parsed = Number(normalized);
+        return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    return null;
+}
+
+function toNonNegativeNumber(value: unknown, fallback = 0): number {
+    const parsed = toFiniteNumber(value);
+    return parsed == null ? fallback : Math.max(parsed, 0);
+}
+
+function normalizeOrderStatus(status: unknown): string {
+    return typeof status === 'string' ? status.trim().toLowerCase() : '';
+}
+
+function hasAllowedAnalyticsStatus(order: OrderRow): boolean {
+    const normalized = normalizeOrderStatus(order.status);
+    return normalized
+        ? ANALYTICS_ORDER_STATUSES.includes(normalized as (typeof ANALYTICS_ORDER_STATUSES)[number])
+        : true;
+}
+
+async function queryOrdersByField(
+    orgId: string,
+    field: 'brandId' | 'orgId',
+): Promise<OrderRow[]> {
+    const db = getAdminFirestore();
+
     try {
         const snap = await db
-            .collection('products')
-            .where('orgId', '==', orgId)
+            .collection('orders')
+            .where(field, '==', orgId)
+            .where('status', 'in', [...ANALYTICS_ORDER_STATUSES])
             .limit(500)
             .get();
-        return snap.docs.map(d => ({ id: d.id, ...d.data() } as ProductRow));
-    } catch {
-        return [];
+        return snap.docs.map(d => ({ id: d.id, ...d.data() } as OrderRow));
+    } catch (error) {
+        logger.warn('[MorningBriefing] Primary orders query failed, retrying without status filter', {
+            orgId,
+            field,
+            error: String(error),
+        });
+
+        try {
+            const snap = await db
+                .collection('orders')
+                .where(field, '==', orgId)
+                .limit(500)
+                .get();
+            return snap.docs
+                .map(d => ({ id: d.id, ...d.data() } as OrderRow))
+                .filter(hasAllowedAnalyticsStatus);
+        } catch (fallbackError) {
+            logger.warn('[MorningBriefing] Orders fallback query failed', {
+                orgId,
+                field,
+                error: String(fallbackError),
+            });
+            return [];
+        }
     }
 }
 
+async function loadOrdersInRange(orgId: string, start: Date, end?: Date): Promise<OrderRow[]> {
+    const byBrand = await queryOrdersByField(orgId, 'brandId');
+    const orders = byBrand.length > 0 ? byBrand : await queryOrdersByField(orgId, 'orgId');
+
+    if (byBrand.length === 0 && orders.length > 0) {
+        logger.info('[MorningBriefing] Orders fallback query by orgId used', {
+            orgId,
+            count: orders.length,
+        });
+    }
+
+    return orders.filter((order) => {
+        const createdAt = toAnalyticsDate(order.createdAt);
+        if (!createdAt) {
+            return false;
+        }
+
+        if (createdAt < start) {
+            return false;
+        }
+
+        if (end && createdAt > end) {
+            return false;
+        }
+
+        return true;
+    });
+}
+
 async function loadYesterdayOrders(orgId: string): Promise<OrderRow[]> {
-    const db = getAdminFirestore();
     const now = new Date();
     const yesterdayStart = new Date(now);
     yesterdayStart.setDate(yesterdayStart.getDate() - 1);
@@ -135,31 +208,17 @@ async function loadYesterdayOrders(orgId: string): Promise<OrderRow[]> {
     yesterdayEnd.setHours(23, 59, 59, 999);
 
     try {
-        const snap = await db
-            .collection('orders')
-            .where('orgId', '==', orgId)
-            .where('createdAt', '>=', yesterdayStart)
-            .where('createdAt', '<=', yesterdayEnd)
-            .limit(200)
-            .get();
-        return snap.docs.map(d => ({ id: d.id, ...d.data() } as OrderRow));
+        return await loadOrdersInRange(orgId, yesterdayStart, yesterdayEnd);
     } catch {
         return [];
     }
 }
 
 async function loadLast7DaysOrders(orgId: string): Promise<OrderRow[]> {
-    const db = getAdminFirestore();
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     try {
-        const snap = await db
-            .collection('orders')
-            .where('orgId', '==', orgId)
-            .where('createdAt', '>=', sevenDaysAgo)
-            .limit(500)
-            .get();
-        return snap.docs.map(d => ({ id: d.id, ...d.data() } as OrderRow));
+        return await loadOrdersInRange(orgId, sevenDaysAgo);
     } catch {
         return [];
     }
@@ -168,11 +227,11 @@ async function loadLast7DaysOrders(orgId: string): Promise<OrderRow[]> {
 // ============ Metric builders ============
 
 function orderRevenue(o: OrderRow): number {
-    return o.totalPrice ?? o.subtotal ?? 0;
+    return toNonNegativeNumber(o.totalPrice ?? o.subtotal);
 }
 
 function orderDiscount(o: OrderRow): number {
-    return o.discountAmount ?? 0;
+    return toNonNegativeNumber(o.discountAmount);
 }
 
 interface GreenLedgerSummaryRow {
@@ -348,59 +407,99 @@ function buildMetrics(
     platformGrowth?: PlatformGrowthStats | null,
     outreachFunnel?: OutreachFunnel | null,
     contentAnalytics?: ContentAnalyticsSnapshot | null,
+    isPlatformOrg: boolean = false,
 ): BriefingMetric[] {
     const metrics: BriefingMetric[] = [];
+    const hasTrackedOrderHistory = yesterdayOrders.length > 0 || last7Orders.length > 0;
+    const activeProducts = products.filter(product => (product.stock ?? 0) > 0);
+    const activeCategoryCount = new Set(
+        activeProducts
+            .map(product => product.category)
+            .filter((category): category is string => typeof category === 'string' && category.trim().length > 0)
+    ).size;
 
     // 1. Net Sales Yesterday
     const yesterdayRevenue = yesterdayOrders.reduce((sum, o) => sum + orderRevenue(o), 0);
     const avgDailyRevenue7d =
         last7Orders.reduce((sum, o) => sum + orderRevenue(o), 0) / 7;
-    let netSalesTrend: 'up' | 'down' | 'flat' = 'flat';
-    if (avgDailyRevenue7d > 0) {
-        const delta = yesterdayRevenue - avgDailyRevenue7d;
-        if (delta > avgDailyRevenue7d * 0.05) netSalesTrend = 'up';
-        else if (delta < -avgDailyRevenue7d * 0.05) netSalesTrend = 'down';
+    if (!hasTrackedOrderHistory) {
+        metrics.push({
+            title: 'Net Sales Yesterday',
+            value: 'Unavailable',
+            trend: 'flat',
+            vsLabel: 'recent sales history is not backfilled yet',
+            status: 'warning',
+            actionable: 'Verify Firestore order sync or run the sales backfill before reading revenue trends',
+        });
+    } else {
+        let netSalesTrend: 'up' | 'down' | 'flat' = 'flat';
+        if (avgDailyRevenue7d > 0) {
+            const delta = yesterdayRevenue - avgDailyRevenue7d;
+            if (delta > avgDailyRevenue7d * 0.05) netSalesTrend = 'up';
+            else if (delta < -avgDailyRevenue7d * 0.05) netSalesTrend = 'down';
+        }
+        metrics.push({
+            title: 'Net Sales Yesterday',
+            value: `$${Math.round(yesterdayRevenue).toLocaleString()}`,
+            trend: netSalesTrend,
+            vsLabel: 'vs. 7-day avg',
+            status: netSalesTrend === 'down' ? 'warning' : 'good',
+            actionable: netSalesTrend === 'down' ? 'Review peak hour performance' : undefined,
+        });
     }
-    metrics.push({
-        title: 'Net Sales Yesterday',
-        value: `$${Math.round(yesterdayRevenue).toLocaleString()}`,
-        trend: netSalesTrend,
-        vsLabel: 'vs. 7-day avg',
-        status: 'good',
-        actionable: netSalesTrend === 'down' ? 'Review peak hour performance' : undefined,
-    });
 
     // 2. Discount Rate (7-day avg)
     const totalRevenue7d = last7Orders.reduce((sum, o) => sum + orderRevenue(o), 0);
     const totalDiscount7d = last7Orders.reduce((sum, o) => sum + orderDiscount(o), 0);
     const discountRate7d = totalRevenue7d > 0 ? totalDiscount7d / totalRevenue7d : 0;
     const target = benchmarks.financial.discountRateTarget;
-    let discountStatus: BriefingMetric['status'] = 'good';
-    if (discountRate7d > target + 0.05) discountStatus = 'critical';
-    else if (discountRate7d > target - 0.03) discountStatus = 'warning';
-    metrics.push({
-        title: 'Discount Rate (7-day avg)',
-        value: `${(discountRate7d * 100).toFixed(1)}%`,
-        trend: discountRate7d > target ? 'up' : 'down',
-        vsLabel: `vs. ${(target * 100).toFixed(0)}% market target`,
-        status: discountStatus,
-        actionable:
-            discountStatus !== 'good'
-                ? `Target is ${(target * 100).toFixed(0)}% — ask Pops for a discount audit`
-                : undefined,
-    });
+    if (!hasTrackedOrderHistory || totalRevenue7d <= 0) {
+        metrics.push({
+            title: 'Discount Rate (7-day avg)',
+            value: 'Unavailable',
+            trend: 'flat',
+            vsLabel: `need order totals to compare against the ${(target * 100).toFixed(0)}% market target`,
+            status: 'warning',
+            actionable: 'Backfill recent orders before auditing discount performance',
+        });
+    } else {
+        let discountStatus: BriefingMetric['status'] = 'good';
+        if (discountRate7d > target + 0.05) discountStatus = 'critical';
+        else if (discountRate7d > target - 0.03) discountStatus = 'warning';
+        metrics.push({
+            title: 'Discount Rate (7-day avg)',
+            value: `${(discountRate7d * 100).toFixed(1)}%`,
+            trend: discountRate7d > target ? 'up' : 'down',
+            vsLabel: `vs. ${(target * 100).toFixed(0)}% market target`,
+            status: discountStatus,
+            actionable:
+                discountStatus !== 'good'
+                    ? `Target is ${(target * 100).toFixed(0)}% — ask Pops for a discount audit`
+                    : undefined,
+        });
+    }
 
     // 3. Top Margin Drain
-    const marginDrains = products
+    const marginVisibleProducts = products.filter(product => product.price > 0 && typeof product.cost === 'number');
+    const marginDrains = marginVisibleProducts
         .filter(p => {
-            if (!p.price || !p.cost) return false;
+            if (!p.price || typeof p.cost !== 'number') return false;
             const margin = (p.price - p.cost) / p.price;
             return margin < 0.15 && (p.salesLast30Days ?? 0) > 0;
         })
         .sort((a, b) => (b.salesLast30Days ?? 0) - (a.salesLast30Days ?? 0));
-    if (marginDrains.length > 0) {
+    if (marginVisibleProducts.length === 0) {
+        metrics.push({
+            title: 'Top Margin Drain',
+            value: 'Unavailable',
+            trend: 'flat',
+            vsLabel: 'cost data is not synced for the current catalog',
+            status: 'warning',
+            actionable: 'Sync landed cost data before using margin alerts',
+        });
+    } else if (marginDrains.length > 0) {
         const worst = marginDrains[0];
-        const margin = worst.price && worst.cost
+        const margin = worst.price && typeof worst.cost === 'number'
             ? ((worst.price - worst.cost) / worst.price * 100).toFixed(0)
             : '?';
         metrics.push({
@@ -423,29 +522,41 @@ function buildMetrics(
 
     // 4. Inventory At Risk (60+ days no sale)
     const now = Date.now();
-    const atRisk = products.filter(p => {
-        const lastSale = firestoreTimestampToDate(p.lastSaleAt);
-        if (!lastSale) return (p.stock ?? 0) > 0;
-        const days = (now - lastSale.getTime()) / 86_400_000;
-        return days > 60 && (p.stock ?? 0) > 0;
-    });
-    const atRiskValue = atRisk.reduce((sum, p) => sum + (p.price ?? 0) * (p.stock ?? 1), 0);
-    metrics.push({
-        title: 'Inventory At Risk',
-        value: `$${Math.round(atRiskValue).toLocaleString()} (${atRisk.length} SKUs)`,
-        trend: atRiskValue > 0 ? 'down' : 'flat',
-        vsLabel: '60+ days no sale',
-        status: atRiskValue > 5000 ? 'warning' : 'good',
-        actionable: atRiskValue > 0 ? 'Consider markdown or liquidation' : undefined,
-    });
+    const inventoryAgeCandidates = activeProducts
+        .map(product => ({ product, lastSale: toAnalyticsDate(product.lastSaleAt) }))
+        .filter((entry): entry is { product: ProductRow; lastSale: Date } => entry.lastSale instanceof Date);
+    if (inventoryAgeCandidates.length === 0) {
+        metrics.push({
+            title: 'Inventory At Risk',
+            value: 'Unavailable',
+            trend: 'flat',
+            vsLabel: 'last-sale history is missing for in-stock SKUs',
+            status: 'warning',
+            actionable: 'Sync sell-through history before aging inventory decisions',
+        });
+    } else {
+        const atRisk = inventoryAgeCandidates.filter(({ product, lastSale }) => {
+            const days = (now - lastSale.getTime()) / 86_400_000;
+            return days > 60 && (product.stock ?? 0) > 0;
+        });
+        const atRiskValue = atRisk.reduce((sum, { product }) => sum + (product.price ?? 0) * (product.stock ?? 1), 0);
+        metrics.push({
+            title: 'Inventory At Risk',
+            value: `$${Math.round(atRiskValue).toLocaleString()} (${atRisk.length} SKUs)`,
+            trend: atRiskValue > 0 ? 'down' : 'flat',
+            vsLabel: '60+ days no sale',
+            status: atRiskValue > 5000 ? 'warning' : 'good',
+            actionable: atRiskValue > 0 ? 'Consider markdown or liquidation' : undefined,
+        });
+    }
 
     // 5. Active SKU Count
-    const activeSku = products.filter(p => (p.stock ?? 0) > 0).length;
+    const activeSku = activeProducts.length;
     metrics.push({
         title: 'Active SKU Count',
         value: `${activeSku}`,
         trend: 'flat',
-        vsLabel: 'in stock',
+        vsLabel: activeCategoryCount > 0 ? `${activeCategoryCount} categories in stock` : 'in stock',
         status: 'good',
     });
 
@@ -465,7 +576,7 @@ function buildMetrics(
     }
 
     // 7. NY Outreach Pipeline (super user only — shown when stats exist)
-    if (outreachStats && (outreachStats.totalSent > 0 || outreachStats.totalFailed > 0)) {
+    if (isPlatformOrg && outreachStats && (outreachStats.totalSent > 0 || outreachStats.totalFailed > 0)) {
         const hasFailures = outreachStats.totalFailed > 0 || outreachStats.totalBadEmails > 0;
         metrics.push({
             title: 'NY Outreach (24h)',
@@ -480,7 +591,7 @@ function buildMetrics(
     }
 
     // 8. Pending Review Items — surface actionable queue to super user each morning
-    if (pendingCounts && (pendingCounts.pendingOutreachDrafts > 0 || pendingCounts.pendingBlogDrafts > 0)) {
+    if (isPlatformOrg && pendingCounts && (pendingCounts.pendingOutreachDrafts > 0 || pendingCounts.pendingBlogDrafts > 0)) {
         const items: string[] = [];
         if (pendingCounts.pendingOutreachDrafts > 0) {
             items.push(`${pendingCounts.pendingOutreachDrafts} outreach draft${pendingCounts.pendingOutreachDrafts !== 1 ? 's' : ''}`);
@@ -502,7 +613,7 @@ function buildMetrics(
     }
 
     // P1 — 9. Platform Growth (MRR + customer count) — super user only
-    if (platformGrowth && (platformGrowth.activeCustomers > 0 || platformGrowth.estimatedMrr > 0)) {
+    if (isPlatformOrg && platformGrowth && (platformGrowth.activeCustomers > 0 || platformGrowth.estimatedMrr > 0)) {
         const mrrLabel = platformGrowth.estimatedMrr > 0
             ? `$${Math.round(platformGrowth.estimatedMrr).toLocaleString()}/mo`
             : 'Calculating…';
@@ -527,7 +638,7 @@ function buildMetrics(
         });
     }
 
-    if (contentAnalytics) {
+    if (isPlatformOrg && contentAnalytics) {
         if (!contentAnalytics.gaConnected && !contentAnalytics.gscConnected) {
             metrics.push({
                 title: 'Growth Signals',
@@ -593,7 +704,7 @@ function buildMetrics(
     }
 
     // P4 — 10. Outreach Conversion Funnel — super user only
-    if (outreachFunnel && outreachFunnel.totalLeads > 0) {
+    if (isPlatformOrg && outreachFunnel && outreachFunnel.totalLeads > 0) {
         const conversionRate = outreachFunnel.sent > 0 && outreachFunnel.totalLeads > 0
             ? ((outreachFunnel.sent / outreachFunnel.totalLeads) * 100).toFixed(1)
             : '0';
@@ -650,7 +761,19 @@ export async function generateMorningBriefing(orgId: string): Promise<AnalyticsB
     const contentAnalytics = contentAnalyticsResult.status === 'fulfilled' ? contentAnalyticsResult.value : null;
 
     // Build metrics
-    const metrics = buildMetrics(yesterdayOrds, last7Ords, prods, bm, glSummary, outreachStats, pendingCounts, platformGrowth, outreachFunnel, contentAnalytics);
+    const metrics = buildMetrics(
+        yesterdayOrds,
+        last7Ords,
+        prods,
+        bm,
+        glSummary,
+        outreachStats,
+        pendingCounts,
+        platformGrowth,
+        outreachFunnel,
+        contentAnalytics,
+        PLATFORM_SIGNAL_ORG_IDS.has(orgId),
+    );
 
     // Read industry news from pre-warmed cache (written at 5:30 AM by industry-pulse-refresh cron)
     let newsItems: BriefingNewsItem[] = [];
@@ -881,6 +1004,29 @@ function serializeBriefingForArtifact(briefing: AnalyticsBriefing): AnalyticsBri
     };
 }
 
+async function findExistingBriefingArtifactId(
+    threadId: string,
+    briefing: AnalyticsBriefing,
+): Promise<string | null> {
+    const db = getAdminFirestore();
+    const targetPulseType = briefing.pulseType ?? 'morning';
+
+    const existing = await db
+        .collection('inbox_artifacts')
+        .where('threadId', '==', threadId)
+        .where('type', '==', 'analytics_briefing')
+        .limit(20)
+        .get();
+
+    const match = existing.docs.find((doc) => {
+        const data = doc.data().data as Partial<AnalyticsBriefing> | undefined;
+        const pulseType = data?.pulseType ?? 'morning';
+        return data?.date === briefing.date && pulseType === targetPulseType;
+    });
+
+    return match?.id ?? null;
+}
+
 /**
  * Post any AnalyticsBriefing to the org's Daily Briefing thread.
  * Used by midday-pulse and evening-pulse crons.
@@ -959,7 +1105,8 @@ export async function postPulseToInbox(
         throw new Error('Daily briefing thread could not be resolved');
     }
 
-    const artifactId = options?.existingArtifactId ?? createInboxArtifactId();
+    const existingArtifactId = options?.existingArtifactId ?? await findExistingBriefingArtifactId(threadId, briefing);
+    const artifactId = existingArtifactId ?? createInboxArtifactId();
     const artifactPayload: Record<string, unknown> = {
         id: artifactId,
         threadId,
@@ -976,7 +1123,7 @@ export async function postPulseToInbox(
         artifactPayload.proactive = options.proactive;
     }
 
-    if (options?.existingArtifactId) {
+    if (existingArtifactId) {
         await db.collection(ARTIFACTS).doc(artifactId).set(artifactPayload, { merge: true });
     } else {
         await db.collection(ARTIFACTS).doc(artifactId).set({

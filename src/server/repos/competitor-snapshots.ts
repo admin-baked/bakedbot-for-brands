@@ -69,7 +69,7 @@ const COLLECTION = 'competitor_snapshots';
  */
 export async function saveCompetitorSnapshot(
     orgId: string,
-    data: Omit<CompetitorSnapshot, 'id' | 'scrapedAt'>
+    data: Omit<CompetitorSnapshot, 'id' | 'orgId' | 'scrapedAt'>
 ): Promise<string> {
     const { firestore } = await createServerClient();
     

@@ -14,11 +14,13 @@ import type {
     DispensaryInsights,
     BrandInsights,
     SuperUserInsights,
+    GrowerInsights,
     InsightsResponse,
 } from '@/types/insight-cards';
 import { getAdminFirestore } from '@/firebase/admin';
 import { getActiveCustomerCount } from '@/server/services/insights/customer-metrics';
 import { normalizePersistedInsightCard } from '@/server/services/insights/normalize-persisted-insight';
+import { isBrandRole, isDispensaryRole, isGrowerRole } from '@/types/roles';
 
 function getActorOrgId(user: {
     currentOrgId?: string | null;
@@ -469,6 +471,246 @@ async function getBrandInsights(orgId: string): Promise<BrandInsights> {
     return insights;
 }
 
+// ============ Grower Insights ============
+
+async function getGrowerInsights(orgId: string): Promise<GrowerInsights> {
+    const insights: GrowerInsights = {
+        yield: [],
+        wholesale: [],
+        partners: [],
+        compliance: [],
+        operations: [],
+        lastFetched: new Date(),
+    };
+
+    try {
+        const db = getAdminFirestore();
+        const [proactiveResult, productsResult, partnersResult] = await Promise.allSettled([
+            getInsightsForOrg(orgId, 20),
+            db.collection('products').where('brandId', '==', orgId).limit(200).get(),
+            db.collection('organizations').doc(orgId).collection('partners').limit(25).get(),
+        ]);
+
+        const proactiveInsights =
+            proactiveResult.status === 'fulfilled' && proactiveResult.value.success
+                ? proactiveResult.value.insights
+                : [];
+
+        const adoptProactiveCards = (
+            threadType: InsightCard['threadType'],
+            category: InsightCard['category']
+        ): InsightCard[] =>
+            proactiveInsights
+                .filter((insight) => insight.threadType === threadType)
+                .map((insight) => ({ ...insight, category }));
+
+        const yieldProactive = adoptProactiveCards('yield_analysis', 'yield');
+        const wholesaleProactive = adoptProactiveCards('wholesale_inventory', 'wholesale');
+        const partnerProactive = adoptProactiveCards('brand_outreach', 'partners');
+        const complianceProactive = adoptProactiveCards('compliance_research', 'compliance');
+
+        if (yieldProactive.length > 0) insights.yield.push(...yieldProactive);
+        if (wholesaleProactive.length > 0) insights.wholesale.push(...wholesaleProactive);
+        if (partnerProactive.length > 0) insights.partners.push(...partnerProactive);
+        if (complianceProactive.length > 0) insights.compliance.push(...complianceProactive);
+
+        const products =
+            productsResult.status === 'fulfilled'
+                ? productsResult.value.docs.map((doc) => doc.data())
+                : [];
+
+        const totalProducts = products.length;
+        const liveProducts = products.filter((product) =>
+            product.inStock !== false
+            && (typeof product.inventoryCount !== 'number' || product.inventoryCount > 0)
+        );
+        const outOfStockCount = Math.max(totalProducts - liveProducts.length, 0);
+        const staleThreshold = Date.now() - 30 * 24 * 60 * 60 * 1000;
+        const staleCount = products.filter((product) => {
+            const rawUpdatedAt = product.updatedAt;
+            const updatedAt =
+                rawUpdatedAt instanceof Date
+                    ? rawUpdatedAt
+                    : typeof rawUpdatedAt?.toDate === 'function'
+                        ? rawUpdatedAt.toDate()
+                        : null;
+
+            return !!updatedAt && updatedAt.getTime() < staleThreshold;
+        }).length;
+        const categoryCount = new Set(
+            liveProducts
+                .map((product) => (typeof product.category === 'string' ? product.category : null))
+                .filter((category): category is string => Boolean(category))
+        ).size;
+        const estimatedUnits = liveProducts.reduce((sum, product) => {
+            return sum + (typeof product.inventoryCount === 'number' ? product.inventoryCount : 1);
+        }, 0);
+
+        if (insights.yield.length === 0) {
+            if (totalProducts === 0) {
+                insights.yield.push({
+                    id: 'grower-yield-placeholder',
+                    category: 'yield',
+                    agentId: 'pops',
+                    agentName: 'Pops',
+                    title: 'Yield Health',
+                    headline: 'Connect your catalog',
+                    subtext: 'Load harvest data to unlock weekly yield intelligence',
+                    severity: 'warning',
+                    actionable: true,
+                    ctaLabel: 'Review Yield',
+                    threadType: 'yield_analysis',
+                    threadPrompt: 'Help me review my latest harvest yield and identify what data we still need.',
+                    lastUpdated: new Date(),
+                    dataSource: 'placeholder',
+                });
+            } else {
+                const yieldSeverity =
+                    outOfStockCount >= 8
+                        ? 'critical'
+                        : outOfStockCount >= 3 || staleCount >= 5
+                            ? 'warning'
+                            : staleCount > 0
+                                ? 'info'
+                                : 'success';
+
+                insights.yield.push({
+                    id: 'grower-yield-health',
+                    category: 'yield',
+                    agentId: 'pops',
+                    agentName: 'Pops',
+                    title: 'Yield Health',
+                    headline: `${liveProducts.length}/${totalProducts} SKUs live`,
+                    subtext:
+                        outOfStockCount > 0
+                            ? `${outOfStockCount} stockout${outOfStockCount === 1 ? '' : 's'} and ${staleCount} stale listing${staleCount === 1 ? '' : 's'}`
+                            : staleCount > 0
+                                ? `${staleCount} listing${staleCount === 1 ? '' : 's'} need a fresh count`
+                                : `${Math.max(categoryCount, 1)} categories ready for buyers`,
+                    severity: yieldSeverity,
+                    actionable: true,
+                    ctaLabel: 'Review Yield',
+                    threadType: 'yield_analysis',
+                    threadPrompt: 'Review my current yield and catalog health. Show which strains or SKUs need attention.',
+                    lastUpdated: new Date(),
+                    dataSource: 'products-collection',
+                });
+            }
+        }
+
+        if (insights.wholesale.length === 0) {
+            insights.wholesale.push({
+                id: 'grower-wholesale-ready',
+                category: 'wholesale',
+                agentId: 'money_mike',
+                agentName: 'Money Mike',
+                title: 'Wholesale Ready',
+                headline: totalProducts === 0 ? 'No live inventory yet' : `${liveProducts.length} buyer-ready SKUs`,
+                subtext:
+                    totalProducts === 0
+                        ? 'Prepare a fresh availability list for brand buyers'
+                        : `${estimatedUnits.toLocaleString()} est. units across ${Math.max(categoryCount, 1)} categories`,
+                severity: totalProducts === 0 ? 'warning' : liveProducts.length >= 10 ? 'success' : 'info',
+                actionable: true,
+                ctaLabel: 'Prep List',
+                threadType: 'wholesale_inventory',
+                threadPrompt: 'Generate a wholesale availability brief with current stock, category mix, and suggested pricing.',
+                lastUpdated: new Date(),
+                dataSource: totalProducts === 0 ? 'placeholder' : 'products-collection',
+            });
+        }
+
+        if (insights.operations.length === 0) {
+            insights.operations.push({
+                id: 'grower-ops-watch',
+                category: 'operations',
+                agentId: 'day_day',
+                agentName: 'Day-Day',
+                title: 'Catalog Freshness',
+                headline:
+                    totalProducts === 0
+                        ? 'Inventory sync needed'
+                        : staleCount > 0
+                            ? `${staleCount} listing${staleCount === 1 ? '' : 's'} need refresh`
+                            : 'Catalog in sync',
+                subtext:
+                    totalProducts === 0
+                        ? 'Sync active products before the next wholesale push'
+                        : staleCount > 0
+                            ? 'Refresh counts and testing details before outreach'
+                            : 'Recent product updates look current',
+                severity:
+                    totalProducts === 0
+                        ? 'warning'
+                        : staleCount >= 5
+                            ? 'warning'
+                            : staleCount > 0
+                                ? 'info'
+                                : 'success',
+                actionable: true,
+                ctaLabel: 'Review Catalog',
+                threadType: 'wholesale_inventory',
+                threadPrompt: 'Help me clean up stale inventory listings and prepare the catalog for wholesale buyers.',
+                lastUpdated: new Date(),
+                dataSource: totalProducts === 0 ? 'placeholder' : 'products-collection',
+            });
+        }
+
+        if (insights.partners.length === 0) {
+            const partnerCount =
+                partnersResult.status === 'fulfilled'
+                    ? partnersResult.value.size
+                    : 0;
+
+            insights.partners.push({
+                id: 'grower-brand-outreach',
+                category: 'partners',
+                agentId: 'craig',
+                agentName: 'Craig',
+                title: 'Brand Outreach',
+                headline:
+                    partnerCount > 0
+                        ? `${partnerCount} active partner${partnerCount === 1 ? '' : 's'}`
+                        : 'Open new buyer conversations',
+                subtext:
+                    partnerCount > 0
+                        ? 'Refresh this week’s availability note for existing buyers'
+                        : 'Draft an intro for brands looking for fresh flower supply',
+                severity: partnerCount > 0 ? 'success' : 'info',
+                actionable: true,
+                ctaLabel: partnerCount > 0 ? 'Refresh Draft' : 'Start Outreach',
+                threadType: 'brand_outreach',
+                threadPrompt: 'Draft wholesale outreach for current and prospective brand buyers using this week’s inventory.',
+                lastUpdated: new Date(),
+                dataSource: partnerCount > 0 ? 'partners-collection' : 'placeholder',
+            });
+        }
+
+        if (insights.compliance.length === 0) {
+            insights.compliance.push({
+                id: 'grower-transfer-check',
+                category: 'compliance',
+                agentId: 'deebo',
+                agentName: 'Deebo',
+                title: 'Transfer Check',
+                headline: totalProducts === 0 ? 'Compliance scan recommended' : 'COA review recommended',
+                subtext: 'Verify tags, lab docs, and destination-market rules before the next outbound transfer',
+                severity: totalProducts === 0 ? 'info' : 'warning',
+                actionable: true,
+                ctaLabel: 'Run Check',
+                threadType: 'compliance_research',
+                threadPrompt: 'Run a compliance review for my next transfer and flag any missing COAs, tags, or market-specific issues.',
+                lastUpdated: new Date(),
+                dataSource: 'placeholder',
+            });
+        }
+    } catch (error) {
+        logger.error('[Insights] Error fetching grower insights', { orgId, error });
+    }
+
+    return insights;
+}
+
 // ============ Super User Insights (Platform Operations) ============
 
 async function getSuperUserInsights(): Promise<SuperUserInsights> {
@@ -886,11 +1128,12 @@ export async function regenerateInsights(): Promise<{ success: boolean; error?: 
             locationId?: string | null;
         }) || user.uid;
 
-        const isDispensary =
-            role === 'dispensary' ||
-            role === 'dispensary_admin' ||
-            role === 'dispensary_staff' ||
-            role === 'budtender';
+        const isDispensary = isDispensaryRole(role ?? null);
+        const isGrower = isGrowerRole(role ?? null);
+
+        if (isGrower) {
+            return { success: true };
+        }
 
         if (!isDispensary) {
             // Brand + super user insights are real-time queries — no generator needed
@@ -939,18 +1182,11 @@ export async function getInsights(): Promise<{
         }) || user.uid;
 
         // Check if dispensary or brand role
-        const isDispensary =
-            role === 'dispensary' ||
-            role === 'dispensary_admin' ||
-            role === 'dispensary_staff' ||
-            role === 'budtender';
-
-        const isBrand =
-            role === 'brand' ||
-            role === 'brand_admin' ||
-            role === 'brand_member';
+        const isDispensary = isDispensaryRole(role ?? null);
+        const isBrand = isBrandRole(role ?? null);
 
         const isSuperUser = role === 'super_user' || role === 'super_admin';
+        const isGrower = isGrowerRole(role ?? null);
 
         if (isSuperUser) {
             const data = await getSuperUserInsights();
@@ -958,6 +1194,9 @@ export async function getInsights(): Promise<{
         } else if (isDispensary) {
             const data = await getDispensaryInsights(orgId);
             return { success: true, data: { role: 'dispensary', data } };
+        } else if (isGrower) {
+            const data = await getGrowerInsights(orgId);
+            return { success: true, data: { role: 'grower', data } };
         } else if (isBrand) {
             const data = await getBrandInsights(orgId);
             return { success: true, data: { role: 'brand', data } };

@@ -61,6 +61,7 @@ export function getClaudeToolsForAgent(agentId: string, role: UserRole): ClaudeT
         ],
         pops: [
             'analytics.getKPIs',
+            'analytics.inventoryHealthScore',
             'docs.search',
             'context.getTenantProfile',
         ],
@@ -73,6 +74,8 @@ export function getClaudeToolsForAgent(agentId: string, role: UserRole): ClaudeT
         ],
         money_mike: [
             'analytics.getKPIs',
+            'profitability.getCategoryCogs',
+            'analytics.inventoryHealthScore',
             'context.getTenantProfile',
         ],
         mrs_parker: [
@@ -111,6 +114,8 @@ export function getUniversalClaudeTools(role: UserRole): ClaudeTool[] {
         'audit.log',
         'docs.search',
         'web.search',
+        'profitability.getCategoryCogs',
+        'analytics.inventoryHealthScore',
         'creative.generateImage',
         'creative.generateVideo',
     ];
@@ -175,23 +180,41 @@ export function createToolExecutor(context: {
 }
 
 
+const CLAUDE_RESEARCH_ACTION_PATTERN = /\b(search|look\s*up|lookup|find|research|scan|check|review|read|summari[sz]e)\b/i;
+const CLAUDE_RESEARCH_TARGET_PATTERN = /\b(web|internet|online|google|website|site|docs?|documentation|knowledge\s*base|knowledgebase|kb|page|pages|latest|current)\b/i;
+const CLAUDE_ASSET_ACTION_PATTERN = /\b(generate|create|make|design|render|produce)\b/i;
+const CLAUDE_ASSET_TARGET_PATTERN = /\b(image|graphic|photo|poster|banner|thumbnail|mockup|video|animation|reel|asset)\b/i;
+const CLAUDE_EXPLICIT_TOOL_PATTERN = /\b(use|run)\b.{0,30}\b(web\s*search|docs?|documentation|knowledge\s*base|image|video)\b/i;
+const CLAUDE_FINANCE_TARGET_PATTERN = /\b(cogs|cost\s+of\s+goods|gross\s+margin|margin|profitability|unit\s+cost|cost\s*\/\s*unit|cost\s+per\s+unit)\b/i;
+const CLAUDE_INVENTORY_HEALTH_PATTERN = /\b(inventory\s+health|slow[-\s]?moving|dead\s+stock|aging\s+inventory|days\s+on\s+hand|weeks?\s+of\s+cover)\b/i;
+
 /**
- * Detect if a message would benefit from Claude tool calling
- * 
- * Returns true if the message contains patterns that suggest
- * tool use would be helpful (actions, integrations, etc.)
+ * Detect whether a message maps to the small universal Claude tool set.
+ *
+ * This should stay narrow: broad verbs like "analyze" or "generate" alone
+ * should not wake up Claude when the request is better handled by a specialist
+ * agent or the one-shot general assistant.
  */
 export function shouldUseClaudeTools(message: string): boolean {
-    const toolPatterns = [
-        // Actions
-        /\b(send|create|generate|search|scan|check|analyze|get|list)\b/i,
-        // Integrations
-        /\b(email|campaign|gmail|calendar|sheets|report)\b/i,
-        // Specific tools
-        /\b(competitor|pricing|product|catalog|segment|kpi|analytics)\b/i,
-        // Playbooks
-        /\b(playbook|automation|workflow)\b/i,
-    ];
+    const text = message.trim();
+    if (!text) {
+        return false;
+    }
 
-    return toolPatterns.some(pattern => pattern.test(message));
+    const isExplicitResearchRequest =
+        CLAUDE_RESEARCH_ACTION_PATTERN.test(text) &&
+        CLAUDE_RESEARCH_TARGET_PATTERN.test(text);
+    const isExplicitAssetRequest =
+        CLAUDE_ASSET_ACTION_PATTERN.test(text) &&
+        CLAUDE_ASSET_TARGET_PATTERN.test(text);
+    const isExplicitFinanceOrInventoryRequest =
+        CLAUDE_FINANCE_TARGET_PATTERN.test(text) ||
+        CLAUDE_INVENTORY_HEALTH_PATTERN.test(text);
+
+    return (
+        isExplicitResearchRequest ||
+        isExplicitAssetRequest ||
+        isExplicitFinanceOrInventoryRequest ||
+        CLAUDE_EXPLICIT_TOOL_PATTERN.test(text)
+    );
 }

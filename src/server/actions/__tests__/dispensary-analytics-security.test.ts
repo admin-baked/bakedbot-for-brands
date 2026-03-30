@@ -93,6 +93,53 @@ describe('dispensary-analytics security', () => {
     expect(productsCollection.where).toHaveBeenCalledWith('dispensaryId', '==', 'org-current');
   });
 
+  it('allows dispensary_staff to access org-scoped analytics', async () => {
+    (requireUser as jest.Mock).mockResolvedValue({
+      uid: 'staff-1',
+      role: 'dispensary_staff',
+      currentOrgId: 'org-current',
+    });
+    (getMarketBenchmarks as jest.Mock).mockRejectedValue(new Error('no benchmarks'));
+
+    const itemsGet = jest.fn().mockResolvedValue({ empty: true, docs: [] });
+    const itemsCollection = {
+      limit: jest.fn().mockReturnThis(),
+      get: itemsGet,
+    };
+    const productsDoc = {
+      collection: jest.fn().mockImplementation(() => itemsCollection),
+    };
+    const publicViewsCollection = {
+      doc: jest.fn().mockImplementation(() => productsDoc),
+    };
+    const tenantDoc = {
+      collection: jest.fn().mockImplementation(() => publicViewsCollection),
+    };
+    const tenantsCollection = {
+      doc: jest.fn().mockImplementation(() => tenantDoc),
+    };
+
+    const fallbackGet = jest.fn().mockResolvedValue({ docs: [] });
+    const productsCollection = {
+      where: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockReturnThis(),
+      get: fallbackGet,
+    };
+
+    (getAdminFirestore as jest.Mock).mockReturnValue({
+      collection: jest.fn().mockImplementation((name: string) => {
+        if (name === 'tenants') return tenantsCollection;
+        if (name === 'products') return productsCollection;
+        return {};
+      }),
+    });
+
+    const result = await getProductsAnalytics('org-current');
+
+    expect(result.success).toBe(true);
+    expect(tenantsCollection.doc).toHaveBeenCalledWith('org-current');
+  });
+
   it('rejects invalid org ids before touching Firestore', async () => {
     (requireUser as jest.Mock).mockResolvedValue({
       uid: 'user-1',

@@ -6,7 +6,7 @@ import type { InboxArtifact } from '@/types/inbox';
 import type { ProactiveCommitmentRecord } from '@/types/proactive';
 
 describe('inbox owner briefing summary', () => {
-  it('prefers the most recent morning briefing artifact', () => {
+  it('prefers the most recent briefing artifact regardless of pulse type', () => {
     const middayArtifact = {
       id: 'artifact_midday',
       threadId: 'thread_1',
@@ -47,7 +47,7 @@ describe('inbox owner briefing summary', () => {
       updatedAt: new Date('2026-03-22T13:00:00.000Z'),
     } as unknown as InboxArtifact;
 
-    expect(selectLatestOwnerBriefingArtifact([middayArtifact, morningArtifact])?.id).toBe('artifact_morning');
+    expect(selectLatestOwnerBriefingArtifact([middayArtifact, morningArtifact])?.id).toBe('artifact_midday');
   });
 
   it('builds owner-friendly yesterday and today summaries', () => {
@@ -107,5 +107,43 @@ describe('inbox owner briefing summary', () => {
       'Review Sunday daily health briefing',
     ]);
     expect(summary.openCommitments).toBe(1);
+  });
+
+  it('turns unavailable sales data into owner-friendly loading copy', () => {
+    const summary = buildInboxOwnerBriefingSummary({
+      briefing: {
+        date: '2026-03-26',
+        dayOfWeek: 'Thursday',
+        metrics: [
+          {
+            title: 'Net Sales Yesterday',
+            value: 'Unavailable',
+            trend: 'flat',
+            vsLabel: 'recent sales history is not backfilled yet',
+            status: 'warning',
+            actionable: 'Verify Firestore order sync or run the sales backfill before reading revenue trends',
+          },
+          {
+            title: 'Discount Rate (7-day avg)',
+            value: 'Unavailable',
+            trend: 'flat',
+            vsLabel: 'need order totals to compare against the 18% market target',
+            status: 'warning',
+            actionable: 'Backfill recent orders before auditing discount performance',
+          },
+        ],
+        newsItems: [],
+        urgencyLevel: 'warning',
+        marketContext: 'NY Limited License',
+        pulseType: 'morning',
+      },
+    });
+
+    expect(summary.happenedYesterday).toBe("Yesterday's sales total is still loading.");
+    expect(summary.happenedYesterdayDetail).toContain('Recent order history is still loading');
+    expect(summary.priorities).toEqual([
+      'Sales reporting: Recheck revenue trends after recent order history finishes loading',
+    ]);
+    expect(summary.workOnToday).toContain('Focus on this priority today.');
   });
 });

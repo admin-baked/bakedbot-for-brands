@@ -6,7 +6,7 @@
 
 'use server';
 
-import { getAdminFirestore } from '@/firebase/admin';
+import { getAdminFirestore, getAdminStorage } from '@/firebase/admin';
 import { Timestamp } from '@google-cloud/firestore';
 import { makeBrandGuideRepo } from '@/server/repos/brandGuideRepo';
 import { getBrandGuideExtractor } from '@/server/services/brand-guide-extractor';
@@ -1433,6 +1433,7 @@ Return ONLY valid JSON in this exact structure:
 export async function generateBrandDisclaimers(brandId: string): Promise<{
   success: boolean;
   disclaimers?: { age: string; health: string; legal: string };
+  ageGateLanguage?: string;
   error?: string;
 }> {
   try {
@@ -1453,11 +1454,12 @@ Brand: ${brandName}
 Operating states: ${allStates}
 Medical claims policy: ${medicalClaims}
 
-Generate three disclaimers appropriate for cannabis marketing in these states:
+Generate the following for cannabis marketing in these states:
 
 1. AGE DISCLAIMER — short, required on all marketing (1 sentence)
 2. HEALTH DISCLAIMER — FDA-style disclaimer about not treating/curing conditions (2-3 sentences)
 3. LEGAL DISCLAIMER — state-specific legal use disclaimer (1-2 sentences)
+4. AGE GATE LANGUAGE — the prompt shown on the age verification gate before entering the website (1-2 sentences, e.g. "You must be 21 or older to enter...")
 
 Be specific to the states listed. For NY: reference OCM. For CA: reference CDTFA/DCC. For CO: reference MED.
 
@@ -1465,18 +1467,125 @@ Return ONLY valid JSON:
 {
   "age": "string",
   "health": "string",
-  "legal": "string"
+  "legal": "string",
+  "ageGateLanguage": "string"
 }`;
 
-    const raw = await callClaude({ userMessage: prompt, maxTokens: 500, model });
+    const raw = await callClaude({ userMessage: prompt, maxTokens: 600, model });
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('No JSON in AI response');
-    const disclaimers = JSON.parse(jsonMatch[0]);
+    const parsed = JSON.parse(jsonMatch[0]);
+    const { ageGateLanguage, ...disclaimers } = parsed;
 
     logger.info('[BrandGuide] Disclaimers generated', { brandId, primaryState });
-    return { success: true, disclaimers };
+    return { success: true, disclaimers, ageGateLanguage: ageGateLanguage ?? '' };
   } catch (error) {
     logger.error('[BrandGuide] generateBrandDisclaimers failed', { error: (error as Error).message, brandId });
+    return { success: false, error: (error as Error).message };
+  }
+}
+
+/**
+ * Generate 4 branded sample social media posts (populates voice.sampleContent,
+ * which is required for 100% completeness score).
+ */
+export async function generateSampleContent(brandId: string): Promise<{
+  success: boolean;
+  samples?: Array<{ type: string; text: string }>;
+  error?: string;
+}> {
+  try {
+    const firestore = getAdminFirestore();
+    const repo = makeBrandGuideRepo(firestore);
+    const [guide, model] = await Promise.all([repo.getById(brandId), getModelForOrg(brandId)]);
+    if (!guide) return { success: false, error: 'Brand guide not found' };
+
+    const brandName = guide.messaging?.brandName || guide.brandName || 'this brand';
+    const tone = guide.voice?.tone || 'professional';
+    const archetype = guide.archetype?.primary || 'wellness';
+    const tagline = guide.messaging?.tagline || '';
+    const state = guide.compliance?.primaryState || 'NY';
+
+    const prompt = `Generate 4 sample social media posts for a cannabis brand.
+
+Brand: ${brandName}
+Tone: ${tone}
+Archetype: ${archetype}
+Tagline: ${tagline}
+State: ${state}
+
+Create one post for each channel:
+1. instagram — engaging, visual, with 3-5 relevant hashtags
+2. email_subject — subject line for a weekly deals email (under 50 chars)
+3. sms — short SMS marketing message (under 160 chars, include opt-out)
+4. in_store_signage — short headline for in-store display (under 10 words)
+
+All content must be compliant with ${state} cannabis marketing rules: no health claims, no appeal to minors, include age disclaimer where appropriate.
+
+Return ONLY valid JSON array:
+[
+  { "type": "instagram", "text": "..." },
+  { "type": "email_subject", "text": "..." },
+  { "type": "sms", "text": "..." },
+  { "type": "in_store_signage", "text": "..." }
+]`;
+
+    const raw = await callClaude({ userMessage: prompt, maxTokens: 800, model });
+    const jsonMatch = raw.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) throw new Error('No JSON array in AI response');
+    const samples = JSON.parse(jsonMatch[0]);
+
+    logger.info('[BrandGuide] Sample content generated', { brandId, count: samples.length });
+    return { success: true, samples };
+  } catch (error) {
+    logger.error('[BrandGuide] generateSampleContent failed', { error: (error as Error).message, brandId });
+    return { success: false, error: (error as Error).message };
+  }
+}
+
+/**
+ * Downloads an external logo URL and re-uploads it to Firebase Storage,
+ * then updates the brand guide's visualIdentity.logo.primary with the new URL.
+ */
+export async function mirrorLogoToStorage(brandId: string, externalUrl: string): Promise<{
+  success: boolean;
+  storageUrl?: string;
+  error?: string;
+}> {
+  try {
+    if (!externalUrl || !externalUrl.startsWith('http')) {
+      return { success: false, error: 'Invalid URL' };
+    }
+
+    // Download the image
+    const response = await fetch(externalUrl);
+    if (!response.ok) throw new Error(`Failed to fetch logo: ${response.status}`);
+    const buffer = Buffer.from(await response.arrayBuffer());
+    const contentType = response.headers.get('content-type') || 'image/png';
+    const ext = contentType.includes('svg') ? 'svg' : contentType.includes('webp') ? 'webp' : contentType.includes('jpeg') ? 'jpg' : 'png';
+
+    // Upload to Firebase Storage
+    const storage = getAdminStorage();
+    const bucket = storage.bucket('bakedbot-global-assets');
+    const filePath = `brands/${brandId}/logo/primary.${ext}`;
+    const file = bucket.file(filePath);
+    await file.save(buffer, { metadata: { contentType }, resumable: false });
+    await file.makePublic();
+    const storageUrl = `https://storage.googleapis.com/bakedbot-global-assets/${filePath}`;
+
+    // Update brand guide
+    const firestore = getAdminFirestore();
+    const repo = makeBrandGuideRepo(firestore);
+    await repo.update(brandId, {
+      visualIdentity: {
+        logo: { primary: storageUrl },
+      } as any,
+    });
+
+    logger.info('[BrandGuide] Logo mirrored to Storage', { brandId, storageUrl });
+    return { success: true, storageUrl };
+  } catch (error) {
+    logger.error('[BrandGuide] mirrorLogoToStorage failed', { error: (error as Error).message, brandId });
     return { success: false, error: (error as Error).message };
   }
 }

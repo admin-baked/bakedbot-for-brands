@@ -7,12 +7,12 @@
 ## 🚨 FIRST: Check Build Health
 
 ```powershell
-npm run check:types
+.\scripts\npm-safe.cmd run check:types
 ```
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-03-26 (Brand Guide: Firestore serialization fix + PR merges #33/#38/#39/#40/#41 + featured Flower product image in scan)
+**Current Status:** 🟢 Passing | **Last update:** 2026-03-28 (inbox desktop compaction + chat-persistence hardening + Elroy Slack app)
 
 ---
 
@@ -26,7 +26,7 @@ After completing ANY code modifications, you **MUST** run `/simplify` before com
    - **Code Quality:** Flag redundant state, parameter sprawl, copy-paste, leaky abstractions, silent catches.
    - **Efficiency:** Flag redundant work, sequential calls that could be parallel, N+1 patterns, memory leaks.
 3. **Fix every confirmed finding** directly in the code.
-4. **Run `npm run check:types`** to verify fixes don't break the build.
+4. **Run `.\scripts\npm-safe.cmd run check:types`** to verify fixes don't break the build.
 5. **Summarize** what was changed.
 
 > This is NOT optional. Every code session ends with `/simplify`. See `.agent/workflows/simplify.md` for the full protocol.
@@ -37,11 +37,11 @@ After completing ANY code modifications, you **MUST** run `/simplify` before com
 
 | Command | Purpose |
 |---------|---------|
-| `npm run check:types` | TypeScript check (run before/after changes) |
-| `npm test` | Run Jest tests |
-| `npm test -- path/to/file.test.ts` | Test specific file |
-| `npm run lint` | ESLint check |
-| `npm run dev` | Local dev server |
+| `.\scripts\npm-safe.cmd run check:types` | TypeScript check (run before/after changes) |
+| `.\scripts\npm-safe.cmd test` | Run Jest tests |
+| `.\scripts\npm-safe.cmd test -- path/to/file.test.ts` | Test specific file |
+| `.\scripts\npm-safe.cmd run lint` | ESLint check |
+| `.\scripts\npm-safe.cmd run dev` | Local dev server |
 | `git push origin main` | **Deploy to production** — triggers Firebase App Hosting CI/CD |
 
 > **🚀 Deploy = Push to GitHub.** `git push origin main` automatically starts a Firebase build and deploys to production. Always push after committing finished work.

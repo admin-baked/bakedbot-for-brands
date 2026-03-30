@@ -1,5 +1,8 @@
-import type { InboxArtifact, AnalyticsBriefing, InboxOwnerBriefingSummary } from '@/types/inbox';
+import type { InboxArtifact, AnalyticsBriefing, BriefingMetric, InboxOwnerBriefingSummary } from '@/types/inbox';
 import type { ProactiveCommitmentRecord } from '@/types/proactive';
+
+const UNAVAILABLE_METRIC_VALUE = 'unavailable';
+const SALES_SYNC_PRIORITY = 'Sales reporting: Recheck revenue trends after recent order history finishes loading';
 
 function getArtifactTimestamp(artifact: InboxArtifact): number {
   const updatedAt = artifact.updatedAt instanceof Date ? artifact.updatedAt : new Date(artifact.updatedAt);
@@ -19,6 +22,26 @@ function getPrimaryYesterdayMetric(briefing: AnalyticsBriefing) {
   return briefing.metrics.find((metric) => metric.title === 'Net Sales Yesterday') ?? briefing.metrics[0];
 }
 
+function isUnavailableMetric(metric: BriefingMetric | undefined): boolean {
+  return typeof metric?.value === 'string'
+    && metric.value.trim().toLowerCase() === UNAVAILABLE_METRIC_VALUE;
+}
+
+function buildOwnerFriendlySyncPriority(briefing: AnalyticsBriefing): string | null {
+  const hasUnavailableSalesMetric = briefing.metrics.some((metric) =>
+    metric.title === 'Net Sales Yesterday' && isUnavailableMetric(metric)
+  );
+
+  if (hasUnavailableSalesMetric) {
+    return SALES_SYNC_PRIORITY;
+  }
+
+  const hasUnavailableMetrics = briefing.metrics.some((metric) => isUnavailableMetric(metric));
+  return hasUnavailableMetrics
+    ? 'Data reporting: Recheck this briefing after the latest store metrics finish loading'
+    : null;
+}
+
 function buildYesterdaySummary(briefing: AnalyticsBriefing): {
   happenedYesterday: string;
   happenedYesterdayDetail?: string;
@@ -27,6 +50,21 @@ function buildYesterdaySummary(briefing: AnalyticsBriefing): {
   if (!primaryMetric) {
     return {
       happenedYesterday: `${briefing.dayOfWeek}'s daily briefing ran, but there were no tracked metrics yet.`,
+    };
+  }
+
+  if (primaryMetric.title === 'Net Sales Yesterday' && isUnavailableMetric(primaryMetric)) {
+    const detailParts = [
+      'Recent order history is still loading, so revenue comparisons will appear automatically once the latest sales data arrives.',
+    ];
+
+    if (briefing.topAlert) {
+      detailParts.push(briefing.topAlert);
+    }
+
+    return {
+      happenedYesterday: "Yesterday's sales total is still loading.",
+      happenedYesterdayDetail: detailParts.join(' '),
     };
   }
 
@@ -50,17 +88,24 @@ function buildTodayPriorities(
   commitments: ProactiveCommitmentRecord[]
 ): string[] {
   const metricPriorities = briefing.metrics
-    .filter((metric) => metric.status !== 'good')
+    .filter((metric) => metric.status !== 'good' && !isUnavailableMetric(metric))
     .map((metric) =>
       metric.actionable
         ? `${metric.title}: ${metric.actionable}`
         : `${metric.title}: ${metric.value}`
     );
+  const syncPriority = metricPriorities.length === 0
+    ? buildOwnerFriendlySyncPriority(briefing)
+    : null;
 
   const commitmentPriorities = commitments.map((commitment) => commitment.title);
   const seen = new Set<string>();
 
-  return [...metricPriorities, ...commitmentPriorities].filter((priority) => {
+  return [
+    ...metricPriorities,
+    ...(syncPriority ? [syncPriority] : []),
+    ...commitmentPriorities,
+  ].filter((priority) => {
     if (!priority || seen.has(priority)) {
       return false;
     }
@@ -77,14 +122,8 @@ export function selectLatestOwnerBriefingArtifact(
     return null;
   }
 
-  const morningArtifacts = briefingArtifacts.filter((artifact) => {
-    const data = artifact.data as AnalyticsBriefing;
-    return !data.pulseType || data.pulseType === 'morning';
-  });
-
-  const candidates = morningArtifacts.length > 0 ? morningArtifacts : briefingArtifacts;
-  candidates.sort((left, right) => getArtifactTimestamp(right) - getArtifactTimestamp(left));
-  return candidates[0] ?? null;
+  briefingArtifacts.sort((left, right) => getArtifactTimestamp(right) - getArtifactTimestamp(left));
+  return briefingArtifacts[0] ?? null;
 }
 
 export function buildInboxOwnerBriefingSummary(input: {

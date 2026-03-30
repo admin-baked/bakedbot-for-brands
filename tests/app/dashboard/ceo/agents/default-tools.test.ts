@@ -1,5 +1,6 @@
 
 import { defaultEzalTools, defaultSmokeyTools } from '@/app/dashboard/ceo/agents/default-tools';
+import { SMOKEY_FALLBACK_IMAGE } from '@/lib/utils/product-image';
 
 // Mock dependencies
 jest.mock('@/server/services/firecrawl', () => ({
@@ -180,7 +181,7 @@ describe('defaultSmokeyTools', () => {
             expect(result.products[0].name).toBe('Sativa Gummies');
             expect(result.products[0]).toMatchObject({
                 id: 'prod-1',
-                imageUrl: '/icon-192.png',
+                imageUrl: SMOKEY_FALLBACK_IMAGE,
                 description: 'Yummy',
                 category: 'Edibles',
             });

@@ -11,12 +11,14 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useUserRole } from './use-user-role';
 import { useMockData } from './use-mock-data';
 import { getInsights, regenerateInsights } from '@/server/actions/insights';
+import { isDispensaryRole, isGrowerRole } from '@/types/roles';
 import type {
     InsightsResponse,
     InsightCard,
     DispensaryInsights,
     BrandInsights,
     SuperUserInsights,
+    GrowerInsights,
 } from '@/types/insight-cards';
 
 // ============ Mock Data ============
@@ -302,6 +304,95 @@ const MOCK_SUPER_USER_INSIGHTS: SuperUserInsights = {
     lastFetched: new Date(),
 };
 
+const MOCK_GROWER_INSIGHTS: GrowerInsights = {
+    yield: [
+        {
+            id: 'mock-yield',
+            category: 'yield',
+            agentId: 'pops',
+            agentName: 'Pops',
+            title: 'Yield Health',
+            headline: '18 buyer-ready SKUs',
+            subtext: '2 listings need a fresh count',
+            severity: 'info',
+            actionable: true,
+            ctaLabel: 'Review Yield',
+            threadType: 'yield_analysis',
+            lastUpdated: new Date(),
+            dataSource: 'mock',
+        },
+    ],
+    wholesale: [
+        {
+            id: 'mock-wholesale',
+            category: 'wholesale',
+            agentId: 'money_mike',
+            agentName: 'Money Mike',
+            title: 'Wholesale Ready',
+            headline: '640 est. units',
+            subtext: 'Across 4 categories',
+            severity: 'success',
+            actionable: true,
+            ctaLabel: 'Prep List',
+            threadType: 'wholesale_inventory',
+            lastUpdated: new Date(),
+            dataSource: 'mock',
+        },
+    ],
+    partners: [
+        {
+            id: 'mock-partners',
+            category: 'partners',
+            agentId: 'craig',
+            agentName: 'Craig',
+            title: 'Brand Outreach',
+            headline: '3 warm buyer leads',
+            subtext: 'Draft outreach ready to send',
+            severity: 'info',
+            actionable: true,
+            ctaLabel: 'Open Draft',
+            threadType: 'brand_outreach',
+            lastUpdated: new Date(),
+            dataSource: 'mock',
+        },
+    ],
+    compliance: [
+        {
+            id: 'mock-grower-compliance',
+            category: 'compliance',
+            agentId: 'deebo',
+            agentName: 'Deebo',
+            title: 'Transfer Check',
+            headline: 'COA review recommended',
+            subtext: 'Verify tags before outbound transfer',
+            severity: 'warning',
+            actionable: true,
+            ctaLabel: 'Run Check',
+            threadType: 'compliance_research',
+            lastUpdated: new Date(),
+            dataSource: 'mock',
+        },
+    ],
+    operations: [
+        {
+            id: 'mock-operations',
+            category: 'operations',
+            agentId: 'day_day',
+            agentName: 'Day-Day',
+            title: 'Catalog Freshness',
+            headline: 'All active listings current',
+            subtext: 'No stale wholesale entries',
+            severity: 'success',
+            actionable: true,
+            ctaLabel: 'Review Catalog',
+            threadType: 'wholesale_inventory',
+            lastUpdated: new Date(),
+            dataSource: 'mock',
+        },
+    ],
+    lastFetched: new Date(),
+};
+
 // ============ Hook Options ============
 
 interface UseInsightsOptions {
@@ -359,20 +450,21 @@ export function useInsights(options: UseInsightsOptions = {}): UseInsightsReturn
 
                     if (!isMounted.current) return;
 
-                    const isDispensaryRole =
-                        role === 'dispensary' ||
-                        role === 'dispensary_admin' ||
-                        role === 'dispensary_staff' ||
-                        role === 'budtender';
-
                     const isSuperUserRole = role === 'super_user';
+                    const hasDispensaryRole = isDispensaryRole(role);
+                    const hasGrowerRole = isGrowerRole(role);
 
                     if (isSuperUserRole) {
                         setInsights({
                             role: 'super_user',
                             data: MOCK_SUPER_USER_INSIGHTS,
                         });
-                    } else if (isDispensaryRole) {
+                    } else if (hasGrowerRole) {
+                        setInsights({
+                            role: 'grower',
+                            data: MOCK_GROWER_INSIGHTS,
+                        });
+                    } else if (hasDispensaryRole) {
                         setInsights({
                             role: 'dispensary',
                             data: MOCK_DISPENSARY_INSIGHTS,
@@ -471,6 +563,15 @@ export function useInsights(options: UseInsightsOptions = {}): UseInsightsReturn
                 ...s.deployment,
                 ...s.support,
                 ...s.intelligence,
+            ];
+        } else if (insights.role === 'grower') {
+            const g = data as GrowerInsights;
+            return [
+                ...g.yield,
+                ...g.wholesale,
+                ...g.partners,
+                ...g.compliance,
+                ...g.operations,
             ];
         } else {
             const b = data as BrandInsights;

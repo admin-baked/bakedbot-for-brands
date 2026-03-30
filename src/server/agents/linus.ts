@@ -2,7 +2,8 @@
  * Linus - AI CTO Agent
  * 
  * Bridge between codebase and Executive Boardroom.
- * Uses Claude API exclusively for agentic coding tasks.
+ * Uses GLM-5 for Slack text-only tool workflows and Claude for
+ * full agentic coding plus vision-backed tasks.
  * 
  * Responsibilities:
  * - Synthesize 7-layer code evaluations
@@ -12,6 +13,7 @@
  */
 
 import { executeWithTools, isClaudeAvailable, ClaudeTool, ClaudeResult, AgentContext } from '@/ai/claude';
+import { executeGLMWithTools, GLM_MODELS, isGLMConfigured } from '@/ai/glm';
 import { z } from 'zod';
 import { AgentImplementation } from './harness';
 import { AgentMemory } from './schemas';
@@ -21,10 +23,10 @@ import { browserToolDefs } from '../tools/browser-tools';
 import { getAdminFirestore } from '@/firebase/admin';
 import { spawn } from 'child_process';
 import {
-    buildSquadRoster,
-    buildIntegrationStatusSummary
+    buildSquadRoster
 } from './agent-definitions';
 import { githubPushToolDef, executeGithubPush, GithubPushParams } from '../tools/github-tools';
+import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integration-status';
 
 // ============================================================================
 // SECURITY: HIGH-RISK COMMAND SAFETY CHECKS
@@ -1768,39 +1770,36 @@ const LINUS_TOOLS: ClaudeTool[] = [
 
 type LinusToolMode = 'full' | 'slack';
 
-const LINUS_SLACK_TOOL_NAMES = new Set([
-    'run_health_check',
-    'github_push_api',
-    'read_file',
-    'write_file',
-    'run_command',
-    'bash',
-    'archive_work',
-    'query_work_history',
-    'search_codebase',
-    'find_files',
-    'git_log',
-    'git_diff',
-    'git_blame',
-    'analyze_stack_trace',
-    'run_specific_test',
-    'list_directory',
-    'run_browser_test',
-    'query_database_schema',
-    'ops_linear_create_issue',
-    'ops_linear_get_issues',
-    'fetch_production_logs',
-    'create_incident_room',
-    'github_create_pr',
-    'github_review_pr',
+// Tools blocked from Slack mode — too dangerous, side-effectful, or irrelevant for chat.
+// New tools added to LINUS_TOOLS are automatically Slack-available unless listed here.
+const LINUS_SLACK_TOOL_BLOCKLIST = new Set([
+    // Boardroom / reporting — async ops, not interactive
+    'read_backlog', 'run_layer_eval', 'make_deployment_decision', 'report_to_boardroom',
+    // Side effects with external recipients
+    'drive_upload_file', 'send_email',
+    // Kusho test generation suite — long-running, not chat-appropriate
+    'kusho_generate_tests', 'kusho_run_suite', 'kusho_analyze_coverage',
+    'kusho_record_ui', 'kusho_setup',
+    // Internal agent context primitives — not useful from chat
+    'context_log_decision', 'context_ask_why', 'context_get_agent_history',
+    'intuition_evaluate_heuristics', 'intuition_get_confidence', 'intuition_log_outcome',
+    // Browser extension automation — requires local extension install
+    'extension_create_session', 'extension_navigate', 'extension_click', 'extension_type',
+    'extension_screenshot', 'extension_get_console', 'extension_end_session',
+    'extension_run_workflow', 'extension_list_workflows',
+    // Playwright scaffold — write ops, not interactive
+    'generate_playwright_test', 'discovery_fill_form',
+    // Build monitor write ops — should only fire from CI, not chat
+    'build_monitor_notify_failure', 'build_monitor_record_status',
+    // Approval creation — separate UI flow; chat can only check status
+    'create_approval_request',
 ]);
 
-function getLinusTools(mode: LinusToolMode = 'full'): ClaudeTool[] {
-    if (mode === 'full') {
-        return LINUS_TOOLS;
-    }
+// Memoized at module init — avoids re-filtering 60 tools on every Slack request.
+const LINUS_SLACK_TOOLS = LINUS_TOOLS.filter(t => !LINUS_SLACK_TOOL_BLOCKLIST.has(t.name));
 
-    return LINUS_TOOLS.filter(tool => LINUS_SLACK_TOOL_NAMES.has(tool.name));
+function getLinusTools(mode: LinusToolMode = 'full'): ClaudeTool[] {
+    return mode === 'slack' ? LINUS_SLACK_TOOLS : LINUS_TOOLS;
 }
 
 // ============================================================================
@@ -4301,6 +4300,7 @@ export interface LinusRequest {
         brandId?: string;
     };
     images?: Array<{ data: string; mimeType: string }>; // Base64 images for vision (Slack screenshots etc.)
+    progressCallback?: (msg: string) => Promise<void>; // Called before each tool execution — use to post live Slack status updates
 }
 
 export interface LinusResponse {
@@ -4320,9 +4320,9 @@ function getLinusCodebaseContext(claudeContext: string, toolMode: LinusToolMode)
 }
 
 // Build dynamic system prompt with grounding
-function buildLinusSystemPrompt(): string {
+async function buildLinusSystemPrompt(orgId?: string): Promise<string> {
     const squadRoster = buildSquadRoster('linus');
-    const integrationStatus = buildIntegrationStatusSummary();
+    const integrationStatus = await buildIntegrationStatusSummaryForOrg(orgId);
 
     return `You are Linus, AI CTO of BakedBot. Welcome to the bridge.
 
@@ -4476,8 +4476,72 @@ This is NOT optional. Every code session ends with /simplify.
 Always be concise. Use the tools available to investigate, code, and report.`;
 }
 
-// Legacy constant for backwards compatibility
-const LINUS_SYSTEM_PROMPT = buildLinusSystemPrompt();
+/**
+ * Maps a Linus tool call to a human-readable Slack status message.
+ * Shown as an update on the "thinking" message so users know Linus is working.
+ */
+function buildLinusProgressMessage(toolName: string, input: Record<string, unknown>): string {
+    switch (toolName) {
+        case 'run_command': {
+            const cmd = String(input.command ?? '').slice(0, 70);
+            return `_Linus is running: \`${cmd}\`..._`;
+        }
+        case 'bash': {
+            const desc = input.description ? String(input.description).slice(0, 70) : String(input.command ?? '').slice(0, 70);
+            return `_Linus is executing: \`${desc}\`..._`;
+        }
+        case 'read_file':
+            return `_Linus is reading \`${String(input.path ?? '').split('/').slice(-2).join('/')}\`..._`;
+        case 'write_file':
+            return `_Linus is writing \`${String(input.path ?? '').split('/').slice(-2).join('/')}\`..._`;
+        case 'search_codebase':
+            return `_Linus is searching the codebase for "${String(input.query ?? '').slice(0, 50)}"..._`;
+        case 'run_health_check':
+            return `_Linus is checking build health (${input.scope ?? 'full'})..._`;
+        case 'run_specific_test':
+            return `_Linus is running tests for \`${String(input.testPattern ?? '').slice(0, 50)}\`..._`;
+        case 'github_push':
+            return `_Linus is pushing to GitHub (${input.branch ?? 'main'})..._`;
+        case 'web_search':
+            return `_Linus is searching the web for "${String(input.query ?? '').slice(0, 50)}"..._`;
+        case 'firecrawl_scrape':
+        case 'firecrawl_search':
+        case 'firecrawl_map_site':
+            return `_Linus is scraping/crawling a URL for context..._`;
+        case 'web_search_places':
+            return `_Linus is searching for places: "${String(input.query ?? '').slice(0, 50)}"..._`;
+        case 'letta_search_memory':
+            return `_Linus is searching long-term memory..._`;
+        case 'letta_save_fact':
+        case 'letta_update_personal_memory':
+            return `_Linus is updating agent memory..._`;
+        case 'build_monitor_get_recent':
+        case 'build_monitor_get_last_status':
+            return `_Linus is checking build monitor..._`;
+        case 'build_monitor_analyze_failure':
+            return `_Linus is analyzing build failure..._`;
+        case 'discovery_browser_automate':
+        case 'discovery_summarize_page':
+        case 'discovery_extract_data':
+            return `_Linus is browsing the web..._`;
+        case 'run_e2e_test':
+            return `_Linus is running E2E tests..._`;
+        case 'check_qa_report':
+        case 'file_qa_bug':
+            return `_Linus is reviewing QA report..._`;
+        case 'git_log':
+        case 'git_diff':
+            return `_Linus is reviewing git history..._`;
+        case 'execute_super_power':
+            return `_Linus is running super power: \`${String(input.script ?? '').slice(0, 40)}\`..._`;
+        case 'make_deployment_decision':
+            return `_Linus is making deployment decision..._`;
+        case 'delegate_to_agent':
+            return `_Linus is delegating to ${input.agentId ?? 'another agent'}..._`;
+        default:
+            return `_Linus is using \`${toolName}\`..._`;
+    }
+}
 
 /**
  * Linus agent context — injected into Claude's system prompt for persistent identity.
@@ -4523,11 +4587,31 @@ WHEN STUCK: Before spending multiple tool calls investigating, check if a super 
 };
 
 export async function runLinus(request: LinusRequest): Promise<LinusResponse> {
-    if (!isClaudeAvailable()) {
-        throw new Error('Claude API is required for Linus. Set CLAUDE_API_KEY environment variable.');
+    const toolMode = request.toolMode ?? 'full';
+    const hasImages = (request.images?.length ?? 0) > 0;
+    const glmConfigured = isGLMConfigured();
+    const shouldUseGLMToolMode = toolMode === 'slack' && !hasImages && glmConfigured;
+
+    if (!shouldUseGLMToolMode && !isClaudeAvailable()) {
+        throw new Error(
+            toolMode === 'slack'
+                ? 'Linus Slack tool mode requires ZAI_API_KEY for GLM-5 or CLAUDE_API_KEY for Claude.'
+                : 'Claude API is required for Linus. Set CLAUDE_API_KEY environment variable.'
+        );
     }
 
-    const toolMode = request.toolMode ?? 'full';
+    if (toolMode === 'slack' && !shouldUseGLMToolMode) {
+        logger.info('[Linus] Slack tool mode falling back to Claude', {
+            hasImages,
+            glmConfigured,
+        });
+    } else if (shouldUseGLMToolMode) {
+        logger.info('[Linus] Slack tool mode using GLM-5', {
+            hasImages,
+        });
+    }
+
+    const linusSystemPrompt = await buildLinusSystemPrompt(request.context?.orgId);
     
     // Read CLAUDE.md for codebase context (Claude Code convention)
     let claudeContext = '';
@@ -4539,7 +4623,7 @@ export async function runLinus(request: LinusRequest): Promise<LinusResponse> {
         claudeContext = '(CLAUDE.md not found - operating without codebase context)';
     }
     
-    const fullPrompt = `${LINUS_SYSTEM_PROMPT}
+    const fullPrompt = `${linusSystemPrompt}
 
 ${toolMode === 'slack' ? `
 ## SLACK EXECUTION MODE
@@ -4557,19 +4641,40 @@ ${getLinusCodebaseContext(claudeContext, toolMode)}
 
 User Request: ${request.prompt}`;
     
-    const result = await executeWithTools(
-        fullPrompt,
-        getLinusTools(toolMode),
-        linusToolExecutor,
-        {
-            userId: request.context?.userId,
-            orgId: request.context?.orgId,
-            brandId: request.context?.brandId,
-            maxIterations: request.maxIterations ?? (toolMode === 'slack' ? 5 : 15),
-            agentContext: LINUS_AGENT_CONTEXT,
-            imageAttachments: request.images,
-        }
-    );
+    const onToolCall = request.progressCallback
+        ? (toolName: string, input: Record<string, unknown>) =>
+              request.progressCallback!(buildLinusProgressMessage(toolName, input))
+        : undefined;
+
+    const result = shouldUseGLMToolMode
+        ? await executeGLMWithTools(
+            fullPrompt,
+            getLinusTools(toolMode),
+            linusToolExecutor,
+            {
+                userId: request.context?.userId,
+                orgId: request.context?.orgId,
+                brandId: request.context?.brandId,
+                maxIterations: request.maxIterations ?? 5,
+                model: GLM_MODELS.STRATEGIC,
+                agentContext: LINUS_AGENT_CONTEXT,
+                onToolCall,
+            }
+        )
+        : await executeWithTools(
+            fullPrompt,
+            getLinusTools(toolMode),
+            linusToolExecutor,
+            {
+                userId: request.context?.userId,
+                orgId: request.context?.orgId,
+                brandId: request.context?.brandId,
+                maxIterations: request.maxIterations ?? (toolMode === 'slack' ? 5 : 15),
+                agentContext: LINUS_AGENT_CONTEXT,
+                imageAttachments: request.images,
+                onToolCall,
+            }
+        );
 
     
     // Extract decision if present
@@ -4593,7 +4698,8 @@ export const linusAgent: AgentImplementation<AgentMemory, any> = {
         logger.info('[Linus] Initializing. Connecting to Hive Mind...');
 
         // Build dynamic system prompt with current squad/integration status
-        agentMemory.system_instructions = buildLinusSystemPrompt();
+        const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || '';
+        agentMemory.system_instructions = await buildLinusSystemPrompt(orgId);
 
         // === HIVE MIND INIT ===
         try {

@@ -30,7 +30,7 @@ ls .w/ > /dev/null 2>&1 && cat ~/.code-index/_savings.json
 Before ANY work, verify the build is healthy:
 
 ```powershell
-npm run check:types
+.\scripts\npm-safe.cmd run check:types
 ```
 
 | If Build Is... | Action |
@@ -38,8 +38,9 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — Linus Slack audit + 7 bridge bug fixes.
-**Recent work (2026-03-26):** PR merges #33/#38/#39/#40/#41 (conflict resolution, sync guards, SSRF tests, semanticSearchEntityId). Brand Guide bug fix (`82a516cef`): Firestore serialization via `toSerializable` + featured Flower product image in URL scan.
+**Current Status:** 🟢 Passing — inbox desktop compaction + chat-persistence hardening + Elroy Slack shipped.
+**Recent work (2026-03-28):** See `MEMORY.md` for full log.
+Key completed: [Inbox desktop compaction + density prop + 100dvh] (`35d6d2ebf`), [chat-persistence safe serializer + SUPER_USER_ROLES guard + Elroy Slack secret] (`35d6d2ebf`).
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
@@ -59,6 +60,19 @@ npm run check:types
 2. Run `git filter-branch` to scrub history (see session 2026-03-18 in MEMORY.md)
 3. `git push origin main --force-with-lease`
 4. Dismiss alerts via `gh api --method PATCH repos/admin-baked/bakedbot-for-brands/secret-scanning/alerts/$id -f state=resolved -f resolution=revoked`
+
+## 🚨 ELEVATED MODE GOTCHA: Sandbox Failures Can Look Like App Bugs
+
+**Triggered 2026-03-25** — some required verification and live-ops commands time out or fail in the default sandbox even when app code is healthy.
+
+**Common symptoms:**
+| Symptom | What it usually means |
+|---------|------------------------|
+| `EPERM: lstat 'C:\\Users\\admin'` from Jest / Node startup | Default shell needs the repo-safe wrappers (`.\scripts\node-safe.cmd`, `.\scripts\npm-safe.cmd`) |
+| `npm run check:types` timing out in sandbox | First retry with `.\scripts\npm-safe.cmd run check:types`; if it still fails, command likely needs elevated execution |
+| Firebase / GitHub / gcloud commands failing after code changes | Network or credential boundary, rerun elevated before blaming the app |
+
+**Rule:** for Node/npm/Jest in the default shell, use `.\scripts\node-safe.cmd` / `.\scripts\npm-safe.cmd` first so the process stays inside `.codex-jest-home`. If a critical verification or live Firebase / GitHub command still fails for sandbox reasons after that, rerun it in elevated mode before assuming the product is broken.
 
 ## Session 2026-03-20 (Smokey Budtender Production Fix)
 **Recent work (2026-03-20):** See `memory/MEMORY.md` for full log.

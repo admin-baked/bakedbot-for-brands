@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { getAdminFirestore } from '@/firebase/admin';
 import { sendGenericEmail } from '@/lib/email/dispatcher';
+import { getGoogleReviewUrl } from '@/lib/reviews/google-review-url';
 import { requireCronSecret } from '@/server/auth/cron';
 import { logger } from '@/lib/logger';
 
@@ -49,20 +50,6 @@ function getDispensaryName(orgId: string): string {
         org_thrive_syracuse: 'Thrive Syracuse',
     };
     return NAMES[orgId] ?? orgId;
-}
-
-async function getGoogleReviewUrl(orgId: string): Promise<string | null> {
-    try {
-        const db = getAdminFirestore();
-        const dispDoc = await db.collection('dispensaries').doc(orgId).get();
-        if (!dispDoc.exists) return null;
-        const placeId = dispDoc.data()?.gmapsPlaceId as string | undefined;
-        if (!placeId) return null;
-        return `https://search.google.com/local/writereview?placeid=${encodeURIComponent(placeId)}`;
-    } catch (err) {
-        logger.warn('[ReviewSequence] Could not fetch review URL', { orgId, err: String(err) });
-        return null;
-    }
 }
 
 function checkoutEmailHtml(firstName: string, orgId: string): string {

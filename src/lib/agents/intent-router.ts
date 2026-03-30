@@ -73,7 +73,7 @@ const INTENT_RULES: IntentRule[] = [
     {
         agentId: 'money_mike',
         patterns: [
-            /\b(pric(e|ing)|margin|profit(abilit)?|bundle|upsell|up.?sell|cost|markup|discount|deal.*creat|creat.*deal|slow.?mov|highest.?margin|lowest.?margin|sku.*margin|margin.*sku)\b/i,
+            /\b(pric(e|ing)|margin|gross.?margin|profit(abilit)?|bundle|upsell|up.?sell|cost|cost.?of.?goods|cogs|markup|discount|deal.*creat|creat.*deal|slow.?mov|highest.?margin|lowest.?margin|sku.*margin|margin.*sku|unit.?cost|cost.?\/.?unit|days.?on.?hand)\b/i,
             /\b(money.?mike|mike|financ|billing|revenue.?optim|optim.*revenue|monetiz)\b/i,
         ],
     },
@@ -115,12 +115,14 @@ export function getAgentForIntent(input: string): AgentId | null {
 }
 
 /**
- * Returns the best `InboxAgentPersona`-compatible ID for the input,
- * falling back to a provided default.
+ * Returns the best inbox-compatible specialist for the input.
+ * If nothing matches, preserve the caller's fallback (for example `auto`)
+ * so the request can continue through the general assistant path.
  */
-export function resolveInboxAgent(
+export function resolveInboxAgent<TFallback extends string = 'auto'>(
     input: string,
-    fallback: AgentId = 'pops'
-): AgentId {
-    return getAgentForIntent(input) ?? fallback;
+    fallback?: TFallback
+): AgentId | TFallback {
+    const fallbackValue = (fallback ?? 'auto') as TFallback;
+    return getAgentForIntent(input) ?? fallbackValue;
 }

@@ -5,13 +5,13 @@
  * Combines all Ezal services into a single entry point
  */
 
+import { createServerClient } from '@/firebase/server-client';
+import { findPricingPlan } from '@/lib/config/pricing';
 import { logger } from '@/lib/logger';
+import { getEzalLimits } from '@/lib/plan-limits';
+import { saveCompetitorSnapshot } from '@/server/repos/competitor-snapshots';
 import {
     DataSource,
-    Competitor,
-    DiscoveryJob,
-    CompetitorSearchRequest,
-    EzalInsight,
 } from '@/types/ezal-discovery';
 
 // Re-export all services
@@ -25,9 +25,15 @@ export { lancedbStore } from './lancedb-store';
 
 // Import for orchestration
 import {
+    createDataSource,
+    getCompetitor,
     getDataSource,
+    listCompetitors,
+    listDataSources,
+    lookupCannMenusRetailer,
     quickSetupCompetitor,
     searchCompetitors,
+    updateDataSource,
 } from './competitor-manager';
 import {
     searchProducts as lanceSearchProducts,
@@ -35,16 +41,14 @@ import {
     getStoreStats as lanceGetStoreStats,
 } from './lancedb-store';
 import {
-    createDiscoveryJob,
-    runScheduler,
     getPendingJobs,
 } from './discovery-scheduler';
 import {
-    executeDiscovery,
     discoverNow,
 } from './discovery-fetcher';
 import {
     parseContent,
+    ParsedProduct,
     ParseResult,
 } from './parser-engine';
 import {
@@ -53,6 +57,10 @@ import {
     findPriceGaps,
     DiffResult,
 } from './diff-engine';
+import {
+    generateWeeklyIntelReport,
+    WeeklyIntelReport,
+} from './weekly-intel-report';
 
 // =============================================================================
 // FULL DISCOVERY PIPELINE
@@ -65,7 +73,84 @@ export interface FullDiscoveryResult {
     parseDurationMs: number;
     diffResult: DiffResult | null;
     parseResult: ParseResult | null;
+    snapshotId?: string;
     error?: string;
+}
+
+function pickFirstString(...values: Array<unknown>): string | null {
+    for (const value of values) {
+        if (typeof value === 'string' && value.trim()) {
+            return value.trim();
+        }
+    }
+
+    return null;
+}
+
+function normalizeTrackedUrl(url: string | undefined | null): string | null {
+    if (!url) return null;
+
+    try {
+        const parsed = new URL(url);
+        return parsed.toString();
+    } catch {
+        try {
+            return new URL(`https://${url}`).toString();
+        } catch {
+            return null;
+        }
+    }
+}
+
+function formatDiscount(currentPrice: number, regularPrice: number | null): string | undefined {
+    if (!regularPrice || regularPrice <= currentPrice) {
+        return undefined;
+    }
+
+    const pctOff = Math.round(((regularPrice - currentPrice) / regularPrice) * 100);
+    return pctOff > 0 ? `${pctOff}% off` : undefined;
+}
+
+function buildSnapshotProducts(parsedProducts: ParsedProduct[]) {
+    return parsedProducts.map((product) => ({
+        name: product.productName,
+        price: product.price,
+        category: product.category,
+        brand: product.brandName || undefined,
+        inStock: product.inStock,
+    }));
+}
+
+function buildSnapshotDeals(parsedProducts: ParsedProduct[]) {
+    const promoDeals = parsedProducts
+        .filter((product) => product.regularPrice !== null && product.regularPrice > product.price)
+        .map((product) => ({
+            name: product.productName,
+            price: product.price,
+            originalPrice: product.regularPrice ?? undefined,
+            discount: formatDiscount(product.price, product.regularPrice),
+            category: product.category,
+        }));
+
+    if (promoDeals.length > 0) {
+        return promoDeals;
+    }
+
+    // Some menus expose price points but not list-vs-sale pricing.
+    // Fall back to tracked priced offers so the daily report still reflects live menu data.
+    return parsedProducts
+        .filter((product) => product.inStock && product.price > 0)
+        .slice(0, 50)
+        .map((product) => ({
+            name: product.productName,
+            price: product.price,
+            category: product.category,
+        }));
+}
+
+function truncateSnapshotContent(content: string | undefined): string | undefined {
+    if (!content) return undefined;
+    return content.length > 20_000 ? content.slice(0, 20_000) : content;
 }
 
 /**
@@ -129,6 +214,16 @@ export async function executeFullDiscovery(
             parseResult.products
         );
 
+        const competitor = await getCompetitor(tenantId, source.competitorId);
+        const snapshotId = await saveCompetitorSnapshot(tenantId, {
+            competitorId: source.competitorId,
+            competitorName: competitor?.name || source.competitorId,
+            deals: buildSnapshotDeals(parseResult.products),
+            products: buildSnapshotProducts(parseResult.products),
+            rawMarkdown: truncateSnapshotContent(discoveryResult.content),
+            sourceUrl: source.baseUrl,
+        });
+
         logger.info('[Ezal] Full discovery completed:', {
             tenantId,
             sourceId,
@@ -136,6 +231,7 @@ export async function executeFullDiscovery(
             productsParsed: parseResult.products.length,
             newProducts: diffResult.newProducts,
             priceChanges: diffResult.priceChanges,
+            snapshotId,
         });
 
         return {
@@ -145,6 +241,7 @@ export async function executeFullDiscovery(
             parseDurationMs: parseDuration,
             diffResult,
             parseResult,
+            snapshotId,
         };
 
     } catch (error) {
@@ -208,6 +305,271 @@ export async function processAllPendingJobs(
     }
 
     return { processed, succeeded, failed };
+}
+
+export interface CompetitiveIntelSourceReconciliation {
+    planId: string;
+    frequencyMinutes: number;
+    competitorsChecked: number;
+    sourcesCreated: number;
+    sourcesUpdated: number;
+    sources: DataSource[];
+    skippedCompetitors: Array<{ competitorId: string; reason: string }>;
+}
+
+export interface CompetitiveIntelRefreshResult {
+    planId: string;
+    frequencyMinutes: number;
+    competitorsChecked: number;
+    activeSources: number;
+    sourcesCreated: number;
+    sourcesUpdated: number;
+    sourcesRun: number;
+    succeeded: number;
+    failed: number;
+    failures: Array<{ sourceId: string; competitorId: string; error: string }>;
+    report: Pick<WeeklyIntelReport, 'id' | 'generatedAt' | 'totalDealsTracked' | 'totalSnapshots'> | null;
+}
+
+export async function getCompetitiveIntelPlanId(tenantId: string): Promise<string> {
+    const { firestore } = await createServerClient();
+
+    const [orgDoc, subscriptionDoc, tenantDoc] = await Promise.all([
+        firestore.collection('organizations').doc(tenantId).get(),
+        firestore.collection('organizations').doc(tenantId).collection('subscription').doc('current').get(),
+        firestore.collection('tenants').doc(tenantId).get(),
+    ]);
+
+    const orgData = orgDoc.data() || {};
+    const subscriptionData = subscriptionDoc.data() || {};
+    const tenantData = tenantDoc.data() || {};
+
+    const rawPlanId =
+        pickFirstString(
+            orgData?.billing?.planId,
+            orgData?.planId,
+            subscriptionData?.planId,
+            subscriptionData?.tierId,
+            orgData?.subscription?.tierId,
+            orgData?.plan,
+            tenantData?.billing?.planId,
+            tenantData?.planId,
+            tenantData?.plan
+        ) || 'signal';
+
+    return findPricingPlan(rawPlanId)?.id || rawPlanId.toLowerCase();
+}
+
+export async function reconcileCompetitiveIntelSources(
+    tenantId: string,
+    options?: {
+        planId?: string;
+        forceRunNow?: boolean;
+    }
+): Promise<CompetitiveIntelSourceReconciliation> {
+    const planId = options?.planId || await getCompetitiveIntelPlanId(tenantId);
+    const limits = getEzalLimits(planId);
+    const now = new Date();
+
+    const [competitors, activeSources] = await Promise.all([
+        listCompetitors(tenantId, { active: true, limit: Math.max(limits.maxCompetitors, 100) }),
+        listDataSources(tenantId, { active: true }),
+    ]);
+
+    const trackedCompetitors =
+        limits.maxCompetitors > 0 ? competitors.slice(0, limits.maxCompetitors) : competitors;
+
+    const sourcesByCompetitor = new Map<string, DataSource[]>();
+    for (const source of activeSources) {
+        const existing = sourcesByCompetitor.get(source.competitorId) || [];
+        existing.push(source);
+        sourcesByCompetitor.set(source.competitorId, existing);
+    }
+
+    const reconciledSources: DataSource[] = [];
+    const skippedCompetitors: Array<{ competitorId: string; reason: string }> = [];
+    let sourcesCreated = 0;
+    let sourcesUpdated = 0;
+
+    for (const competitor of trackedCompetitors) {
+        const existingSources = sourcesByCompetitor.get(competitor.id) || [];
+
+        if (existingSources.length === 0) {
+            const cannMenusMatch = await lookupCannMenusRetailer(competitor.name, competitor.state);
+            const baseUrl =
+                normalizeTrackedUrl(cannMenusMatch?.menuUrl) ||
+                normalizeTrackedUrl(competitor.primaryDomain);
+
+            if (!baseUrl) {
+                skippedCompetitors.push({
+                    competitorId: competitor.id,
+                    reason: 'Competitor has no valid menu URL or domain to recover a source.',
+                });
+                continue;
+            }
+
+            const source = await createDataSource(tenantId, {
+                competitorId: competitor.id,
+                kind: 'menu',
+                sourceType: cannMenusMatch ? 'cann_menus' : 'jina',
+                baseUrl,
+                frequencyMinutes: limits.frequencyMinutes,
+                robotsAllowed: true,
+                parserProfileId: 'generic_html_v1',
+                timezone: 'America/New_York',
+                priority: cannMenusMatch ? 8 : 6,
+                active: true,
+                metadata: cannMenusMatch
+                    ? {
+                        retailerId: cannMenusMatch.retailerId,
+                        retailerName: cannMenusMatch.retailerName,
+                        state: competitor.state,
+                        recoveredBy: 'competitive-intel-refresh',
+                        recoveredAt: now.toISOString(),
+                    }
+                    : {
+                        recoveredBy: 'competitive-intel-refresh',
+                        recoveredAt: now.toISOString(),
+                    },
+            });
+
+            reconciledSources.push(source);
+            sourcesCreated++;
+            continue;
+        }
+
+        for (const source of existingSources) {
+            const updates: Partial<DataSource> = {};
+            const expectedNextDue = source.lastDiscoveryAt
+                ? new Date(source.lastDiscoveryAt.getTime() + limits.frequencyMinutes * 60 * 1000)
+                : now;
+
+            if (source.frequencyMinutes !== limits.frequencyMinutes) {
+                updates.frequencyMinutes = limits.frequencyMinutes;
+            }
+
+            if (
+                options?.forceRunNow ||
+                !source.nextDueAt ||
+                source.nextDueAt.getTime() > expectedNextDue.getTime()
+            ) {
+                updates.nextDueAt = now;
+            }
+
+            if (Object.keys(updates).length > 0) {
+                await updateDataSource(tenantId, source.id, updates);
+                reconciledSources.push({
+                    ...source,
+                    ...updates,
+                    updatedAt: now,
+                });
+                sourcesUpdated++;
+            } else {
+                reconciledSources.push(source);
+            }
+        }
+    }
+
+    logger.info('[Ezal] Reconciled competitive intel sources', {
+        tenantId,
+        planId,
+        competitorsChecked: trackedCompetitors.length,
+        sourcesCreated,
+        sourcesUpdated,
+        skippedCompetitors: skippedCompetitors.length,
+    });
+
+    return {
+        planId,
+        frequencyMinutes: limits.frequencyMinutes,
+        competitorsChecked: trackedCompetitors.length,
+        sourcesCreated,
+        sourcesUpdated,
+        sources: reconciledSources,
+        skippedCompetitors,
+    };
+}
+
+export async function refreshCompetitiveIntelWorkspace(
+    tenantId: string,
+    options?: {
+        force?: boolean;
+        maxSources?: number;
+        planId?: string;
+    }
+): Promise<CompetitiveIntelRefreshResult> {
+    const reconciliation = await reconcileCompetitiveIntelSources(tenantId, {
+        planId: options?.planId,
+        forceRunNow: options?.force,
+    });
+
+    const now = new Date();
+    const sortedSources = [...reconciliation.sources].sort((left, right) => {
+        const leftDue = left.nextDueAt?.getTime() ?? 0;
+        const rightDue = right.nextDueAt?.getTime() ?? 0;
+        if (leftDue !== rightDue) {
+            return leftDue - rightDue;
+        }
+        return right.priority - left.priority;
+    });
+
+    const dueSources = sortedSources.filter((source) => {
+        if (options?.force) return true;
+        return !source.nextDueAt || source.nextDueAt.getTime() <= now.getTime();
+    });
+
+    const maxSources = options?.maxSources ?? 10;
+    const sourcesToRun = dueSources.slice(0, maxSources);
+
+    let succeeded = 0;
+    let failed = 0;
+    const failures: Array<{ sourceId: string; competitorId: string; error: string }> = [];
+
+    for (const source of sourcesToRun) {
+        const result = await executeFullDiscovery(tenantId, source.id);
+        if (result.success) {
+            succeeded++;
+            continue;
+        }
+
+        failed++;
+        failures.push({
+            sourceId: source.id,
+            competitorId: source.competitorId,
+            error: result.error || 'Unknown discovery error',
+        });
+    }
+
+    const report = await generateWeeklyIntelReport(tenantId);
+
+    logger.info('[Ezal] Competitive intel workspace refresh complete', {
+        tenantId,
+        planId: reconciliation.planId,
+        sourcesRun: sourcesToRun.length,
+        succeeded,
+        failed,
+        reportId: report.id,
+        totalSnapshots: report.totalSnapshots,
+    });
+
+    return {
+        planId: reconciliation.planId,
+        frequencyMinutes: reconciliation.frequencyMinutes,
+        competitorsChecked: reconciliation.competitorsChecked,
+        activeSources: reconciliation.sources.length,
+        sourcesCreated: reconciliation.sourcesCreated,
+        sourcesUpdated: reconciliation.sourcesUpdated,
+        sourcesRun: sourcesToRun.length,
+        succeeded,
+        failed,
+        failures,
+        report: {
+            id: report.id,
+            generatedAt: report.generatedAt,
+            totalDealsTracked: report.totalDealsTracked,
+            totalSnapshots: report.totalSnapshots,
+        },
+    };
 }
 
 // =============================================================================

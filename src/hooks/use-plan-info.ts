@@ -152,8 +152,8 @@ export function usePlanInfo() {
                 }
                 const userData = userDoc.data();
 
-                // Unlock all features for Super Admins and Owners
-                if (userData?.role === 'super_admin' || userData?.role === 'owner') {
+                // Unlock all features for Super Admins, Super Users, and Owners
+                if (userData?.role === 'super_admin' || userData?.role === 'super_user' || userData?.role === 'owner') {
                      setPlanInfo({
                          ...DEFAULT_PLAN,
                          planId: 'enterprise',

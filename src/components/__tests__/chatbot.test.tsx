@@ -19,6 +19,8 @@ jest.mock('lucide-react', () => ({
     HelpCircle: () => <div data-testid="help-icon">Help</div>,
     ChevronRight: () => <div data-testid="chevron-right">ChevronRight</div>,
     RotateCcw: () => <div data-testid="rotate-icon">Rotate</div>,
+    Mic: () => <div data-testid="mic-icon">Mic</div>,
+    MicOff: () => <div data-testid="mic-off-icon">MicOff</div>,
 }));
 
 jest.mock('@/components/ui/button', () => ({
@@ -73,6 +75,20 @@ jest.mock('@/hooks/use-store', () => ({
 
 jest.mock('@/hooks/use-auth', () => ({
     useAuth: () => ({ user: null }),
+}));
+
+const mockVoiceInput = {
+    isListening: false,
+    transcript: '',
+    error: null,
+    isSupported: true,
+    startListening: jest.fn(),
+    stopListening: jest.fn(),
+    resetTranscript: jest.fn(),
+};
+
+jest.mock('@/hooks/use-voice-input', () => ({
+    useVoiceInput: () => mockVoiceInput,
 }));
 
 jest.mock('@/contexts/chatbot-context', () => ({
@@ -140,6 +156,11 @@ describe('Chatbot Component', () => {
     ];
 
     beforeEach(() => {
+        mockVoiceInput.isListening = false;
+        mockVoiceInput.transcript = '';
+        mockVoiceInput.startListening.mockReset();
+        mockVoiceInput.stopListening.mockReset();
+        mockVoiceInput.resetTranscript.mockReset();
         global.fetch = jest.fn().mockResolvedValue({
             json: async () => ({
                 ok: true,
@@ -326,6 +347,37 @@ describe('Chatbot Component', () => {
             );
 
             expect(screen.getByTestId('product-carousel')).toBeInTheDocument();
+        });
+
+        it('renders inline relative mode without the floating toggle button', () => {
+            render(
+                <Chatbot
+                    products={mockProducts as any}
+                    brandId="brand_ecstatic_edibles"
+                    initialOpen={true}
+                    positionStrategy="relative"
+                    chatbotConfig={{ enabled: true }}
+                />
+            );
+
+            expect(screen.getByText(/Hi, I'm Smokey/i)).toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: /toggle chatbot/i })).not.toBeInTheDocument();
+        });
+
+        it('shows a voice-input affordance when enabled', () => {
+            render(
+                <Chatbot
+                    products={mockProducts as any}
+                    brandId="brand_ecstatic_edibles"
+                    initialOpen={true}
+                    allowVoiceInput={true}
+                    chatbotConfig={{ enabled: true }}
+                />
+            );
+
+            fireEvent.click(screen.getByRole('button', { name: /just ask me a question/i }));
+
+            expect(screen.getByRole('button', { name: /start voice input/i })).toBeInTheDocument();
         });
 
         it('sends the dispensary state during onboarding requests', async () => {

@@ -8,13 +8,16 @@
  *
  * Usage (consumer):
  *   import { getRequestContext } from '@/lib/request-context';
- *   const { useGLMSynthesis } = getRequestContext();
+ *   const { useGLMSynthesis, glmTask } = getRequestContext();
  */
 import { AsyncLocalStorage } from 'async_hooks';
+import type { AITextTaskClass } from '@/types/ai-routing';
 
 export interface RequestContext {
     /** Route synthesis step to GLM instead of Claude (non-PII, cost savings). */
     useGLMSynthesis?: boolean;
+    /** Preferred GLM task class when GLM synthesis is enabled. */
+    glmTask?: AITextTaskClass;
 }
 
 export const requestContext = new AsyncLocalStorage<RequestContext>();

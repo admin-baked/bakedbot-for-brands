@@ -26,6 +26,7 @@
 
 import { ImageResponse } from 'next/og';
 import { type NextRequest } from 'next/server';
+import { normalizeOgAssetUrl } from '@/ai/generators/og';
 
 // Edge runtime: uses Satori's pure-JS renderer (no native bindings) —
 // more reliable on Cloud Run and avoids @resvg/resvg-js compatibility issues.
@@ -46,6 +47,7 @@ function getDimensions(platform: string): { width: number; height: number } {
 
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
+    const origin = req.nextUrl.origin;
 
     const template    = searchParams.get('template')     ?? 'text-on-color';
     const headline    = searchParams.get('headline')     ?? '';
@@ -53,8 +55,8 @@ export async function GET(req: NextRequest) {
     const bgColor     = searchParams.get('bgColor')      ?? '#1a1a2e';
     const accentColor = searchParams.get('accentColor')  ?? '#ffffff';
     const brandName   = searchParams.get('brandName')    ?? '';
-    const logoUrl     = searchParams.get('logoUrl')      ?? '';
-    const imageUrl    = searchParams.get('imageUrl')     ?? '';
+    const logoUrl     = normalizeOgAssetUrl(searchParams.get('logoUrl') ?? '', origin) ?? '';
+    const imageUrl    = normalizeOgAssetUrl(searchParams.get('imageUrl') ?? '', origin) ?? '';
     const platform    = searchParams.get('platform')     ?? 'instagram';
 
     const dims = getDimensions(platform);

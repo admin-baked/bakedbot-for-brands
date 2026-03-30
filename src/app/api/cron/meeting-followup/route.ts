@@ -12,7 +12,11 @@ import {
     markFollowUpSent,
     getExecutiveProfile,
 } from '@/server/actions/executive-calendar';
-import { sendFollowUpEmail } from '@/server/services/executive-calendar/booking-emails';
+import {
+    buildExecutiveBookingEventData,
+    buildExecutiveBookingEventName,
+} from '@/server/services/executive-calendar/booking-playbook-events';
+import { dispatchPlaybookEventSync } from '@/server/services/playbook-event-dispatcher';
 import { logger } from '@/lib/logger';
 
 export const maxDuration = 120;
@@ -36,7 +40,27 @@ async function handleFollowUps() {
             const meetingNotes = booking.meetingNotes ?? await generateFollowUpNotes(booking, profile.displayName);
             const actionItems = booking.actionItems ?? [];
 
-            await sendFollowUpEmail(booking, profile, meetingNotes, actionItems);
+            const summary = await dispatchPlaybookEventSync(
+                'bakedbot-internal',
+                buildExecutiveBookingEventName(profile.profileSlug, 'followup'),
+                buildExecutiveBookingEventData({
+                    booking,
+                    profile,
+                    stage: 'followup',
+                    meetingNotes,
+                    actionItems,
+                }),
+            );
+            if (!summary.delivered) {
+                logger.warn('[MeetingFollowUp] Follow-up delivery failed; leaving booking unsent for retry', {
+                    bookingId: booking.id,
+                    profileSlug: booking.profileSlug,
+                    recipientEmail: booking.externalEmail,
+                    results: summary.results,
+                });
+                continue;
+            }
+
             await markFollowUpSent(booking.id);
             processed++;
 

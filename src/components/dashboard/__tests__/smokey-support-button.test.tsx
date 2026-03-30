@@ -53,6 +53,13 @@ describe('SmokeyFloatingButton route visibility regression', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  it('hides floating help button on creative studio to avoid blocking schedule actions', () => {
+    mockUsePathname.mockReturnValue('/dashboard/creative');
+    const { container } = render(<SmokeyFloatingButton />);
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
   it('keeps help prompt visible on mobile-like viewport for non-menu routes', () => {
     Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 390 });
     mockUsePathname.mockReturnValue('/dashboard/orders');

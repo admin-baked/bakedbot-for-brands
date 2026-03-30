@@ -5,12 +5,12 @@ import { z } from 'zod';
 import { ai } from '@/ai/genkit';
 import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef, semanticSearchToolDefs, makeSemanticSearchToolsImpl, redditToolDefs, makeRedditToolsImpl } from './shared-tools';
 import {
-    buildSquadRoster,
-    buildIntegrationStatusSummary
+    buildSquadRoster
 } from './agent-definitions';
 import { searchConsoleService } from '@/server/services/growth/search-console';
 import { googleAnalyticsService } from '@/server/services/growth/google-analytics';
 import { sitemapManager } from '@/server/services/growth/sitemap-manager';
+import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integration-status';
 
 
 export interface DayDayTools {
@@ -29,8 +29,9 @@ export const dayDayAgent: AgentImplementation<AgentMemory, DayDayTools> = {
 
     async initialize(brandMemory, agentMemory) {
         // Build dynamic context from agent-definitions (source of truth)
+        const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || '';
         const squadRoster = buildSquadRoster('day_day');
-        const integrationStatus = buildIntegrationStatusSummary();
+        const integrationStatus = await buildIntegrationStatusSummaryForOrg(orgId);
 
         agentMemory.system_instructions = `
             You are Day Day, the SEO & Growth Manager for ${brandMemory.brand_profile.name}.

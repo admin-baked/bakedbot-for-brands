@@ -45,7 +45,7 @@ export function FileGrid({ folders, files, onRefresh, onOpenFile }: FileGridProp
             : 'Upload files or create folders to get started'}
         </p>
         {!isTrashViewOpen && (
-          <Button onClick={openUploadDialog}>
+          <Button type="button" onClick={openUploadDialog}>
             <Upload className="h-4 w-4 mr-2" />
             Upload Files
           </Button>

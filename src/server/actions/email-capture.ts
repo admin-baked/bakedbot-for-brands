@@ -9,6 +9,7 @@
 'use server';
 
 import { getAdminFirestore } from '@/firebase/admin';
+import { isNormalizedPhone, normalizePhone } from '@/lib/customer-import/column-mapping';
 import { logger } from '@/lib/logger';
 import { requireUser } from '@/server/auth/auth';
 
@@ -46,6 +47,13 @@ export interface EmailLead {
     welcomeEmailSent?: boolean;
     welcomeSmsSent?: boolean;
     tags: string[];
+}
+
+export interface CaptureEmailLeadResult {
+    success: boolean;
+    leadId?: string;
+    isNewLead: boolean;
+    error?: string;
 }
 
 function isSuperRole(role: unknown): boolean {
@@ -110,20 +118,27 @@ function sameLeadScope(existing: LeadScope, incoming: LeadScope): boolean {
 /**
  * Capture email lead from age gate or other source
  */
-export async function captureEmailLead(request: CaptureEmailLeadRequest): Promise<{ success: boolean; leadId?: string; error?: string }> {
+export async function captureEmailLead(request: CaptureEmailLeadRequest): Promise<CaptureEmailLeadResult> {
     try {
+        const normalizedEmail = request.email?.trim().toLowerCase();
+        const normalizedPhone = request.phone ? normalizePhone(request.phone) : undefined;
+
         // Validate input
-        if (!request.email && !request.phone) {
-            return { success: false, error: 'Email or phone required' };
+        if (!normalizedEmail && !normalizedPhone) {
+            return { success: false, isNewLead: false, error: 'Email or phone required' };
         }
 
-        if (request.email && request.emailConsent === false) {
-            logger.warn('[EmailCapture] Email provided but consent not given', { email: request.email });
+        if (request.phone && !isNormalizedPhone(normalizedPhone)) {
+            return { success: false, isNewLead: false, error: 'Valid phone number required' };
+        }
+
+        if (normalizedEmail && request.emailConsent === false) {
+            logger.warn('[EmailCapture] Email provided but consent not given', { email: normalizedEmail });
             // Still capture but don't send marketing emails
         }
 
-        if (request.phone && request.smsConsent === false) {
-            logger.warn('[EmailCapture] Phone provided but SMS consent not given', { phone: request.phone });
+        if (normalizedPhone && request.smsConsent === false) {
+            logger.warn('[EmailCapture] Phone provided but SMS consent not given', { phone: normalizedPhone });
             // Still capture but don't send marketing SMS
         }
 
@@ -131,8 +146,8 @@ export async function captureEmailLead(request: CaptureEmailLeadRequest): Promis
 
         // Create lead document
         const leadData: Omit<EmailLead, 'id'> = {
-            email: request.email,
-            phone: request.phone,
+            email: normalizedEmail,
+            phone: normalizedPhone,
             firstName: request.firstName,
             emailConsent: request.emailConsent,
             smsConsent: request.smsConsent,
@@ -157,9 +172,9 @@ export async function captureEmailLead(request: CaptureEmailLeadRequest): Promis
         // Check if lead already exists (by email or phone)
         const db = getAdminFirestore();
         let existingLead: FirebaseFirestore.QueryDocumentSnapshot | null = null;
-        if (request.email) {
+        if (normalizedEmail) {
             const emailQuery = await db.collection('email_leads')
-                .where('email', '==', request.email)
+                .where('email', '==', normalizedEmail)
                 .get();
 
             if (!emailQuery.empty) {
@@ -175,9 +190,9 @@ export async function captureEmailLead(request: CaptureEmailLeadRequest): Promis
             }
         }
 
-        if (!existingLead && request.phone) {
+        if (!existingLead && normalizedPhone) {
             const phoneQuery = await db.collection('email_leads')
-                .where('phone', '==', request.phone)
+                .where('phone', '==', normalizedPhone)
                 .get();
 
             if (!phoneQuery.empty) {
@@ -194,6 +209,7 @@ export async function captureEmailLead(request: CaptureEmailLeadRequest): Promis
         }
 
         let leadId: string;
+        let isNewLead = false;
 
         if (existingLead) {
             // Update existing lead
@@ -205,58 +221,76 @@ export async function captureEmailLead(request: CaptureEmailLeadRequest): Promis
 
             logger.info('[EmailCapture] Updated existing lead', {
                 leadId,
-                email: request.email,
-                phone: request.phone,
+                email: normalizedEmail,
+                phone: normalizedPhone,
                 source: request.source,
             });
         } else {
             // Create new lead
             const docRef = await db.collection('email_leads').add(leadData);
             leadId = docRef.id;
+            isNewLead = true;
 
             logger.info('[EmailCapture] Created new lead', {
                 leadId,
-                email: request.email,
-                phone: request.phone,
+                email: normalizedEmail,
+                phone: normalizedPhone,
                 source: request.source,
             });
 
             // Trigger welcome email via Craig (async, don't block)
-            if (request.email && request.emailConsent) {
-                triggerWelcomeEmail(leadId, request.email, request.firstName, request.brandId, request.dispensaryId)
+            if (normalizedEmail && request.emailConsent) {
+                triggerWelcomeEmail(
+                    leadId,
+                    normalizedEmail,
+                    request.firstName,
+                    request.brandId,
+                    request.dispensaryId,
+                    request.state,
+                    request.source,
+                )
                     .catch(err => {
                         logger.error('[EmailCapture] Failed to trigger welcome email', {
                             leadId,
-                            email: request.email,
+                            email: normalizedEmail,
                             error: err.message,
                         });
                     });
 
-                // ALSO trigger Welcome Email Campaign playbook for tracking
-                triggerWelcomePlaybook(leadId, request.email, request.firstName, request.brandId, request.dispensaryId)
+                // ALSO trigger Welcome Email Campaign playbook tracking for every opted-in email lead,
+                // including dedicated Thrive check-in traffic.
+                triggerWelcomePlaybook(leadId, normalizedEmail, request.firstName, request.brandId, request.dispensaryId)
                     .catch(err => {
                         logger.error('[EmailCapture] Failed to trigger welcome playbook', {
                             leadId,
-                            email: request.email,
+                            email: normalizedEmail,
                             error: err.message,
                         });
                     });
             }
 
             // Trigger welcome SMS via Craig (async, don't block)
-            if (request.phone && request.smsConsent) {
-                triggerWelcomeSms(leadId, request.phone, request.firstName, request.brandId, request.dispensaryId)
+            if (normalizedPhone && request.smsConsent) {
+                triggerWelcomeSms(
+                    leadId,
+                    normalizedPhone,
+                    request.firstName,
+                    request.brandId,
+                    request.dispensaryId,
+                    request.state,
+                    request.source,
+                )
                     .catch(err => {
                         logger.error('[EmailCapture] Failed to trigger welcome SMS', {
                             leadId,
-                            phone: request.phone,
+                            phone: normalizedPhone,
                             error: err.message,
                         });
                     });
             }
         }
 
-        return { success: true, leadId };
+        return { success: true, leadId, isNewLead };
     } catch (error: unknown) {
         const err = error as Error;
         logger.error('[EmailCapture] Error capturing lead', {
@@ -266,6 +300,7 @@ export async function captureEmailLead(request: CaptureEmailLeadRequest): Promis
 
         return {
             success: false,
+            isNewLead: false,
             error: err.message || 'Failed to capture lead',
         };
     }
@@ -280,7 +315,9 @@ async function triggerWelcomeEmail(
     email: string,
     firstName?: string,
     brandId?: string,
-    dispensaryId?: string
+    dispensaryId?: string,
+    state?: string,
+    source?: string,
 ): Promise<void> {
     try {
         const db = getAdminFirestore();
@@ -296,6 +333,8 @@ async function triggerWelcomeEmail(
                 firstName,
                 brandId,
                 dispensaryId,
+                state,
+                source,
                 emailType: 'welcome', // Mrs. Parker's sendPersonalizedEmail tool
             },
             createdAt: Date.now(),
@@ -332,7 +371,9 @@ async function triggerWelcomeSms(
     phone: string,
     firstName?: string,
     brandId?: string,
-    dispensaryId?: string
+    dispensaryId?: string,
+    state?: string,
+    source?: string,
 ): Promise<void> {
     try {
         const db = getAdminFirestore();
@@ -348,6 +389,8 @@ async function triggerWelcomeSms(
                 firstName,
                 brandId,
                 dispensaryId,
+                state,
+                source,
                 messageType: 'welcome', // For Mrs. Parker's SMS tool
             },
             createdAt: Date.now(),

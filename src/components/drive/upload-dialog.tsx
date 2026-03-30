@@ -8,8 +8,13 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { useDriveStore } from '@/lib/store/drive-store';
-import { uploadFile, uploadFileFromUrl } from '@/server/actions/drive';
-import { DRIVE_CATEGORIES, type DriveCategory, formatFileSize } from '@/types/drive';
+import {
+  DRIVE_CATEGORIES,
+  type DriveActionResult,
+  type DriveCategory,
+  type DriveFile,
+  formatFileSize,
+} from '@/types/drive';
 import {
   Dialog,
   DialogContent,
@@ -41,6 +46,79 @@ interface UploadItem {
   progress: number;
   status: 'pending' | 'uploading' | 'success' | 'error';
   error?: string;
+}
+
+function isDriveFile(value: unknown): value is DriveFile {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.id === 'string' &&
+    typeof record.name === 'string' &&
+    typeof record.storagePath === 'string' &&
+    typeof record.downloadUrl === 'string'
+  );
+}
+
+async function parseDriveUploadResponse(response: Response): Promise<DriveActionResult<DriveFile>> {
+  let body: unknown;
+
+  try {
+    body = await response.json();
+  } catch {
+    return {
+      success: false,
+      error: response.ok ? 'Invalid upload response' : 'Upload failed',
+    };
+  }
+
+  if (!body || typeof body !== 'object') {
+    return {
+      success: false,
+      error: response.ok ? 'Invalid upload response' : 'Upload failed',
+    };
+  }
+
+  const record = body as Record<string, unknown>;
+  const error =
+    typeof record.error === 'string'
+      ? record.error
+      : response.ok
+        ? undefined
+        : 'Upload failed';
+
+  return {
+    success: record.success === true && isDriveFile(record.data),
+    data: isDriveFile(record.data) ? record.data : undefined,
+    error,
+  };
+}
+
+async function uploadFileViaApi(formData: FormData): Promise<DriveActionResult<DriveFile>> {
+  const response = await fetch('/api/drive/upload', {
+    method: 'POST',
+    body: formData,
+  });
+
+  return parseDriveUploadResponse(response);
+}
+
+async function uploadFileFromUrlViaApi(input: {
+  url: string;
+  folderId: string | null;
+  category: DriveCategory;
+}): Promise<DriveActionResult<DriveFile>> {
+  const response = await fetch('/api/drive/upload-from-url', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(input),
+  });
+
+  return parseDriveUploadResponse(response);
 }
 
 export function UploadDialog() {
@@ -106,6 +184,7 @@ export function UploadDialog() {
     if (pendingItems.length === 0) return;
 
     setIsUploading(true);
+    let successCount = 0;
 
     for (const item of pendingItems) {
       updateQueueItem(item.id, { status: 'uploading', progress: 10 });
@@ -120,11 +199,12 @@ export function UploadDialog() {
 
         updateQueueItem(item.id, { progress: 50 });
 
-        const result = await uploadFile(formData);
+        const result = await uploadFileViaApi(formData);
 
         if (result.success && result.data) {
           updateQueueItem(item.id, { status: 'success', progress: 100 });
           addFile(result.data);
+          successCount += 1;
         } else {
           updateQueueItem(item.id, { status: 'error', error: result.error || 'Upload failed' });
         }
@@ -138,7 +218,6 @@ export function UploadDialog() {
 
     setIsUploading(false);
 
-    const successCount = uploadQueue.filter((item) => item.status === 'success').length;
     if (successCount > 0) {
       toast({ title: `${successCount} file(s) uploaded successfully` });
     }
@@ -150,7 +229,11 @@ export function UploadDialog() {
     setIsUploading(true);
 
     try {
-      const result = await uploadFileFromUrl(urlInput.trim(), currentFolderId, selectedCategory);
+      const result = await uploadFileFromUrlViaApi({
+        url: urlInput.trim(),
+        folderId: currentFolderId,
+        category: selectedCategory,
+      });
 
       if (result.success && result.data) {
         addFile(result.data);
@@ -168,6 +251,15 @@ export function UploadDialog() {
     }
 
     setIsUploading(false);
+  };
+
+  const handleUrlInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter') {
+      return;
+    }
+
+    e.preventDefault();
+    void handleUploadFromUrl();
   };
 
   const handleClose = () => {
@@ -270,6 +362,7 @@ export function UploadDialog() {
                     </div>
                     {item.status === 'pending' && (
                       <Button
+                        type="button"
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
@@ -294,7 +387,7 @@ export function UploadDialog() {
 
             {/* Upload Button */}
             {pendingCount > 0 && (
-              <Button onClick={uploadAllFiles} disabled={isUploading} className="w-full">
+              <Button type="button" onClick={uploadAllFiles} disabled={isUploading} className="w-full">
                 {isUploading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -311,7 +404,7 @@ export function UploadDialog() {
 
             {/* Done Button */}
             {hasUploaded && pendingCount === 0 && (
-              <Button onClick={handleClose} className="w-full">
+              <Button type="button" onClick={handleClose} className="w-full">
                 Done
               </Button>
             )}
@@ -343,11 +436,12 @@ export function UploadDialog() {
                 placeholder="https://example.com/file.png"
                 value={urlInput}
                 onChange={(e) => setUrlInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleUploadFromUrl()}
+                onKeyDown={handleUrlInputKeyDown}
               />
             </div>
 
             <Button
+              type="button"
               onClick={handleUploadFromUrl}
               disabled={!urlInput.trim() || isUploading}
               className="w-full"

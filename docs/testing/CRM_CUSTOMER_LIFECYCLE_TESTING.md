@@ -17,7 +17,6 @@ This guide covers the current CRM/customer lifecycle surface shipped in the dash
 - customer communications and scheduled message rendering
 
 It is designed for release validation after changes to CRM data loading, lifecycle playbooks, customer communications, or Alleaves-driven spending enrichment.
-
 ---
 
 ## Prerequisites

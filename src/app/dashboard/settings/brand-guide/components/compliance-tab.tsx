@@ -138,6 +138,7 @@ export function ComplianceTab({ brandId, brandGuide, onUpdate }: ComplianceTabPr
           health: !prev.requiredDisclaimers?.health ? d.health : (prev.requiredDisclaimers?.health ?? ''),
           legal:  !prev.requiredDisclaimers?.legal  ? d.legal  : (prev.requiredDisclaimers?.legal  ?? ''),
         },
+        ageGateLanguage: prev.ageGateLanguage || (result.ageGateLanguage ?? ''),
       }));
       toast({ title: 'Disclaimers generated', description: 'Review and save. These are AI suggestions — consult a lawyer for final copy.' });
     } catch (err) {
@@ -356,6 +357,22 @@ export function ComplianceTab({ brandId, brandGuide, onUpdate }: ComplianceTabPr
               rows={3}
             />
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Age Gate Language */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Age Gate Language</CardTitle>
+          <CardDescription>Text shown on the age verification screen before visitors can access your brand page</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            value={compliance.ageGateLanguage || ''}
+            onChange={(e) => setCompliance({ ...compliance, ageGateLanguage: e.target.value })}
+            placeholder="e.g., You must be 21 or older to enter this site. By clicking Enter, you confirm you are of legal age in your state."
+            rows={3}
+          />
         </CardContent>
       </Card>
 

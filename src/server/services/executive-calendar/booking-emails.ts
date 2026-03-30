@@ -56,6 +56,55 @@ async function resolveExecutiveSenderUserId(profile: ExecutiveProfile): Promise<
     }
 }
 
+async function deliverHostBookingNotification(
+    booking: MeetingBooking,
+    profile: ExecutiveProfile,
+): Promise<{ delivery: EmailDeliveryResult; senderUserId: string | null }> {
+    const formattedTime = formatDatetime(booking.startAt, profile.availability.timezone);
+    const senderUserId = await resolveExecutiveSenderUserId(profile);
+    const delivery = await sendGenericEmail({
+        to: profile.emailAddress,
+        name: profile.displayName,
+        fromName: profile.displayName,
+        subject: `📅 New meeting: ${booking.externalName} — ${booking.meetingTypeName}`,
+        htmlBody: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #111;">
+                <div style="padding: 24px;">
+                    <h2 style="margin: 0 0 16px;">New Meeting Booked</h2>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 15px;">
+                        <tr><td style="padding: 8px 0; color: #666; width: 120px;">Guest</td><td><strong>${booking.externalName}</strong> (${booking.externalEmail})</td></tr>
+                        <tr><td style="padding: 8px 0; color: #666;">When</td><td>${formattedTime}</td></tr>
+                        <tr><td style="padding: 8px 0; color: #666;">Type</td><td>${booking.meetingTypeName} · ${booking.durationMinutes} min</td></tr>
+                        <tr><td style="padding: 8px 0; color: #666;">Topic</td><td>${booking.purpose}</td></tr>
+                        <tr><td style="padding: 8px 0; color: #666;">Room</td><td><a href="${booking.videoRoomUrl}">${booking.videoRoomUrl}</a></td></tr>
+                    </table>
+                    <p style="margin-top: 24px; color: #666; font-size: 13px;">Leo will send you a prep brief 30 minutes before the meeting.</p>
+                </div>
+            </div>
+        `,
+        communicationType: 'transactional',
+        userId: senderUserId ?? undefined,
+    });
+
+    return {
+        delivery,
+        senderUserId,
+    };
+}
+
+export async function sendHostBookingNotificationEmail(
+    booking: MeetingBooking,
+    profile: ExecutiveProfile,
+): Promise<EmailDeliveryResult> {
+    const { delivery } = await deliverHostBookingNotification(booking, profile);
+
+    if (!delivery.success) {
+        logger.warn(`[BookingEmails] Failed to send exec notification: ${delivery.error}`);
+    }
+
+    return delivery;
+}
+
 /**
  * Sends a booking confirmation to the external guest + notification to the exec.
  */
@@ -64,7 +113,6 @@ export async function sendConfirmationEmail(
     profile: ExecutiveProfile,
 ): Promise<BookingConfirmationEmailResult> {
     const formattedTime = formatDatetime(booking.startAt, profile.availability.timezone);
-    const senderUserId = await resolveExecutiveSenderUserId(profile);
 
     // Email to the external guest — always use transactional path (no Gmail dependency)
     const guestResult = await sendGenericEmail({
@@ -115,34 +163,7 @@ export async function sendConfirmationEmail(
         logger.error(`[BookingEmails] Failed to send confirmation to guest: ${guestResult.error}`);
     }
 
-    // Notification to the exec
-    const execResult = await sendGenericEmail({
-        to: profile.emailAddress,
-        name: profile.displayName,
-        fromName: profile.displayName,
-        subject: `📅 New meeting: ${booking.externalName} — ${booking.meetingTypeName}`,
-        htmlBody: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #111;">
-                <div style="padding: 24px;">
-                    <h2 style="margin: 0 0 16px;">New Meeting Booked</h2>
-                    <table style="width: 100%; border-collapse: collapse; font-size: 15px;">
-                        <tr><td style="padding: 8px 0; color: #666; width: 120px;">Guest</td><td><strong>${booking.externalName}</strong> (${booking.externalEmail})</td></tr>
-                        <tr><td style="padding: 8px 0; color: #666;">When</td><td>${formattedTime}</td></tr>
-                        <tr><td style="padding: 8px 0; color: #666;">Type</td><td>${booking.meetingTypeName} · ${booking.durationMinutes} min</td></tr>
-                        <tr><td style="padding: 8px 0; color: #666;">Topic</td><td>${booking.purpose}</td></tr>
-                        <tr><td style="padding: 8px 0; color: #666;">Room</td><td><a href="${booking.videoRoomUrl}">${booking.videoRoomUrl}</a></td></tr>
-                    </table>
-                    <p style="margin-top: 24px; color: #666; font-size: 13px;">Leo will send you a prep brief 30 minutes before the meeting.</p>
-                </div>
-            </div>
-        `,
-        communicationType: 'transactional',
-        userId: senderUserId ?? undefined,
-    });
-
-    if (!execResult.success) {
-        logger.warn(`[BookingEmails] Failed to send exec notification: ${execResult.error}`);
-    }
+    const { delivery: execResult, senderUserId } = await deliverHostBookingNotification(booking, profile);
 
     logger.info('[BookingEmails] Confirmation delivery summary', {
         bookingId: booking.id,
@@ -167,7 +188,7 @@ export async function sendFollowUpEmail(
     profile: ExecutiveProfile,
     meetingNotes: string,
     actionItems: string[],
-): Promise<void> {
+): Promise<EmailDeliveryResult> {
     const actionItemsHtml = actionItems.length > 0
         ? `<ul style="margin: 8px 0; padding-left: 20px;">${actionItems.map(a => `<li>${a}</li>`).join('')}</ul>`
         : '<p style="color: #666;">No specific action items captured.</p>';
@@ -213,6 +234,8 @@ export async function sendFollowUpEmail(
     if (!result.success) {
         logger.error(`[BookingEmails] Failed to send follow-up: ${result.error}`);
     }
+
+    return result;
 }
 
 /**
@@ -221,7 +244,7 @@ export async function sendFollowUpEmail(
 export async function send24HourReminderEmail(
     booking: MeetingBooking,
     profile: ExecutiveProfile,
-): Promise<void> {
+): Promise<EmailDeliveryResult> {
     const formattedTime = formatDatetime(booking.startAt, profile.availability.timezone);
     const firstName = booking.externalName.split(' ')[0];
 
@@ -270,6 +293,8 @@ export async function send24HourReminderEmail(
     if (!result.success) {
         logger.error(`[BookingEmails] Failed to send 24-hour reminder: ${result.error}`);
     }
+
+    return result;
 }
 
 /**
@@ -278,7 +303,7 @@ export async function send24HourReminderEmail(
 export async function sendOneHourReminderEmail(
     booking: MeetingBooking,
     profile: ExecutiveProfile,
-): Promise<void> {
+): Promise<EmailDeliveryResult> {
     const formattedTime = formatDatetime(booking.startAt, profile.availability.timezone);
 
     const result = await sendGenericEmail({
@@ -322,6 +347,8 @@ export async function sendOneHourReminderEmail(
     if (!result.success) {
         logger.error(`[BookingEmails] Failed to send 1-hour reminder: ${result.error}`);
     }
+
+    return result;
 }
 
 /**
@@ -330,7 +357,7 @@ export async function sendOneHourReminderEmail(
 export async function sendMeetingStartedEmail(
     booking: MeetingBooking,
     profile: ExecutiveProfile,
-): Promise<void> {
+): Promise<EmailDeliveryResult> {
     const result = await sendGenericEmail({
         to: booking.externalEmail,
         name: booking.externalName,
@@ -367,4 +394,6 @@ export async function sendMeetingStartedEmail(
     if (!result.success) {
         logger.error(`[BookingEmails] Failed to send start notification: ${result.error}`);
     }
+
+    return result;
 }

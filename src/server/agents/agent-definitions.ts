@@ -56,7 +56,7 @@ export const AGENT_CAPABILITIES: AgentCapability[] = [
         id: 'money_mike',
         name: 'Money Mike',
         specialty: 'Pricing & Revenue',
-        keywords: ['price', 'pricing', 'discount', 'margin', 'revenue', 'forecast', 'profit', 'deal', 'promotion', 'cost', 'spend', 'roi', 'billing', 'subscription'],
+        keywords: ['price', 'pricing', 'discount', 'margin', 'revenue', 'forecast', 'profit', 'deal', 'promotion', 'cost', 'cogs', 'cost of goods', 'spend', 'roi', 'billing', 'subscription'],
         description: 'Optimizes pricing strategies, forecasts revenue impact, and validates margins.',
         responseFormat: 'Precise numbers. Currency formatting. Include margin impact. Use tables for comparisons.',
         roleRestrictions: ['guest', 'customer']
@@ -254,6 +254,7 @@ export const KNOWN_INTEGRATIONS: IntegrationStatus[] = [
     { id: 'google_calendar', name: 'Google Calendar', status: 'not_configured', description: 'Calendar sync', setupRequired: 'OAuth integration needed' },
     { id: 'google_drive', name: 'Google Drive', status: 'not_configured', description: 'Document storage', setupRequired: 'OAuth integration needed' },
     { id: 'hubspot', name: 'HubSpot CRM', status: 'not_configured', description: 'Sales pipeline', setupRequired: 'API key and OAuth setup' },
+    { id: 'alleaves', name: 'Alleaves POS', status: 'not_configured', description: 'POS integration', setupRequired: 'Brand POS setup required' },
     { id: 'alpineiq', name: 'Alpine IQ', status: 'not_configured', description: 'Customer loyalty data', setupRequired: 'Brand integration required' },
     { id: 'springbig', name: 'Springbig', status: 'not_configured', description: 'Loyalty program', setupRequired: 'Brand integration required' },
     { id: 'dutchie', name: 'Dutchie POS', status: 'not_configured', description: 'POS integration', setupRequired: 'Brand POS setup required' },
@@ -269,19 +270,27 @@ export function getIntegrationStatus(integrationId: string): IntegrationStatus |
 /**
  * Build a status summary of all integrations for system prompts.
  */
-export function buildIntegrationStatusSummary(): string {
-    const active = KNOWN_INTEGRATIONS.filter(i => i.status === 'active');
-    const configured = KNOWN_INTEGRATIONS.filter(i => i.status === 'configured');
-    const notConfigured = KNOWN_INTEGRATIONS.filter(i => i.status === 'not_configured');
+export function buildIntegrationStatusSummary(
+    integrations: IntegrationStatus[] = KNOWN_INTEGRATIONS
+): string {
+    const active = integrations.filter(i => i.status === 'active');
+    const configured = integrations.filter(i => i.status === 'configured');
+    const notConfigured = integrations.filter(i => i.status === 'not_configured');
 
     let summary = '**ACTIVE INTEGRATIONS:**\n';
-    summary += active.map(i => `✅ ${i.name}: ${i.description}`).join('\n');
+    summary += active.length > 0
+        ? active.map(i => `✅ ${i.name}: ${i.description}`).join('\n')
+        : 'None grounded for this session.';
 
     summary += '\n\n**CONFIGURED (May need brand setup):**\n';
-    summary += configured.map(i => `⚙️ ${i.name}: ${i.description}`).join('\n');
+    summary += configured.length > 0
+        ? configured.map(i => `⚙️ ${i.name}: ${i.description}`).join('\n')
+        : 'None.';
 
     summary += '\n\n**NOT YET INTEGRATED:**\n';
-    summary += notConfigured.map(i => `❌ ${i.name}: ${i.description} — ${i.setupRequired}`).join('\n');
+    summary += notConfigured.length > 0
+        ? notConfigured.map(i => `❌ ${i.name}: ${i.description} — ${i.setupRequired}`).join('\n')
+        : 'None.';
 
     return summary;
 }

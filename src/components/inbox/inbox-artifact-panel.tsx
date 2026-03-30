@@ -53,6 +53,7 @@ import { AnalyticsBriefingArtifact } from './artifacts/analytics-briefing-artifa
 import { OutreachDraftCard } from './artifacts/outreach-draft-card';
 import { ExecutiveProactiveCheckArtifact, type ExecProactiveCheckData } from './artifacts/executive-proactive-check-artifact';
 import { CohortReportArtifact } from './artifacts/cohort-report-artifact';
+import { CheckinBriefingArtifact } from './artifacts/checkin-briefing-artifact';
 import { CreativeMediaPreview } from './artifacts/creative-media-preview';
 import { VmRunView } from '@/components/artifacts';
 import { mapVmRunStatusToInboxStatus, resolveVmRunApproval, type VmRunArtifactData } from '@/types/agent-vm';
@@ -74,6 +75,7 @@ const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
     analytics_chart: BarChart2,
     analytics_briefing: Newspaper,
     cohort_report: Users,
+    checkin_briefing: Users,
     outreach_draft: Mail,
     executive_proactive_check: Sparkles,
     vm_run: Sparkles,
@@ -566,6 +568,9 @@ export function InboxArtifactPanel({ artifacts, className }: InboxArtifactPanelP
                                     )}
                                     {selectedArtifact.type === 'cohort_report' && (
                                         <CohortReportArtifact artifact={selectedArtifact} />
+                                    )}
+                                    {selectedArtifact.type === 'checkin_briefing' && (
+                                        <CheckinBriefingArtifact artifact={selectedArtifact} />
                                     )}
                                     {selectedArtifact.type === 'outreach_draft' && (
                                         <OutreachDraftCard artifact={selectedArtifact} />

@@ -1,4 +1,10 @@
-import { sendConfirmationEmail } from './booking-emails';
+import {
+    send24HourReminderEmail,
+    sendConfirmationEmail,
+    sendFollowUpEmail,
+    sendMeetingStartedEmail,
+    sendOneHourReminderEmail,
+} from './booking-emails';
 import { sendGenericEmail } from '@/lib/email/dispatcher';
 import { getAdminAuth } from '@/firebase/admin';
 import type { ExecutiveProfile, MeetingBooking } from '@/types/executive-calendar';
@@ -65,6 +71,7 @@ function buildBooking(overrides: Partial<MeetingBooking> = {}): MeetingBooking {
         actionItems: [],
         confirmationEmailSentAt: null,
         hostNotificationEmailSentAt: null,
+        twentyFourHourReminderSentAt: null,
         oneHourReminderSentAt: null,
         startNotificationSentAt: null,
         createdAt: new Date('2026-03-20T14:00:00Z'),
@@ -89,8 +96,8 @@ describe('sendConfirmationEmail', () => {
         expect(mockGetAdminAuth).not.toHaveBeenCalled();
         expect(mockSendGenericEmail).toHaveBeenNthCalledWith(1, expect.objectContaining({
             to: 'jane@example.com',
-            userId: 'exec-user-123',
         }));
+        expect(mockSendGenericEmail.mock.calls[0]?.[0].userId).toBeUndefined();
         expect(mockSendGenericEmail).toHaveBeenNthCalledWith(2, expect.objectContaining({
             to: 'martez@bakedbot.ai',
             userId: 'exec-user-123',
@@ -107,8 +114,8 @@ describe('sendConfirmationEmail', () => {
         expect(getUserByEmail).toHaveBeenCalledWith('martez@bakedbot.ai');
         expect(mockSendGenericEmail).toHaveBeenNthCalledWith(1, expect.objectContaining({
             to: 'jane@example.com',
-            userId: 'resolved-exec-uid',
         }));
+        expect(mockSendGenericEmail.mock.calls[0]?.[0].userId).toBeUndefined();
         expect(mockSendGenericEmail).toHaveBeenNthCalledWith(2, expect.objectContaining({
             to: 'martez@bakedbot.ai',
             userId: 'resolved-exec-uid',
@@ -125,8 +132,8 @@ describe('sendConfirmationEmail', () => {
         expect(getUserByEmail).toHaveBeenCalledWith('martez@bakedbot.ai');
         expect(mockSendGenericEmail).toHaveBeenNthCalledWith(1, expect.objectContaining({
             to: 'jane@example.com',
-            userId: undefined,
         }));
+        expect(mockSendGenericEmail.mock.calls[0]?.[0].userId).toBeUndefined();
         expect(mockSendGenericEmail).toHaveBeenNthCalledWith(2, expect.objectContaining({
             to: 'martez@bakedbot.ai',
             userId: undefined,
@@ -147,5 +154,40 @@ describe('sendConfirmationEmail', () => {
         expect(result.guest.success).toBe(true);
         expect(result.host.success).toBe(false);
         expect(result.host.error).toBe('host mailbox unavailable');
+    });
+});
+
+describe('retryable booking email delivery', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockGetAdminAuth.mockReset();
+        mockSendGenericEmail.mockReset();
+    });
+
+    it('returns provider failures for follow-up emails so callers can retry', async () => {
+        mockSendGenericEmail.mockResolvedValue({ success: false, error: 'provider outage' });
+
+        const result = await sendFollowUpEmail(
+            buildBooking(),
+            buildProfile(),
+            'Recap notes',
+            ['Send deck'],
+        );
+
+        expect(result).toEqual({ success: false, error: 'provider outage' });
+        expect(mockSendGenericEmail).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+        ['24-hour reminder', send24HourReminderEmail],
+        ['1-hour reminder', sendOneHourReminderEmail],
+        ['start notification', sendMeetingStartedEmail],
+    ] as const)('returns provider failures for %s emails so callers can retry', async (_label, sendEmail) => {
+        mockSendGenericEmail.mockResolvedValue({ success: false, error: 'provider outage' });
+
+        const result = await sendEmail(buildBooking(), buildProfile());
+
+        expect(result).toEqual({ success: false, error: 'provider outage' });
+        expect(mockSendGenericEmail).toHaveBeenCalledTimes(1);
     });
 });

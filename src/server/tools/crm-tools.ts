@@ -18,9 +18,11 @@ import {
     isPlaceholderCustomerIdentity,
     resolveCustomerDisplayName,
 } from '@/lib/customers/profile-derivations';
+import { isNormalizedPhone, normalizePhone } from '@/lib/customer-import/column-mapping';
 import { calculateSegment, getSegmentInfo, type CustomerSegment } from '@/types/customers';
 import { mapSegmentToTier } from '@/lib/pricing/customer-tier-mapper';
 import { logger } from '@/lib/logger';
+import { getTopCustomers as getDomainTopCustomers } from '@/server/agents/tools/domain/crm';
 
 // =============================================================================
 // TOOL DEFINITIONS (Zod schemas for agent toolsDef arrays)
@@ -50,6 +52,24 @@ const getSegmentSummaryDef = {
     description: `Get a summary of all customer segments for an organization. Returns segment counts, average spend, total LTV, and growth opportunities. Use this for strategic analysis of the customer base.`,
     schema: z.object({
         orgId: z.string().describe('Organization/tenant ID'),
+    }),
+};
+
+const getCustomerEmailCoverageDef = {
+    name: 'getCustomerEmailCoverage',
+    description: `Count how many synced customer profiles have an email address on file. Use this whenever the user asks how many customers have emails, what the email capture rate is, or how many profiles are missing email.`,
+    schema: z.object({
+        orgId: z.string().describe('Organization/tenant ID'),
+    }),
+};
+
+const getTopCustomersDef = {
+    name: 'getTopCustomers',
+    description: `Find the highest-value customers in an organization. Returns the top customers ranked by spend or order count. Use this for VIP outreach, concierge treatment, and answering "who are our top customers?"`,
+    schema: z.object({
+        orgId: z.string().describe('Organization/tenant ID'),
+        limit: z.number().optional().default(5).describe('Max customers to return'),
+        sortBy: z.enum(['totalSpent', 'orderCount', 'lifetimeValue']).optional().default('totalSpent').describe('How to rank the customers'),
     }),
 };
 
@@ -88,6 +108,8 @@ export const crmToolDefs = [
     lookupCustomerDef,
     getCustomerHistoryDef,
     getSegmentSummaryDef,
+    getCustomerEmailCoverageDef,
+    getTopCustomersDef,
     getAtRiskCustomersDef,
     getUpcomingBirthdaysDef,
     getCustomerCommsDef,
@@ -95,7 +117,7 @@ export const crmToolDefs = [
 
 /** Per-agent subsets */
 export const craigCrmToolDefs = [lookupCustomerDef, getAtRiskCustomersDef, getCustomerCommsDef, getSegmentSummaryDef];
-export const mrsParkerCrmToolDefs = [lookupCustomerDef, getUpcomingBirthdaysDef, getCustomerCommsDef, getAtRiskCustomersDef];
+export const mrsParkerCrmToolDefs = [lookupCustomerDef, getCustomerEmailCoverageDef, getTopCustomersDef, getUpcomingBirthdaysDef, getCustomerCommsDef, getAtRiskCustomersDef];
 export const smokeyCrmToolDefs = [lookupCustomerDef, getCustomerHistoryDef];
 export const moneyMikeCrmToolDefs = [lookupCustomerDef, getSegmentSummaryDef, getCustomerHistoryDef];
 
@@ -178,15 +200,17 @@ export async function lookupCustomer(
     }
 
     // Search by phone
-    if (/^\+?\d[\d\-\s]{7,}$/.test(identifier)) {
-        const normalized = identifier.replace(/[\s\-]/g, '');
-        const snap = await firestore.collection('customers')
-            .where('orgId', '==', orgId)
-            .where('phone', '==', normalized)
-            .limit(1)
-            .get();
-        if (!snap.empty) {
-            return formatCustomerResult(snap.docs[0].id, snap.docs[0].data(), orgId);
+    if (/^\+?[\d\s\-()]{10,}$/.test(identifier)) {
+        const normalized = normalizePhone(identifier);
+        if (isNormalizedPhone(normalized)) {
+            const snap = await firestore.collection('customers')
+                .where('orgId', '==', orgId)
+                .where('phone', '==', normalized)
+                .limit(1)
+                .get();
+            if (!snap.empty) {
+                return formatCustomerResult(snap.docs[0].id, snap.docs[0].data(), orgId);
+            }
         }
     }
 
@@ -569,6 +593,111 @@ ${activeSegments.map(seg => {
 }
 
 /**
+ * Count customer profiles with contact data on file.
+ */
+export async function getCustomerEmailCoverage(
+    orgId: string,
+): Promise<{ summary: string; metrics: Record<string, unknown> }> {
+    logger.info('[crm-tools] getCustomerEmailCoverage', { orgId });
+    const firestore = getAdminFirestore();
+
+    const snap = await firestore.collection('customers')
+        .where('orgId', '==', orgId)
+        .select('email', 'phone')
+        .get();
+
+    if (snap.empty) {
+        return {
+            summary: `No synced customer profiles found for organization ${orgId}.`,
+            metrics: {
+                totalCustomers: 0,
+                customersWithEmail: 0,
+                customersWithoutEmail: 0,
+                emailCoveragePct: 0,
+                customersWithPhone: 0,
+                phoneCoveragePct: 0,
+            },
+        };
+    }
+
+    let customersWithEmail = 0;
+    let customersWithPhone = 0;
+
+    for (const doc of snap.docs) {
+        const data = doc.data();
+        const email = typeof data.email === 'string' ? data.email.trim() : '';
+        const phone = typeof data.phone === 'string' ? data.phone.trim() : '';
+
+        if (email.length > 0) {
+            customersWithEmail++;
+        }
+
+        if (phone.length > 0) {
+            customersWithPhone++;
+        }
+    }
+
+    const totalCustomers = snap.size;
+    const customersWithoutEmail = totalCustomers - customersWithEmail;
+    const emailCoveragePct = Number(((customersWithEmail / totalCustomers) * 100).toFixed(1));
+    const phoneCoveragePct = Number(((customersWithPhone / totalCustomers) * 100).toFixed(1));
+
+    const summary = `**Customer Contact Coverage**
+- Customers with email: ${customersWithEmail.toLocaleString()} of ${totalCustomers.toLocaleString()} (${emailCoveragePct}%)
+- Missing email: ${customersWithoutEmail.toLocaleString()}
+- Customers with phone: ${customersWithPhone.toLocaleString()} of ${totalCustomers.toLocaleString()} (${phoneCoveragePct}%)`;
+
+    return {
+        summary,
+        metrics: {
+            totalCustomers,
+            customersWithEmail,
+            customersWithoutEmail,
+            emailCoveragePct,
+            customersWithPhone,
+            phoneCoveragePct,
+        },
+    };
+}
+
+/**
+ * Get the top customers using the canonical CRM ranking logic.
+ */
+export async function getTopCustomers(
+    orgId: string,
+    limit: number = 5,
+    sortBy: 'totalSpent' | 'orderCount' | 'lifetimeValue' = 'totalSpent',
+): Promise<{ summary: string; customers: Record<string, unknown>[] }> {
+    logger.info('[crm-tools] getTopCustomers', { orgId, limit, sortBy });
+
+    const result = await getDomainTopCustomers(orgId, { limit, sortBy });
+    if (result.customers.length === 0) {
+        return {
+            summary: `No tracked customers found for organization ${orgId}.`,
+            customers: [],
+        };
+    }
+
+    const rankedCustomers = result.customers.map((customer) => ({
+        ...customer,
+        lifetimeValue: customer.totalSpent,
+    })) as Record<string, unknown>[];
+
+    const summary = `**Top Customers** (${sortBy === 'orderCount' ? 'ranked by order count' : 'ranked by spend'})
+
+${result.customers.map((customer, index) => (
+        `${index + 1}. **${customer.displayName || customer.email}** — $${customer.totalSpent.toLocaleString()} LTV, ${customer.orderCount} orders, ${customer.segment}`
+    )).join('\n')}
+
+${result.insight}`;
+
+    return {
+        summary,
+        customers: rankedCustomers,
+    };
+}
+
+/**
  * Get at-risk and slipping customers sorted by LTV.
  */
 export async function getAtRiskCustomers(
@@ -810,4 +939,19 @@ ${comms.slice(0, 10).map((c, i) => {
 }).join('\n')}`;
 
     return { summary, communications: comms as unknown as Record<string, unknown>[] };
+}
+
+/**
+ * Count check-ins for an org since the start of today (midnight local time).
+ */
+export async function getTodayCheckins(orgId: string): Promise<number> {
+    const db = getAdminFirestore();
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const snap = await db.collection('checkin_visits')
+        .where('orgId', '==', orgId)
+        .where('visitedAt', '>=', todayStart)
+        .count()
+        .get();
+    return snap.data().count;
 }

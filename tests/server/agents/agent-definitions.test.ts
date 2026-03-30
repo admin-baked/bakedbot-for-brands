@@ -197,6 +197,13 @@ describe('Agent Definitions', () => {
             expect(smsIntegration?.name).not.toContain('Blackleaf');
         });
 
+        it('should include Alleaves POS in the known integration catalog', () => {
+            const alleavesIntegration = KNOWN_INTEGRATIONS.find(i => i.id === 'alleaves');
+
+            expect(alleavesIntegration).toBeDefined();
+            expect(alleavesIntegration?.name).toBe('Alleaves POS');
+        });
+
         it('integration status summary should use BakedBot branding', () => {
             const summary = buildIntegrationStatusSummary();
 
@@ -215,6 +222,25 @@ describe('Agent Definitions', () => {
             // Check they appear in the CONFIGURED section
             expect(summary).toMatch(/\*\*CONFIGURED.*\n.*BakedBot Mail/s);
             expect(summary).toMatch(/\*\*CONFIGURED.*\n.*BakedBot SMS/s);
+        });
+
+        it('integration status summary should support org-specific Alleaves overrides', () => {
+            const summary = buildIntegrationStatusSummary(
+                KNOWN_INTEGRATIONS.map((integration) =>
+                    integration.id === 'alleaves'
+                        ? {
+                            ...integration,
+                            status: 'active',
+                            description: 'Alleaves POS sync for menu, orders, and customer records.',
+                            setupRequired: undefined,
+                        }
+                        : integration
+                )
+            );
+
+            expect(summary).toContain('Alleaves POS');
+            expect(summary).toContain('customer records');
+            expect(summary).toMatch(/\*\*ACTIVE INTEGRATIONS:\*\*[\s\S]*Alleaves POS/);
         });
 
         it('should maintain correct integration IDs (for backwards compatibility)', () => {

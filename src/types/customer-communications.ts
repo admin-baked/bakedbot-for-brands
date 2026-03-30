@@ -58,6 +58,7 @@ export interface CustomerCommunication {
     providerMessageId?: string;
 
     // Metadata
+    dedupeKey?: string;
     metadata?: Record<string, unknown>;
     createdAt: Date;
     updatedAt: Date;

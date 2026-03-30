@@ -18,10 +18,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     captureTabletLead,
     getMoodRecommendations,
+} from '@/server/actions/loyalty-tablet';
+import { getPublicBrandLogo } from '@/server/actions/checkin-management';
+import {
+    TABLET_MOODS,
+    getTabletMoodById,
+    type TabletMoodId,
     type TabletProduct,
     type TabletBundle,
-} from '@/server/actions/loyalty-tablet';
-import { TABLET_MOODS, type TabletMoodId } from '@/constants/loyalty-moods';
+} from '@/lib/checkin/loyalty-tablet-shared';
 import {
     CheckCircle2, Phone, Mail, ArrowRight, Loader2, Star,
     ShoppingCart, Users, ChevronRight,
@@ -43,8 +48,8 @@ export default function LoyaltyTabletPage() {
     const [firstName, setFirstName] = useState('');
     const [phone, setPhone] = useState('');
     const [email, setEmail] = useState('');
-    const [emailConsent, setEmailConsent] = useState(true);
-    const [smsConsent, setSmsConsent] = useState(true);
+    const [emailConsent, setEmailConsent] = useState(false);
+    const [smsConsent, setSmsConsent] = useState(false);
 
     // Mood + recs state
     const [selectedMood, setSelectedMood] = useState<TabletMoodId | null>(null);
@@ -59,6 +64,8 @@ export default function LoyaltyTabletPage() {
     const [error, setError] = useState('');
     const [result, setResult] = useState<{ isNewLead: boolean; loyaltyPoints: number } | null>(null);
 
+    const [brandLogoUrl, setBrandLogoUrl] = useState<string | null>(null);
+
     const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const resetToWelcome = useCallback(() => {
@@ -66,8 +73,8 @@ export default function LoyaltyTabletPage() {
         setFirstName('');
         setPhone('');
         setEmail('');
-        setEmailConsent(true);
-        setSmsConsent(true);
+        setEmailConsent(false);
+        setSmsConsent(false);
         setSelectedMood(null);
         setProducts([]);
         setBundle(null);
@@ -85,6 +92,10 @@ export default function LoyaltyTabletPage() {
             idleTimer.current = setTimeout(resetToWelcome, IDLE_TIMEOUT_MS);
         }
     }, [step, resetToWelcome]);
+
+    useEffect(() => {
+        getPublicBrandLogo(orgId).then(r => setBrandLogoUrl(r.logoUrl));
+    }, [orgId]);
 
     useEffect(() => {
         resetIdleTimer();
@@ -177,7 +188,7 @@ export default function LoyaltyTabletPage() {
         exit: { x: -60, opacity: 0 },
     };
 
-    const selectedMoodDef = TABLET_MOODS.find(m => m.id === selectedMood);
+    const selectedMoodDef = getTabletMoodById(selectedMood);
     const cartCount = cart.length + (bundleAdded ? (bundle?.products.length ?? 0) : 0);
 
     // ── Render ────────────────────────────────────────────────
@@ -190,7 +201,11 @@ export default function LoyaltyTabletPage() {
         >
             {/* Header */}
             <div className="absolute top-6 left-1/2 -translate-x-1/2 flex items-center gap-3">
-                <span className="text-2xl font-black tracking-tight text-purple-400">Thrive Syracuse</span>
+                {brandLogoUrl ? (
+                    <img src={brandLogoUrl} alt="Brand logo" className="h-10 w-auto object-contain max-w-[180px]" />
+                ) : (
+                    <span className="text-2xl font-black tracking-tight text-purple-400">Thrive Syracuse</span>
+                )}
                 {cartCount > 0 && step === 'recommendations' && (
                     <div className="bg-purple-600 text-white text-sm font-bold px-3 py-1 rounded-full flex items-center gap-1">
                         <ShoppingCart className="h-4 w-4" />
@@ -379,7 +394,7 @@ export default function LoyaltyTabletPage() {
                             {TABLET_MOODS.map(mood => (
                                 <button
                                     key={mood.id}
-                                    onClick={() => handleMoodSelect(mood.id as TabletMoodId)}
+                                    onClick={() => handleMoodSelect(mood.id)}
                                     className="bg-white/10 hover:bg-purple-500/30 active:bg-purple-500/50 border border-white/20 hover:border-purple-400 rounded-2xl p-5 flex items-center gap-4 transition-all text-left"
                                 >
                                     <span className="text-4xl">{mood.emoji}</span>
@@ -393,7 +408,7 @@ export default function LoyaltyTabletPage() {
                             disabled={loading}
                             className="text-white/40 hover:text-white/60 disabled:opacity-40 text-sm"
                         >
-                            {loading ? 'Saving...' : 'Skip → Continue to budtender'}
+                            {loading ? 'Saving...' : 'Skip for now'}
                         </button>
                         <button onClick={() => setStep('email')} className="text-white/40 hover:text-white/60 text-sm">← Back</button>
                     </motion.div>
@@ -553,13 +568,13 @@ export default function LoyaltyTabletPage() {
                         <div>
                             <h1 className="text-5xl font-black text-white mb-3">
                                 {result?.isNewLead
-                                    ? `Welcome, ${firstName || 'friend'}! 🎉`
-                                    : `Good to see you, ${firstName || 'friend'}!`}
+                                    ? `You're checked in, ${firstName || 'friend'}!`
+                                    : `Welcome back, ${firstName || 'friend'}!`}
                             </h1>
                             <p className="text-xl text-purple-300">
                                 {result?.isNewLead
-                                    ? "You're now part of the Thrive family. Check your texts!"
-                                    : "Your loyalty is noted. Enjoy your visit!"}
+                                    ? 'Your Thrive follow-ups are set if you opted in.'
+                                    : 'Your check-in is recorded and your loyalty balance is ready.'}
                             </p>
                         </div>
 

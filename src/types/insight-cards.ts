@@ -38,7 +38,19 @@ export type SuperUserInsightCategory =
     | 'support'       // Mrs. Parker - Open tickets, response times
     | 'intelligence'; // Big Worm - Research queue, insights
 
-export type InsightCategory = DispensaryInsightCategory | BrandInsightCategory | SuperUserInsightCategory;
+/** Grower agent categories */
+export type GrowerInsightCategory =
+    | 'yield'         // Pops - yield health, stockouts, stale listings
+    | 'wholesale'     // Money Mike - wholesale readiness and pricing
+    | 'partners'      // Craig - buyer outreach and partner pipeline
+    | 'compliance'    // Deebo - COA, transfer, and destination checks
+    | 'operations';   // Day-Day - inventory freshness and operating readiness
+
+export type InsightCategory =
+    | DispensaryInsightCategory
+    | BrandInsightCategory
+    | SuperUserInsightCategory
+    | GrowerInsightCategory;
 
 // ============ Core Insight Interface ============
 
@@ -103,10 +115,20 @@ export interface SuperUserInsights {
     lastFetched: Date;
 }
 
+export interface GrowerInsights {
+    yield: InsightCard[];         // Pops - yield and catalog health
+    wholesale: InsightCard[];     // Money Mike - buyer-ready inventory
+    partners: InsightCard[];      // Craig - brand outreach
+    compliance: InsightCard[];    // Deebo - transfer readiness
+    operations: InsightCard[];    // Day-Day - catalog freshness
+    lastFetched: Date;
+}
+
 export type InsightsResponse =
     | { role: 'dispensary'; data: DispensaryInsights }
     | { role: 'brand'; data: BrandInsights }
-    | { role: 'super_user'; data: SuperUserInsights };
+    | { role: 'super_user'; data: SuperUserInsights }
+    | { role: 'grower'; data: GrowerInsights };
 
 // ============ Agent Color Mapping ============
 

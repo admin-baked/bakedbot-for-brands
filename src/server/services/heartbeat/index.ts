@@ -99,6 +99,52 @@ function isInQuietHours(
     }
 }
 
+function toStoredDate(value: unknown): Date | null {
+    if (!value) return null;
+    if (value instanceof Date) return value;
+    if (typeof value === 'object' && typeof (value as { toDate?: () => Date }).toDate === 'function') {
+        const parsed = (value as { toDate: () => Date }).toDate();
+        return parsed instanceof Date && !Number.isNaN(parsed.getTime()) ? parsed : null;
+    }
+    if (typeof value === 'string' || typeof value === 'number') {
+        const parsed = new Date(value);
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+    return null;
+}
+
+function resolveHeartbeatConfig(
+    role: HeartbeatRole,
+    savedConfig?: Partial<TenantHeartbeatConfig> | null,
+): TenantHeartbeatConfig {
+    const defaults = buildDefaultConfig(role);
+
+    return {
+        ...defaults,
+        ...savedConfig,
+        enabledChecks: Array.isArray(savedConfig?.enabledChecks) && savedConfig.enabledChecks.length > 0
+            ? savedConfig.enabledChecks
+            : defaults.enabledChecks,
+        activeHours: savedConfig?.activeHours ?? defaults.activeHours,
+        quietHours: savedConfig?.quietHours ?? defaults.quietHours,
+        channels: Array.isArray(savedConfig?.channels) && savedConfig.channels.length > 0
+            ? savedConfig.channels
+            : defaults.channels,
+        suppressAllClear: savedConfig?.suppressAllClear ?? defaults.suppressAllClear,
+        timezone: savedConfig?.timezone ?? defaults.timezone,
+        interval: savedConfig?.interval ?? defaults.interval,
+        tenantId: savedConfig?.tenantId ?? '',
+        role: savedConfig?.role ?? role,
+        enabled: savedConfig?.enabled ?? true,
+        createdAt: savedConfig?.createdAt ?? new Date(),
+        updatedAt: savedConfig?.updatedAt ?? new Date(),
+    };
+}
+
+function isTenantActive(tenant: FirebaseFirestore.DocumentData | undefined): boolean {
+    return tenant?.status === 'active' || tenant?.active === true;
+}
+
 // =============================================================================
 // CORE EXECUTION
 // =============================================================================
@@ -286,6 +332,19 @@ export async function executeHeartbeat(
         logger.error('[Heartbeat] Failed to save execution record', { error });
     }
 
+    if (request.role !== 'super_user') {
+        try {
+            const { postMorningBriefingToInbox } = await import('@/server/services/morning-briefing');
+            await postMorningBriefingToInbox(request.tenantId);
+        } catch (error) {
+            logger.warn('[Heartbeat] Failed to refresh daily briefing from heartbeat', {
+                executionId,
+                tenantId: request.tenantId,
+                error: error instanceof Error ? error.message : String(error),
+            });
+        }
+    }
+
     logger.info('[Heartbeat] Execution complete', {
         executionId,
         checksRun: checksToRun.length,
@@ -332,7 +391,11 @@ export async function getTenantHeartbeatConfig(
         const configSnap = await configRef.get();
 
         if (configSnap.exists) {
-            return configSnap.data() as TenantHeartbeatConfig;
+            return resolveHeartbeatConfig(role, {
+                ...(configSnap.data() as Partial<TenantHeartbeatConfig>),
+                tenantId,
+                role,
+            });
         }
 
         // Return null - will use defaults
@@ -404,17 +467,29 @@ export async function findDueTenants(): Promise<Array<{
     }> = [];
 
     try {
-        // Get all tenants with heartbeat enabled
-        const tenantsSnap = await db
-            .collection('tenants')
-            .where('status', '==', 'active')
-            .get();
+        // Support both legacy `status: "active"` and newer `active: true` tenant shapes.
+        const [statusActiveSnap, booleanActiveSnap] = await Promise.all([
+            db.collection('tenants')
+                .where('status', '==', 'active')
+                .get(),
+            db.collection('tenants')
+                .where('active', '==', true)
+                .get(),
+        ]);
+
+        const tenantDocs = new Map<string, FirebaseFirestore.QueryDocumentSnapshot>();
+        for (const doc of [...statusActiveSnap.docs, ...booleanActiveSnap.docs]) {
+            tenantDocs.set(doc.id, doc);
+        }
 
         const foundOrgIds = new Set<string>();
 
-        for (const doc of tenantsSnap.docs) {
+        for (const doc of tenantDocs.values()) {
             const tenant = doc.data();
             const tenantId = doc.id;
+            if (!isTenantActive(tenant)) {
+                continue;
+            }
             foundOrgIds.add(tenantId);
 
             // Get heartbeat config
@@ -431,17 +506,24 @@ export async function findDueTenants(): Promise<Array<{
             if (tenant.type === 'super_user' || tenant.isSuperAdmin) role = 'super_user';
 
             // Get config or defaults
-            const config = configSnap.exists
-                ? (configSnap.data() as TenantHeartbeatConfig)
-                : buildDefaultConfig(role);
+            const config = resolveHeartbeatConfig(
+                role,
+                configSnap.exists
+                    ? {
+                        ...(configSnap.data() as Partial<TenantHeartbeatConfig>),
+                        tenantId,
+                        role,
+                    }
+                    : { tenantId, role },
+            );
 
             // Check if enabled
-            if (configSnap.exists && configSnap.data()?.enabled === false) {
+            if (config.enabled === false) {
                 continue;
             }
 
             // Check if due based on interval and lastRun
-            const lastRun = configSnap.data()?.lastRun?.toDate?.() || null;
+            const lastRun = toStoredDate(config.lastRun);
             const intervalMs = (config.interval || 30) * 60 * 1000;
 
             if (lastRun && now.getTime() - lastRun.getTime() < intervalMs) {
@@ -456,7 +538,7 @@ export async function findDueTenants(): Promise<Array<{
                 userId: primaryUserId,
                 role,
                 config,
-                slackWebhookUrl: (config as TenantHeartbeatConfig).slackWebhookUrl,
+                slackWebhookUrl: config.slackWebhookUrl,
             });
         }
 
@@ -500,11 +582,18 @@ export async function findDueTenants(): Promise<Array<{
                 continue;
             }
 
-            const config = configSnap.exists
-                ? (configSnap.data() as TenantHeartbeatConfig)
-                : buildDefaultConfig(role);
+            const config = resolveHeartbeatConfig(
+                role,
+                configSnap.exists
+                    ? {
+                        ...(configSnap.data() as Partial<TenantHeartbeatConfig>),
+                        tenantId,
+                        role,
+                    }
+                    : { tenantId, role },
+            );
 
-            const lastRun = configSnap.data()?.lastRun?.toDate?.() || null;
+            const lastRun = toStoredDate(config.lastRun);
             const intervalMs = (config.interval || 30) * 60 * 1000;
 
             if (lastRun && now.getTime() - lastRun.getTime() < intervalMs) {
@@ -518,7 +607,7 @@ export async function findDueTenants(): Promise<Array<{
                 userId,
                 role,
                 config,
-                slackWebhookUrl: (config as TenantHeartbeatConfig).slackWebhookUrl,
+                slackWebhookUrl: config.slackWebhookUrl,
             });
         }
 

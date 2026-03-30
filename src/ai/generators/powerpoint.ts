@@ -1,10 +1,10 @@
 'use server';
 
 /**
- * PowerPoint generator — GLM scripting + pptxgenjs rendering + Firebase Storage upload.
+ * PowerPoint generator — deck scripting + presentation rendering + Firebase Storage upload.
  *
  * Flow:
- *   1. GLM-5 (STRATEGIC) generates a structured DeckScript (title + bullets + speaker notes)
+ *   1. GLM 4.7 generates a structured DeckScript (title + bullets + speaker notes)
  *   2. pptxgenjs renders the script into a .pptx Buffer (no tmpdir needed)
  *   3. Buffer is uploaded to Firebase Storage; public URL returned
  *
@@ -74,6 +74,35 @@ Slide 4: Creative Strategy (key message + tone)
 Slide 5: Channel Plan & Timeline`,
 };
 
+// Deck scripting is structured creative writing, not deep strategic reasoning.
+// GLM 4.7 gives us better speed/cost balance while keeping output quality high.
+const DECK_SCRIPT_MODEL = GLM_MODELS.STANDARD;
+
+function extractDeckScriptJson(raw: string): string {
+    const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)?.[1];
+    if (fenced) {
+        return fenced.trim();
+    }
+
+    const start = raw.indexOf('{');
+    const end = raw.lastIndexOf('}');
+    if (start !== -1 && end > start) {
+        return raw.slice(start, end + 1).trim();
+    }
+
+    return raw.trim();
+}
+
+function parseDeckScriptResponse(raw: string): DeckScript {
+    const parsed = JSON.parse(extractDeckScriptJson(raw)) as DeckScript;
+
+    if (!parsed || typeof parsed.deckTitle !== 'string' || !Array.isArray(parsed.slides)) {
+        throw new Error('Deck script is missing required fields');
+    }
+
+    return parsed;
+}
+
 // ---------------------------------------------------------------------------
 // GLM scripting
 // ---------------------------------------------------------------------------
@@ -111,21 +140,20 @@ ${skeleton}`;
     const raw = await callGLM({
         userMessage,
         systemPrompt,
-        model: GLM_MODELS.STRATEGIC,
+        model: DECK_SCRIPT_MODEL,
         maxTokens: 4096,
         temperature: 0.7,
     });
 
     // Strip possible markdown fences
-    const cleaned = raw.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
     try {
-        return JSON.parse(cleaned) as DeckScript;
+        return parseDeckScriptResponse(raw);
     } catch (parseErr) {
         logger.error('[PowerPoint] JSON parse failed', {
             rawPreview: raw.substring(0, 200),
             error: parseErr instanceof Error ? parseErr.message : String(parseErr),
         });
-        throw new Error(`Failed to parse GLM response as valid JSON: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`);
+        throw new Error(`Failed to parse deck script JSON: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`);
     }
 }
 
@@ -244,7 +272,7 @@ async function uploadDeck(buffer: Buffer, input: GeneratePowerPointInput, safeNa
         contentType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
         metadata: {
             metadata: {
-                generatedBy: 'pptxgenjs',
+                generatedBy: 'deck-builder',
                 purpose: input.purpose,
                 brandName: input.brandName || '',
             },
@@ -283,6 +311,6 @@ export async function generatePowerPoint(
         fileName: `${safeName}-${input.purpose}.pptx`,
         slideCount: script.slides.length + 2, // +cover +disclaimer
         purpose: input.purpose,
-        generatedBy: 'pptxgenjs',
+        generatedBy: 'deck-builder',
     };
 }

@@ -7,6 +7,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -32,6 +33,7 @@ import {
 } from 'lucide-react';
 import type { AssetCategory, AssetTemplate } from '@/types/creative-asset';
 import { ASSET_TEMPLATES } from '@/types/creative-asset';
+import { logger } from '@/lib/logger';
 
 interface CreativeLibraryClientProps {
   brandId: string;
@@ -57,6 +59,7 @@ const CATEGORY_META: Record<
 };
 
 export function CreativeLibraryClient({ brandId, userRole }: CreativeLibraryClientProps) {
+  const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState<AssetCategory | 'popular'>('popular');
   const [searchQuery, setSearchQuery] = useState('');
   const [showAllAssets, setShowAllAssets] = useState(false);
@@ -108,6 +111,16 @@ export function CreativeLibraryClient({ brandId, userRole }: CreativeLibraryClie
   }, [allTemplates, selectedCategory, filteredTemplates]);
 
   const handleTemplateClick = (template: AssetTemplate) => {
+    if (template.id === 'weedmaps_banner') {
+      void logger.info('weedmaps_template_opened', {
+        templateId: template.id,
+        brandId,
+        userRole,
+      });
+      router.push('/dashboard/heroes?channel=weedmaps');
+      return;
+    }
+
     // TODO: Open generation dialog
     console.log('Generate asset:', template);
   };

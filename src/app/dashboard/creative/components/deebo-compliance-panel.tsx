@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { ApprovalChain } from '@/components/creative/approval-chain';
@@ -153,7 +153,6 @@ export function DeeboCompliancePanel({
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Avatar className="w-7 h-7 border border-border">
-                <AvatarImage src="/avatars/deebo.png" />
                 <AvatarFallback className="text-[10px] bg-red-500/20 text-red-400">DB</AvatarFallback>
               </Avatar>
               <div>

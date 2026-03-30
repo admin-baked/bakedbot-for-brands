@@ -15,6 +15,7 @@ import { generateImageFromPrompt } from '@/ai/flows/generate-social-image';
 import { buildOgImageUrl, deriveOgTemplate } from '@/ai/generators/og';
 import { generateCreativeQR } from '@/lib/qr/creative-qr';
 import { withImageTracking } from '@/server/services/media-tracking';
+import { isRenderableProductImage } from '@/lib/utils/product-image';
 import type {
     CreativeContent,
     ContentStatus,
@@ -232,20 +233,25 @@ export async function generateContent(
     try {
         // Build a visual-first image prompt (imageStyle leads; marketing copy goes to caption only)
         const imagePrompt = deriveImagePrompt(request);
+        const brandedTemplate = deriveBrandedTemplate(request);
+        const brandedCopy = deriveBrandedCopy(request);
+        const brandedImageUrl = brandedTemplate === 'product-spotlight'
+            ? (isRenderableProductImage(request.productImageUrl) ? request.productImageUrl : undefined)
+            : request.backgroundImageUrl;
 
         // Run image generation + caption generation in parallel to save time
         const [imageUrl, caption] = await Promise.all([
             request.imageMode === 'branded'
                 // Branded mode: server-side OG renderer (next/og) — instant, free, supports text overlays
                 ? Promise.resolve(buildOgImageUrl({
-                    template: deriveOgTemplate(request.imageStyle ?? '', !!request.backgroundImageUrl),
-                    headline: request.prompt.split('.')[0].trim().substring(0, 80),
-                    subtext: request.prompt.split('.')[1]?.trim().substring(0, 120),
+                    template: brandedTemplate,
+                    headline: brandedCopy.headline,
+                    subtext: brandedCopy.subtext,
                     bgColor: request.bgColor,
                     accentColor: request.accentColor,
                     brandName: request.brandName,
                     logoUrl: request.logoUrl,
-                    imageUrl: request.backgroundImageUrl,
+                    imageUrl: brandedImageUrl,
                     platform: request.platform,
                 }))
                 // Photo mode (default): fal.ai FLUX.1 — AI-generated photography, no text
@@ -882,6 +888,72 @@ function deriveImagePrompt(request: GenerateContentRequest): string {
     }
 
     return parts.filter(Boolean).join(', ');
+}
+
+function deriveBrandedTemplate(request: GenerateContentRequest): 'text-on-color' | 'text-on-photo' | 'product-spotlight' {
+    if (request.productImageUrl) {
+        return 'product-spotlight';
+    }
+
+    return deriveOgTemplate(request.imageStyle ?? '', !!request.backgroundImageUrl);
+}
+
+function deriveBrandedCopy(request: GenerateContentRequest): { headline: string; subtext?: string } {
+    const promptSentences = request.prompt
+        .split(/[.\n]/)
+        .map((sentence) => sentence.replace(/\s+/g, ' ').trim())
+        .filter(Boolean);
+
+    if (request.productName) {
+        const sanitizedPrimaryPrompt = sanitizePromptSentence(promptSentences[0]);
+        const fallbackSubtext = request.brandName
+            ? `Available now at ${request.brandName}`
+            : 'Available now';
+
+        return {
+            headline: truncateCopy(request.productName, 80) || 'Featured Product',
+            subtext: truncateCopy(sanitizedPrimaryPrompt || fallbackSubtext, 120),
+        };
+    }
+
+    return {
+        headline: truncateCopy(promptSentences[0] || 'Featured Product', 80) || 'Featured Product',
+        subtext: truncateCopy(promptSentences[1], 120),
+    };
+}
+
+function sanitizePromptSentence(sentence: string | undefined): string | undefined {
+    if (!sentence) {
+        return undefined;
+    }
+
+    const normalized = sentence.replace(/\s+/g, ' ').trim();
+    if (!normalized) {
+        return undefined;
+    }
+
+    if (
+        /\bbrand colors?\b/i.test(normalized)
+        || /\blet'?s create\b/i.test(normalized)
+        || /^use our\b/i.test(normalized)
+    ) {
+        return undefined;
+    }
+
+    return normalized;
+}
+
+function truncateCopy(value: string | undefined, maxLength: number): string | undefined {
+    if (!value) {
+        return undefined;
+    }
+
+    const normalized = value.replace(/\s+/g, ' ').trim();
+    if (!normalized) {
+        return undefined;
+    }
+
+    return normalized.substring(0, maxLength);
 }
 
 /**

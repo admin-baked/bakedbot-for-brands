@@ -33,7 +33,7 @@ describe('chat-persistence server action imports', () => {
       }),
     }));
 
-    jest.doMock('@/lib/monitoring', () => ({
+    jest.doMock('@/lib/logger', () => ({
       logger: {
         info: jest.fn(),
         warn: jest.fn(),

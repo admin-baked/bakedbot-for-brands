@@ -76,8 +76,23 @@ const US_STATES = [
     'Wisconsin', 'Wyoming'
 ];
 
+type CRMViewTab = 'users' | 'brands' | 'dispensaries' | 'leads' | 'ny-outreach';
+
+type CRMActionResult<T> =
+    | { success: true; data: T }
+    | { success: false; error: string };
+
+function unwrapCRMAction<T>(result: CRMActionResult<T>, fallbackMessage: string): T {
+    if (result.success) {
+        return result.data;
+    }
+
+    throw new Error(result.error || fallbackMessage);
+}
+
 export default function CRMTab() {
     const { toast } = useToast();
+    const [activeTab, setActiveTab] = useState<CRMViewTab>('users');
 
     // Stats
     const [stats, setStats] = useState<{ totalBrands: number; totalDispensaries: number; claimedBrands: number; claimedDispensaries: number; totalPlatformLeads: number } | null>(null);
@@ -120,24 +135,28 @@ export default function CRMTab() {
     // Brands
     const [brands, setBrands] = useState<CRMBrand[]>([]);
     const [brandsLoading, setBrandsLoading] = useState(true);
+    const [brandsInitialized, setBrandsInitialized] = useState(false);
     const [brandSearch, setBrandSearch] = useState('');
     const [brandState, setBrandState] = useState('All States');
 
     // Dispensaries
     const [dispensaries, setDispensaries] = useState<CRMDispensary[]>([]);
     const [dispensariesLoading, setDispensariesLoading] = useState(true);
+    const [dispensariesInitialized, setDispensariesInitialized] = useState(false);
     const [dispSearch, setDispSearch] = useState('');
     const [dispState, setDispState] = useState('All States');
 
     // Leads (Platform)
     const [leads, setLeads] = useState<CRMLead[]>([]);
     const [leadsLoading, setLeadsLoading] = useState(true);
+    const [leadsInitialized, setLeadsInitialized] = useState(false);
     const [leadSearch, setLeadSearch] = useState(''); // Search by email/company
     const [leadSourceFilter, setLeadSourceFilter] = useState<string>('all');
 
     // NY Outreach Leads
     const [outreachLeads, setOutreachLeads] = useState<NYOutreachCRMLead[]>([]);
     const [outreachLoading, setOutreachLoading] = useState(false);
+    const [outreachInitialized, setOutreachInitialized] = useState(false);
     const [outreachFilter, setOutreachFilter] = useState('all');
     const [outreachSearch, setOutreachSearch] = useState('');
     const [noteInputs, setNoteInputs] = useState<Record<string, string>>({});
@@ -145,6 +164,7 @@ export default function CRMTab() {
     // NY Data Quality
     const [dataQuality, setDataQuality] = useState<{ totalLeads?: number; dupCount?: number; noEmailCount?: number; incompleteCount?: number; avgScore?: number } | null>(null);
     const [dataQualityLoading, setDataQualityLoading] = useState(false);
+    const [dataQualityInitialized, setDataQualityInitialized] = useState(false);
     const [dedupLoading, setDedupLoading] = useState(false);
     const [bulkDeleteLoading, setBulkDeleteLoading] = useState<string | null>(null);
 
@@ -236,6 +256,7 @@ export default function CRMTab() {
     // Users (Platform)
     const [users, setUsers] = useState<CRMUser[]>([]);
     const [usersLoading, setUsersLoading] = useState(true);
+    const [usersLoadError, setUsersLoadError] = useState<string | null>(null);
     const [userSearch, setUserSearch] = useState('');
     const [userLifecycleFilter, setUserLifecycleFilter] = useState<CRMLifecycleStage | 'all'>('all');
     const [userStats, setUserStats] = useState<{ totalUsers: number; activeUsers: number; totalMRR: number; byLifecycle: Record<CRMLifecycleStage, number> } | null>(null);
@@ -249,22 +270,75 @@ export default function CRMTab() {
         totalItems: totalUsersItems
     } = usePagination(users, 10);
 
+    const loadTestAccountCount = async () => {
+        try {
+            const result = await getTestAccountCount();
+            const count = unwrapCRMAction(result, 'Failed to load test account count');
+            setTestAccountCount(count);
+        } catch {
+            // Non-critical; the toggle label can fall back to zero.
+        }
+    };
+
     useEffect(() => {
-        loadData();
-        loadBrands();
-        loadDispensaries();
-        loadLeads();
-        loadOutreachLeads();
-        loadAIInsights();
-        loadDataQuality();
-        getTestAccountCount().then(setTestAccountCount).catch(() => {});
+        let cancelled = false;
+
+        const bootstrap = async () => {
+            await loadData();
+            if (!cancelled) {
+                await loadAIInsights();
+            }
+            if (!cancelled) {
+                await loadTestAccountCount();
+            }
+        };
+
+        void bootstrap();
+
+        return () => {
+            cancelled = true;
+        };
     }, []);
+
+    useEffect(() => {
+        if (activeTab === 'brands' && !brandsInitialized) {
+            void loadBrands();
+            return;
+        }
+
+        if (activeTab === 'dispensaries' && !dispensariesInitialized) {
+            void loadDispensaries();
+            return;
+        }
+
+        if (activeTab === 'leads' && !leadsInitialized) {
+            void loadLeads();
+            return;
+        }
+
+        if (activeTab === 'ny-outreach') {
+            if (!outreachInitialized) {
+                void loadOutreachLeads();
+            }
+
+            if (!dataQualityInitialized) {
+                void loadDataQuality();
+            }
+        }
+    }, [
+        activeTab,
+        brandsInitialized,
+        dispensariesInitialized,
+        leadsInitialized,
+        outreachInitialized,
+        dataQualityInitialized,
+    ]);
 
     const loadStats = async () => {
         try {
-            const [data, uStats] = await Promise.all([getCRMStats(), getCRMUserStats()]);
-            setStats(data);
-            setUserStats(uStats);
+            const [statsResult, userStatsResult] = await Promise.all([getCRMStats(), getCRMUserStats()]);
+            setStats(unwrapCRMAction(statsResult, 'Failed to load CRM stats'));
+            setUserStats(unwrapCRMAction(userStatsResult, 'Failed to load CRM user stats'));
         } catch (e: any) {
             toast({ variant: 'destructive', title: 'Error', description: e.message });
         }
@@ -273,17 +347,27 @@ export default function CRMTab() {
     /** Initial mount: fetch users + stats in one pass (avoids duplicate users scan). */
     const loadData = async () => {
         setUsersLoading(true);
+        setUsersLoadError(null);
         try {
-            const [crmStats, { users: data, userStats: uStats }] = await Promise.all([
+            const [crmStatsResult, usersAndStatsResult] = await Promise.all([
                 getCRMStats(),
                 getCRMUsersAndStats({ limit: 200, includeTest: showTestAccounts }),
             ]);
+
+            const crmStats = unwrapCRMAction(crmStatsResult, 'Failed to load CRM stats');
+            const { users: data, userStats: uStats } = unwrapCRMAction(
+                usersAndStatsResult,
+                'Failed to load users'
+            );
+
             setStats(crmStats);
             setUsers(data);
             setUserStats(uStats);
             setUsersPage(1);
         } catch (e: any) {
-            toast({ variant: 'destructive', title: 'Error', description: e.message });
+            const msg = e?.message || 'Failed to load users';
+            setUsersLoadError(msg);
+            toast({ variant: 'destructive', title: 'CRM load failed', description: msg });
         } finally {
             setUsersLoading(false);
         }
@@ -295,9 +379,11 @@ export default function CRMTab() {
             const filters: CRMFilters = { limit: 200 }; // Increase limit
             if (brandState !== 'All States') filters.state = brandState;
             if (brandSearch) filters.search = brandSearch;
-            const data = await getBrands(filters);
+            const result = await getBrands(filters);
+            const data = unwrapCRMAction(result, 'Failed to load brands');
             setBrands(data);
             setBrandsPage(1); // Reset page
+            setBrandsInitialized(true);
         } catch (e: any) {
             toast({ variant: 'destructive', title: 'Error', description: e.message });
         } finally {
@@ -311,9 +397,11 @@ export default function CRMTab() {
             const filters: CRMFilters = { limit: 200 }; // Increase limit
             if (dispState !== 'All States') filters.state = dispState;
             if (dispSearch) filters.search = dispSearch;
-            const data = await getDispensaries(filters);
+            const result = await getDispensaries(filters);
+            const data = unwrapCRMAction(result, 'Failed to load dispensaries');
             setDispensaries(data);
             setDispPage(1); // Reset page
+            setDispensariesInitialized(true);
         } catch (e: any) {
             toast({ variant: 'destructive', title: 'Error', description: e.message });
         } finally {
@@ -327,9 +415,11 @@ export default function CRMTab() {
             const filters: CRMFilters = { limit: 200 };
             if (leadSearch) filters.search = leadSearch;
             if (leadSourceFilter !== 'all') filters.source = leadSourceFilter;
-            const data = await getPlatformLeads(filters);
+            const result = await getPlatformLeads(filters);
+            const data = unwrapCRMAction(result, 'Failed to load leads');
             setLeads(data);
             setLeadsPage(1);
+            setLeadsInitialized(true);
         } catch (e: any) {
             toast({ variant: 'destructive', title: 'Error', description: e.message });
         } finally {
@@ -339,16 +429,20 @@ export default function CRMTab() {
 
     const loadUsers = async (overrideShowTest?: boolean) => {
         setUsersLoading(true);
+        setUsersLoadError(null);
         setAiSearchResult(null);
         try {
             const filters: CRMFilters = { limit: 200, includeTest: overrideShowTest ?? showTestAccounts };
             if (userSearch) filters.search = userSearch;
             if (userLifecycleFilter !== 'all') filters.lifecycleStage = userLifecycleFilter;
-            const data = await getPlatformUsers(filters);
+            const result = await getPlatformUsers(filters);
+            const data = unwrapCRMAction(result, 'Failed to load users');
             setUsers(data);
             setUsersPage(1);
         } catch (e: any) {
-            toast({ variant: 'destructive', title: 'Error', description: e.message });
+            const msg = e?.message || 'Failed to load users';
+            setUsersLoadError(msg);
+            toast({ variant: 'destructive', title: 'CRM load failed', description: msg });
         } finally {
             setUsersLoading(false);
         }
@@ -361,6 +455,7 @@ export default function CRMTab() {
             if (result.success && result.leads) {
                 setOutreachLeads(result.leads);
                 setOutreachPage(1);
+                setOutreachInitialized(true);
             }
         } catch (e: any) {
             toast({ variant: 'destructive', title: 'Error', description: e.message });
@@ -474,8 +569,7 @@ export default function CRMTab() {
             await markAccountAsTest(userId, isTest);
             toast({ title: isTest ? 'Marked as test' : 'Unmarked', description: `${name} ${isTest ? 'excluded from stats' : 'included in stats'}.` });
             loadUsers();
-            const count = await getTestAccountCount();
-            setTestAccountCount(count);
+            await loadTestAccountCount();
         } catch (e: any) {
             toast({ variant: 'destructive', title: 'Error', description: e.message });
         }
@@ -491,8 +585,7 @@ export default function CRMTab() {
         }
         setSelectedUserIds(new Set());
         loadUsers();
-        const count = await getTestAccountCount();
-        setTestAccountCount(count);
+        await loadTestAccountCount();
         toast({ title: `${selectedUserIds.size} accounts marked as test` });
     };
 
@@ -579,7 +672,10 @@ export default function CRMTab() {
         setDataQualityLoading(true);
         try {
             const result = await getNYLeadDataQuality();
-            if (result.success) setDataQuality(result);
+            if (result.success) {
+                setDataQuality(result);
+                setDataQualityInitialized(true);
+            }
         } catch {
             // Non-critical — data quality panel stays empty on failure
         } finally {
@@ -635,6 +731,31 @@ export default function CRMTab() {
             <TrendingUp className="ml-2 h-4 w-4 text-primary rotate-180" />;
     };
 
+    const handleRefresh = () => {
+        loadAIInsights();
+        loadData();
+
+        if (activeTab === 'brands') {
+            loadBrands();
+            return;
+        }
+
+        if (activeTab === 'dispensaries') {
+            loadDispensaries();
+            return;
+        }
+
+        if (activeTab === 'leads') {
+            loadLeads();
+            return;
+        }
+
+        if (activeTab === 'ny-outreach') {
+            loadOutreachLeads();
+            loadDataQuality();
+        }
+    };
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -646,7 +767,7 @@ export default function CRMTab() {
                     </h2>
                     <p className="text-muted-foreground">AI-native CRM powered by Jack · lifecycle tracking · MRR</p>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => { loadAIInsights(); loadData(); }} disabled={aiInsightsLoading}>
+                <Button variant="outline" size="sm" onClick={handleRefresh} disabled={aiInsightsLoading}>
                     <RefreshCw className={`h-4 w-4 mr-2 ${aiInsightsLoading ? 'animate-spin' : ''}`} />
                     Refresh
                 </Button>
@@ -768,7 +889,7 @@ export default function CRMTab() {
             </div>
 
             {/* Tabs */}
-            <Tabs defaultValue="users">
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as CRMViewTab)}>
                 <TabsList>
                     <TabsTrigger value="users" className="gap-2">
                         <Users className="h-4 w-4" />
@@ -910,6 +1031,15 @@ export default function CRMTab() {
                             {usersLoading ? (
                                 <div className="flex justify-center py-8">
                                     <Loader2 className="h-6 w-6 animate-spin" />
+                                </div>
+                            ) : usersLoadError ? (
+                                <div className="flex flex-col items-center gap-3 py-10 text-center">
+                                    <AlertTriangle className="h-6 w-6 text-destructive" />
+                                    <p className="text-sm font-medium text-destructive">Failed to load users</p>
+                                    <p className="text-xs text-muted-foreground max-w-sm">{usersLoadError}</p>
+                                    <Button size="sm" variant="outline" onClick={loadData}>
+                                        <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Retry
+                                    </Button>
                                 </div>
                             ) : users.length === 0 ? (
                                 <p className="text-center text-muted-foreground py-8">
