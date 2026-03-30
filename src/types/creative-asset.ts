@@ -475,6 +475,24 @@ export const ASSET_TEMPLATES: Record<string, Omit<AssetTemplate, 'id'>> = {
     conversionOptimized: false,
   },
 
+  tool_showcase_video: {
+    name: 'High-Impact Tool Showcase',
+    description: 'Cinematic video with screenshots and kinetic typography for software tools',
+    category: 'video',
+    format: 'video',
+    platforms: ['instagram_reel', 'tiktok'],
+    dimensions: { width: 1080, height: 1920, unit: 'px' },
+    aspectRatio: '9:16',
+    complianceLevel: 'medium',
+    aiModel: 'veo',
+    estimatedCost: 0.85,
+    generationTime: 180,
+    features: ['Multi-screenshot support', 'Video backgrounds', 'Kinetic typography', 'Custom motion styles'],
+    tags: ['video', 'SaaS', 'showcase', 'screenshots'],
+    isPremium: true,
+    conversionOptimized: true,
+  },
+
   // EMAIL
   email_header: {
     name: 'Email Campaign Header',

@@ -103,3 +103,20 @@ export function omitUndefinedDeep<T>(value: T): T {
 
     return value;
 }
+
+/**
+ * Converts a hex color string to an RGBA string with the given alpha.
+ * Supports both 3-digit and 6-digit hex codes.
+ */
+export function hexToRgba(hex: string, alpha: number): string {
+    const normalized = hex.replace('#', '');
+    const safe = normalized.length === 3
+        ? normalized.split('').map((char) => char + char).join('')
+        : normalized.padEnd(6, '0').slice(0, 6);
+
+    const r = parseInt(safe.slice(0, 2), 16);
+    const g = parseInt(safe.slice(2, 4), 16);
+    const b = parseInt(safe.slice(4, 6), 16);
+
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}

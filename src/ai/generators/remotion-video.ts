@@ -21,19 +21,32 @@ import fs from 'fs/promises';
 import { logger } from '@/lib/logger';
 import type { GenerateVideoInput, GenerateVideoOutput } from '../video-types';
 import type { BrandedSlideshowProps } from '@/remotion/compositions/BrandedSlideshow';
+import type { ToolShowcaseProps } from '@/remotion/compositions/ToolShowcase';
+import type { VideoStyle } from '@/types/creative-video';
 
 type RemotionRendererModule = typeof import('@remotion/renderer');
 
 // Map aspect ratio to Remotion composition ID
-const COMPOSITION_MAP: Record<string, string> = {
-    '16:9': 'BrandedSlideshow-16x9',
-    '9:16': 'BrandedSlideshow-9x16',
-    '1:1': 'BrandedSlideshow-1x1',
+const COMPOSITION_MAP: Record<string, Record<string, string>> = {
+    slideshow: {
+        '16:9': 'BrandedSlideshow-16x9',
+        '9:16': 'BrandedSlideshow-9x16',
+        '1:1': 'BrandedSlideshow-1x1',
+    },
+    tool: {
+        '16:9': 'ToolShowcase-16x9',
+        '9:16': 'ToolShowcase-9x16',
+        '1:1': 'ToolShowcase-1x1',
+    },
 };
 
 export interface RemotionVideoInput extends GenerateVideoInput {
-    // Remotion-specific fields not in the base schema
+    // Remotion-specific fields
     productImageUrl?: string;
+    screenshotUrls?: string[];
+    backgroundImageUrl?: string;
+    styleMode?: VideoStyle;
+    kineticHeadline?: string;
     ctaText?: string;
     websiteUrl?: string;
     headline?: string;
@@ -76,16 +89,32 @@ async function loadRemotionRenderer(): Promise<Pick<RemotionRendererModule, 'ren
 export async function generateRemotionVideo(
     input: RemotionVideoInput
 ): Promise<GenerateVideoOutput> {
-    logger.info('[Remotion] Starting branded slideshow render', {
+    logger.info('[Remotion] Starting render', {
         aspectRatio: input.aspectRatio,
         brandName: input.brandName,
+        hasScreenshots: !!input.screenshotUrls?.length,
     });
 
-    const compositionId = COMPOSITION_MAP[input.aspectRatio || '16:9'] || 'BrandedSlideshow-16x9';
+    // Detect composition type
+    const type = (input.screenshotUrls?.length || input.kineticHeadline) ? 'tool' : 'slideshow';
+    const compositionId = COMPOSITION_MAP[type][input.aspectRatio || '16:9'] || COMPOSITION_MAP[type]['16:9'];
     const outputPath = path.join(os.tmpdir(), `remotion-${Date.now()}-${compositionId}.mp4`);
 
     // Build props from input — fallback to sensible defaults
-    const props: BrandedSlideshowProps = {
+    const props: BrandedSlideshowProps | ToolShowcaseProps = type === 'tool' ? {
+        brandName: input.brandName || 'BakedBot AI',
+        tagline: input.tagline || '',
+        primaryColor: input.primaryColor || '#18181b',
+        secondaryColor: input.secondaryColor || '#27272a',
+        accentColor: input.accentColor || '#22c55e',
+        logoUrl: input.logoUrl,
+        screenshotUrls: input.screenshotUrls || [],
+        backgroundImageUrl: input.backgroundImageUrl,
+        styleMode: input.styleMode || 'stop-motion',
+        kineticHeadline: input.kineticHeadline || input.headline || 'INTRODUCING',
+        ctaText: input.ctaText || 'Get Started',
+        websiteUrl: input.websiteUrl,
+    } : {
         brandName: input.brandName || 'BakedBot AI',
         tagline: input.tagline || input.prompt.substring(0, 80),
         primaryColor: input.primaryColor || '#18181b',

@@ -2,26 +2,13 @@
 
 import type { Hero } from '@/types/heroes';
 import { getWeedmapsBannerDimensions, type WeedmapsBannerVariant } from '@/lib/weedmaps/banner-presets';
-import { cn } from '@/lib/utils';
+import { cn, hexToRgba } from '@/lib/utils';
 
 interface WeedmapsBannerPreviewProps {
   hero: Partial<Hero>;
   variant: WeedmapsBannerVariant;
   mode?: 'preview' | 'export';
   className?: string;
-}
-
-function hexToRgba(hex: string, alpha: number): string {
-  const normalized = hex.replace('#', '');
-  const full = normalized.length === 3
-    ? normalized.split('').map((char) => `${char}${char}`).join('')
-    : normalized.padEnd(6, '0').slice(0, 6);
-
-  const red = Number.parseInt(full.slice(0, 2), 16);
-  const green = Number.parseInt(full.slice(2, 4), 16);
-  const blue = Number.parseInt(full.slice(4, 6), 16);
-
-  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
 }
 
 export function WeedmapsBannerPreview({

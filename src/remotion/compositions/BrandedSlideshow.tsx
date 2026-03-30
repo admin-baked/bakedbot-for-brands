@@ -17,6 +17,7 @@ import {
     useCurrentFrame,
     useVideoConfig,
 } from 'remotion';
+import { hexToRgba } from '@/lib/utils';
 
 export interface BrandedSlideshowProps extends Record<string, unknown> {
     brandName: string;
@@ -31,18 +32,6 @@ export interface BrandedSlideshowProps extends Record<string, unknown> {
     headline?: string;
 }
 
-function hexToRgba(hex: string, alpha: number): string {
-    const normalized = hex.replace('#', '');
-    const safe = normalized.length === 3
-        ? normalized.split('').map((char) => char + char).join('')
-        : normalized.padEnd(6, '0').slice(0, 6);
-
-    const r = parseInt(safe.slice(0, 2), 16);
-    const g = parseInt(safe.slice(2, 4), 16);
-    const b = parseInt(safe.slice(4, 6), 16);
-
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
 
 function formatWebsiteLabel(websiteUrl?: string): string | null {
     if (!websiteUrl) {

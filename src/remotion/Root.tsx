@@ -8,10 +8,12 @@
 import { Composition } from 'remotion';
 import type { ComponentType } from 'react';
 import { BrandedSlideshow, type BrandedSlideshowProps } from './compositions/BrandedSlideshow';
+import { ToolShowcase, type ToolShowcaseProps } from './compositions/ToolShowcase';
 
 // Remotion's Composition generic requires ComponentType<Record<string, unknown>>.
 // Cast once here so all three registrations stay clean.
 const BrandedSlideshowComp = BrandedSlideshow as unknown as ComponentType<Record<string, unknown>>;
+const ToolShowcaseComp = ToolShowcase as unknown as ComponentType<Record<string, unknown>>;
 
 const DEFAULT_PROPS: BrandedSlideshowProps = {
     brandName: 'BakedBot AI',
@@ -24,6 +26,21 @@ const DEFAULT_PROPS: BrandedSlideshowProps = {
     ctaText: 'Shop Now',
     websiteUrl: 'bakedbot.ai',
     headline: 'AI-Powered Cannabis Commerce',
+};
+
+const DEFAULT_TOOL_PROPS: ToolShowcaseProps = {
+    brandName: 'BakedBot AI',
+    tagline: 'The Agentic Commerce OS',
+    primaryColor: '#18181b',
+    secondaryColor: '#27272a',
+    accentColor: '#22c55e',
+    logoUrl: undefined,
+    screenshotUrls: [],
+    backgroundImageUrl: undefined,
+    styleMode: 'stop-motion',
+    kineticHeadline: 'INTRODUCING THE FUTURE',
+    websiteUrl: 'bakedbot.ai',
+    ctaText: 'Build Your Agent',
 };
 
 export const RemotionRoot: React.FC = () => {
@@ -60,6 +77,39 @@ export const RemotionRoot: React.FC = () => {
                 width={1080}
                 height={1080}
                 defaultProps={DEFAULT_PROPS}
+            />
+
+            {/* Tool Showcase - 16:9 */}
+            <Composition
+                id="ToolShowcase-16x9"
+                component={ToolShowcaseComp}
+                durationInFrames={150}
+                fps={30}
+                width={1280}
+                height={720}
+                defaultProps={DEFAULT_TOOL_PROPS}
+            />
+
+            {/* Tool Showcase - 9:16 */}
+            <Composition
+                id="ToolShowcase-9x16"
+                component={ToolShowcaseComp}
+                durationInFrames={150}
+                fps={30}
+                width={720}
+                height={1280}
+                defaultProps={DEFAULT_TOOL_PROPS}
+            />
+
+            {/* Tool Showcase - 1:1 */}
+            <Composition
+                id="ToolShowcase-1x1"
+                component={ToolShowcaseComp}
+                durationInFrames={150}
+                fps={30}
+                width={1080}
+                height={1080}
+                defaultProps={DEFAULT_TOOL_PROPS}
             />
         </>
     );

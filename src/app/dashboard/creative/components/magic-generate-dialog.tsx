@@ -35,6 +35,11 @@ import {
   AlertCircle,
   Clock,
   DollarSign,
+  Image as ImageIcon,
+  Plus,
+  X,
+  Type,
+  Layout,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { SocialPlatform } from '@/types/creative-content';
@@ -61,6 +66,10 @@ export interface GenerateParams {
   tone: string;
   style?: string;
   includeCompliance: boolean;
+  // New Tool Showcase parameters
+  screenshotUrls?: string[];
+  kineticHeadline?: string;
+  styleMode?: string;
 }
 
 const TONE_OPTIONS = [
@@ -95,6 +104,11 @@ export function MagicGenerateDialog({
   const [style, setStyle] = useState('modern');
   const [includeCompliance, setIncludeCompliance] = useState(true);
   const [generating, setGenerating] = useState(false);
+
+  // Tool Showcase specific state
+  const [screenshotUrls, setScreenshotUrls] = useState<string[]>([]);
+  const [kineticHeadline, setKineticHeadline] = useState('');
+  const [styleMode, setStyleMode] = useState('stop-motion');
 
   const brandColors = useBrandColors(brandGuide);
   const brandVoice = useBrandVoice(brandGuide);
@@ -145,6 +159,9 @@ export function MagicGenerateDialog({
         tone,
         style,
         includeCompliance,
+        screenshotUrls: isToolShowcase ? screenshotUrls : undefined,
+        kineticHeadline: isToolShowcase ? kineticHeadline : undefined,
+        styleMode: isToolShowcase ? styleMode : undefined,
       });
 
       // Close dialog after successful generation
@@ -157,6 +174,8 @@ export function MagicGenerateDialog({
   };
 
   if (!template) return null;
+
+  const isToolShowcase = template.id === 'tool_showcase_video' || template.name.includes('Showcase');
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -292,24 +311,87 @@ export function MagicGenerateDialog({
           </div>
         </div>
 
-        {/* Style Selection */}
-        <div className="space-y-3">
-          <Label htmlFor="style" className="text-sm font-bold">
-            Visual Style
-          </Label>
-          <Select value={style} onValueChange={setStyle}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {STYLE_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {/* Tool Showcase Specific Inputs */}
+        {isToolShowcase && (
+          <div className="space-y-6 pt-4 border-t border-gray-100">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Type className="w-4 h-4 text-baked-green" />
+                <Label className="text-sm font-bold">Kinetic Headline</Label>
+              </div>
+              <Textarea
+                placeholder="The big bold text that introduces your video..."
+                value={kineticHeadline}
+                onChange={(e) => setKineticHeadline(e.target.value)}
+                rows={2}
+                className="font-black text-xl tracking-tight uppercase"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Layout className="w-4 h-4 text-baked-green" />
+                <Label className="text-sm font-bold">Motion Style</Label>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {['stop-motion', 'slow-motion', 'fast-paced'].map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => setStyleMode(mode)}
+                    className={cn(
+                      'px-3 py-2 text-xs rounded-lg border transition capitalize',
+                      styleMode === mode
+                        ? 'border-baked-green bg-green-50 text-baked-green font-bold'
+                        : 'border-gray-200 hover:border-gray-300'
+                    )}
+                  >
+                    {mode.replace('-', ' ')}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-baked-green" />
+                  <Label className="text-sm font-bold">Screenshots ({screenshotUrls.length}/5)</Label>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-7 text-xs text-baked-green"
+                  onClick={() => {
+                    const url = prompt('Enter image URL:');
+                    if (url) setScreenshotUrls([...screenshotUrls, url]);
+                  }}
+                >
+                  <Plus className="w-3 h-3 mr-1" />
+                  Add URL
+                </Button>
+              </div>
+              
+              <div className="grid grid-cols-5 gap-2">
+                {screenshotUrls.map((url, i) => (
+                  <div key={i} className="relative aspect-square rounded-lg border border-gray-200 overflow-hidden bg-gray-50">
+                    <img src={url} alt="Screenshot" className="w-100 h-100 object-cover" />
+                    <button 
+                      className="absolute top-1 right-1 bg-black/50 hover:bg-black/70 text-white rounded-full p-0.5"
+                      onClick={() => setScreenshotUrls(screenshotUrls.filter((_, idx) => idx !== i))}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+                {screenshotUrls.length < 5 && (
+                  <div className="aspect-square rounded-lg border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-400">
+                    <ImageIcon className="w-5 h-5" />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Compliance Toggle */}
         <div className="flex items-start gap-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
