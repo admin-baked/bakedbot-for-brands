@@ -2425,13 +2425,12 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                 </div>
             </ScrollArea>
 
-            {/* Input Area — floating card (Gemini-style) */}
+            {/* Input Area — inline style overrides pb-* to handle iOS home indicator */}
             <div
-                className="bg-background px-3 pb-3 pt-1"
+                className="bg-background px-3 pt-1"
                 style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
             >
                 <div className="max-w-3xl mx-auto">
-                    {/* Hidden file input */}
                     <input
                         ref={fileInputRef}
                         type="file"
@@ -2441,7 +2440,6 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                         className="hidden"
                     />
 
-                    {/* Attachment Preview */}
                     {attachments.length > 0 && (
                         <div className="mb-2">
                             <AttachmentPreviewList
@@ -2451,9 +2449,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                         </div>
                     )}
 
-                    {/* Floating card */}
                     <div className="rounded-2xl border bg-card shadow-sm overflow-hidden">
-                        {/* Textarea */}
                         <Textarea
                             ref={textareaRef}
                             value={input}
@@ -2469,7 +2465,6 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                             disabled={isSubmitting || isPending}
                         />
 
-                        {/* Action strip */}
                         <div className="flex items-center justify-between px-3 pb-2.5">
                             <Button
                                 variant="ghost"
