@@ -472,6 +472,36 @@ async function handleDeploymentFailure(
     };
 }
 
+function buildCleanDeploySuccessBlocks(
+    event: NormalizedFirebaseDeploymentEvent,
+): Record<string, unknown>[] {
+    const fields: Array<{ type: string; text: string }> = [
+        { type: 'mrkdwn', text: `*Branch*\n${event.branch || 'main'}` },
+        { type: 'mrkdwn', text: `*Run*\n${buildRunLabel(event)}` },
+    ];
+
+    if (event.shortSha) {
+        fields.push({ type: 'mrkdwn', text: `*Commit*\n\`${event.shortSha}\`` });
+    }
+    if (event.actor) {
+        fields.push({ type: 'mrkdwn', text: `*Pushed by*\n${event.actor}` });
+    }
+    if (event.deployedUrl) {
+        fields.push({ type: 'mrkdwn', text: `*Live*\n<${event.deployedUrl}|bakedbot.ai>` });
+    }
+
+    return [
+        {
+            type: 'header',
+            text: { type: 'plain_text', text: '🚀 Push Deployed Successfully', emoji: true },
+        },
+        {
+            type: 'section',
+            fields,
+        },
+    ];
+}
+
 async function handleDeploymentSuccess(
     request: FirebaseDeploymentPlaybookRequest,
     event: NormalizedFirebaseDeploymentEvent,
@@ -480,14 +510,22 @@ async function handleDeploymentSuccess(
     const incident = await findLatestOpenIncident(orgId, event);
 
     if (!incident) {
-        logger.info('[FirebaseDeploymentIncident] Success event ignored without open incident', {
+        // No open incident — still notify #linus-cto so every push is visible
+        await postLinusIncidentSlack({
+            source: 'auto-escalator',
+            channelName: DEFAULT_CHANNEL_NAME,
+            fallbackText: `Push deployed — ${event.workflowName}${event.shortSha ? ` (${event.shortSha})` : ''}${event.actor ? ` by ${event.actor}` : ''}`,
+            blocks: buildCleanDeploySuccessBlocks(event),
+        });
+        logger.info('[FirebaseDeploymentIncident] Clean push notified to #linus-cto', {
             workflowName: event.workflowName,
             runId: event.runId,
+            shortSha: event.shortSha,
         });
         return {
             success: true,
             accepted: true,
-            mode: 'ignored',
+            mode: 'success',
             incidentId: null,
         };
     }
