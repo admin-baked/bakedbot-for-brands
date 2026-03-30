@@ -12,6 +12,7 @@
 'use client';
 
 import { useState } from 'react';
+import { logger } from '@/lib/logger';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -85,7 +86,7 @@ export function CreativeCommandCenter({
   };
 
   const handleGenerate = async (params: GenerateParams) => {
-    console.log('Generating with params:', params);
+    logger.info('[CreativeCommandCenter] Generating asset', { templateId: params.templateId });
 
     // TODO: Call actual generation API
     // For now, create a mock asset
@@ -122,7 +123,7 @@ export function CreativeCommandCenter({
   };
 
   const handleAssetDownload = (asset: CreativeAsset) => {
-    console.log('Downloading asset:', asset);
+    logger.info('[CreativeCommandCenter] Download requested', { assetId: asset.id });
     // TODO: Implement download
   };
 
@@ -139,7 +140,7 @@ export function CreativeCommandCenter({
   };
 
   const handleScheduleAsset = (scheduledAt: Date, autoPost: boolean) => {
-    console.log('Scheduling asset for:', scheduledAt, 'Auto-post:', autoPost);
+    logger.info('[CreativeCommandCenter] Scheduling asset', { scheduledAt, autoPost });
     // TODO: Implement scheduling logic
     setShowScheduler(false);
   };

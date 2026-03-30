@@ -311,7 +311,7 @@ export function SocialPostGeneratorInline({
                             animate={{ opacity: 1, y: 0 }}
                             className="space-y-4"
                         >
-                            <div className="grid grid-cols-1 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 {(['instagram', 'tiktok', 'linkedin'] as const).map((platform) => {
                                     const config = PLATFORM_CONFIG[platform];
                                     const post = posts[platform];
