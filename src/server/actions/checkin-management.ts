@@ -13,26 +13,25 @@
 
 import { getAdminFirestore } from '@/firebase/admin';
 import { requireUser } from '@/lib/auth-helpers';
-import { SUPER_USER_ROLES, BRAND_ALL_ROLES, DISPENSARY_ALL_ROLES } from '@/types/roles';
 import { logger } from '@/lib/logger';
 import { FieldValue } from 'firebase-admin/firestore';
-import { getPhoneLast4 } from '@/lib/customers/profile-derivations';
 import { createInboxArtifactId, createInboxThreadId } from '@/types/inbox';
 import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { z } from 'zod';
-import {
-    DEFAULT_CHECKIN_CONFIG,
-    DEFAULT_PUBLIC_BRAND_THEME,
-    type CheckinConfig,
-    type CheckinStats,
-    type CheckinVisitRow,
-    type MoodCount,
-    type PublicBrandTheme,
-} from '@/lib/checkin/checkin-management-shared';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-/* export const DEFAULT_CHECKIN_CONFIG: CheckinConfig = {
+export interface CheckinConfig {
+    checkInEnabled: boolean;
+    publicFlowEnabled: boolean;
+    gmapsPlaceId: string;
+    inStoreOffer: string;
+    welcomeHeadline: string;
+    tabletIdleTimeoutSec: number;
+    updatedAt?: string | null;
+}
+
+export const DEFAULT_CHECKIN_CONFIG: CheckinConfig = {
     checkInEnabled: true,
     publicFlowEnabled: true,
     gmapsPlaceId: '',
@@ -40,7 +39,7 @@ import {
     welcomeHeadline: 'Check in faster. Give your budtender a better head start.',
     tabletIdleTimeoutSec: 20,
     updatedAt: null,
-}; */
+};
 
 const checkinConfigSchema = z.object({
     checkInEnabled: z.boolean(),
@@ -51,7 +50,12 @@ const checkinConfigSchema = z.object({
     tabletIdleTimeoutSec: z.number().int().min(5).max(120),
 });
 
-interface LegacyCheckinStatsUnused {
+export interface MoodCount {
+    mood: string;
+    count: number;
+}
+
+export interface CheckinStats {
     todayCount: number;
     weekCount: number;
     monthCount: number;
@@ -65,7 +69,7 @@ interface LegacyCheckinStatsUnused {
     periodLabel: string;
 }
 
-interface LegacyCheckinVisitRowUnused {
+export interface CheckinVisitRow {
     visitId: string;
     firstName: string;
     phoneLast4: string;
@@ -97,20 +101,6 @@ function todayStart(): Date {
     return d;
 }
 
-function normalizePublicColor(value: unknown): string | undefined {
-    if (typeof value !== 'string') {
-        return undefined;
-    }
-
-    const trimmed = value.trim();
-    if (!trimmed) {
-        return undefined;
-    }
-
-    const withHash = trimmed.startsWith('#') ? trimmed : `#${trimmed}`;
-    return /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(withHash) ? withHash : undefined;
-}
-
 // ── Config actions ─────────────────────────────────────────────────────────
 
 export async function getCheckinConfig(orgId: string): Promise<{ success: boolean; config: CheckinConfig; error?: string }> {
@@ -138,7 +128,7 @@ export async function getCheckinConfig(orgId: string): Promise<{ success: boolea
 }
 
 export async function saveCheckinConfig(orgId: string, updates: Partial<CheckinConfig>): Promise<{ success: boolean; error?: string }> {
-    const user = await requireUser([...DISPENSARY_ALL_ROLES, ...BRAND_ALL_ROLES, ...SUPER_USER_ROLES]);
+    const user = await requireUser([]);
     if (!user || (user.orgId !== orgId && user.role !== 'super_user')) {
         return { success: false, error: 'Unauthorized' };
     }
@@ -244,9 +234,7 @@ export async function getRecentCheckinVisits(orgId: string, limit = 25): Promise
         const visits: CheckinVisitRow[] = snap.docs.map(doc => {
             const d = doc.data();
             const phone = typeof d.phone === 'string' ? d.phone : '';
-            const phoneLast4 = (typeof d.phoneLast4 === 'string' && d.phoneLast4)
-                || getPhoneLast4(phone)
-                || '????';
+            const phoneLast4 = phone.replace(/\D/g, '').slice(-4) || '????';
             const visitedAt = firestoreTimestampToDate(d.visitedAt)?.toISOString() ?? new Date().toISOString();
             return {
                 visitId: doc.id,
@@ -259,8 +247,6 @@ export async function getRecentCheckinVisits(orgId: string, limit = 25): Promise
                 smsConsent: Boolean(d.smsConsent),
                 emailConsent: Boolean(d.emailConsent),
                 reviewStatus: d.reviewSequence?.status ?? 'unknown',
-                customerId: typeof d.customerId === 'string' ? d.customerId : null,
-                cartProductIds: Array.isArray(d.cartProductIds) ? d.cartProductIds : [],
             };
         });
 
@@ -296,52 +282,21 @@ export interface CheckinBriefingData {
  * Returns just the logo URL for a given org — no auth required.
  * Used by the public loyalty tablet page.
  */
-/**
- * Returns the public-facing brand theme for a given org.
- * No auth required because the public loyalty tablet needs the brand logo and colors.
- */
-export async function getPublicBrandTheme(orgId: string): Promise<PublicBrandTheme> {
+export async function getPublicBrandLogo(orgId: string): Promise<{ logoUrl: string | null }> {
     try {
         const db = getAdminFirestore();
         const snap = await db.collection('brandGuides').doc(orgId).get();
-        if (!snap.exists) {
-            return DEFAULT_PUBLIC_BRAND_THEME;
-        }
-
+        if (!snap.exists) return { logoUrl: null };
         const data = snap.data() ?? {};
-        const visualIdentity = data.visualIdentity ?? {};
-        const colors = visualIdentity.colors ?? {};
         const logoUrl: string | null =
-            visualIdentity.logo?.primary ||
-            visualIdentity.logo?.wordmark ||
+            data.visualIdentity?.logo?.primary ||
+            data.visualIdentity?.logo?.wordmark ||
             data.logo?.primary ||
             null;
-        const brandName = typeof data.brandName === 'string' && data.brandName.trim()
-            ? data.brandName.trim()
-            : null;
-
-        return {
-            brandName,
-            logoUrl,
-            colors: {
-                primary: normalizePublicColor(colors.primary?.hex) ?? DEFAULT_PUBLIC_BRAND_THEME.colors.primary,
-                secondary: normalizePublicColor(colors.secondary?.hex) ?? DEFAULT_PUBLIC_BRAND_THEME.colors.secondary,
-                accent: normalizePublicColor(colors.accent?.hex) ?? DEFAULT_PUBLIC_BRAND_THEME.colors.accent,
-                text: normalizePublicColor(colors.text?.hex) ?? DEFAULT_PUBLIC_BRAND_THEME.colors.text,
-                background: normalizePublicColor(colors.background?.hex) ?? DEFAULT_PUBLIC_BRAND_THEME.colors.background,
-            },
-        };
+        return { logoUrl };
     } catch {
-        return DEFAULT_PUBLIC_BRAND_THEME;
+        return { logoUrl: null };
     }
-}
-
-/**
- * Backwards-compatible helper for callers that only need the logo URL.
- */
-export async function getPublicBrandLogo(orgId: string): Promise<{ logoUrl: string | null }> {
-    const theme = await getPublicBrandTheme(orgId);
-    return { logoUrl: theme.logoUrl };
 }
 
 export async function postCheckinBriefingToInbox(orgId: string): Promise<{ success: boolean; artifactId?: string; error?: string }> {

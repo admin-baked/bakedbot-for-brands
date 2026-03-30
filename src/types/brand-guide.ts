@@ -203,6 +203,7 @@ export interface BrandWritingStyle {
 export interface BrandVoiceSample {
   type: 'social_post' | 'product_description' | 'email' | 'blog' | 'customer_response';
   content: string;
+  text?: string;                // Alias for content (used by AI generation pipeline)
   context?: string;             // When/why this voice is used
   audience?: string;            // Target audience
   aiGenerated?: boolean;

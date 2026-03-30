@@ -38,13 +38,13 @@ export interface ResearchBrief {
     topic: string;
     summary?: string;
     keyPoints?: string[];
-    keyFindings?: string[];
-    rawResearch?: string;
+    keyFindings: string[];
+    rawResearch: string;
     citations: Citation[];
     suggestedTitle: string;
     suggestedKeywords: string[];
-    suggestedAngles?: string[];
-    competitorGaps?: string[];
+    suggestedAngles: string[];
+    competitorGaps: string[];
     analyticsSignals?: any;
 }
 

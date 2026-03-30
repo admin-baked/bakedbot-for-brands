@@ -18,7 +18,7 @@ import { Loader2, Plus, X, Sparkles } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { updateBrandGuide, analyzeBrandVoice, suggestVocabularyTerms, generateSampleContent } from '@/server/actions/brand-guide';
 import { useToast } from '@/hooks/use-toast';
-import type { BrandGuide, BrandVoice, BrandPersonalityTrait, BrandTone, BrandWritingStyle } from '@/types/brand-guide';
+import type { BrandGuide, BrandVoice, BrandPersonalityTrait, BrandTone, BrandWritingStyle, BrandVoiceSample } from '@/types/brand-guide';
 
 interface BrandVoiceTabProps {
   brandId: string;
@@ -236,7 +236,7 @@ export function BrandVoiceTab({ brandId, brandGuide, onUpdate }: BrandVoiceTabPr
     try {
       const result = await generateSampleContent(brandId);
       if (!result.success || !result.samples) throw new Error(result.error || 'Generation failed');
-      setVoice(prev => ({ ...prev, sampleContent: result.samples! }));
+      setVoice(prev => ({ ...prev, sampleContent: result.samples!.map(s => ({ type: s.type, content: s.text, aiGenerated: true })) }));
       toast({ title: 'Sample content generated', description: 'Review the posts below and save when ready.' });
     } catch (err) {
       toast({ title: 'Generation failed', description: (err as Error).message, variant: 'destructive' });
