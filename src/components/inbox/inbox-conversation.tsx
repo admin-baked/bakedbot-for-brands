@@ -2425,12 +2425,25 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                 </div>
             </ScrollArea>
 
-            {/* Input Area */}
-            <div className="border-t p-4 bg-background">
+            {/* Input Area — floating card (Gemini-style) */}
+            <div
+                className="bg-background px-3 pb-3 pt-1"
+                style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+            >
                 <div className="max-w-3xl mx-auto">
+                    {/* Hidden file input */}
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,text/plain,text/csv,text/markdown,application/json,.md,.markdown,.csv,.json,.js,.jsx,.ts,.tsx,.py,.sh,.yaml,.yml,.xml,.html,.css"
+                        multiple
+                        onChange={handleFileSelect}
+                        className="hidden"
+                    />
+
                     {/* Attachment Preview */}
                     {attachments.length > 0 && (
-                        <div className="mb-3">
+                        <div className="mb-2">
                             <AttachmentPreviewList
                                 attachments={attachments}
                                 onRemove={handleRemoveAttachment}
@@ -2438,65 +2451,50 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                         </div>
                     )}
 
-                    <div className="flex items-end gap-2">
-                        {/* Hidden file input */}
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,text/plain,text/csv,text/markdown,application/json,.md,.markdown,.csv,.json,.js,.jsx,.ts,.tsx,.py,.sh,.yaml,.yml,.xml,.html,.css"
-                            multiple
-                            onChange={handleFileSelect}
-                            className="hidden"
+                    {/* Floating card */}
+                    <div className="rounded-2xl border bg-card shadow-sm overflow-hidden">
+                        {/* Textarea */}
+                        <Textarea
+                            ref={textareaRef}
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onPaste={handlePaste}
+                            onKeyDown={handleKeyDown}
+                            placeholder={isPending
+                                ? 'Setting up conversation...'
+                                : `Message ${AGENT_NAMES[thread.primaryAgent]?.name || 'assistant'}...`
+                            }
+                            className="min-h-[44px] max-h-[160px] resize-none border-0 bg-transparent px-4 pt-3 pb-1 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                            rows={1}
+                            disabled={isSubmitting || isPending}
                         />
 
-                        {/* Attachment button */}
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-11 w-11 shrink-0"
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={isSubmitting || isPending}
-                            title="Attach files (images, PDFs)"
-                        >
-                            <Paperclip className="h-4 w-4" />
-                        </Button>
-
-                        <div className="flex-1 relative">
-                            <Textarea
-                                ref={textareaRef}
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                onPaste={handlePaste}
-                                onKeyDown={handleKeyDown}
-                                placeholder={isPending
-                                    ? 'Setting up conversation...'
-                                    : `Message ${AGENT_NAMES[thread.primaryAgent]?.name || 'assistant'}...`
-                                }
-                                className="min-h-[44px] max-h-[200px] resize-none"
-                                rows={1}
+                        {/* Action strip */}
+                        <div className="flex items-center justify-between px-3 pb-2.5">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                onClick={() => fileInputRef.current?.click()}
                                 disabled={isSubmitting || isPending}
-                            />
+                                title="Attach files (images, PDFs)"
+                            >
+                                <Paperclip className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                onClick={handleSubmit}
+                                disabled={(!input.trim() && attachments.length === 0) || isSubmitting || isPending}
+                                size="icon"
+                                className="h-8 w-8 rounded-xl"
+                            >
+                                {isSubmitting || isPending ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Send className="h-4 w-4" />
+                                )}
+                            </Button>
                         </div>
-                        <Button
-                            onClick={handleSubmit}
-                            disabled={(!input.trim() && attachments.length === 0) || isSubmitting || isPending}
-                            size="icon"
-                            className="h-11 w-11"
-                        >
-                            {isSubmitting || isPending ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                                <Send className="h-4 w-4" />
-                            )}
-                        </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-2 text-center">
-                        {isPending
-                            ? 'Preparing your conversation...'
-                            : attachments.length > 0
-                                ? `${attachments.length} file(s) attached. Press Enter to send.`
-                                : 'Press Enter to send, Shift+Enter for new line. Use the paperclip or paste files/text to attach.'}
-                    </p>
                 </div>
             </div>
         </div>
