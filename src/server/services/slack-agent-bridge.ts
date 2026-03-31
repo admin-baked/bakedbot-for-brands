@@ -476,22 +476,30 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             // Image downloads for vision-capable agents (Linus + Elroy)
             ((isLinus || isElroy) && (botToken || elroyBotToken) && imageFiles.length > 0)
                 ? Promise.all(imageFiles.map(async (f: any) => {
-                    if (!(CLAUDE_IMAGE_TYPES as readonly string[]).includes(f.mimetype)) {
-                        logger.warn(`[SlackBridge] Skipping image with unsupported MIME type: ${f.mimetype}`);
+                    // Normalize MIME type — Slack may include parameters like "; charset=utf-8"
+                    const rawMime = String(f.mimetype || '');
+                    const normalizedMime = rawMime.split(';')[0].trim();
+                    if (!(CLAUDE_IMAGE_TYPES as readonly string[]).includes(normalizedMime)) {
+                        logger.warn(`[SlackBridge] Skipping image with unsupported MIME type: ${rawMime} (normalized: ${normalizedMime})`);
                         return null;
                     }
                     const downloadToken = (isElroy ? elroyBotToken : botToken) || botToken;
+                    // Prefer url_private_download (force-download) over url_private (may redirect to browser auth)
                     const downloadUrl = f.url_private_download || f.url_private;
+                    if (!downloadUrl) {
+                        logger.warn(`[SlackBridge] No download URL for image: ${f.name}`);
+                        return null;
+                    }
                     try {
                         const res = await fetch(downloadUrl, { headers: { Authorization: `Bearer ${downloadToken}` } });
                         if (!res.ok) {
-                            logger.warn(`[SlackBridge] Image download failed (${res.status}): ${f.name}`);
+                            logger.warn(`[SlackBridge] Image download failed (${res.status}): ${f.name} url=${downloadUrl}`);
                             return null;
                         }
-                        // Reject non-image responses (HTML auth/error pages)
+                        // Reject non-image responses (HTML auth/error pages served by Slack on token failure)
                         const contentType = res.headers.get('content-type') || '';
                         if (!contentType.startsWith('image/')) {
-                            logger.warn(`[SlackBridge] Unexpected content-type "${contentType}" for image ${f.name}, skipping`);
+                            logger.warn(`[SlackBridge] Unexpected content-type "${contentType}" for image ${f.name} — likely auth failure, skipping`);
                             return null;
                         }
                         const buf = Buffer.from(await res.arrayBuffer());
@@ -503,8 +511,8 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                             logger.warn(`[SlackBridge] Image too large (${buf.length}b), skipping: ${f.name}`);
                             return null;
                         }
-                        logger.info(`[SlackBridge] Downloaded image for vision: ${f.name} (${buf.length}b) agent=${isElroy ? 'elroy' : 'linus'}`);
-                        return { data: buf.toString('base64'), mimeType: f.mimetype as string };
+                        logger.info(`[SlackBridge] Downloaded image for vision: ${f.name} (${buf.length}b) agent=${isElroy ? 'elroy' : 'linus'} mime=${normalizedMime}`);
+                        return { data: buf.toString('base64'), mimeType: normalizedMime };
                     } catch (imgErr: any) {
                         logger.warn(`[SlackBridge] Failed to download image ${f.name}: ${imgErr.message}`);
                         return null;
