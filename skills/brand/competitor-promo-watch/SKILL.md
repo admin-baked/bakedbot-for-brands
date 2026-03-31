@@ -1,6 +1,6 @@
 ---
 name: competitor-promo-watch
-description: Produce a concise competitor promotion watch report for a dispensary or brand — summarizing observed promo changes, likely business impact, and a bounded response recommendation. Use when monitoring what competing brands or dispensaries are doing with promotions, pricing, placement, or new product launches. Trigger phrases: "what are competitors promoting", "competitor promo watch", "any competing campaigns we should know about", "what's [brand] doing", "competitor product launch", "are we being undercut on promotions", "promo intelligence".
+description: Produce a competitor promotion watch report — use when monitoring active promotions, new product launches, pricing moves, or featured placement changes by competing brands or dispensaries. Trigger phrases: "competitor promo watch", "what promos are competitors running", "promo intelligence", "active competing campaigns", "competitor product launch", "what promotions should we watch", "competitor deals this week".
 version: 0.1.0
 owner: market-intelligence
 agent_owner: ezal
@@ -94,7 +94,8 @@ COMPETITORS MONITORED: N
 [Craig alerted for P0 / No P0 thresholds breached this period]
 
 ### Opportunities
-[Any competitor weakness, out-of-stock, or poor review pattern we can capitalize on]
+[Include only when no P0 threat is active — a P0 fires Craig immediately, and action is the priority.
+ Omit this section entirely if P0 alert was triggered this cycle.]
 
 ### Next Scan
 [Date of next scheduled watch / trigger condition for off-cycle scan]

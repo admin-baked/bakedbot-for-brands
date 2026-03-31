@@ -104,6 +104,10 @@ TEXT_BODY:
 - **Offer code unverified:** Confirm with operator before including any promo value
 - **Customer under 21 indicated:** Stop; escalate to operator immediately; do not send
 
+## Approval Note
+This skill is `draft_only` — all segments. No Thrive welcome email sends without operator review,
+regardless of signup context. The email is a draft until an operator confirms send.
+
 ## Compliance Notes
 - "21+ with valid government-issued photo ID" — required in every Thrive email that touches products
 - Never say: cure, treat, prescribe, guaranteed, medical benefit

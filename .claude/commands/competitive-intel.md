@@ -1,6 +1,6 @@
 ---
 name: competitive-intel
-description: Research competitive intelligence for a dispensary client — use when asked who's undercutting us, what competitors are doing, pricing threats, product gaps, counter-campaign opportunities, or to generate/refresh a weekly intel report. Trigger phrases: "what's the competition doing", "any threats", "who's undercutting us", "pricing gaps", "competitor analysis", "market intel", "weekly intel report".
+description: Research and analyze the competitive landscape for a dispensary client — use when assessing pricing threats, threat assessment, market position, or generating a weekly intel report. Trigger phrases: "competitive landscape", "threat assessment", "who's undercutting us", "pricing analysis", "competitive intelligence", "market intel", "weekly intel report", "are we being underpriced".
 version: 0.1.0
 owner: market-intelligence
 agent_owner: ezal
