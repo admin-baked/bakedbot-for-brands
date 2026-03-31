@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Bug, Copy, RefreshCw, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { autoReportErrorTicket } from '@/lib/auto-report-error-ticket';
 
 interface ErrorBoundaryProps {
     error: Error & { digest?: string };
@@ -28,32 +29,14 @@ export default function FelishaErrorBoundary({ error, reset }: ErrorBoundaryProp
              // Check ref instead of state
             if (hasReportedRef.current) return;
 
-            try {
-                // Mark as reported immediately to prevent race conditions
-                hasReportedRef.current = true;
-                
-                const res = await fetch('/api/tickets', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        title: `[Auto] ${error.message || 'System Error'}`,
-                        description: 'Automatically captured by Error Boundary - Linus notified',
-                        priority: 'high',
-                        category: 'system_error',
-                        pageUrl: typeof window !== 'undefined' ? window.location.href : 'unknown',
-                        reporterEmail: 'auto-boundary',
-                        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'server',
-                        errorDigest: error.digest,
-                        errorStack: error.stack
-                    })
-                });
-                if (res.ok) {
-                    console.log('[FelishaErrorBoundary] Auto-reported to Linus');
-                }
-            } catch (e) {
-                console.warn('[FelishaErrorBoundary] Auto-report failed (non-critical):', e);
-                // Optional: reset ref if we want to retry? keeping it simple for now (no retry loop)
-            }
+            // Mark as reported immediately to prevent race conditions
+            hasReportedRef.current = true;
+            autoReportErrorTicket({
+                error,
+                title: `[Auto] ${error.message || 'System Error'}`,
+                description: 'Automatically captured by Error Boundary - Linus notified',
+                reporterEmail: 'auto-boundary',
+            });
         };
 
         // Auto-report in both production and development
