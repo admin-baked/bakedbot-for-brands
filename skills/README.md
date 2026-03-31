@@ -79,11 +79,11 @@ Each skill folder contains:
 - [x] `shared/anomaly-to-action-memo`
 - [x] `deebo-compliance` (in `.claude/commands/`)
 
-**Phase 2 (Dispensary core) — next:**
-- [ ] `dispensary/daily-dispensary-ops-review`
-- [ ] `dispensary/menu-gap-analysis`
-- [ ] `dispensary/low-performing-promo-diagnosis`
-- [ ] `dispensary/loyalty-reengagement-opportunity-review`
+**Phase 2 (Dispensary core) — current:**
+- [x] `dispensary/daily-dispensary-ops-review`
+- [x] `dispensary/menu-gap-analysis`
+- [x] `dispensary/low-performing-promo-diagnosis`
+- [x] `dispensary/loyalty-reengagement-opportunity-review`
 
 **Phase 3 (Brand + grower core):**
 - [ ] `brand/retail-account-opportunity-review`
