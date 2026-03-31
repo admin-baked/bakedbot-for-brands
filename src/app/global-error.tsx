@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle, FileJson } from 'lucide-react';
@@ -15,9 +15,31 @@ export default function GlobalError({
   error: (Error & { digest?: string }) | FirestorePermissionError;
   reset: () => void;
 }) {
+  const hasReported = useRef(false);
+
   useEffect(() => {
-    // Log the error to an error reporting service
     logger.error('Global error:', error);
+
+    // Auto-report to Linus once per mount — same path as FelishaErrorBoundary
+    if (hasReported.current) return;
+    hasReported.current = true;
+
+    const typedError = error as Error & { digest?: string };
+    void fetch('/api/tickets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: `[Auto] ${typedError.message || 'Global layout error'}`,
+        description: 'Automatically captured by GlobalError boundary — root layout crashed',
+        priority: 'high',
+        category: 'system_error',
+        pageUrl: typeof window !== 'undefined' ? window.location.href : 'unknown',
+        reporterEmail: 'auto-global-error',
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'server',
+        errorDigest: typedError.digest,
+        errorStack: typedError.stack,
+      }),
+    }).catch(() => {/* never throw in error boundary */});
   }, [error]);
 
   // Check if it's our custom Firestore permission error
