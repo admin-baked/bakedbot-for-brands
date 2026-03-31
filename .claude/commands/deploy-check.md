@@ -1,3 +1,7 @@
+---
+description: Verify a production deployment succeeded — use after pushing to main to confirm the new build went live, smoke tests pass, and no regressions appeared. Trigger phrases: "check the deploy", "did it deploy", "verify deployment", "post-deploy check", "is production up", "confirm deploy went live".
+---
+
 # Deploy Check: Post-Deploy Verification
 
 Verify that a deployment to production succeeded. Polls for new build, runs smoke tests, checks regressions.

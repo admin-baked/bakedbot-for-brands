@@ -1,3 +1,7 @@
+---
+description: Run a full BakedBot system health audit across schema validation, RBAC security, data integrity, and query costs — use when checking overall system health, before major releases, after incidents, or when something seems off. Trigger phrases: "system health", "run audit", "check everything", "health check", "is everything working", "full audit".
+---
+
 # Full System Health Audit
 
 Run all four diagnostic Super Power scripts and synthesize into a single health report.

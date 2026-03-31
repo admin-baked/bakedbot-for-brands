@@ -1,3 +1,7 @@
+---
+description: Run smoke tests and golden set evaluation against production — use to quickly verify production is healthy, catch regressions after deploys, or auto-file P0/P1 bugs for failures. Trigger phrases: "run smoke tests", "qa check", "is production healthy", "quick qa", "check for regressions", "golden eval".
+---
+
 # QA Smoke: Quick Production Verification
 
 Run smoke tests and golden set evaluation against production. Auto-file bugs for failures.

@@ -1,3 +1,7 @@
+---
+description: Set up a new dispensary customer in BakedBot — use when onboarding a new dispensary, creating org documents, or running the batch setup pipeline. Trigger phrases: "onboard new customer", "add new dispensary", "set up new client", "create org for", "batch onboard", "new dispensary setup".
+---
+
 # Onboard Customer: Dispensary Setup Automation
 
 Set up a new dispensary customer using the batch onboarding infrastructure.
