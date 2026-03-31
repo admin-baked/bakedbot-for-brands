@@ -20,24 +20,22 @@ export default function GlobalError({
   useEffect(() => {
     logger.error('Global error:', error);
 
-    // Auto-report to Linus once per mount — same path as FelishaErrorBoundary
     if (hasReported.current) return;
     hasReported.current = true;
 
-    const typedError = error as Error & { digest?: string };
     void fetch('/api/tickets', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        title: `[Auto] ${typedError.message || 'Global layout error'}`,
+        title: `[Auto] ${error.message || 'Global layout error'}`,
         description: 'Automatically captured by GlobalError boundary — root layout crashed',
         priority: 'high',
         category: 'system_error',
-        pageUrl: typeof window !== 'undefined' ? window.location.href : 'unknown',
+        pageUrl: window.location.href,
         reporterEmail: 'auto-global-error',
-        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'server',
-        errorDigest: typedError.digest,
-        errorStack: typedError.stack,
+        userAgent: navigator.userAgent,
+        errorDigest: (error as Error & { digest?: string }).digest,
+        errorStack: error.stack,
       }),
     }).catch(() => {/* never throw in error boundary */});
   }, [error]);

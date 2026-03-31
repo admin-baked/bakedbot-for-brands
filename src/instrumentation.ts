@@ -164,9 +164,10 @@ export async function onRequestError(
 
         // Only dispatch the full Linus repair agent if the error is in our code —
         // avoids running Claude for every third-party or infrastructure error.
-        if (isInOurCode(err.stack)) {
+        const stack = err.stack;
+        if (isInOurCode(stack)) {
             setImmediate(() => void dispatchLinusIncidentResponse({
-                prompt: buildLinusPrompt(context.routePath, context.routeType, request.method, message, err.stack, digest),
+                prompt: buildLinusPrompt(context.routePath, context.routeType, request.method, message, stack, digest),
                 source: 'server-error',
                 incidentId,
                 channelName: 'linus-cto',
