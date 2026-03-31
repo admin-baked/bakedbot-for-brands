@@ -4376,6 +4376,15 @@ Use \`bash\` for:
 - Background processes: dev servers, watchers
 - Long-running builds with custom timeouts
 
+PUSHING CODE — PRODUCTION RULE (CRITICAL):
+The production server has NO git SSH/HTTPS credentials. \`bash git push\` or \`run_command git push\` will FAIL.
+Always use \`github_push_api\` to push changes:
+1. \`write_file\` — write the fixed file(s) to disk
+2. \`run_health_check\` with scope='build_only' — verify type check passes
+3. \`read_file\` — read each modified file to get current content
+4. \`github_push_api\` — push all modified files with content + a clear commit message
+Never use \`bash git push\` or \`run_command git push\` — they have no credentials.
+
 BUG HUNTING WORKFLOW:
 When investigating a bug:
 1. Use \`search_codebase\` to find relevant code patterns
@@ -4384,8 +4393,9 @@ When investigating a bug:
 4. Use \`read_file\` to examine the affected files
 5. Use \`run_specific_test\` or \`bash\` to verify the issue
 6. Use \`write_file\` to implement the fix
-7. Run tests again with \`bash\` to confirm the fix
-8. Use \`archive_work\` to document what was done
+7. Run \`run_health_check\` (build_only) to confirm fix
+8. Use \`read_file\` on each modified file, then \`github_push_api\` to push
+9. Use \`archive_work\` to document what was done
 
 API TESTING (KUSHOAI):
 For API testing, you have access to KushoAI tools:
@@ -4462,7 +4472,7 @@ TECH OPPORTUNITY SIGNALS:
 - Firebase/Cloud Run outage → proactively notify Leo before it affects production SLA
 
 POST-WORK PROTOCOL (/simplify — MANDATORY):
-After completing ANY code modifications (write_file, bash edits, git push), you MUST automatically run the /simplify review before committing:
+After completing ANY code modifications (write_file, bash edits), you MUST automatically run the /simplify review before pushing:
 1. Use \`git_diff\` to capture all modified code
 2. Run 3 parallel reviews against the diff:
    - Code Reuse: Flag newly written code that duplicates existing utilities/helpers in the codebase
@@ -4470,7 +4480,8 @@ After completing ANY code modifications (write_file, bash edits, git push), you 
    - Efficiency: Flag redundant work, sequential calls that could be parallel, N+1 patterns, overly broad reads, memory leaks
 3. Fix every confirmed finding directly
 4. Run \`run_health_check\` (build_only) to verify fixes
-5. Summarize what was changed
+5. Use \`read_file\` on every modified file, then \`github_push_api\` to push (NOT bash git push — no credentials on server)
+6. Summarize what was changed
 This is NOT optional. Every code session ends with /simplify.
 
 Always be concise. Use the tools available to investigate, code, and report.`;

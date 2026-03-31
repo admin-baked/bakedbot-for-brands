@@ -19,6 +19,8 @@ import { readdir, readFile, writeFile } from 'fs/promises';
 import * as path from 'path';
 import { requireSuperUser } from '@/server/auth/auth';
 import { callClaude } from '@/ai/claude';
+import { getAdminFirestore } from '@/firebase/admin';
+import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 
 const execAsync = promisify(exec);
 const PROJECT_ROOT = process.cwd();
@@ -351,30 +353,48 @@ interface BuildRecord {
   timestamp: number;
 }
 
+const INCIDENT_STATUS_TO_BUILD_STATUS: Record<string, BuildRecord['status']> = {
+  clean_success: 'SUCCESS',
+  resolved: 'SUCCESS',
+  repaired: 'SUCCESS',
+  repair_failed: 'FAILURE',
+  open: 'WORKING',
+  repairing: 'WORKING',
+};
+
 /**
- * Get deployment history from Firestore
+ * Get deployment history from Firestore (firebase_deployment_incidents collection).
+ * Covers both clean deploys (clean_success) and incident-tracked deploys (failed → repaired/resolved).
  */
 export async function getDeploymentHistory(limit: number = 10): Promise<BuildRecord[]> {
   await requireSuperUser();
 
-  try {
-    // Get recent git commits for correlation
-    const commits = await getGitLog(limit);
+  const db = getAdminFirestore();
+  const snap = await db
+    .collection('firebase_deployment_incidents')
+    .orderBy('createdAt', 'desc')
+    .limit(limit)
+    .get();
 
-    // Return formatted records (in production, would query Firestore firebase_build_monitor)
-    const records: BuildRecord[] = commits.map((commit, idx) => ({
-      id: commit.date.substring(0, 8),
-      status: idx === 0 ? 'SUCCESS' : 'SUCCESS',
-      commitHash: commit.hash,
-      commitMessage: commit.message,
-      duration: Math.floor(Math.random() * 300) + 60, // Mock duration in seconds
-      timestamp: Date.now() - (idx * 3600000),
-    }));
+  if (snap.empty) return [];
 
-    return records;
-  } catch (e: any) {
-    throw new Error(`Failed to get deployment history: ${e.message}`);
-  }
+  return snap.docs.map((doc: { id: string; data: () => Record<string, unknown> }) => {
+    const d = doc.data();
+    const event: Record<string, unknown> = (d.success as Record<string, unknown>) ?? (d.failure as Record<string, unknown>) ?? {};
+    const shortSha = String(event.shortSha ?? d.shortSha ?? '').slice(0, 7) || doc.id.slice(0, 7);
+    const workflowName = String(event.workflowName ?? d.workflowName ?? 'Firebase Deploy');
+    const durationMs = typeof event.durationMs === 'number' ? event.durationMs : null;
+    const createdAt = firestoreTimestampToDate(d.createdAt) ?? new Date();
+
+    return {
+      id: doc.id,
+      status: INCIDENT_STATUS_TO_BUILD_STATUS[String(d.status ?? '')] ?? 'SUCCESS',
+      commitHash: shortSha,
+      commitMessage: workflowName,
+      duration: durationMs != null ? Math.round(durationMs / 1000) : 0,
+      timestamp: createdAt.getTime(),
+    };
+  });
 }
 
 /**

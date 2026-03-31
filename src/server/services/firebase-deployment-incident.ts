@@ -3,7 +3,7 @@ import { logger } from '@/lib/logger';
 import { dispatchLinusIncidentResponse } from '@/server/services/linus-incident-response';
 import { postLinusIncidentSlack } from '@/server/services/incident-notifications';
 
-const DEFAULT_CHANNEL_NAME = 'linus-cto';
+const DEFAULT_CHANNEL_NAME = 'linus-deployment';
 const DEFAULT_MAX_ITERATIONS = 8;
 const INCIDENT_COLLECTION = 'firebase_deployment_incidents';
 const SUPER_USER_ORG = 'bakedbot-internal';
@@ -510,14 +510,43 @@ async function handleDeploymentSuccess(
     const incident = await findLatestOpenIncident(orgId, event);
 
     if (!incident) {
-        // No open incident — still notify #linus-cto so every push is visible
-        await postLinusIncidentSlack({
+        // No open incident — notify #linus-deployment and persist a record so the dashboard tracks every deploy.
+        const cleanIncidentId = buildIncidentId(event);
+        const slackResult = await postLinusIncidentSlack({
             source: 'auto-escalator',
+            incidentId: cleanIncidentId,
             channelName: DEFAULT_CHANNEL_NAME,
             fallbackText: `Push deployed — ${event.workflowName}${event.shortSha ? ` (${event.shortSha})` : ''}${event.actor ? ` by ${event.actor}` : ''}`,
             blocks: buildCleanDeploySuccessBlocks(event),
         });
-        logger.info('[FirebaseDeploymentIncident] Clean push notified to #linus-cto', {
+
+        await getAdminFirestore()
+            .collection(INCIDENT_COLLECTION)
+            .doc(cleanIncidentId)
+            .set({
+                id: cleanIncidentId,
+                orgId,
+                playbookId: request.playbookId || null,
+                workflowName: event.workflowName,
+                workflowFile: event.workflowFile,
+                deployTarget: event.deployTarget,
+                provider: event.provider,
+                status: 'clean_success',
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                resolvedAt: new Date(),
+                success: event,
+                slack: {
+                    channelId: slackResult.channelId,
+                    channelName: DEFAULT_CHANNEL_NAME,
+                    threadTs: slackResult.ts,
+                    initialDelivery: slackResult.delivery,
+                    initialMessageSent: slackResult.sent,
+                },
+            });
+
+        logger.info('[FirebaseDeploymentIncident] Clean deploy recorded to #linus-deployment', {
+            incidentId: cleanIncidentId,
             workflowName: event.workflowName,
             runId: event.runId,
             shortSha: event.shortSha,
@@ -526,7 +555,7 @@ async function handleDeploymentSuccess(
             success: true,
             accepted: true,
             mode: 'success',
-            incidentId: null,
+            incidentId: cleanIncidentId,
         };
     }
 
