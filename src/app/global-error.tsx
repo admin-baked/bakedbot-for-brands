@@ -8,6 +8,8 @@ import { AlertCircle, FileJson } from 'lucide-react';
 import type { FirestorePermissionError } from '@/firebase/errors';
 
 import { logger } from '@/lib/logger';
+import { autoReportErrorTicket } from '@/lib/auto-report-error-ticket';
+
 export default function GlobalError({
   error,
   reset,
@@ -23,21 +25,12 @@ export default function GlobalError({
     if (hasReported.current) return;
     hasReported.current = true;
 
-    void fetch('/api/tickets', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: `[Auto] ${error.message || 'Global layout error'}`,
-        description: 'Automatically captured by GlobalError boundary — root layout crashed',
-        priority: 'high',
-        category: 'system_error',
-        pageUrl: window.location.href,
-        reporterEmail: 'auto-global-error',
-        userAgent: navigator.userAgent,
-        errorDigest: (error as Error & { digest?: string }).digest,
-        errorStack: error.stack,
-      }),
-    }).catch(() => {/* never throw in error boundary */});
+    autoReportErrorTicket({
+      error: error as Error & { digest?: string },
+      title: `[Auto] ${error.message || 'Global layout error'}`,
+      description: 'Automatically captured by GlobalError boundary — root layout crashed',
+      reporterEmail: 'auto-global-error',
+    });
   }, [error]);
 
   // Check if it's our custom Firestore permission error
