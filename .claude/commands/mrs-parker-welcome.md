@@ -98,4 +98,4 @@ Never leave `{{firstName}}` unfilled. Never fabricate an offer.
 ## Compliance Notes
 - Forbidden words (all segments): cure, treat, prescribe, guaranteed, medical benefit
 - `customer` segment emails that mention products: include "21+ with valid ID" (NY)
-- Do not auto-send without operator visibility for `dispensary_owner` and `super_user` segments
+- Do not auto-send any segment without operator visibility — `draft_only` applies to all four segments; the welcome email is always a draft until confirmed

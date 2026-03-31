@@ -112,8 +112,8 @@ DRAFT ID: [campaignId] — status: draft, awaiting approval
 - **Counter-campaign from Ezal P0 alert:** Still runs full compliance check — urgency does not bypass
 
 ## Compliance Notes
-- Forbidden words (all channels): cure, treat, prescribe, guaranteed, medical benefit, proven to
+- Forbidden words (all channels): cure, treat, treatment, prescribe, prescription, guaranteed, proven to, medical benefit, clinically proven, FDA approved, diagnose, therapy, medication — see deebo-compliance for canonical list
 - SMS must include opt-out: "Reply STOP to unsubscribe" — non-negotiable
 - Email must include unsubscribe link — CAN-SPAM required
-- NY product-adjacent copy: "Must be 21+" required
+- NY product-adjacent copy: "Must be 21 or older with valid government-issued photo ID" required
 - No campaign exits `draft` without a Deebo PASS verdict

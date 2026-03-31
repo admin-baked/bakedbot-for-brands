@@ -10,11 +10,10 @@ allowed_roles:
   - brand_operator
 outputs:
   - reengagement_memo
-  - campaign_draft_bundle
+  - campaign_brief
 downstream_consumers:
-  - craig (campaign drafts for approved segments)
-  - deebo (compliance review before send)
-  - operator (approval before any send)
+  - craig (receives campaign_brief to draft full copy)
+  - operator (approves reengagement_memo before Craig proceeds)
 requires_approval: true
 risk_level: high
 status: active
@@ -36,7 +35,7 @@ back before they're gone for good.
 - No campaign has been sent in > 14 days (customers are cooling passively)
 
 ## When NOT to Use
-- **Campaign copy drafting** — this skill identifies the opportunity and produces a brief; Craig owns full copy
+- **Campaign copy drafting** — this skill produces a structured brief for Craig; Craig owns writing the actual copy, channel formatting, and compliance submission
 - **New customer onboarding** → `thrive-welcome` or `mrs-parker-welcome`
 - **Product recommendations for individuals** → Smokey
 - **Pricing or discount strategy** → Money Mike; this skill surfaces the segment, not the offer
@@ -122,8 +121,9 @@ TIERS: Champion N | Engaged N | At-Risk N | Dormant N
 | 2 | [Second action if warranted] | ... | ... |
 ```
 
-**Important:** `campaign_draft_bundle` requires Craig to write copy and Deebo to clear compliance
-before operator approval. This skill produces the brief — not the final copy.
+**Important:** This skill produces a `campaign_brief` — a structured handoff to Craig. Craig writes
+the actual copy, submits to Deebo for compliance, and presents to operator for approval before any send.
+This skill does not draft copy and does not advance a campaign to `approved` status.
 
 ## Edge Cases
 - **No loyalty program data available:** State clearly — cannot perform analysis without member records

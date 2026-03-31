@@ -98,9 +98,11 @@ IMPACTED METRIC: [metric name, magnitude, direction]
 [Revenue / margin / customer impact — quantify where possible]
 
 ### Recommended Actions
-| # | Action | Owner | Urgency |
-|---|--------|-------|---------|
-| 1 | ...    | ...   | ...     |
+[Suggested next steps with proposed owners — for human or workflow review. This skill does not
+ assign or execute; it surfaces options. A human or downstream workflow confirms ownership.]
+| # | Action | Suggested Owner | Urgency |
+|---|--------|----------------|---------|
+| 1 | ...    | ...            | ...     |
 
 ### Monitor
 [What to watch next, threshold for escalation, when to revisit]
