@@ -60,7 +60,7 @@ before running a live scan — live scans are rate-limited and expensive.
 - **P1:** 5–15% price gap on top-10 SKU, new competitor within 5 miles, demand category gap
 - **P2:** Within 5%, minor assortment diff, new entrant with no data yet → monitor
 
-**Threat score:** `price_gap_pct × sku_revenue_rank` — rank by this, surface top 3.
+**Threat score:** `price_gap_pct × sku_revenue_rank` — used for ranking only; do not use to reclassify severity. P0/P1/P2 thresholds (above) are the hard classification rules. A high threat_score within P1 does not promote to P0.
 
 Only report data actually retrieved. No placeholder competitor names. No fabricated prices.
 
