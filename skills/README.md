@@ -85,11 +85,11 @@ Each skill folder contains:
 - [x] `dispensary/low-performing-promo-diagnosis`
 - [x] `dispensary/loyalty-reengagement-opportunity-review`
 
-**Phase 3 (Brand + grower core):**
-- [ ] `brand/retail-account-opportunity-review`
-- [ ] `brand/competitor-promo-watch`
-- [ ] `grower/inventory-aging-risk-review`
-- [ ] `grower/sell-through-partner-analysis`
+**Phase 3 (Brand + grower core) — current:**
+- [x] `brand/retail-account-opportunity-review`
+- [x] `brand/competitor-promo-watch`
+- [x] `grower/inventory-aging-risk-review`
+- [x] `grower/sell-through-partner-analysis`
 
 ## Agent ownership map
 
