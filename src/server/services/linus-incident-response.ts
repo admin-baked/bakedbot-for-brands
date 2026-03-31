@@ -6,7 +6,7 @@ const DEFAULT_BLOCKED_HEADER = '⚠️ Linus Incident Response Blocked';
 
 export interface DispatchLinusIncidentResponseRequest {
     prompt: string;
-    source: 'auto-escalator' | 'support-ticket';
+    source: 'auto-escalator' | 'support-ticket' | 'server-error';
     incidentId?: string | null;
     incidentLink?: string;
     maxIterations?: number;
