@@ -1,3 +1,7 @@
+---
+description: Execute a registered BakedBot workflow by ID — use when running a named workflow, listing available workflows, or triggering a dry-run or org-specific workflow execution. Trigger phrases: "run workflow", "execute workflow", "list workflows", "trigger workflow", "run the playbook runner", "dry run workflow".
+---
+
 # Workflow: Run a BakedBot Workflow
 
 Execute a registered workflow by ID. Lists available workflows if no ID provided.

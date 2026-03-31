@@ -1,3 +1,7 @@
+---
+description: Auto-fix TypeScript errors then run the full build-test-deploy pipeline to production — use when ready to ship, after making code changes, or when you want to fix build errors and deploy in one step. Trigger phrases: "fix and ship", "deploy this", "build and deploy", "fix errors and push", "ship it", "push to production".
+---
+
 # Fix and Ship: One-Command Deploy Pipeline
 
 Execute the full build-test-deploy pipeline. Report results at each stage and stop on failure.
