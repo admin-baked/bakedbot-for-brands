@@ -1,6 +1,6 @@
 ---
 name: craig-campaign
-description: Design and draft a marketing campaign for a dispensary — use when asked to create a campaign, write SMS or email copy, plan a promotion, recommend what campaigns to run, or build a playbook for recurring outreach. Trigger phrases: "create a campaign", "write campaign copy", "what campaigns should we run", "SMS blast", "email promotion", "win back customers", "birthday campaign", "loyalty campaign".
+description: Design and draft a marketing campaign for a dispensary — use when asked to create a campaign, write SMS or email copy, plan a promotion, recommend what campaigns to run, or build a playbook for recurring outreach. Trigger phrases: "create a campaign", "write campaign copy", "what campaigns should we run", "SMS blast", "email promotion", "win back customers", "birthday campaign".
 version: 0.1.0
 owner: growth-marketing
 agent_owner: craig
@@ -109,7 +109,7 @@ DRAFT ID: [campaignId] — status: draft, awaiting approval
 - **Compliance BLOCK returned:** Halt draft creation; surface rewrite to operator for approval
 - **Campaign targets > 5,000 customers:** Flag for operator review before scheduling
 - **SMS to NY customers:** Confirm TCPA opt-in list is current before draft creation
-- **Counter-campaign from Ezal P0 alert:** Still runs full compliance check — urgency does not bypass
+- **Counter-campaign from Ezal P0 alert:** Still runs full margin gate (step 3) and compliance check — urgency does not bypass either gate
 
 ## Compliance Notes
 - Forbidden words (all channels): cure, treat, treatment, prescribe, prescription, guaranteed, proven to, medical benefit, clinically proven, FDA approved, diagnose, therapy, medication — see deebo-compliance for canonical list
