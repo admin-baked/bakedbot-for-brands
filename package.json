@@ -64,7 +64,8 @@
     "audit:agent-tools": "node scripts/audit-agent-tools.mjs",
     "remotion:bundle": "node scripts/bundle-remotion.mjs",
     "smoke:proactive": "node ./scripts/run-proactive-smoke.cjs",
-    "smoke:analytics": "node --env-file=.env.local scripts/smoke-analytics.mjs"
+    "smoke:analytics": "node --env-file=.env.local scripts/smoke-analytics.mjs",
+    "firebase:apphosting": "node scripts/firebase-apphosting.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.0",

@@ -111,6 +111,15 @@ Every PR body **must** include all 8 sections below. GitHub's PR template (`.git
 | `npm run setup:monitoring` | Configure Cloud Monitoring alerts for Slack #ops |
 | `npm run audit:costs` | Analyze Firestore query costs (scans $5-15/mo, optimal $0.10-0.50/mo) |
 
+### Tier 5: Infrastructure
+| Command | Purpose |
+|---------|---------|
+| `npm run firebase:apphosting -- status` | List recent App Hosting rollouts (state, duration, commit) |
+| `npm run firebase:apphosting -- logs <id>` | Stream build logs for a rollout or Cloud Build ID |
+| `npm run firebase:apphosting -- rollout` | Trigger new rollout from main branch HEAD |
+| `npm run firebase:apphosting -- cancel <id>` | Cancel an in-progress Cloud Build job |
+| `npm run firebase:apphosting -- builds` | List raw Cloud Build jobs (lower level) |
+
 **Details:** See `.agent/specs/` for full super powers documentation.
 
 **Linus Slack Usage Examples:**
