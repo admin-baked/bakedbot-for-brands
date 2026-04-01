@@ -393,6 +393,9 @@ const MOCK_GROWER_INSIGHTS: GrowerInsights = {
     lastFetched: new Date(),
 };
 
+/** Delay before silent background regeneration fires after initial load (ms) */
+const BG_REGENERATION_DELAY_MS = 800;
+
 // ============ Hook Options ============
 
 interface UseInsightsOptions {
@@ -435,10 +438,10 @@ export function useInsights(options: UseInsightsOptions = {}): UseInsightsReturn
     const isMounted = useRef(true);
 
     const fetchInsights = useCallback(
-        async (isRefresh = false) => {
-            if (isRefresh) {
+        async (isRefresh = false, silent = false) => {
+            if (isRefresh && !silent) {
                 setIsRefreshing(true);
-            } else {
+            } else if (!isRefresh) {
                 setIsLoading(true);
             }
             setError(null);
@@ -477,7 +480,7 @@ export function useInsights(options: UseInsightsOptions = {}): UseInsightsReturn
                     }
                     setLastUpdated(new Date());
                 } else {
-                    // On manual refresh, re-run generators first so data is fresh
+                    // On any refresh (manual or background), re-run generators so data is fresh
                     if (isRefresh) {
                         await regenerateInsights().catch(() => {
                             // Non-fatal — still show existing insights
@@ -520,12 +523,23 @@ export function useInsights(options: UseInsightsOptions = {}): UseInsightsReturn
         };
     }, []);
 
-    // Initial fetch once role is loaded
+    // Initial fetch once role is loaded.
+    // For dispensary roles: fetch existing data immediately, then silently regenerate
+    // in the background so cards update with fresh generator output without a spinner.
     useEffect(() => {
-        if (autoFetch && role && !isRoleLoading && !isMockLoading) {
-            fetchInsights();
+        if (!autoFetch || !role || isRoleLoading || isMockLoading) return;
+
+        fetchInsights();
+
+        if (!isMock && isDispensaryRole(role)) {
+            const timer = setTimeout(() => {
+                if (isMounted.current) {
+                    void fetchInsights(true, true); // silent background regeneration
+                }
+            }, BG_REGENERATION_DELAY_MS);
+            return () => clearTimeout(timer);
         }
-    }, [autoFetch, role, isRoleLoading, isMockLoading, fetchInsights]);
+    }, [autoFetch, role, isRoleLoading, isMockLoading, fetchInsights, isMock]);
 
     // Polling
     useEffect(() => {

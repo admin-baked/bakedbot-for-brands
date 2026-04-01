@@ -1,7 +1,7 @@
 /**
  * PLAYBOOKS.ts — BakedBot Playbook Registry
  *
- * Single source of truth for all 23 managed playbooks.
+ * Single source of truth for all managed playbooks.
  * Each entry defines the trigger, agent, tier access, delivery channel,
  * execution schedule, and estimated monthly COGS.
  *
@@ -29,6 +29,7 @@ export type PlaybookChannel = 'email' | 'dashboard' | 'sms_internal' | 'sms_cust
 
 export type PlaybookFrequency =
   | 'one_time'
+  | 'sub_daily'    // Intra-day: every 15–30 min via dedicated cron
   | 'daily'
   | 'weekly'
   | 'monthly'
@@ -54,7 +55,8 @@ export type PlaybookEventType =
   | 'customer.checkin'
   | 'inventory.new_product'
   | 'compliance.jurisdiction_change'
-  | 'billing.new_empire_signup';
+  | 'billing.new_empire_signup'
+  | 'revenue.hourly_threshold';  // Fires when hourly revenue crosses configurable threshold
 
 export interface PlaybookDefinition {
   id: string;
@@ -351,6 +353,65 @@ export const PLAYBOOKS: Record<string, PlaybookDefinition> = {
     channels: ['email', 'dashboard'],
     trigger: { type: 'event', event: 'usage.feature_ceiling' },
     estimatedMonthlyCostUsd: 0.05,
+  },
+
+  // ── NATURAL LANGUAGE PLAYBOOKS ────────────────────────────────────────────
+  // Operator-defined, intent-driven automations. Each is backed by a dedicated
+  // cron route that uses Claude + agent tools instead of a static template.
+
+  'flnnstoned-competitive-deep-dive': {
+    id: 'flnnstoned-competitive-deep-dive',
+    name: 'FlnnStoned Cannabis — Competitive Deep Dive',
+    agent: 'ezal',
+    description: 'Weekly deep-dive research on FlnnStoned Cannabis: full menu scan, pricing vs Thrive, new products, promotions, social activity, and strategic recommendations. Results emailed to martez@bakedbot.ai with an executive summary and 3 action items.',
+    tiers: ['growth', 'empire'],
+    channels: ['email', 'dashboard'],
+    trigger: { type: 'schedule', frequency: 'weekly' },
+    estimatedMonthlyCostUsd: 0.80,
+  },
+
+  'daily-sales-highlights': {
+    id: 'daily-sales-highlights',
+    name: 'Daily Sales Highlights',
+    agent: 'big_worm',
+    description: 'End-of-day recap at 8 PM ET: total revenue vs prior day, top 5 products by units sold, new vs returning customer split, peak sales hour, average transaction value, and tomorrow\'s recommended promotions based on slow movers.',
+    tiers: ['pro', 'growth', 'empire'],
+    channels: ['email', 'dashboard'],
+    trigger: { type: 'schedule', frequency: 'daily' },
+    estimatedMonthlyCostUsd: 0.50,
+  },
+
+  'revenue-pace-alert': {
+    id: 'revenue-pace-alert',
+    name: 'Revenue Pace Alert',
+    agent: 'big_worm',
+    description: 'Fires when hourly revenue exceeds $100 (configurable per org). Checks every 15 minutes via sub-daily cron. Notifies via Slack (#thrive-syracuse-pilot) and inbox. Deduplicates — max 1 alert per hour per threshold crossed.',
+    tiers: ['growth', 'empire'],
+    channels: ['dashboard', 'sms_internal'],
+    trigger: { type: 'event', event: 'revenue.hourly_threshold' },
+    estimatedMonthlyCostUsd: 0.10,
+  },
+
+  'weekly-loyalty-health': {
+    id: 'weekly-loyalty-health',
+    name: 'Weekly Loyalty Health Report',
+    agent: 'craig',
+    description: 'Monday 9 AM: total enrolled members, active/at-risk/dormant tier breakdown, top 5 VIPs by LTV, week-over-week loyalty trend, opt-in rates, and win-back targets with personalized outreach suggestions for Mrs. Parker.',
+    tiers: ['pro', 'growth', 'empire'],
+    channels: ['email', 'dashboard'],
+    trigger: { type: 'schedule', frequency: 'weekly' },
+    estimatedMonthlyCostUsd: 0.30,
+  },
+
+  'daily-checkin-digest': {
+    id: 'daily-checkin-digest',
+    name: 'Daily Check-In Digest',
+    agent: 'craig',
+    description: 'End-of-day check-in recap: new vs returning split, mood breakdown from tablet kiosk, SMS/email consent rates, review sequence queue size, and tomorrow\'s follow-up priority list for the manager.',
+    tiers: ['pro', 'growth', 'empire'],
+    channels: ['email', 'dashboard'],
+    trigger: { type: 'schedule', frequency: 'daily' },
+    estimatedMonthlyCostUsd: 0.20,
   },
 } as const;
 

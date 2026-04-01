@@ -8,6 +8,7 @@ import {
     normalizeEmail,
     normalizePhone,
 } from '@/lib/customer-import/column-mapping';
+import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { logger } from '@/lib/logger';
 import { getGoogleReviewUrl } from '@/lib/reviews/google-review-url';
 import { dispatchPlaybookEvent } from '@/server/services/playbook-event-dispatcher';
@@ -205,28 +206,6 @@ function mergePreferredCategories(
     ]));
 }
 
-function toDate(value: unknown): Date | null {
-    if (value instanceof Date && !Number.isNaN(value.getTime())) {
-        return value;
-    }
-
-    if (typeof value === 'string' || typeof value === 'number') {
-        const parsed = new Date(value);
-        return Number.isNaN(parsed.getTime()) ? null : parsed;
-    }
-
-    if (
-        value &&
-        typeof value === 'object' &&
-        typeof (value as { toDate?: () => Date }).toDate === 'function'
-    ) {
-        const parsed = (value as { toDate: () => Date }).toDate();
-        return Number.isNaN(parsed.getTime()) ? null : parsed;
-    }
-
-    return null;
-}
-
 function toCurrencyNumber(value: unknown): number {
     if (typeof value === 'number' && Number.isFinite(value)) {
         return value;
@@ -247,7 +226,7 @@ function summarizeLastPurchase(order: Record<string, unknown>): VisitorLastPurch
         typeof item === 'object' &&
         typeof (item as { name?: string }).name === 'string'
     ));
-    const purchasedAt = toDate(order.date);
+    const purchasedAt = firestoreTimestampToDate(order.date);
     const total = toCurrencyNumber(order.total);
 
     if (!primaryItem) {
