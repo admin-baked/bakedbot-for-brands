@@ -29,6 +29,7 @@
     "audit:deep": "bash ./scripts/audit-code.sh",
     "pre-publish": "bash ./scripts/pre-publish.sh",
     "check:structure": "node scripts/check-app-structure.mjs",
+    "check:config": "node scripts/check-next-config.mjs",
     "check:types": "node --max-old-space-size=8192 ./node_modules/typescript/bin/tsc --noEmit --incremental false",
     "check:lint": "echo 'Skipping lint check due to known next-16 incompatibility' && exit 0",
     "check:routes": "node scripts/check-routes.mjs",
