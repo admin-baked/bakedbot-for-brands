@@ -60,6 +60,9 @@ const nextConfig = {
     'path',
     'os',
     '@coinbase/coinbase-sdk',
+    'ccxt',
+    'puppeteer-core',
+    'pptxgenjs',
   ],
   typescript: {
     // Disable Next.js TypeScript checking - we run tsc --noEmit separately in check:types

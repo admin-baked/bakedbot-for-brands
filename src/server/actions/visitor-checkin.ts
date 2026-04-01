@@ -407,17 +407,11 @@ export async function getVisitorCheckinContext(
             };
         }
 
-        const existingCustomer = await findExistingCustomer(
-            validated.orgId,
-            normalizedPhone,
-            normalizedEmail,
-        );
+        const [existingCustomer, existingLead] = await Promise.all([
+            findExistingCustomer(validated.orgId, normalizedPhone, normalizedEmail),
+            findExistingLead(validated.orgId, normalizedPhone, normalizedEmail),
+        ]);
         const existingCustomerData = existingCustomer?.data() ?? null;
-        const existingLead = await findExistingLead(
-            validated.orgId,
-            normalizedPhone,
-            normalizedEmail,
-        );
 
         const savedEmail = normalizeStoredEmail(
             existingCustomerData?.email ?? existingLead?.data.email ?? undefined,
@@ -525,12 +519,12 @@ export async function captureVisitorCheckin(
             };
         }
 
-        const [existingCustomer, existingLead] = await Promise.all([
-            findExistingCustomer(validated.orgId, normalizedPhone, normalizedEmail),
-            findExistingLead(validated.orgId, normalizedPhone, normalizedEmail),
-        ]);
+        const existingCustomer = await findExistingCustomer(validated.orgId, normalizedPhone, normalizedEmail);
         const existingCustomerData = existingCustomer?.data() ?? null;
-        const recoveredLeadData = !existingCustomerData ? (existingLead?.data ?? null) : null;
+        // Only fetch lead data when no customer record exists (fallback for email/name only)
+        const leadFallbackData = existingCustomerData
+            ? null
+            : ((await findExistingLead(validated.orgId, normalizedPhone, normalizedEmail))?.data ?? null);
 
         const customerId = existingCustomer?.id ?? buildPhoneCustomerId(validated.orgId, normalizedPhone);
         const customerRef = db.collection('customers').doc(customerId);
@@ -648,8 +642,8 @@ export async function captureVisitorCheckin(
         const isReturningCustomer = Boolean(existingCustomerData || !leadResult.isNewLead);
 
         // 9. Dispatch Playbook Events
-        const resolvedEmail = normalizedEmail ?? existingCustomerData?.email ?? recoveredLeadData?.email ?? null;
-        const resolvedName = validated.firstName || existingCustomerData?.firstName || recoveredLeadData?.firstName;
+        const resolvedEmail = normalizedEmail ?? existingCustomerData?.email ?? leadFallbackData?.email ?? null;
+        const resolvedName = validated.firstName || existingCustomerData?.firstName || leadFallbackData?.firstName;
 
         if (leadResult.isNewLead) {
             dispatchPlaybookEvent(validated.orgId, 'customer.signup', {
