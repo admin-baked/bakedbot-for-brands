@@ -50,6 +50,31 @@ After completing ANY code modifications, you **MUST** run `/simplify` before com
 
 ---
 
+## 🔴 PR Governance (MANDATORY — CI will fail without this)
+
+Every PR body **must** include all 8 sections below. GitHub's PR template (`.github/PULL_REQUEST_TEMPLATE.md`) has the full checklist, but when creating PRs via API/MCP/CLI the template is NOT auto-applied — you must fill it in manually.
+
+**Required sections** (CI governance check scans for these exact strings):
+
+```
+# Summary
+# Risk Tier
+# Canonical Reuse
+# New Abstractions
+# Failure Modes
+# Verification
+# Observability
+# Explainability
+```
+
+**Also required:** exactly one label matching `risk:tier0`, `risk:tier1`, `risk:tier2`, or `risk:tier3`.
+
+**Suppression rule:** if your diff contains `eslint-disable`, `@ts-ignore`, `@ts-expect-error`, or `: any`, you must explicitly justify it in the PR body or the governance check will block the PR.
+
+> **Tip:** Use `doc: any` patterns for firebase-admin/firestore callbacks (module resolution is broken in this tsconfig — established pattern since commit `6fc39372`). Justify in `# Failure Modes` or `# Explainability`.
+
+---
+
 ## 🚀 Developer Super Powers (11 Ready-to-Use Scripts)
 
 **All 21 npm scripts deployed 2026-02-22** — Use these for automation, testing, compliance, and observability.
