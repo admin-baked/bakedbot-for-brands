@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Bug, Copy, RefreshCw, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { autoReportErrorTicket } from '@/lib/auto-report-error-ticket';
+import { logger } from '@/lib/logger';
 
 interface ErrorBoundaryProps {
     error: Error & { digest?: string };
@@ -21,7 +22,7 @@ export default function FelishaErrorBoundary({ error, reset }: ErrorBoundaryProp
     const hasReportedRef = useRef(false); // Use ref to prevent re-renders
 
     useEffect(() => {
-        console.error('Felisha Error Boundary Caught:', error);
+        logger.error('Felisha Error Boundary Caught:', { error });
 
         // Auto-report critical errors to Linus (fire-and-forget)
         // This ensures Linus is notified even if user doesn't click "Report"
@@ -84,7 +85,7 @@ export default function FelishaErrorBoundary({ error, reset }: ErrorBoundaryProp
                 throw new Error('Failed to submit ticket');
             }
         } catch (err) {
-            console.error('Failed to submit error report:', err);
+            logger.error('Failed to submit error report:', { err });
             toast({
                 title: "Submission Failed",
                 description: "Could not save ticket to database.",

@@ -65,6 +65,21 @@ export async function POST(request: NextRequest) {
 
         const { firestore } = await createServerClient();
 
+        // Dedup: if an identical error was already reported in the last 5 minutes, skip
+        if (data.errorDigest && data.category === 'system_error') {
+            const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+            const dedupSnap = await firestore
+                .collection('tickets')
+                .where('errorDigest', '==', data.errorDigest)
+                .where('createdAt', '>=', fiveMinutesAgo)
+                .limit(1)
+                .get();
+            if (!dedupSnap.empty) {
+                logger.info('[Tickets API] Duplicate error suppressed', { errorDigest: data.errorDigest, existingId: dedupSnap.docs[0].id });
+                return NextResponse.json({ id: dedupSnap.docs[0].id, message: 'Duplicate suppressed' });
+            }
+        }
+
         const newTicket = {
             ...data,
             status: 'new',

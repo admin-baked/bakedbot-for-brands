@@ -378,8 +378,8 @@ export async function getDeploymentHistory(limit: number = 10): Promise<BuildRec
 
   if (snap.empty) return [];
 
-  return snap.docs.map((doc: any) => {
-    const d = doc.data() as Record<string, unknown>;
+  return snap.docs.map((doc: { id: string; data: () => Record<string, unknown> }) => {
+    const d = doc.data();
     const event: Record<string, unknown> = (d.success as Record<string, unknown>) ?? (d.failure as Record<string, unknown>) ?? {};
     const shortSha = String(event.shortSha ?? d.shortSha ?? '').slice(0, 7) || doc.id.slice(0, 7);
     const workflowName = String(event.workflowName ?? d.workflowName ?? 'Firebase Deploy');
