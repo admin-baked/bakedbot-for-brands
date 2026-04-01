@@ -145,6 +145,16 @@ env:
     availability:
       - RUNTIME
       - BUILD
+  - variable: NEXT_PUBLIC_AUTHNET_CLIENT_KEY
+    secret: NEXT_PUBLIC_AUTHNET_CLIENT_KEY@1
+    availability:
+      - RUNTIME
+      - BUILD
+  - variable: NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+    secret: NEXT_PUBLIC_RECAPTCHA_SITE_KEY@1
+    availability:
+      - RUNTIME
+      - BUILD
   - variable: SERPER_API_KEY
     secret: SERPER_API_KEY@3
     availability:
