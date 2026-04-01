@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — inbox desktop compaction + chat-persistence hardening + Elroy Slack shipped.
-**Recent work (2026-03-28):** See `MEMORY.md` for full log.
-Key completed: [Inbox desktop compaction + density prop + 100dvh] (`35d6d2ebf`), [chat-persistence safe serializer + SUPER_USER_ROLES guard + Elroy Slack secret] (`35d6d2ebf`).
+**Current Status:** 🟢 Passing — Thrive Syracuse + Ecstatic Edibles pilot features shipped.
+**Recent work (2026-04-01):** See `MEMORY.md` for full log.
+Key completed: [3 new cron routes + playbooks config + simplify fixes] (`ca8ff757f`), [Firestore indexes + 3 Cloud Scheduler jobs] (`329af7001`).
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 

@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-03-28 (inbox desktop compaction + chat-persistence hardening + Elroy Slack app)
+**Current Status:** 🟢 Passing | **Last update:** 2026-04-01 (Thrive + Ecstatic Edibles pilot features, 3 new cron routes, Firestore indexes, 3 Cloud Scheduler jobs)
 
 ---
 
