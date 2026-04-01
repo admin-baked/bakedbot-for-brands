@@ -38,6 +38,11 @@ const THRIVE_CHECKIN_SOURCES = new Set([
     'loyalty_tablet_checkin',
 ]);
 
+function getThriveCheckinUrl(): string {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bakedbot.ai';
+    return `${appUrl}/loyalty-tablet?orgId=${THRIVE_WELCOME_ORG_ID}`;
+}
+
 function resolveWelcomeOrgId(context: {
     brandId?: string;
     dispensaryId?: string;
@@ -58,6 +63,7 @@ function buildThriveVipWelcomeEmail(context: {
     displayName: string;
 }): { subject: string; htmlBody: string; textBody: string } {
     const { displayName } = context;
+    const checkinUrl = getThriveCheckinUrl();
     const subject = 'Welcome to Thrive VIP Rewards';
     const htmlBody = `
 <!DOCTYPE html>
@@ -91,7 +97,15 @@ function buildThriveVipWelcomeEmail(context: {
                                 <li>Weekly deals from Thrive Syracuse</li>
                                 <li>Better budtender handoff before you shop</li>
                                 <li>Smokey-powered recommendations based on your feedback and favorites</li>
+                                <li>Pre-check-in from your phone before you visit — skip the wait</li>
                             </ul>
+                            <table cellpadding="0" cellspacing="0" style="margin:0 0 24px">
+                                <tr><td style="background:#1d7d4d;border-radius:8px;padding:14px 28px">
+                                    <a href="${checkinUrl}" style="color:#fff;font-size:15px;font-weight:600;text-decoration:none">
+                                        Pre-Check In From Your Phone →
+                                    </a>
+                                </td></tr>
+                            </table>
                             <p style="margin:0 0 16px;font-size:16px;line-height:1.7;">
                                 Keep an eye on your inbox for new drops, VIP perks, and quick follow-ups after your purchases so we can keep improving your experience.
                             </p>
@@ -118,6 +132,9 @@ What to expect:
 - Weekly deals from Thrive Syracuse
 - Better budtender handoff before you shop
 - Smokey-powered recommendations based on your feedback and favorites
+- Pre-check-in from your phone before you visit
+
+Pre-check in next time: ${checkinUrl}
 
 Thanks for being part of Thrive VIP Rewards.
     `.trim();
@@ -128,7 +145,8 @@ Thanks for being part of Thrive VIP Rewards.
 function buildThriveVipWelcomeSms(context: {
     displayName: string;
 }): string {
-    return `Hi ${context.displayName}, welcome to Thrive VIP Rewards. Weekly deals are now on for your number, and Smokey can help with faster recommendations next time you shop. Reply STOP to opt out.`;
+    const checkinUrl = getThriveCheckinUrl();
+    return `Hi ${context.displayName}, welcome to Thrive VIP Rewards! Pre-check in next time from your phone: ${checkinUrl} — Smokey will have your recs ready. Reply STOP to opt out.`;
 }
 
 /**

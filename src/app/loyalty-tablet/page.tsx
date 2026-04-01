@@ -20,6 +20,7 @@ import {
     getMoodRecommendations,
 } from '@/server/actions/loyalty-tablet';
 import { getPublicBrandLogo } from '@/server/actions/checkin-management';
+import { getPublicReviews } from '@/server/actions/public-review';
 import {
     TABLET_MOODS,
     getTabletMoodById,
@@ -67,6 +68,10 @@ export default function LoyaltyTabletPage() {
 
     const [brandLogoUrl, setBrandLogoUrl] = useState<string | null>(null);
 
+    // Reviews state
+    const [reviews, setReviews] = useState<Array<{ rating: number; text?: string; tags: string[]; firstName?: string; createdAt: string }>>([]);
+    const [reviewStats, setReviewStats] = useState<{ avgRating: number; totalCount: number }>({ avgRating: 0, totalCount: 0 });
+
     const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const resetToWelcome = useCallback(() => {
@@ -97,6 +102,10 @@ export default function LoyaltyTabletPage() {
 
     useEffect(() => {
         getPublicBrandLogo(orgId).then(r => setBrandLogoUrl(r.logoUrl));
+        getPublicReviews(orgId, 3).then(r => {
+            setReviews(r.reviews);
+            setReviewStats({ avgRating: r.avgRating, totalCount: r.totalCount });
+        });
     }, [orgId]);
 
     useEffect(() => {
@@ -260,6 +269,29 @@ export default function LoyaltyTabletPage() {
                                 </div>
                             ))}
                         </div>
+                        {/* Customer Reviews */}
+                        {reviewStats.totalCount > 0 && (
+                            <div className="w-full bg-white/5 rounded-2xl p-4 space-y-3">
+                                <div className="flex items-center justify-center gap-2">
+                                    <div className="flex">
+                                        {[1, 2, 3, 4, 5].map(s => (
+                                            <Star key={s} className={`h-4 w-4 ${s <= Math.round(reviewStats.avgRating) ? 'fill-amber-400 text-amber-400' : 'text-white/20'}`} />
+                                        ))}
+                                    </div>
+                                    <span className="text-sm text-white font-bold">{reviewStats.avgRating.toFixed(1)}</span>
+                                    <span className="text-xs text-white/50">({reviewStats.totalCount} reviews)</span>
+                                </div>
+                                {reviews
+                                    .filter(r => r.text)
+                                    .slice(0, 2)
+                                    .map(review => (
+                                        <div key={review.createdAt} className="text-xs text-white/60 italic text-center px-4 truncate">
+                                            &ldquo;{review.text}&rdquo;
+                                        </div>
+                                    ))}
+                            </div>
+                        )}
+
                         <button
                             onClick={() => setStep('phone')}
                             className="w-full bg-purple-600 hover:bg-purple-500 active:bg-purple-700 text-white text-xl sm:text-2xl font-bold py-4 sm:py-6 px-8 sm:px-12 rounded-2xl shadow-lg shadow-purple-900/50 flex items-center justify-center gap-3 transition-colors"
