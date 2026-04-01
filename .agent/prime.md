@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — Firebase App Hosting CI/CD restored after 2-day outage.
+**Current Status:** 🟢 Passing — Thrive Syracuse check-in fixes verified with targeted tests + typecheck.
 **Recent work (2026-04-01):** See `MEMORY.md` for full log.
-Key completed: [Firebase build fixed — dotenv + instrumentation + disabled secret] (`e4f71a711`), [Expanded webpack externals to prevent OOM] (`e04d92a78`).
+Key completed: [Thrive check-in email recovery] (`7bd4fa1f7`), [Check-In Manager toggle autosave] (`7bd4fa1f7`).
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
