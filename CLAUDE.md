@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-04-01 (Thrive + Ecstatic Edibles pilot features, 3 new cron routes, Firestore indexes, 3 Cloud Scheduler jobs)
+**Current Status:** 🟢 Passing | **Last update:** 2026-04-01 (Firebase App Hosting CI/CD build fixed — dotenv/instrumentation/disabled-secret chain resolved)
 
 ---
 

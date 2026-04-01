@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — Thrive Syracuse + Ecstatic Edibles pilot features shipped.
+**Current Status:** 🟢 Passing — Firebase App Hosting CI/CD restored after 2-day outage.
 **Recent work (2026-04-01):** See `MEMORY.md` for full log.
-Key completed: [3 new cron routes + playbooks config + simplify fixes] (`ca8ff757f`), [Firestore indexes + 3 Cloud Scheduler jobs] (`329af7001`).
+Key completed: [Firebase build fixed — dotenv + instrumentation + disabled secret] (`e4f71a711`), [Expanded webpack externals to prevent OOM] (`e04d92a78`).
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
