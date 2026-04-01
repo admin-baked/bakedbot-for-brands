@@ -144,7 +144,7 @@ export async function callGLM({
       temperature,
     });
 
-    const content = response.choices[0]?.message?.content ?? '';
+    const content = response.choices?.[0]?.message?.content ?? '';
     const durationMs = Date.now() - startTime;
 
     trackGLMUsage({
@@ -209,12 +209,20 @@ export async function executeGLMWithTools(
     totalInputTokens += response.usage?.prompt_tokens || 0;
     totalOutputTokens += response.usage?.completion_tokens || 0;
 
-    const message = response.choices[0]?.message;
-    if (message?.content) {
+    const message = response.choices?.[0]?.message;
+    if (!message) {
+      logger.warn('[GLM] Response returned no choices, ending tool loop', {
+        model: selectedModel,
+        iteration,
+        choicesLength: response.choices?.length ?? 0,
+      });
+      break;
+    }
+    if (message.content) {
       finalContent = message.content;
     }
 
-    const toolCalls = message?.tool_calls ?? [];
+    const toolCalls = message.tool_calls ?? [];
     if (toolCalls.length === 0) {
       break;
     }

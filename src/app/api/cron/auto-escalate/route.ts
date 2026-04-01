@@ -19,7 +19,7 @@ import {
     type HeartbeatFailure,
     type LatencyBreach,
 } from '@/server/services/auto-escalator';
-import { dispatchPlaybookEvent } from '@/server/services/playbook-event-dispatcher';
+import { queueFirebaseDeploymentPlaybookEvent } from '@/server/services/firebase-deployment-incident';
 
 const SUPER_USER_ORG = 'bakedbot-internal';
 
@@ -76,31 +76,23 @@ export async function POST(req: NextRequest) {
     }
 
     if (type === 'deployment_failure') {
-        setImmediate(() => void dispatchPlaybookEvent(
-            SUPER_USER_ORG,
-            'deployment.firebase.failed',
-            {
-                ...data,
-                eventName: 'deployment.firebase.failed',
-            },
-        ).catch(err => {
-            logger.error('[AutoEscalate] Deployment failure playbook dispatch failed', { error: String(err) });
+        setImmediate(() => void queueFirebaseDeploymentPlaybookEvent({
+            orgId: SUPER_USER_ORG,
+            eventData: { ...data, eventName: 'deployment.firebase.failed' },
+        }).catch(err => {
+            logger.error('[AutoEscalate] Deployment failure notification failed', { error: String(err) });
         }));
-        return NextResponse.json({ accepted: true, type: 'deployment_failure', message: 'Deployment failure playbook queued' }, { status: 202 });
+        return NextResponse.json({ accepted: true, type: 'deployment_failure', message: 'Deployment failure queued' }, { status: 202 });
     }
 
     if (type === 'deployment_success') {
-        setImmediate(() => void dispatchPlaybookEvent(
-            SUPER_USER_ORG,
-            'deployment.firebase.succeeded',
-            {
-                ...data,
-                eventName: 'deployment.firebase.succeeded',
-            },
-        ).catch(err => {
-            logger.error('[AutoEscalate] Deployment success playbook dispatch failed', { error: String(err) });
+        setImmediate(() => void queueFirebaseDeploymentPlaybookEvent({
+            orgId: SUPER_USER_ORG,
+            eventData: { ...data, eventName: 'deployment.firebase.succeeded' },
+        }).catch(err => {
+            logger.error('[AutoEscalate] Deployment success notification failed', { error: String(err) });
         }));
-        return NextResponse.json({ accepted: true, type: 'deployment_success', message: 'Deployment success playbook queued' }, { status: 202 });
+        return NextResponse.json({ accepted: true, type: 'deployment_success', message: 'Deployment success queued' }, { status: 202 });
     }
 
     return NextResponse.json({ error: `Unknown escalation type: ${type}` }, { status: 400 });
@@ -136,11 +128,10 @@ export async function GET(req: NextRequest) {
     }
 
     if (testType === 'deployment_failure') {
-        logger.info('[AutoEscalate] Test deployment failure playbook triggered');
-        setImmediate(() => void dispatchPlaybookEvent(
-            SUPER_USER_ORG,
-            'deployment.firebase.failed',
-            {
+        logger.info('[AutoEscalate] Test deployment failure triggered');
+        setImmediate(() => void queueFirebaseDeploymentPlaybookEvent({
+            orgId: SUPER_USER_ORG,
+            eventData: {
                 eventName: 'deployment.firebase.failed',
                 workflowName: 'Deploy to Firebase App Hosting',
                 workflowFile: '.github/workflows/deploy.yml',
@@ -154,16 +145,15 @@ export async function GET(req: NextRequest) {
                 provider: 'firebase-app-hosting',
                 triggeredAt: new Date().toISOString(),
             },
-        ).catch(err => logger.error('[AutoEscalate] Test deployment failure error', { error: String(err) })));
+        }).catch(err => logger.error('[AutoEscalate] Test deployment failure error', { error: String(err) })));
         return NextResponse.json({ accepted: true, type: 'deployment_failure', message: 'Test deployment failure queued' }, { status: 202 });
     }
 
     if (testType === 'deployment_success') {
-        logger.info('[AutoEscalate] Test deployment success playbook triggered');
-        setImmediate(() => void dispatchPlaybookEvent(
-            SUPER_USER_ORG,
-            'deployment.firebase.succeeded',
-            {
+        logger.info('[AutoEscalate] Test deployment success triggered');
+        setImmediate(() => void queueFirebaseDeploymentPlaybookEvent({
+            orgId: SUPER_USER_ORG,
+            eventData: {
                 eventName: 'deployment.firebase.succeeded',
                 workflowName: 'Deploy to Firebase App Hosting',
                 workflowFile: '.github/workflows/deploy.yml',
@@ -176,7 +166,7 @@ export async function GET(req: NextRequest) {
                 deployedUrl: 'https://bakedbot.ai',
                 triggeredAt: new Date().toISOString(),
             },
-        ).catch(err => logger.error('[AutoEscalate] Test deployment success error', { error: String(err) })));
+        }).catch(err => logger.error('[AutoEscalate] Test deployment success error', { error: String(err) })));
         return NextResponse.json({ accepted: true, type: 'deployment_success', message: 'Test deployment success queued' }, { status: 202 });
     }
 
