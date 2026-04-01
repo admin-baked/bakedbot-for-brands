@@ -8,6 +8,7 @@
 
 import { Timestamp } from 'firebase-admin/firestore';
 import { callClaude } from '@/ai/claude';
+import { getModelForOrg } from '@/lib/ai-model';
 import { logger } from '@/lib/logger';
 import { slackService } from '@/server/services/communications/slack';
 import type { ScheduledPlaybookContext } from '../handler-registry';
@@ -61,9 +62,10 @@ Active deals: ${activeDeals.join(', ') || 'none'}
 8th price: ${priceOnEighth ? `$${priceOnEighth}` : 'unknown'}
 Top products: ${products.slice(0, 3).map(p => `${p.name} ($${p.price})`).join(', ')}`;
 
+    const model = await getModelForOrg(orgId);
     const summary = await callClaude({
         userMessage: `You are Ezal, BakedBot's competitive intelligence agent. Write a 3-bullet executive summary of what matters most about this competitor update. Be specific with numbers. No intro text — just the 3 bullets.\n\n${context}`,
-        model: 'claude-haiku-4-5-20251001',
+        model,
         maxTokens: 300,
     });
 

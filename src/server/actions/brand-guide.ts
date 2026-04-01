@@ -16,6 +16,7 @@ import { generateBrandImagesForNewAccount } from '@/server/actions/brand-images'
 import { getTemplateById, getAllTemplates } from '@/lib/brand-guide-templates';
 import { validateBrandPalette } from '@/lib/accessibility-checker';
 import { callClaude } from '@/ai/claude';
+import { getModelForOrg } from '@/lib/ai-model';
 import type {
   BrandAsset,
   BrandGuide,
@@ -1325,24 +1326,7 @@ export async function recordScannerArchetypeSuggestion(
 // MAGIC BUTTONS — AI-assisted content generation
 // ============================================================================
 
-/**
- * Resolve the best Claude model for an org based on subscription tier.
- * growth/empire → Sonnet (better brand copy quality, they're paying for it)
- * scout/pro/none → Haiku (fast, cheap, good enough)
- */
-async function getModelForOrg(orgId: string): Promise<string> {
-  try {
-    const firestore = getAdminFirestore();
-    const doc = await firestore.collection('subscriptions').doc(orgId).get();
-    const tierId = doc.exists ? (doc.data()?.tierId as string | undefined) : undefined;
-    if (tierId === 'empire' || tierId === 'growth') {
-      return 'claude-sonnet-4-6';
-    }
-  } catch {
-    // Fall through to default
-  }
-  return 'claude-haiku-4-5-20251001';
-}
+// getModelForOrg is now the shared lib version imported above
 
 /**
  * Generate brand messaging from existing brand guide context.

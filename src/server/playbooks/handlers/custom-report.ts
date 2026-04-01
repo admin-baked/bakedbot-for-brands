@@ -8,6 +8,7 @@
 
 import { Timestamp } from 'firebase-admin/firestore';
 import { callClaude } from '@/ai/claude';
+import { getModelForOrg } from '@/lib/ai-model';
 import { logger } from '@/lib/logger';
 import { slackService } from '@/server/services/communications/slack';
 import type { ScheduledPlaybookContext } from '../handler-registry';
@@ -34,9 +35,10 @@ export async function handleCustomReport(ctx: ScheduledPlaybookContext): Promise
 Last 7 days: ${ordersSnap.size} orders · $${recentRevenue.toFixed(0)} revenue
 Report requested: ${userPrompt}`;
 
+    const model = await getModelForOrg(orgId);
     const report = await callClaude({
         userMessage: `You are BakedBot, an AI commerce assistant for a cannabis dispensary. Generate a concise automated report (3-5 sentences max).\n\n${context}`,
-        model: 'claude-haiku-4-5-20251001',
+        model,
         maxTokens: 400,
     });
 
