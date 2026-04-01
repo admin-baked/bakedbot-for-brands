@@ -70,6 +70,10 @@ export interface SkillArtifact {
     downstreamConsumers?: string[];     // e.g., ['deebo', 'mailjet']
     reviewNote?: string;                // One-sentence note for the human reviewer
 
+    // Policy gate back-links
+    approvalId?: string;                // Set by skill-policy-gate after approval record created
+    contentHash?: string;               // SHA-256 of JSON.stringify(payload); used for edit distance
+
     // Timestamps
     createdAt: Timestamp;
     updatedAt: Timestamp;

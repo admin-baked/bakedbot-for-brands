@@ -140,6 +140,15 @@ export async function updateSkillArtifactStatus(
     logger.info('[skill-artifacts] status updated', { orgId, artifactId, status, reviewedBy });
 }
 
+/** Set the content hash on an artifact after its prompt/payload has been built. */
+export async function updateSkillArtifactContentHash(
+    orgId: string,
+    artifactId: string,
+    contentHash: string
+): Promise<void> {
+    await artifactsCol(orgId).doc(artifactId).update({ contentHash, updatedAt: Timestamp.now() });
+}
+
 // ============ Inbox notification ============
 
 /**
