@@ -555,4 +555,4 @@ runConfig:
 
 build:
   installCommand: npm install --legacy-peer-deps
-  buildCommand: npm run build:embed && npm run check:structure && next build --webpack
+  buildCommand: npm run build:embed && npm run check:structure && node -e "try{const c=require('./next.config.js');console.log('[CONFIG-DUMP] keys:',Object.keys(c).join(','));console.log('[CONFIG-DUMP] webpack fn?',typeof c.webpack);console.log('[CONFIG-DUMP] serverExternalPackages?',c.serverExternalPackages?'YES('+c.serverExternalPackages.length+')':'NO');console.log('[CONFIG-DUMP] experimental:',JSON.stringify(c.experimental||{}));}catch(e){console.log('[CONFIG-DUMP] error:',e.message)}" && next build --webpack
