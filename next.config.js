@@ -25,6 +25,27 @@ const nextConfig = {
       { protocol: 'http', hostname: '**' },
     ],
   },
+  // Also set old Next.js 14 key — Firebase adapter v14.0.21 only reads this key
+  // when it merges/overwrites next.config.js during build.
+  // optimizePackageImports here too so adapter preserves it.
+  experimental: {
+    optimizeServerReact: true,
+    optimizePackageImports: ['lucide-react', 'framer-motion', '@radix-ui/react-icons', 'date-fns', 'recharts'],
+    serverComponentsExternalPackages: [
+      'remotion', '@remotion/renderer', '@remotion/bundler',
+      '@lancedb/lancedb', '@lancedb/lancedb-darwin-arm64',
+      '@lancedb/lancedb-linux-arm64-gnu', '@lancedb/lancedb-linux-arm64-musl',
+      '@lancedb/lancedb-linux-x64-gnu', '@lancedb/lancedb-linux-x64-musl',
+      '@lancedb/lancedb-win32-arm64-msvc', '@lancedb/lancedb-win32-x64-msvc',
+      'livekit-server-sdk', 'genkit', '@genkit-ai/google-genai',
+      '@genkit-ai/vertexai', '@genkit-ai/core',
+      '@opentelemetry/sdk-node', '@opentelemetry/instrumentation',
+      'google-auth-library', '@google-cloud/monitoring',
+      'firebase-admin', 'googleapis', 'resend', 'stripe', 'twilio',
+      'adm-zip', 'archiver', 'jszip', 'xlsx', 'fs', 'path', 'os',
+      '@coinbase/coinbase-sdk', 'ccxt', 'puppeteer-core', 'pptxgenjs', 'express',
+    ],
+  },
   serverExternalPackages: [
     'remotion',
     '@remotion/renderer',
@@ -76,16 +97,10 @@ const nextConfig = {
     '/': ['./src/skills/**/*'],
   },
 
-  experimental: {
-    // Improve build performance
-    optimizeServerReact: true,  // Optimize React server components
-    optimizePackageImports: [
-      'lucide-react',
-      'framer-motion',
-      '@radix-ui/react-icons',
-      'date-fns',
-      'recharts',
-    ],
+  // Webpack memory optimization — serial compilation uses less peak memory
+  webpack: (config) => {
+    config.parallelism = 1;
+    return config;
   },
 
   async headers() {
