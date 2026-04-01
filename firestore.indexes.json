@@ -1825,6 +1825,24 @@
                 { "fieldPath": "orgId", "order": "ASCENDING" },
                 { "fieldPath": "salesLast7Days", "order": "DESCENDING" }
             ]
+        },
+        {
+            "collectionGroup": "orders",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "orgId", "order": "ASCENDING" },
+                { "fieldPath": "createdAt", "order": "ASCENDING" },
+                { "fieldPath": "status", "order": "ASCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "competitor_profiles",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "orgId", "order": "ASCENDING" },
+                { "fieldPath": "competitorName", "order": "ASCENDING" },
+                { "fieldPath": "scrapedAt", "order": "DESCENDING" }
+            ]
         }
     ],
     "fieldOverrides": []
