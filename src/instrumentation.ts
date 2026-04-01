@@ -47,7 +47,15 @@ function isInOurCode(stack: string | undefined): boolean {
     return stack.includes('/src/') || stack.includes('\\src\\');
 }
 
+let _cachedWebhookUrl: string | null | undefined;
+
 function getServerErrorWebhookUrl(): string | null {
+    if (_cachedWebhookUrl !== undefined) return _cachedWebhookUrl;
+
+    if (!process.env.CRON_SECRET) {
+        return (_cachedWebhookUrl = null);
+    }
+
     const baseUrl =
         process.env.APP_BASE_URL
         || process.env.NEXT_PUBLIC_APP_URL
@@ -55,11 +63,7 @@ function getServerErrorWebhookUrl(): string | null {
             ? 'https://bakedbot.ai'
             : `http://127.0.0.1:${process.env.PORT || '3000'}`);
 
-    if (!process.env.CRON_SECRET) {
-        return null;
-    }
-
-    return `${baseUrl.replace(/\/$/, '')}${SERVER_ERROR_WEBHOOK_PATH}`;
+    return (_cachedWebhookUrl = `${baseUrl.replace(/\/$/, '')}${SERVER_ERROR_WEBHOOK_PATH}`);
 }
 
 async function dispatchServerErrorInterrupt(payload: {
