@@ -11,6 +11,7 @@ import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { notifyOrderCreated } from '@/server/services/order-notifications';
 const DOCUMENT_ID_REGEX = /^[A-Za-z0-9_-]{1,128}$/;
+const CANNPAY_TAX_RATE = 0.15;
 
 const checkoutItemSchema = z.object({
   productId: z.string().trim().min(1).max(128),
@@ -186,16 +187,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'CannPay is not enabled for this dispensary.' }, { status: 400 });
     }
 
-    const resolvedItems: ResolvedCheckoutItem[] = [];
+    // Validate all cart item inputs before touching the DB
     for (const item of body.items) {
       const productId = typeof item?.productId === 'string' ? item.productId.trim() : '';
       const quantity = Number(item?.quantity);
-
       if (!productId || !DOCUMENT_ID_REGEX.test(productId) || !Number.isInteger(quantity) || quantity <= 0 || quantity > 100) {
         return NextResponse.json({ error: 'Invalid cart items provided.' }, { status: 400 });
       }
+    }
 
-      const productDoc = await db.collection('products').doc(productId).get();
+    // Batch-fetch all products in one round-trip instead of N sequential reads
+    const productDocs = await Promise.all(
+      body.items.map((item: CheckoutItem) =>
+        db.collection('products').doc(item.productId.trim()).get()
+      )
+    );
+
+    const resolvedItems: ResolvedCheckoutItem[] = [];
+    for (let i = 0; i < body.items.length; i++) {
+      const item = body.items[i];
+      const productId = item.productId.trim();
+      const quantity = Number(item?.quantity);
+      const productDoc = productDocs[i];
+
       if (!productDoc.exists) {
         return NextResponse.json({ error: `Product ${productId} is no longer available.` }, { status: 400 });
       }
@@ -271,7 +285,7 @@ export async function POST(req: NextRequest) {
     }
 
     const subtotal = Number(Math.max(0, itemsTotal - discount).toFixed(2));
-    const tax = Number((subtotal * 0.15).toFixed(2));
+    const tax = Number((subtotal * CANNPAY_TAX_RATE).toFixed(2));
     const fees = 0;
     const total = Number((subtotal + tax + fees).toFixed(2));
 

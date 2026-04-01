@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
         let sent = 0;
         let skipped = 0;
         let failed = 0;
+        const pendingCommWrites: Record<string, unknown>[] = [];
 
         for (const customerDoc of customersSnapshot.docs) {
             const customer = customerDoc.data();
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
             recentlyMessagedCustomerIds.add(customerDoc.id);
             sent += 1;
 
-            await db.collection('customer_communications').add({
+            pendingCommWrites.push({
                 orgId: THRIVE_ORG_ID,
                 type: THRIVE_WEEKLY_SMS_TYPE,
                 channel: 'sms',
@@ -109,6 +110,15 @@ export async function POST(request: NextRequest) {
                 dedupeWindowDays: DEDUPE_WINDOW_DAYS,
                 messageId: null,
             });
+        }
+
+        // Batch-write all communication logs in one round-trip
+        if (pendingCommWrites.length > 0) {
+            const commBatch = db.batch();
+            for (const comm of pendingCommWrites) {
+                commBatch.set(db.collection('customer_communications').doc(), comm);
+            }
+            await commBatch.commit();
         }
 
         return NextResponse.json({
