@@ -2,9 +2,9 @@
 # https://firebase.google.com/docs/app-hosting/configure
 
 env:
-  # Build-time memory allocation - 4GB keeps webpack under container RAM limit
+  # Build-time memory allocation - 6GB gives webpack room while staying under container RAM
   - variable: NODE_OPTIONS
-    value: "--max-old-space-size=4096"
+    value: "--max-old-space-size=6144"
     availability: [ BUILD ]
   - variable: NEXT_TELEMETRY_DISABLED
     value: "1"

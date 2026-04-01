@@ -66,6 +66,10 @@ const nextConfig = {
     // This avoids duplicate TS compilation and memory issues in Firebase builds
     ignoreBuildErrors: true,
   },
+  eslint: {
+    // Skip ESLint during build - run separately via npm run lint to save build memory
+    ignoreDuringBuilds: true,
+  },
   // Include src/skills/ static files (SKILL.md, eval_spec.json, hard_rules.json, *.jsonl, metadata.json)
   // in the standalone build output so server actions can read them via fs at runtime.
   outputFileTracingIncludes: {
