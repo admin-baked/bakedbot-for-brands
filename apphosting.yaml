@@ -2,22 +2,12 @@
 # https://firebase.google.com/docs/app-hosting/configure
 
 env:
-  # Build-time memory allocation - 6GB gives webpack room while staying under container RAM
+  # Build-time memory allocation - 4GB is sufficient for Turbopack (uses far less than webpack)
   - variable: NODE_OPTIONS
-    value: "--max-old-space-size=6144"
+    value: "--max-old-space-size=4096"
     availability: [ BUILD ]
   - variable: NEXT_TELEMETRY_DISABLED
     value: "1"
-    availability: [ BUILD ]
-  # Disable Turbopack - use stable webpack bundler for production builds
-  - variable: TURBO
-    value: "0"
-    availability: [ BUILD ]
-  - variable: NEXT_EXPERIMENTAL_TURBOPACK
-    value: "false"
-    availability: [ BUILD ]
-  - variable: __NEXT_EXPERIMENTAL_TURBOPACK
-    value: "false"
     availability: [ BUILD ]
   # Runtime memory allocation
   - variable: NODE_OPTIONS
