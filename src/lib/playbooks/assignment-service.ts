@@ -18,7 +18,7 @@ import { PLAYBOOKS, getPlaybookIdsForTier } from '@/config/playbooks';
 import type { TierId } from '@/config/tiers';
 
 export interface PlaybookAssignmentDoc {
-    subscriptionId: string;
+    subscriptionId: string | null;
     orgId: string;
     playbookId: string;
     status: 'active' | 'paused' | 'completed';
@@ -26,6 +26,17 @@ export interface PlaybookAssignmentDoc {
     triggerCount: number;
     createdAt: Timestamp;
     updatedAt: Timestamp;
+    // Dispatcher fields — present on user-scheduled playbooks
+    handler?: string;
+    schedule?: string;
+    timezone?: string;
+    nextRunAt?: Timestamp;
+    lastRunAt?: Timestamp | null;
+    lastRunStatus?: 'success' | 'error' | 'skipped' | null;
+    config?: Record<string, unknown>;
+    intentDescription?: string;
+    scheduleDescription?: string;
+    createdBy?: 'user' | 'linus' | 'system';
 }
 
 /**
