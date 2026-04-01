@@ -1,7 +1,3 @@
-/**
- * Shared auto-report helper: posts an unhandled error to /api/tickets so Linus is notified.
- * Used by GlobalError boundary and FelishaErrorBoundary (both auto-report on mount).
- */
 interface AutoReportErrorTicketOptions {
     error: Error & { digest?: string };
     title: string;
@@ -18,9 +14,9 @@ export function autoReportErrorTicket({ error, title, description, reporterEmail
             description,
             priority: 'high',
             category: 'system_error',
-            pageUrl: typeof window !== 'undefined' ? window.location.href : 'unknown',
+            pageUrl: window.location.href,
             reporterEmail,
-            userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'server',
+            userAgent: navigator.userAgent,
             errorDigest: error.digest,
             errorStack: error.stack,
         }),
