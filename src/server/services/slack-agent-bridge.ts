@@ -554,19 +554,19 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             // Prepend the fetched history and memory to the current message
             const fullPrompt = contextPrefix + enrichedText;
 
-            // Linus: tool-requiring messages OR image attachments → Linus tool runner.
-            // Text-only Slack tool runs now prefer GLM-5; image-backed runs stay on Claude vision.
-            // Simple conversational messages → GLM synthesis.
+            // Linus: always use runLinus (GLM-5 for text, Claude for vision).
+            // Routing Linus through runAgentCore's GLM synthesis path causes Z.ai safety
+            // refusals on short/ambiguous messages ("security restrictions"). The full Linus
+            // system prompt in runLinus gives GLM enough context to answer any CTO question.
+            // maxIterations=3 for conversational (no tools expected), 8 for tool-requiring.
             // All other agents use GLM synthesis path.
-            if (willUseLinusTools || linusImages) {
-                // Progress callback: update the working Slack message with each tool Linus uses
-                // so users know he's actively working on their request (not silently hung).
+            if (isLinus) {
                 const linusProgress = makeThrottledProgress(channel, workingMessageTs);
 
                 const linusResult = await Promise.race([
                     runLinus({
                         prompt: fullPrompt,
-                        maxIterations: 8,
+                        maxIterations: willUseLinusTools ? 8 : 3,
                         toolMode: 'slack',
                         context: { userId: SLACK_SYSTEM_USER.uid },
                         images: linusImages,
@@ -616,8 +616,8 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             return;
         }
 
-        if (!result.content) {
-            logger.warn('[SlackBridge] Agent returned empty content');
+        if (!result?.content) {
+            logger.warn('[SlackBridge] Agent returned empty or undefined content', { personaId, hasResult: !!result });
             await sendOrUpdateThreadMessage(
                 `Sorry, ${getPersonaName(personaId)} had trouble generating a response. Please try again.`
             );
