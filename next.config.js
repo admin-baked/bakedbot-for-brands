@@ -63,6 +63,7 @@ const nextConfig = {
     'ccxt',
     'puppeteer-core',
     'pptxgenjs',
+    'express',
   ],
   typescript: {
     // Disable Next.js TypeScript checking - we run tsc --noEmit separately in check:types

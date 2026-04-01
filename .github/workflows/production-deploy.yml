@@ -54,7 +54,7 @@ jobs:
             exit "$build_exit"
           fi
         env:
-          NODE_OPTIONS: --max-old-space-size=6144
+          NODE_OPTIONS: --max-old-space-size=4096
           NEXT_PUBLIC_DEV_AUTH_BYPASS: "false"
           SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
           FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
