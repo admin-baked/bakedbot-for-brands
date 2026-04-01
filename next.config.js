@@ -25,26 +25,9 @@ const nextConfig = {
       { protocol: 'http', hostname: '**' },
     ],
   },
-  // Also set old Next.js 14 key — Firebase adapter v14.0.21 only reads this key
-  // when it merges/overwrites next.config.js during build.
-  // optimizePackageImports here too so adapter preserves it.
   experimental: {
     optimizeServerReact: true,
     optimizePackageImports: ['lucide-react', 'framer-motion', '@radix-ui/react-icons', 'date-fns', 'recharts'],
-    serverComponentsExternalPackages: [
-      'remotion', '@remotion/renderer', '@remotion/bundler',
-      '@lancedb/lancedb', '@lancedb/lancedb-darwin-arm64',
-      '@lancedb/lancedb-linux-arm64-gnu', '@lancedb/lancedb-linux-arm64-musl',
-      '@lancedb/lancedb-linux-x64-gnu', '@lancedb/lancedb-linux-x64-musl',
-      '@lancedb/lancedb-win32-arm64-msvc', '@lancedb/lancedb-win32-x64-msvc',
-      'livekit-server-sdk', 'genkit', '@genkit-ai/google-genai',
-      '@genkit-ai/vertexai', '@genkit-ai/core',
-      '@opentelemetry/sdk-node', '@opentelemetry/instrumentation',
-      'google-auth-library', '@google-cloud/monitoring',
-      'firebase-admin', 'googleapis', 'resend', 'stripe', 'twilio',
-      'adm-zip', 'archiver', 'jszip', 'xlsx', 'fs', 'path', 'os',
-      '@coinbase/coinbase-sdk', 'ccxt', 'puppeteer-core', 'pptxgenjs', 'express',
-    ],
   },
   serverExternalPackages: [
     'remotion',
@@ -97,9 +80,38 @@ const nextConfig = {
     '/': ['./src/skills/**/*'],
   },
 
-  // Webpack memory optimization — serial compilation uses less peak memory
-  webpack: (config) => {
+  // Webpack memory optimization — serial compilation uses less peak memory.
+  // Also explicitly externalize heavy packages from the server bundle.
+  // This is a direct webpack-level guard: Firebase adapter v14.0.21 moves
+  // serverExternalPackages → experimental.serverComponentsExternalPackages (invalid
+  // in Next.js 16), so those packages get bundled. The externals function below
+  // prevents that regardless of what the adapter does to the config.
+  webpack: (config, { isServer }) => {
     config.parallelism = 1;
+    if (isServer) {
+      // Packages that must never be bundled by webpack (too large / native bindings).
+      const SERVER_ONLY_EXTERNALS = [
+        'remotion', '@remotion/renderer', '@remotion/bundler',
+        '@lancedb/lancedb', 'livekit-server-sdk',
+        'genkit', '@genkit-ai/google-genai', '@genkit-ai/vertexai', '@genkit-ai/core',
+        '@opentelemetry/sdk-node', '@opentelemetry/instrumentation',
+        'google-auth-library', '@google-cloud/monitoring',
+        'firebase-admin', 'googleapis', 'resend', 'stripe', 'twilio',
+        'adm-zip', 'archiver', 'jszip', 'xlsx',
+        '@coinbase/coinbase-sdk', 'ccxt', 'puppeteer-core', 'pptxgenjs', 'express',
+      ];
+      const existingExternals = config.externals || [];
+      config.externals = [
+        ...(Array.isArray(existingExternals) ? existingExternals : [existingExternals]),
+        ({ request }, callback) => {
+          const pkg = SERVER_ONLY_EXTERNALS.find(
+            (p) => request === p || request.startsWith(p + '/') || request.startsWith(p + '\\')
+          );
+          if (pkg) return callback(null, 'commonjs ' + request);
+          callback();
+        },
+      ];
+    }
     return config;
   },
 
@@ -292,5 +304,5 @@ const nextConfig = {
     };
   },
 };
-// Cache invalidate: Force rebuild for new secret v7. 2025-12-04 14:51:51
+// Cache invalidate: webpack externals guard for Firebase adapter. 2026-04-01 10:15:00
 module.exports = nextConfig;
