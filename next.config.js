@@ -30,44 +30,43 @@ const nextConfig = {
     optimizePackageImports: ['lucide-react', 'framer-motion', '@radix-ui/react-icons', 'date-fns', 'recharts'],
   },
   serverExternalPackages: [
-    'remotion',
-    '@remotion/renderer',
-    '@remotion/bundler',
+    // Remotion (video rendering — native deps)
+    'remotion', '@remotion/renderer', '@remotion/bundler',
+    // LanceDB (native bindings)
     '@lancedb/lancedb',
-    '@lancedb/lancedb-darwin-arm64',
-    '@lancedb/lancedb-linux-arm64-gnu',
-    '@lancedb/lancedb-linux-arm64-musl',
-    '@lancedb/lancedb-linux-x64-gnu',
-    '@lancedb/lancedb-linux-x64-musl',
-    '@lancedb/lancedb-win32-arm64-msvc',
+    '@lancedb/lancedb-darwin-arm64', '@lancedb/lancedb-linux-arm64-gnu',
+    '@lancedb/lancedb-linux-arm64-musl', '@lancedb/lancedb-linux-x64-gnu',
+    '@lancedb/lancedb-linux-x64-musl', '@lancedb/lancedb-win32-arm64-msvc',
     '@lancedb/lancedb-win32-x64-msvc',
+    // LiveKit
     'livekit-server-sdk',
-    'genkit',
-    '@genkit-ai/google-genai',
-    '@genkit-ai/vertexai',
-    '@genkit-ai/core',
-    '@opentelemetry/sdk-node',
-    '@opentelemetry/instrumentation',
+    // Genkit + OpenTelemetry
+    'genkit', '@genkit-ai/google-genai', '@genkit-ai/vertexai', '@genkit-ai/core',
+    '@opentelemetry/sdk-node', '@opentelemetry/instrumentation',
+    // Google Cloud SDKs
     'google-auth-library',
-    '@google-cloud/monitoring',
-    'firebase-admin',
-    'googleapis',
-    'resend',
-    'stripe',
-    'twilio',
-    'adm-zip',
-    'archiver',
-    'jszip',
-    'xlsx',
-    '@lancedb/lancedb',
-    'fs',
-    'path',
-    'os',
-    '@coinbase/coinbase-sdk',
-    'ccxt',
-    'puppeteer-core',
-    'pptxgenjs',
-    'express',
+    '@google-cloud/firestore', '@google-cloud/monitoring', '@google-cloud/secret-manager',
+    '@google-cloud/logging', '@google-analytics/data',
+    // Firebase + Google APIs
+    'firebase-admin', 'googleapis',
+    // AI SDKs
+    '@anthropic-ai/sdk', 'openai', '@google/generative-ai',
+    '@mendable/firecrawl-js', 'apify-client',
+    // Communication
+    'resend', '@sendgrid/mail', 'twilio', 'node-mailjet',
+    // Payments
+    'stripe', 'square', 'authorizenet',
+    // Data/file processing
+    'adm-zip', 'archiver', 'jszip', 'xlsx', 'papaparse',
+    // Web3
+    '@coinbase/coinbase-sdk', 'ccxt',
+    // Utilities (large or native)
+    'puppeteer-core', '@sparticuz/chromium', 'pptxgenjs', 'express',
+    'web-push', 'qrcode', 'passkit-generator',
+    // Integrations
+    '@linear/sdk', '@notionhq/client', '@octokit/rest', '@slack/web-api',
+    // Node built-ins (shouldn't need bundling)
+    'fs', 'path', 'os',
   ],
   typescript: {
     // Disable Next.js TypeScript checking - we run tsc --noEmit separately in check:types
@@ -90,15 +89,25 @@ const nextConfig = {
     config.parallelism = 1;
     if (isServer) {
       // Packages that must never be bundled by webpack (too large / native bindings).
+      // Keep in sync with serverExternalPackages above.
       const SERVER_ONLY_EXTERNALS = [
         'remotion', '@remotion/renderer', '@remotion/bundler',
         '@lancedb/lancedb', 'livekit-server-sdk',
         'genkit', '@genkit-ai/google-genai', '@genkit-ai/vertexai', '@genkit-ai/core',
         '@opentelemetry/sdk-node', '@opentelemetry/instrumentation',
-        'google-auth-library', '@google-cloud/monitoring',
-        'firebase-admin', 'googleapis', 'resend', 'stripe', 'twilio',
-        'adm-zip', 'archiver', 'jszip', 'xlsx',
-        '@coinbase/coinbase-sdk', 'ccxt', 'puppeteer-core', 'pptxgenjs', 'express',
+        'google-auth-library',
+        '@google-cloud/firestore', '@google-cloud/monitoring', '@google-cloud/secret-manager',
+        '@google-cloud/logging', '@google-analytics/data',
+        'firebase-admin', 'googleapis',
+        '@anthropic-ai/sdk', 'openai', '@google/generative-ai',
+        '@mendable/firecrawl-js', 'apify-client',
+        'resend', '@sendgrid/mail', 'twilio', 'node-mailjet',
+        'stripe', 'square', 'authorizenet',
+        'adm-zip', 'archiver', 'jszip', 'xlsx', 'papaparse',
+        '@coinbase/coinbase-sdk', 'ccxt',
+        'puppeteer-core', '@sparticuz/chromium', 'pptxgenjs', 'express',
+        'web-push', 'qrcode', 'passkit-generator',
+        '@linear/sdk', '@notionhq/client', '@octokit/rest', '@slack/web-api',
       ];
       const existingExternals = config.externals || [];
       config.externals = [
