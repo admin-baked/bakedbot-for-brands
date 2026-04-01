@@ -80,13 +80,6 @@ const nextConfig = {
   },
 
   experimental: {
-    // Reduce webpack memory usage during builds (helps avoid OOM on Firebase App Hosting)
-    webpackMemoryOptimizations: true,
-    // Reduce concurrent page compilations to prevent memory spikes
-    workerThreads: false,
-    cpus: 1,
-    // Optimize CSS handling
-    optimizeCss: false,  // Skip CSS optimization to save memory
     // Improve build performance
     optimizeServerReact: true,  // Optimize React server components
     optimizePackageImports: [
@@ -96,67 +89,6 @@ const nextConfig = {
       'date-fns',
       'recharts',
     ],
-  },
-
-  // Turbopack configuration (silence Next.js 16 default Turbopack warning when webpack config is present)
-  turbopack: {},
-
-  // Webpack configuration for aggressive memory optimization (when not using Turbopack)
-  webpack: (config, { isServer }) => {
-    // Aggressive code splitting to reduce chunk sizes and memory usage during compilation
-    if (!isServer) {
-      config.optimization = {
-        ...config.optimization,
-        splitChunks: {
-          chunks: 'all',
-          cacheGroups: {
-            default: false,
-            vendors: false,
-            // Split large dependencies into separate chunks to reduce per-chunk compilation memory
-            framework: {
-              name: 'framework',
-              test: /[\\/]node_modules[\\/](react|react-dom|scheduler|next)[\\/]/,
-              priority: 40,
-              enforce: true,
-            },
-            firebase: {
-              name: 'firebase',
-              test: /[\\/]node_modules[\\/](firebase|@google-cloud|@firebase|googleapis)[\\/]/,
-              priority: 30,
-              enforce: true,
-            },
-            ui: {
-              name: 'ui',
-              test: /[\\/]node_modules[\\/](@radix-ui|@tanstack|framer-motion|lucide-react)[\\/]/,
-              priority: 25,
-              enforce: true,
-            },
-            lib: {
-              test: /[\\/]node_modules[\\/]/,
-              name(module) {
-                const packageName = module.context.match(/[\\/]node_modules[\\/](.*?)([\\/]|$)/)?.[1];
-                return `npm.${packageName?.replace('@', '')}`;
-              },
-              priority: 20,
-              minSize: 50000,
-            },
-          },
-          // Limit chunk sizes to prevent memory spikes during compilation
-          maxSize: 400000,
-        },
-        // Disable module concatenation - saves memory during build
-        concatenateModules: false,
-      };
-    }
-
-    // CRITICAL: Reduce parallelism to 1 to prevent memory spikes
-    // With 204 pages, parallel compilation causes OOM
-    config.parallelism = 1;
-
-    // Disable filesystem cache to save memory at the cost of build time
-    config.cache = false;
-
-    return config;
   },
 
   async headers() {
