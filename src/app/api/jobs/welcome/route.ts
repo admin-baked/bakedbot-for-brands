@@ -82,6 +82,22 @@ export async function POST(request: NextRequest) {
                         },
                     });
 
+                    // Mark lead as sent — only now that delivery actually succeeded
+                    if (job.data.leadId) {
+                        const sentAt = Date.now();
+                        await db.collection('email_leads').doc(job.data.leadId).update({
+                            welcomeEmailSent: true,
+                            welcomeEmailSentAt: sentAt,
+                            lastUpdated: sentAt,
+                        }).catch((err: Error) => {
+                            logger.warn('[WelcomeJobs] Failed to mark lead welcomeEmailSent', {
+                                jobId,
+                                leadId: job.data.leadId,
+                                error: err.message,
+                            });
+                        });
+                    }
+
                     results.push({
                         jobId,
                         type: 'welcome_email',
