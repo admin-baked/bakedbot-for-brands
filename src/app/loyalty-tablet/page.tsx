@@ -36,7 +36,7 @@ import {
 type Step = 'welcome' | 'phone' | 'email' | 'mood' | 'recommendations' | 'success';
 
 const IDLE_TIMEOUT_MS = 60_000;
-const STEPS = ['phone', 'email', 'mood', 'recommendations'] as const;
+const STEPS = ['email', 'phone', 'mood', 'recommendations'] as const;
 const INPUT_CLASS = 'w-full bg-white/10 border border-white/20 text-white placeholder-white/40 text-lg sm:text-2xl py-4 sm:py-5 px-4 sm:px-6 rounded-2xl focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/30';
 
 export default function LoyaltyTabletPage() {
@@ -115,6 +115,12 @@ export default function LoyaltyTabletPage() {
 
     // ── Step handlers ────────────────────────────────────────
 
+    const handleEmailSubmit = () => {
+        resetIdleTimer();
+        setError('');
+        setStep('phone');
+    };
+
     const handlePhoneSubmit = () => {
         resetIdleTimer();
         setError('');
@@ -122,12 +128,6 @@ export default function LoyaltyTabletPage() {
             setError('Please enter a valid 10-digit phone number');
             return;
         }
-        setStep('email');
-    };
-
-    const handleEmailSubmit = () => {
-        resetIdleTimer();
-        setError('');
         setStep('mood');
     };
 
@@ -138,14 +138,24 @@ export default function LoyaltyTabletPage() {
         setRecsLoading(true);
         setStep('recommendations');
 
-        const result = await getMoodRecommendations(orgId, moodId);
-        setRecsLoading(false);
-
-        if (result.success && result.products) {
-            setProducts(result.products);
-            setBundle(result.bundle ?? null);
-        } else {
-            setError('Could not load recommendations — your budtender can help!');
+        const recsFallbackMsg = 'Could not load recommendations — your budtender can help!';
+        let timeoutId: ReturnType<typeof setTimeout> | null = null;
+        try {
+            const timeoutPromise = new Promise<never>((_, reject) => {
+                timeoutId = setTimeout(() => reject(new Error('timeout')), 15_000);
+            });
+            const result = await Promise.race([getMoodRecommendations(orgId, moodId), timeoutPromise]);
+            if (result.success && result.products) {
+                setProducts(result.products);
+                setBundle(result.bundle ?? null);
+            } else {
+                setError(recsFallbackMsg);
+            }
+        } catch {
+            setError(recsFallbackMsg);
+        } finally {
+            if (timeoutId) clearTimeout(timeoutId);
+            setRecsLoading(false);
         }
     };
 
@@ -293,7 +303,7 @@ export default function LoyaltyTabletPage() {
                         )}
 
                         <button
-                            onClick={() => setStep('phone')}
+                            onClick={() => setStep('email')}
                             className="w-full bg-purple-600 hover:bg-purple-500 active:bg-purple-700 text-white text-xl sm:text-2xl font-bold py-4 sm:py-6 px-8 sm:px-12 rounded-2xl shadow-lg shadow-purple-900/50 flex items-center justify-center gap-3 transition-colors"
                         >
                             Check In <ArrowRight className="h-7 w-7" />
@@ -302,19 +312,19 @@ export default function LoyaltyTabletPage() {
                     </motion.div>
                 )}
 
-                {/* ── PHONE ── */}
-                {step === 'phone' && (
+                {/* ── EMAIL (step 1) ── */}
+                {step === 'email' && (
                     <motion.div
-                        key="phone"
+                        key="email"
                         variants={slideVariants}
                         initial="enter" animate="center" exit="exit"
                         transition={{ duration: 0.25 }}
                         className="flex flex-col items-center gap-8 w-full max-w-lg"
                     >
                         <div className="text-center">
-                            <Phone className="h-10 w-10 sm:h-14 sm:w-14 text-purple-400 mx-auto mb-4" />
-                            <h2 className="text-2xl sm:text-4xl font-black text-white">What&apos;s your name & number?</h2>
-                            <p className="text-base sm:text-lg text-white/60 mt-2">We&apos;ll text you exclusive deals</p>
+                            <Mail className="h-10 w-10 sm:h-14 sm:w-14 text-purple-400 mx-auto mb-4" />
+                            <h2 className="text-2xl sm:text-4xl font-black text-white">What&apos;s your name & email?</h2>
+                            <p className="text-base sm:text-lg text-white/60 mt-2">Get weekly deals, bundles &amp; education</p>
                         </div>
                         <div className="w-full space-y-4">
                             <input
@@ -326,43 +336,6 @@ export default function LoyaltyTabletPage() {
                                 autoComplete="given-name"
                             />
                             <input
-                                type="tel"
-                                placeholder="(555) 000-0000"
-                                value={phone}
-                                onChange={e => { setPhone(formatPhone(e.target.value)); resetIdleTimer(); }}
-                                className={INPUT_CLASS}
-                                inputMode="tel"
-                                autoComplete="tel"
-                            />
-                        </div>
-                        {error && <p className="text-red-400 text-sm">{error}</p>}
-                        <button
-                            onClick={handlePhoneSubmit}
-                            disabled={!firstName.trim() || phone.replace(/\D/g, '').length < 10}
-                            className="w-full bg-purple-600 hover:bg-purple-500 active:bg-purple-700 disabled:opacity-40 text-white text-2xl font-bold py-6 rounded-2xl flex items-center justify-center gap-3 transition-colors"
-                        >
-                            Continue <ArrowRight className="h-7 w-7" />
-                        </button>
-                        <button onClick={resetToWelcome} className="text-white/40 hover:text-white/60 text-sm">← Back</button>
-                    </motion.div>
-                )}
-
-                {/* ── EMAIL ── */}
-                {step === 'email' && (
-                    <motion.div
-                        key="email"
-                        variants={slideVariants}
-                        initial="enter" animate="center" exit="exit"
-                        transition={{ duration: 0.25 }}
-                        className="flex flex-col items-center gap-8 w-full max-w-lg"
-                    >
-                        <div className="text-center">
-                            <Mail className="h-10 w-10 sm:h-14 sm:w-14 text-purple-400 mx-auto mb-4" />
-                            <h2 className="text-2xl sm:text-4xl font-black text-white">Add your email?</h2>
-                            <p className="text-base sm:text-lg text-white/60 mt-2">Get weekly deals, bundles & education</p>
-                        </div>
-                        <div className="w-full space-y-4">
-                            <input
                                 type="email"
                                 placeholder="you@example.com (optional)"
                                 value={email}
@@ -370,6 +343,43 @@ export default function LoyaltyTabletPage() {
                                 className={INPUT_CLASS}
                                 inputMode="email"
                                 autoComplete="email"
+                            />
+                        </div>
+                        {error && <p className="text-red-400 text-sm">{error}</p>}
+                        <button
+                            onClick={handleEmailSubmit}
+                            disabled={!firstName.trim()}
+                            className="w-full bg-purple-600 hover:bg-purple-500 active:bg-purple-700 disabled:opacity-40 text-white text-2xl font-bold py-6 rounded-2xl flex items-center justify-center gap-3 transition-colors"
+                        >
+                            Continue <ArrowRight className="h-7 w-7" />
+                        </button>
+                        <button onClick={() => { setError(''); resetToWelcome(); }} className="text-white/40 hover:text-white/60 text-sm">← Back</button>
+                    </motion.div>
+                )}
+
+                {/* ── PHONE (step 2) ── */}
+                {step === 'phone' && (
+                    <motion.div
+                        key="phone"
+                        variants={slideVariants}
+                        initial="enter" animate="center" exit="exit"
+                        transition={{ duration: 0.25 }}
+                        className="flex flex-col items-center gap-8 w-full max-w-lg"
+                    >
+                        <div className="text-center">
+                            <Phone className="h-10 w-10 sm:h-14 sm:w-14 text-purple-400 mx-auto mb-4" />
+                            <h2 className="text-2xl sm:text-4xl font-black text-white">What&apos;s your phone number?</h2>
+                            <p className="text-base sm:text-lg text-white/60 mt-2">We&apos;ll text you exclusive deals</p>
+                        </div>
+                        <div className="w-full space-y-4">
+                            <input
+                                type="tel"
+                                placeholder="(555) 000-0000"
+                                value={phone}
+                                onChange={e => { setPhone(formatPhone(e.target.value)); resetIdleTimer(); }}
+                                className={INPUT_CLASS}
+                                inputMode="tel"
+                                autoComplete="tel"
                             />
                             <div className="space-y-3">
                                 {[
@@ -393,16 +403,18 @@ export default function LoyaltyTabletPage() {
                                 ))}
                             </div>
                             <p className="text-xs text-white/30 text-center px-4">
-                                You can opt out anytime. We never share your data. Msg & data rates may apply.
+                                You can opt out anytime. We never share your data. Msg &amp; data rates may apply.
                             </p>
                         </div>
+                        {error && <p className="text-red-400 text-sm">{error}</p>}
                         <button
-                            onClick={handleEmailSubmit}
-                            className="w-full bg-purple-600 hover:bg-purple-500 active:bg-purple-700 text-white text-2xl font-bold py-6 rounded-2xl flex items-center justify-center gap-3 transition-colors"
+                            onClick={handlePhoneSubmit}
+                            disabled={phone.replace(/\D/g, '').length < 10}
+                            className="w-full bg-purple-600 hover:bg-purple-500 active:bg-purple-700 disabled:opacity-40 text-white text-2xl font-bold py-6 rounded-2xl flex items-center justify-center gap-3 transition-colors"
                         >
                             Continue <ArrowRight className="h-7 w-7" />
                         </button>
-                        <button onClick={() => setStep('phone')} className="text-white/40 hover:text-white/60 text-sm">← Back</button>
+                        <button onClick={() => { setError(''); setStep('email'); }} className="text-white/40 hover:text-white/60 text-sm">← Back</button>
                     </motion.div>
                 )}
 
@@ -444,7 +456,7 @@ export default function LoyaltyTabletPage() {
                         >
                             {loading ? 'Saving...' : 'Skip for now'}
                         </button>
-                        <button onClick={() => setStep('email')} className="text-white/40 hover:text-white/60 text-sm">← Back</button>
+                        <button onClick={() => setStep('phone')} className="text-white/40 hover:text-white/60 text-sm">← Back</button>
                     </motion.div>
                 )}
 
