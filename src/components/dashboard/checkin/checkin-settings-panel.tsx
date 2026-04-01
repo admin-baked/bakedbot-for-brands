@@ -32,15 +32,50 @@ export function CheckInSettingsPanel({ orgId, initial }: Props) {
     const set = <K extends keyof CheckinConfig>(key: K, value: CheckinConfig[K]) =>
         setConfig(prev => ({ ...prev, [key]: value }));
 
-    const handleSave = async () => {
+    const applySavedState = (updates: Partial<CheckinConfig>) => {
+        setConfig(prev => ({
+            ...prev,
+            ...updates,
+            updatedAt: new Date().toISOString(),
+        }));
+    };
+
+    const persistConfig = async (
+        updates: Partial<CheckinConfig>,
+        successDescription: string,
+    ) => {
         setSaving(true);
-        const result = await saveCheckinConfig(orgId, config);
+        const result = await saveCheckinConfig(orgId, updates);
         setSaving(false);
         if (result.success) {
-            toast({ title: 'Settings saved', description: 'Check-in config updated.' });
+            applySavedState(updates);
+            toast({ title: 'Settings saved', description: successDescription });
+            return true;
         } else {
             toast({ title: 'Save failed', description: result.error, variant: 'destructive' });
+            return false;
         }
+    };
+
+    const handleToggleChange = async (
+        key: 'publicFlowEnabled' | 'checkInEnabled',
+        value: boolean,
+    ) => {
+        const previousValue = config[key];
+        set(key, value);
+
+        const saved = await persistConfig(
+            { [key]: value },
+            'Flow switch updated.',
+        );
+
+        if (!saved) {
+            set(key, previousValue);
+        }
+    };
+
+    const handleSave = async () => {
+        await persistConfig(config, 'Check-in config updated.');
     };
 
     const gmapsReviewUrl = config.gmapsPlaceId
@@ -73,7 +108,8 @@ export function CheckInSettingsPanel({ orgId, initial }: Props) {
                         </div>
                         <Switch
                             checked={config.publicFlowEnabled}
-                            onCheckedChange={v => set('publicFlowEnabled', v)}
+                            onCheckedChange={v => handleToggleChange('publicFlowEnabled', v)}
+                            disabled={saving}
                         />
                     </div>
                     <div className="flex items-center justify-between">
@@ -85,7 +121,8 @@ export function CheckInSettingsPanel({ orgId, initial }: Props) {
                         </div>
                         <Switch
                             checked={config.checkInEnabled}
-                            onCheckedChange={v => set('checkInEnabled', v)}
+                            onCheckedChange={v => handleToggleChange('checkInEnabled', v)}
+                            disabled={saving}
                         />
                     </div>
                 </div>

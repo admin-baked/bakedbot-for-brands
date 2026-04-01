@@ -183,6 +183,42 @@ function normalizeStoredEmail(value: unknown): string | undefined {
     return normalizeEmail(typeof value === 'string' ? value : undefined) || undefined;
 }
 
+function resolveSavedEmailState(
+    existingCustomerData: Record<string, unknown> | null,
+    existingLeadData: Record<string, unknown> | null,
+): {
+    savedEmail?: string;
+    savedEmailConsent: boolean;
+} {
+    const customerEmail = normalizeStoredEmail(existingCustomerData?.email);
+    const leadEmail = normalizeStoredEmail(existingLeadData?.email);
+    const customerEmailConsent = Boolean(
+        customerEmail && existingCustomerData?.emailConsent === true,
+    );
+    const leadEmailConsent = Boolean(
+        leadEmail && existingLeadData?.emailConsent === true,
+    );
+
+    if (customerEmailConsent) {
+        return {
+            savedEmail: customerEmail,
+            savedEmailConsent: true,
+        };
+    }
+
+    if (leadEmailConsent) {
+        return {
+            savedEmail: leadEmail,
+            savedEmailConsent: true,
+        };
+    }
+
+    return {
+        savedEmail: customerEmail ?? leadEmail,
+        savedEmailConsent: false,
+    };
+}
+
 function normalizeStoredCategories(value: unknown): VisitorFavoriteCategory[] {
     if (!Array.isArray(value)) {
         return [];
@@ -392,15 +428,11 @@ export async function getVisitorCheckinContext(
         ]);
         const existingCustomerData = existingCustomer?.data() ?? null;
 
-        const savedEmail = normalizeStoredEmail(
-            existingCustomerData?.email ?? existingLead?.data.email ?? undefined,
-        );
-        const savedEmailConsent = Boolean(
-            savedEmail && (
-                existingCustomerData?.emailConsent === true ||
-                existingLead?.data.emailConsent === true
-            )
-        );
+        const {
+            savedEmail,
+            savedEmailConsent,
+        } = resolveSavedEmailState(existingCustomerData, existingLead?.data ?? null);
+        const canReuseSavedEmail = Boolean(savedEmail && savedEmailConsent);
         const isReturningCustomer = Boolean(existingCustomerData || existingLead);
         const lastPurchase = existingCustomer?.id
             ? await resolveLastPurchase(existingCustomer.id, validated.orgId)
@@ -408,7 +440,7 @@ export async function getVisitorCheckinContext(
         const googleReviewUrl = isReturningCustomer && lastPurchase
             ? await getGoogleReviewUrl(validated.orgId)
             : null;
-        const enrichmentMode = savedEmail ? 'favorite_categories' : 'email';
+        const enrichmentMode = canReuseSavedEmail ? 'favorite_categories' : 'email';
 
         logger.info('[VisitorCheckin] Resolved public check-in context', {
             orgId: validated.orgId,
@@ -509,6 +541,8 @@ export async function captureVisitorCheckin(
         const customerRef = db.collection('customers').doc(customerId);
         const loyaltyPoints =
             typeof existingCustomerData?.points === 'number' ? existingCustomerData.points : 0;
+        const existingCustomerEmail = normalizeStoredEmail(existingCustomerData?.email);
+        const isReturningCustomer = Boolean(existingCustomerData || !leadResult.isNewLead);
 
         const batch = db.batch();
 
@@ -547,7 +581,7 @@ export async function captureVisitorCheckin(
             if (!existingCustomerData.firstName && validated.firstName) {
                 customerUpdates.firstName = validated.firstName;
             }
-            if (!existingCustomerData.email && normalizedEmail) {
+            if (normalizedEmail && (!existingCustomerEmail || (emailConsent && normalizedEmail !== existingCustomerEmail))) {
                 customerUpdates.email = normalizedEmail;
             }
             if (!existingCustomerData.phone && normalizedPhone) {
@@ -595,6 +629,7 @@ export async function captureVisitorCheckin(
             email: normalizedEmail ?? null,
             phone: normalizedPhone,
             source: validated.source,
+            isReturning: isReturningCustomer,
             ageVerified: true,
             ageVerifiedMethod: validated.ageVerifiedMethod,
             ageVerifiedAt: now,
@@ -618,11 +653,19 @@ export async function captureVisitorCheckin(
 
         await batch.commit();
 
-        const isReturningCustomer = Boolean(existingCustomerData || !leadResult.isNewLead);
-
         // 9. Dispatch Playbook Events
-        const resolvedEmail = normalizedEmail ?? existingCustomerData?.email ?? leadFallbackData?.email ?? null;
+        const resolvedEmail = normalizedEmail ?? existingCustomerEmail ?? leadFallbackData?.email ?? null;
         const resolvedName = validated.firstName || existingCustomerData?.firstName || leadFallbackData?.firstName;
+
+        if (existingCustomerData && normalizedEmail && normalizedEmail !== existingCustomerEmail) {
+            logger.info('[VisitorCheckin] Updated customer email during check-in', {
+                orgId: validated.orgId,
+                customerId,
+                previousEmail: existingCustomerEmail ?? null,
+                nextEmail: normalizedEmail,
+                source: validated.source,
+            });
+        }
 
         if (leadResult.isNewLead) {
             dispatchPlaybookEvent(validated.orgId, 'customer.signup', {

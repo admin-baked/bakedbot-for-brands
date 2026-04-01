@@ -191,7 +191,7 @@ describe('visitor check-in actions', () => {
       customerId: 'alleaves_42',
       savedEmail: 'vip@example.com',
       savedEmailConsent: false,
-      enrichmentMode: 'favorite_categories',
+      enrichmentMode: 'email',
       googleReviewUrl: 'https://reviews.example.com/thrive',
       lastPurchase: expect.objectContaining({
         primaryItemName: 'Blue Dream Pre-Roll',
@@ -206,7 +206,7 @@ describe('visitor check-in actions', () => {
         isReturningCustomer: true,
         lastPurchaseFound: true,
         reviewUrlFound: true,
-        enrichmentMode: 'favorite_categories',
+        enrichmentMode: 'email',
       }),
     );
   });
@@ -235,6 +235,43 @@ describe('visitor check-in actions', () => {
       isReturningCustomer: true,
       savedEmail: 'known@example.com',
       savedEmailConsent: false,
+      enrichmentMode: 'email',
+    });
+  });
+
+  it('prefers a consented lead email over an unconsented customer email in check-in context', async () => {
+    const state = createFirestore({
+      customers: {
+        customer_1: {
+          orgId: 'org_thrive_syracuse',
+          phone: '+13155550000',
+          email: 'stale@example.com',
+          emailConsent: false,
+        },
+      },
+      emailLeads: {
+        lead_1: {
+          phone: '+13155550000',
+          email: 'fresh@example.com',
+          emailConsent: true,
+          brandId: 'org_thrive_syracuse',
+          dispensaryId: 'org_thrive_syracuse',
+        },
+      },
+    });
+    (getAdminFirestore as jest.Mock).mockReturnValue(state.firestore);
+    (getCustomerHistory as jest.Mock).mockResolvedValue({ summary: '', orders: [] });
+
+    const result = await getVisitorCheckinContext({
+      orgId: 'org_thrive_syracuse',
+      phone: '3155550000',
+    });
+
+    expect(result).toMatchObject({
+      success: true,
+      isReturningCustomer: true,
+      savedEmail: 'fresh@example.com',
+      savedEmailConsent: true,
       enrichmentMode: 'favorite_categories',
     });
   });
@@ -360,6 +397,86 @@ describe('visitor check-in actions', () => {
         customerId: 'customer_1',
         customerName: 'Jane',
         priorVisits: 1,
+      }),
+    );
+  });
+
+  it('updates a returning customer email when a corrected opted-in address is provided', async () => {
+    const state = createFirestore({
+      customers: {
+        customer_1: {
+          orgId: 'org_thrive_syracuse',
+          firstName: 'Martez',
+          phone: '+13126840522',
+          email: 'martez@bakedbot.ai',
+          emailConsent: false,
+          smsConsent: true,
+          visitCount: 3,
+          points: 12,
+        },
+      },
+    });
+    (getAdminFirestore as jest.Mock).mockReturnValue(state.firestore);
+    (captureEmailLead as jest.Mock).mockResolvedValue({
+      success: true,
+      leadId: 'lead-3',
+      isNewLead: false,
+    });
+    (dispatchPlaybookEvent as jest.Mock).mockResolvedValue(undefined);
+
+    const result = await captureVisitorCheckin({
+      orgId: 'org_thrive_syracuse',
+      firstName: 'Martez',
+      phone: '3126840522',
+      email: 'martezandco@gmail.com',
+      emailConsent: true,
+      smsConsent: true,
+      source: 'brand_rewards_checkin',
+      ageVerifiedMethod: 'staff_attested_public_flow',
+      uiVersion: 'thrive_checkin_v2',
+      offerType: 'email',
+    });
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(result).toMatchObject({
+      success: true,
+      isNewLead: false,
+      isReturningCustomer: true,
+      customerId: 'customer_1',
+      loyaltyPoints: 12,
+    });
+    expect(state.customers.get('customer_1')).toMatchObject({
+      email: 'martezandco@gmail.com',
+      emailConsent: true,
+      lastCheckinUiVersion: 'thrive_checkin_v2',
+    });
+
+    const visit = Array.from(state.visits.values())[0];
+    expect(visit).toMatchObject({
+      email: 'martezandco@gmail.com',
+      emailConsent: true,
+      isReturning: true,
+      offerType: 'email',
+      reviewSequence: expect.objectContaining({
+        status: 'pending',
+      }),
+    });
+
+    expect(dispatchPlaybookEvent).toHaveBeenCalledWith(
+      'org_thrive_syracuse',
+      'customer.checkin',
+      expect.objectContaining({
+        customerEmail: 'martezandco@gmail.com',
+      }),
+    );
+    expect(logger.info).toHaveBeenCalledWith(
+      '[VisitorCheckin] Updated customer email during check-in',
+      expect.objectContaining({
+        customerId: 'customer_1',
+        previousEmail: 'martez@bakedbot.ai',
+        nextEmail: 'martezandco@gmail.com',
       }),
     );
   });

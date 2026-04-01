@@ -190,6 +190,41 @@ describe('VisitorCheckinCard', () => {
     expect(await screen.findByText(/Welcome back, Jane. You're checked in./i)).toBeInTheDocument();
   });
 
+  it('lets a returning customer override the saved email during favorite-category enrichment', async () => {
+    (getVisitorCheckinContext as jest.Mock).mockResolvedValue({
+      success: true,
+      isReturningCustomer: true,
+      enrichmentMode: 'favorite_categories',
+      savedEmail: 'vip@example.com',
+      savedEmailConsent: true,
+    });
+    (captureVisitorCheckin as jest.Mock).mockResolvedValue({
+      success: true,
+      isNewLead: false,
+      isReturningCustomer: true,
+    });
+
+    renderCard();
+    await moveToStepTwo();
+
+    expect(screen.getByText(/We'll keep using/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Pre Rolls' }));
+    fireEvent.change(screen.getByLabelText('Use a different email (optional)'), {
+      target: { value: 'fresh@example.com' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Finish Check-In' }));
+
+    await waitFor(() => {
+      expect(captureVisitorCheckin).toHaveBeenCalledWith(expect.objectContaining({
+        email: 'fresh@example.com',
+        emailConsent: true,
+        favoriteCategories: ['pre-rolls'],
+        offerType: 'email',
+      }));
+    });
+  });
+
   it('shows a non-blocking failure message when the final check-in fails', async () => {
     (captureVisitorCheckin as jest.Mock).mockResolvedValue({
       success: false,

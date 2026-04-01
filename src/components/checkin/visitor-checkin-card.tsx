@@ -106,7 +106,7 @@ export function VisitorCheckinCard({
     const savedEmailConsent = context.savedEmailConsent === true;
     const enrichmentMode = context.enrichmentMode || 'email';
     const trimmedEmail = email.trim().toLowerCase();
-    const usingSavedEmail = enrichmentMode === 'favorite_categories' && Boolean(savedEmail);
+    const canReuseSavedEmail = enrichmentMode === 'favorite_categories' && savedEmailConsent && Boolean(savedEmail);
     const selectedMoodLabel = useMemo(
         () => getTabletMoodById(selectedMood)?.label || null,
         [selectedMood],
@@ -204,20 +204,24 @@ export function VisitorCheckinCard({
     const handleFinish = async (options?: { skipOffer?: boolean }) => {
         resetMessages();
         const skipOffer = options?.skipOffer === true;
-        const finalEmail = usingSavedEmail
-            ? (savedEmailConsent ? savedEmail : undefined)
-            : (skipOffer ? undefined : (trimmedEmail || undefined));
+        const finalEmail = skipOffer
+            ? undefined
+            : (trimmedEmail || (canReuseSavedEmail ? savedEmail : undefined));
         const favoriteCategoriesForSubmit = skipOffer || enrichmentMode !== 'favorite_categories'
             ? undefined
             : favoriteCategories;
         const offerType =
             skipOffer
                 ? null
-                : enrichmentMode === 'email'
-                    ? (trimmedEmail ? 'email' : null)
-                    : (favoriteCategories.length > 0 ? 'favorite_categories' : null);
+                : trimmedEmail
+                    ? 'email'
+                    : enrichmentMode === 'favorite_categories' && favoriteCategories.length > 0
+                        ? 'favorite_categories'
+                        : enrichmentMode === 'email' && finalEmail
+                            ? 'email'
+                            : null;
 
-        if (!skipOffer && enrichmentMode === 'email' && trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+        if (!skipOffer && trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
             setError('Enter a valid email address to unlock the 1c pre-roll offer.');
             return;
         }
@@ -229,7 +233,7 @@ export function VisitorCheckinCard({
                 firstName: firstName.trim(),
                 phone,
                 email: finalEmail,
-                emailConsent: !usingSavedEmail ? Boolean(finalEmail) : savedEmailConsent,
+                emailConsent: Boolean(finalEmail) && (Boolean(trimmedEmail) || canReuseSavedEmail),
                 smsConsent: true,
                 source: 'brand_rewards_checkin',
                 ageVerifiedMethod: 'staff_attested_public_flow',
@@ -572,6 +576,28 @@ export function VisitorCheckinCard({
                                         })}
                                     </div>
                                 )}
+
+                                {canReuseSavedEmail ? (
+                                    <div className="mt-4 space-y-2 rounded-xl border border-border/60 bg-muted/30 p-4">
+                                        <p className="text-sm text-muted-foreground">
+                                            We&apos;ll keep using <span className="font-medium text-foreground">{savedEmail}</span> for your Thrive VIP welcome.
+                                            Want to use a different email instead?
+                                        </p>
+                                        <Label htmlFor="visitor-checkin-email-override">Use a different email (optional)</Label>
+                                        <Input
+                                            id="visitor-checkin-email-override"
+                                            type="email"
+                                            value={email}
+                                            onChange={(event) => {
+                                                resetMessages();
+                                                setEmail(event.target.value);
+                                            }}
+                                            placeholder="you@example.com"
+                                            inputMode="email"
+                                            autoComplete="email"
+                                        />
+                                    </div>
+                                ) : null}
                             </div>
 
                             <div className="rounded-2xl border border-border/60 bg-background p-5">
