@@ -13,7 +13,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { getAdminFirestore } from '@/firebase/admin';
 import { sendGenericEmail } from '@/lib/email/dispatcher';
-import { getGoogleReviewUrl } from '@/lib/reviews/google-review-url';
 import { requireCronSecret } from '@/server/auth/cron';
 import { logger } from '@/lib/logger';
 
@@ -104,20 +103,11 @@ function checkoutEmailHtml(firstName: string, orgId: string): string {
 function reviewNudgeEmailHtml(
     firstName: string,
     orgId: string,
-    reviewUrl: string | null,
+    visitId: string,
 ): string {
     const dispensaryName = getDispensaryName(orgId);
-    const reviewCta = reviewUrl
-        ? `<table cellpadding="0" cellspacing="0" style="margin:28px 0">
-            <tr><td style="background:#f5a623;border-radius:8px;padding:14px 28px">
-              <a href="${reviewUrl}" style="color:#fff;font-size:15px;font-weight:600;text-decoration:none">
-                ⭐ Leave a Google Review →
-              </a>
-            </td></tr>
-           </table>`
-        : `<p style="margin:20px 0;color:#555;font-size:15px">
-             Search "${dispensaryName}" on Google Maps to leave your review — it only takes 30 seconds!
-           </p>`;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bakedbot.ai';
+    const reviewUrl = `${appUrl}/review?orgId=${encodeURIComponent(orgId)}&visitId=${encodeURIComponent(visitId)}`;
 
     return `
 <!DOCTYPE html>
@@ -134,12 +124,18 @@ function reviewNudgeEmailHtml(
           <h2 style="margin:0 0 12px;color:#1a1a1a;font-size:20px">How was your experience, ${firstName}? 🌟</h2>
           <p style="margin:0 0 20px;color:#555;font-size:15px;line-height:1.6">
             We loved having you in-store a few days ago! Your feedback helps other customers
-            find us — and means the world to our team.
+            shopping at ${dispensaryName} — and means the world to our team.
           </p>
           <p style="margin:0 0 4px;color:#555;font-size:15px;line-height:1.6">
-            Could you spare 30 seconds to leave us a Google review?
+            Could you spare 30 seconds to rate your visit?
           </p>
-          ${reviewCta}
+          <table cellpadding="0" cellspacing="0" style="margin:28px 0">
+            <tr><td style="background:#1a472a;border-radius:8px;padding:14px 28px">
+              <a href="${reviewUrl}" style="color:#fff;font-size:15px;font-weight:600;text-decoration:none">
+                ⭐ Rate Your Visit →
+              </a>
+            </td></tr>
+          </table>
           <p style="margin:0;color:#888;font-size:13px">
             Thank you for your support! — The ${dispensaryName} team
           </p>
@@ -161,7 +157,6 @@ async function processVisit(
     docRef: FirebaseFirestore.DocumentReference,
     visit: CheckinVisit,
     now: Date,
-    reviewUrlCache: Map<string, string | null>,
 ): Promise<{ checkoutSent: boolean; nudgeSent: boolean }> {
     const seq = visit.reviewSequence;
     const email = visit.email;
@@ -203,18 +198,12 @@ async function processVisit(
     }
 
     if (nudgeScheduled && nudgeScheduled <= now && !seq.reviewNudgeSentAt && !seq.reviewLeft) {
-        // Resolve review URL from cache (one Firestore read per unique orgId per run)
-        if (!reviewUrlCache.has(visit.orgId)) {
-            reviewUrlCache.set(visit.orgId, await getGoogleReviewUrl(visit.orgId));
-        }
-        const reviewUrl = reviewUrlCache.get(visit.orgId) ?? null;
-
         emailTasks.push(
             sendGenericEmail({
                 to: email,
                 name: visit.firstName,
-                subject: `How was your visit to ${dispensaryName}? Leave us a quick review 🌟`,
-                htmlBody: reviewNudgeEmailHtml(visit.firstName, visit.orgId, reviewUrl),
+                subject: `How was your visit to ${dispensaryName}? Rate your experience 🌟`,
+                htmlBody: reviewNudgeEmailHtml(visit.firstName, visit.orgId, visit.visitId),
                 orgId: visit.orgId,
                 communicationType: 'transactional',
                 agentName: 'loyalty-tablet',
@@ -258,9 +247,6 @@ async function handleReviewSequence() {
         .limit(50)
         .get();
 
-    // Shared review URL cache — one Firestore read per unique orgId, not per visit
-    const reviewUrlCache = new Map<string, string | null>();
-
     let checkoutCount = 0;
     let nudgeCount = 0;
     let skippedCount = 0;
@@ -271,7 +257,7 @@ async function handleReviewSequence() {
         const batch = snap.docs.slice(i, i + BATCH_SIZE);
         const results = await Promise.all(
             batch.map(doc =>
-                processVisit(doc.ref, doc.data() as CheckinVisit, now, reviewUrlCache).catch(err => {
+                processVisit(doc.ref, doc.data() as CheckinVisit, now).catch(err => {
                     skippedCount++;
                     logger.error('[ReviewSequence] Failed to process visit', {
                         visitId: (doc.data() as CheckinVisit).visitId,
