@@ -434,27 +434,37 @@ export async function triggerDeploy(): Promise<{ success: boolean; message: stri
 }
 
 /**
- * Get live build status from Cloud Build API
+ * Get live build status from Cloud Build (us-central1 = App Hosting region)
  */
 export async function getBuildStatusLive(): Promise<BuildRecord[]> {
   await requireSuperUser();
 
-  // Mock implementation - in production would call Cloud Build REST API
-  // GET https://cloudbuild.googleapis.com/v1/projects/studio-567050101-bc6e8/builds
-  // ?filter=tags="firebase-app-hosting-bakedbot-prod"
-
   try {
-    const commits = await getGitLog(5);
-    const records: BuildRecord[] = commits.map((commit, idx) => ({
-      id: commit.date.substring(0, 8),
-      status: idx === 0 ? 'WORKING' : 'SUCCESS',
-      commitHash: commit.hash,
-      commitMessage: commit.message,
-      duration: idx === 0 ? 0 : Math.floor(Math.random() * 300) + 60,
-      timestamp: Date.now() - (idx * 3600000),
-    }));
+    const { stdout } = await execAsync(
+      'gcloud builds list --project=studio-567050101-bc6e8 --region=us-central1 --limit=10 --format=json',
+      { cwd: PROJECT_ROOT, timeout: 20000 }
+    );
 
-    return records;
+    const builds = JSON.parse(stdout);
+    return builds.map((b: any) => {
+      const start = new Date(b.createTime ?? b.startTime ?? Date.now());
+      const finish = b.finishTime ? new Date(b.finishTime) : null;
+      const durationSec = finish ? Math.round((finish.getTime() - start.getTime()) / 1000) : 0;
+
+      const statusMap: Record<string, BuildRecord['status']> = {
+        SUCCESS: 'SUCCESS', WORKING: 'WORKING', QUEUED: 'QUEUED',
+        FAILURE: 'FAILURE', INTERNAL_ERROR: 'FAILURE', CANCELLED: 'CANCELLED',
+      };
+
+      return {
+        id: b.id ?? '',
+        status: statusMap[b.status] ?? 'WORKING',
+        commitHash: (b.substitutions?.COMMIT_SHA ?? '').slice(0, 7) || b.id.slice(0, 7),
+        commitMessage: b.substitutions?.BRANCH_NAME ?? 'App Hosting Build',
+        duration: durationSec,
+        timestamp: start.getTime(),
+      };
+    });
   } catch (e: any) {
     throw new Error(`Failed to get build status: ${e.message}`);
   }
@@ -484,6 +494,8 @@ const SUPER_POWERS: Record<string, { script: string; description: string }> = {
   generate_report: { script: 'npm run generate:report', description: 'Generate report' },
   backup_firestore: { script: 'npm run backup:firestore', description: 'Backup Firestore' },
   health_check: { script: 'npm run health:check', description: 'Health check' },
+  firebase_apphosting_status: { script: 'npm run firebase:apphosting -- status', description: 'App Hosting build status' },
+  firebase_apphosting_rollout: { script: 'npm run firebase:apphosting -- rollout', description: 'Trigger App Hosting rollout' },
 };
 
 /**

@@ -958,6 +958,8 @@ function SuperPowersTab() {
     { key: 'generate_report', label: 'Generate Report', icon: '📄' },
     { key: 'backup_firestore', label: 'Backup Firestore', icon: '💾' },
     { key: 'health_check', label: 'Health Check', icon: '💊' },
+    { key: 'firebase_apphosting_status', label: 'Build Status', icon: '🏗' },
+    { key: 'firebase_apphosting_rollout', label: 'Trigger Rollout', icon: '🚀' },
   ];
 
   // Load scheduler jobs on mount

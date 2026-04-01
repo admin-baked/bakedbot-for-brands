@@ -1588,7 +1588,7 @@ const LINUS_TOOLS: ClaudeTool[] = [
     // ========================================================================
     {
         name: 'execute_super_power',
-        description: 'Execute developer super power scripts (automated audits, generators, fixers). Use to run productivity scripts: audit-indexes, setup-secrets, audit-schema, seed-test, generate, fix-build, test-security, check-compliance, audit-consistency, setup-monitoring, audit-query-cost.',
+        description: 'Execute developer super power scripts (automated audits, generators, fixers). Use to run productivity scripts: audit-indexes, setup-secrets, audit-schema, seed-test, generate, fix-build, test-security, check-compliance, audit-consistency, setup-monitoring, audit-query-cost, firebase-apphosting.',
         input_schema: {
             type: 'object' as const,
             properties: {
@@ -3479,7 +3479,8 @@ test('${scenario.slice(0, 50)}', async ({ page }) => {
                 'check-compliance',
                 'audit-consistency',
                 'setup-monitoring',
-                'audit-query-cost'
+                'audit-query-cost',
+                'firebase-apphosting'
             ];
 
             if (!validScripts.includes(script)) {
@@ -3502,7 +3503,8 @@ test('${scenario.slice(0, 50)}', async ({ page }) => {
                 'check-compliance': 'npm run check:compliance',
                 'audit-consistency': 'npm run audit:consistency',
                 'setup-monitoring': 'npm run setup:monitoring',
-                'audit-query-cost': 'npm run audit:costs'
+                'audit-query-cost': 'npm run audit:costs',
+                'firebase-apphosting': 'npm run firebase:apphosting --'
             };
 
             let command = scriptMap[script];
@@ -4593,6 +4595,10 @@ const LINUS_AGENT_CONTEXT: AgentContext = {
 | setup-monitoring | npm run setup:monitoring --deploy | Configure production alerts |
 | audit-costs | npm run audit:costs | Analyze Firestore query costs |
 | generate-component | npm run generate:component <Name> | Scaffold React component |
+| firebase-apphosting | npm run firebase:apphosting -- status | Check App Hosting build status |
+| firebase-apphosting | npm run firebase:apphosting -- logs <id> | Stream build logs |
+| firebase-apphosting | npm run firebase:apphosting -- rollout | Trigger new rollout from main |
+| firebase-apphosting | npm run firebase:apphosting -- cancel <id> | Cancel in-progress build |
 
 WHEN STUCK: Before spending multiple tool calls investigating, check if a super power can solve it in one step.`,
 };
