@@ -54,10 +54,10 @@ jobs:
             exit "$build_exit"
           fi
         env:
+          NODE_OPTIONS: --max-old-space-size=6144
           NEXT_PUBLIC_DEV_AUTH_BYPASS: "false"
           SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
           FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
-          # Add other build-time env vars here if needed, or rely on .env.production
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
