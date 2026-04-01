@@ -1,25 +1,15 @@
 /**
- * Next.js Instrumentation — Server-Side Error → Linus Alerting
+ * Next.js instrumentation for server-side errors.
  *
- * `onRequestError` fires for every unhandled server error:
- *   - API route crashes (500s)
- *   - SSR / RSC render failures
- *   - Server Action throws
- *   - Middleware crashes
- *
- * Client-side React errors are already handled by error.tsx → FelishaErrorBoundary → /api/tickets.
- * This covers the server-side blind spot.
+ * Keep this file extremely thin. Importing Slack or Linus services here causes
+ * webpack to pull server-only packages into the instrumentation bundle.
  */
 
-import { generateId } from '@/lib/utils';
-
-// In-memory dedup: prevent Linus alert spam for recurring errors.
-// Key = stable error fingerprint (digest or routePath:message).
 const _seenErrors = new Map<string, number>();
-const DEDUP_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const DEDUP_TTL_MS = 10 * 60 * 1000;
+const SERVER_ERROR_WEBHOOK_PATH = '/api/webhooks/error-report';
+const SERVER_ERROR_DISPATCH_TIMEOUT_MS = 5_000;
 
-// Returns true if this error key was seen recently; records it if not.
-// Naming reflects the side-effect: both checks AND marks.
 function isDuplicate(key: string): boolean {
     const now = Date.now();
     const last = _seenErrors.get(key);
@@ -27,11 +17,10 @@ function isDuplicate(key: string): boolean {
 
     _seenErrors.set(key, now);
 
-    // Evict stale entries to prevent unbounded growth (max 200 keys)
     if (_seenErrors.size > 200) {
         const cutoff = now - DEDUP_TTL_MS;
-        for (const [k, v] of _seenErrors.entries()) {
-            if (v < cutoff) _seenErrors.delete(k);
+        for (const [entryKey, timestamp] of _seenErrors.entries()) {
+            if (timestamp < cutoff) _seenErrors.delete(entryKey);
         }
     }
 
@@ -42,87 +31,83 @@ function isNoise(err: Error & { digest?: string }): boolean {
     const digest = err.digest ?? '';
     const message = err.message ?? '';
 
-    // Next.js control-flow "errors" — notFound() and redirect() are not real errors
     if (digest === 'NEXT_NOT_FOUND' || digest.startsWith('NEXT_REDIRECT')) return true;
-
-    // Expected auth / client errors
     if (/unauthorized|forbidden|not\s*found|unauthenticated/i.test(message)) return true;
-
-    // Connection / infrastructure noise (handled by monitoring, not Linus)
     if (/ECONNREFUSED|ETIMEDOUT|ENOTFOUND|socket hang up/i.test(message)) return true;
 
     return false;
 }
 
+function isInternalIncidentRoute(routePath: string): boolean {
+    return routePath === SERVER_ERROR_WEBHOOK_PATH;
+}
+
 function isInOurCode(stack: string | undefined): boolean {
     if (!stack) return false;
-    // Stack frames referencing src/ indicate the error originated in our code
     return stack.includes('/src/') || stack.includes('\\src\\');
 }
 
-function buildSlackBlocks(
-    routePath: string,
-    routeType: string,
-    method: string,
-    message: string,
-    digest: string | null,
-): Record<string, unknown>[] {
-    const fields: Array<{ type: string; text: string }> = [
-        { type: 'mrkdwn', text: `*Route*\n\`${method} ${routePath}\`` },
-        { type: 'mrkdwn', text: `*Type*\n${routeType}` },
-    ];
-    if (digest) {
-        fields.push({ type: 'mrkdwn', text: `*Digest*\n\`${digest}\`` });
+function getServerErrorWebhookUrl(): string | null {
+    const baseUrl =
+        process.env.APP_BASE_URL
+        || process.env.NEXT_PUBLIC_APP_URL
+        || (process.env.NODE_ENV === 'production'
+            ? 'https://bakedbot.ai'
+            : `http://127.0.0.1:${process.env.PORT || '3000'}`);
+
+    if (!process.env.CRON_SECRET) {
+        return null;
     }
 
-    return [
-        {
-            type: 'header',
-            text: { type: 'plain_text', text: '🔴 Server Error — Linus Notified', emoji: true },
-        },
-        {
-            type: 'section',
-            fields,
-        },
-        {
-            type: 'section',
-            text: {
-                type: 'mrkdwn',
-                text: `*Error*\n\`\`\`${message.slice(0, 500)}\`\`\``,
-            },
-        },
-    ];
+    return `${baseUrl.replace(/\/$/, '')}${SERVER_ERROR_WEBHOOK_PATH}`;
 }
 
-function buildLinusPrompt(
-    routePath: string,
-    routeType: string,
-    method: string,
-    message: string,
-    stack: string | undefined,
-    digest: string | null,
-): string {
-    return `CRITICAL INTERRUPT: A production server error has been automatically detected.
+async function dispatchServerErrorInterrupt(payload: {
+    error: string;
+    stack: string | undefined;
+    digest: string | null;
+    method: string;
+    routePath: string;
+    routeType: 'render' | 'route' | 'action' | 'middleware';
+}): Promise<void> {
+    const cronSecret = process.env.CRON_SECRET;
+    const url = getServerErrorWebhookUrl();
+    if (!cronSecret || !url) {
+        return;
+    }
 
-ROUTE: ${method} ${routePath}
-TYPE: ${routeType}
-DIGEST: ${digest ?? 'N/A'}
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), SERVER_ERROR_DISPATCH_TIMEOUT_MS);
 
-ERROR: ${message}
-
-STACK TRACE:
-${stack?.slice(0, 3000) ?? 'No stack trace available'}
-
-YOUR TASK:
-1. Search the codebase for the affected file and function from the stack trace.
-2. Determine the root cause.
-3. If the fix is safe and obvious, implement it, verify with run_health_check (build_only), and push via github_push_api.
-4. If you cannot safely repair it, explain the blocker and next action.
-5. Report back to Slack: MISSION_READY, NEEDS_REVIEW, or BLOCKED.`;
+    try {
+        await fetch(url, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${cronSecret}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                error: payload.error,
+                stack: payload.stack,
+                context: {
+                    digest: payload.digest,
+                    method: payload.method,
+                    routePath: payload.routePath,
+                    routeType: payload.routeType,
+                    source: 'next-instrumentation',
+                },
+            }),
+            signal: controller.signal,
+        });
+    } catch {
+        // Best-effort only. Never cascade the original request failure.
+    } finally {
+        clearTimeout(timeout);
+    }
 }
 
 export async function register(): Promise<void> {
-    // No-op — registration hook required by Next.js instrumentation API
+    // No-op required by Next.js instrumentation API.
 }
 
 export async function onRequestError(
@@ -134,9 +119,8 @@ export async function onRequestError(
         routeType: 'render' | 'route' | 'action' | 'middleware';
     },
 ): Promise<void> {
-    // Client-side render errors are already handled by error.tsx → FelishaErrorBoundary
     if (context.routeType === 'render') return;
-
+    if (isInternalIncidentRoute(context.routePath)) return;
     if (isNoise(err)) return;
 
     const message = err.message || 'Unknown server error';
@@ -145,38 +129,19 @@ export async function onRequestError(
 
     if (isDuplicate(dedupKey)) return;
 
+    const stack = err.stack;
+    if (!isInOurCode(stack)) return;
+
     try {
-        const [{ postLinusIncidentSlack }, { dispatchLinusIncidentResponse }] = await Promise.all([
-            import('@/server/services/incident-notifications'),
-            import('@/server/services/linus-incident-response'),
-        ]);
-
-        const incidentId = `server-error-${generateId()}`;
-
-        // Always post the Slack alert so Linus is aware
-        setImmediate(() => void postLinusIncidentSlack({
-            source: 'server-error',
-            incidentId,
-            channelName: 'linus-cto',
-            fallbackText: `Server error: ${message.slice(0, 100)} on ${context.routePath}`,
-            blocks: buildSlackBlocks(context.routePath, context.routeType, request.method, message, digest),
+        setImmediate(() => void dispatchServerErrorInterrupt({
+            error: message,
+            stack,
+            digest,
+            method: request.method,
+            routePath: context.routePath,
+            routeType: context.routeType,
         }));
-
-        // Only dispatch the full Linus repair agent if the error is in our code —
-        // avoids running Claude for every third-party or infrastructure error.
-        const stack = err.stack;
-        if (isInOurCode(stack)) {
-            setImmediate(() => void dispatchLinusIncidentResponse({
-                prompt: buildLinusPrompt(context.routePath, context.routeType, request.method, message, stack, digest),
-                source: 'server-error',
-                incidentId,
-                channelName: 'linus-cto',
-                maxIterations: 8,
-                analysisHeader: '🛠️ Linus — Server Error Fix',
-                analysisFallbackPrefix: '🛠️ Server error fix',
-            }));
-        }
     } catch {
-        // Never throw from the instrumentation hook — it would crash the server response
+        // Never throw from the instrumentation hook.
     }
 }
