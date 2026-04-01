@@ -742,6 +742,11 @@ steps:
                     eventName: 'customer.signup',
                     enabled: true,
                 } as PlaybookTrigger,
+                {
+                    type: 'event',
+                    eventName: 'customer.checkin',
+                    enabled: true,
+                } as PlaybookTrigger,
             ],
             steps: [
                 {

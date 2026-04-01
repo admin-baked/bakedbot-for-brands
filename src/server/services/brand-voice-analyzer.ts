@@ -28,7 +28,7 @@ import { logger } from '@/lib/logger';
 export interface ContentSample {
   type: 'website' | 'social' | 'email' | 'product' | 'blog';
   platform?: 'instagram' | 'twitter' | 'facebook' | 'linkedin' | 'tiktok';
-  text: string;
+  content: string;
   url?: string;
   engagement?: {
     likes?: number;
@@ -124,9 +124,9 @@ export class BrandVoiceAnalyzer {
   }> {
     const tones = await Promise.all(
       samples.map(async (sample) => {
-        const detected = await this.detectTone(sample.text);
+        const detected = await this.detectTone(sample.content);
         return {
-          sample: sample.text.substring(0, 100),
+          sample: sample.content.substring(0, 100),
           detectedTone: detected.tone,
           confidence: detected.confidence,
         };
@@ -260,10 +260,10 @@ export class BrandVoiceAnalyzer {
    */
   private preprocessSamples(samples: ContentSample[]): ContentSample[] {
     return samples
-      .filter((s) => s.text.length > 20) // Filter very short samples
+      .filter((s) => s.content.length > 20) // Filter very short samples
       .map((s) => ({
         ...s,
-        text: s.text.trim(),
+        content: s.content.trim(),
       }))
       .slice(0, 50); // Limit to 50 samples
   }
@@ -282,7 +282,7 @@ export class BrandVoiceAnalyzer {
       evidence: string[];
     }>;
   }> {
-    const contentSamples = samples.map((s) => s.text).join('\n\n---\n\n');
+    const contentSamples = samples.map((s) => s.content).join('\n\n---\n\n');
 
     const prompt = `Analyze the following content samples from ${brandName || 'a brand'} and extract detailed brand voice characteristics.
 
@@ -407,7 +407,7 @@ Return ONLY a valid JSON object with this exact structure:
    * Analyze linguistic patterns
    */
   private analyzePatterns(samples: ContentSample[]): VoiceAnalysisResult['patterns'] {
-    const allText = samples.map((s) => s.text).join(' ');
+    const allText = samples.map((s) => s.content).join(' ');
     const sentences = allText.split(/[.!?]+/).filter((s) => s.trim().length > 0);
     const words = allText.split(/\s+/);
 
@@ -507,7 +507,7 @@ Return ONLY a valid JSON object with this exact structure:
       .slice(0, 10)
       .map((sample) => ({
         type: this.mapContentTypeToSampleType(sample.type),
-        content: sample.text,
+        content: sample.content,
         context: sample.platform
           ? `Posted on ${sample.platform}`
           : `From ${sample.type}`,

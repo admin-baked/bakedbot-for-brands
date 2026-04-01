@@ -1,6 +1,7 @@
 'use server';
 
 import { firestore } from 'firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 import { getAdminFirestore } from '@/firebase/admin';
 import {
     isNormalizedPhone,
@@ -524,12 +525,13 @@ export async function captureVisitorCheckin(
             };
         }
 
-        const existingCustomer = await findExistingCustomer(
-            validated.orgId,
-            normalizedPhone,
-            normalizedEmail,
-        );
+        const [existingCustomer, existingLead] = await Promise.all([
+            findExistingCustomer(validated.orgId, normalizedPhone, normalizedEmail),
+            findExistingLead(validated.orgId, normalizedPhone, normalizedEmail),
+        ]);
         const existingCustomerData = existingCustomer?.data() ?? null;
+        const recoveredLeadData = !existingCustomerData ? (existingLead?.data ?? null) : null;
+
         const customerId = existingCustomer?.id ?? buildPhoneCustomerId(validated.orgId, normalizedPhone);
         const customerRef = db.collection('customers').doc(customerId);
         const loyaltyPoints =
@@ -546,6 +548,7 @@ export async function captureVisitorCheckin(
                 firstName: validated.firstName,
                 totalSpent: 0,
                 orderCount: 0,
+                visitCount: 1,
                 avgOrderValue: 0,
                 segment: 'new',
                 tier: 'bronze',
@@ -601,6 +604,7 @@ export async function captureVisitorCheckin(
             if (validated.uiVersion) {
                 customerUpdates.lastCheckinUiVersion = validated.uiVersion;
             }
+            customerUpdates.visitCount = FieldValue.increment(1);
 
             batch.update(customerRef, customerUpdates);
         }
@@ -643,19 +647,41 @@ export async function captureVisitorCheckin(
 
         const isReturningCustomer = Boolean(existingCustomerData || !leadResult.isNewLead);
 
+        // 9. Dispatch Playbook Events
+        const resolvedEmail = normalizedEmail ?? existingCustomerData?.email ?? recoveredLeadData?.email ?? null;
+        const resolvedName = validated.firstName || existingCustomerData?.firstName || recoveredLeadData?.firstName;
+
         if (leadResult.isNewLead) {
             dispatchPlaybookEvent(validated.orgId, 'customer.signup', {
                 customerId,
-                customerEmail: normalizedEmail ?? null,
+                customerEmail: resolvedEmail,
                 customerPhone: normalizedPhone,
-                customerName: validated.firstName,
+                customerName: resolvedName,
                 leadId: leadResult.leadId ?? null,
                 source: validated.source,
+                eventName: 'customer.signup',
+                priorVisits: 0,
             }).catch((error) => {
                 logger.warn('[VisitorCheckin] Failed to dispatch customer signup event', {
                     orgId: validated.orgId,
                     customerId,
                     leadId: leadResult.leadId,
+                    error: error instanceof Error ? error.message : String(error),
+                });
+            });
+        } else if (isReturningCustomer) {
+            dispatchPlaybookEvent(validated.orgId, 'customer.checkin', {
+                customerId,
+                customerEmail: resolvedEmail,
+                customerPhone: normalizedPhone,
+                customerName: resolvedName,
+                eventName: 'customer.checkin',
+                source: validated.source,
+                priorVisits: existingCustomerData?.visitCount ?? 1,
+            }).catch((error) => {
+                logger.warn('[VisitorCheckin] Failed to dispatch customer checkin event', {
+                    orgId: validated.orgId,
+                    customerId,
                     error: error instanceof Error ? error.message : String(error),
                 });
             });

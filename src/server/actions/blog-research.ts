@@ -33,7 +33,7 @@ import {
 } from '@/server/services/industry-pulse';
 import { logger } from '@/lib/logger';
 import type { BlogCategory, BlogContentType } from '@/types/blog';
-import {
+import type {
     NewsIdea,
     Citation,
     ResearchBrief,
@@ -81,7 +81,13 @@ export async function getCannabisNewsIdeas(
         const cached = await readCachedNews(pulseTopic);
         if (cached) {
             logger.info('[BlogResearch] Returning cached Industry Pulse', { topic: pulseTopic });
-            return { ideas: cached.items as NewsIdea[], cachedAt: cached.cachedAt };
+            const ideas: NewsIdea[] = cached.items.map((item, i) => ({
+                id: `cached_${pulseTopic}_${i}`,
+                title: item.title,
+                url: item.url,
+                description: item.snippet,
+            }));
+            return { ideas, cachedAt: cached.cachedAt };
         }
     }
 
@@ -112,10 +118,10 @@ Respond with ONLY a JSON array of ${top8.length} strings. Example:
             } catch { /* non-fatal */ }
 
             const ideas: NewsIdea[] = top8.map((r, i) => ({
+                id: `news_${i}_${Date.now()}`,
                 title: r.title,
                 url: r.url,
-                snippet: r.snippet,
-                suggestedAngle: angles[i] ?? 'Explain what this means for cannabis operators, brand teams, and the systems they depend on.',
+                description: r.snippet,
             }));
 
             return { ideas, cachedAt: new Date().toISOString() };
@@ -130,7 +136,12 @@ Respond with ONLY a JSON array of ${top8.length} strings. Example:
         logger.info('[BlogResearch] Cache miss — fetching live', { topic: pulseTopic });
         const { items } = await fetchAndCacheNewsForTopic(pulseTopic);
         return {
-            ideas: items as NewsIdea[],
+            ideas: items.map((item, i) => ({
+                id: `cached_${topic}_${i}`,
+                title: item.title,
+                url: item.url,
+                description: item.snippet,
+            })) as NewsIdea[],
             cachedAt: items.length > 0 ? new Date().toISOString() : null,
         };
     } catch (error) {
@@ -355,7 +366,7 @@ export async function researchAndGenerateBlog(input: {
             userId: (input.userId ?? user.uid) as string,
             seoKeywords: brief.suggestedKeywords,
         },
-        brief.rawResearch,
+        brief.rawResearch || '',
         brief.citations
     );
 

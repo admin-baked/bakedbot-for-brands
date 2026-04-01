@@ -9,7 +9,7 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import type { BlogPost, BlogCategory } from '@/types/blog';
 import type { BrandGuide } from '@/types/brand-guide';
-import type { Citation } from '@/server/actions/blog-research';
+import type { Citation } from '@/server/actions/action-types';
 
 export interface BlogGeneratorInput {
     topic: string;

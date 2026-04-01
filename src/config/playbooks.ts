@@ -51,6 +51,7 @@ export type PlaybookEventType =
   | 'order.post_purchase'
   | 'customer.birthday'
   | 'customer.30_day_inactive'
+  | 'customer.checkin'
   | 'inventory.new_product'
   | 'compliance.jurisdiction_change'
   | 'billing.new_empire_signup';

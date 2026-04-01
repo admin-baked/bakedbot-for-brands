@@ -813,7 +813,7 @@ export async function analyzeBrandVoice(
   brandId: string,
   samples: Array<{
     type: 'website' | 'social' | 'email' | 'product' | 'blog';
-    text: string;
+    content: string;
     platform?: 'instagram' | 'twitter' | 'facebook' | 'linkedin' | 'tiktok';
   }>
 ): Promise<{
@@ -1491,7 +1491,7 @@ Return ONLY valid JSON:
  */
 export async function generateSampleContent(brandId: string): Promise<{
   success: boolean;
-  samples?: Array<{ type: string; text: string }>;
+  samples?: any[];
   error?: string;
 }> {
   try {
@@ -1524,10 +1524,10 @@ All content must be compliant with ${state} cannabis marketing rules: no health 
 
 Return ONLY valid JSON array:
 [
-  { "type": "instagram", "text": "..." },
-  { "type": "email_subject", "text": "..." },
-  { "type": "sms", "text": "..." },
-  { "type": "in_store_signage", "text": "..." }
+  { "type": "social_post", "content": "..." },
+  { "type": "email", "content": "..." },
+  { "type": "customer_response", "content": "..." },
+  { "type": "social_post", "content": "..." }
 ]`;
 
     const raw = await callClaude({ userMessage: prompt, maxTokens: 800, model });
@@ -1536,7 +1536,7 @@ Return ONLY valid JSON array:
     const samples = JSON.parse(jsonMatch[0]);
 
     logger.info('[BrandGuide] Sample content generated', { brandId, count: samples.length });
-    return { success: true, samples };
+    return { success: true, samples: samples as any[] };
   } catch (error) {
     logger.error('[BrandGuide] generateSampleContent failed', { error: (error as Error).message, brandId });
     return { success: false, error: (error as Error).message };

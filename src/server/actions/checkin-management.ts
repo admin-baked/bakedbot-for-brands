@@ -13,7 +13,7 @@
 
 import { getAdminFirestore } from '@/firebase/admin';
 import { requireUser } from '@/lib/auth-helpers';
-import { cookies } from 'next/headers';
+import { SUPER_USER_ROLES, BRAND_ALL_ROLES, DISPENSARY_ALL_ROLES } from '@/types/roles';
 import { logger } from '@/lib/logger';
 import { FieldValue } from 'firebase-admin/firestore';
 import { createInboxArtifactId, createInboxThreadId } from '@/types/inbox';
@@ -129,8 +129,7 @@ export async function getCheckinConfig(orgId: string): Promise<{ success: boolea
 }
 
 export async function saveCheckinConfig(orgId: string, updates: Partial<CheckinConfig>): Promise<{ success: boolean; error?: string }> {
-    const cookieStore = await cookies();
-    const user = await requireUser(cookieStore.get('session')?.value);
+    const user = await requireUser([...DISPENSARY_ALL_ROLES, ...BRAND_ALL_ROLES, ...SUPER_USER_ROLES]);
     if (!user || (user.orgId !== orgId && user.role !== 'super_user')) {
         return { success: false, error: 'Unauthorized' };
     }

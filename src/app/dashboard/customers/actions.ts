@@ -22,8 +22,8 @@ import {
     createVIPPlaybook,
     createWelcomeEmailPlaybook,
     createWinbackEmailPlaybook,
-    type PilotEmailConfig,
 } from '@/server/actions/pilot-setup';
+import type { PilotEmailConfig } from '@/server/actions/action-types';
 import { syncCustomerSignupProactiveGap } from '@/server/services/customer-signup-proactive';
 import {
     CustomerProfile,

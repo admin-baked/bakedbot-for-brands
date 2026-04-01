@@ -337,6 +337,9 @@ describe('visitor check-in actions', () => {
       offerType: 'favorite_categories',
       uiVersion: 'thrive_checkin_v2',
     });
+    
+    await Promise.resolve();
+    await Promise.resolve();
 
     expect(result).toMatchObject({
       success: true,
@@ -349,7 +352,16 @@ describe('visitor check-in actions', () => {
       smsConsent: true,
       lastCheckinUiVersion: 'thrive_checkin_v2',
     });
-    expect(dispatchPlaybookEvent).not.toHaveBeenCalled();
+    expect(dispatchPlaybookEvent).toHaveBeenCalledWith(
+      'org_thrive_syracuse',
+      'customer.checkin',
+      expect.objectContaining({
+        eventName: 'customer.checkin',
+        customerId: 'customer_1',
+        customerName: 'Jane',
+        priorVisits: 1,
+      }),
+    );
   });
 
   it('logs dispatch failures without failing the visit capture', async () => {
@@ -382,6 +394,49 @@ describe('visitor check-in actions', () => {
       expect.objectContaining({
         error: 'dispatch failed',
         leadId: 'lead-4',
+      }),
+    );
+  });
+
+  it('dispatches customer.checkin for returning leads without a full customer record', async () => {
+    const state = createFirestore({
+      emailLeads: {
+        lead_know: {
+          phone: '+13155557777',
+          email: 'returning@example.com',
+          brandId: 'org_thrive_syracuse',
+        },
+      },
+    });
+    (getAdminFirestore as jest.Mock).mockReturnValue(state.firestore);
+    (captureEmailLead as jest.Mock).mockResolvedValue({
+      success: true,
+      leadId: 'lead_know',
+      isNewLead: false,
+    });
+
+    const result = await captureVisitorCheckin({
+      orgId: 'org_thrive_syracuse',
+      firstName: 'Bob',
+      phone: '3155557777',
+      emailConsent: true,
+      smsConsent: true,
+      source: 'brand_rewards_checkin',
+      ageVerifiedMethod: 'staff_attested_public_flow',
+    });
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(result.success).toBe(true);
+    expect(dispatchPlaybookEvent).toHaveBeenCalledWith(
+      'org_thrive_syracuse',
+      'customer.checkin',
+      expect.objectContaining({
+        eventName: 'customer.checkin',
+        customerEmail: 'returning@example.com',
+        customerName: 'Bob',
+        priorVisits: 1,
       }),
     );
   });

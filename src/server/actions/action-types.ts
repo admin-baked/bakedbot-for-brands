@@ -23,18 +23,27 @@ export interface NewsIdea {
 }
 
 export interface Citation {
-    text: string;
+    quote: string;
+    text?: string;
     url: string;
-    source: string;
+    source?: string;
+    author: string;
+    company: string;
+    sourceTitle?: string;
 }
 
 export interface ResearchBrief {
     topic: string;
-    summary: string;
-    keyPoints: string[];
+    summary?: string;
+    keyPoints?: string[];
+    keyFindings: string[];
+    suggestedAngles: string[];
+    competitorGaps: string[];
     citations: Citation[];
     suggestedTitle: string;
     suggestedKeywords: string[];
+    rawResearch?: string;
+    analyticsSignals?: any;
 }
 
 export interface ContentScorecard {
@@ -70,11 +79,9 @@ export interface CRMAIInsight {
     count?: number;
 }
 
-export interface CRMAISearchResult {
-    summary: string;
-    users: any[];
-    filtersApplied: string;
-}
+export type CRMAISearchResult =
+    | { success: true; result: { summary: string; users: any[]; filtersApplied: string } }
+    | { success: false; error: string };
 
 // =============================================================================
 // NY Outreach Types

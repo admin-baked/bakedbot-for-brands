@@ -33,8 +33,8 @@ import { Loader2, Search, FileText, ArrowRight, CheckCircle, X, RefreshCw } from
 import {
     generateResearchBrief,
     researchAndGenerateBlog,
-    type ResearchBrief,
 } from '@/server/actions/blog-research';
+import type { ResearchBrief } from '@/server/actions/action-types';
 import type { BlogCategory, BlogContentType } from '@/types/blog';
 
 interface ResearchGeneratorSheetProps {
@@ -314,7 +314,7 @@ export function ResearchGeneratorSheet({
                                                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                                     Why This Topic Matters
                                                 </p>
-                                                {brief.analyticsSignals.recommendations.slice(0, 2).map((recommendation, index) => (
+                                                {(brief.analyticsSignals.recommendations as { source: string; title: string; supportingMetric: string }[]).slice(0, 2).map((recommendation, index) => (
                                                     <div key={`${recommendation.source}-${index}`} className="rounded-md bg-muted/50 p-2.5 text-sm">
                                                         <p className="font-medium">{recommendation.title}</p>
                                                         <p className="mt-1 text-xs text-muted-foreground">

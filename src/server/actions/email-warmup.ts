@@ -16,7 +16,7 @@ import {
     getDailyLimit,
     isWarmupActive,
 } from '@/server/services/email-warmup';
-import type { WarmupStatus, WarmupLog, WarmupScheduleType } from '@/server/services/email-warmup';
+import type { WarmupStatus, WarmupLog, WarmupScheduleType } from '@/server/services/email-warmup-types';
 import { requireUser } from '@/server/auth/auth';
 import { logger } from '@/lib/logger';
 

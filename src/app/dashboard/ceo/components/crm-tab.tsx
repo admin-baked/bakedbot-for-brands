@@ -624,7 +624,7 @@ export default function CRMTab() {
         setAiSearchResult(null);
         try {
             const result = await queryCRMWithAI(aiSearchQuery);
-            if (result.success && result.result) {
+            if (result.success) {
                 setUsers(result.result.users);
                 setAiSearchResult({ summary: result.result.summary, filtersApplied: result.result.filtersApplied });
                 setUsersPage(1);

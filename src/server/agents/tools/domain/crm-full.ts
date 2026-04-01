@@ -68,7 +68,7 @@ export const crmListUsersTool = tool(
                 lifecycleStage: u.lifecycleStage,
                 plan: u.plan,
                 mrr: u.mrr,
-                signupAt: u.signupAt.toISOString(),
+                signupAt: new Date(u.signupAt).toISOString(),
                 orgName: u.orgName || null
             })),
             total: users.length

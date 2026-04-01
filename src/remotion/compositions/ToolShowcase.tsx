@@ -19,8 +19,8 @@ import {
     Video,
     Audio,
 } from 'remotion';
-import { hexToRgba } from '@/lib/utils';
-import { VideoStyle } from '@/types/creative-video';
+import { hexToRgba } from '../../lib/utils';
+import { VideoStyle } from '../../types/creative-video';
 
 export interface ToolShowcaseProps extends Record<string, unknown> {
     brandName: string;
@@ -44,7 +44,7 @@ const BackgroundLayer: React.FC<{
     secondaryColor: string;
     accentColor: string;
 }> = ({ backgroundImageUrl, primaryColor, secondaryColor, accentColor }) => {
-    const isVideo = backgroundImageUrl?.toLowerCase().endsWith('.mp4');
+    const isVideo = backgroundImageUrl ? backgroundImageUrl.toLowerCase().endsWith('.mp4') : false;
 
     return (
         <AbsoluteFill>

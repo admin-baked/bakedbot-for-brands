@@ -103,7 +103,7 @@ export function BrandVoiceTab({ brandId, brandGuide, onUpdate }: BrandVoiceTabPr
 
     try {
       const result = await analyzeBrandVoice(brandId, [
-        { type: 'website', text: contentSample },
+        { type: 'website', content: contentSample },
       ]);
 
       if (!result.success || !result.voice) {
@@ -540,10 +540,10 @@ export function BrandVoiceTab({ brandId, brandGuide, onUpdate }: BrandVoiceTabPr
               <div key={i} className="space-y-1">
                 <Badge variant="outline" className="text-xs capitalize">{s.type.replace(/_/g, ' ')}</Badge>
                 <Textarea
-                  value={s.text}
+                  value={s.content}
                   onChange={e => {
                     const updated = [...voice.sampleContent];
-                    updated[i] = { ...updated[i], text: e.target.value };
+                    updated[i] = { ...updated[i], content: e.target.value };
                     setVoice({ ...voice, sampleContent: updated });
                   }}
                   rows={3}

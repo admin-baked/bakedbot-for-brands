@@ -362,7 +362,7 @@ export function MagicGenerateDialog({
                   size="sm" 
                   className="h-7 text-xs text-baked-green"
                   onClick={() => {
-                    const url = prompt('Enter image URL:');
+                    const url = window.prompt('Enter image URL:');
                     if (url) setScreenshotUrls([...screenshotUrls, url]);
                   }}
                 >

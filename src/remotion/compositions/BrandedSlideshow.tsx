@@ -17,7 +17,7 @@ import {
     useCurrentFrame,
     useVideoConfig,
 } from 'remotion';
-import { hexToRgba } from '@/lib/utils';
+import { hexToRgba } from '../../lib/utils';
 
 export interface BrandedSlideshowProps extends Record<string, unknown> {
     brandName: string;

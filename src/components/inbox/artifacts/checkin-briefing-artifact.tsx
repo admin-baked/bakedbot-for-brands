@@ -45,7 +45,7 @@ function StatTile({ value, label }: { value: number; label: string }) {
 }
 
 export function CheckinBriefingArtifact({ artifact, className }: Props) {
-    const data = artifact.data as CheckinBriefingData;
+    const data = artifact.data as unknown as CheckinBriefingData;
     const router = useRouter();
 
     if (!data) {

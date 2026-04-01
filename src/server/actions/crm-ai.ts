@@ -210,9 +210,9 @@ Only include fields that the query actually specifies. Return ONLY JSON.`;
             filters.signupAfter ? `signup after: ${filters.signupAfter.toLocaleDateString()}` : null,
         ].filter(Boolean).join(', ') || 'all users';
 
-        logger.info('[JackAI] queryCRMWithAI completed', { 
-            userCount: results.length,
-            filters: completion.content[0].text 
+        logger.info('[JackAI] queryCRMWithAI completed', {
+            userCount: users.length,
+            filters: filtersApplied,
         });
 
         return {

@@ -387,14 +387,8 @@ export default function ContentCeoTab() {
                                                     <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
                                                 </a>
                                                 <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                                                    {idea.snippet}
+                                                    {idea.description}
                                                 </p>
-                                                {idea.suggestedAngle && (
-                                                    <p className="text-xs text-primary mt-1 flex items-center gap-1">
-                                                        <ArrowRight className="h-3 w-3 shrink-0" />
-                                                        {idea.suggestedAngle}
-                                                    </p>
-                                                )}
                                             </div>
                                             <Button
                                                 variant="outline"
