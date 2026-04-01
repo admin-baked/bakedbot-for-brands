@@ -59,6 +59,7 @@ const nextConfig = {
     'fs',
     'path',
     'os',
+    '@coinbase/coinbase-sdk',
   ],
   typescript: {
     // Disable Next.js TypeScript checking - we run tsc --noEmit separately in check:types
