@@ -61,30 +61,39 @@ export async function GET(request: NextRequest) {
             const campaignData = doc.data();
 
             try {
-                // Check email warm-up daily limit before sending
                 const orgId = campaignData.orgId as string;
-                if (orgId) {
-                    const warmup = await getWarmupStatus(orgId);
-                    if (warmup.active && warmup.remainingToday !== undefined && warmup.remainingToday <= 0) {
-                        logger.warn('[CRON:CAMPAIGN_SENDER] Warm-up daily limit reached, deferring campaign', {
-                            campaignId: doc.id,
-                            orgId,
-                            dailyLimit: warmup.dailyLimit,
-                            sentToday: warmup.sentToday,
-                        });
-                        // Leave campaign as 'scheduled' so it retries tomorrow
-                        continue;
+
+                // Cache warmup status once — reused for both limit check and recording
+                const warmup = orgId ? await getWarmupStatus(orgId) : null;
+                if (warmup?.active && warmup.remainingToday !== undefined && warmup.remainingToday <= 0) {
+                    logger.warn('[CRON:CAMPAIGN_SENDER] Warm-up daily limit reached, deferring campaign', {
+                        campaignId: doc.id,
+                        orgId,
+                        dailyLimit: warmup.dailyLimit,
+                        sentToday: warmup.sentToday,
+                    });
+                    continue;
+                }
+
+                // Claim campaign atomically — prevents double-send if cron fires twice concurrently
+                let claimed = false;
+                await db.runTransaction(async (tx) => {
+                    const snap = await tx.get(db.collection('campaigns').doc(doc.id));
+                    if (snap.data()?.status === 'scheduled') {
+                        tx.update(db.collection('campaigns').doc(doc.id), { status: 'sending', claimedAt: new Date() });
+                        claimed = true;
                     }
+                });
+                if (!claimed) {
+                    logger.info('[CRON:CAMPAIGN_SENDER] Campaign already claimed by another instance, skipping', { campaignId: doc.id });
+                    continue;
                 }
 
                 const result = await executeCampaign(doc.id);
 
-                // Record warm-up sends if warm-up active
-                if (orgId && result.success && result.sent > 0) {
-                    const warmup = await getWarmupStatus(orgId);
-                    if (warmup.active) {
-                        await recordWarmupSend(orgId, result.sent);
-                    }
+                // Record warm-up sends using cached status
+                if (orgId && result.success && result.sent > 0 && warmup?.active) {
+                    await recordWarmupSend(orgId, result.sent);
                 }
 
                 if (result.success) {

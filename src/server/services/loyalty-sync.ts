@@ -204,7 +204,9 @@ export class LoyaltySyncService {
       triggerWalletUpdate(customerId, orgId).catch(err =>
         logger.error('[LoyaltySync] wallet update failed', { customerId, err })
       );
-      notifyPointsUpdate(customerId, orgId, finalPoints, 'Your Dispensary', orgId).catch(() => {});
+      notifyPointsUpdate(customerId, orgId, finalPoints, 'Your Dispensary', orgId).catch((err) =>
+        logger.warn('[LoyaltySync] Failed to notify points update', { customerId, err })
+      );
 
       // First sync = enrollment: send loyalty card via SMS/email (fire-and-forget)
       const isFirstSync = !existingData?.loyaltyEnrolledAt;
@@ -224,7 +226,9 @@ export class LoyaltySyncService {
               points: finalPoints, tier: finalTier, primaryColor, phone, email,
             });
           });
-        }).catch(() => {});
+        }).catch((err) =>
+          logger.warn('[LoyaltySync] Failed to send loyalty card on enrollment', { customerId, err })
+        );
       }
 
       const duration = Date.now() - startTime;
@@ -309,12 +313,16 @@ export class LoyaltySyncService {
               let alpine: { points: number; tier: string } | undefined;
 
               if (customer.phone) {
-                const alpineProfile = await this.alpineClient.getLoyaltyProfile(customer.phone);
-                if (alpineProfile) {
-                  alpine = {
-                    points: alpineProfile.points,
-                    tier: alpineProfile.tier
-                  };
+                try {
+                  const alpineProfile = await this.alpineClient.getLoyaltyProfile(customer.phone);
+                  if (alpineProfile) {
+                    alpine = {
+                      points: alpineProfile.points,
+                      tier: alpineProfile.tier
+                    };
+                  }
+                } catch (alpineErr) {
+                  logger.warn('[LoyaltySync] Alpine IQ lookup failed, using calculated points', { customerId, err: alpineErr });
                 }
               }
 
