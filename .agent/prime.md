@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; Social tools live (Craig: Twitter/Reddit; Leo: browser_act any service); RTRVR session ownership via Firestore cookies; Upstash Vector disabled until index provisioned.
-**Recent work (2026-04-04):** `f18ce2b23` — social-tools.ts + twitter/reddit-browser + browser-act; deploy unblocked (UPSTASH_VECTOR secrets commented out)
+**Current Status:** 🟢 `main` green; Social tools live; RTRVR session ownership; Linus Slack fix + greeting fast path + RTRVR browser tools for Elroy/Dashboard (branch `claude/fix-issue-PL9nP`).
+**Recent work (2026-04-04):** Social tools + RTRVR generalization (`f18ce2b23`). Linus Slack fix: GLM empty content → Claude fallback + greeting fast path. RTRVR browser tools for Elroy (Weedmaps/AIQ/WordPress) + Dashboard (Reddit/Google Ads) with approval gates.
 
 ## ðŸ§­ CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 
