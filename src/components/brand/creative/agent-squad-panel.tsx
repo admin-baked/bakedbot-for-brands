@@ -8,30 +8,16 @@
  */
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    MoreHorizontal,
-    Sparkles,
-    ShieldAlert,
-    Palette,
-    MessageSquare,
-} from 'lucide-react';
-import { motion } from 'framer-motion';
+import { MoreHorizontal, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AGENT_REGISTRY, type AgentId, type AgentStatus } from '@/lib/agents/registry';
+import { AgentStatusIndicator, agentText } from '@/components/ui/agent-status-indicator';
 
-type AgentStatus = 'active' | 'idle' | 'working' | 'offline';
-
-interface Agent {
-    id: string;
-    name: string;
-    role: string;
-    avatar?: string;
-    initials: string;
+interface CreativeAgent {
+    id: AgentId;
     status: AgentStatus;
-    icon: typeof Sparkles;
-    color: string;
     capabilities: string[];
 }
 
@@ -40,44 +26,17 @@ interface AgentSquadPanelProps {
     className?: string;
 }
 
-const CREATIVE_AGENTS: Agent[] = [
-    {
-        id: 'craig',
-        name: 'Craig',
-        role: 'Marketer',
-        initials: 'C',
-        status: 'active',
-        icon: MessageSquare,
-        color: 'text-purple-400',
-        capabilities: ['Caption Generation', 'Hashtag Strategy', 'Platform Optimization'],
-    },
-    {
-        id: 'nano-banana',
-        name: 'Nano Banana',
-        role: 'Visual Artist',
-        initials: 'NB',
-        status: 'idle',
-        icon: Palette,
-        color: 'text-amber-400',
-        capabilities: ['Product Images', 'Lifestyle Photos', '4K Social Assets'],
-    },
-    {
-        id: 'deebo',
-        name: 'Deebo',
-        role: 'Enforcer',
-        initials: 'D',
-        status: 'working',
-        icon: ShieldAlert,
-        color: 'text-red-400',
-        capabilities: ['Compliance Scanning', 'Redline Suggestions', 'State Regulations'],
-    },
+const CREATIVE_AGENTS: CreativeAgent[] = [
+    { id: 'craig', status: 'online', capabilities: ['Caption Generation', 'Hashtag Strategy', 'Platform Optimization'] },
+    { id: 'mrs_parker', status: 'offline', capabilities: ['Welcome Emails', 'Loyalty Programs', 'VIP Segments'] },
+    { id: 'deebo', status: 'working', capabilities: ['Compliance Scanning', 'Redline Suggestions', 'State Regulations'] },
 ];
 
-const STATUS_CONFIG: Record<AgentStatus, { label: string; color: string; bgColor: string }> = {
-    active: { label: 'Ready', color: 'text-green-400', bgColor: 'bg-green-400' },
-    idle: { label: 'Idle', color: 'text-slate-400', bgColor: 'bg-slate-400' },
-    working: { label: 'Working', color: 'text-amber-400', bgColor: 'bg-amber-400' },
-    offline: { label: 'Offline', color: 'text-red-400', bgColor: 'bg-red-400' },
+const STATUS_LABELS: Record<AgentStatus, { label: string; color: string }> = {
+    online: { label: 'Ready', color: 'text-green-400' },
+    thinking: { label: 'Thinking', color: 'text-amber-400' },
+    working: { label: 'Working', color: 'text-amber-400' },
+    offline: { label: 'Offline', color: 'text-slate-400' },
 };
 
 export function AgentSquadPanel({ onAgentSelect, className }: AgentSquadPanelProps) {
@@ -93,62 +52,37 @@ export function AgentSquadPanel({ onAgentSelect, className }: AgentSquadPanelPro
                 </Button>
             </CardHeader>
             <CardContent className="space-y-3">
-                {CREATIVE_AGENTS.map((agent) => {
-                    const statusConfig = STATUS_CONFIG[agent.status];
-                    const Icon = agent.icon;
+                {CREATIVE_AGENTS.map((entry) => {
+                    const def = AGENT_REGISTRY[entry.id];
+                    const statusLabel = STATUS_LABELS[entry.status];
 
                     return (
                         <div
-                            key={agent.id}
+                            key={entry.id}
                             className={cn(
                                 'flex items-center gap-3 p-3 rounded-lg',
                                 'bg-card/50 border border-border/30',
                                 'hover:bg-card/80 hover:border-border/50 transition-all cursor-pointer'
                             )}
-                            onClick={() => onAgentSelect?.(agent.id)}
+                            onClick={() => onAgentSelect?.(entry.id)}
                         >
-                            {/* Agent Avatar with Status Indicator */}
-                            <div className="relative">
-                                <Avatar className="h-10 w-10">
-                                    {agent.avatar && <AvatarImage src={agent.avatar} />}
-                                    <AvatarFallback className="bg-secondary text-sm">
-                                        {agent.initials}
-                                    </AvatarFallback>
-                                </Avatar>
-                                {/* Status dot with pulse for working */}
-                                <div
-                                    className={cn(
-                                        'absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background',
-                                        statusConfig.bgColor
-                                    )}
-                                >
-                                    {agent.status === 'working' && (
-                                        <motion.div
-                                            className={cn(
-                                                'absolute inset-0 rounded-full',
-                                                statusConfig.bgColor
-                                            )}
-                                            initial={{ scale: 1, opacity: 0.8 }}
-                                            animate={{ scale: 1.5, opacity: 0 }}
-                                            transition={{
-                                                duration: 1,
-                                                repeat: Infinity,
-                                                ease: 'easeOut',
-                                            }}
-                                        />
-                                    )}
-                                </div>
-                            </div>
+                            <AgentStatusIndicator
+                                visual={def.visual}
+                                name={def.name}
+                                image={def.image}
+                                status={entry.status}
+                                size="lg"
+                            />
 
                             {/* Agent Info */}
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
                                     <span className="text-sm font-medium text-foreground">
-                                        {agent.name}
+                                        {def.name}
                                     </span>
-                                    <Icon className={cn('h-3.5 w-3.5', agent.color)} />
+                                    <span className={cn('text-sm', agentText(def.visual.color))}>{def.visual.emoji}</span>
                                 </div>
-                                <p className="text-xs text-muted-foreground">{agent.role}</p>
+                                <p className="text-xs text-muted-foreground">{def.title}</p>
                             </div>
 
                             {/* Status Badge */}
@@ -156,10 +90,10 @@ export function AgentSquadPanel({ onAgentSelect, className }: AgentSquadPanelPro
                                 variant="secondary"
                                 className={cn(
                                     'text-[10px] px-1.5 py-0',
-                                    statusConfig.color
+                                    statusLabel.color
                                 )}
                             >
-                                {statusConfig.label}
+                                {statusLabel.label}
                             </Badge>
                         </div>
                     );
