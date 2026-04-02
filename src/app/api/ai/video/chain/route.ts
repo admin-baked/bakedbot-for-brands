@@ -10,44 +10,31 @@ export const dynamic = 'force-dynamic';
 // Next.js default is 60s — raise limit for long-running video jobs.
 export const maxDuration = 600;
 
-const SCENE_COUNTS: Record<string, number> = {
-    '60': 6,
-    '90': 9,
-};
+const SCENE_COUNTS: Record<string, number> = { '60': 6, '90': 9 };
 
 export async function POST(request: NextRequest) {
     try {
         await requireUser();
 
-        const body = await request.json() as unknown;
-        const parsed = ChainGenerationRequestSchema.safeParse(body);
+        const parsed = ChainGenerationRequestSchema.safeParse(await request.json());
         if (!parsed.success) {
             return NextResponse.json({ error: 'Invalid request', details: parsed.error.flatten() }, { status: 400 });
         }
 
-        const { prompt, aspectRatio, styleMode, kineticHeadline, backgroundImageUrl } = parsed.data;
-        const targetDuration = (body as Record<string, unknown>)['targetDuration'];
-        const sceneCount = SCENE_COUNTS[String(targetDuration)] ?? 6;
+        const { prompt, aspectRatio, styleMode, kineticHeadline, backgroundImageUrl, targetDuration } = parsed.data;
+        const sceneCount = SCENE_COUNTS[targetDuration] ?? 6;
 
-        logger.info('[API/video/chain] Starting chain generation', {
-            prompt: prompt.substring(0, 60),
-            sceneCount,
-            aspectRatio,
-        });
+        logger.info('[API/video/chain] Starting chain generation', { prompt: prompt.substring(0, 60), sceneCount, aspectRatio });
 
-        // Step 1: Generate Kling clips (in parallel via chain-video generator)
         const { clips } = await generateChainVideoClips(prompt, sceneCount, { aspectRatio });
 
         logger.info('[API/video/chain] Clips ready, starting Remotion render', { clipCount: clips.length });
 
-        // Step 2: Render with Remotion LongFormVideo
         const result = await generateRemotionVideo({
             prompt,
             aspectRatio,
-            // LongFormVideo-specific fields (picked up by 'longform' type detection)
             clipUrls: clips.map((c) => c.url),
             sceneTitles: clips.map((c) => c.sceneTitle),
-            // Brand context forwarded from UI
             kineticHeadline: kineticHeadline || prompt.substring(0, 40).toUpperCase(),
             styleMode,
             backgroundImageUrl,

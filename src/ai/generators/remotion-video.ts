@@ -56,7 +56,6 @@ export interface RemotionVideoInput extends GenerateVideoInput {
     ctaText?: string;
     websiteUrl?: string;
     headline?: string;
-    // LongFormVideo-specific (chain video)
     clipUrls?: string[];
     sceneTitles?: string[];
 }

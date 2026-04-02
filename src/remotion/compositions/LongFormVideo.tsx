@@ -138,8 +138,6 @@ const ClipScene: React.FC<{
     const frame = useCurrentFrame();
     const { fps, width, height } = useVideoConfig();
 
-    const isVideo = clipUrl.endsWith('.mp4') || clipUrl.includes('video');
-
     // Fade in for first 10 frames, fade out for last 10 frames
     const opacity = interpolate(
         frame,
@@ -160,20 +158,13 @@ const ClipScene: React.FC<{
 
     return (
         <AbsoluteFill style={{ opacity }}>
-            {/* Kling clip as full-frame background */}
-            {isVideo ? (
-                <Video
-                    src={clipUrl}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    muted
-                    startFrom={0}
-                />
-            ) : (
-                <Img
-                    src={clipUrl}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-            )}
+            {/* Kling always returns mp4 */}
+            <Video
+                src={clipUrl}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                muted
+                startFrom={0}
+            />
 
             {/* Gradient vignette — bottom for overlay, subtle top for logo area */}
             <AbsoluteFill

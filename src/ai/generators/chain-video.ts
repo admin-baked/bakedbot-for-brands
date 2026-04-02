@@ -19,7 +19,6 @@ export interface ChainClip {
 
 export interface ChainVideoResult {
     clips: ChainClip[];
-    totalDurationSeconds: number;
 }
 
 interface SceneDescription {
@@ -53,7 +52,6 @@ export async function generateChainVideoClips(
     const { brandName, aspectRatio = '16:9', voiceSuffix = '' } = brandContext;
     const brandPrefix = brandName ? `${brandName} cannabis brand. ` : 'Cannabis brand. ';
 
-    // Step 1: Claude Haiku plans N distinct scene prompts
     logger.info('[ChainVideo] Planning scenes via Claude Haiku', { sceneCount, prompt: prompt.substring(0, 60) });
 
     let scenes: SceneDescription[] = [];
@@ -78,7 +76,6 @@ export async function generateChainVideoClips(
         });
     }
 
-    // Fallback: generic scene prompts
     if (scenes.length === 0) {
         scenes = Array.from({ length: sceneCount }, (_, i) => ({
             title: `Scene ${i + 1}`,
@@ -86,15 +83,11 @@ export async function generateChainVideoClips(
         }));
     }
 
-    // Step 2: Generate all Kling clips in parallel
     logger.info('[ChainVideo] Generating Kling clips in parallel', { count: scenes.length });
 
-    const clipPromises = scenes.map(async (scene, i): Promise<ChainClip> => {
-        const klingPrompt = `${scene.prompt} No text, no words, cinematic quality, cannabis lifestyle marketing video.`;
-        logger.info('[ChainVideo] Generating clip', { index: i, title: scene.title });
-
+    const clipPromises = scenes.map(async (scene): Promise<ChainClip> => {
         const result = await generateKlingVideo({
-            prompt: klingPrompt,
+            prompt: scene.prompt,
             duration: '10',
             aspectRatio,
         });
@@ -107,8 +100,7 @@ export async function generateChainVideoClips(
     });
 
     const clips = await Promise.all(clipPromises);
-    const totalDurationSeconds = clips.reduce((sum, c) => sum + c.duration, 0);
 
-    logger.info('[ChainVideo] All clips ready', { count: clips.length, totalDurationSeconds });
-    return { clips, totalDurationSeconds };
+    logger.info('[ChainVideo] All clips ready', { count: clips.length });
+    return { clips };
 }

@@ -26,6 +26,7 @@ export const ChainGenerationRequestSchema = z.object({
     screenshotUrls: z.array(z.string()).max(10),
     kineticHeadline: z.string(),
     backgroundImageUrl: z.string().optional(),
+    targetDuration: z.enum(['60', '90']).default('60'),
 });
 
 export type ChainGenerationRequest = z.infer<typeof ChainGenerationRequestSchema>;
