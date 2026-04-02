@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; tablet recs fixed (Alleaves id_location + Bearer auth for POS sync cron), post-deploy protocol live.
-**Recent work (2026-04-02):** Tablet logo + recs fix, POS sync auth, Cloud Scheduler jobs created, stuck build pattern + protocol (`712af4e98`, `70e3a660d`)
+**Current Status:** 🟢 `main` green; duplicate welcome/POS schedulers paused live, billing export dataset + APIs prepared, scheduler docs aligned.
+**Recent work (2026-04-02):** Live GCP scheduler cleanup, BigQuery dataset `billing_export` in `US`, bearer-auth doc sync, `/simplify` clean on the pending diff (`uncommitted`)
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
@@ -1073,6 +1073,3 @@ Key targets: Linus P95 < 30s, error rate < 2%, super power utilization > 15%. Cr
 ---
 
 *This context loads automatically. For domain-specific details, consult `.agent/refs/`. For Linus full details, load `.agent/LINUS_CTO_AUTONOMY.md`. For session history, see `memory/MEMORY.md` and `dev/work_archive/`.*
-
-
-

@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; tablet recs fixed (Alleaves id_location + POS sync Bearer auth), post-deploy protocol added to prime.md | **Last update:** 2026-04-02 (tablet + POS sync + deploy protocol)
+**Current Status:** 🟢 `main` green; duplicate welcome/POS schedulers cleaned up live, billing export dataset + APIs prepared, scheduler docs aligned | **Last update:** 2026-04-02 (scheduler cleanup + billing export prep)
 
 ---
 
@@ -460,6 +460,3 @@ When multiple tabs have pending session files in `memory/sessions/`, say **"Cons
 ---
 
 *For detailed context, load `.agent/prime.md` first, then relevant refs as needed.*
-
-
-

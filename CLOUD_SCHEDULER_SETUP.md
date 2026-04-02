@@ -38,8 +38,7 @@ gcloud services enable cloudtasks.googleapis.com
    - **Target**: HTTP
    - **URL**: `https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app/api/jobs/welcome`
    - **HTTP Method**: POST
-   - **Auth header**: Service account
-   - **Service Account**: Create or use existing with appropriate permissions
+   - **Header**: `Authorization: Bearer $CRON_SECRET`
 
 **Via gcloud CLI:**
 
@@ -49,29 +48,11 @@ gcloud scheduler jobs create http process-welcome-jobs \
   --uri="https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app/api/jobs/welcome" \
   --http-method=POST \
   --location=us-central1 \
+  --headers="Authorization=Bearer $CRON_SECRET" \
   --attempt-deadline=120s \
   --time-zone="America/Chicago" \
   --description="Process Mrs. Parker welcome email/SMS jobs"
 ```
-
-### 3. Set Up Service Account Permissions
-
-The Cloud Scheduler service account needs permission to invoke the endpoint:
-
-```bash
-# Get the service account email
-SERVICE_ACCOUNT=$(gcloud scheduler jobs describe process-welcome-jobs \
-  --location=us-central1 \
-  --format='value(httpTarget.oidcToken.serviceAccountEmail)')
-
-# Grant invoker role (if using Cloud Run)
-gcloud run services add-iam-policy-binding bakedbot-prod \
-  --member=serviceAccount:${SERVICE_ACCOUNT} \
-  --role=roles/run.invoker \
-  --region=us-central1
-```
-
----
 
 ## Testing
 
@@ -115,11 +96,8 @@ Instead of waiting for Cloud Scheduler, trigger welcome jobs immediately after l
 await fetch('https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app/api/jobs/welcome', {
     method: 'POST',
     headers: {
-        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.CRON_SECRET}`,
     },
-    body: JSON.stringify({
-        jobId: leadId, // Optional: process specific job
-    }),
 });
 ```
 

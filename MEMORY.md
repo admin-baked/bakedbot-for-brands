@@ -1,6 +1,13 @@
 # BakedBot Session Memory
 
 ## Session: 2026-04-02
+- **Live scheduler cleanup + billing export prep** (`uncommitted`) - Audited the Thrive Syracuse cost spike, converted the live welcome/loyalty/playbook schedulers to `Authorization: Bearer $CRON_SECRET`, and paused the duplicate `welcome-email-processor` + `thrive-pos-sync` jobs.
+- **BigQuery billing dataset ready** (`uncommitted`) - Enabled the BigQuery + BigQuery Data Transfer APIs and created the US multi-region dataset `studio-567050101-bc6e8:billing_export` so Standard, Detailed, and Pricing exports can be turned on from the Cloud Billing console.
+- **Scheduler docs synced to production auth** (`uncommitted`) - Updated `CLOUD_SCHEDULER_SETUP.md` to remove stale service-account guidance and show the current bearer-header flow used by the welcome processor.
+- **Simplify + verification** (`uncommitted`) - Ran `/simplify` with no confirmed findings on the current docs-only diff; repo-wide `.\scripts\npm-safe.cmd run check:types` is still blocked by unrelated local video-worktree errors in `src/app/api/ai/video/chain/route.ts`, `src/app/dashboard/creative/page.tsx`, and `src/remotion/Root.tsx`.
+- **Session file** - `memory/sessions/2026-04-02-1415-scheduler-billing-export.md`
+
+## Session: 2026-04-02
 - **App Hosting deploy diagnostics hardened** (`uncommitted`) - Reworked `.github/workflows/deploy.yml` to trigger App Hosting rollouts by exact commit, stop relying on Firebase CLI's built-in 25 minute poll, resolve the underlying Cloud Build/App Hosting build IDs, and wait explicitly for Cloud Build plus rollout completion.
 - **Shared App Hosting inspector expanded** (`uncommitted`) - Extended `scripts/firebase-apphosting.mjs` with `describe`, `resolve`, and `wait` commands so local ops and CI share one canonical path for build lookup, rollout status, and Cloud Build log URLs.
 - **56 minute deploy root cause confirmed** (`uncommitted`) - Traced `fe857d24-cd89-4d13-af51-a68d481dcbc4` to commit `d168d3d68ccdf83893d8fb434cfe727715de48d4` (`fix(inbox): restore seeded prompt flow`), confirmed GitHub deploy failed after the Firebase CLI timeout while the downstream Cloud Build kept running to `INTERNAL_ERROR`, and verified the failed build log ended without an app stack trace.
