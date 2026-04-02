@@ -38,9 +38,8 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` is green; GCP cost cuts live — campaign-sender throttled 5→30min, N+1 Firestore fixed, JSON prompt constant extracted, unbounded query bounded to 90 days.
-**Recent work (2026-04-02):** See `MEMORY.md` for full log.
-Key completed: [GCP cost optimization, JSON_ONLY_SYSTEM_PROMPT constant, Firecrawl primary + runAgent() + Elroy live intel] (`524db8f21`, `2918141b6`, `3bb52c2f1`)
+**Current Status:** 🟢 `main` green; tablet recs fixed (Alleaves id_location + Bearer auth for POS sync cron), post-deploy protocol live.
+**Recent work (2026-04-02):** Tablet logo + recs fix, POS sync auth, Cloud Scheduler jobs created, stuck build pattern + protocol (`712af4e98`, `70e3a660d`)
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
@@ -281,6 +280,23 @@ If `menuProductsCount: 0` → check `posConfig.status === 'active'` on the locat
 | Cron auth / scheduler | Re-run `node scripts/launch-thrive-full.mjs` to update jobs |
 | Customer sync | `POST /api/cron/pos-sync` (customers sync is part of same call) |
 | Any Thrive-facing change | `POST /api/cron/pos-sync` + spot-check loyalty tablet recs |
+
+### Step 4 — Update recent work (session end)
+
+After a successful deploy + post-deploy triggers, always close the session:
+
+```
+"Update recent work"
+```
+
+This runs the full session-end protocol (CLAUDE.md → "Session End" section):
+1. Write `memory/sessions/YYYY-MM-DD-HHMM-{slug}.md`
+2. Prepend session block to `memory/MEMORY.md`
+3. Auto-archive MEMORY.md if > 150 lines
+4. Update `CLAUDE.md` line 15 + `.agent/prime.md` recent work block (date-gated)
+5. Commit: `docs: Update session notes YYYY-MM-DD - [summary]`
+
+**Rule:** A coding session isn't complete until the memory is updated. Deploy ≠ done.
 
 ### Stuck build gotcha
 

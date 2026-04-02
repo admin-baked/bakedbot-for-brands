@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; GCP cost cuts shipped — campaign-sender 5min→30min, N+1 Firestore fixed, JSON_ONLY_SYSTEM_PROMPT constant extracted, 90-day query bound added | **Last update:** 2026-04-02 (GCP cost optimization + simplify)
+**Current Status:** 🟢 `main` green; tablet recs fixed (Alleaves id_location + POS sync Bearer auth), post-deploy protocol added to prime.md | **Last update:** 2026-04-02 (tablet + POS sync + deploy protocol)
 
 ---
 
