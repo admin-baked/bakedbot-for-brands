@@ -497,9 +497,17 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                             return null;
                         }
                         // Reject non-image responses (HTML auth/error pages served by Slack on token failure)
-                        const contentType = res.headers.get('content-type') || '';
-                        if (!contentType.startsWith('image/')) {
-                            logger.warn(`[SlackBridge] Unexpected content-type "${contentType}" for image ${f.name} — likely auth failure, skipping`);
+                        const rawContentType = res.headers.get('content-type') || '';
+                        if (!rawContentType.startsWith('image/')) {
+                            logger.warn(`[SlackBridge] Unexpected content-type "${rawContentType}" for image ${f.name} — likely auth failure, skipping`);
+                            return null;
+                        }
+                        // Use actual content-type from HTTP response, not Slack metadata.
+                        // iOS screenshots are often reported as image/jpeg by Slack but downloaded
+                        // as image/heic — passing mismatched MIME to Claude causes "Could not process image".
+                        const actualMime = rawContentType.split(';')[0].trim();
+                        if (!(CLAUDE_IMAGE_TYPES as readonly string[]).includes(actualMime)) {
+                            logger.warn(`[SlackBridge] Unsupported actual content-type "${actualMime}" (Slack reported: ${normalizedMime}) for ${f.name} — skipping`);
                             return null;
                         }
                         const buf = Buffer.from(await res.arrayBuffer());
@@ -511,8 +519,8 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                             logger.warn(`[SlackBridge] Image too large (${buf.length}b), skipping: ${f.name}`);
                             return null;
                         }
-                        logger.info(`[SlackBridge] Downloaded image for vision: ${f.name} (${buf.length}b) agent=${isElroy ? 'elroy' : 'linus'} mime=${normalizedMime}`);
-                        return { data: buf.toString('base64'), mimeType: normalizedMime };
+                        logger.info(`[SlackBridge] Downloaded image for vision: ${f.name} (${buf.length}b) agent=${isElroy ? 'elroy' : 'linus'} mime=${actualMime}`);
+                        return { data: buf.toString('base64'), mimeType: actualMime };
                     } catch (imgErr: any) {
                         logger.warn(`[SlackBridge] Failed to download image ${f.name}: ${imgErr.message}`);
                         return null;
