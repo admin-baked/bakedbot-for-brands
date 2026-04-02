@@ -23,6 +23,7 @@ import type { AgentResult } from './rtrvr/agent';
  */
 export class DiscoveryService {
     private app: FirecrawlApp | null = null;
+    private readonly apiKey: string | null = null;
     private static instance: DiscoveryService;
 
     private constructor() {
@@ -31,6 +32,7 @@ export class DiscoveryService {
         const jinaKey = process.env.JINA_API_KEY;
 
         if (firecrawlKey) {
+            this.apiKey = firecrawlKey;
             this.app = new FirecrawlApp({ apiKey: firecrawlKey });
         }
 
@@ -447,18 +449,16 @@ export class DiscoveryService {
      * Returns the agent's full answer as a string.
      */
     public async runAgent(prompt: string, timeoutMs = 90_000): Promise<{ success: true; data: string } | { success: false; error: string }> {
-        const apiKey = process.env.FIRECRAWL_API_KEY;
-        if (!apiKey) {
+        if (!this.apiKey) {
             return { success: false, error: 'FIRECRAWL_API_KEY not configured' };
         }
+
+        const authHeader = `Bearer ${this.apiKey}`;
 
         try {
             const submitRes = await fetch('https://api.firecrawl.dev/v1/agent', {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${apiKey}`,
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ prompt }),
                 signal: AbortSignal.timeout(30_000),
             });
@@ -472,15 +472,23 @@ export class DiscoveryService {
             logger.info('[Discovery] Firecrawl agent job submitted', { jobId, promptLength: prompt.length });
 
             const deadline = Date.now() + timeoutMs;
+            let firstPoll = true;
             while (Date.now() < deadline) {
-                await new Promise(r => setTimeout(r, 3_000));
+                if (!firstPoll) await new Promise(r => setTimeout(r, 3_000));
+                firstPoll = false;
 
                 const pollRes = await fetch(`https://api.firecrawl.dev/v1/agent/${jobId}`, {
-                    headers: { 'Authorization': `Bearer ${apiKey}` },
+                    headers: { 'Authorization': authHeader },
                     signal: AbortSignal.timeout(15_000),
                 });
 
-                if (!pollRes.ok) continue;
+                // Fail fast on terminal 4xx (job not found, unauthorized); retry on 5xx / 429
+                if (!pollRes.ok) {
+                    if (pollRes.status >= 400 && pollRes.status < 500 && pollRes.status !== 429) {
+                        return { success: false, error: `Agent poll failed with ${pollRes.status}` };
+                    }
+                    continue;
+                }
 
                 const job = await pollRes.json() as any;
                 if (job.status === 'completed') {

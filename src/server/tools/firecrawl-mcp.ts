@@ -263,12 +263,7 @@ export const firecrawlAgent = ai.defineTool({
     }),
     outputSchema: z.any(),
 }, async ({ prompt, timeoutMs }) => {
-    try {
-        const result = await discovery.runAgent(prompt, timeoutMs);
-        return result;
-    } catch (e: any) {
-        return { success: false, error: `Agent failed: ${e.message}` };
-    }
+    return discovery.runAgent(prompt, timeoutMs);
 });
 
 // Export all tools
