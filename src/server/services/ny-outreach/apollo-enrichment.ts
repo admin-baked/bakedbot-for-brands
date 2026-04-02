@@ -351,7 +351,11 @@ export async function apolloEnrichByDomain(
         });
 
         if (!response.ok) {
-            return { source: 'not_found', creditSpent: false };
+            // Org enrich failed — fall through to people search by name anyway
+            logger.warn('[Apollo] Org enrich failed, falling back to people search', {
+                dispensaryName, domain, status: response.status,
+            });
+            return await apolloSearchPeople(dispensaryName, city, state);
         }
 
         const data = await response.json() as {
@@ -362,14 +366,12 @@ export async function apolloEnrichByDomain(
             };
         };
 
-        // Organization enrich doesn't give contacts directly — just company meta
-        // Useful for phone + linkedin but not email
+        // If org found, do a follow-up people search with the confirmed domain
+        // If not found, fall back to people search by name
         if (!data.organization) {
             await logApolloCall({ dispensaryName, endpoint: 'organizations/enrich', emailFound: false, creditSpent: false });
-            return { source: 'not_found', creditSpent: false };
         }
 
-        // If org found, do a follow-up people search with the confirmed domain
         return await apolloSearchPeople(dispensaryName, city, state);
     } catch (err) {
         logger.warn('[Apollo] Domain enrich error', { domain, error: String(err) });
