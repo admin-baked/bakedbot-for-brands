@@ -137,14 +137,15 @@ export async function onRequestError(
     if (!isInOurCode(stack)) return;
 
     try {
-        setImmediate(() => void dispatchServerErrorInterrupt({
+        // Fire and forget without Node-only schedulers so Edge can evaluate this hook.
+        void dispatchServerErrorInterrupt({
             error: message,
             stack,
             digest,
             method: request.method,
             routePath: context.routePath,
             routeType: context.routeType,
-        }));
+        });
     } catch {
         // Never throw from the instrumentation hook.
     }

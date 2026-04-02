@@ -349,6 +349,13 @@ export async function proxy(request: NextRequest) {
     const isTabletRoute = pathname.startsWith('/loyalty-tablet');
     // Platform blog — not a cannabis menu, no age gate needed
     const isBlogRoute = pathname.startsWith('/blog');
+    // Auth entry points should not be treated like public cannabis menu pages.
+    const isAuthRoute =
+        pathname.startsWith('/signin') ||
+        pathname.startsWith('/brand-login') ||
+        pathname.startsWith('/dispensary-login') ||
+        pathname.startsWith('/customer-login') ||
+        pathname.startsWith('/super-admin');
     const isMenuRoute =
         !isProtectedRoute &&
         !isMetaPath &&
@@ -356,8 +363,8 @@ export async function proxy(request: NextRequest) {
         !isDriverRoute &&
         !isTabletRoute &&
         !isBlogRoute &&
+        !isAuthRoute &&
         !pathname.startsWith('/api/') &&
-        !pathname.startsWith('/signin') &&
         !pathname.startsWith('/verify-age') &&
         !pathname.startsWith('/_next/') &&
         (

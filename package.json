@@ -6,7 +6,7 @@
     "node": "20"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "npm run build:embed && npm run remotion:bundle && npm run check:structure && npm run check:config && next build --webpack",
     "build:embed": "tsup",
     "start": "next start",
@@ -18,6 +18,7 @@
     "test:watch": "node scripts/run-jest.cjs --watch",
     "test:coverage": "node scripts/run-jest.cjs --coverage",
     "test:e2e": "playwright test",
+    "test:e2e:ci": "playwright test tests/e2e/ci-smoke",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",

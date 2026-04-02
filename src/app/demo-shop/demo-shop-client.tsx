@@ -820,6 +820,7 @@ export default function DemoShopClient() {
 
                 {/* Bundle Deals */}
                 <BundleDealsSection
+                    bundles={defaultBundles}
                     title="Bundle & Save"
                     subtitle="Curated packs at special prices. More value, less hassle."
                     primaryColor={brandColors.primary}

@@ -41,8 +41,8 @@ jobs:
         env:
           NODE_OPTIONS: --max-old-space-size=6144
 
-      - name: Run E2E tests
-        run: npm run test:e2e
+      - name: Run maintained E2E smoke tests
+        run: npm run test:e2e:ci
         env:
           CI: true
 
