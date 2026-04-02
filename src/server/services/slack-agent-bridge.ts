@@ -589,11 +589,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                     ? `${contextPrefix}\nUser: ${cleanText}`
                     : cleanText;
                 const greetingContent = await callGLM({
-                    systemPrompt: [
-                        'You are Linus, CTO of BakedBot — the Agentic Commerce OS for cannabis.',
-                        'You are responding in Slack. Keep it warm, brief (1–2 sentences), and on-brand.',
-                        'Match the energy of the greeting. No tools, no code, no markdown headers.',
-                    ].join(' '),
+                    systemPrompt: LINUS_GREETING_SYSTEM_PROMPT,
                     userMessage: greetingPrompt,
                     maxTokens: 150,
                     temperature: 0.7,
