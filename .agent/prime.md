@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — Linus Slack fixes: GLM crash guard, security refusal fix, deployment notifications restored, iOS image MIME fix.
+**Current Status:** 🟢 Passing — smokey-menu-search service + playbook dispatcher backfill + video API route shipped.
 **Recent work (2026-04-01):** See `MEMORY.md` for full log.
-Key completed: [GLM choices crash + security refusals fixed] (`e7da296cf`), [deployment notifications restored + iOS image fix] (`ebbd12250`).
+Key completed: [smokey-menu-search + consumer-adapter fallbacks + pilot autoSchedule] (`203b3b19c`), [video /api/ai/video route + Veo→Sora fallback chain] (`203b3b19c`).
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
