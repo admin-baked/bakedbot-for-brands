@@ -347,6 +347,14 @@ env:
     secret: SLACK_LINUS_APP_ID@1
     availability:
       - RUNTIME
+  - variable: SLACK_LINUS_BOT_TOKEN
+    secret: SLACK_LINUS_BOT_TOKEN@1
+    availability:
+      - RUNTIME
+  - variable: SLACK_LINUS_SIGNING_SECRET
+    secret: SLACK_LINUS_SIGNING_SECRET@1
+    availability:
+      - RUNTIME
   - variable: SLACK_ELROY_APP_ID
     secret: SLACK_ELROY_APP_ID@1
     availability:

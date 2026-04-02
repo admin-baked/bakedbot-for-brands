@@ -398,3 +398,10 @@ export const slackService = new SlackService();
 export const elroySlackService = new SlackService(
     process.env.SLACK_ELROY_BOT_TOKEN ?? process.env.SLACK_BOT_TOKEN
 );
+
+// Linus CTO App — dedicated bot token for the Linus CTO Slack app.
+// DMs opened with the Linus bot can only be replied to by the Linus bot token.
+// Falls back to shared token before the secret is provisioned.
+export const linusSlackService = new SlackService(
+    process.env.SLACK_LINUS_BOT_TOKEN ?? process.env.SLACK_BOT_TOKEN
+);

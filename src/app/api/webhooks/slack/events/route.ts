@@ -97,9 +97,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // ---------------------------------------------------------------------------
     const incomingAppId: string = body.api_app_id ?? '';
     const elroyAppId = process.env.SLACK_ELROY_APP_ID ?? '';
+    const linusAppId = process.env.SLACK_LINUS_APP_ID ?? '';
     const signingSecret = (elroyAppId && incomingAppId === elroyAppId)
         ? process.env.SLACK_ELROY_SIGNING_SECRET
-        : process.env.SLACK_SIGNING_SECRET;
+        : (linusAppId && incomingAppId === linusAppId)
+            ? (process.env.SLACK_LINUS_SIGNING_SECRET ?? process.env.SLACK_SIGNING_SECRET)
+            : process.env.SLACK_SIGNING_SECRET;
 
     if (!signingSecret) {
         logger.error('[Slack/Events] Signing secret not configured for app', { incomingAppId });

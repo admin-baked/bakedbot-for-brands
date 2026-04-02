@@ -1,5 +1,5 @@
 import { logger } from '@/lib/logger';
-import { slackService, elroySlackService, SlackService } from './communications/slack';
+import { slackService, elroySlackService, linusSlackService, SlackService } from './communications/slack';
 import { runAgentCore } from '@/server/agents/agent-runner';
 import { runLinus } from '@/server/agents/linus';
 import { runElroy } from '@/server/agents/elroy';
@@ -388,8 +388,13 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
         }
 
         // 5. Post a "thinking" indicator so user gets immediate feedback.
-        // Uncle Elroy uses his own bot token so he appears as a distinct Slack user.
-        const activeSlack = personaId === 'elroy' ? elroySlackService : slackService;
+        // Each dedicated Slack app (Elroy, Linus) uses its own bot token so it appears
+        // as a distinct user and can post to DMs opened with that app's bot.
+        const activeSlack = personaId === 'elroy'
+            ? elroySlackService
+            : (SLACK_LINUS_APP_ID && appId === SLACK_LINUS_APP_ID)
+                ? linusSlackService
+                : slackService;
 
         const thinkingResult = await activeSlack.postInThread(
             channel,
@@ -727,8 +732,11 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
 
     } catch (err: any) {
         logger.error(`[SlackBridge] Failed to process message: ${err.message}`, err);
+        const fallbackSlack = (SLACK_LINUS_APP_ID && appId === SLACK_LINUS_APP_ID)
+            ? linusSlackService
+            : slackService;
         try {
-            await slackService.postInThread(
+            await fallbackSlack.postInThread(
                 channel, threadTs,
                 'I ran into an issue processing your request. The team has been notified.'
             );
