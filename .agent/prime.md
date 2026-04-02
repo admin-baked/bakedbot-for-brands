@@ -38,8 +38,20 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; long-form video shipped (Kling chain + Remotion `LongFormVideo`, 60/90s, Creative Center 🎥 Long tab).
-**Recent work (2026-04-02):** `LongFormVideo.tsx` + `chain-video.ts` + `/api/ai/video/chain` — run `npm run remotion:bundle` before next deploy (`e715efec0`, `f1f483316`)
+**Current Status:** 🟢 `main` green; simplify gate + canonical engineering principles are wired into builder startup context.
+**Recent work (2026-04-02):** `createImport` duplicate detection now passes through Firestore stats → `menuProductsCount` correctly reports 487; POS sync, tablet logo, Cloud Scheduler Bearer auth all confirmed working (`3a8a3aadb`, `c71ccc366`)
+
+## 🧭 CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
+
+`AGENTS.md` is the source of truth for builder behavior. Before writing code:
+
+1. Choose the canonical home for the logic.
+2. Reuse existing types, services, schemas, adapters, workflows, and tools before adding new abstractions.
+3. Set the risk tier and explicitly handle failure modes: invalid data, retries, duplicates, stale state, permission failure, third-party drift, and partial execution.
+4. Preserve observability and auditability, especially for billing, auth, integrations, and automations.
+5. Keep code explainable: explicit flow, typed boundaries, no silent catches, no hidden UI business logic.
+
+> The PR template and `/simplify` workflow both reinforce these principles. They are mandatory engineering behavior, not optional style notes.
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
@@ -392,6 +404,8 @@ Only after Stages 0-4 are complete:
 > **⚠️ AUTO-SIMPLIFY PROTOCOL: After completing ANY code modifications, ALL agents MUST run `/simplify` before committing. This is not optional. It applies to Antigravity, Claude Code, Linus (Slack), and every engineering agent.**
 
 Run `/simplify` OR execute the three review agents in parallel manually:
+
+After the review is complete and the code to push is final, run `npm run simplify:record`. Repo-owned hooks plus `scripts/safe-push.sh` verify that the recorded review still matches the outgoing code diff.
 
 ```
 Launch all three agents in a single message (parallel):

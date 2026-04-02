@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; invite acceptance now force-refreshes token + session before redirect — invited admins no longer land on /onboarding | **Last update:** 2026-04-02 (invite onboarding redirect fix)
+**Current Status:** 🟢 `main` green; menuProductsCount fix (createImport duplicate now passes stats through) — POS sync correctly reports 487 products | **Last update:** 2026-04-02 (pos-sync reporting fix)
 
 ---
 
