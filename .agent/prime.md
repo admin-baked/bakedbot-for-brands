@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — Elroy Slack service fix + help side tab shipped.
-**Recent work (2026-04-01):** See `MEMORY.md` for full log.
-Key completed: [Elroy throttled-progress + channel lookup use elroySlackService] (`2304268f1`)
+**Current Status:** 🟢 Passing — Deployment Slack routing fix shipped.
+**Recent work (2026-04-02):** See `MEMORY.md` for full log.
+Key completed: [listChannels pagination + remove SLACK_WEBHOOK_URL fallback → all deploy msgs → #linus-deployments] (`3aefc36ff`)
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
