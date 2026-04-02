@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; Thrive post-deploy smoke docs are committed, production `phoneLast4` indexes are ready, and the Thrive customer backfill is complete | **Last update:** 2026-04-02 (Thrive post-deploy smoke runbooks)
+**Current Status:** 🟢 `main` green; Firecrawl made primary, /agent endpoint added, Elroy gets live competitor intel from Slack | **Last update:** 2026-04-02 (Firecrawl /agent + Elroy run_competitive_agent)
 
 ---
 

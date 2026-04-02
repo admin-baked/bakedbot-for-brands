@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` is green; Thrive post-deploy smoke docs are committed, production `phoneLast4` indexes are ready, and the Thrive customer backfill is complete.
+**Current Status:** 🟢 `main` is green; Firecrawl made primary, /agent endpoint live, Elroy has run_competitive_agent.
 **Recent work (2026-04-02):** See `MEMORY.md` for full log.
-Key completed: [Thrive post-deploy smoke runbooks + public check-in retest operator script] (`896bf5afe`)
+Key completed: [Firecrawl primary + runAgent() + Elroy live Intel + Linus firecrawl_agent] (`3bb52c2f1`, `2965c5e94`)
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
