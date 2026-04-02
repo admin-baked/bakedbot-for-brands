@@ -26,8 +26,8 @@ import { syncCRMDispensariesToOutreachQueue } from '@/server/services/ny-outreac
 
 export const dynamic = 'force-dynamic';
 
-/** How many leads to enrich per run — keeps within Jina + Apollo rate limits */
-const BATCH_SIZE = 20;
+/** Default leads per run. Override via ?limit=N query param (max 200) for bulk runs. */
+const DEFAULT_BATCH_SIZE = 20;
 
 /** Don't enrich if Apollo has fewer than this many credits remaining */
 const MIN_APOLLO_CREDITS = 5;
@@ -35,6 +35,9 @@ const MIN_APOLLO_CREDITS = 5;
 export async function POST(request: NextRequest): Promise<NextResponse> {
     const authError = await requireCronSecret(request, 'ny-outreach-pre-enrich');
     if (authError) return authError;
+
+    const limitParam = parseInt(request.nextUrl.searchParams.get('limit') ?? '', 10);
+    const BATCH_SIZE = (!isNaN(limitParam) && limitParam > 0) ? Math.min(limitParam, 200) : DEFAULT_BATCH_SIZE;
 
     logger.info('[PreEnrich] Starting pre-morning enrichment run', { batchSize: BATCH_SIZE });
 

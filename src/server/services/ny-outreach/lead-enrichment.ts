@@ -132,7 +132,7 @@ export async function enrichLeadBatch(limit: number = 20): Promise<LeadEnrichmen
         if (!email) {
             try {
                 const apolloResult = websiteUrl
-                    ? await apolloEnrichByDomain(websiteUrl, dispensaryName)
+                    ? await apolloEnrichByDomain(websiteUrl, dispensaryName, city, (data.state as string) || 'NY')
                     : await apolloSearchPeople(
                         dispensaryName,
                         city,

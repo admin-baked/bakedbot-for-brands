@@ -21,9 +21,10 @@ const APOLLO_BASE = 'https://api.apollo.io/v1';
 // Firestore document that tracks Apollo credit usage
 const CREDITS_DOC_PATH = 'system_config/apollo_credits';
 
-// Cycle info (free tier resets monthly)
-const CYCLE_START = new Date('2026-03-03T00:45:00Z').getTime();
-const CYCLE_END = new Date('2026-04-04T00:45:00Z').getTime();
+// Cycle info (free tier resets monthly ~31 days after account creation date)
+const CYCLE_DURATION_MS = 31 * 24 * 60 * 60 * 1000; // 31 days
+const CYCLE_START = new Date('2026-04-04T00:45:00Z').getTime(); // Updated: new cycle start
+const CYCLE_END = new Date('2026-05-05T00:45:00Z').getTime();   // Updated: new cycle end
 const MONTHLY_LIMIT = 195;
 
 // =============================================================================
@@ -90,15 +91,29 @@ export async function getApolloCreditStatus(): Promise<ApolloCreditStatus> {
         }
 
         const data = doc.data()!;
+        const now = Date.now();
+        const storedCycleEnd = data.cycleEnd ?? CYCLE_END;
+        const limit = data.limit ?? MONTHLY_LIMIT;
+
+        // Auto-reset: if we're past cycle end, advance to new cycle
+        if (now > storedCycleEnd) {
+            const newCycleStart = storedCycleEnd;
+            const newCycleEnd = storedCycleEnd + CYCLE_DURATION_MS;
+            const reset = { used: 0, limit, cycleStart: newCycleStart, cycleEnd: newCycleEnd, lastUpdated: now };
+            await doc.ref.set(reset);
+            logger.info('[Apollo] Monthly cycle reset', { newCycleEnd: new Date(newCycleEnd).toISOString() });
+            return { used: 0, limit, remaining: limit, cycleStart: newCycleStart, cycleEnd: newCycleEnd, lastUpdated: now, percentUsed: 0 };
+        }
+
         const used = data.used ?? 0;
         return {
             used,
-            limit: data.limit ?? MONTHLY_LIMIT,
-            remaining: Math.max(0, (data.limit ?? MONTHLY_LIMIT) - used),
+            limit,
+            remaining: Math.max(0, limit - used),
             cycleStart: data.cycleStart ?? CYCLE_START,
-            cycleEnd: data.cycleEnd ?? CYCLE_END,
-            lastUpdated: data.lastUpdated ?? Date.now(),
-            percentUsed: Math.round((used / (data.limit ?? MONTHLY_LIMIT)) * 100),
+            cycleEnd: storedCycleEnd,
+            lastUpdated: data.lastUpdated ?? now,
+            percentUsed: Math.round((used / limit) * 100),
         };
     } catch (err) {
         logger.error('[Apollo] Failed to read credit status', { error: String(err) });
@@ -308,7 +323,9 @@ export async function apolloSearchPeople(
  */
 export async function apolloEnrichByDomain(
     domain: string,
-    dispensaryName: string
+    dispensaryName: string,
+    city: string = '',
+    state: string = 'NY'
 ): Promise<ApolloEnrichResult> {
     const apiKey = process.env.APOLLO_API_KEY;
     if (!apiKey) return { source: 'not_found', creditSpent: false };
@@ -355,7 +372,7 @@ export async function apolloEnrichByDomain(
         }
 
         // If org found, do a follow-up people search with the confirmed domain
-        return await apolloSearchPeople(dispensaryName, '', 'NY');
+        return await apolloSearchPeople(dispensaryName, city, state);
     } catch (err) {
         logger.warn('[Apollo] Domain enrich error', { domain, error: String(err) });
         return { source: 'not_found', creditSpent: false };
