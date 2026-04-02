@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` is green; inbox seeded-prompt recovery and briefing fade fix passed focused inbox tests plus repo-wide `check:types`.
+**Current Status:** 🟢 `main` is green; Thrive post-deploy smoke docs are committed, production `phoneLast4` indexes are ready, and the Thrive customer backfill is complete.
 **Recent work (2026-04-02):** See `MEMORY.md` for full log.
-Key completed: [Inbox seeded-prompt recovery + workspace briefing fade] (`d168d3d68`)
+Key completed: [Thrive post-deploy smoke runbooks + public check-in retest operator script] (`896bf5afe`)
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 

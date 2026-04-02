@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; inbox seeded-prompt recovery and briefing fade fix passed focused inbox tests plus repo-wide `check:types` | **Last update:** 2026-04-02 (Inbox seeded-prompt recovery + workspace briefing fade)
+**Current Status:** 🟢 `main` green; Thrive post-deploy smoke docs are committed, production `phoneLast4` indexes are ready, and the Thrive customer backfill is complete | **Last update:** 2026-04-02 (Thrive post-deploy smoke runbooks)
 
 ---
 

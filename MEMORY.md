@@ -1,6 +1,11 @@
 # BakedBot Session Memory
 
 ## Session: 2026-04-02
+- **Thrive post-deploy smoke runbooks** (`896bf5afe`) - Added a tracked Thrive master playbook with the public check-in post-deploy retest addendum plus a separate operator-facing smoke script for full-phone returning lookup, staff-assisted last-4, and net-new safety.
+- **Production baseline captured in docs** (`896bf5afe`) - Recorded the live April 2, 2026 status in the runbooks: App Hosting, Type Check & Lint, and E2E all green on `main`, `phoneLast4` indexes ready, and Thrive customer backfill complete.
+- **Session file** - `memory/sessions/2026-04-02-0936-thrive-postdeploy-smoke-runbooks.md`
+
+## Session: 2026-04-02
 - **Inbox seeded-prompt recovery** (`d168d3d68`) - Fixed the new-thread regression where seeded prompts could open a blank conversation by waiting for thread persistence before auto-submitting the first message.
 - **Workspace briefing magical fade** (`d168d3d68`) - Kept the briefing visible until the conversation actually starts, then animated it out with a slower blur/height transition instead of hiding it as soon as a thread opens.
 - **Simplify cleanup + verification** (`d168d3d68`) - Resolved the `/simplify` review findings by narrowing the page selector, removing the extra message source in `InboxConversation`, cleaning up the focused tests, and rerunning the focused inbox suite plus repo-wide `check:types`.
