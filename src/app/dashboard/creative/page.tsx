@@ -292,15 +292,17 @@ export default function CreativeCommandCenter() {
   // Image style hint from campaign template — passed into generation prompt for visual variety
   const [selectedImageStyle, setSelectedImageStyle] = useState('');
 
-  // Image/media mode: AI photo | Branded | Video | Slideshow | Deck
-  const [imageMode, setImageMode] = useState<'photo' | 'branded' | 'video' | 'slideshow' | 'deck'>('photo');
+  // Image/media mode: AI photo | Branded | Video | Slideshow | Deck | Long Video
+  const [imageMode, setImageMode] = useState<'photo' | 'branded' | 'video' | 'slideshow' | 'deck' | 'longvideo'>('photo');
   const [videoDuration, setVideoDuration] = useState<'5' | '10'>('5');
+  const [longVideoTarget, setLongVideoTarget] = useState<'60' | '90'>('60');
   const isImagePreviewMode = imageMode === 'photo' || imageMode === 'branded';
 
   const getGenerateLabel = (mode: typeof imageMode, long = false): string => {
     if (mode === 'video') return 'Generate Video';
     if (mode === 'slideshow') return 'Generate Slideshow';
     if (mode === 'deck') return 'Generate Deck';
+    if (mode === 'longvideo') return 'Generate Long Video';
     return long ? 'Generate with Craig' : 'Generate';
   };
   const [localVideoUrl, setLocalVideoUrl] = useState<string | null>(null);
@@ -558,6 +560,59 @@ export default function CreativeCommandCenter() {
         toast.error(msg);
       } finally {
         setIsGeneratingDeck(false);
+      }
+      return;
+    }
+
+    // ── Long Video mode: chain of Kling clips wrapped by Remotion (60–90s) ──
+    if (imageMode === 'longvideo') {
+      if (usageSummary && !usageSummary.allowShortVideo) {
+        toast.error("Your plan does not include video generation yet.");
+        return;
+      }
+
+      const aspectRatio = selectedPlatform === 'tiktok' ? '9:16'
+        : (selectedPlatform === 'instagram' || selectedPlatform === 'facebook') ? '1:1'
+        : '16:9';
+
+      setIsGeneratingVideo(true);
+      setLocalVideoUrl(null);
+      setDeckDownloadUrl(null);
+      setDeckResultSlideCount(null);
+
+      try {
+        const response = await fetch('/api/ai/video/chain', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orgId: (user as any)?.orgId ?? '',
+            prompt: campaignPrompt.trim(),
+            aspectRatio,
+            kineticHeadline: textOverlay.headline.trim() || campaignPrompt.trim().substring(0, 40).toUpperCase(),
+            styleMode: 'cinematic',
+            screenshotUrls: [],
+            targetDuration: longVideoTarget,
+          }),
+        });
+
+        if (!response.ok) {
+          let errorMessage = 'Long video generation failed';
+          try {
+            const errorBody = await response.json() as { error?: string };
+            if (errorBody.error) errorMessage = errorBody.error;
+          } catch { /* keep default */ }
+          throw new Error(errorMessage);
+        }
+
+        const result = await response.json() as { videoUrl: string; duration: number; clipCount: number };
+        setLocalVideoUrl(result.videoUrl);
+        toast.success(`Long video ready! (${result.duration}s · ${result.clipCount} scenes)`);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Long video generation failed';
+        setGenerationError(msg);
+        toast.error(msg);
+      } finally {
+        setIsGeneratingVideo(false);
       }
       return;
     }
@@ -1212,18 +1267,18 @@ export default function CreativeCommandCenter() {
                         </Select>
                       </div>
 
-                      {/* Media mode toggle: AI Photo | Branded | Video | Slideshow | Deck */}
+                      {/* Media mode toggle: AI Photo | Branded | Video | Slideshow | Long Video | Deck */}
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Media</label>
                         <div className="flex rounded-lg border border-border bg-muted/40 p-0.5 gap-0.5 flex-wrap">
-                          {(['photo', 'branded', 'video', 'slideshow', 'deck'] as const).map(m => (
+                          {(['photo', 'branded', 'video', 'slideshow', 'longvideo', 'deck'] as const).map(m => (
                             <button
                               key={m}
                               onClick={() => {
                                 if (imageMode === m) return;
                                 setImageMode(m);
                                 setGenerationError(null);
-                                if (m !== 'video' && m !== 'slideshow') setLocalVideoUrl(null);
+                                if (m !== 'video' && m !== 'slideshow' && m !== 'longvideo') setLocalVideoUrl(null);
                                 if (m !== 'deck') { setDeckDownloadUrl(null); setDeckResultSlideCount(null); }
                               }}
                               className={cn(
@@ -1233,10 +1288,38 @@ export default function CreativeCommandCenter() {
                                   : "text-muted-foreground hover:text-foreground",
                               )}
                             >
-                              {m === 'photo' ? '📷 Photo' : m === 'branded' ? '🎨 Branded' : m === 'video' ? '🎬 Video' : m === 'slideshow' ? '🎞️ Slides' : '📊 Deck'}
+                              {m === 'photo' ? '📷 Photo' : m === 'branded' ? '🎨 Branded' : m === 'video' ? '🎬 Video' : m === 'slideshow' ? '🎞️ Slides' : m === 'longvideo' ? '🎥 Long' : '📊 Deck'}
                             </button>
                           ))}
                         </div>
+                        {imageMode === 'longvideo' && (
+                          <div className="space-y-2 px-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Length</span>
+                              <span className="text-[10px] text-muted-foreground">6–9 Kling scenes · Remotion render</span>
+                            </div>
+                            <div className="flex gap-1.5">
+                              {(['60', '90'] as const).map((t) => (
+                                <button
+                                  key={t}
+                                  type="button"
+                                  onClick={() => setLongVideoTarget(t)}
+                                  className={cn(
+                                    "flex-1 rounded-md border px-2 py-1.5 text-xs transition-all",
+                                    longVideoTarget === t
+                                      ? "border-primary bg-primary/10 text-primary"
+                                      : "border-border bg-background text-muted-foreground hover:text-foreground",
+                                  )}
+                                >
+                                  {t}s · {t === '60' ? '6' : '9'} scenes
+                                </button>
+                              ))}
+                            </div>
+                            <p className="text-[10px] text-muted-foreground leading-tight">
+                              {`Claude plans ${longVideoTarget === '60' ? '6' : '9'} scenes → Kling renders each clip → Remotion assembles with your brand`}
+                            </p>
+                          </div>
+                        )}
                         {(imageMode === 'video' || imageMode === 'slideshow') && (
                           <div className="space-y-2 px-1">
                             <div className="flex items-center justify-between gap-2">
@@ -1898,10 +1981,18 @@ export default function CreativeCommandCenter() {
                   ) : isGeneratingVideo ? (
                     <>
                       <p className="text-sm font-semibold">
-                        {imageMode === 'slideshow' ? 'Your animated brand story is rendering...' : 'Your video is rendering...'}
+                        {imageMode === 'longvideo'
+                          ? 'Generating your long-form video...'
+                          : imageMode === 'slideshow'
+                            ? 'Your animated brand story is rendering...'
+                            : 'Your video is rendering...'}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {imageMode === 'slideshow' ? `${videoDuration}s branded motion piece · ~10-30s` : `${videoDuration}s motion clip · 1-3 min`}
+                        {imageMode === 'longvideo'
+                          ? `Claude plans scenes → ${longVideoTarget === '60' ? '6' : '9'} Kling clips → Remotion render · 5-10 min`
+                          : imageMode === 'slideshow'
+                            ? `${videoDuration}s branded motion piece · ~10-30s`
+                            : `${videoDuration}s motion clip · 1-3 min`}
                       </p>
                     </>
                   ) : (

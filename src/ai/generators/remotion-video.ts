@@ -22,6 +22,7 @@ import { logger } from '@/lib/logger';
 import type { GenerateVideoInput, GenerateVideoOutput } from '../video-types';
 import type { BrandedSlideshowProps } from '@/remotion/compositions/BrandedSlideshow';
 import type { ToolShowcaseProps } from '@/remotion/compositions/ToolShowcase';
+import type { LongFormVideoProps } from '@/remotion/compositions/LongFormVideo';
 import type { VideoStyle } from '@/types/creative-video';
 
 type RemotionRendererModule = typeof import('@remotion/renderer');
@@ -38,6 +39,11 @@ const COMPOSITION_MAP: Record<string, Record<string, string>> = {
         '9:16': 'ToolShowcase-9x16',
         '1:1': 'ToolShowcase-1x1',
     },
+    longform: {
+        '16:9': 'LongFormVideo-16x9',
+        '9:16': 'LongFormVideo-9x16',
+        '1:1': 'LongFormVideo-1x1',
+    },
 };
 
 export interface RemotionVideoInput extends GenerateVideoInput {
@@ -50,6 +56,9 @@ export interface RemotionVideoInput extends GenerateVideoInput {
     ctaText?: string;
     websiteUrl?: string;
     headline?: string;
+    // LongFormVideo-specific (chain video)
+    clipUrls?: string[];
+    sceneTitles?: string[];
 }
 
 async function resolveBrowserExecutable(): Promise<string | undefined> {
@@ -95,13 +104,29 @@ export async function generateRemotionVideo(
         hasScreenshots: !!input.screenshotUrls?.length,
     });
 
-    // Detect composition type
-    const type = (input.screenshotUrls?.length || input.kineticHeadline) ? 'tool' : 'slideshow';
+    // Detect composition type: longform > tool > slideshow
+    const type = input.clipUrls?.length
+        ? 'longform'
+        : (input.screenshotUrls?.length || input.kineticHeadline)
+            ? 'tool'
+            : 'slideshow';
     const compositionId = COMPOSITION_MAP[type][input.aspectRatio || '16:9'] || COMPOSITION_MAP[type]['16:9'];
     const outputPath = path.join(os.tmpdir(), `remotion-${Date.now()}-${compositionId}.mp4`);
 
     // Build props from input — fallback to sensible defaults
-    const props: BrandedSlideshowProps | ToolShowcaseProps = type === 'tool' ? {
+    const props: BrandedSlideshowProps | ToolShowcaseProps | LongFormVideoProps = type === 'longform' ? {
+        brandName: input.brandName || 'BakedBot AI',
+        headline: (input.kineticHeadline || input.headline || input.prompt.substring(0, 40)).toUpperCase(),
+        tagline: input.tagline || input.prompt.substring(0, 60),
+        primaryColor: input.primaryColor || '#18181b',
+        secondaryColor: input.secondaryColor || '#27272a',
+        accentColor: input.accentColor || '#22c55e',
+        logoUrl: input.logoUrl,
+        clipUrls: input.clipUrls || [],
+        sceneTitles: input.sceneTitles || [],
+        ctaText: input.ctaText || 'Shop Now',
+        websiteUrl: input.websiteUrl,
+    } : type === 'tool' ? {
         brandName: input.brandName || 'BakedBot AI',
         tagline: input.tagline || '',
         primaryColor: input.primaryColor || '#18181b',

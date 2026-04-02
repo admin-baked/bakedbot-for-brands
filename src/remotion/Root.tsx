@@ -9,11 +9,13 @@ import { Composition } from 'remotion';
 import type { ComponentType } from 'react';
 import { BrandedSlideshow, type BrandedSlideshowProps } from './compositions/BrandedSlideshow';
 import { ToolShowcase, type ToolShowcaseProps } from './compositions/ToolShowcase';
+import { LongFormVideo, calculateLongFormMetadata, type LongFormVideoProps } from './compositions/LongFormVideo';
 
 // Remotion's Composition generic requires ComponentType<Record<string, unknown>>.
 // Cast once here so all three registrations stay clean.
 const BrandedSlideshowComp = BrandedSlideshow as unknown as ComponentType<Record<string, unknown>>;
 const ToolShowcaseComp = ToolShowcase as unknown as ComponentType<Record<string, unknown>>;
+const LongFormVideoComp = LongFormVideo as unknown as ComponentType<Record<string, unknown>>;
 
 const DEFAULT_PROPS: BrandedSlideshowProps = {
     brandName: 'BakedBot AI',
@@ -41,6 +43,20 @@ const DEFAULT_TOOL_PROPS: ToolShowcaseProps = {
     kineticHeadline: 'INTRODUCING THE FUTURE',
     websiteUrl: 'bakedbot.ai',
     ctaText: 'Build Your Agent',
+};
+
+const DEFAULT_LONGFORM_PROPS: LongFormVideoProps = {
+    brandName: 'BakedBot AI',
+    headline: 'THE FUTURE OF CANNABIS COMMERCE',
+    tagline: 'Powered by AI',
+    primaryColor: '#18181b',
+    secondaryColor: '#27272a',
+    accentColor: '#22c55e',
+    logoUrl: undefined,
+    clipUrls: [],
+    sceneTitles: [],
+    ctaText: 'Shop Now',
+    websiteUrl: 'bakedbot.ai',
 };
 
 export const RemotionRoot: React.FC = () => {
@@ -110,6 +126,42 @@ export const RemotionRoot: React.FC = () => {
                 width={1080}
                 height={1080}
                 defaultProps={DEFAULT_TOOL_PROPS}
+            />
+
+            {/* Long Form Video - 16:9 (60–90s, dynamic via calculateMetadata) */}
+            <Composition
+                id="LongFormVideo-16x9"
+                component={LongFormVideoComp}
+                calculateMetadata={calculateLongFormMetadata}
+                durationInFrames={2700}
+                fps={30}
+                width={1280}
+                height={720}
+                defaultProps={DEFAULT_LONGFORM_PROPS}
+            />
+
+            {/* Long Form Video - 9:16 (TikTok / Reels) */}
+            <Composition
+                id="LongFormVideo-9x16"
+                component={LongFormVideoComp}
+                calculateMetadata={calculateLongFormMetadata}
+                durationInFrames={2700}
+                fps={30}
+                width={720}
+                height={1280}
+                defaultProps={DEFAULT_LONGFORM_PROPS}
+            />
+
+            {/* Long Form Video - 1:1 (Instagram feed) */}
+            <Composition
+                id="LongFormVideo-1x1"
+                component={LongFormVideoComp}
+                calculateMetadata={calculateLongFormMetadata}
+                durationInFrames={2700}
+                fps={30}
+                width={1080}
+                height={1080}
+                defaultProps={DEFAULT_LONGFORM_PROPS}
             />
         </>
     );
