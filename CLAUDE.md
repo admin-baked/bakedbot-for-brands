@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟡 Local smoke passing; repo-wide typecheck blocked by local creative-page edits | **Last update:** 2026-04-02 (Auth/demo route hardening + CI smoke path)
+**Current Status:** 🟢 main green | **Last update:** 2026-04-02 (Job stream helper restored Type Check + E2E + deploy)
 
 ---
 
@@ -396,7 +396,7 @@ Prepend your session block under a new `## Session YYYY-MM-DD` heading.
 
 1. Read `CLAUDE.md` line 15. Parse the existing `YYYY-MM-DD`.
 2. If **your session date is newer or equal** → update both files:
-   - **`CLAUDE.md` line 15:** `**Current Status:** 🟡 Local smoke passing; repo-wide typecheck blocked by local creative-page edits | **Last update:** 2026-04-02 (Auth/demo route hardening + CI smoke path)
+   - **`CLAUDE.md` line 15:** `**Current Status:** 🟢 main green | **Last update:** 2026-04-02 (Job stream helper restored Type Check + E2E + deploy)
    - **`.agent/prime.md` lines ~41–44:** max 2-line block — feature names + commit hashes only
 3. If **your session date is older** than what's already there → **skip both files**. Your session is already captured in MEMORY.md and `memory/sessions/`. Don't overwrite newer work.
 
@@ -454,4 +454,5 @@ When multiple tabs have pending session files in `memory/sessions/`, say **"Cons
 ---
 
 *For detailed context, load `.agent/prime.md` first, then relevant refs as needed.*
+
 

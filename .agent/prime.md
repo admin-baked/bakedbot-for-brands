@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟡 Local smoke passing; repo-wide typecheck blocked by an unrelated creative-page edit.
+**Current Status:** 🟢 main green after the job-stream helper restore.
 **Recent work (2026-04-02):** See `MEMORY.md` for full log.
-Key completed: [Edge-safe instrumentation + auth route age-gate bypass + demo bundle restore + maintained CI smoke suite] (`uncommitted`)
+Key completed: [Restored missing `job-stream.ts` module -> Type Check + E2E + deploy green on `main`] (`7ed6cb126`)
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
@@ -76,7 +76,7 @@ Key completed: [Edge-safe instrumentation + auth route age-gate bypass + demo bu
 
 ## Session 2026-03-20 (Smokey Budtender Production Fix)
 **Recent work (2026-03-20):** See `memory/MEMORY.md` for full log.
-Key completed: [Edge-safe instrumentation + auth route age-gate bypass + demo bundle restore + maintained CI smoke suite] (`uncommitted`)
+Key completed: [Restored missing `job-stream.ts` module -> Type Check + E2E + deploy green on `main`] (`7ed6cb126`)
 
 ## Session 2026-03-12 (Playbook artifact repo + runtime memory layer)
 - **Artifact repo path made real**: Playbook V2 now persists spec snapshots, run manifests, failure artifacts, approval records, delivery manifests, and `summary_for_ai_engineers.md` through the shared artifact runtime. Runtime writes go to blob storage + Firestore metadata + the dedicated Git repo `admin-baked/bakedbot-artifacts-prod` when App Hosting is running with the new repo env/secret config.
@@ -434,7 +434,7 @@ Do NOT wait for the user to say "P1" or "file a bug first" — triage, file, and
 ---
 
 **Recent work (2026-03-14):** See `MEMORY.md` for full log.
-Key completed: [Edge-safe instrumentation + auth route age-gate bypass + demo bundle restore + maintained CI smoke suite] (`uncommitted`)
+Key completed: [Restored missing `job-stream.ts` module -> Type Check + E2E + deploy green on `main`] (`7ed6cb126`)
 
 ---
 
@@ -988,4 +988,5 @@ Key targets: Linus P95 < 30s, error rate < 2%, super power utilization > 15%. Cr
 ---
 
 *This context loads automatically. For domain-specific details, consult `.agent/refs/`. For Linus full details, load `.agent/LINUS_CTO_AUTONOMY.md`. For session history, see `memory/MEMORY.md` and `dev/work_archive/`.*
+
 

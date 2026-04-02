@@ -1,6 +1,12 @@
 # BakedBot Session Memory
 
 ## Session: 2026-04-02
+- **Job stream module restored** (`7ed6cb126`) - Added the missing canonical `src/server/jobs/job-stream.ts` module so the already-committed agent worker, runner, and cancel-job paths compile again.
+- **CI recovered on main** (`7ed6cb126`) - The follow-up push turned `Type Check & Lint`, `E2E Tests`, and `Deploy to Firebase App Hosting` green on `main`.
+- **Verification** (`7ed6cb126`) - GitHub Actions runs `23887506522`, `23887506516`, and `23887506525` all completed successfully.
+- **Session file** - `memory/sessions/2026-04-02-0147-job-stream-typecheck-fix.md`
+
+## Session: 2026-04-02
 - **CI smoke path reset** (`uncommitted`) - Added maintained `tests/e2e/ci-smoke` coverage, switched the workflow to `npm run test:e2e:ci`, and made `npm run dev` explicit about webpack so Playwright startup matches the repo's custom bundler path.
 - **Auth and demo route hardening** (`uncommitted`) - Removed age-gate interception from the auth entry routes, restored the demo shop's missing Bundle & Save section by passing `defaultBundles`, and kept instrumentation Edge-safe by removing `setImmediate`.
 - **Verification** (`uncommitted`) - `.\scripts\npm-safe.cmd run test:e2e:ci -- --reporter=list` passed (4/4). Repo-wide `check:types` is still blocked by an unrelated local creative-page edit, and local `npm run build` still hangs after entering `next build --webpack` on this Windows machine.
