@@ -35,6 +35,7 @@ function InboxLoading() {
 
 function InboxContent() {
     const viewMode = useInboxStore((state) => state.viewMode);
+    const activeThreadId = useInboxStore((state) => state.activeThreadId);
     const { role } = useUserRole();
 
     const isSuper = role === 'super_user' || role === 'super_admin';
@@ -82,7 +83,9 @@ function InboxContent() {
                     </div>
                 </div>
 
-                <InboxWorkspaceBriefing className="hidden lg:block" />
+                {viewMode === 'inbox' && !activeThreadId && (
+                    <InboxWorkspaceBriefing className="hidden lg:block" />
+                )}
             </div>
 
             {/* View Content - Animated transitions */}

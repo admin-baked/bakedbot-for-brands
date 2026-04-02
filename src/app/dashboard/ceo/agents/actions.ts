@@ -597,6 +597,10 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
             // SYNCHRONOUS FALLBACK: Run agent directly when Cloud Tasks isn't available
             try {
                 const { runAgentCore } = await import('@/server/agents/agent-runner');
+                const {
+                    finalizeJobSuccess,
+                    sanitizeAgentJobResult,
+                } = await import('@/server/jobs/job-stream');
 
                 // Construct mock user token for agent execution
                 const syntheticUser = user as typeof user & { brandId?: string; role?: string };
@@ -610,36 +614,27 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
                     mockUserToken,
                     jobId
                 );
+                const sanitizedResult = sanitizeAgentJobResult(result);
 
-                // Update job as completed
-                await db.collection('jobs').doc(jobId).update({
-                    status: 'completed',
-                    result: JSON.parse(JSON.stringify(result)),
-                    completedAt: FieldValue.serverTimestamp(),
-                    updatedAt: FieldValue.serverTimestamp()
-                });
+                await finalizeJobSuccess(jobId, sanitizedResult, db);
 
                 // Return immediate result (no polling needed - NO jobId in metadata!)
                 logger.info('[runAgentChat] Synchronous execution completed, returning result immediately');
                 return {
-                    content: result.content || '',
-                    toolCalls: result.toolCalls || [],
+                    content: sanitizedResult.content || '',
+                    toolCalls: sanitizedResult.toolCalls || [],
                     metadata: {
                         // DO NOT include jobId here - it triggers polling in inbox
                         agentName: finalPersonaId || 'BakedBot',
-                        type: result.metadata?.type || 'session_context',
+                        type: sanitizedResult.metadata?.type || 'session_context',
                         brandId: user.brandId,
-                        data: result.metadata?.data
+                        data: sanitizedResult.metadata?.data
                     }
                 };
             } catch (syncError: any) {
                 logger.error('[runAgentChat] Synchronous fallback also failed', { error: syncError.message });
-                // Mark as failed in DB
-                await db.collection('jobs').doc(jobId).update({
-                    status: 'failed',
-                    error: syncError.message,
-                    updatedAt: FieldValue.serverTimestamp()
-                });
+                const { finalizeJobFailure } = await import('@/server/jobs/job-stream');
+                await finalizeJobFailure(jobId, syncError.message, db);
 
                 return {
                     content: `**Error**: Agent execution failed. ${syncError.message}`,
@@ -673,18 +668,13 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
 export async function cancelAgentJob(jobId: string) {
     // 1. Get User for security
     const { requireUser } = await import('@/server/auth/auth');
-    const { getAdminFirestore } = await import('@/firebase/admin');
-    const user = await requireUser();
+    const { cancelJob } = await import('@/server/jobs/job-stream');
+    await requireUser();
 
     // 2. Update Job Status
     // We only mark it as cancelled. The worker might still be running but the UI handles it.
     // Ideally user permission check on the job doc itself, but simplistic check for now.
-    const db = getAdminFirestore();
-    await db.collection('jobs').doc(jobId).set({
-        status: 'cancelled',
-        updatedAt: new Date(),
-        error: 'Cancelled by user'
-    }, { merge: true });
+    await cancelJob(jobId, 'Cancelled by user');
 
     return { success: true };
 }

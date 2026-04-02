@@ -1,12 +1,11 @@
 import 'server-only';
 
 import { FieldValue } from 'firebase-admin/firestore';
+import { formatAgentResponse } from '@/lib/agent-response-formatter';
 import { getAdminFirestore } from '@/firebase/admin';
+import type { AgentJobDraftState, AgentJobStatus } from '@/types/agent-job';
+import { truncateAgentJobText } from '@/types/agent-job';
 
-export type AgentJobStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
-export type AgentJobDraftState = 'idle' | 'streaming' | 'ready';
-
-export const JOB_DRAFT_MAX_CHARS = 50_000;
 export const JOB_DRAFT_MIN_FLUSH_INTERVAL_MS = 350;
 export const JOB_DRAFT_MIN_CHAR_DELTA = 80;
 
@@ -15,12 +14,22 @@ export interface JobDraftUpdateResult {
     status: AgentJobStatus | null;
 }
 
-function normalizeDraftContent(content: string): string {
-    if (content.length <= JOB_DRAFT_MAX_CHARS) {
-        return content;
-    }
+export function sanitizeAgentJobText(content: string): string {
+    return truncateAgentJobText(formatAgentResponse(content));
+}
 
-    return `${content.slice(0, JOB_DRAFT_MAX_CHARS)}... [truncated]`;
+export function sanitizeAgentJobResult<T>(result: T): T {
+    return JSON.parse(JSON.stringify(result, (_key, value) => {
+        if (typeof value === 'function') {
+            return undefined;
+        }
+
+        if (typeof value === 'string') {
+            return sanitizeAgentJobText(value);
+        }
+
+        return value;
+    })) as T;
 }
 
 export function isTerminalJobStatus(status: unknown): status is Extract<AgentJobStatus, 'completed' | 'failed' | 'cancelled'> {
@@ -91,7 +100,7 @@ export async function writeJobDraftContent(
     },
     firestore: FirebaseFirestore.Firestore = getAdminFirestore()
 ): Promise<JobDraftUpdateResult> {
-    const normalizedContent = normalizeDraftContent(content);
+    const normalizedContent = sanitizeAgentJobText(content);
 
     return updateJobDocumentSafely(jobId, () => ({
         status: 'running',
@@ -110,7 +119,7 @@ export async function finalizeJobSuccess(
     const content = typeof result === 'object' && result && 'content' in (result as Record<string, unknown>)
         ? String((result as Record<string, unknown>).content ?? '')
         : '';
-    const normalizedContent = normalizeDraftContent(content);
+    const normalizedContent = sanitizeAgentJobText(content);
 
     const jobRef = firestore.collection('jobs').doc(jobId);
 
@@ -218,6 +227,9 @@ export class JobDraftPublisher {
     private readonly minCharDelta: number;
     private lastFlushedAt = 0;
     private lastFlushedContent = '';
+    private pendingContent: string | null = null;
+    private pendingDraftState: AgentJobDraftState = 'streaming';
+    private drainPromise: Promise<void> | null = null;
     private closed = false;
 
     constructor(
@@ -234,13 +246,51 @@ export class JobDraftPublisher {
         this.minCharDelta = options?.minCharDelta ?? JOB_DRAFT_MIN_CHAR_DELTA;
     }
 
+    private ensureDrainScheduled(): void {
+        if (this.closed || this.drainPromise) {
+            return;
+        }
+
+        this.drainPromise = this.drainQueue().finally(() => {
+            this.drainPromise = null;
+            if (this.pendingContent && !this.closed) {
+                this.ensureDrainScheduled();
+            }
+        });
+    }
+
+    private async drainQueue(): Promise<void> {
+        while (this.pendingContent && !this.closed) {
+            const nextContent = this.pendingContent;
+            const nextDraftState = this.pendingDraftState;
+
+            this.pendingContent = null;
+
+            const result = await writeJobDraftContent(
+                this.jobId,
+                nextContent,
+                { draftState: nextDraftState },
+                this.firestore
+            );
+
+            if (!result.applied && isTerminalJobStatus(result.status)) {
+                this.closed = true;
+                this.pendingContent = null;
+                return;
+            }
+
+            this.lastFlushedContent = nextContent;
+            this.lastFlushedAt = Date.now();
+        }
+    }
+
     async push(content: string, options?: { force?: boolean; draftState?: AgentJobDraftState }): Promise<void> {
         if (!this.jobId || this.closed) {
             return;
         }
 
-        const normalizedContent = normalizeDraftContent(content);
-        if (!normalizedContent || normalizedContent === this.lastFlushedContent) {
+        const normalizedContent = sanitizeAgentJobText(content);
+        if (!normalizedContent || normalizedContent === this.lastFlushedContent || normalizedContent === this.pendingContent) {
             return;
         }
 
@@ -251,27 +301,21 @@ export class JobDraftPublisher {
             return;
         }
 
-        const result = await writeJobDraftContent(
-            this.jobId,
-            normalizedContent,
-            { draftState: options?.draftState },
-            this.firestore
-        );
-
-        if (!result.applied && isTerminalJobStatus(result.status)) {
-            this.closed = true;
-            return;
-        }
-
-        this.lastFlushedContent = normalizedContent;
-        this.lastFlushedAt = Date.now();
+        this.pendingContent = normalizedContent;
+        this.pendingDraftState = options?.draftState ?? 'streaming';
+        this.ensureDrainScheduled();
     }
 
     async flush(content: string, draftState: AgentJobDraftState = 'ready'): Promise<void> {
         await this.push(content, { force: true, draftState });
+
+        while (this.drainPromise) {
+            await this.drainPromise;
+        }
     }
 
     close(): void {
         this.closed = true;
+        this.pendingContent = null;
     }
 }

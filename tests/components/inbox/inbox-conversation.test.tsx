@@ -23,7 +23,8 @@ describe('InboxConversation Job Polling', () => {
             const content = fs.readFileSync(componentPath, 'utf-8');
 
             // Verify useJobPoller is imported
-            expect(content).toContain("import { useJobPoller } from '@/hooks/use-job-poller'");
+            expect(content).toContain("from '@/hooks/use-job-poller'");
+            expect(content).toContain('useJobPoller');
         });
 
         it('should call useJobPoller hook in the component', async () => {
@@ -86,7 +87,7 @@ describe('InboxConversation Job Polling', () => {
             expect(content).toContain('Job polling error');
         });
 
-        it('should use setTimeout delay before setting isSubmitting(true) to allow input clear to render', async () => {
+        it('should create an assistant placeholder immediately and update it in place', async () => {
             const fs = require('fs');
             const path = require('path');
 
@@ -96,9 +97,41 @@ describe('InboxConversation Job Polling', () => {
             );
             const content = fs.readFileSync(componentPath, 'utf-8');
 
-            // Verify the setTimeout fix for the input clearing race condition
-            expect(content).toContain('setTimeout(() =>');
+            expect(content).toContain('thinkingMessage');
+            expect(content).toContain('addMessageToThread(thread.id, thinkingMessage);');
+            expect(content).toContain('setCurrentThinkingMessageId(thinkingMessage.id);');
             expect(content).toContain('setIsSubmitting(true)');
+            expect(content).toContain('syncPreview: true');
+        });
+
+        it('should keep stop-response behavior scoped to inbox actions', async () => {
+            const fs = require('fs');
+            const path = require('path');
+
+            const componentPath = path.join(
+                process.cwd(),
+                'src/components/inbox/inbox-conversation.tsx'
+            );
+            const content = fs.readFileSync(componentPath, 'utf-8');
+
+            expect(content).toContain('cancelInboxAgentJob');
+            expect(content).not.toContain("from '@/app/dashboard/ceo/agents/actions'");
+        });
+
+        it('should stream draft content into the placeholder while the job is running', async () => {
+            const fs = require('fs');
+            const path = require('path');
+
+            const componentPath = path.join(
+                process.cwd(),
+                'src/components/inbox/inbox-conversation.tsx'
+            );
+            const content = fs.readFileSync(componentPath, 'utf-8');
+
+            expect(content).toContain("job?.draftContent");
+            expect(content).toContain("content: job?.draftContent");
+            expect(content).toContain("id: `job-${job.id}`");
+            expect(content).toContain("id: job.status === 'cancelled' ? `job-cancelled-${job.id}` : `job-error-${job.id}`");
         });
 
         it('should reset inline generators on thread change instead of auto-closing manual launches', async () => {
@@ -146,6 +179,8 @@ describe('InboxConversation Job Polling', () => {
             // Verify Firestore onSnapshot is used (real-time)
             expect(content).toContain('onSnapshot');
             expect(content).toContain("doc(db, 'jobs', jobId)");
+            expect(content).toContain('draftContent');
+            expect(content).toContain('draftState');
         });
 
         it('should not use HTTP fetch for job status', async () => {
@@ -161,6 +196,42 @@ describe('InboxConversation Job Polling', () => {
             // Verify no HTTP polling
             expect(content).not.toContain('fetch(');
             expect(content).not.toContain('/api/jobs');
+        });
+    });
+
+    describe('async worker pipeline', () => {
+        it('should publish throttled draft content through the job stream helper', async () => {
+            const fs = require('fs');
+            const path = require('path');
+
+            const routePath = path.join(
+                process.cwd(),
+                'src/app/api/jobs/agent/route.ts'
+            );
+            const routeContent = fs.readFileSync(routePath, 'utf-8');
+
+            expect(routeContent).toContain('JobDraftPublisher');
+            expect(routeContent).toContain('markJobRunning');
+            expect(routeContent).toContain('finalizeJobSuccess');
+            expect(routeContent).toContain('finalizeJobFailure');
+            expect(routeContent).toContain('draftPublisher.push');
+        });
+
+        it('should centralize terminal guards in the canonical job stream module', async () => {
+            const fs = require('fs');
+            const path = require('path');
+
+            const helperPath = path.join(
+                process.cwd(),
+                'src/server/jobs/job-stream.ts'
+            );
+            const helperContent = fs.readFileSync(helperPath, 'utf-8');
+
+            expect(helperContent).toContain('isTerminalJobStatus');
+            expect(helperContent).toContain('JobDraftPublisher');
+            expect(helperContent).toContain('finalizeJobSuccess');
+            expect(helperContent).toContain('finalizeJobFailure');
+            expect(helperContent).toContain('cancelJob');
         });
     });
 });

@@ -1800,6 +1800,26 @@ export async function runInboxAgentChat(
     }
 }
 
+export async function cancelInboxAgentJob(jobId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+        const user = await getServerSessionUser();
+        if (!user) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        const { cancelJob } = await import('@/server/jobs/job-stream');
+        await cancelJob(jobId, 'Cancelled by user');
+
+        return { success: true };
+    } catch (error) {
+        logger.error('[INBOX] Failed to cancel agent job', {
+            jobId,
+            error: error instanceof Error ? error.message : String(error),
+        });
+        return { success: false, error: 'Failed to stop response' };
+    }
+}
+
 /**
  * Build context string for the agent based on thread type
  */

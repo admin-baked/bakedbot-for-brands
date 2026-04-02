@@ -1,10 +1,17 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { runAgentCore } from '@/server/agents/agent-runner';
-import { createServerClient } from '@/firebase/server-client';
+import { getAdminFirestore } from '@/firebase/admin';
 import { DecodedIdToken } from 'firebase-admin/auth';
-import { formatAgentResponse } from '@/lib/agent-response-formatter';
 import { handlePlaybookStageJob } from '@/server/services/playbook-stage-runner';
+import {
+    JobDraftPublisher,
+    finalizeJobFailure,
+    finalizeJobSuccess,
+    markJobRunning,
+    sanitizeAgentJobResult,
+    sanitizeAgentJobText,
+} from '@/server/jobs/job-stream';
 
 // Force dynamic rendering - prevents build-time evaluation of agent dependencies
 export const dynamic = 'force-dynamic';
@@ -42,27 +49,24 @@ async function persistInboxThreadAgentMessage(params: {
 
         const data = threadDoc.data() ?? {};
         const messages = Array.isArray(data.messages) ? data.messages : [];
-        const alreadyPersisted = messages.some((message) => (
+        const existingMessageIndex = messages.findIndex((message) => (
             message
             && typeof message === 'object'
             && 'id' in (message as Record<string, unknown>)
             && (message as { id?: unknown }).id === messageId
         ));
-
-        if (alreadyPersisted) {
-            return;
-        }
+        const nextMessage = {
+            id: messageId,
+            type: 'agent',
+            content: trimmedContent,
+            timestamp: new Date().toISOString(),
+        };
+        const nextMessages = existingMessageIndex >= 0
+            ? messages.map((message, index) => (index === existingMessageIndex ? nextMessage : message))
+            : [...messages, nextMessage];
 
         transaction.update(threadRef, {
-            messages: [
-                ...messages,
-                {
-                    id: messageId,
-                    type: 'agent',
-                    content: trimmedContent,
-                    timestamp: new Date().toISOString(),
-                },
-            ],
+            messages: nextMessages,
             preview: trimmedContent.slice(0, 50),
             updatedAt: new Date(),
             lastActivityAt: new Date(),
@@ -100,7 +104,14 @@ export async function POST(req: NextRequest) {
 
         // 3. User Context Strategy
         let userData: any = {};
-        const { firestore } = await createServerClient();
+        const firestore = getAdminFirestore();
+        const draftPublisher = new JobDraftPublisher(jobId, { firestore });
+        const runningState = await markJobRunning(jobId, firestore);
+
+        if (!runningState.applied && runningState.status === 'cancelled') {
+            console.log(`[Job:${jobId}] Skipping cancelled job before execution start`);
+            return NextResponse.json({ success: true, jobId, cancelled: true });
+        }
 
         // CHECK FOR GUEST/SCOUT USER
         const isGuest = userId.startsWith('guest-');
@@ -157,45 +168,35 @@ export async function POST(req: NextRequest) {
         };
 
         // 4. Execute Agent (Async) with enhanced input
-        const result = await runAgentCore(enhancedInput, persona, options, mockUserToken, jobId);
+        const result = await runAgentCore(enhancedInput, persona, options, mockUserToken, jobId, {
+            onDraftContent: (content, publishOptions) => {
+                void draftPublisher.push(sanitizeAgentJobText(content), publishOptions);
+            },
+        });
 
         // 5. Handle Result
-        // Since this is async, we can't return the result to the user directly within the chat request.
-        // We typically write the result to a "Job Status" document or push a notification.
-        // For Phase 2, we just log it. The UI (polling) would check `jobs/{jobId}`.
+        const sanitizedResult = sanitizeAgentJobResult(result);
+        const finalizeState = await finalizeJobSuccess(jobId, sanitizedResult, firestore);
+        draftPublisher.close();
 
-        // Sanitize result to ensure it's Firestore-serializable (remove functions, circular refs)
-        // Also replace any unprocessed timestamp templates with actual values
-        const sanitizedResult = JSON.parse(JSON.stringify(result, (key, value) => {
-            // Remove functions and undefined values
-            if (typeof value === 'function') return undefined;
-            // Format strings to replace template placeholders (e.g., [Current Date/Time])
-            if (typeof value === 'string') {
-                let formatted = formatAgentResponse(value);
-                // Truncate very long strings to prevent Firestore size limits
-                if (formatted.length > 50000) {
-                    formatted = formatted.substring(0, 50000) + '... [truncated]';
-                }
-                return formatted;
-            }
-            return value;
-        }));
+        if (!finalizeState.applied && finalizeState.status === 'cancelled') {
+            console.log(`[Job:${jobId}] Job was cancelled before completion persisted`);
+            return NextResponse.json({ success: true, jobId, cancelled: true });
+        }
 
         const inboxThreadId = getInboxThreadId(options);
         if (inboxThreadId) {
-            await persistInboxThreadAgentMessage({
-                firestore,
-                threadId: inboxThreadId,
-                messageId: `job-${jobId}`,
-                content: sanitizedResult?.content || '',
-            });
+            try {
+                await persistInboxThreadAgentMessage({
+                    firestore,
+                    threadId: inboxThreadId,
+                    messageId: `job-${jobId}`,
+                    content: sanitizedResult?.content || '',
+                });
+            } catch (persistError) {
+                console.error(`[Job:${jobId}] Failed to persist inbox thread message:`, persistError);
+            }
         }
-
-        await firestore.collection('jobs').doc(jobId).set({
-            status: 'completed',
-            result: sanitizedResult,
-            completedAt: new Date()
-        }, { merge: true });
 
         console.log(`[Job:${jobId}] Completed Successfully`);
 
@@ -203,25 +204,28 @@ export async function POST(req: NextRequest) {
 
     } catch (error: any) {
         console.error(`[Job:${jobId}] Execution Failed:`, error);
-        
-        // Update job status to failed
-        const { firestore } = await createServerClient();
-        await firestore.collection('jobs').doc(jobId).set({
-            status: 'failed',
-            error: error.message,
-            failedAt: new Date()
-        }, { merge: true });
+        const firestore = getAdminFirestore();
+        const errorMessage = error?.message || 'Unknown error';
+        const finalizeState = await finalizeJobFailure(jobId, errorMessage, firestore);
 
         const inboxThreadId = getInboxThreadId(options);
-        if (inboxThreadId) {
-            await persistInboxThreadAgentMessage({
-                firestore,
-                threadId: inboxThreadId,
-                messageId: `job-error-${jobId}`,
-                content: `I encountered an error: ${error.message || 'Unknown error'}. Please try again.`,
-            });
+        if (finalizeState.applied && inboxThreadId) {
+            try {
+                await persistInboxThreadAgentMessage({
+                    firestore,
+                    threadId: inboxThreadId,
+                    messageId: `job-error-${jobId}`,
+                    content: `I encountered an error: ${errorMessage}. Please try again.`,
+                });
+            } catch (persistError) {
+                console.error(`[Job:${jobId}] Failed to persist inbox thread failure message:`, persistError);
+            }
         }
 
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        if (finalizeState.status === 'cancelled') {
+            return NextResponse.json({ success: true, jobId, cancelled: true });
+        }
+
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }

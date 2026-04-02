@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { db } from '@/firebase/client';
 import { doc, collection, onSnapshot, query, orderBy, Timestamp } from 'firebase/firestore';
+import type { AgentJobDraftState, AgentJobStatus } from '@/types/agent-job';
 
 export interface Thought {
     id: string;
@@ -17,12 +18,15 @@ export interface Thought {
 
 export interface AgentJob {
     id: string;
-    status: 'pending' | 'running' | 'completed' | 'failed';
+    status: AgentJobStatus;
     result?: any;
     userId: string;
     createdAt: Timestamp;
     updatedAt: Timestamp;
     error?: string;
+    draftContent?: string;
+    draftState?: AgentJobDraftState;
+    draftUpdatedAt?: Timestamp;
 }
 
 export function useJobPoller(jobId: string | undefined) {
@@ -51,7 +55,10 @@ export function useJobPoller(jobId: string | undefined) {
                     userId: data.userId,
                     createdAt: data.createdAt,
                     updatedAt: data.updatedAt,
-                    error: data.error
+                    error: data.error,
+                    draftContent: data.draftContent,
+                    draftState: data.draftState,
+                    draftUpdatedAt: data.draftUpdatedAt,
                 });
             } else {
                 // Determine if it might be delayed consistency or pending creation
@@ -101,6 +108,6 @@ export function useJobPoller(jobId: string | undefined) {
         thoughts, 
         error, 
         isRunning,
-        isComplete: job?.status === 'completed' || job?.status === 'failed'
+        isComplete: job?.status === 'completed' || job?.status === 'failed' || job?.status === 'cancelled'
     };
 }

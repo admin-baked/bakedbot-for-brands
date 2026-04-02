@@ -1,6 +1,5 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 
 // Mock InboxConversation with thinking steps display
 const MockMessageBubble = ({
@@ -25,7 +24,9 @@ const MockMessageBubble = ({
                     </button>
 
                     {/* Tooltip content */}
-                    {message.thinking && message.thinking.steps && (
+                    {message.thinking && (
+                        ((message.thinking.steps?.length ?? 0) > 0 || (message.thinking.plan?.length ?? 0) > 0 || !!message.metadata?.media?.model)
+                    ) && (
                         <div
                             className="thinking-tooltip"
                             data-testid={`thinking-tooltip-${message.id}`}
@@ -165,7 +166,7 @@ describe('InboxConversation - Thinking Steps', () => {
                 content: 'Processing...',
                 thinking: {
                     isThinking: true,
-                    steps: [],
+                    steps: [{ action: 'Searching inventory' }],
                     plan: [],
                 },
             };
@@ -182,7 +183,7 @@ describe('InboxConversation - Thinking Steps', () => {
                 content: 'Done processing',
                 thinking: {
                     isThinking: false,
-                    steps: [],
+                    steps: [{ action: 'Finished analysis' }],
                     plan: [],
                 },
             };

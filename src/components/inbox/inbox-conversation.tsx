@@ -12,14 +12,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Send,
     Loader2,
-    Bot,
     User,
     MoreHorizontal,
     Archive,
     Trash2,
     Edit2,
     Sparkles,
-    RefreshCw,
     Paperclip,
     FileText,
     X,
@@ -59,14 +57,14 @@ import { useInboxStore } from '@/lib/store/inbox-store';
 import { useIsMobile } from '@/hooks/use-mobile';
 import type { ChatMessage } from '@/lib/store/agent-chat-store';
 import type { InboxThread, InboxArtifact, InboxAgentPersona } from '@/types/inbox';
-import { getThreadTypeLabel, getThreadTypeIcon, INLINE_GENERATOR_THREAD_TYPES } from '@/types/inbox';
+import { getThreadTypeLabel, INLINE_GENERATOR_THREAD_TYPES } from '@/types/inbox';
 import { InboxCarouselCard } from './artifacts/carousel-card';
 import { InboxBundleCard } from './artifacts/bundle-card';
 import { InboxCreativeCard } from './artifacts/creative-card';
 import { InboxIntegrationCard } from './artifacts/integration-card';
 import { InboxResearchCard } from './artifacts/inbox-research-card';
-import { ExecutiveProactiveCheckArtifact, type ExecProactiveCheckData } from './artifacts/executive-proactive-check-artifact';
-import { InboxTaskFeed, AGENT_PULSE_CONFIG } from './inbox-task-feed';
+import type { ExecProactiveCheckData } from './artifacts/executive-proactive-check-artifact';
+import { InboxTaskFeed } from './inbox-task-feed';
 import { QRCodeGeneratorInline } from './qr-code-generator-inline';
 import { CarouselGeneratorInline } from './carousel-generator-inline';
 import { HeroGeneratorInline } from './hero-generator-inline';
@@ -86,7 +84,13 @@ import { WholesaleInventoryInline } from './wholesale-inventory-inline';
 import { ChatMediaPreview } from '@/components/chat/chat-media-preview';
 import { VmRunView } from '@/components/artifacts';
 import { formatDistanceToNow } from 'date-fns';
-import { runInboxAgentChat, addMessageToInboxThread, createInboxArtifact, updateInboxVmRunArtifact } from '@/server/actions/inbox';
+import {
+    runInboxAgentChat,
+    addMessageToInboxThread,
+    cancelInboxAgentJob,
+    createInboxArtifact,
+    updateInboxVmRunArtifact,
+} from '@/server/actions/inbox';
 import { generateQRCode } from '@/server/actions/qr-code';
 import { toggleHeroActive } from '@/app/actions/heroes';
 import { getBrandSlug } from '@/server/actions/slug-management';
@@ -111,6 +115,7 @@ import {
     normalizeRoleScope,
     upsertVmRunOutput,
     type VmRunArtifactData,
+    type VmRunStep,
     type VmRunStatus,
 } from '@/types/agent-vm';
 
@@ -118,6 +123,59 @@ import {
 // Module-level map so other components (empty state, sidebar) can pre-populate
 // the chat input before a thread is activated. Read once on mount, then cleared.
 export const _pendingInputs = new Map<string, string>();
+
+type ThinkingDisplayStep = string | VmRunStep | {
+    action?: string;
+    description?: string;
+    detail?: string;
+    title?: string;
+    toolName?: string;
+    tool?: string;
+    name?: string;
+};
+
+function getThinkingStepLabel(step: ThinkingDisplayStep | null | undefined): string {
+    if (typeof step === 'string') {
+        return step;
+    }
+
+    if (!step || typeof step !== 'object') {
+        return 'Working...';
+    }
+
+    const stepRecord = step as Record<string, unknown>;
+    const primaryLabel = [
+        stepRecord.action,
+        stepRecord.description,
+        stepRecord.detail,
+        stepRecord.title,
+        stepRecord.toolName,
+        stepRecord.tool,
+        stepRecord.name,
+    ].find((value) => typeof value === 'string' && value.trim().length > 0);
+
+    if (typeof primaryLabel === 'string') {
+        return primaryLabel;
+    }
+
+    return 'Working...';
+}
+
+function getVmRunStatusForJob(status: string | undefined, isComplete: boolean): VmRunStatus {
+    if (status === 'failed') {
+        return 'failed';
+    }
+
+    if (status === 'cancelled') {
+        return 'cancelled';
+    }
+
+    if (isComplete && status === 'completed') {
+        return 'completed';
+    }
+
+    return 'running';
+}
 
 // ============ Agent Name Mapping ============
 
@@ -170,6 +228,11 @@ function MessageBubble({
 }) {
     const isUser = message.type === 'user';
     const agent = AGENT_NAMES[agentPersona] || AGENT_NAMES.auto;
+    const thinkingSteps = message.thinking?.steps ?? [];
+    const recentThinkingSteps = thinkingSteps.slice(-3);
+    const latestThinkingStepLabel = recentThinkingSteps.length > 0
+        ? getThinkingStepLabel(recentThinkingSteps[recentThinkingSteps.length - 1])
+        : null;
 
     // Find any artifacts associated with this message (by checking message content for artifact references)
     const messageArtifacts = artifacts.filter((a) =>
@@ -263,7 +326,7 @@ function MessageBubble({
                                                 <ol className="text-xs space-y-0.5 list-decimal list-inside">
                                                     {message.thinking.steps.map((step, idx) => (
                                                         <li key={idx} className="text-muted-foreground">
-                                                            {typeof step === 'string' ? step : step.action || step.tool || JSON.stringify(step)}
+                                                            {getThinkingStepLabel(step)}
                                                         </li>
                                                     ))}
                                                 </ol>
@@ -306,9 +369,36 @@ function MessageBubble({
                     )}
                 >
                     {message.thinking?.isThinking ? (
-                        <div className="flex items-center gap-2 text-sm">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            <span>Thinking...</span>
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2 text-sm">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <span>{latestThinkingStepLabel || 'Thinking...'}</span>
+                            </div>
+
+                            {recentThinkingSteps.length > 0 && (
+                                <div className="space-y-1.5 rounded-md border border-border/60 bg-background/50 px-3 py-2">
+                                    <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                                        Live progress
+                                    </div>
+                                    {recentThinkingSteps.map((step, idx) => (
+                                        <div
+                                            key={`${message.id}-live-step-${idx}`}
+                                            className="flex items-start gap-2 text-xs text-muted-foreground"
+                                        >
+                                            <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary/70" />
+                                            <span>{getThinkingStepLabel(step)}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {displayContent.trim().length > 0 && (
+                                <div className={cn('prose prose-sm max-w-none', isUser && 'prose-invert')}>
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                        {displayContent}
+                                    </ReactMarkdown>
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <>
@@ -556,6 +646,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+    const [currentThinkingMessageId, setCurrentThinkingMessageId] = useState<string | null>(null);
     const [attachments, setAttachments] = useState<AttachmentItem[]>([]);
     const [showQRGenerator, setShowQRGenerator] = useState(false);
     const [showCarouselGenerator, setShowCarouselGenerator] = useState(false);
@@ -594,6 +685,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     const [currentVmArtifactId, setCurrentVmArtifactId] = useState<string | null>(null);
     const vmPersistTimeoutRef = useRef<number | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const bottomAnchorRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const hasAutoShownQR = useRef<boolean>(false);
@@ -621,6 +713,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         setArtifactPanelOpen,
         updateThread,
         updateArtifact,
+        updateMessageInThread,
     } = useInboxStore();
     const isPending = isThreadPending(thread.id);
     const { toast } = useToast();
@@ -683,6 +776,33 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                     ? 'dispensary'
                     : thread.assignedToRole || undefined
         );
+    const latestThoughtLabel = thoughts.length > 0
+        ? (thoughts[thoughts.length - 1].detail?.trim() || thoughts[thoughts.length - 1].title)
+        : undefined;
+
+    const scrollToBottom = React.useCallback((behavior: ScrollBehavior = 'auto') => {
+        bottomAnchorRef.current?.scrollIntoView({ block: 'end', behavior });
+    }, []);
+
+    const finalizeThinkingMessage = React.useCallback((
+        messageId: string | null,
+        updates: Partial<ChatMessage>,
+        options?: {
+            syncPreview?: boolean;
+        }
+    ) => {
+        if (!messageId) {
+            return;
+        }
+
+        updateMessageInThread(thread.id, messageId, updates);
+        if (options?.syncPreview && typeof updates.content === 'string') {
+            updateThread(thread.id, {
+                preview: updates.content.slice(0, 50),
+                lastActivityAt: updates.timestamp ?? new Date(),
+            });
+        }
+    }, [thread.id, updateMessageInThread, updateThread]);
 
     const buildCurrentVmRun = React.useCallback((status: VmRunStatus): VmRunArtifactData | null => {
         if (!currentJobId) return null;
@@ -737,6 +857,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         return () => {
             if (vmPersistTimeoutRef.current) {
                 window.clearTimeout(vmPersistTimeoutRef.current);
+                vmPersistTimeoutRef.current = null;
             }
         };
     }, []);
@@ -744,6 +865,41 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     useEffect(() => {
         resetInlineGenerators();
     }, [thread.id, resetInlineGenerators]);
+
+    useEffect(() => {
+        if (vmPersistTimeoutRef.current) {
+            window.clearTimeout(vmPersistTimeoutRef.current);
+            vmPersistTimeoutRef.current = null;
+        }
+        setIsSubmitting(false);
+        setCurrentJobId(null);
+        setCurrentThinkingMessageId(null);
+        setCurrentVmArtifactId(null);
+    }, [thread.id]);
+
+    useEffect(() => {
+        if (!currentJobId || currentThinkingMessageId) {
+            return;
+        }
+
+        const existingThinkingMessage = thread.messages.find((message) => message.thinking?.isThinking);
+        if (existingThinkingMessage) {
+            setCurrentThinkingMessageId(existingThinkingMessage.id);
+            return;
+        }
+
+        const resumedThinkingMessage: ChatMessage = {
+            id: `thinking-${thread.id}-${currentJobId}`,
+            type: 'agent',
+            content: '',
+            timestamp: new Date(),
+            thinking: { isThinking: true, steps: [], plan: [] },
+            metadata: { agentName: AGENT_NAMES[thread.primaryAgent]?.name || 'Assistant' },
+        };
+
+        addMessageToThread(thread.id, resumedThinkingMessage);
+        setCurrentThinkingMessageId(resumedThinkingMessage.id);
+    }, [currentJobId, currentThinkingMessageId, thread.id, thread.messages, thread.primaryAgent, addMessageToThread]);
 
     useEffect(() => {
         const pending = _pendingInputs.get(thread.id);
@@ -826,12 +982,17 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         }
     }, [thread.id, thread.type]);
 
-    // Auto-scroll to bottom on new messages
+    // Keep the latest reply and thought stream in view while the conversation is active.
     useEffect(() => {
-        if (scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-        }
-    }, [thread.messages.length]);
+        scrollToBottom(isSubmitting ? 'smooth' : 'auto');
+    }, [
+        thread.messages.length,
+        thread.messages[thread.messages.length - 1]?.content,
+        thread.messages[thread.messages.length - 1]?.thinking?.isThinking,
+        thoughts.length,
+        isSubmitting,
+        scrollToBottom,
+    ]);
 
     // Focus textarea and move cursor to end when thread opens with pre-populated input
     useEffect(() => {
@@ -920,12 +1081,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     useEffect(() => {
         if (!currentJobId || !currentVmArtifactId) return;
 
-        const nextStatus: VmRunStatus =
-            job?.status === 'failed'
-                ? 'failed'
-                : isComplete && job?.status === 'completed'
-                    ? 'completed'
-                    : 'running';
+        const nextStatus = getVmRunStatusForJob(job?.status, isComplete);
 
         const nextVmRun = buildCurrentVmRun(nextStatus);
         if (!nextVmRun) return;
@@ -937,6 +1093,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
 
         if (vmPersistTimeoutRef.current) {
             window.clearTimeout(vmPersistTimeoutRef.current);
+            vmPersistTimeoutRef.current = null;
         }
 
         if (nextStatus === 'running') {
@@ -947,138 +1104,300 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     }, [currentJobId, currentVmArtifactId, thoughts, isComplete, job?.status, updateArtifact, buildCurrentVmRun]);
 
     useEffect(() => {
+        if (!currentJobId || !currentThinkingMessageId) {
+            return;
+        }
+
+        const hasThoughts = thoughts.length > 0;
+        const hasDraftContent = typeof job?.draftContent === 'string' && job.draftContent.trim().length > 0;
+        const thinkingStatus = getVmRunStatusForJob(job?.status, isComplete);
+        const isTerminal = thinkingStatus !== 'running';
+
+        if (!hasThoughts && !hasDraftContent && !isTerminal) {
+            return;
+        }
+
+        finalizeThinkingMessage(currentThinkingMessageId, {
+            ...(hasDraftContent ? { content: job?.draftContent } : {}),
+            thinking: {
+                isThinking: !isTerminal,
+                steps: hasThoughts ? mapThoughtsToVmRunSteps(thoughts, thinkingStatus) : [],
+                plan: [],
+            },
+        });
+    }, [currentJobId, currentThinkingMessageId, thoughts, job?.draftContent, job?.status, isComplete, finalizeThinkingMessage]);
+
+    useEffect(() => {
         if (!currentJobId || !isComplete || !job) return;
 
-        // Job completed - add response message
-        if (vmPersistTimeoutRef.current) {
-            window.clearTimeout(vmPersistTimeoutRef.current);
-        }
-        setCurrentJobId(null);
-        setIsSubmitting(false);
-
-        if (job.status === 'completed' && job.result?.content) {
-            if (currentVmArtifactId) {
-                const approvalRequests = extractVmApprovalsFromToolCalls(job.result.toolCalls);
-                const vmStatus: VmRunStatus = approvalRequests.length > 0 ? 'awaiting_approval' : 'completed';
-                const completedVmRun = upsertVmRunOutput(
-                    {
-                        ...(buildCurrentVmRun(vmStatus) || createVmRunArtifactData({
-                            runId: `vm-${job.id}`,
-                            threadId: thread.id,
-                            jobId: job.id,
-                            agentId: thread.primaryAgent,
-                            roleScope,
-                            runtimeBackend: getDefaultRuntimeBackend(thread.primaryAgent),
-                            title: `${AGENT_NAMES[thread.primaryAgent]?.name || 'Agent'} VM Run`,
-                        })),
-                        approvals: approvalRequests,
-                        summary: approvalRequests.length > 0 ? 'Waiting for approval' : 'Completed',
-                    },
-                    {
-                        kind: 'markdown',
-                        title: 'Final Output',
-                        content: job.result.content,
-                    },
-                    vmStatus
-                );
-
-                updateArtifact(currentVmArtifactId, {
-                    data: completedVmRun,
-                    status: mapVmRunStatusToInboxStatus(completedVmRun.status),
-                });
-                void updateInboxVmRunArtifact(currentVmArtifactId, completedVmRun);
+        const finalizeJob = async () => {
+            const terminalStatus = getVmRunStatusForJob(job.status, true);
+            const terminalSteps = mapThoughtsToVmRunSteps(thoughts, terminalStatus);
+            if (vmPersistTimeoutRef.current) {
+                window.clearTimeout(vmPersistTimeoutRef.current);
+                vmPersistTimeoutRef.current = null;
             }
 
-            const agentMessage: ChatMessage = {
-                id: `msg-${Date.now()}`,
-                type: 'agent',
-                content: job.result.content,
-                timestamp: new Date(),
-            };
-            addMessageToThread(thread.id, agentMessage);
-        } else if (job.status === 'failed') {
-            if (currentVmArtifactId) {
-                const failedVmRun = upsertVmRunOutput(
-                    buildCurrentVmRun('failed') || createVmRunArtifactData({
-                        runId: `vm-${job.id}`,
-                        threadId: thread.id,
-                        jobId: job.id,
-                        agentId: thread.primaryAgent,
-                        roleScope,
-                        runtimeBackend: getDefaultRuntimeBackend(thread.primaryAgent),
-                        title: `${AGENT_NAMES[thread.primaryAgent]?.name || 'Agent'} VM Run`,
-                    }),
-                    {
-                        kind: 'markdown',
-                        title: 'Failure',
-                        content: job.error || 'Unknown error',
+            try {
+                if (job.status === 'completed') {
+                    const approvalRequests = extractVmApprovalsFromToolCalls(job.result?.toolCalls);
+                    const vmStatus: VmRunStatus = approvalRequests.length > 0 ? 'awaiting_approval' : 'completed';
+                    const completionContent = job.result?.content?.trim() || job.draftContent?.trim() || (
+                        currentVmArtifactId
+                            ? 'Done. I wrapped up the run and saved the output in the artifact panel.'
+                            : 'Done. I finished the request.'
+                    );
+
+                    if (currentVmArtifactId) {
+                        const completedVmRun = upsertVmRunOutput(
+                            {
+                                ...(buildCurrentVmRun(vmStatus) || createVmRunArtifactData({
+                                    runId: `vm-${job.id}`,
+                                    threadId: thread.id,
+                                    jobId: job.id,
+                                    agentId: thread.primaryAgent,
+                                    roleScope,
+                                    runtimeBackend: getDefaultRuntimeBackend(thread.primaryAgent),
+                                    title: `${AGENT_NAMES[thread.primaryAgent]?.name || 'Agent'} VM Run`,
+                                })),
+                                approvals: approvalRequests,
+                                summary: approvalRequests.length > 0 ? 'Waiting for approval' : 'Completed',
+                            },
+                            {
+                                kind: 'markdown',
+                                title: 'Final Output',
+                                content: completionContent,
+                            },
+                            vmStatus
+                        );
+
+                        updateArtifact(currentVmArtifactId, {
+                            data: completedVmRun,
+                            status: mapVmRunStatusToInboxStatus(completedVmRun.status),
+                        });
+
+                        try {
+                            await updateInboxVmRunArtifact(currentVmArtifactId, completedVmRun);
+                        } catch (error) {
+                            console.error('[InboxConversation] Failed to persist completed VM artifact:', error);
+                        }
+
+                        if (approvalRequests.length > 0) {
+                            setSelectedArtifact(currentVmArtifactId);
+                            setArtifactPanelOpen(true);
+                        }
+                    }
+
+                    const persistedMessage: ChatMessage = {
+                        id: `job-${job.id}`,
+                        type: 'agent',
+                        content: completionContent,
+                        timestamp: new Date(),
+                        thinking: {
+                            isThinking: false,
+                            steps: terminalSteps,
+                            plan: [],
+                        },
+                        metadata: job.result?.metadata,
+                    };
+
+                    if (currentThinkingMessageId) {
+                        finalizeThinkingMessage(currentThinkingMessageId, persistedMessage, { syncPreview: true });
+                    } else {
+                        addMessageToThread(thread.id, persistedMessage);
+                    }
+                } else if (job.status === 'failed' || job.status === 'cancelled') {
+                    const terminalStatus: VmRunStatus = job.status === 'cancelled' ? 'cancelled' : 'failed';
+
+                    if (currentVmArtifactId) {
+                        const failedVmRun = upsertVmRunOutput(
+                            buildCurrentVmRun(terminalStatus) || createVmRunArtifactData({
+                                runId: `vm-${job.id}`,
+                                threadId: thread.id,
+                                jobId: job.id,
+                                agentId: thread.primaryAgent,
+                                roleScope,
+                                runtimeBackend: getDefaultRuntimeBackend(thread.primaryAgent),
+                                title: `${AGENT_NAMES[thread.primaryAgent]?.name || 'Agent'} VM Run`,
+                            }),
+                            {
+                                kind: 'markdown',
+                                title: job.status === 'cancelled' ? 'Cancelled' : 'Failure',
+                                content: job.error || (job.status === 'cancelled' ? 'Cancelled by user' : 'Unknown error'),
+                            },
+                            terminalStatus
+                        );
+
+                        updateArtifact(currentVmArtifactId, {
+                            data: failedVmRun,
+                            status: mapVmRunStatusToInboxStatus(failedVmRun.status),
+                        });
+
+                        try {
+                            await updateInboxVmRunArtifact(currentVmArtifactId, failedVmRun);
+                        } catch (error) {
+                            console.error('[InboxConversation] Failed to persist failed VM artifact:', error);
+                        }
+                    }
+
+                    const terminalMessage: ChatMessage = {
+                        id: job.status === 'cancelled' ? `job-cancelled-${job.id}` : `job-error-${job.id}`,
+                        type: 'agent',
+                        content: job.status === 'cancelled'
+                            ? 'Stopped. You can send a new message whenever you are ready.'
+                            : `I encountered an error: ${job.error || 'Unknown error'}. Please try again.`,
+                        timestamp: new Date(),
+                        thinking: {
+                            isThinking: false,
+                            steps: terminalSteps,
+                            plan: [],
+                        },
+                    };
+
+                    if (currentThinkingMessageId) {
+                        finalizeThinkingMessage(currentThinkingMessageId, terminalMessage, { syncPreview: true });
+                    } else {
+                        addMessageToThread(thread.id, terminalMessage);
+                    }
+
+                    if (job.status === 'cancelled') {
+                        try {
+                            await addMessageToInboxThread(thread.id, terminalMessage);
+                        } catch (error) {
+                            console.error('[InboxConversation] Failed to persist cancelled assistant message:', error);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('[InboxConversation] Failed to finalize job:', error);
+
+                const fallbackMessage: ChatMessage = {
+                    id: `msg-${Date.now()}`,
+                    type: 'agent',
+                    content: 'I finished processing, but I hit a problem while saving the final response. Please try again or refresh this thread.',
+                    timestamp: new Date(),
+                    thinking: {
+                        isThinking: false,
+                        steps: terminalSteps,
+                        plan: [],
                     },
-                    'failed'
-                );
+                };
 
-                updateArtifact(currentVmArtifactId, {
-                    data: failedVmRun,
-                    status: mapVmRunStatusToInboxStatus(failedVmRun.status),
-                });
-                void updateInboxVmRunArtifact(currentVmArtifactId, failedVmRun);
+                if (currentThinkingMessageId) {
+                    finalizeThinkingMessage(currentThinkingMessageId, fallbackMessage, { syncPreview: true });
+                } else {
+                    addMessageToThread(thread.id, fallbackMessage);
+                }
+            } finally {
+                setCurrentJobId(null);
+                setCurrentVmArtifactId(null);
+                setCurrentThinkingMessageId(null);
+                setIsSubmitting(false);
             }
+        };
 
-            const errorMessage: ChatMessage = {
-                id: `msg-${Date.now()}`,
-                type: 'agent',
-                content: `I encountered an error: ${job.error || 'Unknown error'}. Please try again.`,
-                timestamp: new Date(),
-            };
-            addMessageToThread(thread.id, errorMessage);
-        }
-
-        setCurrentVmArtifactId(null);
-    }, [currentJobId, currentVmArtifactId, isComplete, job, thread.id, thread.primaryAgent, roleScope, addMessageToThread, updateArtifact, buildCurrentVmRun]);
+        void finalizeJob();
+    }, [
+        currentJobId,
+        currentVmArtifactId,
+        currentThinkingMessageId,
+        isComplete,
+        job,
+        thoughts,
+        thread.id,
+        thread.primaryAgent,
+        roleScope,
+        addMessageToThread,
+        buildCurrentVmRun,
+        finalizeThinkingMessage,
+        setArtifactPanelOpen,
+        setSelectedArtifact,
+        updateArtifact,
+    ]);
 
     // Handle job polling errors
     useEffect(() => {
         if (jobError && currentJobId) {
-            console.error('[InboxConversation] Job polling error:', jobError);
-            if (vmPersistTimeoutRef.current) {
-                window.clearTimeout(vmPersistTimeoutRef.current);
-            }
-            if (currentVmArtifactId) {
-                const failedVmRun = upsertVmRunOutput(
-                    buildCurrentVmRun('failed') || createVmRunArtifactData({
-                        runId: `vm-${currentJobId}`,
-                        threadId: thread.id,
-                        jobId: currentJobId,
-                        agentId: thread.primaryAgent,
-                        roleScope,
-                        runtimeBackend: getDefaultRuntimeBackend(thread.primaryAgent),
-                        title: `${AGENT_NAMES[thread.primaryAgent]?.name || 'Agent'} VM Run`,
-                    }),
-                    {
-                        kind: 'markdown',
-                        title: 'Polling Error',
-                        content: jobError,
-                    },
-                    'failed'
-                );
+            const persistPollingError = async () => {
+                console.error('[InboxConversation] Job polling error:', jobError);
+                const terminalSteps = mapThoughtsToVmRunSteps(thoughts, 'failed');
 
-                updateArtifact(currentVmArtifactId, {
-                    data: failedVmRun,
-                    status: mapVmRunStatusToInboxStatus(failedVmRun.status),
-                });
-                void updateInboxVmRunArtifact(currentVmArtifactId, failedVmRun);
+                if (vmPersistTimeoutRef.current) {
+                    window.clearTimeout(vmPersistTimeoutRef.current);
+                    vmPersistTimeoutRef.current = null;
+                }
+
+                if (currentVmArtifactId) {
+                    const failedVmRun = upsertVmRunOutput(
+                        buildCurrentVmRun('failed') || createVmRunArtifactData({
+                            runId: `vm-${currentJobId}`,
+                            threadId: thread.id,
+                            jobId: currentJobId,
+                            agentId: thread.primaryAgent,
+                            roleScope,
+                            runtimeBackend: getDefaultRuntimeBackend(thread.primaryAgent),
+                            title: `${AGENT_NAMES[thread.primaryAgent]?.name || 'Agent'} VM Run`,
+                        }),
+                        {
+                            kind: 'markdown',
+                            title: 'Polling Error',
+                            content: jobError,
+                        },
+                        'failed'
+                    );
+
+                    updateArtifact(currentVmArtifactId, {
+                        data: failedVmRun,
+                        status: mapVmRunStatusToInboxStatus(failedVmRun.status),
+                    });
+
+                    try {
+                        await updateInboxVmRunArtifact(currentVmArtifactId, failedVmRun);
+                    } catch (error) {
+                        console.error('[InboxConversation] Failed to persist polling-error VM artifact:', error);
+                    }
+                }
+
+                const errorMessage: ChatMessage = {
+                    id: `msg-${Date.now()}`,
+                    type: 'agent',
+                    content: 'Sorry, I lost connection while processing your request. Please try again.',
+                    timestamp: new Date(),
+                    thinking: {
+                        isThinking: false,
+                        steps: terminalSteps,
+                        plan: [],
+                    },
+                };
+
+                if (currentThinkingMessageId) {
+                    finalizeThinkingMessage(currentThinkingMessageId, errorMessage, { syncPreview: true });
+                } else {
+                    addMessageToThread(thread.id, errorMessage);
+                }
+
                 setCurrentVmArtifactId(null);
-            }
-            setCurrentJobId(null);
-            setIsSubmitting(false);
-            const errorMessage: ChatMessage = {
-                id: `msg-${Date.now()}`,
-                type: 'agent',
-                content: 'Sorry, I lost connection while processing your request. Please try again.',
-                timestamp: new Date(),
+                setCurrentJobId(null);
+                setCurrentThinkingMessageId(null);
+                setIsSubmitting(false);
             };
-            addMessageToThread(thread.id, errorMessage);
+
+            void persistPollingError();
         }
-    }, [jobError, currentJobId, currentVmArtifactId, thread.id, thread.primaryAgent, roleScope, addMessageToThread, updateArtifact, buildCurrentVmRun]);
+    }, [
+        jobError,
+        currentJobId,
+        currentVmArtifactId,
+        currentThinkingMessageId,
+        thoughts,
+        thread.id,
+        thread.primaryAgent,
+        roleScope,
+        addMessageToThread,
+        buildCurrentVmRun,
+        finalizeThinkingMessage,
+        updateArtifact,
+    ]);
 
     // Auto-open QR generator for qr_code threads
     useEffect(() => {
@@ -1531,21 +1850,32 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         // Add user message to local state
         addMessageToThread(thread.id, userMessage);
 
-        // Persist user message to server
-        await addMessageToInboxThread(thread.id, userMessage);
-
         // Prepare attachments for agent (base64 format)
         const messageContent = input.trim();
-        setInput('');
-        if (textareaRef.current) {
-            textareaRef.current.value = '';
-        }
-        setAttachments([]); // Clear attachments after sending
-
-        // Slight delay before disabling the input to ensure the clear renders
-        setTimeout(() => setIsSubmitting(true), 10);
+        let thinkingMessage: ChatMessage | null = null;
 
         try {
+            // Persist user message to server before we kick off the agent run.
+            await addMessageToInboxThread(thread.id, userMessage);
+
+            thinkingMessage = {
+                id: `thinking-${Date.now()}`,
+                type: 'agent',
+                content: '',
+                timestamp: new Date(),
+                thinking: { isThinking: true, steps: [], plan: [] },
+                metadata: { agentName: AGENT_NAMES[thread.primaryAgent]?.name || 'Assistant' },
+            };
+            setInput('');
+            if (textareaRef.current) {
+                textareaRef.current.value = '';
+            }
+            setAttachments([]); // Clear attachments after sending
+            addMessageToThread(thread.id, thinkingMessage);
+            setCurrentThinkingMessageId(thinkingMessage.id);
+            scrollToBottom('smooth');
+            setIsSubmitting(true);
+
             const agentAttachments = await toAgentAttachmentPayloads(pendingAttachments);
 
             // Call the inbox agent chat with attachments
@@ -1557,12 +1887,22 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
 
             if (!result.success) {
                 const errorMessage: ChatMessage = {
+                    ...(thinkingMessage || {
+                        type: 'agent' as const,
+                        metadata: { agentName: AGENT_NAMES[thread.primaryAgent]?.name || 'Assistant' },
+                    }),
                     id: `msg-${Date.now()}`,
-                    type: 'agent',
                     content: `I encountered an error: ${result.error || 'Unknown error'}. Please try again.`,
                     timestamp: new Date(),
+                    thinking: { isThinking: false, steps: [], plan: [] },
                 };
-                addMessageToThread(thread.id, errorMessage);
+                if (thinkingMessage) {
+                    finalizeThinkingMessage(thinkingMessage.id, errorMessage, { syncPreview: true });
+                    void addMessageToInboxThread(thread.id, errorMessage);
+                } else {
+                    addMessageToThread(thread.id, errorMessage);
+                }
+                setCurrentThinkingMessageId(null);
                 setIsSubmitting(false);
                 return;
             }
@@ -1580,33 +1920,53 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                     summary: messageContent || 'Agent is working on your request.',
                 });
 
-                const vmArtifactResult = await createInboxArtifact({
-                    threadId: thread.id,
-                    type: 'vm_run',
-                    data: initialVmRun,
-                    rationale: `${AGENT_NAMES[thread.primaryAgent]?.name || 'Agent'} is working on your request.`,
-                });
-
-                if (vmArtifactResult.success && vmArtifactResult.artifact) {
-                    addArtifacts([vmArtifactResult.artifact]);
-                    updateThread(thread.id, {
-                        artifactIds: thread.artifactIds.includes(vmArtifactResult.artifact.id)
-                            ? thread.artifactIds
-                            : [...thread.artifactIds, vmArtifactResult.artifact.id],
-                        status: 'draft',
-                    });
-                    setCurrentVmArtifactId(vmArtifactResult.artifact.id);
-                    setSelectedArtifact(vmArtifactResult.artifact.id);
-                    setArtifactPanelOpen(true);
-                }
-
                 setCurrentJobId(result.jobId);
+                void (async () => {
+                    try {
+                        const vmArtifactResult = await createInboxArtifact({
+                            threadId: thread.id,
+                            type: 'vm_run',
+                            data: initialVmRun,
+                            rationale: `${AGENT_NAMES[thread.primaryAgent]?.name || 'Agent'} is working on your request.`,
+                        });
+
+                        if (vmArtifactResult.success && vmArtifactResult.artifact) {
+                            addArtifacts([vmArtifactResult.artifact]);
+                            updateThread(thread.id, {
+                                artifactIds: thread.artifactIds.includes(vmArtifactResult.artifact.id)
+                                    ? thread.artifactIds
+                                    : [...thread.artifactIds, vmArtifactResult.artifact.id],
+                                status: 'draft',
+                            });
+                            setCurrentVmArtifactId(vmArtifactResult.artifact.id);
+                            setSelectedArtifact(vmArtifactResult.artifact.id);
+                        }
+                    } catch (error) {
+                        toast({
+                            title: 'Agent run started',
+                            description: error instanceof Error
+                                ? `Live response is still running, but the artifact panel could not be prepared: ${error.message}`
+                                : 'Live response is still running, but the artifact panel could not be prepared.',
+                            variant: 'destructive',
+                        });
+                    }
+                })();
                 return;
             }
 
             // If we got an immediate response with message
             if (result.message) {
-                addMessageToThread(thread.id, result.message);
+                if (thinkingMessage) {
+                    finalizeThinkingMessage(thinkingMessage.id, {
+                        ...result.message,
+                        thinking: result.message.thinking ?? { isThinking: false, steps: [], plan: [] },
+                    }, { syncPreview: true });
+                } else {
+                    addMessageToThread(thread.id, {
+                        ...result.message,
+                        thinking: result.message.thinking ?? { isThinking: false, steps: [], plan: [] },
+                    });
+                }
 
                 // Add any artifacts that were created
                 if (result.artifacts && result.artifacts.length > 0) {
@@ -1614,17 +1974,28 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                 }
             }
 
+            setCurrentThinkingMessageId(null);
             setIsSubmitting(false);
         } catch (error: any) {
             console.error('Failed to send message:', error);
             const errorDetails = error?.message || error?.toString() || 'Unknown error';
             const errorMessage: ChatMessage = {
+                ...(thinkingMessage || {
+                    type: 'agent' as const,
+                    metadata: { agentName: AGENT_NAMES[thread.primaryAgent]?.name || 'Assistant' },
+                }),
                 id: `msg-${Date.now()}`,
-                type: 'agent',
                 content: `Sorry, I encountered an unexpected error: ${errorDetails}\n\nPlease try again or contact support if this persists.`,
                 timestamp: new Date(),
+                thinking: { isThinking: false, steps: [], plan: [] },
             };
-            addMessageToThread(thread.id, errorMessage);
+            if (thinkingMessage) {
+                finalizeThinkingMessage(thinkingMessage.id, errorMessage, { syncPreview: true });
+                void addMessageToInboxThread(thread.id, errorMessage);
+            } else {
+                addMessageToThread(thread.id, errorMessage);
+            }
+            setCurrentThinkingMessageId(null);
             setIsSubmitting(false);
         }
     };
@@ -2036,6 +2407,26 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             addMessageToThread(thread.id, confirmationMessage);
         }
     };
+
+    const handleStop = async () => {
+        if (!currentJobId) {
+            return;
+        }
+
+        try {
+            const result = await cancelInboxAgentJob(currentJobId);
+            if (!result.success) {
+                throw new Error(result.error || 'Please try again in a moment.');
+            }
+        } catch (error) {
+            toast({
+                title: 'Unable to stop right now',
+                description: error instanceof Error ? error.message : 'Please try again in a moment.',
+                variant: 'destructive',
+            });
+        }
+    };
+
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -2417,11 +2808,14 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                             >
                                 <InboxTaskFeed
                                     agentPersona={thread.primaryAgent}
+                                    thoughts={thoughts}
                                     isRunning={isSubmitting}
+                                    currentAction={latestThoughtLabel}
                                 />
                             </motion.div>
                         )}
                     </AnimatePresence>
+                    <div ref={bottomAnchorRef} />
                 </div>
             </ScrollArea>
 
@@ -2477,13 +2871,19 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                                 <Paperclip className="h-4 w-4" />
                             </Button>
                             <Button
-                                onClick={handleSubmit}
-                                disabled={(!input.trim() && attachments.length === 0) || isSubmitting || isPending}
+                                onClick={isSubmitting ? handleStop : handleSubmit}
+                                disabled={isPending || (!isSubmitting && !input.trim() && attachments.length === 0)}
                                 size="icon"
+                                variant={isSubmitting ? 'destructive' : 'default'}
                                 className="h-8 w-8 rounded-xl"
+                                title={isSubmitting ? 'Stop response' : 'Send message'}
                             >
                                 {isSubmitting || isPending ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    isSubmitting ? (
+                                        <X className="h-4 w-4" />
+                                    ) : (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    )
                                 ) : (
                                     <Send className="h-4 w-4" />
                                 )}
