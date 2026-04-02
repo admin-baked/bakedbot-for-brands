@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — Loyalty tablet Smokey hang fixed, flow reordered.
+**Current Status:** 🟢 Passing — Loyalty tablet submit hardened with timeout + error catch.
 **Recent work (2026-04-01):** See `MEMORY.md` for full log.
-Key completed: [Loyalty tablet Smokey hang + email-first flow] (`754f65211`), [Thrive check-in email recovery] (`7bd4fa1f7`).
+Key completed: [Tablet submit timeout + catch] (`5392770b9`), [Loyalty tablet Smokey hang fix] (`2128efc47`).
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
