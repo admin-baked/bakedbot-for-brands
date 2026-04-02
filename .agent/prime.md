@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — Welcome email onboarding fix: job processor now fires immediately on check-in.
+**Current Status:** 🟢 Passing — Linus Slack fixes: GLM crash guard, security refusal fix, deployment notifications restored, iOS image MIME fix.
 **Recent work (2026-04-01):** See `MEMORY.md` for full log.
-Key completed: [welcome email job processor wired — no-scheduler bug fixed] (`84cb511b9`).
+Key completed: [GLM choices crash + security refusals fixed] (`e7da296cf`), [deployment notifications restored + iOS image fix] (`ebbd12250`).
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
