@@ -3,6 +3,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { Task, TaskStep } from '@/types/task';
 import { getAgentConfigLoader } from '@/ai/agent-config-loader';
+import { extractJsonPayload } from '@/lib/utils/extract-json';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -208,9 +209,7 @@ Return ONLY the JSON, no other text.`;
             dependsOn: number[];
         }>;
     } {
-        // Extract JSON from markdown code block if present
-        const jsonMatch = response.match(/```json\n([\s\S]*?)\n```/) || response.match(/```\n([\s\S]*?)\n```/);
-        const jsonStr = jsonMatch ? jsonMatch[1] : response;
+        const jsonStr = extractJsonPayload(response);
 
         try {
             const plan = JSON.parse(jsonStr);

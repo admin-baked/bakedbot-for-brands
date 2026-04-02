@@ -2,6 +2,7 @@
 
 import { requireUser } from '@/server/auth/auth';
 import { callClaude } from '@/ai/claude';
+import { extractJsonPayload } from '@/lib/utils/extract-json';
 import { logger } from '@/lib/logger';
 import type { CampaignGoal, CampaignChannel } from '@/types/campaign';
 import type { CustomerSegment } from '@/types/customers';
@@ -170,18 +171,11 @@ If the user mentions specific segments (VIP, loyal, new, churned, at-risk), map 
             maxTokens: 1000,
         });
 
-        // Parse JSON from response (strip code fences if present)
-        let jsonStr = raw.trim();
-        const fenceMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
-        if (fenceMatch) {
-            jsonStr = fenceMatch[1].trim();
-        }
-
         let parsed: unknown;
         try {
-            parsed = JSON.parse(jsonStr);
+            parsed = JSON.parse(extractJsonPayload(raw));
         } catch {
-            logger.error(`[campaign-nlp] JSON parse failed for org ${orgId}: ${jsonStr.slice(0, 200)}`);
+            logger.error(`[campaign-nlp] JSON parse failed for org ${orgId}: ${raw.slice(0, 200)}`);
             return { success: false, error: 'Failed to parse AI response. Please try again.' };
         }
 

@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { callClaude } from '@/ai/claude';
+import { extractJsonPayload } from '@/lib/utils/extract-json';
 import type { HeroAISuggestion, HeroStyle, HeroPurchaseModel, HeroCtaAction } from '@/types/heroes';
 
 export async function POST(request: NextRequest) {
@@ -71,10 +72,7 @@ Guidelines:
         // Parse the AI response
         let suggestion: HeroAISuggestion;
         try {
-            // Try to extract JSON from markdown code blocks
-            const jsonMatch = response.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-            const jsonStr = jsonMatch ? jsonMatch[1] : response;
-            suggestion = JSON.parse(jsonStr);
+            suggestion = JSON.parse(extractJsonPayload(response));
         } catch (parseError) {
             console.error('Failed to parse AI response:', parseError);
             return NextResponse.json(

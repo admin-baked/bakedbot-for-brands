@@ -14,6 +14,7 @@ import 'server-only';
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import { extractJsonPayload } from '@/lib/utils/extract-json';
 import { logger } from '@/lib/logger';
 
 // --- Agent Definitions ---
@@ -190,8 +191,7 @@ Respond with JSON only:
             throw new Error('Empty response from AI');
         }
 
-        const text = response.text.replace(/```json\n?|\n?```/g, '').trim();
-        const parsed = JSON.parse(text);
+        const parsed = JSON.parse(extractJsonPayload(response.text));
 
         return {
             primaryAgent: parsed.agent as AgentId,

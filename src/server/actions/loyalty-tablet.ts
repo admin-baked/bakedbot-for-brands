@@ -403,53 +403,8 @@ export async function getMoodRecommendations(
         const pool = buildFallbackPool(products, config);
         const recommendationSet = buildRecommendationSet(pool, config);
 
-<<<<<<< HEAD
         if (!recommendationSet.products.length) {
             return { success: false, error: 'No products available' };
-=======
-        const prompt = `You are Smokey, BakedBot's expert cannabis budtender at Thrive Syracuse dispensary.
-
-A customer just walked in and selected their feeling: "${mood.label}"
-Context for this feeling: ${mood.context}
-
-Here is the current Thrive Syracuse menu:
-${productList}
-
-Pick exactly 3 individual products AND 1 bundle (2 complementary items) that best match how this customer feels.
-- Individual picks: best single products for this mood
-- Bundle: 2 products that work together synergistically for this mood, give it a creative name
-
-Respond ONLY with valid JSON in this exact format (no markdown, no explanation):
-{
-  "products": [
-    { "productId": "<id>", "name": "<name>", "price": <number>, "category": "<category>", "brandName": "<brand or empty>", "reason": "<one sentence why>" },
-    { "productId": "<id>", "name": "<name>", "price": <number>, "category": "<category>", "brandName": "<brand or empty>", "reason": "<one sentence why>" },
-    { "productId": "<id>", "name": "<name>", "price": <number>, "category": "<category>", "brandName": "<brand or empty>", "reason": "<one sentence why>" }
-  ],
-  "bundle": {
-    "name": "<creative bundle name>",
-    "tagline": "<short tagline>",
-    "products": [
-      { "productId": "<id>", "name": "<name>", "price": <number>, "category": "<category>", "brandName": "<brand or empty>", "reason": "<one sentence why>" },
-      { "productId": "<id>", "name": "<name>", "price": <number>, "category": "<category>", "brandName": "<brand or empty>", "reason": "<one sentence why>" }
-    ],
-    "totalPrice": <sum of both product prices>
-  }
-}`;
-
-        const raw = await callClaude({
-            userMessage: prompt,
-            maxTokens: 1200,
-            temperature: 0,
-            model: 'claude-haiku-4-5-20251001',
-            autoRouteModel: false,
-        });
-
-        const parsed = JSON.parse(extractJsonPayload(raw));
-
-        if (!Array.isArray(parsed.products) || parsed.products.length < 1) {
-            throw new Error('Invalid recommendation response structure');
->>>>>>> 4b525d85 (refactor: extract shared extractJsonPayload utility)
         }
 
         logger.info('[LoyaltyTablet] Mood recommendations generated', {

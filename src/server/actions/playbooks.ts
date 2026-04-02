@@ -3,6 +3,7 @@
 import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
 import { DEFAULT_PLAYBOOKS } from '@/config/default-playbooks';
+import { extractJsonPayload } from '@/lib/utils/extract-json';
 import { Playbook, PlaybookStep, PlaybookCategory, PlaybookTrigger } from '@/types/playbook';
 import { FieldValue } from 'firebase-admin/firestore';
 
@@ -636,16 +637,7 @@ Return ONLY valid JSON with this exact structure:
             prompt: `${systemPrompt}\n\nUser request: "${prompt}"`,
         });
 
-        const text = result.text.trim();
-        
-        // Extract JSON from response (handle markdown code blocks)
-        let jsonStr = text;
-        const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-        if (jsonMatch) {
-            jsonStr = jsonMatch[1].trim();
-        }
-        
-        const config = JSON.parse(jsonStr);
+        const config = JSON.parse(extractJsonPayload(result.text));
 
         // Generate IDs for steps if missing
         if (config.steps) {

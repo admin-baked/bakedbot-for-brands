@@ -4,6 +4,7 @@ import { LettaAgent } from '@/server/services/letta/client';
 import { createServerClient } from '@/firebase/server-client';
 import { deebo } from '@/server/agents/deebo';
 import { sendGenericEmail } from '@/lib/email/mailjet';
+import { extractJsonPayload } from '@/lib/utils/extract-json';
 import { ragService } from '@/server/services/vector-search/rag-service';
 
 export class CustomerAgentManager {
@@ -160,9 +161,7 @@ Return ONLY valid JSON in this format:
         // Parse Result
         let emailData;
         try {
-            // fast clean of markdown code blocks ```json ... ```
-            const cleanJson = lastMsg.replace(/```json/g, '').replace(/```/g, '').trim();
-            emailData = JSON.parse(cleanJson);
+            emailData = JSON.parse(extractJsonPayload(lastMsg));
         } catch (e) {
             console.error('Failed to parse agent email response', lastMsg);
             throw new Error('Agent failed to generate valid JSON email content');

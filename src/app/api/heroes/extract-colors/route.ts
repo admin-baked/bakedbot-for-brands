@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { callClaude } from '@/ai/claude';
+import { extractJsonPayload } from '@/lib/utils/extract-json';
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,9 +50,7 @@ Guidelines:
     // Parse the AI response
     let colorPalette;
     try {
-      const jsonMatch = response.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-      const jsonStr = jsonMatch ? jsonMatch[1] : response;
-      colorPalette = JSON.parse(jsonStr);
+      colorPalette = JSON.parse(extractJsonPayload(response));
     } catch (parseError) {
       console.error('Failed to parse AI response:', parseError);
       return NextResponse.json(
