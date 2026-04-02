@@ -202,7 +202,36 @@ After every coding session, Codex and Gemini **must** update:
 
 ---
 
-## ðŸ¦¸ SUPER POWERS â€” ALWAYS AVAILABLE, USE THESE FIRST
+## 🚨 PR GOVERNANCE GOTCHA: CI Will Fail Without Full PR Body + Risk Label
+
+**Triggered 2026-04-02** — PRs created via API/MCP/CLI do NOT auto-apply the PR template. The governance check and risk label check both fail instantly.
+
+**Every PR body MUST include all 8 sections** (CI scans for these exact heading strings):
+
+```
+# Summary
+# Risk Tier
+# Canonical Reuse
+# New Abstractions
+# Failure Modes
+# Verification
+# Observability
+# Explainability
+```
+
+**Every PR body MUST contain the literal string `risk:tier0`, `risk:tier1`, `risk:tier2`, or `risk:tier3`** (exactly one). The `apply-risk-label` workflow regex-scans the body text for `risk:tier[0-3]` — writing “Tier 0” or “**Tier 0**” does NOT match. The workflow auto-applies the label from the body match, so you don't need to add the label separately.
+
+**How to fix after creating a PR:**
+1. Update body: `mcp__github__update_pull_request` with all 8 sections + literal `risk:tierN` in the Risk Tier section
+2. The `apply-risk-label` workflow will auto-add the label from the body text
+
+**Suppression rule:** If your diff contains `eslint-disable`, `@ts-ignore`, `@ts-expect-error`, or `: any`, justify it in the PR body or governance will block.
+
+**Rule:** Always write the full governance body at PR creation time. Never push a PR and assume CI will handle it.
+
+---
+
+## 🦸 SUPER POWERS — ALWAYS AVAILABLE, USE THESE FIRST
 
 > **Before spending 5+ tool calls investigating an issue, check if a super power solves it in ONE step.**
 
@@ -219,15 +248,17 @@ After every coding session, Codex and Gemini **must** update:
 | SP9 | Consistency Checker | `npm run audit:consistency --orgId=...` | Validate org relationships and data integrity |
 | SP10 | Monitoring Setup | `npm run setup:monitoring --deploy` | Configure Cloud Monitoring alerts for production |
 | SP11 | Cost Analyzer | `npm run audit:costs` | Identify expensive Firestore queries |
+| SP12 | Content Freshness | `npm run audit:content-freshness` | Score all 84 customer-facing pages for staleness |
 
-**Quick-fire guide â€” when you're stuck:**
-- Build broken? â†’ **SP6** `npm run fix:build --apply` then `npm run check:types`
-- Data looks wrong? â†’ **SP3** `npm run audit:schema` + **SP9** `npm run audit:consistency`
-- Need test data? â†’ **SP4** `npm run seed:test`
-- Security concern? â†’ **SP7** `npm run test:security`
-- Content compliance? â†’ **SP8** `npm run check:compliance --text "..."`
-- Slow queries? â†’ **SP11** `npm run audit:costs`
-- New scaffold needed? â†’ **SP5** `npm run generate:component|action|route|cron <name>`
+**Quick-fire guide — when you’re stuck:**
+- Build broken? → **SP6** `npm run fix:build --apply` then `npm run check:types`
+- Data looks wrong? → **SP3** `npm run audit:schema` + **SP9** `npm run audit:consistency`
+- Need test data? → **SP4** `npm run seed:test`
+- Security concern? → **SP7** `npm run test:security`
+- Content compliance? → **SP8** `npm run check:compliance --text “...”`
+- Slow queries? → **SP11** `npm run audit:costs`
+- New scaffold needed? → **SP5** `npm run generate:component|action|route|cron <name>`
+- Content going stale? → **SP12** `npm run audit:content-freshness` (also `--stale-only` or `--json`)
 
 **Notes:** All scripts use `.env.local` for auth. SP8 requires `CLAUDE_API_KEY`. SP4 creates `org_test_bakedbot` (use `--clean` to reset).
 
