@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — Deployment Slack routing fix shipped.
+**Current Status:** 🟡 Local smoke passing; repo-wide typecheck blocked by an unrelated creative-page edit.
 **Recent work (2026-04-02):** See `MEMORY.md` for full log.
-Key completed: [listChannels pagination + remove SLACK_WEBHOOK_URL fallback → all deploy msgs → #linus-deployments] (`3aefc36ff`)
+Key completed: [Edge-safe instrumentation + auth route age-gate bypass + demo bundle restore + maintained CI smoke suite] (`uncommitted`)
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
@@ -76,7 +76,7 @@ Key completed: [listChannels pagination + remove SLACK_WEBHOOK_URL fallback → 
 
 ## Session 2026-03-20 (Smokey Budtender Production Fix)
 **Recent work (2026-03-20):** See `memory/MEMORY.md` for full log.
-Key completed: [Smokey "yes"→checkout + menu search fix] (`2d52f6e16`)
+Key completed: [Edge-safe instrumentation + auth route age-gate bypass + demo bundle restore + maintained CI smoke suite] (`uncommitted`)
 
 ## Session 2026-03-12 (Playbook artifact repo + runtime memory layer)
 - **Artifact repo path made real**: Playbook V2 now persists spec snapshots, run manifests, failure artifacts, approval records, delivery manifests, and `summary_for_ai_engineers.md` through the shared artifact runtime. Runtime writes go to blob storage + Firestore metadata + the dedicated Git repo `admin-baked/bakedbot-artifacts-prod` when App Hosting is running with the new repo env/secret config.
@@ -434,7 +434,7 @@ Do NOT wait for the user to say "P1" or "file a bug first" — triage, file, and
 ---
 
 **Recent work (2026-03-14):** See `MEMORY.md` for full log.
-Key completed: [Wallet passes + Slack loyalty alerts] (`d1acc0eef`), [Sandbox code artifact + VM run] (`9e924f109`)
+Key completed: [Edge-safe instrumentation + auth route age-gate bypass + demo bundle restore + maintained CI smoke suite] (`uncommitted`)
 
 ---
 
@@ -988,3 +988,4 @@ Key targets: Linus P95 < 30s, error rate < 2%, super power utilization > 15%. Cr
 ---
 
 *This context loads automatically. For domain-specific details, consult `.agent/refs/`. For Linus full details, load `.agent/LINUS_CTO_AUTONOMY.md`. For session history, see `memory/MEMORY.md` and `dev/work_archive/`.*
+
