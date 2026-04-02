@@ -1,6 +1,7 @@
 
 import { ai } from '@/ai/genkit';
 import { getGenerateOptions } from '@/ai/model-selector';
+import { extractJsonPayload } from '@/lib/utils/extract-json';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 
@@ -99,9 +100,7 @@ export class TaskManager {
             if (result.output) {
                  subtaskList = (result.output as any).subtasks || [];
             } else {
-                // Fallback parsing manual JSON
-                 const cleaned = result.text.replace(/```json/g, '').replace(/```/g, '').trim();
-                 const parsed = JSON.parse(cleaned);
+                 const parsed = JSON.parse(extractJsonPayload(result.text));
                  subtaskList = Array.isArray(parsed) ? parsed : (parsed.subtasks || []);
             }
 
