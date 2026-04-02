@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — Thrive welcome-playbook recovery + Smokey menu search shipped.
+**Current Status:** 🟢 Passing — Slack routing fixes, Uncle Elroy briefing, schema backfill shipped.
 **Recent work (2026-04-01):** See `MEMORY.md` for full log.
-Key completed: [Thrive playbook recovery + video route hardening] (`203b3b19c`), [Smokey product ID cleanup] (`fe86f502c`)
+Key completed: [Deployment channel fix + Elroy briefing + orgId backfill] (`8dd5b420a`)
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
