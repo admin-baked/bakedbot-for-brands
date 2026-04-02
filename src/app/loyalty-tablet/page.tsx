@@ -176,17 +176,25 @@ export default function LoyaltyTabletPage() {
         setError('');
         setLoading(true);
         try {
-            const res = await captureTabletLead({
-                orgId,
-                firstName,
-                email: email || undefined,
-                phone: phone || undefined,
-                emailConsent,
-                smsConsent,
-                mood: selectedMood ?? undefined,
-                cartProductIds: [...new Set([...cart, ...(bundleAdded && bundle ? bundle.products.map(p => p.productId) : [])])],
-                bundleAdded,
+            let timeoutId: ReturnType<typeof setTimeout> | null = null;
+            const timeoutPromise = new Promise<never>((_, reject) => {
+                timeoutId = setTimeout(() => reject(new Error('Check-in timed out — please try again.')), 20_000);
             });
+            const res = await Promise.race([
+                captureTabletLead({
+                    orgId,
+                    firstName,
+                    email: email || undefined,
+                    phone: phone || undefined,
+                    emailConsent,
+                    smsConsent,
+                    mood: selectedMood ?? undefined,
+                    cartProductIds: [...new Set([...cart, ...(bundleAdded && bundle ? bundle.products.map(p => p.productId) : [])])],
+                    bundleAdded,
+                }),
+                timeoutPromise,
+            ]);
+            if (timeoutId) clearTimeout(timeoutId);
             if (res.success) {
                 setResult({ isNewLead: res.isNewLead ?? true, loyaltyPoints: res.loyaltyPoints || 0 });
                 setStep('success');
@@ -194,6 +202,8 @@ export default function LoyaltyTabletPage() {
             } else {
                 setError(res.error || 'Something went wrong. Please try again.');
             }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
         } finally {
             setLoading(false);
         }
