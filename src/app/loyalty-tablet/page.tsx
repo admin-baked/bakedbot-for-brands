@@ -135,6 +135,9 @@ export default function LoyaltyTabletPage() {
         if (recsLoading || step === 'recommendations') return; // guard against double-tap
         resetIdleTimer();
         setSelectedMood(moodId);
+        setError('');
+        setProducts([]);
+        setBundle(null);
         setRecsLoading(true);
         setStep('recommendations');
 
