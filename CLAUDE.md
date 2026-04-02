@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-04-01 (auto-archive protocol, pre-push simplify gate, multi-tab session protocol, Codex/Gemini context files)
+**Current Status:** 🟢 Passing | **Last update:** 2026-04-01 (welcome email onboarding fix — job processor now fires immediately on check-in)
 
 ---
 

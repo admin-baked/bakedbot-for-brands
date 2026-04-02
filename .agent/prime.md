@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — Protocol updates: auto-archive, pre-push simplify gate, multi-tab session protocol, Codex/Gemini context.
+**Current Status:** 🟢 Passing — Welcome email onboarding fix: job processor now fires immediately on check-in.
 **Recent work (2026-04-01):** See `MEMORY.md` for full log.
-Key completed: [auto-archive + multi-tab session protocol] (`2099b8a2e`), [Codex/Gemini context files] (`477f5acc3`).
+Key completed: [welcome email job processor wired — no-scheduler bug fixed] (`84cb511b9`).
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
