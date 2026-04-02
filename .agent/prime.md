@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟡 `main` is green; inbox live-streaming release has focused tests + scoped typecheck passing while repo-wide `check:types` still times out in this shell.
+**Current Status:** 🟢 `main` is green; inbox seeded-prompt recovery and briefing fade fix passed focused inbox tests plus repo-wide `check:types`.
 **Recent work (2026-04-02):** See `MEMORY.md` for full log.
-Key completed: [Inbox live async streaming + shared job-stream cleanup] (`594a21441`)
+Key completed: [Inbox seeded-prompt recovery + workspace briefing fade] (`d168d3d68`)
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
@@ -988,5 +988,6 @@ Key targets: Linus P95 < 30s, error rate < 2%, super power utilization > 15%. Cr
 ---
 
 *This context loads automatically. For domain-specific details, consult `.agent/refs/`. For Linus full details, load `.agent/LINUS_CTO_AUTONOMY.md`. For session history, see `memory/MEMORY.md` and `dev/work_archive/`.*
+
 
 

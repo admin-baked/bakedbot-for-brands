@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟡 `main` green; inbox live-streaming release has focused tests + scoped typecheck passing while repo-wide `check:types` still times out in this shell | **Last update:** 2026-04-02 (Inbox live async streaming + shared job-stream cleanup)
+**Current Status:** 🟢 `main` green; inbox seeded-prompt recovery and briefing fade fix passed focused inbox tests plus repo-wide `check:types` | **Last update:** 2026-04-02 (Inbox seeded-prompt recovery + workspace briefing fade)
 
 ---
 
@@ -454,5 +454,6 @@ When multiple tabs have pending session files in `memory/sessions/`, say **"Cons
 ---
 
 *For detailed context, load `.agent/prime.md` first, then relevant refs as needed.*
+
 
 

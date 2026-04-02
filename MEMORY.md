@@ -1,6 +1,12 @@
 # BakedBot Session Memory
 
 ## Session: 2026-04-02
+- **Inbox seeded-prompt recovery** (`d168d3d68`) - Fixed the new-thread regression where seeded prompts could open a blank conversation by waiting for thread persistence before auto-submitting the first message.
+- **Workspace briefing magical fade** (`d168d3d68`) - Kept the briefing visible until the conversation actually starts, then animated it out with a slower blur/height transition instead of hiding it as soon as a thread opens.
+- **Simplify cleanup + verification** (`d168d3d68`) - Resolved the `/simplify` review findings by narrowing the page selector, removing the extra message source in `InboxConversation`, cleaning up the focused tests, and rerunning the focused inbox suite plus repo-wide `check:types`.
+- **Session file** - `memory/sessions/2026-04-02-0912-inbox-seeded-prompt-recovery.md`
+
+## Session: 2026-04-02
 - **Inbox live async streaming** (`594a21441`) - Inbox threads now show an assistant placeholder immediately, stream live thought steps plus draft answer text into the same bubble, and finalize a single stable async reply instead of appending duplicate terminal messages.
 - **Canonical job-stream cleanup** (`594a21441`) - Centralized async draft/result sanitization plus shared `AgentJobStatus` / `AgentJobDraftState` types, reused job-stream terminal helpers for sync fallback writes, and queued draft publishes so Firestore writes no longer sit directly on the token path.
 - **Inbox stop-response boundary fix** (`594a21441`) - Scoped stop/cancel behavior to an inbox server action, kept thread preview updates explicit on finalization only, and let VM artifact creation happen without delaying live poller updates.
