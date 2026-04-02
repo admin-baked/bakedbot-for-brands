@@ -60,9 +60,14 @@ const RISK_KEYWORDS = {
     discount: ['discount', 'promo code', 'apply %', '% off', '% discount'],
     delete: ['delete', 'remove customer', 'purge', 'erase'],
     playbook: ['create playbook', 'automate', 'schedule campaign'],
+    browser_form: ['submit form', 'fill form', 'post deal', 'create deal', 'create banner', 'publish listing', 'create ad', 'launch campaign on'],
 };
 
-const RISKY_TOOLS = ['sendSms', 'sendEmail', 'createPlaybook', 'deleteCustomer', 'bulkUpdate'];
+const RISKY_TOOLS = [
+    'sendSms', 'sendEmail', 'createPlaybook', 'deleteCustomer', 'bulkUpdate',
+    // Browser side-effects — form submissions on external sites (Weedmaps, AIQ, Reddit, Google Ads)
+    'discovery_fill_form',
+];
 
 /**
  * Detect if an agent action is high-risk and requires approval

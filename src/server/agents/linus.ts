@@ -1856,7 +1856,7 @@ const LINUS_SLACK_TOOL_BLOCKLIST = new Set([
     'extension_screenshot', 'extension_get_console', 'extension_end_session',
     'extension_run_workflow', 'extension_list_workflows',
     // Playwright scaffold — write ops, not interactive
-    'generate_playwright_test', 'discovery_fill_form',
+    'generate_playwright_test',
     // Build monitor write ops — should only fire from CI, not chat
     'build_monitor_notify_failure', 'build_monitor_record_status',
     // Approval creation — separate UI flow; chat can only check status

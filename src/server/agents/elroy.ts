@@ -161,6 +161,58 @@ const ELROY_TOOLS: ClaudeTool[] = [
             required: [],
         },
     },
+
+    // ---- RTRVR Browser Automation (Weedmaps, AIQ, external sites) ----
+    {
+        name: 'discovery_browser_automate',
+        description: 'Execute a browser automation task on external sites (Weedmaps, AIQ, competitor sites). Navigate pages, click buttons, extract data. Use for reading deals, checking listings, or gathering competitive intel.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                input: { type: 'string', description: 'Detailed instruction for the browser agent (e.g., "Go to weedmaps.com/dispensaries/thrive-syracuse, extract all current deals")' },
+                urls: { type: 'array', items: { type: 'string' }, description: 'URLs to open initially' },
+                verbosity: { type: 'string', enum: ['final', 'steps', 'debug'], description: 'Output verbosity (default: final)' },
+            },
+            required: ['input'],
+        },
+    },
+    {
+        name: 'discovery_fill_form',
+        description: 'Fill and optionally submit a form on an external site (Weedmaps deal creator, AIQ campaign builder, etc.). IMPORTANT: This performs a real action on a live site — always confirm details with the user before calling.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                url: { type: 'string', description: 'URL of the page with the form' },
+                formData: { type: 'object', description: 'Key-value mapping of form field labels/names to values' },
+                submitButtonText: { type: 'string', description: 'Text of the submit button to click after filling. Omit to fill without submitting.' },
+            },
+            required: ['url', 'formData'],
+        },
+    },
+    {
+        name: 'discovery_extract_data',
+        description: 'Extract structured data from a webpage using natural language instructions. Use for pulling deals, prices, or listings from Weedmaps, AIQ, or competitor sites.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                url: { type: 'string', description: 'URL to extract data from' },
+                instruction: { type: 'string', description: 'What to extract (e.g., "Extract all active deals with title, discount, and expiry date")' },
+                schema: { type: 'object', description: 'Optional JSON schema for the expected output shape' },
+            },
+            required: ['url', 'instruction'],
+        },
+    },
+    {
+        name: 'discovery_summarize_page',
+        description: 'Summarize the main content of a webpage in bullet points. Quick way to understand a competitor page or listing.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                url: { type: 'string', description: 'URL to summarize' },
+            },
+            required: ['url'],
+        },
+    },
 ];
 
 // ============================================================================
@@ -387,6 +439,56 @@ async function elroyToolExecutor(toolName: string, input: Record<string, unknown
             );
         }
 
+        // ---- RTRVR Browser Automation ----
+
+        case 'discovery_browser_automate': {
+            const { input: taskInput, urls, verbosity } = input as {
+                input: string; urls?: string[]; verbosity?: 'final' | 'steps' | 'debug';
+            };
+            const { executeDiscoveryBrowserTool } = await import('@/server/services/rtrvr/tools');
+            const result = await executeDiscoveryBrowserTool('discovery.browserAutomate', {
+                input: taskInput, urls: urls || [], verbosity: verbosity || 'final',
+            });
+            return result.success
+                ? { success: true, message: 'Browser automation completed', result: result.data }
+                : { success: false, error: result.error || 'Browser automation failed' };
+        }
+
+        case 'discovery_fill_form': {
+            const { url, formData, submitButtonText } = input as {
+                url: string; formData: Record<string, string>; submitButtonText?: string;
+            };
+            const { executeDiscoveryBrowserTool } = await import('@/server/services/rtrvr/tools');
+            const result = await executeDiscoveryBrowserTool('discovery.fillForm', {
+                url, formData, submitButtonText,
+            });
+            return result.success
+                ? { success: true, url, formFields: Object.keys(formData), submitted: !!submitButtonText, result: result.data }
+                : { success: false, error: result.error || 'Form fill failed' };
+        }
+
+        case 'discovery_extract_data': {
+            const { url, instruction, schema } = input as {
+                url: string; instruction: string; schema?: Record<string, unknown>;
+            };
+            const { executeDiscoveryBrowserTool } = await import('@/server/services/rtrvr/tools');
+            const result = await executeDiscoveryBrowserTool('discovery.extractData', {
+                url, instruction, schema: schema || {},
+            });
+            return result.success
+                ? { success: true, url, instruction, extractedData: result.data }
+                : { success: false, error: result.error || 'Data extraction failed' };
+        }
+
+        case 'discovery_summarize_page': {
+            const { url } = input as { url: string };
+            const { executeDiscoveryBrowserTool } = await import('@/server/services/rtrvr/tools');
+            const result = await executeDiscoveryBrowserTool('discovery.summarizePage', { url });
+            return result.success
+                ? { success: true, url, summary: result.data?.result || result.data }
+                : { success: false, error: result.error || 'Page summarization failed' };
+        }
+
         default:
             return { error: `Unknown tool: ${toolName}` };
     }
@@ -417,7 +519,19 @@ Always pull live data with your tools before answering. If data isn't available,
 When listing customers who need outreach, always include their days-inactive and LTV so the manager can prioritize.
 When discussing inventory, flag anything on sale or with high stock that could move with a quick promotion.
 When citing competitor intel, note how fresh it is.
-For real-time or "right now" competitor questions (current prices, today's deals), use run_competitive_agent — it runs a live web research sweep via Firecrawl AI. It takes 30–90 seconds. Use get_competitor_intel for quick cached weekly data.`;
+For real-time or "right now" competitor questions (current prices, today's deals), use run_competitive_agent — it runs a live web research sweep via Firecrawl AI. It takes 30–90 seconds. Use get_competitor_intel for quick cached weekly data.
+
+EXTERNAL SITE MANAGEMENT (Weedmaps, AIQ):
+You can browse, extract data from, and fill forms on external sites using your browser tools.
+- Use discovery_browser_automate for general browsing and clicking (reading deals, checking listings)
+- Use discovery_extract_data to pull structured data (current Weedmaps deals, AIQ campaign stats)
+- Use discovery_fill_form to create/update deals or campaigns — ALWAYS confirm details with the user before submitting
+- Use discovery_summarize_page for a quick overview of any page
+
+CRITICAL: When filling forms or submitting on external sites, ALWAYS:
+1. Tell the user exactly what you're about to fill and where
+2. Wait for their confirmation before calling discovery_fill_form with submitButtonText
+3. If you're just reading/extracting, no confirmation needed`;
 
 const ELROY_AGENT_CONTEXT: AgentContext = {
     name: 'Uncle Elroy',
@@ -434,6 +548,10 @@ const ELROY_AGENT_CONTEXT: AgentContext = {
         'get_top_sellers — top products last 7 days',
         'get_recent_transactions — latest order history',
         'get_sales_summary — today vs yesterday vs 7-day avg',
+        'discovery_browser_automate — browse external sites (Weedmaps, AIQ, competitors)',
+        'discovery_fill_form — fill and submit forms on external sites (deals, campaigns)',
+        'discovery_extract_data — extract structured data from any webpage',
+        'discovery_summarize_page — quick page summary',
     ],
     groundingRules: [
         'Always use tools to fetch live data before answering',
@@ -443,6 +561,7 @@ const ELROY_AGENT_CONTEXT: AgentContext = {
         'For revenue/sales questions, use get_daily_sales or get_sales_summary',
         'For product performance questions, use get_top_sellers',
         'Always include the asOf timestamp when reporting today\'s sales',
+        'NEVER submit a form on an external site without explicit user confirmation first',
     ],
 };
 
