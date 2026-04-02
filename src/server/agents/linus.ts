@@ -4704,7 +4704,7 @@ User Request: ${request.prompt}`;
               request.progressCallback!(buildLinusProgressMessage(toolName, input))
         : undefined;
 
-    const result = shouldUseGLMToolMode
+    let result = shouldUseGLMToolMode
         ? await executeGLMWithTools(
             fullPrompt,
             getLinusTools(toolMode),
@@ -4734,7 +4734,28 @@ User Request: ${request.prompt}`;
             }
         );
 
-    
+    // GLM-5 content safety fallback: Z.ai occasionally refuses cannabis-adjacent business
+    // context with "security restrictions". When detected, retry with Claude.
+    if (shouldUseGLMToolMode && isClaudeAvailable() &&
+        result.content.toLowerCase().includes('security restrictions')) {
+        logger.warn('[Linus] GLM-5 security refusal detected — falling back to Claude', {
+            glmResponse: result.content.slice(0, 100),
+        });
+        result = await executeWithTools(
+            fullPrompt,
+            getLinusTools(toolMode),
+            linusToolExecutor,
+            {
+                userId: request.context?.userId,
+                orgId: request.context?.orgId,
+                brandId: request.context?.brandId,
+                maxIterations: request.maxIterations ?? 5,
+                agentContext: LINUS_AGENT_CONTEXT,
+                onToolCall,
+            }
+        );
+    }
+
     // Extract decision if present
     const decisionMatch = result.content.match(/MISSION_READY|NEEDS_REVIEW|BLOCKED/);
     
