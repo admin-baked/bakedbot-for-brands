@@ -16,6 +16,7 @@ import { requireUser } from '@/lib/auth-helpers';
 import { SUPER_USER_ROLES, BRAND_ALL_ROLES, DISPENSARY_ALL_ROLES } from '@/types/roles';
 import { logger } from '@/lib/logger';
 import { FieldValue } from 'firebase-admin/firestore';
+import { getPhoneLast4 } from '@/lib/customers/profile-derivations';
 import { createInboxArtifactId, createInboxThreadId } from '@/types/inbox';
 import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { z } from 'zod';
@@ -235,7 +236,9 @@ export async function getRecentCheckinVisits(orgId: string, limit = 25): Promise
         const visits: CheckinVisitRow[] = snap.docs.map(doc => {
             const d = doc.data();
             const phone = typeof d.phone === 'string' ? d.phone : '';
-            const phoneLast4 = phone.replace(/\D/g, '').slice(-4) || '????';
+            const phoneLast4 = (typeof d.phoneLast4 === 'string' && d.phoneLast4)
+                || getPhoneLast4(phone)
+                || '????';
             const visitedAt = firestoreTimestampToDate(d.visitedAt)?.toISOString() ?? new Date().toISOString();
             return {
                 visitId: doc.id,

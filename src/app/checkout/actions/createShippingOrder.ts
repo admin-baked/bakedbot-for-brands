@@ -9,6 +9,7 @@
 import { createServerClient } from '@/firebase/server-client';
 import { FieldValue } from 'firebase-admin/firestore';
 import { createTransaction } from '@/lib/authorize-net';
+import { getPhoneLast4 } from '@/lib/customers/profile-derivations';
 import { sendOrderConfirmationEmail } from '@/lib/email/dispatcher';
 import { logger } from '@/lib/logger';
 import { requireUser } from '@/server/auth/auth';
@@ -281,6 +282,7 @@ export async function createShippingOrder(input: CreateShippingOrderInput) {
             },
             brandId: input.brandId,
             retailerId: input.brandId,
+            phoneLast4: getPhoneLast4(input.customer.phone),
             totals: {
                 subtotal: calculatedSubtotal,
                 tax: calculatedTax,

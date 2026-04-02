@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/firebase/server-client';
 import { Timestamp } from 'firebase-admin/firestore';
 import { posCache, cacheKeys } from '@/lib/cache/pos-cache';
+import { getPhoneLast4 } from '@/lib/customers/profile-derivations';
 import { logger } from '@/lib/logger';
 import { revalidatePath } from 'next/cache';
 import { mapAlleavesStatus } from '@/app/dashboard/orders/order-utils';
@@ -340,6 +341,7 @@ function handleOrderEvent(
         `${orderData.name_first || orderData.customer_first_name || ''} ${orderData.name_last || orderData.customer_last_name || ''}`.trim() ||
         'Unknown';
     const customerEmail = orderData.customer?.email || orderData.email || orderData.customer_email || 'no-email@alleaves.local';
+    const customerPhone = orderData.customer?.phone || orderData.phone || '';
 
     // Fire-and-forget — never block the webhook ACK
     firestore.collection('orders').doc(`alleaves_${orderId}`).set({
@@ -348,7 +350,8 @@ function handleOrderEvent(
         retailerId,
         userId: orderData.customer?.id?.toString() || orderData.id_customer?.toString() || 'alleaves_customer',
         status: mapAlleavesStatus(orderData.status),
-        customer: { name: customerName, email: customerEmail, phone: orderData.customer?.phone || orderData.phone || '' },
+        customer: { name: customerName, email: customerEmail, phone: customerPhone },
+        phoneLast4: getPhoneLast4(customerPhone),
         items: (orderData.items || []).map((item: any) => ({
             productId: item.id_item?.toString() || item.product_id?.toString() || 'unknown',
             name: item.item || item.product_name || 'Unknown Item',

@@ -12,6 +12,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/firebase/server-client';
+import { getPhoneLast4 } from '@/lib/customers/profile-derivations';
 import { ALLeavesClient, type ALLeavesConfig } from '@/lib/pos/adapters/alleaves';
 import { logger } from '@/lib/logger';
 import { mapAlleavesStatus } from '@/app/dashboard/orders/order-utils';
@@ -59,6 +60,7 @@ async function persistOrdersToFirestore(
             userId: ao.customer?.id?.toString() || ao.id_customer?.toString() || 'alleaves_customer',
             status: mapAlleavesStatus(ao.status),
             customer: { name: customerName, email: customerEmail, phone: customerPhone },
+            phoneLast4: getPhoneLast4(customerPhone),
             items: (ao.items || []).map((item: any) => ({
                 productId: item.id_item?.toString() || item.product_id?.toString() || 'unknown',
                 name: item.item || item.product_name || 'Unknown Item',

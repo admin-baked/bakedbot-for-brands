@@ -3,7 +3,10 @@
 import { firestore } from 'firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { getAdminFirestore } from '@/firebase/admin';
-import { isPlaceholderCustomerEmail } from '@/lib/customers/profile-derivations';
+import {
+    getPhoneLast4,
+    isPlaceholderCustomerEmail,
+} from '@/lib/customers/profile-derivations';
 import {
     isNormalizedPhone,
     normalizeEmail,
@@ -45,16 +48,33 @@ const visitorOfferTypeSchema = z.enum([
     'favorite_categories',
 ]);
 
+const visitorCheckinLookupCandidateSchema = z.object({
+    kind: z.enum(['customer', 'order']),
+    id: z.string().min(1),
+});
+
+const phoneLast4Schema = z.string().regex(/^\d{4}$/);
+
 const getVisitorCheckinContextSchema = z.object({
     orgId: z.string().min(1),
-    phone: z.string().min(1),
+    phone: z.string().min(1).optional(),
     email: z.string().email().optional().or(z.literal('')),
+    lookupCandidate: visitorCheckinLookupCandidateSchema.optional(),
+}).refine((value) => Boolean(value.phone?.trim() || value.lookupCandidate), {
+    message: 'Phone or lookup candidate required',
+    path: ['phone'],
+});
+
+const findVisitorCheckinCandidatesSchema = z.object({
+    orgId: z.string().min(1),
+    firstName: z.string().trim().min(2).max(100),
+    phoneLast4: phoneLast4Schema,
 });
 
 const captureVisitorCheckinSchema = z.object({
     orgId: z.string().min(1),
     firstName: z.string().trim().min(1).max(100),
-    phone: z.string().min(1),
+    phone: z.string().min(1).optional(),
     email: z.string().email().optional().or(z.literal('')),
     emailConsent: z.boolean(),
     smsConsent: z.boolean(),
@@ -66,6 +86,10 @@ const captureVisitorCheckinSchema = z.object({
     favoriteCategories: z.array(favoriteCategorySchema).max(6).optional(),
     uiVersion: thriveCheckinUiVersionSchema.optional(),
     offerType: visitorOfferTypeSchema.nullable().optional(),
+    lookupCandidate: visitorCheckinLookupCandidateSchema.optional(),
+}).refine((value) => Boolean(value.phone?.trim() || value.lookupCandidate), {
+    message: 'Phone or lookup candidate required',
+    path: ['phone'],
 });
 
 export type VisitorCheckinSource = z.infer<typeof visitorCheckinSourceSchema>;
@@ -77,7 +101,7 @@ export type VisitorCheckinOfferType = z.infer<typeof visitorOfferTypeSchema>;
 export interface CaptureVisitorCheckinRequest {
     orgId: string;
     firstName: string;
-    phone: string;
+    phone?: string;
     email?: string;
     emailConsent: boolean;
     smsConsent: boolean;
@@ -89,12 +113,20 @@ export interface CaptureVisitorCheckinRequest {
     favoriteCategories?: VisitorFavoriteCategory[];
     uiVersion?: VisitorCheckinUiVersion;
     offerType?: VisitorCheckinOfferType | null;
+    lookupCandidate?: VisitorCheckinLookupCandidateRef;
 }
 
 export interface GetVisitorCheckinContextRequest {
     orgId: string;
-    phone: string;
+    phone?: string;
     email?: string;
+    lookupCandidate?: VisitorCheckinLookupCandidateRef;
+}
+
+export interface FindVisitorCheckinCandidatesRequest {
+    orgId: string;
+    firstName: string;
+    phoneLast4: string;
 }
 
 export interface VisitorFollowupEligibility {
@@ -123,6 +155,27 @@ export interface VisitorCheckinContextResult {
     lastPurchase?: VisitorLastPurchase;
     googleReviewUrl?: string;
     enrichmentMode?: 'email' | 'favorite_categories';
+    error?: string;
+}
+
+export interface VisitorCheckinLookupCandidateRef {
+    kind: 'customer' | 'order';
+    id: string;
+}
+
+export interface VisitorCheckinLookupCandidate {
+    candidate: VisitorCheckinLookupCandidateRef;
+    firstName: string;
+    phoneLast4: string;
+    returningSource: 'customer' | 'online_order';
+    title: string;
+    subtitle: string;
+    lastActivityAt?: string;
+}
+
+export interface FindVisitorCheckinCandidatesResult {
+    success: boolean;
+    candidates: VisitorCheckinLookupCandidate[];
     error?: string;
 }
 
@@ -257,6 +310,46 @@ function resolveReturningSource(
     }
 
     return undefined;
+}
+
+function normalizeNameForLookup(value: string | null | undefined): string {
+    return (typeof value === 'string' ? value : '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '');
+}
+
+function extractFirstName(value: unknown): string | null {
+    if (typeof value !== 'string') {
+        return null;
+    }
+
+    const [firstName] = value.trim().split(/\s+/);
+    return firstName?.trim() || null;
+}
+
+function namesLikelyMatch(inputFirstName: string, candidateFirstName: string | null): boolean {
+    const normalizedInput = normalizeNameForLookup(inputFirstName);
+    const normalizedCandidate = normalizeNameForLookup(candidateFirstName);
+
+    if (!normalizedInput || !normalizedCandidate) {
+        return false;
+    }
+
+    return normalizedInput.startsWith(normalizedCandidate)
+        || normalizedCandidate.startsWith(normalizedInput);
+}
+
+function formatActivityLabel(date: Date | null): string | null {
+    if (!date) {
+        return null;
+    }
+
+    return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+    });
 }
 
 function normalizeStoredCategories(value: unknown): VisitorFavoriteCategory[] {
@@ -491,6 +584,117 @@ async function findExistingLead(
     };
 }
 
+async function findCustomersByPhoneLast4(
+    orgId: string,
+    phoneLast4: string,
+): Promise<CustomerSnapshot[]> {
+    const db = getAdminFirestore();
+
+    try {
+        const snapshot = await db
+            .collection('customers')
+            .where('orgId', '==', orgId)
+            .where('phoneLast4', '==', phoneLast4)
+            .limit(10)
+            .get();
+
+        return snapshot.docs;
+    } catch (error) {
+        logger.warn('[VisitorCheckin] Scoped customer phoneLast4 lookup failed, falling back', {
+            orgId,
+            phoneLast4,
+            error: error instanceof Error ? error.message : String(error),
+        });
+
+        const fallbackSnapshot = await db
+            .collection('customers')
+            .where('phoneLast4', '==', phoneLast4)
+            .limit(25)
+            .get();
+
+        return fallbackSnapshot.docs.filter((doc) => doc.data()?.orgId === orgId);
+    }
+}
+
+async function findOrdersByPhoneLast4(
+    orgId: string,
+    phoneLast4: string,
+): Promise<Array<{ id: string; data: Record<string, unknown> }>> {
+    const db = getAdminFirestore();
+    const scopeFields: Array<'brandId' | 'retailerId' | 'orgId'> = ['brandId', 'retailerId', 'orgId'];
+
+    try {
+        const snapshots = await Promise.all(
+            scopeFields.map((scopeField) => (
+                db.collection('orders')
+                    .where(scopeField, '==', orgId)
+                    .where('phoneLast4', '==', phoneLast4)
+                    .limit(10)
+                    .get()
+            )),
+        );
+
+        const matches = new Map<string, Record<string, unknown>>();
+        for (const snapshot of snapshots) {
+            for (const doc of snapshot.docs) {
+                matches.set(doc.id, doc.data() as Record<string, unknown>);
+            }
+        }
+
+        return Array.from(matches.entries()).map(([id, data]) => ({ id, data }));
+    } catch (error) {
+        logger.warn('[VisitorCheckin] Scoped order phoneLast4 lookup failed, falling back', {
+            orgId,
+            phoneLast4,
+            error: error instanceof Error ? error.message : String(error),
+        });
+
+        const fallbackSnapshot = await db
+            .collection('orders')
+            .where('phoneLast4', '==', phoneLast4)
+            .limit(30)
+            .get();
+
+        return fallbackSnapshot.docs
+            .map((doc) => ({
+                id: doc.id,
+                data: doc.data() as Record<string, unknown>,
+            }))
+            .filter((doc) => orderBelongsToOrg(doc.data, orgId));
+    }
+}
+
+async function resolveLookupCandidatePhone(
+    orgId: string,
+    lookupCandidate: VisitorCheckinLookupCandidateRef,
+): Promise<string | undefined> {
+    const db = getAdminFirestore();
+
+    if (lookupCandidate.kind === 'customer') {
+        const doc = await db.collection('customers').doc(lookupCandidate.id).get();
+        const data = doc.data();
+        if (!doc.exists || data?.orgId !== orgId) {
+            return undefined;
+        }
+
+        const normalizedPhone = normalizePhone(typeof data?.phone === 'string' ? data.phone : undefined);
+        return isNormalizedPhone(normalizedPhone) ? normalizedPhone : undefined;
+    }
+
+    const orderDoc = await db.collection('orders').doc(lookupCandidate.id).get();
+    const orderData = orderDoc.data() as Record<string, unknown> | undefined;
+    if (!orderDoc.exists || !orderData || !orderBelongsToOrg(orderData, orgId)) {
+        return undefined;
+    }
+
+    const normalizedPhone = normalizePhone(
+        typeof getOrderValue(orderData, 'phone') === 'string'
+            ? String(getOrderValue(orderData, 'phone'))
+            : undefined,
+    );
+    return isNormalizedPhone(normalizedPhone) ? normalizedPhone : undefined;
+}
+
 async function findOrdersByField(
     field: 'customer.phone' | 'customer.email',
     value: string,
@@ -588,12 +792,143 @@ async function resolveLastPurchase(
     }
 }
 
+export async function findVisitorCheckinCandidates(
+    request: FindVisitorCheckinCandidatesRequest,
+): Promise<FindVisitorCheckinCandidatesResult> {
+    try {
+        const validated = findVisitorCheckinCandidatesSchema.parse(request);
+        const [customerDocs, orderDocs] = await Promise.all([
+            findCustomersByPhoneLast4(validated.orgId, validated.phoneLast4),
+            findOrdersByPhoneLast4(validated.orgId, validated.phoneLast4),
+        ]);
+
+        const candidatesByPhone = new Map<string, VisitorCheckinLookupCandidate & { sortTime: number }>();
+
+        for (const customerDoc of customerDocs) {
+            const data = customerDoc.data() ?? {};
+            const normalizedPhone = normalizePhone(typeof data.phone === 'string' ? data.phone : undefined);
+            const customerPhoneLast4 = getPhoneLast4(normalizedPhone);
+            const candidateFirstName = extractFirstName(
+                typeof data.firstName === 'string' && data.firstName
+                    ? data.firstName
+                    : typeof data.displayName === 'string'
+                        ? data.displayName
+                        : null,
+            );
+
+            if (
+                !isNormalizedPhone(normalizedPhone)
+                || customerPhoneLast4 !== validated.phoneLast4
+                || !namesLikelyMatch(validated.firstName, candidateFirstName)
+                || !candidateFirstName
+            ) {
+                continue;
+            }
+
+            const lastActivityAt = firestoreTimestampToDate(data.lastOrderDate)
+                ?? firestoreTimestampToDate(data.lastCheckinAt)
+                ?? firestoreTimestampToDate(data.updatedAt);
+            const activityLabel = formatActivityLabel(lastActivityAt);
+
+            candidatesByPhone.set(normalizedPhone, {
+                candidate: { kind: 'customer', id: customerDoc.id },
+                firstName: candidateFirstName,
+                phoneLast4: validated.phoneLast4,
+                returningSource: 'customer',
+                title: `${candidateFirstName} - Known customer`,
+                subtitle: activityLabel
+                    ? `Phone ending in ${validated.phoneLast4} - last seen ${activityLabel}`
+                    : `Phone ending in ${validated.phoneLast4} - existing Thrive profile`,
+                lastActivityAt: lastActivityAt?.toISOString(),
+                sortTime: lastActivityAt?.getTime() ?? 0,
+            });
+        }
+
+        for (const orderDoc of orderDocs) {
+            const normalizedPhone = normalizePhone(
+                typeof getOrderValue(orderDoc.data, 'phone') === 'string'
+                    ? String(getOrderValue(orderDoc.data, 'phone'))
+                    : undefined,
+            );
+            const orderPhoneLast4 = getPhoneLast4(normalizedPhone);
+            const candidateFirstName = extractFirstName(getOrderValue(orderDoc.data, 'name'));
+
+            if (
+                !isNormalizedPhone(normalizedPhone)
+                || orderPhoneLast4 !== validated.phoneLast4
+                || !namesLikelyMatch(validated.firstName, candidateFirstName)
+                || !candidateFirstName
+                || candidatesByPhone.has(normalizedPhone)
+            ) {
+                continue;
+            }
+
+            const lastPurchase = summarizeLastPurchase({
+                id: orderDoc.id,
+                ...orderDoc.data,
+            });
+            const lastActivityAt = getOrderDate(orderDoc.data);
+
+            candidatesByPhone.set(normalizedPhone, {
+                candidate: { kind: 'order', id: orderDoc.id },
+                firstName: candidateFirstName,
+                phoneLast4: validated.phoneLast4,
+                returningSource: 'online_order',
+                title: `${candidateFirstName} - Ordered online`,
+                subtitle: lastPurchase?.orderDateLabel
+                    ? `${lastPurchase.primaryItemName} - ${lastPurchase.orderDateLabel} - phone ending in ${validated.phoneLast4}`
+                    : `Recent online order - phone ending in ${validated.phoneLast4}`,
+                lastActivityAt: lastActivityAt?.toISOString(),
+                sortTime: lastActivityAt?.getTime() ?? 0,
+            });
+        }
+
+        const candidates = Array.from(candidatesByPhone.values())
+            .sort((left, right) => right.sortTime - left.sortTime)
+            .slice(0, 3)
+            .map(({ sortTime: _sortTime, ...candidate }) => candidate);
+
+        logger.info('[VisitorCheckin] Resolved staff-assisted check-in candidates', {
+            orgId: validated.orgId,
+            phoneLast4: validated.phoneLast4,
+            firstName: validated.firstName,
+            candidateCount: candidates.length,
+        });
+
+        return {
+            success: true,
+            candidates,
+        };
+    } catch (error) {
+        if (error instanceof z.ZodError) {
+            return {
+                success: false,
+                candidates: [],
+                error: error.errors[0]?.message || 'Invalid lookup payload',
+            };
+        }
+
+        logger.error('[VisitorCheckin] Failed to resolve staff-assisted check-in candidates', {
+            error: error instanceof Error ? error.message : String(error),
+            request,
+        });
+
+        return {
+            success: false,
+            candidates: [],
+            error: error instanceof Error ? error.message : 'Failed to find returning customer candidates',
+        };
+    }
+}
+
 export async function getVisitorCheckinContext(
     request: GetVisitorCheckinContextRequest,
 ): Promise<VisitorCheckinContextResult> {
     try {
         const validated = getVisitorCheckinContextSchema.parse(request);
-        const normalizedPhone = normalizePhone(validated.phone);
+        const normalizedPhone = validated.lookupCandidate
+            ? await resolveLookupCandidatePhone(validated.orgId, validated.lookupCandidate)
+            : normalizePhone(validated.phone);
         const normalizedEmail = normalizeEmail(validated.email || undefined);
 
         if (!isNormalizedPhone(normalizedPhone)) {
@@ -615,7 +950,12 @@ export async function getVisitorCheckinContext(
             ? await resolveLastPurchase(existingCustomer.id, validated.orgId)
             : null;
         const existingOrderHistory = !existingCustomerData || !initialEmailState.savedEmail || !crmLastPurchase
-            ? await findExistingOrderHistory(validated.orgId, validated.phone, normalizedPhone, normalizedEmail)
+            ? await findExistingOrderHistory(
+                validated.orgId,
+                validated.phone ?? normalizedPhone,
+                normalizedPhone,
+                normalizedEmail,
+            )
             : null;
         const returningSource = resolveReturningSource(
             existingCustomerData,
@@ -690,7 +1030,9 @@ export async function captureVisitorCheckin(
     try {
         const validated = captureVisitorCheckinSchema.parse(request);
         const normalizedEmail = normalizeEmail(validated.email || undefined);
-        const normalizedPhone = normalizePhone(validated.phone);
+        const normalizedPhone = validated.lookupCandidate
+            ? await resolveLookupCandidatePhone(validated.orgId, validated.lookupCandidate)
+            : normalizePhone(validated.phone);
 
         if (!isNormalizedPhone(normalizedPhone)) {
             return {
@@ -743,7 +1085,7 @@ export async function captureVisitorCheckin(
                     ? Promise.resolve<OrderMatchSummary | null>(null)
                     : findExistingOrderHistory(
                         validated.orgId,
-                        validated.phone,
+                        validated.phone ?? normalizedPhone,
                         normalizedPhone,
                         normalizedEmail,
                     ),
@@ -752,7 +1094,7 @@ export async function captureVisitorCheckin(
             : await Promise.all([
                 findExistingOrderHistory(
                     validated.orgId,
-                    validated.phone,
+                    validated.phone ?? normalizedPhone,
                     normalizedPhone,
                     normalizedEmail,
                 ),
@@ -772,6 +1114,7 @@ export async function captureVisitorCheckin(
         const seededCustomerEmail = normalizedEmail ?? existingOrderHistory?.savedEmail ?? null;
         const seededOrderCount = existingOrderHistory?.orderCount ?? 0;
         const seededTotalSpent = existingOrderHistory?.totalSpent ?? 0;
+        const phoneLast4 = getPhoneLast4(normalizedPhone);
         const isReturningCustomer = Boolean(
             existingCustomerData ||
             leadFallbackData ||
@@ -787,6 +1130,7 @@ export async function captureVisitorCheckin(
                 orgId: validated.orgId,
                 email: seededCustomerEmail,
                 phone: normalizedPhone,
+                phoneLast4,
                 firstName: validated.firstName,
                 totalSpent: seededTotalSpent,
                 orderCount: seededOrderCount,
@@ -822,6 +1166,9 @@ export async function captureVisitorCheckin(
             }
             if (!existingCustomerData.phone && normalizedPhone) {
                 customerUpdates.phone = normalizedPhone;
+            }
+            if (phoneLast4 && existingCustomerData.phoneLast4 !== phoneLast4) {
+                customerUpdates.phoneLast4 = phoneLast4;
             }
             if (emailConsent && !existingCustomerData.emailConsent) {
                 customerUpdates.emailConsent = true;
@@ -864,6 +1211,7 @@ export async function captureVisitorCheckin(
             firstName: validated.firstName,
             email: normalizedEmail ?? null,
             phone: normalizedPhone,
+            phoneLast4,
             source: validated.source,
             isReturning: isReturningCustomer,
             returningSource: returningSource ?? null,

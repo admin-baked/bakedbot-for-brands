@@ -24,6 +24,20 @@ function hasCustomersComposite(indexes: FirestoreIndex[], targetField: string): 
     });
 }
 
+function hasOrdersComposite(indexes: FirestoreIndex[], scopeField: string, targetField: string): boolean {
+    return indexes.some((index) => {
+        if (index.collectionGroup !== 'orders') return false;
+        const fields = index.fields;
+        return (
+            fields.length >= 2 &&
+            fields[0]?.fieldPath === scopeField &&
+            fields[0]?.order === 'ASCENDING' &&
+            fields[1]?.fieldPath === targetField &&
+            fields[1]?.order === 'ASCENDING'
+        );
+    });
+}
+
 function hasInsightsComposite(indexes: FirestoreIndex[]): boolean {
     return indexes.some((index) => {
         if (index.collectionGroup !== 'insights') return false;
@@ -69,6 +83,13 @@ describe('firestore.indexes.json (Thrive/Loyalty additions)', () => {
     it('contains customers indexes for lifecycle scoring fields', () => {
         expect(hasCustomersComposite(indexesFile.indexes, 'tierUpdatedAt')).toBe(true);
         expect(hasCustomersComposite(indexesFile.indexes, 'daysSinceLastOrder')).toBe(true);
+    });
+
+    it('contains customer and order indexes for staff-assisted phone last-4 lookup', () => {
+        expect(hasCustomersComposite(indexesFile.indexes, 'phoneLast4')).toBe(true);
+        expect(hasOrdersComposite(indexesFile.indexes, 'brandId', 'phoneLast4')).toBe(true);
+        expect(hasOrdersComposite(indexesFile.indexes, 'retailerId', 'phoneLast4')).toBe(true);
+        expect(hasOrdersComposite(indexesFile.indexes, 'orgId', 'phoneLast4')).toBe(true);
     });
 
     it('contains the insights composite needed by the inbox proactive briefing query', () => {

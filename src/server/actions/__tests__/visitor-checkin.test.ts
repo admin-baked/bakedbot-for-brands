@@ -1,4 +1,8 @@
-import { captureVisitorCheckin, getVisitorCheckinContext } from '../visitor-checkin';
+import {
+  captureVisitorCheckin,
+  findVisitorCheckinCandidates,
+  getVisitorCheckinContext,
+} from '../visitor-checkin';
 import { getAdminFirestore } from '@/firebase/admin';
 import { getGoogleReviewUrl } from '@/lib/reviews/google-review-url';
 import { logger } from '@/lib/logger';
@@ -154,6 +158,7 @@ function createFirestore(args?: {
 
       if (name === 'orders') {
         return {
+          doc: (id: string) => makeDocRef('orders', id),
           where: (field: string, _operator: string, value: string) => makeWhere('orders', field, value),
         };
       }
@@ -339,6 +344,87 @@ describe('visitor check-in actions', () => {
         lastPurchaseFound: true,
       }),
     );
+  });
+
+  it('finds masked staff-assisted candidates by first name and phone last 4', async () => {
+    const state = createFirestore({
+      customers: {
+        customer_1: {
+          orgId: 'org_thrive_syracuse',
+          firstName: 'Martez',
+          phone: '+13126840522',
+          phoneLast4: '0522',
+          lastCheckinAt: new Date('2026-03-30T09:00:00.000Z'),
+        },
+      },
+      orders: {
+        order_1: {
+          brandId: 'org_thrive_syracuse',
+          phoneLast4: '0522',
+          customer: {
+            name: 'Martez Anderson',
+            email: 'martezandco@gmail.com',
+            phone: '3126840522',
+          },
+          items: [{ name: 'Gelonade 3.5g' }],
+          totals: { total: 48 },
+          createdAt: new Date('2026-03-29T16:00:00.000Z'),
+        },
+      },
+    });
+    (getAdminFirestore as jest.Mock).mockReturnValue(state.firestore);
+
+    const result = await findVisitorCheckinCandidates({
+      orgId: 'org_thrive_syracuse',
+      firstName: 'Martez',
+      phoneLast4: '0522',
+    });
+
+    expect(result).toMatchObject({
+      success: true,
+      candidates: [
+        expect.objectContaining({
+          candidate: { kind: 'customer', id: 'customer_1' },
+          phoneLast4: '0522',
+          returningSource: 'customer',
+          title: 'Martez - Known customer',
+        }),
+      ],
+    });
+  });
+
+  it('resolves returning context from an opaque order lookup candidate', async () => {
+    const state = createFirestore({
+      orders: {
+        order_1: {
+          brandId: 'org_thrive_syracuse',
+          phoneLast4: '0522',
+          customer: {
+            name: 'Martez Anderson',
+            email: 'martezandco@gmail.com',
+            phone: '3126840522',
+          },
+          items: [{ name: 'Gelonade 3.5g' }],
+          totals: { total: 48 },
+          createdAt: new Date('2026-03-29T16:00:00.000Z'),
+        },
+      },
+    });
+    (getAdminFirestore as jest.Mock).mockReturnValue(state.firestore);
+    (getCustomerHistory as jest.Mock).mockResolvedValue({ summary: '', orders: [] });
+
+    const result = await getVisitorCheckinContext({
+      orgId: 'org_thrive_syracuse',
+      lookupCandidate: { kind: 'order', id: 'order_1' },
+    });
+
+    expect(result).toMatchObject({
+      success: true,
+      normalizedPhone: '+13126840522',
+      isReturningCustomer: true,
+      returningSource: 'online_order',
+      savedEmail: 'martezandco@gmail.com',
+    });
   });
 
   it('creates a new check-in with additive Thrive metadata', async () => {
@@ -701,5 +787,58 @@ describe('visitor check-in actions', () => {
         returningSource: 'online_order',
       }),
     );
+  });
+
+  it('captures a staff-confirmed customer candidate without a raw phone in the request', async () => {
+    const state = createFirestore({
+      customers: {
+        customer_1: {
+          orgId: 'org_thrive_syracuse',
+          firstName: 'Martez',
+          phone: '+13126840522',
+          phoneLast4: '0522',
+          email: 'martezandco@gmail.com',
+          emailConsent: true,
+          visitCount: 2,
+        },
+      },
+    });
+    (getAdminFirestore as jest.Mock).mockReturnValue(state.firestore);
+    (captureEmailLead as jest.Mock).mockResolvedValue({
+      success: true,
+      leadId: 'lead_5',
+      isNewLead: false,
+    });
+    (dispatchPlaybookEvent as jest.Mock).mockResolvedValue(undefined);
+
+    const result = await captureVisitorCheckin({
+      orgId: 'org_thrive_syracuse',
+      firstName: 'Martez',
+      emailConsent: false,
+      smsConsent: true,
+      source: 'brand_rewards_checkin',
+      ageVerifiedMethod: 'staff_attested_public_flow',
+      lookupCandidate: { kind: 'customer', id: 'customer_1' },
+      uiVersion: 'thrive_checkin_v2',
+    });
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(result).toMatchObject({
+      success: true,
+      isReturningCustomer: true,
+      customerId: 'customer_1',
+    });
+    expect(captureEmailLead).toHaveBeenCalledWith(expect.objectContaining({
+      phone: '+13126840522',
+    }));
+
+    const visit = Array.from(state.visits.values())[0];
+    expect(visit).toMatchObject({
+      phone: '+13126840522',
+      phoneLast4: '0522',
+      isReturning: true,
+    });
   });
 });

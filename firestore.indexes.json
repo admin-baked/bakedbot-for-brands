@@ -1340,6 +1340,24 @@
                     "order": "ASCENDING"
                 },
                 {
+                    "fieldPath": "phoneLast4",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "__name__",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "customers",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "orgId",
+                    "order": "ASCENDING"
+                },
+                {
                     "fieldPath": "archived",
                     "order": "ASCENDING"
                 },
@@ -1800,6 +1818,30 @@
             "fields": [
                 { "fieldPath": "orgId", "order": "ASCENDING" },
                 { "fieldPath": "reviewSequence.status", "order": "ASCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "orders",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "brandId", "order": "ASCENDING" },
+                { "fieldPath": "phoneLast4", "order": "ASCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "orders",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "retailerId", "order": "ASCENDING" },
+                { "fieldPath": "phoneLast4", "order": "ASCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "orders",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "orgId", "order": "ASCENDING" },
+                { "fieldPath": "phoneLast4", "order": "ASCENDING" }
             ]
         },
         {

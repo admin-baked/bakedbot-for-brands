@@ -42,6 +42,15 @@ function normalizeValue(value: string | null | undefined): string {
     return typeof value === 'string' ? value.trim() : '';
 }
 
+export function getPhoneLast4(value: string | null | undefined): string | null {
+    const digits = normalizeValue(value).replace(/\D/g, '');
+    if (digits.length < 4) {
+        return null;
+    }
+
+    return digits.slice(-4);
+}
+
 function toTitleCase(value: string): string {
     return value
         .replace(/[_-]+/g, ' ')

@@ -7,6 +7,7 @@
 
 import 'server-only';
 import { createServerClient } from '@/firebase/server-client';
+import { getPhoneLast4 } from '@/lib/customers/profile-derivations';
 import { ALLeavesClient, type ALLeavesConfig } from '@/lib/pos/adapters/alleaves';
 import { posCache, cacheKeys } from '@/lib/cache/pos-cache';
 import { logger } from '@/lib/logger';
@@ -130,6 +131,7 @@ async function persistOrdersToFirestore(
             userId: ao.customer?.id?.toString() || ao.id_customer?.toString() || 'alleaves_customer',
             status: mapStatus(ao.status),
             customer: { name: customerName, email: customerEmail, phone: customerPhone },
+            phoneLast4: getPhoneLast4(customerPhone),
             items,
             totals: {
                 subtotal: parseFloat(ao.subtotal || 0),

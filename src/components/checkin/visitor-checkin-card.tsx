@@ -9,7 +9,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
     captureVisitorCheckin,
+    findVisitorCheckinCandidates,
     getVisitorCheckinContext,
+    type VisitorCheckinLookupCandidate,
+    type VisitorCheckinLookupCandidateRef,
     type VisitorCheckinContextResult,
     type VisitorFavoriteCategory,
 } from '@/server/actions/visitor-checkin';
@@ -34,6 +37,7 @@ const FAVORITE_CATEGORY_OPTIONS: VisitorFavoriteCategory[] = [
 ];
 
 type Step = 'contact' | 'utility' | 'success';
+type ContactMode = 'full_phone' | 'staff_lookup';
 
 interface VisitorCheckinCardProps {
     orgId: string;
@@ -85,10 +89,14 @@ export function VisitorCheckinCard({
     primaryColor,
 }: VisitorCheckinCardProps) {
     const [step, setStep] = useState<Step>('contact');
+    const [contactMode, setContactMode] = useState<ContactMode>('full_phone');
     const [firstName, setFirstName] = useState('');
     const [phone, setPhone] = useState('');
+    const [phoneLast4, setPhoneLast4] = useState('');
     const [idChecked, setIdChecked] = useState(false);
     const [context, setContext] = useState<VisitorCheckinContextResult>(EMPTY_CONTEXT);
+    const [lookupCandidates, setLookupCandidates] = useState<VisitorCheckinLookupCandidate[]>([]);
+    const [selectedCandidate, setSelectedCandidate] = useState<VisitorCheckinLookupCandidateRef | null>(null);
     const [email, setEmail] = useState('');
     const [selectedMood, setSelectedMood] = useState<TabletMoodId | null>(null);
     const [recommendationProducts, setRecommendationProducts] = useState<TabletProduct[]>([]);
@@ -97,6 +105,7 @@ export function VisitorCheckinCard({
     const [bundleAdded, setBundleAdded] = useState(false);
     const [favoriteCategories, setFavoriteCategories] = useState<VisitorFavoriteCategory[]>([]);
     const [loadingContext, setLoadingContext] = useState(false);
+    const [loadingCandidates, setLoadingCandidates] = useState(false);
     const [loadingRecommendations, setLoadingRecommendations] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
@@ -111,10 +120,20 @@ export function VisitorCheckinCard({
         () => getTabletMoodById(selectedMood)?.label || null,
         [selectedMood],
     );
+    const selectedCandidateKey = selectedCandidate
+        ? `${selectedCandidate.kind}:${selectedCandidate.id}`
+        : null;
+    const usingStaffLookup = contactMode === 'staff_lookup';
+    const canContinueWithStaffLookup = Boolean(selectedCandidate);
 
     const resetMessages = () => {
         setError('');
         setSubmission(null);
+    };
+
+    const resetLookupState = () => {
+        setLookupCandidates([]);
+        setSelectedCandidate(null);
     };
 
     const toggleProductSelection = (productId: string) => {
@@ -133,20 +152,32 @@ export function VisitorCheckinCard({
         ));
     };
 
+    const handleContactModeChange = (mode: ContactMode) => {
+        resetMessages();
+        setContactMode(mode);
+        resetLookupState();
+    };
+
     const handleContinue = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         resetMessages();
 
         const trimmedFirstName = firstName.trim();
         const phoneDigits = phone.replace(/\D/g, '');
+        const last4Digits = phoneLast4.replace(/\D/g, '').slice(0, 4);
 
         if (!trimmedFirstName) {
             setError('First name is required.');
             return;
         }
 
-        if (phoneDigits.length !== 10) {
+        if (!usingStaffLookup && phoneDigits.length !== 10) {
             setError('Phone is required.');
+            return;
+        }
+
+        if (usingStaffLookup && last4Digits.length !== 4) {
+            setError('Enter the last 4 digits of the customer phone number.');
             return;
         }
 
@@ -155,11 +186,41 @@ export function VisitorCheckinCard({
             return;
         }
 
+        if (usingStaffLookup && !selectedCandidate) {
+            setLoadingCandidates(true);
+            try {
+                const result = await findVisitorCheckinCandidates({
+                    orgId,
+                    firstName: trimmedFirstName,
+                    phoneLast4: last4Digits,
+                });
+
+                if (!result.success || result.candidates.length === 0) {
+                    resetLookupState();
+                    setError('We could not confidently match that customer. Use the full phone number instead.');
+                    return;
+                }
+
+                setLookupCandidates(result.candidates);
+                if (result.candidates.length === 1) {
+                    setSelectedCandidate(result.candidates[0].candidate);
+                }
+                return;
+            } catch (_error) {
+                resetLookupState();
+                setError('Returning-customer lookup is temporarily unavailable. Use the full phone number instead.');
+                return;
+            } finally {
+                setLoadingCandidates(false);
+            }
+        }
+
         setLoadingContext(true);
         try {
             const result = await getVisitorCheckinContext({
                 orgId,
-                phone,
+                phone: usingStaffLookup ? undefined : phone,
+                lookupCandidate: usingStaffLookup ? selectedCandidate ?? undefined : undefined,
             });
 
             if (result.success) {
@@ -231,7 +292,7 @@ export function VisitorCheckinCard({
             const result = await captureVisitorCheckin({
                 orgId,
                 firstName: firstName.trim(),
-                phone,
+                phone: usingStaffLookup ? undefined : phone,
                 email: finalEmail,
                 emailConsent: Boolean(finalEmail) && (Boolean(trimmedEmail) || canReuseSavedEmail),
                 smsConsent: true,
@@ -243,6 +304,7 @@ export function VisitorCheckinCard({
                 favoriteCategories: favoriteCategoriesForSubmit,
                 uiVersion: 'thrive_checkin_v2',
                 offerType,
+                lookupCandidate: usingStaffLookup ? selectedCandidate ?? undefined : undefined,
             });
 
             if (!result.success) {
@@ -319,6 +381,42 @@ export function VisitorCheckinCard({
                         </div>
                     ) : step === 'contact' ? (
                         <form className="space-y-5" onSubmit={handleContinue}>
+                            <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+                                <p className="text-sm font-semibold text-foreground">Choose your quickest check-in path</p>
+                                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                                    <button
+                                        type="button"
+                                        className={`rounded-xl border px-4 py-3 text-left text-sm transition ${
+                                            contactMode === 'full_phone'
+                                                ? 'border-transparent text-white'
+                                                : 'border-border bg-background text-foreground hover:border-foreground/30'
+                                        }`}
+                                        style={contactMode === 'full_phone' ? { backgroundColor: primaryColor } : undefined}
+                                        onClick={() => handleContactModeChange('full_phone')}
+                                    >
+                                        <div className="font-semibold">Use full phone number</div>
+                                        <div className={`mt-1 text-xs ${contactMode === 'full_phone' ? 'text-white/85' : 'text-muted-foreground'}`}>
+                                            Best for new customers or anyone who wants the standard flow.
+                                        </div>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`rounded-xl border px-4 py-3 text-left text-sm transition ${
+                                            contactMode === 'staff_lookup'
+                                                ? 'border-transparent text-white'
+                                                : 'border-border bg-background text-foreground hover:border-foreground/30'
+                                        }`}
+                                        style={contactMode === 'staff_lookup' ? { backgroundColor: primaryColor } : undefined}
+                                        onClick={() => handleContactModeChange('staff_lookup')}
+                                    >
+                                        <div className="font-semibold">Use first name + last 4</div>
+                                        <div className={`mt-1 text-xs ${contactMode === 'staff_lookup' ? 'text-white/85' : 'text-muted-foreground'}`}>
+                                            Staff-assisted lookup for returning online-order customers.
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+
                             <div className="grid gap-4 md:grid-cols-2">
                                 <div className="space-y-2">
                                     <Label htmlFor="visitor-checkin-first-name">First name</Label>
@@ -327,32 +425,105 @@ export function VisitorCheckinCard({
                                         value={firstName}
                                         onChange={(event) => {
                                             resetMessages();
+                                            resetLookupState();
                                             setFirstName(event.target.value);
                                         }}
                                         placeholder="Jane"
                                         autoComplete="given-name"
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="visitor-checkin-phone">Phone number</Label>
-                                    <Input
-                                        id="visitor-checkin-phone"
-                                        type="tel"
-                                        value={phone}
-                                        onChange={(event) => {
-                                            resetMessages();
-                                            setPhone(formatPhone(event.target.value));
-                                        }}
-                                        placeholder="(315) 555-1212"
-                                        inputMode="tel"
-                                        autoComplete="tel"
-                                    />
-                                    <p className="text-xs leading-5 text-muted-foreground">
-                                        By providing your phone number, you agree to receive weekly deals from Thrive Syracuse.
-                                        Max 1 text per week. We will only text more if you ask us to.
-                                    </p>
-                                </div>
+                                {contactMode === 'full_phone' ? (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="visitor-checkin-phone">Phone number</Label>
+                                        <Input
+                                            id="visitor-checkin-phone"
+                                            type="tel"
+                                            value={phone}
+                                            onChange={(event) => {
+                                                resetMessages();
+                                                setPhone(formatPhone(event.target.value));
+                                            }}
+                                            placeholder="(315) 555-1212"
+                                            inputMode="tel"
+                                            autoComplete="tel"
+                                        />
+                                        <p className="text-xs leading-5 text-muted-foreground">
+                                            By providing your phone number, you agree to receive weekly deals from Thrive Syracuse.
+                                            Max 1 text per week. We will only text more if you ask us to.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="visitor-checkin-phone-last4">Last 4 digits</Label>
+                                        <Input
+                                            id="visitor-checkin-phone-last4"
+                                            type="tel"
+                                            value={phoneLast4}
+                                            onChange={(event) => {
+                                                resetMessages();
+                                                resetLookupState();
+                                                setPhoneLast4(event.target.value.replace(/\D/g, '').slice(0, 4));
+                                            }}
+                                            placeholder="1212"
+                                            inputMode="numeric"
+                                            autoComplete="off"
+                                        />
+                                        <p className="text-xs leading-5 text-muted-foreground">
+                                            Staff can use a masked returning-customer lookup without exposing the full phone number in this public flow.
+                                        </p>
+                                    </div>
+                                )}
                             </div>
+
+                            {contactMode === 'staff_lookup' && lookupCandidates.length > 0 ? (
+                                <div className="space-y-3 rounded-xl border border-border/60 bg-background p-4">
+                                    <div>
+                                        <p className="text-sm font-semibold text-foreground">Choose the confirmed match</p>
+                                        <p className="text-xs text-muted-foreground">
+                                            We only show masked candidates. Select the right returning customer, then continue.
+                                        </p>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {lookupCandidates.map((candidate) => {
+                                            const candidateKey = `${candidate.candidate.kind}:${candidate.candidate.id}`;
+                                            const isSelected = candidateKey === selectedCandidateKey;
+
+                                            return (
+                                                <button
+                                                    key={candidateKey}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        resetMessages();
+                                                        setSelectedCandidate(candidate.candidate);
+                                                    }}
+                                                    className={`w-full rounded-xl border px-4 py-3 text-left transition ${
+                                                        isSelected
+                                                            ? 'border-transparent text-white'
+                                                            : 'border-border bg-muted/20 text-foreground hover:border-foreground/30'
+                                                    }`}
+                                                    style={isSelected ? { backgroundColor: primaryColor } : undefined}
+                                                >
+                                                    <div className="flex items-center justify-between gap-3">
+                                                        <div>
+                                                            <p className="font-semibold">{candidate.title}</p>
+                                                            <p className={`mt-1 text-xs ${isSelected ? 'text-white/85' : 'text-muted-foreground'}`}>
+                                                                {candidate.subtitle}
+                                                            </p>
+                                                        </div>
+                                                        <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ${
+                                                            isSelected
+                                                                ? 'bg-white/15 text-white'
+                                                                : 'bg-muted text-muted-foreground'
+                                                        }`}>
+                                                            {candidate.returningSource === 'customer' ? 'Customer' : 'Online Order'}
+                                                        </span>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ) : null}
 
                             <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
                                 <label className="flex items-start gap-3 text-sm">
@@ -379,13 +550,20 @@ export function VisitorCheckinCard({
                                 type="submit"
                                 className="w-full text-base font-semibold"
                                 style={{ backgroundColor: primaryColor }}
-                                disabled={loadingContext}
+                                disabled={loadingContext || loadingCandidates || (usingStaffLookup && !canContinueWithStaffLookup && lookupCandidates.length > 0)}
                             >
-                                {loadingContext ? (
+                                {loadingCandidates ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Finding Returning Customers
+                                    </>
+                                ) : loadingContext ? (
                                     <>
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                         Loading Your Check-In
                                     </>
+                                ) : usingStaffLookup ? (
+                                    canContinueWithStaffLookup ? 'Continue to Check-In' : 'Find My Profile'
                                 ) : 'Continue'}
                             </Button>
                         </form>

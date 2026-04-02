@@ -2,12 +2,14 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { VisitorCheckinCard } from '../visitor-checkin-card';
 import {
   captureVisitorCheckin,
+  findVisitorCheckinCandidates,
   getVisitorCheckinContext,
 } from '@/server/actions/visitor-checkin';
 import { getMoodRecommendations } from '@/server/actions/loyalty-tablet';
 
 jest.mock('@/server/actions/visitor-checkin', () => ({
   captureVisitorCheckin: jest.fn(),
+  findVisitorCheckinCandidates: jest.fn(),
   getVisitorCheckinContext: jest.fn(),
 }));
 
@@ -39,6 +41,10 @@ describe('VisitorCheckinCard', () => {
       success: true,
       isReturningCustomer: false,
       enrichmentMode: 'email',
+    });
+    (findVisitorCheckinCandidates as jest.Mock).mockResolvedValue({
+      success: true,
+      candidates: [],
     });
     (getMoodRecommendations as jest.Mock).mockResolvedValue({
       success: true,
@@ -127,6 +133,60 @@ describe('VisitorCheckinCard', () => {
     );
     expect(screen.getByText(/Tell us what you usually shop for/i)).toBeInTheDocument();
     expect(screen.getByTestId('smokey-widget')).toBeInTheDocument();
+  });
+
+  it('supports staff-assisted lookup with first name and last 4 before loading returning context', async () => {
+    (findVisitorCheckinCandidates as jest.Mock).mockResolvedValue({
+      success: true,
+      candidates: [
+        {
+          candidate: { kind: 'order', id: 'order_1' },
+          firstName: 'Jane',
+          phoneLast4: '1212',
+          returningSource: 'online_order',
+          title: 'Jane - Ordered online',
+          subtitle: 'Blue Dream Pre-Roll - Mar 20, 2026 - phone ending in 1212',
+        },
+      ],
+    });
+    (getVisitorCheckinContext as jest.Mock).mockResolvedValue({
+      success: true,
+      isReturningCustomer: true,
+      returningSource: 'online_order',
+      enrichmentMode: 'email',
+      lastPurchase: {
+        primaryItemName: 'Blue Dream Pre-Roll',
+        itemCount: 1,
+        total: 12,
+        orderDateLabel: 'Mar 20, 2026',
+      },
+    });
+
+    renderCard();
+
+    fireEvent.click(screen.getByRole('button', { name: /Use first name \+ last 4/i }));
+    fireEvent.change(screen.getByLabelText('First name'), { target: { value: 'Jane' } });
+    fireEvent.change(screen.getByLabelText('Last 4 digits'), { target: { value: '1212' } });
+    fireEvent.click(screen.getByLabelText('A Thrive staff member already checked my ID today'));
+    fireEvent.click(screen.getByRole('button', { name: 'Find My Profile' }));
+
+    expect(await screen.findByText('Jane - Ordered online')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Jane - Ordered online/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to Check-In' }));
+
+    await screen.findByText(/Last time you picked up: Blue Dream Pre-Roll/i);
+
+    expect(findVisitorCheckinCandidates).toHaveBeenCalledWith({
+      orgId: 'org_thrive_syracuse',
+      firstName: 'Jane',
+      phoneLast4: '1212',
+    });
+    expect(getVisitorCheckinContext).toHaveBeenCalledWith({
+      orgId: 'org_thrive_syracuse',
+      phone: undefined,
+      lookupCandidate: { kind: 'order', id: 'order_1' },
+    });
   });
 
   it('submits the email enrichment path with Thrive check-in metadata', async () => {
@@ -221,6 +281,58 @@ describe('VisitorCheckinCard', () => {
         emailConsent: true,
         favoriteCategories: ['pre-rolls'],
         offerType: 'email',
+      }));
+    });
+  });
+
+  it('submits a staff-assisted match using the lookup candidate instead of a browser-held phone number', async () => {
+    (findVisitorCheckinCandidates as jest.Mock).mockResolvedValue({
+      success: true,
+      candidates: [
+        {
+          candidate: { kind: 'customer', id: 'customer_1' },
+          firstName: 'Jane',
+          phoneLast4: '1212',
+          returningSource: 'customer',
+          title: 'Jane - Known customer',
+          subtitle: 'Phone ending in 1212 - existing Thrive profile',
+        },
+      ],
+    });
+    (getVisitorCheckinContext as jest.Mock).mockResolvedValue({
+      success: true,
+      isReturningCustomer: true,
+      enrichmentMode: 'favorite_categories',
+      savedEmail: 'vip@example.com',
+      savedEmailConsent: true,
+    });
+    (captureVisitorCheckin as jest.Mock).mockResolvedValue({
+      success: true,
+      isNewLead: false,
+      isReturningCustomer: true,
+    });
+
+    renderCard();
+
+    fireEvent.click(screen.getByRole('button', { name: /Use first name \+ last 4/i }));
+    fireEvent.change(screen.getByLabelText('First name'), { target: { value: 'Jane' } });
+    fireEvent.change(screen.getByLabelText('Last 4 digits'), { target: { value: '1212' } });
+    fireEvent.click(screen.getByLabelText('A Thrive staff member already checked my ID today'));
+    fireEvent.click(screen.getByRole('button', { name: 'Find My Profile' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Jane - Known customer/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to Check-In' }));
+
+    await screen.findByText(/Tell us what you usually shop for/i);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Pre Rolls' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Finish Check-In' }));
+
+    await waitFor(() => {
+      expect(captureVisitorCheckin).toHaveBeenCalledWith(expect.objectContaining({
+        phone: undefined,
+        lookupCandidate: { kind: 'customer', id: 'customer_1' },
+        email: 'vip@example.com',
+        favoriteCategories: ['pre-rolls'],
       }));
     });
   });
