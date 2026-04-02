@@ -1,6 +1,12 @@
 # BakedBot Session Memory
 
 ## Session: 2026-04-02
+- **Thrive staff last-4 check-in assist** (`a5bdcb8ab`) - Added a staff-confirmed first-name-plus-last-4 lookup path in the canonical visitor check-in actions, returning masked customer/order candidates and resolving the real phone only on the server from opaque refs.
+- **Phone last-4 persistence + backfill** (`a5bdcb8ab`) - Persisted `phoneLast4` on checkout, shipping, POS sync, Alleaves webhook, and order backfill writes, plus added `POST /api/admin/backfill-phone-last4` for scoped customer and order backfills.
+- **Index and verification guardrails** (`a5bdcb8ab`) - Added Firestore indexes for the new staff lookup queries plus Jest coverage for the server flow, check-in card UI, and index config; repo-wide `check:types` still timed out in both sandboxed and elevated runs.
+- **Session file** - `memory/sessions/2026-04-02-0228-thrive-staff-last4-checkin.md`
+
+## Session: 2026-04-02
 - **Job stream module restored** (`7ed6cb126`) - Added the missing canonical `src/server/jobs/job-stream.ts` module so the already-committed agent worker, runner, and cancel-job paths compile again.
 - **CI recovered on main** (`7ed6cb126`) - The follow-up push turned `Type Check & Lint`, `E2E Tests`, and `Deploy to Firebase App Hosting` green on `main`.
 - **Verification** (`7ed6cb126`) - GitHub Actions runs `23887506522`, `23887506516`, and `23887506525` all completed successfully.

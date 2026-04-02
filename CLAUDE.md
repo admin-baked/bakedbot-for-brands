@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 main green | **Last update:** 2026-04-02 (Job stream helper restored Type Check + E2E + deploy)
+**Current Status:** 🟡 `main` green; local Thrive check-in work has focused tests passing while repo-wide `check:types` still times out in this shell | **Last update:** 2026-04-02 (Staff-assisted last-4 check-in flow + phoneLast4 indexing)
 
 ---
 

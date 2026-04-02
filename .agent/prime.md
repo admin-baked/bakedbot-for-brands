@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 main green after the job-stream helper restore.
+**Current Status:** 🟡 `main` is green; local Thrive check-in work has focused tests passing while repo-wide `check:types` still times out in this shell.
 **Recent work (2026-04-02):** See `MEMORY.md` for full log.
-Key completed: [Restored missing `job-stream.ts` module -> Type Check + E2E + deploy green on `main`] (`7ed6cb126`)
+Key completed: [Staff-assisted last-4 Thrive check-in lookup + `phoneLast4` backfill/index support] (`a5bdcb8ab`)
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
