@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — Linus Slack tool expansion + hallucination fix shipped.
+**Current Status:** 🟢 Passing — Thrive welcome-playbook recovery + Smokey menu search shipped.
 **Recent work (2026-04-01):** See `MEMORY.md` for full log.
-Key completed: [Linus Slack tool expansion — 22 tools added to LINUS_SLACK_TOOL_NAMES, hallucination root cause fixed] (`da54f3846`).
+Key completed: [Thrive playbook recovery + video route hardening] (`203b3b19c`), [Smokey product ID cleanup] (`fe86f502c`)
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
