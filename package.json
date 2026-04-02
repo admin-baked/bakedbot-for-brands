@@ -63,6 +63,7 @@
     "test:security": "node scripts/test-security-rules.mjs",
     "check:compliance": "node scripts/check-compliance.mjs",
     "audit:consistency": "node scripts/audit-consistency.mjs",
+    "audit:content-freshness": "node scripts/audit-content-freshness.mjs",
     "setup:monitoring": "node scripts/setup-monitoring.mjs",
     "audit:costs": "node scripts/audit-query-cost.mjs",
     "provision:ny-outreach": "node scripts/provision-ny-outreach.mjs",
