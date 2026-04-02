@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — Thrive tablet check-in hardening shipped.
+**Current Status:** 🟢 Passing — Help side tab + onboarding restart shipped.
 **Recent work (2026-04-01):** See `MEMORY.md` for full log.
-Key completed: [Deterministic Thrive tablet recommendations + check-in verification] (`uncommitted`)
+Key completed: [Help side tab replaces FAB, onboarding restart via CustomEvent] (`08fe0cdea`)
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
