@@ -1806,7 +1806,7 @@
             "collectionGroup": "orders",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "orgId", "order": "ASCENDING" },
+                { "fieldPath": "brandId", "order": "ASCENDING" },
                 { "fieldPath": "createdAt", "order": "ASCENDING" }
             ]
         },
@@ -1814,7 +1814,7 @@
             "collectionGroup": "orders",
             "queryScope": "COLLECTION",
             "fields": [
-                { "fieldPath": "orgId", "order": "ASCENDING" },
+                { "fieldPath": "brandId", "order": "ASCENDING" },
                 { "fieldPath": "createdAt", "order": "DESCENDING" }
             ]
         },
