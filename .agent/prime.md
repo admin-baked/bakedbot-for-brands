@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — Loyalty tablet submit hardened with timeout + error catch.
+**Current Status:** 🟢 Passing — Protocol updates: auto-archive, pre-push simplify gate, multi-tab session protocol, Codex/Gemini context.
 **Recent work (2026-04-01):** See `MEMORY.md` for full log.
-Key completed: [Tablet submit timeout + catch] (`5392770b9`), [Loyalty tablet Smokey hang fix] (`2128efc47`).
+Key completed: [auto-archive + multi-tab session protocol] (`2099b8a2e`), [Codex/Gemini context files] (`477f5acc3`).
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 

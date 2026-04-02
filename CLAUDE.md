@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-04-01 (Loyalty tablet submit timeout + error catch)
+**Current Status:** 🟢 Passing | **Last update:** 2026-04-01 (auto-archive protocol, pre-push simplify gate, multi-tab session protocol, Codex/Gemini context files)
 
 ---
 
