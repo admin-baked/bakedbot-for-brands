@@ -19,7 +19,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAtRiskCustomers, getSegmentSummary, getTodayCheckins } from '@/server/tools/crm-tools';
 import { getLatestWeeklyReport } from '@/server/services/ezal/weekly-intel-report';
 import { fetchMenuProducts, normalizeProduct } from '@/server/agents/adapters/consumer-adapter';
-import { slackService } from '@/server/services/communications/slack';
+import { elroySlackService } from '@/server/services/communications/slack';
 import { callClaude } from '@/ai/claude';
 import { requireCronSecret } from '@/server/auth/cron';
 import { logger } from '@/lib/logger';
@@ -72,19 +72,19 @@ export async function POST(request: NextRequest) {
         // Ensure channel exists and bot is a member before posting
         const channelName = SLACK_CHANNEL.replace(/^#/, '');
         let channelId: string | undefined;
-        const existing = await slackService.findChannelByName(channelName);
+        const existing = await elroySlackService.findChannelByName(channelName);
         if (existing) {
             channelId = existing.id;
         } else {
-            const created = await slackService.createChannel(channelName);
+            const created = await elroySlackService.createChannel(channelName);
             channelId = created?.id;
         }
         if (channelId) {
-            await slackService.joinChannel(channelId);
+            await elroySlackService.joinChannel(channelId);
         }
 
         const fallbackText = `🌿 Thrive Syracuse Daily Briefing — ${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}`;
-        const postResult = await slackService.postMessage(channelId ?? SLACK_CHANNEL, fallbackText, blocks);
+        const postResult = await elroySlackService.postMessage(channelId ?? SLACK_CHANNEL, fallbackText, blocks);
 
         if (!postResult.sent) {
             logger.error('[ThriveDailyBriefing] Failed to post to Slack', { error: postResult.error });
@@ -329,7 +329,7 @@ function buildBriefingBlocks(data: BriefingData & { actionItems: string[] }): an
         type: 'context',
         elements: [{
             type: 'mrkdwn',
-            text: `_BakedBot AI · Thrive Syracuse · ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' })}_`,
+            text: `_Uncle Elroy · Thrive Syracuse · ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' })}_`,
         }],
     });
 

@@ -3,7 +3,7 @@ import { logger } from '@/lib/logger';
 import { dispatchLinusIncidentResponse } from '@/server/services/linus-incident-response';
 import { postLinusIncidentSlack } from '@/server/services/incident-notifications';
 
-const DEFAULT_CHANNEL_NAME = 'linus-deployment';
+const DEFAULT_CHANNEL_NAME = 'linus-deployments';
 const DEFAULT_MAX_ITERATIONS = 8;
 const INCIDENT_COLLECTION = 'firebase_deployment_incidents';
 const SUPER_USER_ORG = 'bakedbot-internal';

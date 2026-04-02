@@ -1,5 +1,16 @@
 # BakedBot Session Memory
 
+## Session: 2026-04-01
+- **Thrive welcome-playbook recovery** (`203b3b19c`) — Hardened the playbook event dispatcher to fall back to active root `playbooks` docs when `playbook_event_listeners` are missing, and backfill those listeners so customer signup/check-in events still reach the welcome workflow.
+- **Canonical welcome email execution** (`203b3b19c`) — Routed `welcome_personalized` through the shared Mrs. Parker welcome-email service and auto-scheduled the Thrive welcome playbook during pilot setup so live check-ins can send the right email path.
+- **Smokey natural-language menu search** (`203b3b19c`) — Added shared menu parsing/ranking for category, effect, strain, and price prompts, plus direct age-answer handling and a deterministic anonymous-consumer fallback when tool execution returns no products.
+- **Smokey cleanup after /simplify** (`fe86f502c`) — Extracted the shared product ID helper and preserved ranked fallback ordering so consumer chat result handling stays easier to reason about.
+- **Verification** (`203b3b19c`, `fe86f502c`) — Targeted Jest coverage for Smokey menu search, consumer adapter fallback, playbook dispatcher fallback, and welcome-email execution passed, and `.\scripts\npm-safe.cmd run check:types` passed after the session.
+
+### Gotchas (2026-04-01)
+- Active playbooks can still be inert if the org is missing `playbook_event_listeners`; check listener materialization before assuming the trigger logic is broken.
+- Consumer menu chat needs both a semantic menu-search fallback and a direct compliance path for age questions, or natural-language prompts collapse into generic "no products found" replies even when menu data is loaded.
+
 ## Session: 2026-03-25
 - **Default-shell Node/Jest startup fixed**: Added repo-safe `scripts/node-safe.cmd` and `scripts/npm-safe.cmd` wrappers plus a shared bootstrap so sandboxed Node file execution stays inside `.codex-jest-home` and no longer fails on `C:\Users\admin`. Commit: `1699974c2`.
 - **Jest launcher reused the canonical bootstrap**: Extracted the existing env setup into `scripts/ensure-workspace-node-home.cjs` so direct Jest runs and wrapper-launched scripts share the same Node-side setup path.
