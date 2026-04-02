@@ -13,6 +13,7 @@
  */
 
 import { createServerClient } from '@/firebase/server-client';
+import { extractJsonPayload } from '@/lib/utils/extract-json';
 import { requireUser } from '@/server/auth/auth';
 import { Playbook, PlaybookTrigger } from '@/types/playbook';
 import {
@@ -83,8 +84,6 @@ function asDate(value: any): Date | null {
     }
     return null;
 }
-
-import { extractJsonPayload } from '@/lib/utils/extract-json';
 
 function normalizeTrigger(trigger: any): any | null {
     if (!trigger || typeof trigger.type !== 'string') {
