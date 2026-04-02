@@ -588,7 +588,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                 result = { content: linusResult.content, toolCalls: linusResult.toolExecutions };
             } else if (isElroy) {
                 // Uncle Elroy — store ops agent for Thrive Syracuse, always uses Claude tools
-                const elroyProgress = makeThrottledProgress(channel, workingMessageTs);
+                const elroyProgress = makeThrottledProgress(channel, workingMessageTs, elroySlackService);
 
                 const elroyResult = await Promise.race([
                     runElroy({
@@ -775,6 +775,7 @@ Keep it friendly, brief, and genuine.`;
 function makeThrottledProgress(
     channel: string,
     workingMessageTs: string | undefined,
+    service: SlackService = slackService,
 ): ((msg: string) => Promise<void>) | undefined {
     if (!workingMessageTs) return undefined;
     let lastSentAt = 0;
@@ -782,7 +783,7 @@ function makeThrottledProgress(
         const now = Date.now();
         if (now - lastSentAt < 1000) return;
         lastSentAt = now;
-        await slackService.updateMessage(channel, workingMessageTs, msg).catch(() => {});
+        await service.updateMessage(channel, workingMessageTs, msg).catch(() => {});
     };
 }
 

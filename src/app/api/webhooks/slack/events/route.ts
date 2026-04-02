@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { logger } from '@/lib/logger';
 import { processSlackMessage, welcomeNewMember } from '@/server/services/slack-agent-bridge';
-import { slackService } from '@/server/services/communications/slack';
+import { slackService, elroySlackService } from '@/server/services/communications/slack';
 
 // Force dynamic - never cache webhook handlers
 export const dynamic = 'force-dynamic';
@@ -202,7 +202,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             let channelName = '';
             if (!isDm && channel) {
                 try {
-                    const info = await slackService.getChannelInfo(channel);
+                    // Use the app's own bot to look up channel info — avoids "not_in_channel" errors
+                    // when one bot is in a channel but the other isn't (e.g. Elroy in #thrive-syracuse-pilot)
+                    const lookupService = (elroyAppId && appId === elroyAppId) ? elroySlackService : slackService;
+                    const info = await lookupService.getChannelInfo(channel);
                     channelName = info?.name ?? '';
                     logger.info(`[Slack/Events] Resolved channelName="${channelName}" for channel=${channel}`);
                 } catch (e: any) {
