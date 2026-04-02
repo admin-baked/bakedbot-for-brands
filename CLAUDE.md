@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; Firecrawl made primary, /agent endpoint added, Elroy gets live competitor intel from Slack | **Last update:** 2026-04-02 (Firecrawl /agent + Elroy run_competitive_agent)
+**Current Status:** 🟢 `main` green; App Hosting deploys now resolve real Cloud Build + rollout IDs after Firebase CLI timeouts, Firecrawl is primary, /agent endpoint is live, Elroy gets live competitor intel from Slack | **Last update:** 2026-04-02 (App Hosting deploy diagnostics + explicit Cloud Build polling)
 
 ---
 

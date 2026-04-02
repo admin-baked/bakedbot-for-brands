@@ -1,6 +1,13 @@
 # BakedBot Session Memory
 
 ## Session: 2026-04-02
+- **App Hosting deploy diagnostics hardened** (`uncommitted`) - Reworked `.github/workflows/deploy.yml` to trigger App Hosting rollouts by exact commit, stop relying on Firebase CLI's built-in 25 minute poll, resolve the underlying Cloud Build/App Hosting build IDs, and wait explicitly for Cloud Build plus rollout completion.
+- **Shared App Hosting inspector expanded** (`uncommitted`) - Extended `scripts/firebase-apphosting.mjs` with `describe`, `resolve`, and `wait` commands so local ops and CI share one canonical path for build lookup, rollout status, and Cloud Build log URLs.
+- **56 minute deploy root cause confirmed** (`uncommitted`) - Traced `fe857d24-cd89-4d13-af51-a68d481dcbc4` to commit `d168d3d68ccdf83893d8fb434cfe727715de48d4` (`fix(inbox): restore seeded prompt flow`), confirmed GitHub deploy failed after the Firebase CLI timeout while the downstream Cloud Build kept running to `INTERNAL_ERROR`, and verified the failed build log ended without an app stack trace.
+- **Verification** (`uncommitted`) - `node scripts/firebase-apphosting.mjs describe fe857d24-cd89-4d13-af51-a68d481dcbc4 --json` passed, `node scripts/firebase-apphosting.mjs resolve --commit d168d3d68ccdf83893d8fb434cfe727715de48d4 --after 2026-04-02T14:10:00Z --json` passed, `node scripts/firebase-apphosting.mjs wait --cloud-build 619cc73d-e9c5-41b2-a70b-7733630b5423 --apphosting-build build-2026-04-02-009 --timeout-minutes 1 --json` passed, and the same `wait` command against `fe857d24... / build-2026-04-02-010` failed with structured `INTERNAL_ERROR` details as expected.
+- **Session file** - `memory/sessions/2026-04-02-1118-apphosting-deploy-diagnostics.md`
+
+## Session: 2026-04-02
 - **Thrive post-deploy smoke runbooks** (`896bf5afe`) - Added a tracked Thrive master playbook with the public check-in post-deploy retest addendum plus a separate operator-facing smoke script for full-phone returning lookup, staff-assisted last-4, and net-new safety.
 - **Production baseline captured in docs** (`896bf5afe`) - Recorded the live April 2, 2026 status in the runbooks: App Hosting, Type Check & Lint, and E2E all green on `main`, `phoneLast4` indexes ready, and Thrive customer backfill complete.
 - **Session file** - `memory/sessions/2026-04-02-0936-thrive-postdeploy-smoke-runbooks.md`
