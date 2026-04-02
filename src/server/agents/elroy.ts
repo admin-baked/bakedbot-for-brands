@@ -14,6 +14,10 @@
  * - get_menu_inventory      — live Alleaves menu snapshot
  * - get_competitor_intel    — latest weekly intel from Ezal
  * - search_customer         — look up a customer by name or phone
+ * - discovery_browser_automate — browse Weedmaps/AIQ/WordPress/competitor sites
+ * - discovery_fill_form     — fill forms on external sites (deals, campaigns, WP content)
+ * - discovery_extract_data  — extract structured data from any webpage
+ * - discovery_summarize_page — quick page summary
  */
 
 import { executeWithTools, isClaudeAvailable, ClaudeTool, ClaudeResult, AgentContext } from '@/ai/claude';
@@ -445,48 +449,56 @@ async function elroyToolExecutor(toolName: string, input: Record<string, unknown
             const { input: taskInput, urls, verbosity } = input as {
                 input: string; urls?: string[]; verbosity?: 'final' | 'steps' | 'debug';
             };
-            const { executeDiscoveryBrowserTool } = await import('@/server/services/rtrvr/tools');
-            const result = await executeDiscoveryBrowserTool('discovery.browserAutomate', {
-                input: taskInput, urls: urls || [], verbosity: verbosity || 'final',
-            });
-            return result.success
-                ? { success: true, message: 'Browser automation completed', result: result.data }
-                : { success: false, error: result.error || 'Browser automation failed' };
+            try {
+                const { executeDiscoveryBrowserTool } = await import('@/server/services/rtrvr/tools');
+                const result = await executeDiscoveryBrowserTool('discovery.browserAutomate', {
+                    input: taskInput, urls: urls || [], verbosity: verbosity || 'final',
+                });
+                return result.success
+                    ? { success: true, message: 'Browser automation completed', result: result.data }
+                    : { success: false, error: result.error || 'Browser automation failed' };
+            } catch (e: any) { return { success: false, error: e.message }; }
         }
 
         case 'discovery_fill_form': {
             const { url, formData, submitButtonText } = input as {
                 url: string; formData: Record<string, string>; submitButtonText?: string;
             };
-            const { executeDiscoveryBrowserTool } = await import('@/server/services/rtrvr/tools');
-            const result = await executeDiscoveryBrowserTool('discovery.fillForm', {
-                url, formData, submitButtonText,
-            });
-            return result.success
-                ? { success: true, url, formFields: Object.keys(formData), submitted: !!submitButtonText, result: result.data }
-                : { success: false, error: result.error || 'Form fill failed' };
+            try {
+                const { executeDiscoveryBrowserTool } = await import('@/server/services/rtrvr/tools');
+                const result = await executeDiscoveryBrowserTool('discovery.fillForm', {
+                    url, formData, submitButtonText,
+                });
+                return result.success
+                    ? { success: true, url, formFields: Object.keys(formData), submitted: !!submitButtonText, result: result.data }
+                    : { success: false, error: result.error || 'Form fill failed' };
+            } catch (e: any) { return { success: false, error: e.message }; }
         }
 
         case 'discovery_extract_data': {
             const { url, instruction, schema } = input as {
                 url: string; instruction: string; schema?: Record<string, unknown>;
             };
-            const { executeDiscoveryBrowserTool } = await import('@/server/services/rtrvr/tools');
-            const result = await executeDiscoveryBrowserTool('discovery.extractData', {
-                url, instruction, schema: schema || {},
-            });
-            return result.success
-                ? { success: true, url, instruction, extractedData: result.data }
-                : { success: false, error: result.error || 'Data extraction failed' };
+            try {
+                const { executeDiscoveryBrowserTool } = await import('@/server/services/rtrvr/tools');
+                const result = await executeDiscoveryBrowserTool('discovery.extractData', {
+                    url, instruction, schema: schema || {},
+                });
+                return result.success
+                    ? { success: true, url, instruction, extractedData: result.data }
+                    : { success: false, error: result.error || 'Data extraction failed' };
+            } catch (e: any) { return { success: false, error: e.message }; }
         }
 
         case 'discovery_summarize_page': {
             const { url } = input as { url: string };
-            const { executeDiscoveryBrowserTool } = await import('@/server/services/rtrvr/tools');
-            const result = await executeDiscoveryBrowserTool('discovery.summarizePage', { url });
-            return result.success
-                ? { success: true, url, summary: result.data?.result || result.data }
-                : { success: false, error: result.error || 'Page summarization failed' };
+            try {
+                const { executeDiscoveryBrowserTool } = await import('@/server/services/rtrvr/tools');
+                const result = await executeDiscoveryBrowserTool('discovery.summarizePage', { url });
+                return result.success
+                    ? { success: true, url, summary: result.data?.result || result.data }
+                    : { success: false, error: result.error || 'Page summarization failed' };
+            } catch (e: any) { return { success: false, error: e.message }; }
         }
 
         default:
@@ -521,12 +533,29 @@ When discussing inventory, flag anything on sale or with high stock that could m
 When citing competitor intel, note how fresh it is.
 For real-time or "right now" competitor questions (current prices, today's deals), use run_competitive_agent — it runs a live web research sweep via Firecrawl AI. It takes 30–90 seconds. Use get_competitor_intel for quick cached weekly data.
 
-EXTERNAL SITE MANAGEMENT (Weedmaps, AIQ):
+EXTERNAL SITE MANAGEMENT (Weedmaps, AIQ, WordPress):
 You can browse, extract data from, and fill forms on external sites using your browser tools.
-- Use discovery_browser_automate for general browsing and clicking (reading deals, checking listings)
-- Use discovery_extract_data to pull structured data (current Weedmaps deals, AIQ campaign stats)
-- Use discovery_fill_form to create/update deals or campaigns — ALWAYS confirm details with the user before submitting
+- Use discovery_browser_automate for general browsing and clicking (reading deals, checking listings, navigating WP admin)
+- Use discovery_extract_data to pull structured data (current Weedmaps deals, AIQ campaign stats, WP page content)
+- Use discovery_fill_form to create/update deals, campaigns, or WordPress content — ALWAYS confirm details with the user before submitting
 - Use discovery_summarize_page for a quick overview of any page
+
+THRIVE SYRACUSE WORDPRESS (thrivesyracuse.com):
+- WordPress admin panel at thrivesyracuse.com/wp-admin
+- Has AIQ menu plugin installed — menu syncs from Alleaves POS via AIQ
+- Use browser tools to: update pages, create/edit posts, manage banners, check plugin status
+- For AIQ plugin settings or menu display issues, browse to wp-admin > AIQ Menu settings
+- For content updates (hours, announcements, banners), use discovery_fill_form on the WP editor
+
+WEEDMAPS (weedmaps.com):
+- Thrive Syracuse Weedmaps listing — manage deals, update banners, check reviews
+- Use discovery_browser_automate to navigate the Weedmaps business dashboard
+- Use discovery_fill_form to create/update deals and banners
+
+AIQ (alpineiq.com):
+- Thrive Syracuse AIQ account — loyalty campaigns, SMS/email automations, menu sync
+- Use discovery_browser_automate to navigate the AIQ dashboard
+- Use discovery_fill_form to create campaigns or update settings
 
 CRITICAL: When filling forms or submitting on external sites, ALWAYS:
 1. Tell the user exactly what you're about to fill and where
@@ -548,8 +577,8 @@ const ELROY_AGENT_CONTEXT: AgentContext = {
         'get_top_sellers — top products last 7 days',
         'get_recent_transactions — latest order history',
         'get_sales_summary — today vs yesterday vs 7-day avg',
-        'discovery_browser_automate — browse external sites (Weedmaps, AIQ, competitors)',
-        'discovery_fill_form — fill and submit forms on external sites (deals, campaigns)',
+        'discovery_browser_automate — browse external sites (Weedmaps, AIQ, WordPress, competitors)',
+        'discovery_fill_form — fill and submit forms (deals, campaigns, WP content)',
         'discovery_extract_data — extract structured data from any webpage',
         'discovery_summarize_page — quick page summary',
     ],
