@@ -34,20 +34,33 @@ jest.mock('@/lib/logger', () => ({
   },
 }));
 
-type CollectionName = 'customers' | 'checkin_visits' | 'email_leads';
+type CollectionName = 'customers' | 'checkin_visits' | 'email_leads' | 'orders';
+
+function getNestedFieldValue(data: Record<string, unknown>, field: string): unknown {
+  return field.split('.').reduce<unknown>((current, key) => {
+    if (!current || typeof current !== 'object' || Array.isArray(current)) {
+      return undefined;
+    }
+
+    return (current as Record<string, unknown>)[key];
+  }, data);
+}
 
 function createFirestore(args?: {
   customers?: Record<string, Record<string, unknown>>;
   emailLeads?: Record<string, Record<string, unknown>>;
+  orders?: Record<string, Record<string, unknown>>;
 }) {
   const customers = new Map<string, Record<string, unknown>>(Object.entries(args?.customers ?? {}));
   const visits = new Map<string, Record<string, unknown>>();
   const emailLeads = new Map<string, Record<string, unknown>>(Object.entries(args?.emailLeads ?? {}));
+  const orders = new Map<string, Record<string, unknown>>(Object.entries(args?.orders ?? {}));
 
   const getStore = (collectionName: CollectionName) => {
     if (collectionName === 'customers') return customers;
     if (collectionName === 'checkin_visits') return visits;
-    return emailLeads;
+    if (collectionName === 'email_leads') return emailLeads;
+    return orders;
   };
 
   const makeDocRef = (collectionName: CollectionName, id: string) => ({
@@ -99,18 +112,18 @@ function createFirestore(args?: {
     }),
   };
 
-  const makeWhere = (collectionName: 'customers' | 'email_leads', field: string, value: string) => ({
+  const makeWhere = (collectionName: 'customers' | 'email_leads' | 'orders', field: string, value: string) => ({
     limit: () => ({
       get: jest.fn(async () => {
         const docs = Array.from(getStore(collectionName).entries())
-          .filter(([, data]) => data[field] === value)
+          .filter(([, data]) => getNestedFieldValue(data, field) === value)
           .map(([id, data]) => makeQueryDoc(collectionName, id, data));
         return { empty: docs.length === 0, docs };
       }),
     }),
     get: jest.fn(async () => {
       const docs = Array.from(getStore(collectionName).entries())
-        .filter(([, data]) => data[field] === value)
+        .filter(([, data]) => getNestedFieldValue(data, field) === value)
         .map(([id, data]) => makeQueryDoc(collectionName, id, data));
       return { empty: docs.length === 0, docs };
     }),
@@ -139,11 +152,17 @@ function createFirestore(args?: {
         };
       }
 
+      if (name === 'orders') {
+        return {
+          where: (field: string, _operator: string, value: string) => makeWhere('orders', field, value),
+        };
+      }
+
       throw new Error(`Unexpected collection: ${name}`);
     }),
   };
 
-  return { firestore, customers, visits, emailLeads };
+  return { firestore, customers, visits, emailLeads, orders };
 }
 
 describe('visitor check-in actions', () => {
@@ -274,6 +293,52 @@ describe('visitor check-in actions', () => {
       savedEmailConsent: true,
       enrichmentMode: 'favorite_categories',
     });
+  });
+
+  it('treats a scoped online order as returning context without requiring an existing CRM profile', async () => {
+    const state = createFirestore({
+      orders: {
+        order_1: {
+          brandId: 'org_thrive_syracuse',
+          customer: {
+            name: 'Martez Anderson',
+            email: 'martezandco@gmail.com',
+            phone: '3126840522',
+          },
+          items: [{ name: 'Gelonade 3.5g' }, { name: 'Blue Dream Pre-Roll' }],
+          totals: { total: 72 },
+          createdAt: new Date('2026-03-29T16:00:00.000Z'),
+        },
+      },
+    });
+    (getAdminFirestore as jest.Mock).mockReturnValue(state.firestore);
+    (getCustomerHistory as jest.Mock).mockResolvedValue({ summary: '', orders: [] });
+
+    const result = await getVisitorCheckinContext({
+      orgId: 'org_thrive_syracuse',
+      phone: '3126840522',
+    });
+
+    expect(result).toMatchObject({
+      success: true,
+      isReturningCustomer: true,
+      returningSource: 'online_order',
+      savedEmail: 'martezandco@gmail.com',
+      savedEmailConsent: false,
+      enrichmentMode: 'email',
+      lastPurchase: expect.objectContaining({
+        primaryItemName: 'Gelonade 3.5g',
+        itemCount: 2,
+        total: 72,
+      }),
+    });
+    expect(logger.info).toHaveBeenCalledWith(
+      '[VisitorCheckin] Resolved public check-in context',
+      expect.objectContaining({
+        returningSource: 'online_order',
+        lastPurchaseFound: true,
+      }),
+    );
   });
 
   it('creates a new check-in with additive Thrive metadata', async () => {
@@ -554,6 +619,86 @@ describe('visitor check-in actions', () => {
         customerEmail: 'returning@example.com',
         customerName: 'Bob',
         priorVisits: 1,
+      }),
+    );
+  });
+
+  it('treats prior online-order history as returning during capture and skips signup dispatch', async () => {
+    const state = createFirestore({
+      orders: {
+        order_1: {
+          brandId: 'org_thrive_syracuse',
+          customer: {
+            name: 'Jordan',
+            email: 'jordan@example.com',
+            phone: '3155553333',
+          },
+          items: [{ name: 'Night Cap Gummies' }],
+          totals: { total: 45 },
+          createdAt: new Date('2026-03-28T18:15:00.000Z'),
+        },
+      },
+    });
+    (getAdminFirestore as jest.Mock).mockReturnValue(state.firestore);
+    (captureEmailLead as jest.Mock).mockResolvedValue({
+      success: true,
+      leadId: 'lead-order-1',
+      isNewLead: true,
+    });
+    (dispatchPlaybookEvent as jest.Mock).mockResolvedValue(undefined);
+
+    const result = await captureVisitorCheckin({
+      orgId: 'org_thrive_syracuse',
+      firstName: 'Jordan',
+      phone: '3155553333',
+      emailConsent: false,
+      smsConsent: true,
+      source: 'brand_rewards_checkin',
+      ageVerifiedMethod: 'staff_attested_public_flow',
+      uiVersion: 'thrive_checkin_v2',
+    });
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(result).toMatchObject({
+      success: true,
+      isNewLead: true,
+      isReturningCustomer: true,
+      customerId: 'org_thrive_syracuse_phone_13155553333',
+    });
+    expect(state.customers.get('org_thrive_syracuse_phone_13155553333')).toMatchObject({
+      email: 'jordan@example.com',
+      orderCount: 1,
+      totalSpent: 45,
+      lifetimeValue: 45,
+      visitCount: 1,
+    });
+
+    const visit = Array.from(state.visits.values())[0];
+    expect(visit).toMatchObject({
+      isReturning: true,
+      returningSource: 'online_order',
+      email: null,
+      reviewSequence: expect.objectContaining({
+        status: 'skipped_no_email',
+      }),
+    });
+
+    expect(dispatchPlaybookEvent).toHaveBeenCalledTimes(1);
+    expect(dispatchPlaybookEvent).toHaveBeenCalledWith(
+      'org_thrive_syracuse',
+      'customer.checkin',
+      expect.objectContaining({
+        eventName: 'customer.checkin',
+        customerId: 'org_thrive_syracuse_phone_13155553333',
+        customerEmail: 'jordan@example.com',
+      }),
+    );
+    expect(logger.info).toHaveBeenCalledWith(
+      '[VisitorCheckin] Captured visitor check-in',
+      expect.objectContaining({
+        returningSource: 'online_order',
       }),
     );
   });

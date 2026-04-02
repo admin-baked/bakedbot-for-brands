@@ -3,6 +3,7 @@
 import { firestore } from 'firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { getAdminFirestore } from '@/firebase/admin';
+import { isPlaceholderCustomerEmail } from '@/lib/customers/profile-derivations';
 import {
     isNormalizedPhone,
     normalizeEmail,
@@ -116,6 +117,7 @@ export interface VisitorCheckinContextResult {
     normalizedPhone?: string;
     isReturningCustomer: boolean;
     customerId?: string;
+    returningSource?: 'customer' | 'lead' | 'online_order';
     savedEmail?: string;
     savedEmailConsent?: boolean;
     lastPurchase?: VisitorLastPurchase;
@@ -148,6 +150,16 @@ type LeadScope = {
 type LeadSnapshot = {
     id: string;
     data: Record<string, unknown>;
+};
+
+type ReturningSource = NonNullable<VisitorCheckinContextResult['returningSource']>;
+
+type OrderMatchSummary = {
+    savedEmail?: string;
+    lastPurchase?: VisitorLastPurchase;
+    orderCount: number;
+    totalSpent: number;
+    lastOrderDate: Date | null;
 };
 
 function digitsOnlyPhone(value: string): string {
@@ -183,9 +195,17 @@ function normalizeStoredEmail(value: unknown): string | undefined {
     return normalizeEmail(typeof value === 'string' ? value : undefined) || undefined;
 }
 
+function getRecordValue(
+    record: Record<string, unknown> | null | undefined,
+    key: string,
+): unknown {
+    return record?.[key];
+}
+
 function resolveSavedEmailState(
     existingCustomerData: Record<string, unknown> | null,
     existingLeadData: Record<string, unknown> | null,
+    orderEmail?: string,
 ): {
     savedEmail?: string;
     savedEmailConsent: boolean;
@@ -214,9 +234,29 @@ function resolveSavedEmailState(
     }
 
     return {
-        savedEmail: customerEmail ?? leadEmail,
+        savedEmail: customerEmail ?? leadEmail ?? orderEmail,
         savedEmailConsent: false,
     };
+}
+
+function resolveReturningSource(
+    existingCustomerData: Record<string, unknown> | null,
+    existingLeadData: Record<string, unknown> | null,
+    existingOrderHistory: OrderMatchSummary | null,
+): ReturningSource | undefined {
+    if (existingCustomerData) {
+        return 'customer';
+    }
+
+    if (existingLeadData) {
+        return 'lead';
+    }
+
+    if (existingOrderHistory) {
+        return 'online_order';
+    }
+
+    return undefined;
 }
 
 function normalizeStoredCategories(value: unknown): VisitorFavoriteCategory[] {
@@ -255,15 +295,83 @@ function toCurrencyNumber(value: unknown): number {
     return 0;
 }
 
+function getOrderCustomerRecord(order: Record<string, unknown>): Record<string, unknown> | null {
+    const customer = order.customer;
+    if (!customer || typeof customer !== 'object' || Array.isArray(customer)) {
+        return null;
+    }
+
+    return customer as Record<string, unknown>;
+}
+
+function getOrderCustomerEmail(order: Record<string, unknown>): string | undefined {
+    const orderEmail = normalizeStoredEmail(getOrderValue(order, 'email'));
+    if (!orderEmail || isPlaceholderCustomerEmail(orderEmail)) {
+        return undefined;
+    }
+
+    return orderEmail;
+}
+
+function getOrderValue(order: Record<string, unknown>, key: string): unknown {
+    const customer = getOrderCustomerRecord(order);
+    if (customer && key in customer) {
+        return customer[key];
+    }
+
+    return order[key];
+}
+
+function getOrderDate(order: Record<string, unknown>): Date | null {
+    return firestoreTimestampToDate(order.date)
+        ?? firestoreTimestampToDate(order.createdAt)
+        ?? firestoreTimestampToDate(order.updatedAt);
+}
+
+function getOrderTotal(order: Record<string, unknown>): number {
+    const totals = order.totals;
+    if (totals && typeof totals === 'object' && !Array.isArray(totals)) {
+        return toCurrencyNumber((totals as Record<string, unknown>).total);
+    }
+
+    return toCurrencyNumber(order.total);
+}
+
+function orderBelongsToOrg(order: Record<string, unknown>, orgId: string): boolean {
+    const scopedIds = [
+        getRecordValue(order, 'brandId'),
+        getRecordValue(order, 'retailerId'),
+        getRecordValue(order, 'orgId'),
+    ];
+
+    return scopedIds.some((value) => value === orgId);
+}
+
+function buildPhoneLookupCandidates(rawPhone: string, normalizedPhone: string): string[] {
+    const rawPhoneValue = typeof rawPhone === 'string' ? rawPhone.trim() : '';
+    const digits = digitsOnlyPhone(normalizedPhone);
+    const localTenDigits = digits.length > 10 ? digits.slice(-10) : digits;
+
+    return Array.from(new Set([
+        rawPhoneValue,
+        normalizedPhone,
+        digits,
+        localTenDigits,
+    ].filter((value) => value.length > 0)));
+}
+
 function summarizeLastPurchase(order: Record<string, unknown>): VisitorLastPurchase | null {
     const items = Array.isArray(order.items) ? order.items : [];
     const primaryItem = items.find((item): item is Record<string, unknown> => (
         !!item &&
         typeof item === 'object' &&
-        typeof (item as { name?: string }).name === 'string'
+        (
+            typeof (item as { name?: string }).name === 'string' ||
+            typeof (item as { productName?: string }).productName === 'string'
+        )
     ));
-    const purchasedAt = firestoreTimestampToDate(order.date);
-    const total = toCurrencyNumber(order.total);
+    const purchasedAt = getOrderDate(order);
+    const total = getOrderTotal(order);
 
     if (!primaryItem) {
         return null;
@@ -271,7 +379,7 @@ function summarizeLastPurchase(order: Record<string, unknown>): VisitorLastPurch
 
     return {
         orderId: String(order.id || ''),
-        primaryItemName: String(primaryItem.name || 'Recent order'),
+        primaryItemName: String(primaryItem.name || primaryItem.productName || 'Recent order'),
         itemCount: items.length,
         total,
         purchasedAt: purchasedAt ? purchasedAt.toISOString() : null,
@@ -383,6 +491,80 @@ async function findExistingLead(
     };
 }
 
+async function findOrdersByField(
+    field: 'customer.phone' | 'customer.email',
+    value: string,
+): Promise<Array<{ id: string; data: Record<string, unknown> }>> {
+    const db = getAdminFirestore();
+    const snapshot = await db
+        .collection('orders')
+        .where(field, '==', value)
+        .limit(25)
+        .get();
+
+    return snapshot.docs.map((doc) => ({
+        id: doc.id,
+        data: doc.data() as Record<string, unknown>,
+    }));
+}
+
+async function findExistingOrderHistory(
+    orgId: string,
+    rawPhone: string,
+    normalizedPhone: string,
+    normalizedEmail?: string,
+): Promise<OrderMatchSummary | null> {
+    const phoneCandidates = buildPhoneLookupCandidates(rawPhone, normalizedPhone);
+    const queries = [
+        ...phoneCandidates.map((phoneCandidate) => (
+            findOrdersByField('customer.phone', phoneCandidate)
+        )),
+    ];
+
+    if (normalizedEmail && !isPlaceholderCustomerEmail(normalizedEmail)) {
+        queries.push(findOrdersByField('customer.email', normalizedEmail));
+    }
+
+    const queryResults = await Promise.all(queries);
+    const dedupedMatches = new Map<string, Record<string, unknown>>();
+
+    for (const queryResult of queryResults) {
+        for (const match of queryResult) {
+            if (!orderBelongsToOrg(match.data, orgId)) {
+                continue;
+            }
+
+            dedupedMatches.set(match.id, {
+                id: match.id,
+                ...match.data,
+            });
+        }
+    }
+
+    const matchedOrders = Array.from(dedupedMatches.values()).sort((left, right) => {
+        const leftDate = getOrderDate(left)?.getTime() ?? 0;
+        const rightDate = getOrderDate(right)?.getTime() ?? 0;
+        return rightDate - leftDate;
+    });
+
+    if (matchedOrders.length === 0) {
+        return null;
+    }
+
+    const latestOrder = matchedOrders[0];
+    const savedEmail = matchedOrders
+        .map((order) => getOrderCustomerEmail(order))
+        .find((value): value is string => Boolean(value));
+
+    return {
+        savedEmail,
+        lastPurchase: summarizeLastPurchase(latestOrder) || undefined,
+        orderCount: matchedOrders.length,
+        totalSpent: matchedOrders.reduce((sum, order) => sum + getOrderTotal(order), 0),
+        lastOrderDate: getOrderDate(latestOrder),
+    };
+}
+
 async function resolveLastPurchase(
     customerId: string,
     orgId: string,
@@ -427,16 +609,31 @@ export async function getVisitorCheckinContext(
             findExistingLead(validated.orgId, normalizedPhone, normalizedEmail),
         ]);
         const existingCustomerData = existingCustomer?.data() ?? null;
+        const existingLeadData = existingLead?.data ?? null;
+        const initialEmailState = resolveSavedEmailState(existingCustomerData, existingLeadData);
+        const crmLastPurchase = existingCustomer?.id
+            ? await resolveLastPurchase(existingCustomer.id, validated.orgId)
+            : null;
+        const existingOrderHistory = !existingCustomerData || !initialEmailState.savedEmail || !crmLastPurchase
+            ? await findExistingOrderHistory(validated.orgId, validated.phone, normalizedPhone, normalizedEmail)
+            : null;
+        const returningSource = resolveReturningSource(
+            existingCustomerData,
+            existingLeadData,
+            existingOrderHistory,
+        );
 
         const {
             savedEmail,
             savedEmailConsent,
-        } = resolveSavedEmailState(existingCustomerData, existingLead?.data ?? null);
+        } = resolveSavedEmailState(
+            existingCustomerData,
+            existingLeadData,
+            existingOrderHistory?.savedEmail,
+        );
         const canReuseSavedEmail = Boolean(savedEmail && savedEmailConsent);
-        const isReturningCustomer = Boolean(existingCustomerData || existingLead);
-        const lastPurchase = existingCustomer?.id
-            ? await resolveLastPurchase(existingCustomer.id, validated.orgId)
-            : null;
+        const isReturningCustomer = Boolean(existingCustomerData || existingLead || existingOrderHistory);
+        const lastPurchase = crmLastPurchase ?? existingOrderHistory?.lastPurchase ?? null;
         const googleReviewUrl = isReturningCustomer && lastPurchase
             ? await getGoogleReviewUrl(validated.orgId)
             : null;
@@ -447,6 +644,7 @@ export async function getVisitorCheckinContext(
             normalizedPhone,
             customerId: existingCustomer?.id ?? null,
             isReturningCustomer,
+            returningSource: returningSource ?? null,
             lastPurchaseFound: Boolean(lastPurchase),
             reviewUrlFound: Boolean(googleReviewUrl),
             enrichmentMode,
@@ -457,6 +655,7 @@ export async function getVisitorCheckinContext(
             normalizedPhone,
             isReturningCustomer,
             customerId: existingCustomer?.id,
+            returningSource,
             savedEmail,
             savedEmailConsent,
             lastPurchase: lastPurchase || undefined,
@@ -530,19 +729,55 @@ export async function captureVisitorCheckin(
             };
         }
 
-        const existingCustomer = await findExistingCustomer(validated.orgId, normalizedPhone, normalizedEmail);
+        const existingCustomer = await findExistingCustomer(
+            validated.orgId,
+            normalizedPhone,
+            normalizedEmail,
+        );
         const existingCustomerData = existingCustomer?.data() ?? null;
+        const existingCustomerEmail = normalizeStoredEmail(existingCustomerData?.email);
         // Only fetch lead data when no customer record exists (fallback for email/name only)
-        const leadFallbackData = existingCustomerData
-            ? null
-            : ((await findExistingLead(validated.orgId, normalizedPhone, normalizedEmail))?.data ?? null);
+        const [existingOrderHistory, leadFallbackData] = existingCustomerData
+            ? await Promise.all([
+                existingCustomerEmail
+                    ? Promise.resolve<OrderMatchSummary | null>(null)
+                    : findExistingOrderHistory(
+                        validated.orgId,
+                        validated.phone,
+                        normalizedPhone,
+                        normalizedEmail,
+                    ),
+                Promise.resolve<Record<string, unknown> | null>(null),
+            ])
+            : await Promise.all([
+                findExistingOrderHistory(
+                    validated.orgId,
+                    validated.phone,
+                    normalizedPhone,
+                    normalizedEmail,
+                ),
+                findExistingLead(validated.orgId, normalizedPhone, normalizedEmail)
+                    .then((result) => result?.data ?? null),
+            ]);
+        const returningSource = resolveReturningSource(
+            existingCustomerData,
+            leadFallbackData,
+            existingOrderHistory,
+        );
 
         const customerId = existingCustomer?.id ?? buildPhoneCustomerId(validated.orgId, normalizedPhone);
         const customerRef = db.collection('customers').doc(customerId);
         const loyaltyPoints =
             typeof existingCustomerData?.points === 'number' ? existingCustomerData.points : 0;
-        const existingCustomerEmail = normalizeStoredEmail(existingCustomerData?.email);
-        const isReturningCustomer = Boolean(existingCustomerData || !leadResult.isNewLead);
+        const seededCustomerEmail = normalizedEmail ?? existingOrderHistory?.savedEmail ?? null;
+        const seededOrderCount = existingOrderHistory?.orderCount ?? 0;
+        const seededTotalSpent = existingOrderHistory?.totalSpent ?? 0;
+        const isReturningCustomer = Boolean(
+            existingCustomerData ||
+            leadFallbackData ||
+            existingOrderHistory ||
+            !leadResult.isNewLead,
+        );
 
         const batch = db.batch();
 
@@ -550,17 +785,17 @@ export async function captureVisitorCheckin(
             batch.set(customerRef, {
                 id: customerId,
                 orgId: validated.orgId,
-                email: normalizedEmail ?? null,
+                email: seededCustomerEmail,
                 phone: normalizedPhone,
                 firstName: validated.firstName,
-                totalSpent: 0,
-                orderCount: 0,
+                totalSpent: seededTotalSpent,
+                orderCount: seededOrderCount,
                 visitCount: 1,
-                avgOrderValue: 0,
+                avgOrderValue: seededOrderCount > 0 ? seededTotalSpent / seededOrderCount : 0,
                 segment: 'new',
                 tier: 'bronze',
                 points: 0,
-                lifetimeValue: 0,
+                lifetimeValue: seededTotalSpent,
                 emailConsent,
                 smsConsent,
                 source: validated.source,
@@ -568,6 +803,7 @@ export async function captureVisitorCheckin(
                 lastCheckinMood: validated.mood ?? null,
                 preferredCategories: favoriteCategories,
                 lastCheckinUiVersion: validated.uiVersion ?? null,
+                lastOrderDate: existingOrderHistory?.lastOrderDate ?? null,
                 createdAt: now,
                 updatedAt: now,
                 lastCheckinAt: now,
@@ -630,6 +866,7 @@ export async function captureVisitorCheckin(
             phone: normalizedPhone,
             source: validated.source,
             isReturning: isReturningCustomer,
+            returningSource: returningSource ?? null,
             ageVerified: true,
             ageVerifiedMethod: validated.ageVerifiedMethod,
             ageVerifiedAt: now,
@@ -654,7 +891,11 @@ export async function captureVisitorCheckin(
         await batch.commit();
 
         // 9. Dispatch Playbook Events
-        const resolvedEmail = normalizedEmail ?? existingCustomerEmail ?? leadFallbackData?.email ?? null;
+        const resolvedEmail = normalizedEmail
+            ?? existingCustomerEmail
+            ?? normalizeStoredEmail(leadFallbackData?.email)
+            ?? existingOrderHistory?.savedEmail
+            ?? null;
         const resolvedName = validated.firstName || existingCustomerData?.firstName || leadFallbackData?.firstName;
 
         if (existingCustomerData && normalizedEmail && normalizedEmail !== existingCustomerEmail) {
@@ -667,7 +908,7 @@ export async function captureVisitorCheckin(
             });
         }
 
-        if (leadResult.isNewLead) {
+        if (leadResult.isNewLead && !isReturningCustomer) {
             dispatchPlaybookEvent(validated.orgId, 'customer.signup', {
                 customerId,
                 customerEmail: resolvedEmail,
@@ -711,6 +952,7 @@ export async function captureVisitorCheckin(
             source: validated.source,
             isNewLead: leadResult.isNewLead,
             isReturningCustomer,
+            returningSource: returningSource ?? null,
             uiVersion: validated.uiVersion ?? null,
             mood: validated.mood ?? null,
             favoriteCategories,
