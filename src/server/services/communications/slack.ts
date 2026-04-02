@@ -89,13 +89,25 @@ export class SlackService {
         const client = this.getClient('listChannels');
         if (!client) return [];
 
+        const channels: any[] = [];
+        let cursor: string | undefined;
+
         try {
-            const result = await client.conversations.list({ types: 'public_channel,private_channel', limit: 100 });
-            return result.channels?.map(c => ({
-                id: c.id,
-                name: c.name,
-                is_private: c.is_private
-            })) || [];
+            // Paginate up to 500 channels so internal channels (e.g. #linus-deployments)
+            // are never missed when the workspace has more than 100 channels.
+            do {
+                const result = await client.conversations.list({
+                    types: 'public_channel,private_channel',
+                    limit: 200,
+                    cursor,
+                });
+                for (const c of result.channels ?? []) {
+                    channels.push({ id: c.id, name: c.name, is_private: c.is_private });
+                }
+                cursor = result.response_metadata?.next_cursor || undefined;
+            } while (cursor && channels.length < 500);
+
+            return channels;
         } catch (e: any) {
              logger.error(`[Slack] List channels failed: ${e.message}`);
              return [];

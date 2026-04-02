@@ -38,7 +38,7 @@ import { logger } from '@/lib/logger';
 
 interface UseCreativeContentOptions {
     platform?: SocialPlatform;
-    statusFilter?: ('pending' | 'draft' | 'approved' | 'scheduled')[];
+    statusFilter?: ('pending' | 'draft' | 'approved' | 'revision' | 'scheduled')[];
     limit?: number;
     realtime?: boolean;
 }

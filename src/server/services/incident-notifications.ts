@@ -25,7 +25,10 @@ export interface LinusIncidentSlackResult {
 }
 
 function getIncidentWebhookUrl(): string | null {
-    return process.env.SLACK_WEBHOOK_INCIDENTS || process.env.SLACK_WEBHOOK_URL || null;
+    // Only use a dedicated incidents webhook — never fall back to SLACK_WEBHOOK_URL,
+    // which is a customer-org webhook (e.g. #thrive-syracuse-pilot) and must not
+    // receive internal BakedBot deployment/incident notifications.
+    return process.env.SLACK_WEBHOOK_INCIDENTS || null;
 }
 
 function getChannelName(message: LinusIncidentSlackMessage): string {

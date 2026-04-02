@@ -69,6 +69,7 @@ import { loadAISettingsForAgent } from '@/server/actions/ai-settings';
 import { buildCustomInstructionsBlock } from '@/types/ai-settings';
 import { extractGmailParams, extractCalendarParams } from '@/server/agents/extraction-helpers';
 import { agentCache, CacheKeys, CacheTTL } from '@/lib/cache/agent-runner-cache';
+import type { AgentJobDraftState } from '@/server/jobs/job-stream';
 
 
 // === STRUCTURED EXTRACTION HELPERS (imported from extraction-helpers.ts) ===
@@ -98,6 +99,16 @@ export interface ChatExtraOptions {
     attachments?: { name: string; type: string; base64: string }[];
     source?: string; // Source identifier (e.g., 'inbox', 'interrupt', 'pulse')
     context?: Record<string, unknown>; // Additional context for browser automation, etc.
+}
+
+export interface AgentJobCallbacks {
+    onDraftContent?: (
+        content: string,
+        options?: {
+            draftState?: AgentJobDraftState;
+            force?: boolean;
+        }
+    ) => Promise<void>;
 }
 
 // Local Agent Map
@@ -453,8 +464,17 @@ export async function runAgentCore(
     personaId?: string,
     extraOptions?: ChatExtraOptions,
     injectedUser?: DecodedIdToken | null,
-    jobId?: string
+    jobId?: string,
+    jobCallbacks?: AgentJobCallbacks
 ): Promise<AgentResult> {
+
+    const finalizeAgentResult = async <T extends AgentResult>(result: T): Promise<T> => {
+        await publishDraftContent(result.content, {
+            draftState: 'ready',
+            force: true,
+        });
+        return result;
+    };
 
     await emitThought(jobId, 'Analyzing Request', `Processing user input: "${userMessage?.substring(0, 50)}..."`);
 
@@ -471,11 +491,11 @@ export async function runAgentCore(
             personaId,
             jobId
         });
-        return {
+        return finalizeAgentResult({
             content: "I couldn't process that request due to security restrictions. Please rephrase your question.",
             toolCalls: [],
             metadata: { type: 'security_block' }
-        };
+        });
     }
 
     // Log high-risk queries for monitoring
@@ -547,7 +567,7 @@ export async function runAgentCore(
 
 All agents are online and ready. Type an agent name or describe your task to get started.`;
 
-            return {
+            return finalizeAgentResult({
                 content: agentStatusContent,
                 toolCalls: [],
                 metadata: {
@@ -556,7 +576,7 @@ All agents are online and ready. Type an agent name or describe your task to get
                     role,
                     fastPath: true,
                 }
-            };
+            });
         }
 
         // Generate response with minimal model (Gemini Flash Lite)
@@ -567,7 +587,7 @@ All agents are online and ready. Type an agent name or describe your task to get
 
         await emitThought(jobId, 'Complete', 'Fast path response generated.');
 
-        return {
+        return finalizeAgentResult({
             content: response.text,
             toolCalls: [],
             metadata: {
@@ -576,7 +596,7 @@ All agents are online and ready. Type an agent name or describe your task to get
                 role,
                 fastPath: true,
             }
-        };
+        });
     }
 
     // --- INTENTION OS (V2) ---
@@ -619,6 +639,27 @@ All agents are online and ready. Type an agent name or describe your task to get
         : PERSONAS.puff;
 
     const executedTools: AgentResult['toolCalls'] = [];
+    const publishDraftContent = async (
+        content: string,
+        options?: {
+            draftState?: AgentJobDraftState;
+            force?: boolean;
+        }
+    ) => {
+        const trimmedContent = typeof content === 'string' ? content.trim() : '';
+        if (!trimmedContent) {
+            return;
+        }
+
+        try {
+            await jobCallbacks?.onDraftContent?.(trimmedContent, options);
+        } catch (error) {
+            logger.warn('[AgentRunner] Failed to publish draft content', {
+                jobId,
+                error: error instanceof Error ? error.message : String(error),
+            });
+        }
+    };
 
     try {
         await emitThought(jobId, 'Authenticating', 'Verifying user context...');
@@ -774,7 +815,7 @@ All agents are online and ready. Type an agent name or describe your task to get
                         ? "**Deep Research is a Pro feature.**\n\nPlease [User Login](/login) or [Sign Up](/signup) to access comprehensive web research agents."
                         : "**Upgrade Required**\n\nDeep Research requires a paid plan. Please [Upgrade](/dashboard/settings/billing) to unlock.";
 
-                    return { content: message, toolCalls: [] };
+                    return finalizeAgentResult({ content: message, toolCalls: [] });
                 }
             }
 
@@ -824,7 +865,7 @@ All agents are online and ready. Type an agent name or describe your task to get
 
                     await emitThought(jobId, 'Research Queued', 'Your research task has been created and is processing in the background.');
 
-                    return {
+                    return finalizeAgentResult({
                         content: `**🔬 Deep Research Task Created**\n\nYour research query has been queued for comprehensive analysis:\n\n> "${finalMessage}"\n\n**Task ID:** \`${result.taskId}\`\n\nThe research agent is now:\n1. Searching multiple web sources\n2. Analyzing and cross-referencing data\n3. Compiling a comprehensive report\n\n📊 **View progress:** [Deep Research Dashboard](/dashboard/research)\n\nYou'll be notified when the report is ready. Complex queries may take 2-5 minutes.\n\n**🤖 Automate this?**\nReply with "Create a playbook for this" to turn this analysis into a recurring Daily Report.`,
                         toolCalls: executedTools,
                         metadata: {
@@ -836,7 +877,7 @@ All agents are online and ready. Type an agent name or describe your task to get
                             type: 'session_context' as const,
                             data: { researchTaskId: result.taskId }
                         }
-                    };
+                    });
                 } else {
                     throw new Error(result.error || 'Failed to create research task');
                 }
@@ -845,7 +886,7 @@ All agents are online and ready. Type an agent name or describe your task to get
                 executedTools[executedTools.length - 1].result = e.message;
                 await emitThought(jobId, 'Error', `Research task creation failed: ${e.message}`);
 
-                return {
+                return finalizeAgentResult({
                     content: `**❌ Deep Research Failed**\n\n${e.message}\n\nPlease try again or use the [Deep Research page](/dashboard/research) directly.`,
                     toolCalls: executedTools,
                     metadata: {
@@ -855,7 +896,7 @@ All agents are online and ready. Type an agent name or describe your task to get
                         role,
                         jobId
                     }
-                };
+                });
             }
         }
 
@@ -1039,7 +1080,7 @@ All agents are online and ready. Type an agent name or describe your task to get
                     const message = isHomepage
                         ? "Building custom playbooks is a Pro feature. Please [Sign Up](/signup) to build agents."
                         : "You have reached the limit of 1 custom playbook on the Free plan. Please [Upgrade](/dashboard/settings/billing) to build unlimited workflows.";
-                    return { content: message, toolCalls: [] };
+                    return finalizeAgentResult({ content: message, toolCalls: [] });
                 }
             }
 
@@ -1071,7 +1112,7 @@ All agents are online and ready. Type an agent name or describe your task to get
                     await emitThought(jobId, 'Playbook Created', `"${result.playbook.name}" is ready! You can edit it in the Playbooks tab.`);
 
                     const playbooksPath = isSuperUser ? '/dashboard/ceo/playbooks' : '/dashboard/playbooks';
-                    return {
+                    return finalizeAgentResult({
                         content: `I've created a playbook called "${result.playbook.name}":\n\n**Description:** ${result.playbook.description}\n**Agent:** ${result.playbook.agent}\n**Category:** ${result.playbook.category}\n**Steps:** ${result.playbook.steps.length}\n\nYou can view and edit it in the [Playbooks tab](${playbooksPath}).`,
                         toolCalls: executedTools,
                         metadata: {
@@ -1084,7 +1125,7 @@ All agents are online and ready. Type an agent name or describe your task to get
                                 scope: isSuperUser ? 'superuser' : 'org',
                             },
                         }
-                    };
+                    });
                 } else {
                     throw new Error(result.error || 'Failed to create playbook');
                 }
@@ -1092,11 +1133,11 @@ All agents are online and ready. Type an agent name or describe your task to get
                 executedTools[executedTools.length - 1].status = 'error';
                 executedTools[executedTools.length - 1].result = e.message;
                 await emitThought(jobId, 'Error', `Failed to create playbook: ${e.message}`);
-                return {
+                return finalizeAgentResult({
                     content: `I tried to create a playbook but encountered an error: ${e.message}. Try describing your workflow again or create it manually in the Playbooks tab.`,
                     toolCalls: executedTools,
                     metadata: { ...metadata, jobId }
-                };
+                });
             }
         }
 
@@ -1106,7 +1147,7 @@ All agents are online and ready. Type an agent name or describe your task to get
             const res = await executePlaybook('welcome-sequence');
             await emitThought(jobId, 'Playbook Complete', res.message);
             executedTools.push({ id: `pb-${Date.now()}`, name: 'Execute Playbook', status: 'success', result: res.message });
-            return { content: res.message, toolCalls: executedTools };
+            return finalizeAgentResult({ content: res.message, toolCalls: executedTools });
         }
         // ... (Other playbooks) ...
 
@@ -1131,7 +1172,7 @@ All agents are online and ready. Type an agent name or describe your task to get
                 executedTools[executedTools.length - 1].status = 'success';
                 executedTools[executedTools.length - 1].result = 'Image generated successfully';
 
-                return {
+                return finalizeAgentResult({
                     content: `Here is the image you requested: "${userMessage}"`,
                     toolCalls: executedTools,
                     metadata: {
@@ -1139,11 +1180,11 @@ All agents are online and ready. Type an agent name or describe your task to get
                         jobId,
                         media: { type: 'image', url: imageUrl, prompt: userMessage }
                     }
-                };
+                });
             } catch (e: any) {
                 executedTools[executedTools.length - 1].status = 'error';
                 executedTools[executedTools.length - 1].result = 'Failed: ' + e.message;
-                return { content: `**Image Generation Failed**: ${e.message}`, toolCalls: executedTools };
+                return finalizeAgentResult({ content: `**Image Generation Failed**: ${e.message}`, toolCalls: executedTools });
             }
         }
 
@@ -1160,7 +1201,7 @@ All agents are online and ready. Type an agent name or describe your task to get
                 executedTools[executedTools.length - 1].status = 'success';
                 executedTools[executedTools.length - 1].result = 'Video generated successfully';
 
-                return {
+                return finalizeAgentResult({
                     content: `Here is the video you requested: "${userMessage}"`,
                     toolCalls: executedTools,
                     metadata: {
@@ -1168,11 +1209,11 @@ All agents are online and ready. Type an agent name or describe your task to get
                         jobId,
                         media: { type: 'video', url: videoUrl, prompt: userMessage }
                     }
-                };
+                });
             } catch (e: any) {
                 executedTools[executedTools.length - 1].status = 'error';
                 executedTools[executedTools.length - 1].result = 'Failed: ' + e.message;
-                return { content: `**Video Generation Failed**: ${e.message}`, toolCalls: executedTools };
+                return finalizeAgentResult({ content: `**Video Generation Failed**: ${e.message}`, toolCalls: executedTools });
             }
         }
 
@@ -1195,7 +1236,7 @@ All agents are online and ready. Type an agent name or describe your task to get
                     status: res.success ? 'success' : 'error',
                     result: res.message
                 });
-                return { content: res.log?.result || res.message, toolCalls: executedTools };
+                return finalizeAgentResult({ content: res.log?.result || res.message, toolCalls: executedTools });
             } catch (e) { }
         } else if (agentInfo && !canAccessAgent && agentInfo.id !== 'general' && agentInfo.id !== 'puff') {
             // Log blocked access attempt for security auditing
@@ -1264,7 +1305,7 @@ All agents are online and ready. Type an agent name or describe your task to get
                 `;
 
                 const synthesized = await synthesizeSnapshot(res.log?.result || res.message, format, effectiveModelLevel);
-                return { content: synthesized, toolCalls: executedTools, metadata: { ...metadata, jobId } };
+                return finalizeAgentResult({ content: synthesized, toolCalls: executedTools, metadata: { ...metadata, jobId } });
             }
         }
 
@@ -1329,10 +1370,10 @@ All agents are online and ready. Type an agent name or describe your task to get
                             }
                             executedTools[executedTools.length - 1].status = 'success';
                             executedTools[executedTools.length - 1].result = 'Setup card added';
-                            return {
+                            return finalizeAgentResult({
                                 content: `📬 **Let's Connect Gmail!**\n\nI've added a setup card to this conversation — click **Connect Gmail** to authorize in about 1 minute.\n\nOnce connected, I can send personalized outreach emails directly from your account.`,
                                 toolCalls: executedTools
-                            };
+                            });
                         }
 
                         executedTools[executedTools.length - 1].result = `${params.action.toUpperCase()} email`;
@@ -1363,24 +1404,24 @@ All agents are online and ready. Type an agent name or describe your task to get
                                     // non-blocking — don't fail the response
                                 }
                             }
-                            return {
+                            return finalizeAgentResult({
                                 content: `📬 **Gmail Setup Required**\n\nI need to connect to your Gmail account to send emails. I've added a setup card to this conversation — click **Connect Gmail** to authorize in about 1 minute.\n\nOnce connected, just ask me again and I'll send the email from your account.`,
                                 toolCalls: executedTools
-                            };
+                            });
                         }
 
-                        return {
+                        return finalizeAgentResult({
                             content: result.success ? `✅ **Gmail Action Complete**\n\n${JSON.stringify(result.data, null, 2)}` : `⚠️ **Gmail Error**: ${result.error}`,
                             toolCalls: executedTools
-                        };
+                        });
                     } catch (e: any) {
                         executedTools[executedTools.length - 1].status = 'error';
                         executedTools[executedTools.length - 1].result = 'Failed: ' + e.message;
                         // Early return — never let exceptions fall through to the LLM
-                        return {
+                        return finalizeAgentResult({
                             content: `⚠️ **Gmail Error**: ${(e as Error).message || 'Unable to access Gmail'}. Try reconnecting in Settings > Integrations.`,
                             toolCalls: executedTools
-                        };
+                        });
                     }
                 } // end: if (!skipGmailHandling)
             }
@@ -1402,10 +1443,10 @@ All agents are online and ready. Type an agent name or describe your task to get
                 executedTools[executedTools.length - 1].status = result.success ? 'success' : 'error';
                 executedTools[executedTools.length - 1].result = result.success ? (params.action === 'list' ? `Found ${result.data?.length} events` : 'Event created') : result.error || 'Error';
 
-                return {
+                return finalizeAgentResult({
                     content: result.success ? `✅ **Calendar Action Complete**` : `⚠️ **Calendar Error**: ${result.error}`,
                     toolCalls: executedTools
-                };
+                });
             } catch (e: any) {
                 executedTools[executedTools.length - 1].status = 'error';
                 executedTools[executedTools.length - 1].result = e.message;
@@ -1481,11 +1522,11 @@ All agents are online and ready. Type an agent name or describe your task to get
                     }
                 }
 
-                return {
+                return finalizeAgentResult({
                     content: finalContent,
                     toolCalls: executedTools,
                     metadata: { ...metadata, jobId }
-                };
+                });
             } catch (claudeError: any) {
                 // Log error but fall through to Gemini fallback
                 logger.warn('[AgentRunner] Claude tool execution failed, falling back to Gemini:', { error: claudeError.message });
@@ -1553,17 +1594,29 @@ All agents are online and ready. Type an agent name or describe your task to get
         }
 
         const GENERATE_TIMEOUT = 120000; // 2 minutes
-        const generatePromise = ai.generate({
-            ...getGenerateOptions(effectiveModelLevel),
-            prompt,
-        });
+        const generatePromise = glmGeneratedText
+            ? Promise.resolve({ text: glmGeneratedText })
+            : (async () => {
+                const streamResult = ai.generateStream({
+                    ...getGenerateOptions(effectiveModelLevel),
+                    prompt,
+                });
+
+                for await (const chunk of streamResult.stream) {
+                    if (chunk.accumulatedText.trim().length > 0) {
+                        await publishDraftContent(chunk.accumulatedText, {
+                            draftState: 'streaming',
+                        });
+                    }
+                }
+
+                return await streamResult.response as any;
+            })();
         const genTimeoutPromise = new Promise((_, reject) => 
             setTimeout(() => reject(new Error(`AI generation timed out after ${GENERATE_TIMEOUT/1000}s`)), GENERATE_TIMEOUT)
         );
 
-        const response = glmGeneratedText
-            ? { text: glmGeneratedText }
-            : await Promise.race([generatePromise, genTimeoutPromise]) as any;
+        const response = await Promise.race([generatePromise, genTimeoutPromise]) as any;
 
         await emitThought(jobId, 'Complete', 'Task finished.');
 
@@ -1614,7 +1667,7 @@ All agents are online and ready. Type an agent name or describe your task to get
             });
         }
 
-        return {
+        return finalizeAgentResult({
             content: outputValidation.sanitized,
             toolCalls: executedTools,
             thinking: {
@@ -1632,12 +1685,12 @@ All agents are online and ready. Type an agent name or describe your task to get
                 evalResults: evalResults.length > 0 ? evalResults : undefined,
                 model: extraOptions?.modelLevel || 'gemini-2.0-flash-001', // Track which AI model was used
             }
-        };
+        });
 
     } catch (e: any) {
         await emitThought(jobId, 'Error', `Failed: ${e.message}`);
         logger.error('[AgentRunner] Runner Error:', { error: e.message });
-        return {
+        return finalizeAgentResult({
             content: `Error: ${e.message}`,
             toolCalls: executedTools,
             thinking: {
@@ -1649,6 +1702,6 @@ All agents are online and ready. Type an agent name or describe your task to get
                 })),
                 plan: []
             }
-        };
+        });
     }
 }
