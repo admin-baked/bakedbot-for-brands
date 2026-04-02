@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-04-01 (Thrive check-in email recovery, toggle autosave)
+**Current Status:** 🟢 Passing | **Last update:** 2026-04-01 (Loyalty tablet Smokey hang fix, email-first flow reorder)
 
 ---
 
