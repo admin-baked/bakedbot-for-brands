@@ -109,7 +109,8 @@ Respond ONLY with valid JSON in this exact format (no markdown, no explanation):
 
         const raw = await callClaude({
             userMessage: prompt,
-            maxTokens: 800,
+            maxTokens: 1200,
+            temperature: 0.7,
             model: 'claude-haiku-4-5-20251001',
             autoRouteModel: false,
         });
@@ -118,9 +119,12 @@ Respond ONLY with valid JSON in this exact format (no markdown, no explanation):
         const json = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
         const parsed = JSON.parse(json);
 
-        if (!Array.isArray(parsed.products) || parsed.products.length !== 3) {
+        if (!Array.isArray(parsed.products) || parsed.products.length < 1) {
             throw new Error('Invalid recommendation response structure');
         }
+
+        // Trim to 3 if Claude returned extra
+        parsed.products = parsed.products.slice(0, 3);
 
         logger.info('[LoyaltyTablet] Mood recommendations generated', {
             orgId,
