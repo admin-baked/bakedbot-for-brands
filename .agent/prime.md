@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟡 `main` is green; local Thrive check-in work has focused tests passing while repo-wide `check:types` still times out in this shell.
+**Current Status:** 🟡 `main` is green; inbox live-streaming release has focused tests + scoped typecheck passing while repo-wide `check:types` still times out in this shell.
 **Recent work (2026-04-02):** See `MEMORY.md` for full log.
-Key completed: [Staff-assisted last-4 Thrive check-in lookup + `phoneLast4` backfill/index support] (`a5bdcb8ab`)
+Key completed: [Inbox live async streaming + shared job-stream cleanup] (`594a21441`)
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 

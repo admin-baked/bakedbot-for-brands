@@ -1,6 +1,13 @@
 # BakedBot Session Memory
 
 ## Session: 2026-04-02
+- **Inbox live async streaming** (`594a21441`) - Inbox threads now show an assistant placeholder immediately, stream live thought steps plus draft answer text into the same bubble, and finalize a single stable async reply instead of appending duplicate terminal messages.
+- **Canonical job-stream cleanup** (`594a21441`) - Centralized async draft/result sanitization plus shared `AgentJobStatus` / `AgentJobDraftState` types, reused job-stream terminal helpers for sync fallback writes, and queued draft publishes so Firestore writes no longer sit directly on the token path.
+- **Inbox stop-response boundary fix** (`594a21441`) - Scoped stop/cancel behavior to an inbox server action, kept thread preview updates explicit on finalization only, and let VM artifact creation happen without delaying live poller updates.
+- **Verification** (`594a21441`) - Focused Jest coverage for inbox conversation + thinking + store behavior passed, and a scoped TypeScript check for the release files passed via `.\scripts\node-safe.cmd .\node_modules\typescript\bin\tsc -p tsconfig.inbox-stream-check.json --pretty false`; repo-wide `.\scripts\npm-safe.cmd run check:types` still timed out in this shell.
+- **Session file** - `memory/sessions/2026-04-02-0239-inbox-live-streaming.md`
+
+## Session: 2026-04-02
 - **Thrive staff last-4 check-in assist** (`a5bdcb8ab`) - Added a staff-confirmed first-name-plus-last-4 lookup path in the canonical visitor check-in actions, returning masked customer/order candidates and resolving the real phone only on the server from opaque refs.
 - **Phone last-4 persistence + backfill** (`a5bdcb8ab`) - Persisted `phoneLast4` on checkout, shipping, POS sync, Alleaves webhook, and order backfill writes, plus added `POST /api/admin/backfill-phone-last4` for scoped customer and order backfills.
 - **Index and verification guardrails** (`a5bdcb8ab`) - Added Firestore indexes for the new staff lookup queries plus Jest coverage for the server flow, check-in card UI, and index config; repo-wide `check:types` still timed out in both sandboxed and elevated runs.

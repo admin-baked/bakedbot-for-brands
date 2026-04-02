@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟡 `main` green; local Thrive check-in work has focused tests passing while repo-wide `check:types` still times out in this shell | **Last update:** 2026-04-02 (Staff-assisted last-4 check-in flow + phoneLast4 indexing)
+**Current Status:** 🟡 `main` green; inbox live-streaming release has focused tests + scoped typecheck passing while repo-wide `check:types` still times out in this shell | **Last update:** 2026-04-02 (Inbox live async streaming + shared job-stream cleanup)
 
 ---
 
