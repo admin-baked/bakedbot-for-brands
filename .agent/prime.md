@@ -149,9 +149,11 @@ mcp__jcodemunch__invalidate_cache → mcp__jcodemunch__index_repo
 search_symbols / get_symbol / get_file_outline
 ```
 
-### Codex / Gemini / Other Agents (No jcodemunch)
+### Codex / Gemini (Builder Agents — Full Protocol)
 
-These agents do not have jcodemunch MCP access. Use native search tools with discipline:
+Codex and Gemini follow the **same mandatory protocol as Claude Code**. No exceptions.
+
+#### Code Exploration (no jcodemunch)
 
 | Task | Tool | Rule |
 |------|------|------|
@@ -161,6 +163,31 @@ These agents do not have jcodemunch MCP access. Use native search tools with dis
 | Avoid | `Read` on files >200 lines without offset | Loads entire file — wasteful |
 
 **Rule of thumb:** Never read a file >200 lines in full without a targeted offset. Use Grep first to find the line, then Read ±30 lines around it.
+
+#### Pre-Push Gate (MANDATORY)
+
+Before every `git push` / deploy, Codex and Gemini **must**:
+1. Run the `/simplify` 3-agent review (Reuse + Quality + Efficiency) against `git diff HEAD`
+2. Fix all confirmed findings
+3. Run `.\scripts\npm-safe.cmd run check:types` — build must be green
+4. Only then push
+
+#### Session End (MANDATORY)
+
+After every coding session, Codex and Gemini **must** update:
+1. **`CLAUDE.md` line 15** — build status + date + 1-line summary
+2. **`.agent/prime.md` lines ~41–44** — max 2-line recent work block + commit hashes
+3. **`memory/MEMORY.md`** — prepend session entry; if > 150 lines, auto-archive oldest sessions to `memory/archive/YYYY-MM.md`
+
+#### Coding Standards (same as Claude Code)
+
+| Rule | Detail |
+|------|--------|
+| TypeScript | All code typed — `unknown` over `any` |
+| Logging | `@/lib/logger` — never `console.log` |
+| Error handling | Always wrap async in `try/catch` |
+| Server mutations | `'use server'` directive required |
+| Firestore | `@google-cloud/firestore` (not client SDK) |
 
 ---
 

@@ -18,7 +18,7 @@
 
 ## 🔄 Auto-Simplify Protocol (MANDATORY)
 
-After completing ANY code modifications, you **MUST** run `/simplify` before committing:
+After completing ANY code modifications AND **before every `git push` / Firebase deploy**, you **MUST** run `/simplify`:
 
 1. **Find changes:** Run `git diff HEAD` to capture all modified code. If empty, use `git diff HEAD~1`.
 2. **3 parallel reviews against the diff:**
@@ -29,7 +29,8 @@ After completing ANY code modifications, you **MUST** run `/simplify` before com
 4. **Run `.\scripts\npm-safe.cmd run check:types`** to verify fixes don't break the build.
 5. **Summarize** what was changed.
 
-> This is NOT optional. Every code session ends with `/simplify`. See `.agent/workflows/simplify.md` for the full protocol.
+> This is NOT optional. Every code session ends with `/simplify`, and every `git push` is gated on it. See `.agent/workflows/simplify.md` for the full protocol.
+> **Applies to all builder agents:** Claude Code, Codex, and Gemini — no exceptions.
 
 ---
 
@@ -248,6 +249,18 @@ Load from `.agent/refs/` on-demand (conserve context):
 
 > Full details: `.agent/refs/agents.md`
 
+## Builder AI Agents
+
+These agents write and ship code in this repo. All follow the same `/simplify` + session-end protocol.
+
+| Agent | Platform | Protocol |
+|-------|----------|----------|
+| **Claude Code** | Anthropic CLI / IDE | Primary — full CLAUDE.md protocol |
+| **Codex** | OpenAI Codex | Same: `/simplify` pre-push, session-end update, no `console.log`, typed TS |
+| **Gemini** | Google Gemini CLI / Code Assist | Same: `/simplify` pre-push, session-end update, no `console.log`, typed TS |
+
+> When Codex or Gemini complete a coding session, they must run `/simplify` before pushing and update `CLAUDE.md` line 15 + `prime.md` recent work block. Memory archive auto-runs if MEMORY.md > 150 lines.
+
 ---
 
 ## Key Files
@@ -347,6 +360,20 @@ Prepend a brief session summary under a new `## Session: YYYY-MM-DD` heading (or
 - New architectural pattern / gotcha discovered → add inline
 - New system built → 3–5 bullet points max, commit hash, ref pointer
 - If topic already exists in a `memory/*.md` file → update that file instead, add a one-liner to MEMORY.md
+
+### 3b. Auto-Archive MEMORY.md (if > 150 lines)
+**Every time you write to MEMORY.md**, check the line count. If it exceeds 150 lines:
+
+1. Identify all `## Session:` entries **older than the 3 most recent**.
+2. Move them to `memory/archive/YYYY-MM.md`, grouped by month (append if the file already exists). Keep the session blocks intact — no summarization needed.
+3. Replace the moved sessions in MEMORY.md with a single pointer line at the bottom:
+   ```
+   → Sessions before YYYY-MM-DD archived in memory/archive/YYYY-MM.md
+   ```
+4. Verify MEMORY.md is now ≤ 150 lines before saving.
+
+**Archive file format:** `memory/archive/YYYY-MM.md` — plain append of session blocks, no frontmatter or index needed.
+**Permanent sections** (Startup Ritual, etc.) are never archived — only `## Session:` dated entries move.
 
 ### 4. Route to topic file if applicable
 | What changed | Update this file |
