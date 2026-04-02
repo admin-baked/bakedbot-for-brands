@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; duplicate welcome/POS schedulers paused live, billing export dataset + APIs prepared, scheduler docs aligned.
-**Recent work (2026-04-02):** Live GCP scheduler cleanup, BigQuery dataset `billing_export` in `US`, bearer-auth doc sync, `/simplify` clean on the pending diff (`uncommitted`)
+**Current Status:** 🟢 `main` green; long-form video shipped (Kling chain + Remotion `LongFormVideo`, 60/90s, Creative Center 🎥 Long tab).
+**Recent work (2026-04-02):** `LongFormVideo.tsx` + `chain-video.ts` + `/api/ai/video/chain` — run `npm run remotion:bundle` before next deploy (`e715efec0`, `f1f483316`)
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 

@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; duplicate welcome/POS schedulers cleaned up live, billing export dataset + APIs prepared, scheduler docs aligned | **Last update:** 2026-04-02 (scheduler cleanup + billing export prep)
+**Current Status:** 🟢 `main` green; long-form video shipped (Kling chain + Remotion LongFormVideo, 60/90s, Creative Center 🎥 Long tab) — run `npm run remotion:bundle` before next deploy | **Last update:** 2026-04-02 (long-form video Option C)
 
 ---
 
