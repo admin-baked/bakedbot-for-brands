@@ -220,6 +220,7 @@ export async function executeGLMWithTools(
         model: selectedModel,
         iteration,
         choicesLength: response.choices?.length ?? 0,
+        finishReason: response.choices?.[0]?.finish_reason ?? 'n/a',
       });
       break;
     }
@@ -229,6 +230,14 @@ export async function executeGLMWithTools(
 
     const toolCalls = message.tool_calls ?? [];
     if (toolCalls.length === 0) {
+      if (!message.content) {
+        logger.warn('[GLM] Final response has no text content', {
+          model: selectedModel,
+          iteration,
+          finishReason: response.choices?.[0]?.finish_reason ?? 'unknown',
+          hasToolCalls: false,
+        });
+      }
       break;
     }
 
