@@ -55,7 +55,20 @@ export function JoinPageClient({ invitationToken }: { invitationToken: string })
                 setStatus('success');
                 toast({ title: 'Welcome!', description: 'Invitation accepted successfully.' });
 
-                // Delay redirect slightly for UX
+                // Force-refresh the ID token to pick up the new role claims,
+                // then refresh the server session cookie before redirecting.
+                // Without this, the old cached token (no role) routes the user to /onboarding.
+                try {
+                    const newIdToken = await (user as any).getIdToken(true);
+                    await fetch('/api/auth/session', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ idToken: newIdToken }),
+                    });
+                } catch (_e) {
+                    // Non-fatal — redirect will re-authenticate if needed
+                }
+
                 setTimeout(() => {
                     router.push('/dashboard');
                 }, 1500);

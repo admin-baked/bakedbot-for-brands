@@ -506,10 +506,12 @@ export async function acceptInvitationAction(token: string) {
                 }
 
                 await auth.setCustomUserClaims(user.uid, claims);
-                // Revoke existing tokens so the next login gets a fresh token with the new claims.
-                // Without this, the user can get a stale cached token that has no role → sent to /onboarding.
-                await auth.revokeRefreshTokens(user.uid);
-                logger.info('[acceptInvitationAction] Custom claims updated and tokens revoked', {
+                // NOTE: We intentionally do NOT call revokeRefreshTokens here.
+                // Revoking tokens invalidates the server session cookie (verifySessionCookie checkRevoked=true),
+                // forcing the user back through sign-in where a race condition (5s token timeout) routes
+                // them to /onboarding. Instead, the invite client force-refreshes the token client-side
+                // after acceptance to pick up the new claims.
+                logger.info('[acceptInvitationAction] Custom claims updated', {
                     userId: user.uid,
                     role: normalizedInviteRole,
                     orgId: invite.targetOrgId,
