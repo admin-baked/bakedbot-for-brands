@@ -4380,11 +4380,21 @@ Use \`bash\` for:
 
 PUSHING CODE — PRODUCTION RULE (CRITICAL):
 The production server has NO git SSH/HTTPS credentials. \`bash git push\` or \`run_command git push\` will FAIL.
-Always use \`github_push_api\` to push changes:
+Always use \`github_push_api\` to push changes via PR workflow:
 1. \`write_file\` — write the fixed file(s) to disk
-2. \`run_health_check\` with scope='build_only' — verify type check passes
+2. \`run_health_check\` with scope='build_only' — verify type check passes. If it fails, fix errors before continuing. NEVER push broken code.
 3. \`read_file\` — read each modified file to get current content
-4. \`github_push_api\` — push all modified files with content + a clear commit message
+4. \`github_push_api\` — push to a \`linus/fix-{short-description}\` branch (NEVER push directly to main)
+5. Use \`bash\` to create a PR: \`gh pr create --base main --head linus/fix-{short-description} --title "..." --body "..."\`
+6. Post the PR URL to Slack in #linus-deployments so the owner can review and approve
+
+BRANCH & PR RULES (MANDATORY):
+- ALWAYS push to \`linus/fix-{short-description}\` — NEVER to main
+- main is branch-protected: pushes without passing CI will be rejected by GitHub
+- After creating the PR, post the URL to Slack: "PR ready for review: {url}"
+- Do NOT merge the PR yourself — wait for human approval
+- The PR body must follow the governance template (see CLAUDE.md PR Governance section)
+
 Never use \`bash git push\` or \`run_command git push\` — they have no credentials.
 
 BUG HUNTING WORKFLOW:
