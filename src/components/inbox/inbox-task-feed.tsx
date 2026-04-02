@@ -36,9 +36,9 @@ function buildPulseConfig(id: string, fallback: { name: string; avatar: string; 
     return {
         name: fallback.name,
         avatar: fallback.avatar,
-        color: `bg-${fallback.color}`,
-        bgColor: `bg-${fallback.color}/10`,
-        textColor: `text-${fallback.color}`,
+        color: agentBg(fallback.color),
+        bgColor: agentBgMuted(fallback.color),
+        textColor: agentText(fallback.color),
     };
 }
 
