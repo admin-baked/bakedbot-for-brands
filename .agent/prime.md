@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — Slack routing fixes, Uncle Elroy briefing, schema backfill shipped.
+**Current Status:** 🟢 Passing — Thrive tablet check-in hardening shipped.
 **Recent work (2026-04-01):** See `MEMORY.md` for full log.
-Key completed: [Deployment channel fix + Elroy briefing + orgId backfill] (`8dd5b420a`)
+Key completed: [Deterministic Thrive tablet recommendations + check-in verification] (`uncommitted`)
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
