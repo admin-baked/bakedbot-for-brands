@@ -202,11 +202,15 @@ function matchesCategory(product: any, category: CanonicalCategory): boolean {
     }
 }
 
+function getProductId(product: any): string {
+    return String(product.id || product.sku_id || product.cann_sku_id || product.externalId || product.name);
+}
+
 function toChatbotProduct(product: any): ChatbotProduct {
     return {
-        id: String(product.id || product.sku_id || product.cann_sku_id || product.externalId || product.name),
+        id: getProductId(product),
         name: product.name || product.product_name || 'Unknown Product',
-        category: normalizeCategoryName(product.category),
+        category: normalizeCategoryName(product.category ?? product.category_name),
         price: getProductPrice(product),
         imageUrl: normalizeText(product.imageUrl || product.image_url || product.primary_image),
         thcPercent: product.thcPercent ?? product.thc ?? product.percentage_thc ?? null,
@@ -276,13 +280,13 @@ export function parseMenuSearchIntent(query: string): MenuSearchIntent {
 function rankByChemotypeFallback(products: any[], query: string, limit: number): any[] {
     const rankedProducts = rankByChemotype(enrichProductsWithChemotypes(products.map(toChatbotProduct)), query)
         .slice(0, limit);
+    const productsById = new Map(
+        products.map((product) => [getProductId(product), product])
+    );
 
-    const rankedIds = new Set(rankedProducts.map((product) => product.id));
-
-    return products.filter((product) => {
-        const id = String(product.id || product.sku_id || product.cann_sku_id || product.externalId || product.name);
-        return rankedIds.has(id);
-    });
+    return rankedProducts
+        .map((product) => productsById.get(product.id))
+        .filter((product): product is any => Boolean(product));
 }
 
 export function searchMenuProducts(
@@ -311,9 +315,11 @@ export function searchMenuProducts(
         return scored.slice(0, limit).map((entry) => entry.product);
     }
 
-    if (intent.category) {
+    const requestedCategory = intent.category;
+
+    if (requestedCategory) {
         const categoryMatches = products
-            .filter((product) => matchesCategory(product, intent.category) && isInStock(product))
+            .filter((product) => matchesCategory(product, requestedCategory) && isInStock(product))
             .sort((a, b) => getProductPrice(a) - getProductPrice(b));
 
         if (categoryMatches.length > 0) {
