@@ -14,29 +14,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { syncAllPOSData, syncOrgPOSData } from '@/server/services/pos-sync-service';
 import { logger } from '@/lib/logger';
+import { requireCronSecret } from '@/server/auth/cron';
 
 export const maxDuration = 300; // 5 minutes
 
 export async function POST(request: NextRequest) {
     try {
-        // Verify cron secret to prevent unauthorized access
-        const authHeader = request.headers.get('authorization');
-        const cronSecret = process.env.CRON_SECRET;
-
-        if (!cronSecret) {
-            logger.error('[CRON] CRON_SECRET is not configured');
-            return NextResponse.json(
-                { error: 'Server misconfiguration' },
-                { status: 500 }
-            );
-        }
-
-        if (authHeader !== `Bearer ${cronSecret}`) {
-            logger.warn('[CRON] Invalid cron secret attempt');
-            return NextResponse.json(
-                { error: 'Invalid authorization' },
-                { status: 401 }
-            );
+        const authError = await requireCronSecret(request, 'pos-sync');
+        if (authError) {
+            return authError;
         }
 
         // Check if specific orgId was provided in query params

@@ -20,6 +20,82 @@ Run one focused live smoke after the April 2, 2026 Thrive check-in deployment:
 - Thrive customer backfill is complete: `15` scanned, `13` updated, `0` remaining without `phoneLast4`
 - Thrive scoped orders already had `phoneLast4`: `3669` scanned, `0` updated
 
+## Deploy Verification and Slow-Rollout Triage
+
+Use this entry if a Thrive push appears "stuck" in deploy or a GitHub deploy run goes long enough that it looks suspicious.
+
+### What "Healthy" Looks Like
+
+Expected GitHub Actions step order in `.github/workflows/deploy.yml`:
+1. `Trigger App Hosting Rollout`
+2. `Resolve App Hosting Cloud Build`
+3. `Wait for App Hosting Build and Rollout`
+
+Important:
+- a long deployment is usually not a slow `git push`
+- GitHub can fail fast while the underlying App Hosting Cloud Build keeps running
+- always trace the rollout by commit SHA, Cloud Build ID, and App Hosting build ID
+
+### Quick Check Commands
+
+Run from repo root:
+
+```powershell
+gh run list --workflow "Deploy to Firebase App Hosting" --branch main --limit 5
+gh run view <run-id> --json conclusion,status,createdAt,updatedAt,jobs
+node scripts/firebase-apphosting.mjs resolve --commit <commit-sha> --after <iso-time> --json
+node scripts/firebase-apphosting.mjs wait --cloud-build <cloud-build-id> --apphosting-build <apphosting-build-id> --timeout-minutes 1 --json
+```
+
+Use `describe` when you already know the Cloud Build ID:
+
+```powershell
+node scripts/firebase-apphosting.mjs describe <cloud-build-id> --json
+```
+
+### Triage Procedure
+
+1. Find the latest deploy run in GitHub Actions.
+2. Capture the run ID, commit SHA, and failing step if there is one.
+3. Resolve the App Hosting Cloud Build by commit using `scripts/firebase-apphosting.mjs resolve`.
+4. If the rollout is still active, use `wait` to track Cloud Build, App Hosting build, and rollout state.
+5. If the rollout failed, save the structured output and the `buildLogsUrl`.
+6. Classify the incident before blaming the code change:
+- If GitHub timed out but Cloud Build is still running, the issue is deploy orchestration or App Hosting latency.
+- If Cloud Build finishes with `INTERNAL_ERROR`, treat it as platform or builder failure until logs prove otherwise.
+- If Cloud Build is `SUCCESS` and rollout is `SUCCEEDED`, the deploy path is healthy.
+
+### Evidence to Save
+
+For every suspicious deploy, record:
+- GitHub run ID
+- GitHub job ID
+- commit SHA
+- Cloud Build ID
+- App Hosting build ID
+- rollout state
+- `buildLogsUrl`
+- exact failing step name
+- start time, finish time, and total duration
+
+### Known Reference Cases
+
+Failed reference from April 2, 2026:
+- GitHub deploy run surfaced a timeout while the underlying Cloud Build kept running
+- Cloud Build: `fe857d24-cd89-4d13-af51-a68d481dcbc4`
+- source revision: `d168d3d68ccdf83893d8fb434cfe727715de48d4`
+- final Cloud Build status: `INTERNAL_ERROR`
+
+Healthy reference from April 2, 2026:
+- GitHub run: `23911319177`
+- commit: `86fdb2f3e08b583b5f2091bc35dce5114cec0d66`
+- Cloud Build: `5c78ff0e-07be-4d44-8800-9b7f3fdcb695`
+- App Hosting build: `build-2026-04-02-013`
+- Cloud Build status: `SUCCESS`
+- App Hosting build state: `READY`
+- rollout state: `SUCCEEDED`
+- rollout duration: `22m 1s`
+
 ## Before You Start
 
 Prepare two test identities:

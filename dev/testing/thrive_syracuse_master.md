@@ -944,6 +944,7 @@ Run these before beginning any module testing.
 **Purpose:** Re-test the public Thrive check-in flow after the returning-customer resolution update, `phoneLast4` backfill, and Firestore index rollout.
 **Primary Surface:** `https://bakedbot.ai/thrivesyracuse/rewards#check-in`
 **Operator Runbook:** `dev/testing/thrive_syracuse_postdeploy_operator_script.md`
+**Deploy Runbook Entry:** `dev/testing/thrive_syracuse_postdeploy_operator_script.md` -> `Deploy Verification and Slow-Rollout Triage`
 
 ### Production Status Snapshot
 

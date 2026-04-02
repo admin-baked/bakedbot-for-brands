@@ -233,13 +233,13 @@ export default function LoyaltyTabletPage() {
             onTouchStart={resetIdleTimer}
             onClick={resetIdleTimer}
         >
-            {/* Header */}
+            {/* Header — logo hidden on welcome (shown in body); always visible on other steps */}
             <div className="absolute top-6 left-1/2 -translate-x-1/2 flex items-center gap-3">
-                {brandLogoUrl ? (
+                {step !== 'welcome' && (brandLogoUrl ? (
                     <img src={brandLogoUrl} alt="Brand logo" className="h-10 w-auto object-contain max-w-[180px]" />
                 ) : (
                     <span className="text-2xl font-black tracking-tight text-purple-400">Thrive Syracuse</span>
-                )}
+                ))}
                 {cartCount > 0 && step === 'recommendations' && (
                     <div className="bg-purple-600 text-white text-sm font-bold px-3 py-1 rounded-full flex items-center gap-1">
                         <ShoppingCart className="h-4 w-4" />
@@ -274,7 +274,11 @@ export default function LoyaltyTabletPage() {
                         transition={{ duration: 0.25 }}
                         className="flex flex-col items-center gap-8 max-w-lg text-center"
                     >
-                        <div className="text-6xl sm:text-8xl">🍃</div>
+                        {brandLogoUrl ? (
+                            <img src={brandLogoUrl} alt="Brand logo" className="h-24 sm:h-32 w-auto object-contain max-w-[280px]" />
+                        ) : (
+                            <div className="text-6xl sm:text-8xl">🍃</div>
+                        )}
                         <div>
                             <h1 className="text-3xl sm:text-5xl font-black text-white mb-3">Welcome to Thrive!</h1>
                             <p className="text-base sm:text-xl text-purple-300">Check in to earn loyalty points<br />and get personalized recommendations.</p>

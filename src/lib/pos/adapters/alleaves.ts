@@ -402,13 +402,20 @@ export class ALLeavesClient implements POSClient {
         logger.info('[POS_ALLEAVES] Fetching menu', { locationId: this.config.locationId });
 
         try {
-            // Step 1: Fetch inventory items and areas in parallel
+            // Step 1: Fetch inventory items and areas in parallel.
+            // Include id_location so Alleaves scopes results to this store's inventory.
+            const locationIdNum = parseInt(this.config.locationId, 10);
+            const inventoryBody: Record<string, unknown> = { query: '' };
+            if (!isNaN(locationIdNum)) {
+                inventoryBody.id_location = locationIdNum;
+            }
+
             const [items, areaLookup] = await Promise.all([
                 this.request<ALLeavesInventoryItem[]>(
                     `/inventory/search`,
                     {
                         method: 'POST',
-                        body: JSON.stringify({ query: '' }),
+                        body: JSON.stringify(inventoryBody),
                     }
                 ),
                 this.fetchAreas(),

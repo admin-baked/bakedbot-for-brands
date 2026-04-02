@@ -72,51 +72,75 @@ async function launchThriveFullAsync() {
     } else {
       try {
         // Job 1: POS Sync
-        console.log('  1️⃣  Creating: thrive-pos-sync (every 30 min)');
+        console.log('  1️⃣  Creating: pos-sync-thrive (every 30 min)');
         try {
-          execSync(`gcloud scheduler jobs create http thrive-pos-sync \
+          execSync(`gcloud scheduler jobs create http pos-sync-thrive \
             --schedule="*/30 * * * *" \
             --location=${REGION} \
             --uri="${BASE_URL}/api/cron/pos-sync?orgId=${ORG_ID}" \
             --http-method=POST \
-            --oidc-service-account-email=firebase-app-hosting-compute@${PROJECT}.iam.gserviceaccount.com \
+            --headers="Authorization=Bearer ${cronSecret}" \
             --project=${PROJECT} \
             --quiet`, { stdio: 'pipe' });
           console.log('     ✅ Created');
         } catch {
-          console.log('     ℹ️  May already exist (updating...)');
+          execSync(`gcloud scheduler jobs update http pos-sync-thrive \
+            --schedule="*/30 * * * *" \
+            --location=${REGION} \
+            --uri="${BASE_URL}/api/cron/pos-sync?orgId=${ORG_ID}" \
+            --http-method=POST \
+            --headers="Authorization=Bearer ${cronSecret}" \
+            --project=${PROJECT} \
+            --quiet`, { stdio: 'pipe' });
+          console.log('     🔄 Updated existing job');
         }
 
         // Job 2: Loyalty Sync
-        console.log('  2️⃣  Creating: thrive-loyalty-sync (daily 2 AM UTC)');
+        console.log('  2️⃣  Creating: loyalty-sync-thrive (daily 2 AM UTC)');
         try {
-          execSync(`gcloud scheduler jobs create http thrive-loyalty-sync \
+          execSync(`gcloud scheduler jobs create http loyalty-sync-thrive \
             --schedule="0 2 * * *" \
             --location=${REGION} \
             --uri="${BASE_URL}/api/cron/loyalty-sync?orgId=${ORG_ID}" \
             --http-method=POST \
-            --oidc-service-account-email=firebase-app-hosting-compute@${PROJECT}.iam.gserviceaccount.com \
+            --headers="Authorization=Bearer ${cronSecret}" \
             --project=${PROJECT} \
             --quiet`, { stdio: 'pipe' });
           console.log('     ✅ Created');
         } catch {
-          console.log('     ℹ️  May already exist (updating...)');
+          execSync(`gcloud scheduler jobs update http loyalty-sync-thrive \
+            --schedule="0 2 * * *" \
+            --location=${REGION} \
+            --uri="${BASE_URL}/api/cron/loyalty-sync?orgId=${ORG_ID}" \
+            --http-method=POST \
+            --headers="Authorization=Bearer ${cronSecret}" \
+            --project=${PROJECT} \
+            --quiet`, { stdio: 'pipe' });
+          console.log('     🔄 Updated existing job');
         }
 
         // Job 3: Playbook Runner
-        console.log('  3️⃣  Creating: thrive-playbook-runner (daily 7 AM UTC)');
+        console.log('  3️⃣  Creating: playbook-runner-thrive (daily 7 AM UTC)');
         try {
-          execSync(`gcloud scheduler jobs create http thrive-playbook-runner \
+          execSync(`gcloud scheduler jobs create http playbook-runner-thrive \
             --schedule="0 7 * * *" \
             --location=${REGION} \
             --uri="${BASE_URL}/api/cron/playbook-runner?orgId=${ORG_ID}" \
             --http-method=POST \
-            --oidc-service-account-email=firebase-app-hosting-compute@${PROJECT}.iam.gserviceaccount.com \
+            --headers="Authorization=Bearer ${cronSecret}" \
             --project=${PROJECT} \
             --quiet`, { stdio: 'pipe' });
           console.log('     ✅ Created');
         } catch {
-          console.log('     ℹ️  May already exist (updating...)');
+          execSync(`gcloud scheduler jobs update http playbook-runner-thrive \
+            --schedule="0 7 * * *" \
+            --location=${REGION} \
+            --uri="${BASE_URL}/api/cron/playbook-runner?orgId=${ORG_ID}" \
+            --http-method=POST \
+            --headers="Authorization=Bearer ${cronSecret}" \
+            --project=${PROJECT} \
+            --quiet`, { stdio: 'pipe' });
+          console.log('     🔄 Updated existing job');
         }
 
         console.log('\n✅ Cloud Scheduler jobs created/verified\n');

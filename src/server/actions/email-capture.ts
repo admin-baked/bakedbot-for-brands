@@ -347,9 +347,22 @@ async function triggerWelcomeEmail(
             email,
         });
 
-        // Immediately trigger the job processor — no scheduler exists for /api/jobs/welcome
+        // Immediately trigger the job processor with the same CRON_SECRET used by Cloud Scheduler.
         const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bakedbot.ai';
-        fetch(`${appUrl}/api/jobs/welcome`, { method: 'POST' }).catch((err: Error) => {
+        const cronSecret = process.env.CRON_SECRET;
+
+        if (!cronSecret) {
+            logger.warn('[EmailCapture] Skipping immediate welcome processor invoke because CRON_SECRET is missing', {
+                leadId,
+            });
+            return;
+        }
+        fetch(`${appUrl}/api/jobs/welcome`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${cronSecret}`,
+            },
+        }).catch((err: Error) => {
             logger.warn('[EmailCapture] Job processor invoke failed — email will send on next scheduled run', {
                 leadId,
                 error: err.message,

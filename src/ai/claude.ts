@@ -10,7 +10,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import type { MessageParam, Tool, ContentBlock, ToolUseBlock, ToolResultBlockParam, Usage } from '@anthropic-ai/sdk/resources/messages';
+import type { MessageParam, Tool, ContentBlock, ToolUseBlock, ToolResultBlockParam, Usage, TextBlockParam } from '@anthropic-ai/sdk/resources/messages';
 
 // SDK Usage type has cache_creation_input_tokens but not cache_read_input_tokens yet
 type UsageWithCache = Usage & { cache_read_input_tokens?: number | null };
@@ -76,6 +76,7 @@ export const CLAUDE_REASONING_MODEL = process.env.CLAUDE_REASONING_MODEL || 'cla
 
 // Maximum iterations to prevent infinite loops
 const MAX_ITERATIONS = 10;
+const TOOL_RESULT_CHAR_LIMIT = 12000;
 
 // Test mode flag - use GLM mocks in unit/integration tests
 // When true, `callGLM()` uses mocked implementation (fast, reliable)
@@ -255,6 +256,47 @@ export function getClaudeClient(): Anthropic {
     return anthropicClient;
 }
 
+function estimateTokenCount(text: string): number {
+    return Math.ceil(text.length / 4);
+}
+
+function truncateForClaude(text: string, maxChars: number = TOOL_RESULT_CHAR_LIMIT): string {
+    if (text.length <= maxChars) {
+        return text;
+    }
+
+    const truncatedChars = text.length - maxChars;
+    return `${text.slice(0, maxChars)}\n...[TRUNCATED ${truncatedChars} chars to reduce token usage]`;
+}
+
+function serializeToolResultForClaude(output: unknown): string {
+    const serialized = (() => {
+        if (typeof output === 'string') {
+            return output;
+        }
+
+        try {
+            return JSON.stringify(output);
+        } catch {
+            return String(output);
+        }
+    })();
+
+    return truncateForClaude(serialized);
+}
+
+function buildCachedSystemPrompt(systemPrompt?: string): string | TextBlockParam[] | undefined {
+    if (!systemPrompt) {
+        return undefined;
+    }
+
+    return [{
+        type: 'text',
+        text: systemPrompt,
+        cache_control: { type: 'ephemeral' },
+    }];
+}
+
 /**
  * Execute a prompt with tools using Claude.
  * 
@@ -308,6 +350,7 @@ export async function executeWithTools(
     let totalOutputTokens = 0;
     let totalCachedTokens = 0;
     let finalContent = '';
+    let estimatedToolResultTokens = 0;
 
     // Add cache_control to the last tool so Anthropic caches the entire tools array.
     // On cache hit, all tool definitions are served at 90% discount (~10% of normal price).
@@ -317,9 +360,11 @@ export async function executeWithTools(
             { ...tools[tools.length - 1], cache_control: { type: 'ephemeral' } } as ClaudeTool,
           ]
         : tools;
+    const estimatedToolDefinitionTokens = estimateTokenCount(JSON.stringify(cachedTools));
 
     // Hoist — context is immutable across all iterations
     const systemPrompt = buildSystemPrompt(context);
+    const cachedSystemPrompt = buildCachedSystemPrompt(systemPrompt);
 
     for (let iteration = 0; iteration < maxIterations; iteration++) {
         const response = await client.messages.create({
@@ -327,13 +372,7 @@ export async function executeWithTools(
             max_tokens: 4096,
             tools: cachedTools,
             messages,
-            system: [
-                {
-                    type: 'text',
-                    text: systemPrompt,
-                    cache_control: { type: 'ephemeral' }
-                }
-            ],
+            system: cachedSystemPrompt,
         });
 
         totalInputTokens += response.usage.input_tokens;
@@ -391,10 +430,13 @@ export async function executeWithTools(
                 durationMs,
             });
 
+            const serializedOutput = serializeToolResultForClaude(output);
+            estimatedToolResultTokens += estimateTokenCount(serializedOutput);
+
             toolResults.push({
                 type: 'tool_result',
                 tool_use_id: toolUse.id,
-                content: typeof output === 'string' ? output : JSON.stringify(output),
+                content: serializedOutput,
                 is_error: status === 'error',
             });
         }
@@ -439,6 +481,8 @@ export async function executeWithTools(
             brandId: context.brandId,
             inputTokens: totalInputTokens,
             outputTokens: totalOutputTokens,
+            toolDefinitionTokens: estimatedToolDefinitionTokens,
+            toolResultTokens: estimatedToolResultTokens,
             cacheReadTokens: totalCachedTokens,
             toolExecutions: toolExecutions.map(t => ({
                 name: t.name,
@@ -618,7 +662,7 @@ export async function callClaude(options: ClaudeCallOptions): Promise<string> {
         model: selectedModel,
         max_tokens: maxTokens,
         temperature,
-        system: systemPrompt,
+        system: buildCachedSystemPrompt(systemPrompt),
         messages: [{
             role: 'user',
             content: messageContent as any // Type assertion for flexibility

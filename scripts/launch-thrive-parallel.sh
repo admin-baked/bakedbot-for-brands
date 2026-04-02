@@ -24,34 +24,34 @@ JOBS_FAILED=0
   echo "📅 [JOB 1] Creating Cloud Scheduler jobs..."
   
   # Job 1a: POS Sync (every 30 min)
-  echo "  Creating: thrive-pos-sync (every 30 min)..."
-  gcloud scheduler jobs create http thrive-pos-sync \
+  echo "  Creating: pos-sync-thrive (every 30 min)..."
+  gcloud scheduler jobs create http pos-sync-thrive \
     --schedule="*/30 * * * *" \
     --uri="${BASE_URL}/api/cron/pos-sync?orgId=${ORG_ID}" \
     --http-method=POST \
-    --headers="Authorization: Bearer ${CRON_SECRET}" \
+    --headers="Authorization=Bearer ${CRON_SECRET}" \
     --project=${PROJECT} \
     --location=${REGION} \
     --quiet 2>/dev/null || echo "  ✓ Job may already exist (OK)"
   
   # Job 1b: Loyalty Sync (daily 2 AM UTC)
-  echo "  Creating: thrive-loyalty-sync (daily 2 AM UTC)..."
-  gcloud scheduler jobs create http thrive-loyalty-sync \
+  echo "  Creating: loyalty-sync-thrive (daily 2 AM UTC)..."
+  gcloud scheduler jobs create http loyalty-sync-thrive \
     --schedule="0 2 * * *" \
     --uri="${BASE_URL}/api/cron/loyalty-sync?orgId=${ORG_ID}" \
     --http-method=POST \
-    --headers="Authorization: Bearer ${CRON_SECRET}" \
+    --headers="Authorization=Bearer ${CRON_SECRET}" \
     --project=${PROJECT} \
     --location=${REGION} \
     --quiet 2>/dev/null || echo "  ✓ Job may already exist (OK)"
   
   # Job 1c: Playbook Runner (daily 7 AM UTC)
-  echo "  Creating: thrive-playbook-runner (daily 7 AM UTC)..."
-  gcloud scheduler jobs create http thrive-playbook-runner \
+  echo "  Creating: playbook-runner-thrive (daily 7 AM UTC)..."
+  gcloud scheduler jobs create http playbook-runner-thrive \
     --schedule="0 7 * * *" \
     --uri="${BASE_URL}/api/cron/playbook-runner?orgId=${ORG_ID}" \
     --http-method=POST \
-    --headers="Authorization: Bearer ${CRON_SECRET}" \
+    --headers="Authorization=Bearer ${CRON_SECRET}" \
     --project=${PROJECT} \
     --location=${REGION} \
     --quiet 2>/dev/null || echo "  ✓ Job may already exist (OK)"
@@ -94,4 +94,3 @@ echo "- Activate Mailjet integration (check .env.local for MAILJET_API_KEY)"
 echo "- Bulk-update playbook_assignments status to 'active'"
 echo "- Run manual POS sync test"
 echo ""
-

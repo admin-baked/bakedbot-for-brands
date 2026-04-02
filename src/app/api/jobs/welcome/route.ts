@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
+import { requireCronSecret } from '@/server/auth/cron';
 import { sendWelcomeEmail, sendWelcomeSms } from '@/server/services/mrs-parker-welcome';
 
 /**
@@ -19,6 +20,11 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
     try {
+        const authError = await requireCronSecret(request, 'welcome-jobs');
+        if (authError) {
+            return authError;
+        }
+
         const db = getAdminFirestore();
 
         // Get pending welcome email jobs
