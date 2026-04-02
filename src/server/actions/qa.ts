@@ -23,6 +23,7 @@ import {
     notifyBugVerified
 } from '@/server/services/qa-notifications';
 import { callClaude } from '@/ai/claude';
+import { extractJsonPayload } from '@/lib/utils/extract-json';
 import type {
     QABug,
     QABugStatus,
@@ -610,9 +611,7 @@ Each object must have these fields:
 
         let parsed: unknown;
         try {
-            // Strip any accidental markdown fences
-            const cleaned = rawJson.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-            parsed = JSON.parse(cleaned);
+            parsed = JSON.parse(extractJsonPayload(rawJson));
         } catch {
             return { success: false, error: 'Claude returned invalid JSON - try again with a shorter spec' };
         }

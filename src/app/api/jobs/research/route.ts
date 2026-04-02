@@ -4,6 +4,7 @@ import { logger } from '@/lib/logger';
 import { researchService } from '@/server/services/research-service';
 import { jinaSearch, jinaReadUrl } from '@/server/tools/jina-tools';
 import { callClaude } from '@/ai/claude';
+import { extractJsonPayload } from '@/lib/utils/extract-json';
 import type { ResearchSource } from '@/types/research';
 import type { DriveFileDoc } from '@/types/drive';
 
@@ -102,8 +103,7 @@ export async function POST(request: NextRequest) {
                         userMessage: `Research topic: "${task.query}"\n\nGenerate 5 specific research questions that together will comprehensively cover this topic.`,
                         maxTokens: 400,
                     });
-                    const cleaned = planText.trim().replace(/^```json?\s*/i, '').replace(/\s*```\s*$/, '');
-                    plan = JSON.parse(cleaned);
+                    plan = JSON.parse(extractJsonPayload(planText));
                     if (!Array.isArray(plan) || plan.length === 0) throw new Error('Invalid plan format');
                     plan = plan.slice(0, 5).map(String);
                 } catch {

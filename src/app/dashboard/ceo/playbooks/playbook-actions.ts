@@ -84,14 +84,7 @@ function asDate(value: any): Date | null {
     return null;
 }
 
-function extractJsonPayload(text: string): string {
-    const trimmed = text.trim();
-    const fencedMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
-    if (fencedMatch?.[1]) {
-        return fencedMatch[1].trim();
-    }
-    return trimmed;
-}
+import { extractJsonPayload } from '@/lib/utils/extract-json';
 
 function normalizeTrigger(trigger: any): any | null {
     if (!trigger || typeof trigger.type !== 'string') {
