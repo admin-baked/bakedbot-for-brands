@@ -339,43 +339,71 @@ Linus has **comprehensive CTO autonomy**. See `.agent/LINUS_CTO_AUTONOMY.md` for
 
 ## 🔚 Session End: "Update recent work"
 
-When the user says **"Update recent work"** (or similar), execute this checklist automatically — no questions:
+When the user says **"Update recent work"** (or similar), execute this checklist automatically — no questions.
 
-### 1. `CLAUDE.md` — line 15: Current Status
-Update the build status line with today's date and a brief summary:
+> **Multi-tab reality:** Multiple sessions often run in parallel across different tabs and complete at different times. The protocol below handles this safely — each tab writes to its own isolated session file first, then a conflict-free merge updates the shared files.
+
+---
+
+### Step 1 — Write a session file (ALWAYS FIRST, every tab)
+
+Write `memory/sessions/YYYY-MM-DD-HHMM-{slug}.md` before touching any shared file. This is your isolated record — safe to write even if other tabs have already updated CLAUDE.md.
+
+```markdown
+---
+date: YYYY-MM-DD
+time: HH:MM
+slug: feature-a-feature-b
+commits: [commitHash1, commitHash2]
+features: [Feature A, Feature B]
+---
+
+## Session YYYY-MM-DD — Feature A + Feature B
+
+- bullet summary (3–5 points max)
+- Gotchas discovered
 ```
-**Current Status:** 🟢 Passing | **Last update:** YYYY-MM-DD (Feature A, Feature B)
-```
 
-### 2. `.agent/prime.md` — lines ~21–24: Recent work block
-Update the 2-line recent work summary with the latest commit hashes:
-```
-**Recent work (YYYY-MM-DD):** See `memory/MEMORY.md` for full log.
-Key completed: [Feature A] (`commitHash`), [Feature B] (`commitHash`)
-```
-**Rule:** Max 2 lines. No implementation details. Just feature names + commit hashes.
+**Why first:** if anything fails later, this file ensures the session is never lost.
 
-### 3. `memory/MEMORY.md` — add session entry
-Prepend a brief session summary under a new `## Session: YYYY-MM-DD` heading (or append to latest).
-- New architectural pattern / gotcha discovered → add inline
-- New system built → 3–5 bullet points max, commit hash, ref pointer
-- If topic already exists in a `memory/*.md` file → update that file instead, add a one-liner to MEMORY.md
+---
 
-### 3b. Auto-Archive MEMORY.md (if > 150 lines)
-**Every time you write to MEMORY.md**, check the line count. If it exceeds 150 lines:
+### Step 2 — Append to `memory/MEMORY.md`
 
-1. Identify all `## Session:` entries **older than the 3 most recent**.
-2. Move them to `memory/archive/YYYY-MM.md`, grouped by month (append if the file already exists). Keep the session blocks intact — no summarization needed.
-3. Replace the moved sessions in MEMORY.md with a single pointer line at the bottom:
-   ```
-   → Sessions before YYYY-MM-DD archived in memory/archive/YYYY-MM.md
-   ```
-4. Verify MEMORY.md is now ≤ 150 lines before saving.
+Prepend your session block under a new `## Session YYYY-MM-DD` heading.
+- 3–5 bullets max, commit hash, ref pointer
+- If topic already has a `memory/*.md` file → update that instead, add a one-liner to MEMORY.md
 
-**Archive file format:** `memory/archive/YYYY-MM.md` — plain append of session blocks, no frontmatter or index needed.
-**Permanent sections** (Startup Ritual, etc.) are never archived — only `## Session:` dated entries move.
+**Safe for concurrent tabs:** each session gets its own dated block. Order by date, not write-time.
 
-### 4. Route to topic file if applicable
+---
+
+### Step 3 — Auto-Archive MEMORY.md (if > 150 lines)
+
+**Every time you write to MEMORY.md**, check line count. If > 150:
+1. Identify all `## Session` entries **older than the 3 most recent**.
+2. Move them to `memory/archive/YYYY-MM.md` (append if file exists). Keep blocks intact.
+3. Replace with a single pointer line: `→ Sessions before YYYY-MM-DD archived in memory/archive/YYYY-MM.md`
+4. Verify ≤ 150 lines after.
+
+**Permanent sections** (Startup Ritual, etc.) are never archived.
+
+---
+
+### Step 4 — Update shared files (date-gated)
+
+**Only update CLAUDE.md and prime.md if this session's date ≥ the current "Last update" date.**
+
+1. Read `CLAUDE.md` line 15. Parse the existing `YYYY-MM-DD`.
+2. If **your session date is newer or equal** → update both files:
+   - **`CLAUDE.md` line 15:** `**Current Status:** 🟢 Passing | **Last update:** YYYY-MM-DD (Feature A, Feature B)`
+   - **`.agent/prime.md` lines ~41–44:** max 2-line block — feature names + commit hashes only
+3. If **your session date is older** than what's already there → **skip both files**. Your session is already captured in MEMORY.md and `memory/sessions/`. Don't overwrite newer work.
+
+---
+
+### Step 5 — Route to topic file if applicable
+
 | What changed | Update this file |
 |---|---|
 | Heartbeat, cron, ISR, build monitor | `memory/platform.md` |
@@ -387,17 +415,40 @@ Prepend a brief session summary under a new `## Session: YYYY-MM-DD` heading (or
 | New pilot customer | `memory/customers.md` |
 | Delivery system | `memory/delivery-system-2026-02-17.md` |
 
-### 5. Commit
+---
+
+### Step 6 — Commit
+
 ```bash
 git add CLAUDE.md .agent/prime.md
 git commit -m "docs: Update session notes YYYY-MM-DD - [brief summary]"
 ```
-Memory files are local-only (not committed — `dev/` is git-ignored; `memory/` lives outside repo).
+Memory files are local-only (not committed — `memory/` lives outside repo).
+
+---
+
+### "Consolidate sessions" — merge all pending tabs at once
+
+When multiple tabs have pending session files in `memory/sessions/`, say **"Consolidate sessions"** to merge them all in one pass:
+
+1. Read all `memory/sessions/*.md` files
+2. Sort chronologically by `date` + `time` frontmatter
+3. For each session (oldest → newest):
+   - Append its block to MEMORY.md (skip if already present)
+   - Route to topic file if applicable
+4. Update CLAUDE.md line 15 + prime.md with the **most recent** session's data
+5. Auto-archive MEMORY.md if > 150 lines
+6. Delete all processed `memory/sessions/*.md` files
+7. Commit: `docs: Consolidate N sessions YYYY-MM-DD`
+
+> Use this after running "Update recent work" across multiple tabs, or when you remember sessions you forgot to update.
+
+---
 
 ### ⚠️ What NOT to do
+- Do NOT update CLAUDE.md/prime.md if your session is older than what's already there
 - Do NOT add full implementation details to `prime.md`
 - Do NOT add more than 2–3 lines to the prime.md recent work block
-- Do NOT let `memory/MEMORY.md` exceed 200 lines (split to topic file if needed)
 - Do NOT commit `memory/` files (they're in the Claude projects folder, not the repo)
 
 ---
