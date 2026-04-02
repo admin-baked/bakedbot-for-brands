@@ -3,6 +3,7 @@
 ### Summary
 
 - What changed in user-visible or system-visible terms?
+- Canonical home for the logic changed:
 
 ### Risk Tier
 
@@ -64,3 +65,4 @@
 ### Human Review
 
 - [ ] Reviewer confirms they understand system impact and failure behavior.
+- [ ] Reviewer confirms the canonical home, risk tier, failure modes, and observability plan are all explicit.

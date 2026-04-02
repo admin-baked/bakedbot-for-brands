@@ -31,6 +31,9 @@ if [ "$LOCAL" != "$REMOTE" ]; then
     fi
 fi
 
+echo "Checking simplify gate..."
+npm run -s simplify:verify
+
 echo "⬆️  Pushing to origin/main..."
 git push origin main
 

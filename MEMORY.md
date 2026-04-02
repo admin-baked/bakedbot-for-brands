@@ -1,6 +1,13 @@
 # BakedBot Session Memory
 
 ## Session: 2026-04-02
+- **Simplify gate + coding principles wired locally** (`uncommitted`) - Added `scripts/simplify-guard.mjs` with `simplify:status|record|verify`, then pushed the same `AGENTS.md` principles into startup context and review flow so canonical home, reuse, risk tier, failure modes, and observability stay front-and-center.
+- **Repo-owned hook install path** (`uncommitted`) - Added `.githooks/pre-push` plus `scripts/install-git-hooks.mjs`, and confirmed local `core.hooksPath` now points to `.githooks`.
+- **Cross-platform guarded push path** (`uncommitted`) - Switched `npm run push` to `scripts/safe-push.mjs` and kept `scripts/safe-push.sh` aligned so both paths run `npm run simplify:verify` before `git push`.
+- **Agent context updated** (`uncommitted`) - Updated `AGENTS.md`, `CODEX.md`, `CLAUDE.md`, `.agent/prime.md`, `.agent/workflows/simplify.md`, and the PR template so `/simplify` now explicitly ends with `npm run simplify:record` and the coding principles are reinforced in builder startup context and review.
+- **Session file** - `memory/sessions/2026-04-02-1514-simplify-push-gate.md`
+
+## Session: 2026-04-02
 - **Live scheduler cleanup + billing export prep** (`uncommitted`) - Audited the Thrive Syracuse cost spike, converted the live welcome/loyalty/playbook schedulers to `Authorization: Bearer $CRON_SECRET`, and paused the duplicate `welcome-email-processor` + `thrive-pos-sync` jobs.
 - **BigQuery billing dataset ready** (`uncommitted`) - Enabled the BigQuery + BigQuery Data Transfer APIs and created the US multi-region dataset `studio-567050101-bc6e8:billing_export` so Standard, Detailed, and Pricing exports can be turned on from the Cloud Billing console.
 - **Scheduler docs synced to production auth** (`uncommitted`) - Updated `CLOUD_SCHEDULER_SETUP.md` to remove stale service-account guidance and show the current bearer-header flow used by the welcome processor.

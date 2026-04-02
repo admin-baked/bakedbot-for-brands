@@ -227,7 +227,7 @@ Before finalizing code, verify:
 - [ ] I matched tests to the task’s risk level.
 - [ ] I preserved observability for production debugging.
 - [ ] A human reviewer will be able to explain this code.
-- [ ] **I ran `/simplify` (3-agent parallel review: Code Reuse, Code Quality, Efficiency) and fixed all confirmed findings before pushing.**
+- [ ] **I ran `/simplify` (3-agent parallel review: Code Reuse, Code Quality, Efficiency), fixed all confirmed findings, and recorded the reviewed outgoing diff with `npm run simplify:record` before pushing.**
 
 If any item is false, revise before proposing the change.
 
