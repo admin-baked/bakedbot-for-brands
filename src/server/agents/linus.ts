@@ -1783,6 +1783,33 @@ const LINUS_TOOLS: ClaudeTool[] = [
             },
             required: ['action', 'prNumber']
         }
+    },
+    {
+        name: 'delegate_to_claude_code',
+        description: 'Delegate a complex coding task to Claude Code running on the local desktop. Use when the task requires multi-file changes, is too large for this context window, or needs a full agentic loop (read→edit→types check→simplify→commit→push→test). Claude Code picks it up, fixes it, deploys, and runs browser tests. Results posted to #linus-deployments.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                task: {
+                    type: 'string',
+                    description: 'Full description of what needs to be fixed or built. Include file paths, error messages, and expected behavior.'
+                },
+                context: {
+                    type: 'string',
+                    description: 'Additional context: Slack thread summary, recent commits, or architectural notes.'
+                },
+                priority: {
+                    type: 'string',
+                    enum: ['high', 'normal'],
+                    description: 'Task priority. Default: normal.'
+                },
+                run_tests: {
+                    type: 'boolean',
+                    description: 'Run Playwright browser tests (local + prod) after deploy. Default: true.'
+                }
+            },
+            required: ['task']
+        }
     }
 ];
 
@@ -4311,6 +4338,37 @@ test('${scenario.slice(0, 50)}', async ({ page }) => {
             }
         }
 
+        case 'delegate_to_claude_code': {
+            const { task, context, priority = 'normal', run_tests = true } = input as {
+                task: string;
+                context?: string;
+                priority?: 'high' | 'normal';
+                run_tests?: boolean;
+            };
+            try {
+                const db = getAdminFirestore();
+                const taskId = `task_${Date.now()}`;
+                await db.collection('claude_code_tasks').doc(taskId).set({
+                    taskId,
+                    task,
+                    context: context ?? null,
+                    priority,
+                    runTests: run_tests,
+                    status: 'pending',
+                    createdAt: new Date().toISOString(),
+                    source: 'linus_slack',
+                });
+                logger.info('[Linus] Delegated task to Claude Code', { taskId, priority });
+                return {
+                    success: true,
+                    taskId,
+                    message: `Task queued for Claude Code (ID: \`${taskId}\`). The desktop agent will pick it up, make the fix, deploy, and run browser tests. Results will be posted to #linus-deployments.`
+                };
+            } catch (e) {
+                return { success: false, error: (e as Error).message };
+            }
+        }
+
         default:
             throw new Error(`Unknown tool: ${toolName}`);
     }
@@ -4592,6 +4650,8 @@ function buildLinusProgressMessage(toolName: string, input: Record<string, unkno
             return `_Linus is making deployment decision..._`;
         case 'delegate_to_agent':
             return `_Linus is delegating to ${input.agentId ?? 'another agent'}..._`;
+        case 'delegate_to_claude_code':
+            return `_Linus is delegating to Claude Code: "${String(input.task ?? '').slice(0, 60)}..."_`;
         default:
             return `_Linus is using \`${toolName}\`..._`;
     }

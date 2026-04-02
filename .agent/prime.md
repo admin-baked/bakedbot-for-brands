@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; simplify gate + canonical engineering principles are wired into builder startup context.
-**Recent work (2026-04-02):** `createImport` duplicate detection now passes through Firestore stats → `menuProductsCount` correctly reports 487; POS sync, tablet logo, Cloud Scheduler Bearer auth all confirmed working (`3a8a3aadb`, `c71ccc366`)
+**Current Status:** 🟢 `main` green; Linus delegation loop + full QA pipeline shipped.
+**Recent work (2026-04-02):** `delegate_to_claude_code` tool (Linus→Firestore→desktop loop); Firecrawl/Jina prod smoke; RTRVR+Claude Haiku agent quality tests; `dev/test-backlog.json` seeded (40 entries); `scripts/desktop-test-loop.mjs`, `post-deploy-test.mjs`, `agent-quality-test.mjs`
 
 ## 🧭 CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 

@@ -1893,6 +1893,23 @@
                 { "fieldPath": "status", "order": "ASCENDING" },
                 { "fieldPath": "nextRunAt", "order": "ASCENDING" }
             ]
+        },
+        {
+            "collectionGroup": "claude_code_tasks",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "status", "order": "ASCENDING" },
+                { "fieldPath": "priority", "order": "ASCENDING" },
+                { "fieldPath": "createdAt", "order": "ASCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "claude_code_tasks",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "status", "order": "ASCENDING" },
+                { "fieldPath": "prodTestedAt", "order": "ASCENDING" }
+            ]
         }
     ],
     "fieldOverrides": []
