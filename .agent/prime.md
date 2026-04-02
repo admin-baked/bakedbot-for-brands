@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — Help side tab + onboarding restart shipped.
+**Current Status:** 🟢 Passing — Elroy Slack service fix + help side tab shipped.
 **Recent work (2026-04-01):** See `MEMORY.md` for full log.
-Key completed: [Help side tab replaces FAB, onboarding restart via CustomEvent] (`08fe0cdea`)
+Key completed: [Elroy throttled-progress + channel lookup use elroySlackService] (`2304268f1`)
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 

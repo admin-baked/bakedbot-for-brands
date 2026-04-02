@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-04-01 (Help side tab + onboarding restart)
+**Current Status:** 🟢 Passing | **Last update:** 2026-04-01 (Elroy Slack service fix + help side tab)
 
 ---
 
