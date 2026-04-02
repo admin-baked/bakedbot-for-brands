@@ -3,6 +3,7 @@ import { slackService, elroySlackService, linusSlackService, SlackService } from
 import { runAgentCore } from '@/server/agents/agent-runner';
 import { runLinus } from '@/server/agents/linus';
 import { runElroy } from '@/server/agents/elroy';
+import { callGLM } from '@/ai/glm';
 import { requestContext } from '@/lib/request-context';
 import { archiveSlackResponse } from './slack-response-archive';
 import { sanitizeForPrompt } from '@/server/security';
@@ -60,6 +61,15 @@ const LINUS_TOOL_PATTERNS = [
 function linusNeedsTools(text: string): boolean {
     const lower = text.toLowerCase();
     return LINUS_TOOL_PATTERNS.some(p => p.test(lower));
+}
+
+// Greeting detector — short messages that are just saying hi. Compiled once.
+const GREETING_RE = /^(h(i|ello|ey|owdy)|what'?s?\s*up|yo+|sup|gm|good\s*(morning|evening|afternoon)|what\s*it\s*do|greetings|salutations|peace|thanks|ty|thank\s*you)\b/i;
+const MAX_GREETING_LENGTH = 60; // anything longer is probably a real question
+const LINUS_GREETING_SYSTEM_PROMPT = 'You are Linus, CTO of BakedBot — the Agentic Commerce OS for cannabis. You are responding in Slack. Keep it warm, brief (1–2 sentences), and on-brand. Match the energy of the greeting. No tools, no code, no markdown headers.';
+
+function isGreeting(text: string): boolean {
+    return text.length <= MAX_GREETING_LENGTH && GREETING_RE.test(text.trim());
 }
 
 export function getSlackGLMSynthesisTask(_personaId: string): AITextTaskClass {
@@ -294,7 +304,7 @@ function buildInitialSlackStatus(personaId: string, cleanText: string): string {
     if (personaId === 'linus') {
         const isToolMode = linusNeedsTools(cleanText);
         if (!isToolMode) {
-             if (/^(hello|hi|hey|morning|gm|thanks|ty|what's up)/.test(lower)) {
+             if (isGreeting(lower)) {
                  return `_${personaName} is typing..._`;
              }
              return `_${personaName} is reading the conversation..._`;
@@ -571,13 +581,27 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             // Prepend the fetched history and memory to the current message
             const fullPrompt = contextPrefix + enrichedText;
 
-            // Linus: always use runLinus (GLM-5 for text, Claude for vision).
-            // Routing Linus through runAgentCore's GLM synthesis path causes Z.ai safety
-            // refusals on short/ambiguous messages ("security restrictions"). The full Linus
-            // system prompt in runLinus gives GLM enough context to answer any CTO question.
-            // maxIterations=3 for conversational (no tools expected), 8 for tool-requiring.
-            // All other agents use GLM synthesis path.
-            if (isLinus) {
+            // Linus greeting fast path — skip the full tool pipeline for simple hellos.
+            // Uses lightweight callGLM (no tools, single round-trip) for sub-second replies.
+            if (isLinus && isGreeting(cleanText)) {
+                logger.info('[SlackBridge] Linus greeting fast path', { cleanText });
+                const greetingPrompt = contextPrefix
+                    ? `${contextPrefix}\nUser: ${cleanText}`
+                    : cleanText;
+                const greetingContent = await callGLM({
+                    systemPrompt: [
+                        'You are Linus, CTO of BakedBot — the Agentic Commerce OS for cannabis.',
+                        'You are responding in Slack. Keep it warm, brief (1–2 sentences), and on-brand.',
+                        'Match the energy of the greeting. No tools, no code, no markdown headers.',
+                    ].join(' '),
+                    userMessage: greetingPrompt,
+                    maxTokens: 150,
+                    temperature: 0.7,
+                });
+                result = { content: greetingContent || "What's good! How can I help? 🤙", toolCalls: [] };
+            } else if (isLinus) {
+                // Full Linus pipeline — GLM-5 for text, Claude for vision.
+                // maxIterations=3 for conversational (no tools expected), 8 for tool-requiring.
                 const linusProgress = makeThrottledProgress(channel, workingMessageTs);
 
                 const linusResult = await Promise.race([
