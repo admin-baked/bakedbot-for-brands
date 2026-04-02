@@ -21,7 +21,7 @@ import {
     useVideoConfig,
     type CalculateMetadataFunction,
 } from 'remotion';
-import { hexToRgba } from '../../lib/utils';
+import { formatWebsiteLabel, hexToRgba } from '../../lib/utils';
 
 const INTRO_FRAMES = 60;   // 2s
 const CLIP_FRAMES = 300;   // 10s per scene
@@ -311,7 +311,7 @@ const OutroScene: React.FC<{
                 </div>
                 {websiteUrl && (
                     <div style={{ fontSize: 16, color: 'rgba(255,255,255,0.5)', letterSpacing: 1 }}>
-                        {websiteUrl.replace(/^https?:\/\//i, '').replace(/\/$/, '')}
+                        {formatWebsiteLabel(websiteUrl)}
                     </div>
                 )}
             </div>

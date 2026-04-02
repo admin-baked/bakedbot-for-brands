@@ -105,6 +105,18 @@ export function omitUndefinedDeep<T>(value: T): T {
 }
 
 /**
+ * Strips protocol, www prefix, and trailing slash from a URL for display.
+ * Returns null if no URL is provided.
+ */
+export function formatWebsiteLabel(websiteUrl?: string): string | null {
+    if (!websiteUrl) return null;
+    return websiteUrl
+        .replace(/^https?:\/\//i, '')
+        .replace(/^www\./i, '')
+        .replace(/\/$/, '');
+}
+
+/**
  * Converts a hex color string to an RGBA string with the given alpha.
  * Supports both 3-digit and 6-digit hex codes.
  */

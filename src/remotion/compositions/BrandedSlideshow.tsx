@@ -17,7 +17,7 @@ import {
     useCurrentFrame,
     useVideoConfig,
 } from 'remotion';
-import { hexToRgba } from '../../lib/utils';
+import { formatWebsiteLabel, hexToRgba } from '../../lib/utils';
 
 export interface BrandedSlideshowProps extends Record<string, unknown> {
     brandName: string;
@@ -33,16 +33,6 @@ export interface BrandedSlideshowProps extends Record<string, unknown> {
 }
 
 
-function formatWebsiteLabel(websiteUrl?: string): string | null {
-    if (!websiteUrl) {
-        return null;
-    }
-
-    return websiteUrl
-        .replace(/^https?:\/\//i, '')
-        .replace(/^www\./i, '')
-        .replace(/\/$/, '');
-}
 
 const AmbientBackdrop: React.FC<{
     primaryColor: string;
