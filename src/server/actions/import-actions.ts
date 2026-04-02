@@ -83,10 +83,11 @@ export async function createImport(
         .get();
 
     if (!existingImports.empty) {
+        const existingDoc = existingImports.docs[0];
         return {
-            success: false,
-            importId: existingImports.docs[0].id,
-            error: 'Duplicate import detected - this data was already imported'
+            success: true,
+            importId: existingDoc.id,
+            stats: existingDoc.data()?.stats,
         };
     }
 
@@ -799,10 +800,11 @@ export async function importFromLeafly(
         .get();
 
     if (!existingImports.empty) {
+        const existingDoc = existingImports.docs[0];
         return {
-            success: false,
-            importId: existingImports.docs[0].id,
-            error: 'Duplicate import detected - this data was already imported'
+            success: true,
+            importId: existingDoc.id,
+            stats: existingDoc.data()?.stats,
         };
     }
 
