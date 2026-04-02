@@ -229,7 +229,7 @@ export async function apolloSearchPeople(
             }
         }
 
-        const response = await fetch(`${APOLLO_BASE}/mixed_people/search`, {
+        const response = await fetch(`${APOLLO_BASE}/mixed_people/api_search`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
