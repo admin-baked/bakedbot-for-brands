@@ -4885,9 +4885,15 @@ User Request: ${request.prompt}`;
                 }
             );
 
-    const glmRefused = GLM_REFUSAL_PATTERNS.some(p => result.content.toLowerCase().includes(p));
-    if ((shouldUseGLMToolMode || shouldUseGLMVisionMode) && isClaudeAvailable() && glmRefused) {
-        logger.warn('[Linus] GLM-5 refusal detected — falling back to Claude', {
+    // GLM fallback: Z.ai occasionally refuses cannabis-adjacent business context or
+    // returns empty content for short/ambiguous messages. When detected, retry with Claude.
+    const glmRefused = result.content ? GLM_REFUSAL_PATTERNS.some(p => result.content.toLowerCase().includes(p)) : false;
+    const needsClaudeFallback = (shouldUseGLMToolMode || shouldUseGLMVisionMode) && isClaudeAvailable() && (
+        !result.content || glmRefused
+    );
+    if (needsClaudeFallback) {
+        logger.warn('[Linus] GLM-5 unusable response — falling back to Claude', {
+            reason: !result.content ? 'empty_content' : 'security_refusal',
             glmResponse: result.content.slice(0, 100),
         });
         result = await executeWithTools(
