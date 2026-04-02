@@ -3,10 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useUserRole } from '@/hooks/use-user-role';
 import { getChatConfigForRole, type UserRoleForChat } from '@/lib/chat/role-chat-config';
-import { VISIBLE_AGENT_SQUAD as REGISTRY_SQUAD, getAgentsForRole } from '@/lib/agents/registry';
+import { VISIBLE_AGENT_SQUAD as REGISTRY_SQUAD, getAgentsForRole, type AgentStatus } from '@/lib/agents/registry';
 
-// Types
-export type AgentStatus = 'online' | 'thinking' | 'working' | 'offline';
+export type { AgentStatus };
 
 export interface Agent {
     id: string;

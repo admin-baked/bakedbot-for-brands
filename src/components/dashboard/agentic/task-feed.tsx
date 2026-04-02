@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { AGENT_REGISTRY, type AgentId } from '@/lib/agents/registry';
-import { AgentStatusIndicator, agentText } from '@/components/ui/agent-status-indicator';
+import { AgentStatusIndicator, agentBg, agentText } from '@/components/ui/agent-status-indicator';
 
 export interface TaskFeedItemProps {
     agent: {
@@ -38,7 +38,7 @@ export function TaskFeedItem({ item, className }: { item: TaskFeedItemProps; cla
                         transition={{ repeat: Infinity, duration: 2 }}
                         className={cn(
                             "w-1.5 h-1.5 rounded-full",
-                            isLive ? `bg-${visual.color} shadow-[0_0_8px_rgba(74,222,128,0.6)]` : "bg-baked-text-muted"
+                            isLive ? `${agentBg(visual.color)} shadow-[0_0_8px_rgba(74,222,128,0.6)]` : "bg-baked-text-muted"
                         )}
                     />
                     <span className={cn(
