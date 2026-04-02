@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing — smokey-menu-search service + playbook dispatcher backfill + video API route shipped.
+**Current Status:** 🟢 Passing — Linus Slack tool expansion + hallucination fix shipped.
 **Recent work (2026-04-01):** See `MEMORY.md` for full log.
-Key completed: [smokey-menu-search + consumer-adapter fallbacks + pilot autoSchedule] (`203b3b19c`), [video /api/ai/video route + Veo→Sora fallback chain] (`203b3b19c`).
+Key completed: [Linus Slack tool expansion — 22 tools added to LINUS_SLACK_TOOL_NAMES, hallucination root cause fixed] (`da54f3846`).
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 

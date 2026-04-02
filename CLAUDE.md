@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-04-01 (smokey-menu-search service + playbook event dispatcher backfill + video API route + consumer adapter fallbacks)
+**Current Status:** 🟢 Passing | **Last update:** 2026-04-01 (Linus Slack tool expansion + hallucination fix + /simplify verified)
 
 ---
 
