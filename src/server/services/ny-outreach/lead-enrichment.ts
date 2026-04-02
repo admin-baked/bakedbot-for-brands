@@ -102,15 +102,18 @@ export async function enrichLeadBatch(limit: number = 20): Promise<LeadEnrichmen
                 websiteUrl = siteUrl;
                 const domain = new URL(siteUrl).origin;
 
+                const jinaHeaders: Record<string, string> = { Accept: 'text/plain' };
+                if (process.env.JINA_API_KEY) jinaHeaders['Authorization'] = `Bearer ${process.env.JINA_API_KEY}`;
+
                 const [pc, cc] = await Promise.all([
                     globalThis.fetch(`https://r.jina.ai/${siteUrl}`, {
-                        headers: { Accept: 'text/plain' },
+                        headers: jinaHeaders,
                         signal: AbortSignal.timeout(10000),
-                    }).then(r => r.text()).catch(() => ''),
+                    }).then(r => r.ok ? r.text() : '').catch(() => ''),
                     globalThis.fetch(`https://r.jina.ai/${domain}/contact`, {
-                        headers: { Accept: 'text/plain' },
+                        headers: jinaHeaders,
                         signal: AbortSignal.timeout(10000),
-                    }).then(r => r.text()).catch(() => ''),
+                    }).then(r => r.ok ? r.text() : '').catch(() => ''),
                 ]);
 
                 const content = [pc, cc].filter(c => c.length > 50).join('\n\n') || ownSiteSnippet;
