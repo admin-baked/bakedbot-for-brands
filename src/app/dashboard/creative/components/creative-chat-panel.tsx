@@ -117,7 +117,22 @@ export function CreativeChatPanel({
         body: JSON.stringify({ messages: apiMessages, platform, brandVoice }),
       });
 
-      if (!res.ok || !res.body) throw new Error('Chat request failed');
+      if (!res.ok) {
+        let errorMessage = 'Chat request failed';
+        try {
+          const errorBody = await res.json() as { error?: string };
+          if (errorBody.error) {
+            errorMessage = errorBody.error;
+          }
+        } catch {
+          // Ignore invalid JSON responses and keep the generic failure message.
+        }
+        throw new Error(errorMessage);
+      }
+
+      if (!res.body) {
+        throw new Error('Chat request failed');
+      }
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -159,11 +174,14 @@ export function CreativeChatPanel({
           ),
         );
       }
-    } catch {
+    } catch (error) {
+      const message = error instanceof Error && error.message
+        ? error.message
+        : 'Sorry, something went wrong. Try again.';
       setMessages(prev =>
         prev.map(m =>
           m.id === assistantId
-            ? { ...m, content: 'Sorry, something went wrong. Try again.' }
+            ? { ...m, content: message }
             : m,
         ),
       );

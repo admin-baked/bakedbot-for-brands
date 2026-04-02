@@ -9,6 +9,7 @@ import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import { normalizeCategoryName, getSafeProductImageUrl } from '@/lib/utils/product-image';
+import { searchMenuProducts } from '@/server/services/smokey-menu-search';
 import { superUserTools } from '@/app/dashboard/ceo/agents/super-user-tools-impl';
 import { requestPermission } from '@/server/tools/permissions';
 import {
@@ -606,15 +607,7 @@ export const defaultSmokeyTools = {
                 return { success: false, error: "No products found in menu." };
             }
 
-            // In-memory simplistic fuzzy search for Firestore results
-            const lowerQ = query.toLowerCase();
-            const results = products.filter(p => {
-                const content = `${p.name || ''} ${p.brandName || ''} ${p.brandId || ''} ${p.category || ''} ${p.description || ''}`.toLowerCase();
-                const inStock = typeof p.stock === 'number'
-                    ? p.stock > 0
-                    : p.in_stock !== false && p.inStock !== false;
-                return content.includes(lowerQ) && inStock;
-            }).slice(0, 15);
+            const results = searchMenuProducts(query, products, { limit: 15 });
 
             const menuProducts = results.map(mapSearchProduct);
 

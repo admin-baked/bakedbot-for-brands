@@ -101,6 +101,39 @@ interface ExecutionContext {
     previousResults: Record<string, any>;
 }
 
+function getContextString(value: unknown): string | undefined {
+    if (typeof value !== 'string') {
+        return undefined;
+    }
+
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function getFirstNameFromContext(variables: Record<string, any>): string | undefined {
+    const directFirstName = getContextString(
+        variables.customerFirstName
+        ?? variables.firstName
+        ?? variables.customer?.firstName
+        ?? variables.customer?.first_name
+    );
+    if (directFirstName) {
+        return directFirstName;
+    }
+
+    const fullName = getContextString(
+        variables.customerName
+        ?? variables.name
+        ?? variables.customer?.name
+        ?? variables.customer?.fullName
+    );
+    if (!fullName) {
+        return undefined;
+    }
+
+    return fullName.split(/\s+/)[0];
+}
+
 // =============================================================================
 // AGENT HANDLERS - These call the actual agent implementations
 // =============================================================================
@@ -1062,6 +1095,77 @@ export async function executeSendEmail(
     step: any,
     context: ExecutionContext
 ): Promise<any> {
+    const resolvedParams = resolveVariables(step.params || {}, context.variables) as {
+        to?: string;
+        template?: string;
+        orgId?: string;
+        brandId?: string;
+        dispensaryId?: string;
+        state?: string;
+        source?: string;
+    };
+    const template = getContextString(resolvedParams.template);
+
+    if (template === 'welcome_personalized') {
+        try {
+            const { sendWelcomeEmail } = await import('./mrs-parker-welcome');
+
+            const email = getContextString(
+                resolvedParams.to
+                ?? context.variables.customerEmail
+                ?? context.variables.customer_email
+                ?? context.variables.customer?.email
+                ?? context.variables.email
+            );
+
+            if (!email) {
+                return {
+                    success: false,
+                    error: 'Welcome template requires a customer email address.',
+                };
+            }
+
+            const welcomeResult = await sendWelcomeEmail({
+                leadId: String(
+                    context.variables.leadId
+                    ?? context.variables.customerId
+                    ?? context.variables.customer_id
+                    ?? email
+                ),
+                email,
+                firstName: getFirstNameFromContext(context.variables),
+                brandId: getContextString(resolvedParams.brandId ?? context.variables.brandId),
+                dispensaryId: getContextString(
+                    resolvedParams.dispensaryId
+                    ?? resolvedParams.orgId
+                    ?? context.variables.dispensaryId
+                    ?? context.orgId
+                ),
+                state: getContextString(resolvedParams.state ?? context.variables.state),
+                source: getContextString(resolvedParams.source ?? context.variables.source),
+            });
+
+            if (!welcomeResult.success) {
+                return {
+                    success: false,
+                    error: welcomeResult.error || 'Welcome email send failed',
+                };
+            }
+
+            return {
+                success: true,
+                sentTo: email,
+                subject: 'Welcome email',
+            };
+        } catch (error) {
+            logger.error('[PlaybookExecutor] Failed to send welcome email:', { error });
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+            };
+        }
+    }
+
     const hasTemplatedBody =
         typeof step.params?.htmlBody === 'string' || typeof step.params?.textBody === 'string';
 

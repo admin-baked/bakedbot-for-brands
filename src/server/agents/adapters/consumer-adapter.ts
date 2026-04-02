@@ -2,6 +2,12 @@ import { runAgentCore } from '@/server/agents/agent-runner';
 import type { ChatbotProduct } from '@/types/cannmenus';
 import { logger } from '@/lib/logger';
 import { getSafeProductImageUrl, normalizeCategoryName } from '@/lib/utils/product-image';
+import {
+    buildMenuSearchFallbackMessage,
+    getAgeRequirementAnswer,
+    isAgeRequirementQuestion,
+    searchMenuProducts,
+} from '@/server/services/smokey-menu-search';
 
 /**
  * Fetch live menu products for a brand context.
@@ -97,6 +103,7 @@ export async function runConsumerAgent(
 ) {
     const { sessionId, brandId, products: contextProducts, conversationHistory, pendingProductId } = context;
     const jobId = `chat-${sessionId || Date.now()}`;
+    const noMatchPattern = /couldn't find any products|no products found|try rephrasing/i;
 
     const normalizeToolProduct = (product: any): ChatbotProduct => ({
         id: String(product.id || product.cann_sku_id || product.sku_id || product.externalId || product.name),
@@ -134,6 +141,14 @@ export async function runConsumerAgent(
             error: e instanceof Error ? e.message : String(e),
         }));
     });
+
+    if (isAgeRequirementQuestion(query)) {
+        return {
+            message: getAgeRequirementAnswer(context.state),
+            products: [],
+            clientAction: undefined,
+        };
+    }
 
     // 1b. Pre-fetch live menu products for this brand context.
     // defaultSmokeyTools.searchMenu calls requireUser() which returns null for anonymous users,
@@ -275,6 +290,18 @@ export async function runConsumerAgent(
                         error: e instanceof Error ? e.message : String(e),
                     });
                 }
+            }
+        }
+    }
+
+    if (products.length === 0 && allContextProducts.length > 0) {
+        const fallbackProducts = searchMenuProducts(query, allContextProducts, { limit: 5 })
+            .map((product: any) => normalizeToolProduct(product));
+
+        if (fallbackProducts.length > 0) {
+            products = fallbackProducts;
+            if (!message || noMatchPattern.test(message)) {
+                message = buildMenuSearchFallbackMessage(query, fallbackProducts);
             }
         }
     }

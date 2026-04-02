@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
+export const dynamic = 'force-dynamic';
+
 export default async function TreasuryConsolePage() {
     const { success, data } = await getTreasuryOverview();
 

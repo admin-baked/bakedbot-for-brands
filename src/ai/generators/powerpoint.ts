@@ -279,8 +279,12 @@ async function uploadDeck(buffer: Buffer, input: GeneratePowerPointInput, safeNa
         },
     });
 
-    await bucket.file(fileName).makePublic();
-    return `https://storage.googleapis.com/${bucketName}/${fileName}`;
+    // Signed URLs keep deck downloads working even when bucket ACL mutations are blocked.
+    const [downloadUrl] = await bucket.file(fileName).getSignedUrl({
+        action: 'read',
+        expires: '03-01-2500',
+    });
+    return downloadUrl;
 }
 
 // ---------------------------------------------------------------------------

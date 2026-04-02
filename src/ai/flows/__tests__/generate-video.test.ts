@@ -1,6 +1,7 @@
 import { generateMarketingVideo } from '../generate-video';
 import { generateSoraVideo } from '../../generators/sora';
 import { generateVeoVideo } from '../../generators/veo';
+import { generateKlingVideo, generateWanVideo } from '../../generators/fal-video';
 import { getSafeVideoProviderAction } from '../../../server/actions/super-admin/safe-settings';
 
 jest.mock('../../../server/actions/super-admin/safe-settings', () => ({
@@ -13,6 +14,11 @@ jest.mock('../../generators/sora', () => ({
 
 jest.mock('../../generators/veo', () => ({
     generateVeoVideo: jest.fn(),
+}));
+
+jest.mock('../../generators/fal-video', () => ({
+    generateKlingVideo: jest.fn(),
+    generateWanVideo: jest.fn(),
 }));
 
 jest.mock('../../genkit', () => ({
@@ -35,6 +41,18 @@ describe('Video Generation Flow', () => {
             duration: 5,
             provider: 'veo',
             model: 'veo-3.1-generate-preview',
+        });
+        (generateKlingVideo as jest.Mock).mockResolvedValue({
+            videoUrl: 'https://kling.mock/video.mp4',
+            duration: 5,
+            provider: 'kling',
+            model: 'fal-ai/kling-video/v2/master/text-to-video',
+        });
+        (generateWanVideo as jest.Mock).mockResolvedValue({
+            videoUrl: 'https://wan.mock/video.mp4',
+            duration: 5,
+            provider: 'wan',
+            model: 'fal-ai/wan/v2.1/1.3b/text-to-video',
         });
     });
 
@@ -99,5 +117,21 @@ describe('Video Generation Flow', () => {
         await expect(
             generateMarketingVideo(mockInput, { allowFallbackDemo: false })
         ).rejects.toThrow('Demo fallback disabled');
+    });
+
+    it('falls back across providers when forced Kling is unavailable', async () => {
+        (generateKlingVideo as jest.Mock).mockRejectedValue(new Error('Kling down'));
+        (generateWanVideo as jest.Mock).mockRejectedValue(new Error('Wan down'));
+
+        const result = await generateMarketingVideo(mockInput, {
+            allowFallbackDemo: false,
+            forceProvider: 'kling',
+        });
+
+        expect(result.videoUrl).toBe('https://veo.mock/video.mp4');
+        expect(result.provider).toBe('veo');
+        expect(generateKlingVideo).toHaveBeenCalled();
+        expect(generateWanVideo).toHaveBeenCalled();
+        expect(generateVeoVideo).toHaveBeenCalled();
     });
 });

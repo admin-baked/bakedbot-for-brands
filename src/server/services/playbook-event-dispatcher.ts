@@ -60,6 +60,14 @@ interface EventListenerRecord {
     status: string;
 }
 
+interface PlaybookDocRecord {
+    id: string;
+    orgId: string;
+    status?: string;
+    active?: boolean;
+    triggers?: unknown;
+}
+
 const PLAYBOOK_EVENT_COMPATIBILITY_ALIASES: Record<string, string[]> = {
     'customer.signup': ['customer.created'],
     'order.completed': ['order.post_purchase'],
@@ -67,6 +75,127 @@ const PLAYBOOK_EVENT_COMPATIBILITY_ALIASES: Record<string, string[]> = {
 
 function dedupeCompatibleEventNames(eventNames: string[]): string[] {
     return Array.from(new Set(eventNames));
+}
+
+function buildListenerDocId(playbookId: string, eventName: string): string {
+    return `listener:${playbookId}:${eventName}`.replace(/[\/\\?#\[\]\s]+/g, '_');
+}
+
+function isPlaybookActive(playbook: PlaybookDocRecord): boolean {
+    return String(playbook.status || '').toLowerCase() === 'active' || playbook.active === true;
+}
+
+function getEventNameFromTrigger(trigger: unknown): string | null {
+    if (!trigger || typeof trigger !== 'object') {
+        return null;
+    }
+
+    const record = trigger as {
+        type?: unknown;
+        eventName?: unknown;
+        config?: { eventName?: unknown; eventPattern?: unknown };
+    };
+
+    if (record.type !== 'event') {
+        return null;
+    }
+
+    const directEvent = typeof record.eventName === 'string' ? record.eventName.trim() : '';
+    if (directEvent) {
+        return directEvent;
+    }
+
+    const configEvent = typeof record.config?.eventName === 'string' ? record.config.eventName.trim() : '';
+    if (configEvent) {
+        return configEvent;
+    }
+
+    const configPattern = typeof record.config?.eventPattern === 'string' ? record.config.eventPattern.trim() : '';
+    return configPattern || null;
+}
+
+async function backfillPlaybookListeners(
+    firestore: FirebaseFirestore.Firestore,
+    listeners: EventListenerRecord[],
+): Promise<void> {
+    if (listeners.length === 0) {
+        return;
+    }
+
+    const now = new Date();
+    const listenersRef = firestore.collection('playbook_event_listeners');
+    const batch = firestore.batch();
+
+    listeners.forEach((listener) => {
+        batch.set(
+            listenersRef.doc(listener.id),
+            {
+                playbookId: listener.playbookId,
+                orgId: listener.orgId,
+                eventName: listener.eventName,
+                status: 'active',
+                source: 'event_dispatcher_backfill',
+                updatedAt: now,
+            },
+            { merge: true },
+        );
+    });
+
+    await batch.commit();
+}
+
+async function getFallbackPlaybookListeners(
+    firestore: FirebaseFirestore.Firestore,
+    orgId: string,
+    eventName: string,
+): Promise<EventListenerRecord[]> {
+    const compatibleEventNames = new Set(getCompatiblePlaybookEventNames(eventName));
+    const playbookSnap = await firestore.collection('playbooks').where('orgId', '==', orgId).get();
+
+    if (playbookSnap.empty) {
+        return [];
+    }
+
+    const listeners = playbookSnap.docs.flatMap((doc) => {
+        const data = doc.data() as PlaybookDocRecord;
+        const playbook: PlaybookDocRecord = {
+            id: doc.id,
+            orgId,
+            status: data.status,
+            active: data.active,
+            triggers: data.triggers,
+        };
+
+        if (!isPlaybookActive(playbook) || !Array.isArray(playbook.triggers)) {
+            return [];
+        }
+
+        const matchingEvents = dedupeCompatibleEventNames(
+            playbook.triggers
+                .map((trigger) => getEventNameFromTrigger(trigger))
+                .filter((value): value is string => Boolean(value && compatibleEventNames.has(value))),
+        );
+
+        return matchingEvents.map((matchedEventName) => ({
+            id: buildListenerDocId(doc.id, matchedEventName),
+            playbookId: doc.id,
+            orgId,
+            eventName: matchedEventName,
+            status: 'active',
+        }));
+    });
+
+    if (listeners.length > 0) {
+        await backfillPlaybookListeners(firestore, listeners);
+        logger.info('[EventDispatcher] Backfilled missing event listeners from playbook definitions', {
+            orgId,
+            eventName,
+            playbookIds: Array.from(new Set(listeners.map((listener) => listener.playbookId))),
+            listenerCount: listeners.length,
+        });
+    }
+
+    return listeners;
 }
 
 export function getCompatiblePlaybookEventNames(eventName: string): string[] {
@@ -128,7 +257,7 @@ async function getActiveEventListeners(
         new Map(listenerDocs.map((doc) => [doc.id, doc])).values(),
     );
 
-    return uniqueListenerDocs.map((doc) => {
+    const listeners = uniqueListenerDocs.map((doc) => {
         const data = doc.data() as Record<string, unknown>;
         return {
             id: doc.id,
@@ -138,6 +267,12 @@ async function getActiveEventListeners(
             status: String(data.status || 'active'),
         };
     }).filter((listener) => listener.playbookId.length > 0);
+
+    if (listeners.length > 0) {
+        return listeners;
+    }
+
+    return getFallbackPlaybookListeners(firestore, orgId, eventName);
 }
 
 async function hasRecentPlaybookDedup(

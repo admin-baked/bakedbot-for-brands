@@ -238,7 +238,7 @@ export function selectModel(prompt: string, options?: {
  */
 let anthropicClient: Anthropic | null = null;
 
-function getClient(): Anthropic {
+export function getClaudeClient(): Anthropic {
     if (!anthropicClient) {
         const apiKey = process.env.CLAUDE_API_KEY;
         const baseURL = process.env.ANTHROPIC_BASE_URL;
@@ -274,7 +274,7 @@ export async function executeWithTools(
     executor: (toolName: string, input: Record<string, unknown>) => Promise<unknown>,
     context: ClaudeContext = {}
 ): Promise<ClaudeResult> {
-    const client = getClient();
+    const client = getClaudeClient();
     const maxIterations = context.maxIterations || MAX_ITERATIONS;
     const invocationStart = Date.now();
 
@@ -571,7 +571,7 @@ export interface ClaudeCallOptions {
 }
 
 export async function callClaude(options: ClaudeCallOptions): Promise<string> {
-    const client = getClient();
+    const client = getClaudeClient();
 
     const {
         systemPrompt,

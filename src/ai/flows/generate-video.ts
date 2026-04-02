@@ -61,7 +61,27 @@ async function runVideoGeneration(
         }
     }
 
-    console.log(`[generateVideoFlow] ========================================`);
+    const tryVeoThenSora = async (): Promise<z.infer<typeof GenerateVideoOutputSchema> | null> => {
+        try {
+            console.log('[generateVideoFlow] Provider fallback -> Veo 3.1...');
+            return await generateVeoVideo(input);
+        } catch (veoError: unknown) {
+            const veoErr = veoError as Error;
+            console.error('[generateVideoFlow] Veo fallback failed:', veoErr.message);
+            console.error('[generateVideoFlow] Veo Error Details:', JSON.stringify(veoErr, Object.getOwnPropertyNames(veoErr)));
+        }
+
+        try {
+            console.log('[generateVideoFlow] Provider fallback -> Sora 2...');
+            return await generateSoraVideo(input, { model: 'sora-2' });
+        } catch (soraError: unknown) {
+            const soraErr = soraError as Error;
+            console.error('[generateVideoFlow] Sora fallback failed:', soraErr.message);
+            console.error('[generateVideoFlow] Sora Error Details:', JSON.stringify(soraErr, Object.getOwnPropertyNames(soraErr)));
+        }
+
+        return null;
+    };
     console.log(`[generateVideoFlow] Primary Provider: ${provider.toUpperCase()}`);
     console.log(`[generateVideoFlow] Input: ${JSON.stringify(input)}`);
     console.log(`[generateVideoFlow] ========================================`);
@@ -81,12 +101,26 @@ async function runVideoGeneration(
         } catch (err: unknown) {
             console.error('[generateVideoFlow] Wan fallback failed:', (err as Error).message);
         }
+        const crossProviderFallback = await tryVeoThenSora();
+        if (crossProviderFallback) {
+            return crossProviderFallback;
+        }
     } else if (provider === 'wan') {
         try {
             console.log('[generateVideoFlow] Attempting Wan 2.1 (fal.ai)...');
             return await generateWanVideo(input);
         } catch (err: unknown) {
             console.error('[generateVideoFlow] Wan failed:', (err as Error).message);
+        }
+        try {
+            console.log('[generateVideoFlow] Wan fallback â†’ Kling v2...');
+            return await generateKlingVideo(input);
+        } catch (err: unknown) {
+            console.error('[generateVideoFlow] Kling fallback failed:', (err as Error).message);
+        }
+        const crossProviderFallback = await tryVeoThenSora();
+        if (crossProviderFallback) {
+            return crossProviderFallback;
         }
     } else if (provider === 'remotion') {
         try {

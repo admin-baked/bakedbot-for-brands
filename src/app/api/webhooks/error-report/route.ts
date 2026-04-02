@@ -8,7 +8,12 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
     // 1. Authorization (Use same CRON_SECRET for simplicity, or a dedicated WEBHOOK_SECRET)
     const authHeader = req.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    const cronSecret = process.env.CRON_SECRET;
+    if (!cronSecret) {
+        logger.error('[Interrupt] CRON_SECRET environment variable is not configured');
+        return new NextResponse('Server misconfiguration', { status: 500 });
+    }
+    if (authHeader !== `Bearer ${cronSecret}`) {
         return new NextResponse('Unauthorized', { status: 401 });
     }
 

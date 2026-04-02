@@ -8,11 +8,9 @@
  */
 
 import { NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
 import { requireUser } from '@/server/auth/auth';
+import { getClaudeClient } from '@/ai/claude';
 import { logger } from '@/lib/logger';
-
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const PLATFORM_CONTEXT: Record<string, string> = {
   instagram: 'Instagram (max 2200 chars, visual-first, 3-5 hashtags inline, casual tone)',
@@ -72,6 +70,7 @@ export async function POST(request: Request) {
   try {
     // Auth check
     await requireUser();
+    const client = getClaudeClient();
 
     const body = await request.json() as {
       messages: ChatMessage[];

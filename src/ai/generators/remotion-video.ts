@@ -195,8 +195,11 @@ export async function generateRemotionVideo(
         },
     });
 
-    await bucket.file(fileName).makePublic();
-    const publicUrl = `https://storage.googleapis.com/${bucketName}/${fileName}`;
+    // Signed URLs keep Creative Center renders working on buckets with uniform access enabled.
+    const [publicUrl] = await bucket.file(fileName).getSignedUrl({
+        action: 'read',
+        expires: '03-01-2500',
+    });
 
     // Clean up temp file
     await fs.unlink(outputPath).catch(() => { /* ignore cleanup errors */ });

@@ -42,6 +42,12 @@ function buildListenerDoc(playbookId: string, eventName: string) {
 function buildFirestore(options?: {
     listeners?: Array<ReturnType<typeof buildListenerDoc>>;
     deduped?: boolean;
+    playbooks?: Array<{
+        id: string;
+        status?: string;
+        active?: boolean;
+        triggers?: Array<{ type: string; eventName?: string }>;
+    }>;
 }) {
     const listenerQuery = createQuery({
         empty: !(options?.listeners?.length),
@@ -51,16 +57,37 @@ function buildFirestore(options?: {
         empty: !options?.deduped,
         docs: options?.deduped ? [{}] : [],
     });
+    const playbookQuery = createQuery({
+        empty: !(options?.playbooks?.length),
+        docs: (options?.playbooks ?? []).map((playbook) => ({
+            id: playbook.id,
+            data: jest.fn(() => ({
+                orgId: 'org-test',
+                status: playbook.status ?? 'active',
+                active: playbook.active,
+                triggers: playbook.triggers ?? [],
+            })),
+        })),
+    });
+    const batchSet = jest.fn();
+    const batchCommit = jest.fn().mockResolvedValue(undefined);
 
     return {
         firestore: {
             collection: jest.fn((name: string) => {
                 if (name === 'playbook_event_listeners') {
-                    return listenerQuery;
+                    return {
+                        ...listenerQuery,
+                        doc: jest.fn(() => ({})),
+                    };
                 }
 
                 if (name === 'customer_communications') {
                     return customerCommsQuery;
+                }
+
+                if (name === 'playbooks') {
+                    return playbookQuery;
                 }
 
                 if (name === 'playbook_execution_retries' || name === 'playbook_dead_letter_queue') {
@@ -73,9 +100,16 @@ function buildFirestore(options?: {
                     get: jest.fn().mockResolvedValue({ empty: true, docs: [] }),
                 };
             }),
+            batch: jest.fn(() => ({
+                set: batchSet,
+                commit: batchCommit,
+            })),
         },
         listenerQuery,
         customerCommsQuery,
+        playbookQuery,
+        batchSet,
+        batchCommit,
     };
 }
 
@@ -169,5 +203,42 @@ describe('playbook event dispatcher', () => {
             type: 'playbook_event_executive.booking.jack.followup_ready',
             dedupeKey: 'executive_booking:booking-123:followup',
         }));
+    });
+
+    it('falls back to active playbook definitions when listeners have not been backfilled yet', async () => {
+        const firestoreBundle = buildFirestore({
+            playbooks: [
+                {
+                    id: 'playbook_thrive_welcome',
+                    status: 'active',
+                    triggers: [
+                        { type: 'event', eventName: 'customer.signup' },
+                        { type: 'event', eventName: 'customer.checkin' },
+                    ],
+                },
+            ],
+        });
+        (createServerClient as jest.Mock).mockResolvedValue(firestoreBundle);
+
+        const summary = await dispatchPlaybookEventSync('org-test', 'customer.signup', {
+            customerEmail: 'martezandco@gmail.com',
+            customerName: 'Martez',
+        });
+
+        expect(summary).toEqual({
+            delivered: true,
+            deduped: false,
+            results: [{ playbookId: 'playbook_thrive_welcome', status: 'success' }],
+        });
+        expect(executePlaybook).toHaveBeenCalledWith(expect.objectContaining({
+            playbookId: 'playbook_thrive_welcome',
+            triggeredBy: 'event',
+            eventData: expect.objectContaining({
+                eventName: 'customer.signup',
+                customerEmail: 'martezandco@gmail.com',
+            }),
+        }));
+        expect(firestoreBundle.batchSet).toHaveBeenCalled();
+        expect(firestoreBundle.batchCommit).toHaveBeenCalled();
     });
 });

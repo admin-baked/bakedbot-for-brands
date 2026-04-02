@@ -53,7 +53,6 @@ import { useBrandGuide, useBrandVoice, useBrandColors } from "@/hooks/use-brand-
 import { sendCreativeToInbox } from "@/server/actions/creative-inbox";
 import { getBrandKitImages } from "@/server/actions/brand-images";
 import { getMyAIStudioUsageSummary } from "@/server/actions/ai-studio";
-import { generateMarketingVideo } from "@/ai/flows/generate-video";
 import { CreativeChatPanel } from "./components/creative-chat-panel";
 import type { AIStudioUsageSummary } from "@/types/ai-studio";
 import { findPricingPlan } from "@/lib/config/pricing";
@@ -522,7 +521,18 @@ export default function CreativeCommandCenter() {
             slideCount: deckSlideCount,
           }),
         });
-        if (!resp.ok) throw new Error(`Deck generation failed (${resp.status})`);
+        if (!resp.ok) {
+          let errorMessage = `Deck generation failed (${resp.status})`;
+          try {
+            const errorBody = await resp.json() as { error?: string };
+            if (errorBody.error) {
+              errorMessage = errorBody.error;
+            }
+          } catch {
+            // Ignore invalid error bodies and fall back to HTTP status context.
+          }
+          throw new Error(errorMessage);
+        }
         const data = await resp.json() as GeneratePowerPointOutput;
         setDeckDownloadUrl(data.downloadUrl);
         setDeckResultSlideCount(data.slideCount);
@@ -568,26 +578,49 @@ export default function CreativeCommandCenter() {
       setDeckResultSlideCount(null);
       setLocalVideoUrl(null);
       try {
-        const result = await generateMarketingVideo(
-          {
-            prompt: videoPrompt,
-            duration: videoDuration,
-            aspectRatio,
-            brandName: brandGuide?.brandName,
-            primaryColor: brandColors?.primary,
-            secondaryColor: brandColors?.secondary,
-            accentColor: brandColors?.accent,
-            logoUrl: brandGuide?.visualIdentity?.logo?.primary,
-            tagline: isSlideshow ? (brandTagline || trimmedPrompt.substring(0, 60)) : brandTagline,
-            headline: isSlideshow
-              ? (textOverlay.headline.trim() || selectedMenuProduct?.name || trimmedPrompt.substring(0, 60))
-              : undefined,
-            productImageUrl: isSlideshow ? (selectedMenuProduct?.imageUrl || undefined) : undefined,
-            ctaText: isSlideshow && textOverlay.cta ? textOverlay.cta : undefined,
-            websiteUrl: isSlideshow ? brandGuide?.source?.sourceUrl : undefined,
-          },
-          { allowFallbackDemo: false, forceProvider: isSlideshow ? 'remotion' : 'kling' }
-        );
+        const response = await fetch('/api/ai/video', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            input: {
+              prompt: videoPrompt,
+              duration: videoDuration,
+              aspectRatio,
+              brandName: brandGuide?.brandName,
+              primaryColor: brandColors?.primary,
+              secondaryColor: brandColors?.secondary,
+              accentColor: brandColors?.accent,
+              logoUrl: brandGuide?.visualIdentity?.logo?.primary,
+              tagline: isSlideshow ? (brandTagline || trimmedPrompt.substring(0, 60)) : brandTagline,
+              headline: isSlideshow
+                ? (textOverlay.headline.trim() || selectedMenuProduct?.name || trimmedPrompt.substring(0, 60))
+                : undefined,
+              productImageUrl: isSlideshow ? (selectedMenuProduct?.imageUrl || undefined) : undefined,
+              ctaText: isSlideshow && textOverlay.cta ? textOverlay.cta : undefined,
+              websiteUrl: isSlideshow ? brandGuide?.source?.sourceUrl : undefined,
+            },
+            allowFallbackDemo: false,
+            forceProvider: isSlideshow ? 'remotion' : 'kling',
+          }),
+        });
+
+        if (!response.ok) {
+          let errorMessage = isSlideshow ? 'Slideshow generation failed' : 'Video generation failed';
+          try {
+            const errorBody = await response.json() as { error?: string };
+            if (errorBody.error) {
+              errorMessage = errorBody.error;
+            }
+          } catch {
+            // Ignore invalid error bodies and keep the fallback message.
+          }
+          throw new Error(errorMessage);
+        }
+
+        const result = await response.json() as {
+          videoUrl: string;
+          duration: number;
+        };
         setLocalVideoUrl(result.videoUrl);
         const label = isSlideshow ? `Slideshow ready! (${result.duration}s)` : `Video ready! (${result.duration}s clip)`;
         toast.success(label);

@@ -22,13 +22,16 @@ export type TreasuryConfig = z.infer<typeof TreasuryConfigSchema>;
 
 export function loadTreasuryConfig(): TreasuryConfig {
     // In a real app, we might use dotenv here if not already loaded by Next.js
+    const isProductionBuildPhase = process.env.NEXT_PHASE === 'phase-production-build';
     const config = {
         NODE_ENV: process.env.NODE_ENV,
         ENABLE_REAL_TRADING: process.env.TREASURY_ENABLE_REAL_TRADING === 'true',
         KRAKEN_API_KEY: process.env.TREASURY_KRAKEN_API_KEY,
         KRAKEN_PRIVATE_KEY: process.env.TREASURY_KRAKEN_PRIVATE_KEY,
         MEMORY_FILE_PATH: process.env.TREASURY_MEMORY_PATH || './src/treasury/memory/domain-memory.json',
-        USE_FIRESTORE: process.env.TREASURY_USE_FIRESTORE === 'true' || process.env.NODE_ENV === 'production'
+        USE_FIRESTORE:
+            !isProductionBuildPhase
+            && (process.env.TREASURY_USE_FIRESTORE === 'true' || process.env.NODE_ENV === 'production')
     };
 
     return TreasuryConfigSchema.parse(config);

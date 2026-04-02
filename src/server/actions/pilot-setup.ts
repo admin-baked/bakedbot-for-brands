@@ -2,6 +2,7 @@
 
 import { createServerClient } from '@/firebase/server-client';
 import { FieldValue } from 'firebase-admin/firestore';
+import { autoSchedulePlaybook } from '@/server/services/playbook-scheduler';
 import {
     hasGroundTruth,
     getGroundTruthStats,
@@ -786,6 +787,14 @@ steps:
         };
 
         await firestore.collection('playbooks').doc(playbookId).set(welcomePlaybook, { merge: true });
+        const schedulingResult = await autoSchedulePlaybook(playbookId, welcomePlaybook as Playbook);
+        if (!schedulingResult.success) {
+            logger.warn('[PILOT] Failed to auto-register welcome playbook triggers', {
+                playbookId,
+                orgId,
+                error: schedulingResult.error,
+            });
+        }
 
         logger.info(`[PILOT] Created welcome email playbook: ${playbookId}`);
 

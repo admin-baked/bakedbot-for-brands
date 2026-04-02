@@ -31,13 +31,18 @@ jest.mock('@/server/services/playbook-run-coordinator', () => ({
 jest.mock('@/server/services/playbook-validation', () => ({
     runValidationHarness: jest.fn(),
 }));
+jest.mock('../mrs-parker-welcome', () => ({
+    sendWelcomeEmail: jest.fn(),
+}));
 
 import { createServerClient } from '@/firebase/server-client';
 import { sendGenericEmail } from '@/lib/email/dispatcher';
+import { sendWelcomeEmail } from '../mrs-parker-welcome';
 import { executePlaybook, executeSendEmail } from '../playbook-executor';
 
 const mockCreateServerClient = createServerClient as jest.MockedFunction<typeof createServerClient>;
 const mockSendGenericEmail = sendGenericEmail as jest.MockedFunction<typeof sendGenericEmail>;
+const mockSendWelcomeEmail = sendWelcomeEmail as jest.MockedFunction<typeof sendWelcomeEmail>;
 
 describe('playbook executor email handling', () => {
     beforeEach(() => {
@@ -84,6 +89,47 @@ describe('playbook executor email handling', () => {
             success: true,
             sentTo: 'guest@example.com',
             subject: 'Your recap with Jack',
+        });
+    });
+
+    it('executeSendEmail routes welcome_personalized through Mrs. Parker welcome delivery', async () => {
+        mockSendWelcomeEmail.mockResolvedValue({ success: true });
+
+        const result = await executeSendEmail(
+            {
+                action: 'send_email',
+                params: {
+                    template: 'welcome_personalized',
+                    source: '{{source}}',
+                },
+            },
+            {
+                orgId: 'org_thrive_syracuse',
+                userId: 'system',
+                variables: {
+                    customerId: 'cust-1',
+                    customerEmail: 'martezandco@gmail.com',
+                    customerName: 'Martez Anderson',
+                    source: 'brand_rewards_checkin',
+                    state: 'New York',
+                },
+                previousResults: {},
+            } as any,
+        );
+
+        expect(mockSendWelcomeEmail).toHaveBeenCalledWith({
+            leadId: 'cust-1',
+            email: 'martezandco@gmail.com',
+            firstName: 'Martez',
+            brandId: undefined,
+            dispensaryId: 'org_thrive_syracuse',
+            state: 'New York',
+            source: 'brand_rewards_checkin',
+        });
+        expect(result).toEqual({
+            success: true,
+            sentTo: 'martezandco@gmail.com',
+            subject: 'Welcome email',
         });
     });
 
