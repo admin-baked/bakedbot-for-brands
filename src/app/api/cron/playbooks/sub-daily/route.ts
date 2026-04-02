@@ -46,6 +46,10 @@ export async function POST(request: NextRequest) {
             .limit(100)
             .get();
 
+        if (subsSnap.size === 100) {
+            logger.warn('[SubDailyCron] Hit subscription limit — some orgs may be skipped. Paginate when org count exceeds 100.');
+        }
+
         const now = new Date();
         // ISO-style key: YYYY-MM-DD-HH (all 1-indexed, zero-padded)
         const currentHourKey = now.toISOString().slice(0, 13).replace('T', '-');

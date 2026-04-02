@@ -29,6 +29,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Timestamp } from 'firebase-admin/firestore';
 import { getAdminFirestore } from '@/firebase/admin';
 import { callClaude } from '@/ai/claude';
+import { JSON_ONLY_SYSTEM_PROMPT } from '@/ai/utils/system-prompts';
 import { slackService } from '@/server/services/communications/slack';
 import { sendPlaybookEmail } from '@/lib/playbooks/mailjet';
 import { requireCronSecret } from '@/server/auth/cron';
@@ -139,12 +140,16 @@ async function fetchDaySalesData(orgId: string, daysAgo: number): Promise<DaySal
         .sort((a, b) => b.units - a.units)
         .slice(0, 5);
 
-    // Customer segmentation (new vs returning) — single query with field projection
+    // Customer segmentation (new vs returning) — single query with field projection.
+    // 90-day lookback bounds the scan; orgs rarely exceed 50k orders in 90 days.
     const customerIds = orders.map(o => String(o.customerId ?? o.userId ?? '')).filter(Boolean);
     const uniqueCustomers = [...new Set(customerIds)];
+    const ninetyDaysAgo = new Date(targetDate);
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
     const priorSnap = await firestore
         .collection('orders')
         .where('orgId', '==', orgId)
+        .where('createdAt', '>=', Timestamp.fromDate(ninetyDaysAgo))
         .where('createdAt', '<', Timestamp.fromDate(targetDate))
         .select('customerId')
         .get();
@@ -225,13 +230,12 @@ Produce a JSON summary:
 
     try {
         const raw = await callClaude({
-            systemPrompt: 'Respond with ONLY valid JSON. No markdown code blocks. No explanation.',
+            systemPrompt: JSON_ONLY_SYSTEM_PROMPT,
             userMessage: prompt,
             model: 'claude-haiku-4-5-20251001',
             maxTokens: 600,
         });
-        const match = raw.match(/\{[\s\S]*\}/);
-        if (match) return JSON.parse(match[0]) as SalesHighlights;
+        return JSON.parse(raw) as SalesHighlights;
     } catch {
         logger.warn('[DailySalesSummary] AI synthesis failed, using fallback');
     }

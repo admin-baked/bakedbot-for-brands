@@ -28,6 +28,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/firebase/admin';
 import { callClaude } from '@/ai/claude';
+import { JSON_ONLY_SYSTEM_PROMPT } from '@/ai/utils/system-prompts';
 import { slackService } from '@/server/services/communications/slack';
 import { sendPlaybookEmail } from '@/lib/playbooks/mailjet';
 import { requireCronSecret } from '@/server/auth/cron';
@@ -235,19 +236,14 @@ Produce a structured competitive analysis report in JSON with these exact fields
 Be specific. Use concrete numbers. No vague platitudes.`;
 
     const raw = await callClaude({
-        systemPrompt: 'Respond with ONLY valid JSON. No markdown code blocks. No explanation.',
+        systemPrompt: JSON_ONLY_SYSTEM_PROMPT,
         userMessage: prompt,
         model: 'claude-sonnet-4-6',
         maxTokens: 2000,
     });
 
     try {
-        // Try markdown code block first, then fall back to greedy brace match
-        const codeBlockMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
-        const jsonStr = codeBlockMatch ? codeBlockMatch[1] : raw.match(/\{[\s\S]*\}/)?.[0];
-        if (jsonStr) {
-            return JSON.parse(jsonStr) as CompetitiveReport;
-        }
+        return JSON.parse(raw) as CompetitiveReport;
     } catch {
         logger.warn('[FlnnStonedAnalysis] JSON parse failed, using fallback');
     }
