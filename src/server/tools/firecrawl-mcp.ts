@@ -251,6 +251,26 @@ export const firecrawlScrapeWithActions = ai.defineTool({
     }
 });
 
+// ============================================================================
+// TOOL: Autonomous AI Agent (Firecrawl /agent — Spark models)
+// ============================================================================
+export const firecrawlAgent = ai.defineTool({
+    name: 'firecrawl_agent',
+    description: 'Run an autonomous Firecrawl AI agent that searches and extracts data across multiple pages without needing specific URLs. Best for open-ended research like competitor pricing sweeps, market analysis, or finding information spread across many sites. Returns a full research summary.',
+    inputSchema: z.object({
+        prompt: z.string().describe('Natural language description of what to research, e.g. "Find current flower prices at cannabis dispensaries in Syracuse NY 13202"'),
+        timeoutMs: z.number().optional().default(90000).describe('Max wait time in ms (default 90s)')
+    }),
+    outputSchema: z.any(),
+}, async ({ prompt, timeoutMs }) => {
+    try {
+        const result = await discovery.runAgent(prompt, timeoutMs);
+        return result;
+    } catch (e: any) {
+        return { success: false, error: `Agent failed: ${e.message}` };
+    }
+});
+
 // Export all tools
 export const firecrawlMCPTools = [
     firecrawlSearch,
@@ -258,5 +278,6 @@ export const firecrawlMCPTools = [
     firecrawlMap,
     firecrawlExtract,
     firecrawlScrapeMenu,
-    firecrawlScrapeWithActions
+    firecrawlScrapeWithActions,
+    firecrawlAgent,
 ];

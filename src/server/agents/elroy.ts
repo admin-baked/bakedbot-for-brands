@@ -22,6 +22,7 @@ import { getAtRiskCustomers, getSegmentSummary, getTodayCheckins } from '@/serve
 import { getLatestWeeklyReport } from '@/server/services/ezal/weekly-intel-report';
 import { fetchMenuProducts, normalizeProduct } from '@/server/agents/adapters/consumer-adapter';
 import { getAdminFirestore } from '@/firebase/admin';
+import { discovery } from '@/server/services/firecrawl';
 
 const ORG_ID = 'org_thrive_syracuse';
 
@@ -94,6 +95,20 @@ const ELROY_TOOLS: ClaudeTool[] = [
                 query: {
                     type: 'string',
                     description: 'Customer name (partial match OK) or phone number',
+                },
+            },
+            required: ['query'],
+        },
+    },
+    {
+        name: 'run_competitive_agent',
+        description: 'Run a live Firecrawl AI agent to research real-time competitor data in the Syracuse cannabis market. Use when you need fresher intel than the cached weekly report — e.g. current pricing, active deals, new products at FlnnStoned or other local dispensaries.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                query: {
+                    type: 'string',
+                    description: 'What to research, e.g. "What are FlnnStoned\'s current flower prices?" or "Any dispensary promotions in Syracuse this week?"',
                 },
             },
             required: ['query'],
@@ -199,6 +214,16 @@ async function elroyToolExecutor(toolName: string, input: Record<string, unknown
                 marketTrends: report.insights.marketTrends.slice(0, 3),
                 recommendations: report.insights.recommendations.slice(0, 3),
             };
+        }
+
+        case 'run_competitive_agent': {
+            const query = String(input.query ?? '').trim();
+            if (!query) return { message: 'Provide a competitor research query.' };
+            const prompt = `You are a cannabis market intelligence agent researching the Syracuse, New York area (zip code 13202). Research the following: ${query}. Focus on local dispensaries including FlnnStoned Cannabis and any other competitors near Thrive Syracuse. Return specific pricing, active deals, and product availability information where possible.`;
+            logger.info('[Elroy] Running Firecrawl competitive agent', { query });
+            const result = await discovery.runAgent(prompt, 90_000);
+            if (!result.success) return { message: `Live competitor research failed: ${result.error}. Try get_competitor_intel for cached data.` };
+            return { data: result.data, source: 'Firecrawl AI Agent (live research)', note: 'This is real-time data — may take 30–90s to complete.' };
         }
 
         case 'search_customer': {
@@ -367,6 +392,7 @@ You help store managers with:
 - Top sellers over the last 7 days
 - Recent transaction history
 - Day-over-day and vs 7-day-average sales comparisons
+- Live competitor pricing and deals via real-time web research
 
 Your style: direct, friendly, a little old-school. You know every customer by name. You give real answers with real numbers — no fluff.
 
@@ -374,7 +400,8 @@ Always pull live data with your tools before answering. If data isn't available,
 
 When listing customers who need outreach, always include their days-inactive and LTV so the manager can prioritize.
 When discussing inventory, flag anything on sale or with high stock that could move with a quick promotion.
-When citing competitor intel, note how fresh it is.`;
+When citing competitor intel, note how fresh it is.
+For real-time or "right now" competitor questions (current prices, today's deals), use run_competitive_agent — it runs a live web research sweep via Firecrawl AI. It takes 30–90 seconds. Use get_competitor_intel for quick cached weekly data.`;
 
 const ELROY_AGENT_CONTEXT: AgentContext = {
     name: 'Uncle Elroy',
@@ -384,7 +411,8 @@ const ELROY_AGENT_CONTEXT: AgentContext = {
         'get_customer_segments — segment health overview',
         'get_today_checkins — daily foot traffic',
         'get_menu_inventory — live Alleaves menu',
-        'get_competitor_intel — Syracuse market intel',
+        'get_competitor_intel — cached weekly Syracuse market intel',
+        'run_competitive_agent — live Firecrawl AI research for real-time competitor pricing and deals',
         'search_customer — individual customer lookup',
         'get_daily_sales — today\'s revenue, transactions, avg ticket',
         'get_top_sellers — top products last 7 days',
@@ -395,6 +423,7 @@ const ELROY_AGENT_CONTEXT: AgentContext = {
         'Always use tools to fetch live data before answering',
         'Cite days-inactive and LTV when listing at-risk customers',
         'Flag staleness when reporting competitor intel',
+        'For "right now" or "today" competitor questions, use run_competitive_agent (live, 30–90s) over get_competitor_intel (cached)',
         'For revenue/sales questions, use get_daily_sales or get_sales_summary',
         'For product performance questions, use get_top_sellers',
         'Always include the asOf timestamp when reporting today\'s sales',

@@ -1363,6 +1363,24 @@ const LINUS_TOOLS: ClaudeTool[] = [
             required: ['url']
         }
     },
+    {
+        name: 'firecrawl_agent',
+        description: 'Run an autonomous Firecrawl AI agent for open-ended web research. Does NOT require URLs — the agent searches, navigates, and extracts on its own. Use for research that spans multiple sites or when you don\'t know the exact URL. Takes 30–90s to complete.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                prompt: {
+                    type: 'string',
+                    description: 'Natural language research query, e.g. "Find the latest Next.js 15 breaking changes" or "What are competitors charging for cannabis vapes in Syracuse NY?"'
+                },
+                timeoutMs: {
+                    type: 'number',
+                    description: 'Max wait time in ms (default 90000)'
+                }
+            },
+            required: ['prompt']
+        }
+    },
     // ========================================================================
     // WEB SEARCH - Serper (Google Search API)
     // ========================================================================
@@ -3971,6 +3989,17 @@ test('${scenario.slice(0, 50)}', async ({ page }) => {
             }
         }
 
+        case 'firecrawl_agent': {
+            const { prompt, timeoutMs } = input as { prompt: string; timeoutMs?: number };
+            try {
+                const { discovery } = await import('@/server/services/firecrawl');
+                const result = await discovery.runAgent(prompt, timeoutMs ?? 90_000);
+                return result;
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
         // ====================================================================
         // WEB SEARCH TOOL EXECUTORS (SERPER)
         // ====================================================================
@@ -4531,6 +4560,8 @@ function buildLinusProgressMessage(toolName: string, input: Record<string, unkno
         case 'firecrawl_search':
         case 'firecrawl_map_site':
             return `_Linus is scraping/crawling a URL for context..._`;
+        case 'firecrawl_agent':
+            return `_Linus is running a Firecrawl AI research sweep — this may take up to 90s..._`;
         case 'web_search_places':
             return `_Linus is searching for places: "${String(input.query ?? '').slice(0, 50)}"..._`;
         case 'letta_search_memory':

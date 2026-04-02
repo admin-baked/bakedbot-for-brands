@@ -15,10 +15,11 @@ import type { AgentResult } from './rtrvr/agent';
  *   3. RTRVR      — browser automation agent (RTRVR_API_KEY required)
  *
  * Capabilities:
- * - Discovery: Get markdown/HTML from a URL
+ * - Discovery: Get markdown/HTML from a URL (Firecrawl → Jina AI → RTRVR)
  * - Search: Find pages matching a query (Firecrawl → RTRVR fallback)
  * - Map: Crawl a site to find links (Firecrawl → RTRVR fallback)
  * - Extract: LLM-based structured data extraction (Firecrawl → RTRVR fallback)
+ * - Agent: Autonomous multi-page research via Firecrawl /agent (Spark models)
  */
 export class DiscoveryService {
     private app: FirecrawlApp | null = null;
@@ -125,21 +126,42 @@ export class DiscoveryService {
      * Basic Discovery: Get content from a URL
      *
      * Priority order:
-     *   1. Jina AI  — always-on, free, fast, clean markdown (primary)
-     *   2. RTRVR    — browser automation for JS-heavy / age-gated pages
-     *   3. Firecrawl — premium JS rendering; last resort (credits-based)
+     *   1. Firecrawl — best quality, JS rendering, structured JSON (primary)
+     *   2. Jina AI   — free (20 RPM no key / 100 RPM with JINA_API_KEY), clean markdown (fallback)
+     *   3. RTRVR     — browser automation for JS-heavy / age-gated pages (last resort)
      */
     public async discoverUrl(url: string, formats: ('markdown' | 'html' | 'rawHtml' | 'screenshot')[] = ['markdown']) {
-        let jinaFallback: { success: true; markdown: string; metadata: { title?: string; description?: string } } | null = null;
-        // ── 1. Jina AI (primary) ─────────────────────────────────────────────
+        let firecrawlFallback: any = null;
+
+        // ── 1. Firecrawl (primary — JS rendering, best quality) ───────────────
+        if (this.isFirecrawlAvailable()) {
+            try {
+                const response = await this.app!.scrape(url, { formats }) as any;
+                if (!response.success) throw new Error(`Firecrawl failed: ${response.error}`);
+                if ((response.markdown || '').trim().length >= 700) {
+                    logger.info('[Discovery] discoverUrl succeeded via Firecrawl', { url });
+                    return response;
+                }
+                firecrawlFallback = response;
+                logger.warn('[Discovery] Firecrawl returned thin content, trying Jina AI', {
+                    url,
+                    chars: (response.markdown || '').length,
+                });
+            } catch (error: any) {
+                logger.warn('[Discovery] Firecrawl failed, trying Jina AI', { url, error: error.message });
+            }
+        }
+
+        // ── 2. Jina AI (free, clean markdown) ────────────────────────────────
         try {
-            logger.info('[Discovery] Using Jina AI for discoverUrl', { url });
+            logger.info('[Discovery] Using Jina AI fallback for discoverUrl', { url });
             const result = await this.discoverViaJina(url);
-            if ((result.markdown || '').trim().length >= 700) {
+            if (firecrawlFallback && result.markdown.length <= (firecrawlFallback.markdown || '').length) {
+                return firecrawlFallback;
+            }
+            if (result.markdown.trim().length >= 200) {
                 return result;
             }
-
-            jinaFallback = result;
             logger.warn('[Discovery] Jina AI returned thin content, trying RTRVR', {
                 url,
                 chars: result.markdown.length,
@@ -148,7 +170,7 @@ export class DiscoveryService {
             logger.warn('[Discovery] Jina AI failed, trying RTRVR', { url, error: jinaError.message });
         }
 
-        // ── 2. RTRVR (browser automation fallback) ────────────────────────────
+        // ── 3. RTRVR (browser automation — JS-heavy / age-gated pages) ───────
         if (this.isRTRVRAvailable()) {
             try {
                 logger.info('[Discovery] Using RTRVR fallback for discoverUrl', { url });
@@ -171,38 +193,23 @@ export class DiscoveryService {
                         : this.extractRTRVRContent(res.data);
                     const title       = typeof result?.title       === 'string' ? result.title       : undefined;
                     const description = typeof result?.description === 'string' ? result.description : undefined;
-                    if (jinaFallback && markdown.length <= jinaFallback.markdown.length) {
-                        return jinaFallback;
+                    if (firecrawlFallback && markdown.length <= (firecrawlFallback.markdown || '').length) {
+                        return firecrawlFallback;
                     }
                     return { success: true, markdown, metadata: { title, description } };
                 }
-                logger.warn('[Discovery] RTRVR failed, trying Firecrawl', { url, error: res.error });
+                logger.warn('[Discovery] RTRVR failed', { url, error: res.error });
             } catch (rtrvrError: any) {
-                logger.warn('[Discovery] RTRVR threw, trying Firecrawl', { url, error: rtrvrError.message });
+                logger.warn('[Discovery] RTRVR threw', { url, error: rtrvrError.message });
             }
         }
 
-        // ── 3. Firecrawl (last resort — JS rendering, credits-based) ──────────
-        if (this.isFirecrawlAvailable()) {
-            try {
-                const response = await this.app!.scrape(url, { formats }) as any;
-                if (!response.success) throw new Error(`Firecrawl failed: ${response.error}`);
-                logger.info('[Discovery] discoverUrl succeeded via Firecrawl', { url });
-                if (jinaFallback && (response.markdown || '').length <= jinaFallback.markdown.length) {
-                    return jinaFallback;
-                }
-                return response;
-            } catch (error: any) {
-                logger.warn('[Discovery] Firecrawl failed', { url, error: error.message });
-            }
+        if (firecrawlFallback) {
+            logger.info('[Discovery] Returning thin Firecrawl result after all fallbacks failed', { url });
+            return firecrawlFallback;
         }
 
-        if (jinaFallback) {
-            logger.info('[Discovery] Falling back to thin Jina AI result after other providers failed', { url });
-            return jinaFallback;
-        }
-
-        throw new Error('discoverUrl failed: Jina AI, RTRVR, and Firecrawl all unavailable or errored');
+        throw new Error('discoverUrl failed: Firecrawl, Jina AI, and RTRVR all unavailable or errored');
     }
 
     /**
@@ -270,7 +277,7 @@ export class DiscoveryService {
         if (this.isFirecrawlAvailable()) {
             try {
                 const response = await this.app!.search(query) as any;
-                console.log('[DiscoveryService] Search Raw Response:', JSON.stringify(response, null, 2));
+                logger.info('[Discovery] Search raw response received', { query, keys: Object.keys(response) });
 
                 // Handle different SDK response shapes
                 const data = response.data || response.web || (response.success ? response : null);
@@ -285,7 +292,7 @@ export class DiscoveryService {
             } catch (error: any) {
                 logger.warn('[Discovery] Firecrawl search failed, trying RTRVR fallback', { query, error: error.message });
                 if (!this.isRTRVRAvailable()) {
-                    console.error('[Discovery] Search error:', error);
+                    logger.error('[Discovery] Search error — no fallback available', { query, error: (error as any).message });
                     throw error;
                 }
             }
@@ -339,7 +346,7 @@ export class DiscoveryService {
             } catch (error: any) {
                 logger.warn('[Discovery] Firecrawl mapSite failed, trying RTRVR fallback', { url, error: error.message });
                 if (!this.isRTRVRAvailable()) {
-                    console.error('[Discovery] Map error:', error);
+                    logger.error('[Discovery] Map error — no fallback available', { url, error: (error as any).message });
                     throw error;
                 }
             }
@@ -376,17 +383,14 @@ export class DiscoveryService {
             try {
                 // Updated to use the correct object format for JSON extraction
                 // Reference: debug-json-obj.ts success
-                console.log('[Discovery] Extracting with schema:', JSON.stringify(schema));
+                logger.info('[Discovery] Extracting structured data via Firecrawl', { url });
                 const response = await this.app!.scrape(url, {
-                    formats: [
-                        {
-                            type: "json",
-                            schema: schema,
-                            prompt: "Extract structured data from the page content matching the schema."
-                        }
-                    ]
-                }) as any;
-                console.log('[Discovery] Extract raw response:', JSON.stringify(response, null, 2));
+                    formats: ['json'],
+                    jsonOptions: {
+                        schema: schema,
+                        prompt: "Extract structured data from the page content matching the schema."
+                    }
+                } as any) as any;
 
                 // If response has json property, it's successful (SDK behavior verify)
                 if ((response as any).json || response.data?.json) {
@@ -405,7 +409,7 @@ export class DiscoveryService {
             } catch (error: any) {
                 logger.warn('[Discovery] Firecrawl extractData failed, trying RTRVR fallback', { url, error: error.message });
                 if (!this.isRTRVRAvailable()) {
-                    console.error('[Discovery] Extract error:', error);
+                    logger.error('[Discovery] Extract error — no fallback available', { url, error: (error as any).message });
                     throw error;
                 }
             }
@@ -431,6 +435,69 @@ export class DiscoveryService {
 
         const extracted = res.data.result as any;
         return extracted?.data || extracted || {};
+    }
+
+    /**
+     * Autonomous AI Agent — open-ended research across multiple pages
+     *
+     * Uses Firecrawl's /agent endpoint (Spark models). Does NOT require known URLs —
+     * the agent searches, navigates, and extracts on its own.
+     *
+     * Submits an async job and polls until complete or timeout.
+     * Returns the agent's full answer as a string.
+     */
+    public async runAgent(prompt: string, timeoutMs = 90_000): Promise<{ success: true; data: string } | { success: false; error: string }> {
+        const apiKey = process.env.FIRECRAWL_API_KEY;
+        if (!apiKey) {
+            return { success: false, error: 'FIRECRAWL_API_KEY not configured' };
+        }
+
+        try {
+            const submitRes = await fetch('https://api.firecrawl.dev/v1/agent', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ prompt }),
+                signal: AbortSignal.timeout(30_000),
+            });
+
+            if (!submitRes.ok) {
+                const errText = await submitRes.text();
+                return { success: false, error: `Agent submit failed: ${submitRes.status} ${errText}` };
+            }
+
+            const { jobId } = await submitRes.json() as { jobId: string };
+            logger.info('[Discovery] Firecrawl agent job submitted', { jobId, promptLength: prompt.length });
+
+            const deadline = Date.now() + timeoutMs;
+            while (Date.now() < deadline) {
+                await new Promise(r => setTimeout(r, 3_000));
+
+                const pollRes = await fetch(`https://api.firecrawl.dev/v1/agent/${jobId}`, {
+                    headers: { 'Authorization': `Bearer ${apiKey}` },
+                    signal: AbortSignal.timeout(15_000),
+                });
+
+                if (!pollRes.ok) continue;
+
+                const job = await pollRes.json() as any;
+                if (job.status === 'completed') {
+                    const data = job.result ?? job.data ?? job.answer ?? JSON.stringify(job);
+                    logger.info('[Discovery] Firecrawl agent completed', { jobId });
+                    return { success: true, data: typeof data === 'string' ? data : JSON.stringify(data) };
+                }
+                if (job.status === 'failed') {
+                    return { success: false, error: `Agent job failed: ${job.error ?? 'unknown'}` };
+                }
+            }
+
+            return { success: false, error: `Agent job timed out after ${timeoutMs / 1000}s` };
+        } catch (error: any) {
+            logger.error('[Discovery] runAgent threw', { error: error.message });
+            return { success: false, error: error.message };
+        }
     }
 }
 
