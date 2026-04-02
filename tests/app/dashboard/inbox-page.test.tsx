@@ -59,6 +59,13 @@ jest.mock('framer-motion', () => ({
 
 describe('InboxPage', () => {
     const mockSetViewMode = jest.fn();
+    const buildInboxState = (overrides: Record<string, unknown> = {}) => ({
+        viewMode: 'inbox',
+        activeThreadId: null,
+        threads: [],
+        setViewMode: mockSetViewMode,
+        ...overrides,
+    });
 
     beforeEach(() => {
         jest.clearAllMocks();
@@ -71,10 +78,11 @@ describe('InboxPage', () => {
     describe('View Mode Rendering', () => {
         it('should render UnifiedInbox when viewMode is "inbox"', async () => {
             (useInboxStore as unknown as jest.Mock).mockImplementation((selector) => {
+                const state = buildInboxState();
                 if (typeof selector === 'function') {
-                    return selector({ viewMode: 'inbox', setViewMode: mockSetViewMode });
+                    return selector(state);
                 }
-                return { viewMode: 'inbox', setViewMode: mockSetViewMode };
+                return state;
             });
 
             (useUserRole as jest.Mock).mockReturnValue({ role: 'brand' });
@@ -89,10 +97,11 @@ describe('InboxPage', () => {
 
         it('should render UnifiedAgentChat when viewMode is "chat"', async () => {
             (useInboxStore as unknown as jest.Mock).mockImplementation((selector) => {
+                const state = buildInboxState({ viewMode: 'chat' });
                 if (typeof selector === 'function') {
-                    return selector({ viewMode: 'chat', setViewMode: mockSetViewMode });
+                    return selector(state);
                 }
-                return { viewMode: 'chat', setViewMode: mockSetViewMode };
+                return state;
             });
 
             (useUserRole as jest.Mock).mockReturnValue({ role: 'brand' });
@@ -109,10 +118,11 @@ describe('InboxPage', () => {
     describe('Header Content', () => {
         it('should display "Unified Inbox" title when in inbox mode', async () => {
             (useInboxStore as unknown as jest.Mock).mockImplementation((selector) => {
+                const state = buildInboxState();
                 if (typeof selector === 'function') {
-                    return selector({ viewMode: 'inbox', setViewMode: mockSetViewMode });
+                    return selector(state);
                 }
-                return { viewMode: 'inbox', setViewMode: mockSetViewMode };
+                return state;
             });
 
             (useUserRole as jest.Mock).mockReturnValue({ role: 'brand' });
@@ -126,10 +136,11 @@ describe('InboxPage', () => {
 
         it('should display "Agent Chat" title when in chat mode', async () => {
             (useInboxStore as unknown as jest.Mock).mockImplementation((selector) => {
+                const state = buildInboxState({ viewMode: 'chat' });
                 if (typeof selector === 'function') {
-                    return selector({ viewMode: 'chat', setViewMode: mockSetViewMode });
+                    return selector(state);
                 }
-                return { viewMode: 'chat', setViewMode: mockSetViewMode };
+                return state;
             });
 
             (useUserRole as jest.Mock).mockReturnValue({ role: 'brand' });
@@ -143,10 +154,11 @@ describe('InboxPage', () => {
 
         it('should render the view toggle component', async () => {
             (useInboxStore as unknown as jest.Mock).mockImplementation((selector) => {
+                const state = buildInboxState();
                 if (typeof selector === 'function') {
-                    return selector({ viewMode: 'inbox', setViewMode: mockSetViewMode });
+                    return selector(state);
                 }
-                return { viewMode: 'inbox', setViewMode: mockSetViewMode };
+                return state;
             });
 
             (useUserRole as jest.Mock).mockReturnValue({ role: 'brand' });
@@ -160,10 +172,11 @@ describe('InboxPage', () => {
 
         it('should render the desktop workspace briefing in the header', async () => {
             (useInboxStore as unknown as jest.Mock).mockImplementation((selector) => {
+                const state = buildInboxState();
                 if (typeof selector === 'function') {
-                    return selector({ viewMode: 'inbox', setViewMode: mockSetViewMode });
+                    return selector(state);
                 }
-                return { viewMode: 'inbox', setViewMode: mockSetViewMode };
+                return state;
             });
 
             (useUserRole as jest.Mock).mockReturnValue({ role: 'brand' });
@@ -174,15 +187,39 @@ describe('InboxPage', () => {
                 expect(screen.getByTestId('inbox-workspace-briefing')).toBeInTheDocument();
             });
         });
+
+        it('should hide the workspace briefing after a conversation has started', async () => {
+            (useInboxStore as unknown as jest.Mock).mockImplementation((selector) => {
+                const state = buildInboxState({
+                    activeThreadId: 'thread-1',
+                    threads: [
+                        {
+                            id: 'thread-1',
+                            messages: [{ id: 'msg-1', type: 'user', content: 'Hello', timestamp: new Date() }],
+                        },
+                    ],
+                });
+                if (typeof selector === 'function') {
+                    return selector(state);
+                }
+                return state;
+            });
+            (useUserRole as jest.Mock).mockReturnValue({ role: 'brand' });
+
+            render(<InboxPage />);
+
+            expect(screen.queryByTestId('inbox-workspace-briefing')).not.toBeInTheDocument();
+        });
     });
 
     describe('Role-based Chat Configuration', () => {
         it('should configure chat for brand users', async () => {
             (useInboxStore as unknown as jest.Mock).mockImplementation((selector) => {
+                const state = buildInboxState({ viewMode: 'chat' });
                 if (typeof selector === 'function') {
-                    return selector({ viewMode: 'chat', setViewMode: mockSetViewMode });
+                    return selector(state);
                 }
-                return { viewMode: 'chat', setViewMode: mockSetViewMode };
+                return state;
             });
 
             (useUserRole as jest.Mock).mockReturnValue({ role: 'brand' });
@@ -197,10 +234,11 @@ describe('InboxPage', () => {
 
         it('should configure chat for dispensary users', async () => {
             (useInboxStore as unknown as jest.Mock).mockImplementation((selector) => {
+                const state = buildInboxState({ viewMode: 'chat' });
                 if (typeof selector === 'function') {
-                    return selector({ viewMode: 'chat', setViewMode: mockSetViewMode });
+                    return selector(state);
                 }
-                return { viewMode: 'chat', setViewMode: mockSetViewMode };
+                return state;
             });
 
             (useUserRole as jest.Mock).mockReturnValue({ role: 'dispensary' });
@@ -215,10 +253,11 @@ describe('InboxPage', () => {
 
         it('should configure chat for super users', async () => {
             (useInboxStore as unknown as jest.Mock).mockImplementation((selector) => {
+                const state = buildInboxState({ viewMode: 'chat' });
                 if (typeof selector === 'function') {
-                    return selector({ viewMode: 'chat', setViewMode: mockSetViewMode });
+                    return selector(state);
                 }
-                return { viewMode: 'chat', setViewMode: mockSetViewMode };
+                return state;
             });
 
             (useUserRole as jest.Mock).mockReturnValue({ role: 'super_user' });
@@ -233,10 +272,11 @@ describe('InboxPage', () => {
 
         it('should configure chat for growers', async () => {
             (useInboxStore as unknown as jest.Mock).mockImplementation((selector) => {
+                const state = buildInboxState({ viewMode: 'chat' });
                 if (typeof selector === 'function') {
-                    return selector({ viewMode: 'chat', setViewMode: mockSetViewMode });
+                    return selector(state);
                 }
-                return { viewMode: 'chat', setViewMode: mockSetViewMode };
+                return state;
             });
 
             (useUserRole as jest.Mock).mockReturnValue({ role: 'grower' });
@@ -253,10 +293,11 @@ describe('InboxPage', () => {
     describe('Loading State', () => {
         it('should show loading indicator while content loads', () => {
             (useInboxStore as unknown as jest.Mock).mockImplementation((selector) => {
+                const state = buildInboxState();
                 if (typeof selector === 'function') {
-                    return selector({ viewMode: 'inbox', setViewMode: mockSetViewMode });
+                    return selector(state);
                 }
-                return { viewMode: 'inbox', setViewMode: mockSetViewMode };
+                return state;
             });
 
             (useUserRole as jest.Mock).mockReturnValue({ role: 'brand' });

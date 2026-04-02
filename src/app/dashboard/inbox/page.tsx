@@ -35,7 +35,14 @@ function InboxLoading() {
 
 function InboxContent() {
     const viewMode = useInboxStore((state) => state.viewMode);
-    const activeThreadId = useInboxStore((state) => state.activeThreadId);
+    const shouldShowWorkspaceBriefing = useInboxStore((state) => {
+        if (!state.activeThreadId) {
+            return true;
+        }
+
+        const activeThread = state.threads.find((thread) => thread.id === state.activeThreadId);
+        return (activeThread?.messages.length ?? 0) === 0;
+    });
     const { role } = useUserRole();
 
     const isSuper = role === 'super_user' || role === 'super_admin';
@@ -83,9 +90,20 @@ function InboxContent() {
                     </div>
                 </div>
 
-                {viewMode === 'inbox' && !activeThreadId && (
-                    <InboxWorkspaceBriefing className="hidden lg:block" />
-                )}
+                <AnimatePresence initial={false}>
+                    {viewMode === 'inbox' && shouldShowWorkspaceBriefing && (
+                        <motion.div
+                            key="workspace-briefing"
+                            initial={{ opacity: 0, height: 0, y: -12, scale: 0.985, filter: 'blur(10px)' }}
+                            animate={{ opacity: 1, height: 'auto', y: 0, scale: 1, filter: 'blur(0px)' }}
+                            exit={{ opacity: 0, height: 0, y: -18, scale: 0.97, filter: 'blur(14px)' }}
+                            transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
+                            className="overflow-hidden"
+                        >
+                            <InboxWorkspaceBriefing className="hidden lg:block" />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
 
             {/* View Content - Animated transitions */}

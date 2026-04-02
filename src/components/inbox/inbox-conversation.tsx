@@ -2003,12 +2003,12 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     // Auto-submit if the user typed a message before the thread was open
     // (pending input set by inbox-empty-state or sidebar)
     useEffect(() => {
-        if (hasPendingAutoSubmit.current) {
+        if (hasPendingAutoSubmit.current && !isPending && !isSubmitting) {
             hasPendingAutoSubmit.current = false;
-            handleSubmit();
+            void handleSubmit();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [isPending, isSubmitting]);
 
     const handleCompleteCarousel = async (carouselData: any) => {
         setShowCarouselGenerator(false);
