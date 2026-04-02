@@ -407,7 +407,7 @@ env:
       - RUNTIME
   # Jina AI Reader - free web scraping fallback (100 RPM with key)
   - variable: JINA_API_KEY
-    secret: JINA_API_KEY@1
+    secret: JINA_API_KEY@2
     availability:
       - RUNTIME
   # OpenClaw - WhatsApp Gateway
