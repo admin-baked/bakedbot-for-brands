@@ -226,7 +226,22 @@ Before finalizing code, verify:
 - [ ] I handled likely failure modes intentionally.
 - [ ] I matched tests to the task’s risk level.
 - [ ] I preserved observability for production debugging.
-- [ ] A human reviewer will be able to explain this code.\r
-- [ ] **I ran `/simplify` (3-agent parallel review: Code Reuse, Code Quality, Efficiency) and fixed all confirmed findings.**
+- [ ] A human reviewer will be able to explain this code.
+- [ ] **I ran `/simplify` (3-agent parallel review: Code Reuse, Code Quality, Efficiency) and fixed all confirmed findings before pushing.**
 
 If any item is false, revise before proposing the change.
+
+---
+
+## Session End Protocol
+
+Every coding session must end with an "Update recent work" pass. This applies to all builder agents (Claude Code, Codex, Gemini).
+
+**Multi-tab safe order:**
+1. Write `memory/sessions/YYYY-MM-DD-HHMM-{slug}.md` — isolated, never conflicts
+2. Append session block to `memory/MEMORY.md`
+3. Update `CLAUDE.md` line 15 + `.agent/prime.md` — **only if your session date ≥ current "Last update" date**
+4. Auto-archive MEMORY.md if > 150 lines → `memory/archive/YYYY-MM.md`
+5. Commit: `git add CLAUDE.md .agent/prime.md && git commit -m "docs: Update session notes YYYY-MM-DD"`
+
+> Full protocol in `CLAUDE.md` → *Session End* section. Use **"Consolidate sessions"** to merge multiple pending tabs.

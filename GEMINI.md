@@ -1,6 +1,6 @@
-# CODEX.md — BakedBot Codebase Context for OpenAI Codex
+# GEMINI.md — BakedBot Codebase Context for Gemini
 
-> Loaded automatically by Codex on every interaction.
+> Loaded automatically by Gemini Code Assist / Gemini CLI on every interaction.
 
 ---
 
@@ -18,16 +18,16 @@
 
 After completing ANY code modifications AND **before every `git push` / Firebase deploy**, run the `/simplify` review:
 
-1. **Find changes:** Run `git diff HEAD` to capture all modified code. If empty, use `git diff HEAD~1`.
+1. **Find changes:** Run `git diff HEAD`. If empty, use `git diff HEAD~1`.
 2. **3 parallel reviews against the diff:**
-   - **Code Reuse:** Flag newly written code that duplicates existing utilities/helpers already in the codebase.
-   - **Code Quality:** Flag redundant state, parameter sprawl, copy-paste blocks, leaky abstractions, stringly-typed code, silent catches, unnecessary `any` types.
-   - **Efficiency:** Flag redundant work, sequential calls that could be `Promise.all`, N+1 patterns, overly broad Firestore reads, memory leaks, no-op updates.
+   - **Code Reuse:** Flag newly written code that duplicates existing utilities/helpers.
+   - **Code Quality:** Flag redundant state, parameter sprawl, copy-paste, silent catches, unnecessary `any`.
+   - **Efficiency:** Flag redundant work, sequential calls that could be `Promise.all`, N+1 patterns, memory leaks.
 3. **Fix every confirmed finding** directly in the code.
-4. **Run `.\scripts\npm-safe.cmd run check:types`** to verify fixes don't break the build.
+4. **Run `.\scripts\npm-safe.cmd run check:types`** — build must stay green.
 5. **Summarize** what was changed.
 
-> This is NOT optional. Every code session ends with `/simplify`, and every `git push` is gated on it. See `.agent/workflows/simplify.md` for the full protocol.
+> Every `git push` is gated on `/simplify`. See `.agent/workflows/simplify.md` for the full protocol.
 
 ---
 
@@ -48,9 +48,8 @@ After completing ANY code modifications AND **before every `git push` / Firebase
 
 | Command | Purpose |
 |---------|---------|
-| `.\scripts\npm-safe.cmd run check:types` | TypeScript check in the default Windows shell |
+| `.\scripts\npm-safe.cmd run check:types` | TypeScript check |
 | `.\scripts\npm-safe.cmd test` | Run Jest tests |
-| `.\scripts\npm-safe.cmd test -- path/to/file.test.ts` | Test specific file |
 | `.\scripts\npm-safe.cmd run lint` | ESLint check |
 | `git push origin main` | **Deploy to production** — triggers Firebase App Hosting |
 
@@ -62,10 +61,12 @@ After completing ANY code modifications AND **before every `git push` / Firebase
 
 | File | Purpose |
 |------|---------|
-| `.agent/prime.md` | Full startup context (workflow protocol, super powers, agent roster) |
-| `.agent/workflows/simplify.md` | The 3-agent code review workflow |
+| `CLAUDE.md` | Primary codebase context — full protocol, standards, workflow |
+| `.agent/prime.md` | Agent startup context (workflow, super powers, agent roster) |
 | `AGENTS.md` | Builder swarm rules (reuse, conventions, completion check) |
 | `.agent/refs/` | Detailed reference docs (load on-demand) |
+
+**Read `CLAUDE.md` and `.agent/prime.md` at session start.**
 
 ---
 
@@ -79,8 +80,23 @@ src/server/actions/    # Server Actions ('use server')
 src/app/api/           # API routes
 src/components/        # React components
 .agent/refs/           # Reference documentation
-dev/work_archive/      # Historical decisions
 ```
+
+---
+
+## 🔚 Session End: "Update recent work"
+
+> **Multi-tab:** Multiple sessions run in parallel. Write your session file first — it's conflict-safe. Only update CLAUDE.md/prime.md if your session is more recent.
+
+### Every session, in order:
+
+1. **Write session file** → `memory/sessions/YYYY-MM-DD-HHMM-{slug}.md` (always first)
+2. **Append to `memory/MEMORY.md`** → prepend your session block
+3. **Update `CLAUDE.md` line 15 + `.agent/prime.md` lines ~41–44** — **only if your session date ≥ current "Last update" date**. If older, skip.
+4. **Auto-archive** if MEMORY.md > 150 lines → `memory/archive/YYYY-MM.md`
+5. **Commit:** `git add CLAUDE.md .agent/prime.md && git commit -m "docs: Update session notes YYYY-MM-DD"`
+
+> Full protocol in `CLAUDE.md` → *Session End* section. Run **"Consolidate sessions"** to merge all pending tabs at once.
 
 ---
 
@@ -94,25 +110,7 @@ Before finalizing code, verify:
 - [ ] I did not suppress warnings instead of fixing root causes.
 - [ ] I handled likely failure modes intentionally.
 - [ ] A human reviewer will be able to explain this code.
-- [ ] **I ran `/simplify` (3-agent parallel review: Code Reuse, Code Quality, Efficiency) and fixed all confirmed findings.**
-
-If any item is false, revise before proposing the change.
-
----
-
-## 🔚 Session End: "Update recent work"
-
-> **Multi-tab:** Multiple sessions run in parallel. Always write your session file first — it's conflict-safe. Only update CLAUDE.md/prime.md if your session is more recent.
-
-### Every session, in order:
-
-1. **Write session file** → `memory/sessions/YYYY-MM-DD-HHMM-{slug}.md` (do this first, always)
-2. **Append to `memory/MEMORY.md`** → prepend your session block (safe for concurrent tabs)
-3. **Update `CLAUDE.md` line 15 + `.agent/prime.md` lines ~41–44** — but **only if your session date ≥ current "Last update" date** in CLAUDE.md. If older, skip these files.
-4. **Auto-archive** if MEMORY.md > 150 lines → move oldest sessions to `memory/archive/YYYY-MM.md`
-5. **Commit:** `git add CLAUDE.md .agent/prime.md && git commit -m "docs: Update session notes YYYY-MM-DD"`
-
-> Full protocol: `CLAUDE.md` → *Session End* section. Run **"Consolidate sessions"** to merge all pending tabs at once.
+- [ ] **I ran `/simplify` before pushing and fixed all confirmed findings.**
 
 ---
 
