@@ -44,8 +44,14 @@ After completing ANY code modifications AND **before every `git push` / Firebase
 | `.\scripts\npm-safe.cmd run lint` | ESLint check |
 | `.\scripts\npm-safe.cmd run dev` | Local dev server |
 | `git push origin main` | **Deploy to production** — triggers Firebase App Hosting CI/CD |
+| `gh run list --workflow "Deploy to Firebase App Hosting" --branch main --limit 3` | Check deploy status |
+| `node scripts/firebase-apphosting.mjs cancel <id>` | Cancel stuck build (> 25 min RUNNING) |
 
 > **🚀 Deploy = Push to GitHub.** `git push origin main` automatically starts a Firebase build and deploys to production. Always push after committing finished work.
+>
+> **🔄 After every push: poll + trigger.** Don't stop at the push — poll `gh run list` until `completed|success`, then run post-deploy triggers (POS sync, etc.). See `.agent/prime.md` → **Post-Deploy Protocol** for the full loop and trigger map.
+>
+> **⚠️ Stuck build pattern:** If `firebase-apphosting.mjs status` shows a build RUNNING > 25 min with `Duration: unknown`, cancel it and push an empty commit to re-trigger.
 
 **Note:** Windows PowerShell — use `;` not `&&` for command chaining.
 

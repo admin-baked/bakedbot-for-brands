@@ -222,6 +222,75 @@ After every coding session, Codex and Gemini **must** update:
 
 ---
 
+## 🚀 Post-Deploy Protocol (MANDATORY after every `git push`)
+
+After every `git push origin main`, **do not stop at the push**. Complete the full deploy loop:
+
+### Step 1 — Poll until deploy completes
+
+```bash
+# Poll every 60s until the GH Actions run finishes
+RUN_ID=$(gh run list --workflow "Deploy to Firebase App Hosting" --branch main --limit 1 --json databaseId -q '.[0].databaseId')
+while true; do
+  STATUS=$(gh run view $RUN_ID --json status,conclusion -q '.status + "|" + (.conclusion // "")')
+  echo "$(date '+%H:%M:%S') $STATUS"
+  [[ "$STATUS" == *"completed"* ]] && break
+  sleep 60
+done
+echo "Deploy result: $STATUS"
+```
+
+Typical build time: **18–22 minutes**. Run in background (`run_in_background: true`) so you can keep working.
+
+### Step 2 — If deploy failed: diagnose
+
+```bash
+# Check which step failed
+gh run view $RUN_ID --json jobs -q '.jobs[].steps[] | select(.conclusion == "failure") | .name'
+
+# Common failure: stuck previous build blocking the queue
+node scripts/firebase-apphosting.mjs status   # find RUNNING build
+node scripts/firebase-apphosting.mjs cancel <cloud-build-id>  # cancel it
+git commit --allow-empty -m "chore: trigger redeploy after cancelling stuck build" && git push origin main
+```
+
+### Step 3 — After successful deploy: run post-deploy triggers
+
+For **Thrive Syracuse** (or any org with POS sync), always trigger an immediate sync after deploy so product changes take effect without waiting 30 min:
+
+```bash
+CRON_SECRET=$(grep "^CRON_SECRET=" .env.local | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'" | tr -d '\r')
+BASE="https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app"
+
+# POS sync (populates menu products → recommendations)
+curl -s -X POST "$BASE/api/cron/pos-sync?orgId=org_thrive_syracuse" \
+  -H "Authorization: Bearer $CRON_SECRET" -H "Content-Length: 0"
+
+# Verify menuProductsCount > 0 in the response
+```
+
+**Expected response:** `{"success":true,"results":{"menuProductsCount":N}}` where N > 0.  
+If `menuProductsCount: 0` → check `posConfig.status === 'active'` on the location doc + Alleaves API returning inventory.
+
+### Post-deploy trigger map
+
+| Change type | Post-deploy action |
+|-------------|-------------------|
+| POS adapter / product sync | `POST /api/cron/pos-sync?orgId=org_thrive_syracuse` |
+| Playbook logic | Verify Welcome Playbook is ACTIVE (`launch-thrive-full.mjs`) |
+| Cron auth / scheduler | Re-run `node scripts/launch-thrive-full.mjs` to update jobs |
+| Customer sync | `POST /api/cron/pos-sync` (customers sync is part of same call) |
+| Any Thrive-facing change | `POST /api/cron/pos-sync` + spot-check loyalty tablet recs |
+
+### Stuck build gotcha
+
+Firebase App Hosting queues builds. If a build hangs (> 25 min, `Duration: unknown`), it blocks all subsequent pushes. Pattern:
+1. `node scripts/firebase-apphosting.mjs status` → find RUNNING build > 25 min
+2. `node scripts/firebase-apphosting.mjs cancel <id>` → cancel it
+3. Push empty commit to re-trigger: `git commit --allow-empty -m "chore: retrigger deploy" && git push`
+
+---
+
 ## Workflow Protocol
 
 **Every task follows this pipeline. No shortcuts. No exceptions.**
