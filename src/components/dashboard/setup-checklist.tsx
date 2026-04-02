@@ -212,6 +212,16 @@ export function SetupChecklist() {
         }
     }, [role]);
 
+    // Listen for restart signal from Smokey Support panel
+    useEffect(() => {
+        const handleRestart = () => {
+            localStorage.removeItem('setup-checklist-dismissed');
+            setIsDismissed(false);
+        };
+        window.addEventListener('restart-onboarding', handleRestart);
+        return () => window.removeEventListener('restart-onboarding', handleRestart);
+    }, []);
+
     const completedCount = items.filter(i => i.status === 'done').length;
     const totalCount = items.length;
     const progressPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;

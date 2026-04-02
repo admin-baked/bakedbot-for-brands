@@ -14,7 +14,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MessageSquare, HelpCircle, Users, Sparkles, Loader2 } from 'lucide-react';
+import { MessageSquare, HelpCircle, Users, Sparkles, Loader2, RotateCcw } from 'lucide-react';
 import { useUserRole } from '@/hooks/use-user-role';
 import { useUser } from '@/hooks/use-user';
 import { logger } from '@/lib/logger';
@@ -32,9 +32,10 @@ interface QuickLink {
 
 interface SmokeySupportPanelProps {
   onHelpClick?: () => void;
+  onRestartOnboarding?: () => void;
 }
 
-export function SmokeySupportPanel({ onHelpClick }: SmokeySupportPanelProps) {
+export function SmokeySupportPanel({ onHelpClick, onRestartOnboarding }: SmokeySupportPanelProps) {
   const { role } = useUserRole();
   const { user } = useUser();
   const [messagingOpen, setMessagingOpen] = useState(false);
@@ -190,6 +191,21 @@ export function SmokeySupportPanel({ onHelpClick }: SmokeySupportPanelProps) {
               </a>
             </Button>
           </div>
+
+          {/* Restart Setup Guide */}
+          {onRestartOnboarding && (
+            <Button
+              variant="ghost"
+              className="justify-start h-auto py-2 px-3 w-full text-muted-foreground hover:text-foreground"
+              onClick={onRestartOnboarding}
+            >
+              <RotateCcw className="h-4 w-4 mr-2 flex-shrink-0" />
+              <div className="text-left">
+                <div className="font-medium text-sm">Restart setup guide</div>
+                <div className="text-xs opacity-75">Show the onboarding checklist again</div>
+              </div>
+            </Button>
+          )}
 
           {/* Quick Links Section */}
           {quickLinks.length > 0 && (

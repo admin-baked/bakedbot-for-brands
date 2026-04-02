@@ -1,106 +1,80 @@
 'use client';
 
 /**
- * Smokey Floating Support Button
+ * Smokey Side Tab + Support Panel
  *
- * Floating action button (FAB) that opens the Smokey support panel.
- * Features smart positioning to avoid blocking critical UI elements.
- * Help content is shown inline within the panel (no modal overlay).
+ * A vertical tab pinned to the right edge of the viewport that opens
+ * the Smokey support panel. Replaces the old floating action button (FAB).
+ * The tab is always visible (minimal footprint) — no dismiss-forever needed.
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { useState, useCallback } from 'react';
 import { Sparkles, X, ChevronLeft } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useUserRole } from '@/hooks/use-user-role';
 import SmokeySupportPanel from './smokey-support-panel';
 import HelpSearchEnhanced from '@/components/help/help-search-enhanced';
-import MessageSupportDialog from './message-support-dialog';
 
-// Keep Help Modal off routes with dense primary actions where the floating FAB can steal clicks.
+// Hide on routes with dense primary actions where the tab could steal clicks.
 const BLOCKED_ROUTES = ['/dashboard/menu', '/dashboard/settings', '/dashboard/creative'];
 
 export function SmokeyFloatingButton() {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<'home' | 'help'>('home');
-  const [messagingOpen, setMessagingOpen] = useState(false);
-  const [shouldHide, setShouldHide] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
   const pathname = usePathname();
   const { role } = useUserRole();
 
-  // Determine if button should be hidden based on current route
-  useEffect(() => {
-    const hide = BLOCKED_ROUTES.some((route) => pathname.includes(route));
-    setShouldHide(hide);
-  }, [pathname]);
+  const isBlocked = BLOCKED_ROUTES.some((route) => pathname.includes(route));
 
-  // Load dismissed state from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('smokey-support-dismissed');
-    if (saved === 'true') {
-      setDismissed(true);
-    }
-  }, []);
+  const handleHelpClick = useCallback(() => setView('help'), []);
+  const handleBackClick = useCallback(() => setView('home'), []);
 
-  // Handle dismiss - must be declared before any conditional returns
-  const handleDismiss = useCallback(() => {
-    setDismissed(true);
-    localStorage.setItem('smokey-support-dismissed', 'true');
-  }, []);
-
-  // Handle reopen - must be declared before any conditional returns
-  const handleReopen = useCallback(() => {
-    setDismissed(false);
-    localStorage.setItem('smokey-support-dismissed', 'false');
-  }, []);
-
-  // Handle help click - must be declared before any conditional returns
-  const handleHelpClick = useCallback(() => {
-    setView('help');
-  }, []);
-
-  // Handle back click - must be declared before any conditional returns
-  const handleBackClick = useCallback(() => {
+  const handleRestartOnboarding = useCallback(() => {
+    localStorage.removeItem('setup-checklist-dismissed');
+    window.dispatchEvent(new CustomEvent('restart-onboarding'));
+    setOpen(false);
     setView('home');
   }, []);
 
-  // Only show for brand/dispensary users (not customers or super users)
+  const handleTabClick = useCallback(() => {
+    setOpen((prev) => {
+      if (prev) setView('home');
+      return !prev;
+    });
+  }, []);
+
+  const handleClose = useCallback(() => {
+    setOpen(false);
+    setView('home');
+  }, []);
+
+  // Only show for brand/dispensary users
   if (!role || !['brand', 'brand_admin', 'dispensary', 'dispensary_admin'].includes(role)) {
     return null;
   }
 
-  // Hide on blocked routes or if dismissed
-  if (shouldHide || dismissed) {
-    return null;
-  }
+  if (isBlocked) return null;
 
   return (
     <>
-      {/* Floating Action Button */}
-      <div className="fixed bottom-6 right-6 flex flex-col gap-2 items-end z-50">
-        {!open && !dismissed && (
-          <div className="bg-muted text-muted-foreground text-xs px-2 py-1 rounded opacity-75">
-            Need help? Click the button →
-          </div>
-        )}
+      {/* Side Tab — always visible, pinned to right edge */}
+      <button
+        onClick={handleTabClick}
+        title={open ? 'Close support panel' : 'Open Help & Setup'}
+        aria-label={open ? 'Close support panel' : 'Open Help & Setup'}
+        className="fixed right-0 top-[45%] -translate-y-1/2 z-50 flex flex-col items-center justify-center gap-1.5 bg-primary text-primary-foreground px-2.5 py-4 rounded-l-xl shadow-lg hover:shadow-xl hover:px-3.5 transition-all duration-150 cursor-pointer select-none"
+      >
+        <Sparkles className="h-4 w-4 flex-shrink-0" />
+        <span className="text-[9px] font-bold tracking-widest uppercase [writing-mode:vertical-rl] rotate-180 leading-none">
+          {open ? 'Close' : 'Help'}
+        </span>
+      </button>
 
-        {/* FAB */}
-        <Button
-          size="lg"
-          className="rounded-full shadow-lg hover:shadow-xl transition-shadow"
-          onClick={() => setOpen(true)}
-        >
-          <Sparkles className="h-5 w-5" />
-        </Button>
-      </div>
-
-      {/* Inline Panel (not a modal overlay) */}
-      {open && !dismissed && (
-        <div className="fixed bottom-24 right-6 z-50 w-[calc(100vw-2rem)] max-w-[360px] shadow-2xl rounded-2xl border bg-background overflow-hidden">
+      {/* Side Panel — slides in from the right, offset to keep tab visible */}
+      {open && (
+        <div className="fixed right-10 top-16 z-50 w-80 max-h-[80vh] shadow-2xl rounded-2xl border bg-background overflow-hidden flex flex-col">
           {/* Panel Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
+          <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30 flex-shrink-0">
             <div className="flex items-center gap-2">
               {view === 'help' && (
                 <button
@@ -111,18 +85,13 @@ export function SmokeyFloatingButton() {
                   <ChevronLeft className="h-5 w-5" />
                 </button>
               )}
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5" />
-                <span className="font-semibold text-sm">
-                  {view === 'home' ? 'Smokey Support' : 'Help Center'}
-                </span>
-              </div>
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="font-semibold text-sm">
+                {view === 'home' ? 'Smokey Support' : 'Help Center'}
+              </span>
             </div>
             <button
-              onClick={() => {
-                setOpen(false);
-                setView('home');
-              }}
+              onClick={handleClose}
               className="text-muted-foreground hover:text-foreground transition-colors"
               title="Close"
             >
@@ -131,47 +100,19 @@ export function SmokeyFloatingButton() {
           </div>
 
           {/* Panel Content */}
-          <div className="overflow-y-auto max-h-[60vh] p-4">
+          <div className="overflow-y-auto flex-1 p-4">
             {view === 'home' ? (
-              <SmokeySupportPanel onHelpClick={handleHelpClick} />
+              <SmokeySupportPanel
+                onHelpClick={handleHelpClick}
+                onRestartOnboarding={handleRestartOnboarding}
+              />
             ) : (
               <HelpSearchEnhanced userRole={role || undefined} />
             )}
           </div>
-
-          {/* Panel Footer (only on home view) */}
-          {view === 'home' && (
-            <div className="border-t px-4 py-3 bg-muted/20">
-              <button
-                onClick={() => {
-                  setOpen(false);
-                  handleDismiss();
-                }}
-                className="w-full text-xs text-muted-foreground hover:text-foreground py-2 px-2 rounded hover:bg-muted transition-colors"
-              >
-                Dismiss this help button
-              </button>
-            </div>
-          )}
         </div>
       )}
 
-      {/* Show reopen button if dismissed */}
-      {dismissed && (
-        <button
-          onClick={handleReopen}
-          className="fixed bottom-6 right-6 z-50 text-xs text-muted-foreground hover:text-foreground"
-          title="Reopen Smokey Support Hub"
-        >
-          <span className="inline-flex items-center gap-1 px-2 py-1 bg-muted rounded hover:bg-muted/80 transition-colors">
-            <Sparkles className="h-3 w-3" />
-            Help
-          </span>
-        </button>
-      )}
-
-      {/* Message Support Dialog (still a modal since it's a form) */}
-      <MessageSupportDialog open={messagingOpen} onOpenChange={setMessagingOpen} />
     </>
   );
 }
