@@ -12,7 +12,21 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; long-form video shipped (Kling chain + Remotion LongFormVideo, 60/90s, Creative Center 🎥 Long tab) — run `npm run remotion:bundle` before next deploy | **Last update:** 2026-04-02 (long-form video Option C)
+**Current Status:** 🟢 `main` green; invite acceptance now force-refreshes token + session before redirect — invited admins no longer land on /onboarding | **Last update:** 2026-04-02 (invite onboarding redirect fix)
+
+---
+
+## Canonical Engineering Principles (MANDATORY)
+
+`AGENTS.md` is the source of truth for builder behavior in this repo. Before writing code:
+
+1. **Choose the canonical home** for the logic: domain model, service, adapter, workflow, tool contract, schema, UI component, or background job.
+2. **Reuse before inventing**: extend existing types, services, schemas, adapters, utilities, and workflows before adding a new abstraction.
+3. **Set the risk tier + failure modes**: account for invalid data, retries, duplicate events, stale state, permission failures, third-party drift, and partial execution.
+4. **Preserve observability**: billing, integrations, auth, and automation paths must stay debuggable and auditable.
+5. **Keep the code explainable**: explicit flow, typed boundaries, no silent catches, and no UI-owned business logic.
+
+> The PR template already mirrors these principles through `Risk Tier`, `Canonical Reuse`, `Failure Modes`, `Observability`, and `Explainability`. Treat them as required engineering checks, not just PR prose.
 
 ---
 
@@ -25,11 +39,13 @@ After completing ANY code modifications AND **before every `git push` / Firebase
    - **Code Reuse:** Flag newly written code that duplicates existing utilities/helpers.
    - **Code Quality:** Flag redundant state, parameter sprawl, copy-paste, leaky abstractions, silent catches.
    - **Efficiency:** Flag redundant work, sequential calls that could be parallel, N+1 patterns, memory leaks.
-3. **Fix every confirmed finding** directly in the code.
-4. **Run `.\scripts\npm-safe.cmd run check:types`** to verify fixes don't break the build.
-5. **Summarize** what was changed.
+3. **Re-check the engineering principles** from `AGENTS.md`: canonical home, reuse, risk tier, failure modes, and observability should still be explicit in the final diff.
+4. **Fix every confirmed finding** directly in the code.
+5. **Run `.\scripts\npm-safe.cmd run check:types`** to verify fixes don't break the build.
+6. **Run `npm run simplify:record`** once the reviewed code is the exact code you intend to push.
+7. **Summarize** what was changed.
 
-> This is NOT optional. Every code session ends with `/simplify`, and every `git push` is gated on it. See `.agent/workflows/simplify.md` for the full protocol.
+> This is NOT optional. Every code session ends with `/simplify`, and every `git push` is gated on it. Repo-owned hooks plus `scripts/safe-push.sh` verify the recorded review. If hooks are missing locally, run `npm run setup:git-hooks`. See `.agent/workflows/simplify.md` for the full protocol.
 > **Applies to all builder agents:** Claude Code, Codex, and Gemini — no exceptions.
 
 ---
