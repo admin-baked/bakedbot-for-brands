@@ -42,7 +42,45 @@ function getChannelName(message: LinusIncidentSlackMessage): string {
 async function postToIncidentChannel(message: LinusIncidentSlackMessage): Promise<LinusIncidentSlackResult> {
     const channelName = getChannelName(message);
 
+    // Resolve channel: env var ID takes priority (most reliable), then name lookup.
+    // Channel IDs never change even if the channel is renamed, and bypass membership checks.
+    const envChannelId = channelName === 'linus-deployments'
+        ? (process.env.SLACK_CHANNEL_ID_LINUS_DEPLOYMENTS ?? null)
+        : null;
+
     try {
+        // Fast path: try posting directly by name (works for public channels with
+        // chat:write.public scope, or any channel the bot is already a member of).
+        // This avoids conversations.list pagination and membership gating.
+        const directTarget = envChannelId ?? channelName;
+        const directResult = message.threadTs
+            ? await slackService.postInThread(directTarget, message.threadTs, message.fallbackText, message.blocks)
+            : await slackService.postMessage(directTarget, message.fallbackText, message.blocks);
+
+        if (directResult.sent) {
+            logger.info('[IncidentNotifications] Slack channel post sent (direct)', {
+                channelName,
+                source: message.source,
+                incidentId: message.incidentId ?? null,
+                delivery: message.threadTs ? 'thread' : 'channel',
+            });
+            return {
+                sent: true,
+                channelId: String(directResult.channel || directTarget),
+                channelName,
+                ts: typeof directResult.ts === 'string' ? directResult.ts : null,
+                delivery: message.threadTs ? 'thread' : 'channel',
+            };
+        }
+
+        // Direct post failed (e.g. not_in_channel for a private channel).
+        // Fall back: look up by name, join if needed, then post by ID.
+        logger.warn('[IncidentNotifications] Direct post failed, trying find+join', {
+            channelName,
+            error: directResult.error ?? 'unknown',
+            source: message.source,
+        });
+
         const channel = await slackService.findChannelByName(channelName);
         if (!channel) {
             logger.warn('[IncidentNotifications] Slack channel not found', {
@@ -50,13 +88,7 @@ async function postToIncidentChannel(message: LinusIncidentSlackMessage): Promis
                 source: message.source,
                 incidentId: message.incidentId ?? null,
             });
-            return {
-                sent: false,
-                channelId: null,
-                channelName,
-                ts: null,
-                delivery: 'none',
-            };
+            return { sent: false, channelId: null, channelName, ts: null, delivery: 'none' };
         }
 
         await slackService.joinChannel(channel.id);
@@ -64,30 +96,23 @@ async function postToIncidentChannel(message: LinusIncidentSlackMessage): Promis
         const result = message.threadTs
             ? await slackService.postInThread(channel.id, message.threadTs, message.fallbackText, message.blocks)
             : await slackService.postMessage(channel.id, message.fallbackText, message.blocks);
+
         if (!result.sent) {
             logger.warn('[IncidentNotifications] Slack channel post failed', {
                 channelId: channel.id,
                 channelName: channel.name,
                 source: message.source,
                 incidentId: message.incidentId ?? null,
-                threadTs: message.threadTs ?? null,
                 error: result.error ?? 'unknown_error',
             });
-            return {
-                sent: false,
-                channelId: channel.id,
-                channelName: channel.name,
-                ts: null,
-                delivery: 'none',
-            };
+            return { sent: false, channelId: channel.id, channelName: channel.name, ts: null, delivery: 'none' };
         }
 
-        logger.info('[IncidentNotifications] Slack channel post sent', {
+        logger.info('[IncidentNotifications] Slack channel post sent (find+join)', {
             channelId: channel.id,
             channelName: channel.name,
             source: message.source,
             incidentId: message.incidentId ?? null,
-            threadTs: message.threadTs ?? null,
             delivery: message.threadTs ? 'thread' : 'channel',
         });
         return {
@@ -104,13 +129,7 @@ async function postToIncidentChannel(message: LinusIncidentSlackMessage): Promis
             incidentId: message.incidentId ?? null,
             error: error instanceof Error ? error.message : String(error),
         });
-        return {
-            sent: false,
-            channelId: null,
-            channelName,
-            ts: null,
-            delivery: 'none',
-        };
+        return { sent: false, channelId: null, channelName, ts: null, delivery: 'none' };
     }
 }
 

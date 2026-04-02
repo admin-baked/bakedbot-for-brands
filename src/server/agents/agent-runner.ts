@@ -69,7 +69,7 @@ import { loadAISettingsForAgent } from '@/server/actions/ai-settings';
 import { buildCustomInstructionsBlock } from '@/types/ai-settings';
 import { extractGmailParams, extractCalendarParams } from '@/server/agents/extraction-helpers';
 import { agentCache, CacheKeys, CacheTTL } from '@/lib/cache/agent-runner-cache';
-import type { AgentJobDraftState } from '@/server/jobs/job-stream';
+import type { AgentJobDraftState } from '@/types/agent-job';
 
 
 // === STRUCTURED EXTRACTION HELPERS (imported from extraction-helpers.ts) ===
@@ -108,7 +108,7 @@ export interface AgentJobCallbacks {
             draftState?: AgentJobDraftState;
             force?: boolean;
         }
-    ) => Promise<void>;
+    ) => void | Promise<void>;
 }
 
 // Local Agent Map
