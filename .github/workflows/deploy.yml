@@ -12,6 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      APPHOSTING_PROJECT_ID: studio-567050101-bc6e8
+      APPHOSTING_BACKEND: bakedbot-prod
+      APPHOSTING_LOCATION: us-central1
 
     steps:
       - name: Checkout
@@ -29,32 +33,115 @@ jobs:
         id: rollout
         shell: bash
         run: |
+          set -euo pipefail
+          rollout_json="$(mktemp)"
+
           set +e
-          rollout_output=$(firebase apphosting:rollouts:create bakedbot-prod \
-            --git-branch main \
-            --project studio-567050101-bc6e8 \
-            --force \
-            --non-interactive 2>&1)
+          node scripts/firebase-apphosting.mjs rollout \
+            --project "$APPHOSTING_PROJECT_ID" \
+            --backend "$APPHOSTING_BACKEND" \
+            --location "$APPHOSTING_LOCATION" \
+            --commit "${GITHUB_SHA}" \
+            --fast-start-timeout-seconds 180 \
+            --json > "$rollout_json"
           rollout_exit=$?
           set -e
 
-          printf '%s\n' "$rollout_output"
+          cat "$rollout_json"
 
           {
+            echo "started_at=$(jq -r '.startedAt // empty' "$rollout_json")"
             echo "output<<EOF"
-            printf '%s\n' "$rollout_output"
+            cat "$rollout_json"
+            echo "EOF"
+            echo "trigger_exit=$rollout_exit"
+          } >> "$GITHUB_OUTPUT"
+
+          if [ "$rollout_exit" -ne 0 ] || [ "$(jq -r '.accepted // false' "$rollout_json")" != "true" ]; then
+            echo "ERROR: App Hosting rollout trigger failed before Cloud Build polling could begin."
+            exit "${rollout_exit:-1}"
+          fi
+
+      - name: Resolve App Hosting Cloud Build
+        id: apphosting_build
+        shell: bash
+        run: |
+          set -euo pipefail
+          resolve_json="$(mktemp)"
+          resolve_exit=1
+
+          for attempt in $(seq 1 18); do
+            : > "$resolve_json"
+
+            set +e
+            node scripts/firebase-apphosting.mjs resolve \
+              --project "$APPHOSTING_PROJECT_ID" \
+              --backend "$APPHOSTING_BACKEND" \
+              --location "$APPHOSTING_LOCATION" \
+              --commit "${GITHUB_SHA}" \
+              --after "${{ steps.rollout.outputs.started_at }}" \
+              --json > "$resolve_json"
+            resolve_exit=$?
+            set -e
+
+            cat "$resolve_json"
+
+            if [ "$resolve_exit" -eq 0 ]; then
+              break
+            fi
+
+            if [ "$attempt" -lt 18 ]; then
+              echo "Cloud Build not visible yet for ${GITHUB_SHA} (attempt $attempt/18). Retrying in 10s..."
+              sleep 10
+            fi
+          done
+
+          {
+            echo "summary<<EOF"
+            cat "$resolve_json"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-          if [ "$rollout_exit" -ne 0 ]; then
-            if [[ "$rollout_output" == *"already queued or in progress"* ]] || \
-               ([[ "$rollout_output" == *"HTTP Error: 409"* ]] && [[ "$rollout_output" == *"unable to queue the operation"* ]]); then
-              echo "OK: App Hosting rollout is already queued or in progress for bakedbot-prod."
-              exit 0
-            fi
+          if [ "$resolve_exit" -ne 0 ]; then
+            echo "ERROR: Unable to resolve the App Hosting Cloud Build for ${GITHUB_SHA}."
+            exit "$resolve_exit"
+          fi
 
-            echo "ERROR: App Hosting rollout trigger failed."
-            exit "$rollout_exit"
+          echo "cloud_build_id=$(jq -r '.cloudBuildId // empty' "$resolve_json")" >> "$GITHUB_OUTPUT"
+          echo "apphosting_build_id=$(jq -r '.appHostingBuildId // empty' "$resolve_json")" >> "$GITHUB_OUTPUT"
+          echo "build_logs_url=$(jq -r '.buildLogsUrl // empty' "$resolve_json")" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for App Hosting Build and Rollout
+        id: apphosting_wait
+        shell: bash
+        run: |
+          set -euo pipefail
+          wait_json="$(mktemp)"
+
+          set +e
+          node scripts/firebase-apphosting.mjs wait \
+            --project "$APPHOSTING_PROJECT_ID" \
+            --backend "$APPHOSTING_BACKEND" \
+            --location "$APPHOSTING_LOCATION" \
+            --cloud-build "${{ steps.apphosting_build.outputs.cloud_build_id }}" \
+            --apphosting-build "${{ steps.apphosting_build.outputs.apphosting_build_id }}" \
+            --timeout-minutes 70 \
+            --json > "$wait_json"
+          wait_exit=$?
+          set -e
+
+          cat "$wait_json"
+
+          {
+            echo "summary<<EOF"
+            cat "$wait_json"
+            echo "EOF"
+            echo "wait_exit=$wait_exit"
+          } >> "$GITHUB_OUTPUT"
+
+          if [ "$wait_exit" -ne 0 ]; then
+            echo "ERROR: App Hosting Cloud Build or rollout failed."
+            exit "$wait_exit"
           fi
 
       - name: Notify Firebase deployment failure
@@ -65,6 +152,12 @@ jobs:
           short_sha="${GITHUB_SHA::7}"
           failure_summary=$(cat <<'EOF'
           ${{ steps.rollout.outputs.output }}
+
+          Resolved Cloud Build:
+          ${{ steps.apphosting_build.outputs.summary }}
+
+          Wait Result:
+          ${{ steps.apphosting_wait.outputs.summary }}
           EOF
           )
 
@@ -79,10 +172,13 @@ jobs:
             --arg shortSha "$short_sha" \
             --arg branch "${{ github.ref_name }}" \
             --arg actor "${{ github.actor }}" \
-            --arg failureStep "Trigger App Hosting Rollout" \
+            --arg failureStep "App Hosting deployment" \
             --arg failureSummary "$failure_summary" \
             --arg deployTarget "bakedbot-prod" \
             --arg provider "firebase-app-hosting" \
+            --arg cloudBuildId "${{ steps.apphosting_build.outputs.cloud_build_id }}" \
+            --arg appHostingBuildId "${{ steps.apphosting_build.outputs.apphosting_build_id }}" \
+            --arg buildLogsUrl "${{ steps.apphosting_build.outputs.build_logs_url }}" \
             --arg triggeredAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             '{
               type: "deployment_failure",
@@ -101,6 +197,9 @@ jobs:
                 failureSummary: $failureSummary,
                 deployTarget: $deployTarget,
                 provider: $provider,
+                cloudBuildId: $cloudBuildId,
+                appHostingBuildId: $appHostingBuildId,
+                buildLogsUrl: $buildLogsUrl,
                 triggeredAt: $triggeredAt
               }
             }')

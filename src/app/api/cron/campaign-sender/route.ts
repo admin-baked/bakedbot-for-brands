@@ -9,10 +9,10 @@ import { getWarmupStatus, recordWarmupSend } from '@/server/services/email-warmu
  * Campaign Sender Cron Job
  *
  * Processes scheduled campaigns that are due to send.
- * Should be called every 5 minutes by Cloud Scheduler.
+ * Should be called every 30 minutes by Cloud Scheduler.
  *
  * Deploy: gcloud scheduler jobs create http campaign-sender-cron \
- *   --schedule="*\/5 * * * *" \
+ *   --schedule="*\/30 * * * *" \
  *   --uri="https://bakedbot.ai/api/cron/campaign-sender"
  */
 export async function GET(request: NextRequest) {

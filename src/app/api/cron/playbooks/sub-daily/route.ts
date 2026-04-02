@@ -39,10 +39,11 @@ export async function POST(request: NextRequest) {
     const results: Array<{ orgId: string; action: string; detail?: string }> = [];
 
     try {
-        // Get all active dispensary subscriptions
+        // Get all active dispensary subscriptions (limit prevents unbounded scans as org count grows)
         const subsSnap = await firestore
             .collection('subscriptions')
             .where('status', '==', 'active')
+            .limit(100)
             .get();
 
         const now = new Date();

@@ -160,8 +160,6 @@ export async function runScraperAgent(
         url: urlEntry.url,
         products,
         scrapedAt: new Date().toISOString(),
-        // SECURITY: Sanitize raw markdown before storage
-        rawMarkdown: sanitizeForPrompt(markdown, 5000),
       };
 
       competitors.push(competitor);
@@ -222,7 +220,7 @@ export function createDefaultProductExtractor(): ScraperTools['extractProductsFr
 
     try {
       // SECURITY: Truncate AND sanitize scraped content before LLM prompt
-      const truncatedMarkdown = sanitizeForPrompt(markdown, 15000);
+      const truncatedMarkdown = sanitizeForPrompt(markdown, 5000);
 
       const result = await ai.generate({
         model: 'googleai/gemini-2.5-flash',

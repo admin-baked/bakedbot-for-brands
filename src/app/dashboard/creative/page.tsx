@@ -22,6 +22,9 @@ import {
   BarChart3,
   ExternalLink,
   ChevronDown,
+  Layers,
+  Trash2,
+  Clock,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -91,7 +94,7 @@ function formatMenuProductLabel(product: MenuProduct): string {
 type CreativeStyle = NonNullable<GenerateContentRequest['style']>;
 
 // Left panel sections
-type LeftPanel = 'generate' | 'templates' | 'brandkit' | 'upload' | 'calendar' | 'analytics' | 'help';
+type LeftPanel = 'generate' | 'templates' | 'brandkit' | 'upload' | 'calendar' | 'analytics' | 'help' | 'drafts';
 
 // Feature flag: Gauntlet compliance verification system
 const GAUNTLET_ENABLED = true;
@@ -102,6 +105,7 @@ const LEFT_PANELS: { id: LeftPanel; icon: React.ElementType; label: string }[] =
   { id: 'templates', icon: LayoutGrid, label: 'Templates' },
   { id: 'brandkit', icon: Palette, label: 'Brand Kit' },
   { id: 'upload', icon: Upload, label: 'Media' },
+  { id: 'drafts', icon: Layers, label: 'Drafts' },
   { id: 'calendar', icon: CalendarIcon, label: 'Calendar' },
   { id: 'analytics', icon: BarChart3, label: 'Analytics' },
   { id: 'help', icon: HelpCircle, label: 'Help' },
@@ -418,6 +422,17 @@ export default function CreativeCommandCenter() {
   } = useCreativeContent({
     platform: selectedPlatform,
     statusFilter: ["pending", "draft"],
+    realtime: true,
+  });
+
+  // All-platform drafts for the Drafts panel — no platform filter so all channels are visible
+  const {
+    content: allDrafts,
+    loading: allDraftsLoading,
+    remove: removeAnyDraft,
+  } = useCreativeContent({
+    statusFilter: ["pending", "draft", "revision"],
+    limit: 40,
     realtime: true,
   });
 
@@ -1653,6 +1668,123 @@ export default function CreativeCommandCenter() {
                       </div>
                     )}
                   </div>
+                )}
+
+                {/* ╌ Panel: Drafts ╌ */}
+                {activeLeftPanel === 'drafts' && (
+                  <ScrollArea className="flex-1">
+                    <div className="p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Layers className="w-4 h-4 text-primary" />
+                          <h3 className="text-sm font-semibold">Saved Drafts</h3>
+                        </div>
+                        {allDrafts.length > 0 && (
+                          <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+                            {allDrafts.length}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground leading-relaxed">
+                        All generated content is auto-saved. Click any draft to load it onto the canvas.
+                      </p>
+
+                      {allDraftsLoading && (
+                        <div className="flex items-center justify-center py-8 text-muted-foreground">
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          <span className="text-xs">Loading drafts…</span>
+                        </div>
+                      )}
+
+                      {!allDraftsLoading && allDrafts.length === 0 && (
+                        <div className="text-center py-10 text-muted-foreground">
+                          <Layers className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                          <p className="text-xs">No drafts yet</p>
+                          <p className="text-[10px] mt-1 opacity-70">Generate content and it will appear here</p>
+                        </div>
+                      )}
+
+                      <div className="space-y-2">
+                        {allDrafts.map(draft => {
+                          const thumb = draft.thumbnailUrl || draft.mediaUrls?.[0];
+                          const isActive = currentContent?.id === draft.id;
+                          const statusColors: Record<string, string> = {
+                            pending: 'bg-yellow-500/15 text-yellow-600',
+                            draft: 'bg-blue-500/15 text-blue-600',
+                            revision: 'bg-orange-500/15 text-orange-600',
+                          };
+                          const timeAgo = draft.createdAt
+                            ? (() => {
+                                const diff = Date.now() - draft.createdAt;
+                                if (diff < 60_000) return 'just now';
+                                if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
+                                if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
+                                return `${Math.floor(diff / 86_400_000)}d ago`;
+                              })()
+                            : '';
+                          return (
+                            <div
+                              key={draft.id}
+                              className={cn(
+                                "group relative flex gap-2.5 p-2 rounded-lg border cursor-pointer transition-all",
+                                isActive
+                                  ? "border-primary/50 bg-primary/5"
+                                  : "border-border hover:border-primary/30 hover:bg-muted/50",
+                              )}
+                              onClick={() => {
+                                setLocalContent(draft);
+                                if (draft.platform && draft.platform !== selectedPlatform) {
+                                  setSelectedPlatform(draft.platform as SocialPlatform);
+                                }
+                              }}
+                            >
+                              {/* Thumbnail */}
+                              <div className="w-12 h-12 rounded-md overflow-hidden bg-muted shrink-0 border border-border">
+                                {thumb ? (
+                                  <img src={thumb} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <Layers className="w-4 h-4 text-muted-foreground/40" />
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Content */}
+                              <div className="flex-1 min-w-0 space-y-1">
+                                <p className="text-[11px] text-foreground leading-tight line-clamp-2">
+                                  {draft.caption || '(no caption)'}
+                                </p>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className={cn("text-[9px] font-medium px-1.5 py-0.5 rounded-full capitalize", statusColors[draft.status] ?? 'bg-muted text-muted-foreground')}>
+                                    {draft.status}
+                                  </span>
+                                  <span className="text-[9px] text-muted-foreground capitalize">{draft.platform}</span>
+                                  {timeAgo && (
+                                    <span className="text-[9px] text-muted-foreground flex items-center gap-0.5">
+                                      <Clock className="w-2.5 h-2.5" />{timeAgo}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Delete button */}
+                              <button
+                                className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-destructive/10 hover:text-destructive text-muted-foreground"
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  await removeAnyDraft(draft.id);
+                                  if (isActive) setLocalContent(null);
+                                }}
+                                title="Delete draft"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </ScrollArea>
                 )}
 
                 {/* ╌ Panel: Help ╌ */}

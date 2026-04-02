@@ -139,22 +139,20 @@ async function fetchDaySalesData(orgId: string, daysAgo: number): Promise<DaySal
         .sort((a, b) => b.units - a.units)
         .slice(0, 5);
 
-    // Customer segmentation (new vs returning) — parallel to avoid N+1
+    // Customer segmentation (new vs returning) — single query with field projection
     const customerIds = orders.map(o => String(o.customerId ?? o.userId ?? '')).filter(Boolean);
     const uniqueCustomers = [...new Set(customerIds)];
-    const prevOrderChecks = await Promise.all(
-        uniqueCustomers.map(customerId =>
-            firestore
-                .collection('orders')
-                .where('orgId', '==', orgId)
-                .where('customerId', '==', customerId)
-                .where('createdAt', '<', Timestamp.fromDate(targetDate))
-                .limit(1)
-                .get()
-        )
+    const priorSnap = await firestore
+        .collection('orders')
+        .where('orgId', '==', orgId)
+        .where('createdAt', '<', Timestamp.fromDate(targetDate))
+        .select('customerId')
+        .get();
+    const priorCustomerIds = new Set(
+        priorSnap.docs.map(d => String(d.data().customerId ?? '')).filter(Boolean)
     );
-    const newCustomers = prevOrderChecks.filter(r => r.empty).length;
-    const returningCustomers = prevOrderChecks.filter(r => !r.empty).length;
+    const newCustomers = uniqueCustomers.filter(id => !priorCustomerIds.has(id)).length;
+    const returningCustomers = uniqueCustomers.filter(id => priorCustomerIds.has(id)).length;
 
     // Peak hour
     const hourlyRevenue: Record<number, number> = {};
@@ -227,6 +225,7 @@ Produce a JSON summary:
 
     try {
         const raw = await callClaude({
+            systemPrompt: 'Respond with ONLY valid JSON. No markdown code blocks. No explanation.',
             userMessage: prompt,
             model: 'claude-haiku-4-5-20251001',
             maxTokens: 600,

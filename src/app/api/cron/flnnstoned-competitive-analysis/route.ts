@@ -235,6 +235,7 @@ Produce a structured competitive analysis report in JSON with these exact fields
 Be specific. Use concrete numbers. No vague platitudes.`;
 
     const raw = await callClaude({
+        systemPrompt: 'Respond with ONLY valid JSON. No markdown code blocks. No explanation.',
         userMessage: prompt,
         model: 'claude-sonnet-4-6',
         maxTokens: 2000,
