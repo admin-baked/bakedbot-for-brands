@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; App Hosting deploys now resolve real Cloud Build + rollout IDs after Firebase CLI timeouts, Firecrawl is primary, /agent endpoint is live, Elroy gets live competitor intel from Slack | **Last update:** 2026-04-02 (App Hosting deploy diagnostics + explicit Cloud Build polling)
+**Current Status:** 🟢 `main` green; GCP cost cuts shipped — campaign-sender 5min→30min, N+1 Firestore fixed, JSON_ONLY_SYSTEM_PROMPT constant extracted, 90-day query bound added | **Last update:** 2026-04-02 (GCP cost optimization + simplify)
 
 ---
 

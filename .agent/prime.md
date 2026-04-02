@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` is green; App Hosting deploys now resolve Cloud Build + rollout IDs after Firebase CLI timeouts, Firecrawl is primary, /agent endpoint live, Elroy has run_competitive_agent.
+**Current Status:** 🟢 `main` is green; GCP cost cuts live — campaign-sender throttled 5→30min, N+1 Firestore fixed, JSON prompt constant extracted, unbounded query bounded to 90 days.
 **Recent work (2026-04-02):** See `MEMORY.md` for full log.
-Key completed: [App Hosting deploy diagnostics + explicit Cloud Build polling, Firecrawl primary + runAgent() + Elroy live Intel + Linus firecrawl_agent] (`uncommitted`, `3bb52c2f1`, `2965c5e94`)
+Key completed: [GCP cost optimization, JSON_ONLY_SYSTEM_PROMPT constant, Firecrawl primary + runAgent() + Elroy live intel] (`524db8f21`, `2918141b6`, `3bb52c2f1`)
 
 ## 🚨 SECURITY GOTCHA: Never Commit These Files
 
