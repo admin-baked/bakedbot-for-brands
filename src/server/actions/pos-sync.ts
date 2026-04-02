@@ -97,8 +97,6 @@ export async function syncPOSProducts(locationId: string, orgId: string) {
         const sourceId = `pos_${posConfig.provider}_${locationId}`;
         const result = await createImport(orgId, sourceId, rawProducts);
 
-        logger.info('[POS_SYNC] Import result', { success: result.success, importId: result.importId, totalRecords: result.stats?.totalRecords });
-
         if (!result.success && !result.importId) {
             logger.error('[POS_SYNC] Import pipeline failed', { error: result.error });
             throw new Error(result.error);
