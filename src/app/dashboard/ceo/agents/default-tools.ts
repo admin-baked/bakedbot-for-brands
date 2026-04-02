@@ -1761,6 +1761,44 @@ export const defaultExecutiveBoardTools = {
     rtrvrScrape: defaultExecutiveTools.rtrvrScrape,
     rtrvrMcp: defaultExecutiveTools.rtrvrMcp,
 
+    // RTRVR Browser Automation — manage external sites (Weedmaps, AIQ, Reddit Ads, Google Ads)
+    discovery_browser_automate: async (taskInput: string, urls?: string[], verbosity?: string) => {
+        try {
+            const { executeDiscoveryBrowserTool } = await import('@/server/services/rtrvr/tools');
+            const result = await executeDiscoveryBrowserTool('discovery.browserAutomate', {
+                input: taskInput, urls: urls || [], verbosity: verbosity || 'final',
+            });
+            return result.success ? { success: true, result: result.data } : { success: false, error: result.error };
+        } catch (e: any) { return { success: false, error: e.message }; }
+    },
+    discovery_fill_form: async (url: string, formData: Record<string, string>, submitButtonText?: string) => {
+        try {
+            const { executeDiscoveryBrowserTool } = await import('@/server/services/rtrvr/tools');
+            const result = await executeDiscoveryBrowserTool('discovery.fillForm', {
+                url, formData, submitButtonText,
+            });
+            return result.success
+                ? { success: true, url, submitted: !!submitButtonText, result: result.data }
+                : { success: false, error: result.error };
+        } catch (e: any) { return { success: false, error: e.message }; }
+    },
+    discovery_extract_data: async (url: string, instruction: string, schema?: Record<string, unknown>) => {
+        try {
+            const { executeDiscoveryBrowserTool } = await import('@/server/services/rtrvr/tools');
+            const result = await executeDiscoveryBrowserTool('discovery.extractData', {
+                url, instruction, schema: schema || {},
+            });
+            return result.success ? { success: true, extractedData: result.data } : { success: false, error: result.error };
+        } catch (e: any) { return { success: false, error: e.message }; }
+    },
+    discovery_summarize_page: async (url: string) => {
+        try {
+            const { executeDiscoveryBrowserTool } = await import('@/server/services/rtrvr/tools');
+            const result = await executeDiscoveryBrowserTool('discovery.summarizePage', { url });
+            return result.success ? { success: true, summary: result.data?.result || result.data } : { success: false, error: result.error };
+        } catch (e: any) { return { success: false, error: e.message }; }
+    },
+
     // new Universal Bridges
     // Note: We need to import these at top level or handle dynamic loading in actual agent runner registry
     // For this file def, we map them if they were imported. 

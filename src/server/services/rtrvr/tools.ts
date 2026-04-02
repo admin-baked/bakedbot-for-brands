@@ -193,6 +193,7 @@ export const DISCOVERY_BROWSER_ALLOWED_AGENTS = [
     'deebo',    // Compliance (Freemium)
     'puff',     // General Assistant (Dispatcher)
     'smokey',   // Budtender (Freemium)
+    'elroy',    // Store Ops — Weedmaps/AIQ management for Thrive Syracuse
 ];
 
 /**
