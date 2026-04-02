@@ -3,13 +3,15 @@
 import React from 'react';
 import { motion } from "framer-motion";
 import { MoreHorizontal } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { AGENT_REGISTRY, type AgentId } from '@/lib/agents/registry';
+import { AgentStatusIndicator, agentText } from '@/components/ui/agent-status-indicator';
 
 export interface TaskFeedItemProps {
     agent: {
+        id?: string;
         name: string;
         role: string;
         img?: string;
@@ -22,6 +24,9 @@ export interface TaskFeedItemProps {
 
 export function TaskFeedItem({ item, className }: { item: TaskFeedItemProps; className?: string }) {
     const isLive = item.status === 'live';
+    const def = item.agent.id ? AGENT_REGISTRY[item.agent.id as AgentId] : undefined;
+    const visual = def?.visual ?? { emoji: item.agent.name[0], color: 'slate-500' };
+    const textColor = agentText(visual.color);
 
     return (
         <Card className={cn("bg-baked-card/50 border-baked-border shadow-md mt-auto backdrop-blur-md", className)}>
@@ -33,12 +38,12 @@ export function TaskFeedItem({ item, className }: { item: TaskFeedItemProps; cla
                         transition={{ repeat: Infinity, duration: 2 }}
                         className={cn(
                             "w-1.5 h-1.5 rounded-full",
-                            isLive ? "bg-baked-green shadow-[0_0_8px_rgba(74,222,128,0.6)]" : "bg-baked-text-muted"
+                            isLive ? `bg-${visual.color} shadow-[0_0_8px_rgba(74,222,128,0.6)]` : "bg-baked-text-muted"
                         )}
                     />
                     <span className={cn(
-                        "text-[10px] font-medium font-mono",
-                        isLive ? "text-baked-green" : "text-baked-text-muted"
+                        "text-[10px] font-medium font-mono uppercase",
+                        isLive ? textColor : "text-baked-text-muted"
                     )}>
                         {isLive ? 'LIVE' : 'IDLE'}
                     </span>
@@ -47,24 +52,19 @@ export function TaskFeedItem({ item, className }: { item: TaskFeedItemProps; cla
             </CardHeader>
             <CardContent className="px-4 py-3">
                 <div className="flex gap-3 items-center">
-                    <div className="relative shrink-0">
-                        <Avatar className="w-8 h-8 border border-baked-border">
-                            <AvatarImage src={item.agent.img} />
-                            <AvatarFallback>{item.agent.name[0]}</AvatarFallback>
-                        </Avatar>
-                        {isLive && (
-                            <motion.div
-                                animate={{ scale: [1, 1.4, 1], opacity: [0.5, 0, 0.5] }}
-                                transition={{ repeat: Infinity, duration: 1.5 }}
-                                className="absolute -inset-1 rounded-full border border-baked-green/40 z-0"
-                            />
-                        )}
-                    </div>
+                    <AgentStatusIndicator
+                        visual={visual}
+                        name={item.agent.name}
+                        image={item.agent.img}
+                        status={isLive ? 'working' : 'online'}
+                        isActive={isLive}
+                        size="md"
+                    />
 
                     <div className="flex-1 space-y-1.5 relative z-10 min-w-0">
                         <div className="flex justify-between items-center">
-                            <span className="text-xs font-semibold text-white truncate">{item.agent.name} ({item.agent.role})</span>
-                            <span className="text-[10px] text-baked-green font-mono">{item.progress}%</span>
+                            <span className={cn("text-xs font-semibold truncate", textColor)}>{item.agent.name} ({item.agent.role})</span>
+                            <span className={cn("text-[10px] font-mono", textColor)}>{item.progress}%</span>
                         </div>
                         <p className="text-xs text-baked-text-secondary truncate">{item.task}</p>
                         <Progress value={item.progress} className="h-1 bg-black/40" />

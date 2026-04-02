@@ -61,7 +61,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { InviteUserDialog } from "@/components/dashboard/admin/invite-user-dialog";
 import { useUserRole } from "@/hooks/use-user-role";
 import { AGENT_SQUAD } from '@/hooks/use-agentic-dashboard';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { AGENT_REGISTRY, type AgentId } from '@/lib/agents/registry';
+import { AgentStatusIndicator } from '@/components/ui/agent-status-indicator';
 import { getInviteAllowedRoles } from '@/types/roles';
 import { AgentOwnerBadge } from '@/components/dashboard/agent-owner-badge';
 
@@ -340,19 +341,19 @@ export const BrandSidebar = memo(function BrandSidebar() {
                     <CollapsibleContent>
                         <SidebarGroupContent>
                             <SidebarMenu>
-                                {AGENT_SQUAD.map((agent) => (
+                                {AGENT_SQUAD.map((agent) => {
+                                    const def = AGENT_REGISTRY[agent.id as AgentId];
+                                    return (
                                     <SidebarMenuItem key={agent.id}>
                                         <SidebarMenuButton className="h-10 cursor-default hover:bg-sidebar-accent/50">
                                             <div className="flex items-center gap-3 w-full">
-                                                <div className="relative">
-                                                    <Avatar className="h-6 w-6 border border-sidebar-border">
-                                                        <AvatarImage src={agent.img} />
-                                                        <AvatarFallback>{agent.name[0]}</AvatarFallback>
-                                                    </Avatar>
-                                                    <div className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border-2 border-sidebar-background ${agent.status === 'online' ? 'bg-green-500' :
-                                                        agent.status === 'working' ? 'bg-amber-500' : 'bg-gray-400'
-                                                        }`}></div>
-                                                </div>
+                                                <AgentStatusIndicator
+                                                    visual={def?.visual ?? { emoji: agent.name[0], color: 'slate-500' }}
+                                                    name={agent.name}
+                                                    image={agent.img}
+                                                    status={agent.status}
+                                                    size="sm"
+                                                />
                                                 <div className="flex flex-col items-start leading-none group-data-[collapsible=icon]:hidden">
                                                     <span className="font-medium text-xs">{agent.name}</span>
                                                     <span className="text-[10px] text-muted-foreground">{agent.role}</span>
@@ -360,7 +361,8 @@ export const BrandSidebar = memo(function BrandSidebar() {
                                             </div>
                                         </SidebarMenuButton>
                                     </SidebarMenuItem>
-                                ))}
+                                    );
+                                })}
                             </SidebarMenu>
                         </SidebarGroupContent>
                     </CollapsibleContent>
