@@ -210,10 +210,8 @@ export async function apolloSearchPeople(
     }
 
     try {
-        // Build search payload
-        // We search for owner/manager-level contacts at the dispensary
+        // Build search payload — api_key goes in X-Api-Key header (body key deprecated Apr 2026)
         const payload: Record<string, unknown> = {
-            api_key: apiKey,
             q_organization_name: dispensaryName,
             person_locations: [`${city}, ${state}, United States`],
             person_titles: ['owner', 'co-owner', 'ceo', 'president', 'general manager', 'manager', 'director', 'operations'],
@@ -237,6 +235,7 @@ export async function apolloSearchPeople(
                 'Content-Type': 'application/json',
                 'Cache-Control': 'no-cache',
                 'Accept': 'application/json',
+                'X-Api-Key': apiKey,
             },
             body: JSON.stringify(payload),
             signal: AbortSignal.timeout(15000),
@@ -340,14 +339,13 @@ export async function apolloEnrichByDomain(
         const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^www\./, '');
 
         const payload = {
-            api_key: apiKey,
             domain: cleanDomain,
             reveal_personal_emails: false, // Don't spend credits on personal emails
         };
 
         const response = await fetch(`${APOLLO_BASE}/organizations/enrich`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-Api-Key': apiKey },
             body: JSON.stringify(payload),
             signal: AbortSignal.timeout(15000),
         });
