@@ -168,7 +168,7 @@ export async function enrichLeadBatch(limit: number = 20): Promise<LeadEnrichmen
                 ? `Email found: ${email} | License: ${data.licenseNumber || ''}`
                 : `No email found | License: ${data.licenseNumber || ''}`,
         };
-        if (email) { updates.email = email; withEmail++; }
+        if (email) { updates.email = email; updates.emailSource = source; withEmail++; }
         if (phone) updates.phone = phone;
         if (websiteUrl) updates.websiteUrl = websiteUrl;
         if (contactFormUrl) updates.contactFormUrl = contactFormUrl;
