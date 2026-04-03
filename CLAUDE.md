@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; health audit (schema backfill 26 docs) + email dispatcher cache unified (`withOrgIntegrationCache`) + Mailjet error-caching gap fixed | **Last update:** 2026-04-03 (health audit + email cache fix)
+**Current Status:** 🟢 `main` green; automation builds — bug-fix pipeline + deploy orchestrator + post-commit health GH Action + /shipit /simplify /deploy commands + CLAUDE.md sections | **Last update:** 2026-04-03 (automation builds)
 
 ---
 
