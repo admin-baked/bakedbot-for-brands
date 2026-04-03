@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** ðŸŸ¢ `main` green; Thrive tablet recommendations live on `bakedbot-prod-build-2026-04-03-013`; branded image-backed tablet search + Ask Smokey voice refinement ready locally; onboarding first-win activation now threads through signup, checklist, inbox briefing, and Smokey setup guidance.
-**Recent work (2026-04-03):** `uncommitted` - Onboarding first-win phase 1 + Thrive tablet brand-theme UI + product images + voice-guided deterministic live-menu search
+**Current Status:** ðŸŸ¢ `main` green; Thrive Syracuse live; agent platform hardened (schema validation, idempotency TTL, real runId, WorkflowTaskStatus, execution trace persistence, token budget gate, audit log Firestore write).
+**Recent work (2026-04-03):** `792626fa6`, `43b67a37f` — Agent platform hardening: 8 harness fixes + simplify pass (iteration counter bug, fire-and-forget audit write, static logger imports)
 
 ## ðŸ§­ CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 

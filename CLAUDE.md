@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** ðŸŸ¢ `main` green; Thrive Syracuse tablet recommendations live on `bakedbot-prod-build-2026-04-03-013` + branded image-backed tablet search and voice-guided Ask Smokey flow ready locally + onboarding first-win activation now threads through signup, checklist, inbox briefing, and Smokey setup guidance + Linus Slack hardened (GLM refusal detection x8, system prompt cache, GLM-5V-Turbo vision path) | **Last update:** 2026-04-03 (Onboarding first-win phase 1 + Thrive tablet branding + voice-guided live-menu search)
+**Current Status:** ðŸŸ¢ `main` green; Thrive Syracuse live; agent platform hardened (schema validation, idempotency TTL, real runId, WorkflowTaskStatus, execution trace persistence, token budget gate, audit log Firestore write) | **Last update:** 2026-04-03 (Agent platform hardening — 8 fixes + simplify pass)
 
 ---
 

@@ -1,6 +1,18 @@
 # BakedBot Session Memory
 
 ## Session: 2026-04-03
+- **Onboarding first-win phase 1** (`uncommitted`) - Added canonical onboarding goal metadata so new orgs persist a primary activation lane (`Check In with Tablet`, `Creative Center`, or `Email Personalization`) and role-based defaults instead of pushing Competitive Intelligence into the critical path.
+- **Checklist, Inbox, and setup guide realignment** (`uncommitted`) - Rebuilt the dashboard checklist around Brand Guide -> first win -> Inbox / Playbooks / Agents -> Competitive Intelligence, added start-here guidance plus agent education to the Inbox briefing, and pointed the Smokey setup guide at the same shared checklist builder.
+- **Verification** (`uncommitted`) - Focused Jest coverage passed for onboarding, checklist, inbox briefing, and Smokey support flows; repo-wide `.\scripts\npm-safe.cmd run check:types` passed after fixing onboarding-adjacent regressions plus a pre-existing `market-audit.ts` typing issue.
+- **Session file** - `memory/sessions/2026-04-03-0845-onboarding-first-win-phase1.md`
+
+## Session: 2026-04-03
+- **Thrive tablet brand-theme refresh** (`uncommitted`) - Reworked `src/app/loyalty-tablet/page.tsx` to use the public brand guide theme instead of the old hard-coded purple shell, including the core CTA, progress dots, cards, and success state.
+- **Image-backed recommendations + Ask Smokey search** (`uncommitted`) - Added product image cards plus a voice/text refinement panel that reuses canonical live-menu search via `searchTabletRecommendations()` instead of inventing a separate tablet-only ranking path.
+- **Verification + Gemini Live recommendation** (`uncommitted`) - Focused loyalty-tablet action tests passed `5/5`; repo-wide `check:types` is currently blocked by unrelated local errors in `src/ai/__mocks__/glm.ts`, `src/components/dashboard/smokey-support-button.tsx`, and `src/lib/onboarding/activation.ts`. Official Gemini Live docs reviewed on April 3, 2026 show `gemini-3.1-flash-live-preview` is current, but `gemini-2.5-flash-live-preview` is still the better fit for a tool-using duplex voice concierge because it supports asynchronous function calling, proactive audio, and affective dialog.
+- **Session file** - `memory/sessions/2026-04-03-0832-thrive-tablet-brand-voice-search.md`
+
+## Session: 2026-04-03
 - **Thrive tablet recommendation recovery** (`022d2e657`) - Moved shared check-in types/constants into `src/lib/checkin/checkin-management-shared.ts` so the public tablet flow no longer imported a runtime object from the `use server` check-in actions module.
 - **Build-health unblock for the ship path** (`022d2e657`) - Fixed the `src/app/dashboard/creative/page.tsx` state ordering regression so repo-wide `npm run -s check:types` passed again before push.
 - **Live production verification** (`bakedbot-prod-build-2026-04-03-013`) - Traced the App Hosting rollout through canceled builds `011` and `012`, then confirmed the healthy live revision `013` serves `200` recommendation POSTs plus `3` product cards and `1` bundle card on `https://bakedbot.ai/loyalty-tablet?orgId=org_thrive_syracuse`.
