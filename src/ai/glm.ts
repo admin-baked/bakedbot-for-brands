@@ -28,18 +28,22 @@ const ZAI_BASE_URL = 'https://api.z.ai/api/anthropic';
  */
 export type GLMModel =
   | 'glm-5'
+  | 'glm-5v-turbo'
   | 'glm-4.7'
   | 'glm-4.5-air'
   | 'glm-4-flash';
 
 /**
- * Model recommendation based on task type
+ * Model recommendation based on task type.
+ * GLM-5V-Turbo (released 2026-04-01): 744B MoE, 200K context, $1.20/$4 per 1M tokens.
+ * Multimodal (image/video/text), native tool calling — use for vision tasks instead of Claude.
  */
 export const GLM_MODELS = {
   EXTRACTION: 'glm-4.5-air' as const,
   FAST_SYNTHESIS: 'glm-4-flash' as const,
   STANDARD: 'glm-4.7' as const,
   STRATEGIC: 'glm-5' as const,
+  VISION: 'glm-5v-turbo' as const,
 } as const;
 
 export type GLMToolResult = ClaudeResult;
@@ -89,6 +93,7 @@ function trackGLMUsage(args: {
 function resolveGLMToolModel(model?: string): GLMModel {
   if (
     model === GLM_MODELS.STRATEGIC ||
+    model === GLM_MODELS.VISION ||
     model === GLM_MODELS.STANDARD ||
     model === GLM_MODELS.EXTRACTION ||
     model === GLM_MODELS.FAST_SYNTHESIS

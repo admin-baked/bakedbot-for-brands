@@ -4408,12 +4408,39 @@ function getLinusCodebaseContext(claudeContext: string, toolMode: LinusToolMode)
     return claudeContext.split(/\r?\n/).slice(0, 120).join('\n');
 }
 
+// GLM-5 safety refusal strings — Z.ai declines cannabis-adjacent content in various ways.
+// Compiled once at module level; checked per-response to gate the Claude fallback.
+const GLM_REFUSAL_PATTERNS = [
+    'security restrictions',
+    "i'm unable to assist",
+    'i cannot assist',
+    'violates our policy',
+    'due to content restrictions',
+    'content policy',
+    'i am unable to help',
+    'cannot help with',
+];
+
+// Cache: system prompt is expensive (Firestore + squadRoster). 5-minute TTL per orgId.
+const systemPromptCache = new Map<string, { prompt: string; expiresAt: number }>();
+const SYSTEM_PROMPT_TTL_MS = 5 * 60 * 1000;
+
 // Build dynamic system prompt with grounding
 async function buildLinusSystemPrompt(orgId?: string): Promise<string> {
+    const cacheKey = orgId ?? '__default__';
+    const now = Date.now();
+    const cached = systemPromptCache.get(cacheKey);
+    if (cached && now < cached.expiresAt) {
+        return cached.prompt;
+    }
+    // Purge stale entries so the Map doesn't grow unbounded across hot-reload cycles.
+    for (const [key, entry] of systemPromptCache) {
+        if (now >= entry.expiresAt) systemPromptCache.delete(key);
+    }
     const squadRoster = buildSquadRoster('linus');
     const integrationStatus = await buildIntegrationStatusSummaryForOrg(orgId);
 
-    return `You are Linus, AI CTO of BakedBot. Welcome to the bridge.
+    const prompt = `You are Linus, AI CTO of BakedBot. Welcome to the bridge.
 
 CONTEXT:
 - Mission: Ensure every deployment meets $10M ARR standards
@@ -4584,6 +4611,9 @@ After completing ANY code modifications (write_file, bash edits), you MUST autom
 This is NOT optional. Every code session ends with /simplify.
 
 Always be concise. Use the tools available to investigate, code, and report.`;
+
+    systemPromptCache.set(cacheKey, { prompt, expiresAt: Date.now() + SYSTEM_PROMPT_TTL_MS });
+    return prompt;
 }
 
 /**
@@ -4708,9 +4738,13 @@ export async function runLinus(request: LinusRequest): Promise<LinusResponse> {
     const toolMode = request.toolMode ?? 'full';
     const hasImages = (request.images?.length ?? 0) > 0;
     const glmConfigured = isGLMConfigured();
+    // Text-only Slack messages → GLM-5 (fast, cheap). Vision Slack messages → GLM-5V-Turbo
+    // (multimodal, $1.20/$4 per 1M — cheaper than Claude and better for screenshots/UI).
+    // Full mode (dashboard) always uses Claude for maximum capability.
     const shouldUseGLMToolMode = toolMode === 'slack' && !hasImages && glmConfigured;
+    const shouldUseGLMVisionMode = toolMode === 'slack' && hasImages && glmConfigured;
 
-    if (!shouldUseGLMToolMode && !isClaudeAvailable()) {
+    if (!shouldUseGLMToolMode && !shouldUseGLMVisionMode && !isClaudeAvailable()) {
         throw new Error(
             toolMode === 'slack'
                 ? 'Linus Slack tool mode requires ZAI_API_KEY for GLM-5 or CLAUDE_API_KEY for Claude.'
@@ -4718,15 +4752,12 @@ export async function runLinus(request: LinusRequest): Promise<LinusResponse> {
         );
     }
 
-    if (toolMode === 'slack' && !shouldUseGLMToolMode) {
-        logger.info('[Linus] Slack tool mode falling back to Claude', {
-            hasImages,
-            glmConfigured,
-        });
+    if (shouldUseGLMVisionMode) {
+        logger.info('[Linus] Slack vision mode using GLM-5V-Turbo', { imageCount: request.images?.length });
     } else if (shouldUseGLMToolMode) {
-        logger.info('[Linus] Slack tool mode using GLM-5', {
-            hasImages,
-        });
+        logger.info('[Linus] Slack tool mode using GLM-5');
+    } else if (toolMode === 'slack') {
+        logger.info('[Linus] Slack tool mode falling back to Claude', { hasImages, glmConfigured });
     }
 
     const linusSystemPrompt = await buildLinusSystemPrompt(request.context?.orgId);
@@ -4764,41 +4795,47 @@ User Request: ${request.prompt}`;
               request.progressCallback!(buildLinusProgressMessage(toolName, input))
         : undefined;
 
+    const sharedGLMContext = {
+        userId: request.context?.userId,
+        orgId: request.context?.orgId,
+        brandId: request.context?.brandId,
+        maxIterations: request.maxIterations ?? 5,
+        agentContext: LINUS_AGENT_CONTEXT,
+        onToolCall,
+    };
+
     let result = shouldUseGLMToolMode
         ? await executeGLMWithTools(
             fullPrompt,
             getLinusTools(toolMode),
             linusToolExecutor,
-            {
-                userId: request.context?.userId,
-                orgId: request.context?.orgId,
-                brandId: request.context?.brandId,
-                maxIterations: request.maxIterations ?? 5,
-                model: GLM_MODELS.STRATEGIC,
-                agentContext: LINUS_AGENT_CONTEXT,
-                onToolCall,
-            }
+            { ...sharedGLMContext, model: GLM_MODELS.STRATEGIC }
         )
-        : await executeWithTools(
-            fullPrompt,
-            getLinusTools(toolMode),
-            linusToolExecutor,
-            {
-                userId: request.context?.userId,
-                orgId: request.context?.orgId,
-                brandId: request.context?.brandId,
-                maxIterations: request.maxIterations ?? (toolMode === 'slack' ? 5 : 15),
-                agentContext: LINUS_AGENT_CONTEXT,
-                imageAttachments: request.images,
-                onToolCall,
-            }
-        );
+        : shouldUseGLMVisionMode
+            ? await executeGLMWithTools(
+                fullPrompt,
+                getLinusTools(toolMode),
+                linusToolExecutor,
+                { ...sharedGLMContext, model: GLM_MODELS.VISION }
+            )
+            : await executeWithTools(
+                fullPrompt,
+                getLinusTools(toolMode),
+                linusToolExecutor,
+                {
+                    userId: request.context?.userId,
+                    orgId: request.context?.orgId,
+                    brandId: request.context?.brandId,
+                    maxIterations: request.maxIterations ?? (toolMode === 'slack' ? 5 : 15),
+                    agentContext: LINUS_AGENT_CONTEXT,
+                    imageAttachments: request.images,
+                    onToolCall,
+                }
+            );
 
-    // GLM-5 content safety fallback: Z.ai occasionally refuses cannabis-adjacent business
-    // context with "security restrictions". When detected, retry with Claude.
-    if (shouldUseGLMToolMode && isClaudeAvailable() &&
-        result.content.toLowerCase().includes('security restrictions')) {
-        logger.warn('[Linus] GLM-5 security refusal detected — falling back to Claude', {
+    const glmRefused = GLM_REFUSAL_PATTERNS.some(p => result.content.toLowerCase().includes(p));
+    if ((shouldUseGLMToolMode || shouldUseGLMVisionMode) && isClaudeAvailable() && glmRefused) {
+        logger.warn('[Linus] GLM-5 refusal detected — falling back to Claude', {
             glmResponse: result.content.slice(0, 100),
         });
         result = await executeWithTools(
