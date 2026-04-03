@@ -105,7 +105,7 @@ async function generateFalVideo(
         intervalMs: options?.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS,
         maxAttempts: options?.maxPollAttempts ?? DEFAULT_MAX_POLL_ATTEMPTS,
     };
-    const videoUrl = await pollUntilComplete(apiKey, queued.status_url, queued.response_url, queued.request_id, pollOpts);
+    const videoUrl = await pollUntilComplete(apiKey, queued.status_url, queued.response_url, pollOpts);
     logger.info('[FalVideo] Video ready', { model, videoUrl });
 
     return {
@@ -165,12 +165,10 @@ async function pollUntilComplete(
     apiKey: string,
     statusUrl: string,
     resultUrl: string,
-    requestId: string,
     options: { intervalMs: number; maxAttempts: number }
 ): Promise<string> {
-
     for (let attempt = 0; attempt < options.maxAttempts; attempt++) {
-        await sleep(options.intervalMs);
+        if (attempt > 0) await sleep(options.intervalMs);
 
         // Check status
         const statusRes = await fetch(statusUrl, {
