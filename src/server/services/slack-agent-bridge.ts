@@ -390,13 +390,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
         }
 
         // 5. Post a "thinking" indicator so user gets immediate feedback.
-        // Each dedicated Slack app (Elroy, Linus) uses its own bot token so it appears
-        // as a distinct user and can post to DMs opened with that app's bot.
-        const activeSlack = personaId === 'elroy'
-            ? elroySlackService
-            : (SLACK_LINUS_APP_ID && appId === SLACK_LINUS_APP_ID)
-                ? linusSlackService
-                : slackService;
+        const activeSlack = selectSlackService(personaId, appId);
 
         const thinkingResult = await activeSlack.postInThread(
             channel,
@@ -734,11 +728,8 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
 
     } catch (err: any) {
         logger.error(`[SlackBridge] Failed to process message: ${err.message}`, err);
-        const fallbackSlack = (SLACK_LINUS_APP_ID && appId === SLACK_LINUS_APP_ID)
-            ? linusSlackService
-            : slackService;
         try {
-            await fallbackSlack.postInThread(
+            await selectSlackService('', appId).postInThread(
                 channel, threadTs,
                 'I ran into an issue processing your request. The team has been notified.'
             );
@@ -782,6 +773,17 @@ Keep it friendly, brief, and genuine.`;
  * Create a throttled Slack message update callback (max 1 update/sec).
  * Used by tool-calling agents to post live progress to the working message.
  */
+/**
+ * Pick the correct SlackService instance for the incoming Slack app.
+ * Each dedicated app (Elroy, Linus) has its own bot token so it can post
+ * to DMs that were opened with that app's bot user.
+ */
+function selectSlackService(personaId: string, appId: string): SlackService {
+    if (personaId === 'elroy' || (SLACK_ELROY_APP_ID && appId === SLACK_ELROY_APP_ID)) return elroySlackService;
+    if (SLACK_LINUS_APP_ID && appId === SLACK_LINUS_APP_ID) return linusSlackService;
+    return slackService;
+}
+
 function makeThrottledProgress(
     channel: string,
     workingMessageTs: string | undefined,
