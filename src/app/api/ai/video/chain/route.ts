@@ -32,6 +32,7 @@ export async function POST(request: NextRequest) {
 
         const result = await generateRemotionVideo({
             prompt,
+            duration: '10',
             aspectRatio,
             clipUrls: clips.map((c) => c.url),
             sceneTitles: clips.map((c) => c.sceneTitle),

@@ -2,12 +2,76 @@ import { runAgentCore } from '@/server/agents/agent-runner';
 import type { ChatbotProduct } from '@/types/cannmenus';
 import { logger } from '@/lib/logger';
 import { getSafeProductImageUrl, normalizeCategoryName } from '@/lib/utils/product-image';
+import { buildOrgIdCandidates } from '@/server/org/org-id';
 import {
     buildMenuSearchFallbackMessage,
     getAgeRequirementAnswer,
     isAgeRequirementQuestion,
     searchMenuProducts,
 } from '@/server/services/smokey-menu-search';
+
+function pushUnique(values: string[], seen: Set<string>, candidate: string | null | undefined) {
+    if (!candidate) {
+        return;
+    }
+
+    const trimmed = candidate.trim();
+    if (!trimmed || seen.has(trimmed)) {
+        return;
+    }
+
+    seen.add(trimmed);
+    values.push(trimmed);
+}
+
+async function resolveLocationCandidates(
+    firestore: FirebaseFirestore.Firestore,
+    orgCandidates: string[]
+): Promise<string[]> {
+    const locationCandidates: string[] = [];
+    const seen = new Set<string>();
+
+    for (const candidate of orgCandidates) {
+        pushUnique(locationCandidates, seen, candidate);
+    }
+
+    const locationCollection = firestore.collection('locations');
+
+    // Fetch all candidates' doc + orgId/brandId queries in parallel (one round instead of N sequential rounds)
+    const perCandidateResults = await Promise.all(
+        orgCandidates.map((candidate) =>
+            Promise.all([
+                locationCollection.doc(candidate).get().catch(() => null),
+                locationCollection.where('orgId', '==', candidate).limit(2).get().catch(() => null),
+                locationCollection.where('brandId', '==', candidate).limit(2).get().catch(() => null),
+            ])
+        )
+    );
+
+    for (const [locationDoc, orgMatches, brandMatches] of perCandidateResults) {
+        if (locationDoc?.exists) {
+            const locationData = locationDoc.data();
+            pushUnique(locationCandidates, seen, locationDoc.id);
+            pushUnique(locationCandidates, seen, typeof locationData?.orgId === 'string' ? locationData.orgId : null);
+            pushUnique(locationCandidates, seen, typeof locationData?.brandId === 'string' ? locationData.brandId : null);
+        }
+
+        for (const snapshot of [orgMatches, brandMatches]) {
+            if (!snapshot || snapshot.empty) {
+                continue;
+            }
+
+            for (const doc of snapshot.docs) {
+                const locationData = doc.data();
+                pushUnique(locationCandidates, seen, doc.id);
+                pushUnique(locationCandidates, seen, typeof locationData?.orgId === 'string' ? locationData.orgId : null);
+                pushUnique(locationCandidates, seen, typeof locationData?.brandId === 'string' ? locationData.brandId : null);
+            }
+        }
+    }
+
+    return locationCandidates;
+}
 
 /**
  * Fetch live menu products for a brand context.
@@ -44,11 +108,39 @@ export async function fetchMenuProducts(brandId: string): Promise<any[]> {
         const { makeProductRepo } = await import('@/server/repos/productRepo');
         const productRepo = makeProductRepo(firestore);
 
-        let products = await productRepo.getAllByLocation(brandId).catch(() => [] as any[]);
-        if (!products.length) {
-            products = await productRepo.getAllByBrand(brandId).catch(() => [] as any[]);
+        const orgCandidates = buildOrgIdCandidates(brandId);
+        const locationCandidates = await resolveLocationCandidates(firestore, orgCandidates);
+
+        for (const locationId of locationCandidates) {
+            const products = await productRepo.getAllByLocation(locationId).catch(() => [] as any[]);
+            if (products.length > 0) {
+                logger.info('[ConsumerAdapter] Resolved Firestore menu by location', {
+                    brandId,
+                    locationId,
+                    productCount: products.length,
+                });
+                return products;
+            }
         }
-        return products;
+
+        for (const candidate of orgCandidates) {
+            const products = await productRepo.getAllByBrand(candidate).catch(() => [] as any[]);
+            if (products.length > 0) {
+                logger.info('[ConsumerAdapter] Resolved Firestore menu by brand', {
+                    brandId,
+                    resolvedBrandId: candidate,
+                    productCount: products.length,
+                });
+                return products;
+            }
+        }
+
+        logger.info('[ConsumerAdapter] No Firestore products found for candidates', {
+            brandId,
+            orgCandidates,
+            locationCandidates,
+        });
+        return [];
     } catch (e) {
         logger.warn('[ConsumerAdapter] Firestore product fetch failed', {
             brandId,

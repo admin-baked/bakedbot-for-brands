@@ -5,7 +5,7 @@
  *           @remotion/renderer renderMedia()  (server-side)
  */
 
-import { Composition } from 'remotion';
+import { Composition, type CalculateMetadataFunction } from 'remotion';
 import type { ComponentType } from 'react';
 import { BrandedSlideshow, type BrandedSlideshowProps } from './compositions/BrandedSlideshow';
 import { ToolShowcase, type ToolShowcaseProps } from './compositions/ToolShowcase';
@@ -16,6 +16,12 @@ import { LongFormVideo, calculateLongFormMetadata, type LongFormVideoProps } fro
 const BrandedSlideshowComp = BrandedSlideshow as unknown as ComponentType<Record<string, unknown>>;
 const ToolShowcaseComp = ToolShowcase as unknown as ComponentType<Record<string, unknown>>;
 const LongFormVideoComp = LongFormVideo as unknown as ComponentType<Record<string, unknown>>;
+const calculateLongFormCompositionMetadata: CalculateMetadataFunction<Record<string, unknown>> = (options) =>
+    calculateLongFormMetadata({
+        ...options,
+        defaultProps: options.defaultProps as LongFormVideoProps,
+        props: options.props as LongFormVideoProps,
+    });
 
 const DEFAULT_PROPS: BrandedSlideshowProps = {
     brandName: 'BakedBot AI',
@@ -132,7 +138,7 @@ export const RemotionRoot: React.FC = () => {
             <Composition
                 id="LongFormVideo-16x9"
                 component={LongFormVideoComp}
-                calculateMetadata={calculateLongFormMetadata}
+                calculateMetadata={calculateLongFormCompositionMetadata}
                 durationInFrames={2700}
                 fps={30}
                 width={1280}
@@ -144,7 +150,7 @@ export const RemotionRoot: React.FC = () => {
             <Composition
                 id="LongFormVideo-9x16"
                 component={LongFormVideoComp}
-                calculateMetadata={calculateLongFormMetadata}
+                calculateMetadata={calculateLongFormCompositionMetadata}
                 durationInFrames={2700}
                 fps={30}
                 width={720}
@@ -156,7 +162,7 @@ export const RemotionRoot: React.FC = () => {
             <Composition
                 id="LongFormVideo-1x1"
                 component={LongFormVideoComp}
-                calculateMetadata={calculateLongFormMetadata}
+                calculateMetadata={calculateLongFormCompositionMetadata}
                 durationInFrames={2700}
                 fps={30}
                 width={1080}
