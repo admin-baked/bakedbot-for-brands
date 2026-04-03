@@ -62,8 +62,10 @@ function linusNeedsTools(text: string): boolean {
     return LINUS_TOOL_PATTERNS.some(p => p.test(lower));
 }
 
-export function getSlackGLMSynthesisTask(personaId: string): AITextTaskClass {
-    return personaId === 'linus' ? 'strategic' : 'standard';
+export function getSlackGLMSynthesisTask(_personaId: string): AITextTaskClass {
+    // All Slack synthesis uses 'standard' — if GLM fails, fallback stays on Sonnet not Opus.
+    // Linus bypasses this path entirely (goes through runLinus directly).
+    return 'standard';
 }
 
 // System-level identity injected for Slack requests.
