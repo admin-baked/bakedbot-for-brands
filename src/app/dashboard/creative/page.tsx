@@ -296,6 +296,7 @@ export default function CreativeCommandCenter() {
   const [imageMode, setImageMode] = useState<'photo' | 'branded' | 'video' | 'slideshow' | 'deck' | 'longvideo'>('photo');
   const [videoDuration, setVideoDuration] = useState<'5' | '10'>('5');
   const [longVideoTarget, setLongVideoTarget] = useState<'60' | '90'>('60');
+  const [longVideoModel, setLongVideoModel] = useState<'wan' | 'kling'>('wan');
   const isImagePreviewMode = imageMode === 'photo' || imageMode === 'branded';
 
   const getGenerateLabel = (mode: typeof imageMode, long = false): string => {
@@ -592,6 +593,7 @@ export default function CreativeCommandCenter() {
             styleMode: 'cinematic',
             screenshotUrls: [],
             targetDuration: longVideoTarget,
+            videoModel: longVideoModel,
           }),
         });
 
@@ -1315,8 +1317,31 @@ export default function CreativeCommandCenter() {
                                 </button>
                               ))}
                             </div>
+                            <div className="flex items-center justify-between gap-2 pt-1">
+                              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Model</span>
+                              <span className="text-[10px] text-muted-foreground">{longVideoModel === 'wan' ? '~$0.01/s · fast' : '~$0.28/s · premium'}</span>
+                            </div>
+                            <div className="flex gap-1.5">
+                              {(['wan', 'kling'] as const).map((m) => (
+                                <button
+                                  key={m}
+                                  type="button"
+                                  onClick={() => setLongVideoModel(m)}
+                                  className={cn(
+                                    "flex-1 rounded-md border px-2 py-1.5 text-xs transition-all",
+                                    longVideoModel === m
+                                      ? "border-primary bg-primary/10 text-primary"
+                                      : "border-border bg-background text-muted-foreground hover:text-foreground",
+                                  )}
+                                >
+                                  {m === 'wan' ? 'Wan 2.1 ⚡' : 'Kling v2 ✨'}
+                                </button>
+                              ))}
+                            </div>
                             <p className="text-[10px] text-muted-foreground leading-tight">
-                              {`Claude plans ${longVideoTarget === '60' ? '6' : '9'} scenes → Kling renders each clip → Remotion assembles with your brand`}
+                              {longVideoModel === 'wan'
+                                ? `Claude plans ${longVideoTarget === '60' ? '6' : '9'} scenes → Wan 2.1 renders each clip → Remotion assembles`
+                                : `Claude plans ${longVideoTarget === '60' ? '6' : '9'} scenes → Kling v2 renders each clip → Remotion assembles`}
                             </p>
                           </div>
                         )}
@@ -1989,7 +2014,7 @@ export default function CreativeCommandCenter() {
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
                         {imageMode === 'longvideo'
-                          ? `Claude plans scenes → ${longVideoTarget === '60' ? '6' : '9'} Kling clips → Remotion render · 5-10 min`
+                          ? `Claude plans scenes → ${longVideoTarget === '60' ? '6' : '9'} ${longVideoModel === 'wan' ? 'Wan 2.1' : 'Kling v2'} clips → Remotion render · ${longVideoModel === 'wan' ? '2-4 min' : '5-10 min'}`
                           : imageMode === 'slideshow'
                             ? `${videoDuration}s branded motion piece · ~10-30s`
                             : `${videoDuration}s motion clip · 1-3 min`}

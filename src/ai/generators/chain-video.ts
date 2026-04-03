@@ -8,7 +8,7 @@
  */
 
 import { callClaude } from '@/ai/claude';
-import { generateKlingVideo } from './fal-video';
+import { generateKlingVideo, generateWanVideo } from './fal-video';
 import { logger } from '@/lib/logger';
 
 export interface ChainClip {
@@ -47,9 +47,10 @@ export async function generateChainVideoClips(
         brandName?: string;
         aspectRatio?: '16:9' | '9:16' | '1:1';
         voiceSuffix?: string;
+        videoModel?: 'kling' | 'wan';
     }
 ): Promise<ChainVideoResult> {
-    const { brandName, aspectRatio = '16:9', voiceSuffix = '' } = brandContext;
+    const { brandName, aspectRatio = '16:9', voiceSuffix = '', videoModel = 'wan' } = brandContext;
     const brandPrefix = brandName ? `${brandName} cannabis brand. ` : 'Cannabis brand. ';
 
     logger.info('[ChainVideo] Planning scenes via Claude Haiku', { sceneCount, prompt: prompt.substring(0, 60) });
@@ -83,10 +84,13 @@ export async function generateChainVideoClips(
         }));
     }
 
-    logger.info('[ChainVideo] Generating Kling clips in parallel', { count: scenes.length });
+    const providerLabel = videoModel === 'wan' ? 'Wan 2.1' : 'Kling v2';
+    logger.info(`[ChainVideo] Generating clips in parallel via ${providerLabel}`, { count: scenes.length, videoModel });
+
+    const generateClip = videoModel === 'wan' ? generateWanVideo : generateKlingVideo;
 
     const clipPromises = scenes.map(async (scene): Promise<ChainClip> => {
-        const result = await generateKlingVideo({
+        const result = await generateClip({
             prompt: scene.prompt,
             duration: '10',
             aspectRatio,

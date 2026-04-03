@@ -21,12 +21,12 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Invalid request', details: parsed.error.flatten() }, { status: 400 });
         }
 
-        const { prompt, aspectRatio, styleMode, kineticHeadline, backgroundImageUrl, targetDuration } = parsed.data;
+        const { prompt, aspectRatio, styleMode, kineticHeadline, backgroundImageUrl, targetDuration, videoModel } = parsed.data;
         const sceneCount = SCENE_COUNTS[targetDuration] ?? 6;
 
-        logger.info('[API/video/chain] Starting chain generation', { prompt: prompt.substring(0, 60), sceneCount, aspectRatio });
+        logger.info('[API/video/chain] Starting chain generation', { prompt: prompt.substring(0, 60), sceneCount, aspectRatio, videoModel });
 
-        const { clips } = await generateChainVideoClips(prompt, sceneCount, { aspectRatio });
+        const { clips } = await generateChainVideoClips(prompt, sceneCount, { aspectRatio, videoModel });
 
         logger.info('[API/video/chain] Clips ready, starting Remotion render', { clipCount: clips.length });
 

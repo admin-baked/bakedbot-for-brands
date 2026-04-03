@@ -27,6 +27,8 @@ export const ChainGenerationRequestSchema = z.object({
     kineticHeadline: z.string(),
     backgroundImageUrl: z.string().optional(),
     targetDuration: z.enum(['60', '90']).default('60'),
+    /** 'kling' = premium quality ($0.28/s) | 'wan' = fast draft ($0.01/s) */
+    videoModel: z.enum(['kling', 'wan']).default('wan'),
 });
 
 export type ChainGenerationRequest = z.infer<typeof ChainGenerationRequestSchema>;
