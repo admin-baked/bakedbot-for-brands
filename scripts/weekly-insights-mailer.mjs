@@ -21,11 +21,31 @@
  */
 
 import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
-import { join } from 'path';
+import { join, resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { parseArgs } from 'util';
 import { homedir } from 'os';
 import Anthropic from '@anthropic-ai/sdk';
 import Mailjet from 'node-mailjet';
+
+// Load .env.local (mirrors desktop-test-loop pattern)
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const envPath = resolve(__dirname, '..', '.env.local');
+if (existsSync(envPath)) {
+  for (const line of readFileSync(envPath, 'utf-8').split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const idx = trimmed.indexOf('=');
+    if (idx === -1) continue;
+    const key = trimmed.slice(0, idx).trim();
+    const val = trimmed.slice(idx + 1).trim().replace(/^["']|["']$/g, '');
+    if (!process.env[key] && val) process.env[key] = val;
+  }
+}
+// Support CLAUDE_API_KEY as alias for ANTHROPIC_API_KEY
+if (!process.env.ANTHROPIC_API_KEY && process.env.CLAUDE_API_KEY) {
+  process.env.ANTHROPIC_API_KEY = process.env.CLAUDE_API_KEY;
+}
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -102,7 +122,8 @@ function aggregateFacets(facets) {
 // ── Claude analysis ───────────────────────────────────────────────────────────
 
 async function analyzeWithClaude(stats, facets) {
-  const client = new Anthropic();
+  const apiKey = process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY;
+  const client = new Anthropic({ apiKey });
 
   const sampleSummaries = facets
     .filter((f) => f.brief_summary)
@@ -148,14 +169,36 @@ Be specific and actionable. Reference actual patterns from the session data abov
 
   const response = await client.messages.create({
     model: 'claude-haiku-4-5-20251001',
-    max_tokens: 1500,
+    max_tokens: 4096,
     messages: [{ role: 'user', content: prompt }],
   });
 
   const text = response.content[0].type === 'text' ? response.content[0].text : '';
-  const jsonMatch = text.match(/```json\s*\n([\s\S]*?)\n```/) || text.match(/(\{[\s\S]*\})/);
-  if (!jsonMatch) throw new Error(`No JSON in Claude response: ${text.slice(0, 200)}`);
-  return JSON.parse(jsonMatch[1]);
+
+  // Try code block first, then bare object
+  const candidates = [
+    text.match(/```json\s*\n([\s\S]*?)\n```/)?.[1],
+    text.match(/```\s*\n([\s\S]*?)\n```/)?.[1],
+    text.match(/(\{[\s\S]*\})/)?.[1],
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    try { return JSON.parse(candidate); } catch { /* try next */ }
+  }
+
+  // Last resort: ask Claude to fix its own JSON
+  console.warn('[Insights] Claude returned malformed JSON — retrying with strict JSON prompt');
+  const fixResponse = await client.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 1500,
+    messages: [
+      { role: 'user', content: prompt },
+      { role: 'assistant', content: text },
+      { role: 'user', content: 'Your response contained invalid JSON. Return ONLY the raw JSON object, no markdown, no explanation.' },
+    ],
+  });
+  const fixText = fixResponse.content[0].type === 'text' ? fixResponse.content[0].text : '';
+  return JSON.parse(fixText.match(/(\{[\s\S]*\})/)?.[1] ?? fixText);
 }
 
 // ── Build email HTML ──────────────────────────────────────────────────────────
@@ -297,7 +340,7 @@ async function main() {
   const stats = aggregateFacets(facets);
 
   if (!process.env.ANTHROPIC_API_KEY) {
-    console.error('[Insights] ANTHROPIC_API_KEY not set');
+    console.error('[Insights] ANTHROPIC_API_KEY (or CLAUDE_API_KEY) not set');
     process.exit(1);
   }
 
