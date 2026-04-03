@@ -432,12 +432,12 @@ Run these before beginning any module testing.
 
 | Step | Action | Expected | Pass/Fail | Screenshot? |
 |------|--------|----------|-----------|-------------|
-| 3.1 | Open tablet URL | Welcome screen: "Touch to Begin" | ✅ | YES |
+| 3.1 | Open tablet URL | Welcome screen: "Touch to Begin" **+ Thrive brand logo rendered** (fixed `712af4e98`) | ✅ | YES |
 | 3.2 | Tap to begin | Step 1: Phone number input | ✅ | YES |
 | 3.3 | Enter `312-684-0522` | Moves to Step 2: Email | ✅ | YES |
 | 3.4 | Enter `martezandco@gmail.com` | Moves to Step 3: Mood selection | ✅ | YES |
 | 3.5 | Select mood (e.g., "Energized") | Moves to Step 4: Recommendations loading | ✅ | YES |
-| 3.6 | Claude Haiku recommendations | 3 products + 1 bundle from Alleaves inventory appear | ✅ | YES |
+| 3.6 | Claude Haiku recommendations | 3 products + 1 bundle from Alleaves inventory **scoped to this location** (fixed `id_location` in `712af4e98` — was returning empty/wrong-store inventory) | ✅ | YES |
 | 3.7 | Product cards display correctly | Image, name, THC%, price visible | ✅ | YES |
 | 3.8 | Complete flow → Success screen | "You're in! Check your phone for your loyalty card." | ✅ | YES |
 | 3.9 | 20-second idle reset | Timer resets back to welcome screen | ✅ | YES |
@@ -737,7 +737,7 @@ Run these before beginning any module testing.
 
 | Step | Action | Expected | Screenshot? |
 |------|--------|----------|-------------|
-| 9.1 | Open Creative Center | 5 tabs: Photo, Branded, Video (🎬), Slideshow (🎞️), Deck (📊) | YES |
+| 9.1 | Open Creative Center | 6 tabs: Photo, Branded, Video (🎬), **Long (🎥)**, Slideshow (🎞️), Deck (📊) | YES |
 | 9.2 | Select "Photo" mode | Prompt input visible | YES |
 | 9.3 | Prompt: "Premium cannabis flower in a glass jar, moody dark background, dramatic studio lighting" | Image generates via FLUX.1 | YES |
 | 9.4 | Prompt: "Thrive Syracuse dispensary, welcoming storefront, cannabis leaf motif, green and gold palette" | Branded store image | YES |
@@ -777,6 +777,20 @@ Run these before beginning any module testing.
 | 9.23 | Download `.pptx` | File downloads and opens in PowerPoint/Slides | YES |
 | 9.24 | Verify 21+ disclaimer on last slide | Required by cannabis compliance | YES |
 
+#### 9E — Long-Form Video (60–90s) *(new — `e715efec0`)*
+
+> Kling chain generation: Claude Haiku plans N scene prompts → parallel Kling clips → Remotion wraps with Intro (2s) + N×10s scenes + Outro CTA (3s). Route: `POST /api/ai/video/chain`, maxDuration 600s.
+
+| Step | Action | Expected | Screenshot? |
+|------|--------|----------|-------------|
+| 9.25 | Select "🎥 Long" tab | Long-form panel activates; 60s / 90s duration toggle visible | YES |
+| 9.26 | Select 60s target | 60s locked in (≈ 6 Kling scenes) | YES |
+| 9.27 | Prompt: "Thrive Syracuse dispensary tour — product close-ups, happy customers, Friday energy" | Chain generation queues — Haiku writes scene plan, N Kling jobs fire in parallel | YES |
+| 9.28 | Generation status message renders | Progress message shows during render (no blank state) | YES |
+| 9.29 | Remotion renders final video | MP4 delivered — Intro → scenes → Outro CTA plays cleanly | YES |
+| 9.30 | Repeat with 90s target | 90s toggle works; ≈ 9 scenes render without timeout (maxDuration: 600s) | YES |
+| 9.31 | Download long video | `.mp4` downloads | YES |
+
 **Review Briefing Card — Module 9**
 ```json
 {
@@ -786,12 +800,12 @@ Run these before beginning any module testing.
   "title": "CREATIVE CENTER",
   "status": "[ pass | fail | partial ]",
   "severity": "[ success | warning | critical ]",
-  "headline": "[ e.g. Photo + Branded + Kling Video generated — Deck downloaded ]",
-  "subtext": "[ e.g. FLUX.1 returned image in 8s, Kling job completed in 42s, PPTX 5 slides with 21+ disclaimer ]",
-  "metric": { "label": "Avg generation time", "value": "[ Xs ]" },
-  "finding": "[ e.g. Kling returned 500 on first attempt — retry succeeded, or null ]",
-  "recommendation": "[ e.g. Increase Kling timeout from 30s to 90s in fal-video.ts, or null ]",
-  "uxIssue": "[ e.g. Download button not visible until scrolling past generated image — CTA below fold, or null ]",
+  "headline": "[ e.g. Photo + Branded + Kling Short + Long-form (60s) generated — Deck downloaded ]",
+  "subtext": "[ e.g. FLUX.1 8s, Kling short 42s, long-form chain 6 scenes 180s total, PPTX 5 slides with 21+ disclaimer ]",
+  "metric": { "label": "Long-form render time", "value": "[ Xs ]" },
+  "finding": "[ e.g. Long-form 90s timed out at scene 7 — or null ]",
+  "recommendation": "[ e.g. Increase maxDuration or cap at 60s for now — or null ]",
+  "uxIssue": "[ e.g. No progress indicator during Kling chain — blank screen for 2+ min, or null ]",
   "generatedAssets": [
     "[ describe each generated asset: type, prompt used, quality observation ]"
   ]
@@ -1078,7 +1092,7 @@ LOOP:
 - [ ] Module 13 (Consumer Brand Page): Loads with inventory + Smokey functional
 - [ ] Module 14 (Loyalty Sign-Up): Welcome email delivered to martezandco@gmail.com
 - [ ] Returning online-order customer resolves correctly on public check-in via both full phone and staff first-name + last-4
-- [ ] Module 9 (Creative Center): At minimum Photo + Video generate successfully
+- [ ] Module 9 (Creative Center): Photo + Short Video + Long-form (60s) generate successfully
 - [ ] Module 8 (Agents): All 6 agents respond on-topic to test prompts
 - [ ] Module 7 (Inbox): Intent routing working for analytics, loyalty, compliance
 - [ ] 3 new Cloud Scheduler jobs deployed (flnnstoned, daily-sales, sub-daily)
@@ -1132,4 +1146,15 @@ Fill in at the end of each full loop:
 
 ---
 
-*Generated: 2026-03-31 | Next run: After each fix cycle*
+---
+
+## 📝 Changelog
+
+| Date | Commit | Change |
+|------|--------|--------|
+| 2026-04-02 | `e715efec0` | Added Module 9E — Long-form video (Kling chain + Remotion, 60–90s); 6th Creative Center tab "🎥 Long" |
+| 2026-04-02 | `712af4e98` | Tablet: brand logo now renders on welcome screen; Alleaves recs scoped to store via `id_location`; Cloud Scheduler auth OIDC → Bearer CRON_SECRET |
+| 2026-04-02 | `f98698d57` | Apollo enrichment: `api_key` moved to `X-Api-Key` header (body param deprecated) — not a test surface change |
+| 2026-03-31 | —  | Initial master playbook (test plan + natural language playbooks consolidated) |
+
+*Last updated: 2026-04-02 | Next run: After each fix cycle*

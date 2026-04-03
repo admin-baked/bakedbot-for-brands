@@ -29,6 +29,8 @@ export interface AgentJob {
     draftUpdatedAt?: Timestamp;
 }
 
+const JOB_TIMEOUT_MS = 120_000; // 2 minutes — Cloud Tasks + LLM max expected duration
+
 export function useJobPoller(jobId: string | undefined) {
     const [job, setJob] = useState<AgentJob | null>(null);
     const [thoughts, setThoughts] = useState<Thought[]>([]);
@@ -42,12 +44,29 @@ export function useJobPoller(jobId: string | undefined) {
             return;
         }
 
+        // Timeout: if job hasn't completed within JOB_TIMEOUT_MS, synthesize a failed state
+        // so the conversation shows an error instead of spinning forever.
+        const timeoutId = window.setTimeout(() => {
+            setJob((current) => {
+                if (current && (current.status === 'completed' || current.status === 'failed' || current.status === 'cancelled')) {
+                    return current; // Already terminal — leave it alone
+                }
+                return {
+                    id: jobId,
+                    status: 'failed' as AgentJobStatus,
+                    error: 'The request timed out. The agent took longer than 2 minutes. Please try again.',
+                    userId: current?.userId ?? '',
+                    createdAt: current?.createdAt ?? Timestamp.now(),
+                    updatedAt: Timestamp.now(),
+                };
+            });
+        }, JOB_TIMEOUT_MS);
+
         // 1. Subscribe to Job Status
         const jobRef = doc(db, 'jobs', jobId);
         const unsubJob = onSnapshot(jobRef, (snap) => {
             if (snap.exists()) {
                 const data = snap.data();
-                // Safe cast
                 setJob({
                     id: snap.id,
                     status: data.status,
@@ -60,19 +79,6 @@ export function useJobPoller(jobId: string | undefined) {
                     draftState: data.draftState,
                     draftUpdatedAt: data.draftUpdatedAt,
                 });
-            } else {
-                // Determine if it might be delayed consistency or pending creation
-                 // But dispatcher creates Cloud Task, worker creates Firestore doc?
-                 // Wait, Dispatcher ENQUEUES task. Worker STARTS and creates/updates doc?
-                 // Or Dispatcher creates the initial Doc?
-                 // My Dispatcher code (viewed earlier) DOES NOT create a Firestore doc.
-                 // It only creates Cloud Task.
-                 // The Worker (api/jobs/agent/route.ts) creates/updates the doc?
-                 // If Frontend polls immediately, Doc might not exist yet!
-                 // This is a race condition.
-                 // FIX: Dispatcher SHOULD create the initial "pending" doc.
-                 // But I already wrote Dispatcher and Action.
-                 // I should check `dispatch.ts` again or `runAgentChat`.
             }
         }, (err) => {
             console.error('Job polling error:', err);
@@ -82,7 +88,7 @@ export function useJobPoller(jobId: string | undefined) {
         // 2. Subscribe to Thoughts
         const thoughtsRef = collection(db, 'jobs', jobId, 'thoughts');
         const q = query(thoughtsRef, orderBy('order', 'asc'));
-        
+
         const unsubThoughts = onSnapshot(q, (snap) => {
             const items = snap.docs.map(d => ({
                 id: d.id,
@@ -90,23 +96,22 @@ export function useJobPoller(jobId: string | undefined) {
             })) as Thought[];
             setThoughts(items);
         }, (err) => {
-            // Likely index error or permission
-             console.warn('Thoughts polling warning:', err);
+            console.warn('Thoughts polling warning:', err);
         });
 
         return () => {
+            window.clearTimeout(timeoutId);
             unsubJob();
             unsubThoughts();
         };
     }, [jobId]);
 
-    const isRunning = job?.status === 'running' || job?.status === 'pending' || (!job && !!jobId); 
-    // If we have a jobId but no doc yet, it's effectively pending (queued).
+    const isRunning = job?.status === 'running' || job?.status === 'pending' || (!job && !!jobId);
 
-    return { 
-        job, 
-        thoughts, 
-        error, 
+    return {
+        job,
+        thoughts,
+        error,
         isRunning,
         isComplete: job?.status === 'completed' || job?.status === 'failed' || job?.status === 'cancelled'
     };

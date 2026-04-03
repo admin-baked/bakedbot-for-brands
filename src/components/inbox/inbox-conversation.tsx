@@ -1847,34 +1847,36 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             attachments: messageAttachments.length > 0 ? messageAttachments : undefined,
         };
 
-        // Add user message to local state
+        // Add user message to local state immediately (hides briefing, shows conversation)
         addMessageToThread(thread.id, userMessage);
 
         // Prepare attachments for agent (base64 format)
         const messageContent = input.trim();
-        let thinkingMessage: ChatMessage | null = null;
+
+        // Show thinking indicator immediately — before any async work so the user
+        // sees feedback right away. The Firestore write runs in parallel.
+        const thinkingMessage: ChatMessage = {
+            id: `thinking-${Date.now()}`,
+            type: 'agent',
+            content: '',
+            timestamp: new Date(),
+            thinking: { isThinking: true, steps: [], plan: [] },
+            metadata: { agentName: AGENT_NAMES[thread.primaryAgent]?.name || 'Assistant' },
+        };
+        setInput('');
+        if (textareaRef.current) {
+            textareaRef.current.value = '';
+        }
+        setAttachments([]);
+        addMessageToThread(thread.id, thinkingMessage);
+        setCurrentThinkingMessageId(thinkingMessage.id);
+        scrollToBottom('smooth');
+        setIsSubmitting(true);
 
         try {
-            // Persist user message to server before we kick off the agent run.
-            await addMessageToInboxThread(thread.id, userMessage);
-
-            thinkingMessage = {
-                id: `thinking-${Date.now()}`,
-                type: 'agent',
-                content: '',
-                timestamp: new Date(),
-                thinking: { isThinking: true, steps: [], plan: [] },
-                metadata: { agentName: AGENT_NAMES[thread.primaryAgent]?.name || 'Assistant' },
-            };
-            setInput('');
-            if (textareaRef.current) {
-                textareaRef.current.value = '';
-            }
-            setAttachments([]); // Clear attachments after sending
-            addMessageToThread(thread.id, thinkingMessage);
-            setCurrentThinkingMessageId(thinkingMessage.id);
-            scrollToBottom('smooth');
-            setIsSubmitting(true);
+            // Persist user message to Firestore in parallel with agent dispatch.
+            // We don't await this — a failed write won't block the agent response.
+            void addMessageToInboxThread(thread.id, userMessage);
 
             const agentAttachments = await toAgentAttachmentPayloads(pendingAttachments);
 
@@ -1887,21 +1889,14 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
 
             if (!result.success) {
                 const errorMessage: ChatMessage = {
-                    ...(thinkingMessage || {
-                        type: 'agent' as const,
-                        metadata: { agentName: AGENT_NAMES[thread.primaryAgent]?.name || 'Assistant' },
-                    }),
+                    ...thinkingMessage,
                     id: `msg-${Date.now()}`,
                     content: `I encountered an error: ${result.error || 'Unknown error'}. Please try again.`,
                     timestamp: new Date(),
                     thinking: { isThinking: false, steps: [], plan: [] },
                 };
-                if (thinkingMessage) {
-                    finalizeThinkingMessage(thinkingMessage.id, errorMessage, { syncPreview: true });
-                    void addMessageToInboxThread(thread.id, errorMessage);
-                } else {
-                    addMessageToThread(thread.id, errorMessage);
-                }
+                finalizeThinkingMessage(thinkingMessage.id, errorMessage, { syncPreview: true });
+                void addMessageToInboxThread(thread.id, errorMessage);
                 setCurrentThinkingMessageId(null);
                 setIsSubmitting(false);
                 return;
@@ -1980,21 +1975,14 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             console.error('Failed to send message:', error);
             const errorDetails = error?.message || error?.toString() || 'Unknown error';
             const errorMessage: ChatMessage = {
-                ...(thinkingMessage || {
-                    type: 'agent' as const,
-                    metadata: { agentName: AGENT_NAMES[thread.primaryAgent]?.name || 'Assistant' },
-                }),
+                ...thinkingMessage,
                 id: `msg-${Date.now()}`,
                 content: `Sorry, I encountered an unexpected error: ${errorDetails}\n\nPlease try again or contact support if this persists.`,
                 timestamp: new Date(),
                 thinking: { isThinking: false, steps: [], plan: [] },
             };
-            if (thinkingMessage) {
-                finalizeThinkingMessage(thinkingMessage.id, errorMessage, { syncPreview: true });
-                void addMessageToInboxThread(thread.id, errorMessage);
-            } else {
-                addMessageToThread(thread.id, errorMessage);
-            }
+            finalizeThinkingMessage(thinkingMessage.id, errorMessage, { syncPreview: true });
+            void addMessageToInboxThread(thread.id, errorMessage);
             setCurrentThinkingMessageId(null);
             setIsSubmitting(false);
         }
