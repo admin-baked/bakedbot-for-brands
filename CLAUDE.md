@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; Linus delegation loop + QA pipeline (delegate_to_claude_code tool, Firecrawl prod smoke, RTRVR agent quality tests, test-backlog.json seeded) | **Last update:** 2026-04-02 (linus delegation + qa loop)
+**Current Status:** 🟢 `main` green; dual-channel email infra (Google Workspace + Mailjet org-scoped) + Cloudflare DNS auto-config (SPF/DMARC/DKIM CNAME) + Smokey onboarding panel | **Last update:** 2026-04-03 (email infra + cloudflare dns)
 
 ---
 

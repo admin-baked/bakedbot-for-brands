@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; Linus delegation loop + full QA pipeline shipped.
-**Recent work (2026-04-02):** `delegate_to_claude_code` tool (Linus→Firestore→desktop loop); Firecrawl/Jina prod smoke; RTRVR+Claude Haiku agent quality tests; `dev/test-backlog.json` seeded (40 entries); `scripts/desktop-test-loop.mjs`, `post-deploy-test.mjs`, `agent-quality-test.mjs`
+**Current Status:** 🟢 `main` green; dual-channel email + Cloudflare DNS auto-config shipped.
+**Recent work (2026-04-03):** `1fd6df1f2` — Google Workspace org OAuth + Mailjet org config; dispatcher routes by communicationType; Cloudflare API client + one-click SPF/DMARC/DKIM CNAME; Email settings tab; Smokey panel onboarding-first
 
 ## 🧭 CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 
