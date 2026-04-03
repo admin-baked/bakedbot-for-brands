@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; Wan 2.1 video generation fixed (correct model ID: fal-ai/wan-t2v); onboarding first-win flow + tablet brand/voice + SES email live | **Last update:** 2026-04-03 (Wan model ID fix — resolves all video/chain 500s)
+**Current Status:** 🟢 `main` green; Gemini Live voice collaboration live (customer + budtender + Smokey); onboarding first-win + tablet brand/voice + SES email + Wan 2.1 video all live | **Last update:** 2026-04-03 (Gemini Live voice — CheckinCounterPanel, /api/voice/smokey, use-smokey-voice hook, chatbot TTS)
 
 ---
 

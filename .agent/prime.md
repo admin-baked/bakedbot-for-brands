@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; Wan 2.1 video generation fixed (fal-ai/wan-t2v); onboarding first-win + SES email + tablet brand/voice live.
-**Recent work (2026-04-03):** `ef59fbd5a` — Wan model ID fix: fal-ai/wan-t2v resolves all /api/ai/video/chain 500s (wrong ID completed in 7ms with no output)
+**Current Status:** 🟢 `main` green; Gemini Live voice collaboration live — customer + budtender + Smokey counter panel; all prior features live.
+**Recent work (2026-04-03):** `5cfffbd12` — Gemini Live voice: CheckinCounterPanel sheet, /api/voice/smokey route, use-smokey-voice hook, PCM→WAV builder, chatbot TTS prop
 
 ## ðŸ§­ CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 
