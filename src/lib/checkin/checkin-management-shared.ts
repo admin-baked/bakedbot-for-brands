@@ -36,11 +36,11 @@ export const DEFAULT_PUBLIC_BRAND_THEME: PublicBrandTheme = {
     brandName: null,
     logoUrl: null,
     colors: {
-        primary: '#4ade80',
-        secondary: '#1f3324',
-        accent: '#10a34e',
+        primary: '#34d058',
+        secondary: '#0f1f14',
+        accent: '#f59e0b',
         text: '#f8fafc',
-        background: '#07110a',
+        background: '#06100a',
     },
 };
 

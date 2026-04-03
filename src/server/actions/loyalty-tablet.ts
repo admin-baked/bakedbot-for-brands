@@ -22,6 +22,7 @@ import { getSafeProductImageUrl, normalizeCategoryName } from '@/lib/utils/produ
 import { searchMenuProducts } from '@/server/services/smokey-menu-search';
 import { getCustomerHistory } from '@/server/tools/crm-tools';
 import { captureVisitorCheckin } from './visitor-checkin';
+import { getAdminFirestore } from '@/firebase/admin';
 
 // ============================================================
 // Types
@@ -33,6 +34,7 @@ export interface TabletLeadResult {
     customerId?: string;
     loyaltyPoints?: number;
     visitId?: string;
+    queuePosition?: number; // how many check-ins are ahead of this one today
     error?: string;
 }
 
@@ -560,12 +562,31 @@ export async function captureTabletLead(params: {
             bundleAdded,
         });
 
+        let queuePosition: number | undefined;
+        if (result.success && result.visitId) {
+            try {
+                const db = getAdminFirestore();
+                const todayMidnight = new Date();
+                todayMidnight.setHours(0, 0, 0, 0);
+                const snap = await db.collection('checkin_visits')
+                    .where('orgId', '==', orgId)
+                    .where('visitedAt', '>=', todayMidnight)
+                    .count()
+                    .get();
+                // Position = total today - 1 (exclude self) — customers ahead
+                queuePosition = Math.max(0, (snap.data().count ?? 1) - 1);
+            } catch {
+                // Non-critical — omit rather than fail the checkin
+            }
+        }
+
         return {
             success: result.success,
             isNewLead: result.isNewLead,
             customerId: result.customerId,
             loyaltyPoints: result.loyaltyPoints,
             visitId: result.visitId,
+            queuePosition,
             error: result.error,
         };
     } catch (error) {

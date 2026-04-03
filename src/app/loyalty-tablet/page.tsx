@@ -71,14 +71,18 @@ const STEPS = ['email', 'phone', 'mood', 'recommendations'] as const;
 const ASK_SMOKEY_PLACEHOLDER = 'Ask Smokey for something like calming gummies under $30 or a social pre-roll.';
 const INPUT_CLASS = 'w-full bg-white/10 border text-white placeholder-white/40 text-lg sm:text-2xl py-4 sm:py-5 px-4 sm:px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-white/15 transition-colors';
 
+// Warm amber used as the contrasting accent across all themes (Option A colorway)
+const AMBER = '#f59e0b';
+const AMBER_DARK = '#d97706';
+
 function createShellStyle(theme: PublicBrandTheme): CSSProperties {
     const { colors } = theme;
 
     return {
         background: [
-            `radial-gradient(circle at top, ${hexToRgba(colors.primary, 0.22)} 0%, transparent 34%)`,
-            `radial-gradient(circle at bottom right, ${hexToRgba(colors.accent, 0.16)} 0%, transparent 26%)`,
-            `linear-gradient(180deg, ${colors.background} 0%, ${hexToRgba(colors.secondary, 0.96)} 100%)`,
+            `radial-gradient(circle at top left, ${hexToRgba(colors.primary, 0.35)} 0%, transparent 38%)`,
+            `radial-gradient(ellipse at bottom right, ${hexToRgba(AMBER, 0.22)} 0%, transparent 40%)`,
+            `linear-gradient(160deg, ${colors.background} 0%, ${hexToRgba(colors.secondary, 0.98)} 100%)`,
         ].join(', '),
         color: colors.text,
     };
@@ -89,9 +93,9 @@ function createPanelStyle(theme: PublicBrandTheme, tone: 'default' | 'accent' = 
 
     if (tone === 'accent') {
         return {
-            background: `linear-gradient(135deg, ${hexToRgba(colors.primary, 0.16)} 0%, ${hexToRgba(colors.accent, 0.12)} 100%)`,
-            borderColor: hexToRgba(colors.primary, 0.3),
-            boxShadow: `0 18px 45px ${hexToRgba(colors.background, 0.24)}`,
+            background: `linear-gradient(135deg, ${hexToRgba(AMBER, 0.14)} 0%, ${hexToRgba(AMBER_DARK, 0.08)} 100%)`,
+            borderColor: hexToRgba(AMBER, 0.32),
+            boxShadow: `0 18px 45px ${hexToRgba(colors.background, 0.28)}`,
         };
     }
 
@@ -103,12 +107,10 @@ function createPanelStyle(theme: PublicBrandTheme, tone: 'default' | 'accent' = 
 }
 
 function createPrimaryButtonStyle(theme: PublicBrandTheme): CSSProperties {
-    const { colors } = theme;
-
     return {
-        background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.accent} 100%)`,
-        boxShadow: `0 18px 45px ${hexToRgba(colors.primary, 0.26)}`,
-        color: colors.text,
+        background: `linear-gradient(135deg, ${AMBER} 0%, ${AMBER_DARK} 100%)`,
+        boxShadow: `0 18px 45px ${hexToRgba(AMBER, 0.32)}`,
+        color: '#0a0a0a',
     };
 }
 
@@ -124,7 +126,8 @@ function createSecondaryButtonStyle(theme: PublicBrandTheme): CSSProperties {
 
 function createInputStyle(theme: PublicBrandTheme): CSSProperties {
     return {
-        borderColor: hexToRgba(theme.colors.text, 0.14),
+        borderColor: hexToRgba(theme.colors.text, 0.18),
+        backgroundColor: hexToRgba('#ffffff', 0.06),
     };
 }
 
@@ -164,7 +167,7 @@ export default function LoyaltyTabletPage() {
     // Submit state
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [result, setResult] = useState<{ isNewLead: boolean; loyaltyPoints: number } | null>(null);
+    const [result, setResult] = useState<{ isNewLead: boolean; loyaltyPoints: number; queuePosition?: number } | null>(null);
 
     const [brandTheme, setBrandTheme] = useState<PublicBrandTheme>(DEFAULT_PUBLIC_BRAND_THEME);
 
@@ -424,7 +427,7 @@ export default function LoyaltyTabletPage() {
             ]);
             if (timeoutId) clearTimeout(timeoutId);
             if (res.success) {
-                setResult({ isNewLead: res.isNewLead ?? true, loyaltyPoints: res.loyaltyPoints || 0 });
+                setResult({ isNewLead: res.isNewLead ?? true, loyaltyPoints: res.loyaltyPoints || 0, queuePosition: res.queuePosition });
                 setStep('success');
                 setTimeout(resetToWelcome, 14_000);
             } else {
@@ -1034,6 +1037,20 @@ export default function LoyaltyTabletPage() {
                                 <div className="text-left">
                                     <div className="text-3xl font-black text-white">{result.loyaltyPoints} pts</div>
                                     <div className="text-sm" style={{ color: mutedTextColor }}>Your loyalty balance</div>
+                                </div>
+                            </div>
+                        )}
+
+                        {result && result.queuePosition !== undefined && result.queuePosition > 0 && (
+                            <div className="flex items-center gap-4 rounded-[28px] border px-8 py-5" style={panelStyle}>
+                                <div className="flex h-12 w-12 items-center justify-center rounded-full text-2xl font-black" style={{ backgroundColor: hexToRgba(AMBER, 0.18), color: AMBER }}>
+                                    {result.queuePosition}
+                                </div>
+                                <div className="text-left">
+                                    <div className="text-lg font-bold text-white">
+                                        {result.queuePosition === 1 ? '1 customer ahead' : `${result.queuePosition} customers ahead`}
+                                    </div>
+                                    <div className="text-sm" style={{ color: mutedTextColor }}>A budtender will be right with you</div>
                                 </div>
                             </div>
                         )}
