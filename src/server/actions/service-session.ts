@@ -59,11 +59,13 @@ export async function connectServiceAuto(
 }
 
 /**
- * Save cookies manually (paste from DevTools). Fallback for when auto-login fails.
+ * Save session cookies — used for both manual paste and SSE-captured auto-login.
+ * captureMethod defaults to 'manual' for the DevTools paste flow.
  */
 export async function connectServiceManual(
     serviceId: ServiceId,
-    cookies: Record<string, string>
+    cookies: Record<string, string>,
+    captureMethod: 'auto' | 'manual' = 'manual'
 ): Promise<{ success: boolean; error?: string }> {
     await requireSuperUser();
     const user = await requireUser();
@@ -84,13 +86,13 @@ export async function connectServiceManual(
             .set({
                 cookies,
                 capturedAt: FieldValue.serverTimestamp(),
-                captureMethod: 'manual',
+                captureMethod,
             });
 
-        logger.info('[ServiceSession] Manual-connected', { uid: user.uid, service: serviceId });
+        logger.info('[ServiceSession] Connected', { uid: user.uid, service: serviceId, captureMethod });
         return { success: true };
     } catch (err) {
-        logger.error('[ServiceSession] Failed to save manual cookies', { error: String(err) });
+        logger.error('[ServiceSession] Failed to save cookies', { error: String(err) });
         return { success: false, error: 'Failed to save session' };
     }
 }

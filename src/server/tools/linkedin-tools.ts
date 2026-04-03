@@ -24,29 +24,29 @@ const linkedInPostToolDef = {
     name: 'linkedin_post',
     description:
         'Publish a post to the Super User\'s LinkedIn feed. Use for thought leadership, product announcements, or brand content. Requires LinkedIn to be connected in Settings.',
-    inputSchema: z.object({
+    schema: z.object({
         content: z.string().describe('The post content. Max ~3000 characters. No markdown — LinkedIn uses plain text with line breaks.'),
     }),
-} as const;
+};
 
 const linkedInMessageToolDef = {
     name: 'linkedin_send_message',
     description:
         'Send a LinkedIn direct message to a connection. Use for outreach to dispensary leads or partners. Requires LinkedIn to be connected in Settings.',
-    inputSchema: z.object({
+    schema: z.object({
         profileUrl: z.string().url().describe('Full LinkedIn profile URL (e.g. https://www.linkedin.com/in/username)'),
         message: z.string().describe('Message text. Keep it personalized and under 300 characters for best response rates.'),
     }),
-} as const;
+};
 
 const linkedInEnrichToolDef = {
     name: 'linkedin_enrich_profile',
     description:
         'Enrich a LinkedIn profile URL with name, headline, location, and summary. Use to qualify leads before outreach.',
-    inputSchema: z.object({
+    schema: z.object({
         profileUrl: z.string().url().describe('Full LinkedIn profile URL'),
     }),
-} as const;
+};
 
 /** Craig: posting only */
 export const linkedInCraigToolDefs = [linkedInPostToolDef];
