@@ -1,33 +1,44 @@
 #!/usr/bin/env node
 /**
- * enqueue-weekly-insights.mjs — Enqueue a weekly insights task to Firestore
+ * enqueue-weekly-insights.mjs — Enqueue a weekly insights task via production API
  *
- * Called by the Monday 9am CCR remote trigger. Writes a single doc to
- * claude_code_tasks so desktop-test-loop.mjs picks it up locally and
- * runs weekly-insights-mailer.mjs where the session facets data lives.
+ * Calls POST /api/cron/enqueue-weekly-insights on the production app with
+ * CRON_SECRET auth. No Firebase credentials needed — the app handles Firestore.
+ * Safe to run in CCR remote environments with no local secrets.
  *
- * Requires: FIREBASE_SERVICE_ACCOUNT_KEY in environment.
+ * Usage:
+ *   node scripts/enqueue-weekly-insights.mjs
+ *
+ * Required env:
+ *   CRON_SECRET — bearer token for the API route
+ *   NEXT_PUBLIC_APP_URL — production URL (default: https://bakedbot-prod--bakedbot-prod.us-central1.hosted.app)
  */
 
-import { getDb } from './lib/firebase-admin.mjs';
+const CRON_SECRET = process.env.CRON_SECRET;
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bakedbot-prod--bakedbot-prod.us-central1.hosted.app';
 
-const taskId = `weekly_insights_${new Date().toISOString().slice(0, 10)}`;
-const db = getDb();
-
-const existing = await db.collection('claude_code_tasks').doc(taskId).get();
-if (existing.exists) {
-  console.log(`[WeeklyInsights] Task ${taskId} already enqueued — skipping duplicate`);
-  process.exit(0);
+if (!CRON_SECRET) {
+  console.error('[WeeklyInsights] CRON_SECRET not set');
+  process.exit(1);
 }
 
-await db.collection('claude_code_tasks').doc(taskId).set({
-  taskId,
-  type: 'weekly_insights',
-  task: 'Generate weekly Claude Code insights report and email to martez@bakedbot.ai',
-  source: 'ccr_trigger',
-  priority: 'normal',
-  status: 'pending',
-  createdAt: new Date().toISOString(),
+const res = await fetch(`${APP_URL}/api/cron/enqueue-weekly-insights`, {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${CRON_SECRET}`,
+    'Content-Type': 'application/json',
+  },
 });
 
-console.log(`[WeeklyInsights] Enqueued task ${taskId} — desktop-test-loop will pick it up`);
+const body = await res.json().catch(() => ({}));
+
+if (!res.ok) {
+  console.error(`[WeeklyInsights] API error ${res.status}:`, body);
+  process.exit(1);
+}
+
+if (body.skipped) {
+  console.log(`[WeeklyInsights] Task ${body.taskId} already enqueued — skipping duplicate`);
+} else {
+  console.log(`[WeeklyInsights] Enqueued task ${body.taskId} — desktop-test-loop will pick it up`);
+}
