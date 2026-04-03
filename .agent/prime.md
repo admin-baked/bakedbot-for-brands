@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; health audit clean + email dispatcher cache unified.
-**Recent work (2026-04-03):** `79b7e45af` — `withOrgIntegrationCache` helper unifies Mailjet+Workspace loaders; fixes Mailjet error-caching gap; 26 stray `playbook_executions` docs backfilled
+**Current Status:** 🟢 `main` green; inbox UX + job poller timeout + consumer adapter parallel resolution + fal 405 fix.
+**Recent work (2026-04-03):** `cbd42348c`, `2f72a6e0c`, `d9c65a341` — immediate thinking indicator; 2-min job timeout; resolveLocationCandidates parallelized; fal resultUrl fix (Wan 2.1 405); Friday quotes during long render
 
 ## 🧭 CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 

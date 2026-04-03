@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; automation builds — bug-fix pipeline + deploy orchestrator + post-commit health GH Action + /shipit /simplify /deploy commands + CLAUDE.md sections | **Last update:** 2026-04-03 (automation builds)
+**Current Status:** 🟢 `main` green; inbox UX (immediate thinking indicator) + job poller 2-min timeout + consumer adapter parallel location resolution + fal 405 fix + Friday quotes | **Last update:** 2026-04-03 (inbox + video + consumer fixes)
 
 ---
 
