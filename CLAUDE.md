@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; dual-channel email infra (Google Workspace + Mailjet org-scoped) + Cloudflare DNS auto-config (SPF/DMARC/DKIM CNAME) + Smokey onboarding panel | **Last update:** 2026-04-03 (email infra + cloudflare dns)
+**Current Status:** 🟢 `main` green; Wan 2.1 default video model (28× cheaper than Kling) + fal status_url fix (405 on Wan polling) + simplify cleanup | **Last update:** 2026-04-03 (wan 2.1 default + fal status poll fix)
 
 ---
 
