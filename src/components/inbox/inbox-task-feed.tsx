@@ -16,8 +16,31 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import type { InboxAgentPersona } from '@/types/inbox';
 import type { Thought } from '@/hooks/use-job-poller';
+import { AGENT_REGISTRY, type AgentId } from '@/lib/agents/registry';
+import { agentBg, agentBgMuted, agentText } from '@/components/ui/agent-status-indicator';
 
 // ============ Agent Colors & Config ============
+
+/** Build pulse config from registry for known agents, with overrides for extended personas */
+function buildPulseConfig(id: string, fallback: { name: string; avatar: string; color: string }) {
+    const def = AGENT_REGISTRY[id as AgentId];
+    if (def) {
+        return {
+            name: def.name,
+            avatar: def.visual.emoji,
+            color: agentBg(def.visual.color),
+            bgColor: agentBgMuted(def.visual.color),
+            textColor: agentText(def.visual.color),
+        };
+    }
+    return {
+        name: fallback.name,
+        avatar: fallback.avatar,
+        color: agentBg(fallback.color),
+        bgColor: agentBgMuted(fallback.color),
+        textColor: agentText(fallback.color),
+    };
+}
 
 export const AGENT_PULSE_CONFIG: Record<InboxAgentPersona, {
     name: string;
@@ -26,23 +49,24 @@ export const AGENT_PULSE_CONFIG: Record<InboxAgentPersona, {
     bgColor: string;
     textColor: string;
 }> = {
-    // Field Agents
-    smokey: { name: 'Smokey', avatar: '🌿', color: 'bg-emerald-500', bgColor: 'bg-emerald-500/10', textColor: 'text-emerald-500' },
-    money_mike: { name: 'Money Mike', avatar: '💰', color: 'bg-amber-500', bgColor: 'bg-amber-500/10', textColor: 'text-amber-500' },
-    craig: { name: 'Craig', avatar: '📣', color: 'bg-blue-500', bgColor: 'bg-blue-500/10', textColor: 'text-blue-500' },
-    ezal: { name: 'Ezal', avatar: '🔍', color: 'bg-purple-500', bgColor: 'bg-purple-500/10', textColor: 'text-purple-500' },
-    deebo: { name: 'Deebo', avatar: '🛡️', color: 'bg-red-500', bgColor: 'bg-red-500/10', textColor: 'text-red-500' },
-    pops: { name: 'Pops', avatar: '📊', color: 'bg-orange-500', bgColor: 'bg-orange-500/10', textColor: 'text-orange-500' },
-    day_day: { name: 'Day Day', avatar: '📦', color: 'bg-cyan-500', bgColor: 'bg-cyan-500/10', textColor: 'text-cyan-500' },
-    mrs_parker: { name: 'Mrs. Parker', avatar: '💜', color: 'bg-pink-500', bgColor: 'bg-pink-500/10', textColor: 'text-pink-500' },
-    big_worm: { name: 'Big Worm', avatar: '🐛', color: 'bg-indigo-500', bgColor: 'bg-indigo-500/10', textColor: 'text-indigo-500' },
-    roach: { name: 'Roach', avatar: '📚', color: 'bg-teal-500', bgColor: 'bg-teal-500/10', textColor: 'text-teal-500' },
+    // Registry-derived agents (canonical colors)
+    smokey: buildPulseConfig('smokey', { name: 'Smokey', avatar: '🌿', color: 'emerald-500' }),
+    money_mike: buildPulseConfig('money_mike', { name: 'Money Mike', avatar: '💰', color: 'amber-500' }),
+    craig: buildPulseConfig('craig', { name: 'Craig', avatar: '📣', color: 'blue-500' }),
+    ezal: buildPulseConfig('ezal', { name: 'Ezal', avatar: '🔍', color: 'purple-500' }),
+    deebo: buildPulseConfig('deebo', { name: 'Deebo', avatar: '🛡️', color: 'red-500' }),
+    pops: buildPulseConfig('pops', { name: 'Pops', avatar: '📊', color: 'orange-500' }),
+    mrs_parker: buildPulseConfig('mrs_parker', { name: 'Mrs. Parker', avatar: '💜', color: 'pink-500' }),
+    // Extended agents (not yet in registry — keep manual config)
+    day_day: buildPulseConfig('day_day', { name: 'Day Day', avatar: '📦', color: 'cyan-500' }),
+    big_worm: buildPulseConfig('big_worm', { name: 'Big Worm', avatar: '🐛', color: 'indigo-500' }),
+    roach: buildPulseConfig('roach', { name: 'Roach', avatar: '📚', color: 'teal-500' }),
     // Executive Agents
-    leo: { name: 'Leo', avatar: '⚙️', color: 'bg-slate-500', bgColor: 'bg-slate-500/10', textColor: 'text-slate-400' },
-    jack: { name: 'Jack', avatar: '📈', color: 'bg-violet-500', bgColor: 'bg-violet-500/10', textColor: 'text-violet-500' },
-    linus: { name: 'Linus', avatar: '🖥️', color: 'bg-sky-500', bgColor: 'bg-sky-500/10', textColor: 'text-sky-500' },
-    glenda: { name: 'Glenda', avatar: '✨', color: 'bg-rose-500', bgColor: 'bg-rose-500/10', textColor: 'text-rose-500' },
-    mike: { name: 'Mike', avatar: '💵', color: 'bg-lime-500', bgColor: 'bg-lime-500/10', textColor: 'text-lime-500' },
+    leo: buildPulseConfig('leo', { name: 'Leo', avatar: '⚙️', color: 'slate-500' }),
+    jack: buildPulseConfig('jack', { name: 'Jack', avatar: '📈', color: 'violet-500' }),
+    linus: buildPulseConfig('linus', { name: 'Linus', avatar: '🖥️', color: 'sky-500' }),
+    glenda: buildPulseConfig('glenda', { name: 'Glenda', avatar: '✨', color: 'rose-500' }),
+    mike: buildPulseConfig('mike', { name: 'Mike', avatar: '💵', color: 'lime-500' }),
     // Auto-routing
     auto: { name: 'Assistant', avatar: '🤖', color: 'bg-primary', bgColor: 'bg-primary/10', textColor: 'text-primary' },
 };

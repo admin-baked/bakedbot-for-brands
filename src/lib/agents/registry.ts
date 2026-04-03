@@ -25,6 +25,15 @@ export type AgentDomain =
     | 'compliance'
     | 'system';
 
+export type AgentStatus = 'online' | 'thinking' | 'working' | 'offline';
+
+export interface AgentVisual {
+    /** Emoji avatar for compact displays */
+    emoji: string;
+    /** Tailwind color class (e.g. 'emerald-500') — used as base for bg-*, text-*, border-* */
+    color: string;
+}
+
 export interface AgentDefinition {
     id: AgentId;
     name: string;
@@ -33,7 +42,9 @@ export interface AgentDefinition {
     description: string;
     /** Avatar URL used in dashboard UI */
     image: string;
-    defaultStatus: 'online' | 'thinking' | 'working' | 'offline';
+    /** Consistent visual identity (emoji + color) across all UI surfaces */
+    visual: AgentVisual;
+    defaultStatus: AgentStatus;
     /** Whether this agent appears in the visible squad panel */
     visibleInSquad: boolean;
     /** Which user roles can interact with this agent */
@@ -48,6 +59,7 @@ export const AGENT_REGISTRY: Record<AgentId, AgentDefinition> = {
         domains: ['commerce'],
         description: 'Product discovery, menu guidance, recommendations, and cart conversion.',
         image: 'https://i.pravatar.cc/150?u=Smokey',
+        visual: { emoji: '🌿', color: 'emerald-500' },
         defaultStatus: 'online',
         visibleInSquad: true,
         supportedRoles: ['brand', 'dispensary', 'owner', 'admin', 'customer', 'concierge'],
@@ -59,6 +71,7 @@ export const AGENT_REGISTRY: Record<AgentId, AgentDefinition> = {
         domains: ['marketing'],
         description: 'Campaign drafting, creative execution, playbooks, and lifecycle marketing.',
         image: 'https://i.pravatar.cc/150?u=Craig',
+        visual: { emoji: '📣', color: 'blue-500' },
         defaultStatus: 'online',
         visibleInSquad: true,
         supportedRoles: ['brand', 'dispensary', 'owner', 'admin', 'editor'],
@@ -70,6 +83,7 @@ export const AGENT_REGISTRY: Record<AgentId, AgentDefinition> = {
         domains: ['analytics'],
         description: 'Revenue reporting, funnel metrics, goals tracking, and executive summaries.',
         image: 'https://i.pravatar.cc/150?u=Pops',
+        visual: { emoji: '📊', color: 'orange-500' },
         defaultStatus: 'online',
         visibleInSquad: true,
         supportedRoles: ['brand', 'dispensary', 'owner', 'admin', 'super_admin'],
@@ -81,6 +95,7 @@ export const AGENT_REGISTRY: Record<AgentId, AgentDefinition> = {
         domains: ['competitive_intel'],
         description: 'Competitive intelligence, market scans, pricing surveillance, and deep research.',
         image: 'https://i.pravatar.cc/150?u=Ezal',
+        visual: { emoji: '🔍', color: 'purple-500' },
         defaultStatus: 'online',
         visibleInSquad: true,
         supportedRoles: ['brand', 'dispensary', 'owner', 'admin'],
@@ -92,6 +107,7 @@ export const AGENT_REGISTRY: Record<AgentId, AgentDefinition> = {
         domains: ['pricing'],
         description: 'Pricing strategy, margin analysis, bundles, upsells, and profitability optimization.',
         image: 'https://i.pravatar.cc/150?u=MoneyMike',
+        visual: { emoji: '💰', color: 'amber-500' },
         defaultStatus: 'online',
         visibleInSquad: true,
         supportedRoles: ['brand', 'dispensary', 'owner', 'admin'],
@@ -103,6 +119,7 @@ export const AGENT_REGISTRY: Record<AgentId, AgentDefinition> = {
         domains: ['loyalty'],
         description: 'Loyalty programs, CRM, VIP segmentation, reactivation workflows, and churn prevention.',
         image: 'https://i.pravatar.cc/150?u=MrsParker',
+        visual: { emoji: '💜', color: 'pink-500' },
         defaultStatus: 'online',
         visibleInSquad: true,
         supportedRoles: ['brand', 'dispensary', 'owner', 'admin'],
@@ -114,6 +131,7 @@ export const AGENT_REGISTRY: Record<AgentId, AgentDefinition> = {
         domains: ['compliance'],
         description: 'Compliance review, policy guardrails, regulated content checks, and audit prep.',
         image: 'https://i.pravatar.cc/150?u=Deebo',
+        visual: { emoji: '🛡️', color: 'red-500' },
         defaultStatus: 'working',
         visibleInSquad: true,
         supportedRoles: ['brand', 'dispensary', 'owner', 'admin', 'editor', 'super_admin'],
@@ -125,6 +143,7 @@ export const AGENT_REGISTRY: Record<AgentId, AgentDefinition> = {
         domains: ['system'],
         description: 'Platform-wide meta agent for super admin and system orchestration.',
         image: 'https://i.pravatar.cc/150?u=Puff',
+        visual: { emoji: '🤖', color: 'slate-500' },
         defaultStatus: 'online',
         visibleInSquad: false,
         supportedRoles: ['super_admin'],
