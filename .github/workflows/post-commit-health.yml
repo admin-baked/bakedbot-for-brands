@@ -1,0 +1,99 @@
+name: Post-Commit Health
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      since:
+        description: 'Commit ref to diff from (default: HEAD~1)'
+        required: false
+        default: 'HEAD~1'
+      dry_run:
+        description: 'Dry run (no file writes)'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  doc-sync:
+    name: Doc Sync Agent
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci --ignore-scripts
+
+      - name: Run Doc Sync Agent
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MEMORY_DIR: ''  # Memory is local-only; doc sync skips memory writes in CI
+        run: |
+          SINCE="${{ github.event.inputs.since || 'HEAD~1' }}"
+          DRY_FLAG="${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }}"
+          node scripts/doc-sync-agent.mjs --since="$SINCE" $DRY_FLAG
+        continue-on-error: true
+
+  schema-audit:
+    name: Schema Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci --ignore-scripts
+
+      - name: Run Schema Audit
+        env:
+          FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+        run: npm run audit:schema 2>&1 | tail -30
+        continue-on-error: true
+
+  notify:
+    name: Health Summary → Slack
+    runs-on: ubuntu-latest
+    needs: [doc-sync, schema-audit]
+    if: always() && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Post to Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_LINUS }}
+        run: |
+          SHORT_SHA="${{ github.sha }}"
+          SHORT_SHA="${SHORT_SHA:0:7}"
+          COMMIT_MSG="${{ github.event.head_commit.message }}"
+          ACTOR="${{ github.actor }}"
+          DOC_STATUS="${{ needs.doc-sync.result }}"
+          SCHEMA_STATUS="${{ needs.schema-audit.result }}"
+
+          if [ "$DOC_STATUS" = "success" ] && [ "$SCHEMA_STATUS" = "success" ]; then
+            EMOJI="✅"
+            STATUS_TEXT="Doc sync + schema audit passed"
+          else
+            EMOJI="⚠️"
+            STATUS_TEXT="Health check had warnings (non-blocking) — doc:${DOC_STATUS} schema:${SCHEMA_STATUS}"
+          fi
+
+          curl -s -X POST "$SLACK_WEBHOOK_URL" \
+            -H 'Content-Type: application/json' \
+            -d "{
+              \"text\": \"${EMOJI} *Post-commit health* — \`${SHORT_SHA}\` by ${ACTOR}\n${STATUS_TEXT}\n_${COMMIT_MSG}_\n<https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View run>\"
+            }" || true
