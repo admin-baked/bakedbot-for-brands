@@ -16,6 +16,7 @@ import { loadAndBuildGoalDirective, loadActiveGoals, fetchMarginProductContext }
 import { getOrgProfileWithFallback, buildCraigContextBlock } from '@/server/services/org-profile';
 import { getMarketBenchmarks, buildBenchmarkContextBlock } from '@/server/services/market-benchmarks';
 import { dispensaryAnalyticsToolDefs, makeAnalyticsToolsImpl } from '@/server/tools/analytics-tools';
+import { linkedInCraigToolDefs, makeLinkedInToolsImpl } from '@/server/tools/linkedin-tools';
 import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integration-status';
 
 // --- Tool Definitions ---
@@ -118,6 +119,12 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
         Before recommending any new promotion, use **promotion_scorecard** to review the last comparable promotion.
         Show the GP delta and discount rate impact. Apply the -0.4% GM elasticity rule in every recommendation.
         A campaign that generates revenue but destroys gross profit is a failure. Report both metrics, always.
+
+        === LINKEDIN (Super User) ===
+        If LinkedIn is connected (the Super User has linked their account in Settings → LinkedIn), you can:
+        - **linkedin_post(content)**: Publish to their LinkedIn feed — thought leadership, brand announcements, product drops, industry takes. Plain text only, no markdown.
+        Always validate compliance with Deebo before posting cannabis-related content.
+        If LinkedIn is not connected, let them know they can connect it at Settings → LinkedIn.
 
         === BRAND DISCOVERY TOOLS (NEW) ===
         You now have direct web scraping and brand intelligence capabilities:
@@ -369,12 +376,19 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
             ...craigCrmToolDefs,
             ...craigCampaignToolDefs,
             ...semanticSearchToolDefs,
+            ...linkedInCraigToolDefs,
         ];
+
+        // Resolve Super User uid for LinkedIn tools (falls back gracefully if not a super user)
+        const superUserUid = (brandMemory as any).user_context?.uid as string | undefined;
+        const linkedInImpl = superUserUid ? makeLinkedInToolsImpl(superUserUid) : {};
+
         const allToolsWithAnalytics = {
             ...tools,
             ...analyticsImpl,
             ...makeSemanticSearchToolsImpl(orgId),
             ...makeRedditToolsImpl(),
+            ...linkedInImpl,
             searchOpportunities: async (query: string) => {
                 try {
                     const { searchWeb, formatSearchResults } = await import('@/server/tools/web-search');

@@ -30,4 +30,7 @@ export type DomainUserProfile = {
 
     favoriteRetailerId?: string | null;
     onboarding?: UserOnboardingProfile;
+
+    // Integration flags (derived from Firestore subcollections, not stored on the profile doc)
+    linkedinConnected?: boolean;
 };

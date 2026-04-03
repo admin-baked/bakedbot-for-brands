@@ -16,6 +16,7 @@ import {
     AgentId
 } from './agent-definitions';
 import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integration-status';
+import { linkedInLeoToolDefs, makeLinkedInToolsImpl } from '@/server/tools/linkedin-tools';
 
 export interface LeoTools extends Partial<AllSharedTools>, Partial<ExecutiveContextTools> {
     // Multi-Agent Orchestration
@@ -139,6 +140,7 @@ export const leoAgent: AgentImplementation<LeoMemory, LeoTools> = {
             - Calendar: getCalendarContext() — fetch today's meetings, prep for calls, spot gaps
             - Email: getEmailDigest(sinceHours?) — read unread inbox, surface opportunities
             - Search: searchOpportunities(query) — scan web for cannabis industry intel
+            - LinkedIn (Super User): linkedin_send_message(profileUrl, message) — DM a connection for outreach; linkedin_enrich_profile(profileUrl) — get name/headline/location before reaching out
 
             PROACTIVE OPERATIONS STANCE:
             You proactively use your intelligence tools to stay ahead of the day. When a user
@@ -444,13 +446,17 @@ export const leoAgent: AgentImplementation<LeoMemory, LeoTools> = {
             ];
 
             // Combine Leo-specific tools with shared tools + executive context (calendar/email/search)
+            const superUserUid = (brandMemory as any).user_context?.uid as string | undefined;
+            const linkedInImpl = superUserUid ? makeLinkedInToolsImpl(superUserUid) : {};
+
             const toolsDef = [
                 ...leoSpecificTools,
                 ...executiveContextToolDefs,
                 ...contextOsToolDefs,
                 ...lettaToolDefs,
                 ...intuitionOsToolDefs,
-                ...semanticSearchToolDefs
+                ...semanticSearchToolDefs,
+                ...linkedInLeoToolDefs,
             ];
 
             try {
@@ -460,7 +466,7 @@ export const leoAgent: AgentImplementation<LeoMemory, LeoTools> = {
                     userQuery,
                     systemInstructions: (agentMemory.system_instructions as string) || '',
                     toolsDef,
-                    tools: { ...tools, ...makeSemanticSearchToolsImpl(semanticSearchEntityId) },
+                    tools: { ...tools, ...makeSemanticSearchToolsImpl(semanticSearchEntityId), ...linkedInImpl },
                     model: 'claude-sonnet-4-6', // Use Claude Sonnet 4 for orchestration
                     maxIterations: 7, // Leo gets more iterations for complex orchestration
                     onStepComplete: async (step, toolName, result) => {

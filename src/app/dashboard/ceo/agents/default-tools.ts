@@ -454,7 +454,7 @@ export const defaultCraigTools = {
     },
     getCampaignMetrics: async (campaignId: string) => {
         return { kpi: Math.random() };
-    }
+    },
 };
 
 export const defaultSmokeyTools = {
