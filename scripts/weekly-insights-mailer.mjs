@@ -52,7 +52,7 @@ if (!process.env.ANTHROPIC_API_KEY && process.env.CLAUDE_API_KEY) {
 const FACETS_DIR = join(homedir(), '.claude', 'usage-data', 'facets');
 const REPORTS_DIR = join(homedir(), '.claude', 'insights', 'weekly-reports');
 const RECIPIENT_EMAIL = process.env.RECIPIENT_EMAIL ?? 'martez@bakedbot.ai';
-const SENDER_EMAIL = process.env.SENDER_EMAIL ?? 'linus@bakedbot.ai';
+const SENDER_EMAIL = process.env.SENDER_EMAIL ?? 'team@bakedbot.ai';
 const SENDER_NAME = 'Linus · BakedBot CTO';
 
 const { values: args } = parseArgs({
