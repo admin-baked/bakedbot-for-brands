@@ -6,6 +6,7 @@ import { Search, Terminal, Zap, FileSpreadsheet, Scale, Lock, BarChart3, Mail, M
 import { HeroClient } from "@/components/landing/hero-client";
 import { PricingClient } from "@/components/landing/pricing-client";
 import Logo from "@/components/logo";
+import { ScrollTriggeredAuditPopup } from "@/components/audit/audit-popup";
 
 const nav = [
   { label: "Product", href: "#product" },
@@ -117,6 +118,7 @@ export function BakedBotHome() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-background text-foreground font-sans selection:bg-emerald-500/30">
+      <ScrollTriggeredAuditPopup />
       <header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">

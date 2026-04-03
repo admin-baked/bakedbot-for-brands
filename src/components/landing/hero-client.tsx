@@ -7,29 +7,37 @@ import { LiveStats } from '@/components/landing/live-stats';
 import { Search, ArrowRight, Store, Building2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { AuditPopup } from '@/components/audit/audit-popup';
 
 export function HeroClient() {
     const [userType, setUserType] = useState<'dispensary' | 'brand'>('dispensary');
     const [auditUrl, setAuditUrl] = useState('');
+    const [popupOpen, setPopupOpen] = useState(false);
+    const [popupUrl, setPopupUrl] = useState('');
     const router = useRouter();
 
     const handleAuditSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!auditUrl) return;
 
-        // Determine destination based on user type and input
-        // If it looks like a URL, go to free-audit
-        // If it looks like a name, go to claim
         const isUrl = auditUrl.includes('.') || auditUrl.includes('http');
 
         if (isUrl) {
-            router.push(`/free-audit?url=${encodeURIComponent(auditUrl)}`);
+            // Open popup in-place for URL inputs — keeps user on homepage for lead capture
+            setPopupUrl(auditUrl);
+            setPopupOpen(true);
         } else {
             router.push(`/claim?q=${encodeURIComponent(auditUrl)}`);
         }
     };
 
     return (
+        <>
+        <AuditPopup
+            open={popupOpen}
+            onClose={() => setPopupOpen(false)}
+            initialUrl={popupUrl}
+        />
         <section className="relative overflow-x-hidden min-h-[90vh] flex flex-col justify-center">
             {/* Background Gradients — clamped to viewport width to prevent horizontal scroll */}
             <div className="absolute inset-0 -z-10 pointer-events-none overflow-hidden">
@@ -144,5 +152,6 @@ export function HeroClient() {
                 </div>
             </div>
         </section>
+        </>
     );
 }

@@ -73,6 +73,31 @@ A campaign that destroys margin is a failure regardless of revenue lift.
 6. `validateCompliance(copy, state, channel)` — required before draft creation
 7. `createCampaignDraft(...)` — status enters `draft`; awaits human approval
 
+## Value-Before-Ask Framework (3:1 Rule)
+
+For nurture and awareness sequences, apply a 3:1 ratio: 3 messages of pure value before 1 promotional ask.
+
+**Sequence structure for new customer welcome:**
+1. Day 1 — Welcome + gift (thank you, no pitch)
+2. Day 3 — Educational value (strain guide, effects explainer, staff pick)
+3. Day 5 — Social proof (top-rated products, loyalty member story)
+4. Day 7 — First offer (soft sell with clear CTA)
+
+**Subject line formulas:**
+- Curiosity gap: "Why most [audience] choose the wrong strain..."
+- Number-based: "The 3 questions to ask before your first purchase"
+- Pattern interrupt: "Stop buying indicas for sleep (here's what actually works)"
+
+## Content Pillar Distribution (for social + email calendars)
+
+| Pillar | Share | Examples |
+|---|---|---|
+| Educational | 40% | Strain effects, consumption methods, terpene guides, first-timer tips |
+| Behind-the-scenes | 20% | Staff picks, grower stories, dispensary operations, supplier spotlights |
+| Social proof | 15% | Customer reviews, loyalty milestones, top-rated products |
+| Engagement | 15% | Polls ("Indica or Sativa?"), questions, community shoutouts |
+| Promotional | 10% | New arrivals, flash sales, loyalty rewards, restock alerts |
+
 ## Output Contract
 
 ```
@@ -84,6 +109,10 @@ MARGIN CHECK: [scorecard result / "no offer — N/A"]
 COMPLIANCE: [Pass / Flagged items]
 DRAFT ID: [campaignId] — status: draft, awaiting approval
 
+### Revenue Impact Estimate
+Expected lift: +$X,XXX – $X,XXX (based on [segment size × AOV × estimated conversion lift])
+Effort: [Low/Medium/High] | Timeline: [X days]
+
 ### Variation 1 — Professional
 [Copy per channel with subject/preheader for email, 160-char body for SMS]
 
@@ -92,6 +121,10 @@ DRAFT ID: [campaignId] — status: draft, awaiting approval
 
 ### Variation 3 — Educational
 [Copy per channel]
+
+### A/B Tests to Run
+Test 1: If [change X] then [metric Y improves by Z%] — Measure: [metric] | Duration: 2 weeks
+Test 2: If [change X] then [metric Y improves by Z%] — Measure: [metric] | Duration: 2 weeks
 
 ### Reviewer Note
 [One sentence on what to check or approve before scheduling]

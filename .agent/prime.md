@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; Thrive Syracuse tablet recommendations live on `bakedbot-prod-build-2026-04-03-013`; weekly insights mailer + CCR trigger + Linus video regression reverted + fal resultUrl fix (strip /status from status_url).
-**Recent work (2026-04-03):** `022d2e657`, `ae0387d6b` — shared check-in types moved out of the `use server` module; creative video state-order typecheck fix; live Thrive Syracuse tablet verified with 3 product cards + 1 bundle on build `013`
+**Current Status:** 🟢 `main` green; Linus Slack hardened — GLM refusal detection ×8, system prompt cache (5-min TTL), GLM-5V-Turbo vision path live.
+**Recent work (2026-04-03):** `6bf26e566` — Linus GLM refusal patterns expanded + system prompt cache + selective GLM-5V-Turbo for vision Slack messages
 
 ## 🧭 CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 

@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; Thrive Syracuse tablet recommendations live on `bakedbot-prod-build-2026-04-03-013` + weekly insights mailer live + CCR Mon 9am trigger + Linus video revert + fal result URL fix (strip /status) | **Last update:** 2026-04-03 (Thrive tablet live + check-in server-action fix)
+**Current Status:** 🟢 `main` green; Linus Slack hardened (GLM refusal detection ×8, system prompt cache, GLM-5V-Turbo vision path) | **Last update:** 2026-04-03 (Linus Slack audit + GLM-5V-Turbo selective vision routing)
 
 ---
 
