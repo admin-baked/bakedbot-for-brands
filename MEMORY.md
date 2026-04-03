@@ -1,5 +1,11 @@
 # BakedBot Session Memory
 
+## Session: 2026-04-03
+- **Thrive tablet recommendation recovery** (`022d2e657`) - Moved shared check-in types/constants into `src/lib/checkin/checkin-management-shared.ts` so the public tablet flow no longer imported a runtime object from the `use server` check-in actions module.
+- **Build-health unblock for the ship path** (`022d2e657`) - Fixed the `src/app/dashboard/creative/page.tsx` state ordering regression so repo-wide `npm run -s check:types` passed again before push.
+- **Live production verification** (`bakedbot-prod-build-2026-04-03-013`) - Traced the App Hosting rollout through canceled builds `011` and `012`, then confirmed the healthy live revision `013` serves `200` recommendation POSTs plus `3` product cards and `1` bundle card on `https://bakedbot.ai/loyalty-tablet?orgId=org_thrive_syracuse`.
+- **Session file** - `memory/sessions/2026-04-03-0627-thrive-tablet-live-fix.md`
+
 ## Session: 2026-04-02
 - **Thrive tablet menu recovery** (`uncommitted`) - Restored the public Syracuse recommendations path by teaching the canonical consumer adapter to resolve org/location aliases through `buildOrgIdCandidates()` and `locations` lookups before retrying Firestore menu fetches.
 - **Adapter coverage + video typecheck cleanup** (`uncommitted`) - Added focused consumer-adapter tests for location and alias-brand fallback, passed the required shared `duration` into chain-video Remotion renders, and bridged the long-form Remotion metadata typing so the earlier Root/route blockers are gone.

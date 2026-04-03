@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; weekly insights mailer + CCR trigger + Linus video regression reverted + fal resultUrl fix (strip /status from status_url).
-**Recent work (2026-04-03):** `6a29ab7ac`, `857d97bf7`, `71f145cee` — weekly insights email live (linus@bakedbot.ai); CCR Mon 9am trigger; Linus d9c65a341 regression reverted; fal result URL now derived from status_url
+**Current Status:** 🟢 `main` green; Thrive Syracuse tablet recommendations live on `bakedbot-prod-build-2026-04-03-013`; weekly insights mailer + CCR trigger + Linus video regression reverted + fal resultUrl fix (strip /status from status_url).
+**Recent work (2026-04-03):** `022d2e657`, `ae0387d6b` — shared check-in types moved out of the `use server` module; creative video state-order typecheck fix; live Thrive Syracuse tablet verified with 3 product cards + 1 bundle on build `013`
 
 ## 🧭 CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 
