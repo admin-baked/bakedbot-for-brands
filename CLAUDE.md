@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; Wan 2.1 default video model (28× cheaper than Kling) + fal status_url fix (405 on Wan polling) + simplify cleanup | **Last update:** 2026-04-03 (wan 2.1 default + fal status poll fix)
+**Current Status:** 🟢 `main` green; health audit (schema backfill 26 docs) + email dispatcher cache unified (`withOrgIntegrationCache`) + Mailjet error-caching gap fixed | **Last update:** 2026-04-03 (health audit + email cache fix)
 
 ---
 
@@ -70,6 +70,83 @@ After completing ANY code modifications AND **before every `git push` / Firebase
 > **⚠️ Stuck build pattern:** If `firebase-apphosting.mjs status` shows a build RUNNING > 25 min with `Duration: unknown`, cancel it and push an empty commit to re-trigger.
 
 **Note:** Windows PowerShell — use `;` not `&&` for command chaining.
+
+---
+
+## Build & Type Checking
+
+When running TypeScript type checks, always use `--max-old-space-size=8192` flag or run targeted checks on changed files only (`tsc --noEmit path/to/changed/files`). The full codebase causes OOM errors.
+
+```powershell
+# Safe full check
+node --max-old-space-size=8192 node_modules/.bin/tsc --noEmit
+
+# Targeted check (preferred)
+.\scripts\npm-safe.cmd run check:types
+```
+
+---
+
+## Deployment
+
+For Firebase deployments: builds frequently fail due to OOM, Turbopack issues, or GCP timing. Always monitor the deploy after triggering it and be prepared to retry once. If a deploy fails on a docs-only commit, re-trigger before investigating.
+
+- After `git push origin main`, poll `gh run list --workflow "Deploy to Firebase App Hosting" --branch main --limit 3` until `completed|success`
+- If a build is RUNNING > 25 min with `Duration: unknown` → cancel and push an empty commit to re-trigger
+- Docs-only commit failures are almost always infra timeouts — re-trigger first, don't debug the commit
+
+---
+
+## Debugging Guidelines
+
+When debugging production bugs, always check server-side root causes first before applying client-side fixes. Multiple sessions showed initial client-side fixes missing the real server-side issue (e.g., auth/session bugs, wrong bot tokens).
+
+1. Trace the full request path from client → server before writing any fix
+2. Check server logs / Firestore for the actual error, not just what the UI shows
+3. Don't apply a client-side patch until server-side causes are ruled out
+
+**Protocol:** Before implementing any fix, trace the full request path from client to server and identify the root cause. Show the server-side code path first. Don't suggest client-side fixes until server-side issues are ruled out.
+
+## Bulk API Operations
+
+Before running any bulk API operation (Apollo, fal.ai, Jina, Firestore batch writes, etc.):
+
+1. **Validate keys** — make a single test call to confirm the API key is active and not rate-limited
+2. **5-item pilot** — run a test batch of 5 items end-to-end and verify the full pipeline works
+3. **Scale up** — only then process in 20-item batches with exponential backoff and per-item error handling
+
+```typescript
+// Pattern: validate → pilot → scale
+await validateApiKey();
+const pilot = await processBatch(items.slice(0, 5));
+if (!pilot.success) throw new Error(`Pilot failed: ${pilot.error}`);
+for (const chunk of chunks(items, 20)) {
+  await processBatchWithRetry(chunk, { maxRetries: 3, backoffMs: 1000 });
+}
+```
+
+Never start a bulk run without validating keys first — depleted/rate-limited keys discovered mid-run waste all prior work.
+
+---
+
+## End of Session Checklist
+
+**At the end of every session, automatically update CLAUDE.md with any new patterns or decisions, prime.md with current project state, and MEMORY.md with session summary. Do not wait to be asked.**
+
+After completing code changes:
+1. Run targeted type checks on changed files (`--max-old-space-size=8192` if needed)
+2. Push to GitHub (`git push origin main`)
+3. Update project documentation (CLAUDE.md, prime.md, MEMORY.md)
+
+Use `/shipit` to run this as a single command.
+
+---
+
+## Known Issues
+
+- **Stale background task notifications:** Dismiss immediately without processing. They are artifacts from previous sessions and not actionable.
+- **tsc OOM:** Full type-check crashes node at ~4GB heap on this machine. Always use targeted checks or `--max-old-space-size=8192`. Exit 0 = passing even if node crashes after.
+- **Firebase stuck builds:** Build RUNNING > 25 min with `Duration: unknown` = infra timeout, not a code issue. Cancel + empty commit to re-trigger.
 
 ---
 

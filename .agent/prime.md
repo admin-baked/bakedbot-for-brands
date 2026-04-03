@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; dual-channel email + Cloudflare DNS auto-config shipped.
-**Recent work (2026-04-03):** `1fd6df1f2` — Google Workspace org OAuth + Mailjet org config; dispatcher routes by communicationType; Cloudflare API client + one-click SPF/DMARC/DKIM CNAME; Email settings tab; Smokey panel onboarding-first
+**Current Status:** 🟢 `main` green; health audit clean + email dispatcher cache unified.
+**Recent work (2026-04-03):** `79b7e45af` — `withOrgIntegrationCache` helper unifies Mailjet+Workspace loaders; fixes Mailjet error-caching gap; 26 stray `playbook_executions` docs backfilled
 
 ## 🧭 CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 
