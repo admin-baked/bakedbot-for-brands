@@ -42,6 +42,13 @@ export interface ClaudeContext {
     model?: string; // Allow model override
     autoRouteModel?: boolean; // Auto-select Opus for complex tasks (default: true)
     contextTokens?: number; // Estimated context size for model selection
+    /**
+     * Hard token budget for the full run (input + output combined).
+     * When cumulative usage reaches this limit, the loop stops before the next API call
+     * and returns with stop_reason='budget_exceeded' in the metadata.
+     * Defaults to 80_000 tokens (~$0.24 on Sonnet) to prevent runaway loops.
+     */
+    tokenBudget?: number;
     agentContext?: AgentContext; // Agent identity + capabilities for system prompt
     imageAttachments?: Array<{ data: string; mimeType: string }>; // Base64 images for vision (e.g. screenshots from Slack)
     onToolCall?: (toolName: string, input: Record<string, unknown>) => Promise<void>; // Progress callback fired before each tool execution
@@ -63,6 +70,7 @@ export interface ClaudeResult {
     inputTokens: number;
     outputTokens: number;
     cachedTokens: number;   // tokens served from Anthropic prompt cache (90% discount)
+    stopReason?: 'completed' | 'budget_exceeded' | 'max_iterations';
 }
 
 // Default model for tool calling - Claude Sonnet 4.6 (optimized for agentic workflows)
@@ -77,6 +85,8 @@ export const CLAUDE_REASONING_MODEL = process.env.CLAUDE_REASONING_MODEL || 'cla
 // Maximum iterations to prevent infinite loops
 const MAX_ITERATIONS = 10;
 const TOOL_RESULT_CHAR_LIMIT = 12000;
+// Default hard token budget per run — stops the loop before making a call that would exceed it
+const DEFAULT_TOKEN_BUDGET = 80_000;
 
 // Test mode flag - use GLM mocks in unit/integration tests
 // When true, `callGLM()` uses mocked implementation (fast, reliable)
@@ -329,7 +339,9 @@ export async function executeWithTools(
 
     // Log when upgrading to Opus for observability
     if (selectedModel === CLAUDE_REASONING_MODEL && !context.model) {
-        console.log(`[Claude] Auto-routing to Opus 4.5: ${complexity.reasoning}`);
+        import('@/lib/logger').then(({ logger }) =>
+            logger.info(`[Claude] Auto-routing to Opus 4.5: ${complexity.reasoning}`)
+        ).catch(() => {});
     }
 
     // Build initial user message — include base64 image blocks if provided (e.g. Slack screenshots)
@@ -345,12 +357,14 @@ export async function executeWithTools(
         { role: 'user', content: firstMessageContent }
     ];
 
+    const tokenBudget = context.tokenBudget ?? DEFAULT_TOKEN_BUDGET;
     const toolExecutions: ToolExecution[] = [];
     let totalInputTokens = 0;
     let totalOutputTokens = 0;
     let totalCachedTokens = 0;
     let finalContent = '';
     let estimatedToolResultTokens = 0;
+    let budgetExceeded = false;
 
     // Add cache_control to the last tool so Anthropic caches the entire tools array.
     // On cache hit, all tool definitions are served at 90% discount (~10% of normal price).
@@ -367,6 +381,12 @@ export async function executeWithTools(
     const cachedSystemPrompt = buildCachedSystemPrompt(systemPrompt);
 
     for (let iteration = 0; iteration < maxIterations; iteration++) {
+        // Hard budget gate — stop before making a call that would exceed the limit
+        if (totalInputTokens + totalOutputTokens >= tokenBudget) {
+            budgetExceeded = true;
+            break;
+        }
+
         const response = await client.messages.create({
             model: selectedModel,
             max_tokens: 4096,
@@ -462,6 +482,7 @@ export async function executeWithTools(
         messages.push({ role: 'user', content: toolResults });
     }
 
+    const iterationsUsed = toolExecutions.length; // proxy for loop count
     const result: ClaudeResult = {
         content: finalContent,
         toolExecutions,
@@ -469,6 +490,11 @@ export async function executeWithTools(
         inputTokens: totalInputTokens,
         outputTokens: totalOutputTokens,
         cachedTokens: totalCachedTokens,
+        stopReason: budgetExceeded
+            ? 'budget_exceeded'
+            : iterationsUsed >= maxIterations
+                ? 'max_iterations'
+                : 'completed',
     };
 
     // Record telemetry when agent context is present (fire-and-forget)

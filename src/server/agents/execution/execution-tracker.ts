@@ -147,6 +147,37 @@ export class ExecutionTracker {
     }
 
     /**
+     * Persist the trace to Firestore for durability and queryability.
+     * Path: tenants/{tenantId}/execution_traces/{trace.id}
+     * Fire-and-forget — never throws to avoid blocking the caller.
+     */
+    async saveTrace(tenantId: string): Promise<void> {
+        try {
+            const { getAdminFirestore } = await import('@/firebase/admin');
+            const firestore = getAdminFirestore();
+            await firestore
+                .collection(`tenants/${tenantId}/execution_traces`)
+                .doc(this.trace.id)
+                .set({
+                    ...this.trace,
+                    startedAt: this.trace.startedAt.toISOString(),
+                    completedAt: this.trace.completedAt?.toISOString() ?? null,
+                    steps: this.trace.steps.map(s => ({
+                        ...s,
+                        startedAt: s.startedAt?.toISOString() ?? null,
+                        completedAt: s.completedAt?.toISOString() ?? null,
+                    })),
+                    savedAt: new Date().toISOString(),
+                }, { merge: true });
+        } catch (e) {
+            // Import logger lazily to avoid circular deps
+            import('@/lib/logger').then(({ logger }) =>
+                logger.error('[ExecutionTracker] Failed to persist trace', { traceId: this.trace.id, error: e })
+            ).catch(() => {});
+        }
+    }
+
+    /**
      * Get elapsed time in seconds
      */
     getElapsedSeconds(): number {

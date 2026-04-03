@@ -2,13 +2,26 @@
 import { ai } from '@/ai/genkit';
 import { getGenerateOptions } from '@/ai/model-selector';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
+
+export type TaskStatus =
+    | 'pending'
+    | 'in_progress'
+    | 'completed'
+    | 'blocked'
+    | 'awaiting_approval'
+    | 'expired'
+    | 'failed';
 
 export interface Task {
     id: string;
     content: string;
     context?: string;
-    status: 'pending' | 'in_progress' | 'completed';
+    status: TaskStatus;
     subtasks?: Task[];
+    blockedReason?: string;    // set when status === 'blocked'
+    approvalId?: string;       // set when status === 'awaiting_approval'
+    failureReason?: string;    // set when status === 'failed'
 }
 
 /**
@@ -45,7 +58,7 @@ export class TaskManager {
                 content: result.text.trim(),
             };
         } catch (error) {
-            console.error('Task evolution failed:', error);
+            logger.error('[TaskManager] Task evolution failed', { error });
             return task; // Fallback to original
         }
     }
@@ -98,7 +111,7 @@ export class TaskManager {
             }));
 
         } catch (error) {
-            console.error('Task decomposition failed:', error);
+            logger.error('[TaskManager] Task decomposition failed', { error });
             return [];
         }
     }

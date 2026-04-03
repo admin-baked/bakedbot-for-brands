@@ -61,19 +61,25 @@ function mapToolToApprovalType(toolName: string): ApprovalRequest['type'] {
     return 'update_catalog'; // default fallback
 }
 
+const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
 export async function checkIdempotency(key: string): Promise<any | null> {
     if (!key) return null;
     const { firestore } = await createServerClient();
     const doc = await firestore.doc(`system/tools/idempotency/${key}`).get();
-    return doc.exists ? doc.data() : null;
+    if (!doc.exists) return null;
+    const data = doc.data()!;
+    // Treat expired records as cache misses
+    if (data.expiresAt && data.expiresAt < Date.now()) return null;
+    return data;
 }
 
 export async function saveIdempotency(key: string, result: any) {
     if (!key) return;
     const { firestore } = await createServerClient();
-    // basic expiry would be good here (TTL)
     await firestore.doc(`system/tools/idempotency/${key}`).set({
         result,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        expiresAt: Date.now() + IDEMPOTENCY_TTL_MS
     });
 }

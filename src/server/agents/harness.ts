@@ -41,7 +41,8 @@ export async function runAgent<TMemory extends AgentMemory, TTools = any>(
 ): Promise<AgentLogEntry | undefined> {
 
     const { agentName } = implementation;
-    logger.info(`[Harness] Starting ${agentName} for brand ${brandId}`);
+    const runId = crypto.randomUUID();
+    logger.info(`[Harness] Starting ${agentName} for brand ${brandId} (run=${runId})`);
 
     try {
         // A. Load State
@@ -103,7 +104,7 @@ export async function runAgent<TMemory extends AgentMemory, TTools = any>(
                 id: logEntry.id, // Align IDs for traceability
                 tenantId: brandId,
                 agent: agentName as any, // Cast to AgentName
-                sessionId: 'harness_session', // TODO: Pass session ID through harness
+                sessionId: runId,
                 type: 'task_completed',
                 payload: {
                     action: result.logEntry.action,

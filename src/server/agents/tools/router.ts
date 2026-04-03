@@ -8,15 +8,51 @@ import {
 import { getToolDefinition } from './registry';
 import { v4 as uuidv4 } from 'uuid';
 import { hasRolePermission } from '@/server/auth/rbac';
+import { logger } from '@/lib/logger';
 
 // In a real implementation, we would import the actual implementation functions here
 // or use a dynamic import map. For Phase 1, we will mock the dispatch or leave it abstract.
 
 /**
+ * Validates tool inputs against the JSON Schema defined in the registry.
+ * Returns a validation error string, or null if valid.
+ */
+function validateInputs(inputs: unknown, schema: Record<string, unknown>): string | null {
+    const required = (schema.required as string[] | undefined) ?? [];
+    const properties = (schema.properties as Record<string, { type?: string }> | undefined) ?? {};
+
+    if (required.length === 0 && Object.keys(properties).length === 0) {
+        return null; // No schema constraints — pass through
+    }
+
+    const inp = (inputs && typeof inputs === 'object' ? inputs : {}) as Record<string, unknown>;
+
+    for (const field of required) {
+        if (inp[field] === undefined || inp[field] === null) {
+            return `Missing required field: '${field}'`;
+        }
+    }
+
+    for (const [field, def] of Object.entries(properties)) {
+        const value = inp[field];
+        if (value === undefined || value === null) continue; // optional — skip
+        const expected = def.type;
+        if (!expected) continue;
+        const actual = Array.isArray(value) ? 'array' : typeof value;
+        if (actual !== expected) {
+            return `Field '${field}' must be ${expected}, got ${actual}`;
+        }
+    }
+
+    return null;
+}
+
+/**
  * The Central Nervous System for Agent Tools.
  * - Validates existence
  * - Checks permissions
- * - Enforces idempotency (TODO)
+ * - Enforces idempotency
+ * - Validates schema
  * - Logs to Audit
  * - Dispatches execution
  */
@@ -85,8 +121,13 @@ export async function routeToolCall(request: ToolRequest): Promise<ToolResponse>
         }
     }
 
-    // 5. Schema Validation (Placeholder)
-    // TODO: Implement Zod schema validation against definition.inputSchema
+    // 5. Schema Validation
+    if (definition.inputSchema && typeof definition.inputSchema === 'object') {
+        const validationError = validateInputs(inputs, definition.inputSchema as Record<string, unknown>);
+        if (validationError) {
+            return createErrorResponse(request, startTime, `Invalid inputs for '${toolName}': ${validationError}`);
+        }
+    }
 
     // 6. Execution Dispatch
     try {
@@ -117,15 +158,12 @@ export async function routeToolCall(request: ToolRequest): Promise<ToolResponse>
 }
 
 /**
- * Dispatches the call to the actual code.
- * In Phase 1, this is largely a router to mock functions or the "Universal" implementations.
+ * Dispatches the call to the actual implementation.
+ * Each tool name maps to its implementation via explicit cases below.
+ * Unrecognized tools return 'failed' — never silently succeed.
  */
 async function dispatchExecution(def: ToolDefinition, inputs: any, request: ToolRequest): Promise<ToolResponse> {
 
-    // TODO: Map string name to actual function import
-    // const impl = await import(`../implementations/${def.name}`);
-
-    // Mock Response for Phase 1 "Hello World"
     if (def.name === 'context.getTenantProfile') {
         if (!request.tenantId) throw new Error('Tool requires tenant context.');
         const { getTenantProfile } = await import('./universal/context-tools');
@@ -175,7 +213,7 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
                 };
             }
         } catch (e) {
-            console.warn('[docs.search] Knowledge base search failed, returning empty:', e);
+            logger.warn('[docs.search] Knowledge base search failed, returning empty', { error: e });
         }
         
         // Fallback: return empty results
@@ -442,7 +480,7 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
                 };
             }
         } catch (error) {
-           console.warn('[Router] Skill dispatch failed, falling back to legacy:', error);
+           logger.warn('[Router] Skill dispatch failed, falling back to legacy', { error });
         }
 
         // Legacy Fallback
@@ -1572,9 +1610,10 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
         }
     }
 
+    logger.warn(`[Router] No implementation found for tool: ${def.name}`);
     return {
-        status: 'success',
-        data: { message: `Executed tool: ${def.name}`, inputs }
+        status: 'failed',
+        error: `Tool '${def.name}' has no registered implementation.`
     };
 }
 
@@ -1611,8 +1650,18 @@ async function logAudit(req: ToolRequest, start: number, res: ToolResponse) {
         idempotencyKey: req.idempotencyKey
     };
 
-    console.log(`[AUDIT] Tool:${req.toolName} Status:${res.status} Actor:${req.actor.userId}`, entry);
-    // TODO: await firestore.collection(...).add(entry);
+    logger.info(`[AUDIT] Tool:${req.toolName} Status:${res.status} Actor:${req.actor.userId}`);
+
+    // Write audit entry to Firestore (immutable append)
+    if (entry.tenantId) {
+        try {
+            const { createServerClient } = await import('@/firebase/server-client');
+            const { firestore } = await createServerClient();
+            await firestore.collection(`tenants/${entry.tenantId}/audit`).add(entry);
+        } catch (auditErr) {
+            logger.error('[AUDIT] Failed to write audit log to Firestore', { error: auditErr });
+        }
+    }
 
     // Intuition OS: Trace Logging
     if (req.tenantId && req.actor.userId) {
@@ -1638,8 +1687,7 @@ async function logAudit(req: ToolRequest, start: number, res: ToolResponse) {
                 }
             });
         } catch (e) {
-            console.error('[IntuitionOS] Failed to log trace:', e);
-            // Don't fail the request completely if logging fails
+            logger.error('[IntuitionOS] Failed to log trace', { error: e });
         }
     }
 }
