@@ -705,17 +705,15 @@ export async function callClaude(options: ClaudeCallOptions): Promise<string> {
     const outputTokens = usage.output_tokens ?? 0;
     // Derive caller label from options or fall back to model name (no stack inspection)
     const callerLabel = options.caller ?? 'callClaude';
-    import('@/server/services/agent-telemetry').then(({ estimateCost }) => {
-        const cost = estimateCost(selectedModel, inputTokens, outputTokens);
-        logger.info('[Claude] callClaude usage', {
-            caller: callerLabel,
-            model: selectedModel,
-            inputTokens,
-            outputTokens,
-            costUsd: cost.toFixed(5),
-            durationMs: callDurationMs,
-        });
-    }).catch(() => {});
+    const cost = estimateCost(selectedModel, inputTokens, outputTokens);
+    logger.info('[Claude] callClaude usage', {
+        caller: callerLabel,
+        model: selectedModel,
+        inputTokens,
+        outputTokens,
+        costUsd: cost.toFixed(5),
+        durationMs: callDurationMs,
+    });
 
     // Extract text from response
     const textBlocks = response.content.filter(block => block.type === 'text');
