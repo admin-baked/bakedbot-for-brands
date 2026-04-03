@@ -1,6 +1,7 @@
 
 import { sendOrderConfirmationEmail as sendSG } from './sendgrid';
 import { sendOrderConfirmationEmail as sendMJ } from './mailjet';
+import { sendSesEmail } from './ses';
 import { getAdminFirestore } from '@/firebase/admin';
 import { getGmailToken } from '@/server/integrations/gmail/token-storage';
 import { getWorkspaceToken } from '@/server/integrations/google-workspace/token-storage';
@@ -280,7 +281,26 @@ export async function sendGenericEmail(data: GenericEmailData): Promise<{ succes
         }
     }
 
-    // ── Route 4: Platform Mailjet / SendGrid fallback ──────────────────
+    // ── Route 4: Amazon SES platform fallback (preferred) ─────────────
+    if (process.env.AWS_SES_ACCESS_KEY_ID && process.env.AWS_SES_SECRET_ACCESS_KEY) {
+        try {
+            await sendSesEmail({
+                to: data.to,
+                from: data.fromEmail ?? 'team@bakedbot.ai',
+                fromName: data.fromName ?? 'BakedBot',
+                subject: data.subject,
+                htmlBody: data.htmlBody,
+                textBody: data.textBody,
+            });
+            result = { success: true };
+            logCrm(result, data, 'ses');
+            return result;
+        } catch (e: any) {
+            logger.warn('[Dispatcher] SES failed, falling back to Mailjet/SendGrid', { error: e.message });
+        }
+    }
+
+    // ── Route 5: Mailjet / SendGrid legacy fallback ────────────────────
     const provider = await getPlatformProvider();
 
     const attemptSendGrid = async () => {

@@ -12,12 +12,13 @@
  *   node scripts/weekly-insights-mailer.mjs [--dry-run] [--days=7]
  *
  * Required env vars:
- *   MAILJET_API_KEY, MAILJET_SECRET_KEY — Mailjet credentials
- *   ANTHROPIC_API_KEY                  — for Claude Haiku analysis
+ *   AWS_SES_ACCESS_KEY_ID, AWS_SES_SECRET_ACCESS_KEY — Amazon SES credentials
+ *   ANTHROPIC_API_KEY                               — for Claude Haiku analysis
  *
  * Optional:
  *   RECIPIENT_EMAIL  (default: martez@bakedbot.ai)
- *   SENDER_EMAIL     (default: linus@bakedbot.ai)
+ *   SENDER_EMAIL     (default: team@bakedbot.ai)
+ *   AWS_SES_REGION   (default: us-east-1)
  */
 
 import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
@@ -26,7 +27,7 @@ import { fileURLToPath } from 'url';
 import { parseArgs } from 'util';
 import { homedir } from 'os';
 import Anthropic from '@anthropic-ai/sdk';
-import Mailjet from 'node-mailjet';
+import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 
 // Load .env.local (mirrors desktop-test-loop pattern)
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -298,23 +299,27 @@ function saveReport(report, stats, weekLabel, date) {
 // ── Send email ────────────────────────────────────────────────────────────────
 
 async function sendEmail(html, weekLabel) {
-  const apiKey = process.env.MAILJET_API_KEY;
-  const secretKey = process.env.MAILJET_SECRET_KEY;
+  const accessKeyId = process.env.AWS_SES_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.AWS_SES_SECRET_ACCESS_KEY;
 
-  if (!apiKey || !secretKey) {
-    console.warn('[Insights] No MAILJET_API_KEY/MAILJET_SECRET_KEY — skipping email');
+  if (!accessKeyId || !secretAccessKey) {
+    console.warn('[Insights] No AWS_SES_ACCESS_KEY_ID/AWS_SES_SECRET_ACCESS_KEY — skipping email');
     return;
   }
 
-  const client = new Mailjet({ apiKey, apiSecret: secretKey });
-  await client.post('send', { version: 'v3.1' }).request({
-    Messages: [{
-      From: { Email: SENDER_EMAIL, Name: SENDER_NAME },
-      To: [{ Email: RECIPIENT_EMAIL, Name: 'Martez' }],
-      Subject: `Claude Code Weekly Report — ${weekLabel}`,
-      HTMLPart: html,
-    }],
+  const client = new SESClient({
+    region: process.env.AWS_SES_REGION ?? 'us-east-1',
+    credentials: { accessKeyId, secretAccessKey },
   });
+
+  await client.send(new SendEmailCommand({
+    Source: `${SENDER_NAME} <${SENDER_EMAIL}>`,
+    Destination: { ToAddresses: [RECIPIENT_EMAIL] },
+    Message: {
+      Subject: { Data: `Claude Code Weekly Report — ${weekLabel}`, Charset: 'UTF-8' },
+      Body: { Html: { Data: html, Charset: 'UTF-8' } },
+    },
+  }));
 
   console.log(`[Insights] Email sent to ${RECIPIENT_EMAIL}`);
 }
