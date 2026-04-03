@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; Gemini Live voice collaboration live — customer + budtender + Smokey counter panel; all prior features live.
-**Recent work (2026-04-03):** `5cfffbd12` — Gemini Live voice: CheckinCounterPanel sheet, /api/voice/smokey route, use-smokey-voice hook, PCM→WAV builder, chatbot TTS prop
+**Current Status:** 🟢 `main` green; callClaude telemetry live; Cloudflare fully hardened; SES DNS verified + AWS production access pending.
+**Recent work (2026-04-03):** `e538f5e92` — model cost observability (caller tags + cost logging), research jobs pinned off Opus, Cloudflare Full Strict + HSTS + SPF -all
 
 ## ðŸ§­ CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 
