@@ -12,7 +12,7 @@
  */
 
 import { getRTRVRClient } from '@/server/services/rtrvr/client';
-import { getAdminFirestore } from '@/firebase/admin';
+import { getServiceSessionCookies } from '@/server/actions/service-session';
 import { logger } from '@/lib/logger';
 
 const LINKEDIN_BASE = 'https://www.linkedin.com';
@@ -59,16 +59,10 @@ export async function getLinkedInSession(uid: string): Promise<LinkedInSession |
     const cached = sessionCache.get(uid);
     if (cached && cached.expiresAt > Date.now()) return cached.session;
 
-    const db = getAdminFirestore();
-    const doc = await db.collection('users').doc(uid).collection('integrations').doc('linkedin').get();
-    if (!doc.exists) return null;
-    const data = doc.data() as { liAt?: string; connectedAt?: FirebaseFirestore.Timestamp };
-    if (!data?.liAt) return null;
+    const cookies = await getServiceSessionCookies(uid, 'linkedin');
+    if (!cookies?.li_at) return null;
 
-    const session: LinkedInSession = {
-        liAt: data.liAt,
-        connectedAt: data.connectedAt?.toDate() ?? new Date(),
-    };
+    const session: LinkedInSession = { liAt: cookies.li_at, connectedAt: new Date() };
     sessionCache.set(uid, { session, expiresAt: Date.now() + SESSION_TTL_MS });
     return session;
 }
