@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; inbox UX (immediate thinking indicator) + job poller 2-min timeout + consumer adapter parallel location resolution + fal 405 fix + Friday quotes | **Last update:** 2026-04-03 (inbox + video + consumer fixes)
+**Current Status:** 🟢 `main` green; weekly insights mailer live + CCR Mon 9am trigger + Linus video revert + fal result URL fix (strip /status) | **Last update:** 2026-04-03 (weekly insights + video fix)
 
 ---
 

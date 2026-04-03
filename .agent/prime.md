@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; inbox UX + job poller timeout + consumer adapter parallel resolution + fal 405 fix.
-**Recent work (2026-04-03):** `cbd42348c`, `2f72a6e0c`, `d9c65a341` — immediate thinking indicator; 2-min job timeout; resolveLocationCandidates parallelized; fal resultUrl fix (Wan 2.1 405); Friday quotes during long render
+**Current Status:** 🟢 `main` green; weekly insights mailer + CCR trigger + Linus video regression reverted + fal resultUrl fix (strip /status from status_url).
+**Recent work (2026-04-03):** `6a29ab7ac`, `857d97bf7`, `71f145cee` — weekly insights email live (linus@bakedbot.ai); CCR Mon 9am trigger; Linus d9c65a341 regression reverted; fal result URL now derived from status_url
 
 ## 🧭 CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 
