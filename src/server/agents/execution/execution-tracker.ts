@@ -5,6 +5,8 @@
  * Inspired by Tasklet.ai's execution transparency feature.
  */
 
+import { logger } from '@/lib/logger';
+
 export type ExecutionStepStatus = 'pending' | 'running' | 'done' | 'failed' | 'skipped';
 
 export interface ExecutionStep {
@@ -170,10 +172,7 @@ export class ExecutionTracker {
                     savedAt: new Date().toISOString(),
                 }, { merge: true });
         } catch (e) {
-            // Import logger lazily to avoid circular deps
-            import('@/lib/logger').then(({ logger }) =>
-                logger.error('[ExecutionTracker] Failed to persist trace', { traceId: this.trace.id, error: e })
-            ).catch(() => {});
+            logger.error('[ExecutionTracker] Failed to persist trace', { traceId: this.trace.id, error: e });
         }
     }
 

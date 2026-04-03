@@ -1652,15 +1652,12 @@ async function logAudit(req: ToolRequest, start: number, res: ToolResponse) {
 
     logger.info(`[AUDIT] Tool:${req.toolName} Status:${res.status} Actor:${req.actor.userId}`);
 
-    // Write audit entry to Firestore (immutable append)
+    // Write audit entry to Firestore — fire-and-forget to avoid blocking tool execution hot path
     if (entry.tenantId) {
-        try {
-            const { createServerClient } = await import('@/firebase/server-client');
-            const { firestore } = await createServerClient();
-            await firestore.collection(`tenants/${entry.tenantId}/audit`).add(entry);
-        } catch (auditErr) {
-            logger.error('[AUDIT] Failed to write audit log to Firestore', { error: auditErr });
-        }
+        import('@/firebase/server-client')
+            .then(({ createServerClient }) => createServerClient())
+            .then(({ firestore }) => firestore.collection(`tenants/${entry.tenantId!}/audit`).add(entry))
+            .catch((auditErr) => logger.error('[AUDIT] Failed to write audit log to Firestore', { error: auditErr }));
     }
 
     // Intuition OS: Trace Logging

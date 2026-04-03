@@ -4,7 +4,8 @@ import { getGenerateOptions } from '@/ai/model-selector';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 
-export type TaskStatus =
+/** Workflow-level task decomposition status. Distinct from platform TaskStatus in @/types/task.ts. */
+export type WorkflowTaskStatus =
     | 'pending'
     | 'in_progress'
     | 'completed'
@@ -17,7 +18,7 @@ export interface Task {
     id: string;
     content: string;
     context?: string;
-    status: TaskStatus;
+    status: WorkflowTaskStatus;
     subtasks?: Task[];
     blockedReason?: string;    // set when status === 'blocked'
     approvalId?: string;       // set when status === 'awaiting_approval'

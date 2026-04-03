@@ -11,6 +11,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import type { MessageParam, Tool, ContentBlock, ToolUseBlock, ToolResultBlockParam, Usage, TextBlockParam } from '@anthropic-ai/sdk/resources/messages';
+import { logger } from '@/lib/logger';
 
 // SDK Usage type has cache_creation_input_tokens but not cache_read_input_tokens yet
 type UsageWithCache = Usage & { cache_read_input_tokens?: number | null };
@@ -339,9 +340,7 @@ export async function executeWithTools(
 
     // Log when upgrading to Opus for observability
     if (selectedModel === CLAUDE_REASONING_MODEL && !context.model) {
-        import('@/lib/logger').then(({ logger }) =>
-            logger.info(`[Claude] Auto-routing to Opus 4.5: ${complexity.reasoning}`)
-        ).catch(() => {});
+        logger.info(`[Claude] Auto-routing to Opus 4.5: ${complexity.reasoning}`);
     }
 
     // Build initial user message — include base64 image blocks if provided (e.g. Slack screenshots)
@@ -365,6 +364,7 @@ export async function executeWithTools(
     let finalContent = '';
     let estimatedToolResultTokens = 0;
     let budgetExceeded = false;
+    let iterationCount = 0;
 
     // Add cache_control to the last tool so Anthropic caches the entire tools array.
     // On cache hit, all tool definitions are served at 90% discount (~10% of normal price).
@@ -381,6 +381,8 @@ export async function executeWithTools(
     const cachedSystemPrompt = buildCachedSystemPrompt(systemPrompt);
 
     for (let iteration = 0; iteration < maxIterations; iteration++) {
+        iterationCount = iteration + 1;
+
         // Hard budget gate — stop before making a call that would exceed the limit
         if (totalInputTokens + totalOutputTokens >= tokenBudget) {
             budgetExceeded = true;
@@ -482,7 +484,6 @@ export async function executeWithTools(
         messages.push({ role: 'user', content: toolResults });
     }
 
-    const iterationsUsed = toolExecutions.length; // proxy for loop count
     const result: ClaudeResult = {
         content: finalContent,
         toolExecutions,
@@ -492,7 +493,7 @@ export async function executeWithTools(
         cachedTokens: totalCachedTokens,
         stopReason: budgetExceeded
             ? 'budget_exceeded'
-            : iterationsUsed >= maxIterations
+            : iterationCount >= maxIterations
                 ? 'max_iterations'
                 : 'completed',
     };
