@@ -46,14 +46,14 @@ export function useJobPoller(jobId: string | undefined) {
 
         // Timeout: if job hasn't completed within JOB_TIMEOUT_MS, synthesize a failed state
         // so the conversation shows an error instead of spinning forever.
-        const timeoutId = window.setTimeout(() => {
+        const timeoutId = setTimeout(() => {
             setJob((current) => {
                 if (current && (current.status === 'completed' || current.status === 'failed' || current.status === 'cancelled')) {
-                    return current; // Already terminal — leave it alone
+                    return current;
                 }
                 return {
                     id: jobId,
-                    status: 'failed' as AgentJobStatus,
+                    status: 'failed',
                     error: 'The request timed out. The agent took longer than 2 minutes. Please try again.',
                     userId: current?.userId ?? '',
                     createdAt: current?.createdAt ?? Timestamp.now(),
@@ -100,7 +100,7 @@ export function useJobPoller(jobId: string | undefined) {
         });
 
         return () => {
-            window.clearTimeout(timeoutId);
+            clearTimeout(timeoutId);
             unsubJob();
             unsubThoughts();
         };
