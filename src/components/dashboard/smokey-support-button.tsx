@@ -3,50 +3,250 @@
 /**
  * Smokey Side Tab + Support Panel
  *
- * A vertical tab pinned to the right edge of the viewport that opens
- * the Smokey support panel. Replaces the old floating action button (FAB).
- * The tab is always visible (minimal footprint) — no dismiss-forever needed.
+ * Opens to the onboarding checklist by default.
+ * Users can navigate to the Help Center from there and always return.
+ *
+ * Views:
+ *   'onboarding' — setup checklist (default)
+ *   'help'       — help search + support actions
  */
 
-import { useState, useCallback } from 'react';
-import { Sparkles, X, ChevronLeft } from 'lucide-react';
+import { useState, useCallback, useEffect } from 'react';
+import { Sparkles, X, ChevronLeft, CheckCircle, Circle, ChevronRight, Clock, ArrowRight, HelpCircle, MessageSquare, Users, RotateCcw } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useUserRole } from '@/hooks/use-user-role';
-import SmokeySupportPanel from './smokey-support-panel';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { cn } from '@/lib/utils';
+import Link from 'next/link';
 import HelpSearchEnhanced from '@/components/help/help-search-enhanced';
+import MessageSupportDialog from './message-support-dialog';
+import {
+  BRAND_CHECKLIST,
+  DISPENSARY_CHECKLIST,
+  getLinkedDispensaryStatus,
+  type ChecklistItem,
+} from './setup-checklist';
 
 // Hide on routes with dense primary actions where the tab could steal clicks.
 const BLOCKED_ROUTES = ['/dashboard/menu', '/dashboard/settings', '/dashboard/creative'];
 
+type View = 'onboarding' | 'help';
+
+// ─────────────────────────────────────────────────────────────
+// Onboarding panel view — always accessible, no dismiss button
+// ─────────────────────────────────────────────────────────────
+function OnboardingPanelView({ onHelpClick }: { onHelpClick: () => void }) {
+  const { role, isBrandRole, isDispensaryRole } = useUserRole();
+  const [items, setItems] = useState<ChecklistItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      let base: ChecklistItem[] = [];
+
+      if (isBrandRole) {
+        base = [...BRAND_CHECKLIST];
+      } else if (isDispensaryRole) {
+        base = [...DISPENSARY_CHECKLIST];
+        const { isLinked, posConnected } = await getLinkedDispensaryStatus();
+        if (isLinked) {
+          base = base.map(item =>
+            item.id === 'link-dispensary' ? { ...item, status: 'done' as const } : item
+          );
+        }
+        if (posConnected) {
+          base = base.map(item =>
+            item.id === 'connect-pos' ? { ...item, status: 'done' as const } : item
+          );
+        }
+      }
+
+      setItems(base);
+      setIsLoading(false);
+    }
+    load();
+  }, [role, isBrandRole, isDispensaryRole]);
+
+  const completedCount = items.filter(i => i.status === 'done').length;
+  const totalCount = items.length;
+  const progressPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+  const allDone = totalCount > 0 && completedCount === totalCount;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+        <Sparkles className="h-4 w-4 animate-pulse mr-2" />
+        Loading your setup guide...
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Progress header */}
+      <div className="space-y-2">
+        {allDone ? (
+          <div className="flex items-center gap-2 text-sm font-medium text-emerald-600">
+            <CheckCircle className="h-4 w-4" />
+            Setup complete! You're all set.
+          </div>
+        ) : (
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-medium">{completedCount} of {totalCount} steps done</span>
+            <span className="text-muted-foreground text-xs">{Math.round(progressPercent)}%</span>
+          </div>
+        )}
+        <Progress value={progressPercent} className="h-1.5" />
+      </div>
+
+      {/* Checklist items */}
+      {totalCount > 0 && (
+        <div className="space-y-0.5">
+          {items.map((item) => (
+            <Link
+              key={item.id}
+              href={item.href}
+              className={cn(
+                'flex items-center gap-3 p-2 rounded-lg transition-colors group',
+                item.status === 'done'
+                  ? 'opacity-50'
+                  : 'hover:bg-muted/60'
+              )}
+            >
+              <div className={cn(
+                'flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center',
+                item.status === 'done'
+                  ? 'bg-emerald-100 text-emerald-600'
+                  : 'bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary'
+              )}>
+                {item.status === 'done'
+                  ? <CheckCircle className="h-3.5 w-3.5" />
+                  : <Circle className="h-3.5 w-3.5" />
+                }
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className={cn(
+                  'text-sm font-medium leading-snug',
+                  item.status === 'done' && 'line-through'
+                )}>
+                  {item.title}
+                </div>
+                <div className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Clock className="h-2.5 w-2.5" />
+                  {item.estimatedTime}
+                </div>
+              </div>
+              {item.status !== 'done' && (
+                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground flex-shrink-0" />
+              )}
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {/* Footer — navigate to Help */}
+      <div className="border-t pt-3">
+        <Button
+          variant={allDone ? 'default' : 'outline'}
+          className="w-full justify-between"
+          onClick={onHelpClick}
+        >
+          <span className="flex items-center gap-2">
+            <HelpCircle className="h-4 w-4" />
+            {allDone ? 'Explore Help Center' : 'View Help Docs'}
+          </span>
+          <ArrowRight className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Help panel view — wraps help search + support actions
+// ─────────────────────────────────────────────────────────────
+function HelpPanelView({
+  role,
+  onOnboardingClick,
+}: {
+  role: string;
+  onOnboardingClick: () => void;
+}) {
+  const [messagingOpen, setMessagingOpen] = useState(false);
+
+  return (
+    <div className="space-y-4">
+      {/* Help search */}
+      <HelpSearchEnhanced userRole={role} />
+
+      {/* Support actions */}
+      <div className="border-t pt-3 grid grid-cols-1 gap-2">
+        <Button
+          variant="outline"
+          className="justify-start h-auto py-2 px-3"
+          onClick={() => setMessagingOpen(true)}
+        >
+          <MessageSquare className="h-4 w-4 mr-2 flex-shrink-0" />
+          <div className="text-left">
+            <div className="font-medium text-sm">Message support team</div>
+            <div className="text-xs opacity-75">Connect with Super Users</div>
+          </div>
+        </Button>
+
+        <Button variant="outline" className="justify-start h-auto py-2 px-3" asChild>
+          <a href="/help" target="_blank" rel="noopener noreferrer">
+            <Users className="h-4 w-4 mr-2 flex-shrink-0" />
+            <div className="text-left">
+              <div className="font-medium text-sm">Go to community</div>
+              <div className="text-xs opacity-75">Browse help center</div>
+            </div>
+          </a>
+        </Button>
+
+        {/* Always-accessible onboarding link */}
+        <Button
+          variant="ghost"
+          className="justify-start h-auto py-2 px-3 text-muted-foreground hover:text-foreground w-full"
+          onClick={onOnboardingClick}
+        >
+          <RotateCcw className="h-4 w-4 mr-2 flex-shrink-0" />
+          <div className="text-left">
+            <div className="font-medium text-sm">Review setup guide</div>
+            <div className="text-xs opacity-75">Check your onboarding steps</div>
+          </div>
+        </Button>
+      </div>
+
+      <MessageSupportDialog open={messagingOpen} onOpenChange={setMessagingOpen} />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Main component
+// ─────────────────────────────────────────────────────────────
 export function SmokeyFloatingButton() {
   const [open, setOpen] = useState(false);
-  const [view, setView] = useState<'home' | 'help'>('home');
+  const [view, setView] = useState<View>('onboarding');
   const pathname = usePathname();
   const { role } = useUserRole();
 
   const isBlocked = BLOCKED_ROUTES.some((route) => pathname.includes(route));
 
-  const handleHelpClick = useCallback(() => setView('help'), []);
-  const handleBackClick = useCallback(() => setView('home'), []);
-
-  const handleRestartOnboarding = useCallback(() => {
-    localStorage.removeItem('setup-checklist-dismissed');
-    window.dispatchEvent(new CustomEvent('restart-onboarding'));
-    setOpen(false);
-    setView('home');
-  }, []);
-
   const handleTabClick = useCallback(() => {
     setOpen((prev) => {
-      if (prev) setView('home');
+      if (!prev) setView('onboarding'); // always open to onboarding
       return !prev;
     });
   }, []);
 
   const handleClose = useCallback(() => {
     setOpen(false);
-    setView('home');
   }, []);
+
+  const handleHelpClick = useCallback(() => setView('help'), []);
+  const handleOnboardingClick = useCallback(() => setView('onboarding'), []);
 
   // Only show for brand/dispensary users
   if (!role || !['brand', 'brand_admin', 'dispensary', 'dispensary_admin'].includes(role)) {
@@ -55,9 +255,11 @@ export function SmokeyFloatingButton() {
 
   if (isBlocked) return null;
 
+  const headerTitle = view === 'onboarding' ? 'Setup Guide' : 'Help Center';
+
   return (
     <>
-      {/* Side Tab — always visible, pinned to right edge */}
+      {/* Side Tab */}
       <button
         onClick={handleTabClick}
         title={open ? 'Close support panel' : 'Open Help & Setup'}
@@ -70,7 +272,7 @@ export function SmokeyFloatingButton() {
         </span>
       </button>
 
-      {/* Side Panel — slides in from the right, offset to keep tab visible */}
+      {/* Side Panel */}
       {open && (
         <div className="fixed right-10 top-16 z-50 w-80 max-h-[80vh] shadow-2xl rounded-2xl border bg-background overflow-hidden flex flex-col">
           {/* Panel Header */}
@@ -78,17 +280,15 @@ export function SmokeyFloatingButton() {
             <div className="flex items-center gap-2">
               {view === 'help' && (
                 <button
-                  onClick={handleBackClick}
+                  onClick={handleOnboardingClick}
                   className="text-muted-foreground hover:text-foreground transition-colors"
-                  title="Back"
+                  title="Back to Setup Guide"
                 >
                   <ChevronLeft className="h-5 w-5" />
                 </button>
               )}
               <Sparkles className="h-4 w-4 text-primary" />
-              <span className="font-semibold text-sm">
-                {view === 'home' ? 'Smokey Support' : 'Help Center'}
-              </span>
+              <span className="font-semibold text-sm">{headerTitle}</span>
             </div>
             <button
               onClick={handleClose}
@@ -101,18 +301,14 @@ export function SmokeyFloatingButton() {
 
           {/* Panel Content */}
           <div className="overflow-y-auto flex-1 p-4">
-            {view === 'home' ? (
-              <SmokeySupportPanel
-                onHelpClick={handleHelpClick}
-                onRestartOnboarding={handleRestartOnboarding}
-              />
+            {view === 'onboarding' ? (
+              <OnboardingPanelView onHelpClick={handleHelpClick} />
             ) : (
-              <HelpSearchEnhanced userRole={role || undefined} />
+              <HelpPanelView role={role} onOnboardingClick={handleOnboardingClick} />
             )}
           </div>
         </div>
       )}
-
     </>
   );
 }

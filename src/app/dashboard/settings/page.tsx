@@ -4,7 +4,7 @@
 
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Globe, Code, Download, Store, Users, Palette, Bot, Plug, Sparkles, Target, Wallet } from 'lucide-react';
+import { Globe, Code, Download, Store, Users, Palette, Bot, Plug, Sparkles, Target, Wallet, Mail } from 'lucide-react';
 import DomainSettingsTab from './components/domain-tab';
 import EmbedGeneratorTab from './components/embed-tab';
 import WordPressPluginTab from './components/wordpress-tab';
@@ -36,6 +36,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/firebase/client';
 import { logger } from '@/lib/logger';
 import { PaymentsTab } from './components/payments-tab';
+import { EmailSettingsTab } from './components/email-settings-tab';
 
 export default function SettingsPage() {
   const { role, isBrandRole, isDispensaryRole, hasBrandAdminAccess, hasDispensaryAdminAccess, isSuperUser } = useUserRole();
@@ -119,6 +120,10 @@ export default function SettingsPage() {
             <Download className="mr-2 h-4 w-4" />
             WordPress Plugin
           </TabsTrigger>
+          <TabsTrigger value="email">
+            <Mail className="mr-2 h-4 w-4" />
+            Email
+          </TabsTrigger>
           <TabsTrigger value="integrations">
             <Plug className="mr-2 h-4 w-4" />
             Integrations
@@ -195,6 +200,12 @@ export default function SettingsPage() {
 
         <TabsContent value="wordpress" className="space-y-4">
           <WordPressPluginTab />
+        </TabsContent>
+
+        <TabsContent value="email" className="space-y-4">
+          <Suspense fallback={<Card className="p-6 animate-pulse"><div className="h-40 bg-muted rounded" /></Card>}>
+            <EmailSettingsTab />
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="integrations" className="space-y-4">

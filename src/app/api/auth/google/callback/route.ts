@@ -10,6 +10,7 @@ import { getGoogleSuccessKey, normalizeGoogleService, type GoogleOAuthService, t
 import { requireUser } from '@/server/auth/auth';
 import { getAdminFirestore } from '@/firebase/admin';
 import { Timestamp } from '@google-cloud/firestore';
+import { saveWorkspaceToken, type WorkspaceSendAsAlias } from '@/server/integrations/google-workspace/token-storage';
 
 interface OAuthState {
     service: GoogleOAuthService;
@@ -17,6 +18,7 @@ interface OAuthState {
     profileSlug?: string; // only for exec_calendar
     uid?: string; // user UID embedded at auth URL generation time (avoids SameSite=Strict issue)
     requestedService?: GoogleServiceAlias;
+    orgId?: string; // org-scoped services (google_workspace)
 }
 
 /**
@@ -51,6 +53,7 @@ export async function GET(req: NextRequest) {
     let redirectPath = '/dashboard/ceo';
     let execProfileSlug: string | null = null;
     let stateUid: string | null = null;
+    let stateOrgId: string | null = null;
 
     if (stateParam) {
         try {
@@ -59,6 +62,7 @@ export async function GET(req: NextRequest) {
             if (state.redirect) redirectPath = state.redirect;
             if (state.profileSlug) execProfileSlug = state.profileSlug;
             if (state.uid) stateUid = state.uid;
+            if (state.orgId) stateOrgId = state.orgId;
         } catch (e) {
             console.warn('[Google OAuth] Failed to parse state param, defaulting to gmail');
         }
@@ -131,6 +135,66 @@ export async function GET(req: NextRequest) {
                 const uid = await resolveUid();
                 await saveGoogleSearchConsoleToken(uid, tokens);
                 console.log(`[Google OAuth] Successfully connected Google Search Console for user:`, uid);
+                break;
+            }
+            case 'google_workspace': {
+                if (!stateOrgId) {
+                    throw new Error('google_workspace OAuth requires orgId in state');
+                }
+                const uid = await resolveUid();
+
+                let workspaceSendAs: string | undefined;
+                let sendAsAliases: WorkspaceSendAsAlias[] = [];
+
+                if (tokens.access_token) {
+                    // Fetch primary email from userinfo
+                    try {
+                        const userinfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                            headers: { Authorization: `Bearer ${tokens.access_token}` },
+                        });
+                        if (userinfoRes.ok) {
+                            const userinfo = await userinfoRes.json() as { email?: string };
+                            workspaceSendAs = userinfo.email;
+                        }
+                    } catch (e) {
+                        console.warn('[Google OAuth] Could not fetch userinfo', e);
+                    }
+
+                    // Fetch all verified Send As aliases (gmail.settings.basic scope)
+                    try {
+                        const sendAsRes = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/settings/sendAs', {
+                            headers: { Authorization: `Bearer ${tokens.access_token}` },
+                        });
+                        if (sendAsRes.ok) {
+                            const sendAsData = await sendAsRes.json() as {
+                                sendAs?: Array<{
+                                    sendAsEmail: string;
+                                    displayName?: string;
+                                    isDefault?: boolean;
+                                    isPrimary?: boolean;
+                                    verificationStatus?: string;
+                                }>;
+                            };
+                            sendAsAliases = (sendAsData.sendAs ?? [])
+                                .filter(a => a.verificationStatus === 'accepted' || a.isPrimary)
+                                .map(a => ({
+                                    email: a.sendAsEmail,
+                                    displayName: a.displayName || a.sendAsEmail,
+                                    isDefault: a.isDefault ?? false,
+                                    isPrimary: a.isPrimary ?? false,
+                                }));
+
+                            // Use the Gmail-default alias as the initial sendAs if available
+                            const defaultAlias = sendAsAliases.find(a => a.isDefault);
+                            if (defaultAlias) workspaceSendAs = defaultAlias.email;
+                        }
+                    } catch (e) {
+                        console.warn('[Google OAuth] Could not fetch Send As aliases', e);
+                    }
+                }
+
+                await saveWorkspaceToken(stateOrgId, uid, tokens, workspaceSendAs, sendAsAliases);
+                console.log(`[Google OAuth] Google Workspace connected for org: ${stateOrgId} | sendAs: ${workspaceSendAs ?? 'unknown'} | aliases: ${sendAsAliases.length}`);
                 break;
             }
             case 'gmail':

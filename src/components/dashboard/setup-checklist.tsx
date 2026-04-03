@@ -17,7 +17,7 @@ import { useUserRole } from '@/hooks/use-user-role';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
-interface ChecklistItem {
+export interface ChecklistItem {
     id: string;
     title: string;
     description: string;
@@ -28,7 +28,7 @@ interface ChecklistItem {
 }
 
 // Brand checklist items - focused on getting headless menu live with Smokey
-const BRAND_CHECKLIST: ChecklistItem[] = [
+export const BRAND_CHECKLIST: ChecklistItem[] = [
     {
         id: 'add-products',
         title: 'Add your products',
@@ -77,7 +77,7 @@ const BRAND_CHECKLIST: ChecklistItem[] = [
 ];
 
 // Dispensary checklist items
-const DISPENSARY_CHECKLIST: ChecklistItem[] = [
+export const DISPENSARY_CHECKLIST: ChecklistItem[] = [
     {
         id: 'link-dispensary',
         title: 'Link your dispensary',
@@ -133,6 +133,15 @@ const DISPENSARY_CHECKLIST: ChecklistItem[] = [
         status: 'todo'
     },
     {
+        id: 'connect-email',
+        title: 'Connect email channels',
+        description: 'Google Workspace for 1:1 sends, Mailjet for campaigns',
+        estimatedTime: '5 min',
+        href: '/dashboard/settings?tab=email',
+        icon: <Megaphone className="h-4 w-4" />,
+        status: 'todo'
+    },
+    {
         id: 'launch-campaign',
         title: 'Launch first campaign',
         description: 'Create a compliant marketing campaign',
@@ -146,7 +155,7 @@ const DISPENSARY_CHECKLIST: ChecklistItem[] = [
 /**
  * Get linked dispensary status from Firestore
  */
-async function getLinkedDispensaryStatus(): Promise<{ isLinked: boolean; posConnected: boolean }> {
+export async function getLinkedDispensaryStatus(): Promise<{ isLinked: boolean; posConnected: boolean }> {
     try {
         const response = await fetch('/api/user/linked-dispensary');
         if (response.ok) {
@@ -163,7 +172,7 @@ async function getLinkedDispensaryStatus(): Promise<{ isLinked: boolean; posConn
 }
 
 export function SetupChecklist() {
-    const { role } = useUserRole();
+    const { role, isBrandRole, isDispensaryRole } = useUserRole();
     const [isDismissed, setIsDismissed] = useState(false);
     const [items, setItems] = useState<ChecklistItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -173,9 +182,9 @@ export function SetupChecklist() {
         async function loadChecklist() {
             let baseItems: ChecklistItem[] = [];
             
-            if (role === 'brand') {
+            if (isBrandRole) {
                 baseItems = [...BRAND_CHECKLIST];
-            } else if (role === 'dispensary') {
+            } else if (isDispensaryRole) {
                 baseItems = [...DISPENSARY_CHECKLIST];
                 
                 // Check if dispensary is linked
@@ -210,7 +219,7 @@ export function SetupChecklist() {
         if (dismissed === 'true') {
             setIsDismissed(true);
         }
-    }, [role]);
+    }, [role, isBrandRole, isDispensaryRole]);
 
     // Listen for restart signal from Smokey Support panel
     useEffect(() => {
