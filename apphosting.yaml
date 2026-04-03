@@ -410,6 +410,11 @@ env:
     secret: JINA_API_KEY@2
     availability:
       - RUNTIME
+  # Proxycurl - LinkedIn profile enrichment (~$0.01/credit)
+  - variable: PROXYCURL_API_KEY
+    secret: PROXYCURL_API_KEY@1
+    availability:
+      - RUNTIME
   # OpenClaw - WhatsApp Gateway
   - variable: OPENCLAW_API_URL
     secret: OPENCLAW_API_URL@1

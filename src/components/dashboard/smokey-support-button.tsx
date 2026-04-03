@@ -15,6 +15,8 @@ import { useState, useCallback, useEffect } from 'react';
 import { Sparkles, X, ChevronLeft, CheckCircle, Circle, ChevronRight, Clock, ArrowRight, HelpCircle, MessageSquare, Users, RotateCcw } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useUserRole } from '@/hooks/use-user-role';
+import { useUser } from '@/hooks/use-user';
+import { useBrandGuide } from '@/hooks/use-brand-guide';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
@@ -22,8 +24,11 @@ import Link from 'next/link';
 import HelpSearchEnhanced from '@/components/help/help-search-enhanced';
 import MessageSupportDialog from './message-support-dialog';
 import {
-  BRAND_CHECKLIST,
-  DISPENSARY_CHECKLIST,
+  getDefaultOnboardingPrimaryGoal,
+  normalizeOnboardingPrimaryGoal,
+} from '@/lib/onboarding/activation';
+import {
+  buildChecklistItems,
   getLinkedDispensaryStatus,
   type ChecklistItem,
 } from './setup-checklist';
@@ -37,36 +42,61 @@ type View = 'onboarding' | 'help';
 // Onboarding panel view — always accessible, no dismiss button
 // ─────────────────────────────────────────────────────────────
 function OnboardingPanelView({ onHelpClick }: { onHelpClick: () => void }) {
-  const { role, isBrandRole, isDispensaryRole } = useUserRole();
+  const { role, isBrandRole, isDispensaryRole, orgId } = useUserRole();
+  const { userData, isLoading: isUserLoading } = useUser();
+  const { brandGuide } = useBrandGuide(orgId || '');
   const [items, setItems] = useState<ChecklistItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const primaryGoal =
+    normalizeOnboardingPrimaryGoal(userData?.onboarding?.primaryGoal)
+    || getDefaultOnboardingPrimaryGoal(role);
+  const competitorCount = userData?.onboarding?.selectedCompetitorCount || 0;
+  const brandGuideComplete = (brandGuide?.completenessScore || 0) >= 80;
 
   useEffect(() => {
-    async function load() {
-      let base: ChecklistItem[] = [];
+    let active = true;
 
-      if (isBrandRole) {
-        base = [...BRAND_CHECKLIST];
-      } else if (isDispensaryRole) {
-        base = [...DISPENSARY_CHECKLIST];
-        const { isLinked, posConnected } = await getLinkedDispensaryStatus();
-        if (isLinked) {
-          base = base.map(item =>
-            item.id === 'link-dispensary' ? { ...item, status: 'done' as const } : item
-          );
-        }
-        if (posConnected) {
-          base = base.map(item =>
-            item.id === 'connect-pos' ? { ...item, status: 'done' as const } : item
-          );
-        }
+    async function load() {
+      if (isUserLoading) {
+        return;
       }
 
-      setItems(base);
+      const roleType = isBrandRole ? 'brand' : isDispensaryRole ? 'dispensary' : null;
+      if (!roleType) {
+        if (active) {
+          setItems([]);
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      setIsLoading(true);
+
+      let linkedStatus = { isLinked: false, posConnected: false };
+      if (roleType === 'dispensary') {
+        linkedStatus = await getLinkedDispensaryStatus();
+      }
+
+      if (!active) {
+        return;
+      }
+
+      setItems(buildChecklistItems({
+        roleType,
+        primaryGoal,
+        brandGuideComplete,
+        linkedStatus,
+        competitorCount,
+      }));
       setIsLoading(false);
     }
-    load();
-  }, [role, isBrandRole, isDispensaryRole]);
+
+    void load();
+
+    return () => {
+      active = false;
+    };
+  }, [brandGuideComplete, competitorCount, isBrandRole, isDispensaryRole, isUserLoading, primaryGoal]);
 
   const completedCount = items.filter(i => i.status === 'done').length;
   const totalCount = items.length;

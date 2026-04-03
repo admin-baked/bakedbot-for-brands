@@ -18,6 +18,32 @@ export const DEFAULT_CHECKIN_CONFIG: CheckinConfig = {
     updatedAt: null,
 };
 
+export interface PublicBrandThemeColors {
+    primary: string;
+    secondary: string;
+    accent: string;
+    text: string;
+    background: string;
+}
+
+export interface PublicBrandTheme {
+    brandName: string | null;
+    logoUrl: string | null;
+    colors: PublicBrandThemeColors;
+}
+
+export const DEFAULT_PUBLIC_BRAND_THEME: PublicBrandTheme = {
+    brandName: null,
+    logoUrl: null,
+    colors: {
+        primary: '#4ade80',
+        secondary: '#1f3324',
+        accent: '#10a34e',
+        text: '#f8fafc',
+        background: '#07110a',
+    },
+};
+
 export interface MoodCount {
     mood: string;
     count: number;

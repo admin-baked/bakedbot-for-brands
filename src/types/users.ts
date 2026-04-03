@@ -1,6 +1,7 @@
 import { UserRole } from './roles';
 import { OrgMembership } from './org-membership';
 import type { BillingAddress } from './orders';
+import type { UserOnboardingProfile } from './onboarding';
 
 export type DomainUserProfile = {
     id: string;
@@ -28,4 +29,5 @@ export type DomainUserProfile = {
     billingAddress?: BillingAddress;
 
     favoriteRetailerId?: string | null;
+    onboarding?: UserOnboardingProfile;
 };

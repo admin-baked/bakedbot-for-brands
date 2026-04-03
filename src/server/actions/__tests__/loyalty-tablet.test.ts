@@ -4,6 +4,7 @@ import { captureVisitorCheckin } from '../visitor-checkin';
 import {
   captureTabletLead,
   getMoodRecommendations,
+  searchTabletRecommendations,
 } from '../loyalty-tablet';
 
 jest.mock('@/server/agents/adapters/consumer-adapter', () => ({
@@ -99,6 +100,85 @@ describe('loyalty tablet actions', () => {
       success: false,
       error: 'Unknown mood',
     });
+  });
+
+  it('supports freeform tablet search with live menu images and a spoken summary', async () => {
+    (fetchMenuProducts as jest.Mock).mockResolvedValue([
+      {
+        id: 'gummy-calm',
+        name: 'Calm Berry Gummies',
+        category: 'Edibles',
+        price: 24,
+        brandName: 'Thrive',
+        imageUrl: 'https://cdn.example.com/gummy.jpg',
+        description: 'calm gentle cbd stress relief gummies',
+        stock: 10,
+      },
+      {
+        id: 'tea-tincture',
+        name: 'Quiet Mind Tincture',
+        category: 'Tinctures',
+        price: 32,
+        brandName: 'Thrive',
+        description: 'calming cbd tincture for stress relief',
+        stock: 4,
+      },
+      {
+        id: 'night-preroll',
+        name: 'Soft Landing Pre-Roll',
+        category: 'Pre-Rolls',
+        price: 11,
+        brandName: 'Thrive',
+        description: 'gentle relaxing pre-roll',
+        stock: 3,
+      },
+    ]);
+
+    const result = await searchTabletRecommendations(
+      'org_thrive_syracuse',
+      'something calm for stress',
+      'anxious',
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.query).toBe('something calm for stress');
+    expect(result.summary).toContain('I found');
+    expect(result.products).toHaveLength(3);
+    expect(result.products?.[0]).toMatchObject({
+      productId: 'gummy-calm',
+      imageUrl: 'https://cdn.example.com/gummy.jpg',
+    });
+    expect(logger.info).toHaveBeenCalledWith(
+      '[LoyaltyTablet] Freeform search recommendations generated',
+      expect.objectContaining({
+        orgId: 'org_thrive_syracuse',
+        moodId: 'anxious',
+        query: 'something calm for stress',
+        strategy: 'deterministic_menu_search_voice',
+      }),
+    );
+  });
+
+  it('returns a helpful message when freeform search has no strong match', async () => {
+    (fetchMenuProducts as jest.Mock).mockResolvedValue([
+      {
+        id: 'social-flower',
+        name: 'Party Punch',
+        category: 'Flower',
+        price: 34,
+        brandName: 'Thrive',
+        description: 'uplifting hybrid social euphoric creative flower',
+        stock: 12,
+      },
+    ]);
+
+    const result = await searchTabletRecommendations('org_thrive_syracuse', 'a scuba-diving topical');
+
+    expect(result).toMatchObject({
+      success: false,
+      query: 'a scuba-diving topical',
+    });
+    expect(result.error).toContain('strong live-menu match');
   });
 
   it('passes tablet check-in metadata through to captureVisitorCheckin', async () => {

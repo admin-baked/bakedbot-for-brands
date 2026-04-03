@@ -1,12 +1,22 @@
 'use client';
 
+import Link from 'next/link';
 import React, { useEffect, useState } from 'react';
 import { Building2, Sprout, Store, type LucideIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useUser } from '@/hooks/use-user';
 import { cn } from '@/lib/utils';
 import { useUserRole } from '@/hooks/use-user-role';
+import {
+    getDefaultOnboardingPrimaryGoal,
+    getOnboardingGoalDefinition,
+    getOnboardingGoalHref,
+    getOnboardingGoalPreview,
+    normalizeOnboardingPrimaryGoal,
+} from '@/lib/onboarding/activation';
 import { getOrgProfileAction } from '@/server/actions/org-profile';
+import type { OnboardingPrimaryGoal } from '@/types/onboarding';
 import { isDispensaryRole, isGrowerRole } from '@/types/roles';
 import { InsightCardsGrid } from './insight-cards-grid';
 
@@ -21,6 +31,29 @@ interface WorkspaceMeta {
     accentClassName: string;
     description: (orgName: string | null) => string;
 }
+
+interface AgentGuideMeta {
+    name: string;
+    description: string;
+}
+
+const WORKSPACE_GUIDE_CARDS = [
+    {
+        eyebrow: 'Inbox',
+        title: 'Where work lands',
+        description: 'Threads collect drafts, briefings, approvals, and reports so the team can act from one place.',
+    },
+    {
+        eyebrow: 'Playbooks',
+        title: 'What repeats automatically',
+        description: 'Automations keep welcome, follow-up, and recurring execution running after you turn them on.',
+    },
+    {
+        eyebrow: 'Agents',
+        title: 'Who helps you execute',
+        description: 'Craig drives creative, Smokey supports check-in, Mrs. Parker handles welcome email, and Ezal covers intel.',
+    },
+] as const;
 
 function getFallbackOrgName(user: unknown): string | null {
     if (!user || typeof user !== 'object') {
@@ -71,12 +104,41 @@ function getWorkspaceMeta(role: string | null): WorkspaceMeta {
     };
 }
 
+function getAgentGuideMeta(goal: OnboardingPrimaryGoal): AgentGuideMeta {
+    switch (goal) {
+        case 'checkin_tablet':
+            return {
+                name: 'Smokey',
+                description: 'owns the front-door check-in experience, launch briefings, and staff-facing retail guidance.',
+            };
+        case 'creative_center':
+            return {
+                name: 'Craig',
+                description: 'turns your Brand Guide into social drafts, campaign angles, and calendar-ready ideas.',
+            };
+        case 'welcome_playbook':
+        default:
+            return {
+                name: 'Mrs. Parker',
+                description: 'personalizes welcome email flows so new contacts get the right follow-up automatically.',
+            };
+    }
+}
+
 export function InboxWorkspaceBriefing({ className }: InboxWorkspaceBriefingProps) {
     const { role, orgId, user } = useUserRole();
+    const { userData } = useUser();
     const [orgName, setOrgName] = useState<string | null>(getFallbackOrgName(user));
     const [isLoadingName, setIsLoadingName] = useState(false);
 
     const meta = getWorkspaceMeta(role);
+    const primaryGoal =
+        normalizeOnboardingPrimaryGoal(userData?.onboarding?.primaryGoal)
+        || getDefaultOnboardingPrimaryGoal(role);
+    const goalDefinition = getOnboardingGoalDefinition(primaryGoal);
+    const goalHref = getOnboardingGoalHref(primaryGoal, role);
+    const goalPreview = getOnboardingGoalPreview(primaryGoal, role);
+    const agentGuide = getAgentGuideMeta(primaryGoal);
 
     useEffect(() => {
         let active = true;
@@ -169,6 +231,73 @@ export function InboxWorkspaceBriefing({ className }: InboxWorkspaceBriefingProp
                     <p className="mt-1 text-[11px] leading-4 text-muted-foreground">
                         Keep the live daily briefing on screen while your active inbox work stays in the workspace below.
                     </p>
+                </div>
+            </div>
+
+            <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+                <div className="rounded-2xl border border-border/60 bg-background/80 p-4 shadow-sm">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" className="bg-background text-[11px] text-foreground">
+                            Start Here
+                        </Badge>
+                        <Badge className="border-0 bg-primary/10 text-[11px] text-primary">
+                            {agentGuide.name}
+                        </Badge>
+                    </div>
+
+                    <div className="mt-3 space-y-2">
+                        <div>
+                            <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                First Win
+                            </p>
+                            <h3 className="text-base font-semibold text-foreground">
+                                {goalDefinition.title}
+                            </h3>
+                        </div>
+
+                        <p className="text-[13px] leading-5 text-muted-foreground">
+                            Brand Guide comes first. {goalPreview}
+                        </p>
+
+                        <p className="text-[12px] leading-5 text-muted-foreground">
+                            <span className="font-semibold text-foreground">Lead agent:</span>{' '}
+                            {agentGuide.name} {agentGuide.description}
+                        </p>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                        <Link
+                            href="/dashboard/settings/brand-guide"
+                            className="inline-flex items-center rounded-lg border border-border/70 bg-background px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+                        >
+                            Open Brand Guide
+                        </Link>
+                        <Link
+                            href={goalHref}
+                            className="inline-flex items-center rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
+                        >
+                            {goalDefinition.ctaLabel}
+                        </Link>
+                    </div>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+                    {WORKSPACE_GUIDE_CARDS.map((card) => (
+                        <div
+                            key={card.eyebrow}
+                            className="rounded-xl border border-border/60 bg-background/70 px-3 py-3"
+                        >
+                            <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                                {card.eyebrow}
+                            </p>
+                            <p className="mt-1 text-sm font-semibold text-foreground">
+                                {card.title}
+                            </p>
+                            <p className="mt-1 text-[11px] leading-4 text-muted-foreground">
+                                {card.description}
+                            </p>
+                        </div>
+                    ))}
                 </div>
             </div>
 

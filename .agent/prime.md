@@ -1,4 +1,4 @@
-# BakedBot AI Builder Agent - Prime Context
+﻿# BakedBot AI Builder Agent - Prime Context
 
 **Loaded automatically on agent startup**
 
@@ -6,7 +6,7 @@
 
 ---
 
-## 🛠 STARTUP: Confirm jcodemunch
+## ðŸ›  STARTUP: Confirm jcodemunch
 
 Before anything else, verify the codebase index is active:
 
@@ -17,15 +17,15 @@ ls .w/ > /dev/null 2>&1 && cat ~/.code-index/_savings.json
 
 | Result | Action |
 |--------|--------|
-| `.w/` exists + savings JSON present | ✅ Report: "jcodemunch active — X tokens saved (~$Y)" |
-| `.w/` missing | ⚠️ Prompt user: "jcodemunch not detected. Run: `jcodemunch index` in the project root to activate context compression. Install at https://jcodemunch.com if needed." |
-| `_savings.json` missing | `.w/` present but no savings yet — first session, report tokens saved as 0 |
+| `.w/` exists + savings JSON present | âœ… Report: "jcodemunch active â€” X tokens saved (~$Y)" |
+| `.w/` missing | âš ï¸ Prompt user: "jcodemunch not detected. Run: `jcodemunch index` in the project root to activate context compression. Install at https://jcodemunch.com if needed." |
+| `_savings.json` missing | `.w/` present but no savings yet â€” first session, report tokens saved as 0 |
 
-**Dollar estimate:** `total_tokens_saved × $0.000003` (Sonnet input rate, $3/M tokens)
+**Dollar estimate:** `total_tokens_saved Ã— $0.000003` (Sonnet input rate, $3/M tokens)
 
 ---
 
-## 🚨 PRIORITY ZERO: Build Health
+## ðŸš¨ PRIORITY ZERO: Build Health
 
 Before ANY work, verify the build is healthy:
 
@@ -35,13 +35,13 @@ Before ANY work, verify the build is healthy:
 
 | If Build Is... | Action |
 |----------------|--------|
-| 🟢 **Passing** | Proceed with task |
-| 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
+| ðŸŸ¢ **Passing** | Proceed with task |
+| ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; Linus Slack hardened — GLM refusal detection ×8, system prompt cache (5-min TTL), GLM-5V-Turbo vision path live.
-**Recent work (2026-04-03):** `6bf26e566` — Linus GLM refusal patterns expanded + system prompt cache + selective GLM-5V-Turbo for vision Slack messages
+**Current Status:** ðŸŸ¢ `main` green; Thrive tablet recommendations live on `bakedbot-prod-build-2026-04-03-013`; branded image-backed tablet search + Ask Smokey voice refinement ready locally; onboarding first-win activation now threads through signup, checklist, inbox briefing, and Smokey setup guidance.
+**Recent work (2026-04-03):** `uncommitted` - Onboarding first-win phase 1 + Thrive tablet brand-theme UI + product images + voice-guided deterministic live-menu search
 
-## 🧭 CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
+## ðŸ§­ CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 
 `AGENTS.md` is the source of truth for builder behavior. Before writing code:
 
@@ -53,14 +53,14 @@ Before ANY work, verify the build is healthy:
 
 > The PR template and `/simplify` workflow both reinforce these principles. They are mandatory engineering behavior, not optional style notes.
 
-## 🚨 SECURITY GOTCHA: Never Commit These Files
+## ðŸš¨ SECURITY GOTCHA: Never Commit These Files
 
-**Triggered 2026-03-18** — GitHub secret scanning found 14 exposed secrets. Required full git history rewrite + force push.
+**Triggered 2026-03-18** â€” GitHub secret scanning found 14 exposed secrets. Required full git history rewrite + force push.
 
 **NEVER commit these files:**
 | File | Why |
 |------|-----|
-| `.env` | Contains real API keys — use `.env.local` instead (already gitignored) |
+| `.env` | Contains real API keys â€” use `.env.local` instead (already gitignored) |
 | `service-account.json` | GCP service account private key |
 | `PRODUCTION_SETUP.md` | Contained SendGrid + GCP keys in plain text |
 | `.codex-firebase-deploy.{out,err}.log` | Firebase deploy output includes API keys |
@@ -72,9 +72,9 @@ Before ANY work, verify the build is healthy:
 3. `git push origin main --force-with-lease`
 4. Dismiss alerts via `gh api --method PATCH repos/admin-baked/bakedbot-for-brands/secret-scanning/alerts/$id -f state=resolved -f resolution=revoked`
 
-## 🚨 ELEVATED MODE GOTCHA: Sandbox Failures Can Look Like App Bugs
+## ðŸš¨ ELEVATED MODE GOTCHA: Sandbox Failures Can Look Like App Bugs
 
-**Triggered 2026-03-25** — some required verification and live-ops commands time out or fail in the default sandbox even when app code is healthy.
+**Triggered 2026-03-25** â€” some required verification and live-ops commands time out or fail in the default sandbox even when app code is healthy.
 
 **Common symptoms:**
 | Symptom | What it usually means |
@@ -99,11 +99,11 @@ Key completed: [Restored missing `job-stream.ts` module -> Type Check + E2E + de
 - **Multi-state outreach deployed** (`8cf0a4b53`): synced `crm_dispensaries` into the outreach queue, hardened dashboard partial-load behavior + Gmail token status, added missing outreach indexes, and expanded proactive outreach from NY-only to CRM-first NY/MI/IL with queue enrichment + updated CEO copy/templates
 
 ## Session 2026-03-09 (Slack routing fully live)
-- **Slack routing deployed** (`d6bb69f94`, `38f20deca`, `3c687cf25`): `channels:read` scope + reinstall; `SLACK_BOT_TOKEN@4`; GCP billing linked — service accounts can now write to Secret Manager
+- **Slack routing deployed** (`d6bb69f94`, `38f20deca`, `3c687cf25`): `channels:read` scope + reinstall; `SLACK_BOT_TOKEN@4`; GCP billing linked â€” service accounts can now write to Secret Manager
 
 ## Session 2026-03-08 (Smokey Budtender Audit + Golden Eval 100%)
-- **Smokey audit** (`917f6deb`): P0 conv history, P0 carousel tool, P1 preset gating, P1 maxIterations, P2 YouTube tools, P2 golden set 27→41 cases
-- **Golden eval** (`cf822b224`): 41/41 pass (100%) — eval system prompt, retry logic, compliance rule templates (`4e7ae5e83`)
+- **Smokey audit** (`917f6deb`): P0 conv history, P0 carousel tool, P1 preset gating, P1 maxIterations, P2 YouTube tools, P2 golden set 27â†’41 cases
+- **Golden eval** (`cf822b224`): 41/41 pass (100%) â€” eval system prompt, retry logic, compliance rule templates (`4e7ae5e83`)
 
 Status: Build passing, pushed to production
 
@@ -116,22 +116,22 @@ Status: Build passing, pushed to production
 Status: Shippable subset committed locally
 
 ## Session 2026-03-05 (Firestore undefined handling fixes)
-- **Exec proactive check** — Fixed Firestore undefined value errors (`emailDigest ?? undefined` → `null`, `startTime` as string not Date)
-- **Morning briefing** — Added Error message handling for rejected promises (`result.reason instanceof Error` extraction)
-- **Firestore settings** — Enabled `ignoreUndefinedProperties: true` to skip undefined fields globally
+- **Exec proactive check** â€” Fixed Firestore undefined value errors (`emailDigest ?? undefined` â†’ `null`, `startTime` as string not Date)
+- **Morning briefing** â€” Added Error message handling for rejected promises (`result.reason instanceof Error` extraction)
+- **Firestore settings** â€” Enabled `ignoreUndefinedProperties: true` to skip undefined fields globally
 
 Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
-Status: 🟢 Both crons deployed and working
+Status: ðŸŸ¢ Both crons deployed and working
 
 ---
 
-## 🔍 Code Exploration Strategy by Agent/Environment
+## ðŸ” Code Exploration Strategy by Agent/Environment
 
 Use the right exploration tool for your context. Wrong choice = wasted tokens or missed symbols.
 
-### Claude Code (Browser) — jcodemunch by Default
+### Claude Code (Browser) â€” jcodemunch by Default
 
-When running in **Claude Code on the web**, use jcodemunch MCP tools as the default strategy for code exploration — before falling back to Read/Grep on large files.
+When running in **Claude Code on the web**, use jcodemunch MCP tools as the default strategy for code exploration â€” before falling back to Read/Grep on large files.
 
 **Why:** jcodemunch indexes the repo via AST parsing and returns only the symbols you need, rather than loading entire files.
 
@@ -139,28 +139,28 @@ When running in **Claude Code on the web**, use jcodemunch MCP tools as the defa
 |----------|------------|---------|
 | `Read` entire service file | ~3,800 tokens | Reading all of `linus.ts` to find one function |
 | `mcp__jcodemunch__get_symbol` | ~700 tokens | Fetching just `LinusAgent.evaluateCode` |
-| **Savings** | **~80% fewer tokens** | 5.5× improvement per lookup |
+| **Savings** | **~80% fewer tokens** | 5.5Ã— improvement per lookup |
 
 **Session startup:** Call `index_repo` once at the start of a browser session (index is **not** cached across sessions like it is in local CLI).
 
 ```
-mcp__jcodemunch__index_repo → then search_symbols / get_symbol / get_file_outline
+mcp__jcodemunch__index_repo â†’ then search_symbols / get_symbol / get_file_outline
 ```
 
 **Fallback to Read/Grep** only for: config files, small files (<100 lines), or when you need full file context.
 
-### Claude Code (IDE / Local CLI) — jcodemunch, Skip Re-index
+### Claude Code (IDE / Local CLI) â€” jcodemunch, Skip Re-index
 
-Same MCP tools are available. Key difference: **the index persists across sessions** — do not call `index_repo` at session start unless files have changed significantly (e.g., after a large merge or scaffold run).
+Same MCP tools are available. Key difference: **the index persists across sessions** â€” do not call `index_repo` at session start unless files have changed significantly (e.g., after a large merge or scaffold run).
 
 ```
 # Only re-index when needed:
-mcp__jcodemunch__invalidate_cache → mcp__jcodemunch__index_repo
+mcp__jcodemunch__invalidate_cache â†’ mcp__jcodemunch__index_repo
 # Otherwise go straight to:
 search_symbols / get_symbol / get_file_outline
 ```
 
-### Codex / Gemini (Builder Agents — Full Protocol)
+### Codex / Gemini (Builder Agents â€” Full Protocol)
 
 Codex and Gemini follow the **same mandatory protocol as Claude Code**. No exceptions.
 
@@ -171,38 +171,38 @@ Codex and Gemini follow the **same mandatory protocol as Claude Code**. No excep
 | Find a symbol/function | `Grep` with class/function pattern | e.g., `grep -r "evaluateCode" src/` |
 | Understand a file's shape | `Read` with `offset` + `limit` | Read first 60 lines for imports/exports, then jump to the function |
 | Explore a directory | `Glob` | Prefer over `ls -R` |
-| Avoid | `Read` on files >200 lines without offset | Loads entire file — wasteful |
+| Avoid | `Read` on files >200 lines without offset | Loads entire file â€” wasteful |
 
-**Rule of thumb:** Never read a file >200 lines in full without a targeted offset. Use Grep first to find the line, then Read ±30 lines around it.
+**Rule of thumb:** Never read a file >200 lines in full without a targeted offset. Use Grep first to find the line, then Read Â±30 lines around it.
 
 #### Pre-Push Gate (MANDATORY)
 
 Before every `git push` / deploy, Codex and Gemini **must**:
 1. Run the `/simplify` 3-agent review (Reuse + Quality + Efficiency) against `git diff HEAD`
 2. Fix all confirmed findings
-3. Run `.\scripts\npm-safe.cmd run check:types` — build must be green
+3. Run `.\scripts\npm-safe.cmd run check:types` â€” build must be green
 4. Only then push
 
 #### Session End (MANDATORY)
 
 After every coding session, Codex and Gemini **must** update:
-1. **`CLAUDE.md` line 15** — build status + date + 1-line summary
-2. **`.agent/prime.md` lines ~41–44** — max 2-line recent work block + commit hashes
-3. **`memory/MEMORY.md`** — prepend session entry; if > 150 lines, auto-archive oldest sessions to `memory/archive/YYYY-MM.md`
+1. **`CLAUDE.md` line 15** â€” build status + date + 1-line summary
+2. **`.agent/prime.md` lines ~41â€“44** â€” max 2-line recent work block + commit hashes
+3. **`memory/MEMORY.md`** â€” prepend session entry; if > 150 lines, auto-archive oldest sessions to `memory/archive/YYYY-MM.md`
 
 #### Coding Standards (same as Claude Code)
 
 | Rule | Detail |
 |------|--------|
-| TypeScript | All code typed — `unknown` over `any` |
-| Logging | `@/lib/logger` — never `console.log` |
+| TypeScript | All code typed â€” `unknown` over `any` |
+| Logging | `@/lib/logger` â€” never `console.log` |
 | Error handling | Always wrap async in `try/catch` |
 | Server mutations | `'use server'` directive required |
 | Firestore | `@google-cloud/firestore` (not client SDK) |
 
 ---
 
-## 🦸 SUPER POWERS — ALWAYS AVAILABLE, USE THESE FIRST
+## ðŸ¦¸ SUPER POWERS â€” ALWAYS AVAILABLE, USE THESE FIRST
 
 > **Before spending 5+ tool calls investigating an issue, check if a super power solves it in ONE step.**
 
@@ -213,31 +213,31 @@ After every coding session, Codex and Gemini **must** update:
 | SP3 | Schema Validator | `npm run audit:schema --orgId=org_thrive_syracuse` | Validate Firestore data types across collections |
 | SP4 | Test Data Seeder | `npm run seed:test` | Seed test org with 10 customers, 5 playbooks, 3 campaigns |
 | SP5 | Code Scaffolder | `npm run generate:component MyWidget` | Generate boilerplate for components/routes/actions |
-| SP6 | Build Error Fixer | `npm run fix:build --apply` | Auto-fix common TypeScript errors (import paths, console→logger) |
+| SP6 | Build Error Fixer | `npm run fix:build --apply` | Auto-fix common TypeScript errors (import paths, consoleâ†’logger) |
 | SP7 | Security Tester | `npm run test:security` | Run 12 role-based access control scenarios |
 | SP8 | Compliance Gater | `npm run check:compliance --text "..."` | Check content for medical claims, minors protection |
 | SP9 | Consistency Checker | `npm run audit:consistency --orgId=...` | Validate org relationships and data integrity |
 | SP10 | Monitoring Setup | `npm run setup:monitoring --deploy` | Configure Cloud Monitoring alerts for production |
 | SP11 | Cost Analyzer | `npm run audit:costs` | Identify expensive Firestore queries |
 
-**Quick-fire guide — when you're stuck:**
-- Build broken? → **SP6** `npm run fix:build --apply` then `npm run check:types`
-- Data looks wrong? → **SP3** `npm run audit:schema` + **SP9** `npm run audit:consistency`
-- Need test data? → **SP4** `npm run seed:test`
-- Security concern? → **SP7** `npm run test:security`
-- Content compliance? → **SP8** `npm run check:compliance --text "..."`
-- Slow queries? → **SP11** `npm run audit:costs`
-- New scaffold needed? → **SP5** `npm run generate:component|action|route|cron <name>`
+**Quick-fire guide â€” when you're stuck:**
+- Build broken? â†’ **SP6** `npm run fix:build --apply` then `npm run check:types`
+- Data looks wrong? â†’ **SP3** `npm run audit:schema` + **SP9** `npm run audit:consistency`
+- Need test data? â†’ **SP4** `npm run seed:test`
+- Security concern? â†’ **SP7** `npm run test:security`
+- Content compliance? â†’ **SP8** `npm run check:compliance --text "..."`
+- Slow queries? â†’ **SP11** `npm run audit:costs`
+- New scaffold needed? â†’ **SP5** `npm run generate:component|action|route|cron <name>`
 
 **Notes:** All scripts use `.env.local` for auth. SP8 requires `CLAUDE_API_KEY`. SP4 creates `org_test_bakedbot` (use `--clean` to reset).
 
 ---
 
-## 🚀 Post-Deploy Protocol (MANDATORY after every `git push`)
+## ðŸš€ Post-Deploy Protocol (MANDATORY after every `git push`)
 
 After every `git push origin main`, **do not stop at the push**. Complete the full deploy loop:
 
-### Step 1 — Poll until deploy completes
+### Step 1 â€” Poll until deploy completes
 
 ```bash
 # Poll every 60s until the GH Actions run finishes
@@ -251,9 +251,9 @@ done
 echo "Deploy result: $STATUS"
 ```
 
-Typical build time: **18–22 minutes**. Run in background (`run_in_background: true`) so you can keep working.
+Typical build time: **18â€“22 minutes**. Run in background (`run_in_background: true`) so you can keep working.
 
-### Step 2 — If deploy failed: diagnose
+### Step 2 â€” If deploy failed: diagnose
 
 ```bash
 # Check which step failed
@@ -265,7 +265,7 @@ node scripts/firebase-apphosting.mjs cancel <cloud-build-id>  # cancel it
 git commit --allow-empty -m "chore: trigger redeploy after cancelling stuck build" && git push origin main
 ```
 
-### Step 3 — After successful deploy: run post-deploy triggers
+### Step 3 â€” After successful deploy: run post-deploy triggers
 
 For **Thrive Syracuse** (or any org with POS sync), always trigger an immediate sync after deploy so product changes take effect without waiting 30 min:
 
@@ -273,7 +273,7 @@ For **Thrive Syracuse** (or any org with POS sync), always trigger an immediate 
 CRON_SECRET=$(grep "^CRON_SECRET=" .env.local | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'" | tr -d '\r')
 BASE="https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app"
 
-# POS sync (populates menu products → recommendations)
+# POS sync (populates menu products â†’ recommendations)
 curl -s -X POST "$BASE/api/cron/pos-sync?orgId=org_thrive_syracuse" \
   -H "Authorization: Bearer $CRON_SECRET" -H "Content-Length: 0"
 
@@ -281,7 +281,7 @@ curl -s -X POST "$BASE/api/cron/pos-sync?orgId=org_thrive_syracuse" \
 ```
 
 **Expected response:** `{"success":true,"results":{"menuProductsCount":N}}` where N > 0.  
-If `menuProductsCount: 0` → check `posConfig.status === 'active'` on the location doc + Alleaves API returning inventory.
+If `menuProductsCount: 0` â†’ check `posConfig.status === 'active'` on the location doc + Alleaves API returning inventory.
 
 ### Post-deploy trigger map
 
@@ -293,7 +293,7 @@ If `menuProductsCount: 0` → check `posConfig.status === 'active'` on the locat
 | Customer sync | `POST /api/cron/pos-sync` (customers sync is part of same call) |
 | Any Thrive-facing change | `POST /api/cron/pos-sync` + spot-check loyalty tablet recs |
 
-### Step 4 — Update recent work (session end)
+### Step 4 â€” Update recent work (session end)
 
 After a successful deploy + post-deploy triggers, always close the session:
 
@@ -301,20 +301,20 @@ After a successful deploy + post-deploy triggers, always close the session:
 "Update recent work"
 ```
 
-This runs the full session-end protocol (CLAUDE.md → "Session End" section):
+This runs the full session-end protocol (CLAUDE.md â†’ "Session End" section):
 1. Write `memory/sessions/YYYY-MM-DD-HHMM-{slug}.md`
 2. Prepend session block to `memory/MEMORY.md`
 3. Auto-archive MEMORY.md if > 150 lines
 4. Update `CLAUDE.md` line 15 + `.agent/prime.md` recent work block (date-gated)
 5. Commit: `docs: Update session notes YYYY-MM-DD - [summary]`
 
-**Rule:** A coding session isn't complete until the memory is updated. Deploy ≠ done.
+**Rule:** A coding session isn't complete until the memory is updated. Deploy â‰  done.
 
 ### Stuck build gotcha
 
 Firebase App Hosting queues builds. If a build hangs (> 25 min, `Duration: unknown`), it blocks all subsequent pushes. Pattern:
-1. `node scripts/firebase-apphosting.mjs status` → find RUNNING build > 25 min
-2. `node scripts/firebase-apphosting.mjs cancel <id>` → cancel it
+1. `node scripts/firebase-apphosting.mjs status` â†’ find RUNNING build > 25 min
+2. `node scripts/firebase-apphosting.mjs cancel <id>` â†’ cancel it
 3. Push empty commit to re-trigger: `git commit --allow-empty -m "chore: retrigger deploy" && git push`
 
 ---
@@ -324,27 +324,27 @@ Firebase App Hosting queues builds. If a build hangs (> 25 min, `Duration: unkno
 **Every task follows this pipeline. No shortcuts. No exceptions.**
 
 > **The AI Engineer Flow:**
-> `Prompt → PRD (human strategy doc) → AI-Executable Spec (implementation contract) → Build → Review → QA`
-> The PRD captures the *why*. The Spec captures the *exactly what and how* — every decision pre-made.
+> `Prompt â†’ PRD (human strategy doc) â†’ AI-Executable Spec (implementation contract) â†’ Build â†’ Review â†’ QA`
+> The PRD captures the *why*. The Spec captures the *exactly what and how* â€” every decision pre-made.
 
 ---
 
 ### Stage 0: PRD (Product Requirements Document)
 
-On receiving any non-trivial task prompt, FIRST produce a **PRD** — a human-readable strategy document:
+On receiving any non-trivial task prompt, FIRST produce a **PRD** â€” a human-readable strategy document:
 
 **PRD must include:**
-- **Problem statement** — what user pain or business goal is being addressed
-- **User stories** — who does what, and why
-- **Acceptance criteria** — observable outcomes that define "done" (no implementation details)
-- **Out of scope** — explicitly what this does NOT include
-- **Open questions** — anything requiring a human decision before spec can be written
+- **Problem statement** â€” what user pain or business goal is being addressed
+- **User stories** â€” who does what, and why
+- **Acceptance criteria** â€” observable outcomes that define "done" (no implementation details)
+- **Out of scope** â€” explicitly what this does NOT include
+- **Open questions** â€” anything requiring a human decision before spec can be written
 
 **PRD rules:**
 - Written in plain English. No code, no file paths, no implementation decisions.
 - Present to human. **Wait for explicit sign-off before proceeding.**
-- If the task is trivial (< 20 lines, single file, no boundary triggers) → skip PRD, jump to mini-spec in Stage 1.
-- If ANY boundary trigger fires (auth, payments, schema, cost, prompts, compliance, new integrations) → PRD required, no skip allowed.
+- If the task is trivial (< 20 lines, single file, no boundary triggers) â†’ skip PRD, jump to mini-spec in Stage 1.
+- If ANY boundary trigger fires (auth, payments, schema, cost, prompts, compliance, new integrations) â†’ PRD required, no skip allowed.
 
 **PRD sign-off unlocks Stage 1.** The PRD becomes the permanent record of intent and lives in `dev/prds/YYYY-MM-DD-feature-name.md`.
 
@@ -354,54 +354,54 @@ On receiving any non-trivial task prompt, FIRST produce a **PRD** — a human-re
 
 Convert the approved PRD into an **AI-Executable Spec** using `.agent/spec-template.md`.
 
-**This spec is NOT for humans — it is an execution contract for an AI engineer.** Every decision must be pre-made. No ambiguity. No "use your judgment." Linus reads this and builds it exactly as written.
+**This spec is NOT for humans â€” it is an execution contract for an AI engineer.** Every decision must be pre-made. No ambiguity. No "use your judgment." Linus reads this and builds it exactly as written.
 
 **AI-Executable Spec must specify (exactly):**
 - **Exact file paths** for every file created or modified (e.g., `src/server/actions/qa.ts`, `src/types/qa.ts`)
 - **Exact Firestore field names and types** for every doc written or read (e.g., `regressionOf?: string`, `isRegression?: boolean`, `updatedAt: Timestamp`)
 - **Exact component names** and their props interface (e.g., `<RegressionBadge bugId={string} area={QABugArea} />`)
 - **Exact function signatures** with parameter types and return types (e.g., `getRegressionHistory(area: QABugArea): Promise<QABug[]>`)
-- **Exact test cases** with literal inputs and expected outputs (e.g., `getRegressionHistory('brand_guide') → QABug[] where every item has status in ['verified','closed','fixed']`)
+- **Exact test cases** with literal inputs and expected outputs (e.g., `getRegressionHistory('brand_guide') â†’ QABug[] where every item has status in ['verified','closed','fixed']`)
 - **Exact prompt templates** for any agent injection (full text, not summaries)
-- **Exact API contracts** — HTTP method, path, request body shape, response shape, error codes
-- **Exact Firestore index definitions** — collectionGroup, fields, order, queryScope
+- **Exact API contracts** â€” HTTP method, path, request body shape, response shape, error codes
+- **Exact Firestore index definitions** â€” collectionGroup, fields, order, queryScope
 
 **Spec rules:**
 - Present spec to human. **Wait for explicit approval before writing any code.**
-- If trivial task (< 20 lines, single file, no boundary triggers) → mini-spec inline:
+- If trivial task (< 20 lines, single file, no boundary triggers) â†’ mini-spec inline:
   ```
-  Mini-spec: [what] → [why] → [exact files] → [exact test inputs+outputs] → [rollback: revert commit]
+  Mini-spec: [what] â†’ [why] â†’ [exact files] â†’ [exact test inputs+outputs] â†’ [rollback: revert commit]
   ```
-- Boundary trigger → full AI-Executable Spec, no mini-spec.
+- Boundary trigger â†’ full AI-Executable Spec, no mini-spec.
 
 ---
 
 ### Stage 2: Build
 Implement strictly within the approved spec scope.
 - Write code + tests + logging in one pass.
-- Follow Constitution §II (clean code, error handling, types, structured logs).
+- Follow Constitution Â§II (clean code, error handling, types, structured logs).
 - Do not modify files outside the spec. Do not add unplanned dependencies.
 
 ### Stage 3: Self-Review
 Run every item in `.agent/review-checklist.md` against your own work.
 - Report the checklist results before committing.
-- If any critical failure → stop and report. Do not commit.
-- If minor issues → fix them, then re-run the checklist.
+- If any critical failure â†’ stop and report. Do not commit.
+- If minor issues â†’ fix them, then re-run the checklist.
 
 ### Stage 4: Test & Eval
 - Run the full test suite. Report results (pass/fail counts).
-- If this task touched LLM prompts or agent behavior → run the relevant golden set eval from `.agent/golden-sets/`.
-  - Smokey changes → `smokey-qa.json` (target: ≥90% overall, 100% compliance)
-  - Craig changes → `craig-campaigns.json`
-  - Deebo changes → `deebo-compliance.json`
-- Report eval scores. If below threshold → do not commit. Iterate.
+- If this task touched LLM prompts or agent behavior â†’ run the relevant golden set eval from `.agent/golden-sets/`.
+  - Smokey changes â†’ `smokey-qa.json` (target: â‰¥90% overall, 100% compliance)
+  - Craig changes â†’ `craig-campaigns.json`
+  - Deebo changes â†’ `deebo-compliance.json`
+- Report eval scores. If below threshold â†’ do not commit. Iterate.
 
 ### Stage 5: Ship + Record
 Only after Stages 0-4 are complete:
 
-#### 🔍 Pre-Push Quality Gate (MANDATORY — runs automatically after all code work)
+#### ðŸ” Pre-Push Quality Gate (MANDATORY â€” runs automatically after all code work)
 
-> **⚠️ AUTO-SIMPLIFY PROTOCOL: After completing ANY code modifications, ALL agents MUST run `/simplify` before committing. This is not optional. It applies to Antigravity, Claude Code, Linus (Slack), and every engineering agent.**
+> **âš ï¸ AUTO-SIMPLIFY PROTOCOL: After completing ANY code modifications, ALL agents MUST run `/simplify` before committing. This is not optional. It applies to Antigravity, Claude Code, Linus (Slack), and every engineering agent.**
 
 Run `/simplify` OR execute the three review agents in parallel manually:
 
@@ -410,7 +410,7 @@ After the review is complete and the code to push is final, run `npm run simplif
 ```
 Launch all three agents in a single message (parallel):
 
-Agent 1 — Code Reuse Review
+Agent 1 â€” Code Reuse Review
   "You are doing a CODE REUSE review of the following git diff.
    Find places where newly written code duplicates existing utilities
    or could use existing helpers. Search for existing utilities that
@@ -420,14 +420,14 @@ Agent 1 — Code Reuse Review
    path handling, custom env checks, ad-hoc type guards).
    Diff: [paste git diff]"
 
-Agent 2 — Code Quality Review
+Agent 2 â€” Code Quality Review
   "You are doing a CODE QUALITY review of the following git diff.
    Find: redundant state, parameter sprawl, copy-paste with slight
    variation, leaky abstractions, stringly-typed code, unnecessary
    JSX nesting.
    Diff: [paste git diff]"
 
-Agent 3 — Efficiency Review
+Agent 3 â€” Efficiency Review
   "You are doing an EFFICIENCY review of the following git diff.
    Find: unnecessary work, missed concurrency (sequential ops that
    could be parallel), hot-path bloat, recurring no-op updates,
@@ -438,18 +438,18 @@ Agent 3 — Efficiency Review
 Wait for all three agents to complete. Fix every confirmed finding before proceeding to commit.
 
 1. **Commit** with structured message (see review-checklist.md for format).
-2. **Push to GitHub** — `git push origin main` **triggers Firebase App Hosting deployment to production**. Always push after committing finished work.
-4. **Open a PR with full governance** — required on every branch push (PRs targeting `main` or `develop` trigger the governance bot):
+2. **Push to GitHub** â€” `git push origin main` **triggers Firebase App Hosting deployment to production**. Always push after committing finished work.
+4. **Open a PR with full governance** â€” required on every branch push (PRs targeting `main` or `develop` trigger the governance bot):
    ```bash
    gh pr create --title "<title>" --body "$(cat <<'EOF'
    # Summary
    <bullet points of what changed>
 
    # Risk Tier
-   - [ ] Tier 0 — Low Risk
-   - [ ] Tier 1 — Moderate Risk
-   - [ ] Tier 2 — High Risk
-   - [ ] Tier 3 — Critical Risk
+   - [ ] Tier 0 â€” Low Risk
+   - [ ] Tier 1 â€” Moderate Risk
+   - [ ] Tier 2 â€” High Risk
+   - [ ] Tier 3 â€” Critical Risk
 
    # Canonical Reuse
    <existing types/services/utilities reused>
@@ -471,33 +471,33 @@ Wait for all three agents to complete. Fix every confirmed finding before procee
    - [ ] I can explain the full flow without AI comments or generated annotations.
    EOF
    )"
-   # Then add the risk label (required — governance bot fails without it):
+   # Then add the risk label (required â€” governance bot fails without it):
    gh pr edit <number> --add-label "risk:tier0"  # or tier1/tier2/tier3
    ```
-   **Risk label must always be set** — the governance check fails with 0 labels.
-5. Update `CLAUDE.md` line 15 — build status one-liner.
-6. Update `prime.md` recent work block — prepend new entry (commit hash + one-liner).
-7. Update `memory/MEMORY.md` — full session details, gotchas, decisions.
+   **Risk label must always be set** â€” the governance check fails with 0 labels.
+5. Update `CLAUDE.md` line 15 â€” build status one-liner.
+6. Update `prime.md` recent work block â€” prepend new entry (commit hash + one-liner).
+7. Update `memory/MEMORY.md` â€” full session details, gotchas, decisions.
 8. Route to topic files if applicable (`memory/platform.md`, `memory/agents.md`, etc.).
-9. If feature-flagged → note flag name and canary status.
+9. If feature-flagged â†’ note flag name and canary status.
 
 ### Escape Hatches
 - **Hotfix (production down):** Skip Stages 0-1. Implement fix, run Stages 3-4, commit with `hotfix()` prefix. File retroactive PRD + spec within same session.
 - **Docs-only change:** Skip Stages 1-4. Commit directly with `docs()` prefix.
-- **Exploration/spike:** Produce PRD marked `status: 🔬 Spike`. Code is throwaway. Do not merge to main without promoting to full PRD → Spec → Build flow.
+- **Exploration/spike:** Produce PRD marked `status: ðŸ”¬ Spike`. Code is throwaway. Do not merge to main without promoting to full PRD â†’ Spec â†’ Build flow.
 
-### 🐛 Bug Workflow (Auto-triggered on ANY mention of a bug, broken feature, or unexpected behavior)
+### ðŸ› Bug Workflow (Auto-triggered on ANY mention of a bug, broken feature, or unexpected behavior)
 
-When the user says anything like "X is broken", "X isn't working", "X still broken", "bug in X", "fix X" — execute this automatically, no extra prompting needed:
+When the user says anything like "X is broken", "X isn't working", "X still broken", "bug in X", "fix X" â€” execute this automatically, no extra prompting needed:
 
-**Step 1 — Triage (30 seconds)**
+**Step 1 â€” Triage (30 seconds)**
 Determine priority based on impact:
-- **P0** — Production down, data loss, security breach, payment failure
-- **P1** — Core feature broken for a paying customer (e.g., Thrive can't onboard)
-- **P2** — Feature degraded but workaround exists
-- **P3** — Minor UI issue, cosmetic, non-blocking
+- **P0** â€” Production down, data loss, security breach, payment failure
+- **P1** â€” Core feature broken for a paying customer (e.g., Thrive can't onboard)
+- **P2** â€” Feature degraded but workaround exists
+- **P3** â€” Minor UI issue, cosmetic, non-blocking
 
-**Step 2 — File the bug (immediate)**
+**Step 2 â€” File the bug (immediate)**
 Write directly to Firestore `qa_bugs` collection via Admin SDK script:
 ```typescript
 { id, title, steps[], expected, actual, rootCause, priority, area,
@@ -506,13 +506,13 @@ Write directly to Firestore `qa_bugs` collection via Admin SDK script:
 ```
 P0/P1 bugs trigger Slack notification automatically via `qa-notifications.ts`.
 
-**Step 3 — Fix immediately**
+**Step 3 â€” Fix immediately**
 - Read the broken component/action/service
 - Identify root cause
 - Apply fix
 - Commit + push to production
 
-Do NOT wait for the user to say "P1" or "file a bug first" — triage, file, and fix in one pass.
+Do NOT wait for the user to say "P1" or "file a bug first" â€” triage, file, and fix in one pass.
 
 ---
 
@@ -537,7 +537,7 @@ Key completed: [Restored missing `job-stream.ts` module -> Type Check + E2E + de
 
 ---
 
-## 🔒 SECURITY RULE: NEVER HARDCODE SECRETS
+## ðŸ”’ SECURITY RULE: NEVER HARDCODE SECRETS
 
 **Secrets in code = blocked push + rotated credentials.** It happened (Slack webhook, 2026-02-17).
 
@@ -549,18 +549,18 @@ echo -n "secret-value" | gcloud secrets create SECRET_NAME --data-file=- --proje
 # If secret already exists but has 0 versions (will also cause build failure!):
 echo -n "secret-value" | gcloud secrets versions add SECRET_NAME --data-file=- --project=studio-567050101-bc6e8
 
-# STEP 2: Grant Firebase access (Firebase CLI ONLY — not raw gcloud)
+# STEP 2: Grant Firebase access (Firebase CLI ONLY â€” not raw gcloud)
 firebase apphosting:secrets:grantaccess SECRET_NAME --backend=bakedbot-prod
 
-# STEP 3: Reference in apphosting.yaml — then push to deploy
+# STEP 3: Reference in apphosting.yaml â€” then push to deploy
 ```
 ```yaml
 - variable: MY_SECRET
-  secret: MY_SECRET          # ✅ Correct
+  secret: MY_SECRET          # âœ… Correct
   availability: [RUNTIME]
 
 - variable: MY_SECRET
-  value: "actual-secret"     # ❌ NEVER DO THIS
+  value: "actual-secret"     # âŒ NEVER DO THIS
 ```
 ```typescript
 // In code: always from env
@@ -569,31 +569,31 @@ const webhookUrl = process.env.SLACK_WEBHOOK_URL;
 const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || '';
 ```
 
-### 🚨 Preparer-Step Failures (Build-Blocking)
-When a secret is referenced in `apphosting.yaml` but is misconfigured, Firebase fails at the **preparer step** — before any compilation — blocking ALL deployments with `fah/misconfigured-secret`.
+### ðŸš¨ Preparer-Step Failures (Build-Blocking)
+When a secret is referenced in `apphosting.yaml` but is misconfigured, Firebase fails at the **preparer step** â€” before any compilation â€” blocking ALL deployments with `fah/misconfigured-secret`.
 
 **Three causes, same error:**
 1. Secret doesn't exist in Secret Manager
-2. Secret exists but has **0 versions** (empty container — `gcloud secrets versions list` shows "Listed 0 items.")
+2. Secret exists but has **0 versions** (empty container â€” `gcloud secrets versions list` shows "Listed 0 items.")
 3. Secret exists with data but no Firebase IAM binding
 
 **Quick diagnostic:**
 ```bash
 gcloud secrets versions list SECRET_NAME --project=studio-567050101-bc6e8
-# "Listed 0 items." → add a version (step 1 above)
-# Shows version(s) → run firebase apphosting:secrets:grantaccess (step 2)
+# "Listed 0 items." â†’ add a version (step 1 above)
+# Shows version(s) â†’ run firebase apphosting:secrets:grantaccess (step 2)
 ```
 
 See `.agent/refs/firebase-secrets.md` for full pattern, debugging checklist, and version management.
 
 ---
 
-## 🆕 Super User Onboarding
+## ðŸ†• Super User Onboarding
 
 ### Promoting New Super Users to Admin Access
-**Status:** ✅ Two-Script Solution — UID-based (recommended) + Email-based (backup)
+**Status:** âœ… Two-Script Solution â€” UID-based (recommended) + Email-based (backup)
 
-**Method 1: UID-Based (Recommended)** ✅
+**Method 1: UID-Based (Recommended)** âœ…
 ```bash
 node scripts/promote-super-user-by-uid.mjs <UID>
 ```
@@ -607,28 +607,28 @@ node scripts/promote-super-user-by-email.mjs <EMAIL>
 ```
 
 **Finding the UID:**
-1. Firebase Console → Authentication → Users → Click user → Copy UID
-2. Browser DevTools → Application → Local Storage → `firebase:authUser:...`
+1. Firebase Console â†’ Authentication â†’ Users â†’ Click user â†’ Copy UID
+2. Browser DevTools â†’ Application â†’ Local Storage â†’ `firebase:authUser:...`
 
-**After Promotion:** User must re-login → auto-routed to `/dashboard/ceo` → full access to 28 agent tools.
+**After Promotion:** User must re-login â†’ auto-routed to `/dashboard/ceo` â†’ full access to 28 agent tools.
 
 ---
 
-## 🗂️ Completed Systems (Quick Reference)
+## ðŸ—‚ï¸ Completed Systems (Quick Reference)
 
 > Architecture docs: `.agent/refs/` | Production specs (acceptance criteria + gaps): `.agent/specs/`
 
 | System | Status | Key Ref | Production Spec |
 |--------|--------|---------|----------------|
-| Campaign System (Craig) | ✅ SMS+Email+Deebo gate | `refs/agents/behavioral-agents.md` | `specs/tier1-campaign-system.md` |
-| Compliance (Deebo) | ✅ NY/CA/IL rules + monitor | `refs/agents/behavioral-agents.md` | `specs/tier1-compliance-deebo.md` |
-| Public Menu Pages | ✅ Brand + Dispensary + ISR | `refs/pages-brand.md` | `specs/tier1-public-menu-pages.md` |
-| Pilot Customers | ✅ Thrive (US) + Herbalist Samui (🇹🇭 INT'L) | `memory/customers.md` + `HERBALIST_SAMUI_SETUP.md` | — |
-| International ISR Pages | ✅ Thailand/Koh Samui live | `src/app/destination/` | — |
+| Campaign System (Craig) | âœ… SMS+Email+Deebo gate | `refs/agents/behavioral-agents.md` | `specs/tier1-campaign-system.md` |
+| Compliance (Deebo) | âœ… NY/CA/IL rules + monitor | `refs/agents/behavioral-agents.md` | `specs/tier1-compliance-deebo.md` |
+| Public Menu Pages | âœ… Brand + Dispensary + ISR | `refs/pages-brand.md` | `specs/tier1-public-menu-pages.md` |
+| Pilot Customers | âœ… Thrive (US) + Herbalist Samui (ðŸ‡¹ðŸ‡­ INT'L) | `memory/customers.md` + `HERBALIST_SAMUI_SETUP.md` | â€” |
+| International ISR Pages | âœ… Thailand/Koh Samui live | `src/app/destination/` | â€” |
 
 ---
 
-## 🧭 Core Principles
+## ðŸ§­ Core Principles
 
 1. **Build Health First** - A failing build blocks everything. Fix it immediately.
 2. **Read Before Write** - Never modify code you haven't read. Use `Read` tool first.
@@ -664,7 +664,7 @@ If the repo is not indexed yet, run `index_folder` once, then follow the flow ab
 
 ---
 
-## 🎯 Decision Framework: When to Read Refs
+## ðŸŽ¯ Decision Framework: When to Read Refs
 
 | Situation | Action |
 |-----------|--------|
@@ -679,7 +679,7 @@ If the repo is not indexed yet, run `index_folder` once, then follow the flow ab
 
 ---
 
-## ⚡ Essential Commands
+## âš¡ Essential Commands
 
 | Command | When to Use |
 |---------|-------------|
@@ -689,15 +689,15 @@ If the repo is not indexed yet, run `index_folder` once, then follow the flow ab
 | `npm run lint` | Before committing |
 | `git push origin main` | Deploy (triggers Firebase App Hosting) |
 
-**Shell Note:** Windows PowerShell — use `;` not `&&` for chaining.
+**Shell Note:** Windows PowerShell â€” use `;` not `&&` for chaining.
 
 ---
 
-## 📁 Key Directories
+## ðŸ“ Key Directories
 
 ```
 src/server/agents/     # Agent implementations (linus.ts, smokey.ts, etc.)
-src/server/grounding/  # Ground truth QA for pilot customers ⭐
+src/server/grounding/  # Ground truth QA for pilot customers â­
 src/server/services/   # Business logic (letta/, rtrvr/, ezal/)
 src/server/tools/      # Agent tools (Genkit tool definitions)
 src/server/actions/    # Server Actions ('use server')
@@ -709,7 +709,7 @@ dev/work_archive/      # Historical decisions and artifacts
 
 ---
 
-## 📚 Reference Files (Progressive Disclosure)
+## ðŸ“š Reference Files (Progressive Disclosure)
 
 Only load these when needed to conserve context:
 
@@ -737,13 +737,13 @@ Full index in `refs/README.md`.
 
 ---
 
-## 🔄 Standard Workflow
+## ðŸ”„ Standard Workflow
 
-> See **Workflow Protocol** section above for the full 5-stage pipeline (Spec → Build → Self-Review → Test/Eval → Ship+Record).
+> See **Workflow Protocol** section above for the full 5-stage pipeline (Spec â†’ Build â†’ Self-Review â†’ Test/Eval â†’ Ship+Record).
 
 ---
 
-## 🛡️ Code Quality Rules
+## ðŸ›¡ï¸ Code Quality Rules
 
 | Rule | Enforcement |
 |------|-------------|
@@ -756,7 +756,7 @@ Full index in `refs/README.md`.
 
 ---
 
-## 🧠 Intelligence & Model Stack (Q1 2026 Update)
+## ðŸ§  Intelligence & Model Stack (Q1 2026 Update)
 
 BakedBot AI utilizes the **Gemini 2.5** family for all core reasoning and creative tasks.
 
@@ -774,31 +774,31 @@ BakedBot AI utilizes the **Gemini 2.5** family for all core reasoning and creati
 
 ---
 
-## 🕵️ Agent Squad (Quick Reference)
+## ðŸ•µï¸ Agent Squad (Quick Reference)
 
 **Executive Boardroom (Super Users Only):**
-- Leo (COO) — Operations, delegation
-- Jack (CRO) — Revenue, CRM
-- Linus (CTO) — Code eval, deployment
-- Glenda (CMO) — Marketing, brand
-- Mike (CFO) — Finance, billing
+- Leo (COO) â€” Operations, delegation
+- Jack (CRO) â€” Revenue, CRM
+- Linus (CTO) â€” Code eval, deployment
+- Glenda (CMO) â€” Marketing, brand
+- Mike (CFO) â€” Finance, billing
 
 **Support Staff:**
-- Smokey (Budtender) — Product recommendations, upsells
-- Craig (Marketer) — Campaigns, SMS/Email, CRM segments, content generation
-- Pops (Analyst) — Revenue analysis, segment trends
-- Ezal (Lookout) — Competitive intel, pricing
-- Deebo (Enforcer) — Compliance, campaign review
-- Mrs. Parker (Retention) — CRM, win-back campaigns, loyalty, churn prevention
-- Money Mike (CFO) — Profitability, campaign ROI, pricing strategy
+- Smokey (Budtender) â€” Product recommendations, upsells
+- Craig (Marketer) â€” Campaigns, SMS/Email, CRM segments, content generation
+- Pops (Analyst) â€” Revenue analysis, segment trends
+- Ezal (Lookout) â€” Competitive intel, pricing
+- Deebo (Enforcer) â€” Compliance, campaign review
+- Mrs. Parker (Retention) â€” CRM, win-back campaigns, loyalty, churn prevention
+- Money Mike (CFO) â€” Profitability, campaign ROI, pricing strategy
 
 > Full details: `refs/agents/README.md`
 
 ---
 
-## 🛠️ Engineering Agent Squad
+## ðŸ› ï¸ Engineering Agent Squad
 
-> Specialized agents that build and maintain the codebase. All report to Linus. All governed by this prime.md — same workflow protocol, same golden set gates, same super powers.
+> Specialized agents that build and maintain the codebase. All report to Linus. All governed by this prime.md â€” same workflow protocol, same golden set gates, same super powers.
 
 **IDE Integration:** Engineering agents auto-load via directory-level `CLAUDE.md` files. Open any file in their domain and their full context is available automatically. No manual switching.
 
@@ -828,7 +828,7 @@ BakedBot AI utilizes the **Gemini 2.5** family for all core reasoning and creati
 
 ---
 
-## 🔌 Key Integrations
+## ðŸ”Œ Key Integrations
 
 | Service | Used By | Purpose |
 |---------|---------|---------|
@@ -846,36 +846,36 @@ BakedBot AI utilizes the **Gemini 2.5** family for all core reasoning and creati
 
 ---
 
-## ⚠️ Common Pitfalls
+## âš ï¸ Common Pitfalls
 
 | Pitfall | Prevention | Super Power |
 |---------|------------|-------------|
-| Editing code without reading it | Always use Read tool first | — |
-| Skipping build check | Run `npm run check:types` before and after | — |
+| Editing code without reading it | Always use Read tool first | â€” |
+| Skipping build check | Run `npm run check:types` before and after | â€” |
 | Build errors piling up | Auto-fix first, then manual review | **SP6** `fix:build --apply` |
-| Large changes without plan | Break into smaller increments | — |
-| Forgetting to archive | Use `archive_work` after significant changes | — |
-| Assuming file structure | Use Glob/Grep to verify | — |
+| Large changes without plan | Break into smaller increments | â€” |
+| Forgetting to archive | Use `archive_work` after significant changes | â€” |
+| Assuming file structure | Use Glob/Grep to verify | â€” |
 | Data integrity issues | Validate schemas and cross-org consistency | **SP3** + **SP9** |
 | Security gaps in new routes | Run role-based access control tests | **SP7** `test:security` |
 | Expensive queries shipping | Check query cost before/after changes | **SP11** `audit:costs` |
-| Using `&&` in PowerShell | Use `;` instead | — |
-| Runtime-only env vars at module level | Use lazy initialization (see Next.js Build Gotcha below) | — |
+| Using `&&` in PowerShell | Use `;` instead | â€” |
+| Runtime-only env vars at module level | Use lazy initialization (see Next.js Build Gotcha below) | â€” |
 | Using `latest` for secrets in apphosting.yaml | **Always use explicit version numbers** (e.g. `@6`) | **SP2** `setup:secrets` |
 
 ### Firebase Secret Manager Gotcha: Explicit Version Numbers Required
 
-**Problem:** Firebase App Hosting's preparer step resolves secrets during build time. The preparer requires `secretmanager.versions.get` permission to resolve the `latest` alias — which is different from the runtime accessor permission.
+**Problem:** Firebase App Hosting's preparer step resolves secrets during build time. The preparer requires `secretmanager.versions.get` permission to resolve the `latest` alias â€” which is different from the runtime accessor permission.
 
 **Solution: Always Use Explicit Version Numbers**
 
-❌ **BAD** (implicit `latest`):
+âŒ **BAD** (implicit `latest`):
 ```yaml
 - variable: CANPAY_APP_KEY
   secret: CANPAY_APP_KEY
 ```
 
-✅ **GOOD** (explicit version):
+âœ… **GOOD** (explicit version):
 ```yaml
 - variable: CANPAY_APP_KEY
   secret: CANPAY_APP_KEY@1
@@ -897,7 +897,7 @@ gcloud secrets list --project=studio-567050101-bc6e8
 
 # 2. Check if a specific secret has versions
 gcloud secrets versions list SECRET_NAME --project=studio-567050101-bc6e8
-# "Listed 0 items." → add a version. Shows "1 enabled" → just need IAM grant.
+# "Listed 0 items." â†’ add a version. Shows "1 enabled" â†’ just need IAM grant.
 
 # 3. Grant IAM (even if secret already exists)
 firebase apphosting:secrets:grantaccess SECRET_NAME --backend=bakedbot-prod
@@ -935,10 +935,10 @@ firebase apphosting:secrets:grantaccess OPTIONAL_API_KEY --backend=bakedbot-prod
 
 **Example Fix:**
 ```typescript
-// ❌ BAD
+// âŒ BAD
 const BASE_URL = 'https://bakedbot-prod.web.app';
 
-// ✅ GOOD
+// âœ… GOOD
 const BASE_URL = 'https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app';
 ```
 
@@ -948,7 +948,7 @@ const BASE_URL = 'https://bakedbot-prod--studio-567050101-bc6e8.us-central1.host
 
 **Solution: Lazy Initialization**
 ```typescript
-// ✅ GOOD: Lazy initialization that's build-safe
+// âœ… GOOD: Lazy initialization that's build-safe
 let _ai: Genkit | null = null;
 
 function getAiInstance(): Genkit {
@@ -1005,26 +1005,26 @@ if (authHeader !== `Bearer ${cronSecret}`) {
 
 ---
 
-## 🚀 Auto-Approved Operations & Agent Autonomy (2026-02-20)
+## ðŸš€ Auto-Approved Operations & Agent Autonomy (2026-02-20)
 
 ### Claude Code
 **Explicit permission:** Execute these autonomously:
 - Cloud Scheduler job creation/modification/execution
 - Backfill commands (`POST /api/cron/backfill-*`)
 - Cron job triggers (`POST /api/cron/*`)
-- Deployments (`git push origin main` — after build pass)
+- Deployments (`git push origin main` â€” after build pass)
 - Service account setup (IAM operations)
 
-### Linus (CTO Agent) — FULL AUTONOMY GRANTED
+### Linus (CTO Agent) â€” FULL AUTONOMY GRANTED
 **See `.agent/LINUS_CTO_AUTONOMY.md` for comprehensive charter**
 
 **CTO Powers:**
-- ✅ Push code to production (`git push`)
-- ✅ Auto-revert failed deployments (< 2 min SLA)
-- ✅ Create/manage Cloud Scheduler cron jobs
-- ✅ Fix production incidents autonomously
-- ✅ Real-time Slack + dashboard reporting
-- ✅ Infrastructure automation (service accounts)
+- âœ… Push code to production (`git push`)
+- âœ… Auto-revert failed deployments (< 2 min SLA)
+- âœ… Create/manage Cloud Scheduler cron jobs
+- âœ… Fix production incidents autonomously
+- âœ… Real-time Slack + dashboard reporting
+- âœ… Infrastructure automation (service accounts)
 
 **Safety Mechanisms:**
 - Build validation gate (must pass before push)
@@ -1035,21 +1035,21 @@ if (authHeader !== `Bearer ${cronSecret}`) {
 
 ---
 
-## 🛠️ DevOps & Operational Awareness
+## ðŸ› ï¸ DevOps & Operational Awareness
 
 > Every agent should understand the production infrastructure they operate within.
 
 ### Deployment Architecture
 ```
-git push origin main → GitHub Actions CI → Firebase App Hosting → Cloud Run (0-10 auto-scaling instances)
-Build: npm test → tsup (embed widget) → next build --webpack → Firebase deploy --force
+git push origin main â†’ GitHub Actions CI â†’ Firebase App Hosting â†’ Cloud Run (0-10 auto-scaling instances)
+Build: npm test â†’ tsup (embed widget) â†’ next build --webpack â†’ Firebase deploy --force
 URL: https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app
 ```
 
 ### Monitoring Stack
 | Layer | Tool | Frequency | What It Checks |
 |-------|------|-----------|----------------|
-| Synthetic | k6 (GitHub Actions) | Every 15 min | /api/health, /thrivesyracuse, /llm.txt — SLA: p95 < 600ms |
+| Synthetic | k6 (GitHub Actions) | Every 15 min | /api/health, /thrivesyracuse, /llm.txt â€” SLA: p95 < 600ms |
 | Heartbeat | Pulse system | Every 10 min | 60+ domain-specific checks (POS, inventory, loyalty, compliance) |
 | System Health | Cron job | Every 30 min | Memory, CPU, latency, error rates, DB connectivity |
 | Agent Telemetry | Firestore | Per invocation | Token usage, tool calls, latency, cost, capability utilization |
@@ -1060,10 +1060,10 @@ Key schedules: POS sync (30 min), loyalty sync (daily 2 AM), playbook execution 
 
 ### Alert Escalation Path
 ```
-Cloud Monitoring alert → Slack #infrastructure
-  ↓ (if P0/P1)
-Auto-escalator → QA bug filed → Linus auto-dispatched → Slack #linus-incidents
-  ↓ (if unresolved > 2 min)
+Cloud Monitoring alert â†’ Slack #infrastructure
+  â†“ (if P0/P1)
+Auto-escalator â†’ QA bug filed â†’ Linus auto-dispatched â†’ Slack #linus-incidents
+  â†“ (if unresolved > 2 min)
 Human escalation
 ```
 
@@ -1087,3 +1087,4 @@ Key targets: Linus P95 < 30s, error rate < 2%, super power utilization > 15%. Cr
 ---
 
 *This context loads automatically. For domain-specific details, consult `.agent/refs/`. For Linus full details, load `.agent/LINUS_CTO_AUTONOMY.md`. For session history, see `memory/MEMORY.md` and `dev/work_archive/`.*
+

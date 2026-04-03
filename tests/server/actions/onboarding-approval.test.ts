@@ -2,6 +2,7 @@
 import { completeOnboarding } from '@/app/onboarding/actions.ts';
 import { requireUser } from '@/server/auth/auth';
 import { createServerClient } from '@/firebase/server-client';
+import { ONBOARDING_PHASE1_VERSION } from '@/lib/onboarding/activation';
 
 // Mock dependencies
 jest.mock('@/server/auth/auth', () => ({
@@ -46,6 +47,10 @@ describe('Onboarding Approval Status', () => {
                 doc: jest.fn().mockReturnValue(mockUserDoc),
                 add: jest.fn().mockResolvedValue({ id: 'job-123' }), // Mock job queue
             }),
+            batch: jest.fn().mockReturnValue({
+                set: jest.fn(),
+                commit: jest.fn().mockResolvedValue(undefined),
+            }),
         };
 
         mockAuth = {
@@ -70,7 +75,13 @@ describe('Onboarding Approval Status', () => {
         expect(mockUserDoc.set).toHaveBeenCalledWith(expect.objectContaining({
             role: 'brand',
             approvalStatus: 'pending',
-            isNewUser: false
+            isNewUser: false,
+            onboarding: expect.objectContaining({
+                version: ONBOARDING_PHASE1_VERSION,
+                primaryGoal: 'creative_center',
+                selectedCompetitorCount: 0,
+                selectedAt: expect.any(String),
+            }),
         }), { merge: true });
 
         // Verify notifications sent
@@ -136,17 +147,40 @@ describe('Onboarding Approval Status', () => {
         expect(setPayloads).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({
-                    selectedPlanId: 'empire',
-                    selectedPlanName: 'Empire',
+                    selectedPlanId: 'optimize',
+                    selectedPlanName: 'Optimize',
                 }),
                 expect.objectContaining({
                     billing: expect.objectContaining({
                         subscriptionStatus: 'trial',
-                        selectedPlanId: 'empire',
-                        selectedPlanName: 'Empire',
+                        selectedPlanId: 'optimize',
+                        selectedPlanName: 'Optimize',
                     }),
                 }),
             ])
         );
+    });
+
+    it('persists a selected first win and competitor count in onboarding metadata', async () => {
+        const formData = new FormData();
+        formData.append('role', 'dispensary');
+        formData.append('manualDispensaryName', 'Test Dispensary');
+        formData.append('primaryGoal', 'welcome_playbook');
+        formData.append('selectedCompetitors', JSON.stringify([
+            { placeId: 'a' },
+            { placeId: 'b' },
+        ]));
+
+        const result = await completeOnboarding(null, formData);
+
+        expect(result.error).toBe(false);
+        expect(mockUserDoc.set).toHaveBeenCalledWith(expect.objectContaining({
+            onboarding: expect.objectContaining({
+                version: ONBOARDING_PHASE1_VERSION,
+                primaryGoal: 'welcome_playbook',
+                selectedCompetitorCount: 2,
+                selectedAt: expect.any(String),
+            }),
+        }), { merge: true });
     });
 });

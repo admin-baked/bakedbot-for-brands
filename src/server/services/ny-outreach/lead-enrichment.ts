@@ -11,6 +11,7 @@
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import { apolloSearchPeople, apolloEnrichByDomain } from './apollo-enrichment';
+import { enrichLinkedInProfile } from './proxycurl-enrichment';
 
 // =============================================================================
 // Types
@@ -73,16 +74,58 @@ export async function enrichLeadBatch(limit: number = 20): Promise<LeadEnrichmen
             : undefined;
         let contactFormUrl: string | undefined;
         let phone: string | undefined;
+        let linkedinUrl: string | undefined;
+        let contactTitle: string | undefined;
         let source: LeadEnrichmentResult['source'] = 'none';
 
-        // --- Step 1: Jina web search + page scrape ---
+        // --- Step 1: Apollo.io — structured contact data (email, name, title, LinkedIn) ---
+        let apolloContactName: string | undefined;
+        try {
+            const apolloResult = websiteUrl
+                ? await apolloEnrichByDomain(websiteUrl, dispensaryName, city, state)
+                : await apolloSearchPeople(
+                    dispensaryName,
+                    city,
+                    state,
+                    data.contactName as string | undefined
+                );
+
+            if (apolloResult.email) {
+                email = apolloResult.email;
+                source = 'apollo';
+                logger.info('[LeadEnrichment] Apollo found email', {
+                    dispensaryName,
+                    source: apolloResult.source,
+                    creditSpent: apolloResult.creditSpent,
+                });
+            }
+            if (!data.contactName && apolloResult.contactName) apolloContactName = apolloResult.contactName;
+            if (apolloResult.linkedinUrl) linkedinUrl = apolloResult.linkedinUrl;
+            if (apolloResult.title) contactTitle = apolloResult.title;
+        } catch (err) {
+            logger.warn('[LeadEnrichment] Apollo search failed', { dispensaryName, error: String(err) });
+        }
+
+        // --- Step 2: Proxycurl — LinkedIn profile enrichment (if Apollo returned a URL) ---
+        let linkedinProfile: Record<string, unknown> | undefined;
+        if (linkedinUrl) {
+            const profile = await enrichLinkedInProfile(linkedinUrl);
+            if (profile) {
+                linkedinProfile = profile as unknown as Record<string, unknown>;
+                // Fill in gaps from Apollo if profile has better data
+                if (!apolloContactName && profile.fullName) apolloContactName = profile.fullName;
+                if (!contactTitle && profile.currentTitle) contactTitle = profile.currentTitle;
+            }
+        }
+
+        // --- Step 3: Jina web scrape — additional context (website, phone, contact form) ---
+        // Always runs to enrich website/phone even when Apollo found an email
         try {
             let siteUrl = websiteUrl;
             let ownSiteSnippet = '';
 
             if (!siteUrl) {
                 const { jinaSearch } = await import('@/server/tools/jina-tools');
-
                 const searchQuery = `"${dispensaryName}" ${city} ${state} cannabis dispensary contact email`;
                 const searchResults = await jinaSearch(searchQuery);
 
@@ -93,7 +136,6 @@ export async function enrichLeadBatch(limit: number = 20): Promise<LeadEnrichmen
                         return !skipDomains.some(d => domain.includes(d));
                     } catch { return false; }
                 });
-
                 siteUrl = ownSite?.url;
                 ownSiteSnippet = ownSite?.snippet || '';
             }
@@ -119,8 +161,11 @@ export async function enrichLeadBatch(limit: number = 20): Promise<LeadEnrichmen
                 const content = [pc, cc].filter(c => c.length > 50).join('\n\n') || ownSiteSnippet;
 
                 if (content.length >= 20) {
-                    const emailMatch = content.match(/\b[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}\b/i);
-                    if (emailMatch) { email = emailMatch[0]; source = 'jina'; }
+                    // Only use Jina email if Apollo didn't find one
+                    if (!email) {
+                        const emailMatch = content.match(/\b[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}\b/i);
+                        if (emailMatch) { email = emailMatch[0]; source = 'jina'; }
+                    }
                     const phoneMatch = content.match(/\(?\d{3}\)?[\s\-]\d{3}[\s\-]\d{4}/);
                     if (phoneMatch) phone = phoneMatch[0];
                     contactFormUrl = !email ? `${domain}/contact` : undefined;
@@ -128,36 +173,6 @@ export async function enrichLeadBatch(limit: number = 20): Promise<LeadEnrichmen
             }
         } catch (err) {
             logger.warn('[LeadEnrichment] Jina scrape failed', { dispensaryName, error: String(err) });
-        }
-
-        // --- Step 2: Apollo.io fallback ---
-        let apolloContactName: string | undefined;
-        if (!email) {
-            try {
-                const apolloResult = websiteUrl
-                    ? await apolloEnrichByDomain(websiteUrl, dispensaryName, city, (data.state as string) || 'NY')
-                    : await apolloSearchPeople(
-                        dispensaryName,
-                        city,
-                        (data.state as string) || 'NY',
-                        data.contactName as string | undefined
-                    );
-
-                if (apolloResult.email) {
-                    email = apolloResult.email;
-                    source = 'apollo';
-                    if (!data.contactName && apolloResult.contactName) {
-                        apolloContactName = apolloResult.contactName;
-                    }
-                    logger.info('[LeadEnrichment] Apollo found email', {
-                        dispensaryName,
-                        source: apolloResult.source,
-                        creditSpent: apolloResult.creditSpent,
-                    });
-                }
-            } catch (err) {
-                logger.warn('[LeadEnrichment] Apollo search failed', { dispensaryName, error: String(err) });
-            }
         }
 
         // --- Step 3: Persist results ---
@@ -173,6 +188,9 @@ export async function enrichLeadBatch(limit: number = 20): Promise<LeadEnrichmen
         if (websiteUrl) updates.websiteUrl = websiteUrl;
         if (contactFormUrl) updates.contactFormUrl = contactFormUrl;
         if (apolloContactName) updates.contactName = apolloContactName;
+        if (linkedinUrl) updates.linkedinUrl = linkedinUrl;
+        if (contactTitle) updates.contactTitle = contactTitle;
+        if (linkedinProfile) updates.linkedinProfile = linkedinProfile;
 
         await doc.ref.update(updates);
         enriched++;

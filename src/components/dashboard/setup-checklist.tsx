@@ -2,321 +2,411 @@
 
 /**
  * Setup Checklist Component
- * 
- * Onboarding v2: Progressive disclosure - shows remaining setup tasks
- * instead of a long wizard. Displayed as a pinned card at top of dashboard
- * until dismissed or all tasks completed.
+ *
+ * Goal-aware onboarding checklist that prioritizes Brand Guide plus the
+ * user's selected first win, then teaches Inbox/Playbooks/Agents and leaves
+ * Competitive Intelligence as a follow-on step.
  */
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import {
+  CheckCircle,
+  Clock,
+  ChevronRight,
+  X,
+  Store,
+  Bot,
+  FileSearch,
+  Megaphone,
+  Palette,
+  CalendarDays,
+  QrCode,
+  Package,
+} from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle, Circle, Clock, ChevronRight, X, Package, Store, Bot, FileSearch, Shield, Megaphone } from 'lucide-react';
 import { useUserRole } from '@/hooks/use-user-role';
+import { useUser } from '@/hooks/use-user';
+import { useBrandGuide } from '@/hooks/use-brand-guide';
 import { cn } from '@/lib/utils';
-import Link from 'next/link';
+import {
+  getDefaultOnboardingPrimaryGoal,
+  getOnboardingGoalDefinition,
+  normalizeOnboardingPrimaryGoal,
+  ONBOARDING_PHASE1_VERSION,
+} from '@/lib/onboarding/activation';
+import type { OnboardingPrimaryGoal } from '@/types/onboarding';
+
+const DISMISS_KEY = `setup-checklist-dismissed-${ONBOARDING_PHASE1_VERSION}`;
 
 export interface ChecklistItem {
-    id: string;
-    title: string;
-    description: string;
-    estimatedTime: string;
-    href: string;
-    icon: React.ReactNode;
-    status: 'todo' | 'done' | 'dismissed';
+  id: string;
+  title: string;
+  description: string;
+  estimatedTime: string;
+  href: string;
+  icon: React.ReactNode;
+  status: 'todo' | 'done';
 }
 
-// Brand checklist items - focused on getting headless menu live with Smokey
-export const BRAND_CHECKLIST: ChecklistItem[] = [
-    {
-        id: 'add-products',
-        title: 'Add your products',
-        description: 'Import from URL, CannMenus, or add products manually',
-        estimatedTime: '5 min',
-        href: '/dashboard/products',
-        icon: <Package className="h-4 w-4" />,
-        status: 'todo'
-    },
-    {
-        id: 'add-retailers',
-        title: 'Configure "Where to Buy"',
-        description: 'Choose online-only or connect retail partners for local pickup',
-        estimatedTime: '3 min',
-        href: '/dashboard/dispensaries',
-        icon: <Store className="h-4 w-4" />,
-        status: 'todo'
-    },
-    {
-        id: 'launch-menu',
-        title: 'Launch your Headless Menu',
-        description: 'Go live at bakedbot.ai/yourbrand with your product catalog',
-        estimatedTime: '2 min',
-        href: '/dashboard/brand-page',
-        icon: <Store className="h-4 w-4" />,
-        status: 'todo'
-    },
-    {
-        id: 'activate-smokey',
-        title: 'Activate Smokey AI Budtender',
-        description: 'Configure your AI-powered budtender for product recommendations',
-        estimatedTime: '2 min',
-        href: '/dashboard/settings?tab=chatbot',
-        icon: <Bot className="h-4 w-4" />,
-        status: 'todo'
-    },
-    {
-        id: 'setup-intel',
-        title: 'Set Up Competitive Intelligence',
-        description: 'Track competitor pricing and get daily/weekly market reports',
-        estimatedTime: '3 min',
-        href: '/dashboard/competitive-intel',
-        icon: <FileSearch className="h-4 w-4" />,
-        status: 'todo'
-    }
-];
+export type ChecklistRoleType = 'brand' | 'dispensary';
 
-// Dispensary checklist items
-export const DISPENSARY_CHECKLIST: ChecklistItem[] = [
-    {
-        id: 'link-dispensary',
-        title: 'Link your dispensary',
-        description: 'Search CannMenus or Dutchie to connect your data',
-        estimatedTime: '2 min',
-        href: '/dashboard/settings/link',
-        icon: <Store className="h-4 w-4" />,
-        status: 'todo'
-    },
-    {
-        id: 'connect-pos',
-        title: 'Connect POS or upload inventory',
-        description: 'Sync your menu from Dutchie, Jane, or upload CSV',
-        estimatedTime: '5 min',
-        href: '/dashboard/apps',
-        icon: <Package className="h-4 w-4" />,
-        status: 'todo'
-    },
-    {
-        id: 'publish-menu',
-        title: 'Publish headless menu pages',
-        description: 'Generate SEO-optimized menu pages',
-        estimatedTime: '2 min',
-        href: '/dashboard/menu/publish',
-        icon: <Store className="h-4 w-4" />,
-        status: 'todo'
-    },
-    {
-        id: 'install-smokey',
-        title: 'Install Smokey',
-        description: 'Add AI budtender to your website',
-        estimatedTime: '2 min',
-        href: '/dashboard/settings',
-        icon: <Bot className="h-4 w-4" />,
-        status: 'todo'
-    },
-    {
-        id: 'run-audit',
-        title: 'Run Menu + SEO Audit',
-        description: 'Fix top issues to improve rankings',
-        estimatedTime: '3 min',
-        href: '/dashboard/audit',
-        icon: <FileSearch className="h-4 w-4" />,
-        status: 'todo'
-    },
-    {
-        id: 'compliance-defaults',
-        title: 'Configure Deebo defaults',
-        description: 'Set up compliance for your state',
-        estimatedTime: '3 min',
-        href: '/dashboard/settings/compliance',
-        icon: <Shield className="h-4 w-4" />,
-        status: 'todo'
-    },
-    {
-        id: 'connect-email',
-        title: 'Connect email channels',
-        description: 'Google Workspace for 1:1 sends, Mailjet for campaigns',
-        estimatedTime: '5 min',
-        href: '/dashboard/settings?tab=email',
-        icon: <Megaphone className="h-4 w-4" />,
-        status: 'todo'
-    },
-    {
-        id: 'launch-campaign',
-        title: 'Launch first campaign',
-        description: 'Create a compliant marketing campaign',
-        estimatedTime: '10 min',
-        href: '/dashboard/craig/campaigns/new',
-        icon: <Megaphone className="h-4 w-4" />,
-        status: 'todo'
+interface ChecklistTemplate {
+  id: string;
+  title: string;
+  description: string;
+  estimatedTime: string;
+  href: string;
+  icon: React.ReactNode;
+}
+
+const TASKS: Record<string, ChecklistTemplate> = {
+  'brand-guide': {
+    id: 'brand-guide',
+    title: 'Build your Brand Guide',
+    description: 'Set your voice, colors, compliance, and assets before you scale agent work.',
+    estimatedTime: '6 min',
+    href: '/dashboard/settings/brand-guide',
+    icon: <Palette className="h-4 w-4" />,
+  },
+  'link-dispensary': {
+    id: 'link-dispensary',
+    title: 'Link your dispensary',
+    description: 'Confirm the retail location so check-in, menu, and reporting stay tenant-safe.',
+    estimatedTime: '2 min',
+    href: '/dashboard/settings/link',
+    icon: <Store className="h-4 w-4" />,
+  },
+  'connect-pos': {
+    id: 'connect-pos',
+    title: 'Connect menu data',
+    description: 'Bring in inventory so tablet recommendations and lifecycle content have real products.',
+    estimatedTime: '5 min',
+    href: '/dashboard/apps',
+    icon: <Package className="h-4 w-4" />,
+  },
+  'checkin-manager': {
+    id: 'checkin-manager',
+    title: 'Launch Check-In with Tablet',
+    description: 'Configure the live check-in flow, copy, and kiosk settings.',
+    estimatedTime: '4 min',
+    href: '/dashboard/dispensary/checkin',
+    icon: <QrCode className="h-4 w-4" />,
+  },
+  'qr-training': {
+    id: 'qr-training',
+    title: 'Print QR & train staff',
+    description: 'Open the QR/training page, preview the tablet flow, and run launch QA.',
+    estimatedTime: '4 min',
+    href: '/dashboard/loyalty-tablet-qr',
+    icon: <Store className="h-4 w-4" />,
+  },
+  'creative-center': {
+    id: 'creative-center',
+    title: 'Create your first social draft',
+    description: 'Use Creative Center to generate a first post with your brand voice and assets.',
+    estimatedTime: '5 min',
+    href: '/dashboard/creative',
+    icon: <Megaphone className="h-4 w-4" />,
+  },
+  'content-calendar': {
+    id: 'content-calendar',
+    title: 'Put your first post on the calendar',
+    description: 'Open the calendar view and plan what ships next after your first draft.',
+    estimatedTime: '3 min',
+    href: '/dashboard/creative',
+    icon: <CalendarDays className="h-4 w-4" />,
+  },
+  'welcome-playbook': {
+    id: 'welcome-playbook',
+    title: 'Launch your Welcome Playbook',
+    description: 'Connect email as needed, then review and turn on your personalized welcome automation.',
+    estimatedTime: '5 min',
+    href: '/dashboard/playbooks',
+    icon: <Bot className="h-4 w-4" />,
+  },
+  'inbox-foundations': {
+    id: 'inbox-foundations',
+    title: 'Learn Inbox, Playbooks, and Agents',
+    description: 'Open Inbox and follow the start-here briefing to learn how work lands and repeats here.',
+    estimatedTime: '2 min',
+    href: '/dashboard/inbox',
+    icon: <Bot className="h-4 w-4" />,
+  },
+  'competitive-intel': {
+    id: 'competitive-intel',
+    title: 'Set up Competitive Intelligence',
+    description: 'Track your market after the first win is live and use Inbox for weekly intelligence follow-up.',
+    estimatedTime: '3 min',
+    href: '/dashboard/competitive-intel',
+    icon: <FileSearch className="h-4 w-4" />,
+  },
+};
+
+function getPrimaryTaskOrder(
+  roleType: 'brand' | 'dispensary',
+  primaryGoal: OnboardingPrimaryGoal,
+): string[] {
+  if (roleType === 'dispensary') {
+    switch (primaryGoal) {
+      case 'creative_center':
+        return ['creative-center', 'content-calendar', 'welcome-playbook'];
+      case 'welcome_playbook':
+        return ['welcome-playbook', 'checkin-manager', 'qr-training'];
+      case 'checkin_tablet':
+      default:
+        return ['checkin-manager', 'qr-training', 'welcome-playbook'];
     }
-];
+  }
+
+  switch (primaryGoal) {
+    case 'welcome_playbook':
+      return ['welcome-playbook', 'creative-center', 'content-calendar'];
+    case 'checkin_tablet':
+      return ['welcome-playbook', 'creative-center'];
+    case 'creative_center':
+    default:
+      return ['creative-center', 'content-calendar', 'welcome-playbook'];
+  }
+}
+
+export function buildChecklistItems(params: {
+  roleType: ChecklistRoleType;
+  primaryGoal: OnboardingPrimaryGoal;
+  brandGuideComplete: boolean;
+  linkedStatus: { isLinked: boolean; posConnected: boolean };
+  competitorCount: number;
+}): ChecklistItem[] {
+  const { roleType, primaryGoal, brandGuideComplete, linkedStatus, competitorCount } = params;
+
+  const orderedIds: string[] = ['brand-guide'];
+
+  if (roleType === 'dispensary') {
+    orderedIds.push('link-dispensary', 'connect-pos');
+  }
+
+  orderedIds.push(...getPrimaryTaskOrder(roleType, primaryGoal), 'inbox-foundations', 'competitive-intel');
+
+  const seen = new Set<string>();
+  const dedupedIds = orderedIds.filter((id) => {
+    if (seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+
+  const completed = new Set<string>();
+  if (brandGuideComplete) completed.add('brand-guide');
+  if (linkedStatus.isLinked) completed.add('link-dispensary');
+  if (linkedStatus.posConnected) completed.add('connect-pos');
+  if (competitorCount > 0) completed.add('competitive-intel');
+
+  return dedupedIds.map((id) => ({
+    ...TASKS[id],
+    status: completed.has(id) ? 'done' : 'todo',
+  }));
+}
 
 /**
  * Get linked dispensary status from Firestore
  */
 export async function getLinkedDispensaryStatus(): Promise<{ isLinked: boolean; posConnected: boolean }> {
-    try {
-        const response = await fetch('/api/user/linked-dispensary');
-        if (response.ok) {
-            const data = await response.json();
-            return { 
-                isLinked: !!data.linkedDispensary, 
-                posConnected: !!data.posConnected 
-            };
-        }
-    } catch (error) {
-        console.error('Failed to check linked dispensary:', error);
+  try {
+    const response = await fetch('/api/user/linked-dispensary');
+    if (response.ok) {
+      const data = await response.json();
+      return {
+        isLinked: !!data.linkedDispensary,
+        posConnected: !!data.posConnected
+      };
     }
-    return { isLinked: false, posConnected: false };
+  } catch (error) {
+    console.error('Failed to check linked dispensary:', error);
+  }
+  return { isLinked: false, posConnected: false };
 }
 
 export function SetupChecklist() {
-    const { role, isBrandRole, isDispensaryRole } = useUserRole();
-    const [isDismissed, setIsDismissed] = useState(false);
-    const [items, setItems] = useState<ChecklistItem[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+  const { role, isBrandRole, isDispensaryRole, orgId } = useUserRole();
+  const { userData, isLoading: isUserLoading } = useUser();
+  const { brandGuide, loading: brandGuideLoading } = useBrandGuide(orgId || '');
+  const [isDismissed, setIsDismissed] = useState(false);
+  const [linkedStatus, setLinkedStatus] = useState({ isLinked: false, posConnected: false });
+  const [linkedStatusLoaded, setLinkedStatusLoaded] = useState(false);
 
-    // Load checklist based on role and check completion status
-    useEffect(() => {
-        async function loadChecklist() {
-            let baseItems: ChecklistItem[] = [];
-            
-            if (isBrandRole) {
-                baseItems = [...BRAND_CHECKLIST];
-            } else if (isDispensaryRole) {
-                baseItems = [...DISPENSARY_CHECKLIST];
-                
-                // Check if dispensary is linked
-                // Check if dispensary is linked and POS connected
-                const { isLinked, posConnected } = await getLinkedDispensaryStatus();
-                
-                if (isLinked) {
-                    baseItems = baseItems.map(item => 
-                        item.id === 'link-dispensary' 
-                            ? { ...item, status: 'done' as const }
-                            : item
-                    );
-                }
+  const primaryGoal =
+    normalizeOnboardingPrimaryGoal(userData?.onboarding?.primaryGoal)
+    || getDefaultOnboardingPrimaryGoal(role);
+  const goalDefinition = getOnboardingGoalDefinition(primaryGoal);
+  const brandGuideComplete = (brandGuide?.completenessScore || 0) >= 80;
+  const competitorCount = userData?.onboarding?.selectedCompetitorCount || 0;
 
-                if (posConnected) {
-                     baseItems = baseItems.map(item => 
-                        item.id === 'connect-pos' 
-                            ? { ...item, status: 'done' as const }
-                            : item
-                    );
-                }
-            }
-            
-            setItems(baseItems);
-            setIsLoading(false);
-        }
-        
-        loadChecklist();
+  useEffect(() => {
+    let active = true;
 
-        // Check if dismissed in localStorage
-        const dismissed = localStorage.getItem('setup-checklist-dismissed');
-        if (dismissed === 'true') {
-            setIsDismissed(true);
-        }
-    }, [role, isBrandRole, isDispensaryRole]);
+    if (!isDispensaryRole) {
+      setLinkedStatusLoaded(true);
+      return () => {
+        active = false;
+      };
+    }
 
-    // Listen for restart signal from Smokey Support panel
-    useEffect(() => {
-        const handleRestart = () => {
-            localStorage.removeItem('setup-checklist-dismissed');
-            setIsDismissed(false);
-        };
-        window.addEventListener('restart-onboarding', handleRestart);
-        return () => window.removeEventListener('restart-onboarding', handleRestart);
-    }, []);
+    setLinkedStatusLoaded(false);
 
-    const completedCount = items.filter(i => i.status === 'done').length;
-    const totalCount = items.length;
-    const progressPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+    void (async () => {
+      const nextStatus = await getLinkedDispensaryStatus();
+      if (!active) return;
+      setLinkedStatus(nextStatus);
+      setLinkedStatusLoaded(true);
+    })();
 
-    const handleDismiss = () => {
-        setIsDismissed(true);
-        localStorage.setItem('setup-checklist-dismissed', 'true');
+    return () => {
+      active = false;
+    };
+  }, [isDispensaryRole]);
+
+  useEffect(() => {
+    const dismissed = localStorage.getItem(DISMISS_KEY);
+    if (dismissed === 'true') {
+      setIsDismissed(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleRestart = () => {
+      localStorage.removeItem(DISMISS_KEY);
+      setIsDismissed(false);
     };
 
-    // Don't show for customers or if dismissed
-    if (role === 'customer' || isDismissed || isLoading) {
-        return null;
+    window.addEventListener('restart-onboarding', handleRestart);
+    return () => window.removeEventListener('restart-onboarding', handleRestart);
+  }, []);
+
+  const items = useMemo(() => {
+    if (isBrandRole) {
+      return buildChecklistItems({
+        roleType: 'brand',
+        primaryGoal,
+        brandGuideComplete,
+        linkedStatus,
+        competitorCount,
+      });
     }
 
-    // Don't show if all items complete
-    if (completedCount === totalCount && totalCount > 0) {
-        return null;
+    if (isDispensaryRole) {
+      return buildChecklistItems({
+        roleType: 'dispensary',
+        primaryGoal,
+        brandGuideComplete,
+        linkedStatus,
+        competitorCount,
+      });
     }
 
-    return (
-        <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent mb-6">
-            <CardHeader className="pb-2">
-                <div className="flex items-start justify-between">
-                    <div>
-                        <CardTitle className="text-lg flex items-center gap-2">
-                            <CheckCircle className="h-5 w-5 text-primary" />
-                            Complete your setup
-                        </CardTitle>
-                        <CardDescription className="mt-1">
-                            {completedCount} of {totalCount} tasks complete
-                        </CardDescription>
-                    </div>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleDismiss}
-                        className="text-muted-foreground hover:text-foreground -mt-1 -mr-2"
-                    >
-                        <X className="h-4 w-4" />
-                        <span className="sr-only">Dismiss</span>
-                    </Button>
+    return [] as ChecklistItem[];
+  }, [brandGuideComplete, competitorCount, isBrandRole, isDispensaryRole, linkedStatus, primaryGoal]);
+
+  const completedCount = items.filter((item) => item.status === 'done').length;
+  const totalCount = items.length;
+  const progressPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+
+  const handleDismiss = () => {
+    setIsDismissed(true);
+    localStorage.setItem(DISMISS_KEY, 'true');
+  };
+
+  if (
+    role === 'customer'
+    || isDismissed
+    || isUserLoading
+    || !role
+    || (!linkedStatusLoaded && isDispensaryRole)
+  ) {
+    return null;
+  }
+
+  if (completedCount === totalCount && totalCount > 0) {
+    return null;
+  }
+
+  return (
+    <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent mb-6">
+      <CardHeader className="pb-2">
+        <div className="flex items-start justify-between">
+          <div>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-primary" />
+              Complete your setup
+            </CardTitle>
+            <CardDescription className="mt-1">
+              {completedCount} of {totalCount} tasks complete. Start with {goalDefinition.title}.
+            </CardDescription>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleDismiss}
+            className="text-muted-foreground hover:text-foreground -mt-1 -mr-2"
+          >
+            <X className="h-4 w-4" />
+            <span className="sr-only">Dismiss</span>
+          </Button>
+        </div>
+        <div className="mt-3 space-y-2">
+          <Progress value={progressPercent} className="h-1.5" />
+          <p className="text-xs text-muted-foreground">
+            Inbox is where work lands, Playbooks keep repeatable work running, and Agents help you execute the jobs below.
+          </p>
+          {brandGuideLoading && (
+            <p className="text-xs text-muted-foreground">Checking Brand Guide progress…</p>
+          )}
+        </div>
+      </CardHeader>
+
+      <CardContent className="pt-2">
+        <div className="space-y-1">
+          {items.map((item) => (
+            <Link
+              key={item.id}
+              href={item.href}
+              className={cn(
+                'flex items-center gap-3 p-2 -mx-2 rounded-lg transition-colors group',
+                item.status === 'done'
+                  ? 'opacity-60'
+                  : 'hover:bg-muted/50'
+              )}
+            >
+              <div className={cn(
+                'flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center',
+                item.status === 'done'
+                  ? 'bg-primary/20 text-primary'
+                  : 'bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary'
+              )}>
+                {item.status === 'done' ? (
+                  <CheckCircle className="h-4 w-4" />
+                ) : (
+                  item.icon
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className={cn(
+                  'text-sm font-medium',
+                  item.status === 'done' && 'line-through'
+                )}>
+                  {item.title}
                 </div>
-                <Progress value={progressPercent} className="h-1.5 mt-3" />
-            </CardHeader>
-            <CardContent className="pt-2">
-                <div className="space-y-1">
-                    {items.map((item) => (
-                        <Link
-                            key={item.id}
-                            href={item.href}
-                            className={cn(
-                                "flex items-center gap-3 p-2 -mx-2 rounded-lg transition-colors group",
-                                item.status === 'done'
-                                    ? "opacity-60"
-                                    : "hover:bg-muted/50"
-                            )}
-                        >
-                            <div className={cn(
-                                "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
-                                item.status === 'done'
-                                    ? "bg-primary/20 text-primary"
-                                    : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
-                            )}>
-                                {item.status === 'done' ? (
-                                    <CheckCircle className="h-4 w-4" />
-                                ) : (
-                                    item.icon
-                                )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <div className={cn(
-                                    "text-sm font-medium",
-                                    item.status === 'done' && "line-through"
-                                )}>
-                                    {item.title}
-                                </div>
-                                <div className="text-xs text-muted-foreground flex items-center gap-1">
-                                    <Clock className="h-3 w-3" />
-                                    {item.estimatedTime}
-                                </div>
-                            </div>
-                            <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
-                        </Link>
-                    ))}
+                <div className="text-xs text-muted-foreground">{item.description}</div>
+                <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                  <Clock className="h-3 w-3" />
+                  {item.estimatedTime}
                 </div>
-            </CardContent>
-        </Card>
-    );
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
+            </Link>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
 }

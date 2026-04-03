@@ -22,6 +22,7 @@ import { logger } from '@/lib/logger';
  */
 const mockResponses: Record<GLMModel, string> = {
   'glm-5': 'GLM-5 generated strategic insight for this request.',
+  'glm-5v-turbo': 'GLM-5v-turbo generated strategic insight for this request.',
   'glm-4.7': 'GLM-4.7 generated strategic insight for this request.',
   'glm-4.5-air': 'GLM-4.5-air generated strategic insight for this request.',
   'glm-4-flash': 'GLM-4-flash generated strategic insight for this request.',

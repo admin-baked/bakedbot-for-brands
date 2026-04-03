@@ -22,10 +22,12 @@ import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { z } from 'zod';
 import {
     DEFAULT_CHECKIN_CONFIG,
+    DEFAULT_PUBLIC_BRAND_THEME,
     type CheckinConfig,
     type CheckinStats,
     type CheckinVisitRow,
     type MoodCount,
+    type PublicBrandTheme,
 } from '@/lib/checkin/checkin-management-shared';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -93,6 +95,20 @@ function todayStart(): Date {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
     return d;
+}
+
+function normalizePublicColor(value: unknown): string | undefined {
+    if (typeof value !== 'string') {
+        return undefined;
+    }
+
+    const trimmed = value.trim();
+    if (!trimmed) {
+        return undefined;
+    }
+
+    const withHash = trimmed.startsWith('#') ? trimmed : `#${trimmed}`;
+    return /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(withHash) ? withHash : undefined;
 }
 
 // ── Config actions ─────────────────────────────────────────────────────────
@@ -278,21 +294,52 @@ export interface CheckinBriefingData {
  * Returns just the logo URL for a given org — no auth required.
  * Used by the public loyalty tablet page.
  */
-export async function getPublicBrandLogo(orgId: string): Promise<{ logoUrl: string | null }> {
+/**
+ * Returns the public-facing brand theme for a given org.
+ * No auth required because the public loyalty tablet needs the brand logo and colors.
+ */
+export async function getPublicBrandTheme(orgId: string): Promise<PublicBrandTheme> {
     try {
         const db = getAdminFirestore();
         const snap = await db.collection('brandGuides').doc(orgId).get();
-        if (!snap.exists) return { logoUrl: null };
+        if (!snap.exists) {
+            return DEFAULT_PUBLIC_BRAND_THEME;
+        }
+
         const data = snap.data() ?? {};
+        const visualIdentity = data.visualIdentity ?? {};
+        const colors = visualIdentity.colors ?? {};
         const logoUrl: string | null =
-            data.visualIdentity?.logo?.primary ||
-            data.visualIdentity?.logo?.wordmark ||
+            visualIdentity.logo?.primary ||
+            visualIdentity.logo?.wordmark ||
             data.logo?.primary ||
             null;
-        return { logoUrl };
+        const brandName = typeof data.brandName === 'string' && data.brandName.trim()
+            ? data.brandName.trim()
+            : null;
+
+        return {
+            brandName,
+            logoUrl,
+            colors: {
+                primary: normalizePublicColor(colors.primary?.hex) ?? DEFAULT_PUBLIC_BRAND_THEME.colors.primary,
+                secondary: normalizePublicColor(colors.secondary?.hex) ?? DEFAULT_PUBLIC_BRAND_THEME.colors.secondary,
+                accent: normalizePublicColor(colors.accent?.hex) ?? DEFAULT_PUBLIC_BRAND_THEME.colors.accent,
+                text: normalizePublicColor(colors.text?.hex) ?? DEFAULT_PUBLIC_BRAND_THEME.colors.text,
+                background: normalizePublicColor(colors.background?.hex) ?? DEFAULT_PUBLIC_BRAND_THEME.colors.background,
+            },
+        };
     } catch {
-        return { logoUrl: null };
+        return DEFAULT_PUBLIC_BRAND_THEME;
     }
+}
+
+/**
+ * Backwards-compatible helper for callers that only need the logo URL.
+ */
+export async function getPublicBrandLogo(orgId: string): Promise<{ logoUrl: string | null }> {
+    const theme = await getPublicBrandTheme(orgId);
+    return { logoUrl: theme.logoUrl };
 }
 
 export async function postCheckinBriefingToInbox(orgId: string): Promise<{ success: boolean; artifactId?: string; error?: string }> {

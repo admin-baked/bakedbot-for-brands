@@ -159,25 +159,49 @@ Score conservatively. Most sites score 40-65. A score above 80 requires strong e
 
     const raw = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
     if (!raw) return { error: 'Empty response from AI' };
-    let parsed: Record<string, unknown>;
+    let parsed: Partial<MarketAuditResult>;
     try {
-      parsed = JSON.parse(raw);
+      parsed = JSON.parse(raw) as Partial<MarketAuditResult>;
     } catch {
       logger.error(`[MarketAudit] JSON parse failed for ${normalizedUrl}: ${raw.slice(0, 200)}`);
       return { error: 'Could not parse AI response' };
     }
 
+    const overallScore = typeof parsed.overallScore === 'number' ? parsed.overallScore : 0;
+    const summary = typeof parsed.summary === 'string' ? parsed.summary : 'Audit summary unavailable.';
+    const dimensions = parsed.dimensions;
+
     return {
       url: normalizedUrl,
-      overallScore: parsed.overallScore,
-      grade: gradeFromScore(parsed.overallScore),
-      summary: parsed.summary,
+      overallScore,
+      grade: gradeFromScore(overallScore),
+      summary,
       dimensions: {
-        content: { ...parsed.dimensions.content, max: 25 },
-        conversion: { ...parsed.dimensions.conversion, max: 20 },
-        seo: { ...parsed.dimensions.seo, max: 20 },
-        competitive: { ...parsed.dimensions.competitive, max: 15 },
-        compliance: { ...parsed.dimensions.compliance, max: 20 },
+        content: {
+          score: dimensions?.content?.score ?? 0,
+          findings: dimensions?.content?.findings ?? '',
+          max: 25,
+        },
+        conversion: {
+          score: dimensions?.conversion?.score ?? 0,
+          findings: dimensions?.conversion?.findings ?? '',
+          max: 20,
+        },
+        seo: {
+          score: dimensions?.seo?.score ?? 0,
+          findings: dimensions?.seo?.findings ?? '',
+          max: 20,
+        },
+        competitive: {
+          score: dimensions?.competitive?.score ?? 0,
+          findings: dimensions?.competitive?.findings ?? '',
+          max: 15,
+        },
+        compliance: {
+          score: dimensions?.compliance?.score ?? 0,
+          findings: dimensions?.compliance?.findings ?? '',
+          max: 20,
+        },
       },
       revenueLeaks: parsed.revenueLeaks ?? [],
       quickWins: parsed.quickWins ?? [],

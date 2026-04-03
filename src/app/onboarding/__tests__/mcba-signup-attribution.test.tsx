@@ -106,8 +106,12 @@ describe('MCBA onboarding attribution', () => {
     expect(
       (container.querySelector('input[name="signupCreditGrantKey"]') as HTMLInputElement | null)?.value
     ).toBe(MCBA_SIGNUP_GRANT_KEY);
+    expect((container.querySelector('input[name="primaryGoal"]') as HTMLInputElement | null)?.value).toBe(
+      'creative_center'
+    );
 
     expect(screen.getByText('Campaign Offer')).toBeInTheDocument();
     expect(screen.getByText('150 free AI credits')).toBeInTheDocument();
+    expect(screen.getByText('What happens next')).toBeInTheDocument();
   });
 });

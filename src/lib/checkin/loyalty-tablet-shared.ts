@@ -45,6 +45,11 @@ export interface MoodRecommendationsResult {
     error?: string;
 }
 
+export interface TabletSearchRecommendationsResult extends MoodRecommendationsResult {
+    query?: string;
+    summary?: string;
+}
+
 export function getTabletMoodById(moodId: string | null | undefined): TabletMood | null {
     if (!moodId) {
         return null;

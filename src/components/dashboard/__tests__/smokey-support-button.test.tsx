@@ -43,7 +43,7 @@ describe('SmokeyFloatingButton route visibility regression', () => {
     mockUsePathname.mockReturnValue('/dashboard/analytics');
     render(<SmokeyFloatingButton />);
 
-    expect(screen.getByText(/Need help\? Click the button/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Open Help & Setup/i })).toBeInTheDocument();
   });
 
   it('hides floating help button on menu page to avoid overlap with Smokey widget', () => {
@@ -65,6 +65,6 @@ describe('SmokeyFloatingButton route visibility regression', () => {
     mockUsePathname.mockReturnValue('/dashboard/orders');
     render(<SmokeyFloatingButton />);
 
-    expect(screen.getByText(/Need help\? Click the button/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Open Help & Setup/i })).toBeInTheDocument();
   });
 });

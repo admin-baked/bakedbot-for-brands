@@ -14,6 +14,7 @@ import {
     getTabletMoodById,
     type MoodRecommendationsResult,
     type TabletBundle,
+    type TabletSearchRecommendationsResult,
     type TabletMoodId,
     type TabletProduct,
 } from '@/lib/checkin/loyalty-tablet-shared';
@@ -56,6 +57,11 @@ type MoodRecommendationConfig = {
     reason: string;
     bundleName: string;
     bundleTagline: string;
+};
+
+type RecommendationSet = {
+    products: TabletProduct[];
+    bundle?: TabletBundle;
 };
 
 type RawMenuProduct = {
@@ -141,6 +147,8 @@ const MOOD_RECOMMENDATION_CONFIGS: Record<TabletMoodId, MoodRecommendationConfig
         bundleTagline: 'A lighter pair for first-timers and low-pressure browsing.',
     },
 };
+
+const GENERIC_SEARCH_CATEGORIES = ['Flower', 'Pre-Rolls', 'Edibles', 'Vapes', 'Tinctures'];
 
 function getProductId(product: RawMenuProduct, index: number): string {
     return String(
@@ -312,6 +320,59 @@ function buildBundle(pool: RawMenuProduct[], config: MoodRecommendationConfig): 
     };
 }
 
+function buildRecommendationSet(pool: RawMenuProduct[], config: MoodRecommendationConfig): RecommendationSet {
+    const products = pool.slice(0, 3).map((product, index) => toTabletProduct(product, config, index));
+    const bundle = buildBundle(pool, config) ?? undefined;
+
+    return {
+        products,
+        ...(bundle ? { bundle } : {}),
+    };
+}
+
+function createQueryRecommendationConfig(query: string, moodLabel?: string | null): MoodRecommendationConfig {
+    const trimmedQuery = query.trim();
+    const quotedQuery = trimmedQuery ? `"${trimmedQuery}"` : 'this request';
+    const moodSuffix = moodLabel ? ` while staying aligned with ${moodLabel}` : '';
+
+    return {
+        searchQuery: trimmedQuery,
+        preferredCategories: GENERIC_SEARCH_CATEGORIES,
+        reason: `Picked for ${quotedQuery}${moodSuffix}.`,
+        bundleName: moodLabel ? 'Smokey Counter Pair' : 'Staff Pick Pair',
+        bundleTagline: moodLabel
+            ? `A fast pair for ${moodLabel.toLowerCase()} shoppers and budtenders.`
+            : "Two easy talking points pulled from Thrive's live menu.",
+    };
+}
+
+function buildSearchSummary(query: string, productCount: number, moodLabel?: string | null): string {
+    const trimmedQuery = query.trim();
+    const requestLabel = trimmedQuery ? `"${trimmedQuery}"` : 'that request';
+    const moodSuffix = moodLabel ? ` while keeping the ${moodLabel.toLowerCase()} vibe in mind` : '';
+    const productLabel = productCount === 1 ? 'product' : 'products';
+
+    return `I found ${productCount} ${productLabel} for ${requestLabel}${moodSuffix}.`;
+}
+
+function buildSearchPool(
+    products: RawMenuProduct[],
+    query: string,
+    moodConfig?: MoodRecommendationConfig
+): RawMenuProduct[] {
+    const uniqueProducts = dedupeProducts(products);
+    const searchMatches = dedupeProducts(
+        searchMenuProducts(query, uniqueProducts, { limit: 8 }) as RawMenuProduct[]
+    );
+
+    if (!moodConfig || searchMatches.length >= 3) {
+        return searchMatches;
+    }
+
+    const moodPool = buildFallbackPool(uniqueProducts, moodConfig);
+    return dedupeProducts([...searchMatches, ...moodPool]);
+}
+
 /**
  * Get mood-based product recommendations from Smokey.
  * Fetches live Thrive Syracuse inventory, then uses the existing Smokey menu
@@ -334,33 +395,108 @@ export async function getMoodRecommendations(
 
         const config = MOOD_RECOMMENDATION_CONFIGS[mood.id];
         const pool = buildFallbackPool(products, config);
-        const featuredProducts = pool.slice(0, 3).map((product, index) => toTabletProduct(product, config, index));
+        const recommendationSet = buildRecommendationSet(pool, config);
 
-        if (!featuredProducts.length) {
+        if (!recommendationSet.products.length) {
             return { success: false, error: 'No products available' };
         }
-
-        const bundle = buildBundle(pool, config);
 
         logger.info('[LoyaltyTablet] Mood recommendations generated', {
             orgId,
             moodId,
-            productCount: featuredProducts.length,
-            bundleProductCount: bundle?.products.length ?? 0,
+            productCount: recommendationSet.products.length,
+            bundleProductCount: recommendationSet.bundle?.products.length ?? 0,
             inventoryCount: products.length,
             strategy: 'deterministic_menu_search',
         });
 
         return {
             success: true,
-            products: featuredProducts,
-            bundle: bundle ?? undefined,
+            ...recommendationSet,
         };
     } catch (error) {
         logger.error('[LoyaltyTablet] getMoodRecommendations failed', { error });
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Failed to get recommendations',
+        };
+    }
+}
+
+/**
+ * Search the live menu using a freeform customer or budtender request.
+ * Reuses the same deterministic menu-search heuristics as the mood flow so the
+ * tablet voice/text assistant stays grounded in the live inventory.
+ */
+export async function searchTabletRecommendations(
+    orgId: string,
+    query: string,
+    moodId?: string | null,
+): Promise<TabletSearchRecommendationsResult> {
+    const trimmedQuery = query.trim();
+    if (trimmedQuery.length < 3) {
+        return {
+            success: false,
+            error: 'Tell Smokey a little more so I can narrow the menu down.',
+        };
+    }
+
+    try {
+        const products = (await fetchMenuProducts(orgId)) as RawMenuProduct[];
+        if (!products.length) {
+            return { success: false, error: 'No products available' };
+        }
+
+        const mood = getTabletMoodById(moodId);
+        const moodConfig = mood ? MOOD_RECOMMENDATION_CONFIGS[mood.id] : undefined;
+        const pool = buildSearchPool(products, trimmedQuery, moodConfig);
+        if (!pool.length) {
+            logger.info('[LoyaltyTablet] Freeform search had no matches', {
+                orgId,
+                moodId: mood?.id ?? null,
+                query: trimmedQuery,
+                inventoryCount: products.length,
+                strategy: 'deterministic_menu_search_voice',
+            });
+
+            return {
+                success: false,
+                query: trimmedQuery,
+                error: `I could not find a strong live-menu match for "${trimmedQuery}" yet.`,
+            };
+        }
+
+        const config = createQueryRecommendationConfig(trimmedQuery, mood?.label ?? null);
+        const recommendationSet = buildRecommendationSet(pool, config);
+
+        logger.info('[LoyaltyTablet] Freeform search recommendations generated', {
+            orgId,
+            moodId: mood?.id ?? null,
+            query: trimmedQuery,
+            productCount: recommendationSet.products.length,
+            bundleProductCount: recommendationSet.bundle?.products.length ?? 0,
+            inventoryCount: products.length,
+            strategy: 'deterministic_menu_search_voice',
+        });
+
+        return {
+            success: true,
+            query: trimmedQuery,
+            summary: buildSearchSummary(trimmedQuery, recommendationSet.products.length, mood?.label ?? null),
+            ...recommendationSet,
+        };
+    } catch (error) {
+        logger.error('[LoyaltyTablet] searchTabletRecommendations failed', {
+            error,
+            orgId,
+            moodId: moodId ?? null,
+            query: trimmedQuery,
+        });
+
+        return {
+            success: false,
+            query: trimmedQuery,
+            error: error instanceof Error ? error.message : 'Failed to search the live menu',
         };
     }
 }

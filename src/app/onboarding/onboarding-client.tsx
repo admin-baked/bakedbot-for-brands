@@ -4,7 +4,19 @@ import { useSearchParams } from 'next/navigation';
 import { useState, useRef, useEffect, useActionState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, LogIn, Sparkles, CheckCircle, Leaf, Package, Store, User } from 'lucide-react';
+import {
+  Search,
+  LogIn,
+  Sparkles,
+  CheckCircle,
+  Leaf,
+  Package,
+  Store,
+  User,
+  QrCode,
+  Palette,
+  Mail,
+} from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { useToast } from '@/hooks/use-toast';
 import { completeOnboarding } from './actions';
@@ -12,7 +24,6 @@ import { Label } from '@/components/ui/label';
 import { MarketSelector } from '@/components/ui/market-selector';
 import { searchCannMenusRetailers } from '@/server/actions/cannmenus';
 import { WiringScreen } from '@/app/dashboard/settings/link/components/wiring-screen';
-import { CompetitorOnboardingStep } from './components/competitor-onboarding-step';
 import { MenuImportStep } from './components/menu-import-step';
 import { checkOnboardingStatus } from './status-action';
 import { AnimatePresence } from 'framer-motion';
@@ -30,6 +41,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { findPricingPlan } from '@/lib/config/pricing';
 import { logger } from '@/lib/logger';
 import { MCBA_SIGNUP_GRANT_KEY } from '@/lib/constants/mcba-power-hour-ama';
+import {
+  getDefaultOnboardingPrimaryGoal,
+  getOnboardingGoalDefinition,
+  ONBOARDING_PRIMARY_GOALS,
+} from '@/lib/onboarding/activation';
+import type { OnboardingPrimaryGoal } from '@/types/onboarding';
 
 type BrandResult = {
   id: string;
@@ -37,8 +54,13 @@ type BrandResult = {
   market: string | null;
 };
 
-// V2 Optimization: Re-added 'competitors' for production-ready onboarding
-type Step = 'role' | 'market' | 'brand-search' | 'manual' | 'competitors' | 'review' | 'menu-import';
+type Step = 'role' | 'market' | 'brand-search' | 'manual' | 'goal' | 'review' | 'menu-import';
+
+const GOAL_ICON_MAP: Record<OnboardingPrimaryGoal, typeof QrCode> = {
+  checkin_tablet: QrCode,
+  creative_center: Palette,
+  welcome_playbook: Mail,
+};
 
 export default function OnboardingPage() {
   const { toast } = useToast();
@@ -57,6 +79,7 @@ export default function OnboardingPage() {
   const [manualDispensaryName, setManualDispensaryName] = useState('');
   const [slug, setSlug] = useState('');
   const [zipCode, setZipCode] = useState('');
+  const [primaryGoal, setPrimaryGoal] = useState<OnboardingPrimaryGoal | null>(null);
 
   // Form State
   const [formState, formAction] = useActionState(completeOnboarding, { message: '', error: false });
@@ -70,21 +93,7 @@ export default function OnboardingPage() {
   const [marketState, setMarketState] = useState<string>('');
 
   // Competitor Selection
-  const [selectedCompetitors, setSelectedCompetitors] = useState<any[]>([]);
-
-  const toggleCompetitor = (comp: any) => {
-    setSelectedCompetitors(prev => {
-      const exists = prev.find(c => c.id === comp.id);
-      if (exists) {
-        return prev.filter(c => c.id !== comp.id);
-      }
-      if (prev.length >= 5) {
-        toast({ title: "Limit reached", description: "You can select up to 5 competitors." });
-        return prev;
-      }
-      return [...prev, comp];
-    });
-  };
+  const [selectedCompetitors] = useState<any[]>([]);
 
   // Handle URL params for pre-filling (e.g. coming from Claim Page)
   const searchParams = useSearchParams();
@@ -107,12 +116,14 @@ export default function OnboardingPage() {
 
     if (roleParam === 'brand' && brandIdParam && brandNameParam) {
       setRole('brand');
+      setPrimaryGoal(getDefaultOnboardingPrimaryGoal('brand'));
       setSelectedCannMenusEntity({ id: brandIdParam, name: brandNameParam });
       setStep('review'); // Jump to review if we have specific data
       toast({ title: 'Welcome!', description: `Completing setup for ${brandNameParam}.` });
     } else if (roleParam === 'dispensary' && dispensaryNameParam) {
       // Handle dispensary pre-fill (ID is optional/might be "pending")
       setRole('dispensary');
+      setPrimaryGoal(getDefaultOnboardingPrimaryGoal('dispensary'));
       if (dispensaryIdParam) {
         setSelectedCannMenusEntity({ id: dispensaryIdParam, name: dispensaryNameParam });
       } else {
@@ -125,6 +136,9 @@ export default function OnboardingPage() {
       // Just setting role
       if (roleParam === 'brand' || roleParam === 'dispensary' || roleParam === 'customer') {
         setRole(roleParam as any);
+        if (roleParam === 'brand' || roleParam === 'dispensary') {
+          setPrimaryGoal(getDefaultOnboardingPrimaryGoal(roleParam));
+        }
         setStep(roleParam === 'customer' ? 'review' : 'brand-search');
       }
     }
@@ -195,6 +209,11 @@ export default function OnboardingPage() {
     setRole(r);
     setOrgSubtype(subtype ?? null);
     if (r === 'brand' || r === 'dispensary') {
+      setPrimaryGoal(getDefaultOnboardingPrimaryGoal(r));
+    } else if (r === 'customer' || r === 'skip') {
+      setPrimaryGoal(null);
+    }
+    if (r === 'brand' || r === 'dispensary') {
       // Go to market selection first for brand/dispensary
       setStep('market');
     } else if (r === 'skip') {
@@ -231,8 +250,7 @@ export default function OnboardingPage() {
       }
     }
 
-    // V2 Optimization: Go to competitors step instead of skipping
-    setStep('competitors');
+    setStep('goal');
   }
 
   function handleGoToManual() {
@@ -241,8 +259,7 @@ export default function OnboardingPage() {
   }
 
   function handleManualContinue() {
-    // V2 Optimization: Go to competitors step instead of skipping
-    setStep('competitors');
+    setStep('goal');
   }
 
   // --- Auth Handlers for "Almost There" Modal ---
@@ -500,16 +517,78 @@ export default function OnboardingPage() {
     </section>
   );
 
-  const renderCompetitorsStep = () => (
-    <CompetitorOnboardingStep
-      role={role as 'brand' | 'dispensary'}
-      marketState={marketState}
-      selectedCompetitors={selectedCompetitors}
-      onToggleCompetitor={toggleCompetitor}
-      onBack={() => setStep(selectedCannMenusEntity ? 'brand-search' : 'manual')}
-      onContinue={() => setStep('review')}
-    />
-  );
+  const renderGoalStep = () => {
+    const recommendedGoal = getDefaultOnboardingPrimaryGoal(role === 'dispensary' ? 'dispensary' : 'brand');
+    const previousStep = role === 'dispensary'
+      ? (manualDispensaryName ? 'manual' : selectedCannMenusEntity ? 'brand-search' : 'menu-import')
+      : (manualBrandName ? 'manual' : 'brand-search');
+
+    return (
+      <section className="space-y-6">
+        <div className="text-center space-y-2">
+          <h2 className="font-bold text-2xl">Choose your first win</h2>
+          <p className="text-muted-foreground">
+            Start with the one outcome you want live first. Brand Guide will come next either way.
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          {ONBOARDING_PRIMARY_GOALS.map((goal) => {
+            const Icon = GOAL_ICON_MAP[goal.id];
+            const isRecommended = goal.id === recommendedGoal;
+            const isSelected = primaryGoal === goal.id;
+
+            return (
+              <button
+                key={goal.id}
+                type="button"
+                className={`w-full rounded-2xl border p-4 text-left transition-all ${
+                  isSelected
+                    ? 'border-primary bg-primary/5 shadow-sm'
+                    : 'border-border hover:border-primary/40 hover:bg-muted/40'
+                }`}
+                onClick={() => {
+                  setPrimaryGoal(goal.id);
+                  setStep('review');
+                }}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className={`rounded-xl p-2 ${isSelected ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-semibold">{goal.title}</p>
+                        {isRecommended && (
+                          <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
+                            Recommended
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">{goal.description}</p>
+                      <p className="text-xs text-muted-foreground">{goal.audienceLabel}</p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-semibold text-primary">Start here</span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="rounded-xl border border-dashed bg-muted/20 p-4 text-sm text-muted-foreground">
+          Competitive Intelligence is still available, but we will move it after your first win instead of making it part of signup.
+        </div>
+
+        <div className="flex justify-between items-center pt-2">
+          <Button variant="ghost" onClick={() => setStep(previousStep)}>
+            Back
+          </Button>
+        </div>
+      </section>
+    );
+  };
 
   const renderMenuImportStep = () => (
     <MenuImportStep
@@ -517,7 +596,8 @@ export default function OnboardingPage() {
         setManualDispensaryName(data.importedName);
         setSlug(data.slug);
         setZipCode(data.zip);
-        setStep('review');
+        setPrimaryGoal(getDefaultOnboardingPrimaryGoal('dispensary'));
+        setStep('goal');
       }}
       // If skipped, go to standard search/manual flow
       onSkip={() => setStep('brand-search')}
@@ -531,6 +611,7 @@ export default function OnboardingPage() {
           selectedCannMenusEntity?.name || 'Default';
 
     const hasSelection = role === 'brand' || role === 'dispensary';
+    const selectedGoal = primaryGoal ? getOnboardingGoalDefinition(primaryGoal) : null;
 
     return (
       <section className="space-y-6">
@@ -558,6 +639,12 @@ export default function OnboardingPage() {
               <span className="font-semibold">{selectedPlanLabel}</span>
             </div>
           )}
+          {selectedGoal && (
+            <div className="flex justify-between items-center py-2 border-t border-dashed">
+              <span className="text-muted-foreground">First Win</span>
+              <span className="font-semibold">{selectedGoal.title}</span>
+            </div>
+          )}
           {hasMcbaCampaignOffer && (
             <div className="flex justify-between items-center py-2 border-t border-dashed">
               <span className="text-muted-foreground">Campaign Offer</span>
@@ -565,6 +652,16 @@ export default function OnboardingPage() {
             </div>
           )}
         </div>
+
+        {selectedGoal && (
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+            <p className="text-sm font-semibold">What happens next</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              You&apos;ll land in Inbox with a start-here briefing. Begin with Brand Guide, then use{' '}
+              <span className="font-medium text-foreground">{selectedGoal.title}</span> as your first live workflow.
+            </p>
+          </div>
+        )}
 
         <form action={formAction} ref={formRef} className="flex flex-col gap-4">
           <input type="hidden" name="role" value={role || ''} />
@@ -583,6 +680,7 @@ export default function OnboardingPage() {
           <input type="hidden" name="signupSource" value={signupSource} />
           <input type="hidden" name="signupCampaign" value={signupCampaign} />
           <input type="hidden" name="signupCreditGrantKey" value={signupCreditGrantKey} />
+          <input type="hidden" name="primaryGoal" value={primaryGoal || ''} />
 
           {/* Intercepted Submit Button */}
           <Button
@@ -641,7 +739,7 @@ export default function OnboardingPage() {
         {step === 'menu-import' && renderMenuImportStep()}
         {step === 'brand-search' && renderSearchStep()}
         {step === 'manual' && renderManualStep()}
-        {step === 'competitors' && renderCompetitorsStep()}
+        {step === 'goal' && renderGoalStep()}
         {step === 'review' && renderReviewStep()}
 
         {/* Existing Relogin Modal */}

@@ -14,6 +14,12 @@ import {
   MCBA_SIGNUP_GRANT_KEY,
   MCBA_SIGNUP_SOURCE,
 } from '@/lib/constants/mcba-power-hour-ama';
+import {
+  getDefaultOnboardingPrimaryGoal,
+  ONBOARDING_PHASE1_VERSION,
+  ONBOARDING_PRIMARY_GOALS,
+} from '@/lib/onboarding/activation';
+import type { OnboardingPrimaryGoal } from '@/types/onboarding';
 
 // Define the schema for the form data
 const OnboardingSchema = z.object({
@@ -46,6 +52,7 @@ const OnboardingSchema = z.object({
   signupSource: z.string().optional(),
   signupCampaign: z.string().optional(),
   signupCreditGrantKey: z.string().optional(),
+  primaryGoal: z.enum(ONBOARDING_PRIMARY_GOALS.map(g => g.id) as [OnboardingPrimaryGoal, ...OnboardingPrimaryGoal[]]).optional(),
 });
 
 export async function completeOnboarding(prevState: any, formData: FormData) {
@@ -91,11 +98,24 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
       signupSource: rawSignupSource,
       signupCampaign: rawSignupCampaign,
       signupCreditGrantKey: rawSignupCreditGrantKey,
+      primaryGoal,
     } = validatedFields.data;
     const signupSource = rawSignupSource?.trim() || undefined;
     const signupCampaign = rawSignupCampaign?.trim() || undefined;
     const signupCreditGrantKey = rawSignupCreditGrantKey?.trim() || undefined;
     const selectedPlan = planId ? findPricingPlan(planId) : undefined;
+    const fallbackPrimaryGoal = getDefaultOnboardingPrimaryGoal(role === 'skip' ? 'customer' : role);
+    const resolvedPrimaryGoal = primaryGoal || fallbackPrimaryGoal;
+    const parsedSelectedCompetitors = (() => {
+      if (!selectedCompetitors) return [] as Array<Record<string, unknown>>;
+      try {
+        const parsed = JSON.parse(selectedCompetitors);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (error) {
+        logger.error('Failed to parse selectedCompetitors during onboarding', { error });
+        return [] as Array<Record<string, unknown>>;
+      }
+    })();
 
     // Proceed with Firestore logic...
 
@@ -127,6 +147,15 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
       ...(signupSource ? { signupSource } : {}),
       ...(signupCampaign ? { signupCampaign } : {}),
       ...(signupCreditGrantKey ? { signupCreditGrantKey } : {}),
+      onboarding: {
+        ...(existingData?.onboarding && typeof existingData.onboarding === 'object'
+          ? existingData.onboarding
+          : {}),
+        version: ONBOARDING_PHASE1_VERSION,
+        primaryGoal: resolvedPrimaryGoal,
+        selectedAt: new Date().toISOString(),
+        selectedCompetitorCount: parsedSelectedCompetitors.length,
+      },
     };
 
     if (selectedPlan) {
@@ -247,29 +276,29 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
       }
 
       // --- HANDLE SELECTED COMPETITORS ---
-      if (orgId && selectedCompetitors) {
+      if (orgId && parsedSelectedCompetitors.length > 0) {
         try {
-          const comps = JSON.parse(selectedCompetitors);
-          if (Array.isArray(comps) && comps.length > 0) {
-            const batch = firestore.batch();
-            for (const comp of comps) {
-              const compRef = firestore
-                .collection('organizations')
-                .doc(orgId)
-                .collection('competitors')
-                .doc(comp.id);
-              
-              batch.set(compRef, {
-                ...comp,
-                source: 'onboarding',
-                lastUpdated: FieldValue.serverTimestamp()
-              }, { merge: true });
-            }
-            await batch.commit();
-            logger.info(`Saved ${comps.length} competitors during onboarding`, { orgId });
+          const batch = firestore.batch();
+          for (const comp of parsedSelectedCompetitors) {
+            const competitorId = typeof comp.id === 'string' ? comp.id : null;
+            if (!competitorId) continue;
+
+            const compRef = firestore
+              .collection('organizations')
+              .doc(orgId)
+              .collection('competitors')
+              .doc(competitorId);
+
+            batch.set(compRef, {
+              ...comp,
+              source: 'onboarding',
+              lastUpdated: FieldValue.serverTimestamp()
+            }, { merge: true });
           }
+          await batch.commit();
+          logger.info(`Saved ${parsedSelectedCompetitors.length} competitors during onboarding`, { orgId });
         } catch (e) {
-          logger.error('Failed to parse selectedCompetitors during onboarding', { error: e });
+          logger.error('Failed to save selectedCompetitors during onboarding', { error: e });
         }
       }
     }
@@ -359,6 +388,14 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
         isEligibleMcbaGrant,
       });
     }
+
+    logger.info('[Onboarding] Primary goal selected', {
+      uid,
+      role: finalRole,
+      orgId: orgId || null,
+      primaryGoal: resolvedPrimaryGoal,
+      selectedCompetitorCount: parsedSelectedCompetitors.length,
+    });
 
     if (isEligibleMcbaGrant && orgId) {
       try {
