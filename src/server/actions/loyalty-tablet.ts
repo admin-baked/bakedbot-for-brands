@@ -151,15 +151,17 @@ const MOOD_RECOMMENDATION_CONFIGS: Record<TabletMoodId, MoodRecommendationConfig
 
 const GENERIC_SEARCH_CATEGORIES = ['Flower', 'Pre-Rolls', 'Edibles', 'Vapes', 'Tinctures'];
 
-function getProductId(product: RawMenuProduct, index: number): string {
-    return String(
+function getProductId(product: RawMenuProduct): string {
+    const explicit =
         product.id ??
         product.productId ??
         product.externalId ??
         product.sku_id ??
-        product.cann_sku_id ??
-        `tablet-product-${index}`
-    );
+        product.cann_sku_id;
+    if (explicit != null) return String(explicit);
+    // Fallback: use normalised name so the same product dedupes across array boundaries
+    const name = getProductName(product).toLowerCase().trim();
+    return `tablet-name:${name}`;
 }
 
 function getProductName(product: RawMenuProduct): string {
@@ -217,8 +219,8 @@ function isLikelyInStock(product: RawMenuProduct): boolean {
 function dedupeProducts(products: RawMenuProduct[]): RawMenuProduct[] {
     const seen = new Set<string>();
 
-    return products.filter((product, index) => {
-        const id = getProductId(product, index);
+    return products.filter((product) => {
+        const id = getProductId(product);
         if (seen.has(id)) {
             return false;
         }
@@ -281,11 +283,11 @@ function buildProductReason(config: MoodRecommendationConfig, category: string):
     return `${config.reason} It keeps the ${category.toLowerCase()} mix grounded in Thrive's live menu.`;
 }
 
-function toTabletProduct(product: RawMenuProduct, config: MoodRecommendationConfig, index: number): TabletProduct {
+function toTabletProduct(product: RawMenuProduct, config: MoodRecommendationConfig): TabletProduct {
     const category = getProductCategory(product);
 
     return {
-        productId: getProductId(product, index),
+        productId: getProductId(product),
         name: getProductName(product),
         price: getProductPrice(product),
         category,
@@ -301,17 +303,18 @@ function buildBundle(pool: RawMenuProduct[], config: MoodRecommendationConfig): 
         return null;
     }
 
+    const primaryId = getProductId(primary);
     const secondary = pool.find((product, index) => (
         index > 0 &&
-        getProductId(product, index) !== getProductId(primary, 0) &&
+        getProductId(product) !== primaryId &&
         getProductCategory(product) !== getProductCategory(primary)
-    )) ?? pool.find((product, index) => index > 0);
+    )) ?? pool.find((_product, index) => index > 0);
 
     if (!secondary) {
         return null;
     }
 
-    const products = [primary, secondary].map((product, index) => toTabletProduct(product, config, index));
+    const products = [primary, secondary].map((product) => toTabletProduct(product, config));
 
     return {
         name: config.bundleName,
@@ -322,7 +325,7 @@ function buildBundle(pool: RawMenuProduct[], config: MoodRecommendationConfig): 
 }
 
 function buildRecommendationSet(pool: RawMenuProduct[], config: MoodRecommendationConfig): RecommendationSet {
-    const products = pool.slice(0, 3).map((product, index) => toTabletProduct(product, config, index));
+    const products = pool.slice(0, 3).map((product) => toTabletProduct(product, config));
     const bundle = buildBundle(pool, config) ?? undefined;
 
     return {
