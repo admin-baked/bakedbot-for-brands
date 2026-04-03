@@ -16,7 +16,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Save, Settings2, ExternalLink } from 'lucide-react';
-import { saveCheckinConfig, type CheckinConfig } from '@/server/actions/checkin-management';
+import type { CheckinConfig } from '@/lib/checkin/checkin-management-shared';
+import { saveCheckinConfig } from '@/server/actions/checkin-management';
 import { useToast } from '@/hooks/use-toast';
 
 interface Props {

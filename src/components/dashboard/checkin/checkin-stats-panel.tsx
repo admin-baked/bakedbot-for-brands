@@ -15,7 +15,7 @@ import {
     ArrowRight, TrendingUp, ClipboardList,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import type { CheckinStats } from '@/server/actions/checkin-management';
+import type { CheckinStats } from '@/lib/checkin/checkin-management-shared';
 import { MOOD_EMOJI } from '@/lib/checkin/loyalty-tablet-shared';
 
 interface Props {

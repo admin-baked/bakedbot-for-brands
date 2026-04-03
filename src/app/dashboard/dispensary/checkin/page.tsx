@@ -21,14 +21,16 @@ import { CheckInStatsPanel } from '@/components/dashboard/checkin/checkin-stats-
 import { CheckInVisitFeed } from '@/components/dashboard/checkin/checkin-visit-feed';
 import { CheckInSettingsPanel } from '@/components/dashboard/checkin/checkin-settings-panel';
 import {
+    DEFAULT_CHECKIN_CONFIG,
+    type CheckinConfig,
+    type CheckinStats,
+    type CheckinVisitRow,
+} from '@/lib/checkin/checkin-management-shared';
+import {
     getCheckinConfig,
     getCheckinStats,
     getRecentCheckinVisits,
     postCheckinBriefingToInbox,
-    type CheckinConfig,
-    type CheckinStats,
-    type CheckinVisitRow,
-    DEFAULT_CHECKIN_CONFIG,
 } from '@/server/actions/checkin-management';
 
 export default function CheckInManagementPage() {

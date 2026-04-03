@@ -311,6 +311,8 @@ export default function CreativeCommandCenter() {
   const [longVideoTarget, setLongVideoTarget] = useState<'60' | '90'>('60');
   const [longVideoModel, setLongVideoModel] = useState<'wan' | 'kling'>('wan');
   const [fridayQuoteIdx, setFridayQuoteIdx] = useState(0);
+  const [localVideoUrl, setLocalVideoUrl] = useState<string | null>(null);
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
 
   useEffect(() => {
     if (!isGeneratingVideo || imageMode !== 'longvideo') return;
@@ -327,8 +329,6 @@ export default function CreativeCommandCenter() {
     if (mode === 'longvideo') return 'Generate Long Video';
     return long ? 'Generate with Craig' : 'Generate';
   };
-  const [localVideoUrl, setLocalVideoUrl] = useState<string | null>(null);
-  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
 
   // Deck mode state
   const [deckPurpose, setDeckPurpose] = useState<DeckPurpose>('pitch');

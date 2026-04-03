@@ -20,20 +20,17 @@ import { getPhoneLast4 } from '@/lib/customers/profile-derivations';
 import { createInboxArtifactId, createInboxThreadId } from '@/types/inbox';
 import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { z } from 'zod';
+import {
+    DEFAULT_CHECKIN_CONFIG,
+    type CheckinConfig,
+    type CheckinStats,
+    type CheckinVisitRow,
+    type MoodCount,
+} from '@/lib/checkin/checkin-management-shared';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-export interface CheckinConfig {
-    checkInEnabled: boolean;
-    publicFlowEnabled: boolean;
-    gmapsPlaceId: string;
-    inStoreOffer: string;
-    welcomeHeadline: string;
-    tabletIdleTimeoutSec: number;
-    updatedAt?: string | null;
-}
-
-export const DEFAULT_CHECKIN_CONFIG: CheckinConfig = {
+/* export const DEFAULT_CHECKIN_CONFIG: CheckinConfig = {
     checkInEnabled: true,
     publicFlowEnabled: true,
     gmapsPlaceId: '',
@@ -41,7 +38,7 @@ export const DEFAULT_CHECKIN_CONFIG: CheckinConfig = {
     welcomeHeadline: 'Check in faster. Give your budtender a better head start.',
     tabletIdleTimeoutSec: 20,
     updatedAt: null,
-};
+}; */
 
 const checkinConfigSchema = z.object({
     checkInEnabled: z.boolean(),
@@ -52,12 +49,7 @@ const checkinConfigSchema = z.object({
     tabletIdleTimeoutSec: z.number().int().min(5).max(120),
 });
 
-export interface MoodCount {
-    mood: string;
-    count: number;
-}
-
-export interface CheckinStats {
+interface LegacyCheckinStatsUnused {
     todayCount: number;
     weekCount: number;
     monthCount: number;
@@ -71,7 +63,7 @@ export interface CheckinStats {
     periodLabel: string;
 }
 
-export interface CheckinVisitRow {
+interface LegacyCheckinVisitRowUnused {
     visitId: string;
     firstName: string;
     phoneLast4: string;

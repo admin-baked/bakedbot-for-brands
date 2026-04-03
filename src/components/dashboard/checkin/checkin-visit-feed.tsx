@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle2, Circle, Clock, List, RefreshCw, Smartphone, Globe } from 'lucide-react';
-import type { CheckinVisitRow } from '@/server/actions/checkin-management';
+import type { CheckinVisitRow } from '@/lib/checkin/checkin-management-shared';
 import { MOOD_EMOJI } from '@/lib/checkin/loyalty-tablet-shared';
 
 interface Props {
