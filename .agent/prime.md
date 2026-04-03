@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; callClaude telemetry live; Cloudflare fully hardened; SES DNS verified + AWS production access pending.
-**Recent work (2026-04-03):** `e538f5e92` — model cost observability (caller tags + cost logging), research jobs pinned off Opus, Cloudflare Full Strict + HSTS + SPF -all
+**Current Status:** 🟢 `main` green; LinkedIn agent tools live (Craig posts, Leo DMs + enriches via RTRVR); standardized service auth + live SSE browser viewer; Proxycurl replaced.
+**Recent work (2026-04-03):** `cb76ad1ac` — LinkedIn integration + RTRVR auth standardization + live Puppeteer SSE screenshot viewer during login flows
 
 ## ðŸ§­ CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 

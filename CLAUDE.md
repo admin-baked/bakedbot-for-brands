@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; callClaude telemetry live (caller/model/cost logged per call); Cloudflare fully hardened (Full Strict + HSTS + SPF -all); SES DNS verified + AWS production access pending | **Last update:** 2026-04-03 (model observability + SES + Cloudflare hardening)
+**Current Status:** 🟢 `main` green; LinkedIn agent tools live (Craig posts, Leo DMs + enriches); standardized RTRVR service auth with live SSE browser viewer; Proxycurl replaced with Voyager API | **Last update:** 2026-04-03 (LinkedIn integration + live browser SSE viewer)
 
 ---
 
