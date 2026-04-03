@@ -5,16 +5,20 @@
  *
  * Recent check-in visit table — shows up to 25 visits, paginated.
  * Columns: name, phone (last 4), time, source, mood, consent flags, review status.
+ * Clicking a row opens CheckinCounterPanel — budtender + Smokey voice collaboration.
  */
 
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle2, Circle, Clock, List, RefreshCw, Smartphone, Globe } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, List, Mic, RefreshCw, Smartphone, Globe } from 'lucide-react';
 import type { CheckinVisitRow } from '@/lib/checkin/checkin-management-shared';
 import { MOOD_EMOJI } from '@/lib/checkin/loyalty-tablet-shared';
+import { CheckinCounterPanel } from './checkin-counter-panel';
 
 interface Props {
+    orgId: string;
     visits: CheckinVisitRow[];
     onRefresh?: () => void;
     refreshing?: boolean;
@@ -28,7 +32,7 @@ const REVIEW_STATUS_CONFIG: Record<string, { label: string; className: string }>
     unknown: { label: '—', className: 'bg-muted text-muted-foreground' },
 };
 
-function timeAgo(isoString: string): string {
+export function timeAgo(isoString: string): string {
     const diff = Date.now() - new Date(isoString).getTime();
     const mins = Math.floor(diff / 60_000);
     if (mins < 1) return 'just now';
@@ -48,7 +52,9 @@ function ConsentIcon({ enabled, label }: { enabled: boolean; label: string }) {
     );
 }
 
-export function CheckInVisitFeed({ visits, onRefresh, refreshing }: Props) {
+export function CheckInVisitFeed({ orgId, visits, onRefresh, refreshing }: Props) {
+    const [selectedVisit, setSelectedVisit] = useState<CheckinVisitRow | null>(null);
+
     if (visits.length === 0) {
         return (
             <Card>
@@ -60,6 +66,12 @@ export function CheckInVisitFeed({ visits, onRefresh, refreshing }: Props) {
     }
 
     return (
+        <>
+        <CheckinCounterPanel
+            orgId={orgId}
+            visit={selectedVisit}
+            onClose={() => setSelectedVisit(null)}
+        />
         <Card>
             <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
@@ -95,10 +107,17 @@ export function CheckInVisitFeed({ visits, onRefresh, refreshing }: Props) {
                             {visits.map(v => {
                                 const reviewCfg = REVIEW_STATUS_CONFIG[v.reviewStatus] ?? REVIEW_STATUS_CONFIG.unknown;
                                 return (
-                                    <tr key={v.visitId} className="hover:bg-muted/30 transition-colors">
+                                    <tr
+                                        key={v.visitId}
+                                        className="hover:bg-muted/30 transition-colors cursor-pointer group"
+                                        onClick={() => setSelectedVisit(v)}
+                                    >
                                         <td className="px-4 py-2.5">
-                                            <span className="font-medium">{v.firstName}</span>
-                                            <span className="ml-1.5 text-muted-foreground text-xs">···{v.phoneLast4}</span>
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="font-medium">{v.firstName}</span>
+                                                <span className="text-muted-foreground text-xs">···{v.phoneLast4}</span>
+                                                <Mic className="h-3 w-3 text-muted-foreground/40 group-hover:text-emerald-500 transition-colors ml-0.5" />
+                                            </div>
                                         </td>
                                         <td className="px-4 py-2.5 text-muted-foreground text-xs">
                                             <div className="flex items-center gap-1">
@@ -152,11 +171,16 @@ export function CheckInVisitFeed({ visits, onRefresh, refreshing }: Props) {
                     {visits.map(v => {
                         const reviewCfg = REVIEW_STATUS_CONFIG[v.reviewStatus] ?? REVIEW_STATUS_CONFIG.unknown;
                         return (
-                            <div key={v.visitId} className="px-4 py-3 space-y-1.5">
+                            <div
+                                key={v.visitId}
+                                className="px-4 py-3 space-y-1.5 cursor-pointer hover:bg-muted/30 transition-colors active:bg-muted/50"
+                                onClick={() => setSelectedVisit(v)}
+                            >
                                 <div className="flex items-center justify-between">
-                                    <div>
+                                    <div className="flex items-center gap-1.5">
                                         <span className="font-medium text-sm">{v.firstName}</span>
-                                        <span className="ml-1.5 text-xs text-muted-foreground">···{v.phoneLast4}</span>
+                                        <span className="text-xs text-muted-foreground">···{v.phoneLast4}</span>
+                                        <Mic className="h-3 w-3 text-emerald-500/60" />
                                     </div>
                                     <span className="text-xs text-muted-foreground">{timeAgo(v.visitedAt)}</span>
                                 </div>
@@ -189,5 +213,6 @@ export function CheckInVisitFeed({ visits, onRefresh, refreshing }: Props) {
                 </div>
             </CardContent>
         </Card>
+        </>
     );
 }

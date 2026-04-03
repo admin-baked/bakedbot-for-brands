@@ -20,6 +20,7 @@ import {
 } from '@/lib/checkin/loyalty-tablet-shared';
 import { getSafeProductImageUrl, normalizeCategoryName } from '@/lib/utils/product-image';
 import { searchMenuProducts } from '@/server/services/smokey-menu-search';
+import { getCustomerHistory } from '@/server/tools/crm-tools';
 import { captureVisitorCheckin } from './visitor-checkin';
 
 // ============================================================
@@ -432,6 +433,7 @@ export async function searchTabletRecommendations(
     orgId: string,
     query: string,
     moodId?: string | null,
+    customerId?: string | null,
 ): Promise<TabletSearchRecommendationsResult> {
     const trimmedQuery = query.trim();
     if (trimmedQuery.length < 3) {
@@ -442,19 +444,33 @@ export async function searchTabletRecommendations(
     }
 
     try {
-        const products = (await fetchMenuProducts(orgId)) as RawMenuProduct[];
+        // Fetch products + optional purchase history in parallel
+        const [products, history] = await Promise.all([
+            fetchMenuProducts(orgId) as Promise<RawMenuProduct[]>,
+            customerId
+                ? getCustomerHistory(customerId, orgId, 3).catch(() => null)
+                : Promise.resolve(null),
+        ]);
+
         if (!products.length) {
             return { success: false, error: 'No products available' };
         }
 
+        // Enrich the search query with purchase history so the search pool
+        // can surface products matching past preferences.
+        const enrichedQuery = history?.summary
+            ? `${trimmedQuery} (history: ${history.summary.slice(0, 300)})`
+            : trimmedQuery;
+
         const mood = getTabletMoodById(moodId);
         const moodConfig = mood ? MOOD_RECOMMENDATION_CONFIGS[mood.id] : undefined;
-        const pool = buildSearchPool(products, trimmedQuery, moodConfig);
+        const pool = buildSearchPool(products, enrichedQuery, moodConfig);
         if (!pool.length) {
             logger.info('[LoyaltyTablet] Freeform search had no matches', {
                 orgId,
                 moodId: mood?.id ?? null,
                 query: trimmedQuery,
+                hasHistory: Boolean(history),
                 inventoryCount: products.length,
                 strategy: 'deterministic_menu_search_voice',
             });
@@ -473,6 +489,7 @@ export async function searchTabletRecommendations(
             orgId,
             moodId: mood?.id ?? null,
             query: trimmedQuery,
+            hasHistory: Boolean(history),
             productCount: recommendationSet.products.length,
             bundleProductCount: recommendationSet.bundle?.products.length ?? 0,
             inventoryCount: products.length,
@@ -491,6 +508,7 @@ export async function searchTabletRecommendations(
             orgId,
             moodId: moodId ?? null,
             query: trimmedQuery,
+            hasCustomerId: Boolean(customerId),
         });
 
         return {

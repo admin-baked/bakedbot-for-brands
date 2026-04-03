@@ -156,6 +156,7 @@ export default function CheckInManagementPage() {
                     )}
 
                     <CheckInVisitFeed
+                        orgId={dispensaryId}
                         visits={visits}
                         onRefresh={handleRefresh}
                         refreshing={refreshing}

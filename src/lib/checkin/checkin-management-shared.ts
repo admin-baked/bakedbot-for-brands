@@ -74,4 +74,8 @@ export interface CheckinVisitRow {
     smsConsent: boolean;
     emailConsent: boolean;
     reviewStatus: string;
+    /** Firestore customer ID — present if the customer was matched/created */
+    customerId: string | null;
+    /** Product IDs the customer flagged interest in during check-in */
+    cartProductIds: string[];
 }

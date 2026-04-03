@@ -259,6 +259,8 @@ export async function getRecentCheckinVisits(orgId: string, limit = 25): Promise
                 smsConsent: Boolean(d.smsConsent),
                 emailConsent: Boolean(d.emailConsent),
                 reviewStatus: d.reviewSequence?.status ?? 'unknown',
+                customerId: typeof d.customerId === 'string' ? d.customerId : null,
+                cartProductIds: Array.isArray(d.cartProductIds) ? d.cartProductIds : [],
             };
         });
 

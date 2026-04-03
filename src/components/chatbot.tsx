@@ -21,6 +21,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useChatbotContext } from '@/contexts/chatbot-context';
 import { getSafeProductImageUrl, normalizeCategoryName } from '@/lib/utils/product-image';
 import { useVoiceInput } from '@/hooks/use-voice-input';
+import { useVoiceOutput } from '@/hooks/use-voice-output';
 
 import { logger } from '@/lib/logger';
 
@@ -393,6 +394,8 @@ type ChatbotProps = {
   windowClassName?: string; // For the chat window
   isSuperAdmin?: boolean; // New prop for Super Admin mode
   allowVoiceInput?: boolean;
+  /** Speak Smokey's text responses aloud via Web Speech API (browser TTS) */
+  allowVoiceOutput?: boolean;
   // Chatbot config (from brand.chatbotConfig)
   chatbotConfig?: {
     enabled?: boolean;
@@ -402,7 +405,7 @@ type ChatbotProps = {
   };
 };
 
-export default function Chatbot({ products = [], brandId = "", dispensaryId, entityName, state, initialOpen = false, positionStrategy = 'fixed', className, windowClassName, isSuperAdmin = false, allowVoiceInput = false, chatbotConfig }: ChatbotProps) {
+export default function Chatbot({ products = [], brandId = "", dispensaryId, entityName, state, initialOpen = false, positionStrategy = 'fixed', className, windowClassName, isSuperAdmin = false, allowVoiceInput = false, allowVoiceOutput = false, chatbotConfig }: ChatbotProps) {
   // If chatbot is explicitly disabled, don't render (Moved to bottom)
   // if (chatbotConfig?.enabled === false) return null;
   const [isOpen, setIsOpen] = useState(initialOpen || positionStrategy === 'relative');
@@ -426,6 +429,17 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isBotTyping, setIsBotTyping] = useState(false);
+  const voiceOutput = useVoiceOutput();
+
+  // Speak the latest assistant message when voice output is enabled
+  useEffect(() => {
+    if (!allowVoiceOutput || !voiceOutput.isSupported) return;
+    const last = messages[messages.length - 1];
+    if (last && last.role === 'assistant' && typeof last.content === 'string' && last.content.trim()) {
+      voiceOutput.speak(last.content.replace(/[*_#`]/g, '').slice(0, 500));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, allowVoiceOutput, voiceOutput.isSupported]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   // Track the product currently being discussed so "yes" can short-circuit to checkout
