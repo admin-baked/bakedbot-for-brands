@@ -1,6 +1,12 @@
 # BakedBot Session Memory
 
 ## Session: 2026-04-02
+- **Thrive tablet menu recovery** (`uncommitted`) - Restored the public Syracuse recommendations path by teaching the canonical consumer adapter to resolve org/location aliases through `buildOrgIdCandidates()` and `locations` lookups before retrying Firestore menu fetches.
+- **Adapter coverage + video typecheck cleanup** (`uncommitted`) - Added focused consumer-adapter tests for location and alias-brand fallback, passed the required shared `duration` into chain-video Remotion renders, and bridged the long-form Remotion metadata typing so the earlier Root/route blockers are gone.
+- **Verification** (`uncommitted`) - Elevated `node scripts/run-jest.cjs --runTestsByPath src/server/agents/adapters/__tests__/consumer-adapter.test.ts src/server/actions/__tests__/loyalty-tablet.test.ts --runInBand` passed (7/7), and elevated `npm run -s check:types` passed.
+- **Session file** - `memory/sessions/2026-04-02-2305-thrive-tablet-menu-recovery.md`
+
+## Session: 2026-04-02
 - **Simplify gate + coding principles wired locally** (`uncommitted`) - Added `scripts/simplify-guard.mjs` with `simplify:status|record|verify`, then pushed the same `AGENTS.md` principles into startup context and review flow so canonical home, reuse, risk tier, failure modes, and observability stay front-and-center.
 - **Repo-owned hook install path** (`uncommitted`) - Added `.githooks/pre-push` plus `scripts/install-git-hooks.mjs`, and confirmed local `core.hooksPath` now points to `.githooks`.
 - **Cross-platform guarded push path** (`uncommitted`) - Switched `npm run push` to `scripts/safe-push.mjs` and kept `scripts/safe-push.sh` aligned so both paths run `npm run simplify:verify` before `git push`.
