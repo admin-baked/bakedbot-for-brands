@@ -83,6 +83,18 @@ export const CLAUDE_TOOL_MODEL = process.env.CLAUDE_TOOL_MODEL || 'claude-sonnet
 // Best for: strategic decisions, long document synthesis, novel problem solving
 export const CLAUDE_REASONING_MODEL = process.env.CLAUDE_REASONING_MODEL || 'claude-opus-4-6';
 
+// Per-model pricing (USD per 1M tokens, input/output)
+const MODEL_PRICING: Record<string, [number, number]> = {
+    'claude-haiku-4-5-20251001': [0.80, 4.00],
+    'claude-sonnet-4-6': [3.00, 15.00],
+    'claude-opus-4-6': [15.00, 75.00],
+};
+
+function estimateCost(model: string, inputTokens: number, outputTokens: number): number {
+    const [inputRate, outputRate] = MODEL_PRICING[model] ?? [3.00, 15.00];
+    return (inputTokens * inputRate + outputTokens * outputRate) / 1_000_000;
+}
+
 // Maximum iterations to prevent infinite loops
 const MAX_ITERATIONS = 10;
 const TOOL_RESULT_CHAR_LIMIT = 12000;

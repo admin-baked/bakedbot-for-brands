@@ -435,8 +435,8 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
   useEffect(() => {
     if (!allowVoiceOutput || !voiceOutput.isSupported) return;
     const last = messages[messages.length - 1];
-    if (last && last.role === 'assistant' && typeof last.content === 'string' && last.content.trim()) {
-      voiceOutput.speak(last.content.replace(/[*_#`]/g, '').slice(0, 500));
+    if (last && last.sender === 'bot' && typeof last.text === 'string' && last.text.trim()) {
+      voiceOutput.speak(last.text.replace(/[*_#`]/g, '').slice(0, 500));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages, allowVoiceOutput, voiceOutput.isSupported]);
