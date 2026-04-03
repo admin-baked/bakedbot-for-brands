@@ -54,6 +54,7 @@ async function generatePrepBrief(
     const brief = await callClaude({
         model: 'claude-haiku-4-5-20251001',
         maxTokens: 800,
+        caller: 'cron/meeting-prep',
         systemPrompt: `You are Leo, Chief Operating Officer. You're generating a pre-meeting prep brief for ${execName} (${execTitle}).
 Keep it tight — 30 seconds to read before a meeting. Use markdown formatting.`,
         userMessage: `Generate a meeting prep brief for this upcoming meeting:

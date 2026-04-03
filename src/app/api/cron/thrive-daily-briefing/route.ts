@@ -187,7 +187,7 @@ ${contextLines.join('\n')}
 
 Respond with ONLY a JSON array of 4 strings. Example format: ["Action 1", "Action 2", "Action 3", "Action 4"]`;
 
-        const raw = (await callClaude({ userMessage: prompt, model: 'claude-haiku-4-5-20251001', maxTokens: 300 })).trim();
+        const raw = (await callClaude({ userMessage: prompt, model: 'claude-haiku-4-5-20251001', maxTokens: 300, caller: 'cron/thrive-daily-briefing' })).trim();
 
         // Parse the JSON array
         const match = raw.match(/\[[\s\S]*\]/);

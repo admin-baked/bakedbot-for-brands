@@ -65,6 +65,7 @@ Guidelines:
             systemPrompt,
             userMessage: userPrompt,
             temperature: 0.7,
+            caller: 'ai/hero-suggest',
         });
 
         // Parse the AI response

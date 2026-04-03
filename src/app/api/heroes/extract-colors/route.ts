@@ -43,6 +43,7 @@ Guidelines:
       userMessage: userPrompt,
       temperature: 0.3,
       imageUrl, // Pass image to Claude Vision
+      caller: 'heroes/extract-colors',
     });
 
     // Parse the AI response

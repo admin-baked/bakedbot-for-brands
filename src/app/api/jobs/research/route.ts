@@ -96,6 +96,8 @@ export async function POST(request: NextRequest) {
                 let plan: string[] = [];
                 try {
                     const planText = await callClaude({
+                        model: 'claude-haiku-4-5-20251001',
+                        caller: 'jobs/research-plan',
                         systemPrompt: 'You are a research assistant. Generate exactly 5 specific, targeted research sub-questions for the given topic. Return ONLY a JSON array of 5 strings — no markdown, no explanation.',
                         userMessage: `Research topic: "${task.query}"\n\nGenerate 5 specific research questions that together will comprehensively cover this topic.`,
                         maxTokens: 400,
@@ -192,6 +194,8 @@ export async function POST(request: NextRequest) {
 
                 const rawFindings = allFindings.join('\n\n---\n\n').substring(0, 20000);
                 const reportContent = await callClaude({
+                    model: 'claude-sonnet-4-6',
+                    caller: 'jobs/research-synthesis',
                     systemPrompt: `You are Big Worm, BakedBot's deep research agent. You synthesize research findings into comprehensive, actionable reports.
 
 Write a thorough research report with these exact sections:

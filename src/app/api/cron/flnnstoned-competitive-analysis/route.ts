@@ -240,6 +240,7 @@ Be specific. Use concrete numbers. No vague platitudes.`;
         userMessage: prompt,
         model: 'claude-sonnet-4-6',
         maxTokens: 2000,
+        caller: 'cron/flnnstoned-competitive-analysis',
     });
 
     try {

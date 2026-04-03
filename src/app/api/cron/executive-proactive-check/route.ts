@@ -140,6 +140,7 @@ Format as bullet points. Keep each under 20 words. No fluff.`;
             model: 'claude-haiku-4-5-20251001',
             userMessage,
             maxTokens: 400,
+            caller: 'exec-check/leo-ops',
         });
 
         const recommendations = text.split('\n').filter((l: string) => l.trim().startsWith('-') || l.trim().startsWith('•')).map((l: string) => l.replace(/^[-•]\s*/, '').trim()).filter(Boolean);
@@ -212,6 +213,7 @@ Format as bullet points. Under 20 words each. No fluff.`;
         model: 'claude-haiku-4-5-20251001',
         userMessage,
         maxTokens: 400,
+        caller: 'exec-check/craig-revenue',
     });
 
     const recommendations = text.split('\n').filter((l: string) => l.trim().startsWith('-') || l.trim().startsWith('•')).map((l: string) => l.replace(/^[-•]\s*/, '').trim()).filter(Boolean);
@@ -256,6 +258,7 @@ Format as bullet points. Under 20 words each. No fluff.`;
             model: 'claude-haiku-4-5-20251001',
             userMessage,
             maxTokens: 400,
+            caller: 'exec-check/linus-eng',
         });
 
         const recommendations = text.split('\n').filter((l: string) => l.trim().startsWith('-') || l.trim().startsWith('•')).map((l: string) => l.replace(/^[-•]\s*/, '').trim()).filter(Boolean);
@@ -301,6 +304,7 @@ Format as bullet points. Under 20 words each. No fluff.`;
             model: 'claude-haiku-4-5-20251001',
             userMessage,
             maxTokens: 400,
+            caller: 'exec-check/pops-finance',
         });
 
         const recommendations = text.split('\n').filter((l: string) => l.trim().startsWith('-') || l.trim().startsWith('•')).map((l: string) => l.replace(/^[-•]\s*/, '').trim()).filter(Boolean);
@@ -349,6 +353,7 @@ Format as bullet points. Under 20 words each. No fluff.`;
             model: 'claude-haiku-4-5-20251001',
             userMessage,
             maxTokens: 400,
+            caller: 'exec-check/craig-marketing',
         });
 
         const recommendations = text.split('\n').filter((l: string) => l.trim().startsWith('-') || l.trim().startsWith('•')).map((l: string) => l.replace(/^[-•]\s*/, '').trim()).filter(Boolean);
@@ -412,6 +417,7 @@ Be specific and actionable. Format as a JSON array of strings.`;
             model: 'claude-haiku-4-5-20251001',
             userMessage: prompt,
             maxTokens: 300,
+            caller: 'exec-check/customer-success',
         });
 
         let items: string[] = [];

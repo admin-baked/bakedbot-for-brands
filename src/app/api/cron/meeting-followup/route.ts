@@ -83,6 +83,7 @@ async function generateFollowUpNotes(
         const followUp = await callClaude({
             model: 'claude-haiku-4-5-20251001',
             maxTokens: 400,
+            caller: 'cron/meeting-followup',
             systemPrompt: `You are Craig, BakedBot's Marketer. Write a warm, professional follow-up email body (no subject line, no greeting — just the body paragraphs).
 Be concise. Keep it human. Maximum 3 short paragraphs.`,
             userMessage: `Write a follow-up email body after a meeting between ${execName} and ${booking.externalName}.

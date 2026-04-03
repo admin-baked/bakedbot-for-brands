@@ -639,6 +639,7 @@ export interface ClaudeCallOptions {
     model?: string; // Override model selection
     autoRouteModel?: boolean; // Auto-select Opus for complex tasks (default: true)
     imageUrl?: string; // For vision capabilities
+    caller?: string; // Label for telemetry (e.g. 'executive-proactive-check', 'daily-sales-summary')
 }
 
 export async function callClaude(options: ClaudeCallOptions): Promise<string> {
@@ -685,6 +686,7 @@ export async function callClaude(options: ClaudeCallOptions): Promise<string> {
         text: userMessage
     });
 
+    const callStart = Date.now();
     const response = await client.messages.create({
         model: selectedModel,
         max_tokens: maxTokens,
@@ -695,6 +697,25 @@ export async function callClaude(options: ClaudeCallOptions): Promise<string> {
             content: messageContent as any // Type assertion for flexibility
         }]
     });
+    const callDurationMs = Date.now() - callStart;
+
+    // Fire-and-forget telemetry — every callClaude call tracked in agent_telemetry
+    const usage = response.usage as UsageWithCache;
+    const inputTokens = usage.input_tokens ?? 0;
+    const outputTokens = usage.output_tokens ?? 0;
+    // Derive caller label from options or fall back to model name (no stack inspection)
+    const callerLabel = options.caller ?? 'callClaude';
+    import('@/server/services/agent-telemetry').then(({ estimateCost }) => {
+        const cost = estimateCost(selectedModel, inputTokens, outputTokens);
+        logger.info('[Claude] callClaude usage', {
+            caller: callerLabel,
+            model: selectedModel,
+            inputTokens,
+            outputTokens,
+            costUsd: cost.toFixed(5),
+            durationMs: callDurationMs,
+        });
+    }).catch(() => {});
 
     // Extract text from response
     const textBlocks = response.content.filter(block => block.type === 'text');

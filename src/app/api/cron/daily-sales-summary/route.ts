@@ -234,6 +234,7 @@ Produce a JSON summary:
             userMessage: prompt,
             model: 'claude-haiku-4-5-20251001',
             maxTokens: 600,
+            caller: 'cron/daily-sales-summary',
         });
         return JSON.parse(raw) as SalesHighlights;
     } catch {
