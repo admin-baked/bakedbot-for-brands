@@ -100,12 +100,15 @@ async function generateFalVideo(
     const queued = await submitToQueue(apiKey, modelPath, input);
     logger.info('[FalVideo] Submitted to queue', { model, requestId: queued.request_id });
 
-    // Step 2: Poll for completion — use fal-returned URLs (avoids manual construction errors)
+    // Step 2: Poll for completion.
+    // status_url from fal response avoids 405 on Wan's nested model path.
+    // Result URL derived from status_url by stripping /status — same correct base, avoids 404.
+    const resultUrl = queued.status_url.replace(/\/status$/, '');
     const pollOpts = {
         intervalMs: options?.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS,
         maxAttempts: options?.maxPollAttempts ?? DEFAULT_MAX_POLL_ATTEMPTS,
     };
-    const videoUrl = await pollUntilComplete(apiKey, queued.status_url, queued.response_url, pollOpts);
+    const videoUrl = await pollUntilComplete(apiKey, queued.status_url, resultUrl, pollOpts);
     logger.info('[FalVideo] Video ready', { model, videoUrl });
 
     return {
