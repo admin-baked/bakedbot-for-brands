@@ -97,15 +97,15 @@ async function generateFalVideo(
     logger.info('[FalVideo] Starting video generation', { model, modelPath, prompt: input.prompt.substring(0, 80) });
 
     // Step 1: Submit to queue
-    const requestId = await submitToQueue(apiKey, modelPath, input);
-    logger.info('[FalVideo] Submitted to queue', { model, requestId });
+    const queued = await submitToQueue(apiKey, modelPath, input);
+    logger.info('[FalVideo] Submitted to queue', { model, requestId: queued.request_id });
 
-    // Step 2: Poll for completion
+    // Step 2: Poll for completion — use fal-returned URLs (avoids manual construction errors)
     const pollOpts = {
         intervalMs: options?.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS,
         maxAttempts: options?.maxPollAttempts ?? DEFAULT_MAX_POLL_ATTEMPTS,
     };
-    const videoUrl = await pollUntilComplete(apiKey, modelPath, requestId, pollOpts);
+    const videoUrl = await pollUntilComplete(apiKey, queued.status_url, queued.response_url, queued.request_id, pollOpts);
     logger.info('[FalVideo] Video ready', { model, videoUrl });
 
     return {
@@ -121,7 +121,7 @@ async function submitToQueue(
     apiKey: string,
     modelPath: string,
     input: GenerateVideoInput
-): Promise<string> {
+): Promise<FalQueueSubmitResponse> {
     // Map aspect ratio to fal.ai format
     const aspectRatioMap: Record<string, string> = {
         '16:9': '16:9',
@@ -158,17 +158,16 @@ async function submitToQueue(
         throw new Error(`[FalVideo] No request_id in queue response: ${JSON.stringify(data)}`);
     }
 
-    return data.request_id;
+    return data;
 }
 
 async function pollUntilComplete(
     apiKey: string,
-    modelPath: string,
+    statusUrl: string,
+    resultUrl: string,
     requestId: string,
     options: { intervalMs: number; maxAttempts: number }
 ): Promise<string> {
-    const statusUrl = `${FAL_QUEUE_BASE}/${modelPath}/requests/${requestId}/status`;
-    const resultUrl = `${FAL_QUEUE_BASE}/${modelPath}/requests/${requestId}`;
 
     for (let attempt = 0; attempt < options.maxAttempts; attempt++) {
         await sleep(options.intervalMs);
