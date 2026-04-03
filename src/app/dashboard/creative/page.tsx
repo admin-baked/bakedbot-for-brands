@@ -120,6 +120,19 @@ const PLATFORM_ASPECT: Record<SocialPlatform | string, string> = {
   facebook: 'aspect-[1.91/1]',
 };
 
+const FRIDAY_QUOTES = [
+  "You got knocked the f*** out!",
+  "Bye Felicia.",
+  "I know you don't smoke weed, I know this... but I'm gonna get you high today.",
+  "It's Friday, you ain't got no job, and you ain't got s*** to do.",
+  "You win some, you lose some. But you live, you live to fight another day.",
+  "How you gonna get fired on your day off?",
+  "I was just about to say that.",
+  "Puff puff give.",
+  "Craig, watch your back around here.",
+  "Today was a good day.",
+];
+
 // --- Main Page ---
 
 export default function CreativeCommandCenter() {
@@ -298,19 +311,6 @@ export default function CreativeCommandCenter() {
   const [longVideoTarget, setLongVideoTarget] = useState<'60' | '90'>('60');
   const [longVideoModel, setLongVideoModel] = useState<'wan' | 'kling'>('wan');
   const [fridayQuoteIdx, setFridayQuoteIdx] = useState(0);
-
-  const FRIDAY_QUOTES = [
-    "You got knocked the f*** out!",
-    "Bye Felicia.",
-    "I know you don't smoke weed, I know this... but I'm gonna get you high today.",
-    "It's Friday, you ain't got no job, and you ain't got s*** to do.",
-    "You win some, you lose some. But you live, you live to fight another day.",
-    "How you gonna get fired on your day off?",
-    "I was just about to say that.",
-    "Puff puff give.",
-    "Craig, watch your back around here.",
-    "Today was a good day.",
-  ];
 
   useEffect(() => {
     if (!isGeneratingVideo || imageMode !== 'longvideo') return;
