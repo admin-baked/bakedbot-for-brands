@@ -485,7 +485,7 @@ export default function LoyaltyTabletPage() {
             onTouchStart={resetIdleTimer}
             onClick={resetIdleTimer}
         >
-            <div className="absolute inset-0 opacity-70" aria-hidden="true">
+            <div className="absolute inset-0 opacity-70 pointer-events-none" aria-hidden="true">
                 <div
                     className="absolute left-8 top-16 h-32 w-32 rounded-full blur-3xl"
                     style={{ backgroundColor: glowColor }}
@@ -625,7 +625,7 @@ export default function LoyaltyTabletPage() {
                         variants={slideVariants}
                         initial="enter" animate="center" exit="exit"
                         transition={{ duration: 0.25 }}
-                        className="flex flex-col items-center gap-8 w-full max-w-lg"
+                        className="relative z-10 flex flex-col items-center gap-8 w-full max-w-lg"
                     >
                         <div className="text-center">
                             <Mail className="mx-auto mb-4 h-10 w-10 sm:h-14 sm:w-14" style={{ color: brandTheme.colors.primary }} />
@@ -673,7 +673,7 @@ export default function LoyaltyTabletPage() {
                         variants={slideVariants}
                         initial="enter" animate="center" exit="exit"
                         transition={{ duration: 0.25 }}
-                        className="flex flex-col items-center gap-8 w-full max-w-lg"
+                        className="relative z-10 flex flex-col items-center gap-8 w-full max-w-lg"
                     >
                         <div className="text-center">
                             <Phone className="mx-auto mb-4 h-10 w-10 sm:h-14 sm:w-14" style={{ color: brandTheme.colors.primary }} />
@@ -739,7 +739,7 @@ export default function LoyaltyTabletPage() {
                         variants={slideVariants}
                         initial="enter" animate="center" exit="exit"
                         transition={{ duration: 0.25 }}
-                        className="flex flex-col items-center gap-8 w-full max-w-2xl"
+                        className="relative z-10 flex flex-col items-center gap-8 w-full max-w-2xl"
                     >
                         <div className="text-center">
                             <h2 className="text-2xl sm:text-4xl font-black text-white">
@@ -783,7 +783,7 @@ export default function LoyaltyTabletPage() {
                         variants={slideVariants}
                         initial="enter" animate="center" exit="exit"
                         transition={{ duration: 0.25 }}
-                        className="flex flex-col items-center gap-6 w-full max-w-4xl"
+                        className="relative z-10 flex flex-col items-center gap-6 w-full max-w-4xl"
                     >
                         {recsLoading ? (
                             <div className="flex flex-col items-center gap-6 py-8 sm:py-12">
@@ -1005,7 +1005,7 @@ export default function LoyaltyTabletPage() {
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         transition={{ duration: 0.35, type: 'spring' }}
-                        className="flex max-w-lg flex-col items-center gap-8 text-center"
+                        className="relative z-10 flex max-w-lg flex-col items-center gap-8 text-center"
                     >
                         <motion.div
                             initial={{ scale: 0 }}
