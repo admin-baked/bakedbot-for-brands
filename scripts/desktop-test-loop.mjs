@@ -393,12 +393,62 @@ async function runAgentQualityTests(db, taskId) {
 }
 
 // ---------------------------------------------------------------------------
+// Handle a weekly_insights task — runs mailer script locally
+// ---------------------------------------------------------------------------
+async function handleWeeklyInsightsTask(db, taskId) {
+    console.log(`[desktop-loop] Running weekly insights report for task ${taskId}`);
+
+    await db.collection('claude_code_tasks').doc(taskId).update({
+        status: 'in_progress',
+        startedAt: new Date().toISOString(),
+    });
+
+    await postToSlack(`📊 *Weekly insights report starting* (task \`${taskId}\`)`);
+
+    const result = spawnSync(
+        'node',
+        ['scripts/weekly-insights-mailer.mjs'],
+        { cwd: PROJECT_ROOT, encoding: 'utf-8', timeout: 120_000 }
+    );
+
+    const output = ((result.stdout ?? '') + (result.stderr ?? '')).slice(-2000);
+    const passed = result.status === 0;
+
+    await db.collection('claude_code_tasks').doc(taskId).update({
+        status: passed ? 'completed' : 'failed',
+        completedAt: new Date().toISOString(),
+        ...(passed ? {} : { failureReason: output.slice(-500) }),
+    });
+
+    if (passed) {
+        await postToSlack(`✅ *Weekly insights report sent* to martez@bakedbot.ai (task \`${taskId}\`)`);
+    } else {
+        await postToSlack(
+            `❌ *Weekly insights report failed* (task \`${taskId}\`)\n\`\`\`${output.slice(-500)}\`\`\``
+        );
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Main poll loop
 // ---------------------------------------------------------------------------
 async function pollOnce() {
     const db = await getDb();
 
     if (!LOCAL_TESTS_ONLY) {
+        // Weekly insights tasks run first (lightweight, no Claude spawn needed)
+        const insightsSnap = await db.collection('claude_code_tasks')
+            .where('type', '==', 'weekly_insights')
+            .where('status', '==', 'pending')
+            .limit(1)
+            .get();
+
+        if (!insightsSnap.empty) {
+            const doc = insightsSnap.docs[0];
+            await handleWeeklyInsightsTask(db, doc.id);
+            return;
+        }
+
         // Pick up one pending code-fix task (highest priority first)
         const pendingSnap = await db.collection('claude_code_tasks')
             .where('status', '==', 'pending')
