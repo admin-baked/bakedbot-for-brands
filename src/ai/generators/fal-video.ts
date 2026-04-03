@@ -11,7 +11,7 @@
  * Pricing vs Veo 3.1:
  *   Veo 3.1:  ~$0.35/sec  (~$1.40–2.80 per 4-8s clip)
  *   Kling v2: ~$0.045/sec (~$0.18–0.36 per 4-8s clip) — 8x cheaper
- *   Wan 2.1:  ~$0.01/sec  (~$0.04–0.08 per 4-8s clip) — 35x cheaper
+ *   Wan 2.1:  ~$0.01/sec  (~$0.04–0.08 per 4-8s clip) — 35x cheaper (model: fal-ai/wan-t2v)
  */
 
 import { logger } from '@/lib/logger';
@@ -21,7 +21,7 @@ const FAL_QUEUE_BASE = 'https://queue.fal.run';
 
 const FAL_VIDEO_MODELS = {
     kling: 'fal-ai/kling-video/v2/master/text-to-video',
-    wan: 'fal-ai/wan/v2.1/1.3b/text-to-video',
+    wan: 'fal-ai/wan-t2v',
 } as const;
 
 type FalVideoModel = keyof typeof FAL_VIDEO_MODELS;
