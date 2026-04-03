@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** ðŸŸ¢ `main` green; Thrive Syracuse live; agent platform hardened (schema validation, idempotency TTL, real runId, WorkflowTaskStatus, execution trace persistence, token budget gate, audit log Firestore write).
-**Recent work (2026-04-03):** `792626fa6`, `43b67a37f` — Agent platform hardening: 8 harness fixes + simplify pass (iteration counter bug, fire-and-forget audit write, static logger imports)
+**Current Status:** 🟢 `main` green; Wan 2.1 video generation fixed (fal-ai/wan-t2v); onboarding first-win + SES email + tablet brand/voice live.
+**Recent work (2026-04-03):** `ef59fbd5a` — Wan model ID fix: fal-ai/wan-t2v resolves all /api/ai/video/chain 500s (wrong ID completed in 7ms with no output)
 
 ## ðŸ§­ CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 

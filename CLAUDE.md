@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** ðŸŸ¢ `main` green; Thrive Syracuse live; agent platform hardened (schema validation, idempotency TTL, real runId, WorkflowTaskStatus, execution trace persistence, token budget gate, audit log Firestore write) | **Last update:** 2026-04-03 (Agent platform hardening — 8 fixes + simplify pass)
+**Current Status:** 🟢 `main` green; Wan 2.1 video generation fixed (correct model ID: fal-ai/wan-t2v); onboarding first-win flow + tablet brand/voice + SES email live | **Last update:** 2026-04-03 (Wan model ID fix — resolves all video/chain 500s)
 
 ---
 
