@@ -60,42 +60,62 @@ interface OrgMailjetConfig {
 // Short-lived in-memory cache to avoid per-email Firestore reads
 const orgMailjetCache = new Map<string, { config: OrgMailjetConfig | null; expiry: number }>();
 
-async function getOrgMailjetConfig(orgId: string): Promise<OrgMailjetConfig | null> {
-    const cached = orgMailjetCache.get(orgId);
-    if (cached && cached.expiry > Date.now()) return cached.config;
+interface OrgWorkspaceConfig {
+    sendAs: string;
+}
 
+const orgWorkspaceCache = new Map<string, { config: OrgWorkspaceConfig | null; expiry: number }>();
+
+async function withOrgIntegrationCache<T>(
+    cache: Map<string, { config: T | null; expiry: number }>,
+    orgId: string,
+    label: string,
+    fetch: () => Promise<T | null>,
+): Promise<T | null> {
+    const cached = cache.get(orgId);
+    if (cached && cached.expiry > Date.now()) return cached.config;
     try {
+        const config = await fetch();
+        cache.set(orgId, { config, expiry: Date.now() + 60_000 });
+        return config;
+    } catch (e) {
+        logger.warn(`[Dispatcher] Failed to load org ${label} config`, { orgId, error: e });
+        cache.set(orgId, { config: null, expiry: Date.now() + 60_000 });
+        return null;
+    }
+}
+
+async function getOrgMailjetConfig(orgId: string): Promise<OrgMailjetConfig | null> {
+    return withOrgIntegrationCache(orgMailjetCache, orgId, 'Mailjet', async () => {
         const firestore = getAdminFirestore();
         const doc = await firestore
-            .collection('organizations')
-            .doc(orgId)
-            .collection('integrations')
-            .doc('mailjet')
+            .collection('organizations').doc(orgId)
+            .collection('integrations').doc('mailjet')
             .get();
-
-        if (!doc.exists) {
-            orgMailjetCache.set(orgId, { config: null, expiry: Date.now() + 60_000 });
-            return null;
-        }
-
+        if (!doc.exists) return null;
         const data = doc.data()!;
-        if (data.status !== 'active' || !data.apiKeyEncrypted || !data.secretKeyEncrypted) {
-            orgMailjetCache.set(orgId, { config: null, expiry: Date.now() + 60_000 });
-            return null;
-        }
-
-        const config: OrgMailjetConfig = {
+        if (data.status !== 'active' || !data.apiKeyEncrypted || !data.secretKeyEncrypted) return null;
+        return {
             apiKey: decrypt(data.apiKeyEncrypted),
             secretKey: decrypt(data.secretKeyEncrypted),
             fromEmail: data.fromEmail,
             fromName: data.fromName,
         };
-        orgMailjetCache.set(orgId, { config, expiry: Date.now() + 60_000 });
-        return config;
-    } catch (e) {
-        logger.warn('[Dispatcher] Failed to load org Mailjet config', { orgId, error: e });
-        return null;
-    }
+    });
+}
+
+async function getOrgWorkspaceConfig(orgId: string): Promise<OrgWorkspaceConfig | null> {
+    return withOrgIntegrationCache(orgWorkspaceCache, orgId, 'Workspace', async () => {
+        const firestore = getAdminFirestore();
+        const doc = await firestore
+            .collection('organizations').doc(orgId)
+            .collection('integrations').doc('google_workspace')
+            .get();
+        const data = doc.data();
+        return (data?.status === 'connected' && data?.sendAs)
+            ? { sendAs: data.sendAs as string }
+            : null;
+    });
 }
 
 async function sendViaOrgMailjet(
@@ -231,14 +251,9 @@ export async function sendGenericEmail(data: GenericEmailData): Promise<{ succes
     // ── Route 2: Personal email → org Google Workspace ────────────────
     if (data.orgId && !isBulkEmail(data.communicationType)) {
         try {
-            const firestore = getAdminFirestore();
-            const wsDoc = await firestore
-                .collection('organizations').doc(data.orgId)
-                .collection('integrations').doc('google_workspace')
-                .get();
-            const wsData = wsDoc.data();
-            if (wsData?.status === 'connected' && wsData?.sendAs) {
-                result = await sendViaOrgWorkspace(data.orgId, wsData.sendAs, data);
+            const wsConfig = await getOrgWorkspaceConfig(data.orgId);
+            if (wsConfig) {
+                result = await sendViaOrgWorkspace(data.orgId, wsConfig.sendAs, data);
                 if (result.success) {
                     logCrm(result, data, 'google_workspace');
                     return result;
