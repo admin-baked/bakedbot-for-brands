@@ -1,15 +1,20 @@
 # BakedBot Session Memory
 
-## Session: 2026-04-03
-- **Onboarding first-win phase 1** (`uncommitted`) - Added canonical onboarding goal metadata so new orgs persist a primary activation lane (`Check In with Tablet`, `Creative Center`, or `Email Personalization`) and role-based defaults instead of pushing Competitive Intelligence into the critical path.
-- **Checklist, Inbox, and setup guide realignment** (`uncommitted`) - Rebuilt the dashboard checklist around Brand Guide -> first win -> Inbox / Playbooks / Agents -> Competitive Intelligence, added start-here guidance plus agent education to the Inbox briefing, and pointed the Smokey setup guide at the same shared checklist builder.
-- **Verification** (`uncommitted`) - Focused Jest coverage passed for onboarding, checklist, inbox briefing, and Smokey support flows; repo-wide `.\scripts\npm-safe.cmd run check:types` passed after fixing onboarding-adjacent regressions plus a pre-existing `market-audit.ts` typing issue.
+## Session: 2026-04-03i (Deploy monitoring + stuck-build recovery) ✅ COMPLETE (`5de417a4b`)
+- **Stuck Cloud Build cancelled** — `98840ce3` was blocking all deploys with `Duration: unknown`; cancelled + re-triggered via `npm run firebase:apphosting -- rollout`
+- **Root cause identified** — `proxycurl-enrichment.ts` imported but never staged; Linus fixed in `3e8e742a5`, final successful deploy on `43b67a37f` (19m 40s)
+- **Deploy pattern documented** — GHA workflow polls 18×10s for Cloud Build; if Firebase doesn't register in time, workflow fails at 4m17s regardless of build state
+
+## Session: 2026-04-03h (Onboarding first-win phase 1) ✅ COMPLETE (`7a917f53d`)
+- **Onboarding first-win phase 1** — Canonical goal model in `activation.ts`; signup persists `primaryGoal` with role-based default; Competitive Intel deferred post-signup
+- **Checklist, Inbox, and setup guide realignment** — Dashboard checklist/Inbox briefing/Smokey guide all thread same first-win state (Brand Guide → first win → Inbox/Playbooks/Agents → CI)
+- **Simplify fixes** — `PRODUCT_FALLBACK_IMAGE` → `SMOKEY_FALLBACK_IMAGE`; style objects memoized with `useMemo([brandTheme])`; Zod `primaryGoal` enum derived from `ONBOARDING_PRIMARY_GOALS`
 - **Session file** - `memory/sessions/2026-04-03-0845-onboarding-first-win-phase1.md`
 
-## Session: 2026-04-03
-- **Thrive tablet brand-theme refresh** (`uncommitted`) - Reworked `src/app/loyalty-tablet/page.tsx` to use the public brand guide theme instead of the old hard-coded purple shell, including the core CTA, progress dots, cards, and success state.
-- **Image-backed recommendations + Ask Smokey search** (`uncommitted`) - Added product image cards plus a voice/text refinement panel that reuses canonical live-menu search via `searchTabletRecommendations()` instead of inventing a separate tablet-only ranking path.
-- **Verification + Gemini Live recommendation** (`uncommitted`) - Focused loyalty-tablet action tests passed `5/5`; repo-wide `check:types` is currently blocked by unrelated local errors in `src/ai/__mocks__/glm.ts`, `src/components/dashboard/smokey-support-button.tsx`, and `src/lib/onboarding/activation.ts`. Official Gemini Live docs reviewed on April 3, 2026 show `gemini-3.1-flash-live-preview` is current, but `gemini-2.5-flash-live-preview` is still the better fit for a tool-using duplex voice concierge because it supports asynchronous function calling, proactive audio, and affective dialog.
+## Session: 2026-04-03g (Thrive tablet brand theme + voice search) ✅ COMPLETE (`7a917f53d`)
+- **Thrive tablet brand-theme refresh** — `getPublicBrandTheme` replaces logo-only fetch; dynamic CSS via brand colors replacing all hard-coded purple
+- **Image-backed recommendations + Ask Smokey search** — Product image cards + voice/text panel reusing `searchTabletRecommendations()` on canonical live-menu search
+- **Gemini Live recommendation** — `gemini-2.5-flash-live-preview` is better fit than `3.1` for tool-using duplex concierge (async function calling, proactive audio, affective dialog)
 - **Session file** - `memory/sessions/2026-04-03-0832-thrive-tablet-brand-voice-search.md`
 
 ## Session: 2026-04-03
