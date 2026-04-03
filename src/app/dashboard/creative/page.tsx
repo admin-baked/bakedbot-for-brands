@@ -1339,9 +1339,7 @@ export default function CreativeCommandCenter() {
                               ))}
                             </div>
                             <p className="text-[10px] text-muted-foreground leading-tight">
-                              {longVideoModel === 'wan'
-                                ? `Claude plans ${longVideoTarget === '60' ? '6' : '9'} scenes → Wan 2.1 renders each clip → Remotion assembles`
-                                : `Claude plans ${longVideoTarget === '60' ? '6' : '9'} scenes → Kling v2 renders each clip → Remotion assembles`}
+                              {`Claude plans ${longVideoTarget === '60' ? '6' : '9'} scenes → ${longVideoModel === 'wan' ? 'Wan 2.1' : 'Kling v2'} renders each clip → Remotion assembles`}
                             </p>
                           </div>
                         )}

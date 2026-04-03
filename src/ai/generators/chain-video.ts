@@ -84,8 +84,7 @@ export async function generateChainVideoClips(
         }));
     }
 
-    const providerLabel = videoModel === 'wan' ? 'Wan 2.1' : 'Kling v2';
-    logger.info(`[ChainVideo] Generating clips in parallel via ${providerLabel}`, { count: scenes.length, videoModel });
+    logger.info(`[ChainVideo] Generating clips in parallel via ${videoModel === 'wan' ? 'Wan 2.1' : 'Kling v2'}`, { count: scenes.length, videoModel });
 
     const generateClip = videoModel === 'wan' ? generateWanVideo : generateKlingVideo;
 
