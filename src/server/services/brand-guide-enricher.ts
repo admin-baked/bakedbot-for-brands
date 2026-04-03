@@ -15,7 +15,7 @@
  * Idempotent: safe to run multiple times; won't overwrite user edits.
  */
 
-import { callClaude } from '@/ai/claude';
+import { callRoutedTextModel } from '@/ai/model-router';
 import { getAdminFirestore } from '@/firebase/admin';
 import { makeBrandGuideRepo } from '@/server/repos/brandGuideRepo';
 import { logger } from '@/lib/logger';
@@ -271,11 +271,13 @@ Rules:
 - Preferred terms: pick 4-6 that reflect this brand's voice (not generic placeholders)`;
 
     try {
-        const response = await callClaude({
+        const response = (await callRoutedTextModel({
+            sensitivity: 'internal_non_pii',
+            task: 'standard',
             userMessage: prompt,
             systemPrompt: 'You are a cannabis brand voice expert. Return ONLY valid JSON, no markdown.',
             maxTokens: 2000,
-        });
+        })).content;
 
         const match = response.match(/\{[\s\S]*\}/);
         if (!match) return null;
@@ -347,11 +349,13 @@ Return ONLY valid JSON:
 }`;
 
     try {
-        const response = await callClaude({
+        const response = (await callRoutedTextModel({
+            sensitivity: 'internal_non_pii',
+            task: 'standard',
             userMessage: prompt,
             systemPrompt: 'You are a cannabis market researcher. Return ONLY valid JSON.',
             maxTokens: 800,
-        });
+        })).content;
 
         const match = response.match(/\{[\s\S]*\}/);
         if (!match) return null;
@@ -410,11 +414,13 @@ Return ONLY a valid JSON object: { "archetype": "The Sage" }
 Pick the single best fit based on their actual voice and positioning.`;
 
     try {
-        const response = await callClaude({
+        const response = (await callRoutedTextModel({
+            sensitivity: 'internal_non_pii',
+            task: 'standard',
             userMessage: prompt,
             systemPrompt: 'Return ONLY valid JSON with one field: archetype.',
             maxTokens: 100,
-        });
+        })).content;
 
         const match = response.match(/\{[\s\S]*\}/);
         if (!match) return null;

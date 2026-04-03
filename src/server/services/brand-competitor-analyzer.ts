@@ -6,7 +6,7 @@
  */
 
 import { getBrandGuideExtractor } from './brand-guide-extractor';
-import { callClaude } from '@/ai/claude';
+import { callRoutedTextModel } from '@/ai/model-router';
 import { logger } from '@/lib/logger';
 import type { BrandGuide, BrandColor, BrandPersonalityTrait } from '@/types/brand-guide';
 
@@ -165,11 +165,13 @@ Return as JSON:
 }
 `;
 
-    const aiAnalysis = await callClaude({
+    const aiAnalysis = (await callRoutedTextModel({
+      sensitivity: 'internal_non_pii',
+      task: 'standard',
       userMessage: analysisPrompt,
       systemPrompt: 'You are a brand strategist. Always respond with valid JSON only.',
       maxTokens: 2000,
-    });
+    })).content;
 
     let parsed;
     try {
@@ -220,11 +222,13 @@ Provide specific, actionable recommendations as a JSON array of strings.
 Format: ["recommendation 1", "recommendation 2", ...]
 `;
 
-    const response = await callClaude({
+    const response = (await callRoutedTextModel({
+      sensitivity: 'internal_non_pii',
+      task: 'standard',
       userMessage: recommendationsPrompt,
       systemPrompt: 'You are a brand strategist. Return only a JSON array of recommendation strings.',
       maxTokens: 1000,
-    });
+    })).content;
 
     try {
       const recommendations = JSON.parse(response);

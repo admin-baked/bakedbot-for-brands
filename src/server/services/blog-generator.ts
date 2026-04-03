@@ -4,7 +4,7 @@
  * AI-powered blog post generation using Claude with brand voice integration
  */
 
-import { callClaude } from '@/ai/claude';
+import { callRoutedTextModel } from '@/ai/model-router';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import type { BlogPost, BlogCategory } from '@/types/blog';
@@ -86,12 +86,14 @@ export async function generateBlogDraft(
             isPlatform,
         });
 
-        // Generate with Claude
-        const response = await callClaude({
+        // Generate with routed model (GLM-4.7 or Claude depending on provider config)
+        const response = (await callRoutedTextModel({
+            sensitivity: 'internal_non_pii',
+            task: 'standard',
             userMessage: prompt,
             temperature: 0.7,
             maxTokens: 4000,
-        });
+        })).content;
 
         // Parse response
         const parsed = parseBlogResponse(response);
@@ -134,11 +136,13 @@ Format as a clean Markdown outline that can be used as a writing guide.
 Keep it concise — outline only, no full paragraphs.`;
 
     try {
-        const response = await callClaude({
+        const response = (await callRoutedTextModel({
+            sensitivity: 'internal_non_pii',
+            task: 'standard',
             userMessage: prompt,
             temperature: 0.6,
             maxTokens: 1000,
-        });
+        })).content;
         return response.trim();
     } catch (error) {
         logger.error('[BlogGenerator] Error generating outline', { error });
@@ -408,11 +412,13 @@ ${basePrompt}`;
             researchLength: researchContext.length,
         });
 
-        const response = await callClaude({
+        const response = (await callRoutedTextModel({
+            sensitivity: 'internal_non_pii',
+            task: 'standard',
             userMessage: prompt,
             temperature: 0.7,
             maxTokens: 4000,
-        });
+        })).content;
 
         const parsed = parseBlogResponse(response);
 
@@ -449,11 +455,13 @@ Create an SEO-optimized title that:
 Output only the optimized title, nothing else.`;
 
     try {
-        const response = await callClaude({
+        const response = (await callRoutedTextModel({
+            sensitivity: 'internal_non_pii',
+            task: 'standard',
             userMessage: prompt,
             temperature: 0.5,
             maxTokens: 100,
-        });
+        })).content;
 
         return response.trim().substring(0, 60);
     } catch (error) {
@@ -482,11 +490,13 @@ Create a meta description that:
 Output only the meta description, nothing else.`;
 
     try {
-        const response = await callClaude({
+        const response = (await callRoutedTextModel({
+            sensitivity: 'internal_non_pii',
+            task: 'standard',
             userMessage: prompt,
             temperature: 0.5,
             maxTokens: 100,
-        });
+        })).content;
 
         return response.trim().substring(0, 160);
     } catch (error) {

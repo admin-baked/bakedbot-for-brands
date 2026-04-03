@@ -460,6 +460,29 @@ async function handleDeploymentFailure(
                         lastUpdatedAt: new Date(),
                     },
                 }, { merge: true });
+
+                // Notify the Slack thread so the team knows Linus couldn't respond
+                postLinusIncidentSlack({
+                    source: 'auto-escalator',
+                    incidentId,
+                    channelName,
+                    threadTs: slackResult.ts ?? undefined,
+                    fallbackText: `⚠️ Linus repair dispatch failed for incident ${incidentId} — manual intervention required`,
+                    blocks: [
+                        {
+                            type: 'section',
+                            text: {
+                                type: 'mrkdwn',
+                                text: `⚠️ *Linus could not respond to this incident.*\n\`${message}\`\n\nManual intervention required for incident \`${incidentId}\`.`,
+                            },
+                        },
+                    ],
+                }).catch(slackErr => {
+                    logger.warn('[FirebaseDeploymentIncident] Could not post Linus failure to Slack', {
+                        incidentId,
+                        error: String(slackErr),
+                    });
+                });
             }
         })();
     });

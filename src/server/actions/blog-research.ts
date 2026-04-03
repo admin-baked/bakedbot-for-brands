@@ -16,7 +16,7 @@
 
 import { requireSuperUser } from '@/server/auth/auth';
 import { jinaSearch, jinaReadUrl } from '@/server/tools/jina-tools';
-import { callClaude } from '@/ai/claude';
+import { callRoutedTextModel } from '@/ai/model-router';
 import { generateBlogDraftWithResearch } from '@/server/services/blog-generator';
 import { createBlogPostInternal } from '@/server/actions/blog';
 import { generateFromTemplate } from '@/server/services/content-engine/generator';
@@ -109,7 +109,7 @@ Respond with ONLY a JSON array of ${top8.length} strings. Example:
 
             let angles: string[] = top8.map(() => 'Explain what this means for cannabis operators, brand teams, and the systems they depend on.');
             try {
-                const angleResponse = await callClaude({ userMessage: anglePrompt, temperature: 0.6, maxTokens: 500 });
+                const angleResponse = (await callRoutedTextModel({ sensitivity: 'internal_non_pii', task: 'standard', userMessage: anglePrompt, temperature: 0.6, maxTokens: 500 })).content;
                 const jsonMatch = angleResponse.match(/\[[\s\S]*\]/);
                 if (jsonMatch) {
                     const parsed = JSON.parse(jsonMatch[0]) as string[];
@@ -237,11 +237,13 @@ Rules:
 - If fewer than 2 attributable quotes exist, return an empty array []
 - Output ONLY the JSON array, no other text`;
 
-        const citationResponse = await callClaude({
+        const citationResponse = (await callRoutedTextModel({
+            sensitivity: 'internal_non_pii',
+            task: 'standard',
             userMessage: citationPrompt,
             temperature: 0.3,
             maxTokens: 800,
-        });
+        })).content;
 
         const jsonMatch = citationResponse.match(/\[[\s\S]*\]/);
         if (jsonMatch) {
@@ -287,11 +289,13 @@ Rules:
 - NO medical claims, NO youth appeal language`;
 
     try {
-        const synthesisResponse = await callClaude({
+        const synthesisResponse = (await callRoutedTextModel({
+            sensitivity: 'internal_non_pii',
+            task: 'standard',
             userMessage: synthesisPrompt,
             temperature: 0.5,
             maxTokens: 1000,
-        });
+        })).content;
 
         const jsonMatch = synthesisResponse.match(/\{[\s\S]*\}/);
         if (!jsonMatch) throw new Error('No JSON in response');
