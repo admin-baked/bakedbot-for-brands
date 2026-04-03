@@ -105,7 +105,7 @@ async function generateFalVideo(
         intervalMs: options?.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS,
         maxAttempts: options?.maxPollAttempts ?? DEFAULT_MAX_POLL_ATTEMPTS,
     };
-    const videoUrl = await pollUntilComplete(apiKey, queued.status_url, queued.response_url, pollOpts);
+    const videoUrl = await pollUntilComplete(apiKey, queued.status_url, modelPath, queued.request_id, pollOpts);
     logger.info('[FalVideo] Video ready', { model, videoUrl });
 
     return {
@@ -164,9 +164,13 @@ async function submitToQueue(
 async function pollUntilComplete(
     apiKey: string,
     statusUrl: string,
-    resultUrl: string,
+    modelPath: string,
+    requestId: string,
     options: { intervalMs: number; maxAttempts: number }
 ): Promise<string> {
+    // status_url from fal response (avoids 405 on Wan's nested path)
+    // result URL constructed manually (response_url from fal is not the queue result URL)
+    const resultUrl = `${FAL_QUEUE_BASE}/${modelPath}/requests/${requestId}`;
     for (let attempt = 0; attempt < options.maxAttempts; attempt++) {
         if (attempt > 0) await sleep(options.intervalMs);
 

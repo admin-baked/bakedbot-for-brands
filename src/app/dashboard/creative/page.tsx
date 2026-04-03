@@ -297,6 +297,27 @@ export default function CreativeCommandCenter() {
   const [videoDuration, setVideoDuration] = useState<'5' | '10'>('5');
   const [longVideoTarget, setLongVideoTarget] = useState<'60' | '90'>('60');
   const [longVideoModel, setLongVideoModel] = useState<'wan' | 'kling'>('wan');
+  const [fridayQuoteIdx, setFridayQuoteIdx] = useState(0);
+
+  const FRIDAY_QUOTES = [
+    "You got knocked the f*** out!",
+    "Bye Felicia.",
+    "I know you don't smoke weed, I know this... but I'm gonna get you high today.",
+    "It's Friday, you ain't got no job, and you ain't got s*** to do.",
+    "You win some, you lose some. But you live, you live to fight another day.",
+    "How you gonna get fired on your day off?",
+    "I was just about to say that.",
+    "Puff puff give.",
+    "Craig, watch your back around here.",
+    "Today was a good day.",
+  ];
+
+  useEffect(() => {
+    if (!isGeneratingVideo || imageMode !== 'longvideo') return;
+    const id = setInterval(() => setFridayQuoteIdx(i => (i + 1) % FRIDAY_QUOTES.length), 4000);
+    return () => clearInterval(id);
+  }, [isGeneratingVideo, imageMode]);
+
   const isImagePreviewMode = imageMode === 'photo' || imageMode === 'branded';
 
   const getGenerateLabel = (mode: typeof imageMode, long = false): string => {
@@ -1298,7 +1319,7 @@ export default function CreativeCommandCenter() {
                           <div className="space-y-2 px-1">
                             <div className="flex items-center justify-between gap-2">
                               <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Length</span>
-                              <span className="text-[10px] text-muted-foreground">6–9 Kling scenes · Remotion render</span>
+                              <span className="text-[10px] text-muted-foreground">6–9 scenes · Remotion render</span>
                             </div>
                             <div className="flex gap-1.5">
                               {(['60', '90'] as const).map((t) => (
@@ -2010,9 +2031,9 @@ export default function CreativeCommandCenter() {
                             ? 'Your animated brand story is rendering...'
                             : 'Your video is rendering...'}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-xs text-muted-foreground mt-1 italic">
                         {imageMode === 'longvideo'
-                          ? `Claude plans scenes → ${longVideoTarget === '60' ? '6' : '9'} ${longVideoModel === 'wan' ? 'Wan 2.1' : 'Kling v2'} clips → Remotion render · ${longVideoModel === 'wan' ? '2-4 min' : '5-10 min'}`
+                          ? `"${FRIDAY_QUOTES[fridayQuoteIdx]}"`
                           : imageMode === 'slideshow'
                             ? `${videoDuration}s branded motion piece · ~10-30s`
                             : `${videoDuration}s motion clip · 1-3 min`}
