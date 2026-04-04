@@ -1629,7 +1629,7 @@ const LINUS_TOOLS: ClaudeTool[] = [
     // ========================================================================
     {
         name: 'execute_super_power',
-        description: 'Execute developer super power scripts (automated audits, generators, fixers). Use to run productivity scripts: audit-indexes, setup-secrets, audit-schema, seed-test, generate, fix-build, test-security, check-compliance, audit-consistency, setup-monitoring, audit-query-cost, firebase-apphosting.',
+        description: 'Execute developer super power scripts (automated audits, generators, fixers). Use to run productivity scripts: audit-indexes, setup-secrets, audit-schema, seed-test, generate, fix-build, test-security, check-compliance, audit-consistency, setup-monitoring, audit-query-cost, firebase-apphosting, opencode-task.',
         input_schema: {
             type: 'object' as const,
             properties: {
@@ -1647,7 +1647,8 @@ const LINUS_TOOLS: ClaudeTool[] = [
                         'check-compliance',
                         'audit-consistency',
                         'setup-monitoring',
-                        'audit-query-cost'
+                        'audit-query-cost',
+                        'opencode-task'
                     ]
                 },
                 options: {
@@ -3600,7 +3601,8 @@ test('${scenario.slice(0, 50)}', async ({ page }) => {
                 'audit-consistency',
                 'setup-monitoring',
                 'audit-query-cost',
-                'firebase-apphosting'
+                'firebase-apphosting',
+                'opencode-task'
             ];
 
             if (!validScripts.includes(script)) {
@@ -3624,7 +3626,8 @@ test('${scenario.slice(0, 50)}', async ({ page }) => {
                 'audit-consistency': 'npm run audit:consistency',
                 'setup-monitoring': 'npm run setup:monitoring',
                 'audit-query-cost': 'npm run audit:costs',
-                'firebase-apphosting': 'npm run firebase:apphosting --'
+                'firebase-apphosting': 'npm run firebase:apphosting --',
+                'opencode-task': 'node scripts/opencode-task.mjs'
             };
 
             let command = scriptMap[script];
@@ -4879,7 +4882,9 @@ const LINUS_AGENT_CONTEXT: AgentContext = {
 | firebase-apphosting | npm run firebase:apphosting -- logs <id> | Stream build logs |
 | firebase-apphosting | npm run firebase:apphosting -- rollout | Trigger new rollout from main |
 | firebase-apphosting | npm run firebase:apphosting -- cancel <id> | Cancel in-progress build |
+| opencode-task | node scripts/opencode-task.mjs --prompt "..." | Delegate coding task to Opencode (free Zen models) |
 
+Opencode usage: pass options as --prompt "task description" [--model zen/kimi-k24]. Default model is free (no API cost).
 WHEN STUCK: Before spending multiple tool calls investigating, check if a super power can solve it in one step.`,
 };
 

@@ -221,6 +221,19 @@ env:
     value: "https://bakedbot-code-runner-lo74oftdza-uc.a.run.app"
     availability:
       - RUNTIME
+  # Opencode Agent — Cloud Run coding agent (SP13)
+  # Deploy: gcloud run deploy opencode-agent --source ./docker/opencode ...
+  # After deploy, set this URL + create the secret:
+  #   echo -n "strongpassword" | gcloud secrets create OPENCODE_SERVER_PASSWORD --data-file=- --project=studio-567050101-bc6e8
+  #   firebase apphosting:secrets:grantaccess OPENCODE_SERVER_PASSWORD --backend=bakedbot-prod
+  - variable: OPENCODE_AGENT_URL
+    value: "https://opencode-agent-1016399212569.us-central1.run.app"
+    availability:
+      - RUNTIME
+  - variable: OPENCODE_SERVER_PASSWORD
+    secret: OPENCODE_SERVER_PASSWORD@1
+    availability:
+      - RUNTIME
   # - variable: LEAFBUYER_API_URL
   #   secret: LEAFBUYER_API_URL
   #   availability:

@@ -213,6 +213,7 @@ After every coding session, Codex and Gemini **must** update:
 | SP10 | Monitoring Setup | `npm run setup:monitoring --deploy` | Configure Cloud Monitoring alerts for production |
 | SP11 | Cost Analyzer | `npm run audit:costs` | Identify expensive Firestore queries |
 | SP12 | Content Freshness | `npm run audit:content-freshness` | Score all 84 customer-facing pages for staleness |
+| SP13 | Opencode Agent | `npm run opencode:task -- --prompt “...”` | Delegate coding task to Cloud Run Opencode (free Zen models) |
 
 **Quick-fire guide — when you’re stuck:**
 - Build broken? → **SP6** `npm run fix:build --apply` then `npm run check:types`
@@ -223,8 +224,9 @@ After every coding session, Codex and Gemini **must** update:
 - Slow queries? → **SP11** `npm run audit:costs`
 - New scaffold needed? → **SP5** `npm run generate:component|action|route|cron <name>`
 - Content going stale? → **SP12** `npm run audit:content-freshness` (also `--stale-only` or `--json`)
+- Delegate coding task (free)? → **SP13** `npm run opencode:task -- --prompt “fix X in src/...”` (Zen models, $0)
 
-**Notes:** All scripts use `.env.local` for auth. SP8 requires `CLAUDE_API_KEY`. SP4 creates `org_test_bakedbot` (use `--clean` to reset).
+**Notes:** All scripts use `.env.local` for auth. SP8 requires `CLAUDE_API_KEY`. SP4 creates `org_test_bakedbot` (use `--clean` to reset). SP13 requires `OPENCODE_AGENT_URL` + `OPENCODE_SERVER_PASSWORD` — deploy Cloud Run container first (`docker/opencode/`).
 
 ---
 

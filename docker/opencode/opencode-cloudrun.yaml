@@ -1,0 +1,70 @@
+# Cloud Run service definition for the Opencode coding agent
+#
+# Deploy:
+#   gcloud run services replace docker/opencode/opencode-cloudrun.yaml \
+#     --region us-central1 --project studio-567050101-bc6e8
+#
+# Or via gcloud run deploy (simpler first-time):
+#   gcloud run deploy opencode-agent \
+#     --source ./docker/opencode \
+#     --region us-central1 \
+#     --project studio-567050101-bc6e8 \
+#     --service-account firebase-app-hosting-compute@studio-567050101-bc6e8.iam.gserviceaccount.com \
+#     --set-secrets OPENCODE_SERVER_PASSWORD=OPENCODE_SERVER_PASSWORD:latest,GITHUB_PAT=PLAYBOOK_ARTIFACT_REPO_TOKEN:latest,ANTHROPIC_API_KEY=CLAUDE_API_KEY:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest \
+#     --set-env-vars GITHUB_REPO=https://github.com/admin-baked/bakedbot-for-brands \
+#     --min-instances 1 --max-instances 3 --memory 2Gi --cpu 2 \
+#     --no-allow-unauthenticated
+
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: opencode-agent
+  labels:
+    app: opencode-agent
+    team: bakedbot
+  annotations:
+    run.googleapis.com/ingress: internal
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "1"
+        autoscaling.knative.dev/maxScale: "3"
+        run.googleapis.com/cpu-throttling: "false"
+    spec:
+      serviceAccountName: firebase-app-hosting-compute@studio-567050101-bc6e8.iam.gserviceaccount.com
+      containerConcurrency: 10
+      timeoutSeconds: 300
+      containers:
+        - image: gcr.io/studio-567050101-bc6e8/opencode-agent:latest
+          ports:
+            - containerPort: 8080
+          resources:
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          env:
+            - name: GITHUB_REPO
+              value: https://github.com/admin-baked/bakedbot-for-brands
+            - name: PORT
+              value: "8080"
+            - name: OPENCODE_SERVER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: OPENCODE_SERVER_PASSWORD
+                  key: latest
+            - name: GITHUB_PAT
+              valueFrom:
+                secretKeyRef:
+                  name: PLAYBOOK_ARTIFACT_REPO_TOKEN
+                  key: latest
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: CLAUDE_API_KEY
+                  key: latest
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: GEMINI_API_KEY
+                  key: latest

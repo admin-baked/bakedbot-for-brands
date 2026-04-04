@@ -222,6 +222,17 @@ Every PR body **must** include all 8 sections below. GitHub's PR template (`.git
 | `npm run firebase:apphosting -- cancel <id>` | Cancel an in-progress Cloud Build job |
 | `npm run firebase:apphosting -- builds` | List raw Cloud Build jobs (lower level) |
 
+### Tier 6: AI Coding Agent
+| Command | Purpose |
+|---------|---------|
+| `npm run opencode:task -- --prompt "..."` | Delegate coding task to Opencode (free Zen models, $0 cost) |
+| `npm run opencode:task -- --prompt "..." --model zen/kimi-k24` | Use long-context Zen model |
+| `npm run opencode:task -- --prompt "..." --model anthropic/claude-sonnet-4-6` | Premium model (billed) |
+
+**SP13 — Opencode Agent:** Cloud Run container at `OPENCODE_AGENT_URL`. Free via Zen models, no API key needed.
+Deploy: `gcloud run deploy opencode-agent --source ./docker/opencode --region us-central1`
+Linus Slack: `@linus execute execute_super_power script=opencode-task options="--prompt \"fix type error in X\""`
+
 **Details:** See `.agent/specs/` for full super powers documentation.
 
 **Linus Slack Usage Examples:**

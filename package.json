@@ -66,6 +66,7 @@
     "audit:content-freshness": "node scripts/audit-content-freshness.mjs",
     "setup:monitoring": "node scripts/setup-monitoring.mjs",
     "audit:costs": "node scripts/audit-query-cost.mjs",
+    "opencode:task": "node scripts/opencode-task.mjs",
     "provision:ny-outreach": "node scripts/provision-ny-outreach.mjs",
     "switch-model": "node scripts/switch-claude-model.mjs",
     "audit:agent-tools": "node scripts/audit-agent-tools.mjs",
