@@ -1833,6 +1833,29 @@ const LINUS_TOOLS: ClaudeTool[] = [
             },
             required: ['task']
         }
+    },
+    {
+        name: 'review_learning_deltas',
+        description: 'Review and apply pending learning deltas from the nightly consolidation cron. Lists proposed deltas and can approve safe categories (tool_failure_pattern, high_performing_workflow, compliance_catch_pattern). Use this to keep the agent system continuously improving.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                action: {
+                    type: 'string',
+                    description: 'Action to take: "list" to see pending deltas, "approve_safe" to auto-approve safe categories, "approve" to approve a specific delta by ID, "reject" to reject a specific delta.',
+                    enum: ['list', 'approve_safe', 'approve', 'reject']
+                },
+                deltaId: {
+                    type: 'string',
+                    description: 'Delta ID (required for approve/reject actions)'
+                },
+                reason: {
+                    type: 'string',
+                    description: 'Reason for rejection (required for reject action)'
+                }
+            },
+            required: ['action']
+        }
     }
 ];
 
@@ -4416,6 +4439,80 @@ test('${scenario.slice(0, 50)}', async ({ page }) => {
                     taskId,
                     message: `Task queued for Claude Code (ID: \`${taskId}\`). The desktop agent will pick it up, make the fix, deploy, and run browser tests. Results will be posted to #linus-deployments.`
                 };
+            } catch (e) {
+                return { success: false, error: (e as Error).message };
+            }
+        }
+
+        case 'review_learning_deltas': {
+            const action = input.action as string;
+            const deltaId = input.deltaId as string | undefined;
+            const reason = input.reason as string | undefined;
+
+            try {
+                const db = (await import('@/firebase/admin')).getAdminFirestore();
+
+                if (action === 'list') {
+                    const snap = await db.collection('learning_deltas')
+                        .where('status', '==', 'proposed')
+                        .orderBy('proposedAt', 'desc')
+                        .limit(20)
+                        .get();
+                    const deltas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    return { success: true, count: deltas.length, deltas };
+                }
+
+                if (action === 'approve_safe') {
+                    // Auto-approve safe categories that don't require manual intervention
+                    const safeCategories = ['tool_failure_pattern', 'high_performing_workflow', 'compliance_catch_pattern'];
+                    const snap = await db.collection('learning_deltas')
+                        .where('status', '==', 'proposed')
+                        .limit(50)
+                        .get();
+
+                    let approved = 0;
+                    const now = new Date().toISOString();
+                    const batch = db.batch();
+
+                    for (const doc of snap.docs) {
+                        const data = doc.data();
+                        if (safeCategories.includes(data.category)) {
+                            batch.update(doc.ref, {
+                                status: 'applied',
+                                reviewedBy: 'linus',
+                                reviewedAt: now,
+                                appliedAt: now,
+                            });
+                            approved++;
+                        }
+                    }
+
+                    if (approved > 0) await batch.commit();
+                    return { success: true, approved, message: `Linus auto-approved ${approved} safe learning delta(s).` };
+                }
+
+                if (action === 'approve' && deltaId) {
+                    const now = new Date().toISOString();
+                    await db.collection('learning_deltas').doc(deltaId).update({
+                        status: 'approved',
+                        reviewedBy: 'linus',
+                        reviewedAt: now,
+                    });
+                    return { success: true, message: `Delta ${deltaId} approved by Linus.` };
+                }
+
+                if (action === 'reject' && deltaId) {
+                    const now = new Date().toISOString();
+                    await db.collection('learning_deltas').doc(deltaId).update({
+                        status: 'rejected',
+                        reviewedBy: 'linus',
+                        reviewedAt: now,
+                        rejectionReason: reason || 'Rejected by Linus',
+                    });
+                    return { success: true, message: `Delta ${deltaId} rejected by Linus.` };
+                }
+
+                return { success: false, error: 'Invalid action or missing deltaId' };
             } catch (e) {
                 return { success: false, error: (e as Error).message };
             }

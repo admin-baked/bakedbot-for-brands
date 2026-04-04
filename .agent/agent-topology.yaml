@@ -1,0 +1,204 @@
+# BakedBot Agent Topology
+# Single-file view of all agent teams, members, models, and domains.
+# Reference: src/lib/agents/registry.ts for runtime definitions.
+#
+# This file is documentation — the canonical source of truth for
+# runtime agents is the TypeScript registry + harness. For builder
+# agents, see CLAUDE.md, CODEX.md, GEMINI.md.
+
+# ─────────────────────────────────────────────────────────────────
+# Orchestration Layer
+# ─────────────────────────────────────────────────────────────────
+
+orchestrator:
+  name: Agent Harness
+  file: src/server/agents/harness.ts
+  model: auto  # detectTaskComplexity() routes Sonnet/Opus/Flash
+  role: Initialize → Orient → Act lifecycle for all agents
+  capabilities:
+    - Bus message injection (pending_messages + pending_handoffs)
+    - Handoff summary injection into system instructions
+    - Tool injection via DI (each agent gets only its tools)
+    - HITL gates for high-risk tools
+    - Procedural memory persistence for successful workflows
+    - Sleep-time consolidation trigger
+    - Canary token injection for prompt extraction detection
+
+# ─────────────────────────────────────────────────────────────────
+# Executive Team (Leads) — coordinate, don't execute
+# ─────────────────────────────────────────────────────────────────
+
+executive_team:
+  - id: leo
+    name: Leo
+    title: COO
+    file: src/server/agents/leo.ts
+    model: claude-opus-4-6
+    domains: [operations]
+    role: Operations orchestration, morning briefings, executive context prewarm
+    delegates_to: [craig, smokey, pops, ezal, deebo, mrs_parker, money_mike]
+
+  - id: linus
+    name: Linus
+    title: CTO
+    file: src/server/agents/linus.ts
+    model: claude-opus-4-6
+    domains: [technology, system]
+    role: Code eval, deployment, incident response, bug fixing, learning delta application
+    delegates_to: [all agents]
+    special: Full CTO autonomy — push to main, deploy, revert, create crons
+
+  - id: jack
+    name: Jack
+    title: Sales Lead
+    file: src/server/agents/jack.ts
+    model: claude-sonnet-4-6
+    domains: [revenue]
+    role: Lead tracking, churn prediction, pipeline management
+    delegates_to: [craig, pops]
+
+  - id: glenda
+    name: Glenda
+    title: Outreach Director
+    file: src/server/agents/glenda.ts
+    model: claude-sonnet-4-6
+    domains: [research, growth]
+    role: Academy outreach, vibe studio leads, dispensary discovery
+
+# ─────────────────────────────────────────────────────────────────
+# Field Team (Workers) — domain-specialized executors
+# ─────────────────────────────────────────────────────────────────
+
+field_team:
+  - id: smokey
+    name: Smokey
+    title: Budtender
+    file: src/server/agents/smokey.ts
+    model: claude-sonnet-4-6
+    domains: [commerce]
+    role: Product recommendations, customer conversations, menu search
+    emits: RecommendationSetArtifact
+    consumes: [CompetitiveIntelArtifact, AudienceInsightArtifact]
+    tools: [searchProducts, recommendProducts, delegateTask, menuSearch, jinaTools]
+
+  - id: craig
+    name: Craig
+    title: Marketer
+    file: src/server/agents/craig.ts
+    model: claude-sonnet-4-6
+    domains: [marketing]
+    role: Campaigns (SMS, email), copy generation, content strategy
+    emits: CampaignBriefArtifact
+    consumes: [ComplianceDecisionArtifact, AudienceInsightArtifact, CompetitiveIntelArtifact]
+    tools: [generateCopy, validateCompliance, sendSms, sendEmail, crmListUsers]
+
+  - id: deebo
+    name: Deebo
+    title: Compliance Enforcer
+    file: src/server/agents/deebo-agent-impl.ts
+    model: claude-sonnet-4-6
+    domains: [compliance]
+    role: Rule enforcement, content validation, jurisdiction checks
+    emits: ComplianceDecisionArtifact
+    consumes: [CampaignBriefArtifact]
+    tools: [checkCompliance, verifyAge, stateMarketingRules]
+
+  - id: pops
+    name: Pops
+    title: Analytics
+    file: src/server/agents/pops.ts
+    model: claude-sonnet-4-6
+    domains: [analytics]
+    role: Data analysis, anomaly detection, hypothesis testing
+    emits: AudienceInsightArtifact
+    consumes: [CampaignBriefArtifact, CompetitiveIntelArtifact]
+    tools: [analyzeData, detectAnomalies, dispensaryAnalytics]
+
+  - id: ezal
+    name: Ezal
+    title: Market Scout
+    file: src/server/agents/ezal.ts
+    model: claude-sonnet-4-6
+    domains: [competitive_intel]
+    role: Competitor monitoring, pricing intelligence, market trends
+    emits: CompetitiveIntelArtifact
+    consumes: [AudienceInsightArtifact]
+    tools: [scanCompetitors, alertCraig, readDriveFile, youtubeTools, redditTools]
+
+  - id: money_mike
+    name: Money Mike
+    title: Pricing
+    file: src/server/agents/moneyMike.ts
+    model: claude-sonnet-4-6
+    domains: [pricing]
+    role: Revenue optimization, margin analysis, bundle pricing
+    consumes: [CompetitiveIntelArtifact]
+
+  - id: mrs_parker
+    name: Mrs. Parker
+    title: Customer Success
+    file: src/server/agents/mrsParker.ts
+    model: claude-sonnet-4-6
+    domains: [loyalty]
+    role: Birthdays, at-risk customers, retention campaigns, loyalty
+    consumes: [AudienceInsightArtifact, CampaignBriefArtifact]
+
+  - id: day_day
+    name: Day Day
+    title: Growth
+    file: src/server/agents/dayday.ts
+    model: claude-sonnet-4-6
+    domains: [growth]
+    role: Forecasting, partnerships, international discovery
+
+# ─────────────────────────────────────────────────────────────────
+# Builder Agents (Code-writing peers)
+# ─────────────────────────────────────────────────────────────────
+
+builder_team:
+  - id: claude_code
+    name: Claude Code
+    context_file: CLAUDE.md
+    model: claude-opus-4-6
+    protocol: Full CLAUDE.md + /simplify pre-push gate
+    skills: [simplify, deploy, shipit, fix-and-ship, audit, qa-smoke]
+
+  - id: codex
+    name: OpenAI Codex
+    context_file: CODEX.md
+    model: codex
+    protocol: Same /simplify + session-end as Claude Code
+
+  - id: gemini
+    name: Google Gemini
+    context_file: GEMINI.md
+    model: gemini-2.5-pro
+    protocol: Same /simplify + session-end as Claude Code
+
+# ─────────────────────────────────────────────────────────────────
+# Handoff Artifact Flow
+# ─────────────────────────────────────────────────────────────────
+#
+# Pops --[AudienceInsight]--> Craig, Smokey
+# Craig --[CampaignBrief]--> Deebo, Smokey, Pages
+# Deebo --[ComplianceDecision]--> Craig, Smokey
+# Ezal --[CompetitiveIntel]--> Craig, Pops
+# Smokey --[RecommendationSet]--> Craig, Pages
+#
+# All artifacts flow through agent-bus.ts via sendHandoff().
+# Harness auto-injects summaries into system instructions.
+
+# ─────────────────────────────────────────────────────────────────
+# Learning Loop
+# ─────────────────────────────────────────────────────────────────
+#
+# Nightly: /api/cron/consolidate-learnings
+#   → analyzeToolFailures
+#   → analyzeDeadEndLoops
+#   → analyzeNegativeFeedback
+#   → analyzeComplianceCatches
+#   → analyzeHighPerformingWorkflows
+#   → refreshPerformanceBaselines
+#
+# Review: /api/learning-deltas (GET ?status=proposed, POST approve/reject)
+# Apply: Linus consumes approved deltas and applies safe categories
