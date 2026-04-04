@@ -68,6 +68,17 @@ export async function runAgent<TMemory extends AgentMemory, TTools = any>(
                 if (handoffs.length > 0) {
                     logger.info(`[Harness] ${agentName}: ${handoffs.length} typed handoff(s) available.`);
                     (agentMemory as any).pending_handoffs = handoffs;
+
+                    // Inject handoff summary into system instructions so agents
+                    // naturally consider cross-agent intel during orient/act
+                    const handoffSummary = handoffs.map(h =>
+                        `[${h!.kind}] from ${h!.fromAgent}: ${JSON.stringify(h!.payload).slice(0, 200)}`
+                    ).join('\n');
+                    const existingInstructions = (agentMemory as any).system_instructions || '';
+                    if (existingInstructions && handoffSummary) {
+                        (agentMemory as any).system_instructions = existingInstructions +
+                            `\n\n=== PENDING HANDOFF ARTIFACTS ===\n${handoffSummary}\n=== END HANDOFFS ===`;
+                    }
                 }
             }
         } catch (e) {

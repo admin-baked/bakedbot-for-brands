@@ -351,6 +351,69 @@ async function analyzeHighPerformingWorkflows(db: FirebaseFirestore.Firestore): 
   return deltas;
 }
 
+/**
+ * Step 6: Refresh performance baselines for all orgs with recent order data
+ */
+async function refreshPerformanceBaselines(db: FirebaseFirestore.Firestore): Promise<number> {
+  let refreshed = 0;
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  try {
+    // Find all org_profiles
+    const profileSnap = await db.collection('org_profiles').limit(100).get();
+
+    for (const profileDoc of profileSnap.docs) {
+      const orgId = profileDoc.id;
+
+      try {
+        // Query order events for this org from the last 30 days
+        const ordersSnap = await db.collection(`tenants/${orgId}/agentEvents`)
+          .where('type', '==', 'order_completed')
+          .where('createdAt', '>=', thirtyDaysAgo.toISOString())
+          .limit(1000)
+          .get();
+
+        if (ordersSnap.empty) continue;
+
+        const orders = ordersSnap.docs.map(d => d.data());
+        const totalOrders = orders.length;
+        const totalRevenue = orders.reduce((sum, o) => sum + (o.payload?.revenue || 0), 0);
+        const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+        // Query unique customers
+        const customerIds = new Set(orders.map(o => o.customerId).filter(Boolean));
+        const repeatCustomers = orders.filter(o => {
+          const id = o.customerId;
+          return id && orders.filter(o2 => o2.customerId === id).length > 1;
+        });
+        const repeatRate = customerIds.size > 0 ? new Set(repeatCustomers.map(o => o.customerId)).size / customerIds.size : 0;
+
+        const baselines = {
+          averageOrderValue: Math.round(avgOrderValue * 100) / 100,
+          repeatPurchaseRate: Math.round(repeatRate * 1000) / 1000,
+          lastUpdated: new Date().toISOString().split('T')[0],
+        };
+
+        // Merge into org_profiles/{orgId}.operations.performanceBaselines
+        await profileDoc.ref.set(
+          { operations: { performanceBaselines: baselines } },
+          { merge: true },
+        );
+
+        refreshed++;
+        logger.info(`[ConsolidateLearnings] Refreshed baselines for ${orgId}: AOV=$${baselines.averageOrderValue}, repeat=${baselines.repeatPurchaseRate}`);
+      } catch (orgErr) {
+        logger.warn(`[ConsolidateLearnings] Baseline refresh failed for ${orgId}:`, orgErr as Record<string, unknown>);
+      }
+    }
+  } catch (error) {
+    logger.error('[ConsolidateLearnings] Performance baselines refresh failed:', error as Record<string, unknown>);
+  }
+
+  return refreshed;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Main Handler
 // ─────────────────────────────────────────────────────────────────────────────
@@ -365,13 +428,14 @@ async function handler(req: NextRequest): Promise<NextResponse> {
   try {
     const db = getAdminFirestore();
 
-    // Run all analysis steps in parallel
-    const [toolFailures, deadEndLoops, negativeFeedback, complianceCatches, highPerformers] = await Promise.all([
+    // Run all analysis steps + baselines refresh in parallel
+    const [toolFailures, deadEndLoops, negativeFeedback, complianceCatches, highPerformers, baselinesRefreshed] = await Promise.all([
       analyzeToolFailures(db),
       analyzeDeadEndLoops(db),
       analyzeNegativeFeedback(db),
       analyzeComplianceCatches(db),
       analyzeHighPerformingWorkflows(db),
+      refreshPerformanceBaselines(db),
     ]);
 
     const allDeltas = [...toolFailures, ...deadEndLoops, ...negativeFeedback, ...complianceCatches, ...highPerformers];
@@ -396,10 +460,11 @@ async function handler(req: NextRequest): Promise<NextResponse> {
         negative_feedback: negativeFeedback.length,
         compliance_catches: complianceCatches.length,
         high_performers: highPerformers.length,
+        baselines_refreshed: baselinesRefreshed,
       },
     };
 
-    logger.info(`[ConsolidateLearnings] Complete: ${allDeltas.length} deltas proposed in ${duration}ms`);
+    logger.info(`[ConsolidateLearnings] Complete: ${allDeltas.length} deltas proposed, ${baselinesRefreshed} baselines refreshed in ${duration}ms`);
     return NextResponse.json(summary);
   } catch (error) {
     logger.error('[ConsolidateLearnings] Cron failed:', error as Record<string, unknown>);
