@@ -1,3 +1,24 @@
+## Session: 2026-03-31 (Brand Guide UI Crash Fix & Rebase)
+### Task ID
+fix_brand_guide_ui_crash
+
+### Summary
+Resolved a critical runtime `TypeError: Cannot read properties of undefined (reading 'icon')` in the `BrandGuideClient` component's `CompletenessChecklist`. The crash occurred when an unknown tab key was returned from `getMissingFields`, causing a failed lookup in `TAB_ICONS`. Expanded the icon mapping and added defensive null-checks. Performed a full repository rebase to ensure alignment with `origin/main`.
+
+### Key Changes
+*   **FIX**: `src/app/dashboard/settings/brand-guide/brand-guide-client.tsx` - Expanded `TAB_ICONS` to include `competitors`, `abtesting`, `history`, and `export`.
+*   **FIX**: `src/app/dashboard/settings/brand-guide/brand-guide-client.tsx` - Implemented defensive lookup `{TAB_ICONS[f.tab] || <Info className="h-3 w-3" />}` in `CompletenessChecklist`.
+*   **OPS**: Executed `git stash; git fetch origin main; git rebase origin/main; git stash pop` to synchronize local workspace with remote updates.
+*   **BUILD**: Verified build stability with `npm run build` post-rebase.
+
+### Verification Results
+*   **JSX Integrity**: ✅ PASS (Defensive icon lookup prevents rendering crashes)
+*   **Icon Mapping**: ✅ PASS (All current tab keys now have associated icons)
+*   **Build Health**: ✅ PASS (`npm run build` successful)
+*   **Git Sync**: ✅ PASS (Local branch up to date with `origin/main`)
+
+---
+
 ## Session: 2026-03-30 (Creative Center Video Enhancement — Tool Showcase)
 ### Task ID
 creative_center_video_enhancement
