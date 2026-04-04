@@ -33,7 +33,6 @@ export interface CodeSearchResponse {
         score: number;
     }>;
     error?: string;
-    cached?: boolean;
 }
 
 /**

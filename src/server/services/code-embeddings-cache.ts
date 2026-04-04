@@ -66,21 +66,6 @@ const CODE_NAMESPACE = 'code';
 
 // --- Symbol Extraction (lightweight, no tree-sitter dependency) ---
 
-const SYMBOL_PATTERNS = [
-    // Exported async functions
-    /^(export\s+)?(async\s+)?function\s+(\w+)\s*(<[^>]*>)?\s*\(([^)]*)\)(?:\s*:\s*([^\n{]+))?\s*\{/gm,
-    // Arrow function exports
-    /^export\s+(?:const|let)\s+(\w+)\s*(?::\s*[^=]+)?\s*=\s*(?:async\s+)?\(([^)]*)\)\s*(?::\s*([^\n=>]+))?\s*=>/gm,
-    // Class declarations
-    /^(export\s+)?(?:abstract\s+)?class\s+(\w+)(?:\s+extends\s+(\w+))?(?:\s+implements\s+([^\n{]+))?\s*\{/gm,
-    // Interface declarations
-    /^(export\s+)?interface\s+(\w+)(?:\s+extends\s+([^\n{]+))?\s*\{/gm,
-    // Type aliases
-    /^(export\s+)?type\s+(\w+)(?:<[^>]*>)?\s*=/gm,
-    // Const exports (non-arrow, important configs)
-    /^export\s+const\s+(\w+)\s*(?::\s*([^\n=]+))?\s*=/gm,
-];
-
 /**
  * Extract symbols from a TypeScript/JavaScript file
  */
