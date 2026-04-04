@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { ai } from '@/ai/genkit';
+import { getCached, setCached, CachePrefix, CacheTTL } from '@/lib/cache';
 
 export const EMBEDDING_MODEL_NAME = 'gemini-embedding-001';
 export const EMBEDDING_MODEL_REF = `googleai/${EMBEDDING_MODEL_NAME}`;
@@ -26,6 +27,15 @@ export async function generateEmbedding(
   text: string,
   embed: EmbedFn = defaultEmbed
 ): Promise<number[]> {
+  // Build cache key from text content
+  const cacheKey = `${text.length}_${text.substring(0, 100).replace(/[^a-zA-Z0-9]/g, '_')}`;
+
+  // Check cache first (only for default embed fn)
+  if (embed === defaultEmbed) {
+    const cached = await getCached<number[]>(CachePrefix.EMBEDDING, cacheKey);
+    if (cached) return cached;
+  }
+
   const result = await embed({
     embedder: EMBEDDING_MODEL_REF,
     options: {
@@ -43,6 +53,12 @@ export async function generateEmbedding(
         `Embedding generation returned ${embedding.length} dimensions; expected ${EMBEDDING_DIMENSIONS}.`
       );
     }
+
+    // Cache the result
+    if (embed === defaultEmbed) {
+      setCached(CachePrefix.EMBEDDING, cacheKey, embedding, CacheTTL.EMBEDDING).catch(() => {});
+    }
+
     return embedding;
   }
 

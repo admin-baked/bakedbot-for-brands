@@ -22,6 +22,7 @@ import { isNormalizedPhone, normalizePhone } from '@/lib/customer-import/column-
 import { calculateSegment, getSegmentInfo, type CustomerSegment } from '@/types/customers';
 import { mapSegmentToTier } from '@/lib/pricing/customer-tier-mapper';
 import { logger } from '@/lib/logger';
+import { withCache, CachePrefix, CacheTTL } from '@/lib/cache';
 import { getTopCustomers as getDomainTopCustomers } from '@/server/agents/tools/domain/crm';
 
 // =============================================================================
@@ -490,89 +491,93 @@ export async function getSegmentSummary(
     orgId: string,
 ): Promise<{ summary: string; segments: Record<string, unknown> }> {
     logger.info('[crm-tools] getSegmentSummary', { orgId });
-    const firestore = getAdminFirestore();
+    return withCache(
+        CachePrefix.CRM_SEGMENTS,
+        orgId,
+        async () => {
+            const firestore = getAdminFirestore();
 
-    const snap = await firestore.collection('customers')
-        .where('orgId', '==', orgId)
-        .get();
+            const snap = await firestore.collection('customers')
+                .where('orgId', '==', orgId)
+                .get();
 
-    if (snap.empty) {
-        return { summary: `No customers found for organization ${orgId}.`, segments: {} };
-    }
-
-    const segments: Record<CustomerSegment, { count: number; totalSpent: number; avgSpend: number; recentActiveCount: number }> = {
-        vip: { count: 0, totalSpent: 0, avgSpend: 0, recentActiveCount: 0 },
-        loyal: { count: 0, totalSpent: 0, avgSpend: 0, recentActiveCount: 0 },
-        frequent: { count: 0, totalSpent: 0, avgSpend: 0, recentActiveCount: 0 },
-        high_value: { count: 0, totalSpent: 0, avgSpend: 0, recentActiveCount: 0 },
-        new: { count: 0, totalSpent: 0, avgSpend: 0, recentActiveCount: 0 },
-        slipping: { count: 0, totalSpent: 0, avgSpend: 0, recentActiveCount: 0 },
-        at_risk: { count: 0, totalSpent: 0, avgSpend: 0, recentActiveCount: 0 },
-        churned: { count: 0, totalSpent: 0, avgSpend: 0, recentActiveCount: 0 },
-    };
-
-    let totalCustomers = 0;
-    let totalLTV = 0;
-
-    snap.docs.forEach(doc => {
-        const data = doc.data();
-        const spent = data.totalSpent || 0;
-        const orders = data.orderCount || 0;
-        const avgOV = orders > 0 ? spent / orders : 0;
-        const daysSince = data.lastOrderDate
-            ? Math.floor((Date.now() - (data.lastOrderDate?.toDate?.()?.getTime?.() || new Date(data.lastOrderDate).getTime())) / (1000 * 60 * 60 * 24))
-            : undefined;
-
-        const seg = data.segment || calculateSegment({ totalSpent: spent, orderCount: orders, avgOrderValue: avgOV, daysSinceLastOrder: daysSince, lifetimeValue: spent });
-
-        if (segments[seg as CustomerSegment]) {
-            segments[seg as CustomerSegment].count++;
-            segments[seg as CustomerSegment].totalSpent += spent;
-            if (daysSince !== undefined && daysSince < 30) {
-                segments[seg as CustomerSegment].recentActiveCount++;
+            if (snap.empty) {
+                return { summary: `No customers found for organization ${orgId}.`, segments: {} };
             }
-        }
 
-        totalCustomers++;
-        totalLTV += spent;
-    });
+            const segments: Record<CustomerSegment, { count: number; totalSpent: number; avgSpend: number; recentActiveCount: number }> = {
+                vip: { count: 0, totalSpent: 0, avgSpend: 0, recentActiveCount: 0 },
+                loyal: { count: 0, totalSpent: 0, avgSpend: 0, recentActiveCount: 0 },
+                frequent: { count: 0, totalSpent: 0, avgSpend: 0, recentActiveCount: 0 },
+                high_value: { count: 0, totalSpent: 0, avgSpend: 0, recentActiveCount: 0 },
+                new: { count: 0, totalSpent: 0, avgSpend: 0, recentActiveCount: 0 },
+                slipping: { count: 0, totalSpent: 0, avgSpend: 0, recentActiveCount: 0 },
+                at_risk: { count: 0, totalSpent: 0, avgSpend: 0, recentActiveCount: 0 },
+                churned: { count: 0, totalSpent: 0, avgSpend: 0, recentActiveCount: 0 },
+            };
 
-    // Calculate averages
-    for (const seg of Object.keys(segments) as CustomerSegment[]) {
-        if (segments[seg].count > 0) {
-            segments[seg].avgSpend = Math.round(segments[seg].totalSpent / segments[seg].count);
-        }
-    }
+            let totalCustomers = 0;
+            let totalLTV = 0;
 
-    const avgLTV = totalCustomers > 0 ? Math.round(totalLTV / totalCustomers) : 0;
-    const activeSegments = (Object.keys(segments) as CustomerSegment[]).filter(s => segments[s].count > 0);
+            snap.docs.forEach(doc => {
+                const data = doc.data();
+                const spent = data.totalSpent || 0;
+                const orders = data.orderCount || 0;
+                const avgOV = orders > 0 ? spent / orders : 0;
+                const daysSince = data.lastOrderDate
+                    ? Math.floor((Date.now() - (data.lastOrderDate?.toDate?.()?.getTime?.() || new Date(data.lastOrderDate).getTime())) / (1000 * 60 * 60 * 24))
+                    : undefined;
 
-    // Fetch last campaign date per segment (for Craig to know when each was last contacted)
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    let lastCampaignBySegment: Record<string, string> = {};
-    try {
-        const recentCampaignsSnap = await firestore.collection('campaigns')
-            .where('orgId', '==', orgId)
-            .where('status', '==', 'sent')
-            .orderBy('sentAt', 'desc')
-            .limit(20)
-            .get();
-        for (const doc of recentCampaignsSnap.docs) {
-            const c = doc.data();
-            const sentDate = c.sentAt?.toDate?.() || new Date(c.sentAt);
-            const segs: string[] = c.audience?.segments || [];
-            for (const seg of segs) {
-                if (!lastCampaignBySegment[seg]) {
-                    const daysAgo = Math.floor((Date.now() - sentDate.getTime()) / (1000 * 60 * 60 * 24));
-                    lastCampaignBySegment[seg] = daysAgo === 0 ? 'today' : `${daysAgo}d ago`;
+                const seg = data.segment || calculateSegment({ totalSpent: spent, orderCount: orders, avgOrderValue: avgOV, daysSinceLastOrder: daysSince, lifetimeValue: spent });
+
+                if (segments[seg as CustomerSegment]) {
+                    segments[seg as CustomerSegment].count++;
+                    segments[seg as CustomerSegment].totalSpent += spent;
+                    if (daysSince !== undefined && daysSince < 30) {
+                        segments[seg as CustomerSegment].recentActiveCount++;
+                    }
+                }
+
+                totalCustomers++;
+                totalLTV += spent;
+            });
+
+            // Calculate averages
+            for (const seg of Object.keys(segments) as CustomerSegment[]) {
+                if (segments[seg].count > 0) {
+                    segments[seg].avgSpend = Math.round(segments[seg].totalSpent / segments[seg].count);
                 }
             }
-        }
-    } catch {
-        // Non-fatal: campaigns index may not exist yet
-    }
 
-    const summary = `**Customer Segment Analysis** (${totalCustomers} total, avg LTV: $${avgLTV})
+            const avgLTV = totalCustomers > 0 ? Math.round(totalLTV / totalCustomers) : 0;
+            const activeSegments = (Object.keys(segments) as CustomerSegment[]).filter(s => segments[s].count > 0);
+
+            // Fetch last campaign date per segment (for Craig to know when each was last contacted)
+            const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+            let lastCampaignBySegment: Record<string, string> = {};
+            try {
+                const recentCampaignsSnap = await firestore.collection('campaigns')
+                    .where('orgId', '==', orgId)
+                    .where('status', '==', 'sent')
+                    .orderBy('sentAt', 'desc')
+                    .limit(20)
+                    .get();
+                for (const doc of recentCampaignsSnap.docs) {
+                    const c = doc.data();
+                    const sentDate = c.sentAt?.toDate?.() || new Date(c.sentAt);
+                    const segs: string[] = c.audience?.segments || [];
+                    for (const seg of segs) {
+                        if (!lastCampaignBySegment[seg]) {
+                            const daysAgo = Math.floor((Date.now() - sentDate.getTime()) / (1000 * 60 * 60 * 24));
+                            lastCampaignBySegment[seg] = daysAgo === 0 ? 'today' : `${daysAgo}d ago`;
+                        }
+                    }
+                }
+            } catch {
+                // Non-fatal: campaigns index may not exist yet
+            }
+
+            const summary = `**Customer Segment Analysis** (${totalCustomers} total, avg LTV: $${avgLTV})
 
 | Segment | Count | % | Avg Spend | Total LTV | Last Campaign |
 |---------|-------|---|-----------|-----------|---------------|
@@ -589,7 +594,10 @@ ${activeSegments.map(seg => {
 - VIP concentration: ${segments.vip.count} VIPs account for $${Math.round(segments.vip.totalSpent).toLocaleString()} (${totalLTV > 0 ? ((segments.vip.totalSpent / totalLTV) * 100).toFixed(1) : 0}% of total tracked customer LTV); ${segments.vip.recentActiveCount} ordered in the last 30 days
 - Dedup window: 30 days (customers contacted in last 30 days for same campaign type are automatically excluded)`;
 
-    return { summary, segments: segments as unknown as Record<string, unknown> };
+            return { summary, segments: segments as unknown as Record<string, unknown> };
+        },
+        CacheTTL.CRM_SEGMENTS
+    );
 }
 
 /**
@@ -706,79 +714,83 @@ export async function getAtRiskCustomers(
     includeSlipping: boolean = true,
 ): Promise<{ summary: string; customers: Record<string, unknown>[] }> {
     logger.info('[crm-tools] getAtRiskCustomers', { orgId, limit, includeSlipping });
-    const firestore = getAdminFirestore();
+    return withCache(
+        CachePrefix.CRM_AT_RISK,
+        `${orgId}:${limit}:${includeSlipping}`,
+        async () => {
+            const firestore = getAdminFirestore();
 
-    const targetSegments = includeSlipping
-        ? ['at_risk', 'slipping', 'churned']
-        : ['at_risk', 'churned'];
+            const targetSegments = includeSlipping
+                ? ['at_risk', 'slipping', 'churned']
+                : ['at_risk', 'churned'];
 
-    // Query customers and filter by segment
-    const snap = await firestore.collection('customers')
-        .where('orgId', '==', orgId)
-        .get();
+            // Query customers and filter by segment
+            const snap = await firestore.collection('customers')
+                .where('orgId', '==', orgId)
+                .get();
 
-    const atRiskCustomers: Array<{
-        id: string;
-        name: string;
-        email: string;
-        segment: string;
-        totalSpent: number;
-        orderCount: number;
-        lastOrderDate: string | null;
-        daysSinceLastOrder: number | undefined;
-        retentionScore: number | undefined;
-        retentionTier: string | undefined;
-        scoreTrend: string | undefined;
-        churnProbability: number | undefined;
-    }> = [];
+            const atRiskCustomers: Array<{
+                id: string;
+                name: string;
+                email: string;
+                segment: string;
+                totalSpent: number;
+                orderCount: number;
+                lastOrderDate: string | null;
+                daysSinceLastOrder: number | undefined;
+                retentionScore: number | undefined;
+                retentionTier: string | undefined;
+                scoreTrend: string | undefined;
+                churnProbability: number | undefined;
+            }> = [];
 
-    snap.docs.forEach(doc => {
-        const data = doc.data();
-        const spent = data.totalSpent || 0;
-        const orders = data.orderCount || 0;
-        const avgOV = orders > 0 ? spent / orders : 0;
-        const lastDate = data.lastOrderDate?.toDate?.() || (data.lastOrderDate ? new Date(data.lastOrderDate) : null);
-        const daysSince = lastDate
-            ? Math.floor((Date.now() - lastDate.getTime()) / (1000 * 60 * 60 * 24))
-            : undefined;
+            snap.docs.forEach(doc => {
+                const data = doc.data();
+                const spent = data.totalSpent || 0;
+                const orders = data.orderCount || 0;
+                const avgOV = orders > 0 ? spent / orders : 0;
+                const lastDate = data.lastOrderDate?.toDate?.() || (data.lastOrderDate ? new Date(data.lastOrderDate) : null);
+                const daysSince = lastDate
+                    ? Math.floor((Date.now() - lastDate.getTime()) / (1000 * 60 * 60 * 24))
+                    : undefined;
 
-        const seg = data.segment || calculateSegment({ totalSpent: spent, orderCount: orders, avgOrderValue: avgOV, daysSinceLastOrder: daysSince, lifetimeValue: spent });
+                const seg = data.segment || calculateSegment({ totalSpent: spent, orderCount: orders, avgOrderValue: avgOV, daysSinceLastOrder: daysSince, lifetimeValue: spent });
 
-        if (targetSegments.includes(seg)) {
-            atRiskCustomers.push({
-                id: doc.id,
-                name: resolveCustomerDisplayName({
-                    displayName: data.displayName,
-                    firstName: data.firstName,
-                    lastName: data.lastName,
-                    email: data.email,
-                    fallbackId: doc.id,
-                }),
-                email: data.email || '',
-                segment: seg,
-                totalSpent: spent,
-                orderCount: orders,
-                lastOrderDate: lastDate?.toISOString() || null,
-                daysSinceLastOrder: daysSince,
-                retentionScore: data.retentionScore,
-                retentionTier: data.retentionTier,
-                scoreTrend: data.scoreTrend,
-                churnProbability: data.churnProbability,
+                if (targetSegments.includes(seg)) {
+                    atRiskCustomers.push({
+                        id: doc.id,
+                        name: resolveCustomerDisplayName({
+                            displayName: data.displayName,
+                            firstName: data.firstName,
+                            lastName: data.lastName,
+                            email: data.email,
+                            fallbackId: doc.id,
+                        }),
+                        email: data.email || '',
+                        segment: seg,
+                        totalSpent: spent,
+                        orderCount: orders,
+                        lastOrderDate: lastDate?.toISOString() || null,
+                        daysSinceLastOrder: daysSince,
+                        retentionScore: data.retentionScore,
+                        retentionTier: data.retentionTier,
+                        scoreTrend: data.scoreTrend,
+                        churnProbability: data.churnProbability,
+                    });
+                }
             });
-        }
-    });
 
-    // Sort by LTV descending (highest value at risk first)
-    atRiskCustomers.sort((a, b) => b.totalSpent - a.totalSpent);
-    const limited = atRiskCustomers.slice(0, limit);
+            // Sort by LTV descending (highest value at risk first)
+            atRiskCustomers.sort((a, b) => b.totalSpent - a.totalSpent);
+            const limited = atRiskCustomers.slice(0, limit);
 
-    if (limited.length === 0) {
-        return { summary: `No at-risk customers found for ${orgId}. All customers are active!`, customers: [] };
-    }
+            if (limited.length === 0) {
+                return { summary: `No at-risk customers found for ${orgId}. All customers are active!`, customers: [] };
+            }
 
-    const totalAtRiskLTV = atRiskCustomers.reduce((sum, c) => sum + c.totalSpent, 0);
+            const totalAtRiskLTV = atRiskCustomers.reduce((sum, c) => sum + c.totalSpent, 0);
 
-    const summary = `**At-Risk Customers** (${atRiskCustomers.length} total, $${Math.round(totalAtRiskLTV).toLocaleString()} LTV at risk)
+            const summary = `**At-Risk Customers** (${atRiskCustomers.length} total, $${Math.round(totalAtRiskLTV).toLocaleString()} LTV at risk)
 
 Top ${limited.length} by lifetime value:
 
@@ -791,7 +803,10 @@ ${limited.map((c, i) => {
 
 **Recommended actions:** Target the top customers with personalized win-back offers. Higher-LTV customers should get premium incentives.`;
 
-    return { summary, customers: limited as unknown as Record<string, unknown>[] };
+            return { summary, customers: limited as unknown as Record<string, unknown>[] };
+        },
+        CacheTTL.CRM_AT_RISK
+    );
 }
 
 /**

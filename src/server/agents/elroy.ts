@@ -23,6 +23,7 @@ import { getLatestWeeklyReport } from '@/server/services/ezal/weekly-intel-repor
 import { fetchMenuProducts, normalizeProduct } from '@/server/agents/adapters/consumer-adapter';
 import { getAdminFirestore } from '@/firebase/admin';
 import { discovery } from '@/server/services/firecrawl';
+import { withCache, CachePrefix, CacheTTL } from '@/lib/cache';
 
 const ORG_ID = 'org_thrive_syracuse';
 
@@ -287,27 +288,34 @@ async function elroyToolExecutor(toolName: string, input: Record<string, unknown
 
         case 'get_top_sellers': {
             const limit = typeof input.limit === 'number' ? Math.min(input.limit, 20) : 10;
-            const db = getAdminFirestore();
-            const snap = await db.collection('products')
-                .where('orgId', '==', ORG_ID)
-                .orderBy('salesLast7Days', 'desc')
-                .limit(limit)
-                .get();
+            return withCache(
+                CachePrefix.ANALYTICS,
+                `elroy:top_sellers:${ORG_ID}:${limit}`,
+                async () => {
+                    const db = getAdminFirestore();
+                    const snap = await db.collection('products')
+                        .where('orgId', '==', ORG_ID)
+                        .orderBy('salesLast7Days', 'desc')
+                        .limit(limit)
+                        .get();
 
-            if (snap.empty) return { message: 'No product sales data available.' };
+                    if (snap.empty) return { message: 'No product sales data available.' };
 
-            return snap.docs.map((d: any) => {
-                const p = d.data() as any;
-                return {
-                    name: p.name ?? p.productName ?? 'Unknown',
-                    category: p.category ?? p.categoryName ?? null,
-                    price: p.price ?? p.basePrice ?? null,
-                    unitsSold7d: p.salesLast7Days ?? 0,
-                    unitsSold30d: p.salesLast30Days ?? null,
-                    trending: p.trending ?? false,
-                    inStock: p.inStock ?? p.available ?? true,
-                };
-            });
+                    return snap.docs.map((d: any) => {
+                        const p = d.data() as any;
+                        return {
+                            name: p.name ?? p.productName ?? 'Unknown',
+                            category: p.category ?? p.categoryName ?? null,
+                            price: p.price ?? p.basePrice ?? null,
+                            unitsSold7d: p.salesLast7Days ?? 0,
+                            unitsSold30d: p.salesLast30Days ?? null,
+                            trending: p.trending ?? false,
+                            inStock: p.inStock ?? p.available ?? true,
+                        };
+                    });
+                },
+                CacheTTL.CRM_SEGMENTS // 5 min
+            );
         }
 
         case 'get_recent_transactions': {
@@ -336,39 +344,47 @@ async function elroyToolExecutor(toolName: string, input: Record<string, unknown
         }
 
         case 'get_sales_summary': {
-            const db = getAdminFirestore();
-            const now = new Date();
+            // Cache for 2 minutes — 3 parallel Firestore queries are expensive
+            return withCache(
+                CachePrefix.ANALYTICS,
+                `elroy:sales_summary:${ORG_ID}`,
+                async () => {
+                    const db = getAdminFirestore();
+                    const now = new Date();
 
-            const todayStart = new Date(now);
-            todayStart.setHours(0, 0, 0, 0);
+                    const todayStart = new Date(now);
+                    todayStart.setHours(0, 0, 0, 0);
 
-            const yesterdayStart = new Date(todayStart);
-            yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+                    const yesterdayStart = new Date(todayStart);
+                    yesterdayStart.setDate(yesterdayStart.getDate() - 1);
 
-            const weekAgoStart = new Date(todayStart);
-            weekAgoStart.setDate(weekAgoStart.getDate() - 7);
+                    const weekAgoStart = new Date(todayStart);
+                    weekAgoStart.setDate(weekAgoStart.getDate() - 7);
 
-            const [todaySnap, yesterdaySnap, weekSnap] = await Promise.all([
-                db.collection('orders').where('brandId', '==', ORG_ID).where('createdAt', '>=', todayStart).get(),
-                db.collection('orders').where('brandId', '==', ORG_ID).where('createdAt', '>=', yesterdayStart).where('createdAt', '<', todayStart).get(),
-                db.collection('orders').where('brandId', '==', ORG_ID).where('createdAt', '>=', weekAgoStart).where('createdAt', '<', todayStart).get(),
-            ]);
+                    const [todaySnap, yesterdaySnap, weekSnap] = await Promise.all([
+                        db.collection('orders').where('brandId', '==', ORG_ID).where('createdAt', '>=', todayStart).get(),
+                        db.collection('orders').where('brandId', '==', ORG_ID).where('createdAt', '>=', yesterdayStart).where('createdAt', '<', todayStart).get(),
+                        db.collection('orders').where('brandId', '==', ORG_ID).where('createdAt', '>=', weekAgoStart).where('createdAt', '<', todayStart).get(),
+                    ]);
 
-            const sumRevenue = (docs: any[]) =>
-                docs.reduce((sum, d) => sum + ((d.data() as any).totals?.total ?? (d.data() as any).total ?? 0), 0);
+                    const sumRevenue = (docs: any[]) =>
+                        docs.reduce((sum, d) => sum + ((d.data() as any).totals?.total ?? (d.data() as any).total ?? 0), 0);
 
-            const todayRev = sumRevenue(todaySnap.docs);
-            const yestRev = sumRevenue(yesterdaySnap.docs);
-            const weekRev = sumRevenue(weekSnap.docs);
-            const weekDailyAvg = weekRev / 7;
+                    const todayRev = sumRevenue(todaySnap.docs);
+                    const yestRev = sumRevenue(yesterdaySnap.docs);
+                    const weekRev = sumRevenue(weekSnap.docs);
+                    const weekDailyAvg = weekRev / 7;
 
-            return {
-                today: { revenue: Math.round(todayRev * 100) / 100, transactions: todaySnap.size },
-                yesterday: { revenue: Math.round(yestRev * 100) / 100, transactions: yesterdaySnap.size },
-                sevenDayAvg: { revenue: Math.round(weekDailyAvg * 100) / 100, transactions: Math.round(weekSnap.size / 7) },
-                vsYesterday: yestRev > 0 ? `${((todayRev / yestRev - 1) * 100).toFixed(1)}%` : 'N/A',
-                vsDailyAvg: weekDailyAvg > 0 ? `${((todayRev / weekDailyAvg - 1) * 100).toFixed(1)}%` : 'N/A',
-            };
+                    return {
+                        today: { revenue: Math.round(todayRev * 100) / 100, transactions: todaySnap.size },
+                        yesterday: { revenue: Math.round(yestRev * 100) / 100, transactions: yesterdaySnap.size },
+                        sevenDayAvg: { revenue: Math.round(weekDailyAvg * 100) / 100, transactions: Math.round(weekSnap.size / 7) },
+                        vsYesterday: yestRev > 0 ? `${((todayRev / yestRev - 1) * 100).toFixed(1)}%` : 'N/A',
+                        vsDailyAvg: weekDailyAvg > 0 ? `${((todayRev / weekDailyAvg - 1) * 100).toFixed(1)}%` : 'N/A',
+                    };
+                },
+                120 // 2 minutes — sales data changes throughout the day
+            );
         }
 
         default:
