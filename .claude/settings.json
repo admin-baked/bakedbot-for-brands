@@ -10,6 +10,21 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(git push *)",
+            "command": "node scripts/gh-commit-checks.mjs wait",
+            "timeout": 900,
+            "statusMessage": "Monitoring CI checks...",
+            "asyncRewake": true
+          }
+        ]
+      }
     ]
   },
   "permissions": {
@@ -37,7 +52,9 @@
       "Bash(node scripts/batch-onboard-ny10.mjs*)",
       "Bash(node scripts/fix-build.mjs*)",
       "Bash(npx playwright test*)",
-      "Bash(just *)"
+      "Bash(just *)",
+      "Bash(npm run gh:checks*)",
+      "Bash(node scripts/gh-commit-checks.mjs*)"
     ]
   }
 }
