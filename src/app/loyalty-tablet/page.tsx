@@ -30,6 +30,7 @@ import {
     quickLookupByPhoneLast4,
     getTabletOffer,
     getCustomerBudtenderContext,
+    prefetchTabletInventory,
     type QuickLookupResult,
     type TabletOffer,
     type BudtenderContext,
@@ -283,15 +284,34 @@ export default function LoyaltyTabletPage() {
         return () => { if (idleTimer.current) clearTimeout(idleTimer.current); };
     }, [resetIdleTimer]);
 
+    // ── Pre-fetch offer as soon as phone hits 10 digits ───────
+    useEffect(() => {
+        if (step !== 'phone' || phone.replace(/\D/g, '').length !== 10 || offerLoading || tabletOffer) return;
+        setOfferLoading(true);
+        void getTabletOffer(orgId).then(res => {
+            if (res.success && res.offer) setTabletOffer(res.offer);
+            setOfferLoading(false);
+        });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [phone]);
+
+    // ── Pre-warm inventory cache when mood step renders ───────
+    useEffect(() => {
+        if (step !== 'mood') return;
+        void prefetchTabletInventory(orgId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [step]);
+
     // ── Step handlers ────────────────────────────────────────
 
-    const handleQuickLookup = async () => {
-        if (quickDigits.length !== 4) return;
+    const handleQuickLookup = async (digits?: string) => {
+        const lookup = digits ?? quickDigits;
+        if (lookup.length !== 4) return;
         resetIdleTimer();
         setQuickLookupLoading(true);
         setError('');
         try {
-            const result = await quickLookupByPhoneLast4(orgId, quickDigits);
+            const result = await quickLookupByPhoneLast4(orgId, lookup);
             if (result.found && result.matches.length === 1) {
                 // Single match — auto-fill and skip to mood
                 const m = result.matches[0];
@@ -302,7 +322,7 @@ export default function LoyaltyTabletPage() {
                 setQuickMatches(result.matches);
             } else {
                 // Not found — continue with full flow (phone is already their digits hint)
-                setPhone(quickDigits);
+                setPhone(lookup);
                 setStep('phone');
             }
         } catch {
@@ -331,12 +351,14 @@ export default function LoyaltyTabletPage() {
             setError('Please enter a valid 10-digit phone number');
             return;
         }
-        // Load deal offer in background while customer moves to offer step
-        setOfferLoading(true);
-        void getTabletOffer(orgId).then(res => {
-            if (res.success && res.offer) setTabletOffer(res.offer);
-            setOfferLoading(false);
-        });
+        // Fetch offer only if not already in-flight or loaded (may have started at 10-digit entry)
+        if (!tabletOffer && !offerLoading) {
+            setOfferLoading(true);
+            void getTabletOffer(orgId).then(res => {
+                if (res.success && res.offer) setTabletOffer(res.offer);
+                setOfferLoading(false);
+            });
+        }
         setStep('offer');
     };
 
@@ -772,6 +794,7 @@ export default function LoyaltyTabletPage() {
                                         const d = e.target.value.replace(/\D/g, '').slice(0, 4);
                                         setQuickDigits(d);
                                         resetIdleTimer();
+                                        if (d.length === 4) void handleQuickLookup(d);
                                     }}
                                     className={`${INPUT_CLASS} text-center tracking-[0.5em] text-3xl`}
                                     style={inputStyle}
@@ -1015,7 +1038,7 @@ export default function LoyaltyTabletPage() {
                             className="flex w-full items-center justify-center gap-3 rounded-[28px] py-6 text-2xl font-bold transition-all hover:opacity-95 active:scale-[0.99]"
                             style={primaryButtonStyle}
                         >
-                            Continue <ArrowRight className="h-7 w-7" />
+                            {offerClaimed ? 'Claim & Find My Picks' : 'Continue'} <ArrowRight className="h-7 w-7" />
                         </button>
                         <button
                             onClick={handleOfferSubmit}

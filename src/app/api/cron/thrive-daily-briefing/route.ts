@@ -23,6 +23,14 @@ import { elroySlackService } from '@/server/services/communications/slack';
 import { callClaude } from '@/ai/claude';
 import { requireCronSecret } from '@/server/auth/cron';
 import { logger } from '@/lib/logger';
+import {
+    getUpcomingHolidays,
+    fetchCompetitorHolidayHours,
+    formatHoursForSlack,
+    SYRACUSE_COMPETITORS,
+    type Holiday,
+    type CompetitorHours,
+} from '@/server/services/holiday-hours';
 
 export const maxDuration = 300;
 
@@ -34,12 +42,18 @@ export async function POST(request: NextRequest) {
     if (authError) return authError;
 
     try {
-        const [segmentResult, atRiskResult, intelReport, todayCheckins, products] = await Promise.allSettled([
+        // Detect upcoming holidays first — drives whether we fetch competitor hours
+        const upcomingHolidays = getUpcomingHolidays(7);
+        const nearestHoliday = upcomingHolidays[0] ?? null;
+
+        const [segmentResult, atRiskResult, intelReport, todayCheckins, products, holidayHoursResult] = await Promise.allSettled([
             getSegmentSummary(ORG_ID),
             getAtRiskCustomers(ORG_ID, 5, true),
             getLatestWeeklyReport(ORG_ID),
             getTodayCheckins(ORG_ID),
             fetchMenuProducts(ORG_ID),
+            // Only hit Places API if a holiday is within 7 days
+            nearestHoliday ? fetchCompetitorHolidayHours(SYRACUSE_COMPETITORS) : Promise.resolve([]),
         ]);
 
         const segment = segmentResult.status === 'fulfilled' ? segmentResult.value : null;
@@ -47,6 +61,7 @@ export async function POST(request: NextRequest) {
         const intel = intelReport.status === 'fulfilled' ? intelReport.value : null;
         const checkins = todayCheckins.status === 'fulfilled' ? todayCheckins.value : 0;
         const inventory = products.status === 'fulfilled' ? products.value : [];
+        const competitorHolidays: CompetitorHours[] = holidayHoursResult.status === 'fulfilled' ? holidayHoursResult.value : [];
 
         // Identify discount candidates — slice to 50 before processing to cap iteration cost
         const discountCandidates = identifyDiscountCandidates(inventory.slice(0, 50));
@@ -67,6 +82,8 @@ export async function POST(request: NextRequest) {
             checkins,
             discountCandidates,
             actionItems,
+            nearestHoliday,
+            competitorHolidays,
         });
 
         // Ensure channel exists and bot is a member before posting
@@ -147,6 +164,8 @@ interface BriefingData {
     intel: Awaited<ReturnType<typeof getLatestWeeklyReport>> | null;
     checkins: number;
     discountCandidates: DiscountCandidate[];
+    nearestHoliday: Holiday | null;
+    competitorHolidays: CompetitorHours[];
 }
 
 async function synthesizeActionItems(data: BriefingData): Promise<string[]> {
@@ -176,6 +195,12 @@ async function synthesizeActionItems(data: BriefingData): Promise<string[]> {
         if (data.discountCandidates.length) {
             const c = data.discountCandidates[0];
             contextLines.push(`Discount opportunity: ${c.name} — ${c.reason}`);
+        }
+
+        if (data.nearestHoliday) {
+            const h = data.nearestHoliday;
+            const urgency = h.daysUntil === 0 ? 'today' : h.daysUntil === 1 ? 'tomorrow' : `in ${h.daysUntil} days`;
+            contextLines.push(`Upcoming holiday: ${h.name} ${urgency}${h.likelyHoursChange ? ' — hours change expected' : ''}`);
         }
 
         const prompt = `You are a retail operations advisor for Thrive Syracuse, a cannabis dispensary.
@@ -320,6 +345,32 @@ function buildBriefingBlocks(data: BriefingData & { actionItems: string[] }): an
         blocks.push({
             type: 'section',
             text: { type: 'mrkdwn', text: `*✅ Today's Action Items*\n${actions}` },
+        });
+    }
+
+    // 🎉 Holiday Hours Watch (only when a holiday is within 7 days)
+    if (data.nearestHoliday) {
+        const h = data.nearestHoliday;
+        const emoji = h.trafficImpact === 'high' ? '🎉' : '📅';
+        const urgency = h.daysUntil === 0 ? 'TODAY' : h.daysUntil === 1 ? 'tomorrow' : `in ${h.daysUntil} days`;
+
+        const headerLine = `*${emoji} Holiday Hours Watch — ${h.name} (${urgency})*`;
+        const tipLine = h.likelyHoursChange
+            ? `_${h.name} often causes hours changes — confirm your hours on Weedmaps & Google._`
+            : `_${h.name} is typically a normal operating day._`;
+
+        let competitorSection = '';
+        if (data.competitorHolidays.length > 0) {
+            competitorSection = '\n\n*Nearby competitors:*\n' + formatHoursForSlack(data.competitorHolidays, h);
+        }
+
+        blocks.push({ type: 'divider' });
+        blocks.push({
+            type: 'section',
+            text: {
+                type: 'mrkdwn',
+                text: `${headerLine}\n${tipLine}${competitorSection}`,
+            },
         });
     }
 

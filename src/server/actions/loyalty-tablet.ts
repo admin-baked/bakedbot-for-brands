@@ -25,6 +25,30 @@ import { captureVisitorCheckin } from './visitor-checkin';
 import { getAdminFirestore } from '@/firebase/admin';
 
 // ============================================================
+// Inventory cache — avoids repeat Firestore reads within a warm instance
+// ============================================================
+
+const inventoryCache = new Map<string, { products: RawMenuProduct[]; expiry: number }>();
+const INVENTORY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+async function getCachedMenuProducts(orgId: string): Promise<RawMenuProduct[]> {
+    const now = Date.now();
+    const cached = inventoryCache.get(orgId);
+    if (cached && cached.expiry > now) return cached.products;
+    const products = (await fetchMenuProducts(orgId)) as RawMenuProduct[];
+    inventoryCache.set(orgId, { products, expiry: now + INVENTORY_CACHE_TTL });
+    return products;
+}
+
+/**
+ * Pre-warms the inventory cache for an org so mood recs return instantly.
+ * Call this when the mood-selection step renders on the tablet.
+ */
+export async function prefetchTabletInventory(orgId: string): Promise<void> {
+    await getCachedMenuProducts(orgId).catch(() => undefined);
+}
+
+// ============================================================
 // Types
 // ============================================================
 
@@ -401,7 +425,7 @@ export async function getMoodRecommendations(
             return { success: false, error: 'Unknown mood' };
         }
 
-        const products = (await fetchMenuProducts(orgId)) as RawMenuProduct[];
+        const products = await getCachedMenuProducts(orgId);
         if (!products.length) {
             return { success: false, error: 'No products available' };
         }
@@ -458,7 +482,7 @@ export async function searchTabletRecommendations(
     try {
         // Fetch products + optional purchase history in parallel
         const [products, history] = await Promise.all([
-            fetchMenuProducts(orgId) as Promise<RawMenuProduct[]>,
+            getCachedMenuProducts(orgId),
             customerId
                 ? getCustomerHistory(customerId, orgId, 3).catch(() => null)
                 : Promise.resolve(null),
@@ -648,7 +672,7 @@ export interface TabletOffer {
  */
 export async function getTabletOffer(orgId: string): Promise<{ success: boolean; offer?: TabletOffer }> {
     try {
-        const products = await fetchMenuProducts(orgId) as RawMenuProduct[];
+        const products = await getCachedMenuProducts(orgId);
         if (!products.length) return { success: false };
 
         const normalize = (p: RawMenuProduct): { id: string; name: string; category: string; price: number; imageUrl?: string } => ({

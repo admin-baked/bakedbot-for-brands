@@ -28,6 +28,12 @@ import { fetchMenuProducts, normalizeProduct } from '@/server/agents/adapters/co
 import { getAdminFirestore } from '@/firebase/admin';
 import { discovery } from '@/server/services/firecrawl';
 import { withCache, CachePrefix, CacheTTL } from '@/lib/cache';
+import {
+    getUpcomingHolidays,
+    fetchCompetitorHolidayHours,
+    formatHoursForSlack,
+    SYRACUSE_COMPETITORS,
+} from '@/server/services/holiday-hours';
 
 const ORG_ID = 'org_thrive_syracuse';
 
@@ -162,6 +168,21 @@ const ELROY_TOOLS: ClaudeTool[] = [
         input_schema: {
             type: 'object' as const,
             properties: {},
+            required: [],
+        },
+    },
+
+    {
+        name: 'get_competitor_holiday_hours',
+        description: 'Fetch current or holiday hours for nearby Syracuse dispensary competitors using Google Places. Use when someone asks about competitor hours around a holiday, or to proactively flag any closures before a holiday.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                holiday: {
+                    type: 'string',
+                    description: 'Optional: name of the holiday to check (e.g. "Easter", "Memorial Day"). Leave blank to check all upcoming holidays.',
+                },
+            },
             required: [],
         },
     },
@@ -501,6 +522,44 @@ async function elroyToolExecutor(toolName: string, input: Record<string, unknown
             } catch (e: any) { return { success: false, error: e.message }; }
         }
 
+        case 'get_competitor_holiday_hours': {
+            const holidayFilter = typeof input.holiday === 'string' ? input.holiday.toLowerCase() : null;
+
+            // Detect upcoming holidays (look 14 days out so we catch anything soon)
+            const upcoming = getUpcomingHolidays(14);
+            const relevant = holidayFilter
+                ? upcoming.filter((h) => h.name.toLowerCase().includes(holidayFilter))
+                : upcoming;
+
+            if (relevant.length === 0 && upcoming.length === 0) {
+                return { message: 'No major holidays detected in the next 14 days. Regular hours should apply.' };
+            }
+
+            const targetHoliday = relevant[0] ?? upcoming[0];
+
+            logger.info('[Elroy] Fetching competitor holiday hours', { holiday: targetHoliday.name });
+            const competitorHours = await fetchCompetitorHolidayHours(SYRACUSE_COMPETITORS);
+
+            const formatted = formatHoursForSlack(competitorHours, targetHoliday);
+            return {
+                holiday: targetHoliday.name,
+                date: targetHoliday.date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
+                daysUntil: targetHoliday.daysUntil,
+                likelyHoursChange: targetHoliday.likelyHoursChange,
+                competitors: competitorHours.map((c) => ({
+                    name: c.name,
+                    isOpenNow: c.isOpenNow,
+                    specialNote: c.specialNote,
+                    weekdayDescriptions: c.weekdayDescriptions.slice(0, 3),
+                    source: c.source,
+                })),
+                slackSummary: formatted,
+                tip: targetHoliday.likelyHoursChange
+                    ? `${targetHoliday.name} often causes dispensary hours changes — confirm your own hours on Weedmaps and Google.`
+                    : `${targetHoliday.name} is typically a normal operating day for most dispensaries.`,
+            };
+        }
+
         default:
             return { error: `Unknown tool: ${toolName}` };
     }
@@ -523,6 +582,7 @@ You help store managers with:
 - Recent transaction history
 - Day-over-day and vs 7-day-average sales comparisons
 - Live competitor pricing and deals via real-time web research
+- Competitor holiday hours — who's open, who's closed, any special hours
 
 Your style: direct, friendly, a little old-school. You know every customer by name. You give real answers with real numbers — no fluff.
 
@@ -532,6 +592,7 @@ When listing customers who need outreach, always include their days-inactive and
 When discussing inventory, flag anything on sale or with high stock that could move with a quick promotion.
 When citing competitor intel, note how fresh it is.
 For real-time or "right now" competitor questions (current prices, today's deals), use run_competitive_agent — it runs a live web research sweep via Firecrawl AI. It takes 30–90 seconds. Use get_competitor_intel for quick cached weekly data.
+For holiday or special hours questions ("Are competitors open on Easter?", "What are the hours for Memorial Day?"), ALWAYS use get_competitor_holiday_hours first — it pulls authoritative data from Google Places and is faster and more reliable than Firecrawl for hours.
 
 EXTERNAL SITE MANAGEMENT (Weedmaps, AIQ, WordPress):
 You can browse, extract data from, and fill forms on external sites using your browser tools.
@@ -577,6 +638,7 @@ const ELROY_AGENT_CONTEXT: AgentContext = {
         'get_top_sellers — top products last 7 days',
         'get_recent_transactions — latest order history',
         'get_sales_summary — today vs yesterday vs 7-day avg',
+        'get_competitor_holiday_hours — Google Places hours for Syracuse competitors around holidays',
         'discovery_browser_automate — browse external sites (Weedmaps, AIQ, WordPress, competitors)',
         'discovery_fill_form — fill and submit forms (deals, campaigns, WP content)',
         'discovery_extract_data — extract structured data from any webpage',
@@ -591,6 +653,7 @@ const ELROY_AGENT_CONTEXT: AgentContext = {
         'For product performance questions, use get_top_sellers',
         'Always include the asOf timestamp when reporting today\'s sales',
         'NEVER submit a form on an external site without explicit user confirmation first',
+        'For holiday or special hours questions, use get_competitor_holiday_hours (Google Places) — NOT run_competitive_agent',
     ],
 };
 
