@@ -34,6 +34,8 @@ export async function sendAgentMessage(
         toAgent: AgentName | 'broadcast';
         topic: MessageTopic;
         payload: Record<string, any>;
+        /** Typed handoff artifact — preferred over loose payload */
+        handoff?: import('@/types/handoff-artifacts').HandoffArtifact;
         requiredReactions?: AgentName[];
         expiresInHours?: number;
     }
@@ -49,6 +51,7 @@ export async function sendAgentMessage(
         toAgent: message.toAgent,
         topic: message.topic,
         payload: message.payload,
+        ...(message.handoff ? { handoff: message.handoff } : {}),
         requiredReactions: message.requiredReactions || [],
         reactions: {},
         expiresAt: expiresAt.toISOString(),

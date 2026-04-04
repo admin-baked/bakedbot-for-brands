@@ -427,6 +427,102 @@ function buildHardBoundaries(profile: OrgProfile): string {
 // Unified Agent Context Block Builders
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─── Operations Block Helpers (Brand Brain → Agent Context) ─────────────────
+// Each agent gets only the operations fields it needs (progressive disclosure).
+
+function formatHeroProducts(products: import('@/types/org-profile').HeroProduct[], limit: number): string {
+  const now = new Date().toISOString();
+  const active = products
+    .filter(p => !p.validUntil || p.validUntil >= now)
+    .sort((a, b) => a.priority - b.priority)
+    .slice(0, limit);
+  if (active.length === 0) return '';
+  return '\nHERO PRODUCTS:\n' + active.map(p => `• ${p.name} [${p.role}]${p.reason ? ` — ${p.reason}` : ''}`).join('\n');
+}
+
+function buildSmokeyOperationsBlock(profile: OrgProfile): string {
+  const ops = profile.operations;
+  if (!ops) return '';
+  const lines: string[] = [];
+  if (ops.heroProducts?.length) lines.push(formatHeroProducts(ops.heroProducts, 5));
+  if (ops.inventoryStrategy) {
+    const inv = ops.inventoryStrategy;
+    const parts: string[] = [];
+    if (inv.lowStockAlertThreshold) parts.push(`low-stock alert at ${inv.lowStockAlertThreshold} units`);
+    if (inv.clearanceThresholdDays) parts.push(`clearance after ${inv.clearanceThresholdDays} days`);
+    if (parts.length) lines.push(`\nINVENTORY RULES: ${parts.join('; ')}`);
+  }
+  if (ops.customerSegments?.length) {
+    lines.push('\nCUSTOMER SEGMENTS:\n' + ops.customerSegments.slice(0, 4).map(s => `• ${s.name}: ${s.description}`).join('\n'));
+  }
+  return lines.join('\n');
+}
+
+function buildCraigOperationsBlock(profile: OrgProfile): string {
+  const ops = profile.operations;
+  if (!ops) return '';
+  const lines: string[] = [];
+  if (ops.heroProducts?.length) lines.push(formatHeroProducts(ops.heroProducts, 5));
+  if (ops.campaignCalendar?.length) {
+    const now = new Date().toISOString();
+    const upcoming = ops.campaignCalendar
+      .filter(c => c.endDate >= now)
+      .sort((a, b) => a.startDate.localeCompare(b.startDate))
+      .slice(0, 3);
+    if (upcoming.length) {
+      lines.push('\nCAMPAIGN CALENDAR:\n' + upcoming.map(c => `• ${c.name} (${c.startDate}–${c.endDate}) [${c.channels.join(', ')}] — ${c.theme}`).join('\n'));
+    }
+  }
+  if (ops.blackoutDates?.length) {
+    const now = new Date().toISOString();
+    const active = ops.blackoutDates.filter(d => d.date >= now);
+    if (active.length) lines.push(`\nBLACKOUT DATES: ${active.map(d => `${d.date} (${d.reason})`).join('; ')}`);
+  }
+  if (ops.channelRules?.length) {
+    const enabled = ops.channelRules.filter(r => r.enabled);
+    if (enabled.length) {
+      lines.push('\nCHANNEL RULES:\n' + enabled.map(r => {
+        const parts = [r.channel];
+        if (r.frequencyCap) parts.push(`max ${r.frequencyCap}/week`);
+        if (r.voiceOverride) parts.push(`voice: ${r.voiceOverride}`);
+        return `• ${parts.join(' | ')}`;
+      }).join('\n'));
+    }
+  }
+  if (ops.pricingPolicy) {
+    const pp = ops.pricingPolicy;
+    lines.push(`\nPRICING GUARDRAILS: margin floor ${pp.marginFloorPct}% | max discount ${pp.maxDiscountPct}%`);
+  }
+  if (ops.contentLibrary?.approvedPhrases?.length) {
+    const phrases = ops.contentLibrary.approvedPhrases.slice(0, 2);
+    lines.push('\nAPPROVED MESSAGING:\n' + phrases.map(p => `• ${p.category}: ${p.phrases.slice(0, 3).join('; ')}`).join('\n'));
+  }
+  return lines.join('\n');
+}
+
+function buildPopsOperationsBlock(profile: OrgProfile): string {
+  const ops = profile.operations;
+  if (!ops) return '';
+  const lines: string[] = [];
+  if (ops.performanceBaselines?.lastUpdated) {
+    const pb = ops.performanceBaselines;
+    const metrics: string[] = [];
+    if (pb.conversionRate !== undefined) metrics.push(`conversion: ${(pb.conversionRate * 100).toFixed(1)}%`);
+    if (pb.averageOrderValue !== undefined) metrics.push(`AOV: $${pb.averageOrderValue.toFixed(2)}`);
+    if (pb.repeatPurchaseRate !== undefined) metrics.push(`repeat: ${(pb.repeatPurchaseRate * 100).toFixed(1)}%`);
+    if (pb.churnRate !== undefined) metrics.push(`churn: ${(pb.churnRate * 100).toFixed(1)}%`);
+    if (metrics.length) lines.push(`\nPERFORMANCE BASELINES (as of ${pb.lastUpdated}):\n${metrics.join(' | ')}`);
+  }
+  if (ops.campaignCalendar?.length) {
+    const now = new Date().toISOString();
+    const upcoming = ops.campaignCalendar.filter(c => c.endDate >= now).slice(0, 3);
+    if (upcoming.length) {
+      lines.push('\nUPCOMING CAMPAIGNS (for anomaly baseline):\n' + upcoming.map(c => `• ${c.name} (${c.startDate}–${c.endDate})`).join('\n'));
+    }
+  }
+  return lines.join('\n');
+}
+
 /**
  * Smokey — budtender context block.
  * Combines brand voice + recommendation philosophy + upsell + education + business priorities.
@@ -457,6 +553,7 @@ Customer Focus: ${getAcquisitionRetentionDescription(vh.acquisitionVsRetention)}
 Voice Formality: ${getFormalityDescription(vh.brandVoiceFormality)}
 Compliance: ${getComplianceDescription(vh.complianceConservatism)}
 ${buildHardBoundaries(profile)}
+${buildSmokeyOperationsBlock(profile)}
 === END BUDTENDER CONTEXT ===`.trim();
 }
 
@@ -501,6 +598,7 @@ BEHAVIORAL GUIDELINES:
 Customer Focus: ${getAcquisitionRetentionDescription(vh.acquisitionVsRetention)}
 Compliance Stance: ${getComplianceDescription(vh.complianceConservatism)}
 ${buildHardBoundaries(profile)}
+${buildCraigOperationsBlock(profile)}
 === END CAMPAIGN CONTEXT ===`.trim();
 }
 
@@ -526,6 +624,7 @@ Customer Strategy: ${getAcquisitionRetentionDescription(vh.acquisitionVsRetentio
 Revenue Strategy: ${getVolumeMarginDescription(vh.volumeVsMargin)}
 
 Frame all reports and recommendations around these priorities. Highlight metrics most relevant to the current growth stage.
+${buildPopsOperationsBlock(profile)}
 === END INTENT PROFILE ===`.trim();
 }
 

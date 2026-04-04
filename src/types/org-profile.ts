@@ -124,6 +124,135 @@ export interface OrgProfileBrand {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Operations Section — Operational brand truth consumed by agents at runtime
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface HeroProduct {
+  skuId: string;
+  name: string;
+  role: 'flagship' | 'seasonal' | 'clearance' | 'campaign_anchor';
+  reason?: string;
+  /** 1 = highest priority */
+  priority: number;
+  /** ISO date — auto-expire seasonal/clearance picks */
+  validUntil?: string;
+}
+
+export interface CampaignCalendarEntry {
+  id: string;
+  name: string;
+  /** ISO date */
+  startDate: string;
+  /** ISO date */
+  endDate: string;
+  channels: string[];
+  theme: string;
+  expectedLiftPct?: number;
+}
+
+export interface ChannelRule {
+  /** e.g. 'sms', 'email', 'push', 'instagram', 'tiktok' */
+  channel: string;
+  enabled: boolean;
+  /** Max sends per customer per week */
+  frequencyCap?: number;
+  /** Allowed content types for this channel */
+  contentTypes?: string[];
+  /** Platform-specific tone adjustment */
+  voiceOverride?: string;
+}
+
+export interface RetailerTier {
+  retailerId: string;
+  name: string;
+  tier: 'gold' | 'silver' | 'bronze';
+}
+
+export interface PricingPolicy {
+  marginFloorPct: number;
+  maxDiscountPct: number;
+  elasticity?: { discountPct: number; gmImpactPct: number }[];
+}
+
+export interface CustomerSegmentDef {
+  id: string;
+  name: string;
+  description: string;
+  criteria: { field: string; operator: string; value: string }[];
+  /** Estimated segment size */
+  size?: number;
+}
+
+export interface VendorPartnership {
+  vendorId: string;
+  vendorName: string;
+  coMarketingRules?: string[];
+  coopBudget?: number;
+}
+
+export interface ContentLibrary {
+  approvedPhrases?: { category: string; phrases: string[] }[];
+  smsTemplates?: { id: string; name: string; body: string }[];
+  emailTemplates?: { id: string; name: string; subject: string; body: string }[];
+}
+
+export interface PerformanceBaselines {
+  conversionRate?: number;
+  averageOrderValue?: number;
+  repeatPurchaseRate?: number;
+  loyaltyEnrollmentRate?: number;
+  churnRate?: number;
+  /** ISO date — stale if > 7 days */
+  lastUpdated?: string;
+}
+
+/**
+ * Operational brand truth — the runtime "Brand Brain" that agents hydrate from.
+ * Extends identity (brand) and strategy (intent) with operational fields.
+ * All fields optional for backward compatibility.
+ */
+export interface OrgProfileOperations {
+  /** Flagship products, seasonal picks, campaign anchors */
+  heroProducts?: HeroProduct[];
+
+  /** Planned campaigns with dates and channels */
+  campaignCalendar?: CampaignCalendarEntry[];
+  /** Dates when no campaigns should run */
+  blackoutDates?: { date: string; reason: string }[];
+
+  /** Per-channel rules: enabled, frequency caps, voice overrides */
+  channelRules?: ChannelRule[];
+
+  /** Retailer routing: preferred dispensaries by tier */
+  retailerRouting?: {
+    retailers: RetailerTier[];
+    exclusivityRules?: string[];
+    coopPolicies?: string[];
+  };
+
+  /** Pricing guardrails */
+  pricingPolicy?: PricingPolicy;
+
+  /** Inventory strategy thresholds */
+  inventoryStrategy?: {
+    clearanceThresholdDays?: number;
+    lowStockAlertThreshold?: number;
+  };
+
+  /** Structured customer segments */
+  customerSegments?: CustomerSegmentDef[];
+
+  /** Vendor partnership rules */
+  vendorPartnerships?: VendorPartnership[];
+
+  /** Pre-approved messaging templates and phrases */
+  contentLibrary?: ContentLibrary;
+
+  /** Cached performance baselines — refreshed nightly */
+  performanceBaselines?: PerformanceBaselines;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Intent Section
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -175,6 +304,8 @@ export interface OrgProfile {
 
   brand: OrgProfileBrand;
   intent: OrgProfileIntent;
+  /** Operational brand truth — hero products, campaign calendar, channel rules, etc. */
+  operations?: OrgProfileOperations;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -201,9 +332,10 @@ export interface OrgProfileVersion {
  * Calculate how complete an OrgProfile is.
  * Safe to import in client components — no server deps.
  *
- * Scoring breakdown (100 pts total):
- *   Brand:  name(10) + voice(15) + visualIdentity.colors(15)  = 40 pts
- *   Intent: strategicFoundation(20) + valueHierarchies(20) + agentConfigs(15) + hardBoundaries(5) = 60 pts
+ * Scoring breakdown (120 pts, normalized to 100):
+ *   Brand:      name(10) + voice(15) + visualIdentity.colors(15)  = 40 pts
+ *   Intent:     strategicFoundation(20) + valueHierarchies(20) + agentConfigs(15) + hardBoundaries(5) = 60 pts
+ *   Operations: heroProducts(5) + campaignCalendar(5) + channelRules(5) + performanceBaselines(5) = 20 pts
  */
 export function calculateOrgProfileCompletion(profile: Partial<OrgProfile>): number {
   let score = 0;
@@ -245,7 +377,15 @@ export function calculateOrgProfileCompletion(profile: Partial<OrgProfile>): num
 
   if (i?.hardBoundaries !== undefined) score += 5;
 
-  return Math.round(score);
+  // ── Operations section (20 pts) ──
+  const ops = profile.operations;
+  if (ops?.heroProducts?.length) score += 5;
+  if (ops?.campaignCalendar?.length) score += 5;
+  if (ops?.channelRules?.length) score += 5;
+  if (ops?.performanceBaselines?.lastUpdated) score += 5;
+
+  // Normalize from 120-point scale to 100
+  return Math.round((score / 120) * 100);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -255,6 +395,7 @@ export function calculateOrgProfileCompletion(profile: Partial<OrgProfile>): num
 export interface OrgProfileCompletionBreakdown {
   brand: { score: number; max: number };
   intent: { score: number; max: number };
+  operations: { score: number; max: number };
   total: number;
 }
 
@@ -263,6 +404,7 @@ export function getOrgProfileCompletionBreakdown(
 ): OrgProfileCompletionBreakdown {
   let brandScore = 0;
   let intentScore = 0;
+  let opsScore = 0;
 
   const b = profile.brand;
   if (b?.name) brandScore += 10;
@@ -299,9 +441,17 @@ export function getOrgProfileCompletionBreakdown(
 
   if (i?.hardBoundaries !== undefined) intentScore += 5;
 
+  const ops = profile.operations;
+  if (ops?.heroProducts?.length) opsScore += 5;
+  if (ops?.campaignCalendar?.length) opsScore += 5;
+  if (ops?.channelRules?.length) opsScore += 5;
+  if (ops?.performanceBaselines?.lastUpdated) opsScore += 5;
+
+  const rawTotal = brandScore + intentScore + opsScore;
   return {
     brand: { score: brandScore, max: 40 },
     intent: { score: intentScore, max: 60 },
-    total: brandScore + intentScore,
+    operations: { score: opsScore, max: 20 },
+    total: Math.round((rawTotal / 120) * 100),
   };
 }

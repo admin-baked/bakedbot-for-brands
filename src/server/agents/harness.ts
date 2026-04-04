@@ -53,14 +53,22 @@ export async function runAgent<TMemory extends AgentMemory, TTools = any>(
         agentMemory = await implementation.initialize(brandMemory, agentMemory);
 
         // C. Orient
-        // Check for urgent messages on the bus
+        // Check for urgent messages + typed handoffs on the bus
         try {
             const { getPendingMessages } = await import('../intuition/agent-bus');
             const messages = await getPendingMessages(brandId, agentName as any);
             if (messages.length > 0) {
                 logger.info(`[Harness] ${agentName}: Has ${messages.length} pending messages. Injecting into memory.`);
-                // Inject messages into agentMemory for the agent to process during orient/act
                 (agentMemory as any).pending_messages = messages;
+
+                // Extract typed handoff artifacts for structured consumption
+                const handoffs = messages
+                    .filter(m => m.handoff)
+                    .map(m => m.handoff);
+                if (handoffs.length > 0) {
+                    logger.info(`[Harness] ${agentName}: ${handoffs.length} typed handoff(s) available.`);
+                    (agentMemory as any).pending_handoffs = handoffs;
+                }
             }
         } catch (e) {
             // Ignore bus errors, don't crash agent

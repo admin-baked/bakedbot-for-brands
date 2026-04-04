@@ -1,0 +1,340 @@
+/**
+ * Nightly Learning Consolidation Cron
+ *
+ * Analyzes telemetry, feedback, and procedural memory from the last 24h
+ * to produce LearningDelta proposals. Deltas require approval before
+ * being applied to agent behavior.
+ *
+ * Schedule: 0 4 * * * (4 AM UTC daily)
+ *
+ * Deploy:
+ *   gcloud scheduler jobs create http consolidate-learnings-cron \
+ *     --schedule="0 4 * * *" \
+ *     --uri="https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app/api/cron/consolidate-learnings" \
+ *     --http-method=POST \
+ *     --headers="Authorization=Bearer CRON_SECRET" \
+ *     --location=us-central1
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { getAdminFirestore } from '@/firebase/admin';
+import { logger } from '@/lib/logger';
+import { createLearningDelta } from '@/types/learning-delta';
+import type { LearningDelta } from '@/types/learning-delta';
+
+export const dynamic = 'force-dynamic';
+export const maxDuration = 120;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Auth
+// ─────────────────────────────────────────────────────────────────────────────
+
+function authorizeCron(req: NextRequest): NextResponse | null {
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) {
+    logger.error('[ConsolidateLearnings] CRON_SECRET not configured');
+    return NextResponse.json({ success: false, error: 'Server misconfiguration' }, { status: 500 });
+  }
+  const auth = req.headers.get('Authorization');
+  if (auth !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  }
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Pipeline Steps
+// ─────────────────────────────────────────────────────────────────────────────
+
+const TWENTY_FOUR_HOURS_AGO = () => {
+  const d = new Date();
+  d.setHours(d.getHours() - 24);
+  return d;
+};
+
+/**
+ * Step 1: Analyze tool failures from telemetry
+ */
+async function analyzeToolFailures(db: FirebaseFirestore.Firestore): Promise<LearningDelta[]> {
+  const deltas: LearningDelta[] = [];
+  const since = TWENTY_FOUR_HOURS_AGO();
+
+  try {
+    const snap = await db.collection('agent_telemetry')
+      .where('timestamp', '>=', since)
+      .where('toolErrorCount', '>', 0)
+      .limit(500)
+      .get();
+
+    // Group failures by toolName + errorType
+    const failureMap = new Map<string, { count: number; agents: Set<string>; sampleIds: string[] }>();
+
+    for (const doc of snap.docs) {
+      const data = doc.data();
+      const toolCalls: Array<{ name: string; status: string }> = data.toolCalls || [];
+      for (const tc of toolCalls) {
+        if (tc.status === 'error') {
+          const key = `${tc.name}:${data.errorType || 'unknown'}`;
+          const existing = failureMap.get(key) || { count: 0, agents: new Set<string>(), sampleIds: [] };
+          existing.count++;
+          existing.agents.add(data.agentName);
+          if (existing.sampleIds.length < 5) existing.sampleIds.push(doc.id);
+          failureMap.set(key, existing);
+        }
+      }
+    }
+
+    // Create deltas for patterns with 3+ occurrences
+    for (const [key, data] of failureMap) {
+      if (data.count >= 3) {
+        const [toolName, errorType] = key.split(':');
+        deltas.push(createLearningDelta({
+          category: 'tool_failure_pattern',
+          agentName: data.agents.size === 1 ? [...data.agents][0] : undefined,
+          summary: `Tool "${toolName}" failed ${data.count} times in 24h with error type "${errorType}". Agents affected: ${[...data.agents].join(', ')}.`,
+          evidence: {
+            source: 'telemetry',
+            count: data.count,
+            timeWindow: '24h',
+            sampleIds: data.sampleIds,
+          },
+          proposedAction: {
+            type: 'update_routing',
+            target: `agent_tool_config/${toolName}`,
+            diff: `Consider adding retry logic, input validation, or fallback for "${toolName}" when "${errorType}" occurs.`,
+          },
+        }));
+      }
+    }
+  } catch (error) {
+    logger.error('[ConsolidateLearnings] Tool failure analysis failed:', error as Record<string, unknown>);
+  }
+
+  return deltas;
+}
+
+/**
+ * Step 2: Analyze dead-end loops from telemetry
+ */
+async function analyzeDeadEndLoops(db: FirebaseFirestore.Firestore): Promise<LearningDelta[]> {
+  const deltas: LearningDelta[] = [];
+  const since = TWENTY_FOUR_HOURS_AGO();
+
+  try {
+    const snap = await db.collection('agent_telemetry')
+      .where('timestamp', '>=', since)
+      .where('deadEndLoopCount', '>', 0)
+      .limit(200)
+      .get();
+
+    // Group by agent
+    const loopMap = new Map<string, { count: number; sampleIds: string[] }>();
+
+    for (const doc of snap.docs) {
+      const data = doc.data();
+      const agent = data.agentName;
+      const existing = loopMap.get(agent) || { count: 0, sampleIds: [] };
+      existing.count += data.deadEndLoopCount;
+      if (existing.sampleIds.length < 5) existing.sampleIds.push(doc.id);
+      loopMap.set(agent, existing);
+    }
+
+    for (const [agent, data] of loopMap) {
+      if (data.count >= 3) {
+        deltas.push(createLearningDelta({
+          category: 'dead_end_loop',
+          agentName: agent,
+          summary: `Agent "${agent}" entered ${data.count} dead-end loops in 24h. May indicate missing tool, bad routing, or ambiguous user input pattern.`,
+          evidence: {
+            source: 'telemetry',
+            count: data.count,
+            timeWindow: '24h',
+            sampleIds: data.sampleIds,
+          },
+          proposedAction: {
+            type: 'add_eval_case',
+            target: `.agent/golden-sets/${agent}-qa.json`,
+            diff: `Add negative test cases for the input patterns that triggered dead-end loops.`,
+          },
+        }));
+      }
+    }
+  } catch (error) {
+    logger.error('[ConsolidateLearnings] Dead-end loop analysis failed:', error as Record<string, unknown>);
+  }
+
+  return deltas;
+}
+
+/**
+ * Step 3: Analyze negative feedback patterns
+ */
+async function analyzeNegativeFeedback(db: FirebaseFirestore.Firestore): Promise<LearningDelta[]> {
+  const deltas: LearningDelta[] = [];
+  const since = TWENTY_FOUR_HOURS_AGO();
+
+  try {
+    const snap = await db.collection('response_feedback')
+      .where('createdAt', '>=', since.toISOString())
+      .where('rating', '==', 'negative')
+      .limit(500)
+      .get();
+
+    // Group by agent + org
+    const feedbackMap = new Map<string, { count: number; sampleIds: string[]; comments: string[] }>();
+
+    for (const doc of snap.docs) {
+      const data = doc.data();
+      const key = `${data.agentName || 'unknown'}:${data.orgId || 'global'}`;
+      const existing = feedbackMap.get(key) || { count: 0, sampleIds: [], comments: [] };
+      existing.count++;
+      if (existing.sampleIds.length < 5) existing.sampleIds.push(doc.id);
+      if (data.comment && existing.comments.length < 3) existing.comments.push(data.comment);
+      feedbackMap.set(key, existing);
+    }
+
+    for (const [key, data] of feedbackMap) {
+      if (data.count >= 3) {
+        const [agent, orgId] = key.split(':');
+        deltas.push(createLearningDelta({
+          category: 'manual_override_pattern',
+          agentName: agent !== 'unknown' ? agent : undefined,
+          orgId: orgId !== 'global' ? orgId : undefined,
+          summary: `Agent "${agent}" received ${data.count} negative feedback in 24h${orgId !== 'global' ? ` for org ${orgId}` : ''}. ${data.comments.length > 0 ? `Sample comments: ${data.comments.join('; ')}` : ''}`,
+          evidence: {
+            source: 'feedback',
+            count: data.count,
+            timeWindow: '24h',
+            sampleIds: data.sampleIds,
+          },
+          proposedAction: {
+            type: 'update_instructions',
+            target: `src/server/agents/${agent}.ts`,
+            diff: `Review and update system instructions based on recurring negative feedback patterns.`,
+          },
+        }));
+      }
+    }
+  } catch (error) {
+    logger.error('[ConsolidateLearnings] Feedback analysis failed:', error as Record<string, unknown>);
+  }
+
+  return deltas;
+}
+
+/**
+ * Step 4: Analyze compliance catches
+ */
+async function analyzeComplianceCatches(db: FirebaseFirestore.Firestore): Promise<LearningDelta[]> {
+  const deltas: LearningDelta[] = [];
+  const since = TWENTY_FOUR_HOURS_AGO();
+
+  try {
+    // Query agent events for rule_check failures
+    const snap = await db.collectionGroup('agentEvents')
+      .where('type', '==', 'rule_check')
+      .where('createdAt', '>=', since.toISOString())
+      .limit(500)
+      .get();
+
+    // Group by rule type
+    const ruleMap = new Map<string, { count: number; sampleIds: string[]; tenants: Set<string> }>();
+
+    for (const doc of snap.docs) {
+      const data = doc.data();
+      const violations: Array<{ ruleId?: string }> = data.payload?.violations || [];
+      for (const v of violations) {
+        const ruleId = v.ruleId || 'unknown_rule';
+        const existing = ruleMap.get(ruleId) || { count: 0, sampleIds: [], tenants: new Set<string>() };
+        existing.count++;
+        existing.tenants.add(data.tenantId);
+        if (existing.sampleIds.length < 5) existing.sampleIds.push(doc.id);
+        ruleMap.set(ruleId, existing);
+      }
+    }
+
+    for (const [ruleId, data] of ruleMap) {
+      if (data.count >= 5) {
+        deltas.push(createLearningDelta({
+          category: 'compliance_catch_pattern',
+          summary: `Compliance rule "${ruleId}" triggered ${data.count} times in 24h across ${data.tenants.size} tenant(s). Consider pre-screening content before it reaches Deebo.`,
+          evidence: {
+            source: 'telemetry',
+            count: data.count,
+            timeWindow: '24h',
+            sampleIds: data.sampleIds,
+          },
+          proposedAction: {
+            type: 'update_guardrail',
+            target: `src/server/agents/rules/${ruleId}.ts`,
+            diff: `Add upstream content pre-screening for the pattern that keeps triggering rule "${ruleId}".`,
+          },
+        }));
+      }
+    }
+  } catch (error) {
+    logger.error('[ConsolidateLearnings] Compliance analysis failed:', error as Record<string, unknown>);
+  }
+
+  return deltas;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main Handler
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function handler(req: NextRequest): Promise<NextResponse> {
+  const authError = authorizeCron(req);
+  if (authError) return authError;
+
+  const startTime = Date.now();
+  logger.info('[ConsolidateLearnings] Starting nightly learning consolidation');
+
+  try {
+    const db = getAdminFirestore();
+
+    // Run all analysis steps in parallel
+    const [toolFailures, deadEndLoops, negativeFeedback, complianceCatches] = await Promise.all([
+      analyzeToolFailures(db),
+      analyzeDeadEndLoops(db),
+      analyzeNegativeFeedback(db),
+      analyzeComplianceCatches(db),
+    ]);
+
+    const allDeltas = [...toolFailures, ...deadEndLoops, ...negativeFeedback, ...complianceCatches];
+
+    // Persist deltas to Firestore
+    const batch = db.batch();
+    for (const delta of allDeltas) {
+      batch.set(db.collection('learning_deltas').doc(delta.id), delta);
+    }
+    if (allDeltas.length > 0) {
+      await batch.commit();
+    }
+
+    const duration = Date.now() - startTime;
+    const summary = {
+      success: true,
+      duration_ms: duration,
+      deltas: {
+        total: allDeltas.length,
+        tool_failures: toolFailures.length,
+        dead_end_loops: deadEndLoops.length,
+        negative_feedback: negativeFeedback.length,
+        compliance_catches: complianceCatches.length,
+      },
+    };
+
+    logger.info(`[ConsolidateLearnings] Complete: ${allDeltas.length} deltas proposed in ${duration}ms`);
+    return NextResponse.json(summary);
+  } catch (error) {
+    logger.error('[ConsolidateLearnings] Cron failed:', error as Record<string, unknown>);
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 },
+    );
+  }
+}
+
+export async function GET(req: NextRequest) { return handler(req); }
+export async function POST(req: NextRequest) { return handler(req); }
