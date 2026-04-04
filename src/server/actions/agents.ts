@@ -2,7 +2,7 @@
 
 import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
-import { agents as DEFAULT_AGENTS, AgentId } from '@/config/agents';
+import { agents as DEFAULT_AGENTS } from '@/lib/agents/registry';
 
 function isSuperRole(role: unknown): boolean {
     return role === 'super_user' || role === 'super_admin';
@@ -62,23 +62,23 @@ export async function listBrandAgents(brandId: string): Promise<AgentEntity[]> {
         const timestamp = new Date();
 
         DEFAULT_AGENTS.forEach(agent => {
-            const newDocRef = collectionRef.doc(agent.id); // Use specific ID (smokey, craig)
+            const newDocRef = collectionRef.doc(agent.id);
 
-            // Exclude icon from DB payload
-            const { icon, ...agentData } = agent;
-
-            const dbPayload = {
-                ...agentData,
+            const dbPayload: Omit<AgentEntity, 'updatedAt'> & { updatedAt: Date } = {
+                id: agent.id,
+                name: agent.name,
+                title: agent.title,
+                description: agent.description,
+                status: 'online',
+                primaryMetricLabel: agent.primaryMetricLabel,
+                primaryMetricValue: agent.primaryMetricValue,
+                href: agent.href,
+                tag: agent.tag,
                 updatedAt: timestamp,
             };
 
             batch.set(newDocRef, dbPayload);
-
-            seededAgents.push({
-                ...dbPayload,
-                id: agent.id,
-                updatedAt: timestamp
-            } as AgentEntity);
+            seededAgents.push(dbPayload as AgentEntity);
         });
 
         await batch.commit();

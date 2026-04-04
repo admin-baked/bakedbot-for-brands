@@ -1,5 +1,5 @@
 
-import { agents } from '@/config/agents';
+import { agents } from '@/lib/agents/registry';
 import { requireUser } from '@/server/auth/auth';
 import { notFound, redirect } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,7 +43,7 @@ export default async function AgentDetailsPage({ params }: PageProps) {
         ...agent,
         name: configOverride?.name || agent.name,
         title: configOverride?.title || agent.title,
-        status: configOverride?.status || agent.status,
+        status: configOverride?.status || agent.defaultStatus,
     };
 
     return (
@@ -77,7 +77,7 @@ export default async function AgentDetailsPage({ params }: PageProps) {
                         <Activity className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold capitalize">{agent.status}</div>
+                        <div className="text-2xl font-bold capitalize">{agent.defaultStatus}</div>
                         <p className="text-xs text-muted-foreground">
                             System nominal
                         </p>
@@ -118,7 +118,7 @@ export default async function AgentDetailsPage({ params }: PageProps) {
                                             {agent.id === 'pops' && "Forecasting models loaded. Ask me about next month's sales."}
                                             {agent.id === 'ezal' && "Market scanners running. Who are we tracking today?"}
                                             {agent.id === 'smokey' && "Budtender mode on. What product are you looking for?"}
-                                            {agent.id === 'money-mike' && "Margins look tight. Should we check competitor pricing?"}
+                                            {agent.id === 'money_mike' && "Margins look tight. Should we check competitor pricing?"}
                                         </p>
                                     </div>
                                 </div>
@@ -156,7 +156,6 @@ export default async function AgentDetailsPage({ params }: PageProps) {
                                         <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-green-500" /> State Law Database</li>
                                     </>
                                 )}
-                                {/* Defaults for others */}
                                 {['craig', 'deebo'].includes(agent.id) === false && (
                                     <>
                                         <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-green-500" /> Natural Language Processing</li>
