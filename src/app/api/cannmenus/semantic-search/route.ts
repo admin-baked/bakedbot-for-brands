@@ -10,6 +10,7 @@ import { createServerClient } from "@/firebase/server-client";
 
 import { logger } from '@/lib/logger';
 import { getCached, setCached, CachePrefix, CacheTTL } from '@/lib/cache';
+import { isVectorAvailable, vectorSearch } from '@/lib/vector';
 
 // Force dynamic rendering - prevents build-time evaluation of Genkit imports
 export const dynamic = 'force-dynamic';
@@ -75,12 +76,65 @@ export async function POST(req: NextRequest) {
       }, { status: 200 });
     }
 
-    const { firestore: db } = await createServerClient();
-
     // 1) Embed the query
     const queryEmbedding = await generateEmbedding(queryText);
 
-    // 2) Load embeddings from Firestore
+    // 2a) Try Upstash Vector first (sub-millisecond native similarity search)
+    if (isVectorAvailable()) {
+      try {
+        // Build metadata filter for Upstash Vector
+        const filterParts: string[] = [];
+        if (brandIdFilter) filterParts.push(`brandId = '${brandIdFilter}'`);
+        // Markets filtering requires CONTAINS which Upstash supports
+        const filter = filterParts.length > 0 ? filterParts.join(' AND ') : undefined;
+
+        const vectorResults = await vectorSearch({
+          namespace: 'cannmenus',
+          vector: queryEmbedding,
+          topK,
+          includeMetadata: true,
+          filter,
+        });
+
+        if (vectorResults.length > 0) {
+          const items = vectorResults.map(r => ({
+            docId: r.id,
+            refId: (r.metadata?.refId as string) ?? r.id,
+            type: (r.metadata?.type as string) ?? 'unknown',
+            score: r.score,
+            brandId: r.metadata?.brandId as string | undefined,
+            retailerIds: (r.metadata?.retailerIds as string[]) ?? [],
+            markets: (r.metadata?.markets as string[]) ?? [],
+            tags: (r.metadata?.tags as string[]) ?? [],
+            textPreview: ((r.content ?? r.metadata?._content ?? '') as string).slice(0, 280),
+          }));
+
+          // Apply markets filter client-side (Upstash CONTAINS may not match arrays)
+          const filtered = marketsFilter?.length
+            ? items.filter(item => item.markets.some(m => marketsFilter.includes(m)))
+            : items;
+
+          setCached(CachePrefix.SEMANTIC_SEARCH, cacheKey, { items: filtered, totalCandidates: filtered.length }, CacheTTL.SEMANTIC_SEARCH).catch(() => {});
+
+          return NextResponse.json({
+            ok: true,
+            query: queryText,
+            topK,
+            totalCandidates: filtered.length,
+            items: filtered,
+            engine: 'upstash-vector',
+          }, { status: 200 });
+        }
+        // Empty — namespace not populated yet, fall through to Firestore
+      } catch (vectorErr) {
+        logger.warn('[semantic-search] Upstash Vector failed, falling back to Firestore', {
+          error: vectorErr instanceof Error ? vectorErr.message : String(vectorErr),
+        });
+      }
+    }
+
+    // 2b) Fallback: Load ALL embeddings from Firestore (original approach)
+    const { firestore: db } = await createServerClient();
     const snap = await db.collection("cannmenus_embeddings").get();
     if (snap.empty) {
       return NextResponse.json(

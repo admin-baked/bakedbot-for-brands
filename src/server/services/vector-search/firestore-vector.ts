@@ -1,136 +1,205 @@
+/**
+ * Vector Search Service
+ *
+ * Primary: Upstash Vector (native similarity search, sub-millisecond)
+ * Fallback: Firestore fetch-and-rank (client-side cosine similarity)
+ *
+ * On index: dual-write to Firestore (source of truth) + Upstash Vector (search index)
+ * On search: Upstash Vector first → Firestore fallback if not configured
+ */
 
 import { createServerClient } from "@/firebase/server-client";
 import { generateEmbedding } from "@/ai/utils/generate-embedding";
 import { FieldValue } from "firebase-admin/firestore";
 import { buildChunkWithHeader, ChunkContext } from "./chunking-service";
 import { getCached, setCached, CachePrefix, CacheTTL } from '@/lib/cache';
+import {
+    isVectorAvailable,
+    vectorUpsert,
+    vectorSearch as upstashVectorSearch,
+    kbNamespace,
+} from '@/lib/vector';
+import { logger } from '@/lib/logger';
 
 export interface VectorSearchResult {
-  docId: string;
-  content: string;
-  metadata: Record<string, any>;
-  score: number;
+    docId: string;
+    content: string;
+    metadata: Record<string, unknown>;
+    score: number;
 }
 
 export interface VectorSearchOptions {
-  collection: string;
-  query: string;
-  limit?: number;
-  filters?: Record<string, any>;
+    collection: string;
+    query: string;
+    limit?: number;
+    filters?: Record<string, unknown>;
 }
 
 export interface IndexOptions {
-  collection: string;
-  docId: string;
-  content: string;
-  metadata?: Record<string, any>;
-  /** Contextual information to prepend as header (State, City, Category, etc.) */
-  chunkContext?: ChunkContext;
+    collection: string;
+    docId: string;
+    content: string;
+    metadata?: Record<string, unknown>;
+    /** Contextual information to prepend as header (State, City, Category, etc.) */
+    chunkContext?: ChunkContext;
 }
 
-// Simple cosine similarity since Firestore doesn't support vector search natively without an extension or external service yet in this setup
-// Note: For production large scale, we should use Pinecone or specific Firestore Vector Search extension.
-// For this project scope, we will use exact KNN if supported or fetch-and-rank for small datasets, 
-// OR assume the "Firestore Vector Search" mentioned in plan refers to the `ext-firestore-vector-search` 
-// which typically exposes a specific query method. 
-// However, inspecting existing code (which I haven't fully done for search logic) suggests we might need a manual implementation or check if the app uses a specific wrapper.
-// Given strict "Keep It Simple", I will implement a client-side re-ranking (fetch candidates -> rank) 
-// OR a pure "generate embedding" and assume there's a helper. 
-// Let's implement a naive fetch-and-rank for now OR look at `productRepo.ts` to see how it does it.
-// Wait, `productRepo.ts` showed up in grep. Let's peek at it to follow pattern.
-
-// BUT FIRST, let's look at `productRepo.ts`. 
-// I will implement a placeholder that matches the pattern likely used there.
-// If I can't find `productRepo.ts` logic easily, I'll write a standard one.
-
+// Firestore fallback: cosine similarity for client-side ranking
 function cosineSimilarity(a: number[], b: number[]) {
-  let dot = 0;
-  let normA = 0;
-  let normB = 0;
-  for (let i = 0; i < a.length; i++) {
-    dot += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+    let dot = 0;
+    let normA = 0;
+    let normB = 0;
+    for (let i = 0; i < a.length; i++) {
+        dot += a[i] * b[i];
+        normA += a[i] * a[i];
+        normB += b[i] * b[i];
+    }
+    return dot / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
 export const firestoreVectorSearch = {
-  async index(options: IndexOptions) {
-    // Prepend contextual header if chunkContext is provided
-    const contentWithHeader = options.chunkContext 
-      ? buildChunkWithHeader(options.content, options.chunkContext)
-      : options.content;
-    
-    const embedding = await generateEmbedding(contentWithHeader);
-    
-    const { firestore } = await createServerClient();
-    await firestore.collection(options.collection).doc(options.docId).set({
-      content: options.content,  // Store original content for display
-      contentWithHeader,         // Store header-prepended content for reference
-      metadata: {
-        ...options.metadata,
-        ...options.chunkContext  // Also store context in metadata for filtering
-      },
-      embedding: FieldValue.vector(embedding), // Support for Firestore native vector type if enabled
-      // Fallback or explicit array for manual search
-      embedding_array: embedding, 
-      updatedAt: FieldValue.serverTimestamp()
-    }, { merge: true });
-  },
+    /**
+     * Index a document: dual-write to Firestore + Upstash Vector
+     */
+    async index(options: IndexOptions) {
+        const contentWithHeader = options.chunkContext
+            ? buildChunkWithHeader(options.content, options.chunkContext)
+            : options.content;
 
-  async search(options: VectorSearchOptions): Promise<VectorSearchResult[]> {
-    // Check cache first — identical queries on the same collection return same results
-    const searchCacheKey = `${options.collection}:${options.query.substring(0, 60).replace(/[^a-zA-Z0-9]/g, '_')}:${options.limit || 5}`;
-    const cachedResults = await getCached<VectorSearchResult[]>(CachePrefix.SEMANTIC_SEARCH, searchCacheKey);
-    if (cachedResults) return cachedResults;
+        const embedding = await generateEmbedding(contentWithHeader);
 
-    const queryEmbedding = await generateEmbedding(options.query);
-    
-    // Attempt multiple strategies:
-    // 1. Native Firestore Vector Search (requires preview feature)
-    // 2. Client-side re-ranking (Fetch all/subset -> sort)
-    
-    // For this implementation, we'll try to find a specialized vector query if available in `db`, 
-    // otherwise fallback to fetching recent items and sorting.
-    // NOTE: This scale is limited. 
-    
-    // Let's fetch documents from the collection. 
-    // Optimization: Apply filters first to reduce set.
-    const { firestore } = await createServerClient();
-    let query = firestore.collection(options.collection);
-    
-    if (options.filters) {
-      Object.entries(options.filters).forEach(([key, value]) => {
-        query = query.where(`metadata.${key}`, '==', value) as any;
-      });
+        // Write 1: Firestore (source of truth)
+        const { firestore } = await createServerClient();
+        await firestore.collection(options.collection).doc(options.docId).set({
+            content: options.content,
+            contentWithHeader,
+            metadata: {
+                ...options.metadata,
+                ...options.chunkContext
+            },
+            embedding: FieldValue.vector(embedding),
+            embedding_array: embedding,
+            updatedAt: FieldValue.serverTimestamp()
+        }, { merge: true });
+
+        // Write 2: Upstash Vector (search index) — best-effort, non-blocking
+        vectorUpsert({
+            namespace: kbNamespace(options.collection),
+            id: options.docId,
+            vector: embedding,
+            metadata: {
+                ...options.metadata,
+                ...options.chunkContext,
+                collection: options.collection,
+            },
+            content: options.content.substring(0, 2000), // Store truncated content for direct retrieval
+        }).catch(() => {
+            // Error already logged in vectorUpsert
+        });
+    },
+
+    /**
+     * Search: Upstash Vector (fast) → Firestore fallback (fetch-and-rank)
+     */
+    async search(options: VectorSearchOptions): Promise<VectorSearchResult[]> {
+        // Check result cache first
+        const searchCacheKey = `${options.collection}:${options.query.substring(0, 60).replace(/[^a-zA-Z0-9]/g, '_')}:${options.limit || 5}`;
+        const cachedResults = await getCached<VectorSearchResult[]>(CachePrefix.SEMANTIC_SEARCH, searchCacheKey);
+        if (cachedResults) return cachedResults;
+
+        const queryEmbedding = await generateEmbedding(options.query);
+
+        // Try Upstash Vector first (sub-millisecond native similarity search)
+        if (isVectorAvailable()) {
+            try {
+                const vectorResults = await upstashVectorSearch({
+                    namespace: kbNamespace(options.collection),
+                    vector: queryEmbedding,
+                    topK: options.limit ?? 5,
+                    includeMetadata: true,
+                });
+
+                if (vectorResults.length > 0) {
+                    const results: VectorSearchResult[] = vectorResults.map(r => ({
+                        docId: r.id,
+                        content: r.content ?? (r.metadata?._content as string) ?? '',
+                        metadata: r.metadata ?? {},
+                        score: r.score,
+                    }));
+
+                    // If content was stored in vector, we're done. Otherwise fetch from Firestore.
+                    const needsContent = results.some(r => !r.content);
+                    if (needsContent) {
+                        const { firestore } = await createServerClient();
+                        await Promise.all(results.map(async (r) => {
+                            if (!r.content) {
+                                const doc = await firestore.collection(options.collection).doc(r.docId).get();
+                                if (doc.exists) {
+                                    r.content = doc.data()?.content ?? '';
+                                    r.metadata = doc.data()?.metadata ?? {};
+                                }
+                            }
+                        }));
+                    }
+
+                    // Cache results
+                    setCached(CachePrefix.SEMANTIC_SEARCH, searchCacheKey, results, CacheTTL.SEMANTIC_SEARCH).catch(() => {});
+
+                    logger.debug('[VectorSearch] Upstash Vector hit', {
+                        collection: options.collection,
+                        resultCount: results.length,
+                    });
+
+                    return results;
+                }
+
+                // Empty results from Upstash Vector — namespace might not be populated yet
+                // Fall through to Firestore
+                logger.debug('[VectorSearch] Upstash Vector empty, falling back to Firestore', {
+                    collection: options.collection,
+                });
+            } catch (error) {
+                logger.warn('[VectorSearch] Upstash Vector failed, falling back to Firestore', {
+                    error: error instanceof Error ? error.message : String(error),
+                });
+            }
+        }
+
+        // Fallback: Firestore fetch-and-rank (original approach)
+        const { firestore } = await createServerClient();
+        let query = firestore.collection(options.collection) as FirebaseFirestore.Query;
+
+        if (options.filters) {
+            Object.entries(options.filters).forEach(([key, value]) => {
+                query = query.where(`metadata.${key}`, '==', value);
+            });
+        }
+
+        const snapshot = await query.limit(100).get();
+
+        const results = snapshot.docs.map(doc => {
+            const data = doc.data();
+            const embedding = data.embedding_array || data.embedding;
+
+            if (!embedding || !Array.isArray(embedding)) return null;
+
+            const score = cosineSimilarity(queryEmbedding, embedding);
+
+            return {
+                docId: doc.id,
+                content: data.content,
+                metadata: data.metadata || {},
+                score
+            };
+        }).filter((r): r is VectorSearchResult => r !== null);
+
+        const topResults = results
+            .sort((a, b) => b.score - a.score)
+            .slice(0, options.limit || 5);
+
+        // Cache results
+        setCached(CachePrefix.SEMANTIC_SEARCH, searchCacheKey, topResults, CacheTTL.SEMANTIC_SEARCH).catch(() => {});
+
+        return topResults;
     }
-
-    // Limit fetch to 100 for performance in this naive implementation
-    const snapshot = await query.limit(100).get();
-    
-    const results = snapshot.docs.map(doc => {
-      const data = doc.data();
-      const embedding = data.embedding_array || data.embedding; // Handle both types
-      
-      if (!embedding || !Array.isArray(embedding)) return null;
-      
-      const score = cosineSimilarity(queryEmbedding, embedding);
-      
-      return {
-        docId: doc.id,
-        content: data.content,
-        metadata: data.metadata || {},
-        score
-      };
-    }).filter((r): r is VectorSearchResult => r !== null);
-
-    // Sort by score descending and take top K
-    const topResults = results.sort((a: VectorSearchResult, b: VectorSearchResult) => b.score - a.score).slice(0, options.limit || 5);
-
-    // Cache results (5 min TTL)
-    setCached(CachePrefix.SEMANTIC_SEARCH, searchCacheKey, topResults, CacheTTL.SEMANTIC_SEARCH).catch(() => {});
-
-    return topResults;
-  }
 };

@@ -8,7 +8,7 @@
  * L2 (Upstash Redis): Full TTL, shared across all server instances.
  */
 
-import { getCached, setCached, invalidateCache, CachePrefix, CacheTTL } from '@/lib/cache';
+import { getCached, setCached, invalidateCache, CachePrefix } from '@/lib/cache';
 
 /** L1 in-memory entry */
 interface L1Entry<T> {

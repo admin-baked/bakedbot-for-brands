@@ -138,6 +138,7 @@
     "@types/web-push": "^3.6.4",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.36.2",
+    "@upstash/vector": "^1.2.3",
     "@webcontainer/api": "^1.6.1",
     "@x402/core": "^2.5.0",
     "@x402/evm": "^2.5.0",
