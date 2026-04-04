@@ -207,6 +207,28 @@ What should be logged or measured?
 - Keep input/output schemas explicit.
 - Avoid ambiguous contracts.
 
+### Brand Brain (OrgProfile.operations)
+
+- All brand-facing agents must load operational context from `OrgProfile.operations` via the shared context builders in `src/server/services/org-profile.ts`.
+- Never hardcode brand truth (hero products, pricing policy, channel rules, campaign calendar) in agent system prompts. Pull from the canonical `OrgProfile` instead.
+- Context builders inject only the fields each agent needs (progressive disclosure). Craig gets campaign calendar + channel rules. Smokey gets hero products + inventory strategy. Pops gets performance baselines.
+- If `OrgProfile.operations` is undefined, agents operate with defaults. Zero regression.
+
+### Handoff artifacts
+
+- When an agent produces output intended for another agent, emit a typed `HandoffArtifact` from `src/types/handoff-artifacts.ts`.
+- Loose `Record<string, any>` payloads on the agent bus are deprecated for new inter-agent contracts.
+- Use `sendHandoff()` from `src/server/intuition/handoff.ts` to route artifacts through the bus.
+- The harness auto-parses `pending_handoffs` during the orient phase. Agents can read from `agentMemory.pending_handoffs`.
+- Available artifact types: `audience_insight`, `campaign_brief`, `compliance_decision`, `competitive_intel`, `recommendation_set`, `landing_page_brief`, `retail_routing_decision`.
+
+### Learning deltas
+
+- The nightly `/api/cron/consolidate-learnings` endpoint analyzes telemetry, feedback, and procedural memory to produce `LearningDelta` proposals.
+- Deltas are stored in Firestore `learning_deltas` with `status: 'proposed'`. They require human or Linus approval before application.
+- Before modifying agent behavior, routing, or guardrails, check for recently approved deltas at `/api/learning-deltas?status=approved` to avoid contradicting system-level learnings.
+- Categories: `tool_failure_pattern`, `compliance_catch_pattern`, `high_performing_workflow`, `manual_override_pattern`, `dead_end_loop`, `brand_brain_update`, `eval_case_candidate`.
+
 ### Frontend and dashboard surfaces
 
 - Keep business rules out of presentation layers when possible.

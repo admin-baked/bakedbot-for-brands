@@ -343,6 +343,28 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                     }
                 });
 
+                // Emit typed RecommendationSetArtifact for downstream agents (Craig, Pages)
+                try {
+                    const { sendHandoff } = await import('../intuition/handoff');
+                    const { createHandoff } = await import('@/types/handoff-artifacts');
+                    type RSA = import('@/types/handoff-artifacts').RecommendationSetArtifact;
+                    const smokeOrgId = (brandMemory.brand_profile as { orgId?: string })?.orgId || (brandMemory.brand_profile as { id?: string })?.id || '';
+                    const artifact = createHandoff<RSA>({
+                        kind: 'recommendation_set',
+                        fromAgent: 'smokey',
+                        toAgent: 'broadcast',
+                        orgId: smokeOrgId,
+                        confidence: 0.75,
+                        payload: {
+                            products: [],
+                            strategy: result.finalResult?.slice(0, 300) || '',
+                        },
+                    });
+                    await sendHandoff(smokeOrgId, artifact);
+                } catch (handoffErr) {
+                    // Fire-and-forget — don't crash on handoff failure
+                }
+
                 return {
                     updatedMemory: agentMemory,
                     logEntry: {

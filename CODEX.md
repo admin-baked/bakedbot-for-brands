@@ -80,8 +80,12 @@ After completing ANY code modifications AND **before every `git push` / Firebase
 |------|---------|
 | `.agent/prime.md` | Full startup context (workflow protocol, super powers, agent roster) |
 | `.agent/workflows/simplify.md` | The 3-agent code review workflow |
-| `AGENTS.md` | Builder swarm rules (reuse, conventions, completion check) |
+| `AGENTS.md` | Builder swarm rules (reuse, conventions, Brand Brain, handoffs, learning deltas) |
 | `.agent/refs/` | Detailed reference docs (load on-demand) |
+| `src/types/org-profile.ts` | OrgProfile with Brand Brain (`operations` section) |
+| `src/types/handoff-artifacts.ts` | Typed inter-agent handoff contracts (7 artifact types) |
+| `src/types/learning-delta.ts` | Learning delta types for behavior promotion |
+| `.agent/specs/brand-brain-handoffs-learning.md` | Full PRD for Brand Brain + Handoffs + Learning Loop |
 
 ---
 

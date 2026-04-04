@@ -1,6 +1,8 @@
 import { AgentImplementation } from './harness';
 import { PopsMemory, HypothesisSchema } from './schemas';
 import { logger } from '@/lib/logger';
+import { createHandoff } from '@/types/handoff-artifacts';
+import type { AudienceInsightArtifact } from '@/types/handoff-artifacts';
 import { detectAnomaly } from '../algorithms/pops-algo';
 import { ai } from '@/ai/genkit';
 import { callGLM } from '@/ai/glm';
@@ -290,6 +292,27 @@ Respond to the user with the insight. Be precise. Format your response for Slack
                     { maxIterations: 1 }
                 );
                 synthesisText = synthesisResult.content;
+            }
+
+            // Emit typed AudienceInsightArtifact for downstream agents (Craig, Smokey)
+            try {
+                const { sendHandoff } = await import('../intuition/handoff');
+                const artifact = createHandoff<AudienceInsightArtifact>({
+                    kind: 'audience_insight',
+                    fromAgent: 'pops',
+                    toAgent: 'broadcast',
+                    orgId,
+                    confidence: 0.7,
+                    payload: {
+                        segmentId: 'all',
+                        insight: synthesisText.slice(0, 500),
+                        dataPoints: 0,
+                        trend: 'stable',
+                    },
+                });
+                await sendHandoff(orgId, artifact);
+            } catch (handoffErr) {
+                logger.warn('[Pops] Failed to emit audience insight handoff:', handoffErr as Record<string, unknown>);
             }
 
             return {
