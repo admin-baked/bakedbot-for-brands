@@ -39,7 +39,7 @@ Before ANY work, verify the build is healthy:
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
 **Current Status:** 🟢 `main` green; Social tools live; RTRVR session ownership; Linus Slack fix + greeting fast path + RTRVR browser tools for Elroy/Dashboard (branch `claude/fix-issue-PL9nP`).
-**Recent work (2026-04-04):** Shared `extractJsonPayload` utility (`8238ac78`), migrated 12 files. Loyalty tablet check-in fix (maxTokens, temp, validation).
+**Recent work (2026-04-04):** Elroy zero-revenue fix (`587187e7`), 54 pre-existing TS errors fixed + simplify (`a4853ef5`) on branch `claude/audit-mobile-inbox-LM82T`.
 
 ## ðŸ§­ CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 

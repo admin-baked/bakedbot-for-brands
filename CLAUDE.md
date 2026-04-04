@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-04-04 (extractJsonPayload shared utility, loyalty tablet check-in fix)
+**Current Status:** 🟢 Passing | **Last update:** 2026-04-04 (Elroy zero-revenue fix, 54 pre-existing TS errors resolved + simplify)
 
 ---
 
