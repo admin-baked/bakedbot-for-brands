@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; Upstash Redis L1/L2 caching across all services; Upstash Vector native similarity search; code embeddings cache for semantic code search; Linus + Elroy Slack agents cached | **Last update:** 2026-04-04 (Redis caching + Upstash Vector + code embeddings cache)
+**Current Status:** 🟢 `main` green; Social tools live (Craig: Twitter/Reddit post/thread; Leo: twitter_enrich + browser_act on any service); RTRVR session ownership pattern (Firestore-stored cookies, injected per-call); Upstash Vector disabled until index provisioned | **Last update:** 2026-04-04 (social tools + RTRVR generalization + deploy fix)
 
 ---
 

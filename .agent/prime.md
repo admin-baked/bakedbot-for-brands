@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; Upstash Redis L1/L2 caching + Upstash Vector native similarity search + code embeddings cache for all dashboard roles.
-**Recent work (2026-04-04):** `684b4cec` — Redis caching (7 caches migrated), Upstash Vector search, code embeddings cache, Linus search_code_symbols tool
+**Current Status:** 🟢 `main` green; Social tools live (Craig: Twitter/Reddit; Leo: browser_act any service); RTRVR session ownership via Firestore cookies; Upstash Vector disabled until index provisioned.
+**Recent work (2026-04-04):** `f18ce2b23` — social-tools.ts + twitter/reddit-browser + browser-act; deploy unblocked (UPSTASH_VECTOR secrets commented out)
 
 ## ðŸ§­ CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 
