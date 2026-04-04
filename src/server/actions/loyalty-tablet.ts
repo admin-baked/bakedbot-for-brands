@@ -628,6 +628,11 @@ export async function captureTabletLead(params: {
             }
         }
 
+        // TODO(blackleaf-sms): Once Blackleaf SMS is live, send a check-in confirmation here:
+        // "You're checked in at Thrive! Your budtender has your picks ready."
+        // Fire-and-forget to phone number (result.phone or params.phone).
+        // Only send when result.success && params.smsConsent.
+
         return {
             success: result.success,
             isNewLead: result.isNewLead,
@@ -826,5 +831,114 @@ export async function quickLookupByPhoneLast4(
     } catch (error) {
         logger.error('[LoyaltyTablet] quickLookupByPhoneLast4 failed', { orgId, error });
         return { found: false, matches: [] };
+    }
+}
+
+// ============================================================
+// Full-phone returning-customer lookup (full flow fast path)
+// ============================================================
+
+export interface PhoneLookupResult {
+    found: boolean;
+    customerId?: string;
+    firstName?: string;
+    loyaltyPoints?: number;
+}
+
+/**
+ * Look up a customer by their full phone number during the full check-in flow.
+ * Used to pre-fill name + skip the offer step for known returning customers.
+ * Normalises the phone to digits-only before querying.
+ */
+export async function lookupCustomerByPhone(
+    orgId: string,
+    phone: string,
+): Promise<PhoneLookupResult> {
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length < 10) return { found: false };
+
+    try {
+        const db = getAdminFirestore();
+        const snap = await db
+            .collection('customers')
+            .where('orgId', '==', orgId)
+            .where('phoneDigits', '==', digits)
+            .limit(1)
+            .get();
+
+        if (snap.empty) return { found: false };
+
+        const doc = snap.docs[0];
+        const d = doc.data();
+        return {
+            found: true,
+            customerId: doc.id,
+            firstName: (d.firstName as string) || undefined,
+            loyaltyPoints: (d.loyaltyPoints as number) || 0,
+        };
+    } catch (error) {
+        logger.error('[LoyaltyTablet] lookupCustomerByPhone failed', { orgId, error });
+        return { found: false };
+    }
+}
+
+// ============================================================
+// POS-facing customer dossier lookup (for budtender counter)
+// ============================================================
+
+export interface PosDossier {
+    customerId: string;
+    firstName: string;
+    loyaltyPoints: number;
+    visitCount: number;
+    lastVisitLabel?: string;
+    topCategories: string[];
+    badges: string[];
+    historySummary: string;
+}
+
+/**
+ * Full customer dossier by last-4 digits of phone, intended for the POS
+ * counter endpoint (/api/checkin/lookup).  Returns the first match only —
+ * callers should disambiguate via firstName if multiple exist.
+ */
+export async function getPosDossierByPhoneLast4(
+    orgId: string,
+    phoneLast4: string,
+): Promise<{ found: boolean; dossier?: PosDossier; multipleMatches?: boolean }> {
+    const cleaned = phoneLast4.replace(/\D/g, '');
+    if (cleaned.length !== 4) return { found: false };
+
+    try {
+        const db = getAdminFirestore();
+        const snap = await db
+            .collection('customers')
+            .where('orgId', '==', orgId)
+            .where('phoneLast4', '==', cleaned)
+            .limit(5)
+            .get();
+
+        if (snap.empty) return { found: false };
+        if (snap.docs.length > 1) return { found: true, multipleMatches: true };
+
+        const doc = snap.docs[0];
+        const context = await getCustomerBudtenderContext(orgId, doc.id);
+
+        return {
+            found: true,
+            dossier: {
+                customerId: doc.id,
+                firstName: (doc.data().firstName as string) || 'Friend',
+                loyaltyPoints: context.context?.loyaltyPoints ?? 0,
+                visitCount: context.context?.visitCount ?? 0,
+                lastVisitLabel: context.context?.lastVisitLabel,
+                topCategories: context.context?.topCategories ?? [],
+                badges: context.context?.badges ?? [],
+                historySummary: context.context?.historySummary ?? '',
+            },
+        };
+    } catch (error) {
+        logger.error('[LoyaltyTablet] getPosDossierByPhoneLast4 failed', { orgId, error });
+        return { found: false };
     }
 }

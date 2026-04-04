@@ -1307,6 +1307,12 @@ export async function captureVisitorCheckin(
             offerType: validated.offerType ?? null,
         });
 
+        // TODO(blackleaf-sms): Post-visit re-engagement SMS hook.
+        // 24h after this visit, send a review request or "How was your visit?" text.
+        // Schedule via Cloud Tasks or a cron that queries checkin_visits where
+        // visitedAt >= now-25h AND visitedAt <= now-23h AND smsConsent = true
+        // AND postVisitSmsSentAt IS NULL. Fire-and-forget via Blackleaf SMS API.
+
         return {
             success: true,
             isNewLead: leadResult.isNewLead,

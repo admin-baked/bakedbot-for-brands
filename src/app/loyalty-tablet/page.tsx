@@ -31,6 +31,7 @@ import {
     getTabletOffer,
     getCustomerBudtenderContext,
     prefetchTabletInventory,
+    lookupCustomerByPhone,
     type QuickLookupResult,
     type TabletOffer,
     type BudtenderContext,
@@ -190,6 +191,9 @@ export default function LoyaltyTabletPage() {
     const [quickLookupLoading, setQuickLookupLoading] = useState(false);
     const [quickMatches, setQuickMatches] = useState<QuickLookupResult['matches']>([]);
 
+    // Full-flow returning-customer detection (phone pre-fill + offer skip)
+    const [isReturningCustomer, setIsReturningCustomer] = useState(false);
+
     // Smokey hold-to-talk voice (works on iOS — MediaRecorder-based, Gemini Live quality)
     const smokeyVoice = useSmokeyVoice({
         orgId,
@@ -258,6 +262,7 @@ export default function LoyaltyTabletPage() {
         setQuickDigits('');
         setQuickLookupLoading(false);
         setQuickMatches([]);
+        setIsReturningCustomer(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [voiceOutput]);
 
@@ -283,6 +288,28 @@ export default function LoyaltyTabletPage() {
         resetIdleTimer();
         return () => { if (idleTimer.current) clearTimeout(idleTimer.current); };
     }, [resetIdleTimer]);
+
+    // ── Full-phone returning-customer lookup (pre-fill + offer skip) ─
+    useEffect(() => {
+        // Clear returning-customer state if phone drops below 10 digits
+        if (step === 'phone' && phone.replace(/\D/g, '').length < 10 && isReturningCustomer) {
+            setIsReturningCustomer(false);
+            setCustomerId(null);
+            setBudtenderContext(null);
+        }
+        if (step !== 'phone' || phone.replace(/\D/g, '').length !== 10 || customerId) return;
+        void lookupCustomerByPhone(orgId, phone).then(res => {
+            if (!res.found || !res.customerId) return;
+            setCustomerId(res.customerId);
+            if (res.firstName && !firstName) setFirstName(res.firstName);
+            setIsReturningCustomer(true);
+            // Pre-fetch budtender context in background
+            void getCustomerBudtenderContext(orgId, res.customerId).then(ctx => {
+                if (ctx.success && ctx.context) setBudtenderContext(ctx.context);
+            });
+        });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [phone]);
 
     // ── Pre-fetch offer as soon as phone hits 10 digits ───────
     useEffect(() => {
@@ -349,6 +376,11 @@ export default function LoyaltyTabletPage() {
         setError('');
         if (phone.replace(/\D/g, '').length < 10) {
             setError('Please enter a valid 10-digit phone number');
+            return;
+        }
+        // Returning customers skip the offer/birthday step — go straight to mood
+        if (isReturningCustomer) {
+            setStep('mood');
             return;
         }
         // Fetch offer only if not already in-flight or loaded (may have started at 10-digit entry)
@@ -832,8 +864,17 @@ export default function LoyaltyTabletPage() {
                     >
                         <div className="text-center">
                             <Phone className="mx-auto mb-4 h-10 w-10 sm:h-14 sm:w-14" style={{ color: brandTheme.colors.primary }} />
-                            <h2 className="text-2xl sm:text-4xl font-black text-gray-900">Welcome! What&apos;s your name?</h2>
-                            <p className="mt-2 text-base sm:text-lg" style={{ color: mutedTextColor }}>Your phone number is your loyalty ID</p>
+                            {isReturningCustomer && firstName ? (
+                                <>
+                                    <h2 className="text-2xl sm:text-4xl font-black text-gray-900">Welcome back, {firstName}! 👋</h2>
+                                    <p className="mt-2 text-base sm:text-lg" style={{ color: mutedTextColor }}>We found your account — tap Continue to jump straight to picks</p>
+                                </>
+                            ) : (
+                                <>
+                                    <h2 className="text-2xl sm:text-4xl font-black text-gray-900">Welcome! What&apos;s your name?</h2>
+                                    <p className="mt-2 text-base sm:text-lg" style={{ color: mutedTextColor }}>Your phone number is your loyalty ID</p>
+                                </>
+                            )}
                         </div>
                         <div className="w-full space-y-4">
                             <input
@@ -889,7 +930,7 @@ export default function LoyaltyTabletPage() {
                             className="flex w-full items-center justify-center gap-3 rounded-[28px] py-6 text-2xl font-bold transition-all hover:opacity-95 active:scale-[0.99] disabled:opacity-40"
                             style={primaryButtonStyle}
                         >
-                            Continue <ArrowRight className="h-7 w-7" />
+                            {isReturningCustomer ? 'Find My Picks' : 'Continue'} <ArrowRight className="h-7 w-7" />
                         </button>
                         <button onClick={() => { setError(''); resetToWelcome(); }} className="text-sm hover:opacity-70" style={{ color: faintTextColor }}>&larr; Back</button>
                     </motion.div>
