@@ -13,7 +13,6 @@
 
 import { useEffect, useState } from 'react';
 import {
-    Bot,
     Clock,
     Loader2,
     Mic,
@@ -174,7 +173,14 @@ export function CheckinCounterPanel({ orgId, visit, onClose }: Props) {
     };
 
     return (
-        <Sheet open={Boolean(visit)} onOpenChange={(open) => { if (!open) onClose(); }}>
+        <Sheet
+            open={Boolean(visit)}
+            onOpenChange={(open) => {
+                // Keep panel open while Smokey is listening, processing, or speaking
+                const voiceActive = voice.state === 'recording' || voice.state === 'processing' || voice.state === 'speaking';
+                if (!open && !voiceActive) onClose();
+            }}
+        >
             <SheetContent side="right" className="w-full sm:max-w-md flex flex-col gap-0 p-0">
                 {visit && (
                     <>
@@ -232,9 +238,14 @@ export function CheckinCounterPanel({ orgId, visit, onClose }: Props) {
                         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3 min-h-0">
                             {conversationLog.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center h-full gap-3 text-center py-8">
-                                    <div className="h-12 w-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                                        <Bot className="h-6 w-6 text-emerald-600" />
-                                    </div>
+                                    <img
+                                        src="/assets/agents/smokey-main.png"
+                                        alt="Smokey"
+                                        className="h-16 w-16 rounded-2xl object-cover shadow-sm"
+                                        onError={(e) => {
+                                            e.currentTarget.style.display = 'none';
+                                        }}
+                                    />
                                     <div>
                                         <p className="text-sm font-medium">Smokey is ready</p>
                                         <p className="text-xs text-muted-foreground mt-1 max-w-[220px]">
@@ -249,8 +260,13 @@ export function CheckinCounterPanel({ orgId, visit, onClose }: Props) {
                                         className={`flex gap-2 ${entry.role === 'budtender' ? 'justify-end' : 'justify-start'}`}
                                     >
                                         {entry.role === 'smokey' && (
-                                            <div className="h-6 w-6 rounded-full bg-emerald-500/15 flex items-center justify-center shrink-0 mt-0.5">
-                                                <Bot className="h-3.5 w-3.5 text-emerald-600" />
+                                            <div className="h-6 w-6 rounded-full bg-emerald-500/10 overflow-hidden shrink-0 mt-0.5 flex items-center justify-center">
+                                                <img
+                                                    src="/assets/agents/smokey-main.png"
+                                                    alt="Smokey"
+                                                    className="h-full w-full object-cover"
+                                                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                                />
                                             </div>
                                         )}
                                         <div
