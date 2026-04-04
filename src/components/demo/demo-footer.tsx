@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { createSlug } from '@/lib/utils/slug';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
@@ -39,6 +40,8 @@ interface DemoFooterProps {
   // Custom links (optional overrides)
   customShopLinks?: Array<{ label: string; href: string }>;
   customCompanyLinks?: Array<{ label: string; href: string }>;
+  /** Show dispensary SEO links (zip/city pages) — true for dispensary menuDesign */
+  isDispensaryMenu?: boolean;
 }
 
 // Default shop links for dispensary/local pickup
@@ -103,6 +106,7 @@ export function DemoFooter({
   location = {},
   customShopLinks,
   customCompanyLinks,
+  isDispensaryMenu = false,
 }: DemoFooterProps) {
   const secondaryColor = '#064e3b';
   const isOnlineOnly = purchaseModel === 'online_only';
@@ -308,6 +312,41 @@ export function DemoFooter({
           </div>
         </div>
       </div>
+
+      {isDispensaryMenu && (location.zip || location.city) && (
+        <div className="border-t border-white/10">
+          <div className="container mx-auto px-4 py-5">
+            <p className="text-xs text-white/40 uppercase tracking-wider mb-3">Find Us</p>
+            <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+              {brandSlug && (
+                <Link
+                  href={`/${brandSlug}/locations`}
+                  className="text-white/60 hover:text-white transition-colors flex items-center gap-1"
+                >
+                  <MapPin className="h-3.5 w-3.5" style={{ color: primaryColor }} />
+                  Store Locations
+                </Link>
+              )}
+              {location.zip && (
+                <Link
+                  href={`/zip/${location.zip}-dispensary`}
+                  className="text-white/60 hover:text-white transition-colors"
+                >
+                  Dispensaries near {location.zip}
+                </Link>
+              )}
+              {location.city && location.state && (
+                <Link
+                  href={`/cities/${createSlug(location.city)}-cannabis-dispensaries`}
+                  className="text-white/60 hover:text-white transition-colors"
+                >
+                  Cannabis in {location.city}, {location.state}
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Bottom Bar */}
       <div className="border-t border-white/10">

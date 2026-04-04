@@ -71,6 +71,7 @@ import { CategoryTabsNav } from '@/components/demo/category-tabs-nav';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { VisitorCheckinPromo } from '@/components/checkin/visitor-checkin-promo';
 import { isVisitorCheckinPilot } from '@/lib/checkin/visitor-checkin-pilot';
+import { DispensaryInfoPanel } from '@/components/dispensary/dispensary-info-panel';
 
 interface BrandMenuClientProps {
   brand: Brand;
@@ -704,6 +705,19 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
         />
 
         <main className="flex-1">
+          <DispensaryInfoPanel
+            address={brand.location?.address ?? brand.address}
+            city={brand.location?.city ?? brand.city}
+            state={brand.location?.state ?? brand.state}
+            zip={brand.location?.zip ?? brand.zip}
+            phone={brand.location?.phone ?? brand.phone ?? brand.contactPhone}
+            hours={brand.hours}
+            primaryColor={primaryColor}
+            showDelivery={publicMenuSettings?.menuDisplay?.showDeliveryInfo ?? false}
+            deliveryMinimum={publicMenuSettings?.menuDisplay?.deliveryMinimum}
+            showDriveThru={publicMenuSettings?.menuDisplay?.showDriveThru ?? false}
+          />
+
           {/* Hero Carousel */}
           <HeroCarousel slides={heroSlides.length > 0 ? heroSlides : undefined} primaryColor={primaryColor} />
 
@@ -899,12 +913,13 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
           </div>
         </main>
 
-        {/* Footer with Dispensary Location */}
+        {/* Footer with Dispensary Location + SEO deep links */}
         <DemoFooter
           brandName={brand.name}
           brandLogo={brand.logoUrl}
           primaryColor={primaryColor}
           brandSlug={brandSlug}
+          isDispensaryMenu
           location={brand.location ? {
             address: brand.location.address,
             city: brand.location.city,

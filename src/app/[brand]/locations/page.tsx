@@ -5,6 +5,7 @@ import { DemoFooter } from '@/components/demo/demo-footer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 import { MapPin, Phone, Clock, Mail, ExternalLink } from 'lucide-react';
 import { getBrandPageBySlug } from '@/server/actions/brand-pages';
 import { cookies } from 'next/headers';
@@ -64,6 +65,19 @@ export default async function LocationsPage({ params }: { params: Promise<{ bran
                 brandColors={brandColors}
                 location={brand.location ? `${brand.location.city}, ${brand.location.state}` : `${brand.city || ''}, ${brand.state || ''}`}
             />
+
+            <div className="border-b" style={{ backgroundColor: brandColors.primary + '12' }}>
+                <div className="container mx-auto px-4 py-3 flex items-center justify-between gap-4">
+                    <p className="text-sm text-muted-foreground">
+                        Ready to shop? Browse our live menu.
+                    </p>
+                    <Button asChild size="sm" style={{ backgroundColor: brandColors.primary }}>
+                        <Link href={`/${brandSlug}`} className="text-white">
+                            View Menu
+                        </Link>
+                    </Button>
+                </div>
+            </div>
 
             <main className="flex-1">
                 {/* Hero Section */}
