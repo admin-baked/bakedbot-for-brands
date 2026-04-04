@@ -68,7 +68,7 @@ import { validateInput, validateOutput, sanitizeForPrompt, wrapUserData, getRisk
 import { loadAISettingsForAgent } from '@/server/actions/ai-settings';
 import { buildCustomInstructionsBlock } from '@/types/ai-settings';
 import { extractGmailParams, extractCalendarParams } from '@/server/agents/extraction-helpers';
-import { agentCache, CacheKeys, CacheTTL } from '@/lib/cache/agent-runner-cache';
+import { agentCache, CacheKeys, AgentRunnerCacheTTL as CacheTTL } from '@/lib/cache/agent-runner-cache';
 import type { AgentJobDraftState } from '@/types/agent-job';
 
 

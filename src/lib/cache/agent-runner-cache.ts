@@ -106,9 +106,9 @@ export const CacheKeys = {
 } as const;
 
 /**
- * Cache TTLs (in seconds) — maps legacy names to centralized CacheTTL values
+ * Agent-runner-specific cache TTLs (in seconds)
  */
-export const CacheTTL = {
+export const AgentRunnerCacheTTL = {
     BRAND_PROFILE: 300,   // 5 minutes
     AI_SETTINGS: 300,     // 5 minutes
     AGENT_CONFIG: 300,    // 5 minutes
