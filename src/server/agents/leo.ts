@@ -17,6 +17,7 @@ import {
 } from './agent-definitions';
 import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integration-status';
 import { linkedInLeoToolDefs, makeLinkedInToolsImpl } from '@/server/tools/linkedin-tools';
+import { socialLeoToolDefs, makeSocialLeoToolsImpl } from '@/server/tools/social-tools';
 
 export interface LeoTools extends Partial<AllSharedTools>, Partial<ExecutiveContextTools> {
     // Multi-Agent Orchestration
@@ -457,7 +458,10 @@ export const leoAgent: AgentImplementation<LeoMemory, LeoTools> = {
                 ...intuitionOsToolDefs,
                 ...semanticSearchToolDefs,
                 ...linkedInLeoToolDefs,
+                ...socialLeoToolDefs,
             ];
+
+            const socialImpl = superUserUid ? makeSocialLeoToolsImpl(superUserUid) : {};
 
             try {
                 const { runMultiStepTask } = await import('./harness');
@@ -466,7 +470,7 @@ export const leoAgent: AgentImplementation<LeoMemory, LeoTools> = {
                     userQuery,
                     systemInstructions: (agentMemory.system_instructions as string) || '',
                     toolsDef,
-                    tools: { ...tools, ...makeSemanticSearchToolsImpl(semanticSearchEntityId), ...linkedInImpl },
+                    tools: { ...tools, ...makeSemanticSearchToolsImpl(semanticSearchEntityId), ...linkedInImpl, ...socialImpl },
                     model: 'claude-sonnet-4-6', // Use Claude Sonnet 4 for orchestration
                     maxIterations: 7, // Leo gets more iterations for complex orchestration
                     onStepComplete: async (step, toolName, result) => {

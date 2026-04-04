@@ -17,6 +17,7 @@ import { getOrgProfileWithFallback, buildCraigContextBlock } from '@/server/serv
 import { getMarketBenchmarks, buildBenchmarkContextBlock } from '@/server/services/market-benchmarks';
 import { dispensaryAnalyticsToolDefs, makeAnalyticsToolsImpl } from '@/server/tools/analytics-tools';
 import { linkedInCraigToolDefs, makeLinkedInToolsImpl } from '@/server/tools/linkedin-tools';
+import { socialCraigToolDefs, makeSocialCraigToolsImpl } from '@/server/tools/social-tools';
 import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integration-status';
 
 // --- Tool Definitions ---
@@ -120,11 +121,23 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
         Show the GP delta and discount rate impact. Apply the -0.4% GM elasticity rule in every recommendation.
         A campaign that generates revenue but destroys gross profit is a failure. Report both metrics, always.
 
-        === LINKEDIN (Super User) ===
-        If LinkedIn is connected (the Super User has linked their account in Settings → LinkedIn), you can:
-        - **linkedin_post(content)**: Publish to their LinkedIn feed — thought leadership, brand announcements, product drops, industry takes. Plain text only, no markdown.
+        === SOCIAL MEDIA PUBLISHING (Super User) ===
+        When social accounts are connected in Settings, you can post directly:
+
+        **LinkedIn** (connect at Settings → LinkedIn):
+        - **linkedin_post(content)**: Publish to feed — thought leadership, brand announcements, product drops. Plain text only.
+
+        **Twitter/X** (connect at Settings → Twitter):
+        - **twitter_post(content)**: Single tweet, max 280 chars. Good for hot takes, quick updates, hashtag campaigns.
+        - **twitter_thread(tweets)**: Multi-tweet thread for longer content — launches, educational series, brand stories.
+
+        **Reddit** (connect at Settings → Reddit):
+        - **reddit_post(subreddit, title, body)**: Submit a text post to a cannabis community (cannabusiness, weed, NYCcannabis, etc).
+        - **reddit_link(subreddit, title, url)**: Share a blog post or article link to a subreddit.
+        - **reddit_comment(postUrl, comment)**: Reply to an existing Reddit thread — great for community engagement.
+
         Always validate compliance with Deebo before posting cannabis-related content.
-        If LinkedIn is not connected, let them know they can connect it at Settings → LinkedIn.
+        If an account is not connected, let them know they can connect it in Settings.
 
         === BRAND DISCOVERY TOOLS (NEW) ===
         You now have direct web scraping and brand intelligence capabilities:
@@ -377,11 +390,13 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
             ...craigCampaignToolDefs,
             ...semanticSearchToolDefs,
             ...linkedInCraigToolDefs,
+            ...socialCraigToolDefs,
         ];
 
-        // Resolve Super User uid for LinkedIn tools (falls back gracefully if not a super user)
+        // Resolve Super User uid for LinkedIn + social tools (falls back gracefully if not a super user)
         const superUserUid = (brandMemory as any).user_context?.uid as string | undefined;
         const linkedInImpl = superUserUid ? makeLinkedInToolsImpl(superUserUid) : {};
+        const socialImpl = superUserUid ? makeSocialCraigToolsImpl(superUserUid) : {};
 
         const allToolsWithAnalytics = {
             ...tools,
@@ -389,6 +404,7 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
             ...makeSemanticSearchToolsImpl(orgId),
             ...makeRedditToolsImpl(),
             ...linkedInImpl,
+            ...socialImpl,
             searchOpportunities: async (query: string) => {
                 try {
                     const { searchWeb, formatSearchResults } = await import('@/server/tools/web-search');
