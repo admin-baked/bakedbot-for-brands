@@ -623,6 +623,29 @@ const LINUS_TOOLS: ClaudeTool[] = [
         }
     },
     {
+        name: 'search_code_symbols',
+        description: 'Semantic search for code symbols (functions, classes, interfaces) using natural language. Returns concise signatures with file:line locations. MUCH cheaper than read_file — use this first to find what you need, then read_file only for the specific file.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                query: {
+                    type: 'string',
+                    description: 'Natural language description of what you\'re looking for (e.g., "rate limiting middleware", "customer segment calculation", "Slack message handler")'
+                },
+                limit: {
+                    type: 'number',
+                    description: 'Max results to return (default: 10)'
+                },
+                type: {
+                    type: 'string',
+                    description: 'Filter by symbol type',
+                    enum: ['function', 'class', 'interface', 'type']
+                }
+            },
+            required: ['query']
+        }
+    },
+    {
         name: 'find_files',
         description: 'Find files matching a glob pattern. Useful for locating test files, configs, or components.',
         input_schema: {
@@ -2572,6 +2595,35 @@ async function linusToolExecutor(toolName: string, input: Record<string, unknown
         // ====================================================================
         // NEW BUG FINDING & FIXING TOOL EXECUTORS
         // ====================================================================
+
+        case 'search_code_symbols': {
+            try {
+                const { searchCode } = await import('@/server/services/code-embeddings-cache');
+                const results = await searchCode(input.query as string, {
+                    limit: (input.limit as number) || 10,
+                    type: input.type as 'function' | 'class' | 'interface' | 'type' | undefined,
+                });
+
+                if (results.length === 0) {
+                    return { success: true, matchCount: 0, results: [], message: 'No symbols found. Try search_codebase for pattern-based search.' };
+                }
+
+                return {
+                    success: true,
+                    matchCount: results.length,
+                    results: results.map(r => ({
+                        symbol: r.symbol,
+                        signature: r.signature,
+                        location: `${r.filePath}:${r.line}`,
+                        type: r.type,
+                        score: Math.round(r.score * 100) / 100,
+                    })),
+                    hint: 'Use read_file on specific files to see full implementation.',
+                };
+            } catch (e: unknown) {
+                return { success: false, error: (e as Error).message, hint: 'Code index may not be populated yet. Use search_codebase as fallback.' };
+            }
+        }
 
         case 'search_codebase': {
             const { pattern, filePattern, caseSensitive, contextLines } = input as {
