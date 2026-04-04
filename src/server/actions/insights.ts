@@ -1044,7 +1044,7 @@ export async function getInsightsForOrg(
             });
 
         // De-duplicate by category (keep most recent per category)
-        const deduped = deduplicateByCategory(insights);
+        const deduped = deduplicateInsights(insights);
 
         // Prioritize by severity
         const prioritized = prioritizeBySeverity(deduped);
@@ -1073,22 +1073,22 @@ export async function getInsightsForOrg(
 }
 
 /**
- * De-duplicate insights by category, keeping only the most recent per category
+ * De-duplicate insights by (category, title), keeping only the most recent per pair.
+ * Using both fields lets CUSTOMER MIX, CHURN RISK ALERT, and LOYALTY PERFORMANCE
+ * (all category='customer') coexist instead of collapsing to a single card.
  */
-function deduplicateByCategory(insights: InsightCard[]): InsightCard[] {
-    const byCategory = new Map<string, InsightCard>();
+function deduplicateInsights(insights: InsightCard[]): InsightCard[] {
+    const byKey = new Map<string, InsightCard>();
 
     insights.forEach((insight) => {
-        const existing = byCategory.get(insight.category);
-        if (!existing) {
-            byCategory.set(insight.category, insight);
-        } else if (insight.lastUpdated > existing.lastUpdated) {
-            // Replace with newer insight
-            byCategory.set(insight.category, insight);
+        const key = `${insight.category}:${insight.title}`;
+        const existing = byKey.get(key);
+        if (!existing || insight.lastUpdated >= existing.lastUpdated) {
+            byKey.set(key, insight);
         }
     });
 
-    return Array.from(byCategory.values());
+    return Array.from(byKey.values());
 }
 
 /**

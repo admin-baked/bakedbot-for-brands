@@ -38,7 +38,9 @@ export abstract class InsightGeneratorBase {
   abstract generate(): Promise<InsightCard[]>;
 
   /**
-   * Save insights to Firestore
+   * Save insights to Firestore using deterministic doc IDs so each run
+   * upserts (overwrites) the same document instead of appending new ones.
+   * Doc ID: slugified `orgId:category:title` — stable across runs, unique per insight type.
    */
   protected async saveInsights(insights: InsightCard[]): Promise<void> {
     if (insights.length === 0) {
@@ -55,15 +57,19 @@ export abstract class InsightGeneratorBase {
       const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h TTL
 
       insights.forEach((insight) => {
+        const slug = `${this.orgId}:${insight.category}:${insight.title}`
+          .toLowerCase()
+          .replace(/[^a-z0-9:_-]/g, '_')
+          .slice(0, 500);
         const ref = db
           .collection('tenants')
           .doc(this.orgId)
           .collection('insights')
-          .doc();
+          .doc(slug);
 
         batch.set(ref, {
           ...insight,
-          id: ref.id,
+          id: slug,
           orgId: this.orgId,
           generatedAt: FieldValue.serverTimestamp(),
           expiresAt,
