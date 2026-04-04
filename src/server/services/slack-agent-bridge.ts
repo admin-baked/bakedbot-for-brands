@@ -459,14 +459,17 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
         const isElroy = personaId === 'elroy';
         const willUseLinusTools = isLinus && linusNeedsTools(enrichedText);
         const botToken = process.env.SLACK_BOT_TOKEN;
+        const linusBotToken = process.env.SLACK_LINUS_BOT_TOKEN;
         const elroyBotToken = process.env.SLACK_ELROY_BOT_TOKEN;
         const imageFiles = files.filter((f: any) => /^image\//.test(f.mimetype || '')).slice(0, 3);
 
         // Always fetch context (history for everyone; Letta for Linus) concurrently with image downloads
         const [historyMessages, lettaSnippets, rawImages] = await Promise.all([
             // Thread/DM history (fetch 30; will drop the current msg which is last)
+            // Use the persona's own bot token — DMs opened with the Linus/Elroy bot
+            // are invisible to the shared bot token.
             (isThreadReply || isDm)
-                ? slackService.getConversationHistory(channel, isThreadReply ? threadTs : undefined, 30).catch(() => [])
+                ? activeSlack.getConversationHistory(channel, isThreadReply ? threadTs : undefined, 30).catch(() => [])
                 : Promise.resolve([] as Awaited<ReturnType<typeof slackService.getConversationHistory>>),
 
             // Letta long-term memory (Linus only) — cached in Redis for 30s to avoid
@@ -493,7 +496,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             })() : Promise.resolve([]),
 
             // Image downloads for vision-capable agents (Linus + Elroy)
-            ((isLinus || isElroy) && (botToken || elroyBotToken) && imageFiles.length > 0)
+            ((isLinus || isElroy) && (linusBotToken || botToken || elroyBotToken) && imageFiles.length > 0)
                 ? Promise.all(imageFiles.map(async (f: any) => {
                     // Normalize MIME type — Slack may include parameters like "; charset=utf-8"
                     const rawMime = String(f.mimetype || '');
@@ -502,7 +505,11 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                         logger.warn(`[SlackBridge] Skipping image with unsupported MIME type: ${rawMime} (normalized: ${normalizedMime})`);
                         return null;
                     }
-                    const downloadToken = (isElroy ? elroyBotToken : botToken) || botToken;
+                    const downloadToken = isElroy
+                        ? (elroyBotToken || botToken)
+                        : isLinus
+                            ? (linusBotToken || botToken)
+                            : botToken;
                     // Prefer url_private_download (force-download) over url_private (may redirect to browser auth)
                     const downloadUrl = f.url_private_download || f.url_private;
                     if (!downloadUrl) {
@@ -598,7 +605,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             } else if (isLinus) {
                 // Full Linus pipeline — GLM-5 for text, Claude for vision.
                 // maxIterations=3 for conversational (no tools expected), 8 for tool-requiring.
-                const linusProgress = makeThrottledProgress(channel, workingMessageTs);
+                const linusProgress = makeThrottledProgress(channel, workingMessageTs, activeSlack);
 
                 const linusResult = await Promise.race([
                     runLinus({
