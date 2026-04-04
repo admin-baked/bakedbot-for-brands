@@ -86,7 +86,8 @@ const nextConfig = {
   // in Next.js 16), so those packages get bundled. The externals function below
   // prevents that regardless of what the adapter does to the config.
   webpack: (config, { isServer }) => {
-    config.parallelism = 1;
+    // We removed config.parallelism = 1 to unthrottle the build. 
+    // Now that OOM inference loops are fixed, multiple cores can compile safely.
     if (isServer) {
       // Packages that must never be bundled by webpack (too large / native bindings).
       // Keep in sync with serverExternalPackages above.
