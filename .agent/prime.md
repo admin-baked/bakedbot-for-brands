@@ -39,7 +39,7 @@ Before ANY work, verify the build is healthy:
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
 **Current Status:** 🟢 `main` green; Social tools live; RTRVR session ownership; Linus Slack fix + greeting fast path + RTRVR browser tools for Elroy/Dashboard (branch `claude/fix-issue-PL9nP`).
-**Recent work (2026-04-04):** Shared `extractJsonPayload` utility (`8238ac78`), migrated 12 files. Loyalty tablet check-in fix (maxTokens, temp, validation).
+**Recent work (2026-04-04):** Linus Slack token routing fix — persona-specific service for history, progress, channel lookup, images (`689d2c98`). Shared `extractJsonPayload` utility, loyalty tablet check-in fix.
 
 ## ðŸ§­ CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 
