@@ -144,7 +144,7 @@ export async function runSmokeyVoiceTurn(
                     session.sendRealtimeInput({ audioStreamEnd: true });
                 },
 
-                onmessage: (msg) => {
+                onmessage: (msg: any) => {
                     // Collect audio parts from model turn
                     const parts = msg.serverContent?.modelTurn?.parts ?? [];
                     for (const part of parts) {
@@ -184,7 +184,7 @@ export async function runSmokeyVoiceTurn(
                     }
                 },
 
-                onerror: (err) => {
+                onerror: (err: any) => {
                     clearTimeout(timeout);
                     logger.error('[GeminiLive] Session error', { error: err });
                     resolve({
@@ -209,7 +209,7 @@ export async function runSmokeyVoiceTurn(
                     },
                 },
             },
-        }).then((s) => {
+        }).then((s: any) => {
             session = s;
         }).catch((err: unknown) => {
             clearTimeout(timeout);

@@ -81,18 +81,9 @@ export interface CRMAIInsight {
     count?: number;
 }
 
-export interface CRMAISearchResult {
-    success?: boolean;
-    result?: {
-        summary: string;
-        users: any[];
-        filtersApplied: string;
-    };
-    error?: string;
-    summary?: string;
-    users?: any[];
-    filtersApplied?: string;
-}
+export type CRMAISearchResult =
+    | { success: true; result: { summary: string; users: any[]; filtersApplied: string } }
+    | { success: false; error: string };
 
 // =============================================================================
 // NY Outreach Types

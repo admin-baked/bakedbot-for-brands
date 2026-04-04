@@ -94,13 +94,17 @@ export async function getPlatformAnalytics(): Promise<PlatformAnalyticsData> {
         ]);
 
         const totalUsers = allUsers.length;
-        const signupsToday = allUsers.filter((user) => user.signupAt >= todayStart.getTime()).length;
-        const signupsWeek = allUsers.filter((user) => user.signupAt >= sevenDaysAgo.getTime()).length;
-        const signupsMonth = allUsers.filter((user) => user.signupAt >= thirtyDaysAgo.getTime()).length;
+        const todayStartMs = todayStart.getTime();
+        const sevenDaysAgoMs = sevenDaysAgo.getTime();
+        const thirtyDaysAgoMs = thirtyDaysAgo.getTime();
 
-        const dailyActiveUsers = allUsers.filter((user) => user.lastLoginAt && user.lastLoginAt >= todayStart.getTime()).length;
-        const weeklyActiveUsers = allUsers.filter((user) => user.lastLoginAt && user.lastLoginAt >= sevenDaysAgo.getTime()).length;
-        const monthlyActiveUsers = allUsers.filter((user) => user.lastLoginAt && user.lastLoginAt >= thirtyDaysAgo.getTime()).length;
+        const signupsToday = allUsers.filter((user) => user.signupAt >= todayStartMs).length;
+        const signupsWeek = allUsers.filter((user) => user.signupAt >= sevenDaysAgoMs).length;
+        const signupsMonth = allUsers.filter((user) => user.signupAt >= thirtyDaysAgoMs).length;
+
+        const dailyActiveUsers = allUsers.filter((user) => user.lastLoginAt && user.lastLoginAt >= todayStartMs).length;
+        const weeklyActiveUsers = allUsers.filter((user) => user.lastLoginAt && user.lastLoginAt >= sevenDaysAgoMs).length;
+        const monthlyActiveUsers = allUsers.filter((user) => user.lastLoginAt && user.lastLoginAt >= thirtyDaysAgoMs).length;
 
         const paidUsers = allUsers.filter((user) => user.mrr > 0);
         const arpu = paidUsers.length > 0 ? crmStats.totalMRR / paidUsers.length : 0;

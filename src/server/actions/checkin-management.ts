@@ -18,6 +18,9 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { createInboxArtifactId, createInboxThreadId } from '@/types/inbox';
 import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { z } from 'zod';
+import type { PublicBrandTheme } from '@/lib/checkin/checkin-management-shared';
+import { DEFAULT_PUBLIC_BRAND_THEME } from '@/lib/checkin/checkin-management-shared';
+export type { PublicBrandTheme } from '@/lib/checkin/checkin-management-shared';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -80,6 +83,8 @@ export interface CheckinVisitRow {
     smsConsent: boolean;
     emailConsent: boolean;
     reviewStatus: string;
+    customerId: string | null;
+    cartProductIds: string[];
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -247,6 +252,8 @@ export async function getRecentCheckinVisits(orgId: string, limit = 25): Promise
                 smsConsent: Boolean(d.smsConsent),
                 emailConsent: Boolean(d.emailConsent),
                 reviewStatus: d.reviewSequence?.status ?? 'unknown',
+                customerId: typeof d.customerId === 'string' ? d.customerId : null,
+                cartProductIds: Array.isArray(d.cartProductIds) ? d.cartProductIds : [],
             };
         });
 
@@ -276,26 +283,31 @@ export interface CheckinBriefingData {
     insight: string;
 }
 
-// ── Public brand logo ──────────────────────────────────────────────────────
+// ── Public brand theme ─────────────────────────────────────────────────────
 
 /**
- * Returns just the logo URL for a given org — no auth required.
- * Used by the public loyalty tablet page.
+ * Returns the public-facing brand theme (logo + colors) for a given org.
+ * No auth required — used by the public loyalty tablet page.
  */
-export async function getPublicBrandLogo(orgId: string): Promise<{ logoUrl: string | null }> {
+export async function getPublicBrandTheme(orgId: string): Promise<PublicBrandTheme> {
     try {
         const db = getAdminFirestore();
         const snap = await db.collection('brandGuides').doc(orgId).get();
-        if (!snap.exists) return { logoUrl: null };
+        if (!snap.exists) return DEFAULT_PUBLIC_BRAND_THEME;
         const data = snap.data() ?? {};
         const logoUrl: string | null =
             data.visualIdentity?.logo?.primary ||
             data.visualIdentity?.logo?.wordmark ||
             data.logo?.primary ||
             null;
-        return { logoUrl };
+        const primary: string = data.visualIdentity?.colors?.primary || DEFAULT_PUBLIC_BRAND_THEME.colors.primary;
+        return {
+            brandName: data.brandName ?? null,
+            logoUrl,
+            colors: { ...DEFAULT_PUBLIC_BRAND_THEME.colors, primary },
+        };
     } catch {
-        return { logoUrl: null };
+        return DEFAULT_PUBLIC_BRAND_THEME;
     }
 }
 

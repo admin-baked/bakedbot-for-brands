@@ -12,7 +12,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useUserRole } from '@/hooks/use-user-role';
 import { getMyWarmupStatus, startEmailWarmup, pauseEmailWarmup, getEmailWarmupLogs } from '@/server/actions/email-warmup';
-import type { WarmupStatus, WarmupLog, WarmupScheduleType } from '@/server/services/email-warmup';
+import type { WarmupStatus, WarmupLog, WarmupScheduleType } from '@/server/services/email-warmup-types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
