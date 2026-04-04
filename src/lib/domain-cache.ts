@@ -42,11 +42,12 @@ export async function getCachedTenant(domain: string): Promise<string | null | u
     if (l1) l1Cache.delete(normalizedDomain);
 
     // L2 check (Redis)
-    const redisValue = await getCached<string | null>(CachePrefix.DOMAIN, normalizedDomain);
+    const redisValue = await getCached<string>(CachePrefix.DOMAIN, normalizedDomain);
     if (redisValue !== null) {
-        // Promote to L1
-        setL1(normalizedDomain, redisValue);
-        return redisValue;
+        // Decode null sentinel — '__null__' means domain was looked up but has no tenant
+        const decoded = redisValue === '__null__' ? null : redisValue;
+        setL1(normalizedDomain, decoded);
+        return decoded;
     }
 
     return undefined; // Not in any cache

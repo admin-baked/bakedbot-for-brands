@@ -13,6 +13,7 @@ import { generateEmbedding } from "@/ai/utils/generate-embedding";
 import { FieldValue } from "firebase-admin/firestore";
 import { buildChunkWithHeader, ChunkContext } from "./chunking-service";
 import { getCached, setCached, CachePrefix, CacheTTL } from '@/lib/cache';
+import { cosineSimilarity } from '@/lib/math/cosine-similarity';
 import {
     isVectorAvailable,
     vectorUpsert,
@@ -42,19 +43,6 @@ export interface IndexOptions {
     metadata?: Record<string, unknown>;
     /** Contextual information to prepend as header (State, City, Category, etc.) */
     chunkContext?: ChunkContext;
-}
-
-// Firestore fallback: cosine similarity for client-side ranking
-function cosineSimilarity(a: number[], b: number[]) {
-    let dot = 0;
-    let normA = 0;
-    let normB = 0;
-    for (let i = 0; i < a.length; i++) {
-        dot += a[i] * b[i];
-        normA += a[i] * a[i];
-        normB += b[i] * b[i];
-    }
-    return dot / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
 export const firestoreVectorSearch = {

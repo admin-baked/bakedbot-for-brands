@@ -198,29 +198,35 @@ async function indexFileSymbols(filePath: string, projectRoot: string): Promise<
     const symbols = extractSymbols(content, filePath);
     if (symbols.length === 0) return 0;
 
-    // Generate embeddings for each symbol (batched for efficiency)
+    // Generate embeddings in parallel (5 at a time to avoid API rate limits)
     const items: Array<{ id: string; vector: number[]; metadata: Record<string, unknown>; content: string }> = [];
 
-    for (const sym of symbols) {
-        // Build search text: name + signature + description
-        const searchText = [sym.name, sym.signature, sym.description || ''].join(' ').substring(0, 200);
-        try {
-            const embedding = await generateEmbedding(searchText);
-            items.push({
-                id: sym.id,
-                vector: embedding,
-                metadata: {
-                    name: sym.name,
-                    filePath: sym.filePath,
-                    line: sym.line,
-                    type: sym.type,
-                    exported: sym.exported,
-                },
-                content: `${sym.signature}${sym.description ? ` — ${sym.description}` : ''}`,
-            });
-        } catch {
-            // Skip symbols that fail to embed
-        }
+    for (let i = 0; i < symbols.length; i += 5) {
+        const batch = symbols.slice(i, i + 5);
+        const results = await Promise.all(
+            batch.map(async (sym) => {
+                const searchText = [sym.name, sym.signature, sym.description || ''].join(' ').substring(0, 200);
+                try {
+                    const embedding = await generateEmbedding(searchText);
+                    return {
+                        id: sym.id,
+                        vector: embedding,
+                        metadata: {
+                            name: sym.name,
+                            filePath: sym.filePath,
+                            line: sym.line,
+                            type: sym.type,
+                            exported: sym.exported,
+                        },
+                        content: `${sym.signature}${sym.description ? ` — ${sym.description}` : ''}`,
+                    };
+                } catch (err) {
+                    logger.debug('[CodeCache] Embedding failed for symbol', { id: sym.id, error: err instanceof Error ? err.message : String(err) });
+                    return null;
+                }
+            })
+        );
+        items.push(...results.filter((r): r is NonNullable<typeof r> => r !== null));
     }
 
     if (items.length > 0) {
@@ -262,8 +268,8 @@ export async function indexCodebase(projectRoot?: string): Promise<{ filesProces
 
     try {
         await walk(srcDir);
-    } catch {
-        logger.error('[CodeCache] Failed to walk src directory');
+    } catch (err) {
+        logger.error('[CodeCache] Failed to walk src directory', { error: err instanceof Error ? err.message : String(err) });
         return { filesProcessed: 0, symbolsIndexed: 0 };
     }
 

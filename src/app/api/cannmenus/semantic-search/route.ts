@@ -11,28 +11,10 @@ import { createServerClient } from "@/firebase/server-client";
 import { logger } from '@/lib/logger';
 import { getCached, setCached, CachePrefix, CacheTTL } from '@/lib/cache';
 import { isVectorAvailable, vectorSearch } from '@/lib/vector';
+import { cosineSimilarity } from '@/lib/math/cosine-similarity';
 
 // Force dynamic rendering - prevents build-time evaluation of Genkit imports
 export const dynamic = 'force-dynamic';
-// Simple cosine similarity between two vectors
-function cosineSimilarity(a: number[], b: number[]): number {
-  if (!a.length || !b.length || a.length !== b.length) return 0;
-
-  let dot = 0;
-  let normA = 0;
-  let normB = 0;
-
-  for (let i = 0; i < a.length; i++) {
-    const av = a[i];
-    const bv = b[i];
-    dot += av * bv;
-    normA += av * av;
-    normB += bv * bv;
-  }
-
-  if (!normA || !normB) return 0;
-  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
-}
 
 // POST /api/cannmenus/semantic-search
 // Body: { query: string, topK?: number, brandId?: string, markets?: string[] }

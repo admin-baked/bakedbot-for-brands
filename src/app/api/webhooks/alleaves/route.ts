@@ -323,9 +323,11 @@ async function handleOrderEvent(
         eventName,
     });
 
-    // Invalidate orders + customers cache
-    await posCache.invalidate(cacheKeys.orders(orgId));
-    await posCache.invalidate(cacheKeys.customers(orgId));
+    // Invalidate orders + customers cache (parallel — independent operations)
+    await Promise.all([
+        posCache.invalidate(cacheKeys.orders(orgId)),
+        posCache.invalidate(cacheKeys.customers(orgId)),
+    ]);
 
     const orderId = orderData.id?.toString();
     if (!orderId) return;

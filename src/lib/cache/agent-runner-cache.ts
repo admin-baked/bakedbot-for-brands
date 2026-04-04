@@ -19,6 +19,9 @@ interface L1Entry<T> {
 /** L1 TTL in ms (30 seconds — keep hot data local) */
 const L1_TTL = 30 * 1000;
 
+/** Maximum L1 entries (prevents unbounded growth from unique KB search queries) */
+const MAX_L1_SIZE = 500;
+
 class AgentRunnerCache {
     private l1 = new Map<string, L1Entry<unknown>>();
 
@@ -79,6 +82,10 @@ class AgentRunnerCache {
     }
 
     private setL1<T>(key: string, value: T): void {
+        if (this.l1.size >= MAX_L1_SIZE) {
+            const keysToRemove = Array.from(this.l1.keys()).slice(0, 50);
+            keysToRemove.forEach(k => this.l1.delete(k));
+        }
         this.l1.set(key, {
             value,
             expiresAt: Date.now() + L1_TTL,
