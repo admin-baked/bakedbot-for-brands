@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; Tablet check-in: offer step + Smokey-centric recs + male voice (Fenrir) + budtender context | **Last update:** 2026-04-04 (tablet personalization + Smokey redesign `588d16892`)
+**Current Status:** 🟢 `main` green; Elroy holiday hours tool (Google Places) + proactive holiday briefing block in daily cron | **Last update:** 2026-04-04 (Elroy holiday hours + proactive briefing `1dd4a0492`)
 
 ---
 
