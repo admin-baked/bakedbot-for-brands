@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-04-04 (Linus Slack token routing fix — persona-specific service for all ops)
+**Current Status:** 🟢 `main` green; Remotion bundle now included in standalone output (Generate Long Video fixed) | **Last update:** 2026-04-04 (remotion bundle fix + Linus Slack token routing)
 
 ---
 
