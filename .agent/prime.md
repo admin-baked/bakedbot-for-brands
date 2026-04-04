@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; Elroy holiday hours (Google Places) + proactive Holiday Hours Watch block in daily briefing cron.
-**Recent work (2026-04-04):** `holiday-hours.ts` service + Elroy `get_competitor_holiday_hours` tool + daily briefing holiday block + tablet inventory cache (`1dd4a0492`).
+**Current Status:** 🟢 `main` green; Check-in flow optimizations: inventory cache (5-min TTL), auto-submit quick lookup, early offer prefetch, mood pre-warm.
+**Recent work (2026-04-04):** `getCachedMenuProducts` + `prefetchTabletInventory` + auto-submit quick lookup + early offer fetch + dynamic CTA (`1dd4a0492`).
 
 ## ðŸ§­ CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 

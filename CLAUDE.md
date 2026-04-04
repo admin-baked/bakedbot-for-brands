@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; Elroy holiday hours tool (Google Places) + proactive holiday briefing block in daily cron | **Last update:** 2026-04-04 (Elroy holiday hours + proactive briefing `1dd4a0492`)
+**Current Status:** 🟢 `main` green; Check-in flow optimizations: inventory cache, auto-submit quick lookup, early offer prefetch, mood pre-warm | **Last update:** 2026-04-04 (check-in flow optimizations `1dd4a0492`)
 
 ---
 
