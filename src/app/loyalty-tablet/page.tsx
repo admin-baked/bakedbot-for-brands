@@ -1144,7 +1144,7 @@ export default function LoyaltyTabletPage() {
                         >
                             {loading ? 'Saving...' : 'Skip for now'}
                         </button>
-                        <button onClick={() => setStep(enteredViaQuickLookup ? 'welcome' : isReturningCustomer ? 'phone' : 'offer')} className="text-sm hover:opacity-70" style={{ color: faintTextColor }}>&larr; Back</button>
+                        <button onClick={() => enteredViaQuickLookup ? resetToWelcome() : setStep(isReturningCustomer ? 'phone' : 'offer')} className="text-sm hover:opacity-70" style={{ color: faintTextColor }}>&larr; Back</button>
                     </motion.div>
                 )}
 
