@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; Social tools live (Craig: Twitter/Reddit post/thread; Leo: twitter_enrich + browser_act on any service); RTRVR session ownership pattern (Firestore-stored cookies, injected per-call); Linus Slack fix + greeting fast path + RTRVR browser tools for Elroy/Dashboard (branch `claude/fix-issue-PL9nP`) | **Last update:** 2026-04-04 (social tools + RTRVR + Linus Slack fix)
+**Current Status:** 🟢 Passing | **Last update:** 2026-04-04 (extractJsonPayload shared utility, loyalty tablet check-in fix)
 
 ---
 
