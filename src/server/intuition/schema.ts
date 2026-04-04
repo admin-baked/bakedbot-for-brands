@@ -276,6 +276,8 @@ export interface AgentMessage {
     toAgent: AgentName | 'broadcast';
     topic: MessageTopic;
     payload: Record<string, any>;
+    /** Typed handoff artifact — preferred over loose payload for inter-agent contracts */
+    handoff?: import('@/types/handoff-artifacts').HandoffArtifact;
     requiredReactions: AgentName[];
     reactions: Partial<Record<AgentName, {
         acknowledged: boolean;
