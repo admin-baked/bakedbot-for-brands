@@ -76,7 +76,7 @@ const nextConfig = {
   // Include src/skills/ static files (SKILL.md, eval_spec.json, hard_rules.json, *.jsonl, metadata.json)
   // in the standalone build output so server actions can read them via fs at runtime.
   outputFileTracingIncludes: {
-    '/': ['./src/skills/**/*'],
+    '/': ['./src/skills/**/*', './.remotion/bundle/**/*'],
   },
 
   // Webpack memory optimization — serial compilation uses less peak memory.
