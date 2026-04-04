@@ -80,6 +80,7 @@ const captureSchema = z.object({
     birthday: z.string().max(10).optional(),           // "MM/DD" format
     visitPreferences: z.array(z.string()).max(5).optional(), // ['first-timer','recreational',...]
     offerProductId: z.string().optional(),              // claimed deal product
+    customerId: z.string().optional(),                  // known customer from quick lookup
 });
 
 type MoodRecommendationConfig = {
@@ -575,12 +576,18 @@ export async function captureTabletLead(params: {
     birthday?: string;
     visitPreferences?: string[];
     offerProductId?: string;
+    customerId?: string;
 }): Promise<TabletLeadResult> {
     try {
         const validated = captureSchema.parse(params);
         const { orgId, firstName, email, phone, emailConsent, smsConsent, mood, cartProductIds, bundleAdded, birthday, visitPreferences, offerProductId } = validated;
 
-        if (!phone) {
+        // Known returning customer from quick lookup — resolve phone via lookupCandidate
+        const lookupCandidate = !phone && params.customerId
+            ? { kind: 'customer' as const, id: params.customerId }
+            : undefined;
+
+        if (!phone && !lookupCandidate) {
             return { success: false, isNewLead: false, error: 'Phone required' };
         }
 
@@ -588,7 +595,7 @@ export async function captureTabletLead(params: {
             orgId,
             firstName,
             email: email || undefined,
-            phone,
+            phone: phone || undefined,
             emailConsent,
             smsConsent,
             source: 'loyalty_tablet_checkin',
@@ -596,6 +603,7 @@ export async function captureTabletLead(params: {
             mood,
             cartProductIds,
             bundleAdded,
+            lookupCandidate,
         });
 
         // Persist personalization dossier fields to the customer document
