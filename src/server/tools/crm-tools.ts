@@ -184,7 +184,7 @@ export async function lookupCustomer(
         const docId = identifier;
         const doc = await firestore.collection('customers').doc(docId).get();
         if (doc.exists && doc.data()?.orgId === orgId) {
-            return formatCustomerResult(doc.id, doc.data()!, orgId);
+            return await formatCustomerResult(doc.id, doc.data()!, orgId);
         }
     }
 
@@ -196,7 +196,7 @@ export async function lookupCustomer(
             .limit(1)
             .get();
         if (!snap.empty) {
-            return formatCustomerResult(snap.docs[0].id, snap.docs[0].data(), orgId);
+            return await formatCustomerResult(snap.docs[0].id, snap.docs[0].data(), orgId);
         }
     }
 
@@ -210,7 +210,7 @@ export async function lookupCustomer(
                 .limit(1)
                 .get();
             if (!snap.empty) {
-                return formatCustomerResult(snap.docs[0].id, snap.docs[0].data(), orgId);
+                return await formatCustomerResult(snap.docs[0].id, snap.docs[0].data(), orgId);
             }
         }
     }
@@ -276,12 +276,12 @@ function preferCachedArray(currentValue: unknown, cachedValue: unknown): unknown
     return Array.isArray(currentValue) ? currentValue : undefined;
 }
 
-function mergeCustomerDocWithCachedProfile(
+async function mergeCustomerDocWithCachedProfile(
     id: string,
     data: FirebaseFirestore.DocumentData,
     orgId: string,
-): FirebaseFirestore.DocumentData {
-    const cachedCustomer = getCachedCustomerProfile(id, orgId);
+): Promise<FirebaseFirestore.DocumentData> {
+    const cachedCustomer = await getCachedCustomerProfile(id, orgId);
     if (!cachedCustomer) {
         return data;
     }
@@ -321,12 +321,12 @@ function mergeCustomerDocWithCachedProfile(
     };
 }
 
-function formatCustomerResult(
+async function formatCustomerResult(
     id: string,
     data: FirebaseFirestore.DocumentData,
     orgId: string,
-): { summary: string; customer: Record<string, unknown> } {
-    const resolvedData = mergeCustomerDocWithCachedProfile(id, data, orgId);
+): Promise<{ summary: string; customer: Record<string, unknown> }> {
+    const resolvedData = await mergeCustomerDocWithCachedProfile(id, data, orgId);
     const totalSpent = resolvedData.totalSpent || 0;
     const orderCount = resolvedData.orderCount || 0;
     const avgOrderValue = resolvedData.avgOrderValue || (orderCount > 0 ? totalSpent / orderCount : 0);

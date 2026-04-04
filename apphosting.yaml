@@ -383,6 +383,21 @@ env:
     secret: UPSTASH_REDIS_TOKEN
     availability:
       - RUNTIME
+  # Vector Search (Upstash Vector) - Native similarity search
+  # Setup: Create Upstash Vector index (768 dimensions, cosine metric) at console.upstash.com
+  # Then run:
+  #   echo -n "vector-url" | gcloud secrets create UPSTASH_VECTOR_REST_URL --data-file=- --project=studio-567050101-bc6e8
+  #   echo -n "vector-token" | gcloud secrets create UPSTASH_VECTOR_REST_TOKEN --data-file=- --project=studio-567050101-bc6e8
+  #   firebase apphosting:secrets:grantaccess UPSTASH_VECTOR_REST_URL --backend=bakedbot-prod
+  #   firebase apphosting:secrets:grantaccess UPSTASH_VECTOR_REST_TOKEN --backend=bakedbot-prod
+  - variable: UPSTASH_VECTOR_REST_URL
+    secret: UPSTASH_VECTOR_REST_URL
+    availability:
+      - RUNTIME
+  - variable: UPSTASH_VECTOR_REST_TOKEN
+    secret: UPSTASH_VECTOR_REST_TOKEN
+    availability:
+      - RUNTIME
   - variable: NEXT_PUBLIC_APP_URL
     value: "https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app"
     availability:
