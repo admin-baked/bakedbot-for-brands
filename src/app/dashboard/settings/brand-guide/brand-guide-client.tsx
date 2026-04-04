@@ -112,11 +112,15 @@ function getMissingFields(g: BrandGuide): MissingField[] {
 }
 
 const TAB_ICONS: Record<string, React.ReactNode> = {
-  visual:     <Palette className="h-3 w-3" />,
-  voice:      <MessageSquare className="h-3 w-3" />,
-  messaging:  <Target className="h-3 w-3" />,
-  compliance: <Shield className="h-3 w-3" />,
-  assets:     <ImageIcon className="h-3 w-3" />,
+  visual:      <Palette className="h-3 w-3" />,
+  voice:       <MessageSquare className="h-3 w-3" />,
+  messaging:   <Target className="h-3 w-3" />,
+  compliance:  <Shield className="h-3 w-3" />,
+  assets:      <ImageIcon className="h-3 w-3" />,
+  competitors: <Search className="h-3 w-3" />,
+  abtesting:   <TrendingUp className="h-3 w-3" />,
+  history:     <History className="h-3 w-3" />,
+  export:      <FileText className="h-3 w-3" />,
 };
 
 function CompletenessChecklist({ brandGuide, onTabChange }: { brandGuide: BrandGuide; onTabChange: (tab: string) => void }) {
@@ -149,7 +153,9 @@ function CompletenessChecklist({ brandGuide, onTabChange }: { brandGuide: BrandG
             onClick={() => onTabChange(f.tab)}
             className="flex items-center gap-2 text-left px-3 py-2 rounded-md bg-background border border-border hover:border-amber-400 hover:bg-amber-500/5 transition-colors group"
           >
-            <span className="text-muted-foreground group-hover:text-amber-500 shrink-0">{TAB_ICONS[f.tab]}</span>
+            <span className="text-muted-foreground group-hover:text-amber-500 shrink-0">
+              {TAB_ICONS[f.tab] || <Info className="h-3 w-3" />}
+            </span>
             <span className="text-sm flex-1 truncate">{f.label}</span>
             <Badge variant="outline" className="text-xs shrink-0 text-amber-600 border-amber-400/50">+{f.points}pts</Badge>
             <ChevronRight className="h-3 w-3 text-muted-foreground group-hover:text-amber-500 shrink-0" />

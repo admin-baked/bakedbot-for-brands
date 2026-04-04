@@ -144,9 +144,10 @@ export async function runSmokeyVoiceTurn(
                     session.sendRealtimeInput({ audioStreamEnd: true });
                 },
 
-                onmessage: (msg) => {
+                onmessage: (msg: unknown) => {
                     // Collect audio parts from model turn
-                    const parts = msg.serverContent?.modelTurn?.parts ?? [];
+                    const msgData = msg as any;
+                    const parts = msgData.serverContent?.modelTurn?.parts ?? [];
                     for (const part of parts) {
                         if (part.inlineData?.data && part.inlineData.mimeType) {
                             audioParts.push(part.inlineData.data);
@@ -160,13 +161,13 @@ export async function runSmokeyVoiceTurn(
                     }
 
                     // Capture input transcript if provided
-                    const inputParts = (msg.serverContent as any)?.inputTranscription?.parts ?? [];
+                    const inputParts = msgData.serverContent?.inputTranscription?.parts ?? [];
                     for (const p of inputParts) {
                         if (p.text) inputTranscript += p.text;
                     }
 
                     // Turn complete → resolve
-                    if (msg.serverContent?.turnComplete) {
+                    if (msgData.serverContent?.turnComplete) {
                         clearTimeout(timeout);
                         session.close();
                         logger.info('[GeminiLive] Turn complete', {
@@ -184,7 +185,7 @@ export async function runSmokeyVoiceTurn(
                     }
                 },
 
-                onerror: (err) => {
+                onerror: (err: unknown) => {
                     clearTimeout(timeout);
                     logger.error('[GeminiLive] Session error', { error: err });
                     resolve({
@@ -209,7 +210,7 @@ export async function runSmokeyVoiceTurn(
                     },
                 },
             },
-        }).then((s) => {
+        }).then((s: typeof session) => {
             session = s;
         }).catch((err: unknown) => {
             clearTimeout(timeout);

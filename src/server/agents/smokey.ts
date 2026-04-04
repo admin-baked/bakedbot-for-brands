@@ -348,7 +348,7 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                     const { sendHandoff } = await import('../intuition/handoff');
                     const { createHandoff } = await import('@/types/handoff-artifacts');
                     type RSA = import('@/types/handoff-artifacts').RecommendationSetArtifact;
-                    const smokeOrgId = (brandMemory.brand_profile as { orgId?: string })?.orgId || (brandMemory.brand_profile as { id?: string })?.id || '';
+                    const smokeOrgId = String((brandMemory.brand_profile as { orgId?: string })?.orgId || (brandMemory.brand_profile as { id?: string })?.id || '');
                     const artifact = createHandoff<RSA>({
                         kind: 'recommendation_set',
                         fromAgent: 'smokey',

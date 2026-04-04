@@ -292,11 +292,12 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
                 // Emit typed CompetitiveIntelArtifact for downstream agents (Craig, Pops)
                 try {
                     const { sendHandoff } = await import('../intuition/handoff');
+                    const ezalOrgIdStr = String(ezalOrgId);
                     const artifact = createHandoff<CompetitiveIntelArtifact>({
                         kind: 'competitive_intel',
                         fromAgent: 'ezal',
                         toAgent: 'broadcast',
-                        orgId: ezalOrgId,
+                        orgId: ezalOrgIdStr,
                         confidence: 0.7,
                         payload: {
                             competitorName: 'unknown',

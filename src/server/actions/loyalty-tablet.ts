@@ -111,6 +111,8 @@ type RawMenuProduct = {
     retailPrice?: number | string;
     latest_price?: number | string;
     current_price?: number | string;
+    selling_price?: number | string;
+    salePrice?: number | string;
     brandName?: string;
     brand?: string;
     brand_name?: string;
@@ -684,7 +686,7 @@ export async function getTabletOffer(orgId: string): Promise<{ success: boolean;
             id: (p.id ?? p.productId ?? p.externalId ?? p.sku_id ?? '') as string,
             name: ((p.name ?? p.product_name ?? p.productName ?? '') as string).trim(),
             category: normalizeCategoryName((p.category ?? p.category_name ?? '') as string),
-            price: Number(p.price ?? p.retailPrice ?? p.latest_price ?? p.current_price ?? 0),
+            price: Number(p.price ?? p.selling_price ?? p.salePrice ?? p.retailPrice ?? p.latest_price ?? p.current_price ?? 0),
             imageUrl: getProductImageUrl(p),
         });
 

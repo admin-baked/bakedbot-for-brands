@@ -297,11 +297,12 @@ Respond to the user with the insight. Be precise. Format your response for Slack
             // Emit typed AudienceInsightArtifact for downstream agents (Craig, Smokey)
             try {
                 const { sendHandoff } = await import('../intuition/handoff');
+                const orgIdStr = String(orgId);
                 const artifact = createHandoff<AudienceInsightArtifact>({
                     kind: 'audience_insight',
                     fromAgent: 'pops',
                     toAgent: 'broadcast',
-                    orgId,
+                    orgId: orgIdStr,
                     confidence: 0.7,
                     payload: {
                         segmentId: 'all',
