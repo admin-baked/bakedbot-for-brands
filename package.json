@@ -72,7 +72,9 @@
     "remotion:bundle": "node scripts/bundle-remotion.mjs",
     "smoke:proactive": "node ./scripts/run-proactive-smoke.cjs",
     "smoke:analytics": "node --env-file=.env.local scripts/smoke-analytics.mjs",
-    "firebase:apphosting": "node scripts/firebase-apphosting.mjs"
+    "firebase:apphosting": "node scripts/firebase-apphosting.mjs",
+    "gh:checks": "node scripts/gh-commit-checks.mjs",
+    "gh:checks:wait": "node scripts/gh-commit-checks.mjs wait"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.0",
