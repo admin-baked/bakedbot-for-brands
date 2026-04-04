@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; LinkedIn agent tools live (Craig posts, Leo DMs + enriches); standardized RTRVR service auth with live SSE browser viewer; Proxycurl replaced with Voyager API | **Last update:** 2026-04-03 (LinkedIn integration + live browser SSE viewer)
+**Current Status:** 🟢 `main` green; Upstash Redis L1/L2 caching across all services; Upstash Vector native similarity search; code embeddings cache for semantic code search; Linus + Elroy Slack agents cached | **Last update:** 2026-04-04 (Redis caching + Upstash Vector + code embeddings cache)
 
 ---
 

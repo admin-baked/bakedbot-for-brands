@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; LinkedIn agent tools live (Craig posts, Leo DMs + enriches via RTRVR); standardized service auth + live SSE browser viewer; Proxycurl replaced.
-**Recent work (2026-04-03):** `cb76ad1ac` — LinkedIn integration + RTRVR auth standardization + live Puppeteer SSE screenshot viewer during login flows
+**Current Status:** 🟢 `main` green; Upstash Redis L1/L2 caching + Upstash Vector native similarity search + code embeddings cache for all dashboard roles.
+**Recent work (2026-04-04):** `684b4cec` — Redis caching (7 caches migrated), Upstash Vector search, code embeddings cache, Linus search_code_symbols tool
 
 ## ðŸ§­ CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 
