@@ -53,7 +53,7 @@ export const systemSetConfig = async (updates: Record<string, any>) => {
         logger.info('[System Control] Configuration updated:', Object.keys(updates));
 
         // Invalidate config cache after mutation
-        toolCache.invalidate('system_getConfig');
+        await toolCache.invalidate('system_getConfig');
 
         return {
             success: true,
@@ -188,15 +188,15 @@ export const systemGetStats = async () => {
  */
 export const systemClearCache = async (cacheType?: string) => {
     try {
-        const clearedCount = toolCache.clear(cacheType ? `${cacheType}_` : undefined);
+        const clearedCount = await toolCache.clear(cacheType ? `${cacheType}_` : undefined);
         const stats = toolCache.getStats();
 
         return {
             success: true,
-            message: `Cache cleared (${clearedCount} entries), ${stats.entries} entries remaining`,
+            message: `Cache cleared (${clearedCount} entries), ${stats.l1Entries} entries remaining`,
             stats: {
                 entriesCleared: clearedCount,
-                entriesRemaining: stats.entries,
+                entriesRemaining: stats.l1Entries,
                 hitRate: stats.hitRate.toFixed(1) + '%',
             },
             timestamp: new Date().toISOString(),

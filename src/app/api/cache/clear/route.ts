@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'orgId required' }, { status: 400 });
     }
 
-    posCache.invalidateOrg(orgId);
+    await posCache.invalidateOrg(orgId);
 
     return NextResponse.json({
         success: true,

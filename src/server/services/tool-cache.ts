@@ -1,43 +1,46 @@
 /**
  * Tool Cache Service
  *
- * In-memory caching layer for Super User agent tools with configurable TTL.
+ * Redis-backed L2 cache with in-memory L1 for Super User agent tools.
  * Reduces Firestore queries for read-heavy operations (analytics, listings).
- * Auto-invalidates on CloudFirestore write events.
+ *
+ * L1 (in-memory): 30s TTL, prevents Redis round-trips for rapid-fire tool calls.
+ * L2 (Upstash Redis): Configurable TTL, shared across server instances.
  *
  * Usage:
- *   const result = await withCache('platform_getAnalytics', () => getPlatformAnalytics(), 300); // 5 min TTL
+ *   const result = await toolCache.withCache('platform_getAnalytics', () => getPlatformAnalytics(), 300);
  */
 
+import { getCached, setCached, invalidateCache, invalidateCachePattern as redisInvalidatePattern, CachePrefix } from '@/lib/cache';
 import { logger } from '@/lib/logger';
 
-interface CacheEntry<T> {
+/** L1 in-memory entry */
+interface L1Entry<T> {
     data: T;
-    expiresAt: number;  // timestamp in ms
+    expiresAt: number;
     createdAt: number;
-    hits: number;       // for metrics
+    hits: number;
 }
+
+/** L1 TTL (30 seconds) */
+const L1_TTL = 30 * 1000;
 
 interface CacheStats {
     totalHits: number;
     totalMisses: number;
     hitRate: number;
-    entries: number;
+    l1Entries: number;
 }
 
 class ToolCacheService {
-    private cache = new Map<string, CacheEntry<any>>();
+    private l1 = new Map<string, L1Entry<unknown>>();
     private stats = {
         hits: 0,
         misses: 0,
     };
 
     /**
-     * Get cached value or fetch fresh data
-     *
-     * @param key Cache key (e.g., 'platform_getAnalytics')
-     * @param fetcher Async function that fetches fresh data
-     * @param ttlSeconds Time-to-live in seconds (default: 300 = 5 min)
+     * Get cached value or fetch fresh data (L1 → L2 Redis → fetcher)
      */
     async withCache<T>(
         key: string,
@@ -45,14 +48,24 @@ class ToolCacheService {
         ttlSeconds: number = 300
     ): Promise<T> {
         const now = Date.now();
-        const cached = this.cache.get(key);
 
-        // Return cached data if still valid
-        if (cached && cached.expiresAt > now) {
-            cached.hits++;
+        // L1 check
+        const l1Entry = this.l1.get(key);
+        if (l1Entry && l1Entry.expiresAt > now) {
+            l1Entry.hits++;
             this.stats.hits++;
-            logger.debug(`[Tool Cache] HIT ${key} (age: ${Math.round((now - cached.createdAt) / 1000)}s)`);
-            return cached.data as T;
+            logger.debug(`[Tool Cache] L1 HIT ${key}`);
+            return l1Entry.data as T;
+        }
+        if (l1Entry) this.l1.delete(key);
+
+        // L2 check (Redis)
+        const redisValue = await getCached<T>(CachePrefix.TOOL, key);
+        if (redisValue !== null) {
+            this.stats.hits++;
+            this.setL1(key, redisValue);
+            logger.debug(`[Tool Cache] L2 HIT ${key}`);
+            return redisValue;
         }
 
         // Cache miss — fetch fresh data
@@ -61,74 +74,73 @@ class ToolCacheService {
 
         try {
             const data = await fetcher();
-            const expiresAt = now + ttlSeconds * 1000;
 
-            // Store in cache
-            this.cache.set(key, {
-                data,
-                expiresAt,
-                createdAt: now,
-                hits: 1,
-            });
+            // Store in L1 + L2
+            this.setL1(key, data);
+            await setCached(CachePrefix.TOOL, key, data, ttlSeconds);
 
             logger.debug(`[Tool Cache] STORED ${key} (TTL: ${ttlSeconds}s)`);
             return data;
-        } catch (error: any) {
+        } catch (error: unknown) {
             logger.error(`[Tool Cache] FETCH FAILED ${key}`, { error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
 
     /**
-     * Invalidate specific cache entry (called after mutations)
+     * Invalidate specific cache entry (L1 + L2)
      */
-    invalidate(key: string): void {
-        const existed = this.cache.has(key);
-        this.cache.delete(key);
-        logger.debug(`[Tool Cache] INVALIDATED ${key}${existed ? '' : ' (was not cached)'}`);
+    async invalidate(key: string): Promise<void> {
+        this.l1.delete(key);
+        await invalidateCache(CachePrefix.TOOL, key);
+        logger.debug(`[Tool Cache] INVALIDATED ${key}`);
     }
 
     /**
-     * Invalidate multiple related cache entries (e.g., after user approval, invalidate user listings)
+     * Invalidate multiple related cache entries (L1 + L2)
      */
-    invalidatePattern(pattern: string | RegExp): number {
+    async invalidatePattern(pattern: string | RegExp): Promise<number> {
         const regex = typeof pattern === 'string' ? new RegExp(`^${pattern}`) : pattern;
         let count = 0;
 
-        for (const key of this.cache.keys()) {
+        // Clear L1
+        for (const key of this.l1.keys()) {
             if (regex.test(key)) {
-                this.cache.delete(key);
+                this.l1.delete(key);
                 count++;
             }
         }
 
-        logger.debug(`[Tool Cache] INVALIDATED PATTERN ${regex} (${count} entries)`);
+        // Clear L2 (Redis pattern)
+        const redisPattern = typeof pattern === 'string' ? `${CachePrefix.TOOL}:${pattern}*` : `${CachePrefix.TOOL}:*`;
+        await redisInvalidatePattern(redisPattern);
+
+        logger.debug(`[Tool Cache] INVALIDATED PATTERN ${regex} (${count} L1 entries)`);
         return count;
     }
 
     /**
-     * Clear all cache (e.g., system_clearCache tool)
+     * Clear all cache (L1 + optionally type-filtered)
      */
-    clear(type?: string): number {
-        const before = this.cache.size;
+    async clear(type?: string): Promise<number> {
+        const before = this.l1.size;
 
         if (type) {
-            // Clear specific type (e.g., 'analytics')
             const regex = new RegExp(`^${type}`);
-            for (const key of this.cache.keys()) {
+            for (const key of this.l1.keys()) {
                 if (regex.test(key)) {
-                    this.cache.delete(key);
+                    this.l1.delete(key);
                 }
             }
+            await redisInvalidatePattern(`${CachePrefix.TOOL}:${type}*`);
             logger.info(`[Tool Cache] CLEARED TYPE ${type}`);
         } else {
-            // Clear all
-            this.cache.clear();
+            this.l1.clear();
+            await redisInvalidatePattern(`${CachePrefix.TOOL}:*`);
             logger.info(`[Tool Cache] CLEARED ALL`);
         }
 
-        const after = this.cache.size;
-        return before - after;
+        return before - this.l1.size;
     }
 
     /**
@@ -140,12 +152,12 @@ class ToolCacheService {
             totalHits: this.stats.hits,
             totalMisses: this.stats.misses,
             hitRate: total > 0 ? (this.stats.hits / total) * 100 : 0,
-            entries: this.cache.size,
+            l1Entries: this.l1.size,
         };
     }
 
     /**
-     * List all cached entries (for debugging)
+     * List all L1 cached entries (for debugging)
      */
     listEntries(): Array<{
         key: string;
@@ -154,7 +166,7 @@ class ToolCacheService {
         hits: number;
     }> {
         const now = Date.now();
-        const entries = Array.from(this.cache.entries())
+        return Array.from(this.l1.entries())
             .map(([key, entry]) => ({
                 key,
                 ttlRemaining: Math.max(0, Math.round((entry.expiresAt - now) / 1000)),
@@ -162,17 +174,24 @@ class ToolCacheService {
                 hits: entry.hits,
             }))
             .sort((a, b) => b.hits - a.hits);
-
-        return entries;
     }
 
     /**
-     * Reset statistics (e.g., for daily metrics)
+     * Reset statistics
      */
     resetStats(): void {
         const stats = this.getStats();
         logger.info(`[Tool Cache] Stats before reset:`, stats);
         this.stats = { hits: 0, misses: 0 };
+    }
+
+    private setL1<T>(key: string, data: T): void {
+        this.l1.set(key, {
+            data,
+            expiresAt: Date.now() + L1_TTL,
+            createdAt: Date.now(),
+            hits: 1,
+        });
     }
 }
 
@@ -182,8 +201,7 @@ const toolCache = new ToolCacheService();
 export { ToolCacheService, toolCache };
 
 /**
- * Predefined cache configurations for all tools
- * Lower TTL for frequently-changing data, higher TTL for stable data
+ * Predefined cache configurations for all tools (TTL in seconds)
  */
 export const TOOL_CACHE_CONFIG = {
     // Heartbeat tools — data changes frequently, short TTL

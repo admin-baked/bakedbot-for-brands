@@ -32,7 +32,7 @@ export async function getDomainMapping(hostname: string): Promise<ResolvedDomain
 
   try {
     // Check tenant cache for quick existence check
-    let tenantId = getCachedTenant(normalized);
+    let tenantId = await getCachedTenant(normalized);
 
     const { firestore } = await createServerClient();
 
@@ -44,13 +44,13 @@ export async function getDomainMapping(hostname: string): Promise<ResolvedDomain
         .get();
 
       if (!mappingDoc.exists) {
-        setCachedTenant(normalized, null);
+        await setCachedTenant(normalized, null);
         return null;
       }
 
       const mapping = mappingDoc.data() as DomainMapping;
       tenantId = mapping.tenantId;
-      setCachedTenant(normalized, tenantId);
+      await setCachedTenant(normalized, tenantId);
 
       return {
         tenantId: mapping.tenantId,

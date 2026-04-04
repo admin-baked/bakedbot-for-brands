@@ -509,8 +509,8 @@ export async function syncOrgPOSData(orgId: string): Promise<SyncResult> {
         }
 
         // Invalidate existing cache to force refresh on next request
-        posCache.invalidate(cacheKeys.customers(orgId));
-        posCache.invalidate(cacheKeys.orders(orgId));
+        await posCache.invalidate(cacheKeys.customers(orgId));
+        await posCache.invalidate(cacheKeys.orders(orgId));
 
         await persistPOSIntegrationStatus(firestore, orgId, {
             status: 'success',

@@ -143,7 +143,7 @@ export async function getOrdersFromAlleaves(
         const cacheKey = startDate || endDate
             ? `${cacheKeys.orders(orgId)}:${startDate || ''}:${endDate || ''}`
             : cacheKeys.orders(orgId);
-        const cached = posCache.get<OrderDoc[]>(cacheKey);
+        const cached = await posCache.get<OrderDoc[]>(cacheKey);
 
         if (cached) {
             logger.info('[ORDERS] Using cached Alleaves orders', {
@@ -259,7 +259,7 @@ export async function getOrdersFromAlleaves(
         });
 
         // Cache the result (1 minute TTL - reduced for fresher data)
-        posCache.set(cacheKey, orders, 1 * 60 * 1000);
+        await posCache.set(cacheKey, orders, 60);
 
         return orders;
     } catch (error: any) {
@@ -474,7 +474,7 @@ export async function refreshOrdersCache(orgId: string): Promise<{
 
         // Invalidate the cache
         const cacheKey = cacheKeys.orders(orgId);
-        posCache.invalidate(cacheKey);
+        await posCache.invalidate(cacheKey);
 
         logger.info('[ORDERS] Manual cache refresh requested', { orgId });
 

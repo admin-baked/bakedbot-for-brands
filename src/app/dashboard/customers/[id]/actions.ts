@@ -178,7 +178,7 @@ async function enrichCustomerIdentityFromPos(
         return customer;
     }
 
-    const cachedCustomers = posCache.get<CustomerProfile[]>(cacheKeys.customers(orgId));
+    const cachedCustomers = await posCache.get<CustomerProfile[]>(cacheKeys.customers(orgId));
     const cachedCustomer = cachedCustomers?.find((candidate) => candidate.id === customer.id) ?? null;
     if (cachedCustomer) {
         const cachedIdentityCustomer = mergeCustomerIdentity(customer, {
@@ -466,7 +466,7 @@ async function loadCustomerBaseDetail(
     firestore: FirebaseFirestore.Firestore,
 ): Promise<CustomerBaseDetail> {
     const spendingCacheKey = `spending:${orgId}`;
-    const cachedSpending = posCache.get<Record<string, CustomerSpendingData>>(spendingCacheKey);
+    const cachedSpending = await posCache.get<Record<string, CustomerSpendingData>>(spendingCacheKey);
     const spending = buildSpendingFromCache(cachedSpending, customerId);
 
     const crmDoc = await firestore.collection('customers').doc(customerId).get();
@@ -480,7 +480,7 @@ async function loadCustomerBaseDetail(
 
     if (customerId.startsWith('alleaves_')) {
         const customersCacheKey = cacheKeys.customers(orgId);
-        const cachedCustomers = posCache.get<CustomerProfile[]>(customersCacheKey);
+        const cachedCustomers = await posCache.get<CustomerProfile[]>(customersCacheKey);
         const cachedCustomer = cachedCustomers?.find((candidate) => candidate.id === customerId) ?? null;
         if (cachedCustomer) {
             const customer = mergeSpending(decorateCustomerProfile(cachedCustomer), spending);
@@ -711,7 +711,7 @@ export async function getCustomerOrders(customerId: string): Promise<CustomerOrd
 
     const numericId = customerId.startsWith('alleaves_') ? customerId.replace('alleaves_', '') : customerId;
     const cacheKey = `customerOrders:${orgId}:${numericId}`;
-    const cached = posCache.get<CustomerOrderData>(cacheKey);
+    const cached = await posCache.get<CustomerOrderData>(cacheKey);
     if (cached) {
         return cached;
     }
@@ -721,7 +721,7 @@ export async function getCustomerOrders(customerId: string): Promise<CustomerOrd
 
     if (!client) {
         const noClientData = buildOrderData([], 'no_client', baseDetail.customer);
-        posCache.set(cacheKey, noClientData, 5 * 60 * 1000);
+        await posCache.set(cacheKey, noClientData, 300);
         return noClientData;
     }
 
@@ -733,7 +733,7 @@ export async function getCustomerOrders(customerId: string): Promise<CustomerOrd
                 'customer_endpoint',
                 baseDetail.customer,
             );
-            posCache.set(cacheKey, result, 5 * 60 * 1000);
+            await posCache.set(cacheKey, result, 300);
             return result;
         }
     } catch (error) {
@@ -746,12 +746,12 @@ export async function getCustomerOrders(customerId: string): Promise<CustomerOrd
 
     try {
         const ordersCacheKey = cacheKeys.orders(orgId);
-        let allOrders = posCache.get<Record<string, unknown>[]>(ordersCacheKey);
+        let allOrders = await posCache.get<Record<string, unknown>[]>(ordersCacheKey);
         let source: CustomerOrderData['source'] = 'all_orders_cache';
 
         if (!allOrders) {
             allOrders = await client.getAllOrders(5000) as unknown as Record<string, unknown>[];
-            posCache.set(ordersCacheKey, allOrders, 5 * 60 * 1000);
+            await posCache.set(ordersCacheKey, allOrders, 300);
             source = 'all_orders_live';
         }
 
@@ -761,7 +761,7 @@ export async function getCustomerOrders(customerId: string): Promise<CustomerOrd
             .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime());
 
         const result = buildOrderData(customerOrders, source, baseDetail.customer);
-        posCache.set(cacheKey, result, 5 * 60 * 1000);
+        await posCache.set(cacheKey, result, 300);
         return result;
     } catch (error) {
         logger.error('[CUSTOMER_ORDERS] Failed to fetch orders', {

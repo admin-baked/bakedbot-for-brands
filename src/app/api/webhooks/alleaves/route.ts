@@ -297,7 +297,7 @@ async function handleCustomerEvent(
     });
 
     // Invalidate customer cache to force refresh
-    posCache.invalidate(cacheKeys.customers(orgId));
+    await posCache.invalidate(cacheKeys.customers(orgId));
 
     // Optional: Update specific customer in cache
     // This could be enhanced to update just this one customer
@@ -311,7 +311,7 @@ async function handleCustomerEvent(
  * Persisting keeps analytics up to date without requiring periodic backfills.
  * The Firestore write is fire-and-forget so it never delays the webhook ACK.
  */
-function handleOrderEvent(
+async function handleOrderEvent(
     firestore: FirebaseFirestore.Firestore,
     orgId: string,
     orderData: any,
@@ -324,8 +324,8 @@ function handleOrderEvent(
     });
 
     // Invalidate orders + customers cache
-    posCache.invalidate(cacheKeys.orders(orgId));
-    posCache.invalidate(cacheKeys.customers(orgId));
+    await posCache.invalidate(cacheKeys.orders(orgId));
+    await posCache.invalidate(cacheKeys.customers(orgId));
 
     const orderId = orderData.id?.toString();
     if (!orderId) return;
@@ -397,7 +397,7 @@ async function handleInventoryUpdateEvent(
     });
 
     // Invalidate the orders cache (order history reflects inventory)
-    posCache.invalidate(cacheKeys.orders(orgId));
+    await posCache.invalidate(cacheKeys.orders(orgId));
 
     // Update product in Firestore publicViews if we have enough data
     if (productData.id && (productData.quantity !== undefined || productData.stock !== undefined)) {
@@ -496,7 +496,7 @@ async function handleLowStockEvent(orgId: string, productData: any) {
     }
 
     // Also invalidate product cache
-    posCache.invalidateOrg(orgId);
+    await posCache.invalidateOrg(orgId);
 }
 
 /**

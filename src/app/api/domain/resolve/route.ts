@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
 
     try {
         // Check cache first
-        let tenantId = getCachedTenant(normalizedHostname);
+        let tenantId = await getCachedTenant(normalizedHostname);
 
         if (tenantId === undefined) {
             // Not in cache, look up in Firestore
@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
             }
 
             // Cache the result (including null for not found)
-            setCachedTenant(normalizedHostname, tenantId);
+            await setCachedTenant(normalizedHostname, tenantId);
         }
 
         if (!tenantId) {

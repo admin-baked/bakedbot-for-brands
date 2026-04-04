@@ -693,13 +693,13 @@ All agents are online and ready. Type an agent name or describe your task to get
         try {
             if (personaId) {
                 const cacheKey = CacheKeys.agentConfig(personaId, userBrandId);
-                let configOverride = agentCache.get<any>(cacheKey);
+                let configOverride = await agentCache.get<any>(cacheKey);
 
                 if (!configOverride) {
                     const { getAgentConfigOverride } = await import('@/app/actions/agent-config');
                     configOverride = await getAgentConfigOverride(personaId, userBrandId);
                     if (configOverride) {
-                        agentCache.set(cacheKey, configOverride, CacheTTL.AGENT_CONFIG);
+                        await agentCache.set(cacheKey, configOverride, CacheTTL.AGENT_CONFIG);
                     }
                 }
 
@@ -718,7 +718,7 @@ All agents are online and ready. Type an agent name or describe your task to get
         if (userBrandId && userBrandId !== 'demo-brand-123' && userBrandId !== 'general') {
             try {
                 const cacheKey = CacheKeys.brandProfile(userBrandId);
-                let data: any = agentCache.get(cacheKey);
+                let data: any = await agentCache.get(cacheKey);
 
                 if (!data) {
                     const { createServerClient } = await import('@/firebase/server-client');
@@ -736,7 +736,7 @@ All agents are online and ready. Type an agent name or describe your task to get
                     }
 
                     if (data) {
-                        agentCache.set(cacheKey, data, CacheTTL.BRAND_PROFILE);
+                        await agentCache.set(cacheKey, data, CacheTTL.BRAND_PROFILE);
                     }
                 }
 
@@ -765,7 +765,7 @@ All agents are online and ready. Type an agent name or describe your task to get
 
             if (tenantId || userId) {
                 const cacheKey = CacheKeys.aiSettings(tenantId !== 'demo-brand-123' ? tenantId : '', userId);
-                let cachedSettings = agentCache.get<{ tenant: any; user: any }>(cacheKey);
+                let cachedSettings = await agentCache.get<{ tenant: any; user: any }>(cacheKey);
 
                 if (!cachedSettings) {
                     const settings = await loadAISettingsForAgent(
@@ -773,7 +773,7 @@ All agents are online and ready. Type an agent name or describe your task to get
                         userId
                     );
                     cachedSettings = settings;
-                    agentCache.set(cacheKey, cachedSettings, CacheTTL.AI_SETTINGS);
+                    await agentCache.set(cacheKey, cachedSettings, CacheTTL.AI_SETTINGS);
                 }
 
                 customInstructionsBlock = buildCustomInstructionsBlock(cachedSettings.tenant, cachedSettings.user);
@@ -939,7 +939,7 @@ All agents are online and ready. Type an agent name or describe your task to get
 
             // Try cache first for KB search results (1 minute TTL for freshness)
             const kbCacheKey = CacheKeys.kbSearch(agentInfo?.id || 'general', finalMessage, userBrandId);
-            let cachedKB = agentCache.get<{ context: string; docCount: number }>(kbCacheKey);
+            let cachedKB = await agentCache.get<{ context: string; docCount: number }>(kbCacheKey);
 
             if (cachedKB) {
                 knowledgeContext = cachedKB.context;
@@ -977,10 +977,10 @@ All agents are online and ready. Type an agent name or describe your task to get
                         });
 
                         // Cache the results
-                        agentCache.set(kbCacheKey, { context: knowledgeContext, docCount: docs.length }, CacheTTL.KB_SEARCH);
+                        await agentCache.set(kbCacheKey, { context: knowledgeContext, docCount: docs.length }, CacheTTL.KB_SEARCH);
                     } else {
                         // Cache empty result to avoid redundant searches
-                        agentCache.set(kbCacheKey, { context: '', docCount: 0 }, CacheTTL.KB_SEARCH);
+                        await agentCache.set(kbCacheKey, { context: '', docCount: 0 }, CacheTTL.KB_SEARCH);
                     }
                 }
             }
@@ -995,7 +995,7 @@ All agents are online and ready. Type an agent name or describe your task to get
         if ((isPaidUser || isSuperUser) && userBrandId && userBrandId !== 'general') {
             try {
                 const lettaCacheKey = CacheKeys.lettaMemory(agentInfo?.id || 'general', finalMessage, userBrandId);
-                const cachedLetta = agentCache.get<{ context: string; resultCount: number }>(lettaCacheKey);
+                const cachedLetta = await agentCache.get<{ context: string; resultCount: number }>(lettaCacheKey);
 
                 if (cachedLetta) {
                     lettaMemoryContext = cachedLetta.context;
@@ -1026,7 +1026,7 @@ All agents are online and ready. Type an agent name or describe your task to get
                         });
                     }
 
-                    agentCache.set(lettaCacheKey, {
+                    await agentCache.set(lettaCacheKey, {
                         context: lettaMemoryContext,
                         resultCount: allResults.length
                     }, CacheTTL.LETTA_MEMORY);
