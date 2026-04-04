@@ -27,6 +27,8 @@ import {
     captureTabletLead,
     getMoodRecommendations,
     searchTabletRecommendations,
+    quickLookupByPhoneLast4,
+    type QuickLookupResult,
 } from '@/server/actions/loyalty-tablet';
 import { getPublicBrandTheme } from '@/server/actions/checkin-management';
 import { getPublicReviews } from '@/server/actions/public-review';
@@ -64,10 +66,11 @@ import {
     VolumeX,
 } from 'lucide-react';
 
-type Step = 'welcome' | 'phone' | 'email' | 'mood' | 'recommendations' | 'success';
+type Step = 'welcome' | 'quick_lookup' | 'phone' | 'email' | 'mood' | 'recommendations' | 'success';
 
 const IDLE_TIMEOUT_MS = 60_000;
-const STEPS = ['email', 'phone', 'mood', 'recommendations'] as const;
+// phone → email order: phone is required (loyalty ID), email is optional
+const STEPS = ['phone', 'email', 'mood', 'recommendations'] as const;
 const ASK_SMOKEY_PLACEHOLDER = 'Ask Smokey for something like calming gummies under $30 or a social pre-roll.';
 
 // Clean light-mode input — dark text on white background
@@ -167,6 +170,11 @@ export default function LoyaltyTabletPage() {
     const [assistantError, setAssistantError] = useState('');
     const [assistantLoading, setAssistantLoading] = useState(false);
 
+    // Quick returning-customer lookup state
+    const [quickDigits, setQuickDigits] = useState('');
+    const [quickLookupLoading, setQuickLookupLoading] = useState(false);
+    const [quickMatches, setQuickMatches] = useState<QuickLookupResult['matches']>([]);
+
     // Smokey hold-to-talk voice (works on iOS — MediaRecorder-based, Gemini Live quality)
     const smokeyVoice = useSmokeyVoice({
         orgId,
@@ -224,6 +232,9 @@ export default function LoyaltyTabletPage() {
         setAssistantSummary('');
         setAssistantError('');
         setAssistantLoading(false);
+        setQuickDigits('');
+        setQuickLookupLoading(false);
+        setQuickMatches([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [voiceOutput]);
 
@@ -252,10 +263,38 @@ export default function LoyaltyTabletPage() {
 
     // ── Step handlers ────────────────────────────────────────
 
-    const handleEmailSubmit = () => {
+    const handleQuickLookup = async () => {
+        if (quickDigits.length !== 4) return;
         resetIdleTimer();
+        setQuickLookupLoading(true);
         setError('');
-        setStep('phone');
+        try {
+            const result = await quickLookupByPhoneLast4(orgId, quickDigits);
+            if (result.found && result.matches.length === 1) {
+                // Single match — auto-fill and skip to mood
+                const m = result.matches[0];
+                setFirstName(m.firstName);
+                setPhone(''); // we'll prefill via customerId
+                setStep('mood');
+            } else if (result.found && result.matches.length > 1) {
+                setQuickMatches(result.matches);
+            } else {
+                // Not found — continue with full flow (phone is already their digits hint)
+                setPhone(quickDigits);
+                setStep('phone');
+            }
+        } catch {
+            setStep('phone');
+        } finally {
+            setQuickLookupLoading(false);
+        }
+    };
+
+    const handleQuickMatchSelect = (match: QuickLookupResult['matches'][number]) => {
+        resetIdleTimer();
+        setFirstName(match.firstName);
+        setQuickMatches([]);
+        setStep('mood');
     };
 
     const handlePhoneSubmit = () => {
@@ -265,6 +304,12 @@ export default function LoyaltyTabletPage() {
             setError('Please enter a valid 10-digit phone number');
             return;
         }
+        setStep('email');
+    };
+
+    const handleEmailSubmit = () => {
+        resetIdleTimer();
+        setError('');
         setStep('mood');
     };
 
@@ -604,29 +649,106 @@ export default function LoyaltyTabletPage() {
                         )}
 
                         <button
-                            onClick={() => setStep('email')}
+                            onClick={() => setStep('phone')}
                             className="flex w-full items-center justify-center gap-3 rounded-[28px] px-8 py-5 text-xl font-bold transition-all hover:opacity-95 active:scale-[0.99] sm:text-2xl sm:py-6"
                             style={primaryButtonStyle}
                         >
-                            Check In <ArrowRight className="h-7 w-7" />
+                            Welcome to Thrive! <ArrowRight className="h-7 w-7" />
+                        </button>
+                        <button
+                            onClick={() => { setQuickDigits(''); setQuickMatches([]); setStep('quick_lookup'); }}
+                            className="flex w-full items-center justify-center gap-2 rounded-[28px] py-4 text-base font-semibold border transition-all hover:opacity-95"
+                            style={secondaryButtonStyle}
+                        >
+                            Returning member? Quick check-in →
                         </button>
                         <p className="text-sm" style={{ color: faintTextColor }}>Tap to begin</p>
                     </motion.div>
                 )}
 
-                {/* ── EMAIL (step 1) ── */}
-                {step === 'email' && (
+                {/* ── QUICK LOOKUP ── */}
+                {step === 'quick_lookup' && (
                     <motion.div
-                        key="email"
+                        key="quick_lookup"
                         variants={slideVariants}
                         initial="enter" animate="center" exit="exit"
                         transition={{ duration: 0.25 }}
                         className="relative z-10 mx-auto flex flex-col items-center gap-8 w-full max-w-lg"
                     >
                         <div className="text-center">
-                            <Mail className="mx-auto mb-4 h-10 w-10 sm:h-14 sm:w-14" style={{ color: brandTheme.colors.primary }} />
-                            <h2 className="text-2xl sm:text-4xl font-black text-gray-900">What&apos;s your name &amp; email?</h2>
-                            <p className="mt-2 text-base sm:text-lg" style={{ color: mutedTextColor }}>Get weekly deals, bundles &amp; education</p>
+                            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full text-3xl" style={{ backgroundColor: hexToRgba(AMBER, 0.1) }}>
+                                ⚡
+                            </div>
+                            <h2 className="text-2xl sm:text-4xl font-black text-gray-900">Quick Check-In</h2>
+                            <p className="mt-2 text-base sm:text-lg" style={{ color: mutedTextColor }}>
+                                Enter the last 4 digits of your phone number
+                            </p>
+                        </div>
+
+                        {quickMatches.length > 1 ? (
+                            <div className="w-full space-y-3">
+                                <p className="text-center text-sm font-medium" style={{ color: mutedTextColor }}>Which one are you?</p>
+                                {quickMatches.map(m => (
+                                    <button
+                                        key={m.customerId}
+                                        onClick={() => handleQuickMatchSelect(m)}
+                                        className="w-full flex items-center justify-between rounded-[24px] border p-5 transition-all hover:opacity-95"
+                                        style={panelStyle}
+                                    >
+                                        <span className="text-xl font-bold text-gray-900">{m.firstName}</span>
+                                        <span className="text-sm font-medium" style={{ color: brandTheme.colors.primary }}>···{m.phoneLast4}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="w-full space-y-4">
+                                <input
+                                    type="tel"
+                                    placeholder="_ _ _ _"
+                                    value={quickDigits}
+                                    onChange={e => {
+                                        const d = e.target.value.replace(/\D/g, '').slice(0, 4);
+                                        setQuickDigits(d);
+                                        resetIdleTimer();
+                                    }}
+                                    className={`${INPUT_CLASS} text-center tracking-[0.5em] text-3xl`}
+                                    style={inputStyle}
+                                    inputMode="numeric"
+                                    maxLength={4}
+                                    autoFocus
+                                />
+                                {error && <p className="text-sm text-red-500 text-center">{error}</p>}
+                                <button
+                                    onClick={() => { void handleQuickLookup(); }}
+                                    disabled={quickDigits.length !== 4 || quickLookupLoading}
+                                    className="flex w-full items-center justify-center gap-3 rounded-[28px] py-6 text-2xl font-bold transition-all hover:opacity-95 active:scale-[0.99] disabled:opacity-40"
+                                    style={primaryButtonStyle}
+                                >
+                                    {quickLookupLoading ? (
+                                        <Loader2 className="h-6 w-6 animate-spin" />
+                                    ) : (
+                                        <>Find Me <ArrowRight className="h-7 w-7" /></>
+                                    )}
+                                </button>
+                            </div>
+                        )}
+                        <button onClick={() => { setError(''); resetToWelcome(); }} className="text-sm hover:opacity-70" style={{ color: faintTextColor }}>&larr; Back</button>
+                    </motion.div>
+                )}
+
+                {/* ── PHONE (step 1) ── */}
+                {step === 'phone' && (
+                    <motion.div
+                        key="phone"
+                        variants={slideVariants}
+                        initial="enter" animate="center" exit="exit"
+                        transition={{ duration: 0.25 }}
+                        className="relative z-10 mx-auto flex flex-col items-center gap-8 w-full max-w-lg"
+                    >
+                        <div className="text-center">
+                            <Phone className="mx-auto mb-4 h-10 w-10 sm:h-14 sm:w-14" style={{ color: brandTheme.colors.primary }} />
+                            <h2 className="text-2xl sm:text-4xl font-black text-gray-900">Welcome! What&apos;s your name?</h2>
+                            <p className="mt-2 text-base sm:text-lg" style={{ color: mutedTextColor }}>Your phone number is your loyalty ID</p>
                         </div>
                         <div className="w-full space-y-4">
                             <input
@@ -638,45 +760,6 @@ export default function LoyaltyTabletPage() {
                                 style={inputStyle}
                                 autoComplete="given-name"
                             />
-                            <input
-                                type="email"
-                                placeholder="you@example.com (optional)"
-                                value={email}
-                                onChange={e => { setEmail(e.target.value); resetIdleTimer(); }}
-                                className={INPUT_CLASS}
-                                style={inputStyle}
-                                inputMode="email"
-                                autoComplete="email"
-                            />
-                        </div>
-                        {error && <p className="text-sm text-red-500">{error}</p>}
-                        <button
-                            onClick={handleEmailSubmit}
-                            disabled={!firstName.trim()}
-                            className="flex w-full items-center justify-center gap-3 rounded-[28px] py-6 text-2xl font-bold transition-all hover:opacity-95 active:scale-[0.99] disabled:opacity-40"
-                            style={primaryButtonStyle}
-                        >
-                            Continue <ArrowRight className="h-7 w-7" />
-                        </button>
-                        <button onClick={() => { setError(''); resetToWelcome(); }} className="text-sm hover:opacity-70" style={{ color: faintTextColor }}>&larr; Back</button>
-                    </motion.div>
-                )}
-
-                {/* ── PHONE (step 2) ── */}
-                {step === 'phone' && (
-                    <motion.div
-                        key="phone"
-                        variants={slideVariants}
-                        initial="enter" animate="center" exit="exit"
-                        transition={{ duration: 0.25 }}
-                        className="relative z-10 mx-auto flex flex-col items-center gap-8 w-full max-w-lg"
-                    >
-                        <div className="text-center">
-                            <Phone className="mx-auto mb-4 h-10 w-10 sm:h-14 sm:w-14" style={{ color: brandTheme.colors.primary }} />
-                            <h2 className="text-2xl sm:text-4xl font-black text-gray-900">What&apos;s your phone number?</h2>
-                            <p className="mt-2 text-base sm:text-lg" style={{ color: mutedTextColor }}>We&apos;ll text you exclusive deals</p>
-                        </div>
-                        <div className="w-full space-y-4">
                             <input
                                 type="tel"
                                 placeholder="(555) 000-0000"
@@ -690,7 +773,6 @@ export default function LoyaltyTabletPage() {
                             <div className="space-y-3">
                                 {[
                                     { checked: smsConsent, onChange: setSmsConsent, label: 'Yes, text me deals & updates' },
-                                    { checked: emailConsent, onChange: setEmailConsent, label: 'Yes, email me weekly newsletter' },
                                 ].map(item => (
                                     <button
                                         key={item.label}
@@ -712,19 +794,80 @@ export default function LoyaltyTabletPage() {
                                 ))}
                             </div>
                             <p className="px-4 text-center text-xs" style={{ color: faintTextColor }}>
-                                You can opt out anytime. We never share your data. Msg &amp; data rates may apply.
+                                Msg &amp; data rates may apply. Opt out anytime.
                             </p>
                         </div>
                         {error && <p className="text-sm text-red-500">{error}</p>}
                         <button
                             onClick={handlePhoneSubmit}
-                            disabled={phone.replace(/\D/g, '').length < 10}
+                            disabled={!firstName.trim() || phone.replace(/\D/g, '').length < 10}
                             className="flex w-full items-center justify-center gap-3 rounded-[28px] py-6 text-2xl font-bold transition-all hover:opacity-95 active:scale-[0.99] disabled:opacity-40"
                             style={primaryButtonStyle}
                         >
                             Continue <ArrowRight className="h-7 w-7" />
                         </button>
-                        <button onClick={() => { setError(''); setStep('email'); }} className="text-sm hover:opacity-70" style={{ color: faintTextColor }}>&larr; Back</button>
+                        <button onClick={() => { setError(''); resetToWelcome(); }} className="text-sm hover:opacity-70" style={{ color: faintTextColor }}>&larr; Back</button>
+                    </motion.div>
+                )}
+
+                {/* ── EMAIL (step 2 — optional) ── */}
+                {step === 'email' && (
+                    <motion.div
+                        key="email"
+                        variants={slideVariants}
+                        initial="enter" animate="center" exit="exit"
+                        transition={{ duration: 0.25 }}
+                        className="relative z-10 mx-auto flex flex-col items-center gap-8 w-full max-w-lg"
+                    >
+                        <div className="text-center">
+                            <Mail className="mx-auto mb-4 h-10 w-10 sm:h-14 sm:w-14" style={{ color: brandTheme.colors.primary }} />
+                            <h2 className="text-2xl sm:text-4xl font-black text-gray-900">Want weekly deals?</h2>
+                            <p className="mt-2 text-base sm:text-lg" style={{ color: mutedTextColor }}>Add your email for bundles &amp; education (optional)</p>
+                        </div>
+                        <div className="w-full space-y-4">
+                            <input
+                                type="email"
+                                placeholder="you@example.com"
+                                value={email}
+                                onChange={e => { setEmail(e.target.value); resetIdleTimer(); }}
+                                className={INPUT_CLASS}
+                                style={inputStyle}
+                                inputMode="email"
+                                autoComplete="email"
+                            />
+                            <button
+                                onClick={() => { setEmailConsent(!emailConsent); resetIdleTimer(); }}
+                                className="flex w-full items-center gap-4 rounded-[24px] border-2 p-4 transition-all"
+                                style={emailConsent ? accentPanelStyle : panelStyle}
+                            >
+                                <div
+                                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2"
+                                    style={{
+                                        borderColor: emailConsent ? brandTheme.colors.primary : '#d1d5db',
+                                        backgroundColor: emailConsent ? brandTheme.colors.primary : 'transparent',
+                                    }}
+                                >
+                                    {emailConsent && <CheckCircle2 className="h-5 w-5 text-white" />}
+                                </div>
+                                <span className="text-lg text-gray-900 text-left">Yes, email me weekly newsletter</span>
+                            </button>
+                        </div>
+                        {error && <p className="text-sm text-red-500">{error}</p>}
+                        <button
+                            onClick={handleEmailSubmit}
+                            className="flex w-full items-center justify-center gap-3 rounded-[28px] py-6 text-2xl font-bold transition-all hover:opacity-95 active:scale-[0.99]"
+                            style={primaryButtonStyle}
+                        >
+                            Continue <ArrowRight className="h-7 w-7" />
+                        </button>
+                        <button
+                            onClick={handleEmailSubmit}
+                            className="text-sm hover:opacity-70"
+                            style={{ color: faintTextColor }}
+                        >
+                            Skip for now →
+                        </button>
+                        <button onClick={() => { setError(''); setStep('phone'); }} className="text-sm hover:opacity-70" style={{ color: faintTextColor }}>&larr; Back</button>
                     </motion.div>
                 )}
 
@@ -768,7 +911,7 @@ export default function LoyaltyTabletPage() {
                         >
                             {loading ? 'Saving...' : 'Skip for now'}
                         </button>
-                        <button onClick={() => setStep('phone')} className="text-sm hover:opacity-70" style={{ color: faintTextColor }}>&larr; Back</button>
+                        <button onClick={() => setStep('email')} className="text-sm hover:opacity-70" style={{ color: faintTextColor }}>&larr; Back</button>
                     </motion.div>
                 )}
 

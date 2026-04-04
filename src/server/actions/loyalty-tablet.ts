@@ -602,3 +602,57 @@ export async function captureTabletLead(params: {
         };
     }
 }
+
+// ============================================================
+// Quick returning-customer lookup by last 4 digits of phone
+// ============================================================
+
+export interface QuickLookupResult {
+    found: boolean;
+    /** Multiple matches — ask customer to confirm which they are */
+    matches: Array<{
+        customerId: string;
+        firstName: string;
+        phoneLast4: string;
+        loyaltyPoints: number;
+    }>;
+}
+
+/**
+ * Speed-lane check-in: customer enters last 4 digits of phone.
+ * Returns matched customers so the tablet can greet by name and skip to mood.
+ */
+export async function quickLookupByPhoneLast4(
+    orgId: string,
+    phoneLast4: string,
+): Promise<QuickLookupResult> {
+    const cleaned = phoneLast4.replace(/\D/g, '');
+    if (cleaned.length !== 4) return { found: false, matches: [] };
+
+    try {
+        const db = getAdminFirestore();
+        const snap = await db
+            .collection('customers')
+            .where('orgId', '==', orgId)
+            .where('phoneLast4', '==', cleaned)
+            .limit(5)
+            .get();
+
+        if (snap.empty) return { found: false, matches: [] };
+
+        const matches = snap.docs.map((doc) => {
+            const d = doc.data();
+            return {
+                customerId: doc.id,
+                firstName: (d.firstName as string) || 'Friend',
+                phoneLast4: cleaned,
+                loyaltyPoints: (d.loyaltyPoints as number) || 0,
+            };
+        });
+
+        return { found: true, matches };
+    } catch (error) {
+        logger.error('[LoyaltyTablet] quickLookupByPhoneLast4 failed', { orgId, error });
+        return { found: false, matches: [] };
+    }
+}
