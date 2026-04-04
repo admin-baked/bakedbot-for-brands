@@ -271,27 +271,14 @@ async function getDispensaryInsights(orgId: string): Promise<DispensaryInsights>
         }
 
         // 5. Market Pulse (Ezal)
-        // Proactive competitive intelligence first, then prompt card
+        // Priority: proactive pricing alerts → latest weekly CI report → generic prompt card
         const marketProactive = fromProactive('market');
         if (marketProactive.length > 0) {
             insights.market.push(...marketProactive);
         } else {
-            insights.market.push({
-                id: 'competitor-watch',
-                category: 'market',
-                agentId: 'ezal',
-                agentName: 'Ezal',
-                title: 'Market Intel',
-                headline: 'Competitor watch active',
-                subtext: 'Spy on local competition',
-                severity: 'info',
-                actionable: true,
-                ctaLabel: 'Spy',
-                threadType: 'market_intel',
-                threadPrompt: 'Spy on competitor pricing near me and show me market opportunities.',
-                lastUpdated: new Date(),
-                dataSource: 'ezal',
-            });
+            // Check for a recent weekly competitive intelligence report (last 8 days)
+            const ciCard = await buildLatestCiCard(orgId);
+            insights.market.push(ciCard);
         }
 
     } catch (error) {
@@ -1107,6 +1094,75 @@ function prioritizeBySeverity(insights: InsightCard[]): InsightCard[] {
             (severityScore[a.severity] ?? 2) - (severityScore[b.severity] ?? 2) ||
             b.lastUpdated.getTime() - a.lastUpdated.getTime()
     );
+}
+
+// ============ Market Intel Helpers ============
+
+/**
+ * Build a Market Intel insight card from the most recent weekly competitive report.
+ * Falls back to a generic "Competitor watch active" prompt card if no recent report exists.
+ */
+async function buildLatestCiCard(orgId: string): Promise<InsightCard> {
+    try {
+        const db = getAdminFirestore();
+        const eightDaysAgo = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);
+
+        const snap = await db
+            .collection('competitive_reports')
+            .where('orgId', '==', orgId)
+            .where('generatedAt', '>', eightDaysAgo)
+            .orderBy('generatedAt', 'desc')
+            .limit(1)
+            .get();
+
+        if (!snap.empty) {
+            const data = snap.docs[0].data();
+            const competitor = (data.competitor as string) || 'Competitor';
+            const summary = (data.executiveSummary as string) || '';
+            const actionItems = (data.actionItems as string[]) || [];
+            const generatedAt = data.generatedAt?.toDate?.() ?? new Date();
+
+            // First action item becomes the CTA prompt
+            const topAction = actionItems[0] || 'Review competitive analysis';
+
+            return {
+                id: 'competitor-watch',
+                category: 'market',
+                agentId: 'ezal',
+                agentName: 'Ezal',
+                title: 'MARKET INTEL',
+                headline: `${competitor}: intel updated`,
+                subtext: summary.slice(0, 120) + (summary.length > 120 ? '…' : ''),
+                severity: 'info',
+                actionable: true,
+                ctaLabel: 'Full Report',
+                threadType: 'market_intel',
+                threadPrompt: `Summarize the latest competitive intelligence report on ${competitor}. Executive summary: ${summary}. Top action: ${topAction}`,
+                lastUpdated: generatedAt,
+                dataSource: 'Ezal (weekly CI report)',
+            };
+        }
+    } catch (err) {
+        logger.warn('[Insights] Could not load CI report for market card', { orgId, error: err });
+    }
+
+    // Generic fallback
+    return {
+        id: 'competitor-watch',
+        category: 'market',
+        agentId: 'ezal',
+        agentName: 'Ezal',
+        title: 'Market Intel',
+        headline: 'Competitor watch active',
+        subtext: 'Spy on local competition',
+        severity: 'info',
+        actionable: true,
+        ctaLabel: 'Spy',
+        threadType: 'market_intel',
+        threadPrompt: 'Spy on competitor pricing near me and show me market opportunities.',
+        lastUpdated: new Date(),
+        dataSource: 'ezal',
+    };
 }
 
 // ============ On-Demand Regeneration ============

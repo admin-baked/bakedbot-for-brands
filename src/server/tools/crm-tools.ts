@@ -528,7 +528,9 @@ export async function getSegmentSummary(
                     ? Math.floor((Date.now() - (data.lastOrderDate?.toDate?.()?.getTime?.() || new Date(data.lastOrderDate).getTime())) / (1000 * 60 * 60 * 24))
                     : undefined;
 
-                const seg = data.segment || calculateSegment({ totalSpent: spent, orderCount: orders, avgOrderValue: avgOV, daysSinceLastOrder: daysSince, lifetimeValue: spent });
+                // Always recalculate from live fields — stored data.segment is set at import time
+                // and never updated, causing customers to stay "new" indefinitely.
+                const seg = calculateSegment({ totalSpent: spent, orderCount: orders, avgOrderValue: avgOV, daysSinceLastOrder: daysSince, lifetimeValue: spent });
 
                 if (segments[seg as CustomerSegment]) {
                     segments[seg as CustomerSegment].count++;
@@ -754,7 +756,9 @@ export async function getAtRiskCustomers(
                     ? Math.floor((Date.now() - lastDate.getTime()) / (1000 * 60 * 60 * 24))
                     : undefined;
 
-                const seg = data.segment || calculateSegment({ totalSpent: spent, orderCount: orders, avgOrderValue: avgOV, daysSinceLastOrder: daysSince, lifetimeValue: spent });
+                // Always recalculate from live fields — stored data.segment is set at import time
+                // and never updated, causing customers to stay "new" indefinitely.
+                const seg = calculateSegment({ totalSpent: spent, orderCount: orders, avgOrderValue: avgOV, daysSinceLastOrder: daysSince, lifetimeValue: spent });
 
                 if (targetSegments.includes(seg)) {
                     atRiskCustomers.push({

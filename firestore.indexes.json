@@ -1910,6 +1910,14 @@
                 { "fieldPath": "status", "order": "ASCENDING" },
                 { "fieldPath": "prodTestedAt", "order": "ASCENDING" }
             ]
+        },
+        {
+            "collectionGroup": "competitive_reports",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "orgId", "order": "ASCENDING" },
+                { "fieldPath": "generatedAt", "order": "DESCENDING" }
+            ]
         }
     ],
     "fieldOverrides": []
