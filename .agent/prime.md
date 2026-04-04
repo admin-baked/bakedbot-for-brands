@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; Insights fix: deterministic doc IDs + dedup by category+title → all 3 customer briefing cards now independent and always fresh.
-**Recent work (2026-04-04):** `saveInsights` deterministic slug + `deduplicateInsights` category+title key — Customer Mix, Churn Risk, Loyalty Performance coexist (`26793295c`).
+**Current Status:** 🟢 `main` green; Full-phone returning customer fast path: pre-fill name, skip offer → mood; POS lookup endpoint; Blackleaf SMS flags.
+**Recent work (2026-04-04):** `lookupCustomerByPhone` + `GET /api/checkin/lookup` + `TODO(blackleaf-sms)` flags in captureTabletLead + captureVisitorCheckin (`ed68d4017`).
 
 ## ðŸ§­ CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 

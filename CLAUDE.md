@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; Insights fix: deterministic doc IDs + dedup by category+title → Customer Mix, Churn Risk, Loyalty all show independently | **Last update:** 2026-04-04 (insights customer mix fix `26793295c`)
+**Current Status:** 🟢 `main` green; Check-in phone fast path: full-phone lookup pre-fills name + skips offer for returning customers; POS lookup endpoint + Blackleaf SMS flags | **Last update:** 2026-04-04 (phone fast path + POS lookup `ed68d4017`)
 
 ---
 
