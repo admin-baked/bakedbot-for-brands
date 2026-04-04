@@ -1,6 +1,8 @@
 import { AgentImplementation } from './harness';
 import { EzalMemory } from './schemas';
 import { logger } from '@/lib/logger';
+import { createHandoff } from '@/types/handoff-artifacts';
+import type { CompetitiveIntelArtifact } from '@/types/handoff-artifacts';
 import { calculateGapScore } from '../algorithms/ezal-algo';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
@@ -286,6 +288,26 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
                         }
                     }
                 });
+
+                // Emit typed CompetitiveIntelArtifact for downstream agents (Craig, Pops)
+                try {
+                    const { sendHandoff } = await import('../intuition/handoff');
+                    const artifact = createHandoff<CompetitiveIntelArtifact>({
+                        kind: 'competitive_intel',
+                        fromAgent: 'ezal',
+                        toAgent: 'broadcast',
+                        orgId: ezalOrgId,
+                        confidence: 0.7,
+                        payload: {
+                            competitorName: 'unknown',
+                            threatLevel: 'medium',
+                            suggestedResponse: result.finalResult?.slice(0, 300),
+                        },
+                    });
+                    await sendHandoff(ezalOrgId, artifact);
+                } catch (handoffErr) {
+                    logger.warn('[Ezal] Failed to emit competitive intel handoff:', handoffErr as Record<string, unknown>);
+                }
 
                 return {
                     updatedMemory: agentMemory,

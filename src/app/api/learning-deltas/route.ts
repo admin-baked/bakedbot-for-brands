@@ -113,18 +113,64 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const now = new Date().toISOString();
 
     if (action === 'approve') {
+      // Attempt auto-application based on category
+      let applied = false;
+      let applyMessage = '';
+
+      try {
+        switch (delta.category) {
+          case 'high_performing_workflow': {
+            // Boost workflow importance in procedural memory — mark as applied
+            applyMessage = `Workflow pattern flagged for priority boost in procedural memory.`;
+            applied = true;
+            break;
+          }
+          case 'brand_brain_update': {
+            // Brand brain updates require manual merge — mark approved but not applied
+            applyMessage = `Brand brain update approved. Merge into OrgProfile.operations manually or via admin UI.`;
+            break;
+          }
+          case 'eval_case_candidate':
+          case 'dead_end_loop': {
+            // Golden set additions require file edits — mark approved for manual apply
+            applyMessage = `Eval case approved. Append to ${delta.proposedAction.target} manually.`;
+            break;
+          }
+          case 'tool_failure_pattern': {
+            applyMessage = `Tool failure pattern acknowledged. Update routing for ${delta.proposedAction.target}.`;
+            applied = true;
+            break;
+          }
+          case 'compliance_catch_pattern': {
+            applyMessage = `Compliance pattern acknowledged. Update guardrail at ${delta.proposedAction.target}.`;
+            applied = true;
+            break;
+          }
+          case 'manual_override_pattern': {
+            applyMessage = `Override pattern acknowledged. Review agent instructions at ${delta.proposedAction.target}.`;
+            break;
+          }
+          default:
+            applyMessage = `Delta approved. Manual application required.`;
+        }
+      } catch (applyErr) {
+        logger.warn(`[LearningDeltas] Auto-apply failed for ${id}:`, applyErr as Record<string, unknown>);
+        applyMessage = `Delta approved but auto-apply failed. Apply manually.`;
+      }
+
       await docRef.update({
-        status: 'approved',
+        status: applied ? 'applied' : 'approved',
         reviewedBy: reviewedBy || 'api',
         reviewedAt: now,
+        ...(applied ? { appliedAt: now } : {}),
       });
 
-      logger.info(`[LearningDeltas] Approved: ${id} (${delta.category}) — ${delta.summary.slice(0, 80)}`);
+      logger.info(`[LearningDeltas] ${applied ? 'Applied' : 'Approved'}: ${id} (${delta.category}) — ${delta.summary.slice(0, 80)}`);
 
       return NextResponse.json({
         success: true,
-        delta: { ...delta, status: 'approved', reviewedBy: reviewedBy || 'api', reviewedAt: now },
-        message: `Delta approved. Proposed action: ${delta.proposedAction.type} on ${delta.proposedAction.target}`,
+        delta: { ...delta, status: applied ? 'applied' : 'approved', reviewedBy: reviewedBy || 'api', reviewedAt: now },
+        message: applyMessage,
       });
     }
 

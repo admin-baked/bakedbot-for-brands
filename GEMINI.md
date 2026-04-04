@@ -23,9 +23,11 @@ After completing ANY code modifications AND **before every `git push` / Firebase
    - **Code Reuse:** Flag newly written code that duplicates existing utilities/helpers.
    - **Code Quality:** Flag redundant state, parameter sprawl, copy-paste, silent catches, unnecessary `any`.
    - **Efficiency:** Flag redundant work, sequential calls that could be `Promise.all`, N+1 patterns, memory leaks.
-3. **Fix every confirmed finding** directly in the code.
-4. **Run `.\scripts\npm-safe.cmd run check:types`** — build must stay green.
-5. **Summarize** what was changed.
+3. **Re-check the engineering principles** from `AGENTS.md`: canonical home, reuse, risk tier, failure modes, observability, Brand Brain, handoff artifacts.
+4. **Fix every confirmed finding** directly in the code.
+5. **Run `.\scripts\npm-safe.cmd run check:types`** — build must stay green.
+6. **Run `npm run simplify:record`** once the reviewed code is the exact code you intend to push.
+7. **Summarize** what was changed.
 
 > Every `git push` is gated on `/simplify`. See `.agent/workflows/simplify.md` for the full protocol.
 
@@ -63,8 +65,11 @@ After completing ANY code modifications AND **before every `git push` / Firebase
 |------|---------|
 | `CLAUDE.md` | Primary codebase context — full protocol, standards, workflow |
 | `.agent/prime.md` | Agent startup context (workflow, super powers, agent roster) |
-| `AGENTS.md` | Builder swarm rules (reuse, conventions, completion check) |
+| `AGENTS.md` | Builder swarm rules (reuse, conventions, Brand Brain, handoffs, learning deltas) |
 | `.agent/refs/` | Detailed reference docs (load on-demand) |
+| `src/types/org-profile.ts` | OrgProfile with Brand Brain (`operations` section) |
+| `src/types/handoff-artifacts.ts` | Typed inter-agent handoff contracts (7 artifact types) |
+| `src/types/learning-delta.ts` | Learning delta types for behavior promotion |
 
 **Read `CLAUDE.md` and `.agent/prime.md` at session start.**
 
