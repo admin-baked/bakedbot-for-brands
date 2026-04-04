@@ -8,6 +8,8 @@ import { getStateMarketingRules } from '@/server/data/state-marketing-rules';
 import {
     buildSquadRoster
 } from './agent-definitions';
+import { createHandoff } from '@/types/handoff-artifacts';
+import type { ComplianceDecisionArtifact } from '@/types/handoff-artifacts';
 import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integration-status';
 
 const STATE_QUERY_MATCHERS: Array<{ stateCode: string; pattern: RegExp }> = [
@@ -263,6 +265,28 @@ export const deeboAgent: AgentImplementation<DeeboMemory, DeeboTools> = {
                     stateCode,
                     channel,
                 });
+
+                // Emit typed ComplianceDecisionArtifact for downstream agents
+                try {
+                    const { sendHandoff } = await import('../intuition/handoff');
+                    const orgId = brandMemory.brand_profile.orgId || brandMemory.brand_profile.id || '';
+                    const artifact = createHandoff<ComplianceDecisionArtifact>({
+                        kind: 'compliance_decision',
+                        fromAgent: 'deebo',
+                        toAgent: 'broadcast',
+                        orgId,
+                        confidence: 0.95,
+                        payload: {
+                            contentHash: userQuery.slice(0, 64),
+                            status: complianceGuidance.includes('violation') ? 'fail' : 'pass',
+                            violations: [],
+                            jurisdictions: stateCode ? [stateCode] : [],
+                        },
+                    });
+                    await sendHandoff(orgId, artifact);
+                } catch (handoffErr) {
+                    logger.warn('[Deebo] Failed to emit compliance handoff:', handoffErr as Record<string, unknown>);
+                }
 
                 return {
                     updatedMemory: agentMemory,
