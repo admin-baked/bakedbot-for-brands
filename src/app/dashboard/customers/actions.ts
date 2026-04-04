@@ -238,7 +238,7 @@ async function getCustomersFromAlleaves(orgId: string, firestore: FirebaseFirest
 
         // Check cache first
         const cacheKey = cacheKeys.customers(orgId);
-        const cached = posCache.get<CustomerProfile[]>(cacheKey);
+        const cached = await posCache.get<CustomerProfile[]>(cacheKey);
 
         if (cached) {
             logger.info('[CUSTOMERS] Using cached Alleaves customers', {
@@ -455,7 +455,7 @@ async function getCustomersFromAlleaves(orgId: string, firestore: FirebaseFirest
         });
 
         // Cache the result (5 minute TTL)
-        posCache.set(cacheKey, customers, 5 * 60 * 1000);
+        await posCache.set(cacheKey, customers, 300);
 
         return customers;
     } catch (error: any) {

@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
     try {
         // Check cache first (15 minute TTL for spending data)
         const cacheKey = `spending:${orgId}`;
-        const cached = posCache.get<Record<string, CustomerSpending>>(cacheKey);
+        const cached = await posCache.get<Record<string, CustomerSpending>>(cacheKey);
 
         if (cached) {
             logger.info('[SPENDING] Returning cached spending data', {
@@ -205,7 +205,7 @@ export async function GET(request: NextRequest) {
         });
 
         // Cache for 15 minutes
-        posCache.set(cacheKey, spendingData, 15 * 60 * 1000);
+        await posCache.set(cacheKey, spendingData, 900);
 
         logger.info('[SPENDING] Spending data calculated and cached', {
             orgId,

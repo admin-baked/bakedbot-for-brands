@@ -1,168 +1,121 @@
 /**
  * POS Data Cache
  *
- * Simple in-memory cache for POS data (customers, orders)
- * with TTL (time-to-live) support
+ * Redis-backed cache for POS data (customers, orders)
+ * with in-memory L1 for hot-path performance.
  *
- * Future: Replace with Redis for production
+ * L1 (in-memory): 30s TTL, reduces Redis round-trips.
+ * L2 (Upstash Redis): 5 min TTL, shared across server instances.
  */
 
+import { getCached, setCached, invalidateCachePattern, CachePrefix, CacheTTL } from '@/lib/cache';
 import { logger } from '@/lib/logger';
 
-interface CacheEntry<T> {
+/** L1 in-memory entry */
+interface L1Entry<T> {
     data: T;
-    timestamp: number;
-    ttl: number; // milliseconds
+    expiry: number;
 }
 
+/** L1 TTL (30 seconds) */
+const L1_TTL = 30 * 1000;
+
+/** Maximum L1 entries */
+const MAX_L1_SIZE = 500;
+
 class POSCache {
-    private cache = new Map<string, CacheEntry<any>>();
-    private readonly DEFAULT_TTL = 5 * 60 * 1000; // 5 minutes
+    private l1 = new Map<string, L1Entry<unknown>>();
 
     /**
-     * Get cached data if still valid
+     * Get cached data (L1 → L2 Redis)
      */
-    get<T>(key: string): T | null {
-        const entry = this.cache.get(key);
+    async get<T>(key: string): Promise<T | null> {
+        // L1 check
+        const l1Entry = this.l1.get(key);
+        if (l1Entry && Date.now() < l1Entry.expiry) {
+            logger.debug('[POS_CACHE] L1 hit', { key });
+            return l1Entry.data as T;
+        }
+        if (l1Entry) this.l1.delete(key);
 
-        if (!entry) {
-            return null;
+        // L2 check (Redis)
+        const redisValue = await getCached<T>(CachePrefix.POS_DATA, key);
+        if (redisValue !== null) {
+            this.setL1(key, redisValue);
+            logger.debug('[POS_CACHE] L2 hit', { key });
+            return redisValue;
         }
 
-        const now = Date.now();
-        const age = now - entry.timestamp;
-
-        if (age > entry.ttl) {
-            // Expired
-            this.cache.delete(key);
-            logger.debug('[POS_CACHE] Cache miss (expired)', { key, age: Math.round(age / 1000) });
-            return null;
-        }
-
-        logger.debug('[POS_CACHE] Cache hit', { key, age: Math.round(age / 1000) });
-        return entry.data as T;
+        logger.debug('[POS_CACHE] miss', { key });
+        return null;
     }
 
     /**
-     * Set cached data with optional TTL
+     * Set cached data (L1 + L2 Redis)
      */
-    set<T>(key: string, data: T, ttl?: number): void {
-        const entry: CacheEntry<T> = {
-            data,
-            timestamp: Date.now(),
-            ttl: ttl || this.DEFAULT_TTL,
-        };
-
-        this.cache.set(key, entry);
-        logger.debug('[POS_CACHE] Cache set', {
-            key,
-            ttl: Math.round(entry.ttl / 1000),
-            size: this.cache.size,
-        });
+    async set<T>(key: string, data: T, ttlSeconds?: number): Promise<void> {
+        const ttl = ttlSeconds ?? CacheTTL.POS_DATA;
+        this.setL1(key, data);
+        await setCached(CachePrefix.POS_DATA, key, data, ttl);
+        logger.debug('[POS_CACHE] set', { key, ttl });
     }
 
     /**
-     * Invalidate cached data
+     * Invalidate cached data (L1 + L2)
      */
-    invalidate(key: string): void {
-        const deleted = this.cache.delete(key);
-        if (deleted) {
-            logger.debug('[POS_CACHE] Cache invalidated', { key });
-        }
+    async invalidate(key: string): Promise<void> {
+        this.l1.delete(key);
+        const { invalidateCache } = await import('@/lib/cache');
+        await invalidateCache(CachePrefix.POS_DATA, key);
+        logger.debug('[POS_CACHE] invalidated', { key });
     }
 
     /**
-     * Invalidate all cached data for an org
+     * Invalidate all cached data for an org (L1 + L2)
      */
-    invalidateOrg(orgId: string): void {
-        const keysToDelete: string[] = [];
-
-        for (const key of this.cache.keys()) {
+    async invalidateOrg(orgId: string): Promise<void> {
+        // Clear L1 entries for this org
+        for (const key of this.l1.keys()) {
             if (key.startsWith(orgId)) {
-                keysToDelete.push(key);
+                this.l1.delete(key);
             }
         }
 
-        keysToDelete.forEach(key => this.cache.delete(key));
-
-        logger.info('[POS_CACHE] Invalidated org cache', {
-            orgId,
-            count: keysToDelete.length,
-        });
+        // Clear L2 Redis entries matching org pattern
+        await invalidateCachePattern(`${CachePrefix.POS_DATA}:${orgId}*`);
+        logger.info('[POS_CACHE] Invalidated org', { orgId });
     }
 
     /**
-     * Clear entire cache
+     * Clear entire L1 cache
      */
     clear(): void {
-        const size = this.cache.size;
-        this.cache.clear();
-        logger.info('[POS_CACHE] Cache cleared', { size });
+        const size = this.l1.size;
+        this.l1.clear();
+        logger.info('[POS_CACHE] L1 cleared', { size });
     }
 
     /**
      * Get cache statistics
      */
     getStats() {
-        const now = Date.now();
-        const entries = Array.from(this.cache.entries());
-
-        const stats = {
-            size: entries.length,
-            valid: 0,
-            expired: 0,
-            totalAge: 0,
-        };
-
-        entries.forEach(([key, entry]) => {
-            const age = now - entry.timestamp;
-            stats.totalAge += age;
-
-            if (age > entry.ttl) {
-                stats.expired++;
-            } else {
-                stats.valid++;
-            }
-        });
-
         return {
-            ...stats,
-            avgAge: stats.size > 0 ? Math.round(stats.totalAge / stats.size / 1000) : 0,
+            l1Size: this.l1.size,
+            maxL1Size: MAX_L1_SIZE,
         };
     }
 
-    /**
-     * Clean up expired entries
-     */
-    cleanup(): void {
-        const now = Date.now();
-        const keysToDelete: string[] = [];
-
-        for (const [key, entry] of this.cache.entries()) {
-            const age = now - entry.timestamp;
-            if (age > entry.ttl) {
-                keysToDelete.push(key);
-            }
+    private setL1<T>(key: string, data: T): void {
+        if (this.l1.size >= MAX_L1_SIZE) {
+            const keysToRemove = Array.from(this.l1.keys()).slice(0, 50);
+            keysToRemove.forEach(k => this.l1.delete(k));
         }
-
-        keysToDelete.forEach(key => this.cache.delete(key));
-
-        if (keysToDelete.length > 0) {
-            logger.debug('[POS_CACHE] Cleanup completed', {
-                removed: keysToDelete.length,
-                remaining: this.cache.size,
-            });
-        }
+        this.l1.set(key, { data, expiry: Date.now() + L1_TTL });
     }
 }
 
 // Singleton instance
 export const posCache = new POSCache();
-
-// Run cleanup every 10 minutes
-if (typeof setInterval !== 'undefined') {
-    setInterval(() => posCache.cleanup(), 10 * 60 * 1000);
-}
 
 /**
  * Cache key generators

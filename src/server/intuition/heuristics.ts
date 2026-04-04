@@ -18,22 +18,13 @@ import {
 import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
 import { v4 as uuidv4 } from 'uuid';
+import { withCache, invalidateCache, CachePrefix, CacheTTL } from '@/lib/cache';
 
 // --- Collection Paths ---
 
 function getHeuristicsCollection(tenantId: string) {
     return `tenants/${tenantId}/heuristics`;
 }
-
-// --- In-Memory Cache ---
-
-interface CachedHeuristics {
-    heuristics: Heuristic[];
-    cachedAt: number;
-}
-
-const heuristicsCache: Map<string, CachedHeuristics> = new Map();
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 // --- CRUD Operations ---
 
@@ -65,8 +56,8 @@ export async function createHeuristic(
         .doc(fullHeuristic.id)
         .set(fullHeuristic);
 
-    // Invalidate cache
-    heuristicsCache.delete(tenantId);
+    // Invalidate Redis cache
+    await invalidateCache(CachePrefix.HEURISTICS, tenantId);
 
     logger.info(`[Heuristics] Created heuristic: ${fullHeuristic.name}`);
     return fullHeuristic;
@@ -79,33 +70,24 @@ export async function getHeuristics(
     tenantId: string,
     agent?: AgentName
 ): Promise<Heuristic[]> {
-    // Check cache
-    const cached = heuristicsCache.get(tenantId);
-    if (cached && Date.now() - cached.cachedAt < CACHE_TTL_MS) {
-        const heuristics = agent
-            ? cached.heuristics.filter(h => h.agent === agent)
-            : cached.heuristics;
-        return heuristics;
-    }
-
-    // Fetch from Firestore
     try {
-        const { firestore } = await createServerClient();
-        const snapshot = await firestore
-            .collection(getHeuristicsCollection(tenantId))
-            .where('enabled', '==', true)
-            .orderBy('priority', 'desc')
-            .get();
+        const allHeuristics = await withCache<Heuristic[]>(
+            CachePrefix.HEURISTICS,
+            tenantId,
+            async () => {
+                const { firestore } = await createServerClient();
+                const snapshot = await firestore
+                    .collection(getHeuristicsCollection(tenantId))
+                    .where('enabled', '==', true)
+                    .orderBy('priority', 'desc')
+                    .get();
 
-        const heuristics = snapshot.docs.map(doc => doc.data() as Heuristic);
+                return snapshot.docs.map(doc => doc.data() as Heuristic);
+            },
+            CacheTTL.HEURISTICS
+        );
 
-        // Update cache
-        heuristicsCache.set(tenantId, {
-            heuristics,
-            cachedAt: Date.now(),
-        });
-
-        return agent ? heuristics.filter(h => h.agent === agent) : heuristics;
+        return agent ? allHeuristics.filter(h => h.agent === agent) : allHeuristics;
     } catch (error) {
         logger.error('[Heuristics] Failed to fetch',
             error instanceof Error ? error : new Error(String(error)));
@@ -141,8 +123,8 @@ export async function updateHeuristicStats(
             'stats.lastEvaluatedAt': new Date().toISOString(),
         });
 
-        // Invalidate cache
-        heuristicsCache.delete(tenantId);
+        // Invalidate Redis cache
+        await invalidateCache(CachePrefix.HEURISTICS, tenantId);
     } catch (error) {
         logger.error('[Heuristics] Failed to update stats',
             error instanceof Error ? error : new Error(String(error)));

@@ -1,67 +1,95 @@
 /**
  * Agent Runner Cache
  *
- * In-memory cache for expensive operations in agent-runner.ts
- * Reduces latency from 5-8s to <1s for repeated queries
+ * Redis-backed cache with in-memory L1 for expensive agent-runner operations.
+ * Reduces latency from 5-8s to <1s for repeated queries.
+ *
+ * L1 (in-memory): 30s TTL, prevents Redis round-trips for hot paths.
+ * L2 (Upstash Redis): Full TTL, shared across all server instances.
  */
 
-interface CacheEntry<T> {
+import { getCached, setCached, invalidateCache, CachePrefix, CacheTTL } from '@/lib/cache';
+
+/** L1 in-memory entry */
+interface L1Entry<T> {
     value: T;
     expiresAt: number;
 }
 
+/** L1 TTL in ms (30 seconds — keep hot data local) */
+const L1_TTL = 30 * 1000;
+
 class AgentRunnerCache {
-    private cache = new Map<string, CacheEntry<any>>();
+    private l1 = new Map<string, L1Entry<unknown>>();
 
     /**
-     * Get cached value if not expired
+     * Get cached value (L1 → L2 Redis)
      */
-    get<T>(key: string): T | null {
-        const entry = this.cache.get(key);
-        if (!entry) return null;
+    async get<T>(key: string): Promise<T | null> {
+        // L1 check
+        const l1Entry = this.l1.get(key);
+        if (l1Entry && Date.now() < l1Entry.expiresAt) {
+            return l1Entry.value as T;
+        }
+        if (l1Entry) this.l1.delete(key);
 
-        if (Date.now() > entry.expiresAt) {
-            this.cache.delete(key);
-            return null;
+        // L2 check (Redis)
+        const redisValue = await getCached<T>(CachePrefix.AGENT_RUNNER, key);
+        if (redisValue !== null) {
+            this.setL1(key, redisValue);
+            return redisValue;
         }
 
-        return entry.value as T;
+        return null;
     }
 
     /**
-     * Set cache value with TTL in seconds
+     * Set cache value with TTL in seconds (L1 + L2)
      */
-    set<T>(key: string, value: T, ttlSeconds: number): void {
-        this.cache.set(key, {
-            value,
-            expiresAt: Date.now() + (ttlSeconds * 1000),
-        });
+    async set<T>(key: string, value: T, ttlSeconds: number): Promise<void> {
+        this.setL1(key, value);
+        await setCached(CachePrefix.AGENT_RUNNER, key, value, ttlSeconds);
     }
 
     /**
-     * Clear all cache entries
+     * Clear all L1 entries (Redis entries expire via TTL)
      */
     clear(): void {
-        this.cache.clear();
+        this.l1.clear();
     }
 
     /**
-     * Clear expired entries (cleanup)
+     * Invalidate a specific key (L1 + L2)
+     */
+    async invalidate(key: string): Promise<void> {
+        this.l1.delete(key);
+        await invalidateCache(CachePrefix.AGENT_RUNNER, key);
+    }
+
+    /**
+     * Clean up expired L1 entries
      */
     cleanup(): void {
         const now = Date.now();
-        for (const [key, entry] of this.cache.entries()) {
+        for (const [key, entry] of this.l1.entries()) {
             if (now > entry.expiresAt) {
-                this.cache.delete(key);
+                this.l1.delete(key);
             }
         }
+    }
+
+    private setL1<T>(key: string, value: T): void {
+        this.l1.set(key, {
+            value,
+            expiresAt: Date.now() + L1_TTL,
+        });
     }
 }
 
 // Singleton instance
 export const agentCache = new AgentRunnerCache();
 
-// Auto-cleanup every 5 minutes
+// Auto-cleanup L1 every 5 minutes
 if (typeof setInterval !== 'undefined') {
     setInterval(() => agentCache.cleanup(), 5 * 60 * 1000);
 }
@@ -78,12 +106,12 @@ export const CacheKeys = {
 } as const;
 
 /**
- * Cache TTLs (in seconds)
+ * Cache TTLs (in seconds) — maps legacy names to centralized CacheTTL values
  */
 export const CacheTTL = {
-    BRAND_PROFILE: 5 * 60, // 5 minutes
-    AI_SETTINGS: 5 * 60,   // 5 minutes
-    AGENT_CONFIG: 5 * 60,  // 5 minutes
-    KB_SEARCH: 60,         // 1 minute (shorter for freshness)
-    LETTA_MEMORY: 2 * 60,  // 2 minutes (memory changes less frequently than KB)
+    BRAND_PROFILE: 300,   // 5 minutes
+    AI_SETTINGS: 300,     // 5 minutes
+    AGENT_CONFIG: 300,    // 5 minutes
+    KB_SEARCH: 60,        // 1 minute (shorter for freshness)
+    LETTA_MEMORY: 120,    // 2 minutes
 } as const;

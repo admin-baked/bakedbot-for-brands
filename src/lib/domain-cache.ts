@@ -1,95 +1,116 @@
 /**
  * Domain Cache
  *
- * In-memory cache for domain -> tenant lookups.
- * Prevents Firestore latency on every request in middleware.
+ * Redis-backed cache for domain -> tenant lookups with in-memory L1.
+ * L1 (in-memory) prevents Redis round-trips for hot domains.
+ * L2 (Upstash Redis) ensures cross-instance consistency.
  *
- * Note: In production, consider using Redis or Cloudflare KV for
- * better performance and cross-instance cache sharing.
+ * Fallback: If Redis is unavailable, L1 still works per-instance.
  */
 
+import { getCached, setCached, invalidateCache, CachePrefix, CacheTTL } from '@/lib/cache';
 import { logger } from '@/lib/logger';
 
-/** Cache entry with TTL */
-interface CacheEntry {
+/** L1 in-memory entry with short TTL */
+interface L1Entry {
     tenantId: string | null;
     expiry: number;
 }
 
-/** Cache TTL in milliseconds (1 minute) */
-const CACHE_TTL = 60 * 1000;
+/** L1 TTL in milliseconds (30 seconds — short to stay fresh with Redis) */
+const L1_TTL = 30 * 1000;
 
-/** Maximum cache size to prevent memory issues */
-const MAX_CACHE_SIZE = 1000;
+/** Maximum L1 cache size to prevent memory issues */
+const MAX_L1_SIZE = 500;
 
-/** In-memory domain cache */
-const domainCache = new Map<string, CacheEntry>();
+/** In-memory L1 domain cache */
+const l1Cache = new Map<string, L1Entry>();
 
 /**
- * Get tenant ID from cache
+ * Get tenant ID from cache (L1 → L2 Redis)
  * @param domain - The domain to lookup
- * @returns Tenant ID if found and not expired, undefined otherwise
+ * @returns Tenant ID if found and not expired, undefined if not cached
  */
-export function getCachedTenant(domain: string): string | null | undefined {
+export async function getCachedTenant(domain: string): Promise<string | null | undefined> {
     const normalizedDomain = domain.toLowerCase();
-    const entry = domainCache.get(normalizedDomain);
 
-    if (!entry) {
-        return undefined; // Not in cache
+    // L1 check (synchronous, fast)
+    const l1 = l1Cache.get(normalizedDomain);
+    if (l1 && Date.now() < l1.expiry) {
+        return l1.tenantId;
+    }
+    if (l1) l1Cache.delete(normalizedDomain);
+
+    // L2 check (Redis)
+    const redisValue = await getCached<string | null>(CachePrefix.DOMAIN, normalizedDomain);
+    if (redisValue !== null) {
+        // Promote to L1
+        setL1(normalizedDomain, redisValue);
+        return redisValue;
     }
 
-    if (Date.now() > entry.expiry) {
-        // Expired, remove and return undefined
-        domainCache.delete(normalizedDomain);
-        return undefined;
-    }
-
-    return entry.tenantId;
+    return undefined; // Not in any cache
 }
 
 /**
- * Set tenant ID in cache
+ * Set tenant ID in cache (L1 + L2 Redis)
  * @param domain - The domain
  * @param tenantId - The tenant ID (or null if not found)
  */
-export function setCachedTenant(domain: string, tenantId: string | null): void {
+export async function setCachedTenant(domain: string, tenantId: string | null): Promise<void> {
     const normalizedDomain = domain.toLowerCase();
 
-    // Prevent cache from growing too large
-    if (domainCache.size >= MAX_CACHE_SIZE) {
-        // Remove oldest entries (first 100)
-        const keysToRemove = Array.from(domainCache.keys()).slice(0, 100);
-        keysToRemove.forEach(key => domainCache.delete(key));
-        logger.warn('[DomainCache] Pruned cache due to size limit', { removed: 100 });
-    }
+    // Set L1
+    setL1(normalizedDomain, tenantId);
 
-    domainCache.set(normalizedDomain, {
-        tenantId,
-        expiry: Date.now() + CACHE_TTL,
-    });
+    // Set L2 (Redis) — store "null" as empty string sentinel
+    await setCached(
+        CachePrefix.DOMAIN,
+        normalizedDomain,
+        tenantId ?? '__null__',
+        CacheTTL.DOMAIN
+    );
 }
 
 /**
- * Invalidate cache entry for a domain
+ * Invalidate cache entry for a domain (L1 + L2)
  * @param domain - The domain to invalidate
  */
-export function invalidateDomainCache(domain: string): void {
-    domainCache.delete(domain.toLowerCase());
+export async function invalidateDomainCache(domain: string): Promise<void> {
+    const normalized = domain.toLowerCase();
+    l1Cache.delete(normalized);
+    await invalidateCache(CachePrefix.DOMAIN, normalized);
 }
 
 /**
- * Clear entire domain cache
+ * Clear entire domain cache (L1 only — Redis entries expire via TTL)
  */
 export function clearDomainCache(): void {
-    domainCache.clear();
+    l1Cache.clear();
 }
 
 /**
  * Get cache stats for debugging
  */
-export function getDomainCacheStats(): { size: number; maxSize: number } {
+export function getDomainCacheStats(): { l1Size: number; maxL1Size: number } {
     return {
-        size: domainCache.size,
-        maxSize: MAX_CACHE_SIZE,
+        l1Size: l1Cache.size,
+        maxL1Size: MAX_L1_SIZE,
     };
+}
+
+// --- Internal helpers ---
+
+function setL1(domain: string, tenantId: string | null): void {
+    // Prevent L1 from growing too large
+    if (l1Cache.size >= MAX_L1_SIZE) {
+        const keysToRemove = Array.from(l1Cache.keys()).slice(0, 50);
+        keysToRemove.forEach(key => l1Cache.delete(key));
+        logger.warn('[DomainCache] Pruned L1 cache', { removed: 50 });
+    }
+
+    l1Cache.set(domain, {
+        tenantId,
+        expiry: Date.now() + L1_TTL,
+    });
 }

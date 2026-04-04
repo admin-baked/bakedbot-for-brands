@@ -16,6 +16,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import { logger } from '@/lib/logger';
 import { generateImageWithFal } from '@/ai/generators/fal';
+import { getCached, setCached, CachePrefix, CacheTTL } from '@/lib/cache';
 
 const GenerateSocialMediaImageInputSchema = z.object({
   productName: z.string().describe('The name of the product or a title for the image.'),
@@ -124,6 +125,24 @@ export async function generateSocialMediaImage(
  * @param options.tier - 'free' (Schnell), 'paid'/'super' (Pro)
  * @param options.platform - Social platform for correct aspect ratio
  */
+/**
+ * Build a cache key for creative image generation.
+ * Uses prompt + tier + platform to deduplicate identical requests.
+ * Note: We intentionally cache across users — same prompt = same image.
+ */
+function buildCreativeImageCacheKey(prompt: string, tier: string, platform: string): string {
+    // Simple hash: take first 80 chars of prompt + tier + platform
+    const normalized = `${prompt.substring(0, 80).toLowerCase().replace(/\s+/g, '_')}|${tier}|${platform}`;
+    // Use a simple numeric hash to keep keys short
+    let hash = 0;
+    for (let i = 0; i < normalized.length; i++) {
+        const chr = normalized.charCodeAt(i);
+        hash = ((hash << 5) - hash) + chr;
+        hash |= 0; // Convert to 32bit integer
+    }
+    return `img_${Math.abs(hash).toString(36)}`;
+}
+
 export async function generateImageFromPrompt(
     promptText: string,
     options?: {
@@ -134,10 +153,37 @@ export async function generateImageFromPrompt(
     }
 ): Promise<string> {
     const falTier = (options?.tier === 'free' || !options?.tier) ? 'free' : 'paid';
-    return await generateImageWithFal(promptText, {
+    const platform = options?.platform ?? 'instagram';
+
+    // Check Redis cache — avoid paying for duplicate image generation
+    const cacheKey = buildCreativeImageCacheKey(promptText, falTier, platform);
+    const cachedUrl = await getCached<string>(CachePrefix.CREATIVE_IMAGE, cacheKey);
+    if (cachedUrl) {
+        logger.info('[creative-image] Cache HIT — reusing generated image', {
+            tier: falTier,
+            platform,
+            promptPreview: promptText.substring(0, 60),
+        });
+        return cachedUrl;
+    }
+
+    // Cache miss — generate new image
+    const imageUrl = await generateImageWithFal(promptText, {
         tier: falTier,
-        platform: options?.platform,
+        platform,
     });
+
+    // Cache the result (30 min TTL — fal.ai URLs are temporary but last ~1 hour)
+    setCached(CachePrefix.CREATIVE_IMAGE, cacheKey, imageUrl, CacheTTL.CREATIVE_IMAGE).catch(() => {
+        // Error already logged in setCached
+    });
+
+    logger.info('[creative-image] Generated and cached new image', {
+        tier: falTier,
+        platform,
+    });
+
+    return imageUrl;
     // If fal.ai fails (timeout, API error), the error propagates to the caller's .catch()
     // which returns IMAGE_PLACEHOLDER. Do NOT fall back to Gemini — it blocks cannabis content
     // and has no timeout, which causes Cloud Run request timeouts ("Failed to fetch").

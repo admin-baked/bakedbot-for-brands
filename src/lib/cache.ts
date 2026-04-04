@@ -47,6 +47,14 @@ export const CachePrefix = {
     ANALYTICS: 'analytics',
     POS_SYNC: 'pos_sync',
     AGENT: 'agent',
+    DOMAIN: 'domain',
+    POS_DATA: 'pos_data',
+    AGENT_RUNNER: 'agent_runner',
+    TOOL: 'tool',
+    HEURISTICS: 'heuristics',
+    UPSELL_PRODUCTS: 'upsell_products',
+    UPSELL_BUNDLES: 'upsell_bundles',
+    CREATIVE_IMAGE: 'creative_img',
 } as const;
 
 /**
@@ -59,6 +67,15 @@ export const CacheTTL = {
     ANALYTICS: 600, // 10 minutes
     POS_SYNC: 3600, // 1 hour
     AGENT: 300, // 5 minutes (matches product cache)
+    DOMAIN: 120, // 2 minutes (domain → tenant resolution)
+    POS_DATA: 300, // 5 minutes (POS customers/orders)
+    AGENT_RUNNER: 300, // 5 minutes (brand profiles, AI settings)
+    AGENT_RUNNER_KB: 60, // 1 minute (knowledge base search — fresher)
+    AGENT_RUNNER_LETTA: 120, // 2 minutes (Letta memory)
+    TOOL: 300, // 5 minutes (default for agent tools)
+    HEURISTICS: 300, // 5 minutes (tenant heuristic rules)
+    UPSELL: 300, // 5 minutes (product/bundle data)
+    CREATIVE_IMAGE: 1800, // 30 minutes (generated image URLs)
 } as const;
 
 /**
@@ -219,4 +236,11 @@ export async function withCache<T>(
     });
 
     return result;
+}
+
+/**
+ * Check if Redis is available (useful for health checks)
+ */
+export function isRedisAvailable(): boolean {
+    return initializeRedis() !== null;
 }

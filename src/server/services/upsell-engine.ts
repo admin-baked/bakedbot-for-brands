@@ -33,28 +33,7 @@ import {
   CATEGORY_COMPLEMENTS,
   UPSELL_REASON_TEMPLATES,
 } from '@/types/upsell';
-
-// --- Caching ---
-
-interface CacheEntry<T> {
-  data: T;
-  expiry: number;
-}
-
-const productCache = new Map<string, CacheEntry<Product[]>>();
-const bundleCache = new Map<string, CacheEntry<BundleDeal[]>>();
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
-
-function getCached<T>(cache: Map<string, CacheEntry<T>>, key: string): T | null {
-  const entry = cache.get(key);
-  if (entry && entry.expiry > Date.now()) return entry.data;
-  cache.delete(key);
-  return null;
-}
-
-function setCache<T>(cache: Map<string, CacheEntry<T>>, key: string, data: T): void {
-  cache.set(key, { data, expiry: Date.now() + CACHE_TTL_MS });
-}
+import { withCache, CachePrefix, CacheTTL } from '@/lib/cache';
 
 // --- Product Fetching ---
 
@@ -63,38 +42,38 @@ function setCache<T>(cache: Map<string, CacheEntry<T>>, key: string, data: T): v
  * Checks tenant catalog first (Thrive Syracuse pattern), then legacy products.
  */
 async function fetchOrgProducts(orgId: string): Promise<Product[]> {
-  const cached = getCached(productCache, orgId);
-  if (cached) return cached;
-
   try {
-    const db = getAdminFirestore();
+    return await withCache<Product[]>(
+      CachePrefix.UPSELL_PRODUCTS,
+      orgId,
+      async () => {
+        const db = getAdminFirestore();
 
-    // 1. Tenant catalog (tenants/{orgId}/publicViews/products/items)
-    const tenantSnap = await db
-      .collection(`tenants/${orgId}/publicViews/products/items`)
-      .limit(500)
-      .get();
+        // 1. Tenant catalog (tenants/{orgId}/publicViews/products/items)
+        const tenantSnap = await db
+          .collection(`tenants/${orgId}/publicViews/products/items`)
+          .limit(500)
+          .get();
 
-    if (!tenantSnap.empty) {
-      const products = tenantSnap.docs.map((doc) => mapFirestoreToProduct(doc.id, doc.data()));
-      setCache(productCache, orgId, products);
-      return products;
-    }
+        if (!tenantSnap.empty) {
+          return tenantSnap.docs.map((doc) => mapFirestoreToProduct(doc.id, doc.data()));
+        }
 
-    // 2. Legacy products collection
-    const legacySnap = await db
-      .collection('products')
-      .where('brandId', '==', orgId)
-      .limit(500)
-      .get();
+        // 2. Legacy products collection
+        const legacySnap = await db
+          .collection('products')
+          .where('brandId', '==', orgId)
+          .limit(500)
+          .get();
 
-    if (!legacySnap.empty) {
-      const products = legacySnap.docs.map((doc) => mapFirestoreToProduct(doc.id, doc.data()));
-      setCache(productCache, orgId, products);
-      return products;
-    }
+        if (!legacySnap.empty) {
+          return legacySnap.docs.map((doc) => mapFirestoreToProduct(doc.id, doc.data()));
+        }
 
-    return [];
+        return [];
+      },
+      CacheTTL.UPSELL
+    );
   } catch (error) {
     logger.error('[UPSELL_ENGINE] Error fetching products', { orgId, error });
     return [];
@@ -128,25 +107,26 @@ function mapFirestoreToProduct(id: string, data: FirebaseFirestore.DocumentData)
 
 /** Fetch active bundles for an org (with caching) */
 async function fetchActiveBundles(orgId: string): Promise<BundleDeal[]> {
-  const cached = getCached(bundleCache, orgId);
-  if (cached) return cached;
-
   try {
-    const db = getAdminFirestore();
-    const snapshot = await db
-      .collection('bundles')
-      .where('orgId', '==', orgId)
-      .where('status', '==', 'active')
-      .limit(20)
-      .get();
+    return await withCache<BundleDeal[]>(
+      CachePrefix.UPSELL_BUNDLES,
+      orgId,
+      async () => {
+        const db = getAdminFirestore();
+        const snapshot = await db
+          .collection('bundles')
+          .where('orgId', '==', orgId)
+          .where('status', '==', 'active')
+          .limit(20)
+          .get();
 
-    const bundles = snapshot.docs.map((doc) => ({
-      ...doc.data(),
-      id: doc.id,
-    })) as unknown as BundleDeal[];
-
-    setCache(bundleCache, orgId, bundles);
-    return bundles;
+        return snapshot.docs.map((doc) => ({
+          ...doc.data(),
+          id: doc.id,
+        })) as unknown as BundleDeal[];
+      },
+      CacheTTL.UPSELL
+    );
   } catch (error) {
     logger.error('[UPSELL_ENGINE] Error fetching bundles', { orgId, error });
     return [];

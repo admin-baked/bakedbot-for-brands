@@ -216,7 +216,7 @@ export async function lookupCustomer(
 
     // Try spending cache for Alleaves customers
     const spendingCacheKey = `spending:${orgId}`;
-    const cachedSpending = posCache.get<Record<string, { totalSpent: number; orderCount: number }>>(spendingCacheKey);
+    const cachedSpending = await posCache.get<Record<string, { totalSpent: number; orderCount: number }>>(spendingCacheKey);
     if (cachedSpending && cachedSpending[identifier]) {
         return {
             summary: `Found spending data for ${identifier} but no full profile. Total spent: $${cachedSpending[identifier].totalSpent.toFixed(2)}, Orders: ${cachedSpending[identifier].orderCount}.`,
@@ -230,8 +230,8 @@ export async function lookupCustomer(
     };
 }
 
-function getCachedCustomerProfile(id: string, orgId: string): Record<string, unknown> | null {
-    const cachedCustomers = posCache.get<Record<string, unknown>[]>(cacheKeys.customers(orgId));
+async function getCachedCustomerProfile(id: string, orgId: string): Promise<Record<string, unknown> | null> {
+    const cachedCustomers = await posCache.get<Record<string, unknown>[]>(cacheKeys.customers(orgId));
     if (!Array.isArray(cachedCustomers)) {
         return null;
     }
@@ -439,11 +439,11 @@ ${limited.map((o, i) => `${i + 1}. **${o.created_at ? new Date(o.created_at).toL
     // Fallback: filter from cached all-orders
     try {
         const ordersCacheKey = cacheKeys.orders(orgId);
-        let allOrders = posCache.get<any[]>(ordersCacheKey);
+        let allOrders = await posCache.get<any[]>(ordersCacheKey);
 
         if (!allOrders) {
             allOrders = await client.getAllOrders(5000);
-            posCache.set(ordersCacheKey, allOrders, 5 * 60 * 1000);
+            await posCache.set(ordersCacheKey, allOrders, 300);
         }
 
         const customerOrders = allOrders

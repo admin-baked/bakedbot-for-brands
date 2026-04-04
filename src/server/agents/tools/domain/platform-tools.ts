@@ -124,7 +124,7 @@ export const platformTogglePlaybook = async (playbookId: string, active: boolean
             return { success: false, error: (result as any).message };
         }
         // Invalidate playbook listings cache after mutation
-        toolCache.invalidate('platform_listPlaybooks');
+        await toolCache.invalidate('platform_listPlaybooks');
         return {
             success: true,
             message: `Playbook '${playbookId}' ${active ? 'activated' : 'deactivated'}`,
@@ -174,7 +174,7 @@ export const platformToggleFeature = async (featureId: string, enabled: boolean)
             return { success: false, error: (result as any).message };
         }
         // Invalidate feature flags cache after mutation
-        toolCache.invalidate('platform_listFeatureFlags');
+        await toolCache.invalidate('platform_listFeatureFlags');
         return {
             success: true,
             message: (result as any).message,
