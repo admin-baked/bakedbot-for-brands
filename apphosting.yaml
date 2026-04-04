@@ -443,6 +443,14 @@ env:
     secret: LETTA_API_KEY@1
     availability:
       - RUNTIME
+  # Letta — Linus agent ID for sleep-time codebase learning (linus-sleep cron)
+  # Setup: Create agent in Letta dashboard → copy agent ID here
+  #   echo -n "agent-xxxx" | gcloud secrets create LETTA_LINUS_AGENT_ID --data-file=- --project=studio-567050101-bc6e8
+  #   firebase apphosting:secrets:grantaccess LETTA_LINUS_AGENT_ID --backend=bakedbot-prod
+  - variable: LETTA_LINUS_AGENT_ID
+    secret: LETTA_LINUS_AGENT_ID@1
+    availability:
+      - RUNTIME
   # Alleaves POS (Thrive Syracuse) - JWT Authentication
   - variable: ALLEAVES_USERNAME
     secret: ALLEAVES_USERNAME@1
