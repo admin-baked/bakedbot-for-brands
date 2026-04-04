@@ -17,7 +17,7 @@ import { logger } from '@/lib/logger';
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const GEMINI_LIVE_MODEL = 'gemini-live-2.5-flash-preview';
-const SMOKEY_VOICE = 'Aoede'; // Warm, musical — fits a knowledgeable budtender
+const SMOKEY_VOICE = 'Fenrir'; // Deep, authoritative male voice — fits Smokey's character
 const SESSION_TIMEOUT_MS = 20_000; // 20s max — typical counter interaction
 
 // ─── Types ────────────────────────────────────────────────────────────────────

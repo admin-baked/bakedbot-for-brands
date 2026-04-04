@@ -7,14 +7,19 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 // Ordered preference list — first match wins.
-// iOS Safari "Samantha" is far more natural than the default robotic voice.
+// Target: natural-sounding male English voice.
+// Web Speech API doesn't expose gender, so we match by known male voice names.
 const PREFERRED_VOICE_NAMES = [
-    'Samantha',           // iOS Safari — best natural voice on iPad
-    'Google US English',
+    'Google US English',      // Chrome Android/desktop — typically male, natural
+    'Microsoft David',        // Windows — natural male voice
+    'Microsoft Mark',         // Windows — male voice
+    'Alex',                   // macOS — male
+    'Rishi',                  // macOS/iOS — male (South Asian accent)
+    'Daniel',                 // iOS — male (UK accent)
+    'Fred',                   // macOS — male
+    'Samantha',               // iOS fallback — no strong male option on stock iOS
     'Microsoft Aria',
     'Microsoft Jenny',
-    'Microsoft Zira',
-    'Alex',               // macOS
 ];
 
 function pickBestVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
@@ -23,7 +28,7 @@ function pickBestVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | n
         const match = enVoices.find(v => v.name.includes(name));
         if (match) return match;
     }
-    // Fallback: first English voice, or null
+    // Fallback: first English voice
     return enVoices[0] ?? null;
 }
 

@@ -52,6 +52,10 @@ const captureSchema = z.object({
     mood: z.string().optional(),
     cartProductIds: z.array(z.string()).optional(),
     bundleAdded: z.boolean().optional(),
+    // Personalization dossier fields
+    birthday: z.string().max(10).optional(),           // "MM/DD" format
+    visitPreferences: z.array(z.string()).max(5).optional(), // ['first-timer','recreational',...]
+    offerProductId: z.string().optional(),              // claimed deal product
 });
 
 type MoodRecommendationConfig = {
@@ -98,6 +102,9 @@ type RawMenuProduct = {
     strainType?: string;
     strain_type?: string;
 };
+
+// Categories scanned from purchase history text to infer customer preferences
+const BUDTENDER_CATEGORY_KEYWORDS = ['flower', 'edible', 'concentrate', 'vape', 'pre-roll', 'tincture', 'topical', 'cbd'] as const;
 
 const MOOD_RECOMMENDATION_CONFIGS: Record<TabletMoodId, MoodRecommendationConfig> = {
     relaxed: {
@@ -539,10 +546,13 @@ export async function captureTabletLead(params: {
     mood?: string;
     cartProductIds?: string[];
     bundleAdded?: boolean;
+    birthday?: string;
+    visitPreferences?: string[];
+    offerProductId?: string;
 }): Promise<TabletLeadResult> {
     try {
         const validated = captureSchema.parse(params);
-        const { orgId, firstName, email, phone, emailConsent, smsConsent, mood, cartProductIds, bundleAdded } = validated;
+        const { orgId, firstName, email, phone, emailConsent, smsConsent, mood, cartProductIds, bundleAdded, birthday, visitPreferences, offerProductId } = validated;
 
         if (!phone) {
             return { success: false, isNewLead: false, error: 'Phone required' };
@@ -561,6 +571,20 @@ export async function captureTabletLead(params: {
             cartProductIds,
             bundleAdded,
         });
+
+        // Persist personalization dossier fields to the customer document
+        if (result.customerId && (birthday || visitPreferences?.length || offerProductId)) {
+            try {
+                const db = getAdminFirestore();
+                const update: Record<string, unknown> = {};
+                if (birthday) update.birthday = birthday;
+                if (visitPreferences?.length) update.visitPreferences = visitPreferences;
+                if (offerProductId) update.lastClaimedOffer = { productId: offerProductId, claimedAt: new Date().toISOString() };
+                await db.collection('customers').doc(result.customerId).set(update, { merge: true });
+            } catch {
+                // Non-critical — dossier save failure doesn't block checkin
+            }
+        }
 
         let queuePosition: number | undefined;
         if (result.success && result.visitId) {
@@ -600,6 +624,130 @@ export async function captureTabletLead(params: {
             isNewLead: false,
             error: error instanceof Error ? error.message : 'Failed to capture lead',
         };
+    }
+}
+
+// ============================================================
+// Tablet Offer — near-expiry / clearance deal for the email step
+// ============================================================
+
+export interface TabletOffer {
+    productId: string;
+    name: string;
+    category: string;
+    originalPrice: number;
+    dealPrice: number;
+    imageUrl?: string;
+    reason: string;
+}
+
+/**
+ * Returns a single clearance/near-expiry pre-roll or low-cost item to present as a $1 deal.
+ * Strategy: lowest-priced pre-roll in live inventory → attach a $1 deal price.
+ * If no pre-roll found, falls back to any cheapest item.
+ */
+export async function getTabletOffer(orgId: string): Promise<{ success: boolean; offer?: TabletOffer }> {
+    try {
+        const products = await fetchMenuProducts(orgId) as RawMenuProduct[];
+        if (!products.length) return { success: false };
+
+        const normalize = (p: RawMenuProduct): { id: string; name: string; category: string; price: number; imageUrl?: string } => ({
+            id: (p.id ?? p.productId ?? p.externalId ?? p.sku_id ?? '') as string,
+            name: ((p.name ?? p.product_name ?? p.productName ?? '') as string).trim(),
+            category: normalizeCategoryName((p.category ?? p.category_name ?? '') as string),
+            price: Number(p.price ?? p.selling_price ?? p.salePrice ?? 0),
+            imageUrl: getSafeProductImageUrl(p as Record<string, unknown>),
+        });
+
+        const all = products.map(normalize).filter(p => p.id && p.name && p.price > 0);
+        // Prefer pre-rolls (cheapest first)
+        const prerolls = all
+            .filter(p => p.category.toLowerCase().includes('pre') || p.name.toLowerCase().includes('pre-roll') || p.name.toLowerCase().includes('preroll'))
+            .sort((a, b) => a.price - b.price);
+
+        const pick = prerolls[0] ?? all.sort((a, b) => a.price - b.price)[0];
+        if (!pick) return { success: false };
+
+        return {
+            success: true,
+            offer: {
+                productId: pick.id,
+                name: pick.name,
+                category: pick.category,
+                originalPrice: pick.price,
+                dealPrice: 1.00,
+                imageUrl: pick.imageUrl,
+                reason: 'End-of-shelf special — grab it while it lasts!',
+            },
+        };
+    } catch (error) {
+        logger.error('[LoyaltyTablet] getTabletOffer failed', { orgId, error });
+        return { success: false };
+    }
+}
+
+// ============================================================
+// Customer budtender context — purchase history + profile
+// ============================================================
+
+export interface BudtenderContext {
+    visitCount: number;
+    loyaltyPoints: number;
+    historySummary: string;
+    topCategories: string[];
+    badges: string[];
+    lastVisitLabel?: string;
+}
+
+/**
+ * Fetches compact context for the budtender panel on the recommendations screen.
+ * Returns purchase history summary, inferred categories, badges, and visit count.
+ */
+export async function getCustomerBudtenderContext(
+    orgId: string,
+    customerId: string,
+): Promise<{ success: boolean; context?: BudtenderContext }> {
+    try {
+        const [history, customerSnap] = await Promise.all([
+            getCustomerHistory(customerId, orgId, 5).catch(() => null),
+            getAdminFirestore().collection('customers').doc(customerId).get().catch(() => null),
+        ]);
+
+        const d = customerSnap?.data() ?? {};
+        const loyaltyPoints = (d.loyaltyPoints as number) || 0;
+        const visitCount = (d.visitCount as number) || (d.totalVisits as number) || 0;
+        const badges: string[] = (d.badges as string[]) ?? [];
+
+        // Derive last visit label
+        let lastVisitLabel: string | undefined;
+        const lastVisit = d.lastVisitAt ?? d.lastCheckinAt ?? d.updatedAt;
+        if (lastVisit) {
+            try {
+                const days = Math.floor((Date.now() - new Date(lastVisit instanceof Object && 'toDate' in lastVisit ? (lastVisit as { toDate(): Date }).toDate() : lastVisit as string | number).getTime()) / 86400000);
+                lastVisitLabel = days === 0 ? 'Today' : days === 1 ? 'Yesterday' : `${days} days ago`;
+            } catch {
+                // ignore
+            }
+        }
+
+        // Extract top categories from purchase history text
+        const historyText = history?.summary ?? '';
+        const topCategories = BUDTENDER_CATEGORY_KEYWORDS.filter(k => historyText.toLowerCase().includes(k));
+
+        return {
+            success: true,
+            context: {
+                visitCount,
+                loyaltyPoints,
+                historySummary: historyText,
+                topCategories,
+                badges,
+                lastVisitLabel,
+            },
+        };
+    } catch (error) {
+        logger.error('[LoyaltyTablet] getCustomerBudtenderContext failed', { orgId, customerId, error });
+        return { success: false };
     }
 }
 

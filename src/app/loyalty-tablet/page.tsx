@@ -28,7 +28,11 @@ import {
     getMoodRecommendations,
     searchTabletRecommendations,
     quickLookupByPhoneLast4,
+    getTabletOffer,
+    getCustomerBudtenderContext,
     type QuickLookupResult,
+    type TabletOffer,
+    type BudtenderContext,
 } from '@/server/actions/loyalty-tablet';
 import { getPublicBrandTheme } from '@/server/actions/checkin-management';
 import { getPublicReviews } from '@/server/actions/public-review';
@@ -49,11 +53,9 @@ import { useSmokeyVoice } from '@/hooks/use-smokey-voice';
 import { useVoiceOutput } from '@/hooks/use-voice-output';
 import {
     ArrowRight,
-    Bot,
     CheckCircle2,
     ChevronRight,
     Loader2,
-    Mail,
     Mic,
     MicOff,
     Phone,
@@ -66,11 +68,11 @@ import {
     VolumeX,
 } from 'lucide-react';
 
-type Step = 'welcome' | 'quick_lookup' | 'phone' | 'email' | 'mood' | 'recommendations' | 'success';
+type Step = 'welcome' | 'quick_lookup' | 'phone' | 'offer' | 'mood' | 'recommendations' | 'success';
 
 const IDLE_TIMEOUT_MS = 60_000;
-// phone → email order: phone is required (loyalty ID), email is optional
-const STEPS = ['phone', 'email', 'mood', 'recommendations'] as const;
+// phone → offer → mood → recommendations
+const STEPS = ['phone', 'offer', 'mood', 'recommendations'] as const;
 const ASK_SMOKEY_PLACEHOLDER = 'Ask Smokey for something like calming gummies under $30 or a social pre-roll.';
 
 // Clean light-mode input — dark text on white background
@@ -148,6 +150,18 @@ export default function LoyaltyTabletPage() {
     const [emailConsent, setEmailConsent] = useState(false);
     const [smsConsent, setSmsConsent] = useState(false);
 
+    // Personalization dossier
+    const [birthday, setBirthday] = useState('');
+    const [visitPreferences, setVisitPreferences] = useState<string[]>([]);
+    const [tabletOffer, setTabletOffer] = useState<TabletOffer | null>(null);
+    const [offerClaimed, setOfferClaimed] = useState(false);
+    const [offerLoading, setOfferLoading] = useState(false);
+
+    // Budtender context (returning customers)
+    const [customerId, setCustomerId] = useState<string | null>(null);
+    const [budtenderContext, setBudtenderContext] = useState<BudtenderContext | null>(null);
+    const [budtenderName, setBudtenderName] = useState('');
+
     // Mood + recs state
     const [selectedMood, setSelectedMood] = useState<TabletMoodId | null>(null);
     const [recsLoading, setRecsLoading] = useState(false);
@@ -219,6 +233,14 @@ export default function LoyaltyTabletPage() {
         setEmail('');
         setEmailConsent(false);
         setSmsConsent(false);
+        setBirthday('');
+        setVisitPreferences([]);
+        setTabletOffer(null);
+        setOfferClaimed(false);
+        setOfferLoading(false);
+        setCustomerId(null);
+        setBudtenderContext(null);
+        setBudtenderName('');
         setSelectedMood(null);
         setProducts([]);
         setBundle(null);
@@ -293,7 +315,12 @@ export default function LoyaltyTabletPage() {
     const handleQuickMatchSelect = (match: QuickLookupResult['matches'][number]) => {
         resetIdleTimer();
         setFirstName(match.firstName);
+        setCustomerId(match.customerId);
         setQuickMatches([]);
+        // Fetch budtender context in background
+        void getCustomerBudtenderContext(orgId, match.customerId).then(res => {
+            if (res.success && res.context) setBudtenderContext(res.context);
+        });
         setStep('mood');
     };
 
@@ -304,13 +331,26 @@ export default function LoyaltyTabletPage() {
             setError('Please enter a valid 10-digit phone number');
             return;
         }
-        setStep('email');
+        // Load deal offer in background while customer moves to offer step
+        setOfferLoading(true);
+        void getTabletOffer(orgId).then(res => {
+            if (res.success && res.offer) setTabletOffer(res.offer);
+            setOfferLoading(false);
+        });
+        setStep('offer');
     };
 
-    const handleEmailSubmit = () => {
+    const handleOfferSubmit = () => {
         resetIdleTimer();
         setError('');
         setStep('mood');
+    };
+
+    const toggleVisitPreference = (pref: string) => {
+        resetIdleTimer();
+        setVisitPreferences(prev =>
+            prev.includes(pref) ? prev.filter(p => p !== pref) : [...prev, pref]
+        );
     };
 
     const handleMoodSelect = async (moodId: TabletMoodId) => {
@@ -338,6 +378,16 @@ export default function LoyaltyTabletPage() {
             if (response.success && response.products) {
                 setProducts(response.products);
                 setBundle(response.bundle ?? null);
+                // Auto-greet once products are ready
+                const moodLabel = getTabletMoodById(moodId)?.label ?? '';
+                const budtender = budtenderName.trim();
+                const greeting = firstName
+                    ? `Hey ${firstName}! I'm Smokey, your AI budtender.${budtender ? ` ${budtender} is ready for you.` : ''} Here are my top picks for ${moodLabel}. Your budtender can help you narrow it down.`
+                    : `Welcome! I'm Smokey, your AI budtender. Here are my top picks for ${moodLabel}.`;
+                if (voiceOutput.isEnabled && voiceOutput.isSupported) {
+                    voiceOutput.speak(greeting);
+                }
+                setAssistantSummary(greeting);
             } else {
                 setError(recsFallbackMsg);
             }
@@ -457,13 +507,25 @@ export default function LoyaltyTabletPage() {
                     mood: selectedMood ?? undefined,
                     cartProductIds: [...new Set([...cart, ...(bundleAdded && bundle ? bundle.products.map(p => p.productId) : [])])],
                     bundleAdded,
+                    birthday: birthday || undefined,
+                    visitPreferences: visitPreferences.length ? visitPreferences : undefined,
+                    offerProductId: offerClaimed && tabletOffer ? tabletOffer.productId : undefined,
                 }),
                 timeoutPromise,
             ]);
             if (timeoutId) clearTimeout(timeoutId);
             if (res.success) {
+                if (res.customerId) setCustomerId(res.customerId);
                 setResult({ isNewLead: res.isNewLead ?? true, loyaltyPoints: res.loyaltyPoints || 0, queuePosition: res.queuePosition });
                 setStep('success');
+                // Farewell salutation via TTS
+                const budtender = budtenderName.trim();
+                const salutation = firstName
+                    ? `See you next time, ${firstName}! ${budtender ? `${budtender} has your picks ready.` : 'Your budtender has your picks ready.'} Enjoy!`
+                    : `Thanks for stopping by! ${budtender ? `${budtender} is ready to help.` : 'Your budtender is ready to help.'} Enjoy!`;
+                if (voiceOutput.isEnabled && voiceOutput.isSupported) {
+                    voiceOutput.speak(salutation);
+                }
                 setTimeout(resetToWelcome, 14_000);
             } else {
                 setError(res.error || 'Something went wrong. Please try again.');
@@ -810,24 +872,116 @@ export default function LoyaltyTabletPage() {
                     </motion.div>
                 )}
 
-                {/* ── EMAIL (step 2 — optional) ── */}
-                {step === 'email' && (
+                {/* ── OFFER (step 2 — personalization + deal) ── */}
+                {step === 'offer' && (
                     <motion.div
-                        key="email"
+                        key="offer"
                         variants={slideVariants}
                         initial="enter" animate="center" exit="exit"
                         transition={{ duration: 0.25 }}
-                        className="relative z-10 mx-auto flex flex-col items-center gap-8 w-full max-w-lg"
+                        className="relative z-10 mx-auto flex flex-col items-center gap-6 w-full max-w-lg"
                     >
-                        <div className="text-center">
-                            <Mail className="mx-auto mb-4 h-10 w-10 sm:h-14 sm:w-14" style={{ color: brandTheme.colors.primary }} />
-                            <h2 className="text-2xl sm:text-4xl font-black text-gray-900">Want weekly deals?</h2>
-                            <p className="mt-2 text-base sm:text-lg" style={{ color: mutedTextColor }}>Add your email for bundles &amp; education (optional)</p>
+                        {/* Deal card */}
+                        {offerLoading ? (
+                            <div className="w-full rounded-[28px] border p-6 flex items-center gap-4" style={accentPanelStyle}>
+                                <Loader2 className="h-8 w-8 animate-spin shrink-0" style={{ color: AMBER }} />
+                                <p className="text-lg font-bold text-gray-900">Finding a deal for you...</p>
+                            </div>
+                        ) : tabletOffer ? (
+                            <div
+                                className="w-full rounded-[28px] border-2 p-5 transition-all cursor-pointer"
+                                style={offerClaimed ? accentPanelStyle : { ...panelStyle, borderColor: AMBER }}
+                                onClick={() => { setOfferClaimed(!offerClaimed); resetIdleTimer(); }}
+                            >
+                                <div className="flex items-center gap-2 mb-3">
+                                    <span className="text-xl">🔥</span>
+                                    <span className="text-sm font-black uppercase tracking-widest" style={{ color: AMBER_DARK }}>
+                                        Today&apos;s Special — {firstName ? `Just for you, ${firstName}!` : 'Members Only'}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    {tabletOffer.imageUrl && (
+                                        <img
+                                            src={tabletOffer.imageUrl}
+                                            alt={tabletOffer.name}
+                                            className="h-16 w-16 rounded-2xl object-cover shrink-0 border border-gray-100"
+                                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                        />
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-lg font-black text-gray-900 leading-tight truncate">{tabletOffer.name}</p>
+                                        <p className="text-sm mt-0.5" style={{ color: mutedTextColor }}>{tabletOffer.reason}</p>
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <span className="text-2xl font-black" style={{ color: brandTheme.colors.primary }}>${tabletOffer.dealPrice.toFixed(2)}</span>
+                                            <span className="text-base line-through" style={{ color: faintTextColor }}>${tabletOffer.originalPrice.toFixed(2)}</span>
+                                        </div>
+                                    </div>
+                                    <div
+                                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-all"
+                                        style={{
+                                            borderColor: offerClaimed ? brandTheme.colors.primary : AMBER,
+                                            backgroundColor: offerClaimed ? brandTheme.colors.primary : 'transparent',
+                                        }}
+                                    >
+                                        {offerClaimed && <CheckCircle2 className="h-5 w-5 text-white" />}
+                                    </div>
+                                </div>
+                                <p className="text-xs mt-3 text-center font-medium" style={{ color: offerClaimed ? brandTheme.colors.primary : faintTextColor }}>
+                                    {offerClaimed ? '✓ Deal claimed — ask your budtender!' : 'Tap to claim this deal'}
+                                </p>
+                            </div>
+                        ) : null}
+
+                        {/* Birthday field */}
+                        <div className="w-full">
+                            <label className="block text-sm font-semibold mb-2" style={{ color: mutedTextColor }}>
+                                🎂 Birthday (optional — earn a free reward!)
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="MM/DD"
+                                value={birthday}
+                                onChange={e => {
+                                    let v = e.target.value.replace(/[^\d/]/g, '').slice(0, 5);
+                                    if (v.length === 2 && !v.includes('/')) v = v + '/';
+                                    setBirthday(v);
+                                    resetIdleTimer();
+                                }}
+                                className={INPUT_CLASS}
+                                style={inputStyle}
+                                inputMode="numeric"
+                                maxLength={5}
+                            />
                         </div>
-                        <div className="w-full space-y-4">
+
+                        {/* Visit preference tags */}
+                        <div className="w-full">
+                            <p className="text-sm font-semibold mb-3" style={{ color: mutedTextColor }}>What describes you best? (optional)</p>
+                            <div className="grid grid-cols-2 gap-3">
+                                {[
+                                    { id: 'first-timer', label: '🌱 First-Timer', sub: 'New to cannabis' },
+                                    { id: 'recreational', label: '😎 Recreational', sub: 'For fun & social' },
+                                    { id: 'medical', label: '💊 Medical', sub: 'For wellness' },
+                                    { id: 'regular', label: '⭐ Regular', sub: 'I know what I like' },
+                                ].map(pref => (
+                                    <button
+                                        key={pref.id}
+                                        onClick={() => toggleVisitPreference(pref.id)}
+                                        className="flex flex-col items-start rounded-[20px] border-2 p-4 text-left transition-all hover:opacity-95"
+                                        style={visitPreferences.includes(pref.id) ? accentPanelStyle : panelStyle}
+                                    >
+                                        <span className="text-base font-bold text-gray-900">{pref.label}</span>
+                                        <span className="text-xs mt-0.5" style={{ color: mutedTextColor }}>{pref.sub}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Email opt-in */}
+                        <div className="w-full space-y-3">
                             <input
                                 type="email"
-                                placeholder="you@example.com"
+                                placeholder="Email for deals (optional)"
                                 value={email}
                                 onChange={e => { setEmail(e.target.value); resetIdleTimer(); }}
                                 className={INPUT_CLASS}
@@ -835,33 +989,36 @@ export default function LoyaltyTabletPage() {
                                 inputMode="email"
                                 autoComplete="email"
                             />
-                            <button
-                                onClick={() => { setEmailConsent(!emailConsent); resetIdleTimer(); }}
-                                className="flex w-full items-center gap-4 rounded-[24px] border-2 p-4 transition-all"
-                                style={emailConsent ? accentPanelStyle : panelStyle}
-                            >
-                                <div
-                                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2"
-                                    style={{
-                                        borderColor: emailConsent ? brandTheme.colors.primary : '#d1d5db',
-                                        backgroundColor: emailConsent ? brandTheme.colors.primary : 'transparent',
-                                    }}
+                            {email.includes('@') && (
+                                <button
+                                    onClick={() => { setEmailConsent(!emailConsent); resetIdleTimer(); }}
+                                    className="flex w-full items-center gap-4 rounded-[24px] border-2 p-4 transition-all"
+                                    style={emailConsent ? accentPanelStyle : panelStyle}
                                 >
-                                    {emailConsent && <CheckCircle2 className="h-5 w-5 text-white" />}
-                                </div>
-                                <span className="text-lg text-gray-900 text-left">Yes, email me weekly newsletter</span>
-                            </button>
+                                    <div
+                                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2"
+                                        style={{
+                                            borderColor: emailConsent ? brandTheme.colors.primary : '#d1d5db',
+                                            backgroundColor: emailConsent ? brandTheme.colors.primary : 'transparent',
+                                        }}
+                                    >
+                                        {emailConsent && <CheckCircle2 className="h-5 w-5 text-white" />}
+                                    </div>
+                                    <span className="text-base text-gray-900 text-left">Yes, email me weekly deals &amp; bundles</span>
+                                </button>
+                            )}
                         </div>
+
                         {error && <p className="text-sm text-red-500">{error}</p>}
                         <button
-                            onClick={handleEmailSubmit}
+                            onClick={handleOfferSubmit}
                             className="flex w-full items-center justify-center gap-3 rounded-[28px] py-6 text-2xl font-bold transition-all hover:opacity-95 active:scale-[0.99]"
                             style={primaryButtonStyle}
                         >
                             Continue <ArrowRight className="h-7 w-7" />
                         </button>
                         <button
-                            onClick={handleEmailSubmit}
+                            onClick={handleOfferSubmit}
                             className="text-sm hover:opacity-70"
                             style={{ color: faintTextColor }}
                         >
@@ -911,7 +1068,7 @@ export default function LoyaltyTabletPage() {
                         >
                             {loading ? 'Saving...' : 'Skip for now'}
                         </button>
-                        <button onClick={() => setStep('email')} className="text-sm hover:opacity-70" style={{ color: faintTextColor }}>&larr; Back</button>
+                        <button onClick={() => setStep('offer')} className="text-sm hover:opacity-70" style={{ color: faintTextColor }}>&larr; Back</button>
                     </motion.div>
                 )}
 
@@ -922,11 +1079,21 @@ export default function LoyaltyTabletPage() {
                         variants={slideVariants}
                         initial="enter" animate="center" exit="exit"
                         transition={{ duration: 0.25 }}
-                        className="relative z-10 mx-auto flex flex-col items-center gap-6 w-full max-w-4xl"
+                        className="relative z-10 mx-auto flex flex-col items-center gap-5 w-full max-w-4xl"
                     >
                         {recsLoading ? (
+                            /* ── Loading: Smokey pulse ── */
                             <div className="flex flex-col items-center gap-6 py-8 sm:py-12">
-                                <Loader2 className="h-12 w-12 animate-spin sm:h-16 sm:w-16" style={{ color: brandTheme.colors.primary }} />
+                                <div className="relative flex items-center justify-center">
+                                    <div className="absolute h-40 w-40 rounded-full animate-ping opacity-20" style={{ backgroundColor: brandTheme.colors.primary }} />
+                                    <div className="absolute h-32 w-32 rounded-full animate-pulse opacity-30" style={{ backgroundColor: brandTheme.colors.primary }} />
+                                    <img
+                                        src="/assets/agents/smokey-main.png"
+                                        alt="Smokey the AI Budtender"
+                                        className="relative h-28 w-28 rounded-full object-cover border-4 shadow-xl"
+                                        style={{ borderColor: brandTheme.colors.primary }}
+                                    />
+                                </div>
                                 <div className="text-center">
                                     <p className="text-xl sm:text-2xl font-bold text-gray-900">
                                         Smokey is finding your perfect match...
@@ -938,126 +1105,192 @@ export default function LoyaltyTabletPage() {
                             </div>
                         ) : (
                             <>
-                                <div className="text-center">
-                                    <p className="text-xl" style={{ color: brandTheme.colors.primary }}>
-                                        {selectedMoodDef?.emoji} Smokey Recommends for <span className="text-gray-900 font-bold">{selectedMoodDef?.label}</span>
-                                    </p>
-                                </div>
-
-                                {/* Ask Smokey panel */}
-                                <div className="w-full rounded-[28px] border p-5 sm:p-6" style={accentPanelStyle}>
-                                    <div className="flex flex-col gap-4">
-                                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                                            <div className="flex items-start gap-3">
-                                                {/* Smokey mascot avatar */}
-                                                <img
-                                                    src="/assets/agents/smokey-main.png"
-                                                    alt="Smokey the AI Budtender"
-                                                    className="h-14 w-14 rounded-2xl object-cover shrink-0 shadow-sm border border-amber-200"
-                                                    onError={(e) => {
-                                                        e.currentTarget.style.display = 'none';
-                                                    }}
-                                                />
-                                                <div className="space-y-1">
-                                                    <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.16em]" style={{ color: AMBER_DARK }}>
-                                                        <Bot className="h-4 w-4" />
-                                                        Ask Smokey — AI Budtender
-                                                    </div>
-                                                    <p className="text-base font-semibold text-gray-900 sm:text-lg">
-                                                        Customer and budtender can talk through the menu together.
-                                                    </p>
-                                                    <p className="text-sm" style={{ color: mutedTextColor }}>
-                                                        Try: &ldquo;Something social under $35&rdquo; or &ldquo;A beginner-friendly edible.&rdquo;
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={handleVoiceToggle}
-                                                disabled={!voiceOutput.isSupported}
-                                                className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-all hover:opacity-95 disabled:opacity-40 shrink-0"
-                                                style={secondaryButtonStyle}
-                                            >
-                                                {voiceOutput.isEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-                                                {voiceOutput.isEnabled ? 'Voice On' : 'Voice Off'}
-                                            </button>
+                                {/* ── Budtender context strip ── */}
+                                {budtenderContext && (
+                                    <div className="w-full rounded-[24px] border p-4" style={panelStyle}>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <Users className="h-4 w-4 shrink-0" style={{ color: brandTheme.colors.primary }} />
+                                            <span className="text-xs font-black uppercase tracking-widest" style={{ color: brandTheme.colors.primary }}>
+                                                For your budtender{budtenderName ? ` — ${budtenderName}` : ''}
+                                            </span>
                                         </div>
-
-                                        <div className="flex flex-col gap-3 lg:flex-row">
-                                            <div className="flex flex-1 items-center gap-3 rounded-[24px] border px-4 py-3 bg-white">
-                                                <Search className="h-5 w-5 shrink-0" style={{ color: brandTheme.colors.primary }} />
-                                                <input
-                                                    type="text"
-                                                    value={assistantQuery}
-                                                    onChange={(event) => { setAssistantQuery(event.target.value); resetIdleTimer(); }}
-                                                    placeholder={ASK_SMOKEY_PLACEHOLDER}
-                                                    className="w-full bg-transparent text-base text-gray-900 placeholder-gray-400 focus:outline-none sm:text-lg"
-                                                />
-                                            </div>
-
-                                            <div className="flex gap-3 lg:w-auto">
-                                                {/* Hold-to-talk mic — works on iOS Safari */}
-                                                <button
-                                                    onPointerDown={handleMicPointerDown}
-                                                    onPointerUp={handleMicPointerUp}
-                                                    onPointerLeave={handleMicPointerUp}
-                                                    disabled={micIsProcessing}
-                                                    className="inline-flex min-w-[128px] items-center justify-center gap-2 rounded-[24px] border px-4 py-3 text-sm font-semibold transition-all hover:opacity-95 active:scale-[0.99] select-none disabled:opacity-60"
-                                                    style={micIsActive
-                                                        ? { backgroundColor: hexToRgba(brandTheme.colors.primary, 0.12), borderColor: brandTheme.colors.primary, color: brandTheme.colors.primary }
-                                                        : secondaryButtonStyle
-                                                    }
-                                                >
-                                                    {micIsProcessing ? (
-                                                        <Loader2 className="h-5 w-5 animate-spin" />
-                                                    ) : micIsActive ? (
-                                                        <MicOff className="h-5 w-5 animate-pulse" />
-                                                    ) : (
-                                                        <Mic className="h-5 w-5" />
-                                                    )}
-                                                    {micIsProcessing ? 'Smokey...' : micIsActive ? 'Listening' : 'Hold & Speak'}
-                                                </button>
-                                                <button
-                                                    onClick={() => { void handleAssistantSearch(); }}
-                                                    disabled={assistantLoading || assistantQuery.trim().length < 3}
-                                                    className="inline-flex min-w-[144px] items-center justify-center gap-2 rounded-[24px] px-5 py-3 text-sm font-semibold transition-all hover:opacity-95 active:scale-[0.99] disabled:opacity-40"
-                                                    style={primaryButtonStyle}
-                                                >
-                                                    {assistantLoading ? (
-                                                        <Loader2 className="h-5 w-5 animate-spin" />
-                                                    ) : (
-                                                        <>
-                                                            <Sparkles className="h-5 w-5" />
-                                                            Ask Smokey
-                                                        </>
-                                                    )}
-                                                </button>
-                                            </div>
+                                        <div className="flex flex-wrap gap-2 text-xs">
+                                            {budtenderContext.visitCount > 0 && (
+                                                <span className="rounded-full px-3 py-1 font-medium" style={{ backgroundColor: hexToRgba(brandTheme.colors.primary, 0.08), color: brandTheme.colors.primary }}>
+                                                    {budtenderContext.visitCount} visit{budtenderContext.visitCount !== 1 ? 's' : ''}
+                                                </span>
+                                            )}
+                                            {budtenderContext.lastVisitLabel && (
+                                                <span className="rounded-full px-3 py-1 font-medium bg-gray-100 text-gray-600">
+                                                    Last: {budtenderContext.lastVisitLabel}
+                                                </span>
+                                            )}
+                                            {budtenderContext.loyaltyPoints > 0 && (
+                                                <span className="rounded-full px-3 py-1 font-medium" style={{ backgroundColor: hexToRgba(AMBER, 0.12), color: AMBER_DARK }}>
+                                                    ⭐ {budtenderContext.loyaltyPoints} pts
+                                                </span>
+                                            )}
+                                            {budtenderContext.topCategories.slice(0, 3).map(cat => (
+                                                <span key={cat} className="rounded-full px-3 py-1 font-medium bg-gray-100 text-gray-700 capitalize">
+                                                    {cat}
+                                                </span>
+                                            ))}
+                                            {budtenderContext.badges.slice(0, 2).map(badge => (
+                                                <span key={badge} className="rounded-full px-3 py-1 font-medium" style={{ backgroundColor: hexToRgba(AMBER, 0.12), color: AMBER_DARK }}>
+                                                    🏅 {badge}
+                                                </span>
+                                            ))}
                                         </div>
-
-                                        {(micIsActive || micIsProcessing || assistantSummary || assistantError || smokeyVoice.error) && (
-                                            <div className="rounded-[24px] border p-4 bg-white">
-                                                {micIsActive && (
-                                                    <p className="text-sm font-medium" style={{ color: brandTheme.colors.primary }}>
-                                                        Listening... release to send.
-                                                    </p>
-                                                )}
-                                                {micIsProcessing && (
-                                                    <p className="text-sm font-medium text-gray-900">
-                                                        Smokey is thinking...
-                                                    </p>
-                                                )}
-                                                {!micIsActive && !micIsProcessing && assistantSummary && (
-                                                    <p className="text-sm font-medium text-gray-900">{assistantSummary}</p>
-                                                )}
-                                                {!micIsActive && !micIsProcessing && (assistantError || smokeyVoice.error) && (
-                                                    <p className="text-sm text-red-500">{assistantError || smokeyVoice.error}</p>
-                                                )}
-                                            </div>
+                                        {budtenderContext.historySummary && (
+                                            <p className="mt-2 text-xs leading-relaxed line-clamp-2" style={{ color: mutedTextColor }}>
+                                                {budtenderContext.historySummary}
+                                            </p>
                                         )}
+                                    </div>
+                                )}
+
+                                {/* ── Budtender name field (first time / new customer) ── */}
+                                {!budtenderContext && (
+                                    <div className="w-full flex items-center gap-3 rounded-[20px] border px-4 py-2" style={panelStyle}>
+                                        <Users className="h-4 w-4 shrink-0" style={{ color: mutedTextColor }} />
+                                        <input
+                                            type="text"
+                                            placeholder="Budtender on duty (optional)"
+                                            value={budtenderName}
+                                            onChange={e => { setBudtenderName(e.target.value); resetIdleTimer(); }}
+                                            className="w-full bg-transparent text-sm text-gray-900 placeholder-gray-400 focus:outline-none"
+                                        />
+                                    </div>
+                                )}
+
+                                {/* ── Smokey mascot — centered hero ── */}
+                                <div className="flex flex-col items-center gap-3 w-full">
+                                    {/* Pulsing mascot */}
+                                    <div className="relative flex items-center justify-center my-2">
+                                        {/* Outer pulse — active when speaking or recording */}
+                                        {(voiceOutput.isSpeaking || micIsActive || micIsProcessing) && (
+                                            <>
+                                                <div className="absolute h-52 w-52 rounded-full animate-ping opacity-10" style={{ backgroundColor: brandTheme.colors.primary }} />
+                                                <div className="absolute h-44 w-44 rounded-full animate-pulse opacity-20" style={{ backgroundColor: brandTheme.colors.primary }} />
+                                            </>
+                                        )}
+                                        <div
+                                            className="absolute h-36 w-36 rounded-full transition-opacity duration-300"
+                                            style={{
+                                                backgroundColor: hexToRgba(brandTheme.colors.primary, voiceOutput.isSpeaking || micIsActive ? 0.12 : 0.04),
+                                            }}
+                                        />
+                                        <img
+                                            src="/assets/agents/smokey-main.png"
+                                            alt="Smokey the AI Budtender"
+                                            className="relative h-28 w-28 object-contain drop-shadow-xl"
+                                        />
+                                    </div>
+
+                                    {/* Smokey speech bubble */}
+                                    <div className="relative max-w-sm w-full">
+                                        {/* Triangle pointer up to mascot */}
+                                        <div
+                                            className="absolute -top-3 left-1/2 -translate-x-1/2 w-0 h-0"
+                                            style={{
+                                                borderLeft: '12px solid transparent',
+                                                borderRight: '12px solid transparent',
+                                                borderBottom: `12px solid ${hexToRgba(AMBER, 0.2)}`,
+                                            }}
+                                        />
+                                        <div
+                                            className="rounded-[22px] border-2 p-4 text-center min-h-[64px] flex items-center justify-center"
+                                            style={accentPanelStyle}
+                                        >
+                                            {micIsActive && (
+                                                <p className="text-sm font-semibold animate-pulse" style={{ color: brandTheme.colors.primary }}>
+                                                    Listening... release to send.
+                                                </p>
+                                            )}
+                                            {micIsProcessing && (
+                                                <p className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                                                    <Loader2 className="h-4 w-4 animate-spin" /> Smokey is thinking...
+                                                </p>
+                                            )}
+                                            {!micIsActive && !micIsProcessing && assistantSummary && (
+                                                <p className="text-sm font-medium text-gray-900 leading-relaxed">{assistantSummary}</p>
+                                            )}
+                                            {!micIsActive && !micIsProcessing && !assistantSummary && (
+                                                <p className="text-sm" style={{ color: mutedTextColor }}>
+                                                    {selectedMoodDef?.emoji} Ready to help with <span className="font-bold text-gray-900">{selectedMoodDef?.label}</span>
+                                                </p>
+                                            )}
+                                            {!micIsActive && !micIsProcessing && (assistantError || smokeyVoice.error) && (
+                                                <p className="text-sm text-red-500">{assistantError || smokeyVoice.error}</p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Mic + search row */}
+                                    <div className="flex w-full gap-3 items-center">
+                                        {/* Hold-to-talk mic — always prominent */}
+                                        <button
+                                            onPointerDown={handleMicPointerDown}
+                                            onPointerUp={handleMicPointerUp}
+                                            onPointerLeave={handleMicPointerUp}
+                                            disabled={micIsProcessing}
+                                            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 transition-all select-none disabled:opacity-60 shadow-md"
+                                            style={micIsActive
+                                                ? { backgroundColor: brandTheme.colors.primary, borderColor: brandTheme.colors.primary, color: '#ffffff' }
+                                                : micIsProcessing
+                                                    ? { ...secondaryButtonStyle, opacity: 0.6 }
+                                                    : { ...secondaryButtonStyle, borderWidth: '2px' }
+                                            }
+                                            title="Hold to speak to Smokey"
+                                        >
+                                            {micIsProcessing ? (
+                                                <Loader2 className="h-6 w-6 animate-spin" />
+                                            ) : micIsActive ? (
+                                                <MicOff className="h-6 w-6 animate-pulse" />
+                                            ) : (
+                                                <Mic className="h-6 w-6" />
+                                            )}
+                                        </button>
+
+                                        {/* Search input */}
+                                        <div className="flex flex-1 items-center gap-2 rounded-[20px] border px-3 py-3 bg-white">
+                                            <Search className="h-5 w-5 shrink-0" style={{ color: brandTheme.colors.primary }} />
+                                            <input
+                                                type="text"
+                                                value={assistantQuery}
+                                                onChange={(event) => { setAssistantQuery(event.target.value); resetIdleTimer(); }}
+                                                placeholder={ASK_SMOKEY_PLACEHOLDER}
+                                                className="w-full bg-transparent text-sm text-gray-900 placeholder-gray-400 focus:outline-none"
+                                            />
+                                        </div>
+
+                                        <button
+                                            onClick={() => { void handleAssistantSearch(); }}
+                                            disabled={assistantLoading || assistantQuery.trim().length < 3}
+                                            className="inline-flex items-center justify-center gap-1.5 rounded-[20px] px-4 py-3 text-sm font-bold transition-all hover:opacity-95 active:scale-[0.99] disabled:opacity-40 shrink-0"
+                                            style={primaryButtonStyle}
+                                        >
+                                            {assistantLoading ? (
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                                <><Sparkles className="h-4 w-4" /> Ask</>
+                                            )}
+                                        </button>
+
+                                        {/* Voice toggle */}
+                                        <button
+                                            onClick={handleVoiceToggle}
+                                            disabled={!voiceOutput.isSupported}
+                                            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border transition-all hover:opacity-95 disabled:opacity-40"
+                                            style={secondaryButtonStyle}
+                                            title={voiceOutput.isEnabled ? 'Turn voice off' : 'Turn voice on'}
+                                        >
+                                            {voiceOutput.isEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+                                        </button>
                                     </div>
                                 </div>
 
-                                {/* Individual products */}
+                                {/* ── Product cards ── */}
                                 <div className="w-full space-y-3">
                                     {products.map(product => {
                                         const inCart = cart.includes(product.productId);
@@ -1100,7 +1333,7 @@ export default function LoyaltyTabletPage() {
                                     })}
                                 </div>
 
-                                {/* Bundle */}
+                                {/* ── Bundle ── */}
                                 {bundle && (
                                     <div className="w-full rounded-[30px] border p-5 transition-all sm:p-6" style={bundleAdded ? accentPanelStyle : panelStyle}>
                                         <div className="flex items-start justify-between gap-4">
@@ -1133,7 +1366,7 @@ export default function LoyaltyTabletPage() {
                                     </div>
                                 )}
 
-                                {/* CTA row */}
+                                {/* ── CTA ── */}
                                 <div className="w-full flex gap-4">
                                     <button
                                         onClick={handleSubmit}
@@ -1170,24 +1403,35 @@ export default function LoyaltyTabletPage() {
                         transition={{ duration: 0.35, type: 'spring' }}
                         className="relative z-10 mx-auto flex max-w-lg flex-col items-center gap-8 text-center"
                     >
+                        {/* Smokey farewell mascot */}
                         <motion.div
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
-                            transition={{ delay: 0.15, type: 'spring', stiffness: 200 }}
+                            transition={{ delay: 0.1, type: 'spring', stiffness: 180 }}
+                            className="relative flex items-center justify-center"
                         >
-                            <CheckCircle2 className="h-28 w-28" style={{ color: brandTheme.colors.primary }} />
+                            <div className="absolute h-44 w-44 rounded-full opacity-10" style={{ backgroundColor: brandTheme.colors.primary }} />
+                            <img
+                                src="/assets/agents/smokey-main.png"
+                                alt="Smokey"
+                                className="relative h-32 w-32 object-contain drop-shadow-xl"
+                            />
                         </motion.div>
 
                         <div>
                             <h1 className="mb-3 text-3xl font-black text-gray-900 sm:text-5xl">
-                                {result?.isNewLead
-                                    ? `You're checked in, ${firstName || 'friend'}!`
-                                    : `Welcome back, ${firstName || 'friend'}!`}
+                                {firstName
+                                    ? `See you next time, ${firstName}!`
+                                    : result?.isNewLead
+                                        ? 'You\'re all checked in!'
+                                        : 'Welcome back!'}
                             </h1>
                             <p className="text-base sm:text-xl" style={{ color: mutedTextColor }}>
-                                {result?.isNewLead
-                                    ? 'Your Thrive follow-ups are set if you opted in.'
-                                    : 'Your check-in is recorded and your loyalty balance is ready.'}
+                                {budtenderName
+                                    ? `${budtenderName} has your picks ready — enjoy!`
+                                    : result?.isNewLead
+                                        ? 'Your follow-ups are set if you opted in.'
+                                        : 'Your loyalty balance is ready.'}
                             </p>
                         </div>
 
