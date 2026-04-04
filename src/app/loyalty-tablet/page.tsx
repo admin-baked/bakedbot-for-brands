@@ -193,6 +193,8 @@ export default function LoyaltyTabletPage() {
 
     // Full-flow returning-customer detection (phone pre-fill + offer skip)
     const [isReturningCustomer, setIsReturningCustomer] = useState(false);
+    // Tracks whether the customer entered via the quick lookup (last-4) flow
+    const [enteredViaQuickLookup, setEnteredViaQuickLookup] = useState(false);
 
     // Smokey hold-to-talk voice (works on iOS — MediaRecorder-based, Gemini Live quality)
     const smokeyVoice = useSmokeyVoice({
@@ -263,6 +265,7 @@ export default function LoyaltyTabletPage() {
         setQuickLookupLoading(false);
         setQuickMatches([]);
         setIsReturningCustomer(false);
+        setEnteredViaQuickLookup(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [voiceOutput]);
 
@@ -343,7 +346,13 @@ export default function LoyaltyTabletPage() {
                 // Single match — auto-fill and skip to mood
                 const m = result.matches[0];
                 setFirstName(m.firstName);
-                setPhone(''); // we'll prefill via customerId
+                setCustomerId(m.customerId);
+                setIsReturningCustomer(true);
+                setEnteredViaQuickLookup(true);
+                // Fetch budtender context in background
+                void getCustomerBudtenderContext(orgId, m.customerId).then(ctx => {
+                    if (ctx.success && ctx.context) setBudtenderContext(ctx.context);
+                });
                 setStep('mood');
             } else if (result.found && result.matches.length > 1) {
                 setQuickMatches(result.matches);
@@ -363,6 +372,8 @@ export default function LoyaltyTabletPage() {
         resetIdleTimer();
         setFirstName(match.firstName);
         setCustomerId(match.customerId);
+        setIsReturningCustomer(true);
+        setEnteredViaQuickLookup(true);
         setQuickMatches([]);
         // Fetch budtender context in background
         void getCustomerBudtenderContext(orgId, match.customerId).then(res => {
@@ -564,6 +575,7 @@ export default function LoyaltyTabletPage() {
                     birthday: birthday || undefined,
                     visitPreferences: visitPreferences.length ? visitPreferences : undefined,
                     offerProductId: offerClaimed && tabletOffer ? tabletOffer.productId : undefined,
+                    customerId: customerId || undefined,
                 }),
                 timeoutPromise,
             ]);
@@ -1132,7 +1144,7 @@ export default function LoyaltyTabletPage() {
                         >
                             {loading ? 'Saving...' : 'Skip for now'}
                         </button>
-                        <button onClick={() => setStep('offer')} className="text-sm hover:opacity-70" style={{ color: faintTextColor }}>&larr; Back</button>
+                        <button onClick={() => enteredViaQuickLookup ? resetToWelcome() : setStep(isReturningCustomer ? 'phone' : 'offer')} className="text-sm hover:opacity-70" style={{ color: faintTextColor }}>&larr; Back</button>
                     </motion.div>
                 )}
 
