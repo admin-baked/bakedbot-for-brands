@@ -25,6 +25,9 @@ interface L1Entry<T> {
 /** L1 TTL (30 seconds) */
 const L1_TTL = 30 * 1000;
 
+/** Maximum L1 entries */
+const MAX_L1_SIZE = 500;
+
 interface CacheStats {
     totalHits: number;
     totalMisses: number;
@@ -186,6 +189,10 @@ class ToolCacheService {
     }
 
     private setL1<T>(key: string, data: T): void {
+        if (this.l1.size >= MAX_L1_SIZE) {
+            const keysToRemove = Array.from(this.l1.keys()).slice(0, 50);
+            keysToRemove.forEach(k => this.l1.delete(k));
+        }
         this.l1.set(key, {
             data,
             expiresAt: Date.now() + L1_TTL,
