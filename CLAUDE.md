@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; Check-in flow optimizations: inventory cache, auto-submit quick lookup, early offer prefetch, mood pre-warm | **Last update:** 2026-04-04 (check-in flow optimizations `1dd4a0492`)
+**Current Status:** 🟢 `main` green; Insights fix: deterministic doc IDs + dedup by category+title → Customer Mix, Churn Risk, Loyalty all show independently | **Last update:** 2026-04-04 (insights customer mix fix `26793295c`)
 
 ---
 
