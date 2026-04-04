@@ -21,7 +21,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     try {
         await requireAPIKey(request, 'read:customers');
     } catch (err) {
-        if (err instanceof APIKeyError) return err.toResponse();
+        if (err instanceof APIKeyError) return err.toResponse() as unknown as NextResponse;
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

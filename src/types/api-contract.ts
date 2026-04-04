@@ -52,7 +52,8 @@ export type APIPermission =
     | 'workflows:list'
     | 'workflows:run'
     | 'research:start'
-    | 'research:status';
+    | 'research:status'
+    | 'read:customers';
 
 export const ALL_API_PERMISSIONS: APIPermission[] = [
     'compliance:check',
@@ -60,6 +61,7 @@ export const ALL_API_PERMISSIONS: APIPermission[] = [
     'workflows:run',
     'research:start',
     'research:status',
+    'read:customers',
 ];
 
 // ---------------------------------------------------------------------------

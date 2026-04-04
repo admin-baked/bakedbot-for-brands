@@ -684,8 +684,8 @@ export async function getTabletOffer(orgId: string): Promise<{ success: boolean;
             id: (p.id ?? p.productId ?? p.externalId ?? p.sku_id ?? '') as string,
             name: ((p.name ?? p.product_name ?? p.productName ?? '') as string).trim(),
             category: normalizeCategoryName((p.category ?? p.category_name ?? '') as string),
-            price: Number(p.price ?? p.selling_price ?? p.salePrice ?? 0),
-            imageUrl: getSafeProductImageUrl(p as Record<string, unknown>),
+            price: Number(p.price ?? p.retailPrice ?? p.latest_price ?? p.current_price ?? 0),
+            imageUrl: getProductImageUrl(p),
         });
 
         const all = products.map(normalize).filter(p => p.id && p.name && p.price > 0);

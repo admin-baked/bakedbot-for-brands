@@ -73,6 +73,8 @@ export async function POST(request: NextRequest) {
             intel,
             checkins,
             discountCandidates,
+            nearestHoliday,
+            competitorHolidays,
         });
 
         const blocks = buildBriefingBlocks({
