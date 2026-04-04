@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; Check-in phone fast path: full-phone lookup pre-fills name + skips offer for returning customers; POS lookup endpoint + Blackleaf SMS flags | **Last update:** 2026-04-04 (phone fast path + POS lookup `ed68d4017`)
+**Current Status:** 🟢 `main` green; SP13 Opencode Cloud Run agent live (free Zen models, Linus + Super Users); deploy in progress | **Last update:** 2026-04-04 (Opencode SP13 `d2ed77e9a`)
 
 ---
 

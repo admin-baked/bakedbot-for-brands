@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; Full-phone returning customer fast path: pre-fill name, skip offer → mood; POS lookup endpoint; Blackleaf SMS flags.
-**Recent work (2026-04-04):** `lookupCustomerByPhone` + `GET /api/checkin/lookup` + `TODO(blackleaf-sms)` flags in captureTabletLead + captureVisitorCheckin (`ed68d4017`).
+**Current Status:** 🟢 `main` green; SP13 Opencode Cloud Run agent live — free Zen models for Linus + Super Users.
+**Recent work (2026-04-04):** Opencode SP13: `docker/opencode/` + `POST /api/opencode/run` + `scripts/opencode-task.mjs` + Linus execute_super_power (`d2ed77e9a`).
 
 ## ðŸ§­ CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 

@@ -24,6 +24,9 @@ else
 fi
 
 echo "[opencode-agent] Repo ready at $REPO_DIR"
+# Strip any trailing \r\n that Cloud Run adds when injecting secret values
+OPENCODE_SERVER_PASSWORD=$(printf '%s' "$OPENCODE_SERVER_PASSWORD" | tr -d '\r\n')
+export OPENCODE_SERVER_PASSWORD
 echo "[opencode-agent] Starting opencode serve on port ${PORT:-8080}..."
 
 cd "$REPO_DIR"
