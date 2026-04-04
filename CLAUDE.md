@@ -60,7 +60,9 @@ After completing ANY code modifications AND **before every `git push` / Firebase
 | `.\scripts\npm-safe.cmd run lint` | ESLint check |
 | `.\scripts\npm-safe.cmd run dev` | Local dev server |
 | `git push origin main` | **Deploy to production** â€” triggers Firebase App Hosting CI/CD |
-| `gh run list --workflow "Deploy to Firebase App Hosting" --branch main --limit 3` | Check deploy status |
+| `npm run gh:checks` | Check CI status for HEAD commit (check runs + statuses) |
+| `npm run gh:checks:wait` | Poll until all checks pass (30s interval, 15min timeout) |
+| `npm run gh:checks -- status <sha>` | Check CI status for specific commit |
 | `node scripts/firebase-apphosting.mjs cancel <id>` | Cancel stuck build (> 25 min RUNNING) |
 
 > **ðŸš€ Deploy = Push to GitHub.** `git push origin main` automatically starts a Firebase build and deploys to production. Always push after committing finished work.
