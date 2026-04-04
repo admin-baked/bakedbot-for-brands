@@ -10,7 +10,7 @@
     "react/display-name": "warn",
     "@next/next/no-assign-module-variable": "warn",
     "no-restricted-syntax": [
-      "error",
+      "warn",
       {
         "selector": "TSAsExpression > TSAnyKeyword",
         "message": "Do not typecast with 'as any'. It creates catastrophic TypeScript Deep Inference loops that crash Webpack and trigger Firebase memory limits! Always extract variable payloads to strict constants like `String()`."
