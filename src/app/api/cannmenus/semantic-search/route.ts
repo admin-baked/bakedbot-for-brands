@@ -65,9 +65,11 @@ export async function POST(req: NextRequest) {
     if (isVectorAvailable()) {
       try {
         // Build metadata filter for Upstash Vector
+        // Build metadata filter — sanitize brandId to prevent filter injection
         const filterParts: string[] = [];
-        if (brandIdFilter) filterParts.push(`brandId = '${brandIdFilter}'`);
-        // Markets filtering requires CONTAINS which Upstash supports
+        if (brandIdFilter && /^[a-zA-Z0-9_-]+$/.test(brandIdFilter)) {
+          filterParts.push(`brandId = '${brandIdFilter}'`);
+        }
         const filter = filterParts.length > 0 ? filterParts.join(' AND ') : undefined;
 
         const vectorResults = await vectorSearch({
