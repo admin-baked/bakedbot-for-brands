@@ -98,6 +98,8 @@ async function createAgent() {
     body: JSON.stringify({
       name: AGENT_NAME,
       system: LINUS_SYSTEM_PROMPT,
+      model: 'openai/gpt-4o-mini',
+      embedding: 'openai/text-embedding-ada-002',
       memory_blocks: [
         {
           label: 'linus_codebase_context',
@@ -106,15 +108,6 @@ async function createAgent() {
           read_only: false,
         },
       ],
-      llm_config: {
-        model: 'gpt-4o-mini',
-        model_endpoint_type: 'openai',
-        context_window: 128000,
-      },
-      embedding_config: {
-        model: 'text-embedding-ada-002',
-        model_endpoint_type: 'openai',
-      },
     }),
   });
 }
