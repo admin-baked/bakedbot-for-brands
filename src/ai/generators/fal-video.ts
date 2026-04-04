@@ -97,7 +97,7 @@ async function generateFalVideo(
     logger.info('[FalVideo] Starting video generation', { model, modelPath, prompt: input.prompt.substring(0, 80) });
 
     // Step 1: Submit to queue
-    const queued = await submitToQueue(apiKey, modelPath, input);
+    const queued = await submitToQueue(apiKey, modelPath, input, model);
     logger.info('[FalVideo] Submitted to queue', { model, requestId: queued.request_id });
 
     // Step 2: Poll for completion.
@@ -123,15 +123,13 @@ async function generateFalVideo(
 async function submitToQueue(
     apiKey: string,
     modelPath: string,
-    input: GenerateVideoInput
+    input: GenerateVideoInput,
+    model: FalVideoModel
 ): Promise<FalQueueSubmitResponse> {
-    // Map aspect ratio to fal.ai format
-    const aspectRatioMap: Record<string, string> = {
-        '16:9': '16:9',
-        '9:16': '9:16',
-        '1:1': '1:1',
-    };
-    const aspectRatio = aspectRatioMap[input.aspectRatio || '16:9'] || '16:9';
+    const ASPECT_RATIO_MAP: Record<string, string> = { '16:9': '16:9', '9:16': '9:16', '1:1': '1:1' };
+    const rawRatio = ASPECT_RATIO_MAP[input.aspectRatio || '16:9'] || '16:9';
+    // Wan 2.1 only accepts '9:16' or '16:9' — remap 1:1 to 16:9
+    const aspectRatio = model === 'wan' && rawRatio === '1:1' ? '16:9' : rawRatio;
 
     // fal.ai duration: '5' or '10' seconds (both models support these)
     const duration = input.duration === '10' ? '10' : '5';
