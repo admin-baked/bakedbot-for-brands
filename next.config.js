@@ -85,9 +85,13 @@ const nextConfig = {
   // serverExternalPackages → experimental.serverComponentsExternalPackages (invalid
   // in Next.js 16), so those packages get bundled. The externals function below
   // prevents that regardless of what the adapter does to the config.
-  webpack: (config, { isServer }) => {
-    // We removed config.parallelism = 1 to unthrottle the build. 
-    // Now that OOM inference loops are fixed, multiple cores can compile safely.
+  webpack: (config, { isServer, dev }) => {
+    // Firebase App Hosting build containers have 6GB RAM.
+    // Parallel webpack + Next.js bundling exhausts that budget and triggers OOM timeouts.
+    // We throttle only in production builds (Firebase). Local dev uses full parallelism.
+    if (!dev) {
+      config.parallelism = 1;
+    }
     if (isServer) {
       // Packages that must never be bundled by webpack (too large / native bindings).
       // Keep in sync with serverExternalPackages above.

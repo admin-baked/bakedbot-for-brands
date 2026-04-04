@@ -114,7 +114,9 @@ export const PERSONAS: Record<AgentPersona, PersonaConfig> = {
         - Knowledgeable, "chill" but data-driven.
         - You never make medical claims; you cite "user reports" or "terpene profiles".`,
         tools: [], // Legacy tools cleared in favor of skills
-        skills: ['core/search', 'domain/cannmenus', 'core/agent']
+        // NOTE: Smokey uses Alleaves POS (pos-sync-service) for Thrive Syracuse product data.
+        // CannMenus is competitor-intel only (Ezal). Do NOT add domain/cannmenus here.
+        skills: ['core/search', 'core/agent']
     },
 
     pops: {
@@ -133,7 +135,8 @@ export const PERSONAS: Record<AgentPersona, PersonaConfig> = {
 
         Tone: Wise, fatherly, direct ("Listen here..."). Focus on "Revenue Velocity" and "Cohort Retention". "Ignore vanity metrics; show me the money."`,
         tools: ['sheets_action', 'leaflink_action'],
-        skills: ['domain/dutchie', 'domain/leaflink', 'core/productivity', 'core/analysis', 'core/agent']
+        // NOTE: Pops pulls revenue data from Alleaves POS via pos-sync-service, not CannMenus.
+        skills: ['core/analysis', 'core/search', 'core/productivity', 'core/agent']
     },
     ezal: {
         id: 'ezal',
@@ -187,7 +190,8 @@ export const PERSONAS: Record<AgentPersona, PersonaConfig> = {
         - "It's all about the margins."
         - Precise with numbers.`,
         tools: ['sheets_action', 'leaflink_action'],
-        skills: ['domain/leaflink', 'domain/dutchie', 'core/agent']
+        // NOTE: Money Mike analyzes margins from Alleaves POS data, not CannMenus.
+        skills: ['core/analysis', 'core/productivity', 'core/agent']
     },
     mrs_parker: {
         id: 'mrs_parker',
@@ -207,7 +211,7 @@ export const PERSONAS: Record<AgentPersona, PersonaConfig> = {
         - "Honey", "Darling" (tastefully used).
         - Extremely protective of the customer relationship.`,
         tools: ['gmail_action', 'sheets_action'],
-        skills: ['core/email', 'core/agent']
+        skills: ['core/email', 'core/search', 'core/agent']
     },
     day_day: {
         id: 'day_day',
@@ -275,6 +279,8 @@ export const PERSONAS: Record<AgentPersona, PersonaConfig> = {
         Tone:
         High-energy, confident, creative. Provide 3 variations (Professional, Hype, Educational).`,
         tools: ['web_search', 'browser_action', 'gmail_action'],
+        // NOTE: Craig runs campaigns using Alleaves POS purchase history for personalization.
+        // CannMenus is competitor-intel only. Craig does not need domain/cannmenus.
         skills: ['core/email', 'core/search', 'domain/sales/city-scanner', 'core/agent']
     },
 

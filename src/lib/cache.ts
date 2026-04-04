@@ -61,6 +61,8 @@ export const CachePrefix = {
     CRM_SEGMENTS: 'crm_segments',
     CRM_AT_RISK: 'crm_at_risk',
     LETTA_SLACK: 'letta_slack',
+    /** CannMenus competitor pricing — Ezal only. Cached to avoid hammering external API. */
+    COMPETITOR_INTEL: 'competitor_intel',
 } as const;
 
 /**
@@ -88,6 +90,8 @@ export const CacheTTL = {
     CRM_SEGMENTS: 300, // 5 minutes (segment breakdowns)
     CRM_AT_RISK: 600, // 10 minutes (at-risk customer lists)
     LETTA_SLACK: 30, // 30 seconds (Letta memory search for Slack agents)
+    /** CannMenus competitor pricing: 15 min. External data; changes slowly within a session. */
+    COMPETITOR_INTEL: 900,
 } as const;
 
 /**

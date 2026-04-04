@@ -1,8 +1,11 @@
-// CannMenus Product Search Tool - searches products via CannMenus API
+// CannMenus Product Search Tool - searches competitor products via CannMenus API
+// NOTE: This tool is for Ezal (competitive intel) ONLY.
+// Thrive Syracuse uses Alleaves POS for internal inventory — do NOT use this for Smokey/Craig/Pops.
 
 import { BaseTool } from '../base-tool';
 import type { ToolContext, ToolResult, CannMenusProductSearchInput, CannMenusProductSearchOutput } from '@/types/tool';
 import { getProducts } from '@/lib/cannmenus-api';
+import { withCache, CachePrefix, CacheTTL } from '@/lib/cache';
 
 /**
  * CannMenus Product Search Tool
@@ -104,11 +107,22 @@ export class CannMenusProductSearchTool extends BaseTool<CannMenusProductSearchI
         const startTime = Date.now();
 
         try {
-            // Use existing CannMenus integration
             const brandId = context.brandId || 'default';
-            const state = input.state || 'CA';
+            const state = input.state || 'NY'; // Default to NY for Thrive Syracuse market
 
-            const products = await getProducts(brandId, state);
+            // Build a deterministic cache key from state + query parameters.
+            // CannMenus competitor data changes slowly — 15 min TTL is fine.
+            const querySuffix = [state, input.query, input.category, input.brand, input.minPrice, input.maxPrice]
+                .filter(Boolean)
+                .join(':');
+            const cacheId = `${brandId}:${querySuffix}`;
+
+            const products = await withCache(
+                CachePrefix.COMPETITOR_INTEL,
+                cacheId,
+                () => getProducts(brandId, state),
+                CacheTTL.COMPETITOR_INTEL,
+            );
 
             // Filter products based on input criteria
             let filtered = products;
