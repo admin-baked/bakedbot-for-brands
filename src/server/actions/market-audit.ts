@@ -5,6 +5,7 @@ import { auditPage } from '@/server/services/seo-auditor';
 import { captureEmailLead } from '@/server/actions/email-capture';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
+import { sendGenericEmail } from '@/lib/email/dispatcher';
 
 export interface MarketAuditResult {
   url: string;
@@ -310,11 +311,138 @@ export async function submitMarketAuditLead(
       utmSource: req.utmSource,
     });
 
+    // Fire-and-forget — deliver the full report to their inbox
+    sendAuditResultEmail(req.email, req.firstName, req.auditResult).catch((e: unknown) => {
+      logger.warn('[MarketAudit] Failed to send audit result email', { email: req.email, error: (e as Error).message });
+    });
+
     return { success: true, leadId: leadResult.leadId, auditReportId: reportRef.id };
   } catch (e) {
     logger.error(`[MarketAudit] Lead submit failed: ${(e as Error).message}`);
     return { success: false, error: (e as Error).message };
   }
+}
+
+// ── Audit result email ────────────────────────────────────────────────────────
+
+const HTML_ESCAPE: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+function esc(s: string): string { return s.replace(/[&<>"']/g, c => HTML_ESCAPE[c]); }
+
+async function sendAuditResultEmail(
+  to: string,
+  firstName: string | undefined,
+  audit: MarketAuditResult,
+): Promise<void> {
+  const name = firstName ?? 'there';
+  const gradeColor: Record<string, string> = {
+    A: '#16a34a', B: '#059669', C: '#d97706', D: '#ea580c', F: '#dc2626',
+  };
+  const color = gradeColor[audit.grade] ?? '#6b7280';
+
+  const leaksHtml = audit.revenueLeaks.slice(0, 3).map(leak => `
+    <tr>
+      <td style="padding:8px 0;border-bottom:1px solid #f3f4f6;">
+        <strong style="font-size:13px;">${esc(leak.title)}</strong>
+        <span style="background:#f3f4f6;border-radius:4px;padding:1px 6px;font-size:11px;margin-left:6px;">${esc(leak.effort)}</span><br>
+        <span style="color:#6b7280;font-size:12px;">${esc(leak.why)}</span><br>
+        <span style="color:#16a34a;font-size:12px;font-weight:600;">${esc(leak.impactMonthly)}</span>
+      </td>
+    </tr>`).join('');
+
+  const flagsHtml = audit.complianceFlags.slice(0, 3).map(flag => {
+    const badgeColor = flag.severity === 'HIGH' ? '#dc2626' : flag.severity === 'MEDIUM' ? '#d97706' : '#2563eb';
+    return `<li style="margin-bottom:6px;font-size:12px;">
+      <span style="background:${badgeColor};color:#fff;border-radius:3px;padding:1px 5px;font-size:10px;margin-right:4px;">${esc(flag.severity)}</span>
+      ${esc(flag.issue)}
+    </li>`;
+  }).join('');
+
+  const dimRows = Object.entries(audit.dimensions).map(([, dim]) => {
+    const pct = Math.round((dim.score / dim.max) * 100);
+    const barColor = pct >= 80 ? '#16a34a' : pct >= 60 ? '#d97706' : '#dc2626';
+    return `<tr>
+      <td style="font-size:12px;color:#374151;padding:4px 0;width:160px;">${esc(dim.findings.split('.')[0])}.</td>
+      <td style="padding:4px 0 4px 12px;">
+        <div style="background:#f3f4f6;border-radius:4px;height:8px;width:100%;">
+          <div style="background:${barColor};border-radius:4px;height:8px;width:${pct}%;"></div>
+        </div>
+      </td>
+      <td style="font-size:12px;font-weight:600;padding:4px 0 4px 8px;white-space:nowrap;">${dim.score}/${dim.max}</td>
+    </tr>`;
+  }).join('');
+
+  const htmlBody = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+
+        <!-- Header -->
+        <tr><td style="background:#0f172a;padding:24px 32px;">
+          <span style="color:#ffffff;font-size:20px;font-weight:700;">BakedBot AI</span>
+          <span style="color:#94a3b8;font-size:13px;margin-left:8px;">Marketing Audit</span>
+        </td></tr>
+
+        <!-- Grade hero -->
+        <tr><td style="padding:32px;border-bottom:1px solid #f3f4f6;text-align:center;">
+          <div style="font-size:64px;font-weight:800;color:${color};line-height:1;">${esc(audit.grade)}</div>
+          <div style="font-size:24px;font-weight:600;color:#374151;">${audit.overallScore}/100</div>
+          <div style="color:#6b7280;font-size:13px;margin-top:4px;">${esc(audit.url)}</div>
+          <p style="color:#374151;font-size:14px;margin:16px 0 0;max-width:480px;margin-left:auto;margin-right:auto;">${esc(audit.summary)}</p>
+        </td></tr>
+
+        <!-- Body -->
+        <tr><td style="padding:32px;">
+          <p style="margin:0 0 4px;color:#374151;font-size:14px;">Hey ${esc(name)},</p>
+          <p style="margin:0 0 24px;color:#6b7280;font-size:13px;">Here's the full breakdown of your marketing audit. We scored your site across 5 dimensions — here's what we found.</p>
+
+          <!-- Dimension scores -->
+          <h2 style="font-size:14px;font-weight:600;color:#111827;margin:0 0 12px;">Dimension Scores</h2>
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">${dimRows}</table>
+
+          <!-- Revenue leaks -->
+          ${leaksHtml ? `<h2 style="font-size:14px;font-weight:600;color:#111827;margin:0 0 12px;">Top Revenue Leaks</h2>
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">${leaksHtml}</table>` : ''}
+
+          <!-- Compliance flags -->
+          ${flagsHtml ? `<h2 style="font-size:14px;font-weight:600;color:#111827;margin:0 0 8px;">Compliance Flags</h2>
+          <ul style="padding-left:0;list-style:none;margin:0 0 24px;">${flagsHtml}</ul>` : ''}
+
+          <!-- Quick wins -->
+          ${audit.quickWins.length > 0 ? `<h2 style="font-size:14px;font-weight:600;color:#111827;margin:0 0 8px;">Quick Wins</h2>
+          <ul style="padding-left:16px;margin:0 0 24px;">${audit.quickWins.map(w => `<li style="font-size:12px;color:#374151;margin-bottom:4px;">${esc(w)}</li>`).join('')}</ul>` : ''}
+
+          <!-- CTA -->
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr><td style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:20px;text-align:center;">
+              <p style="margin:0 0 8px;font-size:14px;font-weight:600;color:#166534;">Want us to fix these issues for you?</p>
+              <p style="margin:0 0 16px;font-size:12px;color:#4b7c5a;">BakedBot handles SEO, compliance, campaigns, and customer retention — all in one platform built for cannabis.</p>
+              <a href="https://bakedbot.ai/get-started" style="display:inline-block;background:#16a34a;color:#ffffff;font-size:13px;font-weight:600;padding:10px 24px;border-radius:6px;text-decoration:none;">Book a Free Demo</a>
+            </td></tr>
+          </table>
+        </td></tr>
+
+        <!-- Footer -->
+        <tr><td style="padding:16px 32px;background:#f9fafb;border-top:1px solid #f3f4f6;text-align:center;">
+          <p style="margin:0;font-size:11px;color:#9ca3af;">BakedBot AI · Cannabis Commerce Platform · <a href="https://bakedbot.ai" style="color:#9ca3af;">bakedbot.ai</a></p>
+          <p style="margin:4px 0 0;font-size:11px;color:#9ca3af;">You received this because you requested a free marketing audit.</p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  await sendGenericEmail({
+    to,
+    name: firstName,
+    subject: `Your Marketing Audit: ${audit.url} scored ${audit.grade} (${audit.overallScore}/100)`,
+    htmlBody,
+    communicationType: 'transactional',
+  });
 }
 
 // ── Page fetch ────────────────────────────────────────────────────────────────
