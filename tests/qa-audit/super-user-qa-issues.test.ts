@@ -27,7 +27,7 @@ describe('Agent Registry Completeness', () => {
         AGENT_CAPABILITIES = agentDefs.AGENT_CAPABILITIES;
 
         // Agent config (displayed on Agents page)
-        const config = await import('@/config/agents');
+        const config = await import('@/lib/agents/registry');
         configAgents = config.agents;
     });
 
@@ -68,8 +68,8 @@ describe('Agent Registry Completeness', () => {
     });
 
     it('should have executive agents in config (FIXED)', async () => {
-        // FIXED: Added executiveAgents and allAgents exports to config/agents.ts
-        const { executiveAgents, allAgents } = await import('@/config/agents');
+        // FIXED: Added executiveAgents and allAgents exports to lib/agents/registry.ts
+        const { executiveAgents, allAgents } = await import('@/lib/agents/registry');
 
         // Executive agents should be defined
         expect(executiveAgents).toBeDefined();
@@ -85,7 +85,7 @@ describe('Agent Registry Completeness', () => {
         // allAgents should combine both
         expect(allAgents.length).toBe(configAgents.length + executiveAgents.length);
 
-        console.log('[QA] Executive agents now in config/agents.ts (FIXED)');
+        console.log('[QA] Executive agents now in lib/agents/registry.ts (FIXED)');
     });
 });
 
@@ -95,9 +95,9 @@ describe('Agent Registry Completeness', () => {
 // ============================================================
 
 describe('Revenue Data Consistency', () => {
-    it('should have static mock values in config/agents.ts (documenting issue)', () => {
+    it('should have static mock values in lib/agents/registry.ts (documenting issue)', () => {
         // This test documents the current state (hardcoded values)
-        const { agents } = require('@/config/agents');
+        const { agents } = require('@/lib/agents/registry');
 
         // These are hardcoded static values - NOT real-time data
         const smokey = agents.find((a: any) => a.id === 'smokey');
@@ -111,7 +111,7 @@ describe('Revenue Data Consistency', () => {
     });
 
     it('should define consistent metric labels for each agent', () => {
-        const { agents } = require('@/config/agents');
+        const { agents } = require('@/lib/agents/registry');
 
         agents.forEach((agent: any) => {
             expect(agent.primaryMetricLabel).toBeDefined();

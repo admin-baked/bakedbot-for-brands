@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { updateAgentConfigAction, AgentConfigOverride } from '@/app/actions/agent-config';
 import { useToast } from '@/hooks/use-toast';
-import { AgentDefinition } from '@/config/agents';
+import { type AgentDefinition } from '@/lib/agents/registry';
 
 interface AgentConfigSheetProps {
     agent: AgentDefinition;
@@ -25,7 +25,7 @@ export function AgentConfigSheet({ agent, initialConfig }: AgentConfigSheetProps
     // Form state
     const [name, setName] = useState(initialConfig?.name || agent.name);
     const [title, setTitle] = useState(initialConfig?.title || agent.title);
-    const [status, setStatus] = useState<'online' | 'training' | 'paused'>(initialConfig?.status || agent.status);
+    const [status, setStatus] = useState<'online' | 'training' | 'paused'>(initialConfig?.status || 'online');
     const [systemPrompt, setSystemPrompt] = useState(initialConfig?.systemPrompt || '');
 
     const handleSave = async () => {

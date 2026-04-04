@@ -1,23 +1,11 @@
 
 import Link from 'next/link';
-import { Bot, MessageSquareMore, Mail, LineChart, ShieldCheck, Percent, Search } from 'lucide-react';
+import { Bot } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AgentEntity } from '@/server/actions/agents';
-import { agents as STATIC_AGENT_CONFIG, AgentId, AgentDefinition } from '@/config/agents';
-
-// Helper to get icon for agent ID
-const getIconForAgent = (id: string) => {
-  const config = STATIC_AGENT_CONFIG.find(a => a.id === id);
-  return config?.icon || Bot;
-};
-
-// Helper to get tags for agent ID (since they might not be fully in DB or we want static fallback)
-const getTagsForAgent = (id: string) => {
-  const config = STATIC_AGENT_CONFIG.find(a => a.id === id);
-  return config?.tag ? [config.tag] : ['Agent'];
-};
+import { agents as STATIC_AGENT_CONFIG, type AgentDefinition } from '@/lib/agents/registry';
+import type { AgentEntity } from '@/server/actions/agents';
 
 // Unified agent type for display (accepts both DB entities and static config)
 type DisplayAgent = AgentEntity | AgentDefinition;
@@ -27,18 +15,15 @@ interface AgentsGridProps {
 }
 
 export function AgentsGrid({ agents }: AgentsGridProps) {
-  // Use passed agents (live) or fallback to static config (if not provided, e.g. welcome screen)
+  // Use passed agents (live) or fallback to static config
   const displayList = agents && agents.length > 0 ? agents : STATIC_AGENT_CONFIG;
 
   return (
     <section className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {displayList.map((agent) => {
-          const Icon = getIconForAgent(agent.id);
-          const tags = getTagsForAgent(agent.id);
-          // @ts-ignore - 'title' vs 'role' mismatch in types potentially, but we unified to 'title' in DB. Config uses 'title'.
-          // Actually, let's check field names. DB has 'title', Config has 'title'.
-          // But wait, previous AgentCard had 'role'. Let's verify field access.
+          const Icon = 'icon' in agent ? agent.icon : Bot;
+          const tag = 'tag' in agent ? agent.tag : 'Agent';
 
           return (
             <Card
@@ -56,14 +41,13 @@ export function AgentsGrid({ agents }: AgentsGridProps) {
                         {agent.name}
                       </CardTitle>
                       <CardDescription className="text-xs">
-                        {agent.title || (agent as any).role}
+                        {agent.title}
                       </CardDescription>
                     </div>
                   </div>
-                  {/* Status badge with legacy support */}
                   <Badge
-                    variant={agent.status === 'online' || (agent.status as string) === 'Active' ? 'default' : agent.status === 'training' ? 'secondary' : 'outline'}
-                    className={`text-[10px] uppercase tracking-wide ${agent.status === 'online' || (agent.status as string) === 'Active' ? 'bg-emerald-600 hover:bg-emerald-700' : ''}`}
+                    variant={agent.status === 'online' ? 'default' : agent.status === 'training' ? 'secondary' : 'outline'}
+                    className={`text-[10px] uppercase tracking-wide ${agent.status === 'online' ? 'bg-emerald-600 hover:bg-emerald-700' : ''}`}
                   >
                     {agent.status}
                   </Badge>
@@ -73,7 +57,6 @@ export function AgentsGrid({ agents }: AgentsGridProps) {
               <CardContent className="pb-2">
                 <p className="text-xs text-muted-foreground line-clamp-2">{agent.description}</p>
 
-                {/* Metrics Preview */}
                 <div className="mt-4 flex items-center gap-2 text-[10px] text-muted-foreground bg-muted/50 p-2 rounded-lg">
                   <span className="font-medium">{agent.primaryMetricLabel}:</span>
                   <span className="font-bold text-foreground">{agent.primaryMetricValue}</span>
@@ -82,14 +65,12 @@ export function AgentsGrid({ agents }: AgentsGridProps) {
 
               <CardFooter className="flex items-center justify-between gap-2 pt-2">
                 <div className="flex flex-wrap gap-1">
-                  {tags.map((tag) => (
-                    <Badge key={tag} variant="outline" className="text-[10px] px-1.5 h-5">
-                      {tag}
-                    </Badge>
-                  ))}
+                  <Badge variant="outline" className="text-[10px] px-1.5 h-5">
+                    {tag}
+                  </Badge>
                 </div>
                 <Button asChild size="sm" className="h-7 px-3 text-xs w-20">
-                  <Link href={agent.href}>Open</Link>
+                  <Link href={'href' in agent ? agent.href : `/dashboard/agents/${agent.id}`}>Open</Link>
                 </Button>
               </CardFooter>
             </Card>

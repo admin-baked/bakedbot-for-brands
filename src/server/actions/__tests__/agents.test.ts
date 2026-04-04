@@ -1,7 +1,7 @@
 import { listBrandAgents } from '../agents';
 import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
-import { agents as DEFAULT_AGENTS } from '@/config/agents';
+import { agents as DEFAULT_AGENTS } from '@/lib/agents/registry';
 
 // Mock dependencies
 jest.mock('@/firebase/server-client', () => ({

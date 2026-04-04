@@ -2,21 +2,12 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { agents } from '@/config/agents';
-import { Bot, Shield, Mail, BarChart3, Search, ShoppingBag } from 'lucide-react';
+import { agents, type AnyAgentId } from '@/lib/agents/registry';
 
-const agentIcons: Record<string, any> = {
-    'smokey': Bot,
-    'deebo': Shield,
-    'craig': Mail,
-    'pops': BarChart3,
-    'ezal': Search,
-    'money-mike': ShoppingBag
-};
+const SHOWCASE_IDS: AnyAgentId[] = ['smokey', 'deebo', 'craig', 'pops'];
 
 export function AgentShowcaseSection() {
-    // Filter to core agents we want to showcase
-    const showcaseAgents = agents.filter(a => ['smokey', 'deebo', 'craig', 'pops'].includes(a.id));
+    const showcaseAgents = agents.filter(a => SHOWCASE_IDS.includes(a.id));
 
     return (
         <section id="product" className="py-24 bg-secondary/5">
@@ -35,7 +26,7 @@ export function AgentShowcaseSection() {
 
                 <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
                     {showcaseAgents.map((agent) => {
-                        const Icon = agentIcons[agent.id] || Bot;
+                        const Icon = agent.icon;
                         return (
                             <Card key={agent.id} className="relative overflow-hidden border-primary/10 hover:border-primary/30 transition-all hover:shadow-lg group">
                                 <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
