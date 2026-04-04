@@ -123,7 +123,7 @@ export function EnhancedInputControls({
                         "h-8 w-8",
                         voiceOutput.isEnabled && "bg-primary/20"
                     )}
-                    onClick={voiceOutput.toggle}
+                    onClick={() => voiceOutput.setIsEnabled(!voiceOutput.isEnabled)}
                     title={voiceOutput.isEnabled ? "Disable voice responses" : "Enable voice responses"}
                 >
                     {voiceOutput.isEnabled ? (

@@ -46,10 +46,10 @@ export function AgentsGrid({ agents }: AgentsGridProps) {
                     </div>
                   </div>
                   <Badge
-                    variant={agent.status === 'online' ? 'default' : agent.status === 'training' ? 'secondary' : 'outline'}
-                    className={`text-[10px] uppercase tracking-wide ${agent.status === 'online' ? 'bg-emerald-600 hover:bg-emerald-700' : ''}`}
+                    variant={'status' in agent && agent.status === 'online' ? 'default' : 'status' in agent && agent.status === 'training' ? 'secondary' : 'outline'}
+                    className={`text-[10px] uppercase tracking-wide ${'status' in agent && agent.status === 'online' ? 'bg-emerald-600 hover:bg-emerald-700' : ''}`}
                   >
-                    {agent.status}
+                    {'status' in agent ? agent.status : 'active'}
                   </Badge>
                 </div>
               </CardHeader>
@@ -70,7 +70,7 @@ export function AgentsGrid({ agents }: AgentsGridProps) {
                   </Badge>
                 </div>
                 <Button asChild size="sm" className="h-7 px-3 text-xs w-20">
-                  <Link href={'href' in agent ? agent.href : `/dashboard/agents/${agent.id}`}>Open</Link>
+                  <Link href={agent.href}>Open</Link>
                 </Button>
               </CardFooter>
             </Card>
