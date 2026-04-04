@@ -3,6 +3,7 @@ import { createServerClient } from "@/firebase/server-client";
 import { generateEmbedding } from "@/ai/utils/generate-embedding";
 import { FieldValue } from "firebase-admin/firestore";
 import { buildChunkWithHeader, ChunkContext } from "./chunking-service";
+import { getCached, setCached, CachePrefix, CacheTTL } from '@/lib/cache';
 
 export interface VectorSearchResult {
   docId: string;
@@ -79,6 +80,11 @@ export const firestoreVectorSearch = {
   },
 
   async search(options: VectorSearchOptions): Promise<VectorSearchResult[]> {
+    // Check cache first — identical queries on the same collection return same results
+    const searchCacheKey = `${options.collection}:${options.query.substring(0, 60).replace(/[^a-zA-Z0-9]/g, '_')}:${options.limit || 5}`;
+    const cachedResults = await getCached<VectorSearchResult[]>(CachePrefix.SEMANTIC_SEARCH, searchCacheKey);
+    if (cachedResults) return cachedResults;
+
     const queryEmbedding = await generateEmbedding(options.query);
     
     // Attempt multiple strategies:
@@ -120,6 +126,11 @@ export const firestoreVectorSearch = {
     }).filter((r): r is VectorSearchResult => r !== null);
 
     // Sort by score descending and take top K
-    return results.sort((a: VectorSearchResult, b: VectorSearchResult) => b.score - a.score).slice(0, options.limit || 5);
+    const topResults = results.sort((a: VectorSearchResult, b: VectorSearchResult) => b.score - a.score).slice(0, options.limit || 5);
+
+    // Cache results (5 min TTL)
+    setCached(CachePrefix.SEMANTIC_SEARCH, searchCacheKey, topResults, CacheTTL.SEMANTIC_SEARCH).catch(() => {});
+
+    return topResults;
   }
 };

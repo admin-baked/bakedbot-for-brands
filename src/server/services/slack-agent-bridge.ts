@@ -459,16 +459,24 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                 ? slackService.getConversationHistory(channel, isThreadReply ? threadTs : undefined, 30).catch(() => [])
                 : Promise.resolve([] as Awaited<ReturnType<typeof slackService.getConversationHistory>>),
 
-            // Letta long-term memory (Linus only)
+            // Letta long-term memory (Linus only) — cached in Redis for 30s to avoid
+            // duplicate embedding lookups on rapid-fire Slack messages
             isLinus ? (async () => {
                 try {
+                    const { getCached: getRedisCache, setCached: setRedisCache, CachePrefix: CP, CacheTTL: CT } = await import('@/lib/cache');
+                    const lettaCacheKey = `linus:${enrichedText.substring(0, 60).replace(/[^a-zA-Z0-9]/g, '_')}`;
+                    const cachedLetta = await getRedisCache<string[]>(CP.LETTA_SLACK, lettaCacheKey);
+                    if (cachedLetta) return cachedLetta;
+
                     const { memoryBridgeService } = await import('@/server/services/letta/memory-bridge');
                     const memResults = await memoryBridgeService.unifiedSearch(
                         BAKEDBOT_INTERNAL_ORG,
                         enrichedText,
                         { includeFirestore: false, includeLetta: true, limit: 3 },
                     );
-                    return memResults.lettaResults.slice(0, 3);
+                    const results = memResults.lettaResults.slice(0, 3);
+                    setRedisCache(CP.LETTA_SLACK, lettaCacheKey, results, CT.LETTA_SLACK).catch(() => {});
+                    return results;
                 } catch {
                     return [];
                 }

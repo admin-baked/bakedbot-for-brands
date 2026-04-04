@@ -55,6 +55,12 @@ export const CachePrefix = {
     UPSELL_PRODUCTS: 'upsell_products',
     UPSELL_BUNDLES: 'upsell_bundles',
     CREATIVE_IMAGE: 'creative_img',
+    EMBEDDING: 'embed',
+    SEMANTIC_SEARCH: 'sem_search',
+    DASHBOARD_ANALYTICS: 'dash_analytics',
+    CRM_SEGMENTS: 'crm_segments',
+    CRM_AT_RISK: 'crm_at_risk',
+    LETTA_SLACK: 'letta_slack',
 } as const;
 
 /**
@@ -76,6 +82,12 @@ export const CacheTTL = {
     HEURISTICS: 300, // 5 minutes (tenant heuristic rules)
     UPSELL: 300, // 5 minutes (product/bundle data)
     CREATIVE_IMAGE: 1800, // 30 minutes (generated image URLs)
+    EMBEDDING: 86400, // 24 hours (deterministic — same text = same vector)
+    SEMANTIC_SEARCH: 300, // 5 minutes (search results by query hash)
+    DASHBOARD_ANALYTICS: 600, // 10 minutes (heavy dashboard aggregations)
+    CRM_SEGMENTS: 300, // 5 minutes (segment breakdowns)
+    CRM_AT_RISK: 600, // 10 minutes (at-risk customer lists)
+    LETTA_SLACK: 30, // 30 seconds (Letta memory search for Slack agents)
 } as const;
 
 /**

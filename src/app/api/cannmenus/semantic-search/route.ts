@@ -2,15 +2,14 @@
 // src/app/api/cannmenus/semantic-search/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { getFirestore } from "firebase-admin/firestore";
 import { CannmenusEmbeddingDoc } from "@/types/cannmenus";
 import { generateEmbedding } from "@/ai/utils/generate-embedding";
 
 // Reuse the same admin helper you used in your other dev routes
 import { createServerClient } from "@/firebase/server-client";
 
-
 import { logger } from '@/lib/logger';
+import { getCached, setCached, CachePrefix, CacheTTL } from '@/lib/cache';
 
 // Force dynamic rendering - prevents build-time evaluation of Genkit imports
 export const dynamic = 'force-dynamic';
@@ -59,6 +58,22 @@ export async function POST(req: NextRequest) {
     const marketsFilter: string[] | undefined = Array.isArray(body.markets)
       ? body.markets.filter((m: unknown) => typeof m === "string" && m.trim())
       : undefined;
+
+    // Build cache key from query + filters
+    const cacheKey = `${queryText.substring(0, 60).replace(/[^a-zA-Z0-9]/g, '_')}:${topK}:${brandIdFilter || ''}:${(marketsFilter || []).join(',')}`;
+
+    // Check Redis cache first
+    const cachedResult = await getCached<{ items: unknown[]; totalCandidates: number }>(CachePrefix.SEMANTIC_SEARCH, cacheKey);
+    if (cachedResult) {
+      return NextResponse.json({
+        ok: true,
+        query: queryText,
+        topK,
+        totalCandidates: cachedResult.totalCandidates,
+        items: cachedResult.items,
+        cached: true,
+      }, { status: 200 });
+    }
 
     const { firestore: db } = await createServerClient();
 
@@ -123,6 +138,9 @@ export async function POST(req: NextRequest) {
     // 3) Sort by similarity and take topK
     scored.sort((a, b) => b.score - a.score);
     const top = scored.slice(0, topK);
+
+    // Cache the results (5 min TTL)
+    setCached(CachePrefix.SEMANTIC_SEARCH, cacheKey, { items: top, totalCandidates: scored.length }, CacheTTL.SEMANTIC_SEARCH).catch(() => {});
 
     return NextResponse.json(
       {
