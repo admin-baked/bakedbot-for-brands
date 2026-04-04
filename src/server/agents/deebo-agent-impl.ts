@@ -269,7 +269,7 @@ export const deeboAgent: AgentImplementation<DeeboMemory, DeeboTools> = {
                 // Emit typed ComplianceDecisionArtifact for downstream agents
                 try {
                     const { sendHandoff } = await import('../intuition/handoff');
-                    const orgId = brandMemory.brand_profile.orgId || brandMemory.brand_profile.id || '';
+                    const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || '';
                     const artifact = createHandoff<ComplianceDecisionArtifact>({
                         kind: 'compliance_decision',
                         fromAgent: 'deebo',

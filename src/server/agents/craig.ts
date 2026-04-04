@@ -434,7 +434,7 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
             // Emit typed CampaignBriefArtifact for downstream agents (Deebo, Smokey, Pages)
             try {
                 const { sendHandoff } = await import('../intuition/handoff');
-                const orgId = brandMemory.brand_profile.orgId || brandMemory.brand_profile.id || '';
+                const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || '';
                 const artifact = createHandoff<CampaignBriefArtifact>({
                     kind: 'campaign_brief',
                     fromAgent: 'craig',
