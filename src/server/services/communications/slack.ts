@@ -396,12 +396,13 @@ export const slackService = new SlackService();
 // Uses SLACK_ELROY_BOT_TOKEN if set; falls back to shared token so the app
 // still works before the secret is provisioned.
 export const elroySlackService = new SlackService(
-    process.env.SLACK_ELROY_BOT_TOKEN ?? process.env.SLACK_BOT_TOKEN
+    process.env.SLACK_ELROY_BOT_TOKEN || process.env.SLACK_BOT_TOKEN
 );
 
 // Linus CTO App — dedicated bot token for the Linus CTO Slack app.
 // DMs opened with the Linus bot can only be replied to by the Linus bot token.
 // Falls back to shared token before the secret is provisioned.
+// Uses || (not ??) so empty-string secrets (bad version, unset) still fall back.
 export const linusSlackService = new SlackService(
-    process.env.SLACK_LINUS_BOT_TOKEN ?? process.env.SLACK_BOT_TOKEN
+    process.env.SLACK_LINUS_BOT_TOKEN || process.env.SLACK_BOT_TOKEN
 );
