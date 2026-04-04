@@ -847,10 +847,13 @@ steps:
   // 10b. Weekly Competitive Intelligence Report (Free Users)
   {
     name: 'Weekly Competitive Intelligence Report',
-    description: 'Weekly summary of competitor activity, pricing trends, and strategic recommendations. Included with Free tier.',
+    description: 'Self-improving weekly report: week-over-week trends, competitor strategy shifts, adaptive recommendations, and quality scoring. Gets smarter each week.',
     status: 'active',
     yaml: `name: Weekly Competitive Intelligence Report
-description: Aggregates daily competitor data into weekly strategic insights
+description: >
+  Self-improving weekly intel report. Compares this week vs last,
+  tracks competitor strategy shifts, scores its own quality,
+  and adapts recommendations based on market momentum.
 
 triggers:
   - type: schedule
@@ -859,16 +862,20 @@ triggers:
     name: Run Now
 
 config:
-  tier: free  # Included with Free tier
-  
+  tier: free
+  selfImproving: true  # Tracks quality score + adapts over time
+
 steps:
-  # Step 1: Aggregate weekly snapshots
+  # Step 1: Aggregate + compare to last week
   - action: tool
     tool: intel.generateWeeklyReport
     agent: ezal
-    task: Aggregate last 7 days of competitor snapshots into weekly report
-    
-  # Step 2: Generate strategic insights
+    task: |
+      Aggregate last 7 days of competitor snapshots.
+      Compare against previous week for week-over-week deltas.
+      Score report quality (data richness, actionability, freshness).
+
+  # Step 2: Strategic insights with WoW context
   - action: delegate
     agent: pops
     input: "{{ezal.weekly_data}}"
@@ -876,20 +883,21 @@ steps:
       Calculate market positioning metrics:
       1. Average deal prices by competitor
       2. Pricing strategy analysis (discount vs premium)
-      3. Deal frequency patterns
-      4. Market trend summary
-    
-  # Step 3: Generate recommendations
+      3. Week-over-week deal volume + price delta
+      4. Strategy shift detection
+      5. Market trend direction (heating/cooling/stable)
+
+  # Step 3: Adaptive recommendations
   - action: delegate
     agent: money_mike
     input: "{{pops.market_analysis}}"
     task: |
-      Based on competitive intelligence, recommend:
-      1. Pricing opportunities
-      2. Deal timing suggestions
-      3. Competitor weaknesses to exploit
-    
-  # Step 4: Notify via email and dashboard
+      Based on competitive intelligence and week-over-week changes:
+      1. Pricing opportunities (adjusted for market momentum)
+      2. Strategy shift responses
+      3. Deal timing based on competitor patterns
+
+  # Step 4: Notify with quality transparency
   - action: notify
     channels:
       - email
@@ -897,18 +905,16 @@ steps:
     to: "{{user.email}}"
     subject: "📊 Weekly Competitive Intelligence Report"
     body: |
-      Here's your weekly competitive intelligence summary:
-      
-      📈 MARKET OVERVIEW
-      {{pops.market_summary}}
-      
+      📈 WEEK-OVER-WEEK
+      {{ezal.week_over_week}}
+
       🏆 TOP COMPETITOR DEALS
       {{ezal.top_deals}}
-      
+
       💡 RECOMMENDATIONS
       {{money_mike.recommendations}}
-      
-      View full report in your dashboard.
+
+      📊 REPORT QUALITY: {{ezal.quality_score}}/100
 `,
     triggers: [
         { id: 'trigger-1', type: 'schedule', name: 'Weekly Report', config: { cron: '0 9 * * 1' }, enabled: true },
@@ -916,14 +922,14 @@ steps:
     ],
     steps: [
         { action: 'tool', params: { tool: 'intel.generateWeeklyReport' }, retryOnFailure: true },
-        { action: 'delegate', params: { agent: 'pops', task: 'market_analysis' }, retryOnFailure: true },
-        { action: 'delegate', params: { agent: 'money_mike', task: 'recommendations' }, retryOnFailure: true, validationThreshold: 85 },
+        { action: 'delegate', params: { agent: 'pops', task: 'market_analysis_with_wow' }, retryOnFailure: true },
+        { action: 'delegate', params: { agent: 'money_mike', task: 'adaptive_recommendations' }, retryOnFailure: true, validationThreshold: 85 },
         { action: 'notify', params: { channels: ['email', 'dashboard'] } }
     ],
     runCount: 0,
     successCount: 0,
     failureCount: 0,
-    version: 1
+    version: 2
   },
 
   // 11. Daily Brand Price Tracker (Agent Discovery)

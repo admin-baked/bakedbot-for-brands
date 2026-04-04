@@ -26,10 +26,10 @@ export interface WeeklyIntelReport {
     generatedAt: Date;
     weekStart: Date;
     weekEnd: Date;
-    
+
     // Competitor summaries
     competitors: CompetitorReportSection[];
-    
+
     // Aggregated insights
     insights: {
         topDeals: DealInsight[];
@@ -37,11 +37,43 @@ export interface WeeklyIntelReport {
         marketTrends: string[];
         recommendations: string[];
     };
-    
+
+    // Week-over-week comparison (self-improving)
+    weekOverWeek: WeekOverWeekDelta | null;
+
+    // Self-improvement metadata
+    reportQuality: ReportQualityScore;
+
     // Stats
     totalSnapshots: number;
     totalDealsTracked: number;
     totalProductsTracked: number;
+}
+
+/** Tracks what changed vs last week so the report shows momentum, not just a snapshot */
+interface WeekOverWeekDelta {
+    prevReportId: string | null;
+    dealCountDelta: number;        // +/- deals vs last week
+    avgPriceDelta: number;         // +/- avg price change
+    newCompetitors: string[];      // competitors added since last week
+    droppedCompetitors: string[];  // competitors gone quiet
+    strategyShifts: StrategyShift[];
+    trendDirection: 'heating_up' | 'cooling_down' | 'stable';
+}
+
+interface StrategyShift {
+    competitorName: string;
+    from: string;
+    to: string;
+}
+
+/** Scores how useful this report is — drives self-improvement */
+interface ReportQualityScore {
+    dataRichness: number;          // 0-100: how much real data backs this report
+    actionability: number;         // 0-100: how many concrete actions can be taken
+    freshness: number;             // 0-100: how recent the underlying snapshots are
+    overall: number;               // weighted average
+    improvementNotes: string[];    // what Ezal will try to improve next week
 }
 
 interface CompetitorReportSection {
@@ -172,7 +204,16 @@ export async function generateWeeklyIntelReport(
 
     const pricingGaps = calculatePricingGaps(competitorSections);
     const marketTrends = generateMarketTrends(competitorSections, snapshots);
-    const recommendations = generateRecommendations(competitorSections, pricingGaps);
+
+    // Self-improvement: fetch last week's report for comparison
+    const prevReport = await fetchPreviousReport(firestore, orgId);
+    const weekOverWeek = buildWeekOverWeek(prevReport, competitorSections, allDeals);
+
+    // Adaptive recommendations: factor in what changed week-over-week
+    const recommendations = generateRecommendations(competitorSections, pricingGaps, weekOverWeek);
+
+    // Score report quality so we can improve next week
+    const reportQuality = scoreReportQuality(snapshots, competitorSections, allDeals, prevReport);
 
     const report: Omit<WeeklyIntelReport, 'id'> = {
         orgId,
@@ -186,6 +227,8 @@ export async function generateWeeklyIntelReport(
             marketTrends,
             recommendations,
         },
+        weekOverWeek,
+        reportQuality,
         totalSnapshots: snapshots.length,
         totalDealsTracked: allDeals.length,
         totalProductsTracked: snapshots.reduce((sum, s) => sum + s.products.length, 0),
@@ -264,6 +307,169 @@ export async function generateWeeklyIntelReport(
         id: docRef.id,
         ...report,
     };
+}
+
+// =============================================================================
+// SELF-IMPROVEMENT: WEEK-OVER-WEEK COMPARISON
+// =============================================================================
+
+/** Fetch the most recent previous report for this org */
+async function fetchPreviousReport(
+    firestore: FirebaseFirestore.Firestore,
+    orgId: string
+): Promise<WeeklyIntelReport | null> {
+    try {
+        const prevSnap = await firestore
+            .collection('tenants')
+            .doc(orgId)
+            .collection(COLLECTION)
+            .orderBy('generatedAt', 'desc')
+            .limit(1)
+            .get();
+
+        if (prevSnap.empty) return null;
+
+        const doc = prevSnap.docs[0];
+        const data = doc.data();
+        return {
+            id: doc.id,
+            orgId: data.orgId,
+            generatedAt: data.generatedAt?.toDate?.() || new Date(),
+            weekStart: data.weekStart?.toDate?.() || new Date(),
+            weekEnd: data.weekEnd?.toDate?.() || new Date(),
+            competitors: data.competitors || [],
+            insights: data.insights || { topDeals: [], pricingGaps: [], marketTrends: [], recommendations: [] },
+            weekOverWeek: data.weekOverWeek || null,
+            reportQuality: data.reportQuality || { dataRichness: 0, actionability: 0, freshness: 0, overall: 0, improvementNotes: [] },
+            totalSnapshots: data.totalSnapshots || 0,
+            totalDealsTracked: data.totalDealsTracked || 0,
+            totalProductsTracked: data.totalProductsTracked || 0,
+        };
+    } catch {
+        return null;
+    }
+}
+
+/** Compare this week to last week */
+function buildWeekOverWeek(
+    prev: WeeklyIntelReport | null,
+    currentCompetitors: CompetitorReportSection[],
+    currentDeals: { competitorName: string; name: string; price: number }[]
+): WeekOverWeekDelta | null {
+    if (!prev) {
+        return {
+            prevReportId: null,
+            dealCountDelta: 0,
+            avgPriceDelta: 0,
+            newCompetitors: [],
+            droppedCompetitors: [],
+            strategyShifts: [],
+            trendDirection: 'stable',
+        };
+    }
+
+    const prevNames = new Set(prev.competitors.map(c => c.competitorName));
+    const currNames = new Set(currentCompetitors.map(c => c.competitorName));
+
+    const newCompetitors = currentCompetitors
+        .filter(c => !prevNames.has(c.competitorName))
+        .map(c => c.competitorName);
+    const droppedCompetitors = prev.competitors
+        .filter(c => !currNames.has(c.competitorName))
+        .map(c => c.competitorName);
+
+    // Strategy shifts
+    const strategyShifts: StrategyShift[] = [];
+    for (const curr of currentCompetitors) {
+        const prevComp = prev.competitors.find(p => p.competitorId === curr.competitorId);
+        if (prevComp && prevComp.priceStrategy !== curr.priceStrategy) {
+            strategyShifts.push({
+                competitorName: curr.competitorName,
+                from: prevComp.priceStrategy,
+                to: curr.priceStrategy,
+            });
+        }
+    }
+
+    const dealCountDelta = currentDeals.length - prev.totalDealsTracked;
+
+    const currAvg = currentCompetitors.length > 0
+        ? currentCompetitors.reduce((s, c) => s + c.avgDealPrice, 0) / currentCompetitors.length
+        : 0;
+    const prevAvg = prev.competitors.length > 0
+        ? prev.competitors.reduce((s, c) => s + c.avgDealPrice, 0) / prev.competitors.length
+        : 0;
+    const avgPriceDelta = currAvg - prevAvg;
+
+    // Determine trend direction
+    let trendDirection: WeekOverWeekDelta['trendDirection'] = 'stable';
+    if (dealCountDelta > 5 || strategyShifts.length >= 2) trendDirection = 'heating_up';
+    else if (dealCountDelta < -5) trendDirection = 'cooling_down';
+
+    return {
+        prevReportId: prev.id,
+        dealCountDelta,
+        avgPriceDelta,
+        newCompetitors,
+        droppedCompetitors,
+        strategyShifts,
+        trendDirection,
+    };
+}
+
+/** Score how useful this report is — tracked over time for self-improvement */
+function scoreReportQuality(
+    snapshots: CompetitorSnapshot[],
+    competitors: CompetitorReportSection[],
+    deals: { name: string; price: number }[],
+    prevReport: WeeklyIntelReport | null
+): ReportQualityScore {
+    const improvementNotes: string[] = [];
+
+    // Data richness: do we have enough snapshots and competitors?
+    const snapshotScore = Math.min(100, (snapshots.length / 14) * 100); // 14 = 2/day ideal
+    const competitorScore = Math.min(100, (competitors.length / 3) * 100); // 3 competitors ideal
+    const dataRichness = Math.round((snapshotScore + competitorScore) / 2);
+
+    if (dataRichness < 50) {
+        improvementNotes.push('Low data: add more competitors or check scraper health');
+    }
+
+    // Actionability: are there real price gaps and deals to act on?
+    const hasPriceData = deals.filter(d => d.price > 0).length;
+    const actionability = Math.round(Math.min(100, (hasPriceData / Math.max(deals.length, 1)) * 100));
+
+    if (actionability < 60) {
+        improvementNotes.push('Many deals missing price data — check scraper extraction');
+    }
+
+    // Freshness: how recent are the snapshots?
+    const now = Date.now();
+    const newestSnapshot = snapshots.reduce((newest, s) => {
+        const t = s.scrapedAt?.getTime?.() || 0;
+        return t > newest ? t : newest;
+    }, 0);
+    const hoursSinceNewest = newestSnapshot > 0 ? (now - newestSnapshot) / 3600000 : 999;
+    const freshness = Math.round(Math.max(0, 100 - (hoursSinceNewest * 2))); // lose 2 pts per hour
+
+    if (freshness < 50) {
+        improvementNotes.push('Stale data: newest snapshot is >24h old');
+    }
+
+    // Check if we're improving vs last week
+    if (prevReport?.reportQuality) {
+        const prevOverall = prevReport.reportQuality.overall;
+        const currentOverall = Math.round((dataRichness * 0.4) + (actionability * 0.35) + (freshness * 0.25));
+        if (currentOverall > prevOverall) {
+            improvementNotes.push(`Quality improved: ${prevOverall} -> ${currentOverall}`);
+        } else if (currentOverall < prevOverall - 10) {
+            improvementNotes.push(`Quality dropped from ${prevOverall} — investigating`);
+        }
+    }
+
+    const overall = Math.round((dataRichness * 0.4) + (actionability * 0.35) + (freshness * 0.25));
+
+    return { dataRichness, actionability, freshness, overall, improvementNotes };
 }
 
 // =============================================================================
@@ -355,9 +561,33 @@ function generateMarketTrends(
 
 function generateRecommendations(
     sections: CompetitorReportSection[],
-    gaps: PricingGap[]
+    gaps: PricingGap[],
+    wow: WeekOverWeekDelta | null
 ): string[] {
     const recommendations: string[] = [];
+
+    // Week-over-week adaptive recommendations
+    if (wow) {
+        if (wow.trendDirection === 'heating_up') {
+            recommendations.push('Market is heating up — competitors increasing deal volume. Consider launching a time-limited promotion this week.');
+        }
+        if (wow.trendDirection === 'cooling_down') {
+            recommendations.push('Competitor activity is slowing. Good time to capture market share with targeted outreach.');
+        }
+        if (wow.strategyShifts.length > 0) {
+            for (const shift of wow.strategyShifts) {
+                recommendations.push(`${shift.competitorName} shifted from ${shift.from} to ${shift.to} pricing — adjust your positioning.`);
+            }
+        }
+        if (wow.avgPriceDelta < -2) {
+            recommendations.push(`Average market prices dropped $${Math.abs(wow.avgPriceDelta).toFixed(2)} this week — review your margins.`);
+        } else if (wow.avgPriceDelta > 2) {
+            recommendations.push(`Market prices up $${wow.avgPriceDelta.toFixed(2)} — you have room to hold or raise prices.`);
+        }
+        if (wow.newCompetitors.length > 0) {
+            recommendations.push(`New competitor(s) detected: ${wow.newCompetitors.join(', ')}. Monitor closely.`);
+        }
+    }
 
     // Based on pricing gaps
     const hasDiscountThreat = sections.some(s => s.priceStrategy === 'discount');
@@ -711,6 +941,35 @@ async function sendReportEmail(
     ${avgPrice > 0 ? `<p style="margin: 12px 0 0 0; font-size: 14px; color: #374151;">Market Avg Deal Price: <strong>$${avgPrice.toFixed(2)}</strong></p>` : ''}
   </div>
 
+  ${report.weekOverWeek ? `
+  <!-- Week-over-Week Delta -->
+  <div style="background: white; border-radius: 8px; padding: 20px; margin-bottom: 16px; border: 1px solid #e5e7eb;">
+    <h2 style="font-size: 16px; color: #111827; margin: 0 0 12px 0;">
+      ${report.weekOverWeek.trendDirection === 'heating_up' ? '🔥' : report.weekOverWeek.trendDirection === 'cooling_down' ? '❄️' : '➡️'}
+      Week-over-Week
+    </h2>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+      <div style="background: #f3f4f6; border-radius: 6px; padding: 12px; text-align: center;">
+        <div style="font-size: 20px; font-weight: bold; color: ${report.weekOverWeek.dealCountDelta >= 0 ? '#059669' : '#dc2626'};">
+          ${report.weekOverWeek.dealCountDelta >= 0 ? '+' : ''}${report.weekOverWeek.dealCountDelta}
+        </div>
+        <div style="font-size: 12px; color: #6b7280;">Deals vs Last Week</div>
+      </div>
+      <div style="background: #f3f4f6; border-radius: 6px; padding: 12px; text-align: center;">
+        <div style="font-size: 20px; font-weight: bold; color: ${report.weekOverWeek.avgPriceDelta <= 0 ? '#059669' : '#dc2626'};">
+          ${report.weekOverWeek.avgPriceDelta >= 0 ? '+' : ''}$${report.weekOverWeek.avgPriceDelta.toFixed(2)}
+        </div>
+        <div style="font-size: 12px; color: #6b7280;">Avg Price Change</div>
+      </div>
+    </div>
+    ${report.weekOverWeek.strategyShifts.length > 0 ? `
+      <div style="margin-top: 12px; padding: 8px; background: #fef3c7; border-radius: 6px; font-size: 13px; color: #92400e;">
+        ${report.weekOverWeek.strategyShifts.map(s => `⚡ ${s.competitorName}: ${s.from} → ${s.to}`).join('<br/>')}
+      </div>
+    ` : ''}
+  </div>
+  ` : ''}
+
   ${topDeal ? `
   <!-- Top Deal Alert -->
   <div style="background: #faf5ff; border: 1px solid #e9d5ff; border-left: 4px solid #7c3aed; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
@@ -769,6 +1028,21 @@ async function sendReportEmail(
     </a>
   </div>
 
+  <!-- Report Quality (self-improvement transparency) -->
+  <div style="background: #f9fafb; border-radius: 8px; padding: 16px; margin-bottom: 16px; border: 1px solid #e5e7eb;">
+    <h3 style="font-size: 13px; color: #6b7280; margin: 0 0 8px 0;">Report Quality Score: ${report.reportQuality.overall}/100</h3>
+    <div style="display: flex; gap: 16px; font-size: 12px; color: #9ca3af;">
+      <span>Data: ${report.reportQuality.dataRichness}</span>
+      <span>Actionability: ${report.reportQuality.actionability}</span>
+      <span>Freshness: ${report.reportQuality.freshness}</span>
+    </div>
+    ${report.reportQuality.improvementNotes.length > 0 ? `
+      <div style="margin-top: 8px; font-size: 12px; color: #6b7280; font-style: italic;">
+        Next week: ${report.reportQuality.improvementNotes[0]}
+      </div>
+    ` : ''}
+  </div>
+
   <!-- Footer -->
   <div style="text-align: center; color: #9ca3af; font-size: 12px; margin-top: 24px;">
     <p>Generated by Ezal — BakedBot Competitive Intelligence</p>
@@ -816,7 +1090,27 @@ function formatReportAsMarkdown(report: Omit<WeeklyIntelReport, 'id'>): string {
     md += `- **Competitors Tracked:** ${report.competitors.length}\n`;
     md += `- **Total Snapshots:** ${report.totalSnapshots}\n`;
     md += `- **Deals Tracked:** ${report.totalDealsTracked}\n`;
-    md += `- **Products Tracked:** ${report.totalProductsTracked}\n\n`;
+    md += `- **Products Tracked:** ${report.totalProductsTracked}\n`;
+    md += `- **Report Quality:** ${report.reportQuality.overall}/100\n\n`;
+
+    // Week-over-week
+    if (report.weekOverWeek) {
+        const wow = report.weekOverWeek;
+        const trend = wow.trendDirection === 'heating_up' ? '🔥 Heating Up'
+            : wow.trendDirection === 'cooling_down' ? '❄️ Cooling Down' : '➡️ Stable';
+        md += `## Week-over-Week: ${trend}\n\n`;
+        md += `- **Deal volume:** ${wow.dealCountDelta >= 0 ? '+' : ''}${wow.dealCountDelta} vs last week\n`;
+        md += `- **Avg price shift:** ${wow.avgPriceDelta >= 0 ? '+' : ''}$${wow.avgPriceDelta.toFixed(2)}\n`;
+        if (wow.newCompetitors.length > 0) {
+            md += `- **New competitors:** ${wow.newCompetitors.join(', ')}\n`;
+        }
+        if (wow.strategyShifts.length > 0) {
+            for (const s of wow.strategyShifts) {
+                md += `- **Strategy shift:** ${s.competitorName}: ${s.from} → ${s.to}\n`;
+            }
+        }
+        md += `\n`;
+    }
 
     // Market trends
     md += `## Market Trends\n\n`;
@@ -872,6 +1166,19 @@ function formatReportAsMarkdown(report: Omit<WeeklyIntelReport, 'id'>): string {
     }
     md += `\n`;
 
+    // Self-improvement section
+    if (report.reportQuality.improvementNotes.length > 0) {
+        md += `## Self-Improvement Notes\n\n`;
+        md += `Quality Score: **${report.reportQuality.overall}/100** `;
+        md += `(Data: ${report.reportQuality.dataRichness}, `;
+        md += `Actionability: ${report.reportQuality.actionability}, `;
+        md += `Freshness: ${report.reportQuality.freshness})\n\n`;
+        for (const note of report.reportQuality.improvementNotes) {
+            md += `- ${note}\n`;
+        }
+        md += `\n`;
+    }
+
     md += `---\n\n`;
     md += `*Generated by Ezal - BakedBot Competitive Intelligence*\n`;
 
@@ -885,7 +1192,16 @@ function generateNotificationSummary(report: Omit<WeeklyIntelReport, 'id'>): str
     const topDeal = report.insights.topDeals[0];
     const avgPrice = report.competitors.reduce((sum, c) => sum + c.avgDealPrice, 0) / report.competitors.length;
 
-    let summary = `Hey there! 👋 Your daily competitive intelligence report is ready.\n\n`;
+    let summary = `Hey there! 👋 Your weekly competitive intelligence report is ready.\n\n`;
+
+    // Lead with week-over-week if available
+    if (report.weekOverWeek && report.weekOverWeek.prevReportId) {
+        const wow = report.weekOverWeek;
+        const trend = wow.trendDirection === 'heating_up' ? '🔥 Market heating up'
+            : wow.trendDirection === 'cooling_down' ? '❄️ Market cooling down' : '➡️ Market stable';
+        summary += `**${trend}** — ${wow.dealCountDelta >= 0 ? '+' : ''}${wow.dealCountDelta} deals vs last week\n\n`;
+    }
+
     summary += `**Key Highlights:**\n\n`;
     summary += `📊 Tracked ${report.competitors.length} competitors with ${report.totalDealsTracked} active deals\n\n`;
 
