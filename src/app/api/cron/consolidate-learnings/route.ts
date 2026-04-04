@@ -279,6 +279,78 @@ async function analyzeComplianceCatches(db: FirebaseFirestore.Firestore): Promis
   return deltas;
 }
 
+/**
+ * Step 5: Identify high-performing workflow trajectories from procedural memory
+ */
+async function analyzeHighPerformingWorkflows(db: FirebaseFirestore.Firestore): Promise<LearningDelta[]> {
+  const deltas: LearningDelta[] = [];
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  try {
+    // Query agent telemetry for successful multi-step runs with high capability utilization
+    const snap = await db.collection('agent_telemetry')
+      .where('timestamp', '>=', sevenDaysAgo)
+      .where('success', '==', true)
+      .where('toolCallCount', '>=', 3)
+      .limit(200)
+      .get();
+
+    // Group by agent + tool combination pattern
+    const workflowMap = new Map<string, {
+      count: number;
+      avgLatency: number;
+      totalLatency: number;
+      agents: Set<string>;
+      sampleIds: string[];
+    }>();
+
+    for (const doc of snap.docs) {
+      const data = doc.data();
+      const toolPattern = (data.uniqueToolsUsed || []).sort().join('+');
+      if (!toolPattern) continue;
+
+      const key = `${data.agentName}:${toolPattern}`;
+      const existing = workflowMap.get(key) || {
+        count: 0, avgLatency: 0, totalLatency: 0, agents: new Set<string>(), sampleIds: [],
+      };
+      existing.count++;
+      existing.totalLatency += data.totalLatencyMs || 0;
+      existing.agents.add(data.agentName);
+      if (existing.sampleIds.length < 5) existing.sampleIds.push(doc.id);
+      workflowMap.set(key, existing);
+    }
+
+    // Surface patterns with 5+ successful executions as "high performing"
+    for (const [key, data] of workflowMap) {
+      if (data.count >= 5) {
+        const [agent, toolPattern] = key.split(':');
+        const avgLatency = Math.round(data.totalLatency / data.count);
+        deltas.push(createLearningDelta({
+          category: 'high_performing_workflow',
+          agentName: agent,
+          summary: `Agent "${agent}" successfully completed ${data.count} tasks using tool pattern [${toolPattern}] in 7d (avg ${avgLatency}ms). Consider boosting this workflow's priority in procedural memory.`,
+          evidence: {
+            source: 'telemetry',
+            count: data.count,
+            timeWindow: '7d',
+            sampleIds: data.sampleIds,
+          },
+          proposedAction: {
+            type: 'update_routing',
+            target: `procedural_memory/${agent}`,
+            diff: `Boost importance score for workflows matching tool pattern [${toolPattern}].`,
+          },
+        }));
+      }
+    }
+  } catch (error) {
+    logger.error('[ConsolidateLearnings] High-performing workflow analysis failed:', error as Record<string, unknown>);
+  }
+
+  return deltas;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Main Handler
 // ─────────────────────────────────────────────────────────────────────────────
@@ -294,14 +366,15 @@ async function handler(req: NextRequest): Promise<NextResponse> {
     const db = getAdminFirestore();
 
     // Run all analysis steps in parallel
-    const [toolFailures, deadEndLoops, negativeFeedback, complianceCatches] = await Promise.all([
+    const [toolFailures, deadEndLoops, negativeFeedback, complianceCatches, highPerformers] = await Promise.all([
       analyzeToolFailures(db),
       analyzeDeadEndLoops(db),
       analyzeNegativeFeedback(db),
       analyzeComplianceCatches(db),
+      analyzeHighPerformingWorkflows(db),
     ]);
 
-    const allDeltas = [...toolFailures, ...deadEndLoops, ...negativeFeedback, ...complianceCatches];
+    const allDeltas = [...toolFailures, ...deadEndLoops, ...negativeFeedback, ...complianceCatches, ...highPerformers];
 
     // Persist deltas to Firestore
     const batch = db.batch();
@@ -322,6 +395,7 @@ async function handler(req: NextRequest): Promise<NextResponse> {
         dead_end_loops: deadEndLoops.length,
         negative_feedback: negativeFeedback.length,
         compliance_catches: complianceCatches.length,
+        high_performers: highPerformers.length,
       },
     };
 

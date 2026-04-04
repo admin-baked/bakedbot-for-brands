@@ -9,6 +9,7 @@ import type {
   OrgProfileVersion,
   OrgProfileBrand,
   OrgProfileIntent,
+  OrgProfileOperations,
 } from '@/types/org-profile';
 import { calculateOrgProfileCompletion } from '@/types/org-profile';
 import type { BusinessArchetype } from '@/types/dispensary-intent-profile';
@@ -124,6 +125,67 @@ const DEFAULT_BRAND: OrgProfileBrand = {
   compliance: {},
 };
 
+/**
+ * Default operations per archetype — sensible starting values for the Brand Brain.
+ */
+function getDefaultOperations(archetype: BusinessArchetype): OrgProfileOperations {
+  const base: OrgProfileOperations = {
+    channelRules: [
+      { channel: 'sms', enabled: true, frequencyCap: 3 },
+      { channel: 'email', enabled: true, frequencyCap: 5 },
+      { channel: 'push', enabled: false },
+    ],
+    pricingPolicy: { marginFloorPct: 35, maxDiscountPct: 20 },
+    inventoryStrategy: { clearanceThresholdDays: 90, lowStockAlertThreshold: 10 },
+  };
+
+  switch (archetype) {
+    case 'premium_boutique':
+      return {
+        ...base,
+        channelRules: [
+          { channel: 'email', enabled: true, frequencyCap: 3, voiceOverride: 'refined' },
+          { channel: 'instagram', enabled: true, frequencyCap: 4 },
+          { channel: 'sms', enabled: true, frequencyCap: 2 },
+        ],
+        pricingPolicy: { marginFloorPct: 45, maxDiscountPct: 15 },
+      };
+    case 'value_leader':
+      return {
+        ...base,
+        channelRules: [
+          { channel: 'sms', enabled: true, frequencyCap: 5 },
+          { channel: 'push', enabled: true, frequencyCap: 4 },
+          { channel: 'email', enabled: true, frequencyCap: 5 },
+        ],
+        pricingPolicy: { marginFloorPct: 25, maxDiscountPct: 30 },
+      };
+    case 'medical_focus':
+      return {
+        ...base,
+        channelRules: [
+          { channel: 'email', enabled: true, frequencyCap: 3, voiceOverride: 'clinical' },
+          { channel: 'sms', enabled: true, frequencyCap: 2 },
+        ],
+        pricingPolicy: { marginFloorPct: 40, maxDiscountPct: 10 },
+      };
+    case 'lifestyle_brand':
+      return {
+        ...base,
+        channelRules: [
+          { channel: 'instagram', enabled: true, frequencyCap: 7 },
+          { channel: 'tiktok', enabled: true, frequencyCap: 5 },
+          { channel: 'email', enabled: true, frequencyCap: 4 },
+          { channel: 'sms', enabled: true, frequencyCap: 3 },
+        ],
+        pricingPolicy: { marginFloorPct: 35, maxDiscountPct: 25 },
+      };
+    case 'community_hub':
+    default:
+      return base;
+  }
+}
+
 export function getDefaultOrgProfile(archetype: BusinessArchetype, orgId: string): OrgProfile {
   const now = new Date().toISOString();
   const intentDefaults = getDefaultProfile(archetype, orgId);
@@ -147,6 +209,7 @@ export function getDefaultOrgProfile(archetype: BusinessArchetype, orgId: string
     updatedAt: now,
     brand: { ...DEFAULT_BRAND },
     intent,
+    operations: getDefaultOperations(archetype),
   };
 
   profile.completionPct = calculateOrgProfileCompletion(profile);

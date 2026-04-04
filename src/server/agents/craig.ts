@@ -3,6 +3,8 @@ import { CraigMemory, CampaignSchema } from './schemas';
 import { ComplianceResult } from './deebo'; // Assuming this is exported from deebo.ts
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
+import { createHandoff } from '@/types/handoff-artifacts';
+import type { CampaignBriefArtifact } from '@/types/handoff-artifacts';
 import { calculateCampaignPriority } from '../algorithms/craig-algo';
 import { ai } from '@/ai/genkit';
 import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef, semanticSearchToolDefs, makeSemanticSearchToolsImpl, redditToolDefs, makeRedditToolsImpl } from './shared-tools';
@@ -428,6 +430,30 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
                 model: 'claude-sonnet-4-6', // Use Claude for high-quality copy & compliance
                 maxIterations: 5
             });
+
+            // Emit typed CampaignBriefArtifact for downstream agents (Deebo, Smokey, Pages)
+            try {
+                const { sendHandoff } = await import('../intuition/handoff');
+                const orgId = brandMemory.brand_profile.orgId || brandMemory.brand_profile.id || '';
+                const artifact = createHandoff<CampaignBriefArtifact>({
+                    kind: 'campaign_brief',
+                    fromAgent: 'craig',
+                    toAgent: 'broadcast',
+                    orgId,
+                    confidence: 0.8,
+                    payload: {
+                        campaignName: targetId,
+                        objective: userQuery.slice(0, 200),
+                        targetSegments: [],
+                        channels: [],
+                        heroProducts: [],
+                        copy: { headline: '', body: result.finalResult?.slice(0, 500) || '', cta: '' },
+                    },
+                });
+                await sendHandoff(orgId, artifact);
+            } catch (handoffErr) {
+                logger.warn('[Craig] Failed to emit campaign brief handoff:', handoffErr as Record<string, unknown>);
+            }
 
             return {
                 updatedMemory: agentMemory,

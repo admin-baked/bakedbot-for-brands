@@ -85,43 +85,7 @@ Before ANY work, verify the build is healthy:
 
 **Rule:** for Node/npm/Jest in the default shell, use `.\scripts\node-safe.cmd` / `.\scripts\npm-safe.cmd` first so the process stays inside `.codex-jest-home`. If a critical verification or live Firebase / GitHub command still fails for sandbox reasons after that, rerun it in elevated mode before assuming the product is broken.
 
-## Session 2026-03-20 (Smokey Budtender Production Fix)
-**Recent work (2026-03-20):** See `memory/MEMORY.md` for full log.
-Key completed: [Restored missing `job-stream.ts` module -> Type Check + E2E + deploy green on `main`] (`7ed6cb126`)
-
-## Session 2026-03-12 (Playbook artifact repo + runtime memory layer)
-- **Artifact repo path made real**: Playbook V2 now persists spec snapshots, run manifests, failure artifacts, approval records, delivery manifests, and `summary_for_ai_engineers.md` through the shared artifact runtime. Runtime writes go to blob storage + Firestore metadata + the dedicated Git repo `admin-baked/bakedbot-artifacts-prod` when App Hosting is running with the new repo env/secret config.
-
-## Session 2026-03-12 (Gmail tool send restored)
-- **Connected Gmail dispatch restored** (`30505c5a3`, `3222c9933`): confirmed SendGrid fallback was still failing live sends, enabled `gmail.googleapis.com` on `studio-567050101-bc6e8`, replaced the brittle Gmail send path with direct Gmail REST bearer auth, normalized refresh-token persistence, and verified `sendGenericEmail()` succeeds with Mailjet/SendGrid disabled
-
-## Session 2026-03-11 (CRM outreach gap fixed + MI/IL expansion)
-- **Multi-state outreach deployed** (`8cf0a4b53`): synced `crm_dispensaries` into the outreach queue, hardened dashboard partial-load behavior + Gmail token status, added missing outreach indexes, and expanded proactive outreach from NY-only to CRM-first NY/MI/IL with queue enrichment + updated CEO copy/templates
-
-## Session 2026-03-09 (Slack routing fully live)
-- **Slack routing deployed** (`d6bb69f94`, `38f20deca`, `3c687cf25`): `channels:read` scope + reinstall; `SLACK_BOT_TOKEN@4`; GCP billing linked â€” service accounts can now write to Secret Manager
-
-## Session 2026-03-08 (Smokey Budtender Audit + Golden Eval 100%)
-- **Smokey audit** (`917f6deb`): P0 conv history, P0 carousel tool, P1 preset gating, P1 maxIterations, P2 YouTube tools, P2 golden set 27â†’41 cases
-- **Golden eval** (`cf822b224`): 41/41 pass (100%) â€” eval system prompt, retry logic, compliance rule templates (`4e7ae5e83`)
-
-Status: Build passing, pushed to production
-
-## Session 2026-03-06 (GLM controls, security docs, and proxy hardening)
-- **Claude allowlists** - Normalized local Claude settings allowlists to remove bloated startup state and keep tool permissions deterministic (`6f04200ee`)
-- **Security Soren registration** - Added security agent guidance, golden set references, and server security docs (`2ae78a0b4`)
-- **CEO GLM controls** - Added GLM usage controls and tracking in the CEO dashboard (`17186202a`, `360cabc76`)
-- **WordPress proxy hardening** - Locked the public proxy to the configured Andrews origin and removed debug leakage from public errors (`1aa587cb2`)
-
-Status: Shippable subset committed locally
-
-## Session 2026-03-05 (Firestore undefined handling fixes)
-- **Exec proactive check** â€” Fixed Firestore undefined value errors (`emailDigest ?? undefined` â†’ `null`, `startTime` as string not Date)
-- **Morning briefing** â€” Added Error message handling for rejected promises (`result.reason instanceof Error` extraction)
-- **Firestore settings** â€” Enabled `ignoreUndefinedProperties: true` to skip undefined fields globally
-
-Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
-Status: ðŸŸ¢ Both crons deployed and working
+→ Sessions before 2026-04-04 archived. See `memory/MEMORY.md` and `memory/sessions/` for full history.
 
 ---
 
