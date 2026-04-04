@@ -160,7 +160,7 @@ export async function vectorSearch(options: VectorSearchOptions): Promise<Vector
             ...(options.filter ? { filter: options.filter } : {}),
         });
 
-        return results.map(r => ({
+        return results.map((r: { id: string | number; score: number; metadata?: Record<string, unknown> }) => ({
             id: String(r.id),
             score: r.score,
             metadata: r.metadata as Record<string, unknown> | undefined,
