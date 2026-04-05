@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; SP13 Opencode Cloud Run agent live (free Zen models, Linus + Super Users); deploy in progress | **Last update:** 2026-04-04 (Opencode SP13 `d2ed77e9a`)
+**Current Status:** 🟢 `main` green; customer mix now recalculates live segments; market intel card wired to FlnnStoned CI reports | **Last update:** 2026-04-04 (segment fix + CI card `a331f89c5`)
 
 ---
 

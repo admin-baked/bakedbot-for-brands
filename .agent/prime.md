@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; SP13 Opencode Cloud Run agent live — free Zen models for Linus + Super Users.
-**Recent work (2026-04-04):** Opencode SP13: `docker/opencode/` + `POST /api/opencode/run` + `scripts/opencode-task.mjs` + Linus execute_super_power (`d2ed77e9a`).
+**Current Status:** 🟢 `main` green; customer mix recalculates live segments; market intel card shows FlnnStoned CI reports.
+**Recent work (2026-04-04):** Segment fix (drop stale `data.segment`) + market intel CI card (`buildLatestCiCard` → `competitive_reports`) (`a331f89c5`).
 
 ## ðŸ§­ CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 
