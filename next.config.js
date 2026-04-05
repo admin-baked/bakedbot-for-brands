@@ -49,6 +49,8 @@ const nextConfig = {
     '@google-cloud/logging', '@google-analytics/data',
     // Firebase + Google APIs
     'firebase-admin', 'googleapis',
+    // AWS SDKs
+    '@aws-sdk/client-ses',
     // AI SDKs
     '@anthropic-ai/sdk', 'openai', '@google/generative-ai',
     '@mendable/firecrawl-js', 'apify-client',
@@ -104,6 +106,7 @@ const nextConfig = {
         '@google-cloud/firestore', '@google-cloud/monitoring', '@google-cloud/secret-manager',
         '@google-cloud/logging', '@google-analytics/data',
         'firebase-admin', 'googleapis',
+        '@aws-sdk/client-ses',
         '@anthropic-ai/sdk', 'openai', '@google/generative-ai',
         '@mendable/firecrawl-js', 'apify-client',
         'resend', '@sendgrid/mail', 'twilio', 'node-mailjet',
