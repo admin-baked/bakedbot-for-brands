@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; config-driven model tiers (GLM→Gemini→Haiku→Sonnet); Linus `set_agent_model_tier` tool live; SP13 Opencode live | **Last update:** 2026-04-05 (model tiers `337772891`)
+**Current Status:** 🟢 `main` green; dispensary auto-enrichment on signup (Firecrawl → brand doc); SES email; config-driven model tiers | **Last update:** 2026-04-05 (dispensary auto-enrich `0d34c4f70`)
 
 ---
 

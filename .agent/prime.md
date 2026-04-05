@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; config-driven model tiers via Firestore; Linus `set_agent_model_tier` Slack tool; SP13 Opencode live.
-**Recent work (2026-04-05):** Config-driven model tiers GLM→Gemini→Haiku→Sonnet; Linus can switch via Slack; cost ~$20/day→$2-3 (`337772891`).
+**Current Status:** 🟢 `main` green; dispensary auto-enrichment on signup; SES email; config-driven model tiers; SP13 Opencode live.
+**Recent work (2026-04-05):** Dispensary auto-enrich from website URL on signup — brand doc + Firecrawl enrichment job (`0d34c4f70`).
 
 ## ðŸ§­ CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 
