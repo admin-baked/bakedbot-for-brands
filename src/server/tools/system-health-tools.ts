@@ -21,8 +21,9 @@ export async function executeGetSystemHealth(): Promise<string> {
             report += 'No active Google Cloud incidents detected.';
         } else {
             report += `Active Google Cloud Incidents (${allIncidents.length}):\n`;
-            allIncidents.forEach(incident => {
-                report += `- [${incident.state}] ${incident.title}\n  Products: ${incident.impactedProducts.join(', ')}\n  Link: https://console.cloud.google.com/servicehealth/incidents?chat=true&authuser=0&project=studio-567050101-bc6e8\n\n`;
+            allIncidents.forEach((incident: any) => {
+                const gcpIncident = incident as { state: string, title: string, impactedProducts: string[] };
+                report += `- [${gcpIncident.state}] ${gcpIncident.title}\n  Products: ${gcpIncident.impactedProducts.join(', ')}\n  Link: https://console.cloud.google.com/servicehealth/incidents?chat=true&authuser=0&project=studio-567050101-bc6e8\n\n`;
             });
         }
         

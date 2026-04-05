@@ -29,6 +29,7 @@ export type ClaudeToolUse = ToolUseBlock;
 export interface AgentContext {
     name: string;           // e.g., "Linus"
     role: string;           // e.g., "CTO"
+    identity?: string;      // Explicit branding (e.g. "Powered by GLM-5")
     capabilities: string[]; // Tool category summaries
     groundingRules: string[]; // Anti-hallucination rules
     superPowers?: string;   // Quick-reference automation scripts block
@@ -555,6 +556,9 @@ export function buildSystemPrompt(context: ClaudeContext): string {
     if (context.agentContext) {
         const ac = context.agentContext;
         parts.push(`You are ${ac.name}, ${ac.role} of BakedBot — the Agentic Commerce OS for cannabis.`);
+        if (ac.identity) {
+            parts.push(ac.identity);
+        }
         parts.push('');
 
         // Capabilities block — always visible at top of system prompt

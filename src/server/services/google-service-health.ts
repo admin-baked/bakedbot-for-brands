@@ -37,9 +37,9 @@ async function fetchGCPIncidentsInternal(): Promise<GCPIncident[]> {
     }
 
     // Map and filter for ACTIVE incidents to reduce noise
-    return response.data.incidents
-      .filter(incident => incident.state === 'ACTIVE')
-      .map(incident => ({
+    return (response.data.incidents || [])
+      .filter((incident: GCPIncident) => incident.state === 'ACTIVE')
+      .map((incident: GCPIncident) => ({
         name: incident.name,
         title: incident.title,
         description: incident.description,
@@ -94,12 +94,12 @@ export async function isGCPHealthyForDeploy(): Promise<{
     'Artifact Registry'
   ];
 
-  const relevantIncidents = incidents.filter(incident => 
+  const relevantIncidents = incidents.filter((incident: GCPIncident) => 
     incident.impactedProducts.some(p => criticalProducts.some(cp => p.toLowerCase().includes(cp.toLowerCase())))
   );
 
   if (relevantIncidents.length > 0) {
-    const titles = relevantIncidents.map(i => i.title).join(', ');
+    const titles = relevantIncidents.map((i: GCPIncident) => i.title).join(', ');
     return {
       healthy: false,
       incidents: relevantIncidents,
