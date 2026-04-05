@@ -2,24 +2,24 @@
  * Linus Dream Cron — Self-Improvement Loop
  *
  * Runs a Dream session: introspect → hypothesize → test → report.
- * Scheduled after consolidate-learnings so pending deltas are available.
+ * Supports per-job model selection via ?model= query param or POST body.
  *
- * Schedule: 0 5 * * * (5 AM UTC / 12 AM EST — after consolidate-learnings at 4 AM)
- *
- * Deploy:
- *   gcloud scheduler jobs create http linus-dream-cron \
- *     --schedule="0 5 * * *" \
- *     --uri="https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app/api/cron/linus-dream" \
- *     --http-method=POST \
- *     --headers="Authorization=Bearer CRON_SECRET" \
- *     --location=us-central1
+ * Schedule (America/Chicago):
+ *   12 AM — opus     (deepest reasoning, overnight)
+ *    2 AM — gemini-pro (different training distribution)
+ *    4 AM — sonnet   (tool-use optimized analysis)
+ *   10 AM — glm      (cheap daytime check-in)
+ *    3 PM — gemini-flash (lightweight pulse)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
+import type { DreamModel } from '@/server/services/letta/dream-loop';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
+
+const VALID_MODELS: DreamModel[] = ['glm', 'gemini-flash', 'gemini-pro', 'haiku', 'sonnet', 'opus'];
 
 async function handler(req: NextRequest): Promise<NextResponse> {
     // Auth
@@ -33,12 +33,28 @@ async function handler(req: NextRequest): Promise<NextResponse> {
         return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Read model from query param or POST body
+    let model: DreamModel = 'glm';
+    const queryModel = req.nextUrl.searchParams.get('model');
+    if (queryModel && VALID_MODELS.includes(queryModel as DreamModel)) {
+        model = queryModel as DreamModel;
+    } else if (req.method === 'POST') {
+        try {
+            const body = await req.json();
+            if (body?.model && VALID_MODELS.includes(body.model)) {
+                model = body.model;
+            }
+        } catch {
+            // No body or invalid JSON — use default
+        }
+    }
+
     const startTime = Date.now();
-    logger.info('[LinusDream] Starting scheduled dream session');
+    logger.info('[LinusDream] Starting scheduled dream session', { model });
 
     try {
         const { runDreamSession } = await import('@/server/services/letta/dream-loop');
-        const session = await runDreamSession('Linus');
+        const session = await runDreamSession('Linus', model);
 
         // Post to Slack
         const { postLinusIncidentSlack } = await import('@/server/services/incident-notifications');
@@ -62,6 +78,7 @@ async function handler(req: NextRequest): Promise<NextResponse> {
         return NextResponse.json({
             success: true,
             sessionId: session.id,
+            model: session.model,
             hypotheses: session.hypotheses.length,
             confirmed,
             duration_ms: duration,

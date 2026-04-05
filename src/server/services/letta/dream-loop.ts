@@ -24,6 +24,71 @@ import { lettaBlockManager, BLOCK_LABELS } from './block-manager';
 import type { LearningDelta } from '@/types/learning-delta';
 
 // =============================================================================
+// MULTI-MODEL DREAM INTELLIGENCE
+// =============================================================================
+
+/**
+ * Models available for Dream sessions.
+ * Each brings different strengths — alternating provides cognitive diversity.
+ */
+export type DreamModel = 'glm' | 'gemini-flash' | 'gemini-pro' | 'haiku' | 'sonnet' | 'opus';
+
+const DREAM_MODEL_LABELS: Record<DreamModel, string> = {
+    'glm': 'GLM-5 (Z.ai)',
+    'gemini-flash': 'Gemini 2.5 Flash',
+    'gemini-pro': 'Gemini 2.5 Pro',
+    'haiku': 'Claude Haiku 4.5',
+    'sonnet': 'Claude Sonnet 4.6',
+    'opus': 'Claude Opus 4.6',
+};
+
+const DREAM_MODEL_IDS: Record<DreamModel, string> = {
+    'glm': 'glm-5',
+    'gemini-flash': 'googleai/gemini-2.5-flash',
+    'gemini-pro': 'googleai/gemini-2.5-pro',
+    'haiku': 'claude-haiku-4-5-20251001',
+    'sonnet': 'claude-sonnet-4-6-20250414',
+    'opus': 'claude-opus-4-6-20250414',
+};
+
+/**
+ * Unified dream inference — routes to the right AI backend.
+ * Returns raw text content.
+ */
+async function dreamInfer(prompt: string, model: DreamModel, maxTokens: number = 2000): Promise<string> {
+    switch (model) {
+        case 'glm':
+            return callGLM({ userMessage: prompt, maxTokens });
+
+        case 'gemini-flash':
+        case 'gemini-pro': {
+            const { ai } = await import('@/ai/genkit');
+            const result = await ai.generate({
+                model: DREAM_MODEL_IDS[model],
+                prompt,
+                config: { maxOutputTokens: maxTokens, temperature: 1.0 },
+            });
+            return result.text;
+        }
+
+        case 'haiku':
+        case 'sonnet':
+        case 'opus': {
+            const { callClaude } = await import('@/ai/claude');
+            return callClaude({
+                userMessage: prompt,
+                model: DREAM_MODEL_IDS[model],
+                maxTokens,
+                temperature: 1.0,
+            });
+        }
+
+        default:
+            return callGLM({ userMessage: prompt, maxTokens });
+    }
+}
+
+// =============================================================================
 // TYPES
 // =============================================================================
 
@@ -137,7 +202,8 @@ async function introspect(agentName: string): Promise<DreamSession['introspectio
 async function hypothesize(
     agentName: string,
     introspectionData: DreamSession['introspection'],
-    pendingDeltas: LearningDelta[]
+    pendingDeltas: LearningDelta[],
+    model: DreamModel = 'glm'
 ): Promise<DreamHypothesis[]> {
     const prompt = `You are ${agentName}, a CTO AI agent performing a Dream session — reflecting on your own performance to find improvements.
 
@@ -167,10 +233,10 @@ Respond in JSON array format:
 Be specific. Reference actual tool names, error patterns, or workflow steps. No vague generalities.`;
 
     try {
-        const result = await callGLM({ userMessage: prompt, maxTokens: 2000 });
+        const result = await dreamInfer(prompt, model, 2000);
         const jsonMatch = result.match(/\[[\s\S]*\]/);
         if (!jsonMatch) {
-            logger.warn('[DreamLoop] GLM did not return valid JSON for hypotheses');
+            logger.warn('[DreamLoop] Model did not return valid JSON for hypotheses', { model });
             return [];
         }
 
@@ -196,9 +262,9 @@ Be specific. Reference actual tool names, error patterns, or workflow steps. No 
 // =============================================================================
 
 async function testHypotheses(
-    hypotheses: DreamHypothesis[]
+    hypotheses: DreamHypothesis[],
+    model: DreamModel = 'glm'
 ): Promise<DreamHypothesis[]> {
-    const db = getAdminFirestore();
 
     for (const hyp of hypotheses) {
         try {
@@ -217,7 +283,7 @@ Based on the test plan, determine if this hypothesis is likely:
 
 Respond in JSON: {"result": "confirmed|rejected|inconclusive", "evidence": "brief explanation"}`;
 
-            const evalResult = await callGLM({ userMessage: evalPrompt, maxTokens: 500 });
+            const evalResult = await dreamInfer(evalPrompt, model, 500);
             const jsonMatch = evalResult.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 const parsed = JSON.parse(jsonMatch[0]);
@@ -287,11 +353,11 @@ function buildReport(session: DreamSession): string {
 // MAIN DREAM LOOP
 // =============================================================================
 
-export async function runDreamSession(agentName: string = 'Linus'): Promise<DreamSession> {
+export async function runDreamSession(agentName: string = 'Linus', model: DreamModel = 'glm'): Promise<DreamSession> {
     const sessionId = `dream_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const db = getAdminFirestore();
 
-    logger.info(`[DreamLoop] Starting dream session for ${agentName}`, { sessionId });
+    logger.info(`[DreamLoop] Starting dream session for ${agentName}`, { sessionId, model, modelLabel: DREAM_MODEL_LABELS[model] });
 
     // 1. INTROSPECT
     const introspectionData = await introspect(agentName);
@@ -306,11 +372,11 @@ export async function runDreamSession(agentName: string = 'Linus'): Promise<Drea
     const pendingDeltas = deltasSnap.docs.map(d => d.data() as LearningDelta);
 
     // 3. HYPOTHESIZE
-    const rawHypotheses = await hypothesize(agentName, introspectionData, pendingDeltas);
+    const rawHypotheses = await hypothesize(agentName, introspectionData, pendingDeltas, model);
     logger.info(`[DreamLoop] Generated ${rawHypotheses.length} hypotheses`, { sessionId });
 
     // 4. TEST
-    const testedHypotheses = await testHypotheses(rawHypotheses);
+    const testedHypotheses = await testHypotheses(rawHypotheses, model);
 
     // 5. BUILD SESSION
     const session: DreamSession = {
@@ -320,7 +386,7 @@ export async function runDreamSession(agentName: string = 'Linus'): Promise<Drea
         introspection: introspectionData,
         hypotheses: testedHypotheses,
         report: '',
-        model: 'glm',
+        model: DREAM_MODEL_LABELS[model],
     };
 
     session.completedAt = new Date().toISOString();
