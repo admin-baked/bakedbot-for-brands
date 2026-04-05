@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; CI report cannabis-only filtering + actionable recs; dispensary auto-enrichment; SES email; config-driven model tiers.
-**Recent work (2026-04-05):** CI report quality — filter top deals to cannabis categories, deduplicate, category pricing breakdown, competitor-specific recs (`f834dc95a`).
+**Current Status:** 🟢 `main` green; price match → POS one-tap; CI report cannabis-only filtering; dispensary auto-enrichment; SES email.
+**Recent work (2026-04-05):** Price match → POS — `applyPriceMatch()` pushes Alleaves discounts from Ezal CI card; Apply to Menu UI (`f6c283922`).
 
 ## ðŸ§­ CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 

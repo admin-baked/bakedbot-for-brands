@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; CI report filters cannabis-only deals + actionable recs; dispensary auto-enrichment; SES email; config-driven model tiers | **Last update:** 2026-04-05 (CI report quality `f834dc95a`)
+**Current Status:** 🟢 `main` green; price match → POS (one-tap Apply to Menu); CI report cannabis-only filtering; dispensary auto-enrichment; SES email | **Last update:** 2026-04-05 (price match POS `f6c283922`)
 
 ---
 
