@@ -2,8 +2,8 @@
  * Linus Sleep — Nightly Codebase Learning Cron Endpoint
  *
  * Every night at 2 AM EST, Linus:
- *   1. Gets files modified in the last 7 days via git
- *   2. Reads each file (up to 20) and generates a 3-sentence summary via GLM-4-flash
+ *   1. Gets files modified in the last 7 days (local git → GitHub API fallback)
+ *   2. Reads each file (up to 20) via filesystem or GitHub raw content API, summarizes via GLM-4-flash
  *   3. Persists each summary to Firestore at linus_code_index/{fileHash}
  *      (Letta archival save attempted first if LETTA_LINUS_AGENT_ID is configured)
  *   4. Posts a completion summary to #linus-deployments
@@ -29,6 +29,7 @@ import { requireCronSecret } from '@/server/auth/cron';
 import { callGLM, GLM_MODELS } from '@/ai/glm';
 import { getAdminFirestore } from '@/firebase/admin';
 import { postLinusIncidentSlack } from '@/server/services/incident-notifications';
+import { getSecret } from '@/server/utils/secrets';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -69,44 +70,104 @@ interface FileSummaryResult {
 // Git helpers
 // ---------------------------------------------------------------------------
 
+const GH_OWNER = 'admin-baked';
+const GH_REPO = 'bakedbot-for-brands';
+
+function filterAndDedup(files: string[]): string[] {
+    const seen = new Set<string>();
+    const unique: string[] = [];
+    for (const f of files) {
+        const trimmed = f.trim();
+        if (
+            trimmed.length > 0 &&
+            (trimmed.endsWith('.ts') || trimmed.endsWith('.tsx')) &&
+            !trimmed.includes('node_modules') &&
+            !trimmed.includes('/.w/') &&
+            !trimmed.includes('.test.') &&
+            !trimmed.includes('.spec.') &&
+            !seen.has(trimmed)
+        ) {
+            seen.add(trimmed);
+            unique.push(trimmed);
+        }
+    }
+    return unique.slice(0, MAX_FILES);
+}
+
 /**
  * Returns up to MAX_FILES recently modified .ts files (last 7 days).
- * Excludes node_modules, .w/ worktrees, and test files.
+ * Tries local git first; falls back to GitHub API in production
+ * where .git directory is not available (Firebase App Hosting).
  */
-function getRecentlyModifiedFiles(): string[] {
+async function getRecentlyModifiedFiles(): Promise<string[]> {
+    // Strategy 1: local git (works in dev, CI — fast)
     try {
         const raw = execSync(
             'git log --since="7 days ago" --name-only --pretty=format: -- "src/**/*.ts" "src/**/*.tsx"',
             { cwd: REPO_ROOT, encoding: 'utf8', timeout: 15_000 }
         );
+        const localFiles = filterAndDedup(raw.split('\n'));
+        if (localFiles.length > 0) {
+            logger.info('[LinusSleep] Using local git', { fileCount: localFiles.length });
+            return localFiles;
+        }
+    } catch {
+        // Expected in production — .git not present
+    }
 
-        const files = raw
-            .split('\n')
-            .map(line => line.trim())
-            .filter(line =>
-                line.length > 0 &&
-                (line.endsWith('.ts') || line.endsWith('.tsx'))
-            )
-            .filter(line =>
-                !line.includes('node_modules') &&
-                !line.includes('/.w/') &&
-                !line.includes('.test.') &&
-                !line.includes('.spec.')
+    // Strategy 2: GitHub API (works in production)
+    logger.info('[LinusSleep] Local git unavailable, falling back to GitHub API');
+    try {
+        let token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+        if (!token) token = (await getSecret('GITHUB_TOKEN')) ?? undefined;
+        if (!token) {
+            logger.error('[LinusSleep] No GITHUB_TOKEN available for API fallback');
+            return [];
+        }
+
+        const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/commits?sha=main&since=${since}&per_page=30`;
+
+        const res = await fetch(url, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: 'application/vnd.github+json',
+                'X-GitHub-Api-Version': '2022-11-28',
+            },
+        });
+
+        if (!res.ok) {
+            logger.error('[LinusSleep] GitHub API error', { status: res.status, body: await res.text() });
+            return [];
+        }
+
+        const commits: Array<{ sha: string }> = await res.json();
+        const allFiles: string[] = [];
+
+        // Fetch file lists from up to 10 commits (avoid rate limits)
+        for (const commit of commits.slice(0, 10)) {
+            const detailRes = await fetch(
+                `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/commits/${commit.sha}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        Accept: 'application/vnd.github+json',
+                        'X-GitHub-Api-Version': '2022-11-28',
+                    },
+                }
             );
-
-        // Deduplicate while preserving order
-        const seen = new Set<string>();
-        const unique: string[] = [];
-        for (const f of files) {
-            if (!seen.has(f) && (f.endsWith('.ts') || f.endsWith('.tsx'))) {
-                seen.add(f);
-                unique.push(f);
+            if (!detailRes.ok) continue;
+            const detail: { files?: Array<{ filename: string }> } = await detailRes.json();
+            for (const f of detail.files || []) {
+                allFiles.push(f.filename);
             }
         }
 
-        return unique.slice(0, MAX_FILES);
+        const result = filterAndDedup(allFiles);
+        logger.info('[LinusSleep] GitHub API returned files', { fileCount: result.length, commitsScanned: Math.min(commits.length, 10) });
+        return result;
     } catch (error) {
-        logger.error('[LinusSleep] git log failed', {
+        logger.error('[LinusSleep] GitHub API fallback failed', {
             error: error instanceof Error ? error.message : String(error),
         });
         return [];
@@ -117,11 +178,41 @@ function getRecentlyModifiedFiles(): string[] {
 // File reading
 // ---------------------------------------------------------------------------
 
-function readFileSafe(relativePath: string): string | null {
+/**
+ * Read file content — local filesystem first, GitHub raw content fallback.
+ */
+async function readFileSafe(relativePath: string): Promise<string | null> {
+    // Try local filesystem first
     try {
         const absolutePath = path.join(REPO_ROOT, relativePath);
         const content = readFileSync(absolutePath, 'utf8');
-        // Truncate very large files to avoid hitting GLM token limits
+        if (content.length > 0) {
+            if (Buffer.byteLength(content, 'utf8') > MAX_FILE_SIZE_BYTES) {
+                return content.slice(0, MAX_FILE_SIZE_BYTES) + '\n\n[...truncated for indexing...]';
+            }
+            return content;
+        }
+    } catch {
+        // Expected in production
+    }
+
+    // Fallback: GitHub raw content API
+    try {
+        let token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+        if (!token) token = (await getSecret('GITHUB_TOKEN')) ?? undefined;
+        if (!token) return null;
+
+        const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${relativePath}?ref=main`;
+        const res = await fetch(url, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: 'application/vnd.github.raw+json',
+                'X-GitHub-Api-Version': '2022-11-28',
+            },
+        });
+        if (!res.ok) return null;
+
+        const content = await res.text();
         if (Buffer.byteLength(content, 'utf8') > MAX_FILE_SIZE_BYTES) {
             return content.slice(0, MAX_FILE_SIZE_BYTES) + '\n\n[...truncated for indexing...]';
         }
@@ -231,7 +322,7 @@ async function runLinusSleep(): Promise<{
     durationMs: number;
 }> {
     const startTime = Date.now();
-    const files = getRecentlyModifiedFiles();
+    const files = await getRecentlyModifiedFiles();
 
     logger.info('[LinusSleep] Starting nightly codebase indexing', {
         fileCount: files.length,
@@ -241,7 +332,7 @@ async function runLinusSleep(): Promise<{
 
     // Process files sequentially to avoid GLM rate limits
     for (const relativePath of files) {
-        const content = readFileSafe(relativePath);
+        const content = await readFileSafe(relativePath);
 
         if (!content) {
             results.push({ relativePath, summary: '', status: 'skipped' });
