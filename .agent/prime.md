@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; customer mix recalculates live segments; market intel card shows FlnnStoned CI reports.
-**Recent work (2026-04-04):** Segment fix (drop stale `data.segment`) + market intel CI card (`buildLatestCiCard` → `competitive_reports`) (`a331f89c5`).
+**Current Status:** 🟢 `main` green; Competitor Price Match card live (Ezal); Simply Pure Trenton + Lakeshore Cannabis Club pilot accounts seeded.
+**Recent work (2026-04-04):** Price match briefing card + 2 new pilot orgs + setup script (`e82162d12`).
 
 ## ðŸ§­ CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 

@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; customer mix now recalculates live segments; market intel card wired to FlnnStoned CI reports | **Last update:** 2026-04-04 (segment fix + CI card `a331f89c5`)
+**Current Status:** 🟢 `main` green; Competitor Price Match card live; Simply Pure Trenton + Lakeshore Cannabis Club pilot accounts created | **Last update:** 2026-04-04 (pilots + price match card `e82162d12`)
 
 ---
 
