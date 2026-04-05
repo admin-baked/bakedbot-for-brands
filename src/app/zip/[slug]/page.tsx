@@ -1,4 +1,5 @@
 // src/app/zip/[slug]/page.tsx
+export const dynamic = 'force-dynamic';
 /**
  * Zip Code SEO Page — SSR dispensary discovery landing page.
  * URL: /zip/[ZIP]-dispensary  (e.g. /zip/13210-dispensary)
@@ -235,5 +236,4 @@ export default async function ZipSEOPage({ params }: ZipPageProps) {
     );
 }
 
-// ISR — revalidate every hour; zip-level data changes infrequently
-export const revalidate = 3600;
+// Dynamic rendering — no ISR needed (force-dynamic above handles caching behavior)

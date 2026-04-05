@@ -5,6 +5,8 @@
  * video embed support, and freemium signup CTA.
  */
 
+export const dynamic = 'force-dynamic';
+
 import { getPlatformPostBySlug, getRelatedPlatformPosts, getPublishedPlatformPosts, incrementViewCount, getSpokePosts, getHubPost, getSiblingSpokes } from '@/server/actions/blog';
 import { BLOG_CATEGORY_META } from '@/types/blog';
 import { notFound } from 'next/navigation';

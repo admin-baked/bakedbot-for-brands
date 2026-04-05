@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { notFound, redirect } from 'next/navigation';
 import {
   getArticleBySlug,
@@ -14,14 +15,6 @@ import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import 'highlight.js/styles/atom-one-dark.css';
 
-export async function generateStaticParams() {
-  return Object.values(articles)
-    .filter((article) => article.roles.length === 0) // public articles only
-    .map((article) => ({
-      category: article.category,
-      slug: article.slug,
-    }));
-}
 
 export async function generateMetadata({
   params,

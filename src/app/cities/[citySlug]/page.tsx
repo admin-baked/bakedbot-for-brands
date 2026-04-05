@@ -1,4 +1,6 @@
 
+export const dynamic = 'force-dynamic';
+
 import { fetchCityPageData } from '@/lib/city-data';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';

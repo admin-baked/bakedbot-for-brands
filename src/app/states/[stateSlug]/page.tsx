@@ -1,4 +1,6 @@
 
+export const dynamic = 'force-dynamic';
+
 import { fetchStatePageData } from '@/lib/state-data';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';

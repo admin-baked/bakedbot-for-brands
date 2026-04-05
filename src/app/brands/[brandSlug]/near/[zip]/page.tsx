@@ -1,4 +1,6 @@
 
+export const dynamic = 'force-dynamic';
+
 import { fetchLocalBrandPageData } from '@/lib/brand-data';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';

@@ -1,4 +1,6 @@
 
+export const dynamic = 'force-dynamic';
+
 import { fetchBrandPageData } from '@/lib/brand-data';
 import type { Product } from '@/types/domain';
 import { notFound } from 'next/navigation';
