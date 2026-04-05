@@ -16,6 +16,9 @@ import {
   QrCode,
   Palette,
   Mail,
+  Globe,
+  MapPin,
+  ExternalLink,
 } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { useToast } from '@/hooks/use-toast';
@@ -663,6 +666,66 @@ export default function OnboardingPage() {
             <p className="mt-1 text-sm text-muted-foreground">
               You&apos;ll land in Inbox with a start-here briefing. Begin with Brand Guide, then use{' '}
               <span className="font-medium text-foreground">{selectedGoal.title}</span> as your first live workflow.
+            </p>
+          </div>
+        )}
+
+        {role === 'dispensary' && slug && (
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Globe className="h-4 w-4 text-emerald-600" />
+              <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">Your dispensary pages go live instantly</p>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Three SEO-ready pages are created for you automatically — no setup required.
+            </p>
+            <div className="space-y-2">
+              <a
+                href={`/${slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between rounded-lg border border-emerald-500/20 bg-white/60 dark:bg-white/5 px-3 py-2 text-xs hover:border-emerald-500/60 transition-colors group"
+              >
+                <div className="flex items-center gap-2">
+                  <Store className="h-3 w-3 text-emerald-600" />
+                  <span className="font-medium">Menu & Storefront</span>
+                </div>
+                <div className="flex items-center gap-1 text-muted-foreground group-hover:text-emerald-600">
+                  <span className="font-mono">/{slug}</span>
+                  <ExternalLink className="h-3 w-3" />
+                </div>
+              </a>
+              {zipCode && (
+                <a
+                  href={`/zip/${zipCode}-dispensary`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between rounded-lg border border-emerald-500/20 bg-white/60 dark:bg-white/5 px-3 py-2 text-xs hover:border-emerald-500/60 transition-colors group"
+                >
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-3 w-3 text-emerald-600" />
+                    <span className="font-medium">Local Discovery Page</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-muted-foreground group-hover:text-emerald-600">
+                    <span className="font-mono">/zip/{zipCode}-dispensary</span>
+                    <ExternalLink className="h-3 w-3" />
+                  </div>
+                </a>
+              )}
+              {marketState && (
+                <div className="flex items-center justify-between rounded-lg border border-emerald-500/20 bg-white/60 dark:bg-white/5 px-3 py-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    <Globe className="h-3 w-3 text-emerald-600" />
+                    <span className="font-medium">City Guide</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-muted-foreground">
+                    <span className="font-mono">/cities/[city]-cannabis-dispensaries</span>
+                  </div>
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Add your address and hours in Settings → Brand to unlock the full Weedmaps-style info panel.
             </p>
           </div>
         )}
