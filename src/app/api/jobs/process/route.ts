@@ -3,6 +3,8 @@ import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
 import { FieldValue, FieldPath } from 'firebase-admin/firestore';
 import { requireSuperUser } from '@/server/auth/auth';
+import { DiscoveryService } from '@/server/services/firecrawl';
+import { z } from 'zod';
 
 /**
  * Job Processor API Route
@@ -86,6 +88,9 @@ export async function POST(request: NextRequest) {
                         break;
                     case 'website_discover':
                         result = await processWebsiteDiscover(job, firestore);
+                        break;
+                    case 'dispensary_enrichment':
+                        result = await processDispensaryEnrichment(job, firestore);
                         break;
                     default:
                         throw new Error(`Unknown job type: ${job.type}`);
@@ -521,6 +526,111 @@ async function processWebsiteDiscover(job: any, firestore: any) {
             data: { skipped: true, error: error instanceof Error ? error.message : String(error) }
         };
     }
+}
+
+/**
+ * Dispensary Enrichment Handler
+ * Uses Firecrawl to scrape address, phone, and hours from a dispensary's website,
+ * then updates the brand doc so DispensaryInfoPanel renders correctly.
+ */
+async function processDispensaryEnrichment(job: any, firestore: any) {
+    const metadata = job.metadata || {};
+    const { brandSlug, websiteUrl, dispensaryName, zipCode, marketState } = metadata;
+
+    if (!brandSlug) {
+        return { message: 'brandSlug required for dispensary enrichment', data: { skipped: true } };
+    }
+
+    const firecrawlKey = process.env.FIRECRAWL_API_KEY;
+    if (!firecrawlKey || !websiteUrl) {
+        logger.info('[DispensaryEnrich] No Firecrawl key or websiteUrl — skipping auto-enrichment', { brandSlug });
+        return { message: 'Skipped — no websiteUrl provided. Add address/hours manually in Settings → Brand.', data: { skipped: true } };
+    }
+
+    logger.info('[DispensaryEnrich] Scraping dispensary website', { brandSlug, websiteUrl });
+
+    const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${firecrawlKey}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            url: websiteUrl,
+            formats: ['extract'],
+            extract: {
+                schema: {
+                    type: 'object',
+                    properties: {
+                        address: { type: 'string', description: 'Street address (e.g. 123 Main St)' },
+                        city: { type: 'string', description: 'City name' },
+                        state: { type: 'string', description: '2-letter state code (e.g. NY)' },
+                        zip: { type: 'string', description: '5-digit ZIP code' },
+                        phone: { type: 'string', description: 'Phone number with area code' },
+                        hours: {
+                            type: 'object',
+                            description: 'Store hours per day as string values like "9am-9pm"',
+                            properties: {
+                                monday: { type: 'string' },
+                                tuesday: { type: 'string' },
+                                wednesday: { type: 'string' },
+                                thursday: { type: 'string' },
+                                friday: { type: 'string' },
+                                saturday: { type: 'string' },
+                                sunday: { type: 'string' },
+                            },
+                        },
+                    },
+                },
+            },
+        }),
+    });
+
+    if (!response.ok) {
+        const err = await response.text();
+        throw new Error(`Firecrawl scrape failed: ${response.status} ${err}`);
+    }
+
+    const scraped = await response.json();
+    const extracted = scraped.data?.extract || {};
+
+    const brandUpdate: Record<string, unknown> = { updatedAt: FieldValue.serverTimestamp() };
+
+    if (extracted.address) brandUpdate.address = String(extracted.address);
+    if (extracted.city) brandUpdate.city = String(extracted.city);
+    if (extracted.state) brandUpdate.state = String(extracted.state).toUpperCase().slice(0, 2);
+    if (extracted.zip) brandUpdate.zip = String(extracted.zip).slice(0, 5);
+    if (extracted.phone) brandUpdate.phone = String(extracted.phone);
+
+    // Build nested location object
+    brandUpdate.location = {
+        address: extracted.address ? String(extracted.address) : null,
+        city: extracted.city ? String(extracted.city) : null,
+        state: extracted.state ? String(extracted.state).toUpperCase().slice(0, 2) : (marketState || null),
+        zip: extracted.zip ? String(extracted.zip).slice(0, 5) : (zipCode || null),
+        phone: extracted.phone ? String(extracted.phone) : null,
+    };
+
+    // Hours must be string values like "9am-9pm" for DispensaryInfoPanel
+    if (extracted.hours && typeof extracted.hours === 'object') {
+        const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+        const cleanHours: Record<string, string> = {};
+        for (const day of days) {
+            const val = (extracted.hours as Record<string, unknown>)[day];
+            if (val && typeof val === 'string') cleanHours[day] = val;
+        }
+        if (Object.keys(cleanHours).length > 0) brandUpdate.hours = cleanHours;
+    }
+
+    await firestore.collection('brands').doc(brandSlug).set(brandUpdate, { merge: true });
+
+    const fieldsSet = Object.keys(brandUpdate).filter(k => k !== 'updatedAt').join(', ');
+    logger.info('[DispensaryEnrich] Brand doc enriched', { brandSlug, fieldsSet });
+
+    return {
+        message: `Enriched ${dispensaryName || brandSlug}: ${fieldsSet}`,
+        data: { brandSlug, fieldsSet },
+    };
 }
 
 // ========================================

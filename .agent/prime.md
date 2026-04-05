@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; Full-phone returning customer fast path: pre-fill name, skip offer → mood; POS lookup endpoint; Blackleaf SMS flags.
-**Recent work (2026-04-04):** `lookupCustomerByPhone` + `GET /api/checkin/lookup` + `TODO(blackleaf-sms)` flags in captureTabletLead + captureVisitorCheckin (`ed68d4017`).
+**Current Status:** 🟢 `main` green; SES primary email + custom domain; $0 Free plan + sidebar gating; price match → POS.
+**Recent work (2026-04-05):** SES primary email + tenant custom domains; Free plan ($0) with Mailjet routing + sidebar feature gating (`65667279b`).
 
 ## ðŸ§­ CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 

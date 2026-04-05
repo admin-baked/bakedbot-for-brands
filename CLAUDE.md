@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; Check-in phone fast path: full-phone lookup pre-fills name + skips offer for returning customers; POS lookup endpoint + Blackleaf SMS flags | **Last update:** 2026-04-04 (phone fast path + POS lookup `ed68d4017`)
+**Current Status:** 🟢 `main` green; SES primary email + custom domain; $0 Free plan + sidebar gating; price match → POS | **Last update:** 2026-04-05 (SES + free plan `65667279b`)
 
 ---
 

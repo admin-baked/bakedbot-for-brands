@@ -26,6 +26,7 @@ import {
 import { cn } from '@/lib/utils';
 import { getLatestCompetitiveIntel } from '@/server/actions/competitive-pricing';
 import type { CompetitiveIntelSummary, PricingRecommendation } from '@/server/actions/competitive-pricing';
+import { CannMenusAttribution } from '@/components/ui/cannmenus-attribution';
 
 interface CompetitiveIntelCardProps {
     orgId: string;
@@ -296,6 +297,9 @@ export function CompetitiveIntelCard({ orgId, className }: CompetitiveIntelCardP
                     <p className="text-xs text-center text-muted-foreground mt-2">
                         Report generated: {new Date(intel.generatedAt).toLocaleDateString()}
                     </p>
+                    <div className="flex justify-center mt-3">
+                        <CannMenusAttribution compact />
+                    </div>
                 </div>
             </CardContent>
         </Card>

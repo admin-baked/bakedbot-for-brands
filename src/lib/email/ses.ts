@@ -10,7 +10,15 @@
  *   AWS_SES_REGION (default: us-east-1)
  */
 
-import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
+import {
+    SESClient,
+    SendEmailCommand,
+    VerifyDomainIdentityCommand,
+    VerifyDomainDkimCommand,
+    GetIdentityVerificationAttributesCommand,
+    GetIdentityDkimAttributesCommand,
+    DeleteIdentityCommand,
+} from '@aws-sdk/client-ses';
 import { logger } from '@/lib/logger';
 
 export interface SesEmailOptions {
@@ -61,4 +69,95 @@ export async function sendSesEmail(opts: SesEmailOptions): Promise<void> {
         logger.error('[SES] Send failed', { error: msg, to: toAddresses, subject: opts.subject });
         throw error;
     }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Domain verification — tenant custom sending domains
+// ─────────────────────────────────────────────────────────────
+
+export interface SesDomainVerification {
+    domain: string;
+    verificationStatus: 'Pending' | 'Success' | 'Failed' | 'TemporaryFailure' | 'NotStarted';
+    verificationToken: string | null;
+    dkimStatus: 'Pending' | 'Success' | 'Failed' | 'TemporaryFailure' | 'NotStarted';
+    dkimTokens: string[];
+}
+
+/** Initiate domain verification — returns TXT token + DKIM CNAME tokens */
+export async function verifySesDomain(domain: string): Promise<{
+    verificationToken: string;
+    dkimTokens: string[];
+}> {
+    const client = getClient();
+
+    const [identityResult, dkimResult] = await Promise.all([
+        client.send(new VerifyDomainIdentityCommand({ Domain: domain })),
+        client.send(new VerifyDomainDkimCommand({ Domain: domain })),
+    ]);
+
+    const verificationToken = identityResult.VerificationToken!;
+    const dkimTokens = dkimResult.DkimTokens ?? [];
+
+    logger.info('[SES] Domain verification initiated', { domain, dkimTokenCount: dkimTokens.length });
+    return { verificationToken, dkimTokens };
+}
+
+/** Check current verification + DKIM status for a domain */
+export async function getSesDomainStatus(domain: string): Promise<SesDomainVerification> {
+    const client = getClient();
+
+    const [verifyResult, dkimResult] = await Promise.all([
+        client.send(new GetIdentityVerificationAttributesCommand({ Identities: [domain] })),
+        client.send(new GetIdentityDkimAttributesCommand({ Identities: [domain] })),
+    ]);
+
+    const verifyAttrs = verifyResult.VerificationAttributes?.[domain];
+    const dkimAttrs = dkimResult.DkimAttributes?.[domain];
+
+    return {
+        domain,
+        verificationStatus: (verifyAttrs?.VerificationStatus as SesDomainVerification['verificationStatus']) ?? 'NotStarted',
+        verificationToken: verifyAttrs?.VerificationToken ?? null,
+        dkimStatus: (dkimAttrs?.DkimVerificationStatus as SesDomainVerification['dkimStatus']) ?? 'NotStarted',
+        dkimTokens: dkimAttrs?.DkimTokens ?? [],
+    };
+}
+
+/** Remove a domain identity from SES */
+export async function removeSesDomain(domain: string): Promise<void> {
+    const client = getClient();
+    await client.send(new DeleteIdentityCommand({ Identity: domain }));
+    logger.info('[SES] Domain identity removed', { domain });
+}
+
+/**
+ * Returns the DNS records a tenant needs to add for SES domain verification.
+ * Works for both Cloudflare-managed and manual DNS setups.
+ */
+export function getSesDnsRecords(domain: string, verificationToken: string, dkimTokens: string[]): Array<{
+    type: 'TXT' | 'CNAME';
+    name: string;
+    value: string;
+    purpose: 'verification' | 'dkim' | 'spf' | 'dmarc';
+}> {
+    const records: Array<{ type: 'TXT' | 'CNAME'; name: string; value: string; purpose: 'verification' | 'dkim' | 'spf' | 'dmarc' }> = [
+        // Domain ownership verification
+        { type: 'TXT', name: `_amazonses.${domain}`, value: verificationToken, purpose: 'verification' },
+        // SPF — authorize SES
+        { type: 'TXT', name: domain, value: 'v=spf1 include:amazonses.com ~all', purpose: 'spf' },
+        // DMARC — minimum policy
+        { type: 'TXT', name: `_dmarc.${domain}`, value: 'v=DMARC1; p=none; rua=mailto:dmarc@bakedbot.ai', purpose: 'dmarc' },
+    ];
+
+    // DKIM CNAME records (typically 3)
+    for (const token of dkimTokens) {
+        records.push({
+            type: 'CNAME',
+            name: `${token}._domainkey.${domain}`,
+            value: `${token}.dkim.amazonses.com`,
+            purpose: 'dkim',
+        });
+    }
+
+    return records;
 }

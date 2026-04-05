@@ -41,11 +41,35 @@ export const FREE_AUDIT = {
 };
 
 // ----------------------------------------------------------------------
-// PUBLIC PLANS — Signal / Convert / Retain / Optimize / Enterprise
-// Replaces Scout / Pro / Growth / Empire (2026-03 rewrite)
+// PUBLIC PLANS — Free / Signal / Convert / Retain / Optimize / Enterprise
+// Free plan: Check-In + Welcome Playbook only (Mailjet email, no SES)
+// Paid plans: Full SES email, all features per tier
 // ----------------------------------------------------------------------
 
 export const PUBLIC_PLANS: PricingPlan[] = [
+    {
+        id: "free",
+        name: "Free",
+        tagline: "Try the basics. No card required.",
+        price: 0,
+        priceDisplay: "$0",
+        activationFee: null,
+        period: "forever",
+        setup: "Best for: Dispensaries exploring visitor check-in and loyalty",
+        desc: "Capture walk-in customers with tablet check-in and send automated welcome emails. Upgrade anytime to unlock campaigns, competitive intel, and more.",
+        features: [
+            "Visitor Check-In Module",
+            "Welcome Email Playbook",
+            "Basic loyalty tracking",
+        ],
+        pill: "Start Free",
+        pillHref: "/onboarding?plan=free",
+        highlight: false,
+        tier: "directory",
+        includedCredits: 0,
+        creditRollover: false,
+        creditTopUpRate: undefined,
+    },
     {
         id: "signal",
         name: "Signal",
@@ -191,7 +215,6 @@ export const PRICING_PLANS = PUBLIC_PLANS;
 export const LEGACY_PLAN_ALIASES: Record<string, string> = {
     'claim_pro': 'convert',
     'founders_claim': 'convert',
-    'free': 'signal',
     'scout': 'signal',
     'pro': 'convert',
     'growth': 'retain',

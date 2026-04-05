@@ -297,9 +297,15 @@ export async function triggerSleepTimeIfNeeded(
     try {
         logger.info(`[Heartbeat] Triggering sleep-time consolidation due to ${urgentCount} urgent alerts`);
 
-        // For now, just log - actual agent IDs would need to be retrieved
-        // In production, we'd get the primary agent ID and run consolidation
-        // await sleepTimeService.runConsolidation(primaryAgentId, tenantId);
+        const { lettaClient } = await import('@/server/services/letta/client');
+        const agents = await lettaClient.listAgents();
+        const tenantAgents = agents.filter(a => a.name.startsWith(tenantId));
+        if (tenantAgents.length > 0) {
+            await sleepTimeService.runTenantWideConsolidation(
+                tenantId,
+                tenantAgents.map(a => a.id)
+            );
+        }
 
         return true;
     } catch (error) {

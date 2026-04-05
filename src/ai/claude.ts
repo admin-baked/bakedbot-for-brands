@@ -77,7 +77,7 @@ export interface ClaudeResult {
 // Default model for tool calling - Claude Sonnet 4.6 (optimized for agentic workflows)
 // Sonnet is 5x cheaper than Opus and excels at structured tool use
 // Use CLAUDE_REASONING_MODEL for complex one-shot reasoning tasks
-export const CLAUDE_TOOL_MODEL = process.env.CLAUDE_TOOL_MODEL || 'claude-sonnet-4-6';
+export const CLAUDE_TOOL_MODEL = process.env.CLAUDE_TOOL_MODEL || 'claude-haiku-4-5-20251001';
 
 // Premium model for complex reasoning tasks (use sparingly)
 // Best for: strategic decisions, long document synthesis, novel problem solving
@@ -242,7 +242,7 @@ export function selectModel(prompt: string, options?: {
     }
 
     // Auto-route based on task complexity (default: enabled)
-    const autoRoute = options?.autoRoute !== false;
+    const autoRoute = options?.autoRoute === true;
     const complexity = detectTaskComplexity(prompt, options?.contextTokens);
 
     if (autoRoute && complexity.complexity === 'strategic') {
@@ -663,7 +663,7 @@ export async function callClaude(options: ClaudeCallOptions): Promise<string> {
         temperature = 1.0,
         maxTokens = 4096,
         model: explicitModel,
-        autoRouteModel = true,
+        autoRouteModel = false,
         imageUrl
     } = options;
 
@@ -675,7 +675,7 @@ export async function callClaude(options: ClaudeCallOptions): Promise<string> {
 
     // Log when upgrading to Opus
     if (selectedModel === CLAUDE_REASONING_MODEL && !explicitModel) {
-        console.log(`[Claude] Auto-routing to Opus 4.5: ${complexity.reasoning}`);
+        logger.info(`[Claude] Auto-routing to Opus: ${complexity.reasoning}`);
     }
 
     // Build message content

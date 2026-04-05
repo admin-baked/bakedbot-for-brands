@@ -9,7 +9,6 @@
 
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
-import { fetchMenuProducts } from '@/server/agents/adapters/consumer-adapter';
 import {
     getTabletMoodById,
     type MoodRecommendationsResult,
@@ -31,11 +30,82 @@ import { getAdminFirestore } from '@/firebase/admin';
 const inventoryCache = new Map<string, { products: RawMenuProduct[]; expiry: number }>();
 const INVENTORY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
+/**
+ * Fetch live menu products directly from the tenant publicViews path.
+ * Uses getAdminFirestore() (same client as all other tablet actions) to avoid
+ * the createServerClient() isolation issue in consumer-adapter.ts.
+ *
+ * Routing:
+ *  - org_* orgIds → tenants/{orgId}/publicViews/products/items
+ *  - Numeric brandIds → delegates to consumer-adapter (CannMenus)
+ */
+async function fetchTabletProducts(orgId: string): Promise<RawMenuProduct[]> {
+    // Numeric ID → CannMenus via consumer-adapter
+    if (/^\d+$/.test(orgId)) {
+        const { fetchMenuProducts } = await import('@/server/agents/adapters/consumer-adapter');
+        return (await fetchMenuProducts(orgId)) as RawMenuProduct[];
+    }
+
+    const db = getAdminFirestore();
+
+    // Primary: tenant publicViews catalog (POS-synced for Thrive, manual for others)
+    try {
+        const snap = await db
+            .collection('tenants')
+            .doc(orgId)
+            .collection('publicViews')
+            .doc('products')
+            .collection('items')
+            .get();
+
+        if (!snap.empty) {
+            logger.info('[LoyaltyTablet] Loaded products from tenant catalog', {
+                orgId,
+                count: snap.size,
+            });
+            return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as RawMenuProduct[];
+        }
+    } catch (err) {
+        logger.warn('[LoyaltyTablet] Tenant catalog read failed', {
+            orgId,
+            error: err instanceof Error ? err.message : String(err),
+        });
+    }
+
+    // Fallback: strip prefix variants (e.g. org_thrive_syracuse → thrive_syracuse)
+    const base = orgId.replace(/^(org_|brand_|dispensary_)/, '');
+    if (base !== orgId) {
+        try {
+            const snap = await db
+                .collection('tenants')
+                .doc(base)
+                .collection('publicViews')
+                .doc('products')
+                .collection('items')
+                .get();
+
+            if (!snap.empty) {
+                logger.info('[LoyaltyTablet] Loaded products from base tenant catalog', {
+                    orgId,
+                    base,
+                    count: snap.size,
+                });
+                return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as RawMenuProduct[];
+            }
+        } catch {
+            // Silently fall through
+        }
+    }
+
+    logger.info('[LoyaltyTablet] No products found in tenant catalog', { orgId });
+    return [];
+}
+
 async function getCachedMenuProducts(orgId: string): Promise<RawMenuProduct[]> {
     const now = Date.now();
     const cached = inventoryCache.get(orgId);
     if (cached && cached.expiry > now) return cached.products;
-    const products = (await fetchMenuProducts(orgId)) as RawMenuProduct[];
+    const products = await fetchTabletProducts(orgId);
     inventoryCache.set(orgId, { products, expiry: now + INVENTORY_CACHE_TTL });
     return products;
 }
@@ -864,21 +934,27 @@ export async function lookupCustomerByPhone(
     orgId: string,
     phone: string,
 ): Promise<PhoneLookupResult> {
-    const digits = phone.replace(/\D/g, '');
-    if (digits.length < 10) return { found: false };
+    const raw = phone.replace(/\D/g, '');
+    if (raw.length < 10) return { found: false };
+    // Normalise to 11-digit E.164 digits (matches Alleaves import format: '1XXXXXXXXXX')
+    const digits = raw.length === 10 ? `1${raw}` : raw;
 
     try {
         const db = getAdminFirestore();
+        // Try 11-digit first, fall back to raw value for older records
         const snap = await db
             .collection('customers')
             .where('orgId', '==', orgId)
             .where('phoneDigits', '==', digits)
             .limit(1)
             .get();
+        const resolved = snap.empty && digits !== raw
+            ? await db.collection('customers').where('orgId', '==', orgId).where('phoneDigits', '==', raw).limit(1).get()
+            : snap;
 
-        if (snap.empty) return { found: false };
+        if (resolved.empty) return { found: false };
 
-        const doc = snap.docs[0];
+        const doc = resolved.docs[0];
         const d = doc.data();
         return {
             found: true,

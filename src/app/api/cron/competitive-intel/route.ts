@@ -15,9 +15,13 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { refreshCompetitiveIntelWorkspace } from '@/server/services/ezal';
+import { PriceMatchInsightsGenerator } from '@/server/services/insights/generators/price-match-insights-generator';
+import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 
 export const maxDuration = 300; // 5 minutes
+
+export async function GET(request: NextRequest) { return POST(request); }
 
 export async function POST(request: NextRequest) {
     // Verify CRON_SECRET
@@ -51,6 +55,40 @@ export async function POST(request: NextRequest) {
             deals: result.report?.totalDealsTracked,
         });
 
+        // Generate price match opportunities card (Ezal's flagship feature)
+        const priceMatchCount = await new PriceMatchInsightsGenerator(orgId).generate();
+
+        logger.info('[CompetitiveIntelCron] Price match opportunities generated', {
+            orgId,
+            opportunities: priceMatchCount,
+        });
+
+        // Auto-apply high-impact price matches if enabled for this org
+        let autoApplyResult: { applied: number; failed: number; skipped: number } | null = null;
+        try {
+            const db = getAdminFirestore();
+            const tenantSnap = await db.collection('tenants').doc(orgId).get();
+            const tenant = tenantSnap.data();
+
+            if (tenant?.autoPriceMatch === true && tenant?.posProvider) {
+                const { applyAutoPriceMatches } = await import('@/app/actions/dynamic-pricing');
+
+                // Find today's price match artifact
+                const today = new Date().toISOString().split('T')[0];
+                const artifactId = `price_match_${orgId}_${today}`;
+
+                autoApplyResult = await applyAutoPriceMatches(orgId, artifactId);
+
+                logger.info('[CompetitiveIntelCron] Auto price match applied', {
+                    orgId, ...autoApplyResult,
+                });
+            }
+        } catch (autoErr) {
+            logger.warn('[CompetitiveIntelCron] Auto price match failed (non-blocking)', {
+                orgId, error: (autoErr as Error).message,
+            });
+        }
+
         return NextResponse.json({
             success: true,
             reportId: result.report?.id,
@@ -60,6 +98,8 @@ export async function POST(request: NextRequest) {
             sourcesUpdated: result.sourcesUpdated,
             totalDeals: result.report?.totalDealsTracked || 0,
             totalSnapshots: result.report?.totalSnapshots || 0,
+            priceMatchOpportunities: priceMatchCount,
+            autoApply: autoApplyResult,
             generatedAt: result.report?.generatedAt || null,
         });
 

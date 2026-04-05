@@ -311,6 +311,13 @@ Video, designs, custom imagery = custom integrations add-on
 export type TierId = keyof typeof TIERS;
 export type TierConfig = typeof TIERS[TierId];
 
+/**
+ * Free plan ($0) — restricted subset of scout.
+ * Only includes Check-In Module + Welcome Playbook.
+ * Email routed via Mailjet (platform 6k free/month), NOT SES.
+ */
+export const FREE_PLAN_PLAYBOOK_IDS = ['welcome-sequence'] as const;
+
 // ---------------------------------------------------------------------------
 // FEATURE GATES — Tier-specific data access (§1.1e)
 // Used by dashboard to render locked states with upgrade prompts

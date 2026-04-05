@@ -281,6 +281,12 @@ async function getDispensaryInsights(orgId: string): Promise<DispensaryInsights>
             insights.market.push(ciCard);
         }
 
+        // 6. Autonomous Pricing card (experimental)
+        const autoPricingCard = await buildAutoPricingCard(orgId);
+        if (autoPricingCard) {
+            insights.market.push(autoPricingCard);
+        }
+
     } catch (error) {
         logger.error('[Insights] Error fetching dispensary insights', { orgId, error });
     }
@@ -1099,31 +1105,54 @@ function prioritizeBySeverity(insights: InsightCard[]): InsightCard[] {
 // ============ Market Intel Helpers ============
 
 /**
- * Build a Market Intel insight card from the most recent weekly competitive report.
- * Falls back to a generic "Competitor watch active" prompt card if no recent report exists.
+ * Build a Market Intel insight card from the latest Ezal weekly report.
+ *
+ * Rotates daily across all tracked competitors + surfaces anomalies from
+ * the report's insights block (top deals, pricing gaps, market trends).
+ * Falls back to a generic prompt card when no recent report exists.
  */
 async function buildLatestCiCard(orgId: string): Promise<InsightCard> {
     try {
-        const db = getAdminFirestore();
-        const eightDaysAgo = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);
+        const { getLatestWeeklyReport } = await import('@/server/services/ezal/weekly-intel-report');
+        const report = await getLatestWeeklyReport(orgId);
 
-        const snap = await db
-            .collection('competitive_reports')
-            .where('orgId', '==', orgId)
-            .where('generatedAt', '>', eightDaysAgo)
-            .orderBy('generatedAt', 'desc')
-            .limit(1)
-            .get();
+        if (report) {
+            const competitors = report.competitors ?? [];
+            const insights = report.insights ?? {};
+            const topDeals: Array<{ competitorName: string; dealName: string; price: number; discount?: string; category?: string }> = insights.topDeals ?? [];
+            const pricingGaps: Array<{ category: string; opportunity: string; marketPosition: string }> = insights.pricingGaps ?? [];
+            const marketTrends: string[] = insights.marketTrends ?? [];
+            const recommendations: string[] = insights.recommendations ?? [];
 
-        if (!snap.empty) {
-            const data = snap.docs[0].data();
-            const competitor = (data.competitor as string) || 'Competitor';
-            const summary = (data.executiveSummary as string) || '';
-            const actionItems = (data.actionItems as string[]) || [];
-            const generatedAt = data.generatedAt?.toDate?.() ?? new Date();
+            // Rotate focus by day-of-year so each day surfaces a different angle
+            const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
 
-            // First action item becomes the CTA prompt
-            const topAction = actionItems[0] || 'Review competitive analysis';
+            // Pick a focal competitor (cycle through available ones)
+            const focalCompetitor = competitors.length > 0
+                ? competitors[dayOfYear % competitors.length]
+                : null;
+
+            // Build headline + subtext from the richest available data
+            let headline = 'Competitor watch active';
+            let subtext = 'Spy on local competition';
+            let threadPrompt = 'Show me the latest competitive intelligence for my market and highlight the most actionable opportunities.';
+
+            if (topDeals.length > 0) {
+                // Surface today's top deal anomaly
+                const deal = topDeals[dayOfYear % topDeals.length];
+                headline = `${deal.competitorName}: ${deal.dealName}${deal.discount ? ` (${deal.discount})` : ''}`;
+                subtext = `$${deal.price}${pricingGaps.length > 0 ? ` · ${pricingGaps[0].opportunity}` : ''}`;
+                threadPrompt = `Ezal, I want to dig into the deal from ${deal.competitorName}: "${deal.dealName}" at $${deal.price}${deal.discount ? ` with ${deal.discount} off` : ''}. How should we respond? Here's the full context: ${recommendations.slice(0, 2).join(' ')}`;
+            } else if (focalCompetitor) {
+                headline = `${focalCompetitor.competitorName}: ${focalCompetitor.dealCount} deals tracked`;
+                const strategy = focalCompetitor.priceStrategy !== 'unknown' ? ` · ${focalCompetitor.priceStrategy} pricing` : '';
+                subtext = `${focalCompetitor.productCount} products${strategy}${marketTrends.length > 0 ? ` · ${marketTrends[0]}` : ''}`;
+                threadPrompt = `Summarize competitive intelligence on ${focalCompetitor.competitorName}. They have ${focalCompetitor.dealCount} deals tracked and use a ${focalCompetitor.priceStrategy} pricing strategy. Top recommendation: ${recommendations[0] ?? 'none'}. What should Thrive do?`;
+            } else if (marketTrends.length > 0) {
+                headline = 'Market shift detected';
+                subtext = marketTrends[dayOfYear % marketTrends.length];
+                threadPrompt = `Market trend alert: "${subtext}". How should we position Thrive in response?`;
+            }
 
             return {
                 id: 'competitor-watch',
@@ -1131,19 +1160,19 @@ async function buildLatestCiCard(orgId: string): Promise<InsightCard> {
                 agentId: 'ezal',
                 agentName: 'Ezal',
                 title: 'MARKET INTEL',
-                headline: `${competitor}: intel updated`,
-                subtext: summary.slice(0, 120) + (summary.length > 120 ? '…' : ''),
+                headline,
+                subtext: subtext.slice(0, 130) + (subtext.length > 130 ? '…' : ''),
                 severity: 'info',
                 actionable: true,
-                ctaLabel: 'Full Report',
+                ctaLabel: 'Full Intel',
                 threadType: 'market_intel',
-                threadPrompt: `Summarize the latest competitive intelligence report on ${competitor}. Executive summary: ${summary}. Top action: ${topAction}`,
-                lastUpdated: generatedAt,
-                dataSource: 'Ezal (weekly CI report)',
+                threadPrompt,
+                lastUpdated: report.generatedAt,
+                dataSource: `Ezal · ${competitors.length} competitor${competitors.length !== 1 ? 's' : ''} tracked`,
             };
         }
     } catch (err) {
-        logger.warn('[Insights] Could not load CI report for market card', { orgId, error: err });
+        logger.warn('[Insights] Could not load weekly CI report for market card', { orgId, error: err });
     }
 
     // Generic fallback
@@ -1163,6 +1192,119 @@ async function buildLatestCiCard(orgId: string): Promise<InsightCard> {
         lastUpdated: new Date(),
         dataSource: 'ezal',
     };
+}
+
+// ============ Autonomous Pricing Card ============
+
+/**
+ * Build the "Autonomous Pricing" experimental card.
+ * Shows current status + toggle prompt. Only shown for orgs with competitors configured.
+ */
+async function buildAutoPricingCard(orgId: string): Promise<InsightCard | null> {
+    try {
+        const db = getAdminFirestore();
+
+        // Only show if org has competitors
+        const compSnap = await db.collection('tenants').doc(orgId)
+            .collection('competitors').where('active', '==', true).limit(1).get();
+        if (compSnap.empty) return null;
+
+        const tenantSnap = await db.collection('tenants').doc(orgId).get();
+        const tenant = tenantSnap.data() ?? {};
+        const enabled = tenant.autoPriceMatch === true;
+        const hasPOS = !!tenant.posProvider;
+
+        const headline = enabled
+            ? 'Autonomous Pricing: ON'
+            : 'Autonomous Pricing: OFF';
+
+        const subtext = enabled
+            ? 'High-impact price matches are auto-applied to your menu daily. Experimental — monitor results closely.'
+            : hasPOS
+                ? 'Enable to auto-apply high-impact price matches to your POS daily. Experimental feature.'
+                : 'Connect a POS to enable auto-applying competitive price matches to your menu.';
+
+        const threadPrompt = enabled
+            ? 'Show me the autonomous pricing activity log — what price matches were auto-applied this week, and what was the revenue impact?'
+            : 'Tell me more about autonomous pricing. How does it work, what are the risks, and should I turn it on?';
+
+        return {
+            id: 'auto-pricing',
+            category: 'market',
+            agentId: 'ezal',
+            agentName: 'Ezal',
+            title: 'DYNAMIC PRICING',
+            headline,
+            subtext: subtext.slice(0, 130) + (subtext.length > 130 ? '…' : ''),
+            severity: enabled ? 'warning' : 'info',
+            actionable: true,
+            ctaLabel: enabled ? 'Review' : 'Learn More',
+            threadType: 'market_intel',
+            threadPrompt,
+            lastUpdated: new Date(),
+            dataSource: 'Ezal · Experimental',
+            metadata: {
+                autoPriceMatch: enabled,
+                hasPOS,
+                toggleAction: 'toggleAutoPriceMatch',
+            },
+        };
+    } catch (err) {
+        logger.warn('[Insights] Could not build auto-pricing card', { orgId, error: err });
+        return null;
+    }
+}
+
+// ============ Feedback ============
+
+/**
+ * Submit thumbs up/down feedback on an insight card or agent message.
+ * Writes to tenants/{orgId}/insight_feedback for future model improvement.
+ */
+export async function submitInsightFeedback(
+    rating: 'up' | 'down',
+    context: {
+        insightId?: string;
+        messageId?: string;
+        threadId?: string;
+        agentId?: string;
+        contentSnippet?: string;
+    }
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const user = await requireUser();
+        const orgId = getActorOrgId(user as {
+            currentOrgId?: string | null;
+            orgId?: string | null;
+            brandId?: string | null;
+            locationId?: string | null;
+        }) || user.uid;
+
+        const db = getAdminFirestore();
+        const { FieldValue } = await import('firebase-admin/firestore');
+
+        await db
+            .collection('tenants')
+            .doc(orgId)
+            .collection('insight_feedback')
+            .add({
+                rating,
+                orgId,
+                userId: user.uid,
+                insightId: context.insightId ?? null,
+                messageId: context.messageId ?? null,
+                threadId: context.threadId ?? null,
+                agentId: context.agentId ?? null,
+                contentSnippet: context.contentSnippet?.slice(0, 500) ?? null,
+                createdAt: FieldValue.serverTimestamp(),
+            });
+
+        logger.info('[Insights] Feedback submitted', { orgId, rating, context });
+        return { success: true };
+    } catch (error) {
+        logger.error('[Insights] Failed to submit feedback', { error });
+        return { success: false, error: 'Failed to submit feedback' };
+    }
 }
 
 // ============ On-Demand Regeneration ============

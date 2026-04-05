@@ -74,9 +74,45 @@ export async function getOrgTier(orgId: string): Promise<TierId> {
 }
 
 /**
+ * Get the raw planId string from Firestore (not normalized to tier).
+ * Needed to distinguish 'free' from 'scout'/'signal' at plan level.
+ */
+const planIdCache = new Map<string, { planId: string | null; expiry: number }>();
+
+export async function getOrgRawPlanId(orgId: string): Promise<string | null> {
+    if (!orgId || orgId === 'general') return null;
+
+    const cached = planIdCache.get(orgId);
+    if (cached && Date.now() < cached.expiry) return cached.planId;
+
+    try {
+        const { createServerClient } = await import('@/firebase/server-client');
+        const { firestore } = await createServerClient();
+        const orgDoc = await firestore.collection('organizations').doc(orgId).get();
+        const planId = orgDoc.exists ? (orgDoc.data()?.planId as string | null) ?? null : null;
+        planIdCache.set(orgId, { planId, expiry: Date.now() + CACHE_TTL_MS });
+        return planId;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Check if an org is on the Free plan (Check-In + Welcome only).
+ * Free orgs use Mailjet for email; paid orgs use SES.
+ */
+export async function isOrgOnFreePlan(orgId: string): Promise<boolean> {
+    const planId = await getOrgRawPlanId(orgId);
+    return !planId || planId === 'free';
+}
+
+/**
  * Check if an org is on a paid tier (pro, growth, or empire).
  */
 export async function isOrgPaid(orgId: string): Promise<boolean> {
     const tier = await getOrgTier(orgId);
-    return tier !== 'scout';
+    if (tier !== 'scout') return true;
+    // Scout tier includes both free plan and signal — check raw planId
+    const planId = await getOrgRawPlanId(orgId);
+    return !!planId && planId !== 'free';
 }

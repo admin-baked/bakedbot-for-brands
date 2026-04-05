@@ -169,6 +169,7 @@ If the user mentions specific segments (VIP, loyal, new, churned, at-risk), map 
             userMessage: `Create a campaign based on this description: ${prompt}`,
             temperature: 0.3,
             maxTokens: 1000,
+            model: 'claude-haiku-4-5-20251001',
         });
 
         let parsed: unknown;

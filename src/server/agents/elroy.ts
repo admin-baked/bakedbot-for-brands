@@ -21,6 +21,8 @@
  */
 
 import { executeWithTools, isClaudeAvailable, ClaudeTool, ClaudeResult, AgentContext } from '@/ai/claude';
+import { executeGLMWithTools, GLM_MODELS, isGLMConfigured } from '@/ai/glm';
+import { getAgentModelConfig, type ModelTier } from '@/server/services/agent-model-config';
 import { logger } from '@/lib/logger';
 import { getAtRiskCustomers, getSegmentSummary, getTodayCheckins } from '@/server/tools/crm-tools';
 import { getLatestWeeklyReport } from '@/server/services/ezal/weekly-intel-report';
@@ -188,6 +190,24 @@ const ELROY_TOOLS: ClaudeTool[] = [
     },
 
     // ---- RTRVR Browser Automation (Weedmaps, AIQ, external sites) ----
+    {
+        name: 'ask_opencode',
+        description: 'Delegate a coding or technical analysis task to the BakedBot AI coding agent (SP13). Use this when you need to generate code, write a Firestore query, analyze a data structure, or answer a technical question that goes beyond your store-ops tools. Responds in seconds using Gemini Flash.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                prompt: {
+                    type: 'string',
+                    description: 'The coding or technical task to delegate. Be specific — include context about what the output should do.',
+                },
+                model: {
+                    type: 'string',
+                    description: 'Optional model override. Defaults to google/gemini-2.0-flash. Use anthropic/claude-sonnet-4-6 for complex multi-file analysis.',
+                },
+            },
+            required: ['prompt'],
+        },
+    },
     {
         name: 'discovery_browser_automate',
         description: 'Execute a browser automation task on external sites (Weedmaps, AIQ, competitor sites). Navigate pages, click buttons, extract data. Use for reading deals, checking listings, or gathering competitive intel.',
@@ -560,6 +580,38 @@ async function elroyToolExecutor(toolName: string, input: Record<string, unknown
             };
         }
 
+        case 'ask_opencode': {
+            const prompt = String(input.prompt ?? '').trim();
+            if (!prompt) return { error: 'prompt is required' };
+            const model = typeof input.model === 'string' ? input.model : undefined;
+
+            const baseUrl = process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+            const cronSecret = process.env.CRON_SECRET;
+            if (!cronSecret) return { error: 'Opencode not configured (missing CRON_SECRET)' };
+
+            logger.info('[Elroy] Delegating task to opencode', { promptPreview: prompt.slice(0, 80) });
+
+            const res = await fetch(`${baseUrl}/api/opencode/run`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${cronSecret}`,
+                },
+                body: JSON.stringify({ prompt, ...(model ? { model } : {}) }),
+                signal: AbortSignal.timeout(60_000),
+            });
+
+            if (!res.ok) {
+                const err = await res.text();
+                logger.error('[Elroy] Opencode request failed', { status: res.status, err });
+                return { error: `Opencode error (${res.status}): ${err.slice(0, 200)}` };
+            }
+
+            const data = await res.json() as { result: string; model: string };
+            logger.info('[Elroy] Opencode response received', { model: data.model, length: data.result.length });
+            return { result: data.result, model: data.model };
+        }
+
         default:
             return { error: `Unknown tool: ${toolName}` };
     }
@@ -593,6 +645,7 @@ When discussing inventory, flag anything on sale or with high stock that could m
 When citing competitor intel, note how fresh it is.
 For real-time or "right now" competitor questions (current prices, today's deals), use run_competitive_agent — it runs a live web research sweep via Firecrawl AI. It takes 30–90 seconds. Use get_competitor_intel for quick cached weekly data.
 For holiday or special hours questions ("Are competitors open on Easter?", "What are the hours for Memorial Day?"), ALWAYS use get_competitor_holiday_hours first — it pulls authoritative data from Google Places and is faster and more reliable than Firecrawl for hours.
+For coding or technical questions ("write me a query", "generate a script", "analyze this data structure"), use ask_opencode — it delegates to the BakedBot AI coding agent and responds in seconds.
 
 EXTERNAL SITE MANAGEMENT (Weedmaps, AIQ, WordPress):
 You can browse, extract data from, and fill forms on external sites using your browser tools.
@@ -639,6 +692,7 @@ const ELROY_AGENT_CONTEXT: AgentContext = {
         'get_recent_transactions — latest order history',
         'get_sales_summary — today vs yesterday vs 7-day avg',
         'get_competitor_holiday_hours — Google Places hours for Syracuse competitors around holidays',
+        'ask_opencode — delegate coding/technical tasks to BakedBot AI coding agent (SP13)',
         'discovery_browser_automate — browse external sites (Weedmaps, AIQ, WordPress, competitors)',
         'discovery_fill_form — fill and submit forms (deals, campaigns, WP content)',
         'discovery_extract_data — extract structured data from any webpage',
@@ -649,6 +703,7 @@ const ELROY_AGENT_CONTEXT: AgentContext = {
         'Cite days-inactive and LTV when listing at-risk customers',
         'Flag staleness when reporting competitor intel',
         'For "right now" or "today" competitor questions, use run_competitive_agent (live, 30–90s) over get_competitor_intel (cached)',
+        'For coding/technical questions, use ask_opencode to delegate to SP13',
         'For revenue/sales questions, use get_daily_sales or get_sales_summary',
         'For product performance questions, use get_top_sellers',
         'Always include the asOf timestamp when reporting today\'s sales',
@@ -675,12 +730,44 @@ export interface ElroyResponse {
     model: string;
 }
 
-export async function runElroy(request: ElroyRequest): Promise<ElroyResponse> {
-    if (!isClaudeAvailable()) {
-        throw new Error('Claude API is required for Uncle Elroy. Set CLAUDE_API_KEY environment variable.');
-    }
+// GLM occasionally refuses cannabis-adjacent business context
+const GLM_REFUSAL_PATTERNS = [
+    'security restrictions',
+    "i'm unable to assist",
+    'i cannot assist',
+    'violates our policy',
+    'due to content restrictions',
+    'content policy',
+    'i am unable to help',
+    'cannot help with',
+];
 
-    logger.info('[Elroy] Processing request', { promptLength: request.prompt.length });
+/**
+ * Call the opencode Cloud Run service as a last-resort fallback (no tool calling).
+ * Returns a text-only response via Gemini Flash.
+ */
+async function callOpencodeLastResort(prompt: string): Promise<string | null> {
+    const baseUrl = process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+    const cronSecret = process.env.CRON_SECRET;
+    if (!cronSecret) return null;
+
+    try {
+        const res = await fetch(`${baseUrl}/api/opencode/run`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cronSecret}` },
+            body: JSON.stringify({ prompt }),
+            signal: AbortSignal.timeout(55_000),
+        });
+        if (!res.ok) return null;
+        const data = await res.json() as { result: string };
+        return data.result || null;
+    } catch {
+        return null;
+    }
+}
+
+export async function runElroy(request: ElroyRequest): Promise<ElroyResponse> {
+    const hasImages = (request.images?.length ?? 0) > 0;
 
     const fullPrompt = `${ELROY_SYSTEM_PROMPT}\n\n---\n\nUser Request: ${request.prompt}`;
 
@@ -688,19 +775,87 @@ export async function runElroy(request: ElroyRequest): Promise<ElroyResponse> {
         ? (toolName: string) => request.progressCallback!(`_Uncle Elroy is checking ${toolName.replace(/_/g, ' ')}..._`)
         : undefined;
 
-    const result = await executeWithTools(
-        fullPrompt,
-        ELROY_TOOLS,
-        elroyToolExecutor,
-        {
-            userId: request.context?.userId,
-            orgId: ORG_ID,
-            maxIterations: request.maxIterations ?? 5,
-            agentContext: ELROY_AGENT_CONTEXT,
-            imageAttachments: request.images,
-            onToolCall,
+    const sharedContext = {
+        userId: request.context?.userId,
+        orgId: ORG_ID,
+        maxIterations: request.maxIterations ?? 5,
+        agentContext: ELROY_AGENT_CONTEXT,
+        onToolCall,
+    };
+
+    // Config-driven tier chain (same config as Linus — shared across all Slack agents)
+    const modelConfig = await getAgentModelConfig();
+    const tierChain: ModelTier[] = [modelConfig.slackTier, ...modelConfig.fallbackChain];
+    logger.info('[Elroy] Model chain', { tierChain, hasImages });
+
+    let result: ClaudeResult | null = null;
+
+    for (const tier of tierChain) {
+        if (result) break;
+
+        try {
+            switch (tier) {
+                case 'glm': {
+                    if (!isGLMConfigured()) continue;
+                    const glmModel = hasImages ? GLM_MODELS.VISION : GLM_MODELS.STRATEGIC;
+                    logger.info(`[Elroy] Trying GLM ${glmModel}`);
+                    const glmResult = await executeGLMWithTools(
+                        fullPrompt, ELROY_TOOLS, elroyToolExecutor,
+                        { ...sharedContext, model: glmModel }
+                    );
+                    const refused = glmResult.content
+                        ? GLM_REFUSAL_PATTERNS.some(p => glmResult.content.toLowerCase().includes(p))
+                        : false;
+                    if (glmResult.content && !refused) {
+                        result = glmResult;
+                    } else {
+                        logger.warn('[Elroy] GLM unusable', { reason: !glmResult.content ? 'empty' : 'refused' });
+                    }
+                    break;
+                }
+                case 'gemini': {
+                    logger.info('[Elroy] Trying Gemini Flash (opencode, no tools)');
+                    const geminiResult = await callOpencodeLastResort(fullPrompt);
+                    if (geminiResult) {
+                        result = {
+                            content: geminiResult,
+                            toolExecutions: [],
+                            model: 'google/gemini-2.0-flash',
+                            inputTokens: 0,
+                            outputTokens: 0,
+                            cachedTokens: 0,
+                        };
+                    }
+                    break;
+                }
+                case 'haiku': {
+                    if (!isClaudeAvailable()) continue;
+                    logger.info('[Elroy] Trying Claude Haiku');
+                    result = await executeWithTools(
+                        fullPrompt, ELROY_TOOLS, elroyToolExecutor,
+                        { ...sharedContext, model: 'claude-haiku-4-5-20251001', imageAttachments: request.images }
+                    );
+                    break;
+                }
+                case 'sonnet': {
+                    if (!isClaudeAvailable()) continue;
+                    logger.info('[Elroy] Trying Claude Sonnet');
+                    result = await executeWithTools(
+                        fullPrompt, ELROY_TOOLS, elroyToolExecutor,
+                        { ...sharedContext, model: 'claude-sonnet-4-6', imageAttachments: request.images }
+                    );
+                    break;
+                }
+            }
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            logger.error(`[Elroy] Tier ${tier} failed`, { error: msg });
         }
-    );
+    }
+
+    if (!result) {
+        throw new Error('All AI providers failed. Check API keys and credits.');
+    }
 
     return {
         content: result.content,

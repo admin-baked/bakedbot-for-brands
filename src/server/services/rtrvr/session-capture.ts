@@ -9,6 +9,7 @@
 import { getRTRVRClient } from './client';
 import { SERVICE_REGISTRY, ServiceId } from './service-registry';
 import { logger } from '@/lib/logger';
+import { discovery } from '@/server/services/firecrawl';
 
 export interface CaptureResult {
     success: boolean;
@@ -114,4 +115,46 @@ or { "success": false, "error": "reason" }`;
     });
 
     return { success: true, cookies: captured };
+}
+
+/**
+ * Scrape an authenticated page using Firecrawl actions (login + scrape in one call).
+ * Returns page content — no cookies stored. Use this for one-off authenticated scrapes
+ * (e.g., competitor menus behind age gates or login walls) where persistent sessions
+ * are not needed.
+ */
+export async function scrapeWithFirecrawlLogin(
+    url: string,
+    credentials: { email: string; password: string; emailSelector?: string; passwordSelector?: string; submitSelector?: string },
+): Promise<{ success: boolean; markdown?: string; error?: string }> {
+    const {
+        email,
+        password,
+        emailSelector = 'input[type="email"], input[name="email"], input[name="username"]',
+        passwordSelector = 'input[type="password"]',
+        submitSelector = 'button[type="submit"], input[type="submit"]',
+    } = credentials;
+
+    logger.info('[SessionCapture:Firecrawl] Starting login scrape', { url });
+
+    try {
+        const result = await discovery.discoverWithActions(url, [
+            { type: 'write', selector: emailSelector, text: email },
+            { type: 'write', selector: passwordSelector, text: password },
+            { type: 'click', selector: submitSelector },
+            { type: 'wait', milliseconds: 2000 },
+            { type: 'scrape' },
+        ]);
+
+        logger.info('[SessionCapture:Firecrawl] Login scrape succeeded', {
+            url,
+            contentLength: result.markdown.length,
+        });
+
+        return { success: true, markdown: result.markdown };
+    } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error);
+        logger.warn('[SessionCapture:Firecrawl] Login scrape failed', { url, error: msg });
+        return { success: false, error: msg };
+    }
 }

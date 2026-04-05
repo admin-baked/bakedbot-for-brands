@@ -31,10 +31,13 @@ import {
     Minus,
     ArrowRight,
     Info,
+    ThumbsUp,
+    ThumbsDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { InsightCard as InsightCardType } from '@/types/insight-cards';
 import { getAgentColors, getSeverityColors } from '@/types/insight-cards';
+import { submitInsightFeedback } from '@/server/actions/insights';
 
 // ============ Agent Icon Mapping ============
 
@@ -110,11 +113,23 @@ export function InsightCard({
     const AgentIcon = AGENT_ICONS[insight.agentId] || Bot;
     const agentColors = getAgentColors(insight.agentId);
     const severityColors = getSeverityColors(insight.severity);
+    const [feedbackGiven, setFeedbackGiven] = React.useState<'up' | 'down' | null>(null);
 
     const handleClick = () => {
         if (onAction && insight.actionable) {
             onAction(insight);
         }
+    };
+
+    const handleFeedback = async (e: React.MouseEvent, rating: 'up' | 'down') => {
+        e.stopPropagation();
+        if (feedbackGiven) return;
+        setFeedbackGiven(rating);
+        await submitInsightFeedback(rating, {
+            insightId: insight.id,
+            agentId: insight.agentId,
+            contentSnippet: `${insight.title}: ${insight.headline}`,
+        });
     };
 
     return (
@@ -238,6 +253,37 @@ export function InsightCard({
                     {insight.actionable && dense && (
                         <div className="pointer-events-none absolute bottom-2 right-2 rounded-full bg-background/95 p-1 opacity-0 shadow-sm transition-opacity duration-200 group-hover:opacity-100">
                             <ArrowRight className={cn('h-3 w-3', severityColors.text)} />
+                        </div>
+                    )}
+
+                    {/* Thumbs feedback — shown on hover, hidden once given */}
+                    {!dense && (
+                        <div className={cn(
+                            'mt-2 flex items-center gap-1 transition-opacity duration-200',
+                            feedbackGiven ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                        )}>
+                            {feedbackGiven ? (
+                                <span className="text-[10px] text-muted-foreground">
+                                    {feedbackGiven === 'up' ? 'Thanks!' : 'Got it — we\'ll improve.'}
+                                </span>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={(e) => handleFeedback(e, 'up')}
+                                        className="rounded p-0.5 text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors"
+                                        aria-label="Helpful"
+                                    >
+                                        <ThumbsUp className="h-3 w-3" />
+                                    </button>
+                                    <button
+                                        onClick={(e) => handleFeedback(e, 'down')}
+                                        className="rounded p-0.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                                        aria-label="Not helpful"
+                                    >
+                                        <ThumbsDown className="h-3 w-3" />
+                                    </button>
+                                </>
+                            )}
                         </div>
                     )}
                 </CardContent>

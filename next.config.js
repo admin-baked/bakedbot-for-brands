@@ -53,7 +53,7 @@ const nextConfig = {
     '@anthropic-ai/sdk', 'openai', '@google/generative-ai',
     '@mendable/firecrawl-js', 'apify-client',
     // Communication
-    'resend', '@sendgrid/mail', 'twilio', 'node-mailjet',
+    'resend', '@sendgrid/mail', 'twilio', 'node-mailjet', '@aws-sdk/client-ses',
     // Payments
     'stripe', 'square', 'authorizenet',
     // Data/file processing
@@ -106,7 +106,7 @@ const nextConfig = {
         'firebase-admin', 'googleapis',
         '@anthropic-ai/sdk', 'openai', '@google/generative-ai',
         '@mendable/firecrawl-js', 'apify-client',
-        'resend', '@sendgrid/mail', 'twilio', 'node-mailjet',
+        'resend', '@sendgrid/mail', 'twilio', 'node-mailjet', '@aws-sdk/client-ses',
         'stripe', 'square', 'authorizenet',
         'adm-zip', 'archiver', 'jszip', 'xlsx', 'papaparse',
         '@coinbase/coinbase-sdk', 'ccxt',

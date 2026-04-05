@@ -14,6 +14,7 @@ import {
     Plus
 } from 'lucide-react';
 import Link from 'next/link';
+import { CannMenusAttribution } from '@/components/ui/cannmenus-attribution';
 
 export function CompetitiveIntelSnapshot({ intel: data }: { intel?: any }) {
     // Real data passed from server action
@@ -132,6 +133,10 @@ export function CompetitiveIntelSnapshot({ intel: data }: { intel?: any }) {
                     <Button size="sm" className="w-full text-xs bg-blue-600 hover:bg-blue-700">
                         Reports
                     </Button>
+                </div>
+
+                <div className="pt-2 border-t border-blue-50">
+                    <CannMenusAttribution compact />
                 </div>
             </CardContent>
         </Card>

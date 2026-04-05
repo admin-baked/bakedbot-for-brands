@@ -14,7 +14,7 @@ import {
   PipelineStage,
 } from './types';
 import { runFinderAgent, createDefaultUrlValidator } from './finder-agent';
-import { runScraperAgent, createDefaultProductExtractor, createRTRVRScraper } from './scraper-agent';
+import { runScraperAgent, createDefaultProductExtractor, createDefaultFirecrawlScraper, createRTRVRScraper } from './scraper-agent';
 import { runAnalyzerAgent, createDefaultPriceComparator } from './analyzer-agent';
 
 // ============================================================================
@@ -124,7 +124,7 @@ export async function runEzalPipeline(
         extractProductsFromMarkdown:
           tools?.scraper?.extractProductsFromMarkdown ||
           createDefaultProductExtractor(),
-        firecrawlScrape: tools?.scraper?.firecrawlScrape,
+        firecrawlScrape: tools?.scraper?.firecrawlScrape ?? createDefaultFirecrawlScraper(),
         rtrvrScrape: tools?.scraper?.rtrvrScrape || createRTRVRScraper(),
         parseMenu: tools?.scraper?.parseMenu,
         preferredBackend: tools?.scraper?.preferredBackend || 'auto',
