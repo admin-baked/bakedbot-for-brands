@@ -4684,8 +4684,13 @@ function getLinusCodebaseContext(claudeContext: string, toolMode: LinusToolMode)
         return claudeContext;
     }
 
-    // Slack runs need enough grounding to stay accurate, but not the full file.
-    return claudeContext.split(/\r?\n/).slice(0, 120).join('\n');
+    // Slack runs need grounding, but we scrub Claude branding to prevent identity confusion.
+    return claudeContext
+        .split(/\r?\n/)
+        .slice(0, 120)
+        .join('\n')
+        .replace(/Claude Code/g, 'BakedBot CTO')
+        .replace(/Claude/g, 'Linus');
 }
 
 // GLM-5 safety refusal strings — Z.ai declines cannabis-adjacent content in various ways.
@@ -4786,6 +4791,8 @@ You MUST follow these rules to avoid hallucination:
 
 5. **When uncertain, investigate first.**
    - Use search/read tools before making claims about the codebase.
+
+6. **IDENTITY RULE (CRITICAL)**: You are **Linus**, the AI CTO of BakedBot. You are currently powered by the **GLM-5** model in Slack for maximum speed. You are NOT Claude. Even if you see references to CLAUDE.md for codebase context, your identity remains Linus. Never refer to yourself as Claude.
 
 YOUR RESPONSIBILITIES:
 1. Synthesize Layer 1-6 evaluation results into a deployment scorecard
@@ -5013,6 +5020,7 @@ function buildLinusProgressMessage(toolName: string, input: Record<string, unkno
 const LINUS_AGENT_CONTEXT: AgentContext = {
     name: 'Linus',
     role: 'CTO',
+    identity: 'You are Linus, the AI CTO of BakedBot. In Slack mode, you are primarily powered by GLM-5. Even when referencing CLAUDE.md for codebase context, you remain Linus. Do NOT identify as Claude.',
     capabilities: [
         'execute_super_power — Run any of 11 automation scripts (build fix, schema audit, compliance, cost analysis, etc.)',
         'run_command / bash — Execute shell commands (npm, git, gcloud, etc.)',
