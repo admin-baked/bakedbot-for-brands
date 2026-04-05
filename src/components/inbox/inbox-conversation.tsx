@@ -25,6 +25,8 @@ import {
     Tag as TagIcon,
     FolderKanban,
     ArrowLeft,
+    ThumbsUp,
+    ThumbsDown,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -222,13 +224,29 @@ function MessageBubble({
     message,
     agentPersona,
     artifacts,
+    threadId,
 }: {
     message: ChatMessage;
     agentPersona: InboxAgentPersona;
     artifacts: InboxArtifact[];
+    threadId?: string;
 }) {
     const isUser = message.type === 'user';
     const agent = AGENT_NAMES[agentPersona] || AGENT_NAMES.auto;
+    const [msgFeedback, setMsgFeedback] = React.useState<'up' | 'down' | null>(null);
+
+    const handleMsgFeedback = async (e: React.MouseEvent, rating: 'up' | 'down') => {
+        e.stopPropagation();
+        if (msgFeedback) return;
+        setMsgFeedback(rating);
+        const { submitInsightFeedback } = await import('@/server/actions/insights');
+        await submitInsightFeedback(rating, {
+            messageId: message.id,
+            threadId,
+            agentId: agentPersona,
+            contentSnippet: message.content,
+        });
+    };
     const thinkingSteps = message.thinking?.steps ?? [];
     const recentThinkingSteps = thinkingSteps.slice(-3);
     const latestThinkingStepLabel = recentThinkingSteps.length > 0
@@ -473,6 +491,37 @@ function MessageBubble({
                         {messageArtifacts.map((artifact) => (
                             <ArtifactPreviewCard key={artifact.id} artifact={artifact} />
                         ))}
+                    </div>
+                )}
+
+                {/* Thumbs feedback — agent messages only, shown on hover */}
+                {!isUser && !message.thinking?.isThinking && (
+                    <div className={cn(
+                        'mt-1 flex items-center gap-1 transition-opacity duration-150',
+                        msgFeedback ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                    )}>
+                        {msgFeedback ? (
+                            <span className="text-[10px] text-muted-foreground">
+                                {msgFeedback === 'up' ? 'Thanks!' : 'Got it — we\'ll improve.'}
+                            </span>
+                        ) : (
+                            <>
+                                <button
+                                    onClick={(e) => handleMsgFeedback(e, 'up')}
+                                    className="rounded p-0.5 text-muted-foreground/60 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors"
+                                    aria-label="Helpful"
+                                >
+                                    <ThumbsUp className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                    onClick={(e) => handleMsgFeedback(e, 'down')}
+                                    className="rounded p-0.5 text-muted-foreground/60 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                                    aria-label="Not helpful"
+                                >
+                                    <ThumbsDown className="h-3.5 w-3.5" />
+                                </button>
+                            </>
+                        )}
                     </div>
                 )}
             </div>
@@ -2624,6 +2673,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                                     message={message}
                                     agentPersona={thread.primaryAgent}
                                     artifacts={artifacts}
+                                    threadId={thread.id}
                                 />
                             ))}
 
