@@ -191,6 +191,164 @@ export async function disconnectMailjet(): Promise<{ success: boolean }> {
     }
 }
 
+// ─────────────────────────────────────────────────────────────
+// Amazon SES — tenant custom sending domain
+// ─────────────────────────────────────────────────────────────
+
+export interface SesDomainStatus {
+    configured: boolean;
+    domain: string | null;
+    fromEmail: string | null;
+    fromName: string | null;
+    verificationStatus: string | null;
+    dkimStatus: string | null;
+    dnsRecords: Array<{ type: string; name: string; value: string; purpose: string }>;
+}
+
+export async function getSesStatus(): Promise<SesDomainStatus> {
+    try {
+        const orgId = await resolveOrgId();
+        const firestore = getAdminFirestore();
+        const doc = await firestore
+            .collection('organizations').doc(orgId)
+            .collection('integrations').doc('ses')
+            .get();
+
+        if (!doc.exists) return { configured: false, domain: null, fromEmail: null, fromName: null, verificationStatus: null, dkimStatus: null, dnsRecords: [] };
+        const data = doc.data()!;
+
+        // If domain is configured, check live SES status
+        if (data.domain && process.env.AWS_SES_ACCESS_KEY_ID) {
+            const { getSesDomainStatus } = await import('@/lib/email/ses');
+            const status = await getSesDomainStatus(data.domain);
+            return {
+                configured: true,
+                domain: data.domain,
+                fromEmail: data.fromEmail ?? null,
+                fromName: data.fromName ?? null,
+                verificationStatus: status.verificationStatus,
+                dkimStatus: status.dkimStatus,
+                dnsRecords: data.dnsRecords ?? [],
+            };
+        }
+
+        return {
+            configured: true,
+            domain: data.domain ?? null,
+            fromEmail: data.fromEmail ?? null,
+            fromName: data.fromName ?? null,
+            verificationStatus: data.verificationStatus ?? null,
+            dkimStatus: data.dkimStatus ?? null,
+            dnsRecords: data.dnsRecords ?? [],
+        };
+    } catch {
+        return { configured: false, domain: null, fromEmail: null, fromName: null, verificationStatus: null, dkimStatus: null, dnsRecords: [] };
+    }
+}
+
+/** Start SES domain verification — generates DNS records the tenant must add */
+export async function initiateSesVerification(
+    domain: string,
+    fromEmail: string,
+    fromName: string,
+): Promise<{ success: boolean; error?: string; dnsRecords?: SesDomainStatus['dnsRecords'] }> {
+    try {
+        await requireUser();
+        const orgId = await resolveOrgId();
+
+        if (!domain || !domain.includes('.')) return { success: false, error: 'Valid domain required' };
+        if (!fromEmail || !fromEmail.includes('@')) return { success: false, error: 'Valid from email required' };
+        if (!process.env.AWS_SES_ACCESS_KEY_ID) return { success: false, error: 'SES not configured on platform' };
+
+        const { verifySesDomain, getSesDnsRecords } = await import('@/lib/email/ses');
+        const { verificationToken, dkimTokens } = await verifySesDomain(domain.trim().toLowerCase());
+        const dnsRecords = getSesDnsRecords(domain.trim().toLowerCase(), verificationToken, dkimTokens);
+
+        const firestore = getAdminFirestore();
+        await firestore
+            .collection('organizations').doc(orgId)
+            .collection('integrations').doc('ses')
+            .set({
+                status: 'pending',
+                domain: domain.trim().toLowerCase(),
+                fromEmail: fromEmail.trim().toLowerCase(),
+                fromName: fromName.trim(),
+                verificationToken,
+                dkimTokens,
+                dnsRecords,
+                initiatedAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            }, { merge: true });
+
+        logger.info('[OrgEmailSettings] SES domain verification initiated', { orgId, domain });
+        return { success: true, dnsRecords };
+    } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        logger.error('[OrgEmailSettings] initiateSesVerification failed', { error: msg });
+        return { success: false, error: msg };
+    }
+}
+
+/** Re-check SES verification status and update Firestore */
+export async function refreshSesVerification(): Promise<{ success: boolean; verificationStatus?: string; dkimStatus?: string; error?: string }> {
+    try {
+        await requireUser();
+        const orgId = await resolveOrgId();
+        const firestore = getAdminFirestore();
+        const doc = await firestore
+            .collection('organizations').doc(orgId)
+            .collection('integrations').doc('ses')
+            .get();
+
+        if (!doc.exists || !doc.data()?.domain) return { success: false, error: 'No SES domain configured' };
+
+        const { getSesDomainStatus } = await import('@/lib/email/ses');
+        const status = await getSesDomainStatus(doc.data()!.domain);
+
+        const isVerified = status.verificationStatus === 'Success' && status.dkimStatus === 'Success';
+        await firestore
+            .collection('organizations').doc(orgId)
+            .collection('integrations').doc('ses')
+            .set({
+                status: isVerified ? 'verified' : 'pending',
+                verificationStatus: status.verificationStatus,
+                dkimStatus: status.dkimStatus,
+                updatedAt: new Date().toISOString(),
+            }, { merge: true });
+
+        return { success: true, verificationStatus: status.verificationStatus, dkimStatus: status.dkimStatus };
+    } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        return { success: false, error: msg };
+    }
+}
+
+/** Remove SES domain verification for this org */
+export async function disconnectSes(): Promise<{ success: boolean }> {
+    try {
+        const orgId = await resolveOrgId();
+        const firestore = getAdminFirestore();
+        const doc = await firestore
+            .collection('organizations').doc(orgId)
+            .collection('integrations').doc('ses')
+            .get();
+
+        if (doc.exists && doc.data()?.domain) {
+            const { removeSesDomain } = await import('@/lib/email/ses');
+            await removeSesDomain(doc.data()!.domain);
+        }
+
+        await firestore
+            .collection('organizations').doc(orgId)
+            .collection('integrations').doc('ses')
+            .set({ status: 'disconnected', updatedAt: new Date().toISOString() }, { merge: true });
+
+        return { success: true };
+    } catch {
+        return { success: false };
+    }
+}
+
 export async function sendTestEmail(type: 'workspace' | 'mailjet' | 'ses'): Promise<{ success: boolean; error?: string }> {
     try {
         const user = await requireUser();

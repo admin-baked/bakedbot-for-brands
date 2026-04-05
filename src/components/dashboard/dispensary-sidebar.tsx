@@ -58,18 +58,36 @@ import {
     BarChart3,
     Store,
     Coins,
+    Lock,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { InviteUserDialog } from "@/components/dashboard/admin/invite-user-dialog";
 import { useUserRole } from "@/hooks/use-user-role";
+import { usePlanInfo } from "@/hooks/use-plan-info";
 import { getInviteAllowedRoles } from '@/types/roles';
 import { AgentOwnerBadge } from '@/components/dashboard/agent-owner-badge';
+
+/** Renders a locked nav item for free plan users — links to pricing page */
+function LockedNavItem({ icon: Icon, label }: { icon: React.ComponentType<{ className?: string }>; label: string }) {
+    return (
+        <SidebarMenuItem>
+            <SidebarMenuButton asChild className="opacity-50">
+                <Link href="/pricing" prefetch={false}>
+                    <Icon className="h-4 w-4" />
+                    <span>{label}</span>
+                    <Lock className="ml-auto h-3 w-3 text-muted-foreground group-data-[collapsible=icon]:hidden" />
+                </Link>
+            </SidebarMenuButton>
+        </SidebarMenuItem>
+    );
+}
 
 export const DispensarySidebar = memo(function DispensarySidebar() {
     const pathname = usePathname();
     const { orgId, isSuperUser } = useUserRole();
+    const { isFree } = usePlanInfo();
 
     const isActive = (href: string): boolean => {
         if (href === '/dashboard') {
@@ -93,6 +111,9 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
+                        {isFree ? (
+                            <LockedNavItem icon={FolderKanban} label="Projects" />
+                        ) : (
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/dashboard/projects')}>
                                 <Link href="/dashboard/projects" prefetch={true}>
@@ -101,6 +122,7 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
+                        )}
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/dashboard/playbooks')}>
                                 <Link href="/dashboard/playbooks" prefetch={true}>
@@ -109,6 +131,9 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
+                        {isFree ? (
+                            <LockedNavItem icon={HardDrive} label="Drive" />
+                        ) : (
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/dashboard/drive')}>
                                 <Link href="/dashboard/drive" prefetch={true}>
@@ -117,11 +142,23 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
+                        )}
                     </SidebarMenu>
                 </SidebarGroupContent>
             </SidebarGroup>
 
             {/* Strategy - Planning & Analytics */}
+            {isFree ? (
+            <SidebarGroup>
+                <SidebarGroupLabel>Strategy</SidebarGroupLabel>
+                <SidebarGroupContent>
+                    <SidebarMenu>
+                        <LockedNavItem icon={Flag} label="Goals" />
+                        <LockedNavItem icon={BarChart3} label="Analytics" />
+                    </SidebarMenu>
+                </SidebarGroupContent>
+            </SidebarGroup>
+            ) : (
             <SidebarGroup>
                 <SidebarGroupLabel className="flex items-center justify-between">
                     Strategy
@@ -148,8 +185,21 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                     </SidebarMenu>
                 </SidebarGroupContent>
             </SidebarGroup>
+            )}
 
             {/* Menu & Inventory - Dispensary's core focus */}
+            {isFree ? (
+            <SidebarGroup>
+                <SidebarGroupLabel>Menu & Inventory</SidebarGroupLabel>
+                <SidebarGroupContent>
+                    <SidebarMenu>
+                        <LockedNavItem icon={Utensils} label="Menu" />
+                        <LockedNavItem icon={Package} label="Products" />
+                        <LockedNavItem icon={ShoppingCart} label="Orders" />
+                    </SidebarMenu>
+                </SidebarGroupContent>
+            </SidebarGroup>
+            ) : (
             <SidebarGroup>
                 <SidebarGroupLabel>Menu & Inventory</SidebarGroupLabel>
                 <SidebarGroupContent>
@@ -230,15 +280,19 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                     </SidebarMenu>
                 </SidebarGroupContent>
             </SidebarGroup>
+            )}
 
             {/* Customers - CRM & Engagement */}
             <SidebarGroup>
                 <SidebarGroupLabel className="flex items-center justify-between">
                     Customers
-                    <AgentOwnerBadge agentId="mrs_parker" />
+                    {!isFree && <AgentOwnerBadge agentId="mrs_parker" />}
                 </SidebarGroupLabel>
                 <SidebarGroupContent>
                     <SidebarMenu>
+                        {isFree ? (
+                            <LockedNavItem icon={Users} label="Customers" />
+                        ) : (
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/dashboard/customers')}>
                                 <Link href="/dashboard/customers" prefetch={true}>
@@ -247,6 +301,10 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
+                        )}
+                        {isFree ? (
+                            <LockedNavItem icon={PieChart} label="Segments" />
+                        ) : (
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/dashboard/segments')}>
                                 <Link href="/dashboard/segments" prefetch={true}>
@@ -255,6 +313,10 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
+                        )}
+                        {isFree ? (
+                            <LockedNavItem icon={Crown} label="Loyalty" />
+                        ) : (
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/dashboard/loyalty')}>
                                 <Link href="/dashboard/loyalty" prefetch={true}>
@@ -263,6 +325,7 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
+                        )}
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/dashboard/dispensary/checkin')}>
                                 <Link href="/dashboard/dispensary/checkin" prefetch={true}>
@@ -279,6 +342,9 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
+                        {isFree ? (
+                            <LockedNavItem icon={SlidersHorizontal} label="Loyalty Settings" />
+                        ) : (
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/dashboard/settings/loyalty')}>
                                 <Link href="/dashboard/settings/loyalty" prefetch={true}>
@@ -287,11 +353,23 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
+                        )}
                     </SidebarMenu>
                 </SidebarGroupContent>
             </SidebarGroup>
 
             {/* Marketing - Content & Campaigns */}
+            {isFree ? (
+            <SidebarGroup>
+                <SidebarGroupLabel>Marketing</SidebarGroupLabel>
+                <SidebarGroupContent>
+                    <SidebarMenu>
+                        <LockedNavItem icon={Palette} label="Creative Center" />
+                        <LockedNavItem icon={Megaphone} label="Campaigns" />
+                    </SidebarMenu>
+                </SidebarGroupContent>
+            </SidebarGroup>
+            ) : (
             <SidebarGroup>
                 <SidebarGroupLabel>Marketing</SidebarGroupLabel>
                 <SidebarGroupContent>
@@ -349,8 +427,20 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                     </SidebarMenu>
                 </SidebarGroupContent>
             </SidebarGroup>
+            )}
 
             {/* Intelligence - Competitive & Research */}
+            {isFree ? (
+            <SidebarGroup>
+                <SidebarGroupLabel>Intelligence</SidebarGroupLabel>
+                <SidebarGroupContent>
+                    <SidebarMenu>
+                        <LockedNavItem icon={Target} label="Competitive Intel" />
+                        <LockedNavItem icon={Globe} label="Deep Research" />
+                    </SidebarMenu>
+                </SidebarGroupContent>
+            </SidebarGroup>
+            ) : (
             <SidebarGroup>
                 <Collapsible defaultOpen={false} className="group/intel">
                     <SidebarGroupLabel asChild>
@@ -394,8 +484,18 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                     </CollapsibleContent>
                 </Collapsible>
             </SidebarGroup>
+            )}
 
             {/* GreenLedger - Supply Chain Finance */}
+            {isFree ? (
+            <SidebarGroup>
+                <SidebarGroupContent>
+                    <SidebarMenu>
+                        <LockedNavItem icon={Coins} label="GreenLedger" />
+                    </SidebarMenu>
+                </SidebarGroupContent>
+            </SidebarGroup>
+            ) : (
             <SidebarGroup>
                 <SidebarGroupContent>
                     <SidebarMenu>
@@ -411,10 +511,11 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                     </SidebarMenu>
                 </SidebarGroupContent>
             </SidebarGroup>
+            )}
 
             {/* Admin - Settings & Integrations */}
             <SidebarGroup>
-                <Collapsible defaultOpen={false} className="group/admin">
+                <Collapsible defaultOpen={isFree} className="group/admin">
                     <SidebarGroupLabel asChild>
                         <CollapsibleTrigger className="flex w-full items-center">
                             Admin
@@ -424,6 +525,9 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                     <CollapsibleContent>
                         <SidebarGroupContent>
                             <SidebarMenu>
+                                {isFree ? (
+                                    <LockedNavItem icon={LayoutGrid} label="App Store" />
+                                ) : (
                                 <SidebarMenuItem>
                                     <SidebarMenuButton asChild isActive={isActive('/dashboard/apps')}>
                                         <Link href="/dashboard/apps" prefetch={true}>
@@ -432,6 +536,10 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
+                                )}
+                                {isFree ? (
+                                    <LockedNavItem icon={Globe} label="Custom Domains" />
+                                ) : (
                                 <SidebarMenuItem>
                                     <SidebarMenuButton asChild isActive={isActive('/dashboard/domains')}>
                                         <Link href="/dashboard/domains" prefetch={true}>
@@ -440,6 +548,7 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
+                                )}
                                 <SidebarMenuItem>
                                     <SidebarMenuButton asChild isActive={isActive('/dashboard/settings')}>
                                         <Link href="/dashboard/settings" prefetch={true}>
@@ -448,6 +557,8 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
+                                {!isFree && (
+                                <>
                                 <SidebarMenuItem>
                                     <SidebarMenuButton asChild isActive={isActive('/dashboard/settings/email-warmup')}>
                                         <Link href="/dashboard/settings/email-warmup" prefetch={true}>
@@ -469,6 +580,8 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                                         }
                                     />
                                 </SidebarMenuItem>
+                                </>
+                                )}
                             </SidebarMenu>
                         </SidebarGroupContent>
                     </CollapsibleContent>

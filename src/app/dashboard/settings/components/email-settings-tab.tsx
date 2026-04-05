@@ -3,11 +3,13 @@
 /**
  * Email Settings Tab
  *
- * Two independent email channels:
- *  - Google Workspace  → personal / transactional emails (welcome, 1:1 follow-up)
- *  - Mailjet           → bulk / marketing emails (weekly newsletters, campaigns)
+ * Amazon SES is the primary sender for all email types (company + tenant wide).
+ * Optional fallback channels:
+ *  - Custom Sending Domain (SES) → tenant sends from their own domain
+ *  - Google Workspace  → personal / transactional fallback
+ *  - Mailjet           → bulk / marketing fallback (6k free/month)
  *
- * The dispatcher in lib/email/dispatcher.ts routes based on communicationType.
+ * The dispatcher in lib/email/dispatcher.ts routes: SES → Workspace/Mailjet → Platform.
  */
 
 import { useState, useEffect, useTransition } from 'react';
@@ -34,12 +36,17 @@ import {
     saveMailjetConfig,
     disconnectMailjet,
     sendTestEmail,
+    getSesStatus,
+    initiateSesVerification,
+    refreshSesVerification,
+    disconnectSes,
 } from '@/server/actions/org-email-settings';
 import { getMyWarmupStatus } from '@/server/actions/email-warmup';
 import {
     saveCloudflareApiToken,
     getCloudflareStatus,
     applyEmailDnsRecords,
+    applySesDnsRecords,
     disconnectCloudflareAction,
 } from '@/server/actions/cloudflare-dns';
 import type { DnsRecordStatus } from '@/server/actions/cloudflare-dns';
@@ -719,6 +726,236 @@ function CloudflareDnsSection() {
 }
 
 // ─────────────────────────────────────────────────────────────
+// Amazon SES — custom sending domain verification
+// ─────────────────────────────────────────────────────────────
+
+function SesDomainSection() {
+    const { toast } = useToast();
+    const [isPending, startTransition] = useTransition();
+    const [sesStatus, setSesStatus] = useState<{
+        configured: boolean; domain: string | null; fromEmail: string | null; fromName: string | null;
+        verificationStatus: string | null; dkimStatus: string | null;
+        dnsRecords: Array<{ type: string; name: string; value: string; purpose: string }>;
+    } | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [showSetup, setShowSetup] = useState(false);
+    const [domain, setDomain] = useState('');
+    const [fromEmail, setFromEmail] = useState('');
+    const [fromName, setFromName] = useState('');
+    const [showDns, setShowDns] = useState(false);
+
+    useEffect(() => {
+        getSesStatus().then((s) => {
+            setSesStatus(s);
+            setIsLoading(false);
+        });
+    }, []);
+
+    const isVerified = sesStatus?.verificationStatus === 'Success' && sesStatus?.dkimStatus === 'Success';
+    const isPendingVerification = sesStatus?.configured && !isVerified;
+
+    const handleInitiate = () => {
+        if (!domain || !fromEmail || !fromName) {
+            toast({ variant: 'destructive', title: 'All fields required' });
+            return;
+        }
+        startTransition(async () => {
+            const result = await initiateSesVerification(domain, fromEmail, fromName);
+            if (result.success) {
+                toast({ title: 'Domain verification started', description: 'Add the DNS records below to verify your domain.' });
+                const s = await getSesStatus();
+                setSesStatus(s);
+                setShowSetup(false);
+                setShowDns(true);
+            } else {
+                toast({ variant: 'destructive', title: 'Verification failed', description: result.error });
+            }
+        });
+    };
+
+    const handleRefresh = () => {
+        startTransition(async () => {
+            const result = await refreshSesVerification();
+            if (result.success) {
+                const s = await getSesStatus();
+                setSesStatus(s);
+                const verified = result.verificationStatus === 'Success' && result.dkimStatus === 'Success';
+                toast({
+                    title: verified ? 'Domain verified!' : 'Verification in progress',
+                    description: `Domain: ${result.verificationStatus}, DKIM: ${result.dkimStatus}`,
+                });
+            } else {
+                toast({ variant: 'destructive', title: 'Refresh failed', description: result.error });
+            }
+        });
+    };
+
+    const handleApplyCloudflare = () => {
+        startTransition(async () => {
+            const result = await applySesDnsRecords();
+            if (result.success) {
+                toast({ title: 'SES DNS records applied via Cloudflare', description: `${result.results?.length} records created/updated` });
+                handleRefresh();
+            } else {
+                toast({ variant: 'destructive', title: 'Failed to apply DNS', description: result.error });
+            }
+        });
+    };
+
+    const handleSendTest = () => {
+        startTransition(async () => {
+            const result = await sendTestEmail('ses');
+            toast(result.success
+                ? { title: 'Test email sent via SES' }
+                : { variant: 'destructive', title: 'Test failed', description: result.error });
+        });
+    };
+
+    const handleDisconnect = () => {
+        startTransition(async () => {
+            await disconnectSes();
+            setSesStatus({ configured: false, domain: null, fromEmail: null, fromName: null, verificationStatus: null, dkimStatus: null, dnsRecords: [] });
+            toast({ title: 'SES domain disconnected' });
+        });
+    };
+
+    if (isLoading) return null;
+
+    return (
+        <Card>
+            <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Mail className="h-5 w-5 text-orange-500" />
+                        <CardTitle className="text-base">Custom Sending Domain (SES)</CardTitle>
+                    </div>
+                    {isVerified && <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">Verified</Badge>}
+                    {isPendingVerification && <Badge className="bg-amber-100 text-amber-800 border-amber-200">Pending</Badge>}
+                    {!sesStatus?.configured && <Badge variant="outline">Not configured</Badge>}
+                </div>
+                <CardDescription>
+                    Send emails from your own domain (e.g., hello@yourdispensary.com) instead of @bakedbot.ai.
+                    {sesStatus?.configured && sesStatus.domain && (
+                        <span className="block mt-1 font-medium text-foreground">
+                            Domain: {sesStatus.domain} — From: {sesStatus.fromEmail}
+                        </span>
+                    )}
+                </CardDescription>
+            </CardHeader>
+
+            <CardContent className="space-y-3">
+                {/* Setup form */}
+                {(showSetup || !sesStatus?.configured) && !sesStatus?.configured && (
+                    <div className="space-y-3 p-3 rounded-lg bg-muted/50 border">
+                        <div className="space-y-2">
+                            <Label htmlFor="ses-domain">Sending Domain</Label>
+                            <Input id="ses-domain" placeholder="yourdispensary.com" value={domain} onChange={(e) => {
+                                setDomain(e.target.value);
+                                if (!fromEmail && e.target.value.includes('.')) {
+                                    setFromEmail(`hello@${e.target.value}`);
+                                }
+                            }} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="ses-from-email">From Email</Label>
+                            <Input id="ses-from-email" placeholder="hello@yourdispensary.com" value={fromEmail} onChange={(e) => setFromEmail(e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="ses-from-name">From Name</Label>
+                            <Input id="ses-from-name" placeholder="Your Dispensary" value={fromName} onChange={(e) => setFromName(e.target.value)} />
+                        </div>
+                        <Button size="sm" onClick={handleInitiate} disabled={isPending}>
+                            {isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ShieldCheck className="h-4 w-4 mr-2" />}
+                            Verify Domain
+                        </Button>
+                    </div>
+                )}
+
+                {/* DNS records display */}
+                {sesStatus?.configured && sesStatus.dnsRecords.length > 0 && (
+                    <div className="space-y-2">
+                        <button
+                            className="text-sm font-medium flex items-center gap-1 hover:underline"
+                            onClick={() => setShowDns(!showDns)}
+                        >
+                            {showDns ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                            DNS Records ({sesStatus.dnsRecords.length})
+                        </button>
+                        {showDns && (
+                            <div className="rounded-lg border overflow-hidden text-xs">
+                                <div className="grid grid-cols-[60px_1fr_1fr_80px] bg-muted px-3 py-2 font-medium">
+                                    <span>Type</span>
+                                    <span>Name</span>
+                                    <span>Value</span>
+                                    <span>Purpose</span>
+                                </div>
+                                {sesStatus.dnsRecords.map((rec, i) => (
+                                    <div key={i} className="grid grid-cols-[60px_1fr_1fr_80px] px-3 py-1.5 border-t">
+                                        <span className="font-mono font-medium">{rec.type}</span>
+                                        <span className="truncate text-muted-foreground font-mono" title={rec.name}>{rec.name}</span>
+                                        <span className="truncate text-muted-foreground font-mono" title={rec.value}>{rec.value}</span>
+                                        <span className="capitalize">{rec.purpose}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Status display */}
+                {isPendingVerification && (
+                    <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm">
+                        <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                            <p className="font-medium text-amber-800">DNS records need to be added</p>
+                            <p className="text-amber-700 mt-0.5">
+                                Add the records above to your domain&apos;s DNS. If your DNS is on Cloudflare (connected above), click &quot;Apply via Cloudflare&quot; to auto-create them.
+                                After adding, click Refresh to check status.
+                            </p>
+                            <p className="text-amber-600 mt-1 text-xs">
+                                Domain: {sesStatus?.verificationStatus ?? 'Pending'} · DKIM: {sesStatus?.dkimStatus ?? 'Pending'}
+                            </p>
+                        </div>
+                    </div>
+                )}
+
+                {isVerified && (
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-sm">
+                        <Check className="h-4 w-4 text-emerald-600" />
+                        <span className="text-emerald-800">Domain verified. Emails send as <strong>{sesStatus?.fromEmail}</strong>.</span>
+                    </div>
+                )}
+            </CardContent>
+
+            <CardFooter className="flex gap-2 flex-wrap">
+                {sesStatus?.configured && (
+                    <>
+                        {isPendingVerification && (
+                            <Button size="sm" variant="outline" onClick={handleApplyCloudflare} disabled={isPending}>
+                                {isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Cloud className="h-4 w-4 mr-2" />}
+                                Apply via Cloudflare
+                            </Button>
+                        )}
+                        <Button size="sm" variant="outline" onClick={handleRefresh} disabled={isPending}>
+                            {isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                            Refresh
+                        </Button>
+                        {isVerified && (
+                            <Button size="sm" variant="outline" onClick={handleSendTest} disabled={isPending}>
+                                <Send className="h-4 w-4 mr-2" />Test
+                            </Button>
+                        )}
+                        <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive ml-auto" onClick={handleDisconnect} disabled={isPending}>
+                            Disconnect
+                        </Button>
+                    </>
+                )}
+            </CardFooter>
+        </Card>
+    );
+}
+
+// ─────────────────────────────────────────────────────────────
 // Routing reference
 // ─────────────────────────────────────────────────────────────
 
@@ -744,12 +981,12 @@ function RoutingReferenceCard() {
                             <span>Fallback</span>
                         </div>
                         {[
-                            ['Campaign blast', 'Mailjet (org)', 'Platform Mailjet'],
-                            ['Win-back / birthday', 'Mailjet (org)', 'Platform Mailjet'],
-                            ['Loyalty rewards', 'Mailjet (org)', 'Platform Mailjet'],
-                            ['Welcome email', 'Google Workspace', 'Platform Mailjet'],
-                            ['Follow-up / manual', 'Google Workspace', 'Platform Mailjet'],
-                            ['Order confirmation', 'Google Workspace', 'Platform Mailjet'],
+                            ['Campaign blast', 'Amazon SES', 'Mailjet (org) → Platform'],
+                            ['Win-back / birthday', 'Amazon SES', 'Mailjet (org) → Platform'],
+                            ['Loyalty rewards', 'Amazon SES', 'Mailjet (org) → Platform'],
+                            ['Welcome email', 'Amazon SES', 'Workspace → Platform'],
+                            ['Follow-up / manual', 'Amazon SES', 'Workspace → Platform'],
+                            ['Order confirmation', 'Amazon SES', 'Workspace → Platform'],
                         ].map(([type, channel, fallback]) => (
                             <div key={type} className="grid grid-cols-3 px-3 py-1.5 border-t">
                                 <span className="text-muted-foreground">{type}</span>
@@ -781,13 +1018,17 @@ export function EmailSettingsTab() {
             <div>
                 <h2 className="text-lg font-semibold">Email Channels</h2>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                    Connect two sending channels — one for personal outreach, one for marketing at scale.
+                    Amazon SES is your primary sender. Connect optional channels for fallback or free-tier volume.
                 </p>
             </div>
 
             <WorkspaceSection />
             {/* CloudflareDnsSection is self-contained — shows "connect" prompt if no zone found */}
             <CloudflareDnsSection />
+
+            <Separator />
+
+            <SesDomainSection />
 
             <MailjetSection />
             {mailjetConnected && <WarmupCallout orgId={orgId} />}

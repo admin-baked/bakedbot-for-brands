@@ -245,8 +245,10 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
           },
           ...(signupSource ? { signupSource } : {}),
           ...(signupCampaign ? { signupCampaign } : {}),
+          // Top-level planId — read by getOrgTier() for feature gating + email routing
+          ...(selectedPlan ? { planId: selectedPlan.id } : {}),
           billing: {
-            subscriptionStatus: 'trial',
+            subscriptionStatus: selectedPlan?.id === 'free' ? 'active' : 'trial',
             selectedPlanId: selectedPlan?.id || null,
             selectedPlanName: selectedPlan?.name || null,
           }
@@ -261,8 +263,12 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
         }
 
         if (selectedPlan) {
+          orgUpdate.planId = selectedPlan.id;
           orgUpdate['billing.selectedPlanId'] = selectedPlan.id;
           orgUpdate['billing.selectedPlanName'] = selectedPlan.name;
+          if (selectedPlan.id === 'free') {
+            orgUpdate['billing.subscriptionStatus'] = 'active';
+          }
         }
 
         if (signupSource) {

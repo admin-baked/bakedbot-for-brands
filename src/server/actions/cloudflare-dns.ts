@@ -218,6 +218,59 @@ export async function applyEmailDnsRecords(): Promise<ApplyResult> {
     }
 }
 
+/**
+ * Apply SES DNS records via Cloudflare for tenants who manage DNS with us.
+ * Reads the pending SES verification tokens from the org's SES integration
+ * and creates the required TXT (verification, SPF, DMARC) + CNAME (DKIM) records.
+ */
+export async function applySesDnsRecords(): Promise<ApplyResult> {
+    try {
+        const orgId = await resolveOrgId();
+        const token = await getCloudflareToken(orgId);
+        if (!token) return { success: false, error: 'Cloudflare not connected' };
+
+        const integration = await getCloudflareIntegration(orgId);
+        if (!integration?.zoneId || !integration?.zoneName) {
+            return { success: false, error: 'Cloudflare zone not configured — connect Cloudflare first' };
+        }
+
+        const { getAdminFirestore } = await import('@/firebase/admin');
+        const firestore = getAdminFirestore();
+        const sesDoc = await firestore
+            .collection('organizations').doc(orgId)
+            .collection('integrations').doc('ses')
+            .get();
+
+        const sesData = sesDoc.data();
+        if (!sesData?.dnsRecords || sesData.dnsRecords.length === 0) {
+            return { success: false, error: 'No SES DNS records found — initiate domain verification first' };
+        }
+
+        // Convert SES DNS records to Cloudflare upsert format
+        const cfRecords = (sesData.dnsRecords as Array<{ type: string; name: string; value: string; purpose: string }>).map(rec => ({
+            type: rec.type,
+            name: rec.name,
+            content: rec.value,
+            proxied: false,
+            ttl: 3600,
+        }));
+
+        const results = await Promise.all(
+            cfRecords.map(async (rec) => {
+                const { action } = await upsertDnsRecord(token, integration.zoneId!, rec);
+                return { name: rec.name, action };
+            })
+        );
+
+        logger.info('[CloudflareDns] Applied SES DNS records', { orgId, zone: integration.zoneName, results });
+        return { success: true, results };
+    } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        logger.error('[CloudflareDns] applySesDnsRecords failed', { error: msg });
+        return { success: false, error: msg };
+    }
+}
+
 export async function disconnectCloudflareAction(): Promise<{ success: boolean }> {
     try {
         const orgId = await resolveOrgId();

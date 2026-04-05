@@ -5,6 +5,7 @@ import { PRICING_PLANS, OVERAGES_TABLE } from '@/lib/config/pricing';
 
 export function PricingSection() {
     const getPlanCtaHref = (planId: string) => {
+        if (planId === 'free') return '/onboarding?plan=free';
         if (planId === 'signal') return '/get-started?plan=signal';
         if (planId === 'optimize') return '/contact';
         return `/get-started?plan=${planId}`;
@@ -36,8 +37,15 @@ export function PricingSection() {
 
             <div id="cards" className={styles.pricingGrid}>
                 {PRICING_PLANS.map(plan => (
-                    <div key={plan.name} className={styles.planCard} style={plan.highlight ? { border: '2px solid #16a34a', position: 'relative', overflow: 'hidden' } : {}}>
-                        <div className={styles.planLabel} style={{ fontSize: '12px' }}>{plan.priceDisplay} <span style={{ textTransform: 'none', color: '#6b7280', fontWeight: 400 }}>{plan.period}</span></div>
+                    <div key={plan.name} className={styles.planCard} style={
+                        plan.highlight ? { border: '2px solid #16a34a', position: 'relative', overflow: 'hidden' }
+                        : plan.id === 'free' ? { border: '2px dashed #94a3b8', background: '#f8fafc' }
+                        : {}
+                    }>
+                        <div className={styles.planLabel} style={{ fontSize: '12px' }}>
+                            {plan.priceDisplay} <span style={{ textTransform: 'none', color: '#6b7280', fontWeight: 400 }}>{plan.period}</span>
+                            {plan.id === 'free' && <span style={{ marginLeft: '8px', fontSize: '10px', background: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>No credit card</span>}
+                        </div>
                         <div className={styles.planName} style={{ fontSize: '18px', marginBottom: '4px' }}>{plan.name}</div>
 
                         <div className={styles.planSetup} style={{ fontStyle: 'italic', marginBottom: '12px' }}>{plan.setup}</div>
@@ -57,7 +65,7 @@ export function PricingSection() {
                             borderRadius: '8px',
                             marginTop: 'auto'
                         }}>
-                            {plan.id === 'signal' ? 'Hire a Scout' : `Start ${plan.name}`}
+                            {plan.id === 'free' ? 'Start Free' : plan.id === 'signal' ? 'Hire a Scout' : `Start ${plan.name}`}
                         </Link>
                     </div>
                 ))}

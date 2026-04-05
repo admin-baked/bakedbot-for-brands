@@ -54,7 +54,7 @@ const PLAN_FEATURES: Record<PlanId, PlanInfo['features']> = {
         advancedReporting: false,
         prioritySupport: false,
         coveragePacksEnabled: false,
-        maxPlaybooks: 0
+        maxPlaybooks: 1, // Welcome Playbook only
     },
     claim_pro: {
         maxZips: 5,
@@ -216,7 +216,8 @@ export function usePlanInfo() {
     return {
         ...planInfo,
         isLoading,
-        isPaid: planInfo.tier !== 'unclaimed',
+        isFree: pid === 'free',
+        isPaid: pid !== 'free' && planInfo.tier !== 'unclaimed',
         // Legacy flags
         isScale: pid === 'scale',
         isEnterprise: pid === 'enterprise',
