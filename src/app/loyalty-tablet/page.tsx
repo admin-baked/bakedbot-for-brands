@@ -196,6 +196,9 @@ export default function LoyaltyTabletPage() {
     // Tracks whether the customer entered via the quick lookup (last-4) flow
     const [enteredViaQuickLookup, setEnteredViaQuickLookup] = useState(false);
 
+    // Mic permission: 'unknown' | 'granted' | 'denied'
+    const [micPermission, setMicPermission] = useState<'unknown' | 'granted' | 'denied'>('unknown');
+
     // Smokey hold-to-talk voice (works on iOS — MediaRecorder-based, Gemini Live quality)
     const smokeyVoice = useSmokeyVoice({
         orgId,
@@ -540,6 +543,17 @@ export default function LoyaltyTabletPage() {
     const handleMicPointerUp = () => {
         if (smokeyVoice.state === 'recording') {
             smokeyVoice.stopAndSend();
+        }
+    };
+
+    const handleRequestMicPermission = async () => {
+        resetIdleTimer();
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            stream.getTracks().forEach(t => t.stop()); // release immediately — just needed the permission
+            setMicPermission('granted');
+        } catch {
+            setMicPermission('denied');
         }
     };
 
@@ -1301,6 +1315,22 @@ export default function LoyaltyTabletPage() {
                                             )}
                                         </div>
                                     </div>
+
+                                    {/* One-time mic permission prompt — tap triggers browser dialog */}
+                                    {smokeyVoice.isSupported && micPermission === 'unknown' && (
+                                        <button
+                                            onClick={() => { void handleRequestMicPermission(); }}
+                                            className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold border transition-all active:scale-95"
+                                            style={{ borderColor: hexToRgba(brandTheme.colors.primary, 0.4), color: brandTheme.colors.primary, backgroundColor: hexToRgba(brandTheme.colors.primary, 0.06) }}
+                                        >
+                                            <Mic className="h-3.5 w-3.5" /> Tap to enable voice search
+                                        </button>
+                                    )}
+                                    {micPermission === 'denied' && (
+                                        <p className="text-xs text-red-500 text-center">
+                                            Mic blocked — enable in Settings &gt; Privacy &gt; Microphone to use voice search
+                                        </p>
+                                    )}
 
                                     {/* Mic + search row */}
                                     <div className="flex w-full gap-3 items-center">

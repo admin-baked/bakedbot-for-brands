@@ -677,7 +677,13 @@ async function resolveLookupCandidatePhone(
             return undefined;
         }
 
-        const normalizedPhone = normalizePhone(typeof data?.phone === 'string' ? data.phone : undefined);
+        // Try `phone` first (formatted), then `phoneDigits` (Alleaves import stores digits-only)
+        const rawPhone = typeof data?.phone === 'string' && data.phone
+            ? data.phone
+            : typeof data?.phoneDigits === 'string' && data.phoneDigits
+                ? data.phoneDigits
+                : undefined;
+        const normalizedPhone = normalizePhone(rawPhone);
         return isNormalizedPhone(normalizedPhone) ? normalizedPhone : undefined;
     }
 
