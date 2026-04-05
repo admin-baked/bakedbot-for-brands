@@ -38,6 +38,7 @@ const OnboardingSchema = z.object({
   manualDispensaryName: z.string().optional(),
   slug: z.string().optional(),
   zipCode: z.string().optional(),
+  websiteUrl: z.string().optional(),
   // Chatbot config
   chatbotPersonality: z.string().optional(),
   chatbotTone: z.string().optional(),
@@ -91,7 +92,7 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
     const {
       role, orgSubtype, planId, marketState, locationId, brandId, brandName,
       manualBrandName, manualProductName, manualDispensaryName,
-      slug, zipCode,
+      slug, zipCode, websiteUrl,
       chatbotPersonality, chatbotTone, chatbotSellingPoints,
       posProvider, posApiKey, posDispensaryId,
       competitors, selectedCompetitors,
@@ -323,6 +324,51 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp()
       }, { merge: true });
+    }
+
+    // 2b. Create/upsert brand doc for dispensaries (enables dispensary pages immediately)
+    if (finalRole === 'dispensary' && slug) {
+      const brandDocRef = firestore.collection('brands').doc(slug);
+      await brandDocRef.set({
+        name: manualDispensaryName || 'My Dispensary',
+        slug,
+        type: 'dispensary',
+        menuDesign: 'dispensary',
+        orgId,
+        originalBrandId: orgId,
+        ...(zipCode ? { zip: zipCode } : {}),
+        ...(marketState ? { state: marketState } : {}),
+        location: {
+          zip: zipCode || null,
+          state: marketState || null,
+        },
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+      logger.info('[Onboarding] Brand doc created for dispensary', { slug, orgId });
+
+      // Queue enrichment job to auto-populate address/hours/phone via Firecrawl
+      await firestore.collection('data_jobs').add({
+        type: 'dispensary_enrichment',
+        entityId: orgId,
+        entityName: manualDispensaryName || 'Dispensary',
+        entityType: 'dispensary',
+        orgId,
+        userId: uid,
+        status: 'pending',
+        message: `Queued location enrichment for ${manualDispensaryName || 'dispensary'}`,
+        progress: 0,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        attempts: 0,
+        metadata: {
+          brandSlug: slug,
+          websiteUrl: websiteUrl || null,
+          dispensaryName: manualDispensaryName || null,
+          marketState: marketState || null,
+          zipCode: zipCode || null,
+        },
+      });
+      logger.info('[Onboarding] Dispensary enrichment job queued', { slug, websiteUrl: websiteUrl || null });
     }
 
     // 3. Update User Profile with Enterprise Context

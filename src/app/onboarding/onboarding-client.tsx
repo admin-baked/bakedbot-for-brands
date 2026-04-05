@@ -81,6 +81,7 @@ export default function OnboardingPage() {
   const [manualBrandName, setManualBrandName] = useState('');
   const [manualProductName, setManualProductName] = useState('');
   const [manualDispensaryName, setManualDispensaryName] = useState('');
+  const [websiteUrl, setWebsiteUrl] = useState('');
   const [slug, setSlug] = useState('');
   const [zipCode, setZipCode] = useState('');
   const [primaryGoal, setPrimaryGoal] = useState<OnboardingPrimaryGoal | null>(null);
@@ -512,9 +513,16 @@ export default function OnboardingPage() {
         </div>
       )}
       {role === 'dispensary' && (
-        <div className="space-y-2">
-          <Label>Dispensary Name</Label>
-          <Input name="manualDispensaryName" placeholder="Your Dispensary Name" value={manualDispensaryName} onChange={e => setManualDispensaryName(e.target.value)} />
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Dispensary Name</Label>
+            <Input name="manualDispensaryName" placeholder="Your Dispensary Name" value={manualDispensaryName} onChange={e => setManualDispensaryName(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Website URL <span className="text-muted-foreground font-normal">(optional)</span></Label>
+            <Input name="websiteUrl" placeholder="https://yourdispensary.com" value={websiteUrl} onChange={e => setWebsiteUrl(e.target.value)} type="url" />
+            <p className="text-xs text-muted-foreground">We&apos;ll auto-populate your address, hours, and contact info.</p>
+          </div>
         </div>
       )}
       <div className="flex gap-2 justify-between pt-4">
