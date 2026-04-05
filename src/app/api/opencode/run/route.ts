@@ -9,16 +9,16 @@
  * Auth: Bearer CRON_SECRET (same secret used by all internal agent endpoints)
  *
  * Body:
- *   { prompt: string, model?: string, sessionId?: string }
+ *   { prompt: string, model?: string }
  *
  * Response:
- *   { success: true, result: string, model: string, sessionId: string }
+ *   { success: true, result: string, model: string }
  *
  * Models (set via `model` field):
- *   zen/big-pickle        — free, default
- *   zen/mimo-v2-pro       — free, stronger reasoning
- *   zen/kimi-k24          — free, long context
- *   anthropic/claude-sonnet-4-6 — premium (billed against CLAUDE_API_KEY)
+ *   google/gemini-2.0-flash      — fast, cheap (default)
+ *   google/gemini-2.5-pro        — most capable Google
+ *   anthropic/claude-haiku-4-5   — fast, cheap Anthropic
+ *   anthropic/claude-sonnet-4-6  — most capable Anthropic (billed)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -27,15 +27,14 @@ import { logger } from '@/lib/logger';
 const CRON_SECRET = process.env.CRON_SECRET;
 const OPENCODE_AGENT_URL = process.env.OPENCODE_AGENT_URL;
 
-const DEFAULT_MODEL = 'zen/big-pickle';
-// 55s — stays under Next.js 60s default route timeout, giving polling room to finish
+const DEFAULT_MODEL = 'google/gemini-2.0-flash';
+// 55s — stays under Next.js 60s default route timeout
 const OPENCODE_TIMEOUT_MS = 55_000;
-const POLL_INTERVAL_MS = 4_000; // 4s interval → max ~13 polls within timeout window
 
 // Precompute Basic auth header once at module init (password is static per instance)
 const OPENCODE_HEADERS: Record<string, string> = (() => {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    const password = process.env.OPENCODE_SERVER_PASSWORD;
+    const password = (process.env.OPENCODE_SERVER_PASSWORD ?? '').replace(/[\r\n]/g, '');
     if (password) {
         headers['Authorization'] = `Basic ${Buffer.from(`opencode:${password}`).toString('base64')}`;
     }
@@ -59,7 +58,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Opencode agent not configured' }, { status: 503 });
     }
 
-    let body: { prompt: string; model?: string; sessionId?: string };
+    let body: { prompt: string; model?: string };
     try {
         body = await request.json();
     } catch {
@@ -71,49 +70,30 @@ export async function POST(request: NextRequest) {
     }
 
     const model = body.model ?? DEFAULT_MODEL;
-    const sessionId = body.sessionId ?? crypto.randomUUID();
 
     logger.info('[opencode] Dispatching task', {
         model,
-        sessionId,
         promptPreview: body.prompt.slice(0, 100),
     });
 
     try {
-        // Create a session in the opencode server
-        const sessionRes = await fetch(`${OPENCODE_AGENT_URL}/session`, {
+        const res = await fetch(`${OPENCODE_AGENT_URL}/run`, {
             method: 'POST',
             headers: OPENCODE_HEADERS,
-            body: JSON.stringify({ id: sessionId }),
-            signal: AbortSignal.timeout(10_000),
-        });
-
-        if (!sessionRes.ok) {
-            const err = await sessionRes.text();
-            logger.error('[opencode] Failed to create session', { status: sessionRes.status, err });
-            return NextResponse.json({ error: 'Failed to create opencode session' }, { status: 502 });
-        }
-
-        // Send the prompt as a message to the session
-        const msgRes = await fetch(`${OPENCODE_AGENT_URL}/session/${sessionId}/message`, {
-            method: 'POST',
-            headers: OPENCODE_HEADERS,
-            body: JSON.stringify({ role: 'user', parts: [{ type: 'text', text: body.prompt }] }),
+            body: JSON.stringify({ prompt: body.prompt, model }),
             signal: AbortSignal.timeout(OPENCODE_TIMEOUT_MS),
         });
 
-        if (!msgRes.ok) {
-            const err = await msgRes.text();
-            logger.error('[opencode] Failed to send message', { status: msgRes.status, err });
-            return NextResponse.json({ error: 'Opencode message failed' }, { status: 502 });
+        if (!res.ok) {
+            const err = await res.text();
+            logger.error('[opencode] Cloud Run returned error', { status: res.status, err });
+            return NextResponse.json({ error: `Opencode error: ${err}` }, { status: 502 });
         }
 
-        // Poll for completion — opencode queues the response, we collect the final assistant message
-        const result = await pollForCompletion(sessionId, OPENCODE_TIMEOUT_MS);
+        const data: { result: string; model: string; exitCode: number } = await res.json();
 
-        logger.info('[opencode] Task complete', { sessionId, model, resultLength: result.length });
-
-        return NextResponse.json({ success: true, result, model, sessionId });
+        logger.info('[opencode] Task complete', { model, resultLength: data.result.length });
+        return NextResponse.json({ success: true, result: data.result, model: data.model });
     } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         logger.error('[opencode] Unexpected error', { error: message });
@@ -121,66 +101,19 @@ export async function POST(request: NextRequest) {
     }
 }
 
-// Also support GET to mirror cron pattern (health checks)
+// Health check — proxies to Cloud Run /health
 export async function GET() {
     if (!OPENCODE_AGENT_URL) {
         return NextResponse.json({ status: 'unconfigured' }, { status: 503 });
     }
     try {
-        const res = await fetch(`${OPENCODE_AGENT_URL}/app`, {
+        const res = await fetch(`${OPENCODE_AGENT_URL}/health`, {
             headers: OPENCODE_HEADERS,
             signal: AbortSignal.timeout(5_000),
         });
-        const healthy = res.ok;
-        return NextResponse.json({ status: healthy ? 'healthy' : 'degraded' }, { status: healthy ? 200 : 502 });
+        const data = await res.json();
+        return NextResponse.json(data, { status: res.ok ? 200 : 502 });
     } catch {
         return NextResponse.json({ status: 'unreachable' }, { status: 503 });
     }
-}
-
-// ── Helpers ────────────────────────────────────────────────────────────────────
-
-/**
- * Poll the opencode session until we get an assistant message.
- * Logs transient fetch failures so they're visible in Cloud Logging.
- */
-async function pollForCompletion(sessionId: string, timeoutMs: number): Promise<string> {
-    const startMs = Date.now();
-
-    while (Date.now() - startMs < timeoutMs) {
-        await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
-
-        let res: Response;
-        try {
-            res = await fetch(`${OPENCODE_AGENT_URL}/session/${sessionId}/message`, {
-                headers: OPENCODE_HEADERS,
-                signal: AbortSignal.timeout(10_000),
-            });
-        } catch (err) {
-            logger.warn('[opencode] Poll fetch failed, retrying', {
-                sessionId,
-                error: err instanceof Error ? err.message : String(err),
-            });
-            continue;
-        }
-
-        if (!res.ok) {
-            logger.warn('[opencode] Poll returned non-OK', { sessionId, status: res.status });
-            continue;
-        }
-
-        const messages: Array<{ role: string; parts: Array<{ type: string; text?: string }> }> = await res.json();
-        const assistantMessages = messages.filter(m => m.role === 'assistant');
-
-        if (assistantMessages.length > 0) {
-            const last = assistantMessages[assistantMessages.length - 1];
-            const text = last.parts
-                .filter(p => p.type === 'text' && p.text)
-                .map(p => p.text)
-                .join('\n');
-            if (text) return text;
-        }
-    }
-
-    return '[opencode] Task timed out — the prompt may need to be broken into smaller steps.';
 }
