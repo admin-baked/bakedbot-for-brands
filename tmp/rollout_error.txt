@@ -1,0 +1,28 @@
+﻿[36m[1mi [22m[39m You are about to deploy [15f5d2a]: chore: remove 7 dead tool files with zero import references
+[36m[1mi [22m[39m You may also track this rollout at:
+	https://console.firebase.google.com/project/studio-567050101-bc6e8/apphosting
+node.exe : - Starting a 
+new rollout; this may 
+take a few minutes. It's 
+safe to exit now.
+At C:\Users\marte\AppData\
+Roaming\npm\firebase.ps1:2
+4 char:5
++     & "node$exe"  "$base
+dir/node_modules/firebase-
+tools/lib/bin/fireb ...
++     ~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo        
+      : NotSpecified: (-  
+   Starting a ne...fe t   
+ o exit now.:String) [    
+], RemoteException
+    + FullyQualifiedError 
+   Id : NativeCommandErr  
+  or
+ 
+Γ£û Rollout failed.
+
+[1m[31mError:[39m[22m Request to https://firebaseapphosting.googleapis.com/v1beta/projects/studio-567050101-bc6e8/locations/us-central1/backends/bakedbot-prod/builds?buildId=build-2026-04-04-025 had HTTP Error: 409, unable to queue the operation

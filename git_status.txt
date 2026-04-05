@@ -1,0 +1,38 @@
+interactive rebase in progress; onto 613274cf1
+Last command done (1 command done):
+   pick 242154719 # fix(build): resolve ts oom and type errors
+Next command to do (1 remaining command):
+   pick 62c722315 # fix(quality): narrow implicit any types in gemini api handlers
+  (use "git rebase --edit-todo" to view and edit)
+You are currently rebasing branch 'main' on '613274cf1'.
+  (fix conflicts and then run "git rebase --continue")
+  (use "git rebase --skip" to skip this patch)
+  (use "git rebase --abort" to check out the original branch)
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   package-lock.json
+	modified:   package.json
+	modified:   src/app/dashboard/settings/brand-guide/brand-guide-client.tsx
+	modified:   src/server/agents/craig.ts
+	modified:   src/server/agents/deebo-agent-impl.ts
+	modified:   src/server/agents/ezal.ts
+	modified:   src/server/agents/pops.ts
+	modified:   src/server/agents/smokey.ts
+	modified:   src/server/services/voice/gemini-live-service.ts
+
+Unmerged paths:
+  (use "git restore --staged <file>..." to unstage)
+  (use "git add <file>..." to mark resolution)
+	both modified:   src/server/actions/loyalty-tablet.ts
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+  (commit or discard the untracked or modified content in submodules)
+	modified:   kusho-cli (modified content)
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	git_status.txt
+

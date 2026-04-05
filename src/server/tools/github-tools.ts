@@ -10,6 +10,7 @@ import { logger } from '@/lib/logger';
 import { getSecret } from '@/server/utils/secrets';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { isGCPHealthyForDeploy } from '@/server/services/google-service-health';
 
 export const githubPushObjectSchema = z.object({
     files: z.array(z.string()).describe('Array of relative file paths from project root that have been modified or created'),
@@ -33,6 +34,16 @@ export async function executeGithubPush(params: GithubPushParams): Promise<strin
     try {
         const { files, commitMessage, branch = 'main' } = params;
         
+        // 0. CHECK GCP SYSTEM HEALTH
+        // Ensure the platform (Cloud Build, Cloud Run) is healthy before attempting a push.
+        // This prevents wasted build tokens if GCP is having verified incidents.
+        const gcpHealth = await isGCPHealthyForDeploy();
+        if (!gcpHealth.healthy) {
+            return `BLOCKED: Google Cloud Platform experienced an incident. 
+Reason: ${gcpHealth.reason}
+Please pause development and wait for resolution. Use the Get-System-Health tool for real-time status.`;
+        }
+
         if (!files || files.length === 0) {
             return 'Error: No files specified to commit.';
         }
@@ -162,6 +173,14 @@ export const githubCreatePrToolDef = {
 export async function executeGithubCreatePr(params: z.infer<typeof githubCreatePrToolDef.schema>): Promise<string> {
     try {
         const { branchName, files, commitMessage, prTitle, prBody } = params;
+
+        // 0. CHECK GCP SYSTEM HEALTH
+        const gcpHealth = await isGCPHealthyForDeploy();
+        if (!gcpHealth.healthy) {
+            return `BLOCKED: Google Cloud Platform experienced an incident. 
+Reason: ${gcpHealth.reason}
+Please pause development and wait for resolution. Use the Get-System-Health tool for real-time status.`;
+        }
         
         let token: string | undefined | null = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
         if (!token) token = await getSecret('GITHUB_TOKEN');

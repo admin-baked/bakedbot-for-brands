@@ -28,6 +28,8 @@ import {
 } from './agent-definitions';
 import { githubPushToolDef, executeGithubPush, GithubPushParams } from '../tools/github-tools';
 import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integration-status';
+import { getSystemHealthToolDef, executeGetSystemHealth } from '../tools/system-health-tools';
+import { isGCPHealthyForDeploy } from '@/server/services/google-service-health';
 
 // ============================================================================
 // SECURITY: HIGH-RISK COMMAND SAFETY CHECKS
@@ -1456,6 +1458,15 @@ const LINUS_TOOLS: ClaudeTool[] = [
                 }
             },
             required: ['query']
+        }
+    },
+    {
+        name: 'get_system_health',
+        description: 'Check real-time health status of Google Cloud Platform (GCP) and internal BakedBot systems. Always check this before suggesting code changes or deployments, especially if builds are failing or slow.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {},
+            required: []
         }
     },
     // Firebase Build Monitor Tools for Linus CTO
@@ -4300,6 +4311,14 @@ test('${scenario.slice(0, 50)}', async ({ page }) => {
             }
         }
 
+        case 'get_system_health': {
+            try {
+                return await executeGetSystemHealth();
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
         case 'build_monitor_get_last_status': {
             try {
                 const {
@@ -4724,6 +4743,13 @@ async function buildLinusSystemPrompt(orgId?: string): Promise<string> {
     }
     const squadRoster = buildSquadRoster('linus');
     const integrationStatus = await buildIntegrationStatusSummaryForOrg(orgId);
+    
+    // Check GCP Health for deployment awareness
+    const gcpHealth = await isGCPHealthyForDeploy();
+    const platformHealthSummary = `GCP Status: ${gcpHealth.healthy ? 'HEALTHY' : 'UNSTABLE (Incidents Detected)'}
+${gcpHealth.incidents.length > 0 
+  ? `Active critical incidents: ${gcpHealth.incidents.map(i => `${i.id}: ${i.title}`).join(', ')}` 
+  : 'No active critical infrastructure incidents.'}`;
 
     const prompt = `You are Linus, AI CTO of BakedBot. Welcome to the bridge.
 
@@ -4737,6 +4763,9 @@ ${squadRoster}
 
 === INTEGRATION STATUS ===
 ${integrationStatus}
+
+=== PLATFORM HEALTH ===
+${platformHealthSummary}
 
 === GROUNDING RULES (CRITICAL) ===
 You MUST follow these rules to avoid hallucination:
@@ -4778,6 +4807,7 @@ Use \`bash\` for:
 - Long-running builds with custom timeouts
 
 PUSHING CODE — PRODUCTION RULE (CRITICAL):
+- **GCP HEALTH GATE**: Check === PLATFORM HEALTH === before EVERY action. If GCP Status is "UNSTABLE", **STOP**. Do NOT suggest code changes, do NOT write files, and do NOT push to GitHub. Inform the user in Slack immediately that "GCP infrastructure is currently unstable. Deployments are BLOCKED to prevent build failures and token waste."
 The production server has NO git SSH/HTTPS credentials. \`bash git push\` or \`run_command git push\` will FAIL.
 Always use \`github_push_api\` to push changes via PR workflow:
 1. \`write_file\` — write the fixed file(s) to disk
@@ -4955,6 +4985,8 @@ function buildLinusProgressMessage(toolName: string, input: Record<string, unkno
             return `_Linus is browsing the web..._`;
         case 'run_e2e_test':
             return `_Linus is running E2E tests..._`;
+        case 'get_system_health':
+            return `_Linus is checking platform health status..._`;
         case 'check_qa_report':
         case 'file_qa_bug':
             return `_Linus is reviewing QA report..._`;

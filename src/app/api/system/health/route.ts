@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/firebase/admin';
+import { getActiveGCPIncidents, isGCPHealthyForDeploy } from '@/server/services/google-service-health';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 10;
@@ -58,9 +59,14 @@ export async function GET() {
         // Check if heartbeat is stale (more than 15 minutes old)
         const isStale = timestamp && (now.getTime() - timestamp.getTime() > 15 * 60 * 1000);
 
-        // Determine pulse status (prioritize system logs errors over heartbeat)
+        // Fetch active GCP incidents affecting our stack
+        const gcpHealth = await isGCPHealthyForDeploy();
+
+        // Determine pulse status (prioritize GCP incidents and system logs errors over heartbeat)
         let pulse: 'alive' | 'warning' | 'error' | 'unknown';
-        if (errorCount >= 10) {
+        if (!gcpHealth.healthy) {
+            pulse = 'error'; // Platform instability detected
+        } else if (errorCount >= 10) {
             pulse = 'error'; // Critical: 10+ errors in last 24h
         } else if (errorCount >= 5 || lastExecution?.overallStatus === 'has_errors') {
             pulse = 'warning'; // Warning: 5-9 errors or heartbeat error
@@ -90,8 +96,10 @@ export async function GET() {
             browserTasksProcessed: 0,
             browserTasksExecuted: 0,
             errors: errorCount,
+            gcpHealth,
+            gcpIncidents: gcpHealth.incidents,
             uptime,
-            healthy: pulse === 'alive',
+            healthy: pulse === 'alive' && gcpHealth.healthy,
         });
 
     } catch (error: any) {
