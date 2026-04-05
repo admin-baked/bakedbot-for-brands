@@ -210,6 +210,57 @@ async function sendViaOrgWorkspace(
 }
 
 // ─────────────────────────────────────────────────────────────
+// Per-org SES from-address resolution
+// Maps orgId → branded {slug}@bakedbot.ai sender identity
+// ─────────────────────────────────────────────────────────────
+
+const orgSesFromCache = new Map<string, { from: { email: string; name: string }; expiry: number }>();
+
+async function resolveOrgSesFrom(
+    orgId: string | undefined,
+    explicitEmail?: string,
+    explicitName?: string,
+): Promise<{ email: string; name: string }> {
+    // Caller-specified from address takes priority
+    if (explicitEmail) {
+        return { email: explicitEmail, name: explicitName ?? 'BakedBot' };
+    }
+
+    // No org → platform default
+    if (!orgId) {
+        return { email: 'team@bakedbot.ai', name: 'BakedBot' };
+    }
+
+    // Check cache
+    const cached = orgSesFromCache.get(orgId);
+    if (cached && cached.expiry > Date.now()) return cached.from;
+
+    try {
+        const firestore = getAdminFirestore();
+        const orgDoc = await firestore.collection('organizations').doc(orgId).get();
+        const orgData = orgDoc.data();
+        const brandId = orgData?.brandId as string | undefined;
+
+        if (brandId) {
+            const brandDoc = await firestore.collection('brands').doc(brandId).get();
+            const brandData = brandDoc.data();
+            const brandName = (brandData?.name as string) || brandId;
+            // Derive from-address: strip non-alphanumeric, lowercase → slug@bakedbot.ai
+            const slug = brandId.replace(/[^a-z0-9]/g, '');
+            const from = { email: `${slug}@bakedbot.ai`, name: brandName };
+            orgSesFromCache.set(orgId, { from, expiry: Date.now() + 300_000 }); // 5 min
+            return from;
+        }
+    } catch (e) {
+        logger.warn('[Dispatcher] Failed to resolve org SES from address', { orgId, error: e });
+    }
+
+    const fallback = { email: 'team@bakedbot.ai', name: 'BakedBot' };
+    orgSesFromCache.set(orgId, { from: fallback, expiry: Date.now() + 60_000 });
+    return fallback;
+}
+
+// ─────────────────────────────────────────────────────────────
 // Public API — unchanged shape, new routing logic
 // ─────────────────────────────────────────────────────────────
 
@@ -281,13 +332,14 @@ export async function sendGenericEmail(data: GenericEmailData): Promise<{ succes
         }
     }
 
-    // ── Route 4: Amazon SES platform fallback (preferred) ─────────────
+    // ── Route 4: Amazon SES (primary platform sender) ─────────────────
     if (process.env.AWS_SES_ACCESS_KEY_ID && process.env.AWS_SES_SECRET_ACCESS_KEY) {
         try {
+            const sesFrom = await resolveOrgSesFrom(data.orgId, data.fromEmail, data.fromName);
             await sendSesEmail({
                 to: data.to,
-                from: data.fromEmail ?? 'team@bakedbot.ai',
-                fromName: data.fromName ?? 'BakedBot',
+                from: sesFrom.email,
+                fromName: sesFrom.name,
                 subject: data.subject,
                 htmlBody: data.htmlBody,
                 textBody: data.textBody,

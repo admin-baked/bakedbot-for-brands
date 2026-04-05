@@ -191,10 +191,41 @@ export async function disconnectMailjet(): Promise<{ success: boolean }> {
     }
 }
 
-export async function sendTestEmail(type: 'workspace' | 'mailjet'): Promise<{ success: boolean; error?: string }> {
+export async function sendTestEmail(type: 'workspace' | 'mailjet' | 'ses'): Promise<{ success: boolean; error?: string }> {
     try {
         const user = await requireUser();
         const orgId = await resolveOrgId();
+
+        if (type === 'ses') {
+            const { sendSesEmail } = await import('@/lib/email/ses');
+            const { getAdminFirestore } = await import('@/firebase/admin');
+
+            if (!process.env.AWS_SES_ACCESS_KEY_ID || !process.env.AWS_SES_SECRET_ACCESS_KEY) {
+                return { success: false, error: 'AWS SES credentials not configured' };
+            }
+
+            // Resolve org brand for from-address
+            const firestore = getAdminFirestore();
+            const orgDoc = await firestore.collection('organizations').doc(orgId).get();
+            const brandId = orgDoc.data()?.brandId as string | undefined;
+            let fromEmail = 'team@bakedbot.ai';
+            let fromName = 'BakedBot';
+            if (brandId) {
+                const brandDoc = await firestore.collection('brands').doc(brandId).get();
+                fromName = (brandDoc.data()?.name as string) || brandId;
+                fromEmail = `${brandId.replace(/[^a-z0-9]/g, '')}@bakedbot.ai`;
+            }
+
+            await sendSesEmail({
+                to: user.email!,
+                from: fromEmail,
+                fromName,
+                subject: `BakedBot Email Test — Amazon SES (${fromName})`,
+                htmlBody: `<p>This is a test email from <strong>Amazon SES</strong> for <strong>${fromName}</strong>.</p><p>Sending as: <code>${fromEmail}</code></p><p>If you received this, SES is working correctly for your organization.</p>`,
+                textBody: `Test email from Amazon SES for ${fromName}. Sending as: ${fromEmail}. SES is working correctly.`,
+            });
+            return { success: true };
+        }
 
         const { sendGenericEmail } = await import('@/lib/email/dispatcher');
         return await sendGenericEmail({
