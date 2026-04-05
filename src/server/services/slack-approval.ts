@@ -54,12 +54,15 @@ export interface SlackPendingApproval {
 // Risk Detection
 // ============================================================================
 
+// Keywords that indicate the agent is *proposing* a risky external action.
+// These are only checked when the agent has NOT already executed tool calls
+// (if tools ran, the tool-call check below catches risky ones directly).
 const RISK_KEYWORDS = {
-    sms: ['send sms', 'send text', 'text message', 'bulk sms', 'sms campaign'],
-    email: ['send email', 'email campaign', 'blast', 'email newsletter'],
-    discount: ['discount', 'promo code', 'apply %', '% off', '% discount'],
-    delete: ['delete', 'remove customer', 'purge', 'erase'],
-    playbook: ['create playbook', 'automate', 'schedule campaign'],
+    sms: ['bulk sms', 'sms campaign', 'sending sms to customers', 'send text to all'],
+    email: ['email campaign', 'blast', 'email newsletter', 'sending email to customers'],
+    discount: ['apply % off', '% discount to all', 'bulk discount'],
+    delete: ['delete all', 'remove customer', 'purge', 'erase all'],
+    playbook: ['create playbook', 'schedule campaign'],
     browser_form: ['submit form', 'fill form', 'post deal', 'create deal', 'create banner', 'publish listing', 'create ad', 'launch campaign on'],
 };
 
@@ -80,23 +83,7 @@ export function detectRiskyAction(
         return { isRisky: false };
     }
 
-    const lowerContent = content.toLowerCase();
-
-    // Check for risky keywords in agent response
-    for (const [riskType, keywords] of Object.entries(RISK_KEYWORDS)) {
-        for (const keyword of keywords) {
-            if (lowerContent.includes(keyword)) {
-                return {
-                    isRisky: true,
-                    riskLevel: 'high',
-                    riskType,
-                    riskReason: `${riskType.charAt(0).toUpperCase() + riskType.slice(1)} action detected in response`,
-                };
-            }
-        }
-    }
-
-    // Check for risky tool calls
+    // 1. Check for risky tool calls first (most reliable signal)
     if (toolCalls && toolCalls.length > 0) {
         for (const toolCall of toolCalls) {
             if (RISKY_TOOLS.includes(toolCall.name)) {
@@ -105,6 +92,27 @@ export function detectRiskyAction(
                     riskLevel: 'high',
                     riskType: 'tool_call',
                     riskReason: `High-risk tool invoked: ${toolCall.name}`,
+                };
+            }
+        }
+        // If tools ran but none were risky, the agent already acted via tools —
+        // don't false-positive on keywords in the conversational summary.
+        return { isRisky: false };
+    }
+
+    // 2. No tool calls — scan content for risky *proposals* (agent describing
+    //    what it wants to do next). Keywords are intentionally narrow to avoid
+    //    flagging status updates that merely mention SMS/email features.
+    const lowerContent = content.toLowerCase();
+
+    for (const [riskType, keywords] of Object.entries(RISK_KEYWORDS)) {
+        for (const keyword of keywords) {
+            if (lowerContent.includes(keyword)) {
+                return {
+                    isRisky: true,
+                    riskLevel: 'high',
+                    riskType,
+                    riskReason: `${riskType.charAt(0).toUpperCase() + riskType.slice(1)} action detected in response`,
                 };
             }
         }

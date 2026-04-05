@@ -3615,7 +3615,7 @@ test('${scenario.slice(0, 50)}', async ({ page }) => {
 
         case 'set_agent_model_tier': {
             const tier = String(input.tier ?? '').trim() as ModelTier;
-            const userId = context?.userId ?? 'linus';
+            const userId = 'linus';
             const config = await setAgentModelTier(tier, userId);
             return {
                 success: true,
@@ -5081,6 +5081,7 @@ User Request: ${request.prompt}`;
                             model: 'google/gemini-2.0-flash',
                             inputTokens: 0,
                             outputTokens: 0,
+                            cachedTokens: 0,
                         };
                     }
                     break;

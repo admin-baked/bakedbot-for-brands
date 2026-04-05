@@ -823,6 +823,7 @@ export async function runElroy(request: ElroyRequest): Promise<ElroyResponse> {
                             model: 'google/gemini-2.0-flash',
                             inputTokens: 0,
                             outputTokens: 0,
+                            cachedTokens: 0,
                         };
                     }
                     break;
