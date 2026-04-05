@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; dispensary auto-enrichment on signup (Firecrawl → brand doc); SES email; config-driven model tiers | **Last update:** 2026-04-05 (dispensary auto-enrich `0d34c4f70`)
+**Current Status:** 🟢 `main` green; CI report filters cannabis-only deals + actionable recs; dispensary auto-enrichment; SES email; config-driven model tiers | **Last update:** 2026-04-05 (CI report quality `f834dc95a`)
 
 ---
 

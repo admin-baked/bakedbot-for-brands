@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; dispensary auto-enrichment on signup; SES email; config-driven model tiers; SP13 Opencode live.
-**Recent work (2026-04-05):** Dispensary auto-enrich from website URL on signup — brand doc + Firecrawl enrichment job (`0d34c4f70`).
+**Current Status:** 🟢 `main` green; CI report cannabis-only filtering + actionable recs; dispensary auto-enrichment; SES email; config-driven model tiers.
+**Recent work (2026-04-05):** CI report quality — filter top deals to cannabis categories, deduplicate, category pricing breakdown, competitor-specific recs (`f834dc95a`).
 
 ## ðŸ§­ CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 
