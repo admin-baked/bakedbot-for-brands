@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; Claude cost fix (Haiku default, Opus opt-in); 3-tier agent fallback (GLM→Claude→Gemini); SP13 Opencode live | **Last update:** 2026-04-05 (cost optimization `40a9dfc90`)
+**Current Status:** 🟢 `main` green; config-driven model tiers (GLM→Gemini→Haiku→Sonnet); Linus `set_agent_model_tier` tool live; SP13 Opencode live | **Last update:** 2026-04-05 (model tiers `337772891`)
 
 ---
 
