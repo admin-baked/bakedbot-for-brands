@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; Competitor Price Match card live; Simply Pure Trenton + Lakeshore Cannabis Club pilot accounts created | **Last update:** 2026-04-04 (pilots + price match card `e82162d12`)
+**Current Status:** 🟢 `main` green; SP13 Opencode Cloud Run live (direct Anthropic/Gemini API, no opencode CLI); tablet recs + phone normalization fix | **Last update:** 2026-04-05 (opencode SP13 `292cf81de`)
 
 ---
 

@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; Competitor Price Match card live (Ezal); Simply Pure Trenton + Lakeshore Cannabis Club pilot accounts seeded.
-**Recent work (2026-04-04):** Price match briefing card + 2 new pilot orgs + setup script (`e82162d12`).
+**Current Status:** 🟢 `main` green; SP13 Opencode Cloud Run live (direct Anthropic/Gemini API server, not opencode CLI); tablet recs + phone normalization fix.
+**Recent work (2026-04-05):** Opencode SP13 rewrite — `server.mjs` calls APIs directly, strips `\r\n` from Cloud Run secrets (`292cf81de`).
 
 ## ðŸ§­ CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 
