@@ -63,6 +63,7 @@ import { InboxBundleCard } from './artifacts/bundle-card';
 import { InboxCreativeCard } from './artifacts/creative-card';
 import { InboxIntegrationCard } from './artifacts/integration-card';
 import { InboxResearchCard } from './artifacts/inbox-research-card';
+import { PriceMatchCard } from './artifacts/price-match-card';
 import type { ExecProactiveCheckData } from './artifacts/executive-proactive-check-artifact';
 import { InboxTaskFeed } from './inbox-task-feed';
 import { QRCodeGeneratorInline } from './qr-code-generator-inline';
@@ -493,6 +494,8 @@ function ArtifactPreviewCard({ artifact }: { artifact: InboxArtifact }) {
             return <InboxIntegrationCard artifact={artifact} />;
         case 'research_report':
             return <InboxResearchCard artifact={artifact} />;
+        case 'competitor_price_match':
+            return <PriceMatchCard artifact={artifact} />;
         case 'vm_run':
             return (
                 <div className="rounded-lg border border-white/10 bg-white/5 p-3">

@@ -10,6 +10,8 @@ import { logger } from '@/lib/logger';
 
 // --- Customer Ground Truth Imports ---
 import { thriveGroundTruth, THRIVE_SYRACUSE_BRAND_ID } from './customers/thrive-syracuse';
+import { simplyPureTrentonGroundTruth, SIMPLY_PURE_TRENTON_BRAND_ID } from './customers/simply-pure-trenton';
+import { lakeshoreCannabisClubGroundTruth, LAKESHORE_CANNABIS_CLUB_BRAND_ID } from './customers/lakeshore-cannabis-club';
 
 // Re-export builder utilities
 export {
@@ -39,8 +41,8 @@ export type { GroundTruthQASet, GroundTruthQAPair, GroundTruthCategory } from '@
  */
 export const GROUND_TRUTH_REGISTRY: Record<string, GroundTruthQASet> = {
     [THRIVE_SYRACUSE_BRAND_ID]: thriveGroundTruth,
-    // Add more pilot customers as they onboard:
-    // 'nextcustomer': nextCustomerGroundTruth,
+    [SIMPLY_PURE_TRENTON_BRAND_ID]: simplyPureTrentonGroundTruth,
+    [LAKESHORE_CANNABIS_CLUB_BRAND_ID]: lakeshoreCannabisClubGroundTruth,
 };
 
 /**

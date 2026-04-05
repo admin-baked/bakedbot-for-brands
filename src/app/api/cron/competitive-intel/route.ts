@@ -15,9 +15,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { refreshCompetitiveIntelWorkspace } from '@/server/services/ezal';
+import { PriceMatchInsightsGenerator } from '@/server/services/insights/generators/price-match-insights-generator';
 import { logger } from '@/lib/logger';
 
 export const maxDuration = 300; // 5 minutes
+
+export async function GET(request: NextRequest) { return POST(request); }
 
 export async function POST(request: NextRequest) {
     // Verify CRON_SECRET
@@ -51,6 +54,14 @@ export async function POST(request: NextRequest) {
             deals: result.report?.totalDealsTracked,
         });
 
+        // Generate price match opportunities card (Ezal's flagship feature)
+        const priceMatchCount = await new PriceMatchInsightsGenerator(orgId).generate();
+
+        logger.info('[CompetitiveIntelCron] Price match opportunities generated', {
+            orgId,
+            opportunities: priceMatchCount,
+        });
+
         return NextResponse.json({
             success: true,
             reportId: result.report?.id,
@@ -60,6 +71,7 @@ export async function POST(request: NextRequest) {
             sourcesUpdated: result.sourcesUpdated,
             totalDeals: result.report?.totalDealsTracked || 0,
             totalSnapshots: result.report?.totalSnapshots || 0,
+            priceMatchOpportunities: priceMatchCount,
             generatedAt: result.report?.generatedAt || null,
         });
 
