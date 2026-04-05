@@ -189,6 +189,24 @@ const ELROY_TOOLS: ClaudeTool[] = [
 
     // ---- RTRVR Browser Automation (Weedmaps, AIQ, external sites) ----
     {
+        name: 'ask_opencode',
+        description: 'Delegate a coding or technical analysis task to the BakedBot AI coding agent (SP13). Use this when you need to generate code, write a Firestore query, analyze a data structure, or answer a technical question that goes beyond your store-ops tools. Responds in seconds using Gemini Flash.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                prompt: {
+                    type: 'string',
+                    description: 'The coding or technical task to delegate. Be specific — include context about what the output should do.',
+                },
+                model: {
+                    type: 'string',
+                    description: 'Optional model override. Defaults to google/gemini-2.0-flash. Use anthropic/claude-sonnet-4-6 for complex multi-file analysis.',
+                },
+            },
+            required: ['prompt'],
+        },
+    },
+    {
         name: 'discovery_browser_automate',
         description: 'Execute a browser automation task on external sites (Weedmaps, AIQ, competitor sites). Navigate pages, click buttons, extract data. Use for reading deals, checking listings, or gathering competitive intel.',
         input_schema: {
@@ -560,6 +578,38 @@ async function elroyToolExecutor(toolName: string, input: Record<string, unknown
             };
         }
 
+        case 'ask_opencode': {
+            const prompt = String(input.prompt ?? '').trim();
+            if (!prompt) return { error: 'prompt is required' };
+            const model = typeof input.model === 'string' ? input.model : undefined;
+
+            const baseUrl = process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+            const cronSecret = process.env.CRON_SECRET;
+            if (!cronSecret) return { error: 'Opencode not configured (missing CRON_SECRET)' };
+
+            logger.info('[Elroy] Delegating task to opencode', { promptPreview: prompt.slice(0, 80) });
+
+            const res = await fetch(`${baseUrl}/api/opencode/run`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${cronSecret}`,
+                },
+                body: JSON.stringify({ prompt, ...(model ? { model } : {}) }),
+                signal: AbortSignal.timeout(60_000),
+            });
+
+            if (!res.ok) {
+                const err = await res.text();
+                logger.error('[Elroy] Opencode request failed', { status: res.status, err });
+                return { error: `Opencode error (${res.status}): ${err.slice(0, 200)}` };
+            }
+
+            const data = await res.json() as { result: string; model: string };
+            logger.info('[Elroy] Opencode response received', { model: data.model, length: data.result.length });
+            return { result: data.result, model: data.model };
+        }
+
         default:
             return { error: `Unknown tool: ${toolName}` };
     }
@@ -593,6 +643,7 @@ When discussing inventory, flag anything on sale or with high stock that could m
 When citing competitor intel, note how fresh it is.
 For real-time or "right now" competitor questions (current prices, today's deals), use run_competitive_agent — it runs a live web research sweep via Firecrawl AI. It takes 30–90 seconds. Use get_competitor_intel for quick cached weekly data.
 For holiday or special hours questions ("Are competitors open on Easter?", "What are the hours for Memorial Day?"), ALWAYS use get_competitor_holiday_hours first — it pulls authoritative data from Google Places and is faster and more reliable than Firecrawl for hours.
+For coding or technical questions ("write me a query", "generate a script", "analyze this data structure"), use ask_opencode — it delegates to the BakedBot AI coding agent and responds in seconds.
 
 EXTERNAL SITE MANAGEMENT (Weedmaps, AIQ, WordPress):
 You can browse, extract data from, and fill forms on external sites using your browser tools.
@@ -639,6 +690,7 @@ const ELROY_AGENT_CONTEXT: AgentContext = {
         'get_recent_transactions — latest order history',
         'get_sales_summary — today vs yesterday vs 7-day avg',
         'get_competitor_holiday_hours — Google Places hours for Syracuse competitors around holidays',
+        'ask_opencode — delegate coding/technical tasks to BakedBot AI coding agent (SP13)',
         'discovery_browser_automate — browse external sites (Weedmaps, AIQ, WordPress, competitors)',
         'discovery_fill_form — fill and submit forms (deals, campaigns, WP content)',
         'discovery_extract_data — extract structured data from any webpage',
@@ -649,6 +701,7 @@ const ELROY_AGENT_CONTEXT: AgentContext = {
         'Cite days-inactive and LTV when listing at-risk customers',
         'Flag staleness when reporting competitor intel',
         'For "right now" or "today" competitor questions, use run_competitive_agent (live, 30–90s) over get_competitor_intel (cached)',
+        'For coding/technical questions, use ask_opencode to delegate to SP13',
         'For revenue/sales questions, use get_daily_sales or get_sales_summary',
         'For product performance questions, use get_top_sellers',
         'Always include the asOf timestamp when reporting today\'s sales',
