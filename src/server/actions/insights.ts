@@ -1113,7 +1113,7 @@ async function buildLatestCiCard(orgId: string): Promise<InsightCard> {
         if (report) {
             const competitors = report.competitors ?? [];
             const insights = report.insights ?? {};
-            const topDeals: Array<{ competitorName: string; dealName: string; price: number; discount?: string }> = insights.topDeals ?? [];
+            const topDeals: Array<{ competitorName: string; dealName: string; price: number; discount?: string; category?: string }> = insights.topDeals ?? [];
             const pricingGaps: Array<{ category: string; opportunity: string; marketPosition: string }> = insights.pricingGaps ?? [];
             const marketTrends: string[] = insights.marketTrends ?? [];
             const recommendations: string[] = insights.recommendations ?? [];

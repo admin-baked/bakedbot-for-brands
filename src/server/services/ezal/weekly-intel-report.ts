@@ -92,6 +92,7 @@ interface DealInsight {
     price: number;
     discount?: string;
     dayOfWeek?: string;
+    category?: string;
 }
 
 interface PricingGap {
@@ -109,6 +110,35 @@ interface SnapshotOffer {
 }
 
 const COLLECTION = 'weekly_reports';
+
+// Cannabis product categories that drive foot traffic — accessories, papers, wraps excluded
+const HIGH_TRAFFIC_CATEGORIES = new Set([
+    'flower', 'pre-roll', 'preroll', 'pre_roll', 'vape', 'cartridge',
+    'edible', 'gummy', 'concentrate', 'tincture', 'topical',
+]);
+
+/** Deduplicate offers by competitor+name, keeping the lowest price */
+function deduplicateOffers<T extends { name: string; price: number }>(
+    offers: (T & { competitorName?: string })[],
+): (T & { competitorName?: string })[] {
+    const seen = new Map<string, T & { competitorName?: string }>();
+    for (const offer of offers) {
+        const key = `${(offer.competitorName ?? '')}::${offer.name}`.toLowerCase();
+        const existing = seen.get(key);
+        if (!existing || offer.price < existing.price) {
+            seen.set(key, offer);
+        }
+    }
+    return Array.from(seen.values());
+}
+
+/** Filter to high-traffic cannabis categories, fallback to all if none match */
+function filterHighTraffic<T extends { category?: string }>(items: T[]): T[] {
+    const normalize = (s: string) => s.toLowerCase().replace(/[\s_-]+/g, '-');
+    const normalized = new Set(Array.from(HIGH_TRAFFIC_CATEGORIES).map(normalize));
+    const filtered = items.filter(d => normalized.has(normalize(d.category || '')));
+    return filtered.length > 0 ? filtered : items;
+}
 
 function getSnapshotOffers(snapshot: CompetitorSnapshot): SnapshotOffer[] {
     if (snapshot.deals.length > 0) {
@@ -159,8 +189,10 @@ export async function generateWeeklyIntelReport(
         const compSnapshots = snapshots.filter(s => s.competitorId === summary.competitorId);
         const allOffers = compSnapshots.flatMap(getSnapshotOffers);
         
-        // Get top deals (lowest prices with highest discounts)
-        const topDeals = allOffers
+        // Get top deals — filter to cannabis products, deduplicate, then cheapest 5
+        const relevantOffers = filterHighTraffic(allOffers);
+        const uniqueOffers = deduplicateOffers(relevantOffers);
+        const topDeals = uniqueOffers
             .sort((a, b) => (a.price || 0) - (b.price || 0))
             .slice(0, 5)
             .map((offer) => ({
@@ -192,7 +224,10 @@ export async function generateWeeklyIntelReport(
         competitorName: snapshot.competitorName,
     })));
 
-    const topDeals = allDeals
+    // Filter to cannabis products, deduplicate across snapshots, then cheapest 10
+    const relevantDeals = filterHighTraffic(allDeals);
+    const uniqueDeals = deduplicateOffers(relevantDeals);
+    const topDeals = uniqueDeals
         .sort((a, b) => (a.price || 0) - (b.price || 0))
         .slice(0, 10)
         .map((offer) => ({
@@ -200,6 +235,7 @@ export async function generateWeeklyIntelReport(
             dealName: offer.name,
             price: offer.price,
             discount: offer.discount,
+            category: offer.category,
         }));
 
     const pricingGaps = calculatePricingGaps(competitorSections);
@@ -545,15 +581,42 @@ function generateMarketTrends(
         trends.push('Market trend: Heavy discounting across competitors.');
     }
 
-    // Category trends
-    const categories = new Set<string>();
+    // Category-level pricing breakdown (cannabis products only)
+    const categoryPrices: Record<string, { prices: number[]; cheapestComp: string; cheapestPrice: number }> = {};
     for (const snap of snapshots) {
         for (const offer of getSnapshotOffers(snap)) {
-            if (offer.category) categories.add(offer.category);
+            const cat = (offer.category || '').toLowerCase();
+            if (!cat || !HIGH_TRAFFIC_CATEGORIES.has(cat)) continue;
+            if (!categoryPrices[cat]) categoryPrices[cat] = { prices: [], cheapestComp: '', cheapestPrice: Infinity };
+            categoryPrices[cat].prices.push(offer.price);
+            if (offer.price < categoryPrices[cat].cheapestPrice) {
+                categoryPrices[cat].cheapestPrice = offer.price;
+                categoryPrices[cat].cheapestComp = snap.competitorName || 'Unknown';
+            }
         }
     }
-    if (categories.size > 0) {
-        trends.push(`Active categories: ${Array.from(categories).slice(0, 5).join(', ')}.`);
+
+    const catEntries = Object.entries(categoryPrices)
+        .filter(([, v]) => v.prices.length >= 2)
+        .sort((a, b) => b[1].prices.length - a[1].prices.length);
+
+    if (catEntries.length > 0) {
+        const parts = catEntries.slice(0, 4).map(([cat, v]) => {
+            const avg = (v.prices.reduce((s, p) => s + p, 0) / v.prices.length).toFixed(0);
+            return `${cat} avg $${avg} (${v.cheapestComp} lowest at $${v.cheapestPrice.toFixed(0)})`;
+        });
+        trends.push(`Category pricing: ${parts.join('; ')}.`);
+    } else {
+        // Fallback to simple category list
+        const categories = new Set<string>();
+        for (const snap of snapshots) {
+            for (const offer of getSnapshotOffers(snap)) {
+                if (offer.category) categories.add(offer.category);
+            }
+        }
+        if (categories.size > 0) {
+            trends.push(`Active categories: ${Array.from(categories).slice(0, 5).join(', ')}.`);
+        }
     }
 
     return trends;
@@ -589,20 +652,31 @@ function generateRecommendations(
         }
     }
 
-    // Based on pricing gaps
-    const hasDiscountThreat = sections.some(s => s.priceStrategy === 'discount');
-    if (hasDiscountThreat) {
-        recommendations.push('Consider a "Daily Deal" feature to compete with budget-focused competitors.');
+    // Specific discount threats — name the competitor and quantify
+    const discountThreats = sections
+        .filter(s => s.priceStrategy === 'discount')
+        .sort((a, b) => b.dealCount - a.dealCount);
+    if (discountThreats.length > 0) {
+        const top = discountThreats[0];
+        recommendations.push(
+            `${top.competitorName} is running ${top.dealCount} deals with a discount pricing strategy (avg $${top.avgDealPrice.toFixed(0)}). Consider matching their top flower/vape deals this week.`
+        );
     }
 
-    // Based on competitor count
-    if (sections.length >= 3) {
-        recommendations.push('With 3+ competitors tracked, focus on differentiation through customer experience.');
+    // Volume leader — who has the most offers?
+    const sorted = [...sections].sort((a, b) => b.dealCount - a.dealCount);
+    if (sorted.length >= 2 && sorted[0].dealCount > sorted[1].dealCount * 1.5) {
+        recommendations.push(
+            `${sorted[0].competitorName} leads with ${sorted[0].dealCount} active deals — ${Math.round(sorted[0].dealCount / Math.max(sorted[1].dealCount, 1))}x more than ${sorted[1].competitorName}. Their aggressive inventory suggests customer acquisition push.`
+        );
     }
 
-    // General best practices
-    if (sections.some(s => s.dealCount > 10)) {
-        recommendations.push('Competitors are running multiple deals. Consider a loyalty program to retain customers.');
+    // Premium positioning opportunity
+    const premiumComp = sections.find(s => s.priceStrategy === 'premium');
+    if (premiumComp && discountThreats.length > 0) {
+        recommendations.push(
+            `${premiumComp.competitorName} charges premium ($${premiumComp.avgDealPrice.toFixed(0)} avg) while ${discountThreats[0].competitorName} discounts ($${discountThreats[0].avgDealPrice.toFixed(0)} avg). Position between them to capture value-conscious shoppers.`
+        );
     }
 
     return recommendations.length > 0 ? recommendations : ['Continue monitoring - not enough data for specific recommendations.'];
@@ -1119,12 +1193,12 @@ function formatReportAsMarkdown(report: Omit<WeeklyIntelReport, 'id'>): string {
     }
     md += `\n`;
 
-    // Top deals across market
-    md += `## Top 10 Deals This Week\n\n`;
-    md += `| Competitor | Deal | Price |\n`;
-    md += `|------------|------|-------|\n`;
+    // Top deals across market (cannabis products only, deduplicated)
+    md += `## Top 10 Competitor Deals This Week\n\n`;
+    md += `| Competitor | Category | Deal | Price |\n`;
+    md += `|------------|----------|------|-------|\n`;
     for (const deal of report.insights.topDeals.slice(0, 10)) {
-        md += `| ${deal.competitorName} | ${deal.dealName} | $${deal.price.toFixed(2)} |\n`;
+        md += `| ${deal.competitorName} | ${deal.category ?? '-'} | ${deal.dealName} | $${deal.price.toFixed(2)} |\n`;
     }
     md += `\n`;
 
