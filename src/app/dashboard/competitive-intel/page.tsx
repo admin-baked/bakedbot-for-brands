@@ -31,6 +31,7 @@ import {
 import type { CompetitorSnapshot } from './actions';
 import { CompetitorSetupWizard } from '../intelligence/components/competitor-setup-wizard';
 import { AgentOwnerBadge } from '@/components/dashboard/agent-owner-badge';
+import { CannMenusAttribution } from '@/components/ui/cannmenus-attribution';
 
 function formatDate(date: Date) {
     if (!date || date.getTime() === 0) return 'Never';
@@ -507,6 +508,10 @@ export default function CompetitiveIntelPage() {
                         </CardContent>
                     </Card>
                 </div>
+            </div>
+
+            <div className="flex justify-center pt-2">
+                <CannMenusAttribution />
             </div>
         </div>
     );

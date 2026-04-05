@@ -27,6 +27,7 @@ import { WiringScreen } from '@/app/dashboard/settings/link/components/wiring-sc
 import { MenuImportStep } from './components/menu-import-step';
 import { checkOnboardingStatus } from './status-action';
 import { AnimatePresence } from 'framer-motion';
+import { CannMenusAttribution } from '@/components/ui/cannmenus-attribution';
 import { useFirebase } from '@/firebase/provider';
 import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword } from 'firebase/auth';
 import {
@@ -484,6 +485,9 @@ export default function OnboardingPage() {
         <Button variant="link" size="sm" onClick={handleGoToManual} className="text-muted-foreground">
           Can&apos;t find it? Add manually.
         </Button>
+      </div>
+      <div className="flex justify-center pt-2">
+        <CannMenusAttribution compact />
       </div>
     </section>
   );
