@@ -182,9 +182,17 @@ export interface FinderTools {
   searchWeb?(query: string): Promise<string>;
 }
 
+export interface FirecrawlAction {
+  type: 'click' | 'write' | 'wait' | 'press' | 'scrape' | 'screenshot';
+  selector?: string;
+  text?: string;
+  milliseconds?: number;
+  key?: string;
+}
+
 export interface ScraperTools {
-  /** Scrape a URL using Firecrawl */
-  firecrawlScrape?(url: string, options?: { formats?: string[] }): Promise<FirecrawlScrapeResult>;
+  /** Scrape a URL using Firecrawl, with optional browser actions for age gates and logins */
+  firecrawlScrape?(url: string, options?: { formats?: string[]; actions?: FirecrawlAction[] }): Promise<FirecrawlScrapeResult>;
   /** Scrape and extract products using RTRVR browser automation */
   rtrvrScrape?(url: string, extractionPrompt?: string): Promise<RTRVRScrapeResult>;
   /** Parse menu HTML using existing parser engine */

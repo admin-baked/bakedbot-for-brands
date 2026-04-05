@@ -12,6 +12,7 @@ import {
   ScraperResult,
   ScrapedCompetitor,
   EzalPipelineState,
+  FirecrawlAction,
 } from './types';
 import { z } from 'zod';
 import { ai } from '@/ai/genkit';
@@ -27,8 +28,8 @@ You are the SCRAPER - the second step in the Ezal Competitive Intelligence pipel
 YOUR MISSION: Extract structured product/pricing data from competitor URLs.
 
 STRATEGY:
-1. Primary: Use RTRVR browser automation for JavaScript-heavy menus (Dutchie, iHeartJane)
-2. Fallback: Use Firecrawl for static content
+1. Primary: Use Firecrawl with age-gate actions (handles Dutchie, iHeartJane, and most cannabis menus)
+2. Fallback: Use RTRVR browser automation for pages Firecrawl cannot render
 3. Parse content to extract products, prices, categories
 
 DATA TO EXTRACT FOR EACH PRODUCT:
@@ -72,9 +73,25 @@ export async function runScraperAgent(
   let failureCount = 0;
   let totalProducts = 0;
 
-  // Determine scraping order based on preference
-  const preferRtrvr = tools.preferredBackend === 'rtrvr' ||
-    (tools.preferredBackend === 'auto' && tools.rtrvrScrape);
+  // Age-gate actions for cannabis menu platforms (Dutchie, iHeartJane, Weedmaps, etc.)
+  const AGE_GATE_ACTIONS: FirecrawlAction[] = [
+    {
+      type: 'click',
+      selector: [
+        '[data-testid="age-gate-yes"]',
+        '.age-gate__button--yes',
+        '[class*="ageGate"] button',
+        '[id*="age-gate"] button',
+        'button[class*="age-verif"]',
+        'button[class*="confirm-age"]',
+        '[aria-label*="21"]',
+        'button[class*="AgeGate"]',
+      ].join(', '),
+    },
+    { type: 'wait', milliseconds: 800 },
+  ];
+
+  const preferFirecrawl = tools.preferredBackend !== 'rtrvr' && !!tools.firecrawlScrape;
 
   for (const urlEntry of urls) {
     try {
@@ -84,46 +101,37 @@ export async function runScraperAgent(
       let products: ScrapedCompetitor['products'] = [];
       let scrapeMethod = 'none';
 
-      // Strategy 1: Try RTRVR first (better for JS-heavy menus like Dutchie, iHeartJane)
-      if (preferRtrvr && tools.rtrvrScrape) {
+      // Strategy 1: Firecrawl with age-gate actions (primary — handles Dutchie, iHeartJane, most menus)
+      if (preferFirecrawl && tools.firecrawlScrape) {
         try {
-          logger.debug(`[Ezal:Scraper] Trying RTRVR for ${urlEntry.url}`);
-          const rtrvrResult = await tools.rtrvrScrape(
-            urlEntry.url,
-            'Extract all cannabis products with name, brand, category, price, regularPrice, inStock, thc%, cbd%'
-          );
-
-          if (rtrvrResult.status === 'success') {
-            // RTRVR may return products directly or markdown
-            if (rtrvrResult.products && rtrvrResult.products.length > 0) {
-              products = rtrvrResult.products;
-              scrapeMethod = 'rtrvr_direct';
-            } else if (rtrvrResult.markdown) {
-              markdown = rtrvrResult.markdown;
-              scrapeMethod = 'rtrvr_markdown';
-            }
-          }
-        } catch (e) {
-          logger.warn(`[Ezal:Scraper] RTRVR failed for ${urlEntry.url}: ${e}`);
-        }
-      }
-
-      // Strategy 2: Try Firecrawl if RTRVR didn't get products
-      if (products.length === 0 && !markdown && tools.firecrawlScrape) {
-        try {
-          logger.debug(`[Ezal:Scraper] Trying Firecrawl for ${urlEntry.url}`);
+          logger.debug(`[Ezal:Scraper] Trying Firecrawl (with age-gate actions) for ${urlEntry.url}`);
           const scrapeResult = await tools.firecrawlScrape(urlEntry.url, {
             formats: ['markdown'],
+            actions: AGE_GATE_ACTIONS,
           });
-          markdown = scrapeResult.markdown;
-          scrapeMethod = 'firecrawl';
+          if (scrapeResult.markdown && scrapeResult.markdown.length >= 300) {
+            markdown = scrapeResult.markdown;
+            scrapeMethod = 'firecrawl_actions';
+          }
         } catch (e) {
           logger.warn(`[Ezal:Scraper] Firecrawl failed for ${urlEntry.url}: ${e}`);
         }
       }
 
-      // Strategy 3: Fallback to RTRVR if Firecrawl was tried first and failed
-      if (products.length === 0 && !markdown && !preferRtrvr && tools.rtrvrScrape) {
+      // Strategy 2: Firecrawl plain scrape (no actions — fallback for non-cannabis pages)
+      if (!markdown && !preferFirecrawl && tools.firecrawlScrape) {
+        try {
+          logger.debug(`[Ezal:Scraper] Trying Firecrawl (plain) for ${urlEntry.url}`);
+          const scrapeResult = await tools.firecrawlScrape(urlEntry.url, { formats: ['markdown'] });
+          markdown = scrapeResult.markdown;
+          scrapeMethod = 'firecrawl';
+        } catch (e) {
+          logger.warn(`[Ezal:Scraper] Firecrawl plain failed for ${urlEntry.url}: ${e}`);
+        }
+      }
+
+      // Strategy 3: RTRVR browser automation (fallback — for pages Firecrawl cannot render)
+      if (products.length === 0 && !markdown && tools.rtrvrScrape) {
         try {
           logger.debug(`[Ezal:Scraper] Fallback to RTRVR for ${urlEntry.url}`);
           const rtrvrResult = await tools.rtrvrScrape(
@@ -134,10 +142,10 @@ export async function runScraperAgent(
           if (rtrvrResult.status === 'success') {
             if (rtrvrResult.products && rtrvrResult.products.length > 0) {
               products = rtrvrResult.products;
-              scrapeMethod = 'rtrvr_fallback_direct';
+              scrapeMethod = 'rtrvr_direct';
             } else if (rtrvrResult.markdown) {
               markdown = rtrvrResult.markdown;
-              scrapeMethod = 'rtrvr_fallback_markdown';
+              scrapeMethod = 'rtrvr_markdown';
             }
           }
         } catch (e) {
@@ -254,6 +262,35 @@ Return ONLY valid JSON with format: { "products": [...] }`,
     } catch (e) {
       logger.warn(`[Ezal:Scraper] Product extraction failed: ${e}`);
       return [];
+    }
+  };
+}
+
+// ============================================================================
+// FIRECRAWL SCRAPER FACTORY
+// ============================================================================
+
+/**
+ * Create a default Firecrawl-based scraper tool.
+ * Passes actions through to Firecrawl (age gates, login sequences).
+ */
+export function createDefaultFirecrawlScraper(): ScraperTools['firecrawlScrape'] {
+  return async (url: string, options = {}) => {
+    const { formats = ['markdown'], actions = [] } = options;
+    const { discovery } = await import('@/server/services/firecrawl');
+    try {
+      if (actions.length > 0) {
+        const result = await discovery.discoverWithActions(url, actions);
+        return { markdown: result.markdown, metadata: result.metadata };
+      }
+      const result = await discovery.discoverUrl(url, formats as ('markdown' | 'html' | 'rawHtml' | 'screenshot')[]);
+      return {
+        markdown: (result as any).markdown ?? '',
+        metadata: (result as any).metadata,
+      };
+    } catch (e) {
+      logger.warn(`[Ezal:Scraper:Firecrawl] Failed for ${url}: ${e}`);
+      return { markdown: '' };
     }
   };
 }
