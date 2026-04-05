@@ -158,6 +158,14 @@ export async function generateRemotionVideo(
     // Path to the compiled Remotion bundle
     // In dev + CI builds: `npm run remotion:bundle` writes the static bundle.
     const bundlePath = path.resolve(process.cwd(), '.remotion/bundle/index.html');
+    const ciSkipPath = path.resolve(process.cwd(), '.remotion/bundle/.ci-skip');
+
+    // Check if bundle was skipped in CI — provide a clear error instead of crashing
+    const isCiSkip = await fs.access(ciSkipPath).then(() => true).catch(() => false);
+    if (isCiSkip) {
+        throw new Error('[Remotion] Bundle was skipped at build time (CI environment). Video rendering via Remotion requires a pre-built bundle. Use the Kling fallback or run remotion:bundle separately.');
+    }
+
     await fs.access(bundlePath).catch(() => {
         throw new Error('[Remotion] Bundle missing. Run "npm run remotion:bundle" before rendering slideshows.');
     });
