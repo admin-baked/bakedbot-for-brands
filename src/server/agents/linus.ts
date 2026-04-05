@@ -426,6 +426,20 @@ const LINUS_TOOLS: ClaudeTool[] = [
         }
     },
     {
+        name: 'linus_dream',
+        description: 'Run a Dream session — introspect on your own performance (telemetry, feedback, learning deltas, Letta memory), generate improvement hypotheses, test them, and report results to #linus-cto. Use this proactively to self-improve, or when asked to reflect on your performance. Reports proposals, confirmed hypotheses, and areas for improvement.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                focus: {
+                    type: 'string',
+                    description: 'Optional focus area: tool_routing, prompt_tuning, memory_gaps, workflow_optimization, cost_reduction, capability_expansion. If omitted, reviews all areas.'
+                }
+            },
+            required: []
+        }
+    },
+    {
         name: 'letta_save_fact',
         description: 'Save a critical development insight, architectural decision, or rule to long-term memory.',
         input_schema: {
@@ -2465,6 +2479,37 @@ async function linusToolExecutor(toolName: string, input: Record<string, unknown
             console.log('[BOARDROOM REPORT]', JSON.stringify(report, null, 2));
             
             return { success: true, reportId: `linus-${Date.now()}`, ...report };
+        }
+
+        case 'linus_dream': {
+            try {
+                const { runDreamSession } = await import('@/server/services/letta/dream-loop');
+                const session = await runDreamSession('Linus');
+
+                // Post report to Slack
+                const { postLinusIncidentSlack } = await import('@/server/services/incident-notifications');
+                await postLinusIncidentSlack({
+                    source: 'auto-escalator',
+                    channelName: 'linus-cto',
+                    fallbackText: `Dream Session: ${session.hypotheses.length} hypotheses, ${session.hypotheses.filter(h => h.testResult === 'confirmed').length} confirmed`,
+                    blocks: [
+                        {
+                            type: 'section',
+                            text: { type: 'mrkdwn', text: session.report },
+                        },
+                    ],
+                });
+
+                return {
+                    success: true,
+                    sessionId: session.id,
+                    hypotheses: session.hypotheses.length,
+                    confirmed: session.hypotheses.filter(h => h.testResult === 'confirmed').length,
+                    report: session.report,
+                };
+            } catch (e) {
+                return { success: false, error: (e as Error).message };
+            }
         }
 
         case 'letta_save_fact': {
@@ -4894,6 +4939,8 @@ function buildLinusProgressMessage(toolName: string, input: Record<string, unkno
             return `_Linus is searching for places: "${String(input.query ?? '').slice(0, 50)}"..._`;
         case 'letta_search_memory':
             return `_Linus is searching long-term memory..._`;
+        case 'linus_dream':
+            return `_Linus is dreaming — introspecting, hypothesizing, testing..._`;
         case 'letta_save_fact':
         case 'letta_update_personal_memory':
             return `_Linus is updating agent memory..._`;
