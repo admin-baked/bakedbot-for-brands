@@ -23,6 +23,7 @@ import type { InboxArtifact, CompetitorPriceMatchData, PriceMatchOpportunity } f
 interface Props {
     artifact: InboxArtifact;
     orgId: string;
+    hasPOS?: boolean;
     className?: string;
 }
 
@@ -41,11 +42,12 @@ function fmt(price: number): string {
     return `$${price.toFixed(2)}`;
 }
 
-function OpportunityRow({ opp, index, orgId, artifactId, onApplied }: {
+function OpportunityRow({ opp, index, orgId, artifactId, hasPOS, onApplied }: {
     opp: PriceMatchOpportunity;
     index: number;
     orgId: string;
     artifactId: string;
+    hasPOS?: boolean;
     onApplied: (index: number, discountId?: number) => void;
 }) {
     const impact = IMPACT_CONFIG[opp.estimatedImpact];
@@ -105,7 +107,7 @@ function OpportunityRow({ opp, index, orgId, artifactId, onApplied }: {
                         -{fmt(saving)}/unit
                     </span>
                 )}
-                {!isApplied && (
+                {!isApplied && hasPOS && (
                     <Button
                         size="sm"
                         variant="outline"
@@ -130,7 +132,7 @@ function OpportunityRow({ opp, index, orgId, artifactId, onApplied }: {
     );
 }
 
-export function PriceMatchCard({ artifact, orgId, className }: Props) {
+export function PriceMatchCard({ artifact, orgId, hasPOS = false, className }: Props) {
     const data = artifact.data as CompetitorPriceMatchData;
     const [opportunities, setOpportunities] = useState(data.opportunities);
     const [isPending, startTransition] = useTransition();
@@ -211,8 +213,8 @@ export function PriceMatchCard({ artifact, orgId, className }: Props) {
                 </p>
             </div>
 
-            {/* Apply All button for high-impact items */}
-            {unappliedHigh > 0 && (
+            {/* Apply All button for high-impact items (POS only) */}
+            {hasPOS && unappliedHigh > 0 && (
                 <Button
                     size="sm"
                     className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
@@ -228,6 +230,17 @@ export function PriceMatchCard({ artifact, orgId, className }: Props) {
                 </Button>
             )}
 
+            {/* Connect POS prompt when no POS configured */}
+            {!hasPOS && (
+                <div className="flex items-center gap-2 p-2 rounded-md bg-blue-500/8 border border-blue-500/15">
+                    <Zap className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+                    <p className="text-xs text-blue-300">
+                        <span className="font-semibold">Connect your POS</span> to apply price matches directly to your menu with one tap.
+                        Go to Settings &rarr; Integrations to get started.
+                    </p>
+                </div>
+            )}
+
             {/* Opportunities list */}
             <div className="space-y-1.5">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -241,6 +254,7 @@ export function PriceMatchCard({ artifact, orgId, className }: Props) {
                             index={i}
                             orgId={orgId}
                             artifactId={artifact.id}
+                            hasPOS={hasPOS}
                             onApplied={handleApplied}
                         />
                     ))}

@@ -1680,3 +1680,40 @@ export async function applyAutoPriceMatches(
   logger.info('[PriceMatch→POS] Auto-apply complete', { orgId, applied, failed, skipped });
   return { applied, failed, skipped };
 }
+
+// ============ Autonomous Pricing Toggle ============
+
+/**
+ * Get/set the autoPriceMatch flag on a tenant.
+ * When enabled, the CI cron auto-applies high-impact price matches.
+ */
+export async function getAutoPriceMatchStatus(
+  orgId: string
+): Promise<{ enabled: boolean; enabledAt?: string; enabledBy?: string }> {
+  const db = getAdminFirestore();
+  const snap = await db.collection('tenants').doc(orgId).get();
+  const data = snap.data();
+  return {
+    enabled: data?.autoPriceMatch === true,
+    enabledAt: data?.autoPriceMatchEnabledAt?.toDate?.()?.toISOString?.() ?? data?.autoPriceMatchEnabledAt,
+    enabledBy: data?.autoPriceMatchEnabledBy,
+  };
+}
+
+export async function toggleAutoPriceMatch(
+  orgId: string,
+  enabled: boolean,
+  userId?: string
+): Promise<{ success: boolean; enabled: boolean }> {
+  const db = getAdminFirestore();
+  const now = new Date();
+
+  await db.collection('tenants').doc(orgId).update({
+    autoPriceMatch: enabled,
+    autoPriceMatchEnabledAt: enabled ? now : null,
+    autoPriceMatchEnabledBy: enabled ? (userId ?? 'manual') : null,
+  });
+
+  logger.info('[AutoPricing] Toggle', { orgId, enabled, userId });
+  return { success: true, enabled };
+}

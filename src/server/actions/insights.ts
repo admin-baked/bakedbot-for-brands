@@ -281,6 +281,12 @@ async function getDispensaryInsights(orgId: string): Promise<DispensaryInsights>
             insights.market.push(ciCard);
         }
 
+        // 6. Autonomous Pricing card (experimental)
+        const autoPricingCard = await buildAutoPricingCard(orgId);
+        if (autoPricingCard) {
+            insights.market.push(autoPricingCard);
+        }
+
     } catch (error) {
         logger.error('[Insights] Error fetching dispensary insights', { orgId, error });
     }
@@ -1186,6 +1192,67 @@ async function buildLatestCiCard(orgId: string): Promise<InsightCard> {
         lastUpdated: new Date(),
         dataSource: 'ezal',
     };
+}
+
+// ============ Autonomous Pricing Card ============
+
+/**
+ * Build the "Autonomous Pricing" experimental card.
+ * Shows current status + toggle prompt. Only shown for orgs with competitors configured.
+ */
+async function buildAutoPricingCard(orgId: string): Promise<InsightCard | null> {
+    try {
+        const db = getAdminFirestore();
+
+        // Only show if org has competitors
+        const compSnap = await db.collection('tenants').doc(orgId)
+            .collection('competitors').where('active', '==', true).limit(1).get();
+        if (compSnap.empty) return null;
+
+        const tenantSnap = await db.collection('tenants').doc(orgId).get();
+        const tenant = tenantSnap.data() ?? {};
+        const enabled = tenant.autoPriceMatch === true;
+        const hasPOS = !!tenant.posProvider;
+
+        const headline = enabled
+            ? 'Autonomous Pricing: ON'
+            : 'Autonomous Pricing: OFF';
+
+        const subtext = enabled
+            ? 'High-impact price matches are auto-applied to your menu daily. Experimental — monitor results closely.'
+            : hasPOS
+                ? 'Enable to auto-apply high-impact price matches to your POS daily. Experimental feature.'
+                : 'Connect a POS to enable auto-applying competitive price matches to your menu.';
+
+        const threadPrompt = enabled
+            ? 'Show me the autonomous pricing activity log — what price matches were auto-applied this week, and what was the revenue impact?'
+            : 'Tell me more about autonomous pricing. How does it work, what are the risks, and should I turn it on?';
+
+        return {
+            id: 'auto-pricing',
+            category: 'market',
+            agentId: 'ezal',
+            agentName: 'Ezal',
+            title: 'DYNAMIC PRICING',
+            headline,
+            subtext: subtext.slice(0, 130) + (subtext.length > 130 ? '…' : ''),
+            severity: enabled ? 'warning' : 'info',
+            actionable: true,
+            ctaLabel: enabled ? 'Review' : 'Learn More',
+            threadType: 'market_intel',
+            threadPrompt,
+            lastUpdated: new Date(),
+            dataSource: 'Ezal · Experimental',
+            metadata: {
+                autoPriceMatch: enabled,
+                hasPOS,
+                toggleAction: 'toggleAutoPriceMatch',
+            },
+        };
+    } catch (err) {
+        logger.warn('[Insights] Could not build auto-pricing card', { orgId, error: err });
+        return null;
+    }
 }
 
 // ============ Feedback ============

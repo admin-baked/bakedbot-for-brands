@@ -84,6 +84,7 @@ export interface InsightCard {
     // Meta
     lastUpdated: Date;
     dataSource: string;       // For debugging/transparency
+    metadata?: Record<string, unknown>; // Arbitrary data for card-specific UI (e.g., toggle state)
 }
 
 // ============ Aggregated Response ============
