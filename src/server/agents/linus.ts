@@ -5010,6 +5010,7 @@ User Request: ${request.prompt}`;
                     brandId: request.context?.brandId,
                     maxIterations: request.maxIterations ?? (toolMode === 'slack' ? 5 : 15),
                     agentContext: LINUS_AGENT_CONTEXT,
+                    model: toolMode === 'slack' ? 'claude-sonnet-4-6' : undefined,
                     imageAttachments: request.images,
                     onToolCall,
                 }
@@ -5054,7 +5055,7 @@ User Request: ${request.prompt}`;
             glmResponse: result.content.slice(0, 100),
         });
 
-        // Tier 2: Claude
+        // Tier 2: Claude Sonnet (pinned — never auto-route fallbacks to Opus)
         if (isClaudeAvailable()) {
             try {
                 result = await executeWithTools(
@@ -5067,6 +5068,7 @@ User Request: ${request.prompt}`;
                         brandId: request.context?.brandId,
                         maxIterations: request.maxIterations ?? 5,
                         agentContext: LINUS_AGENT_CONTEXT,
+                        model: 'claude-sonnet-4-6',
                         onToolCall,
                     }
                 );
