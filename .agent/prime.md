@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; price match → POS one-tap; CI report cannabis-only filtering; dispensary auto-enrichment; SES email.
-**Recent work (2026-04-05):** Price match → POS — `applyPriceMatch()` pushes Alleaves discounts from Ezal CI card; Apply to Menu UI (`f6c283922`).
+**Current Status:** 🟢 `main` green; SES primary email + custom domain; $0 Free plan + sidebar gating; price match → POS.
+**Recent work (2026-04-05):** SES primary email + tenant custom domains; Free plan ($0) with Mailjet routing + sidebar feature gating (`65667279b`).
 
 ## ðŸ§­ CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 

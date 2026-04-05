@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; price match → POS (one-tap Apply to Menu); CI report cannabis-only filtering; dispensary auto-enrichment; SES email | **Last update:** 2026-04-05 (price match POS `f6c283922`)
+**Current Status:** 🟢 `main` green; SES primary email + custom domain; $0 Free plan + sidebar gating; price match → POS | **Last update:** 2026-04-05 (SES + free plan `65667279b`)
 
 ---
 
