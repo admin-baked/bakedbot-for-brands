@@ -1,7 +1,6 @@
 
 import { sendOrderConfirmationEmail as sendSG } from './sendgrid';
 import { sendOrderConfirmationEmail as sendMJ } from './mailjet';
-import { sendSesEmail } from './ses';
 import { getAdminFirestore } from '@/firebase/admin';
 import { getGmailToken } from '@/server/integrations/gmail/token-storage';
 import { getWorkspaceToken } from '@/server/integrations/google-workspace/token-storage';
@@ -325,6 +324,7 @@ export async function sendGenericEmail(data: GenericEmailData): Promise<{ succes
     if (process.env.AWS_SES_ACCESS_KEY_ID && process.env.AWS_SES_SECRET_ACCESS_KEY) {
         try {
             const sesFrom = await resolveOrgSesFrom(data.orgId, data.fromEmail, data.fromName);
+            const { sendSesEmail } = await import('./ses');
             await sendSesEmail({
                 to: data.to,
                 from: sesFrom.email,
