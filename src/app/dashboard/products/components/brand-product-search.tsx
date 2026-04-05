@@ -11,6 +11,7 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { searchCannMenusProducts, ImportCandidate, linkBrandProducts } from '../actions';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { CannMenusAttribution } from '@/components/ui/cannmenus-attribution';
 
 export function BrandProductSearch({ 
   initialBrandName = '',
@@ -132,9 +133,12 @@ export function BrandProductSearch({
       {results.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-neutral-600">
-                Found {results.length} products
-            </h3>
+            <div className="space-y-1">
+              <h3 className="text-sm font-medium text-neutral-600">
+                  Found {results.length} products
+              </h3>
+              <CannMenusAttribution compact />
+            </div>
             <div className="flex items-center gap-3">
                 <Button 
                     variant="ghost" 

@@ -14,6 +14,7 @@ import {
     getEzalCompetitors,
 } from '@/server/services/ezal-lite-connector';
 import type { EzalSnapshot, EzalCompetitor } from '@/types/ezal-snapshot';
+import { CannMenusAttribution } from '@/components/ui/cannmenus-attribution';
 
 interface EzalSnapshotCardProps {
     /** User's state for default filtering */
@@ -269,6 +270,8 @@ export function EzalSnapshotCard({
                         </Button>
                     )}
                 </div>
+
+                <CannMenusAttribution compact />
 
                 {/* Add Competitor (for paid tiers or admin) */}
                 {allowAddCompetitor && (
