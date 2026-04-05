@@ -7,17 +7,22 @@
  * Shows a table of products where competitors are priced at or below ours,
  * with a recommended price to match or beat by $1.
  *
+ * "Apply" pushes a time-boxed discount to the POS (Alleaves) via
+ * applyPriceMatch(). Supports manual (one-tap) and autonomous modes.
+ *
  * Agent: Ezal (competitive intel)
  */
 
-import React from 'react';
-import { TrendingDown, ArrowRight, AlertTriangle, Target, DollarSign } from 'lucide-react';
+import React, { useState, useTransition } from 'react';
+import { TrendingDown, ArrowRight, AlertTriangle, Target, DollarSign, Check, Loader2, Zap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { InboxArtifact, CompetitorPriceMatchData, PriceMatchOpportunity } from '@/types/inbox';
 
 interface Props {
     artifact: InboxArtifact;
+    orgId: string;
     className?: string;
 }
 
@@ -36,10 +41,29 @@ function fmt(price: number): string {
     return `$${price.toFixed(2)}`;
 }
 
-function OpportunityRow({ opp }: { opp: PriceMatchOpportunity }) {
+function OpportunityRow({ opp, index, orgId, artifactId, onApplied }: {
+    opp: PriceMatchOpportunity;
+    index: number;
+    orgId: string;
+    artifactId: string;
+    onApplied: (index: number, discountId?: number) => void;
+}) {
     const impact = IMPACT_CONFIG[opp.estimatedImpact];
     const action = ACTION_CONFIG[opp.action];
     const saving = opp.ourPrice - opp.recommendedPrice;
+    const [isPending, startTransition] = useTransition();
+    const isApplied = opp.posStatus === 'applied';
+    const isFailed = opp.posStatus === 'failed';
+
+    const handleApply = () => {
+        startTransition(async () => {
+            const { applyPriceMatch } = await import('@/app/actions/dynamic-pricing');
+            const result = await applyPriceMatch(orgId, artifactId, index, { mode: 'manual' });
+            if (result.success) {
+                onApplied(index, result.discountId);
+            }
+        });
+    };
 
     return (
         <div className="grid grid-cols-[1fr_auto] gap-2 p-2.5 rounded-lg bg-white/4 border border-white/6 hover:bg-white/6 transition-colors">
@@ -50,6 +74,11 @@ function OpportunityRow({ opp }: { opp: PriceMatchOpportunity }) {
                     <Badge variant="outline" className={cn('text-[10px] px-1 py-0 shrink-0', impact.className)}>
                         {impact.label}
                     </Badge>
+                    {isApplied && (
+                        <Badge variant="outline" className="text-[10px] px-1 py-0 shrink-0 bg-emerald-500/15 text-emerald-400 border-emerald-500/20">
+                            <Check className="h-2.5 w-2.5 mr-0.5" />Live
+                        </Badge>
+                    )}
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <span className="truncate">{opp.competitorName}</span>
@@ -66,7 +95,7 @@ function OpportunityRow({ opp }: { opp: PriceMatchOpportunity }) {
                 </div>
             </div>
 
-            {/* Right: action pill + saving */}
+            {/* Right: action pill + apply button */}
             <div className="flex flex-col items-end justify-between shrink-0 gap-1">
                 <span className={cn('text-[10px] font-medium', action.className)}>
                     {action.label}
@@ -76,15 +105,63 @@ function OpportunityRow({ opp }: { opp: PriceMatchOpportunity }) {
                         -{fmt(saving)}/unit
                     </span>
                 )}
+                {!isApplied && (
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-6 px-2 text-[10px] font-medium"
+                        disabled={isPending}
+                        onClick={handleApply}
+                    >
+                        {isPending ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : isFailed ? (
+                            'Retry'
+                        ) : (
+                            <>
+                                <Zap className="h-2.5 w-2.5 mr-0.5" />
+                                Apply to Menu
+                            </>
+                        )}
+                    </Button>
+                )}
             </div>
         </div>
     );
 }
 
-export function PriceMatchCard({ artifact, className }: Props) {
+export function PriceMatchCard({ artifact, orgId, className }: Props) {
     const data = artifact.data as CompetitorPriceMatchData;
-    const highCount = data.opportunities.filter((o) => o.estimatedImpact === 'high').length;
-    const beatCount = data.opportunities.filter((o) => o.action === 'beat').length;
+    const [opportunities, setOpportunities] = useState(data.opportunities);
+    const [isPending, startTransition] = useTransition();
+
+    const highCount = opportunities.filter((o) => o.estimatedImpact === 'high').length;
+    const beatCount = opportunities.filter((o) => o.action === 'beat').length;
+    const appliedCount = opportunities.filter((o) => o.posStatus === 'applied').length;
+    const unappliedHigh = opportunities.filter((o) => o.estimatedImpact === 'high' && o.posStatus !== 'applied').length;
+
+    const handleApplied = (index: number) => {
+        setOpportunities(prev => {
+            const next = [...prev];
+            next[index] = { ...next[index], posStatus: 'applied', appliedAt: new Date().toISOString() };
+            return next;
+        });
+    };
+
+    const handleApplyAll = () => {
+        startTransition(async () => {
+            const { applyAutoPriceMatches } = await import('@/app/actions/dynamic-pricing');
+            const result = await applyAutoPriceMatches(orgId, artifact.id);
+            if (result.applied > 0) {
+                // Refresh local state
+                setOpportunities(prev => prev.map(o =>
+                    o.estimatedImpact === 'high' && o.posStatus !== 'applied'
+                        ? { ...o, posStatus: 'applied' as const, appliedAt: new Date().toISOString(), appliedBy: 'manual-batch' }
+                        : o
+                ));
+            }
+        });
+    };
 
     return (
         <div className={cn('space-y-4', className)}>
@@ -108,12 +185,12 @@ export function PriceMatchCard({ artifact, className }: Props) {
             {/* Summary strip */}
             <div className="grid grid-cols-3 gap-2">
                 <div className="p-2.5 rounded-lg bg-white/5 border border-white/8 space-y-0.5 text-center">
-                    <p className="text-lg font-bold text-amber-400">{data.opportunities.length}</p>
+                    <p className="text-lg font-bold text-amber-400">{opportunities.length}</p>
                     <p className="text-[10px] text-muted-foreground">Opportunities</p>
                 </div>
                 <div className="p-2.5 rounded-lg bg-white/5 border border-white/8 space-y-0.5 text-center">
-                    <p className="text-lg font-bold text-emerald-400">{beatCount}</p>
-                    <p className="text-[10px] text-muted-foreground">Beat by $1</p>
+                    <p className="text-lg font-bold text-emerald-400">{appliedCount > 0 ? `${appliedCount}/${opportunities.length}` : beatCount}</p>
+                    <p className="text-[10px] text-muted-foreground">{appliedCount > 0 ? 'Applied' : 'Beat by $1'}</p>
                 </div>
                 <div className="p-2.5 rounded-lg bg-white/5 border border-white/8 space-y-0.5 text-center">
                     <div className="flex items-center justify-center gap-0.5">
@@ -134,14 +211,38 @@ export function PriceMatchCard({ artifact, className }: Props) {
                 </p>
             </div>
 
+            {/* Apply All button for high-impact items */}
+            {unappliedHigh > 0 && (
+                <Button
+                    size="sm"
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                    disabled={isPending}
+                    onClick={handleApplyAll}
+                >
+                    {isPending ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                        <Zap className="h-4 w-4 mr-2" />
+                    )}
+                    Apply All High-Traffic Matches ({unappliedHigh})
+                </Button>
+            )}
+
             {/* Opportunities list */}
             <div className="space-y-1.5">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Price Adjustments ({data.opportunities.length})
+                    Price Adjustments ({opportunities.length})
                 </p>
                 <div className="space-y-1.5">
-                    {data.opportunities.map((opp, i) => (
-                        <OpportunityRow key={i} opp={opp} />
+                    {opportunities.map((opp, i) => (
+                        <OpportunityRow
+                            key={i}
+                            opp={opp}
+                            index={i}
+                            orgId={orgId}
+                            artifactId={artifact.id}
+                            onApplied={handleApplied}
+                        />
                     ))}
                 </div>
             </div>
@@ -149,6 +250,7 @@ export function PriceMatchCard({ artifact, className }: Props) {
             {/* Footer */}
             <p className="text-[10px] text-muted-foreground pt-1">
                 Ezal · Competitive Intel · {new Date(data.generatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                {appliedCount > 0 && ` · ${appliedCount} live on menu`}
             </p>
         </div>
     );

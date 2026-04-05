@@ -1511,3 +1511,172 @@ Respond in JSON format only:
     };
   }
 }
+
+// ============ Competitive Price Match → POS ============
+
+/**
+ * Apply a price match opportunity to the POS as a discount.
+ *
+ * Creates a time-boxed discount in Alleaves that matches or beats
+ * the competitor's price on a specific product. Updates the inbox
+ * artifact with the applied status + discount ID.
+ *
+ * Can be called manually (user taps "Apply") or autonomously
+ * by the CI cron when auto-pricing is enabled for the org.
+ *
+ * @param orgId - Organization ID
+ * @param artifactId - Inbox artifact ID (price_match_*) to update
+ * @param opportunityIndex - Index in the opportunities array
+ * @param options.mode - 'manual' (user-initiated) or 'auto' (agent-initiated)
+ * @param options.durationDays - How long the discount stays active (default 7)
+ * @param options.userId - Who approved it (or 'auto' for autonomous)
+ */
+export async function applyPriceMatch(
+  orgId: string,
+  artifactId: string,
+  opportunityIndex: number,
+  options: {
+    mode?: 'manual' | 'auto';
+    durationDays?: number;
+    userId?: string;
+  } = {}
+): Promise<{
+  success: boolean;
+  discountId?: number;
+  error?: string;
+}> {
+  const { mode = 'manual', durationDays = 7, userId } = options;
+
+  try {
+    const db = getAdminFirestore();
+
+    // 1. Load the artifact
+    const artifactRef = db
+      .collection('tenants').doc(orgId)
+      .collection('inbox_artifacts').doc(artifactId);
+    const artifactSnap = await artifactRef.get();
+
+    if (!artifactSnap.exists) {
+      return { success: false, error: 'Artifact not found' };
+    }
+
+    const artifact = artifactSnap.data();
+    const data = artifact?.data as import('@/types/inbox').CompetitorPriceMatchData | undefined;
+    if (!data?.opportunities?.[opportunityIndex]) {
+      return { success: false, error: 'Opportunity not found at index' };
+    }
+
+    const opp = data.opportunities[opportunityIndex];
+
+    // Guard: don't apply twice
+    if (opp.posStatus === 'applied') {
+      return { success: false, error: 'Already applied to POS' };
+    }
+
+    logger.info('[PriceMatch��POS] Applying price match', {
+      orgId, artifactId, opportunityIndex, mode,
+      product: opp.productName, recommendedPrice: opp.recommendedPrice,
+    });
+
+    // 2. Build discount for Alleaves
+    const now = new Date();
+    const endDate = new Date(now);
+    endDate.setDate(endDate.getDate() + durationDays);
+
+    const discountValue = opp.ourPrice - opp.recommendedPrice;
+    const badgeText = opp.action === 'beat'
+      ? `Price Beat -$${discountValue.toFixed(0)}`
+      : 'Price Match';
+
+    const client = createAlleavesClientForOrg(orgId);
+    const result = await client.createDiscount({
+      name: `[Ezal] ${opp.action === 'beat' ? 'Beat' : 'Match'}: ${opp.productName}`,
+      discount_type: 'amount',
+      discount_value: discountValue,
+      start_date: now.toISOString().split('T')[0],
+      end_date: endDate.toISOString().split('T')[0],
+      conditions: {
+        categories: [opp.category],
+      },
+      badge_text: badgeText,
+    });
+
+    // 3. Update the opportunity in the artifact
+    const updatedOpps = [...data.opportunities];
+    updatedOpps[opportunityIndex] = {
+      ...opp,
+      posStatus: result.success ? 'applied' : 'failed',
+      posDiscountId: result.discount?.id_discount?.toString(),
+      appliedAt: now.toISOString(),
+      appliedBy: userId ?? (mode === 'auto' ? 'auto' : 'unknown'),
+    };
+
+    await artifactRef.update({
+      'data.opportunities': updatedOpps,
+      updatedAt: now,
+    });
+
+    if (!result.success) {
+      logger.warn('[PriceMatch→POS] Discount creation failed', {
+        orgId, product: opp.productName, error: result.error,
+      });
+      return { success: false, error: result.error };
+    }
+
+    logger.info('[PriceMatch→POS] Discount applied', {
+      orgId, discountId: result.discount?.id_discount,
+      product: opp.productName, price: opp.recommendedPrice, durationDays,
+    });
+
+    return { success: true, discountId: result.discount?.id_discount };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    logger.error('[PriceMatch→POS] Error applying price match', { orgId, error: msg });
+    return { success: false, error: msg };
+  }
+}
+
+/**
+ * Apply ALL high-impact price match opportunities for an org.
+ *
+ * Called autonomously by the CI cron when the org has
+ * `autoPriceMatch: true` in their tenant config.
+ */
+export async function applyAutoPriceMatches(
+  orgId: string,
+  artifactId: string
+): Promise<{ applied: number; failed: number; skipped: number }> {
+  const db = getAdminFirestore();
+  const artifactSnap = await db
+    .collection('tenants').doc(orgId)
+    .collection('inbox_artifacts').doc(artifactId)
+    .get();
+
+  if (!artifactSnap.exists) return { applied: 0, failed: 0, skipped: 0 };
+
+  const data = artifactSnap.data()?.data as import('@/types/inbox').CompetitorPriceMatchData | undefined;
+  if (!data?.opportunities) return { applied: 0, failed: 0, skipped: 0 };
+
+  let applied = 0;
+  let failed = 0;
+  let skipped = 0;
+
+  for (let i = 0; i < data.opportunities.length; i++) {
+    const opp = data.opportunities[i];
+
+    // Only auto-apply high-impact opportunities that haven't been applied
+    if (opp.posStatus === 'applied') { skipped++; continue; }
+    if (opp.estimatedImpact !== 'high') { skipped++; continue; }
+
+    const result = await applyPriceMatch(orgId, artifactId, i, {
+      mode: 'auto',
+      durationDays: 7,
+      userId: 'auto',
+    });
+
+    if (result.success) { applied++; } else { failed++; }
+  }
+
+  logger.info('[PriceMatch→POS] Auto-apply complete', { orgId, applied, failed, skipped });
+  return { applied, failed, skipped };
+}

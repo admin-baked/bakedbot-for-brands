@@ -544,7 +544,7 @@ function ArtifactPreviewCard({ artifact }: { artifact: InboxArtifact }) {
         case 'research_report':
             return <InboxResearchCard artifact={artifact} />;
         case 'competitor_price_match':
-            return <PriceMatchCard artifact={artifact} />;
+            return <PriceMatchCard artifact={artifact} orgId={artifact.orgId ?? ''} />;
         case 'vm_run':
             return (
                 <div className="rounded-lg border border-white/10 bg-white/5 p-3">

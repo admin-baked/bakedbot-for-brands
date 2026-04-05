@@ -433,6 +433,11 @@ export interface PriceMatchOpportunity {
     recommendedPrice: number;   // match or beat by $1
     action: 'match' | 'beat';   // 'beat' = competitor price - $1
     estimatedImpact: 'high' | 'medium' | 'low'; // foot-traffic driver signal
+    // POS integration state
+    posStatus?: 'pending' | 'applied' | 'failed' | 'reverted';
+    posDiscountId?: string;     // Alleaves discount ID once pushed
+    appliedAt?: string;         // ISO timestamp
+    appliedBy?: string;         // userId or 'auto'
 }
 
 /**
