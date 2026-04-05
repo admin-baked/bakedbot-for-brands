@@ -1,4 +1,4 @@
-﻿# CLAUDE.md â€” BakedBot Codebase Context
+# CLAUDE.md â€” BakedBot Codebase Context
 
 > Official Claude Code context file. Loaded automatically on every interaction.
 
@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; SES primary email + custom domain; $0 Free plan + sidebar gating; price match → POS | **Last update:** 2026-04-05 (SES + free plan `65667279b`)
+**Current Status:** 🟢 `main` green; SES primary email + custom domain; $0 Free plan + sidebar gating; GCP health gated ➔ deploy | **Last update:** 2026-04-05 (GCP Health + Linus awareness `18c6a32b5`)
 
 ---
 

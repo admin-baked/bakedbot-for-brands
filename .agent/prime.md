@@ -1,4 +1,4 @@
-﻿# BakedBot AI Builder Agent - Prime Context
+# BakedBot AI Builder Agent - Prime Context
 
 **Loaded automatically on agent startup**
 
@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; SES primary email + custom domain; $0 Free plan + sidebar gating; price match → POS.
-**Recent work (2026-04-05):** SES primary email + tenant custom domains; Free plan ($0) with Mailjet routing + sidebar feature gating (`65667279b`).
+**Current Status:** 🟢 `main` green; SES primary email + custom domain; $0 Free plan + sidebar gating; GCP health gated ➔ deploy.
+**Recent work (2026-04-05):** GCP Service Health integration; Linus platform awareness + deployment health-gating; Dashboard heartbeat surfacing GCP incidents (`18c6a32b5`).
 
 ## ðŸ§­ CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 

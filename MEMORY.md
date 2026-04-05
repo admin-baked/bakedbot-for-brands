@@ -1,5 +1,12 @@
 # BakedBot Session Memory
 
+## Session: 2026-04-05 (GCP Service Health + Deployment Hardening) ✅ COMPLETE (`18c6a32b5`)
+- **GCP Incident Awareness** — Integrated `servicehealth.googleapis.com` (2m Upstash cache) to detect infrastructure outages in `studio-567050101-bc6e8`.
+- **Deployment Gating** — `github-tools.ts` now blocks pushes/PRs if Cloud Build/Run/Compute are unstable to prevent build waste.
+- **Linus Awareness** — Injected real-time `PLATFORM HEALTH` briefing into system prompt; added a strict **GCP HEALTH GATE** to prevent propose-and-fail cycles.
+- **Dashboard Integration** — Heartbeat API surfaces GCP status; pulse turns `error` if platform is unhealthy.
+- **Session file** - `memory/sessions/2026-04-05-1800-gcp-service-health.md`
+
 ## Session: 2026-04-03i (Deploy monitoring + stuck-build recovery) ✅ COMPLETE (`5de417a4b`)
 - **Stuck Cloud Build cancelled** — `98840ce3` was blocking all deploys with `Duration: unknown`; cancelled + re-triggered via `npm run firebase:apphosting -- rollout`
 - **Root cause identified** — `proxycurl-enrichment.ts` imported but never staged; Linus fixed in `3e8e742a5`, final successful deploy on `43b67a37f` (19m 40s)
