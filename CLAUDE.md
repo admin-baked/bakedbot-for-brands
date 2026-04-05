@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; SP13 Opencode Cloud Run live (direct Anthropic/Gemini API, no opencode CLI); tablet recs + phone normalization fix | **Last update:** 2026-04-05 (opencode SP13 `292cf81de`)
+**Current Status:** 🟢 `main` green; Claude cost fix (Haiku default, Opus opt-in); 3-tier agent fallback (GLM→Claude→Gemini); SP13 Opencode live | **Last update:** 2026-04-05 (cost optimization `40a9dfc90`)
 
 ---
 

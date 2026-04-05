@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; SP13 Opencode Cloud Run live (direct Anthropic/Gemini API server, not opencode CLI); tablet recs + phone normalization fix.
-**Recent work (2026-04-05):** Opencode SP13 rewrite — `server.mjs` calls APIs directly, strips `\r\n` from Cloud Run secrets (`292cf81de`).
+**Current Status:** 🟢 `main` green; Claude cost fix (Haiku default, Opus opt-in only); 3-tier agent fallback GLM→Claude→Gemini; SP13 Opencode live.
+**Recent work (2026-04-05):** Cost optimization — Haiku default, Opus opt-in, 3-tier fallback for Linus+Elroy (`40a9dfc90`).
 
 ## ðŸ§­ CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 
