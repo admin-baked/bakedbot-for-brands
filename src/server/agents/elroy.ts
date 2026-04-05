@@ -22,6 +22,7 @@
 
 import { executeWithTools, isClaudeAvailable, ClaudeTool, ClaudeResult, AgentContext } from '@/ai/claude';
 import { executeGLMWithTools, GLM_MODELS, isGLMConfigured } from '@/ai/glm';
+import { getAgentModelConfig, type ModelTier } from '@/server/services/agent-model-config';
 import { logger } from '@/lib/logger';
 import { getAtRiskCustomers, getSegmentSummary, getTodayCheckins } from '@/server/tools/crm-tools';
 import { getLatestWeeklyReport } from '@/server/services/ezal/weekly-intel-report';
@@ -766,18 +767,7 @@ async function callOpencodeLastResort(prompt: string): Promise<string | null> {
 }
 
 export async function runElroy(request: ElroyRequest): Promise<ElroyResponse> {
-    const glmConfigured = isGLMConfigured();
-    const claudeAvailable = isClaudeAvailable();
     const hasImages = (request.images?.length ?? 0) > 0;
-
-    if (!glmConfigured && !claudeAvailable) {
-        throw new Error('Uncle Elroy requires ZAI_API_KEY (GLM) or CLAUDE_API_KEY. Neither is configured.');
-    }
-
-    logger.info('[Elroy] Processing request', {
-        promptLength: request.prompt.length,
-        provider: glmConfigured ? (hasImages ? 'glm-vision' : 'glm') : 'claude',
-    });
 
     const fullPrompt = `${ELROY_SYSTEM_PROMPT}\n\n---\n\nUser Request: ${request.prompt}`;
 
@@ -793,64 +783,77 @@ export async function runElroy(request: ElroyRequest): Promise<ElroyResponse> {
         onToolCall,
     };
 
-    // Tier 1: GLM-5 (fast, cheap, tool calling)
+    // Config-driven tier chain (same config as Linus — shared across all Slack agents)
+    const modelConfig = await getAgentModelConfig();
+    const tierChain: ModelTier[] = [modelConfig.slackTier, ...modelConfig.fallbackChain];
+    logger.info('[Elroy] Model chain', { tierChain, hasImages });
+
     let result: ClaudeResult | null = null;
-    if (glmConfigured) {
-        const glmModel = hasImages ? GLM_MODELS.VISION : GLM_MODELS.STRATEGIC;
-        logger.info(`[Elroy] Using GLM ${glmModel}`);
-        result = await executeGLMWithTools(
-            fullPrompt,
-            ELROY_TOOLS,
-            elroyToolExecutor,
-            { ...sharedContext, model: glmModel }
-        );
 
-        const glmRefused = result.content
-            ? GLM_REFUSAL_PATTERNS.some(p => result!.content.toLowerCase().includes(p))
-            : false;
+    for (const tier of tierChain) {
+        if (result) break;
 
-        if (!result.content || glmRefused) {
-            logger.warn('[Elroy] GLM unusable response, trying fallback', {
-                reason: !result.content ? 'empty_content' : 'security_refusal',
-            });
-            result = null;
-        }
-    }
-
-    // Tier 2: Claude (full capability)
-    if (!result && claudeAvailable) {
         try {
-            logger.info('[Elroy] Falling back to Claude');
-            result = await executeWithTools(
-                fullPrompt,
-                ELROY_TOOLS,
-                elroyToolExecutor,
-                { ...sharedContext, imageAttachments: request.images }
-            );
+            switch (tier) {
+                case 'glm': {
+                    if (!isGLMConfigured()) continue;
+                    const glmModel = hasImages ? GLM_MODELS.VISION : GLM_MODELS.STRATEGIC;
+                    logger.info(`[Elroy] Trying GLM ${glmModel}`);
+                    const glmResult = await executeGLMWithTools(
+                        fullPrompt, ELROY_TOOLS, elroyToolExecutor,
+                        { ...sharedContext, model: glmModel }
+                    );
+                    const refused = glmResult.content
+                        ? GLM_REFUSAL_PATTERNS.some(p => glmResult.content.toLowerCase().includes(p))
+                        : false;
+                    if (glmResult.content && !refused) {
+                        result = glmResult;
+                    } else {
+                        logger.warn('[Elroy] GLM unusable', { reason: !glmResult.content ? 'empty' : 'refused' });
+                    }
+                    break;
+                }
+                case 'gemini': {
+                    logger.info('[Elroy] Trying Gemini Flash (opencode, no tools)');
+                    const geminiResult = await callOpencodeLastResort(fullPrompt);
+                    if (geminiResult) {
+                        result = {
+                            content: geminiResult,
+                            toolExecutions: [],
+                            model: 'google/gemini-2.0-flash',
+                            inputTokens: 0,
+                            outputTokens: 0,
+                        };
+                    }
+                    break;
+                }
+                case 'haiku': {
+                    if (!isClaudeAvailable()) continue;
+                    logger.info('[Elroy] Trying Claude Haiku');
+                    result = await executeWithTools(
+                        fullPrompt, ELROY_TOOLS, elroyToolExecutor,
+                        { ...sharedContext, model: 'claude-haiku-4-5-20251001', imageAttachments: request.images }
+                    );
+                    break;
+                }
+                case 'sonnet': {
+                    if (!isClaudeAvailable()) continue;
+                    logger.info('[Elroy] Trying Claude Sonnet');
+                    result = await executeWithTools(
+                        fullPrompt, ELROY_TOOLS, elroyToolExecutor,
+                        { ...sharedContext, model: 'claude-sonnet-4-6', imageAttachments: request.images }
+                    );
+                    break;
+                }
+            }
         } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
-            logger.error('[Elroy] Claude fallback failed', { error: msg });
-            // Continue to Tier 3
-        }
-    }
-
-    // Tier 3: Opencode / Gemini Flash (degraded — no tool calling)
-    if (!result) {
-        logger.warn('[Elroy] All primary models failed, trying opencode/Gemini Flash (no tools)');
-        const opencodeResult = await callOpencodeLastResort(fullPrompt);
-        if (opencodeResult) {
-            result = {
-                content: opencodeResult + '\n\n_Note: Running in degraded mode (Gemini Flash) — live data tools are temporarily unavailable._',
-                toolExecutions: [],
-                model: 'google/gemini-2.0-flash',
-                inputTokens: 0,
-                outputTokens: 0,
-            };
+            logger.error(`[Elroy] Tier ${tier} failed`, { error: msg });
         }
     }
 
     if (!result) {
-        throw new Error('All AI providers failed (GLM, Claude, Gemini). Check API keys and credits.');
+        throw new Error('All AI providers failed. Check API keys and credits.');
     }
 
     return {

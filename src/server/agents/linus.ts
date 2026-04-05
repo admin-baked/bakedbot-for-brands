@@ -14,6 +14,7 @@
 
 import { executeWithTools, isClaudeAvailable, ClaudeTool, ClaudeResult, AgentContext } from '@/ai/claude';
 import { executeGLMWithTools, GLM_MODELS, isGLMConfigured } from '@/ai/glm';
+import { getAgentModelConfig, setAgentModelTier, type ModelTier } from '@/server/services/agent-model-config';
 import { z } from 'zod';
 import { AgentImplementation } from './harness';
 import { AgentMemory } from './schemas';
@@ -1622,6 +1623,33 @@ const LINUS_TOOLS: ClaudeTool[] = [
                 },
             },
             required: ['url'],
+        },
+    },
+    // ========================================================================
+    // MODEL ROUTING: Dynamic tier control for Slack agents
+    // ========================================================================
+    {
+        name: 'set_agent_model_tier',
+        description: 'Change the AI model tier used by Slack agents (Linus, Elroy). Tiers from cheapest to most capable: glm (GLM-5, tool calling, ~$1/M), gemini (Gemini Flash via Opencode, no tools, ~$0.10/M), haiku (Claude Haiku, tool calling, ~$0.80/M), sonnet (Claude Sonnet, tool calling, ~$3/M). Default: glm with fallback chain. Use this when credits are low or you need to optimize costs.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                tier: {
+                    type: 'string',
+                    description: 'Primary model tier for Slack agents',
+                    enum: ['glm', 'gemini', 'haiku', 'sonnet'],
+                },
+            },
+            required: ['tier'],
+        },
+    },
+    {
+        name: 'get_agent_model_config',
+        description: 'Check the current AI model tier and fallback chain for Slack agents. Shows which model is primary, the fallback order, and who last changed it.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {},
+            required: [],
         },
     },
     // ========================================================================
@@ -3582,6 +3610,42 @@ test('${scenario.slice(0, 50)}', async ({ page }) => {
         }
 
         // ====================================================================
+        // MODEL ROUTING
+        // ====================================================================
+
+        case 'set_agent_model_tier': {
+            const tier = String(input.tier ?? '').trim() as ModelTier;
+            const userId = context?.userId ?? 'linus';
+            const config = await setAgentModelTier(tier, userId);
+            return {
+                success: true,
+                message: `Slack agents now using **${tier}** as primary model.`,
+                config: {
+                    primary: config.slackTier,
+                    fallbackChain: config.fallbackChain,
+                    updatedBy: config.updatedBy,
+                    updatedAt: new Date(config.updatedAt).toISOString(),
+                },
+            };
+        }
+
+        case 'get_agent_model_config': {
+            const config = await getAgentModelConfig();
+            return {
+                primary: config.slackTier,
+                fallbackChain: config.fallbackChain,
+                updatedBy: config.updatedBy,
+                updatedAt: new Date(config.updatedAt).toISOString(),
+                tierCosts: {
+                    glm: '$1.20/$4.00 per 1M tokens (tool calling)',
+                    gemini: '$0.10/$0.40 per 1M tokens (no tools, degraded)',
+                    haiku: '$0.80/$4.00 per 1M tokens (tool calling)',
+                    sonnet: '$3.00/$15.00 per 1M tokens (tool calling)',
+                },
+            };
+        }
+
+        // ====================================================================
         // DEVELOPER SUPER POWER SCRIPT EXECUTOR
         // ====================================================================
 
@@ -4915,42 +4979,25 @@ WHEN STUCK: Before spending multiple tool calls investigating, check if a super 
 export async function runLinus(request: LinusRequest): Promise<LinusResponse> {
     const toolMode = request.toolMode ?? 'full';
     const hasImages = (request.images?.length ?? 0) > 0;
-    const glmConfigured = isGLMConfigured();
-    // Text-only Slack messages → GLM-5 (fast, cheap). Vision Slack messages → GLM-5V-Turbo
-    // (multimodal, $1.20/$4 per 1M — cheaper than Claude and better for screenshots/UI).
-    // Full mode (dashboard) always uses Claude for maximum capability.
-    const shouldUseGLMToolMode = toolMode === 'slack' && !hasImages && glmConfigured;
-    const shouldUseGLMVisionMode = toolMode === 'slack' && hasImages && glmConfigured;
 
-    if (!shouldUseGLMToolMode && !shouldUseGLMVisionMode && !isClaudeAvailable()) {
-        // In Slack mode, allow opencode/Gemini as last resort (degraded, no tools)
-        if (toolMode === 'slack') {
-            logger.warn('[Linus] Neither GLM nor Claude available — will attempt opencode/Gemini fallback');
-        } else {
+    // Dashboard mode: always Claude, no config-driven routing
+    if (toolMode !== 'slack') {
+        if (!isClaudeAvailable()) {
             throw new Error('Claude API is required for Linus dashboard mode. Set CLAUDE_API_KEY environment variable.');
         }
     }
 
-    if (shouldUseGLMVisionMode) {
-        logger.info('[Linus] Slack vision mode using GLM-5V-Turbo', { imageCount: request.images?.length });
-    } else if (shouldUseGLMToolMode) {
-        logger.info('[Linus] Slack tool mode using GLM-5');
-    } else if (toolMode === 'slack') {
-        logger.info('[Linus] Slack tool mode falling back to Claude', { hasImages, glmConfigured });
-    }
-
     const linusSystemPrompt = await buildLinusSystemPrompt(request.context?.orgId);
-    
+
     // Read CLAUDE.md for codebase context (Claude Code convention)
     let claudeContext = '';
     try {
         const claudeMdPath = path.join(PROJECT_ROOT, 'CLAUDE.md');
         claudeContext = await fs.readFile(claudeMdPath, 'utf-8');
     } catch {
-        // CLAUDE.md not found, continue without it
         claudeContext = '(CLAUDE.md not found - operating without codebase context)';
     }
-    
+
     const fullPrompt = `${linusSystemPrompt}
 
 ${toolMode === 'slack' ? `
@@ -4968,13 +5015,13 @@ ${getLinusCodebaseContext(claudeContext, toolMode)}
 ---
 
 User Request: ${request.prompt}`;
-    
+
     const onToolCall = request.progressCallback
         ? (toolName: string, input: Record<string, unknown>) =>
               request.progressCallback!(buildLinusProgressMessage(toolName, input))
         : undefined;
 
-    const sharedGLMContext = {
+    const sharedContext = {
         userId: request.context?.userId,
         orgId: request.context?.orgId,
         brandId: request.context?.brandId,
@@ -4983,126 +5030,100 @@ User Request: ${request.prompt}`;
         onToolCall,
     };
 
-    let result: ClaudeResult;
-    if (shouldUseGLMToolMode) {
-        result = await executeGLMWithTools(
+    // Dashboard mode: straight to Claude
+    if (toolMode !== 'slack') {
+        const result = await executeWithTools(
             fullPrompt,
             getLinusTools(toolMode),
             linusToolExecutor,
-            { ...sharedGLMContext, model: GLM_MODELS.STRATEGIC }
+            { ...sharedContext, maxIterations: request.maxIterations ?? 15, imageAttachments: request.images }
         );
-    } else if (shouldUseGLMVisionMode) {
-        result = await executeGLMWithTools(
-            fullPrompt,
-            getLinusTools(toolMode),
-            linusToolExecutor,
-            { ...sharedGLMContext, model: GLM_MODELS.VISION }
-        );
-    } else if (isClaudeAvailable()) {
+        return buildLinusResponse(result, request);
+    }
+
+    // ── Slack mode: config-driven tier chain ──────────────────────────────
+    const modelConfig = await getAgentModelConfig();
+    const tierChain: ModelTier[] = [modelConfig.slackTier, ...modelConfig.fallbackChain];
+    logger.info('[Linus] Slack model chain', { tierChain, hasImages });
+
+    let result: ClaudeResult | null = null;
+
+    for (const tier of tierChain) {
+        if (result) break;
+
         try {
-            result = await executeWithTools(
-                fullPrompt,
-                getLinusTools(toolMode),
-                linusToolExecutor,
-                {
-                    userId: request.context?.userId,
-                    orgId: request.context?.orgId,
-                    brandId: request.context?.brandId,
-                    maxIterations: request.maxIterations ?? (toolMode === 'slack' ? 5 : 15),
-                    agentContext: LINUS_AGENT_CONTEXT,
-                    model: toolMode === 'slack' ? 'claude-sonnet-4-6' : undefined,
-                    imageAttachments: request.images,
-                    onToolCall,
+            switch (tier) {
+                case 'glm': {
+                    if (!isGLMConfigured()) continue;
+                    const glmModel = hasImages ? GLM_MODELS.VISION : GLM_MODELS.STRATEGIC;
+                    logger.info(`[Linus] Trying GLM ${glmModel}`);
+                    const glmResult = await executeGLMWithTools(
+                        fullPrompt, getLinusTools(toolMode), linusToolExecutor,
+                        { ...sharedContext, model: glmModel }
+                    );
+                    const refused = glmResult.content
+                        ? GLM_REFUSAL_PATTERNS.some(p => glmResult.content.toLowerCase().includes(p))
+                        : false;
+                    if (glmResult.content && !refused) {
+                        result = glmResult;
+                    } else {
+                        logger.warn('[Linus] GLM unusable', { reason: !glmResult.content ? 'empty' : 'refused' });
+                    }
+                    break;
                 }
-            );
+                case 'gemini': {
+                    logger.info('[Linus] Trying Gemini Flash (opencode, no tools)');
+                    const geminiResult = await callLinusOpencodeLastResort(fullPrompt);
+                    if (geminiResult) {
+                        result = {
+                            content: geminiResult,
+                            toolExecutions: [],
+                            model: 'google/gemini-2.0-flash',
+                            inputTokens: 0,
+                            outputTokens: 0,
+                        };
+                    }
+                    break;
+                }
+                case 'haiku': {
+                    if (!isClaudeAvailable()) continue;
+                    logger.info('[Linus] Trying Claude Haiku');
+                    result = await executeWithTools(
+                        fullPrompt, getLinusTools(toolMode), linusToolExecutor,
+                        { ...sharedContext, model: 'claude-haiku-4-5-20251001', imageAttachments: request.images }
+                    );
+                    break;
+                }
+                case 'sonnet': {
+                    if (!isClaudeAvailable()) continue;
+                    logger.info('[Linus] Trying Claude Sonnet');
+                    result = await executeWithTools(
+                        fullPrompt, getLinusTools(toolMode), linusToolExecutor,
+                        { ...sharedContext, model: 'claude-sonnet-4-6', imageAttachments: request.images }
+                    );
+                    break;
+                }
+            }
         } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
-            logger.error('[Linus] Claude primary failed, trying opencode', { error: msg });
-            // Fall through to opencode
-            const opencodeResult = await callLinusOpencodeLastResort(fullPrompt);
-            if (!opencodeResult) throw new Error(`Claude failed (${msg}) and opencode fallback unavailable.`);
-            result = {
-                content: opencodeResult + '\n\n_Note: Running in degraded mode (Gemini Flash) — tool calling is temporarily unavailable._',
-                toolExecutions: [],
-                model: 'google/gemini-2.0-flash',
-                inputTokens: 0,
-                outputTokens: 0,
-            };
-        }
-    } else {
-        // Neither GLM nor Claude — opencode is last resort
-        logger.warn('[Linus] No primary model available, using opencode/Gemini');
-        const opencodeResult = await callLinusOpencodeLastResort(fullPrompt);
-        if (!opencodeResult) throw new Error('All AI providers failed (GLM, Claude, Gemini). Check API keys and credits.');
-        result = {
-            content: opencodeResult + '\n\n_Note: Running in degraded mode (Gemini Flash) — tool calling is temporarily unavailable._',
-            toolExecutions: [],
-            model: 'google/gemini-2.0-flash',
-            inputTokens: 0,
-            outputTokens: 0,
-        };
-    }
-
-    // GLM fallback: Z.ai occasionally refuses cannabis-adjacent business context or
-    // returns empty content for short/ambiguous messages. When detected, retry with Claude → opencode.
-    const glmRefused = result.content ? GLM_REFUSAL_PATTERNS.some(p => result.content.toLowerCase().includes(p)) : false;
-    const needsFallback = (shouldUseGLMToolMode || shouldUseGLMVisionMode) && (
-        !result.content || glmRefused
-    );
-    if (needsFallback) {
-        logger.warn('[Linus] GLM-5 unusable response — trying Claude fallback', {
-            reason: !result.content ? 'empty_content' : 'security_refusal',
-            glmResponse: result.content.slice(0, 100),
-        });
-
-        // Tier 2: Claude Sonnet (pinned — never auto-route fallbacks to Opus)
-        if (isClaudeAvailable()) {
-            try {
-                result = await executeWithTools(
-                    fullPrompt,
-                    getLinusTools(toolMode),
-                    linusToolExecutor,
-                    {
-                        userId: request.context?.userId,
-                        orgId: request.context?.orgId,
-                        brandId: request.context?.brandId,
-                        maxIterations: request.maxIterations ?? 5,
-                        agentContext: LINUS_AGENT_CONTEXT,
-                        model: 'claude-sonnet-4-6',
-                        onToolCall,
-                    }
-                );
-            } catch (err) {
-                const msg = err instanceof Error ? err.message : String(err);
-                logger.error('[Linus] Claude fallback failed', { error: msg });
-                // Continue to Tier 3
-            }
-        }
-
-        // Tier 3: Opencode / Gemini Flash (degraded — no tool calling)
-        if (!result.content || (result.content && GLM_REFUSAL_PATTERNS.some(p => result.content.toLowerCase().includes(p)))) {
-            logger.warn('[Linus] All primary models failed, trying opencode/Gemini Flash (no tools)');
-            const opencodeResult = await callLinusOpencodeLastResort(fullPrompt);
-            if (opencodeResult) {
-                result = {
-                    content: opencodeResult + '\n\n_Note: Running in degraded mode (Gemini Flash) — tool calling is temporarily unavailable._',
-                    toolExecutions: [],
-                    model: 'google/gemini-2.0-flash',
-                    inputTokens: 0,
-                    outputTokens: 0,
-                };
-            }
+            logger.error(`[Linus] Tier ${tier} failed`, { error: msg });
         }
     }
 
-    // Extract decision if present
+    if (!result) {
+        throw new Error('All AI providers failed. Check API keys and credits, or run: @linus set model tier to gemini');
+    }
+
+    return buildLinusResponse(result, request);
+}
+
+function buildLinusResponse(result: ClaudeResult, _request: LinusRequest): LinusResponse {
     const decisionMatch = result.content.match(/MISSION_READY|NEEDS_REVIEW|BLOCKED/);
-    
     return {
         content: result.content,
         toolExecutions: result.toolExecutions,
         decision: decisionMatch ? decisionMatch[0] : undefined,
-        model: result.model
+        model: result.model,
     };
 }
 
