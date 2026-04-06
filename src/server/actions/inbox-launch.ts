@@ -1,6 +1,6 @@
 'use server';
 
-import { z } from 'zod';
+import { z } from '@/ai/z3';
 import { ai } from '@/ai/genkit';
 import { getServerSessionUser } from '@/server/auth/session';
 import { logger } from '@/lib/logger';

@@ -200,7 +200,7 @@ export const createTaskSchema = z.object({
   agentId: z.string().min(1, 'Agent ID is required'),
   taskType: z.string().min(1, 'Task type is required'),
   priority: z.enum(['low', 'medium', 'high', 'urgent']).optional().default('medium'),
-  payload: z.record(z.any()).optional(),
+  payload: z.record(z.string(), z.any()).optional(),
   scheduledFor: z.string().datetime().optional(),
 });
 
@@ -240,7 +240,7 @@ export type RecommendationFeedbackRequest = z.infer<typeof recommendationFeedbac
 export const experimentAssignSchema = z.object({
   experimentId: z.string().min(1, 'Experiment ID is required'),
   userId: z.string().min(1, 'User ID is required'),
-  context: z.record(z.any()).optional(),
+  context: z.record(z.string(), z.any()).optional(),
 });
 
 export type ExperimentAssignRequest = z.infer<typeof experimentAssignSchema>;
@@ -250,7 +250,7 @@ export const experimentTrackSchema = z.object({
   userId: z.string().min(1, 'User ID is required'),
   variant: z.string().min(1, 'Variant is required'),
   eventType: z.string().min(1, 'Event type is required'),
-  eventData: z.record(z.any()).optional(),
+  eventData: z.record(z.string(), z.any()).optional(),
 });
 
 export type ExperimentTrackRequest = z.infer<typeof experimentTrackSchema>;
@@ -322,7 +322,7 @@ export const createTicketSchema = z.object({
   priority: z.enum(['low', 'medium', 'high', 'urgent']).optional().default('medium'),
   category: z.string().optional().default('system_error'),
   screenshotUrl: z.union([z.string().url(), z.literal('')]).optional(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
   url: z.string().optional(),
   title: z.string().optional(), // Added to match client payload
   pageUrl: z.string().optional(), // Added to match client payload

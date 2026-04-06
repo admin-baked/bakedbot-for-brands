@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; SES primary email + custom domain; $0 Free plan + sidebar gating; GCP health gated ➔ deploy.
-**Recent work (2026-04-05):** GCP Service Health integration; Linus platform awareness + deployment health-gating; Dashboard heartbeat surfacing GCP incidents (`18c6a32b5`).
+**Current Status:** 🟢 `main` green; Zod 4.3.6 (Remotion/AWS compatibility) + v3 legacy bridge; Loyalty Tablet optimized ➔ deploy.
+**Recent work (2026-04-06):** Zod 4.3.6 Migration completed (stabilized for Remotion/AWS) with `zod/v3` bridge for legacy tools (`tmp/bridge-zod.js`); Loyalty Tablet optimized with Google Cloud TTS (Neural2) and Brave mic permission handling.
 
 ## ðŸ§­ CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 

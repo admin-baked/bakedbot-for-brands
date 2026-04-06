@@ -1,6 +1,6 @@
 'use server';
 
-import { z } from 'zod';
+import { z } from '@/ai/z3';
 import { ai } from '@/ai/genkit';
 import { generateImageFromPrompt } from '@/ai/flows/generate-social-image';
 import { generateMarketingVideo } from '@/ai/flows/generate-video';

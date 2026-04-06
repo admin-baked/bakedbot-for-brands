@@ -32,7 +32,7 @@ export const MemoryUnitSchema = z.object({
     tags: z.array(z.string()).default([]),
     embedding: z.array(z.number()).optional(),  // Vector for semantic search
     references: z.array(z.string()).default([]), // IDs of related memories (associative)
-    metadata: z.record(z.unknown()).optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type MemoryUnit = z.infer<typeof MemoryUnitSchema>;
@@ -71,7 +71,7 @@ export type SemanticMemory = z.infer<typeof SemanticMemorySchema>;
 export const WorkflowStepSchema = z.object({
     stepNumber: z.number(),
     toolName: z.string(),
-    args: z.record(z.unknown()),
+    args: z.record(z.string(), z.unknown()),
     result: z.unknown(),
     success: z.boolean(),
     duration_ms: z.number().optional(),

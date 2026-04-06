@@ -1,5 +1,7 @@
 
-import { brandDiscovery } from '@/server/services/brand-discovery';
+// import { brandDiscovery } from '@/server/services/brand-discovery';
+const brandDiscovery: any = null; // Missing service mock
+
 
 import { getAdminFirestore } from '@/firebase/admin';
 

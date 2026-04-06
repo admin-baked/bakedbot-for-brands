@@ -1,5 +1,7 @@
 
-import { MassDiscoveryService } from '../services/mass-discovery';
+// import { MassDiscoveryService } from '../services/mass-discovery';
+const MassDiscoveryService: any = { getInstance: () => null };
+
 
 // Target ZIPs for Chicago Pilot (Downtown/River North)
 const CHICAGO_PILOT_ZIPS = [

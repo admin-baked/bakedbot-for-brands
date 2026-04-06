@@ -1,0 +1,12 @@
+[31mAn error occurred:[39m
+[31mInvalidAccessKeyId: The AWS Access Key Id you provided does not exist in our records.[39m
+[31m    at ProtocolLib.getErrorSchemaOrThrowBaseException (C:\Users\admin\BakedBot for Brands\bakedbot-for-brands\node_modules\@remotion\lambda-client\dist\cjs\index.js:15723:61)[39m
+[31m    at AwsRestXmlProtocol.handleError (C:\Users\admin\BakedBot for Brands\bakedbot-for-brands\node_modules\@remotion\lambda-client\dist\cjs\index.js:17388:63)[39m
+[31m    at AwsRestXmlProtocol.deserializeResponse (C:\Users\admin\BakedBot for Brands\bakedbot-for-brands\node_modules\@remotion\lambda-client\dist\cjs\index.js:4982:20)[39m
+[31m    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)[39m
+[31m    at async C:\Users\admin\BakedBot for Brands\bakedbot-for-brands\node_modules\@remotion\lambda-client\dist\cjs\index.js:2552:22[39m
+[31m    at async C:\Users\admin\BakedBot for Brands\bakedbot-for-brands\node_modules\@remotion\lambda-client\dist\cjs\index.js:47286:20[39m
+[31m    at async C:\Users\admin\BakedBot for Brands\bakedbot-for-brands\node_modules\@remotion\lambda-client\dist\cjs\index.js:14160:40[39m
+[31m    at async C:\Users\admin\BakedBot for Brands\bakedbot-for-brands\node_modules\@remotion\lambda-client\dist\cjs\index.js:46975:24[39m
+[31m    at async C:\Users\admin\BakedBot for Brands\bakedbot-for-brands\node_modules\@remotion\lambda-client\dist\cjs\index.js:47000:16[39m
+[31m    at async C:\Users\admin\BakedBot for Brands\bakedbot-for-brands\node_modules\@remotion\lambda-client\dist\cjs\index.js:330:24[39m

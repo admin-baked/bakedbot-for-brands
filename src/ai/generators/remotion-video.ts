@@ -44,13 +44,17 @@ export interface RemotionVideoInput extends GenerateVideoInput {
     headline?: string;
     clipUrls?: string[];
     sceneTitles?: string[];
+    compositionId?: string;
 }
 
 export async function generateRemotionVideo(
     input: RemotionVideoInput
 ): Promise<GenerateVideoOutput> {
     const region = (process.env.REMOTION_AWS_REGION || 'us-east-1') as any;
-    const functionName = process.env.REMOTION_AWS_FUNCTION_NAME || 'remotion-render-4-0-438-mem2048mb-disk10240mb-120sec';
+    const REMOTION_VERSION = '4.0.438';
+    const functionName = process.env.REMOTION_AWS_FUNCTION_NAME || `remotion-render-${REMOTION_VERSION.replace(/\./g, '-')}-mem2048mb-disk2048mb-300sec`;
+    const bucketName = 'remotionlambda-useast1-5hg2s7ajg0';
+    const TIMEOUT_SECONDS = 300; // Increased to 5 minutes for "Solo Mode" reliability 
     
     // Detect composition type
     const type = input.clipUrls?.length
@@ -59,7 +63,7 @@ export async function generateRemotionVideo(
             ? 'tool'
             : 'slideshow';
     
-    const compositionId = COMPOSITION_MAP[type][input.aspectRatio || '16:9'] || COMPOSITION_MAP[type]['16:9'];
+    const compositionId = input.compositionId || COMPOSITION_MAP[type][input.aspectRatio || '16:9'] || COMPOSITION_MAP[type]['16:9'];
 
     // Build props
     const props = {
@@ -83,28 +87,35 @@ export async function generateRemotionVideo(
 
     try {
         // 1. Trigger render
-        const { renderId, bucketName } = await renderMediaOnLambda({
+        const { renderId } = await renderMediaOnLambda({
             region,
             functionName,
             composition: compositionId,
-            serveUrl: 'bakedbot-creative', // The site name deployed to S3
+            serveUrl: 'bakedbot-creative', // The site name deployed to S3/sites/
             codec: 'h264',
             inputProps: props as Record<string, unknown>,
-            privacy: 'public',
+            privacy: 'private',
         });
 
         logger.info('[Remotion] Render triggered', { renderId, bucketName });
 
-        // 2. Poll for completion (up to 120s)
+        // 2. Poll for completion (up to 300s)
         let progress = 0;
         let finalUrl = null;
         let attempts = 0;
 
-        while (progress < 1 && attempts < 60) {
+        while (progress < 1 && attempts < 300) { // 300 attempts * 2s = 600s
+            logger.info('[Remotion] Polling attempt', { attempts, renderId });
             const status = await getRenderProgress({
                 renderId,
                 bucketName,
                 region,
+                functionName,
+            });
+            logger.info('[Remotion] Polling status', { 
+                progress: status.overallProgress,
+                done: !!status.outputFile,
+                error: !!status.fatalErrorEncountered
             });
 
             if (status.fatalErrorEncountered) {
@@ -123,7 +134,7 @@ export async function generateRemotionVideo(
         }
 
         if (!finalUrl) {
-            throw new Error('[Remotion] Render timed out after 120 seconds.');
+            throw new Error('[Remotion] Render timed out after 300 seconds.');
         }
 
         return {

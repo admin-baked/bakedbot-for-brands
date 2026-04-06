@@ -68,7 +68,12 @@ export const TenantAISettingsSchema = z.object({
         includeComplianceReminders: z.boolean().default(true),
         showConfidenceScores: z.boolean().default(false),
         enableVoiceResponses: z.boolean().default(false),
-    }).default({}),
+    }).default({
+        autoSuggestProducts: true,
+        includeComplianceReminders: true,
+        showConfidenceScores: false,
+        enableVoiceResponses: false,
+    }),
 
     /**
      * Metadata

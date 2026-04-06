@@ -1,6 +1,6 @@
 import { GoogleAuth } from 'google-auth-library';
 import { logger } from '@/lib/logger';
-import { withCache } from '@/lib/cache';
+import { withCache, CachePrefix } from '@/lib/cache';
 
 const PROJECT_ID = 'studio-567050101-bc6e8';
 const INCIDENTS_URL = `https://servicehealth.googleapis.com/v1/projects/${PROJECT_ID}/locations/global/incidents`;
@@ -62,11 +62,14 @@ async function fetchGCPIncidentsInternal(): Promise<GCPIncident[]> {
 /**
  * Get active GCP incidents with a 2-minute cache.
  */
-export const getActiveGCPIncidents = withCache(
-  fetchGCPIncidentsInternal,
-  'GCP_SERVICE_HEALTH',
-  120 // 2 minutes TTL
-);
+export async function getActiveGCPIncidents(): Promise<GCPIncident[]> {
+  return withCache(
+    CachePrefix.DOMAIN, // Reusing DOMAIN prefix or we could add a new one, but DOMAIN is 2m TTL
+    'gcp_incidents',
+    fetchGCPIncidentsInternal,
+    120 // 2 minutes TTL
+  );
+}
 
 /**
  * Helper to determine if we should pause automated deployments.

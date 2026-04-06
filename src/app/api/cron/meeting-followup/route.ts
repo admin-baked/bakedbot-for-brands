@@ -23,8 +23,12 @@ export const maxDuration = 120;
 
 async function handleFollowUps() {
     const meetings = await getMeetingsNeedingFollowUp();
-    if (meetings.length === 0) return { processed: 0 };
+    if (meetings.length === 0) {
+        logger.info('[MeetingFollowUp] No meetings needing follow-up found.');
+        return { processed: 0 };
+    }
 
+    logger.info(`[MeetingFollowUp] Found ${meetings.length} meetings needing follow-up.`);
     let processed = 0;
 
     for (const booking of meetings) {
@@ -39,6 +43,8 @@ async function handleFollowUps() {
             // otherwise generate a generic follow-up via Craig
             const meetingNotes = booking.meetingNotes ?? await generateFollowUpNotes(booking, profile.displayName);
             const actionItems = booking.actionItems ?? [];
+
+            logger.info(`[MeetingFollowUp] Dispatching follow-up for ${booking.id} (${booking.externalEmail})`);
 
             const summary = await dispatchPlaybookEventSync(
                 'bakedbot-internal',
@@ -70,7 +76,7 @@ async function handleFollowUps() {
         }
     }
 
-    return { processed };
+    return { processed, found: meetings.length };
 }
 
 async function generateFollowUpNotes(

@@ -195,8 +195,19 @@ export default function LoyaltyTabletPage() {
     const [isReturningCustomer, setIsReturningCustomer] = useState(false);
     // Tracks whether the customer entered via the quick lookup (last-4) flow
     const [enteredViaQuickLookup, setEnteredViaQuickLookup] = useState(false);
-    // Mic permission: 'unknown' | 'granted' | 'denied'
-    const [micPermission, setMicPermission] = useState<'unknown' | 'granted' | 'denied'>('unknown');
+    // Mic permission: 'unknown' | 'granted' | 'denied' | 'prompt'
+    const [micPermission, setMicPermission] = useState<'unknown' | 'granted' | 'denied' | 'prompt'>('unknown');
+    const [isBrave, setIsBrave] = useState(false);
+
+    // Detect Brave on mount
+    useEffect(() => {
+        const checkBrave = async () => {
+            if ((navigator as any).brave && await (navigator as any).brave.isBrave()) {
+                setIsBrave(true);
+            }
+        };
+        void checkBrave();
+    }, []);
 
     // Smokey hold-to-talk voice (works on iOS — MediaRecorder-based, Gemini Live quality)
     const smokeyVoice = useSmokeyVoice({
@@ -547,12 +558,22 @@ export default function LoyaltyTabletPage() {
 
     const handleRequestMicPermission = async () => {
         resetIdleTimer();
+        setError('');
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             stream.getTracks().forEach(t => t.stop()); // release immediately — just needed the permission
             setMicPermission('granted');
-        } catch {
+            if (voiceOutput.isEnabled) {
+                voiceOutput.speak('Microphone enabled. You can now use voice search.');
+            }
+        } catch (err) {
+            console.warn('[MicPermission] Denied or failed', err);
             setMicPermission('denied');
+            if (isBrave) {
+                setError('Brave may be blocking the microphone. Check Brave Shields or site settings (lock icon).');
+            } else {
+                setError('Microphone access was denied. Please enable it in browser settings.');
+            }
         }
     };
 
@@ -1316,19 +1337,30 @@ export default function LoyaltyTabletPage() {
                                     </div>
 
                                     {/* One-time mic permission prompt — tap triggers browser dialog */}
-                                    {smokeyVoice.isSupported && micPermission === 'unknown' && (
+                                    {smokeyVoice.isSupported && (micPermission === 'unknown' || micPermission === 'prompt') && (
                                         <button
                                             onClick={() => { void handleRequestMicPermission(); }}
-                                            className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold border transition-all active:scale-95"
-                                            style={{ borderColor: hexToRgba(brandTheme.colors.primary, 0.4), color: brandTheme.colors.primary, backgroundColor: hexToRgba(brandTheme.colors.primary, 0.06) }}
+                                            className="flex items-center gap-2 rounded-full px-5 py-3 text-sm font-bold border-2 transition-all active:scale-95 animate-bounce shadow-lg"
+                                            style={{ 
+                                                borderColor: brandTheme.colors.primary, 
+                                                color: '#ffffff', 
+                                                backgroundColor: brandTheme.colors.primary 
+                                            }}
                                         >
-                                            <Mic className="h-3.5 w-3.5" /> Tap to enable voice search
+                                            <Mic className="h-5 w-5" /> Enable Voice Search
                                         </button>
                                     )}
                                     {micPermission === 'denied' && (
-                                        <p className="text-xs text-red-500 text-center">
-                                            Mic blocked — enable in Settings &gt; Privacy &gt; Microphone to use voice search
-                                        </p>
+                                        <div className="rounded-2xl bg-red-50 p-4 border border-red-100 max-w-sm">
+                                            <p className="text-xs text-red-600 font-bold text-center">
+                                                Mic Access Blocked
+                                            </p>
+                                            <p className="text-[10px] text-red-500 text-center mt-1">
+                                                {isBrave 
+                                                  ? "Brave Shields might be blocking the mic. Tap the lock icon in the address bar to allow Microphone."
+                                                  : "Please enable microphone access in your browser settings to use voice features."}
+                                            </p>
+                                        </div>
                                     )}
 
                                     {/* Mic + search row */}
@@ -1412,8 +1444,10 @@ export default function LoyaltyTabletPage() {
                                                     <img
                                                         src={product.imageUrl || SMOKEY_FALLBACK_IMAGE}
                                                         alt={product.name}
-                                                        className="h-full w-full object-cover"
+                                                        className="h-full w-full object-cover transition-opacity duration-300"
                                                         onError={handleProductImageError}
+                                                        loading="lazy"
+                                                        decoding="async"
                                                     />
                                                 </div>
                                                 <div className="min-w-0 flex-1">

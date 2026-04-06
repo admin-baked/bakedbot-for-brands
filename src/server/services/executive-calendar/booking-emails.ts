@@ -63,6 +63,7 @@ async function deliverHostBookingNotification(
     const formattedTime = formatDatetime(booking.startAt, profile.availability.timezone);
     const senderUserId = await resolveExecutiveSenderUserId(profile);
     const delivery = await sendGenericEmail({
+        orgId: 'bakedbot-internal',
         to: profile.emailAddress,
         name: profile.displayName,
         fromName: profile.displayName,
@@ -116,6 +117,7 @@ export async function sendConfirmationEmail(
 
     // Email to the external guest — always use transactional path (no Gmail dependency)
     const guestResult = await sendGenericEmail({
+        orgId: 'bakedbot-internal',
         to: booking.externalEmail,
         name: booking.externalName,
         fromName: profile.displayName,

@@ -1,5 +1,5 @@
 
-import { z } from 'zod';
+import { z } from 'zod/v3';
 
 export const GenerateVideoInputSchema = z.object({
     prompt: z.string().describe('A detailed description of the video to generate.'),

@@ -1,0 +1,78 @@
+﻿≡ƒÜÇ Starting MANUAL Site Deployment...
+≡ƒôª Bundling entry point: C:\Users\admin\BakedBot for Brands\bakedbot-for-brands\src\remotion\index.ts
+Γ£à Bundle created at: C:\Users\admin\AppData\Local\Temp\remotion-webpack-bundle-pXheMG
+≡ƒ¢░∩╕Å Uploading bundle to s3://remotionlambda-useast1-5hg2s7ajg0/sites/bakedbot-creative/...
+≡ƒôñ Uploading: sites/bakedbot-creative/161.bundle.js
+node.exe : Γ¥î Manual Deployment Failed: 
+AccessControlListNotSupported: The 
+bucket does not allow ACLs
+At C:\Program Files\nodejs\npx.ps1:29 
+char:3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecifi 
+   ed: (Γ¥î Manual Depl... not allow AC  
+  Ls:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeComm 
+   andError
+ 
+    at ProtocolLib.getErrorSchemaOrThrowB
+aseException (C:\Users\admin\BakedBot 
+for Brands\bakedbot-for-brands\node_modul
+es\@aws-sdk\core\dist-cjs\submodules\prot
+ocols\index.js:72:67)
+    at AwsRestXmlProtocol.handleError 
+(C:\Users\admin\BakedBot for Brands\baked
+bot-for-brands\node_modules\@aws-sdk\core
+\dist-cjs\submodules\protocols\index.js:1
+834:65)
+    at 
+AwsRestXmlProtocol.deserializeResponse 
+(C:\Users\admin\BakedBot for Brands\baked
+bot-for-brands\node_modules\@smithy\core\
+dist-cjs\submodules\protocols\index.js:33
+7:24)
+    at process.processTicksAndRejections 
+(node:internal/process/task_queues:105:5)
+    at async C:\Users\admin\BakedBot for 
+Brands\bakedbot-for-brands\node_modules\@
+smithy\core\dist-cjs\submodules\schema\in
+dex.js:27:24
+    at async C:\Users\admin\BakedBot for 
+Brands\bakedbot-for-brands\node_modules\@
+aws-sdk\middleware-sdk-s3\dist-cjs\index.
+js:387:20
+    at async C:\Users\admin\BakedBot for 
+Brands\bakedbot-for-brands\node_modules\@
+smithy\middleware-retry\dist-cjs\index.js
+:251:46
+    at async C:\Users\admin\BakedBot for 
+Brands\bakedbot-for-brands\node_modules\@
+aws-sdk\middleware-flexible-checksums\dis
+t-cjs\index.js:241:24
+    at async C:\Users\admin\BakedBot for 
+Brands\bakedbot-for-brands\node_modules\@
+aws-sdk\middleware-sdk-s3\dist-cjs\index.
+js:64:28
+    at async C:\Users\admin\BakedBot for 
+Brands\bakedbot-for-brands\node_modules\@
+aws-sdk\middleware-sdk-s3\dist-cjs\index.
+js:91:20 {
+  '$fault': 'client',
+  '$retryable': undefined,
+  '$metadata': {
+    httpStatusCode: 400,
+    requestId: 'XSFZQ58NVK2S9S4Y',
+    extendedRequestId: 'ALBjsec3JvS8F4dA5
+1Qd3bHwn2uA/S015nF4d/neXItmvZzgKsRmQPMijX
+H+Tn4DYyE6D0INz/U=',
+    cfId: undefined,
+    attempts: 1,
+    totalRetryDelay: 0
+  },
+  Code: 'AccessControlListNotSupported',
+  RequestId: 'XSFZQ58NVK2S9S4Y',
+  HostId: 'ALBjsec3JvS8F4dA51Qd3bHwn2uA/S
+015nF4d/neXItmvZzgKsRmQPMijXH+Tn4DYyE6D0I
+Nz/U='
+}

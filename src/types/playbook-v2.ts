@@ -28,7 +28,7 @@ export const scheduleTriggerSchema = z.object({
 export const eventTriggerSchema = z.object({
     type: z.literal('event'),
     eventName: z.string(),
-    filters: z.record(z.unknown()).optional(),
+    filters: z.record(z.string(), z.unknown()).optional(),
     debounceWindowMinutes: z.number().int().nonnegative().optional(),
 });
 
@@ -39,7 +39,7 @@ export const manualTriggerSchema = z.object({
 export const webhookTriggerSchema = z.object({
     type: z.literal('webhook'),
     webhookName: z.string(),
-    filters: z.record(z.unknown()).optional(),
+    filters: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const triggerSpecSchema = z.discriminatedUnion('type', [
@@ -86,9 +86,9 @@ export const compiledPlaybookSpecSchema = z.object({
     version: z.number().int().positive(),
     playbookType: z.string(),
     trigger: triggerSpecSchema,
-    scope: z.record(z.unknown()),
+    scope: z.record(z.string(), z.unknown()),
     objectives: z.array(z.string()),
-    inputs: z.record(z.unknown()),
+    inputs: z.record(z.string(), z.unknown()),
     outputs: outputSpecSchema,
     approvalPolicy: approvalPolicySchema,
     policyBundleId: z.string().optional(),
@@ -143,7 +143,7 @@ export const playbookArtifactSchema = z.object({
     storagePath: z.string(),
     mimeType: z.string().optional(),
     checksum: z.string().optional(),
-    metadata: z.record(z.unknown()).optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
     sourceRefs: z.array(z.string()).optional(),
     createdAt: z.string(),
 });
@@ -205,7 +205,7 @@ export const policyBundleSchema = z.object({
     workspaceId: z.string(),
     name: z.string(),
     jurisdiction: z.string().optional(),
-    channelRules: z.record(z.record(z.unknown())),
+    channelRules: z.record(z.string(), z.record(z.string(), z.unknown())),
     contentRules: z.object({
         blockedClaims: z.array(z.string()),
         requiredDisclaimers: z.array(z.string()),
@@ -214,7 +214,7 @@ export const policyBundleSchema = z.object({
         tone: z.array(z.string()),
         avoid: z.array(z.string()),
     }).optional(),
-    alertThresholds: z.record(z.number()).optional(),
+    alertThresholds: z.record(z.string(), z.number()).optional(),
     currentVersion: z.number().int().positive(),
     createdAt: z.string(),
     updatedAt: z.string(),
@@ -286,7 +286,8 @@ export function getNextRunStatus(input: {
             if (!input.validation) throw new Error('Validation result required to transition from validating');
             return input.validation.requiresApproval ? 'awaiting_approval' : 'delivering';
         case 'awaiting_approval':
-            return input.approvalResolved ? 'delivering' : 'awaiting_approval';
+            if (input.approvalResolved) return 'delivering';
+            return 'awaiting_approval';
         case 'delivering':
             return input.deliverySucceeded ? 'completed' : 'failed';
         default:

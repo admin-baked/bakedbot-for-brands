@@ -27,6 +27,7 @@ import { logger } from '@/lib/logger';
 export const maxDuration = 120;
 
 async function handleNotifications() {
+    logger.info('[MeetingNotifications] Running notifications cron...');
     let reminder24Count = 0;
     let reminderCount = 0;
     let startCount = 0;

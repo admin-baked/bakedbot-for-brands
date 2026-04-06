@@ -1,0 +1,106 @@
+﻿≡ƒôª Imports resolved successfully.
+≡ƒÜÇ Triggering Lambda smoke test...
+[INFO] 2026-04-06T05:30:01.218Z [Remotion] Render triggered {
+  renderId: 'xs0s25k9zf',
+  bucketName: 'remotionlambda-useast1-5hg2s7ajg0'
+}
+node.exe : [ERROR] 
+2026-04-06T05:30:05.603Z [Remotion] 
+Lambda error {
+At C:\Program Files\nodejs\npx.ps1:29 
+char:3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecifi 
+   ed: ([ERROR] 2026-04... Lambda error  
+   {:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeComm 
+   andError
+ 
+  error: '[Remotion] Lambda render 
+failed: Error while getting 
+compositions: Tried to go to https://remo
+tionlambda-useast1-5hg2s7ajg0.s3.us-east-
+1.amazonaws.com/sites/bakedbot-creative/i
+ndex.html and verify that it is a 
+Remotion project by checking if 
+window.getStaticCompositions is 
+defined.\n' +
+    'However, the function was 
+undefined, which indicates that this is 
+not a valid Remotion project. Please 
+check the URL you passed.\n' +
+    'The page loaded contained the 
+following markup:\n' +
+    '\n' +
+    '\t\t<script>window.remotion_numberOf
+AudioTags = 0;</script>\n' +
+    '\t\t<script>window.remotion_audioLat
+encyHint = "interactive";</script>\n' +
+    '\t\t\n' +
+    
+'\t\t<script>window.remotion_staticBase 
+= "/public";</script>\n' +
+    
+'\t\t<script>window.remotion_editorName 
+= null;</script>\n' +
+    
+'\t\t<script>window.remotion_projectName 
+= "bakedbot-for-brands";</script>\n' +
+    
+'\t\t<script>window.remotion_publicPath 
+= "/";</script>\n' +
+    '\t\t<script>window.remotion_audioEna
+bled = true;</script>\n' +
+    '\t\t<script>window.remotion_videoEna
+bled = true;</script>\n' +
+    '\t\t<script>window.re...\n' +
+    'Does this look like a foreign page? 
+If so, try to stop this server.'
+}
+Γ¥î Render Failed: Error: [Remotion] 
+Lambda render failed: Error while 
+getting compositions: Tried to go to http
+s://remotionlambda-useast1-5hg2s7ajg0.s3.
+us-east-1.amazonaws.com/sites/bakedbot-cr
+eative/index.html and verify that it is 
+a Remotion project by checking if 
+window.getStaticCompositions is defined.
+However, the function was undefined, 
+which indicates that this is not a valid 
+Remotion project. Please check the URL 
+you passed.
+The page loaded contained the following 
+markup:
+
+		<script>window.remotion_numberOfAudioTa
+gs = 0;</script>
+		
+<script>window.remotion_audioLatencyHint 
+= "interactive";</script>
+		
+		<script>window.remotion_staticBase = 
+"/public";</script>
+		<script>window.remotion_editorName = 
+null;</script>
+		<script>window.remotion_projectName = 
+"bakedbot-for-brands";</script>
+		<script>window.remotion_publicPath = 
+"/";</script>
+		<script>window.remotion_audioEnabled = 
+true;</script>
+		<script>window.remotion_videoEnabled = 
+true;</script>
+		<script>window.re...
+Does this look like a foreign page? If 
+so, try to stop this server.
+    at generateRemotionVideo 
+(C:\Users\admin\BakedBot for Brands\baked
+bot-for-brands\src\ai\generators\remotion
+-video.ts:117:23)
+    at process.processTicksAndRejections 
+(node:internal/process/task_queues:105:5)
+    at async runTest 
+(C:\Users\admin\BakedBot for Brands\baked
+bot-for-brands\scripts\smoke-test-lambda.
+ts:10:24)

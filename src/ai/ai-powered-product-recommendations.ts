@@ -6,7 +6,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'zod';
+import { z } from '@/ai/z3';
 import type { Product } from '@/firebase/converters';
 import { createServerClient } from '@/firebase/server-client';
 import { makeProductRepo } from '@/server/repos/productRepo';

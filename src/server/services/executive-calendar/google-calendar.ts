@@ -170,7 +170,8 @@ export async function createGoogleCalendarEvent(
             sendUpdates: 'all', // Sends email invitations to attendees
             requestBody: {
                 summary: event.summary,
-                description: `${event.description}\n\n🎥 Video call: ${event.videoRoomUrl}`,
+                location: event.videoRoomUrl,
+                description: `${event.description}\n\n🎥 BakedBot Video Call: ${event.videoRoomUrl}\n\nJoin the secure video room directly in your browser. No downloads required.`,
                 start: {
                     dateTime: event.startAt.toISOString(),
                     timeZone: event.timezone,
@@ -180,12 +181,6 @@ export async function createGoogleCalendarEvent(
                     timeZone: event.timezone,
                 },
                 attendees: event.attendeeEmails.map(email => ({ email })),
-                conferenceData: {
-                    createRequest: {
-                        requestId: `bakedbot-${Date.now()}`,
-                        conferenceSolutionKey: { type: 'hangoutsMeet' },
-                    },
-                },
                 reminders: {
                     useDefault: false,
                     overrides: [

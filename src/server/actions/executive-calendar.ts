@@ -21,7 +21,10 @@ import {
 } from '@/types/executive-calendar';
 import { calculateAvailableSlots } from '@/server/services/executive-calendar/availability';
 import { createMeetingRoom, buildRoomName } from '@/server/services/executive-calendar/livekit';
-import { sendHostBookingNotificationEmail } from '@/server/services/executive-calendar/booking-emails';
+import {
+    sendHostBookingNotificationEmail,
+    sendConfirmationEmail,
+} from '@/server/services/executive-calendar/booking-emails';
 import {
     buildExecutiveBookingEventData,
     buildExecutiveBookingEventName,
@@ -31,6 +34,7 @@ import {
     getGoogleCalendarBusyTimes,
     createGoogleCalendarEvent,
     deleteGoogleCalendarEvent,
+    listGoogleCalendarEvents,
 } from '@/server/services/executive-calendar/google-calendar';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -288,7 +292,10 @@ export async function createBooking(
     });
     try {
         const hostDelivery = await sendHostBookingNotificationEmail(fullBooking, profile);
-        const confirmationSummary = await dispatchPlaybookEventSync(
+        const guestDelivery = await sendConfirmationEmail(fullBooking, profile);
+        
+        // Still fire the playbook event for analytics/secondary flows, but don't rely on it for transactional delivery
+        dispatchPlaybookEvent(
             'bakedbot-internal',
             buildExecutiveBookingEventName(profile.profileSlug, 'confirmation'),
             buildExecutiveBookingEventData({
@@ -296,13 +303,14 @@ export async function createBooking(
                 profile,
                 stage: 'confirmation',
             }),
-        );
+        ).catch(e => logger.warn('[ExecCalendar] Analytics playbook dispatch failed', e));
+
         const emailTimestamp = Timestamp.now();
         const emailUpdates: Record<string, unknown> = {
             updatedAt: emailTimestamp,
         };
 
-        if (confirmationSummary.delivered) {
+        if (guestDelivery.guest.success) {
             emailUpdates.confirmationEmailSentAt = emailTimestamp;
         }
 
@@ -312,13 +320,12 @@ export async function createBooking(
 
         await bookingRef.update(emailUpdates);
 
-        if (!confirmationSummary.delivered || !hostDelivery.success) {
+        if (!guestDelivery.guest.success || !hostDelivery.success) {
             logger.warn('[ExecCalendar] Partial booking email delivery', {
                 bookingId,
                 profileSlug,
-                confirmationDelivered: confirmationSummary.delivered,
-                confirmationDeduped: confirmationSummary.deduped,
-                confirmationResults: confirmationSummary.results,
+                guestDelivered: guestDelivery.guest.success,
+                guestError: guestDelivery.guest.error,
                 hostDelivered: hostDelivery.success,
                 hostError: hostDelivery.error,
             });
@@ -371,18 +378,80 @@ export async function getUpcomingMeetings(
     await requireSuperUser();
     try {
         const firestore = getAdminFirestore();
+        const now = new Date();
+
+        // 1. Fetch BakedBot bookings
         const snap = await firestore
             .collection('meeting_bookings')
             .where('profileSlug', '==', profileSlug)
-            .where('startAt', '>=', Timestamp.fromDate(new Date()))
+            .where('startAt', '>=', Timestamp.fromDate(now))
             .where('status', '==', 'confirmed')
             .orderBy('startAt', 'asc')
             .limit(limit)
             .get();
 
-        return snap.docs.map(d =>
+        const bakedBookings = snap.docs.map(d =>
             firestoreToBooking(d.id, d.data() as Record<string, unknown>),
         );
+
+        // 2. Fetch Google Calendar events if connected
+        const profile = await getExecutiveProfile(profileSlug);
+        if (profile?.googleCalendarTokens?.refresh_token) {
+            try {
+                const oneWeekLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+                const gcalEvents = await listGoogleCalendarEvents(
+                    profile.googleCalendarTokens,
+                    now,
+                    oneWeekLater,
+                );
+
+                // Convert GCal events to MeetingBooking shape for the UI
+                const syncedEvents: MeetingBooking[] = gcalEvents
+                    .filter(ge => {
+                        // Avoid duplicates if the event was created by BakedBot (has BakedBot in title or desc)
+                        const isBakedBotEvent = bakedBookings.some(bb => bb.calendarEventId === ge.id);
+                        return !isBakedBotEvent;
+                    })
+                    .map(ge => ({
+                        id: ge.id,
+                        profileSlug: profileSlug as ExecProfileSlug,
+                        meetingTypeId: 'google-calendar',
+                        meetingTypeName: 'Google Calendar',
+                        durationMinutes: Math.round((ge.endAt.getTime() - ge.startAt.getTime()) / 60000),
+                        externalName: ge.title,
+                        externalEmail: ge.attendees[0] || '',
+                        purpose: ge.title,
+                        startAt: ge.startAt,
+                        endAt: ge.endAt,
+                        status: 'confirmed',
+                        videoRoomUrl: ge.htmlLink || '',
+                        livekitRoomName: '',
+                        prepBriefGenerated: false,
+                        prepBriefSentAt: null,
+                        followUpSentAt: null,
+                        oneHourReminderSentAt: null,
+                        twentyFourHourReminderSentAt: null,
+                        startNotificationSentAt: null,
+                        confirmationEmailSentAt: null,
+                        hostNotificationEmailSentAt: null,
+                        transcript: null,
+                        meetingNotes: null,
+                        actionItems: [],
+                        calendarEventId: ge.id,
+                        createdAt: new Date(),
+                        updatedAt: new Date(),
+                    }));
+
+                const allMeetings = [...bakedBookings, ...syncedEvents].sort(
+                    (a, b) => a.startAt.getTime() - b.startAt.getTime(),
+                );
+                return allMeetings.slice(0, limit);
+            } catch (gcalErr) {
+                logger.warn(`[ExecCalendar] Failed to sync GCal events for ${profileSlug}:`, gcalErr);
+            }
+        }
+
+        return bakedBookings;
     } catch (err) {
         logger.error('[ExecCalendar] getUpcomingMeetings error:', err instanceof Error ? { message: err.message } : { error: String(err) });
         return [];
@@ -499,8 +568,9 @@ export async function getCalendarMeetings(
 export async function getMeetingsNeedingPrepBrief(): Promise<MeetingBooking[]> {
     const firestore = getAdminFirestore();
     const now = new Date();
-    const windowStart = new Date(now.getTime() + 20 * 60 * 1000);
-    const windowEnd = new Date(now.getTime() + 40 * 60 * 1000);
+    // Broad window: any meeting starting in the next hour that hasn't been prepped
+    const windowStart = now;
+    const windowEnd = new Date(now.getTime() + 60 * 60 * 1000);
 
     const snap = await firestore
         .collection('meeting_bookings')
@@ -534,8 +604,9 @@ export async function markPrepBriefSent(bookingId: string): Promise<void> {
 export async function getMeetingsNeedingFollowUp(): Promise<MeetingBooking[]> {
     const firestore = getAdminFirestore();
     const now = new Date();
-    const windowStart = new Date(now.getTime() - 20 * 60 * 1000);
-    const windowEnd = new Date(now.getTime() - 10 * 60 * 1000);
+    // Broad window: anything that ended in the last 24h and hasn't been followed up
+    const windowStart = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const windowEnd = new Date(now.getTime() - 5 * 60 * 1000); // Wait 5 mins after end
 
     const snap = await firestore
         .collection('meeting_bookings')
@@ -586,8 +657,9 @@ export async function markFollowUpSent(bookingId: string): Promise<void> {
 export async function getMeetingsNeedingOneHourReminder(): Promise<MeetingBooking[]> {
     const firestore = getAdminFirestore();
     const now = new Date();
-    const windowStart = new Date(now.getTime() + 50 * 60 * 1000);
-    const windowEnd = new Date(now.getTime() + 70 * 60 * 1000);
+    // Broad window: starting in the next 90 mins that hasn't had the 1h reminder
+    const windowStart = now;
+    const windowEnd = new Date(now.getTime() + 90 * 60 * 1000);
 
     const snap = await firestore
         .collection('meeting_bookings')
@@ -619,8 +691,9 @@ export async function markOneHourReminderSent(bookingId: string): Promise<void> 
 export async function getMeetingsNeeding24HourReminder(): Promise<MeetingBooking[]> {
     const firestore = getAdminFirestore();
     const now = new Date();
-    const windowStart = new Date(now.getTime() + 23 * 60 * 60 * 1000);
-    const windowEnd = new Date(now.getTime() + 25 * 60 * 60 * 1000);
+    // Broad window: starting in the next 26h that haven't had the 24h reminder
+    const windowStart = now;
+    const windowEnd = new Date(now.getTime() + 26 * 60 * 60 * 1000);
 
     const snap = await firestore
         .collection('meeting_bookings')
@@ -653,8 +726,8 @@ export async function mark24HourReminderSent(bookingId: string): Promise<void> {
 export async function getMeetingsNeedingStartNotification(): Promise<MeetingBooking[]> {
     const firestore = getAdminFirestore();
     const now = new Date();
-    // Look for meetings starting between 5 minutes ago and 5 minutes from now
-    const windowStart = new Date(now.getTime() - 5 * 60 * 1000);
+    // Broad window: started in the last 15 mins or starting in the next 5 mins
+    const windowStart = new Date(now.getTime() - 15 * 60 * 1000);
     const windowEnd = new Date(now.getTime() + 5 * 60 * 1000);
 
     const snap = await firestore
@@ -679,4 +752,93 @@ export async function markStartNotificationSent(bookingId: string): Promise<void
         startNotificationSentAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
     });
+}
+
+/**
+ * [ADMIN] Force-sends missing confirmation/notification emails for today's bookings.
+ * Used to recover from delivery failures. Super User only.
+ */
+export async function retroSendMissingTodayEmails(profileSlug: string): Promise<{
+    found: number;
+    guestSent: number;
+    hostSent: number;
+    syncedToGCal: number;
+}> {
+    await requireSuperUser();
+    const firestore = getAdminFirestore();
+    const profile = await getExecutiveProfile(profileSlug);
+    if (!profile) throw new Error(`Profile not found: ${profileSlug}`);
+
+    const now = new Date();
+    const startOfToday = new Date(now);
+    startOfToday.setUTCHours(0, 0, 0, 0);
+    const endOfToday = new Date(now);
+    endOfToday.setUTCHours(23, 59, 59, 999);
+
+    const snap = await firestore
+        .collection('meeting_bookings')
+        .where('profileSlug', '==', profileSlug)
+        .where('status', '==', 'confirmed')
+        .where('startAt', '>=', Timestamp.fromDate(startOfToday))
+        .where('startAt', '<=', Timestamp.fromDate(endOfToday))
+        .get();
+
+    const bookings = snap.docs.map(d => firestoreToBooking(d.id, d.data() as Record<string, unknown>));
+    let guestSent = 0;
+    let hostSent = 0;
+    let syncedToGCal = 0;
+
+    for (const b of bookings) {
+        const updates: Record<string, any> = { updatedAt: Timestamp.now() };
+
+        // 1. Host Notification
+        if (!b.hostNotificationEmailSentAt) {
+            const res = await sendHostBookingNotificationEmail(b, profile);
+            if (res.success) {
+                updates.hostNotificationEmailSentAt = Timestamp.now();
+                hostSent++;
+            }
+        }
+
+        // 2. Guest Confirmation
+        if (!b.confirmationEmailSentAt) {
+            const res = await sendConfirmationEmail(b, profile);
+            if (res.guest.success) {
+                updates.confirmationEmailSentAt = Timestamp.now();
+                guestSent++;
+            }
+        }
+
+        // 3. BEST EFFORT: Sync to Google Calendar if missing
+        if (!b.calendarEventId && profile.googleCalendarTokens?.refresh_token) {
+            try {
+                const eventId = await createGoogleCalendarEvent(profile.googleCalendarTokens, {
+                    summary: `${b.meetingTypeName} with ${b.externalName}`,
+                    description: b.purpose || 'Meeting booked via BakedBot',
+                    startAt: b.startAt,
+                    endAt: b.endAt,
+                    timezone: profile.availability.timezone,
+                    attendeeEmails: [b.externalEmail, profile.emailAddress],
+                    videoRoomUrl: b.videoRoomUrl,
+                });
+                if (eventId) {
+                    updates.calendarEventId = eventId;
+                    syncedToGCal++;
+                }
+            } catch (err) {
+                logger.error(`[ExecCalendar] Retro-sync GCal failed for ${b.id}:`, err);
+            }
+        }
+
+        if (Object.keys(updates).length > 1) {
+            await firestore.collection('meeting_bookings').doc(b.id).update(updates);
+        }
+    }
+
+    return {
+        found: bookings.length,
+        guestSent,
+        hostSent,
+        syncedToGCal,
+    };
 }

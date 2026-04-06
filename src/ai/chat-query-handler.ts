@@ -4,7 +4,7 @@
 // so they don't need the 'use server' directive
 
 import { ai } from './genkit';
-import { z } from 'zod';
+import { z } from '@/ai/z3';
 import { getSmokeyConfig } from '@/config/super-admin-smokey-config';
 
 // Schema for extracting search parameters from natural language queries
@@ -130,14 +130,14 @@ Extract the following information:
 11. **intent**: Briefly describe user intent.
 
 Examples:
-- "Show me uplifting sativa gummies under $25" → searchType: filtered, filters: {priceMax: 25, ...}
-- "I'll take two of the blue dream" → searchType: checkout, checkoutParams: {action: "create_order", productName: "blue dream", quantity: 2}
-- "Checkout now" → searchType: checkout, checkoutParams: {action: "view_cart"}
-- "Track Green Dragon in Denver" → searchType: competitive, competitiveParams: {action: "track_competitor", ...}
-- "Draft an email about our new concentrates drop" → searchType: marketing, marketingParams: {action: "draft_email", topic: "new concentrates drop"}
-- "Post to Twitter about our happy hour" → searchType: marketing, marketingParams: {action: "post_social", topic: "happy hour", platforms: ["twitter"]}
-- "Is it legal to sell delta-8 in NY?" → searchType: compliance, complianceParams: {action: "check_regulation", state: "NY"}
-- "Predict sales for next month" → searchType: analytics, analyticsParams: {action: "forecast_sales", timeframe: "next month"}
+- "Show me uplifting sativa gummies under $25" â†’ searchType: filtered, filters: {priceMax: 25, ...}
+- "I'll take two of the blue dream" â†’ searchType: checkout, checkoutParams: {action: "create_order", productName: "blue dream", quantity: 2}
+- "Checkout now" â†’ searchType: checkout, checkoutParams: {action: "view_cart"}
+- "Track Green Dragon in Denver" â†’ searchType: competitive, competitiveParams: {action: "track_competitor", ...}
+- "Draft an email about our new concentrates drop" â†’ searchType: marketing, marketingParams: {action: "draft_email", topic: "new concentrates drop"}
+- "Post to Twitter about our happy hour" â†’ searchType: marketing, marketingParams: {action: "post_social", topic: "happy hour", platforms: ["twitter"]}
+- "Is it legal to sell delta-8 in NY?" â†’ searchType: compliance, complianceParams: {action: "check_regulation", state: "NY"}
+- "Predict sales for next month" â†’ searchType: analytics, analyticsParams: {action: "forecast_sales", timeframe: "next month"}
 - "When is Jack free?" -> searchType: scheduling, schedulingParams: {action: "check_availability", username: "Jack"}
 - "Audit https://bakedbot.ai" -> searchType: seo, seoParams: {action: "audit_page", url: "https://bakedbot.ai"}
 `,

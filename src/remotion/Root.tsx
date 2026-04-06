@@ -169,6 +169,26 @@ export const RemotionRoot: React.FC = () => {
                 height={1080}
                 defaultProps={DEFAULT_LONGFORM_PROPS}
             />
+            {/* Tiny Smoke Test for Lambda Verification (1 second) */}
+            <Composition
+                id="TinySmokeTest"
+                component={ToolShowcase}
+                durationInFrames={30}
+                fps={30}
+                width={1280}
+                height={720}
+                defaultProps={{
+                    brandName: 'BakedBot Verification',
+                    kineticHeadline: 'STABLE',
+                    headline: 'PIPELINE IS LIVE',
+                    tagline: 'Render successful in us-east-1.',
+                    primaryColor: '#18181b',
+                    secondaryColor: '#27272a',
+                    accentColor: '#22c55e',
+                    screenshotUrls: [],
+                    styleMode: 'stop-motion',
+                }}
+            />
         </>
     );
 };

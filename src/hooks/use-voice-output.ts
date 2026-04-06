@@ -1,87 +1,88 @@
 /**
  * Voice Output Hook
- * Uses Web Speech API for text-to-speech.
- * Selects the most natural voice available on the device.
+ * 
+ * High-quality Automated Voice Output for the loyalty tablet.
+ * Fetches audio from /api/voice/tts (Google Cloud TTS) instead of the 
+ * robotic browser SpeechSynthesis.
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-
-// Ordered preference list — first match wins.
-// Target: natural-sounding male English voice.
-// Web Speech API doesn't expose gender, so we match by known male voice names.
-const PREFERRED_VOICE_NAMES = [
-    'Google US English',      // Chrome Android/desktop — typically male, natural
-    'Microsoft David',        // Windows — natural male voice
-    'Microsoft Mark',         // Windows — male voice
-    'Alex',                   // macOS — male
-    'Rishi',                  // macOS/iOS — male (South Asian accent)
-    'Daniel',                 // iOS — male (UK accent)
-    'Fred',                   // macOS — male
-    'Samantha',               // iOS fallback — no strong male option on stock iOS
-    'Microsoft Aria',
-    'Microsoft Jenny',
-];
-
-function pickBestVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
-    const enVoices = voices.filter(v => v.lang.startsWith('en'));
-    for (const name of PREFERRED_VOICE_NAMES) {
-        const match = enVoices.find(v => v.name.includes(name));
-        if (match) return match;
-    }
-    // Fallback: first English voice
-    return enVoices[0] ?? null;
-}
+import { useState, useCallback, useEffect, useRef } from 'react';
 
 export function useVoiceOutput() {
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [isEnabled, setIsEnabled] = useState(false);
-    const [isSupported, setIsSupported] = useState(false);
-    const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
-    const bestVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
+    const [isSupported] = useState(true); // Backend-driven, so it's always supported
+    
+    // Dedicated audio element to prevent overlaps
+    const audioRef = useRef<HTMLAudioElement | null>(null);
 
+    // Clean up on unmount
     useEffect(() => {
-        if (!('speechSynthesis' in window)) return;
-        setIsSupported(true);
-
-        const loadVoices = () => {
-            bestVoiceRef.current = pickBestVoice(window.speechSynthesis.getVoices());
-        };
-
-        // Voices may already be loaded (desktop Chrome) or arrive async (iOS)
-        loadVoices();
-        window.speechSynthesis.addEventListener('voiceschanged', loadVoices);
-
         return () => {
-            window.speechSynthesis.removeEventListener('voiceschanged', loadVoices);
-            window.speechSynthesis.cancel();
+            if (audioRef.current) {
+                audioRef.current.pause();
+                try {
+                    audioRef.current.src = "";
+                } catch (e) {
+                   // Ignore
+                }
+                audioRef.current = null;
+            }
         };
     }, []);
 
-    const speak = useCallback((text: string) => {
-        if (!window.speechSynthesis) return;
-        window.speechSynthesis.cancel();
+    const speak = useCallback(async (text: string) => {
+        if (!isEnabled || !text.trim()) return;
 
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'en-US';
-        utterance.rate = 0.95;
-        utterance.pitch = 1.0;
-        utterance.volume = 1.0;
-
-        if (bestVoiceRef.current) {
-            utterance.voice = bestVoiceRef.current;
+        // Cancel previous speech
+        if (audioRef.current) {
+            audioRef.current.pause();
+            try {
+                audioRef.current.src = "";
+            } catch (e) {}
+            audioRef.current = null;
         }
 
-        utterance.onstart = () => setIsSpeaking(true);
-        utterance.onend = () => setIsSpeaking(false);
-        utterance.onerror = () => setIsSpeaking(false);
+        try {
+            const resp = await fetch('/api/voice/tts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text }),
+            });
 
-        utteranceRef.current = utterance;
-        window.speechSynthesis.speak(utterance);
-    }, []);
+            if (!resp.ok) throw new Error('TTS fetch failed');
+
+            const data = await resp.json();
+            if (!data.audioBase64) throw new Error('No audio returned');
+
+            const audioSrc = `data:audio/mp3;base64,${data.audioBase64}`;
+            const audio = new Audio(audioSrc);
+            audioRef.current = audio;
+
+            audio.onplay = () => setIsSpeaking(true);
+            audio.onended = () => {
+                setIsSpeaking(false);
+                audioRef.current = null;
+            };
+            audio.onerror = () => {
+                setIsSpeaking(false);
+                audioRef.current = null;
+            };
+
+            await audio.play();
+        } catch (err) {
+            console.error('[VoiceOutput] Synthesis failed', err);
+            setIsSpeaking(false);
+        }
+    }, [isEnabled]);
 
     const stop = useCallback(() => {
-        if (window.speechSynthesis) {
-            window.speechSynthesis.cancel();
+        if (audioRef.current) {
+            audioRef.current.pause();
+            try {
+                audioRef.current.src = "";
+            } catch (e) {}
+            audioRef.current = null;
             setIsSpeaking(false);
         }
     }, []);

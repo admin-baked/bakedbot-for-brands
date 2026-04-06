@@ -1,7 +1,7 @@
 'use server';
 
 import { ai } from '@/ai/genkit';
-import { z } from 'zod';
+import { z } from '@/ai/z3';
 
 // Output schema for the generated campaign
 const CampaignContentSchema = z.object({
