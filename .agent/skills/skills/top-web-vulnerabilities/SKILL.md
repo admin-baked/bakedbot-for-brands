@@ -1,31 +1,22 @@
 ---
-name: Top 100 Web Vulnerabilities Reference
-description: This skill should be used when the user asks to "identify web application vulnerabilities", "explain common security flaws", "understand vulnerability categories", "learn about injection attacks", "review access control weaknesses", "analyze API security issues", "assess security misconfigurations", "understand client-side vulnerabilities", "examine mobile and IoT security flaws", or "reference the OWASP-aligned vulnerability taxonomy". Use this skill to provide comprehensive vulnerability definitions, root causes, impacts, and mitigation strategies across all major web security categories.
+name: top-web-vulnerabilities
+description: "Provides a structured reference for the 100 most critical web application vulnerabilities organized by OWASP-aligned categories. Covers injection, authentication, data exposure, misconfiguration, XML, access control, deserialization, API security, communication, client-side, DoS, SSRF, mobile/IoT, and advanced threats. Use when the user asks to identify web vulnerabilities, explain common security flaws, review OWASP categories, assess injection or XSS risks, audit API security, evaluate access control weaknesses, or reference vulnerability mitigations."
 metadata:
   author: zebbern
-  version: "1.1"
+  version: "1.2"
 ---
 
 # Top 100 Web Vulnerabilities Reference
 
-## Purpose
+## Overview
 
-Provide a comprehensive, structured reference for the 100 most critical web application vulnerabilities organized by category. This skill enables systematic vulnerability identification, impact assessment, and remediation guidance across the full spectrum of web security threats. Content organized into 15 major vulnerability categories aligned with industry standards and real-world attack patterns.
+A structured reference catalog of the 100 most critical web application vulnerabilities organized into 15 OWASP-aligned categories. Each entry includes definition, root cause, impact, and mitigation. Covers the full assessment workflow from injection testing through advanced zero-day threats.
 
 ## Prerequisites
 
-- Basic understanding of web application architecture (client-server model, HTTP protocol)
-- Familiarity with common web technologies (HTML, JavaScript, SQL, XML, APIs)
-- Understanding of authentication and authorization concepts
-- Access to web application security testing tools (Burp Suite, OWASP ZAP)
-- Knowledge of secure coding principles recommended
-
-## Outputs and Deliverables
-
-- Complete vulnerability catalog with definitions, root causes, impacts, and mitigations
-- Category-based vulnerability groupings for systematic assessment
-- Quick reference for security testing and remediation
-- Foundation for vulnerability assessment checklists and security policies
+- Web application architecture knowledge (HTTP, client-server model)
+- Familiarity with HTML, JavaScript, SQL, XML, APIs
+- Security testing tools (Burp Suite, OWASP ZAP)
 
 ---
 
@@ -466,18 +457,6 @@ Assess SSRF vulnerabilities:
 | Business Logic | 74, 92-97 | Threat modeling, logic testing |
 | Zero-Day | 98-100 | Defense in depth, threat intelligence |
 
-### Critical Security Headers
-
-```
-Content-Security-Policy: default-src 'self'; script-src 'self'
-X-Content-Type-Options: nosniff
-X-Frame-Options: DENY
-X-XSS-Protection: 1; mode=block
-Strict-Transport-Security: max-age=31536000; includeSubDomains
-Referrer-Policy: strict-origin-when-cross-origin
-Permissions-Policy: geolocation=(), microphone=()
-```
-
 ### OWASP Top 10 Mapping
 
 | OWASP 2021 | Related Vulnerabilities |
@@ -495,49 +474,21 @@ Permissions-Policy: geolocation=(), microphone=()
 
 ---
 
-## Constraints and Limitations
+## Constraints
 
-- Vulnerability definitions represent common patterns; specific implementations vary
-- Mitigations must be adapted to technology stack and architecture
-- New vulnerabilities emerge continuously; reference should be updated
-- Some vulnerabilities overlap across categories (e.g., IDOR appears in multiple contexts)
-- Effectiveness of mitigations depends on proper implementation
-- Automated scanners cannot detect all vulnerability types (especially business logic)
-
----
+- Mitigations must be adapted to the specific technology stack and architecture
+- Automated scanners cannot detect all vulnerability types (especially business logic flaws)
+- Some vulnerabilities overlap across categories (e.g., IDOR appears in access control and data exposure)
 
 ## Troubleshooting
-
-### Common Assessment Challenges
 
 | Challenge | Solution |
 |-----------|----------|
 | False positives in scanning | Manual verification, contextual analysis |
 | Business logic flaws missed | Manual testing, threat modeling, abuse case analysis |
-| Encrypted traffic analysis | Proxy configuration, certificate installation |
 | WAF blocking tests | Rate adjustment, IP rotation, payload encoding |
-| Session handling issues | Cookie management, authentication state tracking |
-| API discovery | Swagger/OpenAPI enumeration, traffic analysis |
-
-### Vulnerability Verification Techniques
-
-| Vulnerability Type | Verification Approach |
-|-------------------|----------------------|
-| Injection | Payload testing with encoded variants |
-| XSS | Alert boxes, cookie access, DOM inspection |
-| CSRF | Cross-origin form submission testing |
-| SSRF | Out-of-band DNS/HTTP callbacks |
-| XXE | External entity with controlled server |
-| Access Control | Horizontal/vertical privilege testing |
-| Authentication | Credential rotation, session analysis |
-
----
 
 ## References
 
-- OWASP Top 10 Web Application Security Risks
-- CWE/SANS Top 25 Most Dangerous Software Errors
-- OWASP Testing Guide
-- OWASP Application Security Verification Standard (ASVS)
-- NIST Cybersecurity Framework
+- OWASP Top 10, CWE/SANS Top 25, OWASP Testing Guide, OWASP ASVS, NIST CSF
 - Source: Kumar MS - Top 100 Web Vulnerabilities
