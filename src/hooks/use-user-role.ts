@@ -187,7 +187,7 @@ export function useUserRole() {
     const currentOrgId = useMemo(() => (user as any)?.currentOrgId || null, [user]);
     const orgId = useMemo(() => currentOrgId || brandId || locationId || dispensaryId || null, [currentOrgId, brandId, locationId, dispensaryId]);
 
-    return {
+    return useMemo(() => ({
         role,
         isRole,
         hasAnyRole,
@@ -211,5 +211,21 @@ export function useUserRole() {
         isDispensaryAdmin: role ? isDispensaryAdmin(role) : false,
         isGrowerRole: role ? isGrowerRole(role) : false,
         isSuperUser: role === 'super_user' || role === 'super_admin',
-    };
+    }), [
+        role,
+        isRole,
+        hasAnyRole,
+        canAccessDashboard,
+        canAccessAdminFeatures,
+        hasBrandAdminAccess,
+        hasDispensaryAdminAccess,
+        defaultRoute,
+        loginRoute,
+        isUserLoading,
+        user,
+        brandId,
+        dispensaryId,
+        locationId,
+        orgId
+    ]);
 }
