@@ -6,7 +6,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from '@/ai/z3';
+import { z, ZodInfer } from '@/ai/z3';
 import type { Product } from '@/firebase/converters';
 import { createServerClient } from '@/firebase/server-client';
 import { makeProductRepo } from '@/server/repos/productRepo';
@@ -22,7 +22,7 @@ const RecommendProductsInputSchema = z.object({
   brandId: z.string().describe('The ID of the brand for which to recommend products.'),
   customerHistory: z.string().optional().describe('A summary of the customer purchase history and preferences.'),
 });
-export type RecommendProductsInput = z.infer<typeof RecommendProductsInputSchema>;
+export type RecommendProductsInput = ZodInfer<typeof RecommendProductsInputSchema>;
 
 const RecommendedProductSchema = z.object({
   productId: z.string().describe('The unique ID of the recommended product.'),
@@ -34,7 +34,7 @@ const RecommendProductsOutputSchema = z.object({
   products: z.array(RecommendedProductSchema).describe('A list of products recommended for the user.'),
   overallReasoning: z.string().describe('The overall reasoning behind the set of product recommendations.'),
 });
-export type RecommendProductsOutput = z.infer<typeof RecommendProductsOutputSchema>;
+export type RecommendProductsOutput = ZodInfer<typeof RecommendProductsOutputSchema>;
 
 // The prompt now works with a list of *candidate* products.
 const recommendProductsPrompt = ai.definePrompt({
@@ -144,3 +144,5 @@ const recommendProductsFlow = ai.defineFlow(
 export async function recommendProducts(input: RecommendProductsInput): Promise<RecommendProductsOutput> {
   return recommendProductsFlow(input);
 }
+
+

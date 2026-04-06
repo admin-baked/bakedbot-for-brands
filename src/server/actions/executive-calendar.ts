@@ -29,7 +29,7 @@ import {
     buildExecutiveBookingEventData,
     buildExecutiveBookingEventName,
 } from '@/server/services/executive-calendar/booking-playbook-events';
-import { dispatchPlaybookEventSync } from '@/server/services/playbook-event-dispatcher';
+import { dispatchPlaybookEventSync, dispatchPlaybookEvent } from '@/server/services/playbook-event-dispatcher';
 import {
     getGoogleCalendarBusyTimes,
     createGoogleCalendarEvent,
@@ -447,7 +447,7 @@ export async function getUpcomingMeetings(
                 );
                 return allMeetings.slice(0, limit);
             } catch (gcalErr) {
-                logger.warn(`[ExecCalendar] Failed to sync GCal events for ${profileSlug}:`, gcalErr);
+                logger.warn(`[ExecCalendar] Failed to sync GCal events for ${profileSlug}:`, { error: gcalErr });
             }
         }
 
@@ -842,7 +842,7 @@ export async function retroSendInternal(profileSlug: string): Promise<{
                     syncedToGCal++;
                 }
             } catch (err) {
-                logger.error(`[ExecCalendar] Retro-sync GCal failed for ${b.id}:`, err);
+                logger.error(`[ExecCalendar] Retro-sync GCal failed for ${b.id}:`, { error: err });
             }
         }
 

@@ -165,7 +165,7 @@ export default function SeoOptimizer({ products, areProductsLoading }: SeoOptimi
                                 <div className="space-y-2">
                                     <Label>Target Keywords</Label>
                                     <div className="flex flex-wrap gap-2">
-                                        {state.data.targetKeywords.map((k, i) => (
+                                        {state.data.targetKeywords.map((k: string, i: number) => (
                                             <span key={i} className="px-2 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium">
                                                 {k}
                                             </span>

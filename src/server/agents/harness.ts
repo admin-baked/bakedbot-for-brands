@@ -398,7 +398,7 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
                         thought: z.string(),
                         status: z.enum(['CONTINUE', 'COMPLETE', 'BLOCKED']),
                         toolName: z.string().nullable(),
-                        args: z.record(z.string(), z.any())
+                        args: z.record(z.any())
                     })
                 }
             });
@@ -735,7 +735,7 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
                     thought: z.string(),
                     status: z.enum(['CONTINUE', 'COMPLETE', 'BLOCKED']),
                     toolName: z.string().nullable(),
-                    args: z.record(z.string(), z.any())
+                    args: z.record(z.any())
                 })
             }
         });

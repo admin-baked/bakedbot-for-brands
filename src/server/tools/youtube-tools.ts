@@ -15,7 +15,7 @@
  *   library of competitor video content over time.
  */
 
-import { z } from 'zod/v3';
+import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { getAdminFirestore } from '@/firebase/admin';
 import { getStorage } from 'firebase-admin/storage';

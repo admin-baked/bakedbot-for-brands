@@ -35,8 +35,8 @@ const GenerateSocialCaptionOutputSchema = z.object({
     complianceNotes: z.array(z.string()).optional(),
 });
 
-type GenerateSocialCaptionInput = z.infer<typeof GenerateSocialCaptionInputSchema>;
-type GenerateSocialCaptionOutput = z.infer<typeof GenerateSocialCaptionOutputSchema>;
+type GenerateSocialCaptionInput = ZodInfer<typeof GenerateSocialCaptionInputSchema>;
+type GenerateSocialCaptionOutput = ZodInfer<typeof GenerateSocialCaptionOutputSchema>;
 
 describe('generate-social-caption schemas', () => {
     describe('GenerateSocialCaptionInputSchema', () => {
@@ -319,3 +319,5 @@ describe('generate-social-caption types', () => {
         expect(result.success).toBe(true);
     });
 });
+
+

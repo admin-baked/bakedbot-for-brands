@@ -8,7 +8,7 @@
  * RTRVR never stores credentials — cookies injected per-call only.
  */
 
-import { z } from 'zod/v3';
+import { z } from 'zod';
 import {
     twitterPost,
     twitterThread,

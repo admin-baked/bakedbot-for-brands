@@ -116,3 +116,4 @@ export function deriveOgTemplate(
     }
     return 'text-on-color';
 }
+

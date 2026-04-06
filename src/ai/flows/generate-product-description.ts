@@ -10,7 +10,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from '@/ai/z3';
+import { z, ZodInfer } from '@/ai/z3';
 
 const GenerateProductDescriptionInputSchema = z.object({
   productName: z.string().describe('The name of the product.'),
@@ -26,7 +26,7 @@ const GenerateProductDescriptionInputSchema = z.object({
   lineage: z.string().optional().describe('Strain lineage information (e.g. Blue Dream x GSC).'),
 });
 
-export type GenerateProductDescriptionInput = z.infer<typeof GenerateProductDescriptionInputSchema>;
+export type GenerateProductDescriptionInput = ZodInfer<typeof GenerateProductDescriptionInputSchema>;
 
 const GenerateProductDescriptionOutputSchema = z.object({
   productName: z.string().describe('The name of the product.'),
@@ -35,7 +35,7 @@ const GenerateProductDescriptionOutputSchema = z.object({
   msrp: z.string().optional().describe("The manufacturer's suggested retail price."),
 });
 
-export type GenerateProductDescriptionOutput = z.infer<typeof GenerateProductDescriptionOutputSchema>;
+export type GenerateProductDescriptionOutput = ZodInfer<typeof GenerateProductDescriptionOutputSchema>;
 
 export async function generateProductDescription(input: GenerateProductDescriptionInput): Promise<GenerateProductDescriptionOutput> {
   return generateProductDescriptionFlow(input);
@@ -89,3 +89,6 @@ const generateProductDescriptionFlow = ai.defineFlow(
     return output!;
   }
 );
+
+
+

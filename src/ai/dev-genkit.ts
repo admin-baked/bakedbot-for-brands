@@ -21,3 +21,4 @@ export const ai = genkit({
   // Default to most cost-effective model (free tier)
   model: 'googleai/gemini-2.5-flash-lite',
 });
+

@@ -219,7 +219,7 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
                     schema: z.object({
                         thought: z.string(),
                         toolName: z.enum(['analyzeData', 'detectAnomalies', 'lettaSaveFact', 'lettaUpdateCoreMemory', 'lettaMessageAgent', 'getSearchConsoleStats', 'getGA4Traffic', 'findSEOOpportunities', 'promotion_scorecard', 'top_sellers_comparison', 'sku_profitability_view', 'inventory_health_score', 'vendor_scorecard', 'customer_visit_cohort', 'null']),
-                        args: z.record(z.string(), z.any())
+                        args: z.record(z.any())
                     })
                 }
             });

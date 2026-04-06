@@ -1,4 +1,4 @@
-import { z } from 'zod/v3';
+import { z } from 'zod';
 import { getAdminFirestore } from '@/firebase/admin';
 
 export const queryDatabaseSchemaToolDef = {

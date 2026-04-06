@@ -72,7 +72,7 @@ export const bigWormAgent: AgentImplementation<BigWormMemory, BigWormTools> = {
                     description: "Run advanced data analysis or trend forecasting using Python.",
                     schema: z.object({
                         action: z.enum(['analyze_trend', 'test']).describe("Action to run on sidecar"),
-                        data: z.record(z.string(), z.any()).describe("Data payload for the script")
+                        data: z.record(z.any()).describe("Data payload for the script")
                     })
                 },
                 {

@@ -301,7 +301,7 @@ export const EvaluationConfigSchema = z.object({
         product_recommendations: z.number().min(0).max(1),
         store_information: z.number().min(0).max(1),
     }),
-    priority_levels: z.record(z.string(), z.string()),
+    priority_levels: z.record(z.string()),
 });
 
 // --- Recommendation Strategy Schemas (v1.0) ---
@@ -387,7 +387,7 @@ export const HybridStrategySchema = z.object({
     strategies: z.array(z.object({
         strategy: z.enum(['effect_based', 'price_tier', 'experience_level', 'product_type', 'brand_affinity', 'occasion', 'hybrid']),
         weight: z.number().min(0).max(1),
-        config: z.record(z.string(), z.unknown()),
+        config: z.record(z.unknown()),
     })),
     combination_mode: z.enum(['weighted_average', 'cascade', 'filter_then_rank']),
 });
@@ -435,7 +435,7 @@ export const GroundTruthQASetSchema = z.object({
         total_qa_pairs: z.number(),
         author: z.string(),
     }),
-    categories: z.record(z.string(), CategorySchema),
+    categories: z.record(CategorySchema),
     evaluation_config: EvaluationConfigSchema,
     maintenance_schedule: z.object({
         weekly: z.array(z.string()),
@@ -775,7 +775,7 @@ export const RoleGroundTruthSchema = GroundTruthQASetSchema.extend({
     role: z.enum(['brand', 'dispensary', 'super_user', 'customer']),
     preset_prompts: z.array(PresetPromptTemplateSchema),
     workflow_guides: z.array(WorkflowGuideSchema),
-    agent_personas: z.record(z.string(), RoleAgentPersonaSchema).optional(),
+    agent_personas: z.record(RoleAgentPersonaSchema).optional(),
 });
 
 export const TenantGroundTruthOverrideSchema = z.object({

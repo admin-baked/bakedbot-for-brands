@@ -1,4 +1,4 @@
-import { z } from 'zod/v3';
+import { z } from 'zod';
 import { getActiveGCPIncidents, isGCPHealthyForDeploy } from '../services/google-service-health';
 
 export const getSystemHealthToolDef = {

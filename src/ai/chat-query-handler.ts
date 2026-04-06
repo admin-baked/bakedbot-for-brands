@@ -4,7 +4,7 @@
 // so they don't need the 'use server' directive
 
 import { ai } from './genkit';
-import { z } from '@/ai/z3';
+import { z, ZodInfer } from '@/ai/z3';
 import { getSmokeyConfig } from '@/config/super-admin-smokey-config';
 
 // Schema for extracting search parameters from natural language queries
@@ -56,7 +56,7 @@ export const QueryAnalysisSchema = z.object({
     intent: z.string().describe('A brief description of what the user is looking for'),
 });
 
-export type QueryAnalysis = z.infer<typeof QueryAnalysisSchema>;
+export type QueryAnalysis = ZodInfer<typeof QueryAnalysisSchema>;
 
 // Prompt for analyzing user queries
 const analyzeQueryPrompt = ai.definePrompt({
@@ -150,7 +150,7 @@ const ChatResponseSchema = z.object({
     shouldShowProducts: z.boolean().describe('Whether to show product recommendations'),
 });
 
-export type ChatResponse = z.infer<typeof ChatResponseSchema>;
+export type ChatResponse = ZodInfer<typeof ChatResponseSchema>;
 
 /**
  * Conversation message type for context
@@ -244,3 +244,6 @@ export async function generateChatResponse(
     });
     return output!;
 }
+
+
+

@@ -8,7 +8,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from '@/ai/z3';
+import { z, ZodInfer } from '@/ai/z3';
 
 // --- Input Schema ---
 
@@ -28,7 +28,7 @@ const GenerateSocialCaptionInputSchema = z.object({
     maxLength: z.number().optional().describe('Maximum character count'),
 });
 
-export type GenerateSocialCaptionInput = z.infer<typeof GenerateSocialCaptionInputSchema>;
+export type GenerateSocialCaptionInput = ZodInfer<typeof GenerateSocialCaptionInputSchema>;
 
 // --- Output Schema ---
 
@@ -48,7 +48,7 @@ const GenerateSocialCaptionOutputSchema = z.object({
         .describe('Any compliance warnings or notes'),
 });
 
-export type GenerateSocialCaptionOutput = z.infer<typeof GenerateSocialCaptionOutputSchema>;
+export type GenerateSocialCaptionOutput = ZodInfer<typeof GenerateSocialCaptionOutputSchema>;
 
 // --- Prompt Definition ---
 
@@ -156,3 +156,6 @@ export async function generateCaptionText(
     const hashtagString = result.hashtags.slice(0, 10).join(' ');
     return `${result.primaryCaption}\n\n${hashtagString}`;
 }
+
+
+

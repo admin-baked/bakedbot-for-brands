@@ -14,6 +14,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
+import { ZodInfer } from '@/ai/z3';
 import { logger } from '@/lib/logger';
 import { generateImageWithFal } from '@/ai/generators/fal';
 import { getCached, setCached, CachePrefix, CacheTTL } from '@/lib/cache';
@@ -26,13 +27,13 @@ const GenerateSocialMediaImageInputSchema = z.object({
   imageUrl: z.string().optional().describe("A URL to an image of the product's packaging, which can be used as a reference."),
 });
 
-export type GenerateSocialMediaImageInput = z.infer<typeof GenerateSocialMediaImageInputSchema>;
+export type GenerateSocialMediaImageInput = ZodInfer<typeof GenerateSocialMediaImageInputSchema>;
 
 const GenerateSocialMediaImageOutputSchema = z.object({
   imageUrl: z.string().describe('URL of the generated image.'),
 });
 
-export type GenerateSocialMediaImageOutput = z.infer<typeof GenerateSocialMediaImageOutputSchema>;
+export type GenerateSocialMediaImageOutput = ZodInfer<typeof GenerateSocialMediaImageOutputSchema>;
 
 // Base prompt template (shared between models)
 const imagePromptTemplate = `You are a specialized AI assistant for creating product-focused social media marketing images.
@@ -188,3 +189,5 @@ export async function generateImageFromPrompt(
     // which returns IMAGE_PLACEHOLDER. Do NOT fall back to Gemini — it blocks cannabis content
     // and has no timeout, which causes Cloud Run request timeouts ("Failed to fetch").
 }
+
+

@@ -143,7 +143,7 @@ export const AgentCognitiveStateSchema = z.object({
     }),
 
     // Agent-specific metadata
-    metadata: z.record(z.string(), z.unknown()).optional(),
+    metadata: z.record(z.unknown()).optional(),
 
     // Last updated timestamp
     updatedAt: z.date(),

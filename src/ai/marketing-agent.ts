@@ -1,7 +1,7 @@
 'use server';
 
 import { ai } from '@/ai/genkit';
-import { z } from '@/ai/z3';
+import { z, ZodInfer } from '@/ai/z3';
 
 // Output schema for the generated campaign
 const CampaignContentSchema = z.object({
@@ -11,7 +11,7 @@ const CampaignContentSchema = z.object({
     suggestedSegment: z.string().describe('Recommended audience segment description'),
 });
 
-export type CampaignContent = z.infer<typeof CampaignContentSchema>;
+export type CampaignContent = ZodInfer<typeof CampaignContentSchema>;
 
 // Prompt definition
 const generateCampaignPrompt = ai.definePrompt({
@@ -70,3 +70,6 @@ export async function generateCampaignContent(
 
     return output!;
 }
+
+
+

@@ -8,7 +8,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from '@/ai/z3';
+import { z, ZodInfer } from '@/ai/z3';
 
 import { 
     GenerateVideoInputSchema, 
@@ -28,9 +28,9 @@ const FALLBACK_VIDEO_URL = 'https://commondatastorage.googleapis.com/gtv-videos-
  * Generates a marketing video using Veo 3.1 or Sora based on system settings.
  */
 export async function generateMarketingVideo(
-    input: z.infer<typeof GenerateVideoInputSchema>,
+    input: ZodInfer<typeof GenerateVideoInputSchema>,
     options?: { allowFallbackDemo?: boolean; forceProvider?: SafeVideoProvider }
-): Promise<z.infer<typeof GenerateVideoOutputSchema>> {
+): Promise<ZodInfer<typeof GenerateVideoOutputSchema>> {
     if (options?.allowFallbackDemo === false || options?.forceProvider) {
         return runVideoGeneration(input, options);
     }
@@ -47,9 +47,9 @@ const generateVideoFlow = ai.defineFlow(
 );
 
 async function runVideoGeneration(
-    input: z.infer<typeof GenerateVideoInputSchema>,
+    input: ZodInfer<typeof GenerateVideoInputSchema>,
     options?: { allowFallbackDemo?: boolean; forceProvider?: SafeVideoProvider }
-): Promise<z.infer<typeof GenerateVideoOutputSchema>> {
+): Promise<ZodInfer<typeof GenerateVideoOutputSchema>> {
     // forceProvider bypasses CEO settings â€” used by Creative Center to route
     // Kling (cinematic AI footage) vs Remotion (branded text slideshows) explicitly.
     let provider = options?.forceProvider ?? 'veo';
@@ -61,7 +61,7 @@ async function runVideoGeneration(
         }
     }
 
-    const tryVeoThenSora = async (): Promise<z.infer<typeof GenerateVideoOutputSchema> | null> => {
+    const tryVeoThenSora = async (): Promise<ZodInfer<typeof GenerateVideoOutputSchema> | null> => {
         try {
             console.log('[generateVideoFlow] Provider fallback -> Veo 3.1...');
             return await generateVeoVideo(input);
@@ -210,3 +210,6 @@ export async function generateVideoFromPrompt(
     }, { allowFallbackDemo: options?.allowFallbackDemo });
     return result.videoUrl;
 }
+
+
+

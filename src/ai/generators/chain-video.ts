@@ -107,3 +107,4 @@ export async function generateChainVideoClips(
     logger.info('[ChainVideo] All clips ready', { count: clips.length });
     return { clips };
 }
+

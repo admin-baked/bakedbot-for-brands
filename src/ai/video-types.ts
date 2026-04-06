@@ -1,5 +1,6 @@
 
-import { z } from 'zod/v3';
+import { z } from 'zod';
+import { ZodInfer } from '@/ai/z3';
 
 export const GenerateVideoInputSchema = z.object({
     prompt: z.string().describe('A detailed description of the video to generate.'),
@@ -18,7 +19,7 @@ export const GenerateVideoInputSchema = z.object({
     websiteUrl: z.string().optional().describe('Website URL shown on the branded slideshow outro'),
 });
 
-export type GenerateVideoInput = z.infer<typeof GenerateVideoInputSchema>;
+export type GenerateVideoInput = ZodInfer<typeof GenerateVideoInputSchema>;
 
 export const GenerateVideoOutputSchema = z.object({
     videoUrl: z.string().describe('URL of the generated video.'),
@@ -28,4 +29,6 @@ export const GenerateVideoOutputSchema = z.object({
     model: z.string().optional().describe('Concrete provider model used for rendering.'),
 });
 
-export type GenerateVideoOutput = z.infer<typeof GenerateVideoOutputSchema>;
+export type GenerateVideoOutput = ZodInfer<typeof GenerateVideoOutputSchema>;
+
+

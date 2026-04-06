@@ -213,3 +213,4 @@ export async function initializeAgentConfigs(): Promise<void> {
     await configLoader.loadAll();
     logger.info(`Loaded ${configLoader.getAll().size} agent configurations`);
 }
+

@@ -140,7 +140,7 @@ export const contextCreateEntity = tool({
   inputSchema: z.object({
     type: z.enum(['product', 'brand', 'customer', 'campaign', 'competitor', 'regulation']).describe('Type of entity'),
     name: z.string().describe('Name of the entity (e.g., "Sour Diesel", "40 Tons", "VIP Customer Program")'),
-    attributes: z.record(z.string(), z.any()).optional().describe('Additional attributes for the entity')
+    attributes: z.record(z.any()).optional().describe('Additional attributes for the entity')
   }),
   outputSchema: z.string(),
 }, async ({ type, name, attributes = {} }) => {

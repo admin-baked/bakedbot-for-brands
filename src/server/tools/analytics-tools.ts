@@ -11,7 +11,7 @@
  * Used by: MoneyMike (1-4), Pops (all 5), Craig (1 only)
  */
 
-import { z } from 'zod/v3';
+import { z } from 'zod';
 import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { getAdminFirestore } from '@/firebase/admin';
 import { Timestamp } from 'firebase-admin/firestore';

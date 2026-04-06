@@ -59,7 +59,7 @@ async function launchBrowser(): Promise<Browser> {
 
 export async function POST(
     request: NextRequest,
-    { params }: { params: { serviceId: string } }
+    { params }: { params: Promise<{ serviceId: string }> }
 ) {
     let uid: string;
     try {
@@ -69,7 +69,8 @@ export async function POST(
         return new Response('Unauthorized', { status: 401 });
     }
 
-    const serviceId = params.serviceId as ServiceId;
+    const { serviceId: serviceIdParam } = await params;
+    const serviceId = serviceIdParam as ServiceId;
     const service = SERVICE_REGISTRY[serviceId];
     if (!service) {
         return new Response('Unknown service', { status: 400 });

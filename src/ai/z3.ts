@@ -1,4 +1,3 @@
-
 /**
  * @fileOverview Zod 3 Compatibility Bridge for Genkit.
  * 
@@ -8,9 +7,16 @@
  */
 
 // @ts-ignore - Using the official Zod 4 v3 bridge subpath
-import { z as _z } from 'zod/v3';
+import { z as _z } from 'zod';
 
-const z = _z as any;
+const z = _z as typeof _z;
 
 export { z };
+export type { ZodType, ZodObject, ZodSchema } from 'zod';
 export default z;
+
+// Re-export Zod's infer type for use in other files
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type ZodInfer<T = any> = _z.infer<any>;
+
+

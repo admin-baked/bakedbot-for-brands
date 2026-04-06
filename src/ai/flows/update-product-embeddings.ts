@@ -7,7 +7,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from '@/ai/z3';
+import { z, ZodInfer } from '@/ai/z3';
 import { createServerClient } from '@/firebase/server-client';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import { EMBEDDING_MODEL_NAME, generateEmbedding } from '@/ai/utils/generate-embedding';
@@ -19,7 +19,7 @@ import { reviewConverter } from '@/firebase/converters';
 const UpdateProductEmbeddingsInputSchema = z.object({
   productId: z.string().describe('The unique ID of the product to process.'),
 });
-export type UpdateProductEmbeddingsInput = z.infer<typeof UpdateProductEmbeddingsInputSchema>;
+export type UpdateProductEmbeddingsInput = ZodInfer<typeof UpdateProductEmbeddingsInputSchema>;
 
 const UpdateProductEmbeddingsOutputSchema = z.object({
   productId: z.string(),
@@ -27,7 +27,7 @@ const UpdateProductEmbeddingsOutputSchema = z.object({
   reviewCount: z.number(),
   summary: z.string().optional(),
 });
-export type UpdateProductEmbeddingsOutput = z.infer<typeof UpdateProductEmbeddingsOutputSchema>;
+export type UpdateProductEmbeddingsOutput = ZodInfer<typeof UpdateProductEmbeddingsOutputSchema>;
 
 // --- AI Prompts ---
 
@@ -132,3 +132,6 @@ export async function updateProductEmbeddings(input: UpdateProductEmbeddingsInpu
         summary: summary,
     };
 }
+
+
+

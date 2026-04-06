@@ -9,7 +9,7 @@
  * run inside the agent harness context.
  */
 
-import { z } from 'zod/v3';
+import { z } from 'zod';
 import { getAdminFirestore } from '@/firebase/admin';
 import { ALLeavesClient, type ALLeavesConfig } from '@/lib/pos/adapters/alleaves';
 import { posCache, cacheKeys } from '@/lib/cache/pos-cache';

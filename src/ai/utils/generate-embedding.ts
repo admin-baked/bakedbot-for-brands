@@ -64,3 +64,4 @@ export async function generateEmbedding(
 
   throw new Error('Embedding generation failed to produce a result.');
 }
+

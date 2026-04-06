@@ -65,3 +65,4 @@ export const ai = new Proxy({} as Genkit, {
     return typeof value === 'function' ? value.bind(instance) : value;
   }
 });
+

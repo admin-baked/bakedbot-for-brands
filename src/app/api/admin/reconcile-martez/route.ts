@@ -26,7 +26,7 @@ export async function GET(request: Request) {
 
         return NextResponse.json({ success: true, result });
     } catch (err) {
-        logger.error('[Admin] Reconciliation failed:', err);
+        logger.error('[Admin] Reconciliation failed:', { error: err });
         return NextResponse.json({ 
             success: false, 
             error: err instanceof Error ? err.message : String(err) 

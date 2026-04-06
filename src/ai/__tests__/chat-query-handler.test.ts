@@ -57,3 +57,4 @@ describe('QueryAnalysisSchema', () => {
         expect(result.success).toBe(true);
     });
 });
+

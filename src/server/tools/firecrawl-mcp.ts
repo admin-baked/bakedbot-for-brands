@@ -13,7 +13,7 @@
  * - firecrawlExtract: LLM-based structured data extraction
  */
 
-import { z } from 'zod/v3';
+import { z } from 'zod';
 import { ai } from '@/ai/genkit';
 import { discovery } from '@/server/services/firecrawl';
 

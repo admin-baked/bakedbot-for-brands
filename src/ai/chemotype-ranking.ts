@@ -109,3 +109,4 @@ export function rankByChemotype(products: ChatbotProduct[], intent: string): Cha
     // Sort by score descending
     return scores.sort((a, b) => b.score - a.score).map(s => s.product);
 }
+

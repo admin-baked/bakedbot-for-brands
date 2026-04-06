@@ -344,3 +344,4 @@ export async function executeGLMWithTools(
 export function isGLMConfigured(): boolean {
   return !!process.env.ZAI_API_KEY;
 }
+

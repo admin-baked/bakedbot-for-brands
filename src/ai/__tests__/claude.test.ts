@@ -244,3 +244,4 @@ describe('selectModel', () => {
         expect(result.model).toBe(CLAUDE_TOOL_MODEL);
     });
 });
+

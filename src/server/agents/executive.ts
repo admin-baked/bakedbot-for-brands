@@ -192,7 +192,7 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
                 schema: z.object({
                     serverName: z.string().describe("ID of the MCP server (e.g., 'filesystem', 'github')"),
                     toolName: z.string(),
-                    args: z.record(z.string(), z.any())
+                    args: z.record(z.any())
                 })
             },
             {

@@ -1,7 +1,7 @@
 'use server';
 
 import { ai } from '@/ai/genkit';
-import { z } from '@/ai/z3';
+import { z, ZodInfer } from '@/ai/z3';
 
 const GenerateSEOMetadataInputSchema = z.object({
     productName: z.string().describe('The name of the product.'),
@@ -11,7 +11,7 @@ const GenerateSEOMetadataInputSchema = z.object({
     keywords: z.string().optional().describe('Target keywords.'),
 });
 
-export type GenerateSEOMetadataInput = z.infer<typeof GenerateSEOMetadataInputSchema>;
+export type GenerateSEOMetadataInput = ZodInfer<typeof GenerateSEOMetadataInputSchema>;
 
 const GenerateSEOMetadataOutputSchema = z.object({
     titleTag: z.string().describe('SEO Title Tag (50-60 chars).'),
@@ -20,7 +20,7 @@ const GenerateSEOMetadataOutputSchema = z.object({
     jsonLd: z.string().describe('JSON-LD Schema.org markup snippet.'),
 });
 
-export type GenerateSEOMetadataOutput = z.infer<typeof GenerateSEOMetadataOutputSchema>;
+export type GenerateSEOMetadataOutput = ZodInfer<typeof GenerateSEOMetadataOutputSchema>;
 
 export async function generateSEOMetadata(input: GenerateSEOMetadataInput): Promise<GenerateSEOMetadataOutput> {
     return generateSEOFlow(input);
@@ -60,3 +60,6 @@ const generateSEOFlow = ai.defineFlow(
         return output!;
     }
 );
+
+
+

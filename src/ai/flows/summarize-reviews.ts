@@ -10,7 +10,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from '@/ai/z3';
+import { z, ZodInfer } from '@/ai/z3';
 
 export const SummarizeReviewsInputSchema = z.object({
   productId: z.string().describe('The unique ID of the product whose reviews should be summarized.'),
@@ -18,7 +18,7 @@ export const SummarizeReviewsInputSchema = z.object({
   productName: z.string().describe('The name of the product.'),
   reviewTexts: z.array(z.string()).describe('An array of customer review texts.'),
 }).strict();
-export type SummarizeReviewsInput = z.infer<typeof SummarizeReviewsInputSchema>;
+export type SummarizeReviewsInput = ZodInfer<typeof SummarizeReviewsInputSchema>;
 
 export const SummarizeReviewsOutputSchema = z.object({
   summary: z.string().describe('A concise, engaging summary of the customer reviews.'),
@@ -26,7 +26,7 @@ export const SummarizeReviewsOutputSchema = z.object({
   cons: z.array(z.string()).describe('A list of common negative points mentioned in the reviews.'),
   reviewCount: z.number().describe('The total number of reviews analyzed.'),
 });
-export type SummarizeReviewsOutput = z.infer<typeof SummarizeReviewsOutputSchema>;
+export type SummarizeReviewsOutput = ZodInfer<typeof SummarizeReviewsOutputSchema>;
 
 const prompt = ai.definePrompt(
   {
@@ -91,3 +91,6 @@ export async function runSummarizeReviews(input: SummarizeReviewsInput): Promise
   // Ensure we return null if the output is nullish, matching the updated return type
   return result ?? null;
 }
+
+
+
