@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; SES primary email + custom domain; $0 Free plan + sidebar gating; GCP health gated ➔ deploy | **Last update:** 2026-04-05 (GCP Health + Linus awareness `18c6a32b5`)
+**Current Status:** 🟢 `main` green; SES primary email + custom domain; $0 Free plan + sidebar gating; GCP health gated ➔ deploy | **Last update:** 2026-04-05 (Linus Identity + CI Stabilization `c7b3e9a`)
 
 ---
 

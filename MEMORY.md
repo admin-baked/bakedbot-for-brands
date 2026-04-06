@@ -1,5 +1,11 @@
 # BakedBot Session Memory
 
+## Session: 2026-04-05 (Linus Identity Hardening & CI Stabilization) ✅ COMPLETE (`c7b3e9a`)
+- **Identity Hardening** — Grounded Linus as the BakedBot CTO in `src/server/agents/linus.ts` and updated `src/ai/claude.ts` to prioritize agent identity in the system prompt.
+- **CI Stabilization** — Fixed `TS7006` implicit 'any' regressions in `google-service-health.ts` and `system-health-tools.ts` to restore the green build state.
+- **GCP Health Awareness** — Linus now has a dedicated `get_system_health` tool to monitor infrastructure status and gate deployments during platform outages.
+- **Session file** - `memory/sessions/2026-04-05-2350-harden-linus-identity.md`
+
 ## Session: 2026-04-05 (GCP Service Health + Deployment Hardening) ✅ COMPLETE (`18c6a32b5`)
 - **GCP Incident Awareness** — Integrated `servicehealth.googleapis.com` (2m Upstash cache) to detect infrastructure outages in `studio-567050101-bc6e8`.
 - **Deployment Gating** — `github-tools.ts` now blocks pushes/PRs if Cloud Build/Run/Compute are unstable to prevent build waste.
