@@ -28,10 +28,15 @@ export function UnifiedLoginForm() {
     const { toast } = useToast();
 
     // State
+    const [mounted, setMounted] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [mode, setMode] = useState<'signin' | 'signup'>('signin');
     const [isLoading, setIsLoading] = useState(false);
+
+    React.useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const toggleMode = () => setMode(mode === 'signin' ? 'signup' : 'signin');
     const mapFirebaseError = (error: any): string => {
@@ -224,6 +229,19 @@ export function UnifiedLoginForm() {
             setIsLoading(false);
         }
     };
+
+
+    if (!mounted) {
+        return (
+            <Card className="glass-card w-full max-w-md border-white/10 shadow-2xl">
+                <CardHeader className="text-center space-y-2">
+                    <div className="flex justify-center py-8">
+                        <Spinner className="h-8 w-8 text-emerald-500" />
+                    </div>
+                </CardHeader>
+            </Card>
+        );
+    }
 
 
     if (!auth) {
