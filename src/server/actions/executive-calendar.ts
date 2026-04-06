@@ -789,7 +789,7 @@ export async function retroSendMissingTodayEmails(profileSlug: string): Promise<
     let syncedToGCal = 0;
 
     for (const b of bookings) {
-        const updates: Record<string, any> = { updatedAt: Timestamp.now() };
+        const updates: Record<string, unknown> = { updatedAt: Timestamp.now() };
 
         // 1. Host Notification
         if (!b.hostNotificationEmailSentAt) {
