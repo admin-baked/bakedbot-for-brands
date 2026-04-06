@@ -11,6 +11,12 @@
       "options": {
         "apiKey": "{env:GEMINI_API_KEY}"
       }
+    },
+    "cloudflare": {
+      "accountId": "ae71a72dfb720f590aba1186a0c5d79c",
+      "options": {
+        "apiKey": "{env:CLOUDFLARE_API_KEY}"
+      }
     }
   }
 }
