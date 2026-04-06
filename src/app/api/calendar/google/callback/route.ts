@@ -19,7 +19,8 @@ export async function GET(request: NextRequest) {
     const rawState = searchParams.get('state');
     const error = searchParams.get('error');
 
-    const dashboardUrl = '/dashboard/ceo?tab=calendar&calendarSync=';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.NODE_ENV === 'production' ? 'https://bakedbot.ai' : 'http://localhost:3000');
+    const dashboardUrl = `${baseUrl}/dashboard/ceo?tab=calendar&calendarSync=`;
 
     // State is encoded as JSON by getGoogleAuthUrl: { service, profileSlug, redirect }
     // Fall back to treating the raw value as a plain slug for backwards compatibility.
@@ -36,12 +37,12 @@ export async function GET(request: NextRequest) {
 
     if (error) {
         logger.warn(`[GCal] OAuth denied for ${profileSlug}: ${error}`);
-        return NextResponse.redirect(new URL(`${dashboardUrl}error`, request.url));
+        return NextResponse.redirect(`${dashboardUrl}error`);
     }
 
     if (!code || !profileSlug || !(EXEC_PROFILE_SLUGS as string[]).includes(profileSlug)) {
         logger.warn(`[GCal] Invalid OAuth callback — code=${!!code} slug=${profileSlug} rawState=${rawState}`);
-        return NextResponse.redirect(new URL(`${dashboardUrl}invalid`, request.url));
+        return NextResponse.redirect(`${dashboardUrl}invalid`);
     }
 
     try {
@@ -54,9 +55,9 @@ export async function GET(request: NextRequest) {
         });
 
         logger.info(`[GCal] Tokens stored for ${profileSlug}`);
-        return NextResponse.redirect(new URL(`${dashboardUrl}success`, request.url));
+        return NextResponse.redirect(`${dashboardUrl}success`);
     } catch (err) {
         logger.error(`[GCal] callback error for ${profileSlug}: ${String(err)}`);
-        return NextResponse.redirect(new URL(`${dashboardUrl}error`, request.url));
+        return NextResponse.redirect(`${dashboardUrl}error`);
     }
 }
