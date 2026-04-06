@@ -783,17 +783,20 @@ export async function retroSendInternal(profileSlug: string): Promise<{
     if (!profile) throw new Error(`Profile not found: ${profileSlug}`);
 
     const now = new Date();
-    const startOfToday = new Date(now);
-    startOfToday.setUTCHours(0, 0, 0, 0);
-    const endOfToday = new Date(now);
-    endOfToday.setUTCHours(23, 59, 59, 999);
+    const lookbackDays = 7; // Look back 7 days to catch recent failures
+    const startOfRange = new Date(now);
+    startOfRange.setDate(now.getDate() - lookbackDays);
+    startOfRange.setUTCHours(0, 0, 0, 0);
+
+    const endOfRange = new Date(now);
+    endOfRange.setUTCHours(23, 59, 59, 999);
 
     const snap = await firestore
         .collection('meeting_bookings')
         .where('profileSlug', '==', profileSlug)
         .where('status', '==', 'confirmed')
-        .where('startAt', '>=', Timestamp.fromDate(startOfToday))
-        .where('startAt', '<=', Timestamp.fromDate(endOfToday))
+        .where('startAt', '>=', Timestamp.fromDate(startOfRange))
+        .where('startAt', '<=', Timestamp.fromDate(endOfRange))
         .get();
 
     const bookings = snap.docs.map(d => firestoreToBooking(d.id, d.data() as Record<string, unknown>));

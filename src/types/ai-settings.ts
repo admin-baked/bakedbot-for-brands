@@ -117,7 +117,11 @@ export const UserAISettingsSchema = z.object({
         simpleLanguage: z.boolean().default(false),
         avoidJargon: z.boolean().default(false),
         largerText: z.boolean().default(false),
-    }).default({}),
+    }).default({
+        simpleLanguage: false,
+        avoidJargon: false,
+        largerText: false,
+    }),
 
     /**
      * User's preferred default agent
