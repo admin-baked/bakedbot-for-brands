@@ -14,9 +14,16 @@ export async function GET(request: Request) {
 
     try {
         logger.info('[Admin] Triggering manual reconciliation for martez...');
-        // We skip requireSuperUser by calling a version of the logic or just trusting the secret
-        // Actually, let's just call the action and see if it works without a real session in dev
-        const result = await retroSendMissingTodayEmails('martez');
+        
+        // We handle the authentication check here via the secret instead of requireSuperUser
+        // which requires a session cookie (impossible for direct API/Cron hits).
+        
+        const firestore = (await import('@/firebase/admin')).getAdminFirestore();
+        const { getExecutiveProfile, retroSendInternal } = await import('@/server/actions/executive-calendar');
+        
+        // Use an internal version of the logic that doesn't check for a session
+        const result = await retroSendInternal('martez');
+
         return NextResponse.json({ success: true, result });
     } catch (err) {
         logger.error('[Admin] Reconciliation failed:', err);

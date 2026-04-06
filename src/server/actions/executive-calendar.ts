@@ -765,6 +765,19 @@ export async function retroSendMissingTodayEmails(profileSlug: string): Promise<
     syncedToGCal: number;
 }> {
     await requireSuperUser();
+    return retroSendInternal(profileSlug);
+}
+
+/**
+ * Internal logic for retroactive sends (bypass superuser check).
+ * Use only when pre-authenticated via Cron Secret or similar.
+ */
+export async function retroSendInternal(profileSlug: string): Promise<{
+    found: number;
+    guestSent: number;
+    hostSent: number;
+    syncedToGCal: number;
+}> {
     const firestore = getAdminFirestore();
     const profile = await getExecutiveProfile(profileSlug);
     if (!profile) throw new Error(`Profile not found: ${profileSlug}`);
