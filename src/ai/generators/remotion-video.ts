@@ -95,6 +95,9 @@ export async function generateRemotionVideo(
             codec: 'h264',
             inputProps: props as Record<string, unknown>,
             privacy: 'private',
+            // Limit to 1 concurrent Lambda invocation to avoid AWS ThrottlingException.
+            // Renders take longer but reliably complete without 429s on this account.
+            concurrencyPerLambda: 1,
         });
 
         logger.info('[Remotion] Render triggered', { renderId, bucketName });
