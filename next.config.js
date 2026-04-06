@@ -92,6 +92,12 @@ const nextConfig = {
     if (!dev) {
       config.parallelism = 1;
     }
+    // Remotion bundles reference zod/v3 which doesn't exist in zod@3.x
+    // Alias to zod root to fix build errors
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'zod/v3': 'zod',
+    };
     if (isServer) {
       // Packages that must never be bundled by webpack (too large / native bindings).
       // Keep in sync with serverExternalPackages above.
