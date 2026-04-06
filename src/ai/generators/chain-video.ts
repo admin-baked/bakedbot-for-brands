@@ -47,10 +47,10 @@ export async function generateChainVideoClips(
         brandName?: string;
         aspectRatio?: '16:9' | '9:16' | '1:1';
         voiceSuffix?: string;
-        videoModel?: 'kling' | 'wan';
+        videoModel?: 'premium' | 'budget';
     }
 ): Promise<ChainVideoResult> {
-    const { brandName, aspectRatio = '16:9', voiceSuffix = '', videoModel = 'wan' } = brandContext;
+    const { brandName, aspectRatio = '16:9', voiceSuffix = '', videoModel = 'budget' } = brandContext;
     const brandPrefix = brandName ? `${brandName} cannabis brand. ` : 'Cannabis brand. ';
 
     logger.info('[ChainVideo] Planning scenes via Claude Haiku', { sceneCount, prompt: prompt.substring(0, 60) });
@@ -84,9 +84,9 @@ export async function generateChainVideoClips(
         }));
     }
 
-    logger.info(`[ChainVideo] Generating clips in parallel via ${videoModel === 'wan' ? 'Wan 2.1' : 'Kling v2'}`, { count: scenes.length, videoModel });
+    logger.info(`[ChainVideo] Generating clips in parallel via ${videoModel === 'budget' ? 'Budget Video' : 'Premium Video'}`, { count: scenes.length, videoModel });
 
-    const generateClip = videoModel === 'wan' ? generateWanVideo : generateKlingVideo;
+    const generateClip = videoModel === 'budget' ? generateWanVideo : generateKlingVideo;
 
     const clipPromises = scenes.map(async (scene): Promise<ChainClip> => {
         const result = await generateClip({

@@ -309,7 +309,7 @@ export default function CreativeCommandCenter() {
   const [imageMode, setImageMode] = useState<'photo' | 'branded' | 'video' | 'slideshow' | 'deck' | 'longvideo'>('photo');
   const [videoDuration, setVideoDuration] = useState<'5' | '10'>('5');
   const [longVideoTarget, setLongVideoTarget] = useState<'60' | '90'>('60');
-  const [longVideoModel, setLongVideoModel] = useState<'wan' | 'kling'>('wan');
+  const [longVideoModel, setLongVideoModel] = useState<'budget' | 'premium'>('budget');
   const [fridayQuoteIdx, setFridayQuoteIdx] = useState(0);
   const [localVideoUrl, setLocalVideoUrl] = useState<string | null>(null);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
@@ -640,7 +640,7 @@ export default function CreativeCommandCenter() {
       return;
     }
 
-    // ── Video mode: Kling v2 — cinematic AI footage, no text overlays ──
+    // ── Video mode: Premium — cinematic AI footage, no text overlays ──
     if (imageMode === 'video' || imageMode === 'slideshow') {
       if (usageSummary && !usageSummary.allowShortVideo) {
         toast.error("Your plan does not include video generation yet.");
@@ -1340,10 +1340,10 @@ export default function CreativeCommandCenter() {
                             </div>
                             <div className="flex items-center justify-between gap-2 pt-1">
                               <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Model</span>
-                              <span className="text-[10px] text-muted-foreground">{longVideoModel === 'wan' ? '~$0.01/s · fast' : '~$0.28/s · premium'}</span>
+                              <span className="text-[10px] text-muted-foreground">{longVideoModel === 'budget' ? '~$0.01/s · fast' : '~$0.28/s · premium'}</span>
                             </div>
                             <div className="flex gap-1.5">
-                              {(['wan', 'kling'] as const).map((m) => (
+                              {(['budget', 'premium'] as const).map((m) => (
                                 <button
                                   key={m}
                                   type="button"
@@ -1355,12 +1355,12 @@ export default function CreativeCommandCenter() {
                                       : "border-border bg-background text-muted-foreground hover:text-foreground",
                                   )}
                                 >
-                                  {m === 'wan' ? 'Wan 2.1 ⚡' : 'Kling v2 ✨'}
+                                  {m === 'budget' ? 'Budget Video ⚡' : 'Premium Video ✨'}
                                 </button>
                               ))}
                             </div>
                             <p className="text-[10px] text-muted-foreground leading-tight">
-                              {`Claude plans ${longVideoTarget === '60' ? '6' : '9'} scenes → ${longVideoModel === 'wan' ? 'Wan 2.1' : 'Kling v2'} renders each clip → Remotion assembles`}
+                              {`Claude plans ${longVideoTarget === '60' ? '6' : '9'} scenes → ${longVideoModel === 'budget' ? 'Budget Video' : 'Premium Video'} renders each clip → Remotion assembles`}
                             </p>
                           </div>
                         )}
