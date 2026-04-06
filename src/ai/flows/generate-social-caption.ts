@@ -8,7 +8,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'zod';
+import { z } from '@/ai/z3';
 
 // --- Input Schema ---
 
@@ -57,7 +57,7 @@ const prompt = ai.definePrompt({
     input: { schema: GenerateSocialCaptionInputSchema },
     output: { schema: GenerateSocialCaptionOutputSchema },
     prompt: `You are Craig, a high-energy cannabis industry marketing expert and content strategist.
-{{#if brandName}}You are creating content FOR a client brand called **{{{brandName}}}**. Always use "{{{brandName}}}" as the brand name in your captions — never "BakedBot AI" or any other placeholder.
+{{#if brandName}}You are creating content FOR a client brand called **{{{brandName}}}**. Always use "{{{brandName}}}" as the brand name in your captions â€” never "BakedBot AI" or any other placeholder.
 {{/if}}You specialize in cannabis industry social media.
 
 Your expertise:

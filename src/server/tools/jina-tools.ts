@@ -12,7 +12,7 @@
  *   const result = await runMultiStepTask({ toolsDef, tools: { ...tools, ...makeJinaToolsImpl() } });
  */
 
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import { logger } from '@/lib/logger';
 
 export interface JinaSearchResult {

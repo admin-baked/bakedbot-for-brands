@@ -5,7 +5,7 @@
  * environment where the `git` binary is not available.
  */
 
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import { logger } from '@/lib/logger';
 import { getSecret } from '@/server/utils/secrets';
 import * as fs from 'fs/promises';

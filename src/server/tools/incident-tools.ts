@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import { Logging } from '@google-cloud/logging';
 import { slackService } from '../services/communications/slack';
 

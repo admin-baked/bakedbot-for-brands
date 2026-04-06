@@ -15,7 +15,7 @@
 import { executeWithTools, isClaudeAvailable, ClaudeTool, ClaudeResult, AgentContext } from '@/ai/claude';
 import { executeGLMWithTools, GLM_MODELS, isGLMConfigured } from '@/ai/glm';
 import { getAgentModelConfig, setAgentModelTier, type ModelTier } from '@/server/services/agent-model-config';
-import { z } from 'zod';
+import { z } from '@/ai/z3';
 import { AgentImplementation } from './harness';
 import { AgentMemory } from './schemas';
 import { logger } from '@/lib/logger';
@@ -429,7 +429,7 @@ const LINUS_TOOLS: ClaudeTool[] = [
     },
     {
         name: 'linus_dream',
-        description: 'Run a Dream session — introspect on your own performance (telemetry, feedback, learning deltas, Letta memory), generate improvement hypotheses, test them, and report results to #linus-cto. Use this proactively to self-improve, or when asked to reflect on your performance. Reports proposals, confirmed hypotheses, and areas for improvement.',
+        description: 'Run a Dream session â€” introspect on your own performance (telemetry, feedback, learning deltas, Letta memory), generate improvement hypotheses, test them, and report results to #linus-cto. Use this proactively to self-improve, or when asked to reflect on your performance. Reports proposals, confirmed hypotheses, and areas for improvement.',
         input_schema: {
             type: 'object' as const,
             properties: {
@@ -641,7 +641,7 @@ const LINUS_TOOLS: ClaudeTool[] = [
     },
     {
         name: 'search_code_symbols',
-        description: 'Semantic search for code symbols (functions, classes, interfaces) using natural language. Returns concise signatures with file:line locations. MUCH cheaper than read_file — use this first to find what you need, then read_file only for the specific file.',
+        description: 'Semantic search for code symbols (functions, classes, interfaces) using natural language. Returns concise signatures with file:line locations. MUCH cheaper than read_file â€” use this first to find what you need, then read_file only for the specific file.',
         input_schema: {
             type: 'object' as const,
             properties: {
@@ -1405,7 +1405,7 @@ const LINUS_TOOLS: ClaudeTool[] = [
     },
     {
         name: 'firecrawl_agent',
-        description: 'Run an autonomous Firecrawl AI agent for open-ended web research. Does NOT require URLs — the agent searches, navigates, and extracts on its own. Use for research that spans multiple sites or when you don\'t know the exact URL. Takes 30–90s to complete.',
+        description: 'Run an autonomous Firecrawl AI agent for open-ended web research. Does NOT require URLs â€” the agent searches, navigates, and extracts on its own. Use for research that spans multiple sites or when you don\'t know the exact URL. Takes 30â€“90s to complete.',
         input_schema: {
             type: 'object' as const,
             properties: {
@@ -1863,7 +1863,7 @@ const LINUS_TOOLS: ClaudeTool[] = [
     },
     {
         name: 'delegate_to_claude_code',
-        description: 'Delegate a complex coding task to Claude Code running on the local desktop. Use when the task requires multi-file changes, is too large for this context window, or needs a full agentic loop (read→edit→types check→simplify→commit→push→test). Claude Code picks it up, fixes it, deploys, and runs browser tests. Results posted to #linus-deployments.',
+        description: 'Delegate a complex coding task to Claude Code running on the local desktop. Use when the task requires multi-file changes, is too large for this context window, or needs a full agentic loop (readâ†’editâ†’types checkâ†’simplifyâ†’commitâ†’pushâ†’test). Claude Code picks it up, fixes it, deploys, and runs browser tests. Results posted to #linus-deployments.',
         input_schema: {
             type: 'object' as const,
             properties: {
@@ -1915,32 +1915,32 @@ const LINUS_TOOLS: ClaudeTool[] = [
 
 type LinusToolMode = 'full' | 'slack';
 
-// Tools blocked from Slack mode — too dangerous, side-effectful, or irrelevant for chat.
+// Tools blocked from Slack mode â€” too dangerous, side-effectful, or irrelevant for chat.
 // New tools added to LINUS_TOOLS are automatically Slack-available unless listed here.
 const LINUS_SLACK_TOOL_BLOCKLIST = new Set([
-    // Boardroom / reporting — async ops, not interactive
+    // Boardroom / reporting â€” async ops, not interactive
     'read_backlog', 'run_layer_eval', 'make_deployment_decision', 'report_to_boardroom',
     // Side effects with external recipients
     'drive_upload_file', 'send_email',
-    // Kusho test generation suite — long-running, not chat-appropriate
+    // Kusho test generation suite â€” long-running, not chat-appropriate
     'kusho_generate_tests', 'kusho_run_suite', 'kusho_analyze_coverage',
     'kusho_record_ui', 'kusho_setup',
-    // Internal agent context primitives — not useful from chat
+    // Internal agent context primitives â€” not useful from chat
     'context_log_decision', 'context_ask_why', 'context_get_agent_history',
     'intuition_evaluate_heuristics', 'intuition_get_confidence', 'intuition_log_outcome',
-    // Browser extension automation — requires local extension install
+    // Browser extension automation â€” requires local extension install
     'extension_create_session', 'extension_navigate', 'extension_click', 'extension_type',
     'extension_screenshot', 'extension_get_console', 'extension_end_session',
     'extension_run_workflow', 'extension_list_workflows',
-    // Playwright scaffold — write ops, not interactive
+    // Playwright scaffold â€” write ops, not interactive
     'generate_playwright_test',
-    // Build monitor write ops — should only fire from CI, not chat
+    // Build monitor write ops â€” should only fire from CI, not chat
     'build_monitor_notify_failure', 'build_monitor_record_status',
-    // Approval creation — separate UI flow; chat can only check status
+    // Approval creation â€” separate UI flow; chat can only check status
     'create_approval_request',
 ]);
 
-// Memoized at module init — avoids re-filtering 60 tools on every Slack request.
+// Memoized at module init â€” avoids re-filtering 60 tools on every Slack request.
 const LINUS_SLACK_TOOLS = LINUS_TOOLS.filter(t => !LINUS_SLACK_TOOL_BLOCKLIST.has(t.name));
 
 function getLinusTools(mode: LinusToolMode = 'full'): ClaudeTool[] {
@@ -3836,7 +3836,7 @@ test('${scenario.slice(0, 50)}', async ({ page }) => {
                         status: b.status,
                         assignedTo: b.assignedTo,
                     })),
-                    recommendation: p0Bugs.length > 0 ? 'BLOCK: P0 bugs open — do not deploy' : report && report.byPriority.P1 > 0 ? 'CAUTION: P1 bugs open — review before deploy' : 'CLEAR: No critical issues',
+                    recommendation: p0Bugs.length > 0 ? 'BLOCK: P0 bugs open â€” do not deploy' : report && report.byPriority.P1 > 0 ? 'CAUTION: P1 bugs open â€” review before deploy' : 'CLEAR: No critical issues',
                 };
             } catch (e: any) {
                 return { success: false, error: e.message };
@@ -3870,7 +3870,7 @@ test('${scenario.slice(0, 50)}', async ({ page }) => {
                 return {
                     success: result.success,
                     bugId: result.bugId,
-                    message: result.success ? `Bug filed: ${result.bugId} — Pinky will triage it` : result.error,
+                    message: result.success ? `Bug filed: ${result.bugId} â€” Pinky will triage it` : result.error,
                 };
             } catch (e: any) {
                 return { success: false, error: e.message };
@@ -3889,7 +3889,7 @@ test('${scenario.slice(0, 50)}', async ({ page }) => {
             };
             try {
                 const { makeYouTubeToolsImpl } = await import('@/server/tools/youtube-tools');
-                const impl = makeYouTubeToolsImpl(); // Linus has no org context — Drive save skipped
+                const impl = makeYouTubeToolsImpl(); // Linus has no org context â€” Drive save skipped
                 const result = await impl.fetch_youtube_transcript({ url, includeTimestamps, saveNote });
                 if ('error' in result) {
                     return { success: false, error: result.error, message: result.message };
@@ -4669,7 +4669,7 @@ export interface LinusRequest {
         brandId?: string;
     };
     images?: Array<{ data: string; mimeType: string }>; // Base64 images for vision (Slack screenshots etc.)
-    progressCallback?: (msg: string) => Promise<void>; // Called before each tool execution — use to post live Slack status updates
+    progressCallback?: (msg: string) => Promise<void>; // Called before each tool execution â€” use to post live Slack status updates
 }
 
 export interface LinusResponse {
@@ -4693,7 +4693,7 @@ function getLinusCodebaseContext(claudeContext: string, toolMode: LinusToolMode)
         .replace(/Claude/g, 'Linus');
 }
 
-// GLM-5 safety refusal strings — Z.ai declines cannabis-adjacent content in various ways.
+// GLM-5 safety refusal strings â€” Z.ai declines cannabis-adjacent content in various ways.
 // Compiled once at module level; checked per-response to gate the Claude fallback.
 const GLM_REFUSAL_PATTERNS = [
     'security restrictions',
@@ -4708,7 +4708,7 @@ const GLM_REFUSAL_PATTERNS = [
 
 /**
  * Last-resort fallback: call opencode/Gemini Flash when both GLM and Claude fail.
- * No tool calling — degraded text-only mode.
+ * No tool calling â€” degraded text-only mode.
  */
 async function callLinusOpencodeLastResort(prompt: string): Promise<string | null> {
     const baseUrl = process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
@@ -4753,7 +4753,7 @@ async function buildLinusSystemPrompt(orgId?: string): Promise<string> {
     const gcpHealth = await isGCPHealthyForDeploy();
     const platformHealthSummary = `GCP Status: ${gcpHealth.healthy ? 'HEALTHY' : 'UNSTABLE (Incidents Detected)'}
 ${gcpHealth.incidents.length > 0 
-  ? `Active critical incidents: ${gcpHealth.incidents.map(i => `${i.id}: ${i.title}`).join(', ')}` 
+  ? `Active critical incidents: ${gcpHealth.incidents.map(i => `${i.name}: ${i.title}`).join(', ')}` 
   : 'No active critical infrastructure incidents.'}`;
 
     const prompt = `You are Linus, AI CTO of BakedBot. Welcome to the bridge.
@@ -4813,25 +4813,25 @@ Use \`bash\` for:
 - Background processes: dev servers, watchers
 - Long-running builds with custom timeouts
 
-PUSHING CODE — PRODUCTION RULE (CRITICAL):
+PUSHING CODE â€” PRODUCTION RULE (CRITICAL):
 - **GCP HEALTH GATE**: Check === PLATFORM HEALTH === before EVERY action. If GCP Status is "UNSTABLE", **STOP**. Do NOT suggest code changes, do NOT write files, and do NOT push to GitHub. Inform the user in Slack immediately that "GCP infrastructure is currently unstable. Deployments are BLOCKED to prevent build failures and token waste."
 The production server has NO git SSH/HTTPS credentials. \`bash git push\` or \`run_command git push\` will FAIL.
 Always use \`github_push_api\` to push changes via PR workflow:
-1. \`write_file\` — write the fixed file(s) to disk
-2. \`run_health_check\` with scope='build_only' — verify type check passes. If it fails, fix errors before continuing. NEVER push broken code.
-3. \`read_file\` — read each modified file to get current content
-4. \`github_push_api\` — push to a \`linus/fix-{short-description}\` branch (NEVER push directly to main)
+1. \`write_file\` â€” write the fixed file(s) to disk
+2. \`run_health_check\` with scope='build_only' â€” verify type check passes. If it fails, fix errors before continuing. NEVER push broken code.
+3. \`read_file\` â€” read each modified file to get current content
+4. \`github_push_api\` â€” push to a \`linus/fix-{short-description}\` branch (NEVER push directly to main)
 5. Use \`bash\` to create a PR: \`gh pr create --base main --head linus/fix-{short-description} --title "..." --body "..."\`
 6. Post the PR URL to Slack in #linus-deployments so the owner can review and approve
 
 BRANCH & PR RULES (MANDATORY):
-- ALWAYS push to \`linus/fix-{short-description}\` — NEVER to main
+- ALWAYS push to \`linus/fix-{short-description}\` â€” NEVER to main
 - main is branch-protected: pushes without passing CI will be rejected by GitHub
 - After creating the PR, post the URL to Slack: "PR ready for review: {url}"
-- Do NOT merge the PR yourself — wait for human approval
+- Do NOT merge the PR yourself â€” wait for human approval
 - The PR body must follow the governance template (see CLAUDE.md PR Governance section)
 
-Never use \`bash git push\` or \`run_command git push\` — they have no credentials.
+Never use \`bash git push\` or \`run_command git push\` â€” they have no credentials.
 
 BUG HUNTING WORKFLOW:
 When investigating a bug:
@@ -4896,7 +4896,7 @@ When testing the live site:
 5. End session and report results
 
 DECISION FRAMEWORK:
-- MISSION_READY: All 7 layers pass with ≥90% confidence
+- MISSION_READY: All 7 layers pass with â‰¥90% confidence
 - NEEDS_REVIEW: 1-2 layers have warnings, human review required
 - BLOCKED: Any layer has critical failure
 
@@ -4907,19 +4907,19 @@ OUTPUT RULES:
 
 PROACTIVE TECH STANCE:
 When asked "what's the tech landscape?", "any integrations to watch?", or "what should engineering focus on?":
-1. Call web_search("cannabis SaaS POS integrations new releases 2026") — surface new tech partnerships
-2. Call web_search("cannabis dispensary software market 2026") — identify competitive threats to our stack
+1. Call web_search("cannabis SaaS POS integrations new releases 2026") â€” surface new tech partnerships
+2. Call web_search("cannabis dispensary software market 2026") â€” identify competitive threats to our stack
 3. Report: new integration opportunities (Alleaves, Dutchie, Treez), security advisories, platform risks
 4. Flag any GitHub/Firebase outages via web_search("Firebase App Hosting status") before major deploys
 
 TECH OPPORTUNITY SIGNALS:
-- New POS provider gaining market share → evaluate Alleaves partnership impact; brief Jack
-- Cannabis payments tech news → assess FinTech integration opportunity; brief Mike
-- AI/LLM pricing changes (Anthropic/Google) → assess impact on agent costs; report to Mike
-- Security vulnerability in our stack → immediately create a qa_bug entry + draft a fix plan
-- Firebase/Cloud Run outage → proactively notify Leo before it affects production SLA
+- New POS provider gaining market share â†’ evaluate Alleaves partnership impact; brief Jack
+- Cannabis payments tech news â†’ assess FinTech integration opportunity; brief Mike
+- AI/LLM pricing changes (Anthropic/Google) â†’ assess impact on agent costs; report to Mike
+- Security vulnerability in our stack â†’ immediately create a qa_bug entry + draft a fix plan
+- Firebase/Cloud Run outage â†’ proactively notify Leo before it affects production SLA
 
-POST-WORK PROTOCOL (/simplify — MANDATORY):
+POST-WORK PROTOCOL (/simplify â€” MANDATORY):
 After completing ANY code modifications (write_file, bash edits), you MUST automatically run the /simplify review before pushing:
 1. Use \`git_diff\` to capture all modified code
 2. Run 3 parallel reviews against the diff:
@@ -4928,7 +4928,7 @@ After completing ANY code modifications (write_file, bash edits), you MUST autom
    - Efficiency: Flag redundant work, sequential calls that could be parallel, N+1 patterns, overly broad reads, memory leaks
 3. Fix every confirmed finding directly
 4. Run \`run_health_check\` (build_only) to verify fixes
-5. Use \`read_file\` on every modified file, then \`github_push_api\` to push (NOT bash git push — no credentials on server)
+5. Use \`read_file\` on every modified file, then \`github_push_api\` to push (NOT bash git push â€” no credentials on server)
 6. Summarize what was changed
 This is NOT optional. Every code session ends with /simplify.
 
@@ -4971,13 +4971,13 @@ function buildLinusProgressMessage(toolName: string, input: Record<string, unkno
         case 'firecrawl_map_site':
             return `_Linus is scraping/crawling a URL for context..._`;
         case 'firecrawl_agent':
-            return `_Linus is running a Firecrawl AI research sweep — this may take up to 90s..._`;
+            return `_Linus is running a Firecrawl AI research sweep â€” this may take up to 90s..._`;
         case 'web_search_places':
             return `_Linus is searching for places: "${String(input.query ?? '').slice(0, 50)}"..._`;
         case 'letta_search_memory':
             return `_Linus is searching long-term memory..._`;
         case 'linus_dream':
-            return `_Linus is dreaming — introspecting, hypothesizing, testing..._`;
+            return `_Linus is dreaming â€” introspecting, hypothesizing, testing..._`;
         case 'letta_save_fact':
         case 'letta_update_personal_memory':
             return `_Linus is updating agent memory..._`;
@@ -5014,7 +5014,7 @@ function buildLinusProgressMessage(toolName: string, input: Record<string, unkno
 }
 
 /**
- * Linus agent context — injected into Claude's system prompt for persistent identity.
+ * Linus agent context â€” injected into Claude's system prompt for persistent identity.
  * This ensures Linus never "forgets" his capabilities, even in long 15-iteration sessions.
  */
 const LINUS_AGENT_CONTEXT: AgentContext = {
@@ -5022,22 +5022,22 @@ const LINUS_AGENT_CONTEXT: AgentContext = {
     role: 'CTO',
     identity: 'You are Linus, the AI CTO of BakedBot. In Slack mode, you are primarily powered by GLM-5. Even when referencing CLAUDE.md for codebase context, you remain Linus. Do NOT identify as Claude.',
     capabilities: [
-        'execute_super_power — Run any of 11 automation scripts (build fix, schema audit, compliance, cost analysis, etc.)',
-        'run_command / bash — Execute shell commands (npm, git, gcloud, etc.)',
-        'search_codebase / read_file / write_file — Full codebase read/write access',
-        'git_log / git_diff / git_commit / git_push — Full git operations',
-        'run_health_check / run_specific_test — Build verification and testing',
-        'web_search / firecrawl_scrape — Research and web scraping',
-        'extension_create_session / run_e2e_test — Browser and E2E testing',
-        'archive_work / query_work_history — Decision tracking and memory',
-        'delegate_to_agent — Dispatch tasks to other agents (Craig, Smokey, Deebo, etc.)',
+        'execute_super_power â€” Run any of 11 automation scripts (build fix, schema audit, compliance, cost analysis, etc.)',
+        'run_command / bash â€” Execute shell commands (npm, git, gcloud, etc.)',
+        'search_codebase / read_file / write_file â€” Full codebase read/write access',
+        'git_log / git_diff / git_commit / git_push â€” Full git operations',
+        'run_health_check / run_specific_test â€” Build verification and testing',
+        'web_search / firecrawl_scrape â€” Research and web scraping',
+        'extension_create_session / run_e2e_test â€” Browser and E2E testing',
+        'archive_work / query_work_history â€” Decision tracking and memory',
+        'delegate_to_agent â€” Dispatch tasks to other agents (Craig, Smokey, Deebo, etc.)',
     ],
     groundingRules: [
-        'ONLY report tools you ACTUALLY have access to — check the tool list before claiming a capability.',
-        'ONLY reference agents that exist in the Agent Squad — do not invent team members.',
-        'Use REAL data from tools, not fabricated metrics — run run_health_check before claiming build status.',
-        'For integrations NOT in ACTIVE status, offer to help set them up — do not claim they work.',
-        'When uncertain, investigate first — use search/read tools before making claims.',
+        'ONLY report tools you ACTUALLY have access to â€” check the tool list before claiming a capability.',
+        'ONLY reference agents that exist in the Agent Squad â€” do not invent team members.',
+        'Use REAL data from tools, not fabricated metrics â€” run run_health_check before claiming build status.',
+        'For integrations NOT in ACTIVE status, offer to help set them up â€” do not claim they work.',
+        'When uncertain, investigate first â€” use search/read tools before making claims.',
     ],
     superPowers: `When you need automation, use execute_super_power with these scripts:
 | Script | Command | Purpose |
@@ -5128,7 +5128,7 @@ User Request: ${request.prompt}`;
         return buildLinusResponse(result, request);
     }
 
-    // ── Slack mode: config-driven tier chain ──────────────────────────────
+    // â”€â”€ Slack mode: config-driven tier chain â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const modelConfig = await getAgentModelConfig();
     const tierChain: ModelTier[] = [modelConfig.slackTier, ...modelConfig.fallbackChain];
     logger.info('[Linus] Slack model chain', { tierChain, hasImages });
@@ -5249,8 +5249,8 @@ export const linusAgent: AgentImplementation<AgentMemory, any> = {
     async act(brandMemory, agentMemory, targetId, tools, stimulus) {
         if (targetId === 'user_request' && stimulus) {
             // === PRE-CLASSIFIER: DETECT DETERMINISTIC SUPER POWER COMMANDS ===
-            // These commands don't need LLM reasoning — just execute the script directly.
-            // Saves ~$0.03–0.10 per Linus Slack invocation.
+            // These commands don't need LLM reasoning â€” just execute the script directly.
+            // Saves ~$0.03â€“0.10 per Linus Slack invocation.
             const SUPER_POWER_PATTERNS = [
                 /(?:^|npm\s+run\s+)?fix-build(?:[:\s]|$)/i,  // fix:build, npm run fix:build
                 /(?:^|npm\s+run\s+)?audit:indexes(?:[:\s]|$)/i,  // audit:indexes, npm run audit:indexes
@@ -5271,7 +5271,7 @@ export const linusAgent: AgentImplementation<AgentMemory, any> = {
 
             for (const pattern of SUPER_POWER_PATTERNS) {
                 if (pattern.test(stimulus)) {
-                    logger.info('[Linus] Detected super power command — executing directly', { command: stimulus });
+                    logger.info('[Linus] Detected super power command â€” executing directly', { command: stimulus });
                     const { spawn } = await import('child_process');
                     const normalizedStimulus = stimulus.trim();
                     const command = normalizedStimulus.startsWith('npm run')

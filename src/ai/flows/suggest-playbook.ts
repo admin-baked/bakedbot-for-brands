@@ -13,7 +13,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'zod';
+import { z } from '@/ai/z3';
 import type { PlaybookDraft, SuggestPlaybookInput } from '@/app/dashboard/playbooks/schemas';
 import { PlaybookDraftSchema, SuggestPlaybookInputSchema } from '@/app/dashboard/playbooks/schemas';
 import { AGENTIC_MODEL } from '@/ai/model-selector';

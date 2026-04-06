@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from '@/ai/z3';
 import { tool } from 'genkit';
 import { getMcpClient } from '@/server/services/mcp/client';
 
@@ -55,7 +55,7 @@ export const mcpCallTool = tool({
     inputSchema: z.object({
         serverId: z.string().describe('The ID of the MCP server (e.g., "brave-search")'),
         toolName: z.string().describe('The name of the tool to execute'),
-        args: z.record(z.any()).describe('Arguments for the tool execution')
+        args: z.record(z.string(), z.any()).describe('Arguments for the tool execution')
     }),
     outputSchema: z.any(),
 }, async ({ serverId, toolName, args }) => {

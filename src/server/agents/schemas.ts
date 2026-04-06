@@ -32,7 +32,7 @@ export const BrandConstraintsSchema = z.object({
 export const BrandSegmentSchema = z.object({
     id: z.string(),
     description: z.string(),
-    definition: z.record(z.any()), // flexible definition for now
+    definition: z.record(z.string(), z.any()), // flexible definition for now
     status: z.enum(['active', 'inactive']),
 });
 
@@ -55,7 +55,7 @@ export const BrandDomainMemorySchema = z.object({
     constraints: BrandConstraintsSchema,
     segments: z.array(BrandSegmentSchema),
     experiments_index: z.array(ExperimentIndexSchema),
-    playbooks: z.record(z.string()), // name -> filename/id map
+    playbooks: z.record(z.string(), z.string()), // name -> filename/id map
 });
 
 export type BrandDomainMemory = z.infer<typeof BrandDomainMemorySchema>;
@@ -104,8 +104,8 @@ export const CampaignSchema = z.object({
 export const RecPolicySchema = z.object({
     id: z.string(),
     description: z.string(),
-    criteria: z.record(z.any()), // flexible
-    constraints: z.record(z.any()),
+    criteria: z.record(z.string(), z.any()), // flexible
+    constraints: z.record(z.string(), z.any()),
     status: z.enum(['passing', 'failing', 'experimental']),
 });
 
@@ -197,7 +197,7 @@ export const PricingRuleSchema = z.object({
     id: z.string(),
     description: z.string(),
     status: z.enum(['active', 'paused']),
-    parameters: z.record(z.any()),
+    parameters: z.record(z.string(), z.any()),
 });
 
 export const PricingExperimentSchema = z.object({
@@ -226,7 +226,7 @@ export type MoneyMikeMemory = z.infer<typeof MoneyMikeMemorySchema>;
 export const LoyaltySegmentSchema = z.object({
     id: z.string(),
     description: z.string(),
-    criteria: z.record(z.any()),
+    criteria: z.record(z.string(), z.any()),
     status: z.enum(['active', 'inactive']),
 });
 
@@ -270,7 +270,7 @@ export const DelegationSchema = z.object({
     delegated_by: z.string(),
     task_description: z.string(),
     status: z.enum(['pending', 'in_progress', 'completed', 'failed']),
-    context: z.record(z.any()).optional(),
+    context: z.record(z.string(), z.any()).optional(),
     deadline: TimestampSchema.optional(),
     result: z.string().optional(),
     timestamp: TimestampSchema,
@@ -355,7 +355,7 @@ export const LeoMemorySchema = AgentMemorySchema.extend({
     snapshot_history: z.array(z.object({
         timestamp: TimestampSchema,
         content: z.string(),
-        metric_values: z.record(z.number()).optional(),
+        metric_values: z.record(z.string(), z.number()).optional(),
     })),
     // NEW: Cross-agent coordination
     delegation_log: z.array(DelegationSchema),
@@ -393,13 +393,13 @@ export type DeeboMemory = z.infer<typeof DeeboMemorySchema>;
 
 export const ExecutiveMemorySchema = AgentMemorySchema.extend({
     agent_type: z.enum(['leo', 'linus', 'jack', 'glenda', 'mike']).optional(),
-    shared_context: z.record(z.any()).optional(),
+    shared_context: z.record(z.string(), z.any()).optional(),
     // Executive-specific fields (may be empty for some agents)
     objectives: z.array(BrandObjectiveSchema).optional(),
     snapshot_history: z.array(z.object({
         timestamp: TimestampSchema,
         content: z.string(),
-        metric_values: z.record(z.number()).optional(),
+        metric_values: z.record(z.string(), z.number()).optional(),
     })).optional(),
     delegation_log: z.array(DelegationSchema).optional(),
     collaboration_metrics: CollaborationMetricsSchema.optional(),
@@ -427,7 +427,7 @@ export const AgentLogEntrySchema = z.object({
     action: z.string(),
     result: z.string(),
     next_step: z.string().optional(),
-    metadata: z.record(z.any()).optional(),
+    metadata: z.record(z.string(), z.any()).optional(),
 });
 
 export type AgentLogEntry = z.infer<typeof AgentLogEntrySchema>;

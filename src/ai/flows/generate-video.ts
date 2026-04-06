@@ -8,7 +8,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'zod';
+import { z } from '@/ai/z3';
 
 import { 
     GenerateVideoInputSchema, 
@@ -50,7 +50,7 @@ async function runVideoGeneration(
     input: z.infer<typeof GenerateVideoInputSchema>,
     options?: { allowFallbackDemo?: boolean; forceProvider?: SafeVideoProvider }
 ): Promise<z.infer<typeof GenerateVideoOutputSchema>> {
-    // forceProvider bypasses CEO settings — used by Creative Center to route
+    // forceProvider bypasses CEO settings â€” used by Creative Center to route
     // Kling (cinematic AI footage) vs Remotion (branded text slideshows) explicitly.
     let provider = options?.forceProvider ?? 'veo';
     if (!options?.forceProvider) {
@@ -86,7 +86,7 @@ async function runVideoGeneration(
     console.log(`[generateVideoFlow] Input: ${JSON.stringify(input)}`);
     console.log(`[generateVideoFlow] ========================================`);
 
-    // fal.ai providers — Kling v2 Master and Wan 2.1
+    // fal.ai providers â€” Kling v2 Master and Wan 2.1
     if (provider === 'kling') {
         try {
             console.log('[generateVideoFlow] Attempting Kling v2 Master (fal.ai)...');
@@ -96,7 +96,7 @@ async function runVideoGeneration(
         }
         // Fallback: Wan
         try {
-            console.log('[generateVideoFlow] Kling fallback → Wan 2.1...');
+            console.log('[generateVideoFlow] Kling fallback â†’ Wan 2.1...');
             return await generateWanVideo(input);
         } catch (err: unknown) {
             console.error('[generateVideoFlow] Wan fallback failed:', (err as Error).message);
@@ -113,7 +113,7 @@ async function runVideoGeneration(
             console.error('[generateVideoFlow] Wan failed:', (err as Error).message);
         }
         try {
-            console.log('[generateVideoFlow] Wan fallback â†’ Kling v2...');
+            console.log('[generateVideoFlow] Wan fallback Ã¢â€ â€™ Kling v2...');
             return await generateKlingVideo(input);
         } catch (err: unknown) {
             console.error('[generateVideoFlow] Kling fallback failed:', (err as Error).message);
@@ -130,7 +130,7 @@ async function runVideoGeneration(
             console.error('[generateVideoFlow] Remotion failed:', (err as Error).message);
             // Fallback: Kling
             try {
-                console.log('[generateVideoFlow] Remotion fallback → Kling v2...');
+                console.log('[generateVideoFlow] Remotion fallback â†’ Kling v2...');
                 return await generateKlingVideo(input);
             } catch (klingErr: unknown) {
                 console.error('[generateVideoFlow] Kling fallback failed:', (klingErr as Error).message);

@@ -27,7 +27,7 @@ export const DiscoveredUrlSchema = z.object({
   title: z.string().optional(),
   relevanceScore: z.number().min(0).max(1),
   source: z.enum(['exa', 'perplexity', 'firecrawl', 'google', 'manual']),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type DiscoveredUrl = z.infer<typeof DiscoveredUrlSchema>;
@@ -54,7 +54,7 @@ export const ScrapedCompetitorSchema = z.object({
     inStock: z.boolean().optional(),
     thc: z.number().optional(),
     cbd: z.number().optional(),
-    metadata: z.record(z.unknown()).optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
   })),
   scrapedAt: z.string().datetime(),
   rawMarkdown: z.string().optional(),
@@ -92,7 +92,7 @@ export const CompetitiveInsightSchema = z.object({
   title: z.string(),
   description: z.string(),
   recommendations: z.array(z.string()),
-  data: z.record(z.unknown()).optional(),
+  data: z.record(z.string(), z.unknown()).optional(),
   competitorId: z.string().optional(),
   productName: z.string().optional(),
 });
@@ -103,7 +103,7 @@ export const ActionItemSchema = z.object({
   action: z.string(),
   delegateTo: z.string().optional(),
   priority: z.number().min(1).max(10),
-  context: z.record(z.unknown()).optional(),
+  context: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type ActionItem = z.infer<typeof ActionItemSchema>;

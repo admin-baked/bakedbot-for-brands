@@ -9,7 +9,7 @@
  * - Traverse the knowledge graph (Phase 3)
  */
 
-import { z } from 'zod';
+import { z } from '@/ai/z3';
 import { tool } from 'genkit';
 import { DecisionLogService, EntityService, RelationshipService, GraphQuery } from '../services/context-os';
 
@@ -40,7 +40,7 @@ export const contextAskWhy = tool({
       
       return `No decisions matched your question semantically. Here are the most recent decisions:\n\n${
         recentDecisions.slice(0, 3).map(d => 
-          `• [${d.agentId}] ${d.task.substring(0, 100)}... → ${d.outcome}`
+          `â€¢ [${d.agentId}] ${d.task.substring(0, 100)}... â†’ ${d.outcome}`
         ).join('\n')
       }`;
     }
@@ -140,7 +140,7 @@ export const contextCreateEntity = tool({
   inputSchema: z.object({
     type: z.enum(['product', 'brand', 'customer', 'campaign', 'competitor', 'regulation']).describe('Type of entity'),
     name: z.string().describe('Name of the entity (e.g., "Sour Diesel", "40 Tons", "VIP Customer Program")'),
-    attributes: z.record(z.any()).optional().describe('Additional attributes for the entity')
+    attributes: z.record(z.string(), z.any()).optional().describe('Additional attributes for the entity')
   }),
   outputSchema: z.string(),
 }, async ({ type, name, attributes = {} }) => {
@@ -229,7 +229,7 @@ export const contextFindRelated = tool({
     }
     
     const summary = related.map((r: { entity: { name: string; type: string }; relationship: { type: string }; depth: number; weight: number }) => 
-      `• ${r.entity.name} (${r.entity.type}) - ${r.relationship.type} [depth: ${r.depth}, weight: ${(r.weight * 100).toFixed(0)}%]`
+      `â€¢ ${r.entity.name} (${r.entity.type}) - ${r.relationship.type} [depth: ${r.depth}, weight: ${(r.weight * 100).toFixed(0)}%]`
     ).join('\n');
     
     return `Found ${related.length} entities related to "${entityName}":\n\n${summary}`;

@@ -2,6 +2,9 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
+      "zod/v3": [
+        "node_modules/zod/v3/index.d.ts"
+      ],
       "@/*": [
         "src/*"
       ]

@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from '@/ai/z3';
 import { tool } from 'genkit';
 import { lettaClient } from '../services/letta/client';
 import { episodicMemoryService } from '../services/letta/episodic-memory';
@@ -269,7 +269,7 @@ export const lettaFindWorkflow = tool({
 
         return `Found ${workflows.length} relevant workflows:\n${workflows
             .map((w, i) => {
-                const toolChain = w.steps.map(s => s.toolName).join(' → ');
+                const toolChain = w.steps.map(s => s.toolName).join(' â†’ ');
                 return `${i + 1}. Task: ${w.taskDescription.slice(0, 100)}\n   Tools: ${toolChain}\n   Outcome: ${w.outcome}`;
             })
             .join('\n\n')}`;

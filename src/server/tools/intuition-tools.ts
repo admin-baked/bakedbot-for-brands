@@ -7,7 +7,7 @@
  * - Log outcomes for feedback learning
  */
 
-import { z } from 'zod';
+import { z } from '@/ai/z3';
 import { tool } from 'genkit';
 import {
     evaluateHeuristics,

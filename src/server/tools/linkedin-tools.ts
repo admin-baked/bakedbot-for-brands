@@ -9,7 +9,7 @@
  * LinkedIn Settings page by a Super User.
  */
 
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import {
     linkedInPost,
     linkedInSendMessage,

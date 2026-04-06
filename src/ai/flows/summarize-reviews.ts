@@ -10,7 +10,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'zod';
+import { z } from '@/ai/z3';
 
 export const SummarizeReviewsInputSchema = z.object({
   productId: z.string().describe('The unique ID of the product whose reviews should be summarized.'),

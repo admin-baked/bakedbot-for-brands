@@ -14,7 +14,7 @@
  * - Output truncated to prevent memory issues
  */
 
-import { z } from 'zod';
+import { z } from '@/ai/z3';
 import { tool } from 'genkit';
 import { exec } from 'child_process';
 import { promisify } from 'util';

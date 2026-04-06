@@ -5,7 +5,7 @@
  * for carousels, bundles, and creative content within the inbox.
  */
 
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import type { BundleType } from '@/types/bundles';
 import type { SocialPlatform, MediaType, ComplianceStatus } from '@/types/creative-content';
 import type { QRCode } from '@/types/qr-code';

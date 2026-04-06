@@ -5,7 +5,7 @@
  * profitability metrics, and price compression analysis.
  */
 
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import { normalizeCategoryName } from '@/lib/utils/product-image';
 import { getProductProfitabilityData } from '@/server/actions/profitability';
 import {

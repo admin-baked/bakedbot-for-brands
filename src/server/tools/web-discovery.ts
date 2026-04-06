@@ -1,5 +1,5 @@
 import { Tool } from '@/types/tool';
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import * as cheerio from 'cheerio';
 import { discovery } from '@/server/services/firecrawl';
 

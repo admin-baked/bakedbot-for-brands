@@ -164,7 +164,7 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
                 schema: z.object({
                     customerId: z.string(),
                     emailType: z.enum(['welcome', 'onboarding', 'promotion', 'winback']),
-                    context: z.record(z.any()).optional()
+                    context: z.record(z.string(), z.any()).optional()
                 })
             }
         ];
@@ -225,5 +225,3 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
 export async function handleMrsParkerEvent(orgId: string, eventId: string) {
   logger.info(`[MrsParker] Handled event ${eventId} for org ${orgId} (Stub)`);
 }
-
-

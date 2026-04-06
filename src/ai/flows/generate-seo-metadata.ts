@@ -1,7 +1,7 @@
 'use server';
 
 import { ai } from '@/ai/genkit';
-import { z } from 'zod';
+import { z } from '@/ai/z3';
 
 const GenerateSEOMetadataInputSchema = z.object({
     productName: z.string().describe('The name of the product.'),

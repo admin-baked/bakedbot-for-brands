@@ -8,7 +8,7 @@
  * Uses admin Firestore directly (runs inside agent harness context).
  */
 
-import { z } from 'zod';
+import { z } from '@/ai/z3';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import type { Campaign, CampaignGoal, CampaignChannel, CampaignContent } from '@/types/campaign';
@@ -33,7 +33,7 @@ const createCampaignDraftDef = {
         ]).describe('Campaign goal'),
         channels: z.array(z.enum(['email', 'sms'])).describe('Delivery channels'),
         segments: z.array(z.string()).optional().describe('Target customer segments (e.g. "at_risk", "vip", "new")'),
-        retentionTiers: z.array(z.enum(['champion', 'engaged', 'at_risk', 'dormant'])).optional().describe('Target by retention tier — champion (80-100), engaged (55-79), at_risk (30-54), dormant (0-29). Use instead of or alongside segments for precision retention campaigns.'),
+        retentionTiers: z.array(z.enum(['champion', 'engaged', 'at_risk', 'dormant'])).optional().describe('Target by retention tier â€” champion (80-100), engaged (55-79), at_risk (30-54), dormant (0-29). Use instead of or alongside segments for precision retention campaigns.'),
         emailSubject: z.string().optional().describe('Email subject line'),
         emailBody: z.string().optional().describe('Email body text (supports {{firstName}}, {{segment}}, {{totalSpent}} variables)'),
         smsBody: z.string().optional().describe('SMS message text'),
@@ -174,7 +174,7 @@ ${JSON.stringify({
 - Goal: ${CAMPAIGN_GOALS.find(g => g.id === params.goal)?.label || params.goal}
 - Channels: ${channelStr}
 - Audience: ${segmentLabels}
-- Status: Draft — ready for compliance review
+- Status: Draft â€” ready for compliance review
 
 You can submit this for compliance review, edit the content, or schedule it from the [Campaigns dashboard](/dashboard/campaigns/${docRef.id}).`;
 
