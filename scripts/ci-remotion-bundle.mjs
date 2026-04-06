@@ -41,5 +41,24 @@ if (shouldSkip) {
 } else {
   console.log('[ci-remotion-bundle] Running full Remotion bundle...');
   execSync('node scripts/bundle-remotion.mjs', { stdio: 'inherit' });
-  console.log('[ci-remotion-bundle] Remotion bundle complete.');
+  console.log('[ci-remotion-bundle] Bundle complete.');
+
+  // Fix: @remotion/bundler v4 bundles zod/v3 which doesn't exist in zod@3.x
+  // Patch the bundle to replace zod/v3 -> zod (matches zod package exports)
+  console.log('[ci-remotion-bundle] Patching bundle for zod/v3 compatibility...');
+  const bundleFiles = await fs.readdir(bundleDir);
+  for (const file of bundleFiles) {
+    if (file.endsWith('.js')) {
+      const filePath = path.join(bundleDir, file);
+      let content = await fs.readFile(filePath, 'utf-8');
+      if (content.includes('zod/v3') || content.includes("'zod/v3'") || content.includes('"zod/v3"')) {
+        const patched = content
+          .replace(/require\(['"]zod\/v3['"]\)/g, "require('zod')")
+          .replace(/from ['"]zod\/v3['"]/g, "from 'zod'");
+        await fs.writeFile(filePath, patched, 'utf-8');
+        console.log(`[ci-remotion-bundle] Patched: ${file}`);
+      }
+    }
+  }
+  console.log('[ci-remotion-bundle] zod/v3 patch complete.');
 }
