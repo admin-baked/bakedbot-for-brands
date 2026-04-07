@@ -129,7 +129,8 @@ export class CustomerInsightsGenerator extends InsightGeneratorBase {
     const returningCount =
       (((segments.loyal as any)?.count || 0) +
         ((segments.frequent as any)?.count || 0) +
-        ((segments.vip as any)?.count || 0)) as number;
+        ((segments.vip as any)?.count || 0) +
+        ((segments.regular as any)?.count || 0)) as number;
     const totalActive = newCount + returningCount;
     const returningPercent =
       totalActive > 0 ? Math.round((returningCount / totalActive) * 100) : 0;
@@ -141,6 +142,8 @@ export class CustomerInsightsGenerator extends InsightGeneratorBase {
       title: 'CUSTOMER MIX',
       headline: `${returningPercent}% returning customers`,
       subtext: `${newCount} new | ${returningCount} returning | ${totalActive} total active`,
+      tooltipText:
+        'New: First order in last 30 days. Returning: VIP, Loyal, Frequent, or Regular (based on order history, not recency). Active: ordered in last 30 days.',
       value: returningPercent,
       unit: '%',
       severity,

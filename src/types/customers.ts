@@ -12,7 +12,8 @@ export type CustomerSegment =
     | 'slipping'      // 30-60 days inactive
     | 'churned'       // 90+ days inactive
     | 'high_value'    // High AOV, low frequency
-    | 'frequent';     // High frequency, lower AOV
+    | 'frequent'      // High frequency, lower AOV
+    | 'regular';      // Standard customers (legacy mapping)
 
 // Legacy segment mapping for backwards compatibility
 export type LegacySegment = 'VIP' | 'Loyal' | 'New' | 'Slipping' | 'Risk' | 'Churned';
@@ -400,6 +401,7 @@ export function getSegmentInfo(segment: CustomerSegment): { label: string; color
         churned: { label: 'Churned', color: 'bg-gray-100 text-gray-800', description: '90+ days inactive' },
         high_value: { label: 'High Value', color: 'bg-yellow-100 text-yellow-800', description: 'High spend, low frequency' },
         frequent: { label: 'Frequent', color: 'bg-teal-100 text-teal-800', description: 'High frequency shopper' },
+        regular: { label: 'Regular', color: 'bg-gray-100 text-gray-800', description: 'Standard customers' },
     };
     return info[segment];
 }

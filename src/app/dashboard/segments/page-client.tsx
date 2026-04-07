@@ -68,18 +68,24 @@ const SEGMENT_CONFIG: Record<CustomerSegment, {
         description: 'Customers with 8+ orders and moderate spend.',
         icon: Users,
         color: 'text-blue-600 bg-blue-100'
+    },
+    regular: {
+        name: 'Regular Customers',
+        description: 'Standard customers with established order history.',
+        icon: Users,
+        color: 'text-gray-600 bg-gray-100'
     }
 };
 
 // Priority order for display
-const SEGMENT_ORDER: CustomerSegment[] = ['vip', 'loyal', 'new', 'at_risk', 'slipping', 'churned', 'high_value', 'frequent'];
+const SEGMENT_ORDER: CustomerSegment[] = ['vip', 'loyal', 'new', 'at_risk', 'slipping', 'churned', 'high_value', 'frequent', 'regular'];
 
 export default function SegmentsPageClient({ brandId }: SegmentsPageClientProps) {
     const router = useRouter();
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
     const [segmentCounts, setSegmentCounts] = useState<Record<CustomerSegment, number>>({
-        vip: 0, loyal: 0, new: 0, at_risk: 0, slipping: 0, churned: 0, high_value: 0, frequent: 0
+        vip: 0, loyal: 0, new: 0, at_risk: 0, slipping: 0, churned: 0, high_value: 0, frequent: 0, regular: 0
     });
     const [totalCustomers, setTotalCustomers] = useState(0);
     const [suggestions, setSuggestions] = useState<SegmentSuggestion[]>([]);

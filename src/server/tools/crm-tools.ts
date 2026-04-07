@@ -514,6 +514,7 @@ export async function getSegmentSummary(
                 slipping: { count: 0, totalSpent: 0, avgSpend: 0, recentActiveCount: 0 },
                 at_risk: { count: 0, totalSpent: 0, avgSpend: 0, recentActiveCount: 0 },
                 churned: { count: 0, totalSpent: 0, avgSpend: 0, recentActiveCount: 0 },
+                regular: { count: 0, totalSpent: 0, avgSpend: 0, recentActiveCount: 0 },
             };
 
             let totalCustomers = 0;

@@ -769,7 +769,7 @@ export async function getCustomers(params: GetCustomersParams | string = {}): Pr
 
     // 6. Calculate segments and stats
     const segmentBreakdown: Record<CustomerSegment, number> = {
-        vip: 0, loyal: 0, new: 0, at_risk: 0, slipping: 0, churned: 0, high_value: 0, frequent: 0
+        vip: 0, loyal: 0, new: 0, at_risk: 0, slipping: 0, churned: 0, high_value: 0, frequent: 0, regular: 0
     };
 
     logger.info('[CUSTOMERS] Converting map to array', {

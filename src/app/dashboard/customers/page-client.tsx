@@ -193,7 +193,7 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
                 // Recalculate stats from enriched data
                 const segmentBreakdown: Record<CustomerSegment, number> = {
                     vip: 0, loyal: 0, new: 0, at_risk: 0,
-                    slipping: 0, churned: 0, high_value: 0, frequent: 0,
+                    slipping: 0, churned: 0, high_value: 0, frequent: 0, regular: 0,
                 };
                 enrichedCustomers.forEach(c => { segmentBreakdown[c.segment]++; });
 
