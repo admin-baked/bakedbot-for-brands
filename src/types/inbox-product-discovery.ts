@@ -1,6 +1,6 @@
 export type InboxProductDiscoveryMode = 'recommend_products' | 'bundle_ideas';
 
-export type InboxProductDiscoveryActionKind = 'bundle';
+export type InboxProductDiscoveryActionKind = 'bundle' | 'outreach';
 
 export interface InboxRecommendedProduct {
     productId: string;

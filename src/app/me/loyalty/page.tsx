@@ -125,7 +125,7 @@ export default function MemberLoyaltyPage() {
                         </div>
 
                         <h3 className="text-4xl font-black tracking-tight mb-2 uppercase">{member.firstName}</h3>
-                        <p className="text-sm font-bold text-gray-500 mb-12">THRV_{member.phone.slice(-4).toUpperCase()}</p>
+                        <p className="text-sm font-bold text-gray-500 mb-12">THRV_{(member.phone || '0000').slice(-4).toUpperCase()}</p>
 
                         <div className="w-full aspect-square bg-white rounded-3xl p-6 flex items-center justify-center shadow-[0_0_40px_rgba(16,185,129,0.3)]">
                             {/* In real app, put the actual QR component here */}

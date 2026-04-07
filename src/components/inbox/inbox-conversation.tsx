@@ -2139,7 +2139,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         setSocialPostInitialPrompt('');
     };
 
-    const handleCompletePricing = async (rule: any) => {
+    const handleCompletePricing = async (rule: any, pushRecommendation?: boolean) => {
         setShowPricingGenerator(false);
 
         const confirmationMessage: ChatMessage = {
@@ -2150,6 +2150,11 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         };
         addMessageToThread(thread.id, confirmationMessage);
         setPricingInitialPrompt('');
+
+        if (pushRecommendation) {
+            setOutreachInitialPrompt(`Draft a campaign to announce our new "${rule.name}" pricing to customers. Highlight our competitive prices.`);
+            setShowOutreachGenerator(true);
+        }
     };
 
     /* const handleCompleteVideo = async (videoData: any) => {
@@ -2297,13 +2302,17 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     };
 
     const handleOpenProductDiscoveryAction = (
-        action: 'bundle',
+        action: 'bundle' | 'outreach',
         actionPrompt: string,
     ) => {
         switch (action) {
             case 'bundle':
                 setBundleInitialPrompt(actionPrompt);
                 setShowBundleGenerator(true);
+                break;
+            case 'outreach':
+                setOutreachInitialPrompt(actionPrompt);
+                setShowOutreachGenerator(true);
                 break;
             default:
                 break;

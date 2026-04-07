@@ -1,4 +1,28 @@
+## Session: 2026-04-07 (Loyalty Tablet Build Error Resolution)
+### Task ID
+fix_loyalty_tablet_build
+
+### Summary
+Resolved a sequence of critical TypeScript build errors in the loyalty tablet system that were blocking CI/CD deployments. Fixed missing exports for `TabletProduct` and `TabletBundle`, addressed null-safety issues in API routes and membership pages, expanded shared theme interfaces, and synchronized `ClubEvent` surface types with visit session sources. Verified the fix with a successful `check:types` run.
+
+### Key Changes
+*   **FIX**: `src/server/actions/loyalty-tablet.ts` - Re-exported `TabletProduct` and `TabletBundle` types.
+*   **FIX**: `src/lib/checkin/loyalty-tablet-shared.ts` - Added `SMOKEY_FALLBACK_IMAGE` constant export.
+*   **FIX**: `src/lib/checkin/checkin-management-shared.ts` - Expanded `PublicBrandTheme` with `organizationName` and `brandMood`.
+*   **FIX**: `src/app/api/v1/loyalty/members/route.ts` - Added null-checks for `pass` and `welcomeReward`.
+*   **FIX**: `src/app/me/loyalty/page.tsx` - Added defensive null-handling for `member.phone`.
+*   **FIX**: `src/types/club.ts` - Expanded `ClubEvent` surface types to include `staff_scan` and `pos_lookup`.
+*   **TYPES**: Explicitly typed map parameters in `RecommendationsScreen.tsx` and `use-tablet-flow.ts`.
+
+### Verification Results
+*   **check:types**: ✅ PASS (Exit code 0)
+*   **Export Integrity**: ✅ PASS (Tablet types now accessible to client components)
+*   **Null Safety**: ✅ PASS (Defensive checks implemented in API and Membership pages)
+
+---
+
 ## Session: 2026-03-31 (Brand Guide UI Crash Fix & Rebase)
+
 ### Task ID
 fix_brand_guide_ui_crash
 

@@ -73,9 +73,12 @@ function InboxContent() {
                 : 'Traditional chat experience with your AI agents.';
 
     return (
-        <div className="flex h-full min-h-0 flex-col overflow-hidden">
+        <div className={cn(
+            "flex h-full flex-col w-full",
+            shouldShowWorkspaceBriefing ? "overflow-y-auto overflow-x-hidden" : "min-h-0 overflow-hidden"
+        )}>
             {/* View Toggle Header */}
-            <div className="flex flex-col gap-3 border-b bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:px-6 sm:py-4">
+            <div className="shrink-0 flex flex-col gap-3 border-b bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:px-6 sm:py-4">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div className="space-y-1">
                         <h1 className="text-base font-semibold sm:text-lg">
@@ -107,7 +110,10 @@ function InboxContent() {
             </div>
 
             {/* View Content - Animated transitions */}
-            <div className="min-h-0 flex-1 overflow-hidden">
+            <div className={cn(
+                "flex-1 flex flex-col w-full",
+                shouldShowWorkspaceBriefing ? "shrink-0 min-h-[600px]" : "min-h-0 overflow-hidden"
+            )}>
                 <AnimatePresence mode="wait">
                     {viewMode === 'inbox' ? (
                         <motion.div
@@ -116,7 +122,10 @@ function InboxContent() {
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: 20 }}
                             transition={{ duration: 0.2 }}
-                            className="h-full min-h-0 overflow-hidden"
+                            className={cn(
+                                "flex flex-col flex-1 w-full",
+                                shouldShowWorkspaceBriefing ? "" : "h-full min-h-0 overflow-hidden"
+                            )}
                         >
                             <UnifiedInbox className="h-full" />
                         </motion.div>

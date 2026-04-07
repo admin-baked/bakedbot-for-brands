@@ -28,12 +28,16 @@ export interface PublicBrandThemeColors {
 
 export interface PublicBrandTheme {
     brandName: string | null;
+    organizationName?: string | null;
+    brandMood?: 'dark' | 'light' | null;
     logoUrl: string | null;
     colors: PublicBrandThemeColors;
 }
 
 export const DEFAULT_PUBLIC_BRAND_THEME: PublicBrandTheme = {
     brandName: null,
+    organizationName: null,
+    brandMood: 'light',
     logoUrl: null,
     colors: {
         primary: '#34d058',

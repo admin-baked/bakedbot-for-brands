@@ -448,7 +448,7 @@ export function useTabletFlow(orgId: string) {
                     emailConsent,
                     smsConsent,
                     mood: selectedMood ?? undefined,
-                    cartProductIds: [...new Set([...cart, ...(bundleAdded && bundle ? bundle.products.map(p => p.productId) : [])])],
+                    cartProductIds: [...new Set([...cart, ...(bundleAdded && bundle ? bundle.products.map((p: TabletProduct) => p.productId) : [])])],
                     bundleAdded,
                     birthday: birthday || undefined,
                     visitPreferences: visitPreferences.length ? visitPreferences : undefined,

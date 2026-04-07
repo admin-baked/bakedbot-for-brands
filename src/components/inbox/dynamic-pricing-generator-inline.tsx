@@ -9,7 +9,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, Sparkles, Wand2, Plus, DollarSign, Percent, Clock, Users, Package, Zap, AlertCircle } from 'lucide-react';
+import { TrendingUp, Sparkles, Wand2, Plus, DollarSign, Percent, Clock, Users, Package, Zap, AlertCircle, Megaphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,7 +26,7 @@ import { createPricingRule } from '@/app/actions/dynamic-pricing';
 import type { DynamicPricingRule, PricingStrategy } from '@/types/dynamic-pricing';
 
 interface DynamicPricingGeneratorInlineProps {
-    onComplete?: (rule: DynamicPricingRule) => void;
+    onComplete?: (rule: DynamicPricingRule, pushRecommendation?: boolean) => void;
     initialPrompt?: string;
     className?: string;
 }
@@ -40,6 +40,7 @@ export function DynamicPricingGeneratorInline({
     const [strategy, setStrategy] = useState<PricingStrategy>('dynamic');
     const [isGenerating, setIsGenerating] = useState(false);
     const [showAdvanced, setShowAdvanced] = useState(false);
+    const [pushRecommendation, setPushRecommendation] = useState(false);
 
     // Rule configuration
     const [ruleName, setRuleName] = useState('');
@@ -161,7 +162,7 @@ export function DynamicPricingGeneratorInline({
                 title: "Pricing Rule Created!",
                 description: `"${ruleName}" is now active and optimizing your prices.`,
             });
-            onComplete?.(result.data);
+            onComplete?.(result.data, pushRecommendation);
         } else {
             toast({
                 title: "Creation Failed",
@@ -435,6 +436,23 @@ export function DynamicPricingGeneratorInline({
                                         </div>
                                     </div>
                                 )}
+                            </div>
+
+                            {/* Push Recommendation */}
+                            <div className="pt-2 border-t border-white/5">
+                                <div className="flex items-center justify-between mb-1">
+                                    <div className="flex items-center gap-2">
+                                        <Megaphone className="h-4 w-4 text-emerald-400" />
+                                        <Label className="text-sm font-semibold">Push Recommendations</Label>
+                                    </div>
+                                    <Switch
+                                        checked={pushRecommendation}
+                                        onCheckedChange={setPushRecommendation}
+                                    />
+                                </div>
+                                <p className="text-xs text-muted-foreground ml-6">
+                                    Draft an outreach campaign to announce these prices to your customers.
+                                </p>
                             </div>
 
                             {/* Warning */}

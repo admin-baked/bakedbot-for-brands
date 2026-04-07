@@ -40,7 +40,7 @@ Before ANY work, verify the build is healthy:
 
 **Current Status:** 🟢 `main` green; Thrive Syracuse retention deployed (Phases 1-7 complete).
 
-**Recent work (2026-04-07):** Thrive Syracuse retention system:
+**Recent work (2026-04-07):** Thrive Syracuse retention system & Loyalty Tablet Fixes:
 - Budtender on-duty clock-in system (new shift tracking)
 - Internal 5-star review system (improve recommendations)
 - Welcome-back email (2hr delay after check-in)
@@ -48,6 +48,7 @@ Before ANY work, verify the build is healthy:
 - Weekly campaign Playbook enrollment
 - Demo data filtering (phone 312-684-0522)
 - SMS consent TCPA compliance fix
+- Loyalty Tablet build fix (re-exported types, null-safety, 11 files)
 
 ## ðŸ§­ CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 

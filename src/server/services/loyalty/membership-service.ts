@@ -52,6 +52,7 @@ export class MembershipService {
         }
 
         // 2. Check for existing Membership
+        let mship: Membership | null = null;
         if (memberId) {
             const mshipMatches = await db.collection('memberships')
                 .where('organizationId', '==', params.organizationId)
@@ -60,21 +61,31 @@ export class MembershipService {
                 .get();
             
             if (!mshipMatches.empty) {
-                // Already enrolled in loyalty — return existing state
-                const mship = mshipMatches.docs[0].data() as Membership;
-                const passMatches = await db.collection('passes')
-                    .where('membershipId', '==', mship.id)
-                    .limit(1)
-                    .get();
-                
-                return { 
-                    member: existingMember!, 
-                    membership: mship, 
-                    pass: passMatches.empty ? null : passMatches.docs[0].data() as Pass,
-                    welcomeReward: null,
-                    isAlreadyEnrolled: true 
-                };
+                mship = mshipMatches.docs[0].data() as Membership;
             }
+        }
+
+        if (mship) {
+            // Already enrolled in loyalty — return existing state
+            if (!existingMember) {
+                const memberDoc = await db.collection('members').doc(mship.memberId).get();
+                existingMember = memberDoc.data() as Member;
+            }
+
+            const passMatches = await db.collection('passes')
+                .where('membershipId', '==', mship.id)
+                .limit(1)
+                .get();
+            
+            logger.info(`[MembershipService] Member already enrolled: ${mship.memberId} (Org: ${params.organizationId})`);
+            
+            return { 
+                member: existingMember!, 
+                membership: mship, 
+                pass: passMatches.empty ? null : passMatches.docs[0].data() as Pass,
+                welcomeReward: null,
+                isAlreadyEnrolled: true 
+            };
         }
 
         // 3. Create everything new if needed
@@ -173,17 +184,20 @@ export class MembershipService {
             payload: { phone, hasWelcomeReward: true }
         };
 
-        await db.runTransaction(async (transaction) => {
-            if (!existingMember) {
-                transaction.set(db.collection('members').doc(memberId), member);
-            }
-            transaction.set(db.collection('memberships').doc(membershipId), membership);
-            transaction.set(db.collection('passes').doc(passId), pass);
-            transaction.set(db.collection('rewards').doc(rewardId), welcomeReward);
-            transaction.set(db.collection('club_events').doc(event.id), event);
-        });
+        // 7. Write to Firestore
+        const batch = db.batch();
+        if (!existingMember) {
+            batch.set(db.collection('members').doc(memberId), member);
+        }
+        batch.set(db.collection('memberships').doc(membershipId), membership);
+        batch.set(db.collection('passes').doc(passId), pass);
+        batch.set(db.collection('rewards').doc(rewardId), welcomeReward);
+        batch.set(db.collection('club_events').doc(event.id), event);
 
-        logger.info(`[MembershipService] Member enrolled: ${memberId} in Org: ${params.organizationId}`);
+        await batch.commit();
+
+        logger.info(`[MembershipService] New member enrolled: ${memberId} (Membership: ${membershipId}, Org: ${params.organizationId})`);
+
         return { member, membership, pass, welcomeReward, isAlreadyEnrolled: false };
     }
 }

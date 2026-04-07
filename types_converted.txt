@@ -1,0 +1,22 @@
+﻿
+> nextn@0.1.0 check:types
+> node --max-old-space-size=8192 ./node_modules/typescript/bin/tsc --noEmit --incremental false
+
+src/app/api/v1/loyalty/members/route.ts(30,21): error TS18047: 'result.pass' is possibly 'null'.
+src/app/api/v1/loyalty/members/route.ts(31,30): error TS18047: 'result.welcomeReward' is possibly 'null'.
+src/app/api/v1/loyalty/members/route.ts(33,29): error TS18047: 'result.pass' is possibly 'null'.
+src/app/api/v1/loyalty/members/route.ts(34,26): error TS18047: 'result.pass' is possibly 'null'.
+src/app/api/v1/loyalty/members/route.ts(35,31): error TS18047: 'result.pass' is possibly 'null'.
+src/app/loyalty-tablet/components/RecommendationsScreen.tsx(21,5): error TS2459: Module '"@/server/actions/loyalty-tablet"' declares 'TabletProduct' locally, but it is not exported.
+src/app/loyalty-tablet/components/RecommendationsScreen.tsx(22,5): error TS2459: Module '"@/server/actions/loyalty-tablet"' declares 'TabletBundle' locally, but it is not exported.
+src/app/loyalty-tablet/components/RecommendationsScreen.tsx(441,54): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/app/loyalty-tablet/hooks/use-tablet-flow.ts(16,10): error TS2459: Module '"@/server/actions/loyalty-tablet"' declares 'TabletProduct' locally, but it is not exported.
+src/app/loyalty-tablet/hooks/use-tablet-flow.ts(17,10): error TS2459: Module '"@/server/actions/loyalty-tablet"' declares 'TabletBundle' locally, but it is not exported.
+src/app/loyalty-tablet/hooks/use-tablet-flow.ts(451,107): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/app/loyalty-tablet/page.tsx(18,29): error TS2305: Module '"@/lib/checkin/loyalty-tablet-shared"' has no exported member 'SMOKEY_FALLBACK_IMAGE'.
+src/app/loyalty-tablet/page.tsx(55,39): error TS2339: Property 'organizationName' does not exist on type 'PublicBrandTheme'.
+src/app/loyalty-tablet/page.tsx(56,44): error TS2339: Property 'brandMood' does not exist on type 'PublicBrandTheme'.
+src/app/loyalty-tablet/page.tsx(57,44): error TS2339: Property 'brandMood' does not exist on type 'PublicBrandTheme'.
+src/app/me/loyalty/page.tsx(128,84): error TS18048: 'member.phone' is possibly 'undefined'.
+src/server/services/loyalty/visit-session-service.ts(47,23): error TS2322: Type '"tablet" | "customer_app" | "staff_scan" | "pos_lookup"' is not assignable to type '"pos" | "system" | "tablet" | "customer_app" | "staff_app"'.
+  Type '"staff_scan"' is not assignable to type '"pos" | "system" | "tablet" | "customer_app" | "staff_app"'.

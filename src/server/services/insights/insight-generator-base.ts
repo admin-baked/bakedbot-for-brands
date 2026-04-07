@@ -73,7 +73,7 @@ export abstract class InsightGeneratorBase {
           orgId: this.orgId,
           generatedAt: FieldValue.serverTimestamp(),
           expiresAt,
-        });
+        }, { merge: true });
       });
 
       await batch.commit();

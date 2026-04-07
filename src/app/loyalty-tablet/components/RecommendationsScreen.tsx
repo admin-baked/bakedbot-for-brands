@@ -438,7 +438,7 @@ export function RecommendationsScreen({
                             )}
 
                             <div className="space-y-1">
-                                {bundle.products.map(p => (
+                                {bundle.products.map((p: TabletProduct) => (
                                     <p key={p.productId} className="text-sm" style={{ color: mutedTextColor }}>
                                         <ChevronRight className="inline h-3 w-3" style={{ color: brandTheme.colors.primary }} /> {p.name}
                                     </p>

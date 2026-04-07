@@ -331,7 +331,7 @@ export type ClubEvent = {
     id: string;
   };
   source: {
-    surface: "customer_app" | "tablet" | "staff_app" | "pos" | "system";
+    surface: "customer_app" | "tablet" | "staff_app" | "pos" | "system" | "staff_scan" | "pos_lookup";
     deviceId?: string;
   };
   payload?: Record<string, unknown>;

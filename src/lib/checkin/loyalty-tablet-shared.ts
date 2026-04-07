@@ -3,6 +3,8 @@
  * and server actions.
  */
 
+export const SMOKEY_FALLBACK_IMAGE = '/assets/agents/smokey-main.png';
+
 export const TABLET_MOODS = [
     { id: 'relaxed', emoji: '😌', label: 'Relaxed & Calm', context: 'indica dominant, CBD-heavy, body relaxation, stress relief, couch-friendly' },
     { id: 'energized', emoji: '⚡', label: 'Energized & Creative', context: 'sativa dominant, uplifting, creative boost, clear-headed, daytime use' },

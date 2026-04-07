@@ -17,6 +17,8 @@ import {
     type TabletMoodId,
     type TabletProduct,
 } from '@/lib/checkin/loyalty-tablet-shared';
+
+export type { TabletProduct, TabletBundle };
 import { getSafeProductImageUrl, normalizeCategoryName } from '@/lib/utils/product-image';
 import { searchMenuProducts } from '@/server/services/smokey-menu-search';
 import { getCustomerHistory } from '@/server/tools/crm-tools';

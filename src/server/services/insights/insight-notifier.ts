@@ -2,9 +2,11 @@
  * Insight Notifier Service
  *
  * Sends critical and warning insights to Slack for immediate visibility.
- * Prevents duplicate notifications using insight ID tracking.
+ * Prevents duplicate notifications using Firestore-backed suppression window.
  */
 
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import type { InsightCard } from '@/types/insight-cards';
 
@@ -42,6 +44,47 @@ export async function notifySlackOnCriticalInsights(
       return { notified: false, count: 0 };
     }
 
+    // --- Suppression Logic ---
+    const db = getAdminFirestore();
+    const suppressionWindowMs = 24 * 60 * 60 * 1000; // 24 hours
+    const now = Date.now();
+
+    // Fetch existing insights to check last notification time
+    const insightIds = criticalInsights.map(i => i.id);
+    const insightsSnap = await db.collection('tenants')
+      .doc(orgId)
+      .collection('insights')
+      .where('id', 'in', insightIds)
+      .get();
+
+    const lastNotifiedMap = new Map<string, number>();
+    insightsSnap.docs.forEach(doc => {
+      const data = doc.data();
+      if (data.lastSlackNotificationAt) {
+        const lastNotified = (data.lastSlackNotificationAt as Timestamp).toDate().getTime();
+        lastNotifiedMap.set(doc.id, lastNotified);
+      }
+    });
+
+    // Filter out insights notified within the suppression window
+    // UNLESS it's critical and the previous was only a warning (severity escalation)
+    const insightsToNotify = criticalInsights.filter(insight => {
+      const lastNotified = lastNotifiedMap.get(insight.id);
+      if (!lastNotified) return true; // Never notified
+
+      const diff = now - lastNotified;
+      if (diff > suppressionWindowMs) return true; // Window expired
+
+      // If it's critical now but was notified as warning before, we might want to notify again.
+      // For now, keep it simple: 24h suppression per insight type.
+      return false;
+    });
+
+    if (insightsToNotify.length === 0) {
+      logger.info('[InsightNotifier] All insights are within suppression window', { orgId, count: criticalInsights.length });
+      return { notified: false, count: 0 };
+    }
+
     // Only post to the Slack webhook for the org it is configured for.
     // SLACK_WEBHOOK_ORG_ID defaults to org_thrive_syracuse (the pilot channel).
     // Insights for other orgs are surfaced via inbox threads only.
@@ -52,8 +95,8 @@ export async function notifySlackOnCriticalInsights(
     }
 
     // Group by severity for better organization
-    const critical = criticalInsights.filter((i) => i.severity === 'critical');
-    const warning = criticalInsights.filter((i) => i.severity === 'warning');
+    const critical = insightsToNotify.filter((i) => i.severity === 'critical');
+    const warning = insightsToNotify.filter((i) => i.severity === 'warning');
 
     // Build Slack message
     const blocks: any[] = [
@@ -112,12 +155,12 @@ export async function notifySlackOnCriticalInsights(
     });
 
     const message: SlackMessage = {
-      text: `⚠️ ${criticalInsights.length} critical insights for ${orgId}`,
+      text: `⚠️ ${insightsToNotify.length} critical insights for ${orgId}`,
       blocks,
       metadata: {
         event_type: 'insight_notification',
         event_payload: {
-          insightId: criticalInsights[0].id,
+          insightId: insightsToNotify[0].id,
         },
       },
     };
@@ -142,13 +185,15 @@ export async function notifySlackOnCriticalInsights(
       return { notified: false, count: criticalInsights.length };
     }
 
-    logger.info('[InsightNotifier] Slack notification sent', {
-      orgId,
-      criticalCount: critical.length,
-      warningCount: warning.length,
+    // Update lastSlackNotificationAt in background
+    const updateBatch = db.batch();
+    insightsToNotify.forEach(insight => {
+        const ref = db.collection('tenants').doc(orgId).collection('insights').doc(insight.id);
+        updateBatch.update(ref, { lastSlackNotificationAt: FieldValue.serverTimestamp() });
     });
+    updateBatch.commit().catch(e => logger.error('[InsightNotifier] Failed to update notification timestamps', { error: e }));
 
-    return { notified: true, count: criticalInsights.length };
+    return { notified: true, count: insightsToNotify.length };
   } catch (error) {
     logger.error('[InsightNotifier] Error sending Slack notification', {
       error,

@@ -27,13 +27,13 @@ export async function POST(req: NextRequest) {
             success: true,
             memberId: result.member.id,
             membershipId: result.membership.id,
-            passId: result.pass.id,
-            welcomeRewardId: result.welcomeReward.id,
-            pass: {
+            passId: result.pass?.id || null,
+            welcomeRewardId: result.welcomeReward?.id || null,
+            pass: result.pass ? {
                 memberCode: result.pass.memberCode,
                 qrValue: result.pass.qrValue,
                 barcodeValue: result.pass.barcodeValue
-            }
+            } : null
         });
 
     } catch (error: any) {
