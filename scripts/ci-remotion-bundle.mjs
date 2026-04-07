@@ -30,20 +30,31 @@ const bundleDir = path.resolve(process.cwd(), '.remotion', 'bundle');
 
 // Create zod/v3 shim — zod@3.x doesn't export /v3 subpath, but @remotion/bundler
 // and some server code imports from 'zod/v3'. The shim re-exports from 'zod'.
+// We patch zod's package.json exports AND create the v3/ subpath files.
 async function createZodV3Shim() {
-  const zodV3Dir = path.resolve(process.cwd(), 'node_modules', 'zod', 'v3');
-  await fs.mkdir(zodV3Dir, { recursive: true });
+  const zodDir = path.resolve(process.cwd(), 'node_modules', 'zod');
+  const zodPkgPath = path.join(zodDir, 'package.json');
+  const zodV3Dir = path.join(zodDir, 'v3');
 
-  const pkgJson = JSON.stringify({
-    name: 'zod-shim-v3',
-    version: '3.23.8',
-    main: 'index.js',
-    module: 'index.mjs',
-    exports: {
-      '.': { types: './index.d.ts', require: './index.js', import: './index.mjs' },
-      './package.json': './package.json',
-    },
-  }, null, 2);
+  // Patch zod's package.json to add ./v3 export
+  const pkgContent = await fs.readFile(zodPkgPath, 'utf-8');
+  const pkg = JSON.parse(pkgContent);
+
+  if (!pkg.exports) {
+    pkg.exports = {};
+  }
+
+  pkg.exports['./v3'] = {
+    types: './v3/index.d.ts',
+    require: './v3/index.js',
+    import: './v3/index.mjs',
+  };
+
+  await fs.writeFile(zodPkgPath, JSON.stringify(pkg, null, 2) + '\n');
+  console.log('[zod-v3-shim] Patched zod/package.json exports');
+
+  // Create v3/ subpath files
+  await fs.mkdir(zodV3Dir, { recursive: true });
 
   const indexJs = `"use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -51,10 +62,13 @@ const zod_1 = require("zod");
 for (const k in zod_1) {
   Object.defineProperty(exports, k, { enumerable: true, get: () => zod_1[k] });
 }
+exports.z = zod_1.z;
+exports.default = zod_1.z;
 `;
 
   const indexMjs = `export * from 'zod';
-export { z as default } from 'zod';
+export { z } from 'zod';
+export { default } from 'zod';
 `;
 
   const indexDts = `export * from 'zod';
@@ -62,24 +76,12 @@ export { z } from 'zod';
 export { default } from 'zod';
 `;
 
-  const externalJs = `"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const zod_1 = require("zod");
-for (const k in zod_1) {
-  if (!Object.prototype.hasOwnProperty.call(exports, k)) {
-    Object.defineProperty(exports, k, { enumerable: true, get: () => zod_1[k] });
-  }
-}
-`;
-
   await Promise.all([
-    fs.writeFile(path.join(zodV3Dir, 'package.json'), pkgJson),
     fs.writeFile(path.join(zodV3Dir, 'index.js'), indexJs),
     fs.writeFile(path.join(zodV3Dir, 'index.mjs'), indexMjs),
     fs.writeFile(path.join(zodV3Dir, 'index.d.ts'), indexDts),
-    fs.writeFile(path.join(zodV3Dir, 'external.js'), externalJs),
   ]);
-  console.log('[zod-v3-shim] Created zod/v3 shim re-exporting from zod');
+  console.log('[zod-v3-shim] Created zod/v3 subpath files re-exporting from zod');
 }
 
 if (shouldSkip) {
