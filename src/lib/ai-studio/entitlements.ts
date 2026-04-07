@@ -6,6 +6,7 @@
  */
 
 import { getAdminFirestore } from '@/firebase/admin';
+import { Timestamp } from 'firebase-admin/firestore';
 import { logger } from '@/lib/logger';
 import { AI_STUDIO_PLAN_CONFIG } from '@/lib/config/ai-studio-plans';
 import type {
@@ -13,6 +14,7 @@ import type {
   AIStudioEntitlementDoc,
   AIStudioOverrideDoc,
   AIStudioActionType,
+  AIStudioBalanceDoc,
 } from '@/types/ai-studio';
 
 // ---------------------------------------------------------------------------
@@ -103,6 +105,54 @@ export async function upsertAIStudioEntitlement(
   const entitlement = getBaseAIStudioEntitlement(planId, orgId);
   await db.collection('org_ai_studio_entitlements').doc(orgId).set(entitlement, { merge: true });
   logger.info('[AIStudio] Entitlement upserted', { orgId, planId });
+}
+
+/**
+ * Provisions AI Studio for a new org — creates entitlement + initial balance.
+ * Should be called during org creation flow.
+ */
+export async function provisionAIStudioForOrg(
+  orgId: string,
+  planId: AIStudioPlanId = 'signal'
+): Promise<void> {
+  const db = getAdminFirestore();
+  const entitlement = getBaseAIStudioEntitlement(planId, orgId);
+
+  const now = Date.now();
+  const cycleStart = new Date();
+  cycleStart.setDate(1);
+  cycleStart.setHours(0, 0, 0, 0);
+  const cycleEnd = new Date(cycleStart);
+  cycleEnd.setMonth(cycleEnd.getMonth() + 1);
+
+  const currentCycleKey = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+
+  const balance: AIStudioBalanceDoc = {
+    orgId,
+    billingCycleKey: currentCycleKey,
+    includedCreditsTotal: entitlement.monthlyCreditsIncluded,
+    includedCreditsUsed: 0,
+    rolloverCreditsTotal: 0,
+    rolloverCreditsUsed: 0,
+    topUpCreditsTotal: 0,
+    topUpCreditsUsed: 0,
+    automationBudgetTotal: entitlement.monthlyAutomationCreditBudget,
+    automationBudgetUsed: 0,
+    manualCreditsUsed: 0,
+    automationCreditsUsed: 0,
+    alertsSent: {},
+    cycleStartedAt: cycleStart.getTime(),
+    cycleEndsAt: cycleEnd.getTime(),
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  await Promise.all([
+    db.collection('org_ai_studio_entitlements').doc(orgId).set(entitlement),
+    db.collection('org_ai_studio_balances').doc(`${orgId}-${currentCycleKey}`).set(balance),
+  ]);
+
+  logger.info('[AIStudio] Provisioned for new org', { orgId, planId, credits: entitlement.monthlyCreditsIncluded });
 }
 
 // ---------------------------------------------------------------------------

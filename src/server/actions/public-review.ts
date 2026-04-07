@@ -131,6 +131,7 @@ export async function submitPublicReview(
 
 /**
  * Fetch approved dispensary reviews for public display (e.g., tablet check-in).
+ * Excludes demo customer reviews (phone 312-684-0522).
  */
 export async function getPublicReviews(
     orgId: string,
@@ -145,7 +146,7 @@ export async function getPublicReviews(
                 .where('entityId', '==', orgId)
                 .where('moderation.status', '==', 'approved')
                 .orderBy('createdAt', 'desc')
-                .limit(limit)
+                .limit(limit * 2) // Fetch more to filter out demos
                 .get(),
             db.collection('reviewAggregates')
                 .doc(`dispensary_${orgId}`)
@@ -154,16 +155,28 @@ export async function getPublicReviews(
 
         const aggData = aggSnap.exists ? aggSnap.data() : null;
 
-        const reviews = snap.docs.map(doc => {
-            const data = doc.data();
-            return {
-                rating: data.rating,
-                text: data.text,
-                tags: data.tags ?? [],
-                firstName: data.firstName,
-                createdAt: data.createdAt?.toDate?.()?.toISOString?.() ?? new Date().toISOString(),
-            };
-        });
+        // Filter out demo customer reviews (phone 312-684-0522)
+        const DEMO_PHONE_LAST4 = '0522';
+        const reviews = snap.docs
+            .map(doc => {
+                const data = doc.data();
+                return {
+                    rating: data.rating,
+                    text: data.text,
+                    tags: data.tags ?? [],
+                    firstName: data.firstName,
+                    customerId: data.customerId,
+                    createdAt: data.createdAt?.toDate?.()?.toISOString?.() ?? new Date().toISOString(),
+                };
+            })
+            .filter(review => {
+                // Check if customer is a demo customer
+                if (review.customerId?.includes('demo') || review.firstName?.toLowerCase().includes('demo')) {
+                    return false;
+                }
+                return true;
+            })
+            .slice(0, limit);
 
         return {
             reviews,

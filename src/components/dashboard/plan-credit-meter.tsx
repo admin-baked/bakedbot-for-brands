@@ -17,6 +17,11 @@ import { Badge } from '@/components/ui/badge';
 import { Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+function currentCycleKey(): string {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
 interface CreditData {
     includedCreditsTotal: number;
     includedCreditsUsed: number;
@@ -35,7 +40,8 @@ export function PlanCreditMeter({ className }: { className?: string }) {
     useEffect(() => {
         if (!firestore || !orgId) return;
 
-        const ref = doc(firestore, 'organizations', orgId, 'billing', 'credits');
+        const cycleKey = currentCycleKey();
+        const ref = doc(firestore, 'org_ai_studio_balances', `${orgId}-${cycleKey}`);
         getDoc(ref)
             .then((snap) => {
                 if (snap.exists()) {

@@ -3,6 +3,7 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import { requireCronSecret } from '@/server/auth/cron';
 import { sendWelcomeEmail, sendWelcomeSms } from '@/server/services/mrs-parker-welcome';
+import { sendReturningCustomerEmail } from '@/server/services/mrs-parker-returning';
 
 /**
  * Welcome Message Job Processor
@@ -220,6 +221,80 @@ export async function POST(request: NextRequest) {
                 logger.error('[WelcomeJobs] Welcome SMS failed', {
                     jobId,
                     phone: job.data?.phone,
+                    error: err.message,
+                });
+            }
+        }
+
+        // Process returning welcome emails (new type)
+        const returningEmailJobsSnapshot = await db
+            .collection('jobs')
+            .where('type', '==', 'send_returning_welcome_email')
+            .where('status', '==', 'pending')
+            .limit(5)
+            .get();
+
+        for (const doc of returningEmailJobsSnapshot.docs) {
+            const job = doc.data();
+            const jobId = doc.id;
+
+            try {
+                // Check if scheduled time has passed
+                const scheduledAt = job.scheduledAt ? new Date(job.scheduledAt) : new Date();
+                if (scheduledAt > new Date()) {
+                    continue; // Skip if not yet time
+                }
+
+                logger.info('[WelcomeJobs] Processing returning welcome email', {
+                    jobId,
+                    email: job.data?.email,
+                });
+
+                await doc.ref.update({
+                    status: 'running',
+                    startedAt: Date.now(),
+                    updatedAt: Date.now(),
+                });
+
+                const result = await sendReturningCustomerEmail({
+                    customerId: job.data.customerId,
+                    email: job.data.email,
+                    firstName: job.data.firstName,
+                    orgId: job.data.orgId,
+                    mood: job.data.mood,
+                    budtenderName: job.data.budtenderName,
+                    visitId: job.data.visitId,
+                    loyaltyPoints: job.data.loyaltyPoints,
+                });
+
+                if (result.success) {
+                    await doc.ref.update({
+                        status: 'completed',
+                        completedAt: Date.now(),
+                        updatedAt: Date.now(),
+                    });
+                    results.push({
+                        jobId,
+                        type: 'returning_welcome_email',
+                        status: 'completed',
+                        email: job.data.email,
+                    });
+                } else {
+                    throw new Error(result.error || 'Failed to send');
+                }
+            } catch (error: unknown) {
+                const err = error as Error;
+                await doc.ref.update({
+                    status: 'failed',
+                    error: err.message,
+                    failedAt: Date.now(),
+                    updatedAt: Date.now(),
+                    attempts: (job.attempts || 0) + 1,
+                });
+                results.push({
+                    jobId,
+                    type: 'returning_welcome_email',
+                    status: 'failed',
                     error: err.message,
                 });
             }

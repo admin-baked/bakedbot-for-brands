@@ -9,6 +9,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { logger } from '@/lib/logger';
 import { findPricingPlan } from '@/lib/config/pricing';
 import { grantManualAIStudioCredits } from '@/server/services/ai-studio-billing-service';
+import { provisionAIStudioForOrg } from '@/lib/ai-studio/entitlements';
 import {
   MCBA_SIGNUP_CAMPAIGN,
   MCBA_SIGNUP_GRANT_KEY,
@@ -280,6 +281,16 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
         }
 
         await orgRef.update(orgUpdate);
+      }
+
+      // --- PROVISION AI STUDIO FOR NEW ORG ---
+      if (orgId && !orgSnap.exists) {
+        try {
+          await provisionAIStudioForOrg(orgId, 'signal');
+          logger.info('[Onboarding] AI Studio provisioned for new org', { orgId });
+        } catch (provisionError) {
+          logger.error('[Onboarding] AI Studio provisioning failed', { orgId, error: provisionError });
+        }
       }
 
       // --- HANDLE SELECTED COMPETITORS ---

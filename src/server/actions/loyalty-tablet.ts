@@ -690,6 +690,32 @@ export async function captureTabletLead(params: {
             }
         }
 
+        // Enroll in weekly campaign list if email consent given (for loyalty tablet)
+        if (emailConsent && email) {
+            try {
+                const db = getAdminFirestore();
+                const existingSubscriber = await db
+                    .collection('weekly_campaign_subscribers')
+                    .where('email', '==', email)
+                    .where('orgId', '==', orgId)
+                    .limit(1)
+                    .get();
+
+                if (existingSubscriber.empty) {
+                    await db.collection('weekly_campaign_subscribers').add({
+                        orgId,
+                        customerId: result.customerId ?? orgId + '_' + (phone ?? '').slice(-4),
+                        email,
+                        firstName,
+                        enrolledAt: new Date(),
+                        lastSentAt: null,
+                        status: 'active',
+                        source: 'loyalty_tablet_checkin',
+                    });
+                }
+            } catch { /* non-critical */ }
+        }
+
         let queuePosition: number | undefined;
         if (result.success && result.visitId) {
             try {

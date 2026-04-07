@@ -238,31 +238,36 @@ export async function getRecentCheckinVisits(orgId: string, limit = 25): Promise
         const snap = await db.collection('checkin_visits')
             .where('orgId', '==', orgId)
             .orderBy('visitedAt', 'desc')
-            .limit(limit)
+            .limit(limit * 2) // Fetch more to filter out demos
             .get();
 
-        const visits: CheckinVisitRow[] = snap.docs.map(doc => {
-            const d = doc.data();
-            const phone = typeof d.phone === 'string' ? d.phone : '';
-            const phoneLast4 = (typeof d.phoneLast4 === 'string' && d.phoneLast4)
-                || getPhoneLast4(phone)
-                || '????';
-            const visitedAt = firestoreTimestampToDate(d.visitedAt)?.toISOString() ?? new Date().toISOString();
-            return {
-                visitId: doc.id,
-                firstName: d.firstName ?? 'Unknown',
-                phoneLast4,
-                visitedAt,
-                source: d.source ?? 'unknown',
-                isReturning: d.isReturning ?? false,
-                mood: d.mood ?? null,
-                smsConsent: Boolean(d.smsConsent),
-                emailConsent: Boolean(d.emailConsent),
-                reviewStatus: d.reviewSequence?.status ?? 'unknown',
-                customerId: typeof d.customerId === 'string' ? d.customerId : null,
-                cartProductIds: Array.isArray(d.cartProductIds) ? d.cartProductIds : [],
-            };
-        });
+        // Filter out demo customer visits (phone ending in 312-684-0522)
+        const DEMO_PHONE_LAST4 = '0522';
+        const visits: CheckinVisitRow[] = snap.docs
+            .map(doc => {
+                const d = doc.data();
+                const phone = typeof d.phone === 'string' ? d.phone : '';
+                const phoneLast4 = (typeof d.phoneLast4 === 'string' && d.phoneLast4)
+                    || getPhoneLast4(phone)
+                    || '????';
+                const visitedAt = firestoreTimestampToDate(d.visitedAt)?.toISOString() ?? new Date().toISOString();
+                return {
+                    visitId: doc.id,
+                    firstName: d.firstName ?? 'Unknown',
+                    phoneLast4,
+                    visitedAt,
+                    source: d.source ?? 'unknown',
+                    isReturning: d.isReturning ?? false,
+                    mood: d.mood ?? null,
+                    smsConsent: Boolean(d.smsConsent),
+                    emailConsent: Boolean(d.emailConsent),
+                    reviewStatus: d.reviewSequence?.status ?? 'unknown',
+                    customerId: typeof d.customerId === 'string' ? d.customerId : null,
+                    cartProductIds: Array.isArray(d.cartProductIds) ? d.cartProductIds : [],
+                };
+            })
+            .filter(visit => visit.phoneLast4 !== DEMO_PHONE_LAST4)
+            .slice(0, limit);
 
         return { success: true, visits };
     } catch (error) {

@@ -1068,6 +1068,40 @@ export async function captureVisitorCheckin(
             ageVerified: true,
         });
 
+        // Enroll in weekly campaign list if email consent given
+        if (emailConsent && normalizedEmail) {
+            try {
+                const existingSubscriber = await db
+                    .collection('weekly_campaign_subscribers')
+                    .where('email', '==', normalizedEmail)
+                    .where('orgId', '==', validated.orgId)
+                    .limit(1)
+                    .get();
+
+                if (existingSubscriber.empty) {
+                    await db.collection('weekly_campaign_subscribers').add({
+                        orgId: validated.orgId,
+                        customerId: validated.orgId + '_' + normalizedPhone.slice(-4),
+                        email: normalizedEmail,
+                        firstName: validated.firstName,
+                        enrolledAt: now,
+                        lastSentAt: null,
+                        status: 'active',
+                        source: validated.source,
+                    });
+                    logger.info('[VisitorCheckin] Enrolled in weekly campaign', {
+                        orgId: validated.orgId,
+                        email: normalizedEmail,
+                    });
+                }
+            } catch (err) {
+                logger.warn('[VisitorCheckin] Failed to enroll in weekly campaign', {
+                    orgId: validated.orgId,
+                    error: err instanceof Error ? err.message : String(err),
+                });
+            }
+        }
+
         if (!leadResult.success) {
             return {
                 success: false,
@@ -1312,6 +1346,44 @@ export async function captureVisitorCheckin(
             favoriteCategories,
             offerType: validated.offerType ?? null,
         });
+
+        // Queue returning customer welcome-back email (2 hours later)
+        // Only for returning customers with email consent
+        if (isReturningCustomer && resolvedEmail && emailConsent) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Check if we already sent a welcome-back email today (dedup)
+            try {
+                const db = getAdminFirestore();
+                const existingEmailToday = await db
+                    .collection('customer_communications')
+                    .where('customerId', '==', customerId)
+                    .where('type', '==', 'returning_welcome_email')
+                    .where('sentAt', '>=', today)
+                    .limit(1)
+                    .get();
+
+                if (existingEmailToday.empty) {
+                    const { queueReturningWelcomeEmail } = await import('@/server/services/mrs-parker-returning');
+                    void queueReturningWelcomeEmail({
+                        customerId,
+                        email: resolvedEmail,
+                        firstName: resolvedName ?? 'there',
+                        orgId: validated.orgId,
+                        mood: validated.mood ?? undefined,
+                        visitId,
+                        loyaltyPoints,
+                    });
+                }
+            } catch (err) {
+                logger.warn('[VisitorCheckin] Failed to queue returning welcome email', {
+                    orgId: validated.orgId,
+                    customerId,
+                    error: err instanceof Error ? err.message : String(err),
+                });
+            }
+        }
 
         // TODO(blackleaf-sms): Post-visit re-engagement SMS hook.
         // 24h after this visit, send a review request or "How was your visit?" text.

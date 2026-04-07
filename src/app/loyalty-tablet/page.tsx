@@ -297,6 +297,15 @@ export default function LoyaltyTabletPage() {
             setReviews(response.reviews);
             setReviewStats({ avgRating: response.avgRating, totalCount: response.totalCount });
         });
+        // Fetch active budtenders on mount
+        void fetch(`/api/budtender-shift?orgId=${orgId}&action=active`)
+            .then(res => res.json())
+            .then(data => {
+                if (mounted && data.success && data.budtenders?.length > 0) {
+                    setBudtenderName(data.budtenders[0].firstName);
+                }
+            })
+            .catch(() => { /* silently ignore */ });
         return () => { mounted = false; };
     }, [orgId]);
 
@@ -1604,6 +1613,44 @@ export default function LoyaltyTabletPage() {
                                 <p className="font-bold text-gray-900">
                                     {cartCount} item{cartCount !== 1 ? 's' : ''} selected — show your budtender!
                                 </p>
+                            </div>
+                        )}
+
+                        {/* Internal review prompt */}
+                        {customerId && (
+                            <div className="w-full max-w-sm rounded-[24px] border p-5" style={panelStyle}>
+                                <p className="text-sm font-semibold mb-3" style={{ color: brandTheme.colors.primary }}>
+                                    How was your visit today?
+                                </p>
+                                <div className="flex justify-center gap-2 mb-3">
+                                    {[1, 2, 3, 4, 5].map(star => (
+                                        <button
+                                            key={star}
+                                            onClick={async () => {
+                                                try {
+                                                    await fetch('/api/internal-review', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({
+                                                            orgId,
+                                                            customerId,
+                                                            visitId: result?.queuePosition ? `visit_${Date.now()}` : undefined,
+                                                            rating: star,
+                                                            mood: selectedMood ?? undefined,
+                                                        }),
+                                                    });
+                                                } catch { /* ignore */ }
+                                            }}
+                                            className="transition-transform hover:scale-110 active:scale-95"
+                                        >
+                                            <Star
+                                                className="h-8 w-8 transition-colors"
+                                                style={{ color: star <= 3 ? '#ef4444' : star === 4 ? '#f59e0b' : '#22c55e' }}
+                                            />
+                                        </button>
+                                    ))}
+                                </div>
+                                <p className="text-xs" style={{ color: faintTextColor }}>Tap to rate (helps us improve recommendations)</p>
                             </div>
                         )}
 

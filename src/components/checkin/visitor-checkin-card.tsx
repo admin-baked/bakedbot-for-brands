@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { logger } from '@/lib/logger';
 import {
     captureVisitorCheckin,
     findVisitorCheckinCandidates,
@@ -94,6 +95,7 @@ export function VisitorCheckinCard({
     const [phone, setPhone] = useState('');
     const [phoneLast4, setPhoneLast4] = useState('');
     const [idChecked, setIdChecked] = useState(false);
+    const [smsConsent, setSmsConsent] = useState(false);
     const [context, setContext] = useState<VisitorCheckinContextResult>(EMPTY_CONTEXT);
     const [lookupCandidates, setLookupCandidates] = useState<VisitorCheckinLookupCandidate[]>([]);
     const [selectedCandidate, setSelectedCandidate] = useState<VisitorCheckinLookupCandidateRef | null>(null);
@@ -295,7 +297,7 @@ export function VisitorCheckinCard({
                 phone: usingStaffLookup ? undefined : phone,
                 email: finalEmail,
                 emailConsent: Boolean(finalEmail) && (Boolean(trimmedEmail) || canReuseSavedEmail),
-                smsConsent: true,
+                smsConsent: smsConsent,
                 source: 'brand_rewards_checkin',
                 ageVerifiedMethod: 'staff_attested_public_flow',
                 mood: selectedMood || undefined,
@@ -320,7 +322,21 @@ export function VisitorCheckinCard({
                 offerType,
             });
             setStep('success');
+            // Reset form fields for next use
+            setFirstName('');
+            setPhone('');
+            setPhoneLast4('');
+            setIdChecked(false);
+            setSmsConsent(false);
+            setEmail('');
+            setSelectedMood(null);
+            setSelectedProductIds([]);
+            setBundleAdded(false);
+            setFavoriteCategories([]);
+            setLookupCandidates([]);
+            setSelectedCandidate(null);
         } catch (_error) {
+            logger.warn('[VisitorCheckinCard] Submit failed', { error: _error instanceof Error ? _error.message : String(_error) });
             setError('Check-in is temporarily unavailable. Staff can still let you in.');
         } finally {
             setSubmitting(false);
@@ -537,6 +553,22 @@ export function VisitorCheckinCard({
                                         className="mt-0.5 h-4 w-4"
                                     />
                                     <span>A Thrive staff member already checked my ID today</span>
+                                </label>
+                            </div>
+
+                            {/* Explicit SMS consent checkbox - TCPA compliance */}
+                            <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
+                                <label className="flex items-start gap-3 text-sm">
+                                    <input
+                                        type="checkbox"
+                                        checked={smsConsent}
+                                        onChange={(event) => {
+                                            resetMessages();
+                                            setSmsConsent(event.target.checked);
+                                        }}
+                                        className="mt-0.5 h-4 w-4"
+                                    />
+                                    <span>Yes, text me weekly deals & updates (max 1 msg/week). Reply STOP to opt out.</span>
                                 </label>
                             </div>
 

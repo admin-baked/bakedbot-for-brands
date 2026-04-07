@@ -20,6 +20,7 @@ import { useDispensaryId } from '@/hooks/use-dispensary-id';
 import { CheckInStatsPanel } from '@/components/dashboard/checkin/checkin-stats-panel';
 import { CheckInVisitFeed } from '@/components/dashboard/checkin/checkin-visit-feed';
 import { CheckInSettingsPanel } from '@/components/dashboard/checkin/checkin-settings-panel';
+import { BudtenderClockInCard } from '@/components/checkin/budtender-clock-in';
 import {
     DEFAULT_CHECKIN_CONFIG,
     type CheckinConfig,
@@ -141,8 +142,12 @@ export default function CheckInManagementPage() {
 
             {/* Two-column layout on large screens */}
             <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-                {/* Left: stats + feed */}
+                {/* Left: budtender card + stats + feed */}
                 <div className="space-y-6">
+                    {dispensaryId && (
+                        <BudtenderClockInCard orgId={dispensaryId} />
+                    )}
+
                     {stats ? (
                         <CheckInStatsPanel
                             stats={stats}
