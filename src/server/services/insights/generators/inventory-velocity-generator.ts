@@ -243,6 +243,7 @@ export class InventoryVelocityGenerator extends InsightGeneratorBase {
 
     return this.createInsight({
       title: 'TOP SELLER THIS WEEK',
+      tooltipText: 'Based on units sold in last 7 days vs previous 7 days. Trend shows week-over-week change.',
       headline: `${product.productName} ${trendValue}`,
       subtext: `${product.salesLast7Days} units sold | +${product.salesLast7Days - product.salesPrevious7Days} vs last week${marginNote}`,
       value: product.salesLast7Days,
@@ -270,6 +271,7 @@ export class InventoryVelocityGenerator extends InsightGeneratorBase {
 
     return this.createInsight({
       title: 'MARGIN DRAIN ALERT',
+      tooltipText: 'Products in top 10 sellers with gross margin under 15%. High volume but low profitability.',
       headline: `${products.length} top seller${products.length > 1 ? 's' : ''} at thin margins (<15%)`,
       subtext: listStr,
       value: products.length,
@@ -315,6 +317,7 @@ export class InventoryVelocityGenerator extends InsightGeneratorBase {
 
     return this.createInsight({
       title: 'EXPIRING SOON',
+      tooltipText: 'Products approaching expiration date. High urgency = expiring in <14 days. Calculated from batch shelf dates.',
       headline,
       subtext,
       value: products.length,
