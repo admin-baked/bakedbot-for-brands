@@ -223,6 +223,7 @@ export class RegulatoryInsightsGenerator extends InsightGeneratorBase {
   ): InsightCard {
     return this.createInsight({
       title: 'REGULATORY CHANGE',
+      tooltipText: 'Monitors regulatory changes in your jurisdiction. Content generated from Big Worm intelligence.',
       headline: `${jurisdiction} updated ${change.jurisdiction} regulations`,
       subtext:
         change.proposedModifications ||
@@ -254,6 +255,7 @@ export class RegulatoryInsightsGenerator extends InsightGeneratorBase {
 
     return this.createInsight({
       title: 'COMPLIANCE DEADLINE',
+      tooltipText: 'Upcoming compliance deadlines from the compliance calendar. Critical = due within 7 days.',
       headline: `${deadline.title} due in ${daysUntilDue} days`,
       subtext: `Deadline: ${dateStr} | Requirement: ${deadline.requirement}`,
       value: daysUntilDue,

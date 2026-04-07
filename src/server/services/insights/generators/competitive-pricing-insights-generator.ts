@@ -205,6 +205,7 @@ export class CompetitivePricingInsightsGenerator extends InsightGeneratorBase {
 
     return this.createInsight({
       title: 'COMPETITOR PRICE DROP',
+      tooltipText: 'Detects when competitors drop prices by >30%. Based on competitive intelligence scans of competitor menus.',
       headline: `${competitorName}: ${dropPercentage}% price cut on ${topDrop.productName}`,
       subtext: `${drops.length} product(s) dropped prices | Avg: -${avgDropPercentage}% | $${topDrop.previousPrice} → $${topDrop.currentPrice}`,
       value: dropPercentage,

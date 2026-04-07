@@ -103,6 +103,7 @@ export class CustomerInsightsGenerator extends InsightGeneratorBase {
 
     return this.createInsight({
       title: 'CHURN RISK ALERT',
+      tooltipText: 'Customers who have not ordered in 60+ days, sorted by lifetime value. Top 10 shown by LTV.',
       headline: `${atRiskCustomers.length} customers at risk`,
       subtext:
         totalLTVAtRisk > 0
