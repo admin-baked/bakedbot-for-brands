@@ -797,7 +797,9 @@ export async function runElroy(request: ElroyRequest): Promise<ElroyResponse> {
             switch (tier) {
                 case 'glm': {
                     if (!isGLMConfigured()) continue;
-                    const glmModel = hasImages ? GLM_MODELS.VISION : GLM_MODELS.STRATEGIC;
+                    // Elroy delegates most work to Opencode — STANDARD (GLM-4.7, $0.60/$2.20)
+                    // is sufficient. STRATEGIC (GLM-5, $1.00/$3.20) reserved for Linus.
+                    const glmModel = hasImages ? GLM_MODELS.VISION : GLM_MODELS.STANDARD;
                     logger.info(`[Elroy] Trying GLM ${glmModel}`);
                     const glmResult = await executeGLMWithTools(
                         fullPrompt, ELROY_TOOLS, elroyToolExecutor,
