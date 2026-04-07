@@ -147,8 +147,10 @@ Use `/shipit` to run this as a single command.
 ## Known Issues
 
 - **Stale background task notifications:** Dismiss immediately without processing. They are artifacts from previous sessions and not actionable.
-- **tsc OOM:** Full type-check crashes node at ~4GB heap on this machine. Always use targeted checks or `--max-old-space-size=8192`. Exit 0 = passing even if node crashes after.
-- **Firebase stuck builds:** Build RUNNING > 25 min with `Duration: unknown` = infra timeout, not a code issue. Cancel + empty commit to re-trigger.
+- **tsc OOM:** Full type-check crashes node at ~4GB heap. Always use targeted checks or `--max-old-space-size=8192`.
+- **Firebase stuck builds:** Build RUNNING > 25 min with `Duration: unknown` = infra timeout. Cancel + empty commit to re-trigger.
+- **Secret versioning:** App Hosting requires numeric versions (`SECRET@5`). Using `@latest` will fail as it snapshots the version at deploy time.
+- **Slack bridge identity:** Requests are authenticated via HMAC and run as `SLACK_SYSTEM_USER` (super_user). See `.agent/refs/slack-operations.md`.
 
 ---
 
@@ -333,6 +335,8 @@ Load from `.agent/refs/` on-demand (conserve context):
 |-------|------|
 | **Start here** | `.agent/prime.md` |
 | Agents & Architecture | `refs/agents.md` |
+| Slack Operations | `refs/slack-operations.md` |
+| Infrastructure & Gotchas | `refs/infrastructure-gotchas.md` |
 | Memory/Letta | `refs/bakedbot-intelligence.md` |
 | Browser Automation | `refs/autonomous-browsing.md` |
 | Auth & Sessions | `refs/authentication.md` |

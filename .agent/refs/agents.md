@@ -25,8 +25,8 @@ BakedBot operates with a multi-agent architecture where specialized agents handl
 │  │Budtender│ │Marketer │ │ Analyst │ │ Lookout │ │  Mike   │  │
 │  └─────────┘ └─────────┘ └─────────┘ └─────────┘ └─────────┘  │
 │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐  │
-│  │   Mrs   │ │  Deebo  │ │ Day Day │ │ Felisha │ │BigWorm  │  │
-│  │ Parker  │ │Enforcer │ │ Growth  │ │   Ops   │ │Research │  │
+│  │ Parker  │ │  Deebo  │ │ Day Day │ │  Elroy  │ │BigWorm  │  │
+│  │ Hostess │ │Enforcer │ │ Growth  │ │Store Ops│ │Research │  │
 │  └─────────┘ └─────────┘ └─────────┘ └─────────┘ └─────────┘  │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -365,87 +365,96 @@ POST /api/linus/fix
 
 ---
 
+### Uncle Elroy - Store Operations Advisor
+**File**: `src/server/agents/elroy.ts`
+
+| Attribute | Value |
+|-----------|-------|
+| **Role** | Store Operations Advisor |
+| **Domain** | Dispensary operations, inventory, CRM, competitor intel |
+| **Org Focus** | `org_thrive_syracuse` (Hardwired) |
+| **Slack Channel** | `#thrive-syracuse-pilot` |
+| **Persona** | Warm, street-smart, helpful, direct |
+
+**Capabilities:**
+- **At-Risk Customer Nudges**: Identifies 14/30-day churn-risk customers in Alleaves.
+- **Competitor Price Matching**: Live Weedmaps/AIQ scraping via Ezal/Firecrawl.
+- **Top Product Alerts**: Weekly revenue and transaction summaries.
+- **Inventory Monitoring**: Automated low-stock alerts.
+- **Technical Delegation**: Uses `ask_opencode` (SP13) for technical analysis.
+
+---
+
 ### Felisha - Ops
 **File**: `src/server/agents/felisha.ts`
 
 | Attribute | Value |
 |-----------|-------|
 | **Role** | Operations Coordinator |
-| **Domain** | Scheduling, triage |
+| **Domain** | Scheduling, triage, meeting admin |
 | **Access** | Brand users |
 
 **Integrations:**
 | Service | Purpose |
 |---------|---------|
 | Cal.com | Meeting scheduling |
+| Deepgram | Meeting transcription & summarization |
 
 ---
 
-### Big Worm - Researcher
-**File**: `src/server/agents/bigworm.ts`
+### Opencode (SP13) - AI Coding Agent
+**Platform**: Cloud Run (Container)
+**File**: `docker/opencode/server.mjs`
 
 | Attribute | Value |
 |-----------|-------|
-| **Role** | Deep Researcher |
-| **Domain** | Research, intel gathering |
-| **Access** | Brand users |
+| **Role** | Technical Worker Bee |
+| **Domain** | Code gen, data analysis, terminal tasks |
+| **Cost** | $0 (Zen models) |
 
-**Tools:**
-| Tool | Purpose |
-|------|---------|
-| `archival_insert` | Knowledge graph storage |
-| `archival_search` | Semantic memory search |
-| `research_deep` | Deep web research |
+**Capabilities:**
+- **Sub-Agent for Squad**: Called by Linus or Elroy for high-effort coding tasks.
+- **Repo Awareness**: Mounted with the full codebase at `/workspace/bakedbot-for-brands`.
+- **Free Execution**: Uses Gemini Flush/Zen models to avoid Anthropic API costs.
 
 ---
 
 ## "Always On" Architecture
 
-Agents operate on a **Pulse** (Proactive) and **Interrupt** (Reactive) model.
+### Opencode (SP13) - AI Coding Agent
+**Platform**: Cloud Run (Container)
+**File**: `docker/opencode/server.mjs`
 
-### The Pulse (Proactive)
-- **Mechanism**: GitHub Actions (`.github/workflows/pulse.yaml`) triggers `/api/cron/tick` every 10 minutes
-- **Active Protocols**:
-  | Agent | Protocol | Frequency |
-  |-------|----------|-----------|
-  | Linus | Zero Bug Tolerance | Hourly |
-  | Leo | Operations Heartbeat | Hourly |
-  | Jack | Revenue Pulse | Daily |
-  | Glenda | Brand Watch | Daily |
+| Attribute | Value |
+|-----------|-------|
+| **Role** | Technical Worker Bee |
+| **Domain** | Code gen, data analysis, terminal tasks |
+| **Cost** | $0 (Zen models) |
 
-### The Interrupt (Reactive)
-- **Mechanism**: Webhook Receiver (`/api/webhooks/error-report`)
-- **Trigger**: Critical errors or external alerts
-- **Action**: Wakes up Linus immediately with `source: 'interrupt'`
+**Capabilities:**
+- **Sub-Agent for Squad**: Called by Linus or Elroy for high-effort coding tasks.
+- **Repo Awareness**: Mounted with the full codebase at `/workspace/bakedbot-for-brands`.
+- **Free Execution**: Uses Gemini Flush/Zen models to avoid Anthropic API costs.
 
 ---
 
-## Shared Tools Architecture
+## 🎭 Slack Interaction Model
 
-All agents have access to standardized tools via the shared tools system:
+Agents are personified in Slack as dedicated bots with distinct personalities.
 
-| File | Purpose |
-|------|---------|
-| `src/server/agents/shared-tools.ts` | Tool definitions (Zod schemas) |
-| `src/server/agents/tool-executor.ts` | Bridges definitions to Genkit |
-| `src/server/tools/context-tools.ts` | Context OS implementations |
-| `src/server/tools/letta-memory.ts` | Letta Memory implementations |
-| `src/server/tools/intuition-tools.ts` | Intuition OS implementations |
+| Agent | Slack App Name | Channel/Context | Auth Tier |
+| :--- | :--- | :--- | :--- |
+| **Linus** | BakedBot CTO | `#linus-cto` & DMs | `super_user` |
+| **Elroy** | Uncle Elroy | `#thrive-syracuse-pilot` | `super_user` (Org-Scoped) |
+| **Pops** | BakedBot Analyst | Tagged in `#marketing` | `brand_user` |
 
-### Tool Categories
-| Category | Tools | Description |
-|----------|-------|-------------|
-| **Context OS** | `contextLogDecision`, `contextAskWhy`, `contextGetAgentHistory` | Decision lineage |
-| **Letta Memory** | `lettaSaveFact`, `lettaAsk`, `lettaSearchMemory`, `lettaMessageAgent` | Persistent memory |
-| **Intuition OS** | `intuitionEvaluateHeuristics`, `intuitionGetConfidence`, `intuitionLogOutcome` | System 1/2 routing |
+### Security & Approvals
+Requests coming from Slack are verified via HMAC and run using `SLACK_SYSTEM_USER`. High-risk tools (deploy, git, shell) require **Human Approval** via Slack Interactive Blocks.
 
-### Usage in Agents
-```typescript
-import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs } from './shared-tools';
+---
 
-// In act() method:
-const toolsDef = [...agentSpecificTools, ...contextOsToolDefs, ...lettaToolDefs, ...intuitionOsToolDefs];
-```
+## 🧠 Memory & History
+"Hive Mind" memory (Letta) is shared across the Executive Boardroom. Support agents (Elroy) use their own organization-scoped Letta agents to maintain store-specific context.
 
 ---
 

@@ -721,6 +721,8 @@ Only load these when needed to conserve context:
 | When Working On... | Read This First |
 |--------------------|-----------------|
 | Agent logic | `refs/agents/README.md` |
+| Slack Operations | `refs/slack-operations.md` |
+| Infra & Gotchas | `refs/infrastructure-gotchas.md` |
 | Memory/Letta | `refs/bakedbot-intelligence.md` |
 | Browser automation | `refs/autonomous-browsing.md` |
 | Auth/sessions | `refs/authentication.md` |

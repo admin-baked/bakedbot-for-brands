@@ -71,6 +71,7 @@ export class MembershipService {
                     member: existingMember!, 
                     membership: mship, 
                     pass: passMatches.empty ? null : passMatches.docs[0].data() as Pass,
+                    welcomeReward: null,
                     isAlreadyEnrolled: true 
                 };
             }
@@ -185,5 +186,4 @@ export class MembershipService {
         logger.info(`[MembershipService] Member enrolled: ${memberId} in Org: ${params.organizationId}`);
         return { member, membership, pass, welcomeReward, isAlreadyEnrolled: false };
     }
-}
 }
