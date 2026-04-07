@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; Zod 4.3.6 (Remotion/AWS compatibility) + v3 legacy bridge; Loyalty Tablet optimized ➔ deploy.
-**Recent work (2026-04-06):** Zod 4.3.6 Migration completed (stabilized for Remotion/AWS) with `zod/v3` bridge for legacy tools (`tmp/bridge-zod.js`); Loyalty Tablet optimized with Google Cloud TTS (Neural2) and Brave mic permission handling.
+**Current Status:** 🟢 `main` green; Firebase App Hosting zod/v3 shim fixed; deploy success.
+**Recent work (2026-04-07):** Fixed App Hosting builds (PRs #72-#74) — patched zod/package.json exports to add `./v3` subpath; avoid overwriting read-only `z` property.
 
 ## ðŸ§­ CANONICAL ENGINEERING PRINCIPLES (MANDATORY)
 
@@ -214,6 +214,10 @@ After every coding session, Codex and Gemini **must** update:
 | SP11 | Cost Analyzer | `npm run audit:costs` | Identify expensive Firestore queries |
 | SP12 | Content Freshness | `npm run audit:content-freshness` | Score all 84 customer-facing pages for staleness |
 | SP13 | Opencode Agent | `npm run opencode:task -- --prompt “...”` | Delegate coding task to Cloud Run Opencode (free Zen models) |
+
+ Slack & Data Sources
+- Slack: Slack Conversations History API ( Thrive Slack channel C0AE0CE4DRQ )
+- Thrive: Thrive Ops data surfaced via THRIVE_OPS_SUMMARY env var (future API integration)
 
 **Quick-fire guide — when you’re stuck:**
 - Build broken? → **SP6** `npm run fix:build --apply` then `npm run check:types`
