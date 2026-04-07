@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; Firebase App Hosting zod/v3 shim fixed (PRs #72-#74); deploy success | **Last update:** 2026-04-07 (App Hosting zod/v3 Build Fix)
+**Current Status:** 🟢 `main` green; Firebase App Hosting zod/v3 shim fixed (PRs #72-#74); deploy success | **Last update:** 2026-04-07 (Customer Mix Fix + Insight Card Tooltips)
 
 ---
 
