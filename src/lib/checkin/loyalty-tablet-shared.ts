@@ -42,6 +42,7 @@ export interface MoodRecommendationsResult {
     success: boolean;
     products?: TabletProduct[];
     bundle?: TabletBundle;
+    videoUrl?: string; // Remotion-on-AWS generated video
     error?: string;
 }
 

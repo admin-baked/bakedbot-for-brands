@@ -22,6 +22,8 @@ import { searchMenuProducts } from '@/server/services/smokey-menu-search';
 import { getCustomerHistory } from '@/server/tools/crm-tools';
 import { captureVisitorCheckin } from './visitor-checkin';
 import { getAdminFirestore } from '@/firebase/admin';
+import { generateRemotionVideo } from '@/ai/generators/remotion-video';
+import { getOrgProfileWithFallback } from '../services/org-profile';
 
 // ============================================================
 // Inventory cache — avoids repeat Firestore reads within a warm instance
@@ -511,11 +513,41 @@ export async function getMoodRecommendations(
             return { success: false, error: 'No products available' };
         }
 
+        // 4. Generate a co-branded Remotion video if a bundle exists
+        let videoUrl: string | undefined;
+        if (recommendationSet.bundle) {
+            try {
+                const profile = await getOrgProfileWithFallback(orgId);
+                const brandName = profile?.brand.name || 'Thrive';
+                const logoUrl = profile?.brand.visualIdentity?.logo;
+                const primaryColor = profile?.brand.visualIdentity?.colors?.primary?.hex;
+
+                const videoResult = await generateRemotionVideo({
+                    prompt: `Mood recommendation for ${mood.label}`,
+                    brandName,
+                    logoUrl,
+                    primaryColor,
+                    tagline: recommendationSet.bundle.tagline,
+                    headline: recommendationSet.bundle.name,
+                    productImageUrl: recommendationSet.bundle.products[0]?.imageUrl,
+                    aspectRatio: '16:9',
+                    compositionId: 'BrandedSlideshow-16x9',
+                });
+                videoUrl = videoResult.videoUrl;
+            } catch (err) {
+                logger.warn('[LoyaltyTablet] Video generation failed (non-fatal)', {
+                    orgId,
+                    error: err instanceof Error ? err.message : String(err),
+                });
+            }
+        }
+
         logger.info('[LoyaltyTablet] Mood recommendations generated', {
             orgId,
             moodId,
             productCount: recommendationSet.products.length,
             bundleProductCount: recommendationSet.bundle?.products.length ?? 0,
+            hasVideo: !!videoUrl,
             inventoryCount: products.length,
             strategy: 'deterministic_menu_search',
         });
@@ -523,6 +555,7 @@ export async function getMoodRecommendations(
         return {
             success: true,
             ...recommendationSet,
+            videoUrl,
         };
     } catch (error) {
         logger.error('[LoyaltyTablet] getMoodRecommendations failed', { error });
@@ -628,11 +661,9 @@ export async function searchTabletRecommendations(
     }
 }
 
-/**
- * Capture lead from loyalty tablet (in-store kiosk).
- * Creates/updates email_leads + customer profile.
- * Stores mood, cart selections, and schedules review sequence.
- */
+import { MembershipService } from '../services/loyalty/membership-service';
+import { VisitSessionService } from '../services/loyalty/visit-session-service';
+
 export async function captureTabletLead(params: {
     orgId: string;
     firstName: string;
@@ -652,15 +683,6 @@ export async function captureTabletLead(params: {
         const validated = captureSchema.parse(params);
         const { orgId, firstName, email, phone, emailConsent, smsConsent, mood, cartProductIds, bundleAdded, birthday, visitPreferences, offerProductId } = validated;
 
-        // Known returning customer from quick lookup — resolve phone via lookupCandidate
-        const lookupCandidate = !phone && params.customerId
-            ? { kind: 'customer' as const, id: params.customerId }
-            : undefined;
-
-        if (!phone && !lookupCandidate) {
-            return { success: false, isNewLead: false, error: 'Phone required' };
-        }
-
         const result = await captureVisitorCheckin({
             orgId,
             firstName,
@@ -673,92 +695,71 @@ export async function captureTabletLead(params: {
             mood,
             cartProductIds,
             bundleAdded,
-            lookupCandidate,
+            lookupCandidate: params.customerId ? { kind: 'customer', id: params.customerId } : undefined,
         });
 
-        // Persist personalization dossier fields to the customer document
-        if (result.customerId && (birthday || visitPreferences?.length || offerProductId)) {
+        if (!result.success || !result.customerId) {
+            return { success: false, isNewLead: false, error: result.error || 'Failed to capture check-in' };
+        }
+
+        // 1. Enrollment Flow (if they have a phone and aren't already a "Member" in the new system)
+        if (phone || result.customerId) {
             try {
-                const db = getAdminFirestore();
-                const update: Record<string, unknown> = {};
-                if (birthday) update.birthday = birthday;
-                if (visitPreferences?.length) update.visitPreferences = visitPreferences;
-                if (offerProductId) update.lastClaimedOffer = { productId: offerProductId, claimedAt: new Date().toISOString() };
-                await db.collection('customers').doc(result.customerId).set(update, { merge: true });
-            } catch {
-                // Non-critical — dossier save failure doesn't block checkin
+                await MembershipService.enroll({
+                    organizationId: orgId,
+                    firstName,
+                    phone: phone || '', 
+                    email: email || undefined,
+                    smsConsent,
+                    emailConsent,
+                    source: "tablet",
+                    existingCustomerId: result.customerId
+                });
+            } catch (enrollErr) {
+                logger.warn('[LoyaltyTablet] Auto-enrollment failed (soft)', { enrollErr });
             }
         }
 
-        // Enroll in weekly campaign list if email consent given (for loyalty tablet)
-        if (emailConsent && email) {
-            try {
-                const db = getAdminFirestore();
-                const existingSubscriber = await db
-                    .collection('weekly_campaign_subscribers')
-                    .where('email', '==', email)
-                    .where('orgId', '==', orgId)
-                    .limit(1)
-                    .get();
-
-                if (existingSubscriber.empty) {
-                    await db.collection('weekly_campaign_subscribers').add({
-                        orgId,
-                        customerId: result.customerId ?? orgId + '_' + (phone ?? '').slice(-4),
-                        email,
-                        firstName,
-                        enrolledAt: new Date(),
-                        lastSentAt: null,
-                        status: 'active',
-                        source: 'loyalty_tablet_checkin',
-                    });
-                }
-            } catch { /* non-critical */ }
-        }
-
+        // 2. Open Visit Session for Staff Queue
         let queuePosition: number | undefined;
-        if (result.success && result.visitId) {
-            try {
-                const db = getAdminFirestore();
-                const todayMidnight = new Date();
-                todayMidnight.setHours(0, 0, 0, 0);
-                const snap = await db.collection('checkin_visits')
-                    .where('orgId', '==', orgId)
-                    .where('visitedAt', '>=', todayMidnight)
-                    .count()
-                    .get();
-                // Position = total today - 1 (exclude self) — customers ahead
-                queuePosition = Math.max(0, (snap.data().count ?? 1) - 1);
-            } catch {
-                // Non-critical — omit rather than fail the checkin
-            }
-        }
+        try {
+            const mshipMatches = await getAdminFirestore().collection('memberships')
+                .where('memberId', '==', result.customerId)
+                .limit(1)
+                .get();
+            
+            const membershipId = !mshipMatches.empty ? mshipMatches.docs[0].id : `legacy_${result.customerId}`;
+            
+            await VisitSessionService.createSession({
+                organizationId: orgId,
+                storeId: orgId,
+                memberId: result.customerId,
+                membershipId: membershipId,
+                source: "tablet",
+                deviceId: "tablet_kiosk"
+            });
 
-        // TODO(blackleaf-sms): Once Blackleaf SMS is live, send a check-in confirmation here:
-        // "You're checked in at Thrive! Your budtender has your picks ready."
-        // Fire-and-forget to phone number (result.phone or params.phone).
-        // Only send when result.success && params.smsConsent.
+            // Calculate queue position via service
+            queuePosition = await VisitSessionService.getQueuePosition(orgId, orgId);
+            
+        } catch (sessionErr) {
+            logger.warn('[LoyaltyTablet] Visit session creation failed (soft)', { sessionErr });
+        }
 
         return {
-            success: result.success,
+            success: true,
             isNewLead: result.isNewLead,
             customerId: result.customerId,
             loyaltyPoints: result.loyaltyPoints,
             visitId: result.visitId,
             queuePosition,
-            error: result.error,
         };
     } catch (error) {
         if (error instanceof z.ZodError) {
             return { success: false, isNewLead: false, error: error.errors[0].message };
         }
-
         logger.error('[LoyaltyTablet] Capture failed', { error });
-        return {
-            success: false,
-            isNewLead: false,
-            error: error instanceof Error ? error.message : 'Failed to capture lead',
-        };
+        return { success: false, isNewLead: false, error: error instanceof Error ? error.message : 'Failed to capture lead' };
     }
 }
 
