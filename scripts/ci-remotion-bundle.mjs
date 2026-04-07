@@ -28,6 +28,60 @@ const shouldSkip = isCI || skipExplicit;
 
 const bundleDir = path.resolve(process.cwd(), '.remotion', 'bundle');
 
+// Create zod/v3 shim — zod@3.x doesn't export /v3 subpath, but @remotion/bundler
+// and some server code imports from 'zod/v3'. The shim re-exports from 'zod'.
+async function createZodV3Shim() {
+  const zodV3Dir = path.resolve(process.cwd(), 'node_modules', 'zod', 'v3');
+  await fs.mkdir(zodV3Dir, { recursive: true });
+
+  const pkgJson = JSON.stringify({
+    name: 'zod-shim-v3',
+    version: '3.23.8',
+    main: 'index.js',
+    module: 'index.mjs',
+    exports: {
+      '.': { types: './index.d.ts', require: './index.js', import: './index.mjs' },
+      './package.json': './package.json',
+    },
+  }, null, 2);
+
+  const indexJs = `"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const zod_1 = require("zod");
+for (const k in zod_1) {
+  Object.defineProperty(exports, k, { enumerable: true, get: () => zod_1[k] });
+}
+`;
+
+  const indexMjs = `export * from 'zod';
+export { z as default } from 'zod';
+`;
+
+  const indexDts = `export * from 'zod';
+export { z } from 'zod';
+export { default } from 'zod';
+`;
+
+  const externalJs = `"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const zod_1 = require("zod");
+for (const k in zod_1) {
+  if (!Object.prototype.hasOwnProperty.call(exports, k)) {
+    Object.defineProperty(exports, k, { enumerable: true, get: () => zod_1[k] });
+  }
+}
+`;
+
+  await Promise.all([
+    fs.writeFile(path.join(zodV3Dir, 'package.json'), pkgJson),
+    fs.writeFile(path.join(zodV3Dir, 'index.js'), indexJs),
+    fs.writeFile(path.join(zodV3Dir, 'index.mjs'), indexMjs),
+    fs.writeFile(path.join(zodV3Dir, 'index.d.ts'), indexDts),
+    fs.writeFile(path.join(zodV3Dir, 'external.js'), externalJs),
+  ]);
+  console.log('[zod-v3-shim] Created zod/v3 shim re-exporting from zod');
+}
+
 if (shouldSkip) {
   const reason = isCI ? 'CI=true (Cloud Build)' : 'SKIP_REMOTION_BUNDLE=true';
   console.log(`[ci-remotion-bundle] Skipping Remotion bundle in CI environment (${reason})`);
@@ -38,6 +92,13 @@ if (shouldSkip) {
   await fs.writeFile(path.join(bundleDir, '.ci-skip'), `Skipped at build time: ${reason}\nBundle at runtime or deploy separately.\n`);
 
   console.log('[ci-remotion-bundle] Placeholder written. Build continues.');
+}
+
+// Always create zod/v3 shim (needed even when bundle is skipped)
+await createZodV3Shim();
+
+if (shouldSkip) {
+  // Already handled above
 } else {
   console.log('[ci-remotion-bundle] Running full Remotion bundle...');
   execSync('node scripts/bundle-remotion.mjs', { stdio: 'inherit' });
