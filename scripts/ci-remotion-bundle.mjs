@@ -60,10 +60,10 @@ async function createZodV3Shim() {
 Object.defineProperty(exports, "__esModule", { value: true });
 const zod_1 = require("zod");
 for (const k in zod_1) {
-  Object.defineProperty(exports, k, { enumerable: true, get: () => zod_1[k] });
+  if (!exports.hasOwnProperty(k)) {
+    Object.defineProperty(exports, k, { enumerable: true, get: () => zod_1[k] });
+  }
 }
-exports.z = zod_1.z;
-exports.default = zod_1.z;
 `;
 
   const indexMjs = `export * from 'zod';
