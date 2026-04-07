@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; Zod 4.3.6 (Remotion/AWS compatibility) + v3 legacy bridge; Loyalty Tablet optimized ➔ deploy | **Last update:** 2026-04-06 (Zod 4.3.6 Migration & Loyalty Tablet Optimization)
+**Current Status:** 🟢 `main` green; Thrive Syracuse retention deployed (budtender clock-in, 5-star reviews, welcome-back 2hr, 7-day nudge, weekly campaign, demo filter, SMS consent) | **Last update:** 2026-04-07
 
 ---
 
