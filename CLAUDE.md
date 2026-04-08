@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; Thrive Syracuse retention deployed (budtender clock-in, 5-star reviews, welcome-back 2hr, 7-day nudge, weekly campaign, demo filter, SMS consent) | **Last update:** 2026-04-07 (Loyalty Tablet 11-file build fix)
+**Current Status:** 🟢 `main` green; BakedBot Club MVP shipped — Customer PWA (/club), mood video pre-render, event pipeline + triggers, tablet PWA | **Last update:** 2026-04-08 (Club MVP 23-file build)
 
 ---
 

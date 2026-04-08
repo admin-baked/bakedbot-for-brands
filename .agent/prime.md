@@ -38,11 +38,11 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; Thrive Syracuse retention deployed (Phases 1-7 complete).
+**Current Status:** 🟢 `main` green; BakedBot Club MVP shipped.
 
-**Recent work (2026-04-07):** Thrive Syracuse retention system & Loyalty Tablet Fixes:
-- Budtender on-duty clock-in system (new shift tracking)
-- Internal 5-star review system (improve recommendations)
+**Recent work (2026-04-08):** BakedBot Club MVP (`9eb4a6d36`):
+- Customer PWA at /club (Home, Pass, Perks, Profile), mood video pre-render cache, event pipeline + 5 triggers, tablet PWA
+- Full PRD audit completed — remaining gaps: Apple Wallet, session cleanup, reward expiration cron
 - Welcome-back email (2hr delay after check-in)
 - 7-day retention nudge email (cron job)
 - Weekly campaign Playbook enrollment
