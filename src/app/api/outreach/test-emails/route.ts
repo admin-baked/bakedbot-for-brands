@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * Test Outreach Emails Endpoint
  *

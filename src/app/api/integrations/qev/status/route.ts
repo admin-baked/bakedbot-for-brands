@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * QuickEmailVerification Status Endpoint
  * Returns connection status and remaining credits.

@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * GET /api/checkout/usdc/status?orderId=xxx
  *

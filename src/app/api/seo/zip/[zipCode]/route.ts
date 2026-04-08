@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // src/app/api/seo/zip/[zipCode]/route.ts
 // API endpoint to serve Zip SEO page data from Firestore
 

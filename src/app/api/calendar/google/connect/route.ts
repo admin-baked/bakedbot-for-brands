@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * GET /api/calendar/google/connect?profileSlug=martez
  *

@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUrl } from '@/server/integrations/gmail/oauth';
 import { requireUser } from '@/server/auth/auth';

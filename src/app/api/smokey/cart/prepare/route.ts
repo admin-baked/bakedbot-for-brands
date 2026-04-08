@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // src/app/api/smokey/cart/prepare/route.ts
 /**
  * Smokey Cart Prepare API
@@ -175,4 +176,3 @@ function generateHandoffUrl(
 
     return '#';
 }
-

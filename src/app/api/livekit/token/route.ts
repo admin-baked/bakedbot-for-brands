@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { generateAccessToken } from '@/server/services/executive-calendar/livekit';
 import { logger } from '@/lib/logger';

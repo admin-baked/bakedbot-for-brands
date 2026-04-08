@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * Social Media Preview Generator API
  *

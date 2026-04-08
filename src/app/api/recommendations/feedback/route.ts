@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * API Route: Track User Interaction (Like/Dislike/View)
  */

@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // src/app/api/foot-traffic/discover/route.ts
 /**
  * Foot Traffic Discovery API

@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // src/app/api/cannmenus/retailers/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from '@/lib/logger';

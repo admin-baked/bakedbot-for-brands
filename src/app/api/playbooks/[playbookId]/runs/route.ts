@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { PlaybookArtifactMemoryService } from '@/server/services/playbook-artifact-memory';
 import { getPlaybookArtifactRuntime } from '@/server/services/playbook-artifact-runtime';

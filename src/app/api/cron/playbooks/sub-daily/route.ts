@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * Sub-Daily Playbook Cron
  * POST /api/cron/playbooks/sub-daily

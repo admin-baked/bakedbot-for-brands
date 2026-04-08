@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // src/app/api/dev/seed-cannmenus-stub/route.ts
 /**
  * DEV ONLY: Seed CannMenus stub data endpoint

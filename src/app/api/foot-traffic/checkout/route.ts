@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // src/app/api/foot-traffic/checkout/route.ts
 /**
  * Checkout Router API

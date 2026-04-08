@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * Record Action API Route
  *

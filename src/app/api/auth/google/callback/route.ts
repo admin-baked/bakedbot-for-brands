@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { exchangeCodeForTokens } from '@/server/integrations/gmail/oauth';
 import { saveGmailToken } from '@/server/integrations/gmail/token-storage';

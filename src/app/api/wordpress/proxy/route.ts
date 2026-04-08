@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getDomainMapping } from '@/lib/domain-routing';
 import { logger } from '@/lib/logger';

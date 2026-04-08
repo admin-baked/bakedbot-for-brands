@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/server/auth/auth';
 import { googleAnalyticsService } from '@/server/services/growth/google-analytics';

@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // src/app/api/ezal/competitors/route.ts
 /**
  * Competitors Management API

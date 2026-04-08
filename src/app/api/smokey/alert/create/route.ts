@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // src/app/api/smokey/alert/create/route.ts
 /**
  * Smokey Alert Create API

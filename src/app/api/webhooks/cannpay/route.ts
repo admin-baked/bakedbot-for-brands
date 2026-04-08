@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 
 // [AI-THREAD P0-SEC-CANNPAY-WEBHOOK]
 // [Dev1-Claude @ 2025-11-29]:

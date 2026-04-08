@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { MembershipService } from '@/server/services/loyalty/membership-service';
 import { logger } from '@/lib/logger';

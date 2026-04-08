@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * Daily Sales Summary
  * POST /api/cron/daily-sales-summary

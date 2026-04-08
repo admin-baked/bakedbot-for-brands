@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * Live Browser Session Capture — SSE Endpoint
  *

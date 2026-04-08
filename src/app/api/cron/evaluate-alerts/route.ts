@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // src/app/api/cron/evaluate-alerts/route.ts
 /**
  * Cron endpoint for evaluating alerts

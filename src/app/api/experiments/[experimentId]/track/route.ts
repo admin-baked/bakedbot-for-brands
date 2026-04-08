@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * API Route: Track Experiment Metric
  */

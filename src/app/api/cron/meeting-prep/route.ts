@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * Meeting Prep Brief Cron Job
  * Runs every 15 minutes. Finds meetings starting in 20-40 minutes.

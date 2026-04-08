@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * GET /api/admin/debug-analytics?orgId=<orgId>
  *

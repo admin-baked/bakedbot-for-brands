@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * Code Execution API Route
  *

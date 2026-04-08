@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { Firestore } from '@google-cloud/firestore';
 import { PointsService } from '@/server/services/loyalty/points-service';

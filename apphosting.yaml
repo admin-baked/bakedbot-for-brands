@@ -2,9 +2,10 @@
 # https://firebase.google.com/docs/app-hosting/configure
 
 env:
-  # Build-time memory allocation - 6GB for webpack (4GB OOMs, 12GB prevents GC → also OOMs)
+  # Build-time memory allocation — Cloud Build machine has 2048 MiB total.
+  # 6GB caused swap-thrash → 56min hangs. 3GB fits within physical RAM with OS headroom.
   - variable: NODE_OPTIONS
-    value: "--max-old-space-size=6144"
+    value: "--max-old-space-size=3072"
     availability: [ BUILD ]
   - variable: NEXT_TELEMETRY_DISABLED
     value: "1"
@@ -16,6 +17,11 @@ env:
   # Skip Next.js Node version check (Firebase App Hosting uses Node 18)
   - variable: NEXT_SKIP_NODE_VERSION_CHECK
     value: "1"
+    availability: [ BUILD ]
+  # Skip Remotion bundle in Cloud Build — saves 5-10 min + significant memory.
+  # Video rendering uses runtime bundling or Cloud Run renderer in production.
+  - variable: SKIP_REMOTION_BUNDLE
+    value: "true"
     availability: [ BUILD ]
   # Firebase
   - variable: FIREBASE_SERVICE_ACCOUNT_KEY
@@ -627,4 +633,4 @@ runConfig:
 
 build:
   installCommand: npm install --legacy-peer-deps
-  buildCommand: npm run build:embed && SKIP_REMOTION_BUNDLE=true node scripts/ci-remotion-bundle.mjs && npm run check:structure && npm run check:config && next build --webpack
+  buildCommand: npm run build:embed && node scripts/ci-remotion-bundle.mjs && npm run check:structure && npm run check:config && next build --webpack

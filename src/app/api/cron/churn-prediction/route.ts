@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * Churn Prediction Cron Job
  *

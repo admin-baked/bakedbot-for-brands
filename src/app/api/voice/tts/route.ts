@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { synthesizeSpeech } from '@/server/services/voice/google-tts';
 import { logger } from '@/lib/logger';

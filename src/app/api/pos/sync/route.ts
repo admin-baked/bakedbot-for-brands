@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * Manual POS Sync Endpoint (session-authenticated).
  *

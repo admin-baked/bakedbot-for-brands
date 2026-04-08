@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * Lead Capture API - Store email leads from Agent Playground
  * 

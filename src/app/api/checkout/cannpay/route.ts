@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // src/app/api/checkout/cannpay/route.ts
 /**
  * Deprecated CannPay endpoint.
@@ -39,4 +40,3 @@ export async function POST(_request: NextRequest) {
         );
     }
 }
-

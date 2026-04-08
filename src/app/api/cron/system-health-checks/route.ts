@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * System Health Checks Cron Endpoint
  *

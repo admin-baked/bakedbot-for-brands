@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { PageGeneratorService } from '@/server/services/page-generator';
 import { requireSuperUser } from '@/server/auth/auth';

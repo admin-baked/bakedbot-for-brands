@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * CSRF Token API Route
  * Returns a CSRF token for the client to use in subsequent requests

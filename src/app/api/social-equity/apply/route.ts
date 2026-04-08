@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * Social Equity Application API
  * POST /api/social-equity/apply

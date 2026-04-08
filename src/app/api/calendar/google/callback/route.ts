@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * GET /api/calendar/google/callback?code=...&state=martez
  *

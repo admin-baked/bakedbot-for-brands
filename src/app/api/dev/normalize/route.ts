@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // src/app/api/dev/normalize/route.ts
 /**
  * DEV ONLY: Normalization stub endpoint

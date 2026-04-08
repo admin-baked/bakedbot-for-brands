@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import { computeMonthlyAmount, PLANS, PlanId, CoveragePackId } from "@/lib/plans";
 import { createServerClient } from "@/firebase/server-client";

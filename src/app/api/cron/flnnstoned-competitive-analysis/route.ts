@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * FlnnStoned Cannabis — Weekly Competitive Deep Dive
  * POST /api/cron/flnnstoned-competitive-analysis

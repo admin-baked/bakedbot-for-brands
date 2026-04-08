@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * DayDay Weekly Review Cron Endpoint
  * GET /api/cron/dayday-review

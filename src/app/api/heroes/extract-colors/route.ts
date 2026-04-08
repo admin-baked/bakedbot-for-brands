@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * Color Palette Extraction API Route
  *

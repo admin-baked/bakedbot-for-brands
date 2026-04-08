@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * Bundle Transitions Cron Job
  *

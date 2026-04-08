@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * Loyalty Sync API Endpoint
  *

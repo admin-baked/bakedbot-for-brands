@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 
 // src/app/api/cannmenus/product-search/route.ts
 
@@ -63,4 +64,3 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json(result, { status: result.status });
 }
-

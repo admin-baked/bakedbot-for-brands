@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // src/app/api/foot-traffic/zones/route.ts
 /**
  * Geo Zones API

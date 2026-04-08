@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * Auto-Reject Expired Approval Requests Cron Job
  *

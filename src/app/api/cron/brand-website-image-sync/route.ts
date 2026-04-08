@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * Brand Website Image Sync Cron Endpoint
  *

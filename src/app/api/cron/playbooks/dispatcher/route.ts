@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * Playbook Dispatcher
  * POST /api/cron/playbooks/dispatcher

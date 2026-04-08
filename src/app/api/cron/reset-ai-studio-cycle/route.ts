@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * AI Studio Monthly Billing Cycle Reset
  *

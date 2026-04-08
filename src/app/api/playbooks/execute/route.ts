@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // src/app/api/playbooks/execute/route.ts
 /**
  * Playbook Execution API

@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * Playbook Runner - Cloud Scheduler Endpoint
  *

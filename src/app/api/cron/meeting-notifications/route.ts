@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * Meeting Notifications Cron Job
  * Runs every 5-10 minutes. 

@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { exchangeSlackCode } from '@/server/integrations/slack/oauth';
 import { saveSlackToken } from '@/server/integrations/slack/token-storage';

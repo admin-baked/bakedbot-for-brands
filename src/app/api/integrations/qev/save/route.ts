@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * QuickEmailVerification Save Endpoint
  * Validates and saves API key to org config.

@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * Meeting Follow-Up Cron Job
  * Runs every 15 minutes. Finds meetings that ended 10-20 minutes ago.

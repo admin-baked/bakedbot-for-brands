@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // src/app/api/checkout/shipping/route.ts
 /**
  * API Route for Hemp E-Commerce Shipping Orders

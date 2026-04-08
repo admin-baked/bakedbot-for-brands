@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * POST /api/goals/suggest
  * AI-powered goal suggestion endpoint

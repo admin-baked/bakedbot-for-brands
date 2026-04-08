@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * GET /api/brand-manifest/[brand]
  * Dynamic PWA manifest per brand — used for "Add to Home Screen" on rewards pages.

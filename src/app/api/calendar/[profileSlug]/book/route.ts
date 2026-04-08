@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * POST /api/calendar/[profileSlug]/book
  * Creates a confirmed meeting booking.

@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * Thrive Syracuse Daily Briefing Cron
  * POST /api/cron/thrive-daily-briefing

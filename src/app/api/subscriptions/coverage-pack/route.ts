@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // src/app/api/subscriptions/coverage-pack/route.ts
 /**
  * Coverage Pack Subscription API

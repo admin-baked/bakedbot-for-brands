@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // src/app/api/dev/crawl/route.ts
 /**
  * DEV ONLY: Crawler stub endpoint

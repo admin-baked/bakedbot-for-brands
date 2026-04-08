@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // src/app/api/admin/enrich/route.ts
 /**
  * Batch enrichment API endpoint
