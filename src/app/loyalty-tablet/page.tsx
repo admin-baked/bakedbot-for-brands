@@ -17,6 +17,7 @@ import { useState, useMemo, type SyntheticEvent } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { getTabletMoodById, SMOKEY_FALLBACK_IMAGE } from '@/lib/checkin/loyalty-tablet-shared';
 
+import { InstallPrompt } from './components/InstallPrompt';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { QuickLookupScreen } from './components/QuickLookupScreen';
 import { PhoneScreen } from './components/PhoneScreen';
@@ -74,10 +75,11 @@ export default function LoyaltyTabletPage() {
     }
 
     return (
-        <div 
+        <div
             className="flex min-h-screen w-full flex-col p-4 sm:p-8 overflow-x-hidden font-sans select-none"
             style={shellStyle}
         >
+            <InstallPrompt />
             <AnimatePresence mode="wait">
 
                 {/* ── WELCOME ── */}

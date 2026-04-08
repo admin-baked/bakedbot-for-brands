@@ -2,6 +2,7 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { v4 as uuidv4 } from 'uuid';
 import { Member, Membership, Pass, Reward, ClubEvent } from '@/types/club';
 import { logger } from '@/lib/logger';
+import { processClubEvent } from './event-processor';
 
 export class MembershipService {
     /**
@@ -197,6 +198,14 @@ export class MembershipService {
         await batch.commit();
 
         logger.info(`[MembershipService] New member enrolled: ${memberId} (Membership: ${membershipId}, Org: ${params.organizationId})`);
+
+        // Process event through trigger registry (non-blocking)
+        processClubEvent(event).catch(err => {
+            logger.warn('[MembershipService] Event processing failed (non-fatal)', {
+                eventId: event.id,
+                error: err instanceof Error ? err.message : String(err),
+            });
+        });
 
         return { member, membership, pass, welcomeReward, isAlreadyEnrolled: false };
     }

@@ -24,8 +24,7 @@ import { searchMenuProducts } from '@/server/services/smokey-menu-search';
 import { getCustomerHistory } from '@/server/tools/crm-tools';
 import { captureVisitorCheckin } from './visitor-checkin';
 import { getAdminFirestore } from '@/firebase/admin';
-import { generateRemotionVideo } from '@/ai/generators/remotion-video';
-import { getOrgProfileWithFallback } from '../services/org-profile';
+import { getCachedMoodVideoUrl } from '../services/loyalty/mood-video-cache';
 
 // ============================================================
 // Inventory cache — avoids repeat Firestore reads within a warm instance
@@ -515,34 +514,8 @@ export async function getMoodRecommendations(
             return { success: false, error: 'No products available' };
         }
 
-        // 4. Generate a co-branded Remotion video if a bundle exists
-        let videoUrl: string | undefined;
-        if (recommendationSet.bundle) {
-            try {
-                const profile = await getOrgProfileWithFallback(orgId);
-                const brandName = profile?.brand.name || 'Thrive';
-                const logoUrl = profile?.brand.visualIdentity?.logo;
-                const primaryColor = profile?.brand.visualIdentity?.colors?.primary?.hex;
-
-                const videoResult = await generateRemotionVideo({
-                    prompt: `Mood recommendation for ${mood.label}`,
-                    brandName,
-                    logoUrl,
-                    primaryColor,
-                    tagline: recommendationSet.bundle.tagline,
-                    headline: recommendationSet.bundle.name,
-                    productImageUrl: recommendationSet.bundle.products[0]?.imageUrl,
-                    aspectRatio: '16:9',
-                    compositionId: 'BrandedSlideshow-16x9',
-                });
-                videoUrl = videoResult.videoUrl;
-            } catch (err) {
-                logger.warn('[LoyaltyTablet] Video generation failed (non-fatal)', {
-                    orgId,
-                    error: err instanceof Error ? err.message : String(err),
-                });
-            }
-        }
+        // 4. Look up pre-rendered mood video (instant — no Lambda render)
+        const videoUrl = await getCachedMoodVideoUrl(orgId, mood.id).catch(() => null) ?? undefined;
 
         logger.info('[LoyaltyTablet] Mood recommendations generated', {
             orgId,

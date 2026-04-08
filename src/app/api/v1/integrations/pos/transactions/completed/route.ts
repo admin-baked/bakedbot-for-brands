@@ -3,8 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Firestore } from '@google-cloud/firestore';
 import { PointsService } from '@/server/services/loyalty/points-service';
 import { VisitSessionService } from '@/server/services/loyalty/visit-session-service';
+import { emitClubEvent } from '@/server/services/loyalty/event-processor';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
+import { v4 as uuidv4 } from 'uuid';
 
 const posCompletedSchema = z.object({
     organizationId: z.string(),
@@ -73,6 +75,30 @@ export async function POST(req: NextRequest) {
         // 3. Mark Visit Session as Completed
         await VisitSessionService.updateSessionStatus(sessionId, 'completed', {
             posTransactionRef: data.posTransactionRef
+        });
+
+        // 4. Emit transaction_completed event for trigger processing
+        emitClubEvent({
+            id: `evt_${uuidv4().replace(/-/g, '')}`,
+            type: 'transaction_completed',
+            occurredAt: new Date().toISOString(),
+            organizationId: data.organizationId,
+            storeId: data.storeId,
+            actor: { type: 'member', id: session.memberId },
+            subject: { type: 'transaction', id: data.posTransactionRef },
+            source: { surface: 'pos' },
+            payload: {
+                totalCents: data.totalCents,
+                subtotalCents: data.subtotalCents,
+                discountCents: data.discountCents,
+                posCartRef: data.posCartRef,
+                visitSessionId: sessionId,
+                pointsAwarded: points,
+            },
+        }).catch(err => {
+            logger.warn('[POSWebhook] Event processing failed (non-fatal)', {
+                error: err instanceof Error ? err.message : String(err),
+            });
         });
 
         return NextResponse.json({

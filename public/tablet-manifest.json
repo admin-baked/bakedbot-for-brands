@@ -1,0 +1,29 @@
+{
+    "name": "Thrive Club Check-In",
+    "short_name": "Check-In",
+    "description": "In-store check-in powered by BakedBot",
+    "start_url": "/loyalty-tablet?orgId=org_thrive_syracuse",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#0f0f1a",
+    "theme_color": "#0f0f1a",
+    "categories": ["business"],
+    "icons": [
+        {
+            "src": "/icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        },
+        {
+            "src": "/icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "maskable"
+        }
+    ],
+    "permissions_policy": {
+        "microphone": ["self"],
+        "camera": ["self"]
+    }
+}

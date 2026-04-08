@@ -3,15 +3,31 @@
     "short_name": "BakedBot",
     "description": "AI Operating System for Cannabis Brands",
     "start_url": "/dashboard",
+    "scope": "/",
     "display": "standalone",
+    "orientation": "portrait",
     "background_color": "#ffffff",
     "theme_color": "#000000",
+    "categories": ["business", "lifestyle"],
     "icons": [
         {
             "src": "/icon.svg",
             "sizes": "any",
             "type": "image/svg+xml",
-            "purpose": "any maskable"
+            "purpose": "any"
+        },
+        {
+            "src": "/icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "maskable"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Check-In Tablet",
+            "url": "/loyalty-tablet?orgId=org_thrive_syracuse",
+            "description": "Open the in-store check-in tablet"
         }
     ]
 }

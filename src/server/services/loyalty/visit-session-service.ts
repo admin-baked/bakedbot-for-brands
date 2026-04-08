@@ -2,6 +2,7 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { v4 as uuidv4 } from 'uuid';
 import { VisitSession, ClubEvent } from '@/types/club';
 import { logger } from '@/lib/logger';
+import { processClubEvent } from './event-processor';
 
 const getDb = () => getAdminFirestore();
 
@@ -57,6 +58,15 @@ export class VisitSessionService {
         });
 
         logger.info(`[VisitSessionService] Visit opened: ${sessionId} for Member: ${params.memberId}`);
+
+        // Process event through trigger registry (non-blocking)
+        processClubEvent(event).catch(err => {
+            logger.warn('[VisitSessionService] Event processing failed (non-fatal)', {
+                eventId: event.id,
+                error: err instanceof Error ? err.message : String(err),
+            });
+        });
+
         return session;
     }
 
