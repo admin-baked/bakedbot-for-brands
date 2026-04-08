@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; fal.ai cost tracking wired + Drive media save + default provider → wan | **Last update:** 2026-04-08 (media cost audit + 4 type fixes)
+**Current Status:** 🟢 `main` green; media generation consumes AI Studio credits; video costs 75/150 for 70%+ margins | **Last update:** 2026-04-08 (media credit billing)
 
 ---
 

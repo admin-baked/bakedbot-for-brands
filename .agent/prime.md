@@ -40,8 +40,8 @@ Before ANY work, verify the build is healthy:
 
 **Current Status:** 🟢 `main` green; BakedBot Club MVP shipped.
 
-**Recent work (2026-04-08):** fal.ai cost tracking + media audit (`05db54518`):
-- Wired kling/wan/flux tracking to `media_generation_events`; Drive save for all generated media; default provider → wan
+**Recent work (2026-04-08):** media credit billing (`7638406a7`):
+- Media generation gates on AI Studio credits (check + charge); video costs 75/150 for 70%+ margins; media-budget.ts delegates to credit system
 - Club MVP shipped (`9eb4a6d36`): Customer PWA /club, mood video cache, event pipeline + 5 triggers, tablet PWA
 - 7-day retention nudge email (cron job)
 - Weekly campaign Playbook enrollment
