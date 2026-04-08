@@ -21,11 +21,11 @@ import { logger } from '@/lib/logger';
  * Mock response for each model tier
  */
 const mockResponses: Record<GLMModel, string> = {
-  'glm-5': 'GLM-5 generated strategic insight for this request.',
-  'glm-5v-turbo': 'GLM-5v-turbo generated strategic insight for this request.',
-  'glm-4.7': 'GLM-4.7 generated strategic insight for this request.',
-  'glm-4.5-air': 'GLM-4.5-air generated strategic insight for this request.',
-  'glm-4-flash': 'GLM-4-flash generated strategic insight for this request.',
+  'llama-3.3-70b-versatile': 'Llama 3.3 70B generated strategic insight for this request.',
+  'llama-3.1-70b-versatile': 'Llama 3.1 70B generated strategic insight for this request.',
+  'llama-3.1-8b-instant': 'Llama 3.1 8B generated instant response for this request.',
+  'llama-3.2-90b-vision-preview': 'Llama 3.2 90B vision generated analysis for this request.',
+  'llama-3.2-11b-vision-preview': 'Llama 3.2 11B vision generated analysis for this request.',
 };
 
 /**

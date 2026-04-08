@@ -13,6 +13,7 @@
 
 import React, { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { UnifiedInbox } from '@/components/inbox';
 import { UnifiedAgentChat } from '@/components/chat/unified-agent-chat';
 import { InboxViewToggle } from '@/components/inbox/inbox-view-toggle';
