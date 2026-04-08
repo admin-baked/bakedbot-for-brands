@@ -16,6 +16,7 @@
 
 import { logger } from '@/lib/logger';
 import { trackMediaGeneration, calculateVideoCost, saveMediaToDrive } from '@/server/services/media-tracking';
+import { checkAIStudioActionAllowed, chargeAIStudioCredits } from '@/server/services/ai-studio-billing-service';
 import type { GenerateVideoInput, GenerateVideoOutput } from '../video-types';
 
 const FAL_QUEUE_BASE = 'https://queue.fal.run';
@@ -95,6 +96,24 @@ async function generateFalVideo(
     }
 
     const modelPath = FAL_VIDEO_MODELS[model];
+    const durationSeconds = parseInt(input.duration || '5', 10);
+    const actionType = durationSeconds <= 5 ? 'video_short' as const : 'video_full' as const;
+    const orgId = input.orgId || 'unknown';
+
+    // Credit gate: check if org has enough credits before generating
+    if (orgId !== 'unknown') {
+        const creditCheck = await checkAIStudioActionAllowed({
+            orgId,
+            userId: input.userId,
+            actionType,
+            automationTriggered: false,
+            sourceSurface: 'media',
+        });
+        if (!creditCheck.allowed) {
+            throw new Error(`[FalVideo] Insufficient credits: ${creditCheck.reason || creditCheck.errorCode}`);
+        }
+    }
+
     logger.info('[FalVideo] Starting video generation', { model, modelPath, prompt: input.prompt.substring(0, 80) });
 
     // Step 1: Submit to queue
@@ -110,14 +129,13 @@ async function generateFalVideo(
         maxAttempts: options?.maxPollAttempts ?? DEFAULT_MAX_POLL_ATTEMPTS,
     };
     const videoUrl = await pollUntilComplete(apiKey, queued.status_url, resultUrl, pollOpts);
-    const durationSeconds = parseInt(input.duration || '5', 10);
     logger.info('[FalVideo] Video ready', { model, videoUrl });
 
-    // Track cost + save to Drive (non-blocking)
+    // Track cost (USD ledger) + charge credits + save to Drive (all non-blocking)
     const provider = model as 'kling' | 'wan';
     const costUsd = calculateVideoCost(provider, durationSeconds);
     trackMediaGeneration({
-        tenantId: input.orgId || 'unknown',
+        tenantId: orgId,
         userId: input.userId || 'system',
         type: 'video',
         provider,
@@ -129,9 +147,22 @@ async function generateFalVideo(
         success: true,
     }).catch(err => logger.warn('[FalVideo] Tracking failed (non-fatal)', { error: String(err) }));
 
+    // Deduct AI Studio credits (non-blocking — never block on billing failure)
+    if (orgId !== 'unknown') {
+        chargeAIStudioCredits({
+            orgId,
+            userId: input.userId,
+            actionType,
+            sourceSurface: 'media',
+            automationTriggered: false,
+            success: true,
+            modelOrProvider: `fal-${model}`,
+        }).catch(err => logger.warn('[FalVideo] Credit charge failed (non-fatal)', { error: String(err) }));
+    }
+
     saveMediaToDrive({
         mediaUrl: videoUrl,
-        tenantId: input.orgId || 'unknown',
+        tenantId: orgId,
         type: 'video',
         provider: model,
         prompt: input.prompt,

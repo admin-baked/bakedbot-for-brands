@@ -15,6 +15,7 @@
 
 import { logger } from '@/lib/logger';
 import { trackMediaGeneration, calculateImageCost, saveMediaToDrive } from '@/server/services/media-tracking';
+import { checkAIStudioActionAllowed, chargeAIStudioCredits } from '@/server/services/ai-studio-billing-service';
 
 // fal.ai FLUX.1 endpoints
 const FAL_ENDPOINTS = {
@@ -91,6 +92,22 @@ export async function generateImageWithFal(
     }
 
     const tier = options?.tier ?? 'free';
+    const orgId = options?.orgId || 'unknown';
+
+    // Credit gate: check if org has enough credits before generating
+    if (orgId !== 'unknown') {
+        const creditCheck = await checkAIStudioActionAllowed({
+            orgId,
+            userId: options?.userId,
+            actionType: 'image_generate',
+            automationTriggered: false,
+            sourceSurface: 'media',
+        });
+        if (!creditCheck.allowed) {
+            throw new Error(`[fal] Insufficient credits: ${creditCheck.reason || creditCheck.errorCode}`);
+        }
+    }
+
     const endpoint = tier === 'free' ? FAL_ENDPOINTS.schnell : FAL_ENDPOINTS.pro;
     const imageSize = PLATFORM_IMAGE_SIZE[options?.platform ?? 'instagram'] ?? 'square_hd';
 
@@ -158,11 +175,11 @@ export async function generateImageWithFal(
         height: data.images?.[0]?.height,
     });
 
-    // Track cost + save to Drive (non-blocking)
+    // Track cost (USD ledger) + charge credits + save to Drive (all non-blocking)
     const provider = tier === 'free' ? 'flux-schnell' as const : 'flux-pro' as const;
     const costUsd = calculateImageCost(provider);
     trackMediaGeneration({
-        tenantId: options?.orgId || 'unknown',
+        tenantId: orgId,
         userId: options?.userId || 'system',
         type: 'image',
         provider,
@@ -172,9 +189,22 @@ export async function generateImageWithFal(
         success: true,
     }).catch(err => logger.warn('[fal] Tracking failed (non-fatal)', { error: String(err) }));
 
+    // Deduct AI Studio credits (non-blocking)
+    if (orgId !== 'unknown') {
+        chargeAIStudioCredits({
+            orgId,
+            userId: options?.userId,
+            actionType: 'image_generate',
+            sourceSurface: 'media',
+            automationTriggered: false,
+            success: true,
+            modelOrProvider: tier === 'free' ? 'fal-flux' : 'fal-flux-pro',
+        }).catch(err => logger.warn('[fal] Credit charge failed (non-fatal)', { error: String(err) }));
+    }
+
     saveMediaToDrive({
         mediaUrl: imageUrl,
-        tenantId: options?.orgId || 'unknown',
+        tenantId: orgId,
         type: 'image',
         provider: tier === 'free' ? 'flux-schnell' : 'flux-pro',
         prompt: safePrompt,

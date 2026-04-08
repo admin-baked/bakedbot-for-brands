@@ -15,8 +15,8 @@ export const ACTION_BASE_COSTS: Record<AIStudioActionType, number> = {
   image_generate: 12,
   image_edit: 12,
   creative_batch: 25,
-  video_short: 60,
-  video_full: 120,
+  video_short: 75,       // 75 × $0.02 (Optimize top-up) = $1.50 vs $0.40 Wan = 73% margin
+  video_full: 150,       // 150 × $0.02 = $3.00 vs $0.80 Wan = 73% margin
 };
 
 /**
