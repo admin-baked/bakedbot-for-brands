@@ -146,7 +146,7 @@ env:
   # Used for: news summarization, extraction, first-pass synthesis (no PII)
   # Not used for: tool-calling, PII-containing prompts, compliance gates
   - variable: ZAI_API_KEY
-    secret: ZAI_API_KEY@1
+    secret: ZAI_API_KEY@2
     availability:
       - RUNTIME
   - variable: FAL_API_KEY

@@ -20,34 +20,40 @@ import {
   type ToolExecution,
 } from '@/ai/claude';
 
-// Z.ai Anthropic-compatible endpoint
-const ZAI_BASE_URL = 'https://api.z.ai/api/anthropic';
+// Zhipu AI (bigmodel.cn) OpenAI-compatible endpoint
+// Key format: xxxxxxxx.yyyyyyyy — from open.bigmodel.cn console
+const ZAI_BASE_URL = 'https://open.bigmodel.cn/api/paas/v4';
 
 /**
- * Available GLM models for different use cases.
+ * Available GLM models (verified against bigmodel.cn model list).
  *
- * Pricing (Z.ai PAYG, per 1M tokens in/out):
- *   glm-4.5-flash  FREE       — extraction, simple classification
- *   glm-4.7-flash  FREE       — fast synthesis, short Q&A
- *   glm-4.6v-flash FREE       — vision tasks (images)
- *   glm-4.7        $0.60/$2.20 — standard reasoning, tool calling (Elroy default)
- *   glm-5          $1.00/$3.20 — strategic multi-step tools (Linus default)
- *   glm-5v-turbo   $1.20/$4.00 — vision + complex reasoning (reserved)
+ * Pricing (bigmodel.cn PAYG, per 1M tokens in/out — approximate):
+ *   glm-4.5-air   ~$0.20/$1.10 — extraction, classification (cheapest)
+ *   glm-4.5       ~$0.50/$1.50 — fast synthesis
+ *   glm-4.6       ~$0.60/$2.00 — standard reasoning
+ *   glm-4.7       ~$0.60/$2.20 — tool calling, Elroy default
+ *   glm-5         ~$1.00/$3.20 — strategic multi-step tools, Linus default
+ *   glm-5-turbo   ~$1.20/$4.00 — fast powerful (alternative to glm-5)
+ *   glm-5.1       ~$1.50/$5.00 — most capable (reserved for future)
+ *
+ * Note: No free flash models on this endpoint. Credits are PAYG separate
+ * from the Z.ai Coding plan subscription.
  */
 export type GLMModel =
+  | 'glm-5.1'
+  | 'glm-5-turbo'
   | 'glm-5'
-  | 'glm-5v-turbo'
   | 'glm-4.7'
-  | 'glm-4.7-flash'
-  | 'glm-4.6v-flash'
-  | 'glm-4.5-flash';
+  | 'glm-4.6'
+  | 'glm-4.5'
+  | 'glm-4.5-air';
 
 export const GLM_MODELS = {
-  EXTRACTION: 'glm-4.5-flash' as const,    // FREE (was glm-4.5-air $0.20/$1.10)
-  FAST_SYNTHESIS: 'glm-4.7-flash' as const, // FREE (was glm-4-flash)
-  STANDARD: 'glm-4.7' as const,            // $0.60/$2.20 — Elroy Slack default
-  STRATEGIC: 'glm-5' as const,             // $1.00/$3.20 — Linus complex workflows
-  VISION: 'glm-4.6v-flash' as const,       // FREE (was glm-5v-turbo $1.20/$4.00)
+  EXTRACTION: 'glm-4.5-air' as const,   // cheapest, simple classification
+  FAST_SYNTHESIS: 'glm-4.5' as const,   // fast text generation
+  STANDARD: 'glm-4.7' as const,         // tool calling, Elroy Slack default
+  STRATEGIC: 'glm-5' as const,          // complex multi-step tools, Linus default
+  VISION: 'glm-5-turbo' as const,       // fastest capable model for vision fallback
 } as const;
 
 export type GLMToolResult = ClaudeResult;

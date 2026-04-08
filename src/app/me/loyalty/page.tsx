@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { getAdminFirestore } from '@/firebase/admin';
 import { Member, Membership, Pass, Reward } from '@/types/club';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
