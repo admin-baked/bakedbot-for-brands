@@ -40,10 +40,9 @@ Before ANY work, verify the build is healthy:
 
 **Current Status:** 🟢 `main` green; BakedBot Club MVP shipped.
 
-**Recent work (2026-04-08):** BakedBot Club MVP (`9eb4a6d36`):
-- Customer PWA at /club (Home, Pass, Perks, Profile), mood video pre-render cache, event pipeline + 5 triggers, tablet PWA
-- Full PRD audit completed — remaining gaps: Apple Wallet, session cleanup, reward expiration cron
-- Welcome-back email (2hr delay after check-in)
+**Recent work (2026-04-08):** fal.ai cost tracking + media audit (`05db54518`):
+- Wired kling/wan/flux tracking to `media_generation_events`; Drive save for all generated media; default provider → wan
+- Club MVP shipped (`9eb4a6d36`): Customer PWA /club, mood video cache, event pipeline + 5 triggers, tablet PWA
 - 7-day retention nudge email (cron job)
 - Weekly campaign Playbook enrollment
 - Demo data filtering (phone 312-684-0522)

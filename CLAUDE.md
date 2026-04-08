@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; BakedBot Club MVP shipped — Customer PWA (/club), mood video pre-render, event pipeline + triggers, tablet PWA | **Last update:** 2026-04-08 (Club MVP 23-file build)
+**Current Status:** 🟢 `main` green; fal.ai cost tracking wired + Drive media save + default provider → wan | **Last update:** 2026-04-08 (media cost audit + 4 type fixes)
 
 ---
 
