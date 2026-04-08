@@ -149,11 +149,11 @@ env:
     secret: GEMINI_API_KEY@5
     availability:
       - RUNTIME
-  # Z.ai DevPack - GLM models for cost reduction on high-frequency tasks
-  # Used for: news summarization, extraction, first-pass synthesis (no PII)
-  # Not used for: tool-calling, PII-containing prompts, compliance gates
-  - variable: ZAI_API_KEY
-    secret: ZAI_API_KEY@2
+  # Groq - Fast Llama inference for Linus/Elroy Slack agents
+  # Free tier: 30 req/min on llama-3.3-70b-versatile. Paid: $0.59/$0.79/M tokens.
+  # Get key at: console.groq.com → API Keys
+  - variable: GROQ_API_KEY
+    secret: GROQ_API_KEY@1
     availability:
       - RUNTIME
   - variable: FAL_API_KEY

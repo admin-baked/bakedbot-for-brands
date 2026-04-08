@@ -1,8 +1,11 @@
 /**
- * Z.ai GLM Service
+ * Groq Inference Service
  *
- * OpenAI-compatible client for GLM models via z.ai DevPack.
- * Supports both text generation and GLM-5 tool-calling loops.
+ * OpenAI-compatible client for Groq-hosted Llama models.
+ * Free tier: 30 req/min on llama-3.3-70b-versatile.
+ * Paid: $0.59/$0.79 per 1M tokens — cheaper than Claude Haiku.
+ *
+ * Replaces Z.ai GLM — same exports/contract so Linus/Elroy need no changes.
  */
 
 import OpenAI from 'openai';
@@ -20,40 +23,32 @@ import {
   type ToolExecution,
 } from '@/ai/claude';
 
-// Zhipu AI (bigmodel.cn) OpenAI-compatible endpoint
-// Key format: xxxxxxxx.yyyyyyyy — from open.bigmodel.cn console
-const ZAI_BASE_URL = 'https://open.bigmodel.cn/api/paas/v4';
+// Groq OpenAI-compatible endpoint
+const ZAI_BASE_URL = 'https://api.groq.com/openai/v1';
 
 /**
- * Available GLM models (verified against bigmodel.cn model list).
+ * Groq-hosted models mapped to the same tier names used throughout the codebase.
  *
- * Pricing (bigmodel.cn PAYG, per 1M tokens in/out — approximate):
- *   glm-4.5-air   ~$0.20/$1.10 — extraction, classification (cheapest)
- *   glm-4.5       ~$0.50/$1.50 — fast synthesis
- *   glm-4.6       ~$0.60/$2.00 — standard reasoning
- *   glm-4.7       ~$0.60/$2.20 — tool calling, Elroy default
- *   glm-5         ~$1.00/$3.20 — strategic multi-step tools, Linus default
- *   glm-5-turbo   ~$1.20/$4.00 — fast powerful (alternative to glm-5)
- *   glm-5.1       ~$1.50/$5.00 — most capable (reserved for future)
+ * Pricing (Groq PAYG, per 1M tokens in/out):
+ *   llama-3.1-8b-instant         $0.05/$0.08  — extraction, classification
+ *   llama-3.3-70b-versatile      $0.59/$0.79  — tool calling (free tier: 30 req/min)
+ *   llama-3.2-90b-vision-preview $0.90/$0.90  — vision tasks
  *
- * Note: No free flash models on this endpoint. Credits are PAYG separate
- * from the Z.ai Coding plan subscription.
+ * Free tier covers Linus/Elroy at current 1-3 customer scale.
  */
 export type GLMModel =
-  | 'glm-5.1'
-  | 'glm-5-turbo'
-  | 'glm-5'
-  | 'glm-4.7'
-  | 'glm-4.6'
-  | 'glm-4.5'
-  | 'glm-4.5-air';
+  | 'llama-3.3-70b-versatile'
+  | 'llama-3.1-70b-versatile'
+  | 'llama-3.1-8b-instant'
+  | 'llama-3.2-90b-vision-preview'
+  | 'llama-3.2-11b-vision-preview';
 
 export const GLM_MODELS = {
-  EXTRACTION: 'glm-4.5-air' as const,   // cheapest, simple classification
-  FAST_SYNTHESIS: 'glm-4.5' as const,   // fast text generation
-  STANDARD: 'glm-4.7' as const,         // tool calling, Elroy Slack default
-  STRATEGIC: 'glm-5' as const,          // complex multi-step tools, Linus default
-  VISION: 'glm-5-turbo' as const,       // fastest capable model for vision fallback
+  EXTRACTION: 'llama-3.1-8b-instant' as const,          // $0.05/$0.08 — simple tasks
+  FAST_SYNTHESIS: 'llama-3.1-8b-instant' as const,      // $0.05/$0.08 — fast text
+  STANDARD: 'llama-3.3-70b-versatile' as const,         // $0.59/$0.79 — Elroy default
+  STRATEGIC: 'llama-3.3-70b-versatile' as const,        // $0.59/$0.79 — Linus default
+  VISION: 'llama-3.2-90b-vision-preview' as const,      // $0.90/$0.90 — image tasks
 } as const;
 
 export type GLMToolResult = ClaudeResult;
@@ -66,9 +61,9 @@ function getGLMClient(): OpenAI {
     return glmClient;
   }
 
-  const apiKey = process.env.ZAI_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
-    throw new Error('[GLM] ZAI_API_KEY not configured. Add to GCP Secret Manager.');
+    throw new Error('[Groq] GROQ_API_KEY not configured. Add to GCP Secret Manager.');
   }
 
   glmClient = new OpenAI({
@@ -355,6 +350,6 @@ export async function executeGLMWithTools(
 }
 
 export function isGLMConfigured(): boolean {
-  return !!process.env.ZAI_API_KEY;
+  return !!process.env.GROQ_API_KEY;
 }
 

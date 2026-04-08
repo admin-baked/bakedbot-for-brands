@@ -2,7 +2,7 @@
  * Linus - AI CTO Agent
  * 
  * Bridge between codebase and Executive Boardroom.
- * Uses GLM-5 for Slack text-only tool workflows and Claude for
+ * Uses Groq (Llama 3.3 70B) for Slack tool workflows and Claude for
  * full agentic coding plus vision-backed tasks.
  * 
  * Responsibilities:
@@ -1655,7 +1655,7 @@ const LINUS_TOOLS: ClaudeTool[] = [
     // ========================================================================
     {
         name: 'set_agent_model_tier',
-        description: 'Change the AI model tier used by Slack agents (Linus, Elroy). Tiers from cheapest to most capable: glm (GLM-5, tool calling, ~$1/M), gemini (Gemini Flash via Opencode, no tools, ~$0.10/M), haiku (Claude Haiku, tool calling, ~$0.80/M), sonnet (Claude Sonnet, tool calling, ~$3/M). Default: glm with fallback chain. Use this when credits are low or you need to optimize costs.',
+        description: 'Change the AI model tier used by Slack agents (Linus, Elroy). Tiers from cheapest to most capable: glm (Llama 3.3 70B via Groq, tool calling, free tier / ~$0.59/M paid), gemini (Gemini Flash via Opencode, no tools, ~$0.10/M), haiku (Claude Haiku, tool calling, ~$0.80/M), sonnet (Claude Sonnet, tool calling, ~$3/M). Default: glm with fallback chain.',
         input_schema: {
             type: 'object' as const,
             properties: {
@@ -3693,7 +3693,7 @@ test('${scenario.slice(0, 50)}', async ({ page }) => {
                 updatedBy: config.updatedBy,
                 updatedAt: new Date(config.updatedAt).toISOString(),
                 tierCosts: {
-                    glm: '$1.20/$4.00 per 1M tokens (tool calling)',
+                    glm: 'Free tier (30 req/min) / $0.59/$0.79 per 1M tokens — Groq Llama 3.3 70B',
                     gemini: '$0.10/$0.40 per 1M tokens (no tools, degraded)',
                     haiku: '$0.80/$4.00 per 1M tokens (tool calling)',
                     sonnet: '$3.00/$15.00 per 1M tokens (tool calling)',
@@ -4792,7 +4792,7 @@ You MUST follow these rules to avoid hallucination:
 5. **When uncertain, investigate first.**
    - Use search/read tools before making claims about the codebase.
 
-6. **IDENTITY RULE (CRITICAL)**: You are **Linus**, the AI CTO of BakedBot. You are currently powered by the **GLM-5** model in Slack for maximum speed. You are NOT Claude. Even if you see references to CLAUDE.md for codebase context, your identity remains Linus. Never refer to yourself as Claude.
+6. **IDENTITY RULE (CRITICAL)**: You are **Linus**, the AI CTO of BakedBot. You are currently powered by **Llama 3.3 70B via Groq** in Slack for maximum speed. You are NOT Claude. Even if you see references to CLAUDE.md for codebase context, your identity remains Linus. Never refer to yourself as Claude.
 
 YOUR RESPONSIBILITIES:
 1. Synthesize Layer 1-6 evaluation results into a deployment scorecard
@@ -5020,7 +5020,7 @@ function buildLinusProgressMessage(toolName: string, input: Record<string, unkno
 const LINUS_AGENT_CONTEXT: AgentContext = {
     name: 'Linus',
     role: 'CTO',
-    identity: 'You are Linus, the AI CTO of BakedBot. In Slack mode, you are primarily powered by GLM-5. Even when referencing CLAUDE.md for codebase context, you remain Linus. Do NOT identify as Claude.',
+    identity: 'You are Linus, the AI CTO of BakedBot. In Slack mode, you are primarily powered by Llama 3.3 70B via Groq. Even when referencing CLAUDE.md for codebase context, you remain Linus. Do NOT identify as Claude.',
     capabilities: [
         'execute_super_power â€” Run any of 11 automation scripts (build fix, schema audit, compliance, cost analysis, etc.)',
         'run_command / bash â€” Execute shell commands (npm, git, gcloud, etc.)',

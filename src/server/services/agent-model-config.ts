@@ -8,7 +8,7 @@
  * Firestore: system_config/agent_model_config
  *
  * Tiers (cheapest → most capable):
- *   1. glm        — GLM-5 via Z.ai ($1.20/$4, tool calling)
+ *   1. glm        — Llama 3.3 70B via Groq ($0.59/$0.79, tool calling, free tier)
  *   2. gemini     — Gemini Flash via Opencode Cloud Run ($0.10/$0.40, no tools)
  *   3. haiku      — Claude Haiku ($0.80/$4, tool calling)
  *   4. sonnet     — Claude Sonnet ($3/$15, tool calling)
