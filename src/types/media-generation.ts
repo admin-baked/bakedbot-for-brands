@@ -8,7 +8,7 @@
 /**
  * Media generation provider options
  */
-export type MediaProvider = 'gemini-flash' | 'gemini-pro' | 'veo' | 'sora';
+export type MediaProvider = 'gemini-flash' | 'gemini-pro' | 'veo' | 'sora' | 'kling' | 'wan' | 'flux-schnell' | 'flux-pro';
 
 /**
  * Type of media being generated
@@ -126,6 +126,24 @@ export const MEDIA_PRICING = {
     'sora': {
         per4Seconds: 0.50, // Sora 2 - 4 second video
         per8Seconds: 1.00, // Sora 2 - 8 second video
+    },
+
+    // fal.ai Video Models
+    'kling': {
+        per5Seconds: 0.28, // Kling v2 Master - 5 second video
+        per10Seconds: 0.56, // Kling v2 Master - 10 second video
+    },
+    'wan': {
+        per5Seconds: 0.40, // Wan 2.1 t2v - 5 second video
+        per10Seconds: 0.80, // Wan 2.1 t2v - 10 second video
+    },
+
+    // fal.ai Image Models
+    'flux-schnell': {
+        perImage: 0.003, // FLUX.1 Schnell (4-step, ultra-fast)
+    },
+    'flux-pro': {
+        perImage: 0.05, // FLUX.1 Pro (28-step, high quality)
     },
 } as const;
 

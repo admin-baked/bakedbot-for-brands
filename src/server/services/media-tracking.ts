@@ -32,7 +32,7 @@ function generateEventId(): string {
  * Calculates cost for an image generation
  */
 export function calculateImageCost(
-    provider: 'gemini-flash' | 'gemini-pro',
+    provider: 'gemini-flash' | 'gemini-pro' | 'flux-schnell' | 'flux-pro',
     _options?: { resolution?: string }
 ): number {
     const pricing = MEDIA_PRICING[provider];
@@ -43,20 +43,25 @@ export function calculateImageCost(
  * Calculates cost for a video generation
  */
 export function calculateVideoCost(
-    provider: 'veo' | 'sora',
+    provider: 'veo' | 'sora' | 'kling' | 'wan',
     durationSeconds: number
 ): number {
     if (provider === 'veo') {
         const veoPricing = MEDIA_PRICING.veo;
-        // Veo supports 4, 6, or 8 seconds
         if (durationSeconds <= 4) return veoPricing.per4Seconds;
         if (durationSeconds <= 6) return veoPricing.per6Seconds;
         return veoPricing.per8Seconds;
-    } else {
+    } else if (provider === 'sora') {
         const soraPricing = MEDIA_PRICING.sora;
-        // Sora supports 4 or 8 seconds
         if (durationSeconds <= 4) return soraPricing.per4Seconds;
         return soraPricing.per8Seconds;
+    } else if (provider === 'kling') {
+        const klingPricing = MEDIA_PRICING.kling;
+        return durationSeconds <= 5 ? klingPricing.per5Seconds : klingPricing.per10Seconds;
+    } else {
+        // wan
+        const wanPricing = MEDIA_PRICING.wan;
+        return durationSeconds <= 5 ? wanPricing.per5Seconds : wanPricing.per10Seconds;
     }
 }
 
@@ -72,13 +77,13 @@ export function estimateMediaCost(
     const breakdown: MediaCostEstimate['breakdown'] = {};
 
     if (type === 'image' || type === 'image_edit') {
-        if (provider === 'gemini-flash' || provider === 'gemini-pro') {
+        if (provider === 'gemini-flash' || provider === 'gemini-pro' || provider === 'flux-schnell' || provider === 'flux-pro') {
             estimatedCostUsd = calculateImageCost(provider, options);
             breakdown.imageCost = estimatedCostUsd;
         }
     } else if (type === 'video') {
-        if (provider === 'veo' || provider === 'sora') {
-            const duration = options?.durationSeconds || 4;
+        if (provider === 'veo' || provider === 'sora' || provider === 'kling' || provider === 'wan') {
+            const duration = options?.durationSeconds || 5;
             estimatedCostUsd = calculateVideoCost(provider, duration);
             breakdown.videoCost = estimatedCostUsd;
         }
@@ -105,6 +110,14 @@ function getModelForProvider(provider: MediaProvider): string {
             return 'veo-3.1-generate-preview';
         case 'sora':
             return 'sora-2';
+        case 'kling':
+            return 'fal-ai/kling-video/v2/master/text-to-video';
+        case 'wan':
+            return 'fal-ai/wan-t2v';
+        case 'flux-schnell':
+            return 'fal-ai/flux/schnell';
+        case 'flux-pro':
+            return 'fal-ai/flux-pro';
         default:
             return provider;
     }
@@ -226,6 +239,10 @@ export async function getMediaUsage(
         'gemini-pro': { count: 0, costUsd: 0 },
         'veo': { count: 0, costUsd: 0 },
         'sora': { count: 0, costUsd: 0 },
+        'kling': { count: 0, costUsd: 0 },
+        'wan': { count: 0, costUsd: 0 },
+        'flux-schnell': { count: 0, costUsd: 0 },
+        'flux-pro': { count: 0, costUsd: 0 },
     };
 
     const byType: MediaUsageStats['byType'] = {
@@ -308,12 +325,14 @@ export async function getMediaCostsByProvider(
 
     const usage = await getMediaUsage(tenantId, startDate, now);
 
-    return {
-        'gemini-flash': usage.byProvider['gemini-flash'].costUsd,
-        'gemini-pro': usage.byProvider['gemini-pro'].costUsd,
-        'veo': usage.byProvider['veo'].costUsd,
-        'sora': usage.byProvider['sora'].costUsd,
+    const result: Record<MediaProvider, number> = {
+        'gemini-flash': 0, 'gemini-pro': 0, 'veo': 0, 'sora': 0,
+        'kling': 0, 'wan': 0, 'flux-schnell': 0, 'flux-pro': 0,
     };
+    for (const key of Object.keys(result) as MediaProvider[]) {
+        result[key] = usage.byProvider[key]?.costUsd ?? 0;
+    }
+    return result;
 }
 
 /**
@@ -388,7 +407,7 @@ export async function checkCostLimit(
 export async function withImageTracking<T extends { imageUrl: string }>(
     tenantId: string,
     userId: string,
-    provider: 'gemini-flash' | 'gemini-pro',
+    provider: 'gemini-flash' | 'gemini-pro' | 'flux-schnell' | 'flux-pro',
     prompt: string,
     generateFn: () => Promise<T>,
     options?: {
@@ -434,7 +453,7 @@ export async function withImageTracking<T extends { imageUrl: string }>(
         }
     }
 
-    // This will only be reached if an error was thrown
+    // This will only be reached if an error was thrown (withImageTracking)
     throw new Error(errorMessage || 'Generation failed');
 }
 
@@ -445,7 +464,7 @@ export async function withImageTracking<T extends { imageUrl: string }>(
 export async function withVideoTracking<T extends { videoUrl: string; duration?: number }>(
     tenantId: string,
     userId: string,
-    provider: 'veo' | 'sora',
+    provider: 'veo' | 'sora' | 'kling' | 'wan',
     prompt: string,
     durationSeconds: number,
     generateFn: () => Promise<T>,
@@ -499,4 +518,61 @@ export async function withVideoTracking<T extends { videoUrl: string; duration?:
 
     // This will only be reached if an error was thrown
     throw new Error(errorMessage || 'Generation failed');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Drive Save — persists generated media to Drive for user access
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Saves a generated media URL to Drive storage (non-blocking).
+ * Downloads the file from the remote URL and stores it in the org's Drive.
+ */
+export async function saveMediaToDrive(options: {
+    mediaUrl: string;
+    tenantId: string;
+    type: 'video' | 'image';
+    provider: string;
+    prompt: string;
+    filename?: string;
+}): Promise<{ driveUrl?: string }> {
+    try {
+        const { DriveStorageService } = await import('./drive-storage');
+        const storage = new DriveStorageService();
+
+        const ext = options.type === 'video' ? 'mp4' : 'png';
+        const prefix = options.type === 'video' ? 'vid' : 'img';
+        const filename = options.filename
+            || `${prefix}_${options.provider}_${Date.now()}.${ext}`;
+
+        const result = await storage.uploadFromUrl(options.mediaUrl, {
+            userId: 'system',
+            userEmail: 'system@bakedbot.ai',
+            category: 'agents' as const,
+            description: `Generated ${options.type} (${options.provider}): ${options.prompt.substring(0, 100)}`,
+            tags: ['generated', options.type, options.provider, filename],
+            metadata: {
+                tenantId: options.tenantId,
+                generator: options.provider,
+            },
+        });
+
+        if (result.success && result.downloadUrl) {
+            logger.info('[MediaTracking] Saved to Drive', {
+                tenantId: options.tenantId,
+                type: options.type,
+                provider: options.provider,
+                storagePath: result.storagePath,
+            });
+            return { driveUrl: result.downloadUrl };
+        }
+
+        logger.warn('[MediaTracking] Drive save failed', { error: result.error });
+        return {};
+    } catch (err) {
+        logger.warn('[MediaTracking] Drive save error (non-fatal)', {
+            error: err instanceof Error ? err.message : String(err),
+        });
+        return {};
+    }
 }

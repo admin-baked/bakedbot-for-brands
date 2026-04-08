@@ -17,6 +17,9 @@ export const GenerateVideoInputSchema = z.object({
     productImageUrl: z.string().optional().describe('Absolute URL to the selected product image'),
     ctaText: z.string().optional().describe('Call-to-action text for branded slideshow outro'),
     websiteUrl: z.string().optional().describe('Website URL shown on the branded slideshow outro'),
+    // Tracking context — passed through to media-tracking for cost attribution
+    orgId: z.string().optional().describe('Tenant org ID for cost tracking'),
+    userId: z.string().optional().describe('User ID for cost tracking'),
 });
 
 export type GenerateVideoInput = ZodInfer<typeof GenerateVideoInputSchema>;

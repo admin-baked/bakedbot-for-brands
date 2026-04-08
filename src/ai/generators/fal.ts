@@ -14,6 +14,7 @@
  */
 
 import { logger } from '@/lib/logger';
+import { trackMediaGeneration, calculateImageCost, saveMediaToDrive } from '@/server/services/media-tracking';
 
 // fal.ai FLUX.1 endpoints
 const FAL_ENDPOINTS = {
@@ -37,6 +38,8 @@ export type FalImageTier = 'free' | 'paid' | 'super';
 interface FalImageOptions {
     tier?: FalImageTier;
     platform?: string;
+    orgId?: string;
+    userId?: string;
 }
 
 interface FalResponse {
@@ -154,6 +157,28 @@ export async function generateImageWithFal(
         width: data.images?.[0]?.width,
         height: data.images?.[0]?.height,
     });
+
+    // Track cost + save to Drive (non-blocking)
+    const provider = tier === 'free' ? 'flux-schnell' as const : 'flux-pro' as const;
+    const costUsd = calculateImageCost(provider);
+    trackMediaGeneration({
+        tenantId: options?.orgId || 'unknown',
+        userId: options?.userId || 'system',
+        type: 'image',
+        provider,
+        model: tier === 'free' ? 'fal-ai/flux/schnell' : 'fal-ai/flux-pro',
+        prompt: safePrompt,
+        costUsd,
+        success: true,
+    }).catch(err => logger.warn('[fal] Tracking failed (non-fatal)', { error: String(err) }));
+
+    saveMediaToDrive({
+        mediaUrl: imageUrl,
+        tenantId: options?.orgId || 'unknown',
+        type: 'image',
+        provider: tier === 'free' ? 'flux-schnell' : 'flux-pro',
+        prompt: safePrompt,
+    }).catch(err => logger.warn('[fal] Drive save failed (non-fatal)', { error: String(err) }));
 
     return imageUrl;
 }

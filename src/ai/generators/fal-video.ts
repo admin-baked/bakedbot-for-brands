@@ -15,6 +15,7 @@
  */
 
 import { logger } from '@/lib/logger';
+import { trackMediaGeneration, calculateVideoCost, saveMediaToDrive } from '@/server/services/media-tracking';
 import type { GenerateVideoInput, GenerateVideoOutput } from '../video-types';
 
 const FAL_QUEUE_BASE = 'https://queue.fal.run';
@@ -109,12 +110,37 @@ async function generateFalVideo(
         maxAttempts: options?.maxPollAttempts ?? DEFAULT_MAX_POLL_ATTEMPTS,
     };
     const videoUrl = await pollUntilComplete(apiKey, queued.status_url, resultUrl, pollOpts);
+    const durationSeconds = parseInt(input.duration || '5', 10);
     logger.info('[FalVideo] Video ready', { model, videoUrl });
+
+    // Track cost + save to Drive (non-blocking)
+    const provider = model as 'kling' | 'wan';
+    const costUsd = calculateVideoCost(provider, durationSeconds);
+    trackMediaGeneration({
+        tenantId: input.orgId || 'unknown',
+        userId: input.userId || 'system',
+        type: 'video',
+        provider,
+        model: modelPath,
+        prompt: input.prompt,
+        durationSeconds,
+        aspectRatio: input.aspectRatio,
+        costUsd,
+        success: true,
+    }).catch(err => logger.warn('[FalVideo] Tracking failed (non-fatal)', { error: String(err) }));
+
+    saveMediaToDrive({
+        mediaUrl: videoUrl,
+        tenantId: input.orgId || 'unknown',
+        type: 'video',
+        provider: model,
+        prompt: input.prompt,
+    }).catch(err => logger.warn('[FalVideo] Drive save failed (non-fatal)', { error: String(err) }));
 
     return {
         videoUrl,
         thumbnailUrl: undefined,
-        duration: parseInt(input.duration || '5', 10),
+        duration: durationSeconds,
         provider: model,
         model: modelPath,
     };
