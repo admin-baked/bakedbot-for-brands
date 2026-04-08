@@ -1,5 +1,18 @@
 # BakedBot Session Memory
 
+## Session: 2026-04-08 (Groq Llama 3.3 70B Switch & Build Hardening) ✅ COMPLETE (`e1acca367`)
+- **LLM Infrastructure Switch** ΓÇö Switched Linus and Uncle Elroy from Z.ai GLM to Groq Llama 3.3 70B for higher reliability and better reasoning.
+- **Build Hardening** ΓÇö Resolved 56-minute Cloud Build hangs by removing server-only imports from client components; bumped `NODE_OPTIONS` to 4GB to prevent webpack OOM errors.
+- **CI Stabilization** ΓÇö Fixed 'use server' placement in `import-menu` and cleared ghost submodules blocking GCP builds.
+- **Cost Optimization** ΓÇö Integrated free GLM-2.5-flash for high-volume non-critical tasks with a cannabis-refusal bypass.
+
+## Session: 2026-04-07 (Loyalty Tablet Build Error Resolution) ✅ COMPLETE (`3081ed562`)
+- **Loyalty Tablet Fix** ΓÇö Resolved 11-file build breakage blocking CI; re-exported `TabletProduct` and `TabletBundle` types and expanded `PublicBrandTheme` for membership pages.
+- **Null Safety Audit** ΓÇö Implemented defensive guards for `member.phone` and `welcomeReward` in API routes and public membership views.
+- **Surface Event Expansion** ΓÇö Added `staff_scan` and `pos_lookup` to canonical `ClubEvent` types to support store-assisted check-ins.
+- **Verification** ΓÇö Confirmed green build status with `check:types` post-fix.
+- **Session log** - Captured in `dev/progress_log.md` task `fix_loyalty_tablet_build`.
+
 ## Session: 2026-04-05 (Linus Identity Hardening & CI Stabilization) ✅ COMPLETE (`c7b3e9a`)
 - **Identity Hardening** — Grounded Linus as the BakedBot CTO in `src/server/agents/linus.ts` and updated `src/ai/claude.ts` to prioritize agent identity in the system prompt.
 - **CI Stabilization** — Fixed `TS7006` implicit 'any' regressions in `google-service-health.ts` and `system-health-tools.ts` to restore the green build state.

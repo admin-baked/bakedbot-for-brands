@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Production live; Full roster training framework live — Craig/Leo/Deebo/Ezal/DayDay wired; Elroy/Linus/Marty at T3 adversarial (96%)
+**Current Status:** 🟢 Production live; Full roster training framework live — Craig/Leo/Deebo/Ezal/DayDay wired; Elroy/Linus/Marty at T3 adversarial (96%); Thrive Syracuse retention live.
 **Recent work (2026-04-12):** `c05e091da` CHANNEL_MAP + roster training; `1fbc88b22` task board + inbound CTAs
-**Prior (2026-04-12):** `b57759327` CRM skipAuth + agent tool fixes; `b9d5ab6d3` Tablet cart + notifications
+**Prior (2026-04-12):** `b57759327` CRM skipAuth + agent tool fixes; `b9d5ab6d3` Tablet cart + notifications (Groq Llama 3.3 switch live)
 - Marty CEO agent: full super powers, Slack DM routing, manages all executives toward $1M ARR
 - Club MVP shipped (`9eb4a6d36`): Customer PWA /club, mood video cache, event pipeline + 5 triggers, tablet PWA
 - 7-day retention nudge email (cron job)

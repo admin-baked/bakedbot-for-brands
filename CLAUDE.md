@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Production live; Full roster training framework — Craig/Leo/Deebo/Ezal/DayDay wired, T3 adversarial for Elroy/Linus/Marty | **Last update:** 2026-04-12 (CHANNEL_MAP + roster training: `c05e091da`)
+**Current Status:** 🟢 Production live; Full roster training framework live; Thrive Syracuse retention live; Groq Llama 3.3 switch live | **Last update:** 2026-04-12 (CHANNEL_MAP + roster training: `c05e091da`)
 
 ---
 
