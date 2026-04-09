@@ -7,7 +7,7 @@
  * - Pipeline status (queue depth, daily limit, pending drafts)
  * - "Generate Drafts" button (creates email previews for approval)
  * - Pending drafts section with Approve/Edit/Reject per draft
- * - Gmail connection status indicator
+ * - Dispatcher / connected mailbox status indicator
  * - "Send Test Batch" button (all 10 templates to internal recipients)
  * - Lead queue + CRM contact tables
  */
@@ -173,7 +173,7 @@ function DraftCard({
             <div className="rounded-lg border border-green-200 bg-green-50 p-4">
                 <div className="flex items-center gap-2 text-green-800">
                     <CheckCircle2 className="h-4 w-4" />
-                    <span className="font-medium text-sm">{isForm ? 'Form Submitted' : 'Sent via Gmail'}</span>
+                    <span className="font-medium text-sm">{isForm ? 'Form Submitted' : 'Sent via verified sender'}</span>
                     <span className="text-xs text-green-600 ml-auto">{draft.dispensaryName}</span>
                 </div>
             </div>
@@ -349,7 +349,7 @@ function DraftCard({
             ) : (
                 <div className="flex items-center gap-2 py-2 text-muted-foreground text-sm">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    {status === 'approving' ? (isForm ? 'Marking submitted…' : 'Sending via Gmail…') : 'Rejecting…'}
+                    {status === 'approving' ? (isForm ? 'Marking submitted…' : 'Sending via verified sender…') : 'Rejecting…'}
                 </div>
             )}
         </div>
@@ -488,11 +488,32 @@ export default function OutreachTab() {
             if (result.success) {
                 setActionResult({
                     type: 'success',
-                    message: `Sent ${result.sent || 0} emails via Gmail, ${result.failed || 0} failed`,
+                    message: `Sent ${result.sent || 0} outreach emails, ${result.failed || 0} failed`,
                 });
                 await Promise.all([loadData(), loadDrafts()]);
             } else {
                 setActionResult({ type: 'error', message: result.error || 'Batch send failed' });
+            }
+        } catch (err) {
+            setActionResult({ type: 'error', message: String(err) });
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const handleEmailDigest = async () => {
+        setActionLoading('digest');
+        setActionResult(null);
+        try {
+            const { emailOutreachDigestToCurrentUser } = await loadOutreachDashboardActions();
+            const result = await emailOutreachDigestToCurrentUser();
+            if (result.success) {
+                setActionResult({
+                    type: 'success',
+                    message: `Outreach report sent to ${result.recipientEmail || 'your inbox'}`,
+                });
+            } else {
+                setActionResult({ type: 'error', message: result.error || 'Failed to send outreach report' });
             }
         } catch (err) {
             setActionResult({ type: 'error', message: String(err) });
@@ -634,36 +655,58 @@ export default function OutreachTab() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold">Multi-State Dispensary Outreach</h2>
-                    <p className="text-muted-foreground">CRM-first draft approval flow for NY / MI / IL — preview and edit before sending</p>
+                    <h2 className="text-2xl font-bold">BakedBot Outreach Command Center</h2>
+                    <p className="text-muted-foreground">Mobile-friendly draft approval, verified sending, CRM sync, and emailed reports for the accounts we are ramping now.</p>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => { loadData(); loadDrafts(); }} disabled={!!actionLoading}>
-                    <RefreshCcw className="h-4 w-4 mr-2" />
-                    Refresh
-                </Button>
+                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full justify-start sm:w-auto"
+                        onClick={handleEmailDigest}
+                        disabled={!!actionLoading}
+                    >
+                        {actionLoading === 'digest' ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                            <Mail className="h-4 w-4 mr-2" />
+                        )}
+                        Email Report
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full justify-start sm:w-auto"
+                        onClick={() => { loadData(); loadDrafts(); }}
+                        disabled={!!actionLoading}
+                    >
+                        <RefreshCcw className="h-4 w-4 mr-2" />
+                        Refresh
+                    </Button>
+                </div>
             </div>
 
-            {/* Gmail Connection Status */}
+            {/* Delivery Status */}
             {gmailConnected !== null && (
                 <div className={`flex items-center gap-2 rounded-lg border p-3 ${
                     gmailConnected
                         ? 'border-green-200 bg-green-50 text-green-800'
-                        : 'border-amber-200 bg-amber-50 text-amber-800'
+                        : 'border-blue-200 bg-blue-50 text-blue-800'
                 }`}>
                     <Mail className="h-4 w-4" />
                     {gmailConnected ? (
                         <span className="text-sm">
-                            Gmail connected — emails will send from <strong>{gmailEmail || 'your account'}</strong>
+                            Connected mailbox ready: <strong>{gmailEmail || 'your account'}</strong>. Outreach can still fall back through the verified BakedBot sender when needed.
                         </span>
                     ) : (
                         <>
                             <span className="text-sm flex-1">
-                                Connect Gmail to send outreach from your account
+                                Verified BakedBot sending stays available for outreach and reports. Connect Gmail only if you want a personal mailbox in the loop.
                             </span>
                             <Button
                                 size="sm"
                                 variant="outline"
-                                className="h-7 text-xs gap-1 border-amber-300"
+                                className="h-7 text-xs gap-1 border-blue-300"
                                 onClick={() => window.location.href = '/dashboard/settings?tab=integrations'}
                             >
                                 <Link2 className="h-3 w-3" />
@@ -771,11 +814,11 @@ export default function OutreachTab() {
             )}
 
             {/* Action Buttons */}
-            <div className="flex flex-wrap gap-3">
+            <div className="grid gap-3 md:grid-cols-2 xl:flex xl:flex-wrap">
                 <Button
                     onClick={handleGenerateDrafts}
                     disabled={!!actionLoading}
-                    className="bg-green-600 hover:bg-green-700"
+                    className="w-full justify-start bg-green-600 hover:bg-green-700 xl:w-auto"
                 >
                     {actionLoading === 'drafts' ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -789,6 +832,7 @@ export default function OutreachTab() {
                     variant="outline"
                     onClick={handleTestBatch}
                     disabled={!!actionLoading}
+                    className="w-full justify-start xl:w-auto"
                 >
                     {actionLoading === 'test' ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -802,7 +846,7 @@ export default function OutreachTab() {
                     variant="outline"
                     onClick={handleCRMLeadSync}
                     disabled={!!actionLoading}
-                    className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                    className="w-full justify-start border-emerald-300 text-emerald-700 hover:bg-emerald-50 xl:w-auto"
                 >
                     {actionLoading === 'crm-sync' ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -816,6 +860,7 @@ export default function OutreachTab() {
                     variant="outline"
                     onClick={handleResearch}
                     disabled={!!actionLoading}
+                    className="w-full justify-start xl:w-auto"
                 >
                     {actionLoading === 'research' ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -829,7 +874,7 @@ export default function OutreachTab() {
                     variant="outline"
                     onClick={handleBulkNYImport}
                     disabled={!!actionLoading}
-                    className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                    className="w-full justify-start border-blue-300 text-blue-700 hover:bg-blue-50 xl:w-auto"
                 >
                     {actionLoading === 'nyapi-bulk' ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -843,7 +888,7 @@ export default function OutreachTab() {
                     variant="outline"
                     onClick={handleNYLeadEnrichment}
                     disabled={!!actionLoading}
-                    className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                    className="w-full justify-start border-purple-300 text-purple-700 hover:bg-purple-50 xl:w-auto"
                 >
                     {actionLoading === 'nyapi-enrich' ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -869,7 +914,7 @@ export default function OutreachTab() {
                         )}
                     </CardTitle>
                     <CardDescription>
-                        Review, edit, and approve email drafts before sending via Gmail
+                        Review, edit, and approve drafts before sending through the BakedBot outreach dispatcher.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -888,7 +933,7 @@ export default function OutreachTab() {
                                     size="sm"
                                     className="gap-1.5 text-xs h-8 bg-green-600 hover:bg-green-700"
                                     onClick={handleApproveAll}
-                                    disabled={!!actionLoading || !gmailConnected}
+                                    disabled={!!actionLoading}
                                 >
                                     {actionLoading === 'approveAll' ? (
                                         <Loader2 className="h-3 w-3 animate-spin" />

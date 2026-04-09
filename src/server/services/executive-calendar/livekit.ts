@@ -7,20 +7,53 @@
 import { AccessToken, RoomServiceClient } from 'livekit-server-sdk';
 import { logger } from '@/lib/logger';
 
-export function getLiveKitConfig() {
-    const apiKey = process.env.LIVEKIT_API_KEY;
-    const apiSecret = process.env.LIVEKIT_API_SECRET;
-    let url = process.env.LIVEKIT_URL || 'wss://bakedbot.livekit.cloud';
+const DEFAULT_LIVEKIT_URL = 'wss://bakedbot.livekit.cloud';
 
-    // Ensure URL starts with wss:// for the client
-    if (!url.startsWith('wss://') && !url.startsWith('ws://')) {
-        url = `wss://${url}`;
+function sanitizeLiveKitEnvValue(value: string | undefined): string | undefined {
+    if (!value) {
+        return undefined;
     }
+
+    let sanitized = value.replace(/\0/g, '').trim();
+    sanitized = sanitized.replace(/^-n\b\s*/i, '').trim();
+    sanitized = sanitized.replace(/^['"`]+/, '').replace(/['"`]+$/, '').trim();
+
+    return sanitized || undefined;
+}
+
+function normalizeLiveKitUrl(value: string | undefined): string {
+    const sanitized = sanitizeLiveKitEnvValue(value) ?? DEFAULT_LIVEKIT_URL;
+    let candidate = sanitized
+        .replace(/^(wss?|https?)\/\/+/i, '$1://')
+        .replace(/^(wss?|https?):\/(?!\/)/i, '$1://');
+
+    if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(candidate)) {
+        candidate = `wss://${candidate.replace(/^\/+/, '')}`;
+    }
+
+    const parsed = new URL(candidate);
+    parsed.protocol = parsed.protocol === 'ws:' || parsed.protocol === 'http:' ? 'ws:' : 'wss:';
+
+    return parsed.toString().replace(/\/$/, '');
+}
+
+function toLiveKitServiceUrl(clientUrl: string): string {
+    const parsed = new URL(clientUrl);
+    parsed.protocol = parsed.protocol === 'ws:' ? 'http:' : 'https:';
+    return parsed.toString().replace(/\/$/, '');
+}
+
+export function getLiveKitConfig() {
+    const apiKey = sanitizeLiveKitEnvValue(process.env.LIVEKIT_API_KEY);
+    const apiSecret = sanitizeLiveKitEnvValue(process.env.LIVEKIT_API_SECRET);
+    const url = normalizeLiveKitUrl(process.env.LIVEKIT_URL);
+    const serviceUrl = toLiveKitServiceUrl(url);
 
     if (!apiKey || !apiSecret) {
         throw new Error('[LiveKit] LIVEKIT_API_KEY and LIVEKIT_API_SECRET are required');
     }
-    return { apiKey, apiSecret, url };
+
+    return { apiKey, apiSecret, url, serviceUrl };
 }
 
 export interface LiveKitRoom {
@@ -38,12 +71,10 @@ export async function createMeetingRoom(
     _expiresAt: Date, // kept for API compatibility; LiveKit uses token TTL instead
 ): Promise<LiveKitRoom> {
     logger.info(`[LiveKit] Preparing room: ${roomName}`);
-    const { apiKey, apiSecret, url } = getLiveKitConfig();
+    const { apiKey, apiSecret, serviceUrl } = getLiveKitConfig();
 
     try {
-        const wsUrl = url;
-        const httpUrl = wsUrl.replace('wss://', 'https://').replace('ws://', 'http://');
-        const roomService = new RoomServiceClient(httpUrl, apiKey, apiSecret);
+        const roomService = new RoomServiceClient(serviceUrl, apiKey, apiSecret);
         await roomService.createRoom({
             name: roomName,
             emptyTimeout: 600,       // 10 min empty timeout before auto-close
@@ -67,9 +98,8 @@ export async function createMeetingRoom(
 export async function deleteMeetingRoom(roomName: string): Promise<void> {
     logger.info(`[LiveKit] Deleting room: ${roomName}`);
     try {
-        const { apiKey, apiSecret, url } = getLiveKitConfig();
-        const httpUrl = url.replace('wss://', 'https://').replace('ws://', 'http://');
-        const roomService = new RoomServiceClient(httpUrl, apiKey, apiSecret);
+        const { apiKey, apiSecret, serviceUrl } = getLiveKitConfig();
+        const roomService = new RoomServiceClient(serviceUrl, apiKey, apiSecret);
         await roomService.deleteRoom(roomName);
     } catch (err) {
         logger.warn(`[LiveKit] deleteMeetingRoom: ${String(err)}`);

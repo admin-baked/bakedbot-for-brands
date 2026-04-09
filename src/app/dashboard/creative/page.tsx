@@ -40,10 +40,23 @@ import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { useCreativeContent } from "@/hooks/use-creative-content";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
-import type { SocialPlatform, GenerateContentRequest } from "@/types/creative-content";
+import type {
+  CreativeBusinessContext,
+  GenerateContentRequest,
+  SocialContentGoal,
+  SocialPlatform,
+  SocialPostFormat,
+  SocialSafetyMode,
+} from "@/types/creative-content";
 import type { DeckPurpose, GeneratePowerPointOutput } from "@/types/powerpoint";
 import { useRouter } from "next/navigation";
 import { getMenuData } from "@/app/dashboard/menu/actions";
@@ -92,6 +105,62 @@ function formatMenuProductLabel(product: MenuProduct): string {
 
 // Valid creative style types
 type CreativeStyle = NonNullable<GenerateContentRequest['style']>;
+type CreativeImageMode = 'photo' | 'branded' | 'video' | 'slideshow' | 'deck' | 'longvideo';
+type CreativeTemplate = {
+  label: string;
+  description: string;
+  prompt: string;
+  tone: CreativeStyle;
+  businessContext: CreativeBusinessContext;
+  contentGoal: SocialContentGoal;
+  format: SocialPostFormat;
+  socialSafetyMode: SocialSafetyMode;
+  imageMode: CreativeImageMode;
+  textOverlay?: {
+    enabled: boolean;
+    headline: string;
+    cta: string;
+  };
+  imageStyle: string;
+};
+type CreativeQuickStart = {
+  id: 'bakedbot-pov' | 'story-sequence' | 'short-reel' | 'community-post';
+  label: string;
+  hint: string;
+  platform: SocialPlatform;
+  tone: CreativeStyle;
+  businessContext: CreativeBusinessContext;
+  contentGoal: SocialContentGoal;
+  format: SocialPostFormat;
+  socialSafetyMode: SocialSafetyMode;
+  imageMode: CreativeImageMode;
+  prompt: string;
+  textOverlay?: {
+    enabled: boolean;
+    headline: string;
+    cta: string;
+  };
+};
+type CreativeOrgPreset = {
+  id: 'bakedbot' | 'thrive-syracuse' | 'ecstatic-edibles';
+  label: string;
+  hint: string;
+  brandName: string;
+  platform: SocialPlatform;
+  businessContext: CreativeBusinessContext;
+  contentGoal: SocialContentGoal;
+  format: SocialPostFormat;
+  socialSafetyMode: SocialSafetyMode;
+  tone: CreativeStyle;
+  imageMode: CreativeImageMode;
+  prompt: string;
+  textOverlay?: {
+    enabled: boolean;
+    headline: string;
+    cta: string;
+  };
+};
+type ComposerMode = 'quick' | 'studio';
 
 // Left panel sections
 type LeftPanel = 'generate' | 'templates' | 'brandkit' | 'upload' | 'calendar' | 'analytics' | 'help' | 'drafts';
@@ -111,14 +180,302 @@ const LEFT_PANELS: { id: LeftPanel; icon: React.ElementType; label: string }[] =
   { id: 'help', icon: HelpCircle, label: 'Help' },
 ];
 
-// Platform aspect ratios for canvas preview
-const PLATFORM_ASPECT: Record<SocialPlatform | string, string> = {
-  instagram: 'aspect-[4/5]',
-  tiktok: 'aspect-[9/16]',
-  linkedin: 'aspect-[1.91/1]',
-  twitter: 'aspect-square',
-  facebook: 'aspect-[1.91/1]',
+const BUSINESS_CONTEXT_OPTIONS: Array<{
+  value: CreativeBusinessContext;
+  label: string;
+  hint: string;
+}> = [
+  { value: 'company', label: 'Company', hint: 'BakedBot or B2B operator story' },
+  { value: 'dispensary', label: 'Dispensary', hint: 'Store education and community' },
+  { value: 'brand', label: 'Brand', hint: 'Lifestyle and brand storytelling' },
+];
+
+const CONTENT_GOAL_OPTIONS: Array<{
+  value: SocialContentGoal;
+  label: string;
+  hint: string;
+}> = [
+  { value: 'thought-leadership', label: 'POV', hint: 'Founder insight and operator perspective' },
+  { value: 'education', label: 'Educate', hint: 'Teach, explain, and myth-bust' },
+  { value: 'behind-the-scenes', label: 'Behind Scenes', hint: 'Show process and people' },
+  { value: 'community', label: 'Community', hint: 'Local moments and culture' },
+  { value: 'customer-proof', label: 'Proof', hint: 'Share wins, outcomes, and receipts' },
+  { value: 'event', label: 'Event', hint: 'Drive RSVPs and attendance' },
+];
+
+const FORMAT_LABELS: Record<SocialPostFormat, string> = {
+  post: 'Post',
+  story: 'Story',
+  reel: 'Reel',
+  carousel: 'Carousel',
 };
+
+const PLATFORM_FORMATS: Record<SocialPlatform, SocialPostFormat[]> = {
+  instagram: ['post', 'story', 'reel', 'carousel'],
+  tiktok: ['reel'],
+  linkedin: ['post', 'carousel'],
+  twitter: ['post'],
+  facebook: ['post', 'story', 'reel'],
+};
+
+const SOCIAL_SAFE_HASHTAG_LIBRARY: Record<
+  CreativeBusinessContext,
+  Record<SocialPlatform, Array<{ tag: string; category: string }>>
+> = {
+  company: {
+    instagram: [
+      { tag: "operatorlife", category: "Operations" },
+      { tag: "marketingops", category: "Operations" },
+      { tag: "revenueops", category: "Operations" },
+      { tag: "aiworkflow", category: "Workflow" },
+      { tag: "foundermode", category: "Leadership" },
+    ],
+    tiktok: [
+      { tag: "operatorlife", category: "Operations" },
+      { tag: "aiworkflow", category: "Workflow" },
+      { tag: "foundermode", category: "Leadership" },
+      { tag: "marketingops", category: "Operations" },
+    ],
+    linkedin: [
+      { tag: "marketingops", category: "Operations" },
+      { tag: "revenueops", category: "Operations" },
+      { tag: "aiworkflow", category: "Workflow" },
+      { tag: "b2bmarketing", category: "Business" },
+      { tag: "leadership", category: "Leadership" },
+      { tag: "operators", category: "Operations" },
+    ],
+    twitter: [
+      { tag: "marketingops", category: "Operations" },
+      { tag: "revenueops", category: "Operations" },
+      { tag: "aiworkflow", category: "Workflow" },
+      { tag: "foundermode", category: "Leadership" },
+    ],
+    facebook: [
+      { tag: "smallbusinesstools", category: "Business" },
+      { tag: "marketingops", category: "Operations" },
+      { tag: "teamworkflows", category: "Workflow" },
+      { tag: "aiworkflow", category: "Workflow" },
+    ],
+  },
+  dispensary: {
+    instagram: [
+      { tag: "community", category: "Community" },
+      { tag: "education", category: "Education" },
+      { tag: "behindthescenes", category: "Culture" },
+      { tag: "brandstory", category: "Storytelling" },
+      { tag: "localbusiness", category: "Local" },
+    ],
+    tiktok: [
+      { tag: "education", category: "Education" },
+      { tag: "behindthescenes", category: "Culture" },
+      { tag: "community", category: "Community" },
+      { tag: "brandstory", category: "Storytelling" },
+    ],
+    linkedin: [
+      { tag: "cannabisindustry", category: "Industry" },
+      { tag: "retailops", category: "Operations" },
+      { tag: "communitymarketing", category: "Marketing" },
+      { tag: "compliance", category: "Compliance" },
+      { tag: "operations", category: "Operations" },
+    ],
+    twitter: [
+      { tag: "community", category: "Community" },
+      { tag: "education", category: "Education" },
+      { tag: "retailops", category: "Operations" },
+      { tag: "brandstory", category: "Storytelling" },
+    ],
+    facebook: [
+      { tag: "community", category: "Community" },
+      { tag: "localbusiness", category: "Local" },
+      { tag: "education", category: "Education" },
+      { tag: "events", category: "Events" },
+    ],
+  },
+  brand: {
+    instagram: [
+      { tag: "brandstory", category: "Storytelling" },
+      { tag: "community", category: "Community" },
+      { tag: "behindthescenes", category: "Culture" },
+      { tag: "education", category: "Education" },
+      { tag: "lifestyle", category: "Lifestyle" },
+    ],
+    tiktok: [
+      { tag: "brandstory", category: "Storytelling" },
+      { tag: "behindthescenes", category: "Culture" },
+      { tag: "community", category: "Community" },
+      { tag: "lifestyle", category: "Lifestyle" },
+    ],
+    linkedin: [
+      { tag: "brandmarketing", category: "Marketing" },
+      { tag: "communitymarketing", category: "Marketing" },
+      { tag: "storytelling", category: "Storytelling" },
+      { tag: "operations", category: "Operations" },
+    ],
+    twitter: [
+      { tag: "brandstory", category: "Storytelling" },
+      { tag: "community", category: "Community" },
+      { tag: "education", category: "Education" },
+      { tag: "lifestyle", category: "Lifestyle" },
+    ],
+    facebook: [
+      { tag: "brandstory", category: "Storytelling" },
+      { tag: "community", category: "Community" },
+      { tag: "events", category: "Events" },
+      { tag: "lifestyle", category: "Lifestyle" },
+    ],
+  },
+};
+
+const ORG_PRESETS: CreativeOrgPreset[] = [
+  {
+    id: 'bakedbot',
+    label: 'BakedBot',
+    hint: 'Founder POV, demos, operator proof',
+    brandName: 'BakedBot AI',
+    platform: 'linkedin',
+    businessContext: 'company',
+    contentGoal: 'thought-leadership',
+    format: 'post',
+    socialSafetyMode: 'social-safe',
+    tone: 'professional',
+    imageMode: 'branded',
+    prompt: 'Create a polished operator-facing post about how BakedBot AI helps executives stay proactive from their phones with outreach, meetings, and creative execution.',
+    textOverlay: {
+      enabled: true,
+      headline: 'Built for operators',
+      cta: 'Book a Demo',
+    },
+  },
+  {
+    id: 'thrive-syracuse',
+    label: 'Thrive Syracuse',
+    hint: 'Community, education, local events',
+    brandName: 'Thrive Syracuse',
+    platform: 'instagram',
+    businessContext: 'dispensary',
+    contentGoal: 'community',
+    format: 'story',
+    socialSafetyMode: 'social-safe',
+    tone: 'educational',
+    imageMode: 'branded',
+    prompt: 'Create a social-safe community story for Thrive Syracuse focused on education, local connection, and reasons to follow or visit for updates.',
+    textOverlay: {
+      enabled: true,
+      headline: 'What is happening this week',
+      cta: 'Visit Site',
+    },
+  },
+  {
+    id: 'ecstatic-edibles',
+    label: 'Ecstatic Edibles',
+    hint: 'Brand story, BTS, education',
+    brandName: 'Ecstatic Edibles',
+    platform: 'instagram',
+    businessContext: 'brand',
+    contentGoal: 'behind-the-scenes',
+    format: 'reel',
+    socialSafetyMode: 'social-safe',
+    tone: 'professional',
+    imageMode: 'slideshow',
+    prompt: 'Create a short-form behind-the-scenes reel for Ecstatic Edibles focused on brand story, craft, and education without direct selling language.',
+    textOverlay: {
+      enabled: true,
+      headline: 'How it comes together',
+      cta: 'Follow for Updates',
+    },
+  },
+];
+
+const CTA_PRESETS = [
+  'Learn More',
+  'Book a Demo',
+  'Visit Site',
+  'RSVP Now',
+  'Follow for Updates',
+  'See More',
+] as const;
+
+function normalizeFormatForPlatform(
+  platform: SocialPlatform,
+  format: SocialPostFormat,
+): SocialPostFormat {
+  const supportedFormats = PLATFORM_FORMATS[platform];
+  return supportedFormats.includes(format) ? format : supportedFormats[0];
+}
+
+function getCanvasAspectClass(
+  platform: SocialPlatform,
+  format: SocialPostFormat,
+): string {
+  if (format === 'story' || format === 'reel') {
+    return 'aspect-[9/16]';
+  }
+
+  if (format === 'carousel') {
+    return platform === 'linkedin' ? 'aspect-[1.91/1]' : 'aspect-square';
+  }
+
+  if (platform === 'instagram') {
+    return 'aspect-[4/5]';
+  }
+
+  if (platform === 'facebook' || platform === 'linkedin') {
+    return 'aspect-[1.91/1]';
+  }
+
+  return 'aspect-square';
+}
+
+function buildStarterPrompt(
+  brandName: string | undefined,
+  businessContext: CreativeBusinessContext,
+  goal: SocialContentGoal,
+): string {
+  const brandLabel = brandName || (businessContext === 'company' ? 'our team' : 'our brand');
+
+  if (businessContext === 'company') {
+    if (goal === 'thought-leadership') {
+      return `Share a founder-style post about how ${brandLabel} helps operators stay proactive from their phones with outreach, meetings, and creative execution.`;
+    }
+
+    if (goal === 'customer-proof') {
+      return `Turn one real operator outcome from ${brandLabel} into a concise proof-driven post with a clear lesson and safe CTA.`;
+    }
+
+    return `Create a social-safe post about ${brandLabel} focused on useful operator insight, real workflow value, and a clean CTA to learn more or book a demo.`;
+  }
+
+  if (goal === 'community') {
+    return `Create a social-safe community post for ${brandLabel} that highlights people, culture, and what makes the brand worth following.`;
+  }
+
+  if (goal === 'behind-the-scenes') {
+    return `Create a social-safe behind-the-scenes post for ${brandLabel} focused on team, process, and craft without direct selling language.`;
+  }
+
+  return `Create a social-safe educational post for ${brandLabel} that teaches something useful, avoids direct selling, and ends with a low-pressure CTA.`;
+}
+
+function getSocialStrategyBlurb(
+  businessContext: CreativeBusinessContext,
+  goal: SocialContentGoal,
+): string {
+  if (businessContext === 'company') {
+    return goal === 'thought-leadership'
+      ? 'Lead with founder POV, operator lessons, and proof instead of product hype.'
+      : 'Show the workflow, the outcome, and the lesson. Drive people toward demos and owned channels.';
+  }
+
+  if (goal === 'community') {
+    return 'Use culture, people, and place. Make the account feel alive without turning the post into a menu ad.';
+  }
+
+  if (goal === 'event') {
+    return 'Promote attendance, not product. Keep the CTA focused on RSVP, visit, or learn more.';
+  }
+
+  return 'Social-safe works best when the post teaches, documents, or builds trust instead of trying to close the sale in-feed.';
+}
 
 const FRIDAY_QUOTES = [
   "You got knocked the f*** out!",
@@ -131,6 +488,71 @@ const FRIDAY_QUOTES = [
   "Puff puff give.",
   "Craig, watch your back around here.",
   "Today was a good day.",
+];
+
+const QUICK_STARTS: CreativeQuickStart[] = [
+  {
+    id: 'bakedbot-pov',
+    label: 'BakedBot POV',
+    hint: 'Founder-style LinkedIn post',
+    platform: 'linkedin',
+    tone: 'professional',
+    businessContext: 'company',
+    contentGoal: 'thought-leadership',
+    format: 'post',
+    socialSafetyMode: 'social-safe',
+    imageMode: 'branded',
+    prompt: 'Create a polished LinkedIn post about how BakedBot AI helps operators stay proactive from their phones with outreach, meetings, and creative execution.',
+  },
+  {
+    id: 'story-sequence',
+    label: 'Story Sequence',
+    hint: 'Educational vertical story',
+    platform: 'instagram',
+    tone: 'professional',
+    businessContext: 'dispensary',
+    contentGoal: 'education',
+    format: 'story',
+    socialSafetyMode: 'social-safe',
+    imageMode: 'branded',
+    prompt: 'Create a concise Instagram Story sequence that teaches one useful lesson, feels native to social, and avoids direct selling language.',
+    textOverlay: {
+      enabled: true,
+      headline: 'One quick takeaway',
+      cta: 'Learn More',
+    },
+  },
+  {
+    id: 'short-reel',
+    label: 'Short Reel',
+    hint: 'Hook-value-CTA motion',
+    platform: 'instagram',
+    tone: 'hype',
+    businessContext: 'brand',
+    contentGoal: 'behind-the-scenes',
+    format: 'reel',
+    socialSafetyMode: 'social-safe',
+    imageMode: 'slideshow',
+    prompt: 'Create a punchy short-form reel that opens with a strong hook, shows a real behind-the-scenes moment, and ends with a safe CTA.',
+    textOverlay: {
+      enabled: true,
+      headline: 'What happens behind the scenes',
+      cta: 'See more',
+    },
+  },
+  {
+    id: 'community-post',
+    label: 'Community Post',
+    hint: 'People and culture over promotion',
+    platform: 'instagram',
+    tone: 'professional',
+    businessContext: 'dispensary',
+    contentGoal: 'community',
+    format: 'post',
+    socialSafetyMode: 'social-safe',
+    imageMode: 'photo',
+    prompt: 'Create a social-safe community post that highlights people, culture, and what makes the brand worth following.',
+  },
 ];
 
 // --- Main Page ---
@@ -159,6 +581,8 @@ export default function CreativeCommandCenter() {
 
   // Generate panel mode: form or chat
   const [generateMode, setGenerateMode] = useState<'form' | 'chat'>('form');
+  const [composerMode, setComposerMode] = useState<ComposerMode>('quick');
+  const [selectedOrgPresetId, setSelectedOrgPresetId] = useState<CreativeOrgPreset['id'] | null>(null);
 
   // Inbox draft badge state
   const [inboxDraft, setInboxDraft] = useState<{ threadId: string; artifactId: string } | null>(null);
@@ -175,7 +599,10 @@ export default function CreativeCommandCenter() {
 
   // Form state
   const [campaignPrompt, setCampaignPrompt] = useState("");
-  const [contentType, setContentType] = useState("social-post");
+  const [businessContext, setBusinessContext] = useState<CreativeBusinessContext>('company');
+  const [contentGoal, setContentGoal] = useState<SocialContentGoal>('thought-leadership');
+  const [selectedFormat, setSelectedFormat] = useState<SocialPostFormat>('post');
+  const [socialSafetyMode, setSocialSafetyMode] = useState<SocialSafetyMode>('social-safe');
   const [tone, setTone] = useState<CreativeStyle>("professional");
   const [selectedMenuItemId, setSelectedMenuItemId] = useState("");
   const [revisionNote, setRevisionNote] = useState("");
@@ -188,7 +615,7 @@ export default function CreativeCommandCenter() {
   const [date, setDate] = useState<Date | undefined>(new Date());
 
   // Campaign templates
-  const campaignTemplates = [
+  const legacyCampaignTemplates = [
     {
       label: "Product Launch",
       prompt: "Exciting new product launch! Highlighting unique features and benefits.",
@@ -247,8 +674,89 @@ export default function CreativeCommandCenter() {
     },
   ];
 
+  const campaignTemplates: CreativeTemplate[] = [
+    {
+      label: "Founder POV",
+      description: "Leadership insight for BakedBot or operator tools",
+      prompt: "Share a founder-style perspective about what operators need to stay proactive from their phones and why that matters now.",
+      tone: "professional",
+      businessContext: "company",
+      contentGoal: "thought-leadership",
+      format: "post",
+      socialSafetyMode: "social-safe",
+      imageMode: "branded",
+      textOverlay: { enabled: true, headline: "Operator POV", cta: "Learn More" },
+      imageStyle: "clean editorial portrait, polished SaaS brand composition, warm professional lighting",
+    },
+    {
+      label: "Education Bite",
+      description: "Fast myth-busting or explainer content",
+      prompt: "Teach one useful lesson in a clear, social-safe way that works for busy people scrolling quickly.",
+      tone: "educational",
+      businessContext: "dispensary",
+      contentGoal: "education",
+      format: "post",
+      socialSafetyMode: "social-safe",
+      imageMode: "photo",
+      textOverlay: { enabled: true, headline: "Quick takeaway", cta: "Save this" },
+      imageStyle: "clean explainer visual, minimal layout, natural lighting, approachable editorial scene",
+    },
+    {
+      label: "Behind the Scenes",
+      description: "Show the process and people",
+      prompt: "Create a behind-the-scenes post that highlights the people, process, and craft without direct selling language.",
+      tone: "professional",
+      businessContext: "brand",
+      contentGoal: "behind-the-scenes",
+      format: "reel",
+      socialSafetyMode: "social-safe",
+      imageMode: "slideshow",
+      textOverlay: { enabled: true, headline: "Behind the scenes", cta: "See more" },
+      imageStyle: "candid team moment, documentary style, authentic process photography",
+    },
+    {
+      label: "Event Push",
+      description: "Promote attendance, not product",
+      prompt: "Create an event-focused post that makes people want to attend, RSVP, or show up without using direct sales language.",
+      tone: "hype",
+      businessContext: "dispensary",
+      contentGoal: "event",
+      format: "story",
+      socialSafetyMode: "social-safe",
+      imageMode: "branded",
+      textOverlay: { enabled: true, headline: "Join Us", cta: "RSVP Now" },
+      imageStyle: "energetic local event atmosphere, crowd energy, clear focus on invitation",
+    },
+    {
+      label: "Customer Proof",
+      description: "Turn a win into a proof-driven post",
+      prompt: "Turn one real win, result, or operator outcome into a proof-driven social post with a practical lesson.",
+      tone: "professional",
+      businessContext: "company",
+      contentGoal: "customer-proof",
+      format: "carousel",
+      socialSafetyMode: "social-safe",
+      imageMode: "branded",
+      textOverlay: { enabled: true, headline: "What changed", cta: "See it live" },
+      imageStyle: "case-study layout, data-informed brand graphic, premium editorial contrast",
+    },
+    {
+      label: "Community Moment",
+      description: "People and place over promotion",
+      prompt: "Create a community-focused post that feels warm, local, and people-first without turning into a product ad.",
+      tone: "professional",
+      businessContext: "dispensary",
+      contentGoal: "community",
+      format: "post",
+      socialSafetyMode: "social-safe",
+      imageMode: "photo",
+      textOverlay: { enabled: true, headline: "Community first", cta: "Follow along" },
+      imageStyle: "warm community atmosphere, candid local storytelling, welcoming environment",
+    },
+  ];
+
   // Hashtag suggestions per platform
-  const hashtagSuggestions: Record<SocialPlatform, Array<{ tag: string; category: string }>> = {
+  const legacyHashtagSuggestions: Record<SocialPlatform, Array<{ tag: string; category: string }>> = {
     instagram: [
       { tag: "cannabiscommunity", category: "Community" },
       { tag: "cannabisculture", category: "Community" },
@@ -293,6 +801,10 @@ export default function CreativeCommandCenter() {
     ],
   };
 
+  const hashtagSuggestions = SOCIAL_SAFE_HASHTAG_LIBRARY[businessContext][selectedPlatform] ?? [];
+  void legacyCampaignTemplates;
+  void legacyHashtagSuggestions;
+
   const [selectedHashtags, setSelectedHashtags] = useState<string[]>([]);
 
   // Batch mode state
@@ -300,13 +812,13 @@ export default function CreativeCommandCenter() {
   const [batchPlatforms, setBatchPlatforms] = useState<SocialPlatform[]>([]);
 
   // Text overlay state (Option A — CSS text layer over canvas image)
-  const [textOverlay, setTextOverlay] = useState({ enabled: false, headline: '', cta: 'Shop Now' });
+  const [textOverlay, setTextOverlay] = useState({ enabled: false, headline: '', cta: 'Learn More' });
 
   // Image style hint from campaign template — passed into generation prompt for visual variety
   const [selectedImageStyle, setSelectedImageStyle] = useState('');
 
   // Image/media mode: AI photo | Branded | Video | Slideshow | Deck | Long Video
-  const [imageMode, setImageMode] = useState<'photo' | 'branded' | 'video' | 'slideshow' | 'deck' | 'longvideo'>('photo');
+  const [imageMode, setImageMode] = useState<CreativeImageMode>('photo');
   const [videoDuration, setVideoDuration] = useState<'5' | '10'>('5');
   const [longVideoTarget, setLongVideoTarget] = useState<'60' | '90'>('60');
   const [longVideoModel, setLongVideoModel] = useState<'budget' | 'premium'>('budget');
@@ -327,7 +839,10 @@ export default function CreativeCommandCenter() {
     if (mode === 'slideshow') return 'Generate Slideshow';
     if (mode === 'deck') return 'Generate Deck';
     if (mode === 'longvideo') return 'Generate Long Video';
-    return long ? 'Generate with Craig' : 'Generate';
+    if (selectedFormat === 'story') return long ? 'Generate Story' : 'Story';
+    if (selectedFormat === 'reel') return long ? 'Generate Reel' : 'Reel';
+    if (selectedFormat === 'carousel') return long ? 'Generate Carousel' : 'Carousel';
+    return long ? 'Generate Post' : 'Generate';
   };
 
   // Deck mode state
@@ -338,7 +853,9 @@ export default function CreativeCommandCenter() {
   const [isGeneratingDeck, setIsGeneratingDeck] = useState(false);
 
   // Proactive generation — fires once when brand guide loads and no content exists yet
-  const hasAutoGenerated = useRef(false);
+  const hasAutoGenerated = useRef(true);
+  const hasSeededStarterPrompt = useRef(false);
+  const hasInitializedCreativeDefaults = useRef(false);
 
   // Visible generation error — shown in canvas so user sees it even if toast is missed
   const [generationError, setGenerationError] = useState<string | null>(null);
@@ -386,6 +903,82 @@ export default function CreativeCommandCenter() {
   }, []);
 
   const selectedMenuProduct = menuItems.find(item => item.id === selectedMenuItemId) ?? null;
+
+  useEffect(() => {
+    const normalizedFormat = normalizeFormatForPlatform(selectedPlatform, selectedFormat);
+    if (normalizedFormat !== selectedFormat) {
+      setSelectedFormat(normalizedFormat);
+    }
+  }, [selectedFormat, selectedPlatform]);
+
+  useEffect(() => {
+    if (hasInitializedCreativeDefaults.current) {
+      return;
+    }
+
+    if (brandGuideLoading || isLoadingMenu) {
+      return;
+    }
+
+    const inferredContext: CreativeBusinessContext = brandGuide?.brandName?.toLowerCase().includes('bakedbot')
+      ? 'company'
+      : menuItems.length > 0
+        ? 'dispensary'
+        : 'brand';
+
+    setBusinessContext(inferredContext);
+    setContentGoal(inferredContext === 'company' ? 'thought-leadership' : 'education');
+    setSelectedFormat(inferredContext === 'company' ? 'post' : normalizeFormatForPlatform(selectedPlatform, 'post'));
+    setTone(inferredContext === 'company' ? 'professional' : 'educational');
+    setSocialSafetyMode('social-safe');
+
+    const normalizedBrandName = brandGuide?.brandName?.toLowerCase().trim();
+    const matchedPreset = normalizedBrandName
+      ? ORG_PRESETS.find((preset) => preset.brandName.toLowerCase() === normalizedBrandName)
+      : null;
+
+    if (matchedPreset) {
+      setSelectedOrgPresetId(matchedPreset.id);
+      setSelectedPlatform(matchedPreset.platform);
+      setBusinessContext(matchedPreset.businessContext);
+      setContentGoal(matchedPreset.contentGoal);
+      setSelectedFormat(normalizeFormatForPlatform(matchedPreset.platform, matchedPreset.format));
+      setTone(matchedPreset.tone);
+      setSocialSafetyMode(matchedPreset.socialSafetyMode);
+      setImageMode(matchedPreset.imageMode);
+      if (matchedPreset.textOverlay) {
+        setTextOverlay(matchedPreset.textOverlay);
+      }
+      setCampaignPrompt(matchedPreset.prompt);
+    }
+
+    hasInitializedCreativeDefaults.current = true;
+  }, [brandGuide?.brandName, brandGuideLoading, isLoadingMenu, menuItems.length, selectedPlatform]);
+
+  useEffect(() => {
+    if (hasSeededStarterPrompt.current) {
+      return;
+    }
+
+    if (campaignPrompt.trim() || localContent) {
+      return;
+    }
+
+    if (brandGuideLoading || isLoadingMenu) {
+      return;
+    }
+
+    setCampaignPrompt(buildStarterPrompt(brandGuide?.brandName, businessContext, contentGoal));
+    hasSeededStarterPrompt.current = true;
+  }, [
+    brandGuide?.brandName,
+    brandGuideLoading,
+    businessContext,
+    campaignPrompt,
+    contentGoal,
+    isLoadingMenu,
+    localContent,
+  ]);
 
   // Load brand kit images once org context is known so Drive status is visible across the page
   useEffect(() => {
@@ -533,6 +1126,58 @@ export default function CreativeCommandCenter() {
     }, 60);
   };
 
+  const applyOrgPreset = (preset: CreativeOrgPreset) => {
+    setSelectedOrgPresetId(preset.id);
+    setSelectedPlatform(preset.platform);
+    setBusinessContext(preset.businessContext);
+    setContentGoal(preset.contentGoal);
+    setSelectedFormat(normalizeFormatForPlatform(preset.platform, preset.format));
+    setSocialSafetyMode(preset.socialSafetyMode);
+    setTone(preset.tone);
+    setImageMode(preset.imageMode);
+    setGenerateMode('form');
+    setComposerMode('quick');
+    setActiveLeftPanel('generate');
+    setCampaignPrompt(preset.prompt);
+
+    if (preset.textOverlay) {
+      setTextOverlay(preset.textOverlay);
+    } else {
+      setTextOverlay({ enabled: false, headline: '', cta: 'Learn More' });
+    }
+
+    toast.success(`${preset.label} preset loaded`);
+    window.setTimeout(() => {
+      campaignPromptRef.current?.focus();
+    }, 60);
+  };
+
+  const applyQuickStart = (quickStart: CreativeQuickStart) => {
+    setSelectedOrgPresetId(null);
+    setSelectedPlatform(quickStart.platform);
+    setTone(quickStart.tone);
+    setBusinessContext(quickStart.businessContext);
+    setContentGoal(quickStart.contentGoal);
+    setSelectedFormat(normalizeFormatForPlatform(quickStart.platform, quickStart.format));
+    setSocialSafetyMode(quickStart.socialSafetyMode);
+    setImageMode(quickStart.imageMode);
+    setComposerMode('quick');
+    setGenerateMode('form');
+    setActiveLeftPanel('generate');
+    setCampaignPrompt(quickStart.prompt);
+
+    if (quickStart.textOverlay) {
+      setTextOverlay(quickStart.textOverlay);
+    } else {
+      setTextOverlay(prev => ({ ...prev, enabled: false }));
+    }
+
+    toast.success(`${quickStart.label} preset loaded`);
+    window.setTimeout(() => {
+      campaignPromptRef.current?.focus();
+    }, 60);
+  };
+
   // --- Handlers ---
 
   const handleGenerate = async () => {
@@ -593,8 +1238,9 @@ export default function CreativeCommandCenter() {
         return;
       }
 
-      const aspectRatio = selectedPlatform === 'tiktok' ? '9:16'
-        : (selectedPlatform === 'instagram' || selectedPlatform === 'facebook') ? '1:1'
+      const aspectRatio = (selectedFormat === 'story' || selectedFormat === 'reel' || selectedPlatform === 'tiktok')
+        ? '9:16'
+        : (selectedPlatform === 'instagram' || selectedFormat === 'carousel') ? '1:1'
         : '16:9';
 
       setIsGeneratingVideo(true);
@@ -651,10 +1297,15 @@ export default function CreativeCommandCenter() {
         return;
       }
 
-      const aspectRatio = selectedPlatform === 'tiktok' ? '9:16'
-        : (selectedPlatform === 'instagram' || selectedPlatform === 'facebook') ? '1:1'
+      const aspectRatio = (selectedFormat === 'story' || selectedFormat === 'reel' || selectedPlatform === 'tiktok')
+        ? '9:16'
+        : (selectedPlatform === 'instagram' || selectedFormat === 'carousel') ? '1:1'
         : '16:9';
-      const brandPrefix = brandGuide?.brandName ? `${brandGuide.brandName} cannabis brand. ` : '';
+      const brandPrefix = brandGuide?.brandName
+        ? businessContext === 'company'
+          ? `${brandGuide.brandName} operator software brand. `
+          : `${brandGuide.brandName} regulated brand. `
+        : '';
       const voiceSuffix = brandVoiceString ? ` Tone: ${brandVoiceString}.` : '';
       const isSlideshow = imageMode === 'slideshow';
       const trimmedPrompt = campaignPrompt.trim();
@@ -664,7 +1315,7 @@ export default function CreativeCommandCenter() {
         // Remotion slideshow: prompt used as tagline/headline — keep short, brand-focused
         ? trimmedPrompt
         // Kling: cinematic lifestyle prompt
-        : `${brandPrefix}${trimmedPrompt}${voiceSuffix} Cannabis lifestyle marketing video, no text overlays, cinematic quality.`;
+        : `${brandPrefix}${trimmedPrompt}${voiceSuffix} Social-safe cinematic brand video, no direct selling language, no text overlays, high production quality.`;
 
       setIsGeneratingVideo(true);
       setDeckDownloadUrl(null);
@@ -741,9 +1392,16 @@ export default function CreativeCommandCenter() {
       const result = await generate({
         platform: selectedPlatform,
         prompt: captionPrompt,
+        businessContext,
+        contentGoal,
+        format: normalizeFormatForPlatform(selectedPlatform, selectedFormat),
+        socialSafetyMode,
         imageStyle: selectedImageStyle || undefined,
         style: tone,
         includeHashtags: true,
+        targetAudience: businessContext === 'company'
+          ? 'operators, marketing leaders, and executive teams'
+          : 'adult audience, community members, and interested followers',
         productName: selectedMenuProduct?.name || undefined,
         productImageUrl: selectedMenuProduct?.imageUrl || undefined,
         tier: "free",
@@ -835,10 +1493,18 @@ export default function CreativeCommandCenter() {
   const handleCancelEditCaption = () => { setIsEditingCaption(false); setEditedCaption(""); };
 
   const handleSelectTemplate = (template: typeof campaignTemplates[0]) => {
+    setSelectedOrgPresetId(null);
     setCampaignPrompt(template.prompt);
     setTone(template.tone);
-    // Auto-populate text overlay from template
-    setTextOverlay({ enabled: true, headline: template.textOverlay.headline, cta: template.textOverlay.cta });
+    setBusinessContext(template.businessContext);
+    setContentGoal(template.contentGoal);
+    setSelectedFormat(normalizeFormatForPlatform(selectedPlatform, template.format));
+    setSocialSafetyMode(template.socialSafetyMode);
+    setImageMode(template.imageMode);
+    setComposerMode('quick');
+    setTextOverlay(template.textOverlay
+      ? { enabled: true, headline: template.textOverlay.headline, cta: template.textOverlay.cta }
+      : { enabled: false, headline: '', cta: 'Learn More' });
     // Store image style hint — included in generation prompt for visual variety
     setSelectedImageStyle(template.imageStyle);
     openGeneratePanel();
@@ -893,12 +1559,22 @@ export default function CreativeCommandCenter() {
         batchPlatforms.map(platform => generate({
           platform,
           prompt: campaignPrompt,
+          businessContext,
+          contentGoal,
+          format: normalizeFormatForPlatform(platform, selectedFormat),
+          socialSafetyMode,
           imageStyle: selectedImageStyle || undefined,
           style: tone,
           includeHashtags: true,
+          targetAudience: businessContext === 'company'
+            ? 'operators, marketing leaders, and executive teams'
+            : 'adult audience, community members, and interested followers',
           productName: selectedMenuProduct?.name || undefined,
           productImageUrl: selectedMenuProduct?.imageUrl || undefined,
           tier: "free",
+          brandName: brandGuide?.brandName || undefined,
+          brandVoice: brandVoiceString,
+          logoUrl: brandGuide?.visualIdentity?.logo?.primary,
         }))
       );
       // Show the first successful result on canvas immediately
@@ -954,6 +1630,7 @@ export default function CreativeCommandCenter() {
             <button
               key={p}
               onClick={() => {
+                setSelectedOrgPresetId(null);
                 setSelectedPlatform(p);
                 if (!currentContent) {
                   openGeneratePanel();
@@ -1068,6 +1745,17 @@ export default function CreativeCommandCenter() {
                 ? `${brandKitImages.length} brand kit images saved in Drive`
                 : 'Brand kit images auto-save to Drive after setup'}
           </span>
+          <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-muted-foreground">
+            {BUSINESS_CONTEXT_OPTIONS.find((option) => option.value === businessContext)?.label ?? 'Context'}
+            <span className="text-muted-foreground/70">context</span>
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-muted-foreground">
+            {FORMAT_LABELS[selectedFormat]}
+            <span className="text-muted-foreground/70">format</span>
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-muted-foreground">
+            {socialSafetyMode === 'social-safe' ? 'Social-safe copy' : 'Standard copy'}
+          </span>
           {(imageMode === 'video' || imageMode === 'slideshow') && (
             <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-muted-foreground">
               {videoDuration}s motion selected
@@ -1077,6 +1765,26 @@ export default function CreativeCommandCenter() {
       </div>
 
       {/* ══ MAIN 3-PANEL WORKSPACE ══ */}
+      <div className="border-b border-border bg-background px-4 py-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Quick starts</span>
+          {QUICK_STARTS.map((quickStart) => (
+            <button
+              key={quickStart.id}
+              type="button"
+              onClick={() => applyQuickStart(quickStart)}
+              className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/40 px-3 py-1.5 text-left transition-colors hover:border-primary/40 hover:bg-primary/10"
+            >
+              <span className="text-xs font-medium text-foreground">{quickStart.label}</span>
+              <span className="text-[10px] text-muted-foreground">{quickStart.hint}</span>
+            </button>
+          ))}
+        </div>
+        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+          Built for fast, social-safe content: education, founder POV, community, behind-the-scenes, and proof instead of direct in-feed selling.
+        </p>
+      </div>
+
       <div className="flex flex-1 overflow-hidden relative">
 
         {/* Mobile backdrop — tap to close the left panel */}
@@ -1132,7 +1840,29 @@ export default function CreativeCommandCenter() {
                         <Sparkles className="w-4 h-4 text-primary" />
                         <h3 className="text-sm font-semibold">AI Generate</h3>
                       </div>
+                      <div className="flex rounded-lg border border-border bg-muted/40 p-0.5">
+                        {(['quick', 'studio'] as const).map((mode) => (
+                          <button
+                            key={mode}
+                            onClick={() => {
+                              setComposerMode(mode);
+                              if (mode === 'quick') {
+                                setGenerateMode('form');
+                              }
+                            }}
+                            className={cn(
+                              "flex-1 text-xs py-1.5 rounded-md font-medium transition-all capitalize",
+                              composerMode === mode
+                                ? "bg-background shadow-sm text-foreground"
+                                : "text-muted-foreground hover:text-foreground",
+                            )}
+                          >
+                            {mode === 'quick' ? 'Quick Create' : 'Studio'}
+                          </button>
+                        ))}
+                      </div>
                       {/* Form / Chat pill toggle */}
+                      {composerMode === 'studio' ? (
                       <div className="flex rounded-lg border border-border bg-muted/40 p-0.5">
                         {(['form', 'chat'] as const).map(m => (
                           <button
@@ -1149,10 +1879,15 @@ export default function CreativeCommandCenter() {
                           </button>
                         ))}
                       </div>
+                      ) : (
+                        <p className="text-[11px] leading-relaxed text-muted-foreground">
+                          Quick Create trims the flow down to preset, goal, format, prompt, and CTA so you can publish faster from mobile.
+                        </p>
+                      )}
                     </div>
 
                     {/* Chat mode */}
-                    {generateMode === 'chat' && (
+                    {composerMode === 'studio' && generateMode === 'chat' && (
                       <div className="flex-1 min-h-0">
                         <CreativeChatPanel
                           platform={selectedPlatform}
@@ -1168,23 +1903,30 @@ export default function CreativeCommandCenter() {
                   <ScrollArea className="flex-1">
                     <div className="p-4 space-y-4">
 
-                      {/* Quick templates */}
                       <div className="space-y-2">
                         <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                          Quick Templates
+                          Social-Safe Templates
                         </label>
-                        <div className="grid grid-cols-2 gap-1.5">
-                          {campaignTemplates.map(t => (
+                        <div className="space-y-2">
+                          {campaignTemplates.map((template) => (
                             <button
-                              key={t.label}
-                              onClick={() => handleSelectTemplate(t)}
-                              className="px-2 py-2 text-xs rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted hover:border-primary/40 transition-all text-left leading-tight"
+                              key={template.label}
+                              type="button"
+                              onClick={() => handleSelectTemplate(template)}
+                              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-left transition-all hover:border-primary/40 hover:bg-muted/40"
                             >
-                              {t.label}
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-xs font-medium text-foreground">{template.label}</span>
+                                <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                                  {FORMAT_LABELS[template.format]}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+                                {template.description}
+                              </p>
                             </button>
                           ))}
                         </div>
-                        {/* Active template style indicator */}
                         {selectedImageStyle && (
                           <p className="text-[10px] text-primary/70 leading-tight mt-1 truncate" title={selectedImageStyle}>
                             <span className="font-semibold">Style:</span> {selectedImageStyle}
@@ -1192,7 +1934,42 @@ export default function CreativeCommandCenter() {
                         )}
                       </div>
 
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                          Org Presets
+                        </label>
+                        <div className="grid grid-cols-1 gap-2">
+                          {ORG_PRESETS.map((preset) => (
+                            <button
+                              key={preset.id}
+                              type="button"
+                              onClick={() => applyOrgPreset(preset)}
+                              className={cn(
+                                "w-full rounded-xl border px-3 py-2.5 text-left transition-all",
+                                selectedOrgPresetId === preset.id
+                                  ? "border-primary bg-primary/10"
+                                  : "border-border bg-background hover:border-primary/40 hover:bg-muted/40",
+                              )}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-xs font-medium text-foreground">{preset.label}</span>
+                                <span className="text-[10px] text-muted-foreground">{preset.hint}</span>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
                       <Separator />
+
+                      <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary/80">
+                          Social-safe strategy
+                        </p>
+                        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                          {getSocialStrategyBlurb(businessContext, contentGoal)}
+                        </p>
+                      </div>
 
                       {/* Campaign prompt */}
                       <div className="space-y-1.5">
@@ -1201,29 +1978,149 @@ export default function CreativeCommandCenter() {
                           ref={campaignPromptRef}
                           value={campaignPrompt}
                           onChange={e => { setCampaignPrompt(e.target.value); setSelectedImageStyle(''); }}
-                          placeholder="Describe your campaign idea..."
+                          placeholder="Describe the post, lesson, proof point, or story you want to share..."
                           className="bg-background border-border resize-none h-28 text-xs placeholder:text-muted-foreground/50 focus-visible:ring-primary/50"
                         />
                       </div>
 
-                      {/* Type + Tone */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">CTA Overlay</label>
+                          <button
+                            type="button"
+                            onClick={() => setTextOverlay(prev => ({
+                              ...prev,
+                              enabled: !prev.enabled,
+                              cta: prev.cta || 'Learn More',
+                            }))}
+                            className={cn(
+                              "rounded-full border px-2.5 py-1 text-[10px] font-medium transition-all",
+                              textOverlay.enabled
+                                ? "border-primary bg-primary/10 text-primary"
+                                : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                            )}
+                          >
+                            {textOverlay.enabled ? 'Overlay On' : 'Overlay Off'}
+                          </button>
+                        </div>
+                        {textOverlay.enabled && (
+                          <>
+                            <div className="grid grid-cols-2 gap-2">
+                              <input
+                                value={textOverlay.headline}
+                                onChange={e => setTextOverlay(prev => ({ ...prev, headline: e.target.value }))}
+                                className="h-8 rounded-md border border-border bg-background px-2 text-xs"
+                                placeholder="Headline"
+                              />
+                              <input
+                                value={textOverlay.cta}
+                                onChange={e => setTextOverlay(prev => ({ ...prev, cta: e.target.value }))}
+                                className="h-8 rounded-md border border-border bg-background px-2 text-xs"
+                                placeholder="CTA"
+                              />
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {CTA_PRESETS.map((cta) => (
+                                <button
+                                  key={cta}
+                                  type="button"
+                                  onClick={() => setTextOverlay(prev => ({ ...prev, enabled: true, cta }))}
+                                  className={cn(
+                                    "rounded-full border px-2.5 py-1 text-[10px] transition-all",
+                                    textOverlay.cta === cta
+                                      ? "border-primary bg-primary/10 text-primary"
+                                      : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                                  )}
+                                >
+                                  {cta}
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Context</label>
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {BUSINESS_CONTEXT_OPTIONS.map((option) => (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => {
+                                setSelectedOrgPresetId(null);
+                                setBusinessContext(option.value);
+                              }}
+                              className={cn(
+                                "rounded-lg border px-2 py-2 text-left transition-all",
+                                businessContext === option.value
+                                  ? "border-primary bg-primary/10 text-foreground"
+                                  : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                              )}
+                            >
+                              <span className="block text-[11px] font-medium">{option.label}</span>
+                              <span className="mt-1 block text-[10px] leading-tight opacity-80">{option.hint}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Goal</label>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {CONTENT_GOAL_OPTIONS.map((option) => (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => {
+                                setSelectedOrgPresetId(null);
+                                setContentGoal(option.value);
+                              }}
+                              className={cn(
+                                "rounded-lg border px-2.5 py-2 text-left transition-all",
+                                contentGoal === option.value
+                                  ? "border-primary bg-primary/10 text-foreground"
+                                  : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                              )}
+                            >
+                              <span className="block text-[11px] font-medium">{option.label}</span>
+                              <span className="mt-1 block text-[10px] leading-tight opacity-80">{option.hint}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Format</label>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {PLATFORM_FORMATS[selectedPlatform].map((format) => (
+                            <button
+                              key={format}
+                              type="button"
+                              onClick={() => {
+                                setSelectedOrgPresetId(null);
+                                setSelectedFormat(format);
+                              }}
+                              className={cn(
+                                "rounded-lg border px-2.5 py-2 text-xs font-medium transition-all",
+                                selectedFormat === format
+                                  ? "border-primary bg-primary/10 text-foreground"
+                                  : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                              )}
+                            >
+                              {FORMAT_LABELS[format]}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
                       <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1.5">
-                          <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Type</label>
-                          <Select value={contentType} onValueChange={setContentType}>
-                            <SelectTrigger className="h-8 text-xs bg-background border-border">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="bg-muted border-border text-foreground">
-                              <SelectItem value="social-post">Social Post</SelectItem>
-                              <SelectItem value="blog">Blog</SelectItem>
-                              <SelectItem value="email">Email</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-1.5">
                           <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Tone</label>
-                          <Select value={tone} onValueChange={v => setTone(v as CreativeStyle)}>
+                          <Select value={tone} onValueChange={v => {
+                            setSelectedOrgPresetId(null);
+                            setTone(v as CreativeStyle);
+                          }}>
                             <SelectTrigger className="h-8 text-xs bg-background border-border">
                               <SelectValue />
                             </SelectTrigger>
@@ -1234,8 +2131,33 @@ export default function CreativeCommandCenter() {
                             </SelectContent>
                           </Select>
                         </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Mode</label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedOrgPresetId(null);
+                              setSocialSafetyMode(prev => prev === 'social-safe' ? 'standard' : 'social-safe');
+                            }}
+                            className={cn(
+                              "h-8 w-full rounded-md border px-2 text-xs font-medium transition-all",
+                              socialSafetyMode === 'social-safe'
+                                ? "border-primary bg-primary/10 text-foreground"
+                                : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                            )}
+                          >
+                            {socialSafetyMode === 'social-safe' ? 'Social-safe on' : 'Standard mode'}
+                          </button>
+                        </div>
                       </div>
 
+                      {composerMode === 'studio' ? (
+                      <Accordion type="multiple" defaultValue={isMobile ? [] : ['distribution']} className="w-full">
+                        <AccordionItem value="distribution" className="rounded-xl border border-border px-3">
+                          <AccordionTrigger className="py-3 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground hover:no-underline">
+                            Distribution
+                          </AccordionTrigger>
+                          <AccordionContent className="space-y-3 pb-3">
                       {/* Hashtags */}
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
@@ -1247,7 +2169,7 @@ export default function CreativeCommandCenter() {
                           )}
                         </div>
                         <div className="flex flex-wrap gap-1.5">
-                          {hashtagSuggestions[selectedPlatform]?.map(({ tag }) => {
+                          {hashtagSuggestions.map(({ tag }) => {
                             const isSelected = selectedHashtags.includes(tag);
                             return (
                               <button
@@ -1272,23 +2194,32 @@ export default function CreativeCommandCenter() {
                           </p>
                         )}
                       </div>
+                          </AccordionContent>
+                        </AccordionItem>
 
-                      {/* Product */}
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Product</label>
-                        <Select value={selectedMenuItemId} onValueChange={setSelectedMenuItemId}>
-                          <SelectTrigger className="h-8 text-xs bg-background border-border">
-                            <SelectValue placeholder={isLoadingMenu ? "Loading..." : "Select product (optional)"} />
-                          </SelectTrigger>
-                          <SelectContent className="bg-muted border-border text-foreground max-h-48">
-                            {menuItems.map(item => (
-                              <SelectItem key={item.id} value={item.id} className="text-xs">
-                                {formatMenuProductLabel(item)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                        <AccordionItem value="assets" className="mt-3 rounded-xl border border-border px-3">
+                          <AccordionTrigger className="py-3 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground hover:no-underline">
+                            Assets and Media
+                          </AccordionTrigger>
+                          <AccordionContent className="space-y-3 pb-3">
+
+                      {businessContext !== 'company' && (
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Product</label>
+                          <Select value={selectedMenuItemId} onValueChange={setSelectedMenuItemId}>
+                            <SelectTrigger className="h-8 text-xs bg-background border-border">
+                              <SelectValue placeholder={isLoadingMenu ? "Loading..." : "Select product (optional)"} />
+                            </SelectTrigger>
+                            <SelectContent className="bg-muted border-border text-foreground max-h-48">
+                              {menuItems.map(item => (
+                                <SelectItem key={item.id} value={item.id} className="text-xs">
+                                  {formatMenuProductLabel(item)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
 
                       {/* Media mode toggle: AI Photo | Branded | Video | Slideshow | Long Video | Deck */}
                       <div className="space-y-1.5">
@@ -1481,6 +2412,14 @@ export default function CreativeCommandCenter() {
                             ))}
                           </div>
                           <p className="text-[10px] text-purple-300/70">{batchPlatforms.length} platform{batchPlatforms.length !== 1 ? 's' : ''} selected</p>
+                        </div>
+                      )}
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
+                      ) : (
+                        <div className="rounded-xl border border-dashed border-border p-3 text-xs leading-relaxed text-muted-foreground">
+                          Studio mode unlocks chat, hashtags, product linking, media tuning, batch generation, and the deeper asset controls.
                         </div>
                       )}
 
@@ -1960,12 +2899,22 @@ export default function CreativeCommandCenter() {
 
           {/* Format pills + Text toggle */}
           <div className="flex items-center gap-1.5 mb-3 flex-wrap justify-center">
-            {['Post', 'Story', 'Reel', 'Carousel'].map(fmt => (
+            {PLATFORM_FORMATS[selectedPlatform].map((format) => (
               <button
-                key={fmt}
-                className="px-3 py-1 text-xs rounded-full border border-border text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all"
+                key={format}
+                type="button"
+                onClick={() => {
+                  setSelectedOrgPresetId(null);
+                  setSelectedFormat(format);
+                }}
+                className={cn(
+                  "px-3 py-1 text-xs rounded-full border transition-all",
+                  selectedFormat === format
+                    ? "border-primary bg-primary/15 text-primary"
+                    : "border-border text-muted-foreground hover:text-foreground hover:border-primary/40",
+                )}
               >
-                {fmt}
+                {FORMAT_LABELS[format]}
               </button>
             ))}
             <button
@@ -2007,7 +2956,7 @@ export default function CreativeCommandCenter() {
             transition={{ duration: 0.25 }}
             className={cn(
               "relative rounded-2xl overflow-hidden border-2 border-border shadow-2xl bg-card w-full max-w-[320px]",
-              PLATFORM_ASPECT[selectedPlatform] ?? "aspect-square",
+              getCanvasAspectClass(selectedPlatform, selectedFormat),
             )}
           >
             {(isGenerating || isGeneratingVideo || isGeneratingDeck) ? (

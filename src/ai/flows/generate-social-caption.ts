@@ -16,6 +16,18 @@ const GenerateSocialCaptionInputSchema = z.object({
     platform: z.enum(['instagram', 'tiktok', 'linkedin', 'twitter', 'facebook'])
         .describe('Target social media platform'),
     prompt: z.string().describe('The content theme or product to create caption for'),
+    businessContext: z.enum(['company', 'dispensary', 'brand'])
+        .optional()
+        .describe('Whether this is company content, dispensary content, or consumer brand content'),
+    contentGoal: z.enum(['thought-leadership', 'education', 'behind-the-scenes', 'community', 'customer-proof', 'event'])
+        .optional()
+        .describe('Primary social content goal'),
+    format: z.enum(['post', 'story', 'reel', 'carousel'])
+        .optional()
+        .describe('Target social format'),
+    socialSafetyMode: z.enum(['social-safe', 'standard'])
+        .default('social-safe')
+        .describe('How strongly to avoid direct selling language'),
     style: z.enum(['professional', 'playful', 'educational', 'hype'])
         .default('professional')
         .describe('Tone style for the caption'),
@@ -56,33 +68,48 @@ const prompt = ai.definePrompt({
     name: 'generateSocialCaptionPrompt',
     input: { schema: GenerateSocialCaptionInputSchema },
     output: { schema: GenerateSocialCaptionOutputSchema },
-    prompt: `You are Craig, a high-energy cannabis industry marketing expert and content strategist.
-{{#if brandName}}You are creating content FOR a client brand called **{{{brandName}}}**. Always use "{{{brandName}}}" as the brand name in your captions â€” never "BakedBot AI" or any other placeholder.
-{{/if}}You specialize in cannabis industry social media.
+    prompt: `You are Craig, a social content strategist for regulated consumer brands and B2B operator software.
+{{#if brandName}}You are creating content FOR a client brand called **{{{brandName}}}**. Always use "{{{brandName}}}" as the brand name in your captions, never a placeholder brand name.
+{{/if}}
+
+You can write for:
+- B2B or software companies like BakedBot AI
+- Dispensaries and licensed operators
+- Consumer brands in regulated markets
 
 Your expertise:
-- Turning product features into compelling social narratives
-- Platform-specific optimization (character limits, hashtag strategies, trending formats)
-- Compliance-aware cannabis marketing (no health claims, proper age-gating language)
-- A/B testing mindset - always provide variations
+- Turning education, operator wins, founder POV, and community moments into social content
+- Adapting one idea into platform-specific posts, stories, reels, and carousels
+- Staying compliance-aware in restrictive social environments
+- Driving interest toward safe CTAs like learn more, visit the site, book a demo, RSVP, or follow for updates
 
-**CRITICAL COMPLIANCE RULES:**
-1. NEVER make medical claims (no "treat," "cure," "diagnose," "heal")
-2. NEVER target minors or use youth-appealing language
-3. ALWAYS imply 21+ audience
-4. NEVER guarantee effects or results
-5. Focus on experience, quality, craft, and community
+Critical guardrails:
+1. Never make medical claims or guaranteed outcome claims
+2. Never target minors or use youth-appealing language
+3. When the content is cannabis-adjacent, assume an adult audience
+4. If socialSafetyMode is "social-safe", do not use direct purchase language such as buy, order, shop now, discounts, pricing, DM to purchase, or explicit sales offers for regulated goods
+5. Prefer education, founder POV, behind-the-scenes, community, customer proof, and event storytelling over direct selling
 
-**Platform Guidelines:**
-- Instagram: Visual storytelling, 2200 char max, 20-30 hashtags work well
-- TikTok: Trendy, casual, 150 char ideal, 3-5 hashtags max
-- LinkedIn: Professional, industry insights, thought leadership
-- Twitter: Concise, punchy, 280 char max, 2-3 hashtags
-- Facebook: Conversational, community-focused, longer form ok
+Platform guidelines:
+- Instagram: visual storytelling, punchy hooks, creator-style captions, stories and reels should feel fast and clear
+- TikTok: short hook first, conversational, trend-aware but still brand-safe
+- LinkedIn: thoughtful, credible, educational, leadership-forward
+- Twitter: concise, sharp, insight-led
+- Facebook: community-oriented and event-friendly
 
 Generate captions for:
 - Platform: {{{platform}}}
 - Content Theme: {{{prompt}}}
+{{#if businessContext}}
+- Business Context: {{{businessContext}}}
+{{/if}}
+{{#if contentGoal}}
+- Content Goal: {{{contentGoal}}}
+{{/if}}
+{{#if format}}
+- Format: {{{format}}}
+{{/if}}
+- Social Safety Mode: {{{socialSafetyMode}}}
 - Style: {{{style}}}
 {{#if brandName}}
 - Brand Name: {{{brandName}}}
@@ -109,7 +136,13 @@ Provide:
 3. Platform-optimized hashtags
 4. Any compliance notes if content needs adjustment
 
-Remember: Be authentic, engaging, and compliance-aware. Quality over quantity.`,
+Additional formatting guidance:
+- If format is "story", write in short frames or short punchy copy that works as an overlay
+- If format is "reel", lead with a hook and keep the body compact
+- If format is "carousel", make the opener headline-driven and educational
+- If businessContext is "company", do not write like a dispensary menu or cannabis sales ad
+
+Remember: Be authentic, useful, credible, and compliance-aware. Quality over quantity.`,
 });
 
 // --- Flow Definition ---
@@ -141,21 +174,17 @@ export async function generateSocialCaption(
  */
 export async function generateCaptionText(
     platform: GenerateSocialCaptionInput['platform'],
-    prompt: string,
+    promptText: string,
     style: GenerateSocialCaptionInput['style'] = 'professional'
 ): Promise<string> {
     const result = await generateSocialCaption({
         platform,
-        prompt,
+        prompt: promptText,
         style,
         includeHashtags: true,
         includeEmojis: true,
     });
 
-    // Combine caption with hashtags
     const hashtagString = result.hashtags.slice(0, 10).join(' ');
     return `${result.primaryCaption}\n\n${hashtagString}`;
 }
-
-
-

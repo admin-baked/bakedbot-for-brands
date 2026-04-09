@@ -18,13 +18,16 @@ import { withImageTracking } from '@/server/services/media-tracking';
 import { isRenderableProductImage } from '@/lib/utils/product-image';
 import type {
     CreativeContent,
+    CreativeBusinessContext,
     ContentStatus,
     ComplianceStatus,
     GenerateContentRequest,
     GenerateContentResponse,
     ApproveContentRequest,
     ReviseContentRequest,
+    SocialContentGoal,
     SocialPlatform,
+    SocialSafetyMode,
     ApprovalRecord,
     ApprovalState,
     ApprovalChain,
@@ -351,7 +354,7 @@ export async function generateContent(
             status: 'pending',
             complianceStatus,
             caption,
-            hashtags: request.includeHashtags ? generateHashtags(request.platform) : [],
+            hashtags: request.includeHashtags ? generateHashtags(request.platform, request) : [],
             mediaUrls: [imageUrl],
             thumbnailUrl: imageUrl,
             mediaType: 'image',
@@ -864,18 +867,34 @@ export async function getContentByPlatform(
  */
 function deriveImagePrompt(request: GenerateContentRequest): string {
     const parts: string[] = [];
+    const businessContext = resolveBusinessContext(request);
+    const goal = resolveContentGoal(request, businessContext);
 
     // 1. Visual style description FIRST — FLUX.1 weights early tokens most heavily
     if (request.imageStyle) {
         parts.push(request.imageStyle);
     }
 
-    // 2. Product name as subject anchor
-    if (request.productName) {
+    // 2. Subject anchor based on business context
+    if (request.productName && businessContext !== 'company') {
         parts.push(`${request.productName} cannabis product`);
+    } else if (businessContext === 'company') {
+        parts.push('modern AI operations workspace, executive mobile dashboard, polished founder-led SaaS brand');
+    } else if (businessContext === 'brand') {
+        parts.push('premium brand storytelling, editorial lifestyle scene');
     } else {
-        parts.push('cannabis dispensary lifestyle');
+        parts.push('licensed dispensary lifestyle, adult audience, community-focused retail environment');
     }
+
+    const goalVisualHints: Record<SocialContentGoal, string> = {
+        'thought-leadership': 'editorial composition, confident founder portrait, credible business setting',
+        education: 'clean explainer layout, approachable teaching moment, clear composition',
+        'behind-the-scenes': 'candid team moment, process detail, authentic working session',
+        community: 'warm community atmosphere, people-first storytelling, welcoming environment',
+        'customer-proof': 'case-study style composition, results-focused visual storytelling',
+        event: 'live event energy, RSVP-ready announcement framing, action-focused composition',
+    };
+    parts.push(goalVisualHints[goal]);
 
     // 3. When no imageStyle, extract first visual clause from the prompt as fallback
     if (!request.imageStyle) {
@@ -903,12 +922,18 @@ function deriveBrandedCopy(request: GenerateContentRequest): { headline: string;
         .split(/[.\n]/)
         .map((sentence) => sentence.replace(/\s+/g, ' ').trim())
         .filter(Boolean);
+    const businessContext = resolveBusinessContext(request);
+    const socialSafetyMode = resolveSocialSafetyMode(request);
 
-    if (request.productName) {
+    if (request.productName && businessContext !== 'company') {
         const sanitizedPrimaryPrompt = sanitizePromptSentence(promptSentences[0]);
-        const fallbackSubtext = request.brandName
-            ? `Available now at ${request.brandName}`
-            : 'Available now';
+        const fallbackSubtext = socialSafetyMode === 'social-safe'
+            ? request.brandName
+                ? `Learn more from ${request.brandName}`
+                : 'Learn more'
+            : request.brandName
+                ? `Available now at ${request.brandName}`
+                : 'Available now';
 
         return {
             headline: truncateCopy(request.productName, 80) || 'Featured Product',
@@ -970,6 +995,10 @@ async function generateCaption(request: GenerateContentRequest): Promise<string>
         const captionPromise = generateSocialCaption({
             platform: request.platform,
             prompt: request.prompt,
+            businessContext: resolveBusinessContext(request),
+            contentGoal: resolveContentGoal(request, resolveBusinessContext(request)),
+            format: request.format,
+            socialSafetyMode: resolveSocialSafetyMode(request),
             style: request.style || 'professional',
             brandName: request.brandName,
             brandVoice: request.brandVoice,
@@ -995,25 +1024,148 @@ async function generateCaption(request: GenerateContentRequest): Promise<string>
  * Fallback caption generation when AI is unavailable
  */
 function generateFallbackCaption(request: GenerateContentRequest): string {
+    const businessContext = resolveBusinessContext(request);
+    const goal = resolveContentGoal(request, businessContext);
+    const socialSafetyMode = resolveSocialSafetyMode(request);
     const style = request.style || 'professional';
+    const brandLabel = request.brandName || (businessContext === 'company' ? 'our team' : 'our brand');
+    const subject = request.productName && businessContext !== 'company'
+        ? request.productName
+        : brandLabel;
+
+    if (socialSafetyMode === 'social-safe') {
+        const safeTemplates: Record<SocialContentGoal, Record<string, string[]>> = {
+            'thought-leadership': {
+                professional: [
+                    `${brandLabel} is sharing what operators are learning right now and where the work is headed next.`,
+                    `A quick perspective from ${brandLabel} on what it takes to stay proactive, responsive, and consistent every day.`,
+                ],
+                playful: [
+                    `${brandLabel} is in the trenches every day, and this is one lesson worth sharing.`,
+                    `One operator lesson from ${brandLabel} that keeps showing up in the real world.`,
+                ],
+                educational: [
+                    `What are operators paying attention to right now? ${brandLabel} is breaking down one important takeaway.`,
+                    `A practical lesson from ${brandLabel} on running smarter, faster workflows.`,
+                ],
+                hype: [
+                    `${brandLabel} is showing what modern operators expect from the tools they use every day.`,
+                    `This is the kind of operator insight that changes how teams move.`,
+                ],
+            },
+            education: {
+                professional: [
+                    `A quick explainer from ${brandLabel} to make this topic easier to understand and share.`,
+                    `${brandLabel} is breaking this down into a simple, useful takeaway you can use right away.`,
+                ],
+                playful: [
+                    `Quick myth-busting moment from ${brandLabel}.`,
+                    `A simple takeaway from ${brandLabel} that is worth saving for later.`,
+                ],
+                educational: [
+                    `Did you know? ${brandLabel} is unpacking ${subject} in a clear, practical way.`,
+                    `A helpful educational snapshot from ${brandLabel} about ${subject}.`,
+                ],
+                hype: [
+                    `Fast facts from ${brandLabel}, no fluff.`,
+                    `${brandLabel} is turning a complicated topic into something clear and useful.`,
+                ],
+            },
+            'behind-the-scenes': {
+                professional: [
+                    `A behind-the-scenes look at how ${brandLabel} shows up, ships work, and keeps quality high.`,
+                    `This is a glimpse into the process, teamwork, and details behind ${brandLabel}.`,
+                ],
+                playful: [
+                    `A little behind-the-scenes from ${brandLabel}.`,
+                    `The camera usually misses this part, so ${brandLabel} is sharing it here.`,
+                ],
+                educational: [
+                    `Behind the scenes at ${brandLabel}: how the work actually gets done.`,
+                    `${brandLabel} is opening the curtain on the systems and people behind the outcome.`,
+                ],
+                hype: [
+                    `Real work, real momentum, real behind-the-scenes energy from ${brandLabel}.`,
+                    `This is the part of the story people do not usually get to see from ${brandLabel}.`,
+                ],
+            },
+            community: {
+                professional: [
+                    `${brandLabel} is here for the people, conversations, and community moments that make the work matter.`,
+                    `Community matters, and ${brandLabel} is leaning into it with intention.`,
+                ],
+                playful: [
+                    `A quick community moment from ${brandLabel}.`,
+                    `${brandLabel} is celebrating the people who make this all feel real.`,
+                ],
+                educational: [
+                    `${brandLabel} is highlighting the community context behind the work, not just the output.`,
+                    `A people-first story from ${brandLabel} that deserves a little more attention.`,
+                ],
+                hype: [
+                    `Community is the engine, and ${brandLabel} is showing why.`,
+                    `${brandLabel} is putting the spotlight where it belongs: on the people.`,
+                ],
+            },
+            'customer-proof': {
+                professional: [
+                    `A real-world proof point from ${brandLabel} that shows what better execution looks like in practice.`,
+                    `${brandLabel} is sharing a concrete example of the kind of impact teams can feel day to day.`,
+                ],
+                playful: [
+                    `Proof beats hype, so ${brandLabel} is showing the receipts.`,
+                    `A quick win worth sharing from ${brandLabel}.`,
+                ],
+                educational: [
+                    `${brandLabel} is unpacking one real result and the workflow behind it.`,
+                    `A practical example from ${brandLabel} that shows what changed and why it mattered.`,
+                ],
+                hype: [
+                    `This is the kind of proof point that gets teams moving.`,
+                    `${brandLabel} is sharing a win that speaks for itself.`,
+                ],
+            },
+            event: {
+                professional: [
+                    `${brandLabel} is inviting the community to join us for what is next.`,
+                    `Save the date. ${brandLabel} has something worth showing up for.`,
+                ],
+                playful: [
+                    `${brandLabel} has something coming up, and you are going to want the details.`,
+                    `A quick heads-up from ${brandLabel}: something good is on the calendar.`,
+                ],
+                educational: [
+                    `${brandLabel} is sharing the details for an upcoming event, conversation, or moment worth attending.`,
+                    `A quick event update from ${brandLabel} with the key details you need.`,
+                ],
+                hype: [
+                    `${brandLabel} is gearing up for a moment worth pulling up for.`,
+                    `Mark it down. ${brandLabel} has something live on the calendar.`,
+                ],
+            },
+        };
+
+        const options = safeTemplates[goal][style] || safeTemplates[goal].professional;
+        return options[Math.floor(Math.random() * options.length)];
+    }
 
     const templates: Record<string, string[]> = {
         professional: [
-            `${request.productName || 'Check out'} our latest offering. Quality you can trust.`,
-            `Elevate your experience with ${request.productName || 'premium products'}.`
+            `${subject} is front and center today from ${brandLabel}.`,
+            `A closer look at ${subject} from ${brandLabel}.`,
         ],
         playful: [
-            `${request.productName || 'This'} hits different!`,
-            `Ready to elevate your day? ${request.productName || 'We got you'}`
+            `${subject} deserves a little attention today.`,
+            `A quick spotlight on ${subject} from ${brandLabel}.`,
         ],
         educational: [
-            `Did you know? ${request.productName || 'Our products'} are crafted with care and precision.`,
-            `Learn more about ${request.productName || 'quality cannabis'} and its benefits.`
+            `Learn more about ${subject} with ${brandLabel}.`,
+            `${brandLabel} is sharing a practical look at ${subject}.`,
         ],
         hype: [
-            `NEW DROP ALERT: ${request.productName || 'Something amazing'} is here!`,
-            `This one's going to sell out fast! ${request.productName || ''}`
-        ]
+            `${subject} is having a moment.`,
+            `${brandLabel} is putting ${subject} in the spotlight today.`,
+        ],
     };
 
     const options = templates[style] || templates.professional;
@@ -1023,18 +1175,80 @@ function generateFallbackCaption(request: GenerateContentRequest): string {
 /**
  * Generate platform-specific hashtags
  */
-function generateHashtags(platform: SocialPlatform): string[] {
-    const baseHashtags = ['#cannabis', '#dispensary', '#cannabiscommunity'];
+function generateHashtags(platform: SocialPlatform, request: GenerateContentRequest): string[] {
+    const businessContext = resolveBusinessContext(request);
+    const socialSafetyMode = resolveSocialSafetyMode(request);
 
+    if (businessContext === 'company') {
+        const companyHashtags: Record<SocialPlatform, string[]> = {
+            instagram: ['#OperatorLife', '#MarketingOps', '#RevenueOps', '#AIWorkflow', '#BehindTheScenes'],
+            tiktok: ['#OperatorLife', '#AIWorkflow', '#MarketingOps', '#FounderMode'],
+            linkedin: ['#MarketingOps', '#RevenueOps', '#AIWorkflow', '#B2BMarketing', '#Leadership'],
+            twitter: ['#MarketingOps', '#RevenueOps', '#AIWorkflow'],
+            facebook: ['#SmallBusinessTools', '#MarketingOps', '#TeamWorkflows', '#AIWorkflow'],
+        };
+
+        return companyHashtags[platform].slice(0, 8);
+    }
+
+    if (socialSafetyMode === 'social-safe') {
+        const safeHashtags: Record<SocialPlatform, string[]> = {
+            instagram: ['#Community', '#Education', '#BehindTheScenes', '#BrandStory', '#LocalBusiness'],
+            tiktok: ['#Education', '#BehindTheScenes', '#Community', '#BrandStory'],
+            linkedin: ['#CannabisIndustry', '#RetailOps', '#CommunityMarketing', '#Compliance', '#Operations'],
+            twitter: ['#Community', '#Education', '#RetailOps', '#BrandStory'],
+            facebook: ['#Community', '#LocalBusiness', '#Education', '#Events'],
+        };
+
+        return safeHashtags[platform].slice(0, 8);
+    }
+
+    const baseHashtags = ['#cannabis', '#dispensary', '#cannabiscommunity'];
     const platformHashtags: Record<SocialPlatform, string[]> = {
         instagram: ['#weedstagram', '#420', '#cannabisculture', '#stonernation'],
         tiktok: ['#cannatok', '#420tok', '#weedtok'],
         linkedin: ['#cannabisindustry', '#cannabisbusiness', '#greenrush'],
         twitter: ['#MedicalCannabis', '#Legalization'],
-        facebook: ['#LocalDispensary', '#ShopLocal']
+        facebook: ['#LocalDispensary', '#ShopLocal'],
     };
 
     return [...baseHashtags, ...(platformHashtags[platform] || [])].slice(0, 10);
+}
+
+function resolveBusinessContext(request: GenerateContentRequest): CreativeBusinessContext {
+    if (request.businessContext) {
+        return request.businessContext;
+    }
+
+    const brandName = request.brandName?.toLowerCase() ?? '';
+    if (brandName.includes('bakedbot')) {
+        return 'company';
+    }
+
+    if (request.productName) {
+        return 'dispensary';
+    }
+
+    return 'brand';
+}
+
+function resolveContentGoal(
+    request: GenerateContentRequest,
+    businessContext: CreativeBusinessContext
+): SocialContentGoal {
+    if (request.contentGoal) {
+        return request.contentGoal;
+    }
+
+    if (businessContext === 'company') {
+        return 'thought-leadership';
+    }
+
+    return 'education';
+}
+
+function resolveSocialSafetyMode(request: GenerateContentRequest): SocialSafetyMode {
+    return request.socialSafetyMode ?? 'social-safe';
 }
 
 /**

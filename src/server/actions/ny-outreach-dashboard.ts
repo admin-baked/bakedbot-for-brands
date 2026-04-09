@@ -8,7 +8,7 @@
  * - generateOutreachDrafts() — creates preview drafts from lead queue
  * - getOutreachDrafts() — fetch pending/all drafts
  * - updateOutreachDraft() — edit subject/body before approving
- * - approveAndSendDraft() — approve + send single draft via Gmail
+ * - approveAndSendDraft() — approve + send a single draft via the dispatcher
  * - approveAndSendAllDrafts() — batch approve all pending drafts
  * - rejectDraft() — reject a draft
  */
@@ -624,12 +624,13 @@ export async function rejectDraft(
 }
 
 // =============================================================================
-// Approval + Send (via Gmail)
+// Approval + Send (verified sender pipeline)
 // =============================================================================
 
 /**
- * Approve and send a single draft via Gmail (or Mailjet fallback).
- * Uses sendGenericEmail({ userId }) which routes to Gmail when connected.
+ * Approve and send a single draft through the shared email dispatcher.
+ * Delivery prefers the verified sender pipeline and falls back through the
+ * canonical mail stack when needed.
  */
 export async function approveAndSendDraft(draftId: string): Promise<{
     success: boolean;
@@ -638,6 +639,11 @@ export async function approveAndSendDraft(draftId: string): Promise<{
     try {
         const user = await requireUser(['super_user']);
         if (!user) return { success: false, error: 'Unauthorized' };
+        const orgId =
+            (user as { orgId?: string; currentOrgId?: string; tenantId?: string; brandId?: string }).orgId
+            || (user as { currentOrgId?: string }).currentOrgId
+            || (user as { tenantId?: string }).tenantId
+            || (user as { brandId?: string }).brandId;
         const [{ sendGenericEmail }, { trackInCRM }] = await Promise.all([
             import('@/lib/email/dispatcher'),
             import('@/server/services/ny-outreach/outreach-service'),
@@ -683,7 +689,7 @@ export async function approveAndSendDraft(draftId: string): Promise<{
             return { success: true };
         }
 
-        // ── Email track: send via Gmail (userId routes to Gmail, Mailjet fallback) ──
+        // Send through the shared dispatcher so verified sender routing stays centralized.
         const result = await sendGenericEmail({
             to: draft.email as string,
             name: draft.contactName || draft.dispensaryName,
@@ -694,6 +700,7 @@ export async function approveAndSendDraft(draftId: string): Promise<{
             textBody: draft.textBody,
             communicationType: 'manual',
             agentName: 'martez-outreach',
+            orgId: orgId ?? undefined,
             userId: user.uid,
         });
 
@@ -725,7 +732,7 @@ export async function approveAndSendDraft(draftId: string): Promise<{
                 status: 'sent',
                 timestamp: Date.now(),
                 createdAt: Date.now(),
-                sentVia: 'gmail',
+                sentVia: 'dispatcher',
                 approvedBy: user.uid,
             });
 
@@ -760,6 +767,32 @@ export async function approveAndSendDraft(draftId: string): Promise<{
         }
     } catch (err) {
         logger.error('[OutreachDashboard] Approve+send failed', { draftId, error: String(err) });
+        return { success: false, error: String(err) };
+    }
+}
+
+export async function emailOutreachDigestToCurrentUser(): Promise<{
+    success: boolean;
+    recipientEmail?: string;
+    error?: string;
+}> {
+    try {
+        const user = await requireUser(['super_user']);
+        if (!user) return { success: false, error: 'Unauthorized' };
+
+        if (!user.email) {
+            return { success: false, error: 'No email address is available on the current session' };
+        }
+
+        const { sendOutreachDigest } = await import('@/server/services/ny-outreach/outreach-service');
+        await sendOutreachDigest(user.email);
+
+        return {
+            success: true,
+            recipientEmail: user.email,
+        };
+    } catch (err) {
+        logger.error('[OutreachDashboard] Failed to email outreach digest', { error: String(err) });
         return { success: false, error: String(err) };
     }
 }

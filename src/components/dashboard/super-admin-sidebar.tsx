@@ -37,6 +37,7 @@ import {
     MoreHorizontal,
     Settings,
     Globe,
+    CalendarDays,
     Wallet,
     FolderKanban,
     Compass,
@@ -182,6 +183,54 @@ export function SuperAdminSidebar() {
                                 <Link href="/dashboard/ceo/projects">
                                     <FolderKanban />
                                     <span>Projects</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarGroup>
+                <SidebarGroupLabel>Go Live</SidebarGroupLabel>
+                <SidebarGroupContent>
+                    <SidebarMenu>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive("outreach")}>
+                                <Link href="/dashboard/ceo?tab=outreach">
+                                    <Rocket />
+                                    <span>Outreach</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive("calendar")}>
+                                <Link href="/dashboard/ceo?tab=calendar">
+                                    <CalendarDays />
+                                    <span>Meetings</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={pathname?.startsWith('/dashboard/creative')}>
+                                <Link href="/dashboard/creative">
+                                    <Palette />
+                                    <span>Creative Center</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={pathname === '/book/martez'}>
+                                <Link href="/book/martez">
+                                    <Globe />
+                                    <span>Book Martez</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={pathname === '/book/jack'}>
+                                <Link href="/book/jack">
+                                    <Globe />
+                                    <span>Book Jack</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>

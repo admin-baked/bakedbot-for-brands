@@ -11,6 +11,32 @@
 export type SocialPlatform = 'instagram' | 'tiktok' | 'linkedin' | 'twitter' | 'facebook';
 
 /**
+ * High-level brand/business context for creative generation
+ */
+export type CreativeBusinessContext = 'company' | 'dispensary' | 'brand';
+
+/**
+ * Primary outcome the content is trying to achieve
+ */
+export type SocialContentGoal =
+    | 'thought-leadership'
+    | 'education'
+    | 'behind-the-scenes'
+    | 'community'
+    | 'customer-proof'
+    | 'event';
+
+/**
+ * Social output format
+ */
+export type SocialPostFormat = 'post' | 'story' | 'reel' | 'carousel';
+
+/**
+ * Controls how cautious copy generation should be on restrictive platforms
+ */
+export type SocialSafetyMode = 'social-safe' | 'standard';
+
+/**
  * Compliance status from Deebo (Compliance Agent)
  */
 export type ComplianceStatus = 'active' | 'warning' | 'review_needed' | 'rejected';
@@ -396,6 +422,10 @@ export interface GenerateContentRequest {
     brandId: string;
     platform: SocialPlatform;
     prompt: string;
+    businessContext?: CreativeBusinessContext;
+    contentGoal?: SocialContentGoal;
+    format?: SocialPostFormat;
+    socialSafetyMode?: SocialSafetyMode;
     style?: 'professional' | 'playful' | 'educational' | 'hype';
     includeHashtags?: boolean;
     targetAudience?: string;

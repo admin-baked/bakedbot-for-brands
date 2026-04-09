@@ -330,6 +330,26 @@ function CeoDashboardContent() {
     );
 
     // Authorized - show CEO dashboard
+    const priorityTools = [
+        { href: '/dashboard/inbox', label: 'Inbox' },
+        { href: '?tab=boardroom', label: 'Boardroom' },
+        { href: '?tab=outreach', label: 'Outreach' },
+        { href: '?tab=calendar', label: 'Meetings' },
+        { href: '/dashboard/creative', label: 'Creative Center' },
+        { href: '/book/martez', label: 'Book Martez' },
+        { href: '/book/jack', label: 'Book Jack' },
+    ];
+
+    const powerTools = [
+        { href: '?tab=health', label: 'System Health' },
+        { href: '?tab=email', label: 'Email Tester' },
+        { href: '?tab=content', label: 'Content' },
+        { href: '?tab=ai-settings', label: 'AI Settings' },
+        { href: '?tab=dev-console', label: 'Dev Console' },
+        { href: '?tab=qa', label: 'QA' },
+        { href: '?tab=skills-lab', label: 'Skills Lab' },
+    ];
+
     const renderContent = () => {
         switch (currentTab) {
             case 'agents': return <SuperAdminAgentChat />;
@@ -412,7 +432,29 @@ function CeoDashboardContent() {
                             <SheetHeader className="mb-3">
                                 <SheetTitle className="text-base">Super User Tools</SheetTitle>
                             </SheetHeader>
-                            <div className="grid grid-cols-2 gap-2 pb-6">
+                            <div className="space-y-4 pb-6">
+                                <div className="space-y-2">
+                                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Daily Ops</p>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {priorityTools.map((tool) => (
+                                            <Link key={tool.href} href={tool.href}>
+                                                <Button variant="outline" size="sm" className="w-full justify-start">{tool.label}</Button>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Power Tools</p>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {powerTools.map((tool) => (
+                                            <Link key={tool.href} href={tool.href}>
+                                                <Button variant="outline" size="sm" className="w-full justify-start">{tool.label}</Button>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="hidden grid grid-cols-2 gap-2 pb-6">
                                 <Link href="?tab=dev-console"><Button variant="outline" size="sm" className="w-full justify-start">Dev Console</Button></Link>
                                 <Link href="?tab=health"><Button variant="outline" size="sm" className="w-full justify-start">System Health</Button></Link>
                                 <Link href="?tab=email"><Button variant="outline" size="sm" className="w-full justify-start">Email Tester</Button></Link>
@@ -432,6 +474,17 @@ function CeoDashboardContent() {
 
                 {/* Desktop: full button row (sm+) */}
                 <div className="hidden sm:flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
+                    {priorityTools.map((tool) => (
+                        <Link key={tool.href} href={tool.href}>
+                            <Button variant="ghost" size="sm">{tool.label}</Button>
+                        </Link>
+                    ))}
+                    {powerTools.map((tool) => (
+                        <Link key={tool.href} href={tool.href}>
+                            <Button variant="ghost" size="sm">{tool.label}</Button>
+                        </Link>
+                    ))}
+                    <div className="hidden">
                     <Link href="?tab=dev-console">
                         <Button variant="ghost" size="sm">Dev Console</Button>
                     </Link>
@@ -462,6 +515,7 @@ function CeoDashboardContent() {
                     <Link href="?tab=skills-lab">
                         <Button variant="ghost" size="sm">🧪 Skills Lab</Button>
                     </Link>
+                    </div>
                     <DataImportDropdown />
                     {process.env.NODE_ENV !== 'production' && <MockDataToggle />}
                     {process.env.NODE_ENV !== 'production' && <RoleSwitcher />}

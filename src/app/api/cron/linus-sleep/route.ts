@@ -118,7 +118,7 @@ async function getRecentlyModifiedFiles(): Promise<string[]> {
     // Strategy 2: GitHub API (works in production)
     logger.info('[LinusSleep] Local git unavailable, falling back to GitHub API');
     try {
-        let token = (process.env.GITHUB_TOKEN || process.env.GH_TOKEN || '')?.trim();
+        let token: string | undefined = (process.env.GITHUB_TOKEN || process.env.GH_TOKEN || '')?.trim() || undefined;
         if (!token) {
             const secretVal = await getSecret('GITHUB_TOKEN');
             token = secretVal?.trim() ?? undefined;
