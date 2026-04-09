@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Production live; CSP Cloudflare fix deployed; GLM smart refusal detection; SES production email.
-**Recent work (2026-04-09):** `800a16be4` GLM smart refusal detection; CSP fix (Cloudflare Insights + worker-src); deploy confirmed SUCCESS
-**Prior (2026-04-09):** Actionable Slack briefing flow — daily briefing cron, Slack approve/decline handling, artifact execution routing, and playbook/actionable artifact contracts staged locally.
+**Current Status:** 🟢 Production live; custom domain proxy hardened for ecstaticedibles.com stability.
+**Recent work (2026-04-09):** `230fcd369` proxy hardening — static fallback map + split cache TTL (success 5min, failure 10s) + www.ecstaticedibles.com mapping
+**Prior (2026-04-09):** `800a16be4` GLM smart refusal detection; CSP fix (Cloudflare Insights + worker-src); deploy confirmed SUCCESS
 - Marty CEO agent: full super powers, Slack DM routing, manages all executives toward $1M ARR
 - Club MVP shipped (`9eb4a6d36`): Customer PWA /club, mood video cache, event pipeline + 5 triggers, tablet PWA
 - 7-day retention nudge email (cron job)

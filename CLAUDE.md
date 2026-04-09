@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Production live; CSP fix deployed (Cloudflare Insights unblocked); GLM smart refusal detection; SES production email | **Last update:** 2026-04-09 (CSP fix + GLM refusal + deploy confirmed)
+**Current Status:** 🟢 Production live; custom domain proxy hardened (static fallback + split cache TTL) | **Last update:** 2026-04-09 (proxy hardening for ecstaticedibles.com stability)
 
 ---
 
