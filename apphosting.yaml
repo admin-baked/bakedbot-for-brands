@@ -228,6 +228,12 @@ env:
     secret: PLAYBOOK_ARTIFACT_REPO_TOKEN@1
     availability:
       - RUNTIME
+  # GitHub API access — used by linus-sleep cron for codebase indexing
+  # (reuses the same PAT as PLAYBOOK_ARTIFACT_REPO_TOKEN)
+  - variable: GITHUB_TOKEN
+    secret: PLAYBOOK_ARTIFACT_REPO_TOKEN@1
+    availability:
+      - RUNTIME
   # SMS
   # - variable: LEAFBUYER_API_KEY
   #   secret: LEAFBUYER_API_KEY
