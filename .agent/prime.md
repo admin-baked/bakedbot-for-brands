@@ -38,9 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟡 Homepage onboarding lifecycle + actionable briefing flow staged locally; focused Jest green, full check:types still timing out on the full repo sweep in this session.
-
-**Recent work (2026-04-09):** Homepage onboarding audit + onboarding lifecycle emails — first wins now center on Check-In, Competitive Intelligence, and Creative Center; first 7-day onboarding emails now schedule through `jobs`, SES welcome routing is enabled, and weekly nurture sends rotating feature spotlights.
+**Current Status:** 🟢 Production live (`ed322be`); Social tools + Upstash Vector + RTRVR session ownership deployed; onboarding lifecycle + briefing staged locally.
+**Recent work (2026-04-09):** `ba8d81172` — social-tools.ts + twitter/reddit-browser + browser-act; Upstash Vector kb-search provisioned; deploy unblocked (LETTA_LINUS_AGENT_ID + UPSTASH_VECTOR secrets created)
 **Prior (2026-04-09):** Actionable Slack briefing flow — daily briefing cron, Slack approve/decline handling, artifact execution routing, and playbook/actionable artifact contracts staged locally.
 - Marty CEO agent: full super powers, Slack DM routing, manages all executives toward $1M ARR
 - Club MVP shipped (`9eb4a6d36`): Customer PWA /club, mood video cache, event pipeline + 5 triggers, tablet PWA
