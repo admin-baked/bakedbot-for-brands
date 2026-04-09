@@ -2,6 +2,7 @@ import { logger } from '@/lib/logger';
 import { slackService, elroySlackService, linusSlackService, martySlackService, SlackService } from './communications/slack';
 import { runAgentCore } from '@/server/agents/agent-runner';
 import { runLinus } from '@/server/agents/linus';
+import { runMarty } from '@/server/agents/marty';
 import { runElroy } from '@/server/agents/elroy';
 import { callGLM } from '@/ai/glm';
 import { requestContext } from '@/lib/request-context';
@@ -636,19 +637,22 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
 
                 result = { content: linusResult.content, toolCalls: linusResult.toolExecutions };
             } else if (personaId === 'marty') {
-                // Marty Benjamins — CEO agent, full Claude tool-calling (no GLM downgrade)
-                // IMPORTANT: Do NOT set source:'slack' — that flag skips the agent harness in runAgentCore.
-                // Marty needs the full harness path to invoke martyAgent.act() with all CEO tools.
-                const extraOptions = { ...(attachments ? { attachments } : {}) };
+                // Marty Benjamins — CEO agent, direct Claude call (bypasses harness/Gemini planning)
+                const martyProgress = makeThrottledProgress(channel, workingMessageTs, activeSlack);
 
                 const martyResult = await Promise.race([
-                    runAgentCore(fullPrompt, 'marty', extraOptions, SLACK_SYSTEM_USER),
+                    runMarty({
+                        prompt: fullPrompt,
+                        maxIterations: 8,
+                        context: { userId: SLACK_SYSTEM_USER.uid },
+                        progressCallback: martyProgress,
+                    }),
                     new Promise<never>((_, reject) =>
                         setTimeout(() => reject(new Error(`Marty CEO timeout after ${Math.floor(agentTimeoutMs / 1000)} seconds`)), agentTimeoutMs)
                     ),
-                ]) as any;
+                ]);
 
-                result = { content: martyResult?.content || martyResult?.message, toolCalls: martyResult?.toolCalls || [] };
+                result = { content: martyResult.content, toolCalls: martyResult.toolExecutions };
             } else if (isElroy) {
                 // Uncle Elroy — store ops agent for Thrive Syracuse, always uses Claude tools
                 const elroyProgress = makeThrottledProgress(channel, workingMessageTs, elroySlackService);

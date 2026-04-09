@@ -36,6 +36,7 @@ import {
     AgentId
 } from './agent-definitions';
 import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integration-status';
+import { executeWithTools, type ClaudeResult } from '@/ai/claude';
 
 export interface MartyTools extends Partial<AllSharedTools>, Partial<ExecutiveContextTools> {
     // Full Executive delegation
@@ -446,3 +447,134 @@ export const martyAgent: AgentImplementation<ExecutiveMemory, MartyTools> = {
         };
     }
 };
+
+// ---------------------------------------------------------------------------
+// runMarty — Lightweight direct-Claude path for Slack (bypasses full harness)
+// ---------------------------------------------------------------------------
+
+export interface MartyRequest {
+    prompt: string;
+    maxIterations?: number;
+    progressCallback?: (msg: string) => void;
+    context?: { userId?: string; orgId?: string; brandId?: string };
+}
+
+export interface MartyResponse {
+    content: string;
+    toolExecutions: ClaudeResult['toolExecutions'];
+    model: string;
+}
+
+/** CEO tools exposed in Slack — streamlined subset, no browser/shell. */
+const MARTY_SLACK_TOOLS = [
+    { name: 'delegateTask', description: 'Assign a task to any agent in the squad.', input_schema: { type: 'object' as const, properties: { personaId: { type: 'string', description: 'Agent ID to delegate to' }, task: { type: 'string', description: 'Task description' } }, required: ['personaId', 'task'] } },
+    { name: 'getSystemHealth', description: 'Get full system health status — deploys, crons, integrations, errors.', input_schema: { type: 'object' as const, properties: {} } },
+    { name: 'crmGetStats', description: 'Get high-level CRM stats (MRR, Total Users, Pipeline).', input_schema: { type: 'object' as const, properties: {} } },
+    { name: 'crmListUsers', description: 'List platform users.', input_schema: { type: 'object' as const, properties: { search: { type: 'string' }, lifecycleStage: { type: 'string' }, limit: { type: 'number' } } } },
+    { name: 'getActivePlaybooks', description: 'List all active playbooks and their status.', input_schema: { type: 'object' as const, properties: {} } },
+    { name: 'executeSuperPower', description: 'Run a BakedBot super power script.', input_schema: { type: 'object' as const, properties: { script: { type: 'string' }, options: { type: 'string' } }, required: ['script'] } },
+];
+
+async function martyToolExecutor(toolName: string, args: Record<string, unknown>): Promise<unknown> {
+    switch (toolName) {
+        case 'delegateTask': {
+            const { runAgentChat } = await import('@/app/dashboard/ceo/agents/actions');
+            return await runAgentChat(`DELEGATED TASK: ${args.task}`, args.personaId as string, { modelLevel: 'advanced' });
+        }
+        case 'getSystemHealth': {
+            const { defaultExecutiveBoardTools } = await import('@/app/dashboard/ceo/agents/default-tools');
+            return await (defaultExecutiveBoardTools as any).getSystemHealth();
+        }
+        case 'crmGetStats': {
+            const { crmGetStatsTool } = await import('@/server/agents/tools/domain/crm-full');
+            return await crmGetStatsTool({});
+        }
+        case 'crmListUsers': {
+            const { crmListUsersTool } = await import('@/server/agents/tools/domain/crm-full');
+            return await crmListUsersTool(args as any);
+        }
+        case 'getActivePlaybooks': {
+            const { defaultExecutiveBoardTools } = await import('@/app/dashboard/ceo/agents/default-tools');
+            return await (defaultExecutiveBoardTools as any).getActivePlaybooks();
+        }
+        case 'executeSuperPower': {
+            const { defaultExecutiveBoardTools } = await import('@/app/dashboard/ceo/agents/default-tools');
+            return await (defaultExecutiveBoardTools as any).executeSuperPower(args.script, args.options);
+        }
+        default:
+            return { error: `Unknown tool: ${toolName}` };
+    }
+}
+
+export async function runMarty(request: MartyRequest): Promise<MartyResponse> {
+    const squadRoster = buildSquadRoster('marty');
+    const orgId = request.context?.orgId || '';
+    const integrationStatus = await buildIntegrationStatusSummaryForOrg(orgId);
+
+    const systemPrompt = `You are Marty Benjamins, the AI CEO of BakedBot AI.
+
+YOUR MISSION: Grow BakedBot AI to $1,000,000 ARR within 12 months.
+
+PERSONA:
+- Strategic, decisive, results-driven
+- Think in terms of revenue, customers, and market position
+- Delegate to your executive team — you don't code
+- Concise, outcome-focused, always with next steps
+
+YOUR EXECUTIVE TEAM:
+${squadRoster}
+
+INTEGRATION STATUS:
+${integrationStatus}
+
+DECISION FRAMEWORK:
+- Will this move the needle on ARR? If not, deprioritize.
+- What's the fastest path to revenue? Optimize for speed.
+- Are we building what customers actually want?
+- Is the team aligned?
+
+GROUNDING RULES:
+1. ONLY report data you can query with tools. Never fabricate metrics.
+2. ONLY delegate to agents in the squad list above.
+3. Be honest about integration limitations.
+4. Use delegation as your primary lever.
+
+FORMAT FOR SLACK:
+- Use *bold* for emphasis, not **bold**
+- Keep responses concise and actionable
+- Lead with status: 🟢 On Track / 🟡 Needs Attention / 🔴 Blocked`;
+
+    const fullPrompt = `${systemPrompt}
+
+---
+
+User Request: ${request.prompt}`;
+
+    const onToolCall = request.progressCallback
+        ? (toolName: string) => request.progressCallback!(`_Marty Benjamins is checking ${toolName.replace(/_/g, ' ')}..._`)
+        : undefined;
+
+    const result = await executeWithTools(
+        fullPrompt,
+        MARTY_SLACK_TOOLS,
+        martyToolExecutor,
+        {
+            maxIterations: request.maxIterations ?? 8,
+            orgId: request.context?.orgId,
+            brandId: request.context?.brandId,
+            agentContext: {
+                name: 'Marty Benjamins',
+                role: 'CEO',
+                capabilities: ['delegation', 'crm', 'system-health', 'super-powers'],
+                groundingRules: ['Only report real data', 'Delegate to named agents'],
+            },
+            onToolCall,
+        }
+    );
+
+    return {
+        content: result.content,
+        toolExecutions: result.toolExecutions,
+        model: result.model,
+    };
+}
