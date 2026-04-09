@@ -11,8 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-    Users, MessageSquare, Mail, Star, RefreshCw, BarChart2,
-    ArrowRight, TrendingUp, ClipboardList,
+    Users, Star, RefreshCw, BarChart2,
+    ArrowRight, TrendingUp, ClipboardList, AlertTriangle, CheckCircle2,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { CheckinStats } from '@/lib/checkin/checkin-management-shared';
@@ -143,6 +143,46 @@ export function CheckInStatsPanel({ stats, onRefresh, refreshing }: Props) {
                     </Button>
                 </div>
             )}
+
+            <Card>
+                <CardHeader className="pb-2 pt-4 px-4">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                        <ClipboardList className="h-4 w-4 text-blue-500" />
+                        Tablet Onboarding Runs
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        <StatCard
+                            label="Pending"
+                            value={stats.onboardingSummary.pending}
+                            sub="Waiting on next step"
+                            icon={ClipboardList}
+                        />
+                        <StatCard
+                            label="Blocked"
+                            value={stats.onboardingSummary.blocked}
+                            sub="Needs operator review"
+                            icon={AlertTriangle}
+                            accent={stats.onboardingSummary.blocked > 0 ? 'text-amber-600' : undefined}
+                        />
+                        <StatCard
+                            label="Failed"
+                            value={stats.onboardingSummary.failed}
+                            sub="Delivery or workflow error"
+                            icon={AlertTriangle}
+                            accent={stats.onboardingSummary.failed > 0 ? 'text-red-600' : undefined}
+                        />
+                        <StatCard
+                            label="Done today"
+                            value={stats.onboardingSummary.completedToday}
+                            sub="Completed onboarding runs"
+                            icon={CheckCircle2}
+                            accent={stats.onboardingSummary.completedToday > 0 ? 'text-emerald-600' : undefined}
+                        />
+                    </div>
+                </CardContent>
+            </Card>
 
             {/* Mood breakdown */}
             {stats.moodBreakdown.length > 0 && (

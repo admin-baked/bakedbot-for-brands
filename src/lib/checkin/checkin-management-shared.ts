@@ -53,6 +53,13 @@ export interface MoodCount {
     count: number;
 }
 
+export interface CheckinOnboardingSummary {
+    pending: number;
+    blocked: number;
+    failed: number;
+    completedToday: number;
+}
+
 export interface CheckinStats {
     todayCount: number;
     weekCount: number;
@@ -65,6 +72,7 @@ export interface CheckinStats {
     topMood: string | null;
     moodBreakdown: MoodCount[];
     periodLabel: string;
+    onboardingSummary: CheckinOnboardingSummary;
 }
 
 export interface CheckinVisitRow {

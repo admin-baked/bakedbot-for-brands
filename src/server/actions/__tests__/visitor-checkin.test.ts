@@ -7,6 +7,7 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { getGoogleReviewUrl } from '@/lib/reviews/google-review-url';
 import { logger } from '@/lib/logger';
 import { captureEmailLead } from '../email-capture';
+import { handleCustomerOnboardingSignal } from '@/server/services/customer-onboarding';
 import { dispatchPlaybookEvent } from '@/server/services/playbook-event-dispatcher';
 import { getCustomerHistory } from '@/server/tools/crm-tools';
 
@@ -20,6 +21,10 @@ jest.mock('@/lib/reviews/google-review-url', () => ({
 
 jest.mock('../email-capture', () => ({
   captureEmailLead: jest.fn(),
+}));
+
+jest.mock('@/server/services/customer-onboarding', () => ({
+  handleCustomerOnboardingSignal: jest.fn(),
 }));
 
 jest.mock('@/server/services/playbook-event-dispatcher', () => ({
@@ -173,8 +178,9 @@ function createFirestore(args?: {
 describe('visitor check-in actions', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.useFakeTimers().setSystemTime(new Date('2026-03-26T15:00:00.000Z'));
+    jest.useFakeTimers().setSystemTime(Date.parse('2026-03-26T15:00:00.000Z'));
     (getGoogleReviewUrl as jest.Mock).mockResolvedValue('https://reviews.example.com/thrive');
+    (handleCustomerOnboardingSignal as jest.Mock).mockResolvedValue({ success: true, runId: 'run_1', status: 'scheduled' });
   });
 
   afterEach(() => {
@@ -490,6 +496,14 @@ describe('visitor check-in actions', () => {
         mood: 'relaxed',
       }),
     );
+    expect(handleCustomerOnboardingSignal).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'tablet_checkin_captured',
+      context: expect.objectContaining({
+        visitId: result.visitId,
+        customerId: 'org_thrive_syracuse_phone_13155551212',
+        email: 'jane@example.com',
+      }),
+    }));
   });
 
   it('merges favorite categories onto an existing customer without dispatching signup twice', async () => {

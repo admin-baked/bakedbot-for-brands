@@ -15,6 +15,7 @@ import {
 import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { logger } from '@/lib/logger';
 import { getGoogleReviewUrl } from '@/lib/reviews/google-review-url';
+import { handleCustomerOnboardingSignal } from '@/server/services/customer-onboarding';
 import { dispatchPlaybookEvent } from '@/server/services/playbook-event-dispatcher';
 import { getCustomerHistory } from '@/server/tools/crm-tools';
 import { z } from 'zod';
@@ -1347,42 +1348,32 @@ export async function captureVisitorCheckin(
             offerType: validated.offerType ?? null,
         });
 
-        // Queue returning customer welcome-back email (2 hours later)
-        // Only for returning customers with email consent
-        if (isReturningCustomer && resolvedEmail && emailConsent) {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
+        const onboardingResult = await handleCustomerOnboardingSignal({
+            type: 'tablet_checkin_captured',
+            context: {
+                orgId: validated.orgId,
+                customerId,
+                visitId,
+                leadId: leadResult.leadId ?? null,
+                firstName: resolvedName ?? validated.firstName,
+                email: resolvedEmail,
+                emailConsent,
+                smsConsent,
+                isReturning: isReturningCustomer,
+                returningSource: returningSource ?? null,
+                mood: validated.mood ?? null,
+                source: validated.source,
+                loyaltyPoints,
+            },
+        });
 
-            // Check if we already sent a welcome-back email today (dedup)
-            try {
-                const db = getAdminFirestore();
-                const existingEmailToday = await db
-                    .collection('customer_communications')
-                    .where('customerId', '==', customerId)
-                    .where('type', '==', 'returning_welcome_email')
-                    .where('sentAt', '>=', today)
-                    .limit(1)
-                    .get();
-
-                if (existingEmailToday.empty) {
-                    const { queueReturningWelcomeEmail } = await import('@/server/services/mrs-parker-returning');
-                    void queueReturningWelcomeEmail({
-                        customerId,
-                        email: resolvedEmail,
-                        firstName: resolvedName ?? 'there',
-                        orgId: validated.orgId,
-                        mood: validated.mood ?? undefined,
-                        visitId,
-                        loyaltyPoints,
-                    });
-                }
-            } catch (err) {
-                logger.warn('[VisitorCheckin] Failed to queue returning welcome email', {
-                    orgId: validated.orgId,
-                    customerId,
-                    error: err instanceof Error ? err.message : String(err),
-                });
-            }
+        if (!onboardingResult.success) {
+            logger.warn('[VisitorCheckin] Failed to hand off onboarding workflow', {
+                orgId: validated.orgId,
+                customerId,
+                visitId,
+                error: onboardingResult.error ?? 'unknown_error',
+            });
         }
 
         // TODO(blackleaf-sms): Post-visit re-engagement SMS hook.

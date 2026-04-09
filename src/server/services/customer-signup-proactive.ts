@@ -61,6 +61,19 @@ interface CustomerSignupImportDigest {
     opportunities: CustomerSignupOpportunity[];
 }
 
+export interface CustomerOnboardingRunGapInput {
+    orgId: string;
+    runId: string;
+    visitId: string;
+    customerId: string;
+    leadId?: string | null;
+    customerName: string;
+    email?: string | null;
+    blockedReason: 'missing_email' | 'no_email_consent' | 'welcome_automation_paused' | 'welcome_automation_unassigned' | 'welcome_automation_missing' | 'delivery_failed';
+    welcomeAutomationState?: WelcomeAutomationState | null;
+    nextAction?: string | null;
+}
+
 const WELCOME_TEMPLATE_ID = 'welcome_email_template';
 const ONBOARDING_THREAD_KEY = 'customer_signup_onboarding_watch';
 export const CUSTOMER_SIGNUP_IMPORT_DIGEST_THRESHOLD = 5;
@@ -271,7 +284,7 @@ export function summarizeCustomerSignupImportOpportunities(input: {
     };
 }
 
-async function getWelcomeAutomationState(orgId: string): Promise<{
+export async function getWelcomeAutomationState(orgId: string): Promise<{
     state: WelcomeAutomationState;
     playbookId?: string;
 }> {
@@ -424,6 +437,123 @@ async function upsertOnboardingArtifact(input: {
         artifactIds: FieldValue.arrayUnion(artifactId),
         status: 'active',
         preview: input.opportunity.summary,
+        updatedAt: FieldValue.serverTimestamp(),
+        lastActivityAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+
+    return artifactId;
+}
+
+function getOnboardingRunGapSeverity(reason: CustomerOnboardingRunGapInput['blockedReason']): ProactiveSeverity {
+    switch (reason) {
+        case 'delivery_failed':
+        case 'welcome_automation_missing':
+            return 'high';
+        case 'welcome_automation_unassigned':
+        case 'welcome_automation_paused':
+            return 'medium';
+        default:
+            return 'medium';
+    }
+}
+
+function getOnboardingRunGapSummary(input: CustomerOnboardingRunGapInput): {
+    title: string;
+    summary: string;
+    commitmentTitle: string;
+} {
+    switch (input.blockedReason) {
+        case 'missing_email':
+            return {
+                title: `Tablet onboarding missing email: ${input.customerName}`,
+                summary: `${input.customerName} checked in on the tablet, but there is no email on file for the onboarding flow.`,
+                commitmentTitle: 'Review tablet onboarding contact gap',
+            };
+        case 'no_email_consent':
+            return {
+                title: `Tablet onboarding missing email consent: ${input.customerName}`,
+                summary: `${input.customerName} checked in on the tablet, but email consent is missing so onboarding emails were held.`,
+                commitmentTitle: 'Review tablet onboarding consent gap',
+            };
+        case 'welcome_automation_paused':
+        case 'welcome_automation_unassigned':
+        case 'welcome_automation_missing':
+            return {
+                title: `Tablet onboarding welcome path blocked: ${input.customerName}`,
+                summary: `${input.customerName} checked in on the tablet, but welcome automation is ${input.welcomeAutomationState ?? input.blockedReason.replace('welcome_automation_', '')}.`,
+                commitmentTitle: 'Review tablet welcome automation gap',
+            };
+        case 'delivery_failed':
+        default:
+            return {
+                title: `Tablet onboarding delivery failed: ${input.customerName}`,
+                summary: `${input.customerName} checked in on the tablet, but an onboarding email step failed delivery and needs review.`,
+                commitmentTitle: 'Review failed tablet onboarding delivery',
+            };
+    }
+}
+
+async function upsertOnboardingRunArtifact(input: {
+    orgId: string;
+    threadId: string;
+    taskId: string;
+    gap: CustomerOnboardingRunGapInput;
+    existingArtifactId?: string;
+}): Promise<string> {
+    const db = getAdminFirestore();
+    const artifactId = input.existingArtifactId ?? createInboxArtifactId();
+    const summary = getOnboardingRunGapSummary(input.gap);
+    const proactive: InboxArtifactProactiveMetadata = {
+        taskId: input.taskId,
+        workflowKey: 'daily_dispensary_health',
+        severity: getOnboardingRunGapSeverity(input.gap.blockedReason),
+        evidence: [
+            { label: 'Customer', value: input.gap.customerName },
+            { label: 'Visit', value: input.gap.visitId },
+            { label: 'Reason', value: input.gap.blockedReason.replace(/_/g, ' ') },
+            { label: 'Next action', value: input.gap.nextAction ?? 'operator_review' },
+        ],
+        nextActionLabel: 'Review tablet onboarding run',
+    };
+
+    const payload = {
+        id: artifactId,
+        threadId: input.threadId,
+        orgId: input.orgId,
+        type: 'health_scorecard' as const,
+        status: 'draft',
+        data: {
+            source: 'tablet_checkin_onboarding_run',
+            runId: input.gap.runId,
+            visitId: input.gap.visitId,
+            customerId: input.gap.customerId,
+            leadId: input.gap.leadId ?? null,
+            customerName: input.gap.customerName,
+            email: input.gap.email ?? null,
+            blockedReason: input.gap.blockedReason,
+            welcomeAutomationState: input.gap.welcomeAutomationState ?? null,
+            nextAction: input.gap.nextAction ?? null,
+            summary: summary.summary,
+        },
+        rationale: 'Tablet check-in onboarding was blocked or failed, so BakedBot created an operator review artifact with evidence.',
+        proactive,
+        createdBy: 'system',
+        updatedAt: FieldValue.serverTimestamp(),
+    };
+
+    if (input.existingArtifactId) {
+        await db.collection('inbox_artifacts').doc(artifactId).update(payload);
+    } else {
+        await db.collection('inbox_artifacts').doc(artifactId).set({
+            ...payload,
+            createdAt: FieldValue.serverTimestamp(),
+        });
+    }
+
+    await db.collection('inbox_threads').doc(input.threadId).set({
+        artifactIds: FieldValue.arrayUnion(artifactId),
+        status: 'active',
+        preview: summary.summary,
         updatedAt: FieldValue.serverTimestamp(),
         lastActivityAt: FieldValue.serverTimestamp(),
     }, { merge: true });
@@ -636,6 +766,133 @@ export async function syncCustomerSignupProactiveGap(
         logger.error('[CustomerSignupProactive] Failed to sync signup proactive gap', {
             orgId,
             customerId: payload.customerId,
+            error: message,
+        });
+        return { success: false, error: message };
+    }
+}
+
+export async function syncCustomerOnboardingRunGap(
+    input: CustomerOnboardingRunGapInput
+): Promise<{ success: boolean; skipped?: boolean; taskId?: string; reason?: string; error?: string }> {
+    try {
+        const workflowEnabled = await isProactiveWorkflowEnabled(input.orgId, 'daily_dispensary_health');
+        if (!workflowEnabled) {
+            return { success: true, skipped: true, reason: 'workflow_disabled' };
+        }
+
+        const summary = getOnboardingRunGapSummary(input);
+        let task = await createOrReuseProactiveTask({
+            tenantId: input.orgId,
+            organizationId: input.orgId,
+            workflowKey: 'daily_dispensary_health',
+            agentKey: 'mrs_parker',
+            title: summary.title,
+            summary: summary.summary,
+            severity: getOnboardingRunGapSeverity(input.blockedReason),
+            businessObjectType: 'customer',
+            businessObjectId: input.customerId,
+            dedupeKey: `customer_onboarding_run_gap:${input.orgId}:${input.runId}:${input.blockedReason}`,
+            dueAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            createdBy: 'system',
+        });
+
+        task = await safelyTransitionTask(task, 'triaged', 'customer_onboarding_gap_detected');
+        task = await safelyTransitionTask(task, 'investigating', 'customer_onboarding_gap_written_back');
+        task = await safelyTransitionTask(task, 'draft_ready', 'customer_onboarding_gap_ready_for_review');
+
+        const threadId = await ensureOnboardingThread(input.orgId);
+        const artifactId = await upsertOnboardingRunArtifact({
+            orgId: input.orgId,
+            threadId,
+            taskId: task.id,
+            gap: input,
+            existingArtifactId: task.artifactId,
+        });
+
+        await linkTaskToInbox(task.id, { threadId, artifactId });
+
+        await attachProactiveTaskEvidence(task.id, {
+            taskId: task.id,
+            tenantId: task.tenantId,
+            evidenceType: 'customer_signup_gap',
+            refId: artifactId,
+            payload: {
+                runId: input.runId,
+                visitId: input.visitId,
+                customerId: input.customerId,
+                leadId: input.leadId ?? null,
+                email: normalizeEmail(input.email) ?? null,
+                blockedReason: input.blockedReason,
+                welcomeAutomationState: input.welcomeAutomationState ?? null,
+            },
+        });
+
+        await appendProactiveEvent({
+            tenantId: task.tenantId,
+            organizationId: task.organizationId,
+            taskId: task.id,
+            actorType: 'system',
+            eventType: 'customer.onboarding.tablet_gap_detected',
+            businessObjectType: 'customer',
+            businessObjectId: input.customerId,
+            payload: {
+                threadId,
+                artifactId,
+                runId: input.runId,
+                visitId: input.visitId,
+                blockedReason: input.blockedReason,
+                nextAction: input.nextAction ?? null,
+            },
+        });
+
+        const snoozeHours = await getResolvedProactiveSnoozeHours(input.orgId);
+        await upsertCommitment({
+            tenantId: task.tenantId,
+            organizationId: task.organizationId,
+            taskId: task.id,
+            commitmentType: 'follow_up',
+            title: summary.commitmentTitle,
+            dueAt: new Date(Date.now() + snoozeHours * 60 * 60 * 1000),
+            payload: {
+                threadId,
+                artifactId,
+                runId: input.runId,
+                visitId: input.visitId,
+                blockedReason: input.blockedReason,
+            },
+        });
+
+        await recordProactiveOutcome({
+            tenantId: task.tenantId,
+            organizationId: task.organizationId,
+            taskId: task.id,
+            workflowKey: 'daily_dispensary_health',
+            outcomeType: 'executed',
+            payload: {
+                threadId,
+                artifactId,
+                runId: input.runId,
+                visitId: input.visitId,
+                blockedReason: input.blockedReason,
+            },
+        });
+
+        logger.info('[CustomerSignupProactive] Tablet onboarding gap synced', {
+            orgId: input.orgId,
+            taskId: task.id,
+            runId: input.runId,
+            visitId: input.visitId,
+            blockedReason: input.blockedReason,
+        });
+
+        return { success: true, taskId: task.id };
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        logger.error('[CustomerSignupProactive] Failed to sync tablet onboarding gap', {
+            orgId: input.orgId,
+            runId: input.runId,
+            visitId: input.visitId,
             error: message,
         });
         return { success: false, error: message };

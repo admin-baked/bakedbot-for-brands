@@ -20,6 +20,7 @@ import { getPhoneLast4 } from '@/lib/customers/profile-derivations';
 import { createInboxArtifactId, createInboxThreadId } from '@/types/inbox';
 import { firestoreTimestampToDate } from '@/lib/firestore-utils';
 import { z } from 'zod';
+import { getCustomerOnboardingStatusSummary } from '@/server/services/customer-onboarding';
 import {
     DEFAULT_CHECKIN_CONFIG,
     DEFAULT_PUBLIC_BRAND_THEME,
@@ -63,6 +64,12 @@ interface LegacyCheckinStatsUnused {
     topMood: string | null;
     moodBreakdown: MoodCount[];
     periodLabel: string;
+    onboardingSummary: {
+        pending: number;
+        blocked: number;
+        failed: number;
+        completedToday: number;
+    };
 }
 
 interface LegacyCheckinVisitRowUnused {
@@ -168,11 +175,12 @@ export async function getCheckinStats(orgId: string): Promise<{ success: boolean
         const db = getAdminFirestore();
         const col = db.collection('checkin_visits');
 
-        const [todaySnap, weekSnap, monthSnap, reviewSnap] = await Promise.all([
+        const [todaySnap, weekSnap, monthSnap, reviewSnap, onboardingSummary] = await Promise.all([
             col.where('orgId', '==', orgId).where('visitedAt', '>=', todayStart()).get(),
             col.where('orgId', '==', orgId).where('visitedAt', '>=', daysBefore(7)).get(),
             col.where('orgId', '==', orgId).where('visitedAt', '>=', daysBefore(30)).count().get(),
             col.where('orgId', '==', orgId).where('reviewSequence.status', '==', 'pending').count().get(),
+            getCustomerOnboardingStatusSummary(orgId),
         ]);
 
         const todayDocs = todaySnap.docs.map(d => d.data());
@@ -222,6 +230,7 @@ export async function getCheckinStats(orgId: string): Promise<{ success: boolean
                 topMood,
                 moodBreakdown,
                 periodLabel,
+                onboardingSummary,
             },
         };
     } catch (error) {
@@ -293,6 +302,7 @@ export interface CheckinBriefingData {
     topMood: string | null;
     moodBreakdown: MoodCount[];
     insight: string;
+    onboardingSummary: CheckinStats['onboardingSummary'];
 }
 
 // ── Public brand logo ──────────────────────────────────────────────────────
@@ -410,6 +420,7 @@ export async function postCheckinBriefingToInbox(orgId: string): Promise<{ succe
         topMood: stats.topMood,
         moodBreakdown: stats.moodBreakdown,
         insight,
+        onboardingSummary: stats.onboardingSummary,
     };
 
     const artifactId = createInboxArtifactId();
@@ -456,6 +467,12 @@ function buildInsight(stats: CheckinStats): string {
 
     if (stats.reviewPendingCount > 0) {
         parts.push(`${stats.reviewPendingCount} customer${stats.reviewPendingCount !== 1 ? 's' : ''} in review sequence.`);
+    }
+
+    if (stats.onboardingSummary.blocked > 0 || stats.onboardingSummary.failed > 0) {
+        parts.push(
+            `${stats.onboardingSummary.blocked} blocked and ${stats.onboardingSummary.failed} failed onboarding run${stats.onboardingSummary.blocked + stats.onboardingSummary.failed === 1 ? '' : 's'} need review.`,
+        );
     }
 
     if (stats.topMood) {

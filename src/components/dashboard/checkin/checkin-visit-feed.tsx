@@ -28,6 +28,8 @@ const REVIEW_STATUS_CONFIG: Record<string, { label: string; className: string }>
     pending: { label: 'Pending nudge', className: 'bg-amber-500/15 text-amber-600 border-amber-500/30' },
     sent: { label: 'Review sent', className: 'bg-green-500/15 text-green-600 border-green-500/30' },
     skipped_no_email: { label: 'No email', className: 'bg-muted text-muted-foreground' },
+    blocked: { label: 'Blocked', className: 'bg-amber-500/15 text-amber-600 border-amber-500/30' },
+    failed: { label: 'Failed', className: 'bg-red-500/15 text-red-600 border-red-500/30' },
     complete: { label: 'Complete', className: 'bg-green-500/15 text-green-600 border-green-500/30' },
     unknown: { label: '—', className: 'bg-muted text-muted-foreground' },
 };
