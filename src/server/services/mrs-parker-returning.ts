@@ -147,6 +147,7 @@ Questions? Reply to this email — we're here to help!
             subject,
             htmlBody,
             textBody,
+            orgId,
             communicationType: 'transactional',
             agentName: 'mrs_parker',
             fromName: 'Mrs. Parker',
