@@ -38,10 +38,10 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟡 Competitive-intel activation + Thrive Uncle Elroy delivery wired locally; focused Jest green, full check:types blocked by existing `insight-card.tsx` parse error.
+**Current Status:** 🟡 Homepage onboarding audit + SES onboarding lifecycle emails wired locally; focused Jest green, full check:types blocked by existing inbox/playbook typing errors outside this flow.
 
-**Recent work (2026-04-09):** Competitive-intel activation — canonical `competitive_intel_activation_runs`, Competitive Intel page activation card/action, report email writeback, and Uncle Elroy Slack delivery for Thrive Syracuse.
-**Prior (2026-04-09):** Google Workspace OAuth fix (`4c1cf78b4`) — auth impersonation context set unconditionally, resolveOrgId fallback chain fixed, workspace UI error handling added.
+**Recent work (2026-04-09):** Homepage-to-onboarding audit — core first wins now center on Check-In, Competitive Intelligence, and Creative Center; setup/help surfaces now include direct Martez booking.
+**Prior (2026-04-09):** Onboarding lifecycle emails — first 7-day onboarding sequence now schedules through `jobs`, SES welcome routing is enabled, and weekly nurture sends rotating feature spotlights to onboarded users.
 - Marty CEO agent: full super powers, Slack DM routing, manages all executives toward $1M ARR
 - Club MVP shipped (`9eb4a6d36`): Customer PWA /club, mood video cache, event pipeline + 5 triggers, tablet PWA
 - 7-day retention nudge email (cron job)

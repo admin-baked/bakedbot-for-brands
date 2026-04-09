@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟡 Competitive-intel activation + Thrive Uncle Elroy delivery wired locally; focused Jest green, full check:types blocked by existing `insight-card.tsx` parse error | **Last update:** 2026-04-09 (competitive intel activation + setup guide delivery state)
+**Current Status:** 🟡 Homepage onboarding audit + SES onboarding lifecycle emails wired locally; focused Jest green, full check:types blocked by existing inbox/playbook typing errors outside this flow | **Last update:** 2026-04-09 (homepage onboarding audit + onboarding lifecycle email system)
 
 ---
 
