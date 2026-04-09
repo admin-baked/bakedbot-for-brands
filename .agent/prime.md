@@ -38,10 +38,10 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟡 Tablet check-in onboarding OS refactor landed locally; focused Jest green, full `check:types` still timing out.
+**Current Status:** 🟢 `main` green; Google Workspace OAuth fix deployed.
 
-**Recent work (2026-04-08):** Tablet onboarding OS refactor + Marty Benjamins AI CEO (`b541a7b86`) + media credit billing (`7638406a7`):
-- Tablet onboarding OS refactor: canonical `customer_onboarding_runs`, onboarding orchestration service, cron rebase, onboarding watch/task sync, dashboard summary
+**Recent work (2026-04-09):** Google Workspace OAuth fix (`4c1cf78b4`) — auth impersonation context set unconditionally, resolveOrgId fallback chain fixed, workspace UI error handling added.
+**Prior (2026-04-08):** Marty Benjamins AI CEO (`b541a7b86`) + media credit billing (`7638406a7`) + tablet onboarding OS refactor.
 - Marty CEO agent: full super powers, Slack DM routing, manages all executives toward $1M ARR
 - Club MVP shipped (`9eb4a6d36`): Customer PWA /club, mood video cache, event pipeline + 5 triggers, tablet PWA
 - 7-day retention nudge email (cron job)

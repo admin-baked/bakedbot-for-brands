@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟡 Tablet check-in onboarding OS refactor landed locally; focused Jest green, full `check:types` still timing out | **Last update:** 2026-04-08 (tablet onboarding workflow + onboarding run state)
+**Current Status:** 🟢 `main` green; Google Workspace OAuth fix + impersonation context fix | **Last update:** 2026-04-09 (auth impersonation + workspace connection + DiscoveryService reuse)
 
 ---
 
