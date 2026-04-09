@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; Google Workspace OAuth fix + impersonation context fix | **Last update:** 2026-04-09 (auth impersonation + workspace connection + DiscoveryService reuse)
+**Current Status:** 🟡 Competitive-intel activation + Thrive Uncle Elroy delivery wired locally; focused Jest green, full check:types blocked by existing `insight-card.tsx` parse error | **Last update:** 2026-04-09 (competitive intel activation + setup guide delivery state)
 
 ---
 

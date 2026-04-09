@@ -38,10 +38,10 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 `main` green; Google Workspace OAuth fix deployed.
+**Current Status:** 🟡 Competitive-intel activation + Thrive Uncle Elroy delivery wired locally; focused Jest green, full check:types blocked by existing `insight-card.tsx` parse error.
 
-**Recent work (2026-04-09):** Google Workspace OAuth fix (`4c1cf78b4`) — auth impersonation context set unconditionally, resolveOrgId fallback chain fixed, workspace UI error handling added.
-**Prior (2026-04-08):** Marty Benjamins AI CEO (`b541a7b86`) + media credit billing (`7638406a7`) + tablet onboarding OS refactor.
+**Recent work (2026-04-09):** Competitive-intel activation — canonical `competitive_intel_activation_runs`, Competitive Intel page activation card/action, report email writeback, and Uncle Elroy Slack delivery for Thrive Syracuse.
+**Prior (2026-04-09):** Google Workspace OAuth fix (`4c1cf78b4`) — auth impersonation context set unconditionally, resolveOrgId fallback chain fixed, workspace UI error handling added.
 - Marty CEO agent: full super powers, Slack DM routing, manages all executives toward $1M ARR
 - Club MVP shipped (`9eb4a6d36`): Customer PWA /club, mood video cache, event pipeline + 5 triggers, tablet PWA
 - 7-day retention nudge email (cron job)
