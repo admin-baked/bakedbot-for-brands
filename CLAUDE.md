@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; Marty Benjamins AI CEO agent shipped + media credit billing | **Last update:** 2026-04-08 (Marty CEO agent + media credits)
+**Current Status:** 🟡 Tablet check-in onboarding OS refactor landed locally; focused Jest green, full `check:types` still timing out | **Last update:** 2026-04-08 (tablet onboarding workflow + onboarding run state)
 
 ---
 
