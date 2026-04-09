@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Production live (`ed322be`); Social tools (Craig Twitter/Reddit, Leo browser_act), Upstash Vector provisioned (kb-search 768d cosine), RTRVR session ownership pattern live; onboarding lifecycle + briefing staged | **Last update:** 2026-04-09 (social tools + RTRVR generalization + Upstash Vector + deploy unblock)
+**Current Status:** 🟢 Production live; Social tools (Craig Twitter/Reddit, Leo browser_act), Upstash Vector (kb-search 768d cosine), Redis 8MB payload guard, Marty GLM tier chain | **Last update:** 2026-04-09 (social tools + RTRVR + Upstash Vector + cache guard + Marty GLM tiers)
 
 ---
 

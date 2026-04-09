@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Production live (`ed322be`); Social tools + Upstash Vector + RTRVR session ownership deployed; onboarding lifecycle + briefing staged locally.
-**Recent work (2026-04-09):** `ba8d81172` — social-tools.ts + twitter/reddit-browser + browser-act; Upstash Vector kb-search provisioned; deploy unblocked (LETTA_LINUS_AGENT_ID + UPSTASH_VECTOR secrets created)
+**Current Status:** 🟢 Production live; Social tools + Upstash Vector + RTRVR session ownership + Redis cache guard + Marty GLM tiers deployed.
+**Recent work (2026-04-09):** `3cf39231e` Redis 8MB cache guard; `95790a3fa` Marty GLM tier chain; social-tools + Upstash Vector provisioned; deploy unblocked
 **Prior (2026-04-09):** Actionable Slack briefing flow — daily briefing cron, Slack approve/decline handling, artifact execution routing, and playbook/actionable artifact contracts staged locally.
 - Marty CEO agent: full super powers, Slack DM routing, manages all executives toward $1M ARR
 - Club MVP shipped (`9eb4a6d36`): Customer PWA /club, mood video cache, event pipeline + 5 triggers, tablet PWA
