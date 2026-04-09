@@ -473,6 +473,9 @@ const MARTY_SLACK_TOOLS = [
     { name: 'crmListUsers', description: 'List platform users.', input_schema: { type: 'object' as const, properties: { search: { type: 'string' }, lifecycleStage: { type: 'string' }, limit: { type: 'number' } } } },
     { name: 'getActivePlaybooks', description: 'List all active playbooks and their status.', input_schema: { type: 'object' as const, properties: {} } },
     { name: 'executeSuperPower', description: 'Run a BakedBot super power script.', input_schema: { type: 'object' as const, properties: { script: { type: 'string' }, options: { type: 'string' } }, required: ['script'] } },
+    { name: 'marty_dream', description: 'Run a Dream session — introspect on CEO-level performance (telemetry, feedback, learning deltas, Letta memory), generate improvement hypotheses, test them, and report results. Use this to self-improve or when asked to reflect.', input_schema: { type: 'object' as const, properties: { model: { type: 'string', description: 'AI model for dream: glm, gemini-flash, haiku, sonnet (default: glm)' } } } },
+    { name: 'letta_save_fact', description: 'Save an important insight or decision to long-term CEO memory (Letta Hive Mind).', input_schema: { type: 'object' as const, properties: { fact: { type: 'string', description: 'The fact or insight to remember' }, category: { type: 'string', description: 'Category: strategy, revenue, team, customer, decision' } }, required: ['fact'] } },
+    { name: 'letta_search_memory', description: 'Search CEO long-term memory for past decisions, strategies, or insights.', input_schema: { type: 'object' as const, properties: { query: { type: 'string', description: 'What to search for' } }, required: ['query'] } },
 ];
 
 async function martyToolExecutor(toolName: string, args: Record<string, unknown>): Promise<unknown> {
@@ -500,6 +503,69 @@ async function martyToolExecutor(toolName: string, args: Record<string, unknown>
         case 'executeSuperPower': {
             const { defaultExecutiveBoardTools } = await import('@/app/dashboard/ceo/agents/default-tools');
             return await (defaultExecutiveBoardTools as any).executeSuperPower(args.script, args.options);
+        }
+        case 'marty_dream': {
+            const { runDreamSession } = await import('@/server/services/letta/dream-loop');
+            const model = (args.model as string) || 'glm';
+            const session = await runDreamSession('Marty', model as any);
+
+            // Post report to Slack #ceo channel
+            try {
+                const { postLinusIncidentSlack } = await import('@/server/services/incident-notifications');
+                await postLinusIncidentSlack({
+                    source: 'auto-escalator',
+                    channelName: 'ceo',
+                    fallbackText: `CEO Dream Session: ${session.hypotheses.length} hypotheses, ${session.hypotheses.filter(h => h.testResult === 'confirmed').length} confirmed`,
+                    blocks: [{
+                        type: 'section',
+                        text: { type: 'mrkdwn', text: session.report }
+                    }]
+                });
+            } catch (e) {
+                logger.warn('[Marty:Dream] Failed to post dream report to Slack', { error: String(e) });
+            }
+
+            return {
+                success: true,
+                hypotheses: session.hypotheses.length,
+                confirmed: session.hypotheses.filter(h => h.testResult === 'confirmed').length,
+                report: session.report,
+            };
+        }
+        case 'letta_save_fact': {
+            try {
+                const { lettaClient } = await import('@/server/services/letta/client');
+                const agents = await lettaClient.listAgents();
+                const researchAgent = agents.find(a => a.name.includes('Research'));
+                if (researchAgent) {
+                    await lettaClient.insertPassage(
+                        researchAgent.id,
+                        `[CEO:${(args.category as string) || 'general'}] ${args.fact}`
+                    );
+                    return { success: true, saved: args.fact };
+                }
+                return { success: false, error: 'No Letta research agent found' };
+            } catch (e) {
+                return { success: false, error: String(e) };
+            }
+        }
+        case 'letta_search_memory': {
+            try {
+                const { lettaClient } = await import('@/server/services/letta/client');
+                const agents = await lettaClient.listAgents();
+                const researchAgent = agents.find(a => a.name.includes('Research'));
+                if (researchAgent) {
+                    const passages = await lettaClient.searchPassages(
+                        researchAgent.id,
+                        args.query as string,
+                        5
+                    );
+                    return { success: true, results: passages };
+                }
+                return { success: false, error: 'No Letta research agent found' };
+            } catch (e) {
+                return { success: false, error: String(e) };
+            }
         }
         default:
             return { error: `Unknown tool: ${toolName}` };
@@ -551,7 +617,15 @@ FORMAT FOR SLACK:
 User Request: ${request.prompt}`;
 
     const onToolCall = request.progressCallback
-        ? (toolName: string) => request.progressCallback!(`_Marty Benjamins is checking ${toolName.replace(/_/g, ' ')}..._`)
+        ? (toolName: string) => {
+            const msgs: Record<string, string> = {
+                marty_dream: '_Marty Benjamins is dreaming — introspecting, hypothesizing, testing..._',
+                letta_save_fact: '_Marty Benjamins is updating CEO memory..._',
+                letta_search_memory: '_Marty Benjamins is searching long-term memory..._',
+                delegateTask: '_Marty Benjamins is delegating to the team..._',
+            };
+            request.progressCallback!(msgs[toolName] || `_Marty Benjamins is checking ${toolName.replace(/_/g, ' ')}..._`);
+        }
         : undefined;
 
     const result = await executeWithTools(
