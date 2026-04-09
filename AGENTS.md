@@ -267,3 +267,233 @@ Every coding session must end with an "Update recent work" pass. This applies to
 5. Commit: `git add CLAUDE.md .agent/prime.md && git commit -m "docs: Update session notes YYYY-MM-DD"`
 
 > Full protocol in `CLAUDE.md` → *Session End* section. Use **"Consolidate sessions"** to merge multiple pending tabs.
+
+---
+
+## Expanded Per-Agent Context
+
+This section provides expanded, per-agent context to give the AI-management team and engineering stakeholders a clear, shared understanding of each agent's role, responsibilities, and integration points within the governance model. Each entry references the canonical source file and outlines domain, access, tools, and observable behaviors.
+
+### Executive Boardroom (Super Users / AI Management)
+
+#### Leo - COO
+- **File**: `src/server/agents/leo.ts`
+- **Role**: Chief Operations Officer
+- **Domain**: Operations, delegation, scheduling
+- **Access**: Super Users Only
+- **Protocol**: Operations Heartbeat (Hourly)
+- **Capabilities**:
+  - Directs the entire operational fleet
+  - Schedules and coordinates agent tasks
+  - Monitors system health
+- **Integrations**: General orchestration interfaces; no external management integrations required
+- **MVP Playbook Participation**: Strategic planning and cross-domain task delegation
+- **Tools**: High-level planning, scheduling, and health checks (abstracted in agent interface)
+- **Observability**: Start/stop of plan cycles, task dispatch counts, health metrics
+- **Data Contracts**: Uses BrandDomainMemory and AgentMemory structures to coordinate tasks
+- **Handoff/Collaboration**: Coordinates handoffs via Letta bus for cross-agent tasks
+- **Example**: Delegating a cross-domain play to Linus and Glenda for a quarterly campaigns review
+
+#### Jack - CRO
+- **File**: `src/server/agents/jack.ts`
+- **Role**: Chief Revenue Officer
+- **Domain**: CRM, revenue metrics, loyalty delegation
+- **Access**: Super Users Only
+- **Protocol**: Revenue Pulse (Daily)
+- **Capabilities**:
+  - CRM, revenue metrics tracking, and sales pipeline analysis
+  - Delegates loyalty initiatives via Mrs. Parker
+- **Integrations**: CRM systems, loyalty channels (high-level)
+- **MVP Playbook Participation**: Revenue-focused playbooks and loyalty programs
+- **Tools**: CRM data access, campaign analytics (abstracted)
+- **Observability**: Revenue metrics collected, delegation outcomes
+- **Data Contracts**: Market/CRM data shaped for cross-agent views
+- **Handoff/Collaboration**: Works with Leo for scheduling and with Linus for constraints or fixes
+- **Example**: Initiates a loyalty campaign and routes tasks to Mrs. Parker and Smokey
+
+#### Linus - CTO
+- **File**: `src/server/agents/linus.ts`
+- **Role**: Chief Technology Officer
+- **Domain**: Code evaluation, bug hunting, automated fixes
+- **Access**: Super Users Only
+- **Protocol**: Zero Bug Tolerance (Hourly)
+- **AI Provider**: Claude (Anthropic)
+- **API Endpoint**: `POST /api/linus/fix`
+- **Capabilities**:
+  - Code search, bug evaluation, automated fixes, governance of fix endpoints
+- **Integrations**: Code search/indexing tools, repository access
+- **MVP Playbook Participation**: Code quality and triage playbooks
+- **Tools**: `search_codebase`, `find_files`, `git_log`, `git_diff`, `analyze_stack_trace`, `read_file`, `write_file`, `run_command`, `bash`, `archive_work`, `query_work_history`
+- **Observability**: Code-change tracing, fix-endpoint telemetry
+- **Data Contracts**: Codebase state and memory needed to perform fixes
+- **Handoff/Collaboration**: Proposes fixes and passes artifacts to other agents for validation
+- **Example**: Receives a bug report, searches repo, proposes a fix, and triggers a review cycle
+
+#### Glenda - CMO
+- **File**: `src/server/agents/glenda.ts`
+- **Role**: Chief Marketing Officer
+- **Domain**: Marketing, campaigns, content analytics
+- **Access**: Super Users Only
+- **Protocol**: Brand Watch (Daily)
+- **Capabilities**:
+  - Marketing campaigns, SEO, analytics, content planning
+  - Directs Craig and Day Day
+- **Integrations**: Marketing analytics tools, campaign platforms
+- **MVP Playbook Participation**: Marketing lifecycle and growth experiments
+- **Tools**: Campaign planning and analytics helpers (high-level)
+- **Observability**: Campaign performance logs, content metrics
+- **Data Contracts**: Brand marketing memory segments
+- **Handoff/Collaboration**: Coordinates with Leo for campaigns and with Mike for pricing-aligned promotions
+- **Example**: Plans a quarterly branding push and authorizes cross-channel deployments
+
+#### Mike - CFO
+- **File**: `src/server/agents/mike.ts`
+- **Role**: Chief Financial Officer
+- **Domain**: Pricing, profitability, tax/compliance tooling
+- **Access**: Super Users Only
+- **Protocol**: Financial Governance (Periodic)
+- **Capabilities**:
+  - Pricing strategy, profitability analytics, tax/compliance tooling
+  - Integrations: Authorize.net (billing)
+- **MVP Playbook Participation**: Pricing and profitability playbooks
+- **Tools**: Pricing analysis, margin tooling, tax/workflow tools
+- **Observability**: Margin and pricing telemetry
+- **Data Contracts**: Financial data memory, pricing rules, profitability metrics
+- **Handoff/Collaboration**: Works with Leo and Glenda for aligned campaigns/pricing
+- **Example**: Proposes pricing changes and evaluates impact on margins
+
+### Support Staff (Domain Specialists)
+
+#### Smokey - Budtender
+- **File**: `src/server/agents/smokey.ts`
+- **Role**: Product Specialist & Front Desk Greeter
+- **Domain**: Product search, recommendations
+- **Access**: Brand users
+- **Capabilities**:
+  - Product search and upsell suggestions
+  - Menu filtering and customer preference matching
+  - Delegation routing to specialists
+  - UX experiment management
+- **MVP Playbook Participation**: Review Response Autopilot; Low Stock Alert
+- **Tools**: `searchMenu`, `suggestUpsells`
+- **Integrations**: Menu data sources and product catalog
+- **Observability**: User interaction logs, upsell outcomes
+- **Data Contracts**: User preference data tied to product recommendations
+- **Handoff/Collaboration**: Can hand off to Craig or Ezal for deeper engagement
+- **Example**: Suggests a recommended product set based on user tolerance and budget
+
+#### Craig - Marketer
+- **File**: `src/server/agents/craig.ts`
+- **Role**: Marketing Automation
+- **Domain**: Campaigns, lifecycle marketing
+- **Access**: Brand users
+- **Integrations**: Blackleaf (SMS), Mailjet (Email), Ayrshare (Social)
+- **MVP Playbook Participation**: Win-Back Campaign
+- **Capabilities**:
+  - Run marketing campaigns, lifecycle automations
+  - Coordinate cross-channel marketing
+- **Tools**: Campaign orchestration tools, channel connectors
+- **Observability**: Campaign performance, channel metrics
+- **Data Contracts**: Campaign data models
+- **Handoff/Collaboration**: Delegates to Smokey and Day Day as needed
+- **Example**: Launches a win-back campaign
+
+#### Pops - Analyst
+- **File**: `src/server/agents/pops.ts`
+- **Role**: Data Analyst
+- **Domain**: Revenue analytics
+- **Access**: Brand users
+- **MVP Playbook Participation**: Weekly Top Sellers, Low Stock Alert
+- **Capabilities**: Funnel analysis, revenue analytics
+- **Tools**: Analytics tooling
+- **Observability**: Data freshness and reporting cadence
+- **Data Contracts**: Analytics datasets and dashboards
+- **Handoff/Collaboration**: Feeds insights to Linus and Mike as needed
+- **Example**: Generates weekly seller insights
+
+#### Ezal - Lookout
+- **File**: `src/server/agents/ezal.ts`
+- **Role**: Competitive Intelligence
+- **Domain**: Market intel, competitor monitoring
+- **Access**: Brand users
+- **Integrations**:
+  - Headset (market trends)
+  - CannMenus (pricing)
+  - Firecrawl (web scraping)
+- **MVP Playbook Participation**: Competitor Price Match Alert
+- **Capabilities**: Monitor market, price trends, and competitor movements
+- **Tools**: Competitive analysis tools
+- **Observability**: Market intel feeds
+- **Data Contracts**: Competitor data memory
+- **Handoff/Collaboration**: Shares competitive intel with Linus and Mike as needed
+
+#### Money Mike - Banker
+- **File**: `src/server/agents/moneyMike.ts`
+- **Role**: Pricing Strategist & Financial Analyst
+- **Domain**: Pricing, margins, profitability, 280E compliance
+- **Access**: Brand and Dispensary users
+- **Core Principles**: Margin protection, vendor negotiations, 280E tax handling
+- **Profitability Tools**: `analyze280ETax`, `calculateNYCannabsTax`, `getProfitabilityMetrics`, `analyzePriceCompression`, `analyzeWorkingCapital`
+- **MVP Playbook Participation**: Competitor Price Match Alert, Weekly Top Sellers
+- **Related Files**: profitability-tools.ts, cannabis-tax.ts, profitability dashboard actions
+- **Handoff**: Coordinates pricing guidance with Mike/CFO and with Glenda for campaigns
+
+#### Mrs. Parker - Hostess
+- **File**: `src/server/agents/mrsParker.ts`
+- **Role**: Loyalty & VIP Manager
+- **Domain**: Loyalty programs
+- **Integrations**: Alpine IQ (loyalty logic)
+- **MVP Playbook Participation**: Win-Back Campaign
+- **Observability**: Loyalty metrics
+
+#### Deebo - Enforcer
+- **File**: `src/server/agents/deebo.ts`
+- **Role**: Compliance Officer
+- **Domain**: Regulations, licensing
+- **Integrations**: Green Check (licensing data)
+- **MVP Playbook Participation**: Review Response Autopilot
+- **Observability**: Compliance checks and audit trails
+
+#### Day Day - Growth
+- **File**: `src/server/agents/dayday.ts`
+- **Role**: Growth Hacker
+- **Domain**: SEO, traffic
+- **Tools**: `seo_audit`, `chk_rank`
+- **Observability**: Traffic growth metrics
+
+#### Uncle Elroy - Store Operations Advisor
+- **File**: `src/server/agents/elroy.ts`
+- **Domain**: Dispensary operations, inventory, CRM, competitor intel
+- **Org Focus**: `org_thrive_syracuse` (Hardwired)
+- **Slack Channel**: `#thrive-syracuse-pilot`
+- **Persona**: Warm, street-smart, helpful, direct
+- **Capabilities**:
+  - At-Risk nudges, competitor price matching, top product alerts
+  - Inventory monitoring, technical delegation via ask_opencode
+- **Observability**: Store ops metrics and alerts
+
+#### Felisha - Ops
+- **File**: `src/server/agents/felisha.ts`
+- **Role**: Operations Coordinator
+- **Domain**: Scheduling, triage, meeting admin
+- **Integrations**: Cal.com (scheduling), Deepgram (transcription)
+- **Observability**: Meeting metrics and triage outcomes
+
+#### Opencode (SP13) - AI Coding Agent
+- **Platform**: Cloud Run
+- **File**: `docker/opencode/server.mjs`
+- **Role**: Technical Worker Bee
+- **Domain**: Code gen, data analysis, terminal tasks
+- **Cost**: $0 (Zen models)
+- **Capabilities**:
+  - Sub-Agent for Squad
+  - Repo Awareness: /workspace/bakedbot-for-brands
+  - Free Execution: Gemini/Zen models
+- **Observability**: Task-level telemetry
+
+### Additional Context
+- Handoff artifacts and the Letta memory bus are central to cross-agent collaboration
+- Governance-critical: arbitration points and cross-domain decision rights are defined in the Batch 5 plan
+
+### Notes
+This expanded per-agent context is intended to improve cross-domain understanding. Per-agent example interactions can be added in follow-up updates.
