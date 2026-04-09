@@ -104,13 +104,13 @@ export function InstallPrompt() {
         <>
             {/* ── Auto banner (fires when beforeinstallprompt is available) ── */}
             {showAutoBanner && (
-                <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between bg-emerald-600 px-4 py-2 text-white text-sm">
-                    <span>Install for full-screen mode + better mic access</span>
-                    <div className="flex gap-2">
-                        <button onClick={handleInstall} className="rounded bg-white px-3 py-1 text-emerald-700 font-semibold text-xs">
+                <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between bg-emerald-600 px-5 py-3 text-white text-base shadow-xl">
+                    <span className="font-medium">Install for full-screen kiosk mode</span>
+                    <div className="flex gap-3">
+                        <button onClick={handleInstall} className="rounded-lg bg-white px-5 py-2 text-emerald-700 font-bold text-sm shadow-md">
                             Install App
                         </button>
-                        <button onClick={() => setShowAutoBanner(false)} className="text-white/70 text-xs">
+                        <button onClick={() => setShowAutoBanner(false)} className="text-white/70 text-sm px-2">
                             Dismiss
                         </button>
                     </div>
@@ -127,10 +127,10 @@ export function InstallPrompt() {
                             setShowManualGuide(true);
                         }
                     }}
-                    className="fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2.5 text-white text-sm font-medium shadow-lg hover:bg-emerald-700 active:scale-95 transition-all"
+                    className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-2xl bg-emerald-600 px-6 py-4 text-white text-base font-bold shadow-2xl hover:bg-emerald-700 active:scale-95 transition-all animate-pulse"
                     aria-label="Install app on tablet"
                 >
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 8.25H7.5a2.25 2.25 0 0 0-2.25 2.25v9a2.25 2.25 0 0 0 2.25 2.25h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25H15M12 1.5v10.5m0 0 3-3m-3 3-3-3" />
                     </svg>
                     Install App

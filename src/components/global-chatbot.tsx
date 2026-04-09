@@ -17,6 +17,11 @@ function shouldHideGlobalChatbot(pathname: string | null): boolean {
     return true;
   }
 
+  // Tablet check-in is a kiosk flow — floating chatbot covers the PWA install button
+  if (pathname.startsWith('/loyalty-tablet')) {
+    return true;
+  }
+
   return /^\/[^/]+\/rewards\/?$/.test(pathname);
 }
 
