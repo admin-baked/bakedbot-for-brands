@@ -118,10 +118,17 @@ async function getRecentlyModifiedFiles(): Promise<string[]> {
     // Strategy 2: GitHub API (works in production)
     logger.info('[LinusSleep] Local git unavailable, falling back to GitHub API');
     try {
-        let token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
-        if (!token) token = (await getSecret('GITHUB_TOKEN')) ?? undefined;
+        let token = (process.env.GITHUB_TOKEN || process.env.GH_TOKEN || '')?.trim();
         if (!token) {
-            logger.error('[LinusSleep] No GITHUB_TOKEN available for API fallback');
+            const secretVal = await getSecret('GITHUB_TOKEN');
+            token = secretVal?.trim() ?? undefined;
+        }
+        if (!token) {
+            logger.error('[LinusSleep] No GITHUB_TOKEN available for API fallback', {
+                hasGH: !!process.env.GITHUB_TOKEN,
+                hasGHT: !!process.env.GH_TOKEN,
+                envKeys: Object.keys(process.env).filter(k => k.includes('GITHUB') || k.includes('PLAYBOOK')).join(','),
+            });
             return [];
         }
 
