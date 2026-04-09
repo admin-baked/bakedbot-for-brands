@@ -329,6 +329,10 @@ function buildInitialSlackStatus(personaId: string, cleanText: string): string {
         return `_${personaName} is on it: reviewing the request and pulling the right tools..._`;
     }
 
+    if (personaId === 'marty') {
+        return `_${personaName} is reviewing the situation..._`;
+    }
+
     return `_${personaName} is thinking..._`;
 }
 
@@ -631,6 +635,20 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                 ]);
 
                 result = { content: linusResult.content, toolCalls: linusResult.toolExecutions };
+            } else if (personaId === 'marty') {
+                // Marty Benjamins — CEO agent, full Claude tool-calling (no GLM downgrade)
+                // IMPORTANT: Do NOT set source:'slack' — that flag skips the agent harness in runAgentCore.
+                // Marty needs the full harness path to invoke martyAgent.act() with all CEO tools.
+                const extraOptions = { ...(attachments ? { attachments } : {}) };
+
+                const martyResult = await Promise.race([
+                    runAgentCore(fullPrompt, 'marty', extraOptions, SLACK_SYSTEM_USER),
+                    new Promise<never>((_, reject) =>
+                        setTimeout(() => reject(new Error(`Marty CEO timeout after ${Math.floor(agentTimeoutMs / 1000)} seconds`)), agentTimeoutMs)
+                    ),
+                ]) as any;
+
+                result = { content: martyResult?.content || martyResult?.message, toolCalls: martyResult?.toolCalls || [] };
             } else if (isElroy) {
                 // Uncle Elroy — store ops agent for Thrive Syracuse, always uses Claude tools
                 const elroyProgress = makeThrottledProgress(channel, workingMessageTs, elroySlackService);
@@ -846,7 +864,7 @@ function makeThrottledProgress(
 
 function getPersonaName(personaId: string): string {
     const names: Record<string, string> = {
-        leo: 'Leo', linus: 'Linus', jack: 'Jack', glenda: 'Glenda',
+        marty: 'Marty Benjamins', leo: 'Leo', linus: 'Linus', jack: 'Jack', glenda: 'Glenda',
         ezal: 'Ezal', craig: 'Craig', pops: 'Pops', smokey: 'Smokey',
         mrs_parker: 'Mrs. Parker', deebo: 'Deebo', money_mike: 'Money Mike',
         bigworm: 'Big Worm', day_day: 'Day Day', felisha: 'Felisha', puff: 'BakedBot',
