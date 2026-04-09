@@ -135,6 +135,12 @@ export async function getCached<T>(prefix: string, id: string): Promise<T | null
 }
 
 /**
+ * Maximum payload size for a single Redis SET (Upstash free tier limit is 10MB).
+ * We cap at 8MB to leave headroom for Redis protocol overhead.
+ */
+const MAX_CACHE_PAYLOAD_BYTES = 8 * 1024 * 1024;
+
+/**
  * Set cached value with TTL
  *
  * @param prefix - Cache prefix
@@ -152,6 +158,20 @@ export async function setCached<T>(
     if (!client) return; // Cache disabled
 
     try {
+        // Size guard: check serialized payload size before writing to Redis.
+        // Upstash free tier rejects requests > 10MB; we cap at 8MB for safety.
+        const serialized = JSON.stringify(value);
+        const byteLength = Buffer.byteLength(serialized, 'utf8');
+        if (byteLength > MAX_CACHE_PAYLOAD_BYTES) {
+            logger.warn('[Cache] SKIP — payload too large', {
+                prefix,
+                id,
+                bytes: byteLength,
+                maxBytes: MAX_CACHE_PAYLOAD_BYTES,
+            });
+            return;
+        }
+
         const key = buildCacheKey(prefix, id);
         await client.set(key, value, { ex: ttlSeconds });
 
