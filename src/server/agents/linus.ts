@@ -262,6 +262,20 @@ const LINUS_TOOLS: ClaudeTool[] = [
         }
     },
     {
+        name: 'read_project_docs',
+        description: 'Read a section of the project documentation (CLAUDE.md, prime.md, or agent refs). Use this to load codebase context on demand instead of keeping it all in memory. Sections: "quick-commands", "deploy", "pr-governance", "agents", "super-powers", "coding-standards", "known-issues", "prime" (project state), or "full" (entire CLAUDE.md).',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                section: {
+                    type: 'string',
+                    description: 'Section to load: quick-commands, deploy, pr-governance, agents, super-powers, coding-standards, known-issues, prime, full'
+                }
+            },
+            required: ['section']
+        }
+    },
+    {
         name: 'read_file',
         description: 'Read the contents of a file in the codebase.',
         input_schema: {
@@ -2056,6 +2070,42 @@ async function linusToolExecutor(toolName: string, input: Record<string, unknown
             return results;
         }
         
+        case 'read_project_docs': {
+            const section = (input.section as string) || 'full';
+            try {
+                if (section === 'prime') {
+                    const content = await fs.readFile(path.join(PROJECT_ROOT, '.agent/prime.md'), 'utf-8');
+                    return { section, content: content.slice(0, 4000) };
+                }
+                const claudeMd = await fs.readFile(path.join(PROJECT_ROOT, 'CLAUDE.md'), 'utf-8');
+                if (section === 'full') return { section, content: claudeMd.slice(0, 8000) };
+
+                // Section extraction by heading
+                const sectionMap: Record<string, string> = {
+                    'quick-commands': '## Quick Commands',
+                    'deploy': '## Deployment',
+                    'pr-governance': '## 🔴 PR Governance',
+                    'agents': '## Agent Squad',
+                    'super-powers': '## 🚀 Developer Super Powers',
+                    'coding-standards': '## Coding Standards',
+                    'known-issues': '## Known Issues',
+                };
+                const heading = sectionMap[section];
+                if (!heading) return { section, error: `Unknown section. Available: ${Object.keys(sectionMap).join(', ')}, prime, full` };
+
+                const startIdx = claudeMd.indexOf(heading);
+                if (startIdx === -1) return { section, content: '(Section not found in CLAUDE.md)' };
+                // Find next ## heading after this one
+                const afterHeading = claudeMd.indexOf('\n## ', startIdx + heading.length);
+                const extracted = afterHeading === -1
+                    ? claudeMd.slice(startIdx)
+                    : claudeMd.slice(startIdx, afterHeading);
+                return { section, content: extracted.slice(0, 4000) };
+            } catch (e) {
+                return { section, error: `Failed to read docs: ${(e as Error).message}` };
+            }
+        }
+
         case 'read_file': {
             const filePath = path.join(PROJECT_ROOT, input.path as string);
 
@@ -4685,13 +4735,21 @@ function getLinusCodebaseContext(claudeContext: string, toolMode: LinusToolMode)
         return claudeContext;
     }
 
-    // Slack runs need grounding, but we scrub Claude branding to prevent identity confusion.
-    return claudeContext
-        .split(/\r?\n/)
-        .slice(0, 120)
-        .join('\n')
-        .replace(/Claude Code/g, 'BakedBot CTO')
-        .replace(/Claude/g, 'Linus');
+    // Slack mode: minimal summary to stay under Groq's 12k TPM.
+    // Full CLAUDE.md is available via the `read_project_docs` tool on demand.
+    return `## Codebase Quick Reference (use read_project_docs for full details)
+
+Tech: Next.js 15 (App Router) | Firebase (Firestore, Auth, App Hosting) | AI: Claude + Groq + Gemini
+Deploy: git push origin main → Firebase App Hosting CI/CD
+Type check: node --max-old-space-size=8192 node_modules/.bin/tsc --noEmit
+Tests: npm test -- path/to/file.test.ts
+Stuck build (>25 min): cancel via firebase-apphosting.mjs, push empty commit
+
+Key paths: src/server/agents/ (agents), src/server/services/ (business logic), src/app/api/ (routes)
+Config: apphosting.yaml (secrets), .agent/prime.md (project state)
+Logging: use @/lib/logger (never console.log)
+
+For PR governance, deployment details, agent squad, super powers, or coding standards → call read_project_docs with the section you need.`;
 }
 
 // GLM-5 safety refusal strings â€” Z.ai declines cannabis-adjacent content in various ways.
@@ -4765,8 +4823,8 @@ const systemPromptCache = new Map<string, { prompt: string; expiresAt: number }>
 const SYSTEM_PROMPT_TTL_MS = 5 * 60 * 1000;
 
 // Build dynamic system prompt with grounding
-async function buildLinusSystemPrompt(orgId?: string): Promise<string> {
-    const cacheKey = orgId ?? '__default__';
+async function buildLinusSystemPrompt(orgId?: string, slackMode: boolean = false): Promise<string> {
+    const cacheKey = `${orgId ?? '__default__'}:${slackMode ? 'slack' : 'full'}`;
     const now = Date.now();
     const cached = systemPromptCache.get(cacheKey);
     if (cached && now < cached.expiresAt) {
@@ -4875,7 +4933,7 @@ When investigating a bug:
 8. Use \`read_file\` on each modified file, then \`github_push_api\` to push
 9. Use \`archive_work\` to document what was done
 
-API TESTING (KUSHOAI):
+${slackMode ? `(Full tool docs available via read_project_docs. Slack mode has: run_command, bash, read_file, write_file, search_codebase, run_health_check, git_log, git_diff, web_search, read_project_docs, and more.)` : `API TESTING (KUSHOAI):
 For API testing, you have access to KushoAI tools:
 - \`kusho_generate_tests\`: Auto-generate tests from OpenAPI specs
 - \`kusho_run_suite\`: Run test suites by ID or tag
@@ -4923,7 +4981,7 @@ When testing the live site:
 2. Navigate and interact with the page
 3. Check console for errors with \`extension_get_console\`
 4. Take screenshots at key states
-5. End session and report results
+5. End session and report results`}
 
 DECISION FRAMEWORK:
 - MISSION_READY: All 7 layers pass with â‰¥90% confidence
@@ -4949,7 +5007,7 @@ TECH OPPORTUNITY SIGNALS:
 - Security vulnerability in our stack â†’ immediately create a qa_bug entry + draft a fix plan
 - Firebase/Cloud Run outage â†’ proactively notify Leo before it affects production SLA
 
-POST-WORK PROTOCOL (/simplify â€” MANDATORY):
+${slackMode ? `Always be concise. Use the tools available to investigate and report. For deeper context, call read_project_docs.` : `POST-WORK PROTOCOL (/simplify — MANDATORY):
 After completing ANY code modifications (write_file, bash edits), you MUST automatically run the /simplify review before pushing:
 1. Use \`git_diff\` to capture all modified code
 2. Run 3 parallel reviews against the diff:
@@ -4958,11 +5016,11 @@ After completing ANY code modifications (write_file, bash edits), you MUST autom
    - Efficiency: Flag redundant work, sequential calls that could be parallel, N+1 patterns, overly broad reads, memory leaks
 3. Fix every confirmed finding directly
 4. Run \`run_health_check\` (build_only) to verify fixes
-5. Use \`read_file\` on every modified file, then \`github_push_api\` to push (NOT bash git push â€” no credentials on server)
+5. Use \`read_file\` on every modified file, then \`github_push_api\` to push (NOT bash git push — no credentials on server)
 6. Summarize what was changed
 This is NOT optional. Every code session ends with /simplify.
 
-Always be concise. Use the tools available to investigate, code, and report.`;
+Always be concise. Use the tools available to investigate, code, and report.`}`;
 
     systemPromptCache.set(cacheKey, { prompt, expiresAt: Date.now() + SYSTEM_PROMPT_TTL_MS });
     return prompt;
@@ -5104,15 +5162,18 @@ export async function runLinus(request: LinusRequest): Promise<LinusResponse> {
         }
     }
 
-    const linusSystemPrompt = await buildLinusSystemPrompt(request.context?.orgId);
+    const isSlackMode = toolMode === 'slack';
+    const linusSystemPrompt = await buildLinusSystemPrompt(request.context?.orgId, isSlackMode);
 
-    // Read CLAUDE.md for codebase context (Claude Code convention)
+    // Read CLAUDE.md for codebase context — Slack mode uses progressive loading via read_project_docs tool
     let claudeContext = '';
-    try {
-        const claudeMdPath = path.join(PROJECT_ROOT, 'CLAUDE.md');
-        claudeContext = await fs.readFile(claudeMdPath, 'utf-8');
-    } catch {
-        claudeContext = '(CLAUDE.md not found - operating without codebase context)';
+    if (!isSlackMode) {
+        try {
+            const claudeMdPath = path.join(PROJECT_ROOT, 'CLAUDE.md');
+            claudeContext = await fs.readFile(claudeMdPath, 'utf-8');
+        } catch {
+            claudeContext = '(CLAUDE.md not found - operating without codebase context)';
+        }
     }
 
     const fullPrompt = `${linusSystemPrompt}
@@ -5178,16 +5239,26 @@ User Request: ${request.prompt}`;
                         fullPrompt, getLinusTools(toolMode), linusToolExecutor,
                         { ...sharedContext, model: glmModel }
                     );
-                    if (glmResult.content && !isGLMRefusal(glmResult)) {
+                    if (isGLMRefusal(glmResult)) {
+                        logger.warn('[Linus] GLM refused (content policy)');
+                        break;
+                    }
+                    if (glmResult.content) {
                         result = glmResult;
+                    } else if (glmResult.toolExecutions && glmResult.toolExecutions.length > 0) {
+                        // Groq sometimes runs tools but returns empty content — synthesize
+                        const toolSummary = glmResult.toolExecutions
+                            .map((t: any) => `• *${t.tool}*: ${JSON.stringify(t.result).slice(0, 200)}`)
+                            .join('\n');
+                        result = { ...glmResult, content: `Here's what I found:\n\n${toolSummary}` };
+                        logger.info('[Linus] GLM ran tools with empty content — synthesized', { toolCount: glmResult.toolExecutions.length });
                     } else {
-                        logger.warn('[Linus] GLM unusable', { reason: !glmResult.content ? 'empty' : 'refused', toolExecs: glmResult.toolExecutions?.length ?? 0 });
+                        logger.warn('[Linus] GLM unusable (empty, no tools)');
                     }
                     break;
                 }
                 case 'gemini': {
                     // "gemini" tier = cheapest GLM model WITH tools
-                    // GLM provides tool calling at every tier — never fall to no-tools path
                     if (!isGLMConfigured()) continue;
                     const geminiModel = hasImages ? GLM_MODELS.VISION : GLM_MODELS.EXTRACTION;
                     logger.info(`[Linus] Trying GLM budget ${geminiModel} (gemini tier, with tools)`);
@@ -5195,10 +5266,19 @@ User Request: ${request.prompt}`;
                         fullPrompt, getLinusTools(toolMode), linusToolExecutor,
                         { ...sharedContext, model: geminiModel }
                     );
-                    if (geminiGlmResult.content && !isGLMRefusal(geminiGlmResult)) {
+                    if (isGLMRefusal(geminiGlmResult)) {
+                        logger.warn('[Linus] GLM budget refused');
+                        break;
+                    }
+                    if (geminiGlmResult.content) {
                         result = geminiGlmResult;
+                    } else if (geminiGlmResult.toolExecutions && geminiGlmResult.toolExecutions.length > 0) {
+                        const toolSummary = geminiGlmResult.toolExecutions
+                            .map((t: any) => `• *${t.tool}*: ${JSON.stringify(t.result).slice(0, 200)}`)
+                            .join('\n');
+                        result = { ...geminiGlmResult, content: `Here's what I found:\n\n${toolSummary}` };
                     } else {
-                        logger.warn('[Linus] GLM budget unusable', { reason: !geminiGlmResult.content ? 'empty' : 'refused', toolExecs: geminiGlmResult.toolExecutions?.length ?? 0 });
+                        logger.warn('[Linus] GLM budget unusable (empty, no tools)');
                     }
                     break;
                 }
@@ -5232,7 +5312,7 @@ User Request: ${request.prompt}`;
             }
         } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
-            const isRateLimit = msg.includes('429') || msg.toLowerCase().includes('rate limit');
+            const isRateLimit = msg.includes('429') || msg.includes('413') || msg.toLowerCase().includes('rate limit') || msg.toLowerCase().includes('request too large');
             logger.error(`[Linus] Tier ${tier} failed`, { error: msg, isRateLimit });
             // Notify Slack when Groq rate limit triggers fallback
             if (isRateLimit && (tier === 'glm' || tier === 'gemini')) {
@@ -5242,7 +5322,7 @@ User Request: ${request.prompt}`;
     }
 
     if (!result) {
-        throw new Error('All AI providers failed. Check API keys and credits, or run: @linus set model tier to gemini');
+        throw new Error('All AI tiers exhausted. Claude credits may be depleted, and Groq prompt is too large. Try: @linus set model tier to gemini-flash');
     }
 
     return buildLinusResponse(result, request);

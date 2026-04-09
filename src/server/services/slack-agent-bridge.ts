@@ -457,7 +457,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
         //   - Simple conversational messages → GLM synthesis
         // All other agents use GLM synthesis path.
         const AGENT_TIMEOUTS = {
-            marty:  240_000,  // 4 min — CEO cross-functional with up to 8 iterations
+            marty:  120_000,  // 2 min — CEO fast path (Groq-first tier chain)
             linus:  180_000,  // 3 min — GLM-5 / Claude tool-calling with up to 8 iterations
             leo:   120_000,   // 2 min — COO operations may chain multiple tools
             jack:  120_000,   // 2 min — CRO revenue analysis
@@ -643,8 +643,8 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                 const martyResult = await Promise.race([
                     runMarty({
                         prompt: fullPrompt,
-                        maxIterations: 8,
-                        context: { userId: SLACK_SYSTEM_USER.uid },
+                        maxIterations: 4,
+                        context: { userId: SLACK_SYSTEM_USER.uid, orgId: (SLACK_SYSTEM_USER as any).orgId || 'org_bakedbot_internal' },
                         progressCallback: martyProgress,
                     }),
                     new Promise<never>((_, reject) =>

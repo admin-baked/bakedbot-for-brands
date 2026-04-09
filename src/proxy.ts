@@ -17,9 +17,21 @@ type HostResolveResult = {
     targetType?: string;
 };
 
-const HOST_RESOLVE_CACHE_TTL_MS = 60_000;
+const HOST_RESOLVE_CACHE_TTL_MS = 5 * 60_000; // 5 minutes for successful resolutions
+const HOST_RESOLVE_FAIL_TTL_MS = 10_000; // 10 seconds for failures — retry quickly
 const hostResolveCache = new Map<string, { expiry: number; value: HostResolveResult | null }>();
 const DEFAULT_DOMAIN_RESOLVE_ORIGIN = 'https://bakedbot.ai';
+
+/**
+ * Static fallback map for known custom domains.
+ * Eliminates the self-referential HTTP fetch for these domains entirely —
+ * the middleware can resolve them without hitting /api/domain/resolve.
+ * This prevents intermittent downtime during cold starts, deploys, or load spikes.
+ */
+const STATIC_DOMAIN_MAP: Record<string, HostResolveResult> = {
+    'ecstaticedibles.com': { success: true, path: '/ecstaticedibles', tenantId: 'ecstaticedibles', targetType: 'menu' },
+    'www.ecstaticedibles.com': { success: true, path: '/ecstaticedibles', tenantId: 'ecstaticedibles', targetType: 'menu' },
+};
 
 export function shouldBypassMappedDomainRewrite(pathname: string): boolean {
     return pathname.startsWith('/api/wordpress/proxy');
@@ -40,14 +52,28 @@ function setCachedHostResolve(cacheKey: string, value: HostResolveResult | null)
         const staleKeys = Array.from(hostResolveCache.keys()).slice(0, 100);
         staleKeys.forEach((key) => hostResolveCache.delete(key));
     }
+    // Use short TTL for failures so we retry quickly instead of staying down for minutes
+    const ttl = value ? HOST_RESOLVE_CACHE_TTL_MS : HOST_RESOLVE_FAIL_TTL_MS;
     hostResolveCache.set(cacheKey, {
-        expiry: Date.now() + HOST_RESOLVE_CACHE_TTL_MS,
+        expiry: Date.now() + ttl,
         value,
     });
 }
 
 async function resolveMappedHostname(request: NextRequest, hostname: string, pathname: string): Promise<HostResolveResult | null> {
-    const cacheKey = `${hostname.toLowerCase()}|${pathname}`;
+    const normalizedHost = hostname.toLowerCase();
+
+    // Static fallback — resolves instantly, no HTTP fetch needed
+    const staticResult = STATIC_DOMAIN_MAP[normalizedHost];
+    if (staticResult) {
+        // For menu targets, append the sub-path (e.g., /products → /ecstaticedibles/products)
+        if (pathname !== '/' && staticResult.targetType === 'menu' && staticResult.path) {
+            return { ...staticResult, path: `${staticResult.path}${pathname}` };
+        }
+        return staticResult;
+    }
+
+    const cacheKey = `${normalizedHost}|${pathname}`;
     const cached = getCachedHostResolve(cacheKey);
     if (cached !== undefined) {
         return cached;

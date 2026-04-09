@@ -649,7 +649,7 @@ User Request: ${request.prompt}`;
         : undefined;
 
     const sharedContext = {
-        maxIterations: request.maxIterations ?? 8,
+        maxIterations: request.maxIterations ?? 4,
         orgId: request.context?.orgId,
         brandId: request.context?.brandId,
         agentContext: {
@@ -661,62 +661,65 @@ User Request: ${request.prompt}`;
         onToolCall,
     };
 
-    // Tier chain: Claude → gemini (GLM budget) → glm (GLM standard) → gemini-flash (Google)
-    type MartyTier = 'claude' | 'gemini' | 'glm' | 'gemini-flash';
-    const tierChain: MartyTier[] = ['claude', 'gemini', 'glm', 'gemini-flash'];
+    // Fast-path tier chain: Groq 70b (fast+cheap) → Gemini Flash → Claude (expensive last resort)
+    // NOTE: Groq 8b skipped — Marty's system prompt (~6100 tokens) exceeds its 6000 TPM limit
+    type MartyTier = 'glm' | 'gemini-flash' | 'claude';
+    const tierChain: MartyTier[] = ['glm', 'gemini-flash', 'claude'];
     let result: ClaudeResult | null = null;
+    const triedTiers: string[] = [];
 
     for (const tier of tierChain) {
         if (result) break;
 
         try {
             switch (tier) {
-                case 'claude': {
-                    if (!isClaudeAvailable()) {
-                        logger.info('[Marty] Claude unavailable, skipping');
-                        continue;
+                case 'glm': {
+                    if (!isGLMConfigured()) { triedTiers.push(`${tier}:unconfigured`); continue; }
+                    const model = GLM_MODELS.STANDARD;
+                    logger.info(`[Marty] Trying Groq ${model} (fast path)`);
+                    const glmResult = await executeGLMWithTools(
+                        fullPrompt, MARTY_SLACK_TOOLS, martyToolExecutor,
+                        { ...sharedContext, model }
+                    );
+                    if (isGLMRefusal(glmResult)) {
+                        triedTiers.push(`${tier}:refused`);
+                        logger.warn('[Marty] Groq refused (content policy)');
+                        break;
                     }
-                    logger.info('[Marty] Trying Claude');
-                    result = await executeWithTools(
+                    // Accept if content exists OR tools executed (Groq sometimes returns empty
+                    // content after running tools — synthesize a summary from tool results)
+                    if (glmResult.content) {
+                        result = glmResult;
+                    } else if (glmResult.toolExecutions && glmResult.toolExecutions.length > 0) {
+                        logger.info('[Marty] Groq ran tools but returned empty content — synthesizing', {
+                            toolCount: glmResult.toolExecutions.length,
+                        });
+                        const toolSummary = glmResult.toolExecutions
+                            .map((t: any) => `• *${t.tool}*: ${JSON.stringify(t.result).slice(0, 200)}`)
+                            .join('\n');
+                        result = {
+                            ...glmResult,
+                            content: `Here's what I found:\n\n${toolSummary}\n\n_Let me know if you need me to dig deeper into any of these._`,
+                        };
+                    } else {
+                        triedTiers.push(`${tier}:empty`);
+                        logger.warn('[Marty] Groq returned empty (no content, no tools)');
+                    }
+                    break;
+                }
+                case 'gemini-flash': {
+                    if (!isGeminiFlashConfigured()) { triedTiers.push(`${tier}:unconfigured`); continue; }
+                    logger.info('[Marty] Trying Gemini Flash');
+                    result = await executeGeminiFlashWithTools(
                         fullPrompt, MARTY_SLACK_TOOLS, martyToolExecutor,
                         sharedContext
                     );
                     break;
                 }
-                case 'gemini': {
-                    if (!isGLMConfigured()) continue;
-                    const geminiModel = GLM_MODELS.EXTRACTION;
-                    logger.info(`[Marty] Trying GLM budget ${geminiModel} (gemini tier, with tools)`);
-                    const geminiResult = await executeGLMWithTools(
-                        fullPrompt, MARTY_SLACK_TOOLS, martyToolExecutor,
-                        { ...sharedContext, model: geminiModel }
-                    );
-                    if (geminiResult.content && !isGLMRefusal(geminiResult)) {
-                        result = geminiResult;
-                    } else {
-                        logger.warn('[Marty] GLM budget unusable', { reason: !geminiResult.content ? 'empty' : 'refused', toolExecs: geminiResult.toolExecutions?.length ?? 0 });
-                    }
-                    break;
-                }
-                case 'glm': {
-                    if (!isGLMConfigured()) continue;
-                    const glmModel = GLM_MODELS.STANDARD;
-                    logger.info(`[Marty] Trying GLM standard ${glmModel}`);
-                    const glmResult = await executeGLMWithTools(
-                        fullPrompt, MARTY_SLACK_TOOLS, martyToolExecutor,
-                        { ...sharedContext, model: glmModel }
-                    );
-                    if (glmResult.content && !isGLMRefusal(glmResult)) {
-                        result = glmResult;
-                    } else {
-                        logger.warn('[Marty] GLM standard unusable', { reason: !glmResult.content ? 'empty' : 'refused', toolExecs: glmResult.toolExecutions?.length ?? 0 });
-                    }
-                    break;
-                }
-                case 'gemini-flash': {
-                    if (!isGeminiFlashConfigured()) continue;
-                    logger.info('[Marty] Trying Gemini Flash (Genkit, with tools)');
-                    result = await executeGeminiFlashWithTools(
+                case 'claude': {
+                    if (!isClaudeAvailable()) { triedTiers.push(`${tier}:unconfigured`); continue; }
+                    logger.info('[Marty] Falling back to Claude (expensive)');
+                    result = await executeWithTools(
                         fullPrompt, MARTY_SLACK_TOOLS, martyToolExecutor,
                         sharedContext
                     );
@@ -725,28 +728,16 @@ User Request: ${request.prompt}`;
             }
         } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
-            const isRateLimit = msg.includes('429') || msg.toLowerCase().includes('rate limit');
+            const isRateLimit = msg.includes('429') || msg.toLowerCase().includes('rate limit') || msg.includes('413');
+            triedTiers.push(`${tier}:${isRateLimit ? 'rate-limited' : 'error'}`);
             logger.error(`[Marty] Tier ${tier} failed`, { error: msg, isRateLimit });
-            if (isRateLimit && (tier === 'glm' || tier === 'gemini')) {
-                try {
-                    const { postLinusIncidentSlack } = await import('@/server/services/incident-notifications');
-                    await postLinusIncidentSlack({
-                        source: 'auto-escalator',
-                        channelName: 'linus-cto',
-                        fallbackText: `Groq rate limit hit — Marty falling back from ${tier} to Gemini Flash`,
-                        blocks: [{
-                            type: 'section',
-                            text: { type: 'mrkdwn', text: `*:warning: Groq Rate Limit Exceeded*\n*Agent:* Marty\n*Failed tier:* \`${tier}\`\n*Fallback:* Gemini Flash\n\nAuto-switched. Will retry Groq on next request.` },
-                        }],
-                    });
-                } catch { /* best effort */ }
-            }
         }
     }
 
     if (!result) {
+        logger.error('[Marty] All tiers exhausted', { triedTiers });
         return {
-            content: 'All AI providers are currently unavailable. Try again in a few minutes.',
+            content: `I'm having trouble connecting to my AI systems right now. Tried: ${triedTiers.join(' → ')}. Please try again in a minute or ask Linus for help.`,
             toolExecutions: [],
             model: 'none',
         };
