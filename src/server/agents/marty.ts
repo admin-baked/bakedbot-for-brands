@@ -36,7 +36,19 @@ import {
     AgentId
 } from './agent-definitions';
 import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integration-status';
-import { executeWithTools, type ClaudeResult } from '@/ai/claude';
+import { executeWithTools, isClaudeAvailable, type ClaudeResult } from '@/ai/claude';
+import { executeGLMWithTools, GLM_MODELS, isGLMConfigured } from '@/ai/glm';
+
+const GLM_REFUSAL_PATTERNS = [
+    'security restrictions',
+    "i'm unable to assist",
+    'i cannot assist',
+    'violates our policy',
+    'due to content restrictions',
+    'content policy',
+    'i am unable to help',
+    'cannot help with',
+];
 
 export interface MartyTools extends Partial<AllSharedTools>, Partial<ExecutiveContextTools> {
     // Full Executive delegation
@@ -457,6 +469,7 @@ export interface MartyRequest {
     maxIterations?: number;
     progressCallback?: (msg: string) => void;
     context?: { userId?: string; orgId?: string; brandId?: string };
+    images?: string[];
 }
 
 export interface MartyResponse {
@@ -628,23 +641,90 @@ User Request: ${request.prompt}`;
         }
         : undefined;
 
-    const result = await executeWithTools(
-        fullPrompt,
-        MARTY_SLACK_TOOLS,
-        martyToolExecutor,
-        {
-            maxIterations: request.maxIterations ?? 8,
-            orgId: request.context?.orgId,
-            brandId: request.context?.brandId,
-            agentContext: {
-                name: 'Marty Benjamins',
-                role: 'CEO',
-                capabilities: ['delegation', 'crm', 'system-health', 'super-powers'],
-                groundingRules: ['Only report real data', 'Delegate to named agents'],
-            },
-            onToolCall,
+    const sharedContext = {
+        maxIterations: request.maxIterations ?? 8,
+        orgId: request.context?.orgId,
+        brandId: request.context?.brandId,
+        agentContext: {
+            name: 'Marty Benjamins',
+            role: 'CEO',
+            capabilities: ['delegation', 'crm', 'system-health', 'super-powers'],
+            groundingRules: ['Only report real data', 'Delegate to named agents'],
+        },
+        onToolCall,
+    };
+
+    // Tier chain: Claude (best) → gemini (GLM budget $0.05) → glm (GLM standard $0.59)
+    type MartyTier = 'claude' | 'gemini' | 'glm';
+    const tierChain: MartyTier[] = ['claude', 'gemini', 'glm'];
+    let result: ClaudeResult | null = null;
+
+    for (const tier of tierChain) {
+        if (result) break;
+
+        try {
+            switch (tier) {
+                case 'claude': {
+                    if (!isClaudeAvailable()) {
+                        logger.info('[Marty] Claude unavailable, skipping');
+                        continue;
+                    }
+                    logger.info('[Marty] Trying Claude');
+                    result = await executeWithTools(
+                        fullPrompt, MARTY_SLACK_TOOLS, martyToolExecutor,
+                        { ...sharedContext, imageAttachments: request.images }
+                    );
+                    break;
+                }
+                case 'gemini': {
+                    if (!isGLMConfigured()) continue;
+                    const geminiModel = GLM_MODELS.EXTRACTION;
+                    logger.info(`[Marty] Trying GLM budget ${geminiModel} (gemini tier, with tools)`);
+                    const geminiResult = await executeGLMWithTools(
+                        fullPrompt, MARTY_SLACK_TOOLS, martyToolExecutor,
+                        { ...sharedContext, model: geminiModel }
+                    );
+                    const geminiRefused = geminiResult.content
+                        ? GLM_REFUSAL_PATTERNS.some(p => geminiResult.content.toLowerCase().includes(p))
+                        : false;
+                    if (geminiResult.content && !geminiRefused) {
+                        result = geminiResult;
+                    } else {
+                        logger.warn('[Marty] GLM budget unusable', { reason: !geminiResult.content ? 'empty' : 'refused' });
+                    }
+                    break;
+                }
+                case 'glm': {
+                    if (!isGLMConfigured()) continue;
+                    const glmModel = GLM_MODELS.STANDARD;
+                    logger.info(`[Marty] Trying GLM standard ${glmModel}`);
+                    const glmResult = await executeGLMWithTools(
+                        fullPrompt, MARTY_SLACK_TOOLS, martyToolExecutor,
+                        { ...sharedContext, model: glmModel }
+                    );
+                    const glmRefused = glmResult.content
+                        ? GLM_REFUSAL_PATTERNS.some(p => glmResult.content.toLowerCase().includes(p))
+                        : false;
+                    if (glmResult.content && !glmRefused) {
+                        result = glmResult;
+                    } else {
+                        logger.warn('[Marty] GLM standard unusable', { reason: !glmResult.content ? 'empty' : 'refused' });
+                    }
+                    break;
+                }
+            }
+        } catch (err) {
+            logger.error(`[Marty] Tier ${tier} failed`, { error: String(err) });
         }
-    );
+    }
+
+    if (!result) {
+        return {
+            content: 'All AI providers are currently unavailable. Try again in a few minutes.',
+            toolExecutions: [],
+            model: 'none',
+        };
+    }
 
     return {
         content: result.content,
