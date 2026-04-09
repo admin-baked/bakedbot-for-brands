@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 SES production approved — all email from hello@bakedbot.ai; orders@ deprecated; Ecstatic Edibles + Thrive welcome flows live | **Last update:** 2026-04-09 (SES production + returning email fix)
+**Current Status:** 🟢 Production live; CSP fix deployed (Cloudflare Insights unblocked); GLM smart refusal detection; SES production email | **Last update:** 2026-04-09 (CSP fix + GLM refusal + deploy confirmed)
 
 ---
 

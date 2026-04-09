@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 SES production approved — all email from hello@bakedbot.ai; orders@ deprecated; Ecstatic Edibles + Thrive welcome flows live.
-**Recent work (2026-04-09):** `5fe8332ab` returning email orgId fix; `6b2b5f246` orders@ deprecated; Ecstatic Edibles brands fallback
+**Current Status:** 🟢 Production live; CSP Cloudflare fix deployed; GLM smart refusal detection; SES production email.
+**Recent work (2026-04-09):** `800a16be4` GLM smart refusal detection; CSP fix (Cloudflare Insights + worker-src); deploy confirmed SUCCESS
 **Prior (2026-04-09):** Actionable Slack briefing flow — daily briefing cron, Slack approve/decline handling, artifact execution routing, and playbook/actionable artifact contracts staged locally.
 - Marty CEO agent: full super powers, Slack DM routing, manages all executives toward $1M ARR
 - Club MVP shipped (`9eb4a6d36`): Customer PWA /club, mood video cache, event pipeline + 5 triggers, tablet PWA
