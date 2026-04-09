@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟡 Linus CTO Slack signing fix deployed; focused Jest green, full check:types blocked by existing inbox/playbook typing errors outside this flow | **Last update:** 2026-04-09 (Linus CTO Slack signing secret + bot token fix)
+**Current Status:** 🟡 Homepage onboarding lifecycle + actionable briefing flow staged locally; focused Jest green, full check:types still timing out on the full repo sweep in this session | **Last update:** 2026-04-09 (onboarding lifecycle emails + actionable Slack briefing flow)
 
 ---
 
