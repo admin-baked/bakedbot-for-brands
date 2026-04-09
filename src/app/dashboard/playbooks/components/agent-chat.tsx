@@ -194,6 +194,8 @@ function PersonaSelector({ value, onChange }: { value: AgentPersona, onChange: (
         deebo: { label: 'Deebo', desc: 'Compliance & Safety', icon: ShieldAlert },
         day_day: { label: 'Day Day', desc: 'SEO & Growth', icon: Globe },
         felisha: { label: 'Felisha', desc: 'Ops & Meetings', icon: Calendar },
+        // CEO
+        marty: { label: 'Marty', desc: 'CEO & Strategy', icon: Rocket },
         // Executive Suite
         leo: { label: 'Leo', desc: 'COO & Orchestrator', icon: Briefcase },
         jack: { label: 'Jack', desc: 'CRO & Revenue', icon: Rocket },

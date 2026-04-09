@@ -7,13 +7,36 @@ interface BeforeInstallPromptEvent extends Event {
     userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
+/**
+ * Global capture: Chrome fires beforeinstallprompt early — often before React
+ * hydrates. If the event fires before useEffect attaches a listener, it's lost
+ * forever for that page load. This module-level variable catches it.
+ */
+let earlyPromptEvent: BeforeInstallPromptEvent | null = null;
+if (typeof window !== 'undefined') {
+    window.addEventListener('beforeinstallprompt', (e: Event) => {
+        e.preventDefault();
+        earlyPromptEvent = e as BeforeInstallPromptEvent;
+    });
+}
+
 export function InstallPrompt() {
     const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
     const [showBanner, setShowBanner] = useState(false);
 
     useEffect(() => {
+        // Already in standalone mode — no install needed
         if (window.matchMedia('(display-mode: standalone)').matches) return;
 
+        // Pick up the early-captured event if it fired before React mounted
+        if (earlyPromptEvent) {
+            setDeferredPrompt(earlyPromptEvent);
+            setShowBanner(true);
+            earlyPromptEvent = null;
+            return;
+        }
+
+        // Otherwise listen for it normally
         const handler = (e: Event) => {
             e.preventDefault();
             setDeferredPrompt(e as BeforeInstallPromptEvent);
