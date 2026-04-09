@@ -392,7 +392,7 @@ export type DeeboMemory = z.infer<typeof DeeboMemorySchema>;
 // --- Executive Memory Schema (Union of all executive agents) ---
 
 export const ExecutiveMemorySchema = AgentMemorySchema.extend({
-    agent_type: z.enum(['leo', 'linus', 'jack', 'glenda', 'mike']).optional(),
+    agent_type: z.enum(['marty', 'leo', 'linus', 'jack', 'glenda', 'mike']).optional(),
     shared_context: z.record(z.any()).optional(),
     // Executive-specific fields (may be empty for some agents)
     objectives: z.array(BrandObjectiveSchema).optional(),

@@ -21,6 +21,7 @@ import { jackAgent } from '@/server/agents/jack';
 import { glendaAgent } from '@/server/agents/glenda';
 import { leoAgent } from '@/server/agents/leo';
 import { openclawAgent } from '@/server/agents/openclaw';
+import { martyAgent } from '@/server/agents/marty';
 import { searchWeb, formatSearchResults } from '@/server/tools/web-search';
 import { httpRequest, HttpRequestOptions } from '@/server/tools/http-client';
 import { browserAction, BrowserActionParams } from '@/server/tools/browser';
@@ -113,6 +114,8 @@ export interface AgentJobCallbacks {
 
 // Local Agent Map
 const AGENT_MAP = {
+    // CEO — top of the org chart
+    marty: martyAgent,
     craig: craigAgent,
     smokey: smokeyAgent,
     pops: popsAgent,
@@ -167,7 +170,7 @@ async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOver
     let tools: any = {};
     // Universal Tool Access: All agents get defaultUniversalTools
     // Executive Board (leo, jack, glenda, mike, linus) get RTRVR access
-    const EXECUTIVE_BOARD = ['executive_base', 'leo', 'jack', 'glenda', 'mike', 'linus'];
+    const EXECUTIVE_BOARD = ['marty', 'executive_base', 'leo', 'jack', 'glenda', 'mike', 'linus'];
     // NOTE: Keep legacy 'mike' but treat canonical 'mike_exec' as exec too.
     if (!EXECUTIVE_BOARD.includes('mike_exec')) EXECUTIVE_BOARD.push('mike_exec');
 
@@ -1237,7 +1240,11 @@ All agents are online and ready. Type an agent name or describe your task to get
                     result: res.message
                 });
                 return finalizeAgentResult({ content: res.log?.result || res.message, toolCalls: executedTools });
-            } catch (e) { }
+            } catch (e: unknown) {
+                const errMsg = e instanceof Error ? e.message : String(e);
+                logger.error(`[AgentRunner] Agent '${agentInfo.id}' failed`, { error: errMsg });
+                return finalizeAgentResult({ content: `Agent ${agentInfo.name} encountered an error: ${errMsg}`, toolCalls: executedTools });
+            }
         } else if (agentInfo && !canAccessAgent && agentInfo.id !== 'general' && agentInfo.id !== 'puff') {
             // Log blocked access attempt for security auditing
             logger.warn(`[Security] Role '${role}' attempted to access restricted agent '${agentInfo.id}'`);

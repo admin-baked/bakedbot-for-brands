@@ -25,6 +25,7 @@ const CLAUDE_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'
 // Dedicated Slack App IDs — read once at module init, not on every message.
 const SLACK_LINUS_APP_ID = process.env.SLACK_LINUS_APP_ID;
 const SLACK_ELROY_APP_ID = process.env.SLACK_ELROY_APP_ID;
+const SLACK_MARTY_APP_ID = process.env.SLACK_MARTY_APP_ID;
 
 // ---------------------------------------------------------------------------
 // Linus tool classifier — determines if a message warrants agentic tool-calling
@@ -99,6 +100,7 @@ const SLACK_SYSTEM_USER: DecodedIdToken = {
 // Agent keyword → persona ID routing map
 // ---------------------------------------------------------------------------
 const KEYWORD_MAP: Array<{ keywords: string[]; personaId: string }> = [
+    { keywords: ['marty', 'ceo', 'strategy', 'north star', 'arr goal'], personaId: 'marty' },
     { keywords: ['leo', 'coo', 'operations', 'ops'], personaId: 'leo' },
     { keywords: ['linus', 'cto', 'tech', 'build', 'code', 'deploy', 'bug', 'error', 'fix', 'broken', 'timeout', 'slow', 'latency'], personaId: 'linus' },
     { keywords: ['jack', 'cro', 'revenue', 'sales', 'pipeline', 'deal'], personaId: 'jack' },
@@ -118,6 +120,8 @@ const KEYWORD_MAP: Array<{ keywords: string[]; personaId: string }> = [
 
 // Channel name prefix → persona ID
 const CHANNEL_MAP: Array<{ prefix: string; personaId: string }> = [
+    { prefix: 'marty', personaId: 'marty' },
+    { prefix: 'ceo', personaId: 'marty' },
     { prefix: 'linus', personaId: 'linus' },
     { prefix: 'leo', personaId: 'leo' },
     { prefix: 'jack', personaId: 'jack' },
@@ -229,7 +233,11 @@ export function detectAgent(text: string, channelName: string, isDm: boolean, ap
     const lower = text.toLowerCase();
 
     // Dedicated Slack Apps — route by api_app_id before any keyword matching.
-    // Set SLACK_LINUS_APP_ID / SLACK_ELROY_APP_ID to each app's api_app_id in secrets.
+    // Set SLACK_MARTY_APP_ID / SLACK_LINUS_APP_ID / SLACK_ELROY_APP_ID to each app's api_app_id in secrets.
+    if (SLACK_MARTY_APP_ID && appId && appId === SLACK_MARTY_APP_ID) {
+        logger.info(`[SlackBridge] detectAgent → Tier0(marty app_id) → marty | appId="${appId}"`);
+        return 'marty';
+    }
     if (SLACK_LINUS_APP_ID && appId && appId === SLACK_LINUS_APP_ID) {
         logger.info(`[SlackBridge] detectAgent → Tier0(linus app_id) → linus | appId="${appId}"`);
         return 'linus';
@@ -248,7 +256,7 @@ export function detectAgent(text: string, channelName: string, isDm: boolean, ap
 
     // Agent names that count as an explicit invocation (not generic keywords)
     const EXPLICIT_NAMES = [
-        'leo', 'linus', 'jack', 'glenda', 'ezal', 'craig',
+        'marty', 'leo', 'linus', 'jack', 'glenda', 'ezal', 'craig',
         'pops', 'smokey', 'parker', 'deebo', 'mike', 'bigworm',
         'day_day', 'dayday', 'felisha', 'elroy',
     ];
@@ -444,6 +452,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
         //   - Simple conversational messages → GLM synthesis
         // All other agents use GLM synthesis path.
         const AGENT_TIMEOUTS = {
+            marty:  240_000,  // 4 min — CEO cross-functional with up to 8 iterations
             linus:  180_000,  // 3 min — GLM-5 / Claude tool-calling with up to 8 iterations
             leo:   120_000,   // 2 min — COO operations may chain multiple tools
             jack:  120_000,   // 2 min — CRO revenue analysis

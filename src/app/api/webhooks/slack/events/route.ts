@@ -101,11 +101,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // ---------------------------------------------------------------------------
     const incomingAppId: string = body.api_app_id ?? '';
     // Use || (not ??) so empty-string secrets (bad version, unset) fall back correctly
-    const signingSecret = (SLACK_ELROY_APP_ID && incomingAppId === SLACK_ELROY_APP_ID)
-        ? (process.env.SLACK_ELROY_SIGNING_SECRET || process.env.SLACK_SIGNING_SECRET)
-        : (SLACK_LINUS_APP_ID && incomingAppId === SLACK_LINUS_APP_ID)
-            ? (process.env.SLACK_LINUS_SIGNING_SECRET || process.env.SLACK_SIGNING_SECRET)
-            : process.env.SLACK_SIGNING_SECRET;
+    const SLACK_MARTY_APP_ID = process.env.SLACK_MARTY_APP_ID ?? '';
+    const signingSecret = (SLACK_MARTY_APP_ID && incomingAppId === SLACK_MARTY_APP_ID)
+        ? (process.env.SLACK_MARTY_SIGNING_SECRET || process.env.SLACK_SIGNING_SECRET)
+        : (SLACK_ELROY_APP_ID && incomingAppId === SLACK_ELROY_APP_ID)
+            ? (process.env.SLACK_ELROY_SIGNING_SECRET || process.env.SLACK_SIGNING_SECRET)
+            : (SLACK_LINUS_APP_ID && incomingAppId === SLACK_LINUS_APP_ID)
+                ? (process.env.SLACK_LINUS_SIGNING_SECRET || process.env.SLACK_SIGNING_SECRET)
+                : process.env.SLACK_SIGNING_SECRET;
 
     if (!signingSecret) {
         logger.error('[Slack/Events] Signing secret not configured for app', { incomingAppId });

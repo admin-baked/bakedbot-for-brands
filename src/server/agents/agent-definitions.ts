@@ -3,7 +3,7 @@
  * Shared configuration used by both Client and Server code.
  */
 
-export type AgentId = 'craig' | 'pops' | 'ezal' | 'smokey' | 'money_mike' | 'mike_exec' | 'mrs_parker' | 'day_day' | 'felisha' | 'general' | 'puff' | 'deebo' | 'leo' | 'linus' | 'roach' | 'big_worm' | 'jack' | 'glenda' | 'openclaw';
+export type AgentId = 'craig' | 'pops' | 'ezal' | 'smokey' | 'money_mike' | 'mike_exec' | 'mrs_parker' | 'day_day' | 'felisha' | 'general' | 'puff' | 'deebo' | 'leo' | 'linus' | 'roach' | 'big_worm' | 'jack' | 'glenda' | 'openclaw' | 'marty';
 
 export interface AgentCapability {
     id: AgentId;
@@ -16,6 +16,15 @@ export interface AgentCapability {
 }
 
 export const AGENT_CAPABILITIES: AgentCapability[] = [
+    {
+        id: 'marty',
+        name: 'Marty Benjamins',
+        specialty: 'CEO — Growth, Strategy & Company Operations',
+        keywords: ['ceo', 'strategy', 'growth', 'arr', 'revenue', 'company', 'marty', 'board', 'investors', 'roadmap', 'okr', 'kpi', 'hiring', 'fundraise', 'partnerships', 'pipeline', 'quarterly', 'annual', 'vision', 'mission', 'north star', 'milestones'],
+        description: 'AI CEO of BakedBot AI. Manages the entire company toward $1M ARR. Oversees all executives (Leo, Linus, Jack, Glenda, Mike), sets strategic direction, monitors KPIs, unblocks teams, and ensures everything is working. Does not code unless emergency.',
+        responseFormat: 'CEO-level: concise executive summary, then action items with owners and deadlines. Use 🟢/🟡/🔴 for status. Always tie decisions to the $1M ARR goal.',
+        roleRestrictions: ['guest', 'customer', 'dispensary', 'brand', 'intern'] // Super User only — beyond executive
+    },
     {
         id: 'craig',
         name: 'Craig',

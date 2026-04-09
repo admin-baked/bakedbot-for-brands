@@ -5296,9 +5296,10 @@ export const linusAgent: AgentImplementation<AgentMemory, any> = {
             // === END PRE-CLASSIFIER ===
 
             try {
-                // Slack/harness context: keep the tool surface narrow and the loop short
-                // so Linus can respond inside Slack before users assume the bot is broken.
-                const result = await runLinus({ prompt: stimulus, maxIterations: 5, toolMode: 'slack' });
+                // Web app / harness context: use full Claude tool mode with higher iteration budget.
+                // Slack has its own synthesis path in agent-runner (isSlackSource gate),
+                // so act() is only reached from web-app triggerAgentRun calls.
+                const result = await runLinus({ prompt: stimulus, maxIterations: 15, toolMode: 'full' });
                 
                 return {
                     updatedMemory: agentMemory,

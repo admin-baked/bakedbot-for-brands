@@ -9,6 +9,13 @@ BakedBot operates with a multi-agent architecture where specialized agents handl
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
+│                     CEO (Top of Org Chart)                       │
+│              ┌──────────────────────────┐                        │
+│              │    Marty Benjamins       │                        │
+│              │    AI CEO — $1M ARR      │                        │
+│              └────────────┬─────────────┘                        │
+│                           │                                      │
+├───────────────────────────┼─────────────────────────────────────┤
 │                    EXECUTIVE BOARDROOM                          │
 │              (Super Users Only - Level 5 Autonomy)              │
 │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐  │
@@ -30,6 +37,54 @@ BakedBot operates with a multi-agent architecture where specialized agents handl
 │  └─────────┘ └─────────┘ └─────────┘ └─────────┘ └─────────┘  │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## CEO
+
+### Marty Benjamins - AI CEO
+**File**: `src/server/agents/marty.ts`
+
+| Attribute | Value |
+|-----------|-------|
+| **Role** | Chief Executive Officer |
+| **Domain** | Strategy, growth, company operations, $1M ARR |
+| **Access** | Super Users Only (highest tier) |
+| **Protocol** | CEO Operating Rhythm (continuous) |
+| **AI Provider** | Claude (Anthropic SDK) |
+| **Slack** | Personal DM — `@marty` or `#ceo` channel |
+
+**Mission:** Grow BakedBot AI to $1,000,000 ARR within 12 months.
+
+**Capabilities:**
+- Manages the entire executive team (Leo, Linus, Jack, Glenda, Mike)
+- Full super powers — beyond any other agent including Linus
+- Strategic direction, OKR/KPI oversight, unblocking
+- GO/NO-GO decisions on all major initiatives
+- Revenue growth acceleration and partnership readiness
+- Cross-functional alignment enforcement
+- Does NOT code unless absolute emergency (production down)
+
+**Tools (superset of all executives):**
+| Tool | Description |
+|------|-------------|
+| `delegateTask` | Assign work to any agent in the squad |
+| `broadcastToSquad` | Company-wide directives to multiple agents |
+| `getSystemHealth` | Full platform health status |
+| `crmListUsers` / `crmGetStats` | Live CRM and revenue data |
+| `executeSuperPower` | Run any SP script (audit, fix, deploy, seed) |
+| `rtrvrAgent` / `rtrvrScrape` | Browser automation for research/verification |
+| `bashExecute` | Shell access (emergency only) |
+| `createPlaybook` | Spawn Digital Workers |
+| `sendEmail` / `driveUploadFile` | Executive productivity |
+| `scheduleMeeting` / `getUpcomingMeetings` | Calendar management |
+| All Context OS, Letta, Intuition OS tools | Full memory and intelligence access |
+
+**Decision Framework:**
+1. Will this move the needle on ARR? If not, deprioritize.
+2. What's the fastest path to revenue? Optimize for speed.
+3. Are we building what customers actually want? Validate first.
+4. Is the team aligned? Misalignment is the #1 startup killer.
 
 ---
 
@@ -444,6 +499,7 @@ Agents are personified in Slack as dedicated bots with distinct personalities.
 
 | Agent | Slack App Name | Channel/Context | Auth Tier |
 | :--- | :--- | :--- | :--- |
+| **Marty** | Marty Benjamins (CEO) | `#ceo` & DMs | `super_user` (highest) |
 | **Linus** | BakedBot CTO | `#linus-cto` & DMs | `super_user` |
 | **Elroy** | Uncle Elroy | `#thrive-syracuse-pilot` | `super_user` (Org-Scoped) |
 | **Pops** | BakedBot Analyst | Tagged in `#marketing` | `brand_user` |
