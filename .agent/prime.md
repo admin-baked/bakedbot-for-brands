@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Production live; Social tools + Upstash Vector + RTRVR session ownership + Redis cache guard + Marty GLM tiers deployed.
-**Recent work (2026-04-09):** `3cf39231e` Redis 8MB cache guard; `95790a3fa` Marty GLM tier chain; social-tools + Upstash Vector provisioned; deploy unblocked
+**Current Status:** 🟢 orders@bakedbot.ai deprecated; all email from hello@bakedbot.ai; Ecstatic Edibles Mrs. Parker welcome wired; SES sandbox mode.
+**Recent work (2026-04-09):** `6b2b5f246` orders@ deprecated; `7edb393d0` Ecstatic Edibles SES + brands fallback; `3cb7b9c13` paused sender guard
 **Prior (2026-04-09):** Actionable Slack briefing flow — daily briefing cron, Slack approve/decline handling, artifact execution routing, and playbook/actionable artifact contracts staged locally.
 - Marty CEO agent: full super powers, Slack DM routing, manages all executives toward $1M ARR
 - Club MVP shipped (`9eb4a6d36`): Customer PWA /club, mood video cache, event pipeline + 5 triggers, tablet PWA
