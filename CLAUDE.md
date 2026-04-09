@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 `main` green; media generation consumes AI Studio credits; video costs 75/150 for 70%+ margins | **Last update:** 2026-04-08 (media credit billing)
+**Current Status:** 🟢 `main` green; Marty Benjamins AI CEO agent shipped + media credit billing | **Last update:** 2026-04-08 (Marty CEO agent + media credits)
 
 ---
 
