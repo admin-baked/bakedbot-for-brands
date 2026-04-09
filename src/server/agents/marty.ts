@@ -469,7 +469,6 @@ export interface MartyRequest {
     maxIterations?: number;
     progressCallback?: (msg: string) => void;
     context?: { userId?: string; orgId?: string; brandId?: string };
-    images?: string[];
 }
 
 export interface MartyResponse {
@@ -672,7 +671,7 @@ User Request: ${request.prompt}`;
                     logger.info('[Marty] Trying Claude');
                     result = await executeWithTools(
                         fullPrompt, MARTY_SLACK_TOOLS, martyToolExecutor,
-                        { ...sharedContext, imageAttachments: request.images }
+                        sharedContext
                     );
                     break;
                 }
