@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Production live; custom domain proxy hardened (static fallback + split cache TTL) | **Last update:** 2026-04-09 (proxy hardening for ecstaticedibles.com stability)
+**Current Status:** 🟢 Production live; agent resilience (progressive CLAUDE.md, tier chain fix, deploy watchdog Cloud Build API) | **Last update:** 2026-04-09 (agent resilience + deploy watchdog rewrite)
 
 ---
 
