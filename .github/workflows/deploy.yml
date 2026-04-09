@@ -51,6 +51,8 @@ jobs:
 
           {
             echo "started_at=$(jq -r '.startedAt // empty' "$rollout_json")"
+            echo "reason=$(jq -r '.reason // empty' "$rollout_json")"
+            echo "accepted=$(jq -r '.accepted // false' "$rollout_json")"
             echo "output<<EOF"
             cat "$rollout_json"
             echo "EOF"
@@ -62,8 +64,16 @@ jobs:
             exit "${rollout_exit:-1}"
           fi
 
+      - name: Reuse existing App Hosting rollout
+        if: steps.rollout.outputs.reason == 'already_queued_or_in_progress'
+        shell: bash
+        run: |
+          echo "Firebase App Hosting already has a rollout queued or in progress for ${APPHOSTING_BACKEND}."
+          echo "Skipping commit-specific Cloud Build resolution for ${GITHUB_SHA}."
+
       - name: Resolve App Hosting Cloud Build
         id: apphosting_build
+        if: steps.rollout.outputs.reason != 'already_queued_or_in_progress'
         shell: bash
         run: |
           set -euo pipefail
@@ -113,6 +123,7 @@ jobs:
 
       - name: Wait for App Hosting Build and Rollout
         id: apphosting_wait
+        if: steps.rollout.outputs.reason != 'already_queued_or_in_progress'
         shell: bash
         run: |
           set -euo pipefail
@@ -229,6 +240,7 @@ jobs:
             --arg deployTarget "bakedbot-prod" \
             --arg provider "firebase-app-hosting" \
             --arg deployedUrl "https://bakedbot.ai" \
+            --arg rolloutReason "${{ steps.rollout.outputs.reason }}" \
             --arg triggeredAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             '{
               type: "deployment_success",
@@ -246,6 +258,7 @@ jobs:
                 deployTarget: $deployTarget,
                 provider: $provider,
                 deployedUrl: $deployedUrl,
+                rolloutReason: $rolloutReason,
                 triggeredAt: $triggeredAt
               }
             }')
