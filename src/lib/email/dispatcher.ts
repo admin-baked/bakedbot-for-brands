@@ -277,7 +277,23 @@ async function resolveOrgSesFrom(
 // Public API — unchanged shape, new routing logic
 // ─────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────
+// Paused senders — emails from these addresses are silently dropped.
+// Remove address from list to re-enable.
+// ─────────────────────────────────────────────────────────────
+const PAUSED_SENDERS = new Set([
+    'orders@bakedbot.ai',
+]);
+
+function isSenderPaused(fromEmail?: string): boolean {
+    return PAUSED_SENDERS.has(fromEmail ?? 'orders@bakedbot.ai');
+}
+
 export async function sendOrderConfirmationEmail(data: any): Promise<boolean> {
+    if (isSenderPaused(data.fromEmail)) {
+        logger.info('[Dispatcher] Sender paused, skipping order email', { from: data.fromEmail || 'orders@bakedbot.ai', to: data.customerEmail });
+        return true; // Return true so callers don't retry
+    }
     const provider = await getPlatformProvider();
     return provider === 'mailjet' ? sendMJ(data) : sendSG(data);
 }
@@ -298,6 +314,13 @@ export type GenericEmailData = {
 };
 
 export async function sendGenericEmail(data: GenericEmailData): Promise<{ success: boolean; error?: string }> {
+    // ── Paused sender check ──
+    const effectiveFrom = data.fromEmail ?? 'orders@bakedbot.ai';
+    if (isSenderPaused(effectiveFrom)) {
+        logger.info('[Dispatcher] Sender paused, skipping generic email', { from: effectiveFrom, to: data.to, subject: data.subject });
+        return { success: true }; // Silent drop — callers won't retry
+    }
+
     let result: { success: boolean; error?: string };
 
     // ── Resolve plan tier: free orgs use Mailjet, paid orgs use SES ──
