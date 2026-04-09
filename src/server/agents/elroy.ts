@@ -742,6 +742,13 @@ const GLM_REFUSAL_PATTERNS = [
     'cannot help with',
 ];
 
+/** If GLM executed tools, it didn't truly refuse — the content is usable. */
+function isGLMRefusal(result: ClaudeResult): boolean {
+    if (!result.content) return false;
+    if (result.toolExecutions && result.toolExecutions.length > 0) return false;
+    return GLM_REFUSAL_PATTERNS.some(p => result.content.toLowerCase().includes(p));
+}
+
 /**
  * Call the opencode Cloud Run service as a last-resort fallback (no tool calling).
  * Returns a text-only response via Gemini Flash.
@@ -797,21 +804,16 @@ export async function runElroy(request: ElroyRequest): Promise<ElroyResponse> {
             switch (tier) {
                 case 'glm': {
                     if (!isGLMConfigured()) continue;
-                    // Elroy delegates most work to Opencode — STANDARD (GLM-4.7, $0.60/$2.20)
-                    // is sufficient. STRATEGIC (GLM-5, $1.00/$3.20) reserved for Linus.
                     const glmModel = hasImages ? GLM_MODELS.VISION : GLM_MODELS.STANDARD;
                     logger.info(`[Elroy] Trying GLM ${glmModel}`);
                     const glmResult = await executeGLMWithTools(
                         fullPrompt, ELROY_TOOLS, elroyToolExecutor,
                         { ...sharedContext, model: glmModel }
                     );
-                    const refused = glmResult.content
-                        ? GLM_REFUSAL_PATTERNS.some(p => glmResult.content.toLowerCase().includes(p))
-                        : false;
-                    if (glmResult.content && !refused) {
+                    if (glmResult.content && !isGLMRefusal(glmResult)) {
                         result = glmResult;
                     } else {
-                        logger.warn('[Elroy] GLM unusable', { reason: !glmResult.content ? 'empty' : 'refused' });
+                        logger.warn('[Elroy] GLM unusable', { reason: !glmResult.content ? 'empty' : 'refused', toolExecs: glmResult.toolExecutions?.length ?? 0 });
                     }
                     break;
                 }
@@ -825,13 +827,10 @@ export async function runElroy(request: ElroyRequest): Promise<ElroyResponse> {
                         fullPrompt, ELROY_TOOLS, elroyToolExecutor,
                         { ...sharedContext, model: geminiModel }
                     );
-                    const geminiRefused = geminiGlmResult.content
-                        ? GLM_REFUSAL_PATTERNS.some(p => geminiGlmResult.content.toLowerCase().includes(p))
-                        : false;
-                    if (geminiGlmResult.content && !geminiRefused) {
+                    if (geminiGlmResult.content && !isGLMRefusal(geminiGlmResult)) {
                         result = geminiGlmResult;
                     } else {
-                        logger.warn('[Elroy] GLM budget unusable', { reason: !geminiGlmResult.content ? 'empty' : 'refused' });
+                        logger.warn('[Elroy] GLM budget unusable', { reason: !geminiGlmResult.content ? 'empty' : 'refused', toolExecs: geminiGlmResult.toolExecutions?.length ?? 0 });
                     }
                     break;
                 }

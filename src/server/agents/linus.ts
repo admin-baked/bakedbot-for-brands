@@ -4706,6 +4706,14 @@ const GLM_REFUSAL_PATTERNS = [
     'cannot help with',
 ];
 
+/** If GLM executed tools, it didn't truly refuse — the content is usable. */
+function isGLMRefusal(result: ClaudeResult): boolean {
+    if (!result.content) return false;
+    // Tool executions mean the model cooperated — not a refusal
+    if (result.toolExecutions && result.toolExecutions.length > 0) return false;
+    return GLM_REFUSAL_PATTERNS.some(p => result.content.toLowerCase().includes(p));
+}
+
 /**
  * Last-resort fallback: call opencode/Gemini Flash when both GLM and Claude fail.
  * No tool calling â€” degraded text-only mode.
@@ -5148,13 +5156,10 @@ User Request: ${request.prompt}`;
                         fullPrompt, getLinusTools(toolMode), linusToolExecutor,
                         { ...sharedContext, model: glmModel }
                     );
-                    const refused = glmResult.content
-                        ? GLM_REFUSAL_PATTERNS.some(p => glmResult.content.toLowerCase().includes(p))
-                        : false;
-                    if (glmResult.content && !refused) {
+                    if (glmResult.content && !isGLMRefusal(glmResult)) {
                         result = glmResult;
                     } else {
-                        logger.warn('[Linus] GLM unusable', { reason: !glmResult.content ? 'empty' : 'refused' });
+                        logger.warn('[Linus] GLM unusable', { reason: !glmResult.content ? 'empty' : 'refused', toolExecs: glmResult.toolExecutions?.length ?? 0 });
                     }
                     break;
                 }
@@ -5168,13 +5173,10 @@ User Request: ${request.prompt}`;
                         fullPrompt, getLinusTools(toolMode), linusToolExecutor,
                         { ...sharedContext, model: geminiModel }
                     );
-                    const geminiRefused = geminiGlmResult.content
-                        ? GLM_REFUSAL_PATTERNS.some(p => geminiGlmResult.content.toLowerCase().includes(p))
-                        : false;
-                    if (geminiGlmResult.content && !geminiRefused) {
+                    if (geminiGlmResult.content && !isGLMRefusal(geminiGlmResult)) {
                         result = geminiGlmResult;
                     } else {
-                        logger.warn('[Linus] GLM budget unusable', { reason: !geminiGlmResult.content ? 'empty' : 'refused' });
+                        logger.warn('[Linus] GLM budget unusable', { reason: !geminiGlmResult.content ? 'empty' : 'refused', toolExecs: geminiGlmResult.toolExecutions?.length ?? 0 });
                     }
                     break;
                 }

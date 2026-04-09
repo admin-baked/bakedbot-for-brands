@@ -50,6 +50,13 @@ const GLM_REFUSAL_PATTERNS = [
     'cannot help with',
 ];
 
+/** If GLM executed tools, it didn't truly refuse — the content is usable. */
+function isGLMRefusal(result: ClaudeResult): boolean {
+    if (!result.content) return false;
+    if (result.toolExecutions && result.toolExecutions.length > 0) return false;
+    return GLM_REFUSAL_PATTERNS.some(p => result.content.toLowerCase().includes(p));
+}
+
 export interface MartyTools extends Partial<AllSharedTools>, Partial<ExecutiveContextTools> {
     // Full Executive delegation
     delegateTask?(personaId: string, task: string, context?: any): Promise<any>;
@@ -683,13 +690,10 @@ User Request: ${request.prompt}`;
                         fullPrompt, MARTY_SLACK_TOOLS, martyToolExecutor,
                         { ...sharedContext, model: geminiModel }
                     );
-                    const geminiRefused = geminiResult.content
-                        ? GLM_REFUSAL_PATTERNS.some(p => geminiResult.content.toLowerCase().includes(p))
-                        : false;
-                    if (geminiResult.content && !geminiRefused) {
+                    if (geminiResult.content && !isGLMRefusal(geminiResult)) {
                         result = geminiResult;
                     } else {
-                        logger.warn('[Marty] GLM budget unusable', { reason: !geminiResult.content ? 'empty' : 'refused' });
+                        logger.warn('[Marty] GLM budget unusable', { reason: !geminiResult.content ? 'empty' : 'refused', toolExecs: geminiResult.toolExecutions?.length ?? 0 });
                     }
                     break;
                 }
@@ -701,13 +705,10 @@ User Request: ${request.prompt}`;
                         fullPrompt, MARTY_SLACK_TOOLS, martyToolExecutor,
                         { ...sharedContext, model: glmModel }
                     );
-                    const glmRefused = glmResult.content
-                        ? GLM_REFUSAL_PATTERNS.some(p => glmResult.content.toLowerCase().includes(p))
-                        : false;
-                    if (glmResult.content && !glmRefused) {
+                    if (glmResult.content && !isGLMRefusal(glmResult)) {
                         result = glmResult;
                     } else {
-                        logger.warn('[Marty] GLM standard unusable', { reason: !glmResult.content ? 'empty' : 'refused' });
+                        logger.warn('[Marty] GLM standard unusable', { reason: !glmResult.content ? 'empty' : 'refused', toolExecs: glmResult.toolExecutions?.length ?? 0 });
                     }
                     break;
                 }
