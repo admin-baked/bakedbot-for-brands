@@ -93,16 +93,28 @@ async function enrichContextForGeneration(
     const db = getAdminFirestore();
     const enriched = { ...context } as any;
 
-    // Fetch brand information
+    // Fetch brand information — check organizations first, then brands collection
     if (context.brandId || context.orgId) {
         const orgId = context.orgId || context.brandId;
         try {
+            let found = false;
             const orgDoc = await db.collection('organizations').doc(orgId!).get();
             if (orgDoc.exists) {
                 const orgData = orgDoc.data();
                 enriched.brandName = orgData?.name || 'BakedBot';
                 enriched.brandEmail = orgData?.contactEmail || 'hello@bakedbot.ai';
                 enriched.brandPersonality = orgData?.personality || 'warm, professional, helpful';
+                found = true;
+            }
+            // Fallback to brands collection (CPG/manufacturer brands like Ecstatic Edibles)
+            if (!found) {
+                const brandDoc = await db.collection('brands').doc(orgId!).get();
+                if (brandDoc.exists) {
+                    const brandData = brandDoc.data();
+                    enriched.brandName = brandData?.name || 'BakedBot';
+                    enriched.brandEmail = brandData?.contactEmail || 'hello@bakedbot.ai';
+                    enriched.brandPersonality = brandData?.personality || brandData?.brandVoice || 'warm, professional, helpful';
+                }
             }
         } catch (error) {
             logger.warn('[MrsParker:AI] Failed to fetch brand data', {

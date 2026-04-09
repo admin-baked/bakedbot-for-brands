@@ -89,7 +89,12 @@ export async function getOrgRawPlanId(orgId: string): Promise<string | null> {
         const { createServerClient } = await import('@/firebase/server-client');
         const { firestore } = await createServerClient();
         const orgDoc = await firestore.collection('organizations').doc(orgId).get();
-        const planId = orgDoc.exists ? (orgDoc.data()?.planId as string | null) ?? null : null;
+        let planId = orgDoc.exists ? (orgDoc.data()?.planId as string | null) ?? null : null;
+        // Fallback to brands collection (CPG brands like Ecstatic Edibles)
+        if (!planId && !orgDoc.exists) {
+            const brandDoc = await firestore.collection('brands').doc(orgId).get();
+            planId = brandDoc.exists ? (brandDoc.data()?.planId as string | null) ?? null : null;
+        }
         planIdCache.set(orgId, { planId, expiry: Date.now() + CACHE_TTL_MS });
         return planId;
     } catch {
