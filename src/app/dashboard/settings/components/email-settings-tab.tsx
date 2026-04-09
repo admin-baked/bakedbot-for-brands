@@ -550,6 +550,7 @@ function CloudflareDnsSection() {
     const [isLoading, setIsLoading] = useState(true);
     const [showTokenForm, setShowTokenForm] = useState(false);
     const [apiToken, setApiToken] = useState('');
+    const [manualDomain, setManualDomain] = useState('');
 
     const allPresent = records?.every(r => r.status === 'present') ?? false;
 
@@ -564,14 +565,14 @@ function CloudflareDnsSection() {
 
     const handleSaveToken = () => {
         startTransition(async () => {
-            const result = await saveCloudflareApiToken(apiToken);
+            const result = await saveCloudflareApiToken(apiToken, manualDomain || undefined);
             if (result.success) {
                 setCfConnected(true);
                 setZoneName(result.zoneName ?? '');
                 setApiToken('');
+                setManualDomain('');
                 setShowTokenForm(false);
                 toast({ title: 'Cloudflare connected', description: result.zoneName ? `Zone: ${result.zoneName}` : 'Token saved' });
-                // Refresh record status
                 const s = await getCloudflareStatus();
                 setRecords(s.records ?? null);
                 setZoneName(s.zoneName ?? '');
@@ -589,7 +590,6 @@ function CloudflareDnsSection() {
                     title: 'DNS records applied',
                     description: result.results?.map(r => `${r.name}: ${r.action}`).join(' · '),
                 });
-                // Refresh status
                 const s = await getCloudflareStatus();
                 setRecords(s.records ?? null);
             } else {
@@ -635,29 +635,68 @@ function CloudflareDnsSection() {
 
             <CardContent className="space-y-4">
                 {!cfConnected && !showTokenForm && (
-                    <p className="text-sm text-muted-foreground">
-                        Connect your Cloudflare account to automatically create SPF, DKIM, and DMARC records.
-                        Without these, emails land in spam — even from a warmed address.
-                    </p>
+                    <div className="space-y-3">
+                        <p className="text-sm text-muted-foreground">
+                            Connect your Cloudflare account to automatically create email DNS records.
+                            Without SPF, DKIM, and DMARC, your emails will land in spam.
+                        </p>
+                        <div className="rounded-lg bg-muted/50 border p-3 space-y-2 text-xs text-muted-foreground">
+                            <p className="font-medium text-foreground text-sm">How it works</p>
+                            <ol className="list-decimal list-inside space-y-1">
+                                <li>Click <strong>Connect Cloudflare</strong> below</li>
+                                <li>Create an API token in your Cloudflare dashboard (we&apos;ll link you there)</li>
+                                <li>Paste the token here &mdash; we auto-detect your zone</li>
+                                <li>Click <strong>Apply Records</strong> to create all DNS entries instantly</li>
+                            </ol>
+                        </div>
+                    </div>
                 )}
 
                 {showTokenForm && (
-                    <div className="space-y-3 border-t pt-3">
-                        <p className="text-xs text-muted-foreground">
-                            Create a token at{' '}
-                            <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank" rel="noopener noreferrer" className="underline">
-                                dash.cloudflare.com/profile/api-tokens
-                            </a>{' '}
-                            with <strong>Zone → DNS → Edit</strong> permissions scoped to your domain.
-                        </p>
-                        <div className="space-y-1">
-                            <Label className="text-xs">API Token</Label>
-                            <Input
-                                value={apiToken}
-                                onChange={(e) => setApiToken(e.target.value)}
-                                placeholder="••••••••••••••••"
-                                className="h-9 font-mono text-sm"
-                            />
+                    <div className="space-y-4 border-t pt-3">
+                        <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 space-y-2">
+                            <p className="text-sm font-medium text-blue-900">Step 1: Create an API Token</p>
+                            <ol className="list-decimal list-inside space-y-1 text-xs text-blue-800">
+                                <li>
+                                    Open{' '}
+                                    <a
+                                        href="https://dash.cloudflare.com/profile/api-tokens"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="underline font-medium inline-flex items-center gap-0.5"
+                                    >
+                                        Cloudflare API Tokens<ExternalLink className="h-3 w-3" />
+                                    </a>
+                                </li>
+                                <li>Click <strong>Create Token</strong></li>
+                                <li>Use the <strong>&quot;Edit zone DNS&quot;</strong> template</li>
+                                <li>Under <strong>Zone Resources</strong>, select your domain</li>
+                                <li>Click <strong>Continue to summary</strong> then <strong>Create Token</strong></li>
+                                <li>Copy the token and paste it below</li>
+                            </ol>
+                        </div>
+
+                        <div className="space-y-3">
+                            <p className="text-sm font-medium">Step 2: Paste your token</p>
+                            <div className="space-y-1">
+                                <Label className="text-xs">API Token</Label>
+                                <Input
+                                    value={apiToken}
+                                    onChange={(e) => setApiToken(e.target.value)}
+                                    placeholder="Paste your Cloudflare API token"
+                                    className="h-9 font-mono text-sm"
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <Label className="text-xs">Domain <span className="text-muted-foreground font-normal">(optional &mdash; auto-detected if blank)</span></Label>
+                                <Input
+                                    value={manualDomain}
+                                    onChange={(e) => setManualDomain(e.target.value)}
+                                    placeholder="e.g. ecstaticedibles.com"
+                                    className="h-9 text-sm"
+                                />
+                            </div>
                         </div>
                     </div>
                 )}
@@ -686,9 +725,6 @@ function CloudflareDnsSection() {
                         {!allPresent && (
                             <p className="text-xs text-muted-foreground">
                                 Click <strong>Apply Records</strong> to create or update missing records automatically.
-                                {records.some(r => r.name.includes('._domainkey')) && (
-                                    <> After applying, activate DKIM signing in <strong>Google Workspace Admin → Apps → Gmail → Authenticate email</strong>.</>
-                                )}
                             </p>
                         )}
                     </div>

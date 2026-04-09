@@ -16,6 +16,8 @@ import {
     upsertDnsRecord,
 } from '@/server/integrations/cloudflare/api';
 import { getWorkspaceIntegration } from '@/server/integrations/google-workspace/token-storage';
+import { getAdminFirestore } from '@/firebase/admin';
+import { getSesDnsRecords } from '@/lib/email/ses';
 
 async function resolveOrgId(): Promise<string> {
     const user = await requireUser();
@@ -28,6 +30,38 @@ async function resolveOrgId(): Promise<string> {
 function extractApexDomain(emailOrDomain: string): string {
     const domain = emailOrDomain.includes('@') ? emailOrDomain.split('@')[1] : emailOrDomain;
     return domain.split('.').slice(-2).join('.');
+}
+
+/**
+ * Resolve the org's primary domain from multiple sources.
+ * Priority: SES custom domain > Google Workspace sendAs > tenant customDomain
+ */
+async function resolveOrgDomain(orgId: string): Promise<string | null> {
+    const firestore = getAdminFirestore();
+
+    // 1. SES custom sending domain (most relevant for DNS setup)
+    const sesDoc = await firestore
+        .collection('organizations').doc(orgId)
+        .collection('integrations').doc('ses')
+        .get();
+    const sesData = sesDoc.data();
+    if (sesData?.domain) return sesData.domain;
+
+    // 2. Google Workspace sendAs email
+    const workspace = await getWorkspaceIntegration(orgId);
+    if (workspace?.sendAs) return extractApexDomain(workspace.sendAs);
+
+    // 3. Tenant/org custom domain
+    const orgDoc = await firestore.collection('organizations').doc(orgId).get();
+    const orgData = orgDoc.data();
+    const tenantId = orgData?.tenantId as string | undefined;
+    if (tenantId) {
+        const tenantDoc = await firestore.collection('tenants').doc(tenantId).get();
+        const tenantData = tenantDoc.data();
+        if (tenantData?.customDomain?.domain) return tenantData.customDomain.domain;
+    }
+
+    return null;
 }
 
 export interface DnsRecordStatus {
@@ -75,6 +109,7 @@ function buildExpectedRecords(domain: string): Array<{ type: string; name: strin
 
 export async function saveCloudflareApiToken(
     apiToken: string,
+    manualDomain?: string,
 ): Promise<{ success: boolean; zoneName?: string; error?: string }> {
     try {
         const user = await requireUser();
@@ -86,9 +121,8 @@ export async function saveCloudflareApiToken(
             return { success: false, error: error ?? 'Invalid API token' };
         }
 
-        // Resolve the org's domain from connected Workspace email
-        const workspace = await getWorkspaceIntegration(orgId);
-        const domain = workspace?.sendAs ? extractApexDomain(workspace.sendAs) : null;
+        // Resolve the org's domain — manual override > SES > Workspace > tenant
+        const domain = manualDomain || await resolveOrgDomain(orgId);
 
         let zoneId: string | undefined;
         let zoneName: string | undefined;
@@ -103,9 +137,10 @@ export async function saveCloudflareApiToken(
 
         await saveCloudflareToken(orgId, user.uid, apiToken, zoneId, zoneName);
         return { success: true, zoneName };
-    } catch (e: any) {
-        logger.error('[CloudflareDns] saveApiToken failed', { error: e.message });
-        return { success: false, error: e.message };
+    } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        logger.error('[CloudflareDns] saveApiToken failed', { error: msg });
+        return { success: false, error: msg };
     }
 }
 
@@ -126,8 +161,7 @@ export async function getCloudflareStatus(): Promise<CloudflareStatus> {
         let zoneName = integration.zoneName;
 
         if (!zoneId) {
-            const workspace = await getWorkspaceIntegration(orgId);
-            const domain = workspace?.sendAs ? extractApexDomain(workspace.sendAs) : null;
+            const domain = await resolveOrgDomain(orgId);
             if (domain) {
                 const zone = await getZone(token, domain);
                 if (zone) {
@@ -139,7 +173,7 @@ export async function getCloudflareStatus(): Promise<CloudflareStatus> {
         }
 
         if (!zoneId || !zoneName) {
-            return { connected: true, error: 'Could not find Cloudflare zone for your domain' };
+            return { connected: true, error: 'Could not find Cloudflare zone for your domain. Try disconnecting and reconnecting.' };
         }
 
         // Check each expected record
@@ -191,9 +225,8 @@ export async function applyEmailDnsRecords(): Promise<ApplyResult> {
         let zoneName = integration?.zoneName;
 
         if (!zoneId || !zoneName) {
-            const workspace = await getWorkspaceIntegration(orgId);
-            const domain = workspace?.sendAs ? extractApexDomain(workspace.sendAs) : null;
-            if (!domain) return { success: false, error: 'No domain found — connect Google Workspace first' };
+            const domain = await resolveOrgDomain(orgId);
+            if (!domain) return { success: false, error: 'No domain found — set up SES or connect Google Workspace first' };
 
             const zone = await getZone(token, domain);
             if (!zone) return { success: false, error: `No active Cloudflare zone found for ${domain}` };
@@ -234,7 +267,6 @@ export async function applySesDnsRecords(): Promise<ApplyResult> {
             return { success: false, error: 'Cloudflare zone not configured — connect Cloudflare first' };
         }
 
-        const { getAdminFirestore } = await import('@/firebase/admin');
         const firestore = getAdminFirestore();
         const sesDoc = await firestore
             .collection('organizations').doc(orgId)
@@ -242,12 +274,30 @@ export async function applySesDnsRecords(): Promise<ApplyResult> {
             .get();
 
         const sesData = sesDoc.data();
-        if (!sesData?.dnsRecords || sesData.dnsRecords.length === 0) {
-            return { success: false, error: 'No SES DNS records found — initiate domain verification first' };
+        if (!sesData?.domain) {
+            return { success: false, error: 'No SES domain configured — initiate domain verification first' };
         }
 
-        // Convert SES DNS records to Cloudflare upsert format
-        const cfRecords = (sesData.dnsRecords as Array<{ type: string; name: string; value: string; purpose: string }>).map(rec => ({
+        // Build DNS records from either pre-built dnsRecords array or raw tokens
+        let dnsRecords: Array<{ type: string; name: string; value: string; purpose: string }>;
+
+        if (sesData.dnsRecords?.length) {
+            dnsRecords = sesData.dnsRecords;
+        } else if (sesData.verificationToken && sesData.dkimTokens?.length) {
+            // Build from raw SES tokens (common when verification was initiated outside the UI)
+            dnsRecords = getSesDnsRecords(
+                sesData.domain,
+                sesData.verificationToken,
+                sesData.dkimTokens,
+            );
+            // Persist the built records back to Firestore for future use
+            await sesDoc.ref.update({ dnsRecords });
+        } else {
+            return { success: false, error: 'No SES verification tokens found — initiate domain verification first' };
+        }
+
+        // Convert to Cloudflare upsert format
+        const cfRecords = dnsRecords.map(rec => ({
             type: rec.type,
             name: rec.name,
             content: rec.value,
