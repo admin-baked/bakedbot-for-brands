@@ -34,7 +34,7 @@ import type { LearningDelta } from '@/types/learning-delta';
 export type DreamModel = 'glm' | 'gemini-flash' | 'gemini-pro' | 'haiku' | 'sonnet' | 'opus';
 
 const DREAM_MODEL_LABELS: Record<DreamModel, string> = {
-    'glm': 'GLM-5 (Z.ai)',
+    'glm': 'Llama 3.3 70B (Groq)',
     'gemini-flash': 'Gemini 2.5 Flash',
     'gemini-pro': 'Gemini 2.5 Pro',
     'haiku': 'Claude Haiku 4.5',
@@ -43,7 +43,7 @@ const DREAM_MODEL_LABELS: Record<DreamModel, string> = {
 };
 
 const DREAM_MODEL_IDS: Record<DreamModel, string> = {
-    'glm': 'glm-5',
+    'glm': 'llama-3.3-70b-versatile',
     'gemini-flash': 'googleai/gemini-2.5-flash',
     'gemini-pro': 'googleai/gemini-2.5-pro',
     'haiku': 'claude-haiku-4-5-20251001',
