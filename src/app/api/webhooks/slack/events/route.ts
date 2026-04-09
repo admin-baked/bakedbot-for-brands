@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { logger } from '@/lib/logger';
 import { processSlackMessage, welcomeNewMember } from '@/server/services/slack-agent-bridge';
-import { slackService, elroySlackService, linusSlackService } from '@/server/services/communications/slack';
+import { slackService, elroySlackService, linusSlackService, martySlackService } from '@/server/services/communications/slack';
 
 // Force dynamic - never cache webhook handlers
 export const dynamic = 'force-dynamic';
@@ -12,6 +12,7 @@ export const dynamic = 'force-dynamic';
 // Read once at module init — avoids per-request env lookups
 const SLACK_ELROY_APP_ID = process.env.SLACK_ELROY_APP_ID ?? '';
 const SLACK_LINUS_APP_ID = process.env.SLACK_LINUS_APP_ID ?? '';
+const SLACK_MARTY_APP_ID = process.env.SLACK_MARTY_APP_ID ?? '';
 
 // ---------------------------------------------------------------------------
 // In-memory deduplication guard — Slack retries events if it doesn't get
@@ -101,7 +102,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // ---------------------------------------------------------------------------
     const incomingAppId: string = body.api_app_id ?? '';
     // Use || (not ??) so empty-string secrets (bad version, unset) fall back correctly
-    const SLACK_MARTY_APP_ID = process.env.SLACK_MARTY_APP_ID ?? '';
     const signingSecret = (SLACK_MARTY_APP_ID && incomingAppId === SLACK_MARTY_APP_ID)
         ? (process.env.SLACK_MARTY_SIGNING_SECRET || process.env.SLACK_SIGNING_SECRET)
         : (SLACK_ELROY_APP_ID && incomingAppId === SLACK_ELROY_APP_ID)
@@ -213,11 +213,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
                 try {
                     // Use the app's own bot to look up channel info — avoids "not_in_channel" errors
                     // when one bot is in a channel but the other isn't (e.g. Elroy in #thrive-syracuse-pilot)
-                    const lookupService = (SLACK_ELROY_APP_ID && appId === SLACK_ELROY_APP_ID)
-                        ? elroySlackService
-                        : (SLACK_LINUS_APP_ID && appId === SLACK_LINUS_APP_ID)
-                            ? linusSlackService
-                            : slackService;
+                    const lookupService = (SLACK_MARTY_APP_ID && appId === SLACK_MARTY_APP_ID)
+                        ? martySlackService
+                        : (SLACK_ELROY_APP_ID && appId === SLACK_ELROY_APP_ID)
+                            ? elroySlackService
+                            : (SLACK_LINUS_APP_ID && appId === SLACK_LINUS_APP_ID)
+                                ? linusSlackService
+                                : slackService;
                     const info = await lookupService.getChannelInfo(channel);
                     channelName = info?.name ?? '';
                     logger.info(`[Slack/Events] Resolved channelName="${channelName}" for channel=${channel}`);

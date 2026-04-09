@@ -1,5 +1,5 @@
 import { logger } from '@/lib/logger';
-import { slackService, elroySlackService, linusSlackService, SlackService } from './communications/slack';
+import { slackService, elroySlackService, linusSlackService, martySlackService, SlackService } from './communications/slack';
 import { runAgentCore } from '@/server/agents/agent-runner';
 import { runLinus } from '@/server/agents/linus';
 import { runElroy } from '@/server/agents/elroy';
@@ -823,6 +823,7 @@ Keep it friendly, brief, and genuine.`;
  * to DMs that were opened with that app's bot user.
  */
 function selectSlackService(personaId: string, appId: string): SlackService {
+    if (personaId === 'marty' || (SLACK_MARTY_APP_ID && appId === SLACK_MARTY_APP_ID)) return martySlackService;
     if (personaId === 'elroy' || (SLACK_ELROY_APP_ID && appId === SLACK_ELROY_APP_ID)) return elroySlackService;
     if (SLACK_LINUS_APP_ID && appId === SLACK_LINUS_APP_ID) return linusSlackService;
     return slackService;

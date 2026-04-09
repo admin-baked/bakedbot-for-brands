@@ -406,3 +406,9 @@ export const elroySlackService = new SlackService(
 export const linusSlackService = new SlackService(
     process.env.SLACK_LINUS_BOT_TOKEN || process.env.SLACK_BOT_TOKEN
 );
+
+// Marty Benjamins — dedicated bot token for the CEO Slack app.
+// Falls back to shared token before the secret is provisioned.
+export const martySlackService = new SlackService(
+    process.env.SLACK_MARTY_BOT_TOKEN || process.env.SLACK_BOT_TOKEN
+);
