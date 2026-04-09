@@ -5,8 +5,8 @@ import { UsageService } from '@/server/services/usage';
 
 const API_KEY = process.env.MAILJET_API_KEY?.trim();
 const SECRET_KEY = process.env.MAILJET_SECRET_KEY?.trim();
-const FROM_EMAIL = process.env.MAILJET_SENDER_EMAIL || 'orders@bakedbot.ai';
-const FROM_NAME = process.env.MAILJET_SENDER_NAME || 'BakedBot AI';
+const FROM_EMAIL = process.env.MAILJET_SENDER_EMAIL || 'hello@bakedbot.ai';
+const FROM_NAME = process.env.MAILJET_SENDER_NAME || 'BakedBot';
 
 function createMailjetClient() {
     return new Mailjet({

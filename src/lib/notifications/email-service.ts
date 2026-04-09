@@ -6,7 +6,7 @@
 import { logger } from '@/lib/logger';
 
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
-const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || 'orders@bakedbot.ai';
+const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || 'hello@bakedbot.ai';
 const SENDGRID_BASE_URL = 'https://api.sendgrid.com/v3/mail/send';
 
 export interface EmailOptions {

@@ -278,21 +278,21 @@ async function resolveOrgSesFrom(
 // ─────────────────────────────────────────────────────────────
 
 // ─────────────────────────────────────────────────────────────
-// Paused senders — emails from these addresses are silently dropped.
-// Remove address from list to re-enable.
+// Deprecated senders — orders@bakedbot.ai retired in favor of hello@bakedbot.ai
+// All email now routes through hello@bakedbot.ai (SES verified).
 // ─────────────────────────────────────────────────────────────
-const PAUSED_SENDERS = new Set([
+const DEPRECATED_SENDERS = new Set([
     'orders@bakedbot.ai',
 ]);
 
-function isSenderPaused(fromEmail?: string): boolean {
-    return PAUSED_SENDERS.has(fromEmail ?? 'orders@bakedbot.ai');
+function isDeprecatedSender(fromEmail?: string): boolean {
+    return DEPRECATED_SENDERS.has(fromEmail ?? '');
 }
 
 export async function sendOrderConfirmationEmail(data: any): Promise<boolean> {
-    if (isSenderPaused(data.fromEmail)) {
-        logger.info('[Dispatcher] Sender paused, skipping order email', { from: data.fromEmail || 'orders@bakedbot.ai', to: data.customerEmail });
-        return true; // Return true so callers don't retry
+    if (isDeprecatedSender(data.fromEmail)) {
+        logger.info('[Dispatcher] Deprecated sender blocked', { from: data.fromEmail, to: data.customerEmail });
+        return true;
     }
     const provider = await getPlatformProvider();
     return provider === 'mailjet' ? sendMJ(data) : sendSG(data);
@@ -314,11 +314,10 @@ export type GenericEmailData = {
 };
 
 export async function sendGenericEmail(data: GenericEmailData): Promise<{ success: boolean; error?: string }> {
-    // ── Paused sender check ──
-    const effectiveFrom = data.fromEmail ?? 'orders@bakedbot.ai';
-    if (isSenderPaused(effectiveFrom)) {
-        logger.info('[Dispatcher] Sender paused, skipping generic email', { from: effectiveFrom, to: data.to, subject: data.subject });
-        return { success: true }; // Silent drop — callers won't retry
+    // ── Deprecated sender check ──
+    if (isDeprecatedSender(data.fromEmail)) {
+        logger.info('[Dispatcher] Deprecated sender blocked', { from: data.fromEmail, to: data.to, subject: data.subject });
+        return { success: true };
     }
 
     let result: { success: boolean; error?: string };
