@@ -83,18 +83,26 @@ function WorkspaceSection() {
     const oauthError = searchParams.get('error');
 
     useEffect(() => {
-        getWorkspaceStatus().then((s) => {
-            setConnected(s.connected);
-            setSendAs(s.sendAs ?? '');
-            setAliases(s.sendAsAliases ?? []);
-            setEditSendAs(s.sendAs ?? '');
-            setIsLoading(false);
-        });
+        getWorkspaceStatus()
+            .then((s) => {
+                setConnected(s.connected);
+                setSendAs(s.sendAs ?? '');
+                setAliases(s.sendAsAliases ?? []);
+                setEditSendAs(s.sendAs ?? '');
+            })
+            .catch(() => {
+                // resolveOrgId may throw if no org context — show disconnected
+            })
+            .finally(() => setIsLoading(false));
     }, [oauthSuccess]);
 
     const handleConnect = async () => {
-        const url = await getWorkspaceOAuthUrl('/dashboard/settings?tab=email');
-        window.location.href = url;
+        try {
+            const url = await getWorkspaceOAuthUrl('/dashboard/settings?tab=email');
+            window.location.href = url;
+        } catch (err: any) {
+            toast({ variant: 'destructive', title: 'Could not start connection', description: err.message ?? 'Check your account has an org.' });
+        }
     };
 
     const handleSelectAlias = (email: string) => {

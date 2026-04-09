@@ -531,8 +531,8 @@ async function processWebsiteDiscover(job: any, firestore: any) {
 
 /**
  * Dispensary Enrichment Handler
- * Uses Firecrawl to scrape address, phone, and hours from a dispensary's website,
- * then updates the brand doc so DispensaryInfoPanel renders correctly.
+ * Uses DiscoveryService (Firecrawl → RTRVR fallback) to extract address, phone,
+ * and hours from a dispensary's website, then updates the brand doc.
  */
 async function processDispensaryEnrichment(job: any, firestore: any) {
     const metadata = job.metadata || {};
@@ -542,58 +542,23 @@ async function processDispensaryEnrichment(job: any, firestore: any) {
         return { message: 'brandSlug required for dispensary enrichment', data: { skipped: true } };
     }
 
-    const firecrawlKey = process.env.FIRECRAWL_API_KEY;
-    if (!firecrawlKey || !websiteUrl) {
-        logger.info('[DispensaryEnrich] No Firecrawl key or websiteUrl — skipping auto-enrichment', { brandSlug });
+    if (!websiteUrl) {
+        logger.info('[DispensaryEnrich] No websiteUrl — skipping auto-enrichment', { brandSlug });
         return { message: 'Skipped — no websiteUrl provided. Add address/hours manually in Settings → Brand.', data: { skipped: true } };
     }
 
     logger.info('[DispensaryEnrich] Scraping dispensary website', { brandSlug, websiteUrl });
 
-    const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${firecrawlKey}`,
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            url: websiteUrl,
-            formats: ['extract'],
-            extract: {
-                schema: {
-                    type: 'object',
-                    properties: {
-                        address: { type: 'string', description: 'Street address (e.g. 123 Main St)' },
-                        city: { type: 'string', description: 'City name' },
-                        state: { type: 'string', description: '2-letter state code (e.g. NY)' },
-                        zip: { type: 'string', description: '5-digit ZIP code' },
-                        phone: { type: 'string', description: 'Phone number with area code' },
-                        hours: {
-                            type: 'object',
-                            description: 'Store hours per day as string values like "9am-9pm"',
-                            properties: {
-                                monday: { type: 'string' },
-                                tuesday: { type: 'string' },
-                                wednesday: { type: 'string' },
-                                thursday: { type: 'string' },
-                                friday: { type: 'string' },
-                                saturday: { type: 'string' },
-                                sunday: { type: 'string' },
-                            },
-                        },
-                    },
-                },
-            },
-        }),
+    const dispensarySchema = z.object({
+        address: z.string().optional().describe('Street address (e.g. 123 Main St)'),
+        city: z.string().optional().describe('City name'),
+        state: z.string().optional().describe('2-letter state code (e.g. NY)'),
+        zip: z.string().optional().describe('5-digit ZIP code'),
+        phone: z.string().optional().describe('Phone number with area code'),
+        hours: z.record(z.string()).optional().describe('Store hours per day as string values like "9am-9pm"'),
     });
 
-    if (!response.ok) {
-        const err = await response.text();
-        throw new Error(`Firecrawl scrape failed: ${response.status} ${err}`);
-    }
-
-    const scraped = await response.json();
-    const extracted = scraped.data?.extract || {};
+    const extracted = await DiscoveryService.getInstance().extractData(websiteUrl, dispensarySchema) || {};
 
     const brandUpdate: Record<string, unknown> = { updatedAt: FieldValue.serverTimestamp() };
 

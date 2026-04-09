@@ -153,16 +153,21 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
     const impersonatedOrgId = cookieStore.get('x-impersonated-org-id')?.value;
     if (impersonatedOrgId) {
       try {
+        // Always apply basic impersonation context regardless of whether
+        // the organizations doc exists (it may not for new orgs).
+        decodedToken = {
+          ...decodedToken,
+          currentOrgId: impersonatedOrgId,
+          orgId: impersonatedOrgId,
+        };
+
         const { firestore } = await createServerClient();
         const orgDoc = await firestore.collection('organizations').doc(impersonatedOrgId).get();
         if (orgDoc.exists) {
           const org = orgDoc.data() as any;
           if (org) {
-            // Override org-specific fields with impersonated org context
             decodedToken = {
               ...decodedToken,
-              currentOrgId: impersonatedOrgId,
-              orgId: impersonatedOrgId,
               brandId: org.type === 'brand' ? impersonatedOrgId : null,
             };
 
@@ -181,7 +186,7 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
         }
       } catch (error) {
         console.error('[AUTH_WARN] Failed to fetch impersonated org:', error);
-        // Non-fatal, continue with original context
+        // Non-fatal — basic impersonation (currentOrgId/orgId) already applied above
       }
     }
   }

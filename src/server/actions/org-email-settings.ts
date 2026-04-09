@@ -9,7 +9,7 @@ import { logger } from '@/lib/logger';
 
 async function resolveOrgId(): Promise<string> {
     const user = await requireUser();
-    const orgId = (user as any).currentOrgId || (user as any).locationId || (user as any).brandId;
+    const orgId = (user as any).currentOrgId || (user as any).orgId || (user as any).locationId || (user as any).brandId;
     if (!orgId) throw new Error('No org associated with this account');
     return orgId;
 }
