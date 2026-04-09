@@ -256,35 +256,35 @@ export function InsightCard({
                         </div>
                     )}
 
-                    {/* Thumbs feedback — shown on hover, hidden once given */}
-                    {!dense && (
-                        <div className={cn(
-                            'mt-2 flex items-center gap-1 transition-opacity duration-200',
-                            feedbackGiven ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                        )}>
-                            {feedbackGiven ? (
-                                <span className="text-[10px] text-muted-foreground">
-                                    {feedbackGiven === 'up' ? 'Thanks!' : 'Got it — we\'ll improve.'}
-                                </span>
-                            ) : (
-                                <>
-                                    <button
-                                        onClick={(e) => handleFeedback(e, 'up')}
-                                        className="rounded p-0.5 text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors"
-                                        aria-label="Helpful"
-                                    >
-                                        <ThumbsUp className="h-3 w-3" />
-                                    </button>
-                                    <button
-                                        onClick={(e) => handleFeedback(e, 'down')}
-                                        className="rounded p-0.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-                                        aria-label="Not helpful"
-                                    >
-                                        <ThumbsDown className="h-3 w-3" />
-                                    </button>
-                                </>
-                            )}
-                        </div>
+                    {/* Thumbs feedback — shown on hover in both standard and dense modes */}
+                    <div className={cn(
+                        'flex items-center gap-1 transition-opacity duration-200',
+                        dense ? 'mt-1' : 'mt-2',
+                        feedbackGiven ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                    )}>
+                        {feedbackGiven ? (
+                            <span className={cn('text-muted-foreground', dense ? 'text-[9px]' : 'text-[10px]')}>
+                                {feedbackGiven === 'up' ? 'Thanks!' : 'Noted.'}
+                            </span>
+                        ) : (
+                            <>
+                                <button
+                                    onClick={(e) => handleFeedback(e, 'up')}
+                                    className="rounded p-0.5 text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors"
+                                    aria-label="Helpful"
+                                >
+                                    <ThumbsUp className={cn(dense ? 'h-2.5 w-2.5' : 'h-3 w-3')} />
+                                </button>
+                                <button
+                                    onClick={(e) => handleFeedback(e, 'down')}
+                                    className="rounded p-0.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                                    aria-label="Not helpful"
+                                >
+                                    <ThumbsDown className={cn(dense ? 'h-2.5 w-2.5' : 'h-3 w-3')} />
+                                </button>
+                            </>
+                        )}
+                    </div>
                     )}
                 </CardContent>
             </Card>
