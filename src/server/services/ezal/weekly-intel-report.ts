@@ -15,6 +15,13 @@ import {
     CompetitorSnapshot,
 } from '@/server/repos/competitor-snapshots';
 import type { DriveFileDoc } from '@/types/drive';
+import {
+    getCompetitiveIntelActivationRun,
+    maybeSendCompetitiveIntelSlackDigest,
+    recordCompetitiveIntelEmailDelivered,
+    recordCompetitiveIntelEmailFailure,
+    recordCompetitiveIntelReportGenerated,
+} from '@/server/services/competitive-intel-activation';
 
 // =============================================================================
 // TYPES
@@ -282,6 +289,12 @@ export async function generateWeeklyIntelReport(
         reportId: docRef.id,
         competitors: competitorSections.length,
         deals: allDeals.length,
+    });
+
+    await recordCompetitiveIntelReportGenerated({
+        orgId,
+        reportId: docRef.id,
+        generatedAt: report.generatedAt,
     });
 
     // Save report to BakedBot Drive for AI access
@@ -940,6 +953,11 @@ async function createInboxNotification(
 
     // Also send email notification (pass pre-fetched email to avoid re-querying)
     await sendReportEmail(orgId, adminUserId, reportId, report, summary, adminEmail);
+    await maybeSendCompetitiveIntelSlackDigest({
+        orgId,
+        reportId,
+        report,
+    });
 }
 
 /**
@@ -970,6 +988,7 @@ async function sendReportEmail(
 
         if (!userEmail) {
             logger.error('[WeeklyReport] No email found for admin user', { adminUserId, orgId, preloadedEmail });
+            await getCompetitiveIntelActivationRun(orgId);
             return;
         }
 
@@ -1139,13 +1158,26 @@ async function sendReportEmail(
         logger.info('[WeeklyReport] sendGenericEmail returned', { success: result.success, error: result.error, orgId, userEmail });
 
         if (result.success) {
+            await recordCompetitiveIntelEmailDelivered({
+                orgId,
+                reportId,
+                targetEmail: userEmail,
+            });
             logger.info('[WeeklyReport] Email sent successfully', { orgId, adminUserId, userEmail });
         } else {
+            await recordCompetitiveIntelEmailFailure(
+                orgId,
+                result.error || 'Competitive intel email notification failed',
+            );
             logger.error('[WeeklyReport] sendGenericEmail failed', { orgId, adminUserId, error: result.error, userEmail });
         }
 
     } catch (error) {
         logger.error('[WeeklyReport] Email notification error - exception caught', { error, orgId, adminUserId });
+        await recordCompetitiveIntelEmailFailure(
+            orgId,
+            error instanceof Error ? error.message : 'Competitive intel email exception',
+        );
         throw error; // Re-throw so the caller knows this failed
     }
 }

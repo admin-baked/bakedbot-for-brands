@@ -138,7 +138,7 @@ const TASKS: Record<string, ChecklistTemplate> = {
   'competitive-intel': {
     id: 'competitive-intel',
     title: 'Set up Competitive Intelligence',
-    description: 'Track your market after the first win is live and use Inbox for weekly intelligence follow-up.',
+    description: 'Turn on Ezal’s daily report delivery so market intel lands in email and Slack where available.',
     estimatedTime: '3 min',
     href: '/dashboard/competitive-intel',
     icon: <FileSearch className="h-4 w-4" />,
@@ -177,9 +177,9 @@ export function buildChecklistItems(params: {
   primaryGoal: OnboardingPrimaryGoal;
   brandGuideComplete: boolean;
   linkedStatus: { isLinked: boolean; posConnected: boolean };
-  competitorCount: number;
+  competitiveIntelComplete: boolean;
 }): ChecklistItem[] {
-  const { roleType, primaryGoal, brandGuideComplete, linkedStatus, competitorCount } = params;
+  const { roleType, primaryGoal, brandGuideComplete, linkedStatus, competitiveIntelComplete } = params;
 
   const orderedIds: string[] = ['brand-guide'];
 
@@ -200,7 +200,7 @@ export function buildChecklistItems(params: {
   if (brandGuideComplete) completed.add('brand-guide');
   if (linkedStatus.isLinked) completed.add('link-dispensary');
   if (linkedStatus.posConnected) completed.add('connect-pos');
-  if (competitorCount > 0) completed.add('competitive-intel');
+  if (competitiveIntelComplete) completed.add('competitive-intel');
 
   return dedupedIds.map((id) => ({
     ...TASKS[id],
@@ -227,6 +227,22 @@ export async function getLinkedDispensaryStatus(): Promise<{ isLinked: boolean; 
   return { isLinked: false, posConnected: false };
 }
 
+export async function getCompetitiveIntelSetupStatus(): Promise<{ isComplete: boolean }> {
+  try {
+    const response = await fetch('/api/user/competitive-intel-activation');
+    if (response.ok) {
+      const data = await response.json();
+      return {
+        isComplete: data?.run?.status === 'completed',
+      };
+    }
+  } catch (error) {
+    console.error('Failed to check competitive intel activation:', error);
+  }
+
+  return { isComplete: false };
+}
+
 export function SetupChecklist() {
   const { role, isBrandRole, isDispensaryRole, orgId } = useUserRole();
   const { userData, isLoading: isUserLoading } = useUser();
@@ -234,13 +250,14 @@ export function SetupChecklist() {
   const [isDismissed, setIsDismissed] = useState(false);
   const [linkedStatus, setLinkedStatus] = useState({ isLinked: false, posConnected: false });
   const [linkedStatusLoaded, setLinkedStatusLoaded] = useState(false);
+  const [competitiveIntelComplete, setCompetitiveIntelComplete] = useState(false);
+  const [competitiveIntelLoaded, setCompetitiveIntelLoaded] = useState(false);
 
   const primaryGoal =
     normalizeOnboardingPrimaryGoal(userData?.onboarding?.primaryGoal)
     || getDefaultOnboardingPrimaryGoal(role);
   const goalDefinition = getOnboardingGoalDefinition(primaryGoal);
   const brandGuideComplete = (brandGuide?.completenessScore || 0) >= 80;
-  const competitorCount = userData?.onboarding?.selectedCompetitorCount || 0;
 
   useEffect(() => {
     let active = true;
@@ -267,6 +284,22 @@ export function SetupChecklist() {
   }, [isDispensaryRole]);
 
   useEffect(() => {
+    let active = true;
+    setCompetitiveIntelLoaded(false);
+
+    void (async () => {
+      const status = await getCompetitiveIntelSetupStatus();
+      if (!active) return;
+      setCompetitiveIntelComplete(status.isComplete);
+      setCompetitiveIntelLoaded(true);
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
     const dismissed = localStorage.getItem(DISMISS_KEY);
     if (dismissed === 'true') {
       setIsDismissed(true);
@@ -290,7 +323,7 @@ export function SetupChecklist() {
         primaryGoal,
         brandGuideComplete,
         linkedStatus,
-        competitorCount,
+        competitiveIntelComplete,
       });
     }
 
@@ -300,12 +333,12 @@ export function SetupChecklist() {
         primaryGoal,
         brandGuideComplete,
         linkedStatus,
-        competitorCount,
+        competitiveIntelComplete,
       });
     }
 
     return [] as ChecklistItem[];
-  }, [brandGuideComplete, competitorCount, isBrandRole, isDispensaryRole, linkedStatus, primaryGoal]);
+  }, [brandGuideComplete, competitiveIntelComplete, isBrandRole, isDispensaryRole, linkedStatus, primaryGoal]);
 
   const completedCount = items.filter((item) => item.status === 'done').length;
   const totalCount = items.length;
@@ -322,6 +355,7 @@ export function SetupChecklist() {
     || isUserLoading
     || !role
     || (!linkedStatusLoaded && isDispensaryRole)
+    || !competitiveIntelLoaded
   ) {
     return null;
   }
