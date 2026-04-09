@@ -285,7 +285,6 @@ export function InsightCard({
                             </>
                         )}
                     </div>
-                    )}
                 </CardContent>
             </Card>
         </TooltipProvider>
