@@ -6,9 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
+    AlertTriangle,
+    CheckCircle2,
     Zap,
     MapPin,
+    Mail,
     Loader2,
+    MessageSquareText,
     Plus,
     Trash2,
     RefreshCw,
@@ -22,13 +26,16 @@ import { useUserRole } from '@/hooks/use-user-role';
 import { EzalSnapshotCard } from '@/components/dashboard/ezal-snapshot-card';
 import { useToast } from '@/hooks/use-toast';
 import {
+    activateCompetitiveIntelReport,
     getCompetitors,
+    getCompetitiveIntelActivation,
     addManualCompetitor,
     removeCompetitor,
     getLatestDailyReport,
     refreshCompetitiveIntel,
 } from './actions';
 import type { CompetitorSnapshot } from './actions';
+import type { CompetitiveIntelActivationBlockedReason, CompetitiveIntelActivationRun } from '@/types/competitive-intel-activation';
 import { CompetitorSetupWizard } from '../intelligence/components/competitor-setup-wizard';
 import { AgentOwnerBadge } from '@/components/dashboard/agent-owner-badge';
 import { CannMenusAttribution } from '@/components/ui/cannmenus-attribution';
@@ -50,13 +57,62 @@ function formatUpdateFrequency(frequency?: CompetitorSnapshot['updateFrequency']
     }
 }
 
+function describeBlockedReason(reason: CompetitiveIntelActivationBlockedReason | null): string | null {
+    switch (reason) {
+        case 'missing_competitors':
+            return 'Ezal needs tracked competitors before the daily report can run.';
+        case 'missing_admin_email':
+            return 'An owner or admin email is missing, so the report has nowhere to land.';
+        case 'slack_not_supported':
+            return 'Slack delivery is still limited to the Thrive Syracuse Uncle Elroy pilot.';
+        case 'report_generation_failed':
+            return 'The report run failed before delivery completed.';
+        case 'email_delivery_failed':
+            return 'The report generated, but the email delivery failed.';
+        case 'slack_delivery_failed':
+            return 'The report generated, but the Uncle Elroy Slack delivery failed.';
+        default:
+            return null;
+    }
+}
+
+function getStepBadgeVariant(status: CompetitiveIntelActivationRun['steps']['report']['status']): 'default' | 'secondary' | 'destructive' | 'outline' {
+    switch (status) {
+        case 'active':
+            return 'default';
+        case 'failed':
+            return 'destructive';
+        case 'blocked':
+            return 'secondary';
+        case 'pending':
+        default:
+            return 'outline';
+    }
+}
+
+function getStepLabel(status: CompetitiveIntelActivationRun['steps']['report']['status']): string {
+    switch (status) {
+        case 'active':
+            return 'Active';
+        case 'failed':
+            return 'Failed';
+        case 'blocked':
+            return 'Blocked';
+        case 'pending':
+        default:
+            return 'Pending';
+    }
+}
+
 export default function CompetitiveIntelPage() {
     const { role, user, orgId: hookOrgId } = useUserRole();
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
     const [snapshot, setSnapshot] = useState<CompetitorSnapshot | null>(null);
     const [reportMarkdown, setReportMarkdown] = useState<string | null>(null);
+    const [activation, setActivation] = useState<CompetitiveIntelActivationRun | null>(null);
     const [refreshing, setRefreshing] = useState(false);
+    const [activating, setActivating] = useState(false);
 
     const [showAddForm, setShowAddForm] = useState(false);
     const [newName, setNewName] = useState('');
@@ -71,12 +127,14 @@ export default function CompetitiveIntelPage() {
 
         try {
             const resolvedOrgId = orgId || legacyOrgId;
-            const [data, report] = await Promise.all([
+            const [data, report, activationRun] = await Promise.all([
                 getCompetitors(resolvedOrgId),
                 getLatestDailyReport(resolvedOrgId),
+                getCompetitiveIntelActivation(resolvedOrgId),
             ]);
             setSnapshot(data);
             setReportMarkdown(report);
+            setActivation(activationRun);
         } catch (error) {
             console.error('Failed to load competitors:', error);
         } finally {
@@ -127,6 +185,45 @@ export default function CompetitiveIntelPage() {
         }
     };
 
+    const handleActivateDelivery = async () => {
+        if (!orgId) return;
+
+        setActivating(true);
+        try {
+            const result = await activateCompetitiveIntelReport(orgId);
+            if (!result.run) {
+                throw new Error(result.error || 'Competitive intelligence activation failed');
+            }
+
+            setActivation(result.run);
+
+            toast({
+                title: result.run.status === 'completed'
+                    ? 'Competitive Intelligence Activated'
+                    : result.run.status === 'blocked'
+                        ? 'Activation Needs Attention'
+                        : 'Competitive Intelligence Started',
+                description: result.run.status === 'blocked'
+                    ? describeBlockedReason(result.run.blockedReason) || result.run.nextAction || 'Review the activation steps below.'
+                    : result.reportId
+                        ? `Ezal generated the first live report${result.autoDiscovered ? ` after adding ${result.autoDiscovered} competitors` : ''}.`
+                        : result.autoDiscovered
+                            ? `Competitive intelligence is configured and ${result.autoDiscovered} competitors were added for the first run.`
+                            : 'Daily competitive report delivery is now configured.',
+            });
+
+            await loadCompetitors();
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Activation Failed',
+                description: error instanceof Error ? error.message : 'Could not activate daily competitive intelligence.',
+            });
+        } finally {
+            setActivating(false);
+        }
+    };
+
     const handleAddCompetitor = async () => {
         if (!newName.trim()) {
             toast({ variant: 'destructive', title: 'Error', description: 'Name is required' });
@@ -170,6 +267,8 @@ export default function CompetitiveIntelPage() {
     const remainingCreditsLabel = credits
         ? `${credits.totalRemaining.toLocaleString()} / ${credits.totalAvailable.toLocaleString()}`
         : null;
+    const isThrivePilot = orgId === 'org_thrive_syracuse';
+    const activationReason = describeBlockedReason(activation?.blockedReason ?? null);
 
     return (
         <div className="space-y-6">
@@ -238,6 +337,112 @@ export default function CompetitiveIntelPage() {
                             </Button>
                         )}
                     </div>
+                </CardContent>
+            </Card>
+
+            <Card className="border-primary/20 bg-gradient-to-br from-primary/5 via-background to-transparent">
+                <CardHeader className="pb-4">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="space-y-1">
+                            <CardTitle className="flex items-center gap-2">
+                                <CheckCircle2 className="h-5 w-5 text-primary" />
+                                Activate Daily Competitive Intelligence
+                            </CardTitle>
+                            <CardDescription>
+                                {isThrivePilot
+                                    ? 'Turn on Ezal’s daily report delivery so the report lands by email and posts into Thrive’s Slack channel through Uncle Elroy.'
+                                    : 'Turn on Ezal’s daily report delivery so the report lands in email and stays visible in your dashboard flow.'}
+                            </CardDescription>
+                        </div>
+                        {activation?.status === 'completed' ? (
+                            <Badge className="w-fit">
+                                Live
+                            </Badge>
+                        ) : (
+                            <Button onClick={handleActivateDelivery} disabled={activating}>
+                                {activating ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Sparkles className="mr-2 h-4 w-4" />
+                                )}
+                                {activation?.status === 'failed' || activation?.status === 'blocked'
+                                    ? 'Retry Activation'
+                                    : 'Activate Daily Delivery'}
+                            </Button>
+                        )}
+                    </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {activationReason && (
+                        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-amber-200">
+                            <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                            <div>
+                                <p className="font-medium">Activation needs one more fix</p>
+                                <p className="text-xs opacity-80">{activationReason}</p>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="grid gap-3 md:grid-cols-3">
+                        <div className="rounded-xl border bg-background/70 p-4">
+                            <div className="flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-2">
+                                    <FileText className="h-4 w-4 text-primary" />
+                                    <span className="text-sm font-medium">Daily report</span>
+                                </div>
+                                <Badge variant={getStepBadgeVariant(activation?.steps.report.status ?? 'pending')}>
+                                    {getStepLabel(activation?.steps.report.status ?? 'pending')}
+                                </Badge>
+                            </div>
+                            <p className="mt-2 text-xs text-muted-foreground">
+                                {activation?.competitorCount
+                                    ? `${activation.competitorCount} competitors ready for Ezal’s daily scan.`
+                                    : 'No tracked competitors yet. Activation can auto-discover from your market when possible.'}
+                            </p>
+                        </div>
+
+                        <div className="rounded-xl border bg-background/70 p-4">
+                            <div className="flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-2">
+                                    <Mail className="h-4 w-4 text-primary" />
+                                    <span className="text-sm font-medium">Email delivery</span>
+                                </div>
+                                <Badge variant={getStepBadgeVariant(activation?.steps.email.status ?? 'pending')}>
+                                    {getStepLabel(activation?.steps.email.status ?? 'pending')}
+                                </Badge>
+                            </div>
+                            <p className="mt-2 text-xs text-muted-foreground">
+                                {activation?.steps.email.target
+                                    ? `Sending to ${activation.steps.email.target}.`
+                                    : 'Needs an owner or admin email on the workspace.'}
+                            </p>
+                        </div>
+
+                        <div className="rounded-xl border bg-background/70 p-4">
+                            <div className="flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-2">
+                                    <MessageSquareText className="h-4 w-4 text-primary" />
+                                    <span className="text-sm font-medium">Slack delivery</span>
+                                </div>
+                                <Badge variant={getStepBadgeVariant(activation?.steps.slack.status ?? 'pending')}>
+                                    {getStepLabel(activation?.steps.slack.status ?? 'pending')}
+                                </Badge>
+                            </div>
+                            <p className="mt-2 text-xs text-muted-foreground">
+                                {activation?.steps.slack.enabled
+                                    ? `${activation.slackPersona === 'elroy' ? 'Uncle Elroy' : 'Slack'} posts to ${activation.steps.slack.target || activation.slackChannel || 'your Slack channel'}.`
+                                    : isThrivePilot
+                                        ? 'Slack delivery will turn on through Uncle Elroy during activation.'
+                                        : 'Slack delivery is not enabled for this workspace yet.'}
+                            </p>
+                        </div>
+                    </div>
+
+                    {activation?.status === 'completed' && (
+                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/20 dark:text-emerald-200">
+                            Daily competitive intelligence is live. Use Refresh Now anytime, and Ezal will keep sending the report through the same delivery path automatically.
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 

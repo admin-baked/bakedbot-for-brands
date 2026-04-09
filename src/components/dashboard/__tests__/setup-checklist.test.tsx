@@ -58,9 +58,19 @@ describe('SetupChecklist', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         localStorage.clear();
-        global.fetch = jest.fn().mockResolvedValue({
-            ok: true,
-            json: async () => ({ linkedDispensary: null, posConnected: false }),
+        global.fetch = jest.fn().mockImplementation(async (input: RequestInfo | URL) => {
+            const url = String(input);
+            if (url === '/api/user/competitive-intel-activation') {
+                return {
+                    ok: true,
+                    json: async () => ({ run: null }),
+                } as Response;
+            }
+
+            return {
+                ok: true,
+                json: async () => ({ linkedDispensary: null, posConnected: false }),
+            } as Response;
         }) as unknown as typeof fetch;
         (useUser as jest.Mock).mockReturnValue({
             userData: {},
@@ -72,7 +82,7 @@ describe('SetupChecklist', () => {
         });
     });
 
-    it('shows six focused tasks for brands', () => {
+    it('shows six focused tasks for brands', async () => {
         (useUserRole as jest.Mock).mockReturnValue({
             role: 'brand',
             isBrandRole: true,
@@ -90,7 +100,11 @@ describe('SetupChecklist', () => {
 
         render(<SetupChecklist />);
 
-        const items = screen.getAllByRole('link');
+        await waitFor(() => {
+            expect(global.fetch).toHaveBeenCalledWith('/api/user/competitive-intel-activation');
+        });
+
+        const items = await screen.findAllByRole('link');
         expect(items).toHaveLength(6);
         expect(screen.getByText(/Build your Brand Guide/i)).toBeInTheDocument();
         expect(screen.getByText(/Create your first social draft/i)).toBeInTheDocument();
@@ -128,7 +142,7 @@ describe('SetupChecklist', () => {
         expect(screen.getByText(/Print QR & train staff/i)).toBeInTheDocument();
     });
 
-    it('shows a zero progress bar for a fresh brand org', () => {
+    it('shows a zero progress bar for a fresh brand org', async () => {
         (useUserRole as jest.Mock).mockReturnValue({
             role: 'brand',
             isBrandRole: true,
@@ -151,10 +165,10 @@ describe('SetupChecklist', () => {
 
         render(<SetupChecklist />);
 
-        expect(screen.getByTestId('progress')).toHaveAttribute('data-value', '0');
+        expect(await screen.findByTestId('progress')).toHaveAttribute('data-value', '0');
     });
 
-    it('allows dismissing the checklist with the versioned key', () => {
+    it('allows dismissing the checklist with the versioned key', async () => {
         (useUserRole as jest.Mock).mockReturnValue({
             role: 'brand',
             isBrandRole: true,
@@ -164,13 +178,13 @@ describe('SetupChecklist', () => {
 
         render(<SetupChecklist />);
 
-        fireEvent.click(screen.getByRole('button', { name: /dismiss/i }));
+        fireEvent.click(await screen.findByRole('button', { name: /dismiss/i }));
 
         expect(screen.queryByTestId('card')).not.toBeInTheDocument();
         expect(localStorage.getItem(dismissKey)).toBe('true');
     });
 
-    it('does not show if already dismissed in localStorage', () => {
+    it('does not show if already dismissed in localStorage', async () => {
         localStorage.setItem(dismissKey, 'true');
         (useUserRole as jest.Mock).mockReturnValue({
             role: 'brand',
@@ -181,6 +195,8 @@ describe('SetupChecklist', () => {
 
         render(<SetupChecklist />);
 
-        expect(screen.queryByTestId('card')).not.toBeInTheDocument();
+        await waitFor(() => {
+            expect(screen.queryByTestId('card')).not.toBeInTheDocument();
+        });
     });
 });

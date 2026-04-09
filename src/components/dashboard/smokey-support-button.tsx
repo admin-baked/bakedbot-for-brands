@@ -29,6 +29,7 @@ import {
 } from '@/lib/onboarding/activation';
 import {
   buildChecklistItems,
+  getCompetitiveIntelSetupStatus,
   getLinkedDispensaryStatus,
   type ChecklistItem,
 } from './setup-checklist';
@@ -50,7 +51,6 @@ function OnboardingPanelView({ onHelpClick }: { onHelpClick: () => void }) {
   const primaryGoal =
     normalizeOnboardingPrimaryGoal(userData?.onboarding?.primaryGoal)
     || getDefaultOnboardingPrimaryGoal(role);
-  const competitorCount = userData?.onboarding?.selectedCompetitorCount || 0;
   const brandGuideComplete = (brandGuide?.completenessScore || 0) >= 80;
 
   useEffect(() => {
@@ -72,10 +72,12 @@ function OnboardingPanelView({ onHelpClick }: { onHelpClick: () => void }) {
 
       setIsLoading(true);
 
-      let linkedStatus = { isLinked: false, posConnected: false };
-      if (roleType === 'dispensary') {
-        linkedStatus = await getLinkedDispensaryStatus();
-      }
+      const [linkedStatus, competitiveIntelStatus] = await Promise.all([
+        roleType === 'dispensary'
+          ? getLinkedDispensaryStatus()
+          : Promise.resolve({ isLinked: false, posConnected: false }),
+        getCompetitiveIntelSetupStatus(),
+      ]);
 
       if (!active) {
         return;
@@ -86,7 +88,7 @@ function OnboardingPanelView({ onHelpClick }: { onHelpClick: () => void }) {
         primaryGoal,
         brandGuideComplete,
         linkedStatus,
-        competitorCount,
+        competitiveIntelComplete: competitiveIntelStatus.isComplete,
       }));
       setIsLoading(false);
     }
@@ -96,7 +98,7 @@ function OnboardingPanelView({ onHelpClick }: { onHelpClick: () => void }) {
     return () => {
       active = false;
     };
-  }, [brandGuideComplete, competitorCount, isBrandRole, isDispensaryRole, isUserLoading, primaryGoal]);
+  }, [brandGuideComplete, isBrandRole, isDispensaryRole, isUserLoading, primaryGoal]);
 
   const completedCount = items.filter(i => i.status === 'done').length;
   const totalCount = items.length;

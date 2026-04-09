@@ -9,6 +9,12 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { getEzalLimits } from '@/lib/plan-limits';
 import { findPricingPlan } from '@/lib/config/pricing';
 import { getAIStudioUsageSummary } from '@/server/services/ai-studio-billing-service';
+import type { CompetitiveIntelActivationRun } from '@/types/competitive-intel-activation';
+import {
+    activateCompetitiveIntelDelivery,
+    getCompetitiveIntelActivationRun,
+    recordCompetitiveIntelReportFailure,
+} from '@/server/services/competitive-intel-activation';
 
 export type CompetitorEntry = {
     id: string;
@@ -702,5 +708,75 @@ export async function getLatestDailyReport(orgId: string): Promise<string | null
     } catch (error) {
         logger.error('getLatestDailyReport failed', { orgId, error });
         return null;
+    }
+}
+
+export async function getCompetitiveIntelActivation(
+    orgId: string,
+): Promise<CompetitiveIntelActivationRun | null> {
+    if (!orgId) return null;
+    await requireUser(['dispensary', 'super_user', 'brand']);
+
+    try {
+        return await getCompetitiveIntelActivationRun(orgId);
+    } catch (error) {
+        logger.error('getCompetitiveIntelActivation failed', { orgId, error });
+        return null;
+    }
+}
+
+export async function activateCompetitiveIntelReport(orgId: string): Promise<{
+    success: boolean;
+    run?: CompetitiveIntelActivationRun;
+    reportId?: string;
+    autoDiscovered?: number;
+    error?: string;
+}> {
+    await requireUser(['dispensary', 'super_user', 'brand']);
+
+    try {
+        const activation = await activateCompetitiveIntelDelivery(orgId, {
+            entryPoint: 'competitive_intel_page',
+        });
+
+        let run = activation.run;
+        let reportId: string | undefined;
+
+        if (run.steps.report.enabled && run.steps.report.status !== 'blocked') {
+            try {
+                const { refreshCompetitiveIntelWorkspace } = await import('@/server/services/ezal');
+                const result = await refreshCompetitiveIntelWorkspace(orgId, {
+                    force: true,
+                    maxSources: 12,
+                });
+
+                reportId = result.report?.id;
+                run = await getCompetitiveIntelActivationRun(orgId);
+            } catch (error) {
+                await recordCompetitiveIntelReportFailure(
+                    orgId,
+                    error instanceof Error ? error.message : 'Competitive intel refresh failed',
+                );
+                run = await getCompetitiveIntelActivationRun(orgId);
+                throw error;
+            }
+        }
+
+        revalidatePath('/dashboard/competitive-intel');
+        revalidatePath('/dashboard');
+        revalidatePath('/dashboard/setup');
+
+        return {
+            success: run.status === 'completed' || run.status === 'pending',
+            run,
+            reportId,
+            autoDiscovered: activation.autoDiscovered,
+        };
+    } catch (error) {
+        logger.error('activateCompetitiveIntelReport failed', { orgId, error });
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to activate competitive intelligence',
+        };
     }
 }
