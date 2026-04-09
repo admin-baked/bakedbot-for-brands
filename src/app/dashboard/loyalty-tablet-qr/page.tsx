@@ -17,10 +17,12 @@ import {
   Database,
   Download,
   ExternalLink,
+  Monitor,
   Printer,
   QrCode,
   ShieldCheck,
   Smartphone,
+  TabletSmartphone,
   UserRoundCheck,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -224,6 +226,81 @@ export default function LoyaltyTabletQRPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Install on Tablet ── */}
+      <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-white">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <TabletSmartphone className="h-5 w-5 text-blue-600" />
+            Install on Android Tablet
+          </CardTitle>
+          <CardDescription>
+            Set up the check-in flow as a full-screen app on your front-counter tablet.
+            Once installed it runs without browser chrome — no URL bar, no tabs.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Step-by-step instructions */}
+            <ol className="space-y-4 text-sm text-muted-foreground">
+              <li className="flex items-start gap-3">
+                <span className="flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-blue-600 text-white text-xs font-bold">1</span>
+                <span>Open <strong>Chrome</strong> on the Android tablet and navigate to the check-in URL below (or scan the QR code above).</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-blue-600 text-white text-xs font-bold">2</span>
+                <span>Wait for the green <strong>&quot;Install App&quot;</strong> banner at the top. If it appears, tap <strong>Install</strong> and you&apos;re done.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-blue-600 text-white text-xs font-bold">3</span>
+                <span>If no banner appears, tap the <strong>three-dot menu (⋮)</strong> in Chrome&apos;s top-right corner, then tap <strong>&quot;Add to Home screen&quot;</strong> or <strong>&quot;Install app&quot;</strong>.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-blue-600 text-white text-xs font-bold">4</span>
+                <span>Tap <strong>&quot;Install&quot;</strong> in the confirmation dialog. The <strong>&quot;Check-In&quot;</strong> app icon will appear on the home screen.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-blue-600 text-white text-xs font-bold">5</span>
+                <span>Open the app from the home screen. It launches in <strong>full-screen kiosk mode</strong> — no URL bar, no tabs.</span>
+              </li>
+            </ol>
+
+            {/* Tips panel */}
+            <div className="space-y-3">
+              <div className="rounded-lg border bg-white p-4 space-y-2">
+                <p className="flex items-center gap-2 font-medium text-sm">
+                  <Monitor className="h-4 w-4 text-blue-600" />
+                  Kiosk mode tip
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  For a true kiosk experience, enable <strong>Screen Pinning</strong> in Android Settings → Security → Screen Pinning.
+                  This locks the tablet to the Check-In app and prevents customers from navigating away.
+                </p>
+              </div>
+              <div className="rounded-lg border bg-white p-4 space-y-2">
+                <p className="flex items-center gap-2 font-medium text-sm">
+                  <Smartphone className="h-4 w-4 text-blue-600" />
+                  Persistent install button
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  The check-in page shows a floating <strong>&quot;Install App&quot;</strong> button in the bottom-right corner whenever
+                  the app is not yet installed. Tap it for step-by-step instructions right on the tablet.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                className="w-full gap-2"
+                onClick={() => {
+                  navigator.clipboard.writeText(tabletUrl);
+                }}
+              >
+                <ClipboardList className="h-4 w-4" />
+                Copy Tablet URL
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card>
