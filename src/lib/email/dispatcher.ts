@@ -331,7 +331,7 @@ export async function sendGenericEmail(data: GenericEmailData): Promise<{ succes
     // FREE PLAN: Mailjet only (platform 6k/month free tier)
     // No SES, no Workspace, no Gmail — simple single-channel path.
     // ══════════════════════════════════════════════════════════════════
-    if (isFreeOrg) {
+    if (isFreeOrg && data.communicationType !== 'welcome') {
         logger.info('[Dispatcher] Free org → Mailjet path', { orgId: data.orgId, type: data.communicationType });
         result = await sendViaPlatformMailjet(data);
         logCrm(result, data, 'mailjet_free');

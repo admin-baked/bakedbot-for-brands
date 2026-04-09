@@ -706,6 +706,20 @@ export const articles: Record<string, HelpArticleMeta> = {
     author: 'BakedBot Team',
   },
 
+  'marketing/creative-content': {
+    slug: 'creative-content',
+    category: 'marketing',
+    title: 'Creative Center',
+    description: 'Use Brand Guide, prompts, and review loops to ship better creative faster.',
+    roles: ['brand', 'dispensary', 'dispensary_admin', 'super_user'],
+    tags: ['marketing', 'creative-center', 'social', 'content', 'calendar', 'craig'],
+    difficulty: 'beginner',
+    estimatedTime: '8 minutes',
+    filePath: './marketing/creative-content.mdx',
+    lastUpdated: '2026-04-09',
+    author: 'BakedBot Team',
+  },
+
   'marketing/vibe-studio': {
     slug: 'vibe-studio',
     category: 'marketing',

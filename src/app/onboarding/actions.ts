@@ -638,14 +638,8 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
       
       if (userEmail) {
         const finalEntityName = finalRole === 'brand' ? finalBrandName : manualDispensaryName;
-        
-        // 1. Send "Mrs. Parker" Welcome Email
-        emailService.sendWelcomeEmail({ 
-            email: userEmail, 
-            name: userName 
-        }).catch(err => logger.error('Mrs. Parker Welcome Email Failed', { error: err.message }));
 
-        // 2. Notify Admin if pending approval (Brands/Dispensaries)
+        // Notify Admin if pending approval (Brands/Dispensaries)
         if (finalRole === 'brand' || finalRole === 'dispensary') {
             emailService.notifyAdminNewUser({
                 email: userEmail,
@@ -660,7 +654,7 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
       logger.error('Failed to trigger notifications', { error: emailError });
     }
 
-    // === TRIGGER AI-POWERED WELCOME EMAIL + NURTURE PLAYBOOK ===
+    // === TRIGGER PLATFORM ONBOARDING EMAILS + WEEKLY NURTURE TRACKING ===
     try {
       const { handlePlatformSignup } = await import('@/server/actions/platform-signup');
       await handlePlatformSignup({
@@ -674,6 +668,10 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
         dispensaryId: locationId || undefined,
         source: signupSource || undefined,
         campaignId: signupCampaign || undefined,
+        primaryGoal: resolvedPrimaryGoal,
+        workspaceName: finalRole === 'brand'
+          ? (finalBrandName || manualBrandName || undefined)
+          : (manualDispensaryName || undefined),
         utmParams: signupCampaign
           ? {
               source: signupSource || undefined,
@@ -681,7 +679,7 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
             }
           : undefined,
       });
-      logger.info('[Onboarding] Platform signup triggered - AI welcome email + playbook queued', {
+      logger.info('[Onboarding] Platform signup triggered - onboarding email series scheduled', {
         userId: uid,
         role: finalRole,
         orgId,
@@ -689,7 +687,7 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
         signupCampaign: signupCampaign ?? null,
       });
     } catch (welcomeError) {
-      // Don't fail onboarding if welcome email fails
+      // Don't fail onboarding if onboarding email scheduling fails
       logger.error('[Onboarding] Failed to trigger platform signup handler', {
         error: welcomeError instanceof Error ? welcomeError.message : String(welcomeError)
       });

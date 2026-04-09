@@ -816,17 +816,22 @@ export async function runElroy(request: ElroyRequest): Promise<ElroyResponse> {
                     break;
                 }
                 case 'gemini': {
-                    logger.info('[Elroy] Trying Gemini Flash (opencode, no tools)');
-                    const geminiResult = await callOpencodeLastResort(fullPrompt);
-                    if (geminiResult) {
-                        result = {
-                            content: geminiResult,
-                            toolExecutions: [],
-                            model: 'google/gemini-2.0-flash',
-                            inputTokens: 0,
-                            outputTokens: 0,
-                            cachedTokens: 0,
-                        };
+                    // "gemini" tier = cheapest GLM model WITH tools
+                    // GLM provides tool calling at every tier — never fall to no-tools path
+                    if (!isGLMConfigured()) continue;
+                    const geminiModel = hasImages ? GLM_MODELS.VISION : GLM_MODELS.EXTRACTION;
+                    logger.info(`[Elroy] Trying GLM budget ${geminiModel} (gemini tier, with tools)`);
+                    const geminiGlmResult = await executeGLMWithTools(
+                        fullPrompt, ELROY_TOOLS, elroyToolExecutor,
+                        { ...sharedContext, model: geminiModel }
+                    );
+                    const geminiRefused = geminiGlmResult.content
+                        ? GLM_REFUSAL_PATTERNS.some(p => geminiGlmResult.content.toLowerCase().includes(p))
+                        : false;
+                    if (geminiGlmResult.content && !geminiRefused) {
+                        result = geminiGlmResult;
+                    } else {
+                        logger.warn('[Elroy] GLM budget unusable', { reason: !geminiGlmResult.content ? 'empty' : 'refused' });
                     }
                     break;
                 }

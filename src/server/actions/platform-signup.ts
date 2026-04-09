@@ -1,7 +1,7 @@
 /**
  * Platform Signup Handler
  *
- * Handles welcome emails and onboarding for users who create accounts
+ * Handles onboarding lifecycle email scheduling for users who create accounts
  * on BakedBot.ai (not age gate leads).
  *
  * Triggered by user registration flow.
@@ -11,6 +11,8 @@
 
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
+import { schedulePlatformOnboardingEmailSeries } from '@/server/services/platform-onboarding-email';
+import type { OnboardingPrimaryGoal } from '@/types/onboarding';
 import type { UserRole } from '@/types/roles';
 
 export interface PlatformSignupContext {
@@ -32,10 +34,12 @@ export interface PlatformSignupContext {
         term?: string;
         content?: string;
     };
+    primaryGoal?: OnboardingPrimaryGoal;
+    workspaceName?: string;
 }
 
 /**
- * Trigger welcome email and onboarding playbook for platform signup
+ * Trigger onboarding emails and signup event tracking for platform signup
  */
 export async function handlePlatformSignup(
     context: PlatformSignupContext
@@ -56,34 +60,24 @@ export async function handlePlatformSignup(
         // Determine user segment based on role
         const segment = determineUserSegment(role);
 
-        // Create welcome email job
         const db = getAdminFirestore();
 
-        await db.collection('jobs').add({
-            type: 'send_welcome_email',
-            agent: role === 'brand' ? 'craig' : 'mrs_parker',
-            status: 'pending',
-            data: {
-                userId,
-                email,
-                firstName,
-                lastName,
-                segment,
-                signupContext: 'platform_signup',
-                role,
-                orgId,
-                brandId,
-                dispensaryId,
-                source: resolvedSource,
-                campaignId: context.campaignId ?? null,
-                referrer: context.referrer,
-                utmParams: context.utmParams,
-            },
-            createdAt: Date.now(),
-            priority: 'high',
+        await schedulePlatformOnboardingEmailSeries({
+            userId,
+            email,
+            firstName,
+            lastName,
+            role,
+            orgId,
+            brandId,
+            dispensaryId,
+            source: resolvedSource,
+            campaignId: context.campaignId ?? null,
+            primaryGoal: context.primaryGoal,
+            workspaceName: context.workspaceName,
         });
 
-        logger.info('[PlatformSignup] Welcome email job created', {
+        logger.info('[PlatformSignup] Onboarding email series scheduled', {
             userId,
             email,
             segment,
@@ -150,9 +144,14 @@ function determineUserSegment(role?: UserRole): string {
     const segmentMap: Record<string, string> = {
         super_user: 'super_user',
         admin: 'super_user',
+        dispensary_admin: 'dispensary_owner',
+        dispensary_staff: 'dispensary_owner',
+        budtender: 'dispensary_owner',
         dispensary: 'dispensary_owner',
         dispensary_manager: 'dispensary_owner',
         dispensary_budtender: 'dispensary_owner',
+        brand_admin: 'brand_marketer',
+        brand_member: 'brand_marketer',
         brand: 'brand_marketer',
         brand_manager: 'brand_marketer',
         customer: 'customer',

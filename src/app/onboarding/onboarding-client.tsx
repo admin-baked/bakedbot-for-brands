@@ -14,6 +14,7 @@ import {
   Store,
   User,
   QrCode,
+  FileSearch,
   Palette,
   Mail,
   Globe,
@@ -62,6 +63,7 @@ type Step = 'role' | 'market' | 'brand-search' | 'manual' | 'goal' | 'review' | 
 
 const GOAL_ICON_MAP: Record<OnboardingPrimaryGoal, typeof QrCode> = {
   checkin_tablet: QrCode,
+  competitive_intelligence: FileSearch,
   creative_center: Palette,
   welcome_playbook: Mail,
 };
@@ -593,7 +595,7 @@ export default function OnboardingPage() {
         </div>
 
         <div className="rounded-xl border border-dashed bg-muted/20 p-4 text-sm text-muted-foreground">
-          Competitive Intelligence is still available, but we will move it after your first win instead of making it part of signup.
+          Start with one live win, then we will help you layer in Brand Guide, email setup, and the rest of the onboarding checklist from inside the dashboard.
         </div>
 
         <div className="flex justify-between items-center pt-2">

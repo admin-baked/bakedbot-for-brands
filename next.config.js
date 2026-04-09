@@ -208,13 +208,14 @@ const nextConfig = {
             value: isProd
               ? [
                 "default-src 'self'",
-                "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://cdn.jsdelivr.net https://apis.google.com https://accounts.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/",
+                "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://cdn.jsdelivr.net https://apis.google.com https://accounts.google.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://static.cloudflareinsights.com",
                 "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
                 "img-src 'self' data: https: blob:",
                 "media-src 'self' data: https: blob: https://storage.googleapis.com https://commondatastorage.googleapis.com",
                 "font-src 'self' data: https://fonts.gstatic.com",
-                "connect-src 'self' https://*.googleapis.com https://apis.google.com https://*.firebaseio.com wss://*.firebaseio.com https://api.cannmenus.com https://api.anthropic.com https://www.google.com/recaptcha/ https://accounts.google.com https://www.google-analytics.com https://www.googletagmanager.com https://analytics.google.com https://nominatim.openstreetmap.org wss://*.livekit.cloud https://*.livekit.cloud https://singleview.site",
+                "connect-src 'self' https://*.googleapis.com https://apis.google.com https://*.firebaseio.com wss://*.firebaseio.com https://api.cannmenus.com https://api.anthropic.com https://www.google.com/recaptcha/ https://accounts.google.com https://www.google-analytics.com https://www.googletagmanager.com https://analytics.google.com https://nominatim.openstreetmap.org wss://*.livekit.cloud https://*.livekit.cloud https://singleview.site https://cloudflareinsights.com",
                 "frame-src 'self' https://www.google.com https://accounts.google.com https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/ https://studio-567050101-bc6e8.firebaseapp.com",
+                "worker-src 'self'",
                 "object-src 'none'",
                 "base-uri 'self'",
                 "form-action 'self'",

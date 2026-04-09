@@ -617,7 +617,7 @@ FORMAT FOR SLACK:
 User Request: ${request.prompt}`;
 
     const onToolCall = request.progressCallback
-        ? (toolName: string) => {
+        ? async (toolName: string, _input: Record<string, unknown>) => {
             const msgs: Record<string, string> = {
                 marty_dream: '_Marty Benjamins is dreaming — introspecting, hypothesizing, testing..._',
                 letta_save_fact: '_Marty Benjamins is updating CEO memory..._',

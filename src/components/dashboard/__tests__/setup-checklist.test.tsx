@@ -111,7 +111,7 @@ describe('SetupChecklist', () => {
         expect(screen.getByText(/Put your first post on the calendar/i)).toBeInTheDocument();
         expect(screen.getByText(/Launch your Welcome Playbook/i)).toBeInTheDocument();
         expect(screen.getByText(/Learn Inbox, Playbooks, and Agents/i)).toBeInTheDocument();
-        expect(screen.getByText(/Set up Competitive Intelligence/i)).toBeInTheDocument();
+        expect(screen.getByText(/Launch Competitive Intelligence Reports/i)).toBeInTheDocument();
     });
 
     it('shows dispensary-specific setup tasks', async () => {
@@ -166,6 +166,28 @@ describe('SetupChecklist', () => {
         render(<SetupChecklist />);
 
         expect(await screen.findByTestId('progress')).toHaveAttribute('data-value', '0');
+    });
+
+    it('moves competitive intelligence earlier when it is the selected first win', async () => {
+        (useUserRole as jest.Mock).mockReturnValue({
+            role: 'brand',
+            isBrandRole: true,
+            isDispensaryRole: false,
+            orgId: 'brand-1',
+        });
+        (useUser as jest.Mock).mockReturnValue({
+            userData: {
+                onboarding: {
+                    primaryGoal: 'competitive_intelligence',
+                },
+            },
+            isLoading: false,
+        });
+
+        render(<SetupChecklist />);
+
+        const items = await screen.findAllByRole('link');
+        expect(items[1]).toHaveTextContent(/Launch Competitive Intelligence Reports/i);
     });
 
     it('allows dismissing the checklist with the versioned key', async () => {

@@ -52,7 +52,7 @@ export default function GetStartedPage() {
                 <div className="text-center max-w-xl mx-auto mb-10">
                     <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">Select your plan</h1>
                     <p className="mt-2 text-muted-foreground">
-                        Choose the plan that fits your current scale. You can upgrade or downgrade at any time.
+                        Choose the plan that fits your current scale. Then we will guide you to one live first win: Check-In, Competitive Intelligence, or Creative Center.
                     </p>
                 </div>
 

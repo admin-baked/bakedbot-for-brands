@@ -1,5 +1,6 @@
 export type OnboardingPrimaryGoal =
   | 'checkin_tablet'
+  | 'competitive_intelligence'
   | 'creative_center'
   | 'welcome_playbook';
 

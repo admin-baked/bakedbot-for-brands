@@ -1,0 +1,18 @@
+Thrive Pulse Pattern
+- Data source: Thrive Pulse API for Thrive Syracuse org
+- Typical fields (example):
+  - sales (or totalSales)
+  - customers (activeCustomers, newCustomers)
+  - revenue (grossRevenue or revenue)
+  - openTickets (ticketsOpen, ticketCount)
+- Data usage:
+  - Used to populate an Ops summary in Slack digest
+- Access:
+  - THRIVE_OPS_API_BASE (base URL)
+  - THRIVE_OPS_API_KEY (API key)
+  - THRIVE_ORG_ID (org identifier, default: org_thrive_syracuse)
+  - THRIVE_OPS_PULSE_PATH (default: /pulse)
+- Security:
+  - Use bearer token; ensure proper scoping; log and audit API access
+- Validation:
+  - If API returns missing fields, fallback to THRIVE_OPS_SUMMARY env var

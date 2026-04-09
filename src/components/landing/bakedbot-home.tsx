@@ -297,7 +297,7 @@ export function BakedBotHome() {
             <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">Transparent Pricing</Badge>
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Choose the business problem you want solved first.</h2>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              Start with market intelligence, commerce conversion, retention, or optimization — then expand as BakedBot proves ROI.
+              Start with Check-In, Competitive Intelligence, or Creative Center, then expand into retention and optimization once BakedBot proves ROI.
             </p>
           </div>
 

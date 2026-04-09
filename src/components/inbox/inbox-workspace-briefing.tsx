@@ -111,6 +111,11 @@ function getAgentGuideMeta(goal: OnboardingPrimaryGoal): AgentGuideMeta {
                 name: 'Smokey',
                 description: 'owns the front-door check-in experience, launch briefings, and staff-facing retail guidance.',
             };
+        case 'competitive_intelligence':
+            return {
+                name: 'Ezal',
+                description: 'tracks pricing shifts, assortment moves, and competitor changes so market context keeps landing without manual digging.',
+            };
         case 'creative_center':
             return {
                 name: 'Craig',

@@ -134,14 +134,20 @@ async function handleBlockActions(payload: any): Promise<void> {
 
     for (const action of actions) {
         const actionId = action.action_id;
-        const value = action.value; // approvalId
+        const value = action.value;
 
         if (!value) {
             logger.warn('[Slack/Interactions] No value in action', { actionId });
             continue;
         }
 
-        // Get the approval request
+        // ---- Actionable Artifact Approve/Decline (briefing cards) ----
+        if (actionId === 'approve_artifact' || actionId === 'decline_artifact') {
+            await handleArtifactDecision(actionId, value, userId, channel, responseUrl);
+            continue;
+        }
+
+        // ---- Legacy agent action approval ----
         const approval = await getApprovalRequest(value);
         if (!approval) {
             logger.warn('[Slack/Interactions] Approval request not found', {
@@ -151,7 +157,6 @@ async function handleBlockActions(payload: any): Promise<void> {
             continue;
         }
 
-        // Handle approve/reject
         if (actionId === 'approve_action') {
             await handleApproveAction(approval, userId, channel, responseUrl);
         } else if (actionId === 'reject_action') {
@@ -294,5 +299,145 @@ async function sendErrorResponse(responseUrl: string, text: string): Promise<voi
         logger.error('[Slack/Interactions] Failed to send error response', {
             error: error.message,
         });
+    }
+}
+
+// ============================================================================
+// Actionable Artifact Decision Handler
+// ============================================================================
+
+/**
+ * Handle approve/decline for actionable briefing artifacts.
+ * Value is a JSON string: { artifactId, orgId, type }
+ */
+async function handleArtifactDecision(
+    actionId: string,
+    value: string,
+    slackUserId: string,
+    _channel: string,
+    responseUrl: string
+): Promise<void> {
+    let parsed: { artifactId: string; orgId: string; type: string };
+    try {
+        parsed = JSON.parse(value);
+    } catch {
+        await sendErrorResponse(responseUrl, 'Invalid artifact payload');
+        return;
+    }
+
+    const { artifactId, orgId } = parsed;
+
+    logger.info('[Slack/Interactions] Artifact decision', {
+        actionId,
+        artifactId,
+        orgId,
+        slackUserId,
+    });
+
+    try {
+        const { getAdminFirestore } = await import('@/firebase/admin');
+        const db = getAdminFirestore();
+
+        const artifactDoc = await db
+            .collection('tenants')
+            .doc(orgId)
+            .collection('inbox_artifacts')
+            .doc(artifactId)
+            .get();
+
+        if (!artifactDoc.exists) {
+            await sendErrorResponse(responseUrl, 'Artifact not found — it may have expired.');
+            return;
+        }
+
+        const artifact = {
+            id: artifactDoc.id,
+            ...artifactDoc.data(),
+        } as import('@/types/inbox').InboxArtifact;
+
+        // Guard: already decided
+        if (artifact.status === 'published' || artifact.status === 'rejected') {
+            const status = artifact.status === 'published' ? 'already approved' : 'already declined';
+            await sendSuccessResponse(responseUrl, `This recommendation was ${status}.`);
+            return;
+        }
+
+        if (actionId === 'approve_artifact') {
+            await sendSuccessResponse(responseUrl, ':hourglass_flowing_sand: Applying...');
+
+            const { executeArtifactAction } = await import(
+                '@/server/services/insights/artifact-executor'
+            );
+            const result = await executeArtifactAction(artifact, slackUserId, 'slack');
+
+            const { buildArtifactDecisionBlocks } = await import(
+                '@/server/services/insights/artifact-slack-blocks'
+            );
+            const updatedBlocks = buildArtifactDecisionBlocks(
+                artifact, 'approved', slackUserId, result
+            );
+
+            if (artifact.slackMessageTs && artifact.slackChannel) {
+                await slackService.updateMessage(
+                    artifact.slackChannel,
+                    artifact.slackMessageTs,
+                    result.success
+                        ? `Approved by <@${slackUserId}>`
+                        : `Approved but failed — ${result.error}`,
+                    updatedBlocks
+                );
+            } else if (responseUrl) {
+                await fetch(responseUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        response_type: 'in_channel',
+                        replace_original: true,
+                        blocks: updatedBlocks,
+                    }),
+                });
+            }
+
+            logger.info('[Slack/Interactions] Artifact approved', {
+                artifactId,
+                orgId,
+                success: result.success,
+                externalId: result.externalId,
+            });
+        } else {
+            const { declineArtifactAction } = await import(
+                '@/server/services/insights/artifact-executor'
+            );
+            await declineArtifactAction(artifact, slackUserId, 'slack');
+
+            const { buildArtifactDecisionBlocks } = await import(
+                '@/server/services/insights/artifact-slack-blocks'
+            );
+            const updatedBlocks = buildArtifactDecisionBlocks(
+                artifact, 'declined', slackUserId
+            );
+
+            if (responseUrl) {
+                await fetch(responseUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        response_type: 'in_channel',
+                        replace_original: true,
+                        blocks: updatedBlocks,
+                    }),
+                });
+            }
+
+            logger.info('[Slack/Interactions] Artifact declined', { artifactId, orgId });
+        }
+    } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        logger.error('[Slack/Interactions] Artifact decision failed', {
+            artifactId,
+            orgId,
+            error: msg,
+        });
+        await sendErrorResponse(responseUrl, `Decision failed: ${msg}`);
     }
 }

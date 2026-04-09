@@ -258,6 +258,14 @@ export type InboxArtifactType =
     | 'cohort_report'       // Customer visit-frequency funnel (1st→2nd→3rd→4th→5+ visits)
     | 'checkin_briefing'    // Daily check-in stats: counts, consent rates, mood, review queue
     | 'competitor_price_match' // Ezal: competitor price comparison + price match/beat recommendations
+    | 'flash_sale'          // Slow-mover flash sale recommendation
+    | 'dead_stock_writeoff' // Deep discount or clearance recommendation
+    | 'winback_campaign'    // At-risk customer reactivation recommendation
+    | 'retention_wave'      // Cohort-based churn prevention recommendation
+    | 'restock_alert'       // Reorder recommendation
+    | 'google_review_trend' // Review-response recommendation
+    | 'birthday_offer'      // Birthday outreach recommendation
+    | 'local_event_boost'   // Event-day promo recommendation
     // ---- Code & Execution Artifacts ----
     | 'code_sandbox';       // Live editable code with sandboxed iframe preview
 
@@ -270,6 +278,78 @@ export type InboxArtifactStatus =
     | 'approved'        // Approved, ready to publish
     | 'published'       // Live/active
     | 'rejected';       // Not approved
+
+export type ActionOperationType =
+    | 'pos_discount'
+    | 'sms_campaign'
+    | 'email_campaign'
+    | 'review_reply'
+    | 'notification_only'
+    | 'reorder_alert'
+    | 'task_create'
+    | 'compliance_brief'
+    | 'menu_update'
+    | 'loyalty_nudge'
+    | 'promo_schedule'
+    | 'pos_price_change'
+    | 'pos_bundle';
+
+export interface ActionableRecommendation {
+    title: string;
+    rationale: string;
+    operation: ActionOperationType;
+    targetSystem: string;
+    params?: Record<string, unknown>;
+    requiresApproval: boolean;
+    reversible: boolean;
+    dataFreshness: string;
+    confidence: 'high' | 'medium' | 'low';
+    estimatedImpact?: string;
+    durationDays?: number;
+}
+
+export interface ArtifactExecutionRecord {
+    status: 'success' | 'failed';
+    executedAt: Date;
+    externalId?: string;
+    error?: string;
+}
+
+export interface ArtifactDecision {
+    id: string;
+    orgId: string;
+    artifactId: string;
+    artifactType: InboxArtifactType;
+    decision: 'approved' | 'declined';
+    decidedBy: string;
+    decidedVia: 'dashboard' | 'slack';
+    decidedAt: Date;
+    declinedReason?: string;
+    sourceDataAt: string;
+    wasStale: boolean;
+    execution?: ArtifactExecutionRecord | null;
+}
+
+export interface PlaybookConfig {
+    id: string;
+    orgId: string;
+    enabled: boolean;
+    name: string;
+    description: string;
+    cronExpression: string;
+    cronTimezone: string;
+    frequency: 'hourly' | 'daily' | 'weekly' | 'monthly' | 'event';
+    primaryAgent: string;
+    supportingAgents?: string[];
+    config: Record<string, unknown>;
+    requiresApproval: boolean;
+    slackChannel?: string;
+    approvalRoles: string[];
+    createdAt: Date;
+    updatedAt: Date;
+    createdBy: string;
+    lastRunAt?: Date;
+}
 
 /**
  * Data payload for research_report artifacts (live polling card + completed report)
@@ -495,10 +575,13 @@ export interface InboxArtifact {
 
     // Agent rationale for the suggestion
     rationale?: string;
+    actionable?: ActionableRecommendation;
     proactive?: InboxArtifactProactiveMetadata;
 
     // Drive integration — set when artifact has a corresponding BakedBot Drive file
     driveFileId?: string;
+    slackMessageTs?: string;
+    slackChannel?: string;
 
     // Tracking
     createdAt: Date;
@@ -1469,7 +1552,9 @@ export const InboxArtifactTypeSchema = z.enum([
     'release_notes', 'onboarding_checklist', 'content_calendar', 'okr_document', 'meeting_notes',
     'board_deck', 'budget_model', 'job_spec', 'research_brief', 'compliance_brief',
     // Analytics Artifacts
-    'analytics_chart', 'analytics_briefing', 'cohort_report', 'checkin_briefing',
+    'analytics_chart', 'analytics_briefing', 'cohort_report', 'checkin_briefing', 'competitor_price_match',
+    'flash_sale', 'dead_stock_writeoff', 'winback_campaign', 'retention_wave', 'restock_alert',
+    'google_review_trend', 'birthday_offer', 'local_event_boost',
     // Code & Execution Artifacts
     'code_sandbox',
 ]);

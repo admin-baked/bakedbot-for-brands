@@ -38,10 +38,10 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟡 Homepage onboarding audit + SES onboarding lifecycle emails wired locally; focused Jest green, full check:types blocked by existing inbox/playbook typing errors outside this flow.
+**Current Status:** 🟡 Linus CTO Slack signing fix deployed; focused Jest green, full check:types blocked by existing inbox/playbook typing errors outside this flow.
 
-**Recent work (2026-04-09):** Homepage-to-onboarding audit — core first wins now center on Check-In, Competitive Intelligence, and Creative Center; setup/help surfaces now include direct Martez booking.
-**Prior (2026-04-09):** Onboarding lifecycle emails — first 7-day onboarding sequence now schedules through `jobs`, SES welcome routing is enabled, and weekly nurture sends rotating feature spotlights to onboarded users.
+**Recent work (2026-04-09):** Linus CTO Slack app signing fix — dedicated signing secret + bot token routing (`36683cb91`); `selectSlackService()` helper extracted.
+**Prior (2026-04-09):** Homepage onboarding audit + onboarding lifecycle emails + Google Workspace OAuth fix.
 - Marty CEO agent: full super powers, Slack DM routing, manages all executives toward $1M ARR
 - Club MVP shipped (`9eb4a6d36`): Customer PWA /club, mood video cache, event pipeline + 5 triggers, tablet PWA
 - 7-day retention nudge email (cron job)

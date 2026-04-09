@@ -4,6 +4,11 @@ import { logger } from '@/lib/logger';
 import { requireCronSecret } from '@/server/auth/cron';
 import { sendWelcomeEmail, sendWelcomeSms } from '@/server/services/mrs-parker-welcome';
 import { sendReturningCustomerEmail } from '@/server/services/mrs-parker-returning';
+import {
+    PLATFORM_ONBOARDING_EMAIL_JOB_TYPE,
+    sendPlatformOnboardingEmail,
+    type PlatformOnboardingEmailJobData,
+} from '@/server/services/platform-onboarding-email';
 
 /**
  * Welcome Message Job Processor
@@ -295,6 +300,80 @@ export async function POST(request: NextRequest) {
                     jobId,
                     type: 'returning_welcome_email',
                     status: 'failed',
+                    error: err.message,
+                });
+            }
+        }
+
+        const platformOnboardingJobsSnapshot = await db
+            .collection('jobs')
+            .where('type', '==', PLATFORM_ONBOARDING_EMAIL_JOB_TYPE)
+            .where('status', '==', 'pending')
+            .limit(20)
+            .get();
+
+        for (const doc of platformOnboardingJobsSnapshot.docs) {
+            const job = doc.data();
+            const jobId = doc.id;
+            const jobData = job.data as PlatformOnboardingEmailJobData | undefined;
+
+            if (!jobData) {
+                continue;
+            }
+
+            try {
+                if ((jobData.scheduledAt ?? Date.now()) > Date.now()) {
+                    continue;
+                }
+
+                await doc.ref.update({
+                    status: 'running',
+                    startedAt: Date.now(),
+                    updatedAt: Date.now(),
+                });
+
+                const delivery = await sendPlatformOnboardingEmail(jobData);
+                if (!delivery.success) {
+                    throw new Error(delivery.error || 'Failed to send platform onboarding email');
+                }
+
+                await doc.ref.update({
+                    status: 'completed',
+                    completedAt: Date.now(),
+                    updatedAt: Date.now(),
+                    result: {
+                        success: true,
+                        sentAt: Date.now(),
+                    },
+                });
+
+                results.push({
+                    jobId,
+                    type: PLATFORM_ONBOARDING_EMAIL_JOB_TYPE,
+                    status: 'completed',
+                    email: jobData.email,
+                });
+            } catch (error: unknown) {
+                const err = error as Error;
+
+                await doc.ref.update({
+                    status: 'failed',
+                    error: err.message,
+                    failedAt: Date.now(),
+                    updatedAt: Date.now(),
+                    attempts: (job.attempts || 0) + 1,
+                });
+
+                results.push({
+                    jobId,
+                    type: PLATFORM_ONBOARDING_EMAIL_JOB_TYPE,
+                    status: 'failed',
+                    error: err.message,
+                });
+
+                logger.error('[WelcomeJobs] Platform onboarding email failed', {
+                    jobId,
+                    email: jobData.email,
                     error: err.message,
                 });
             }

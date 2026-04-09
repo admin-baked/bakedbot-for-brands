@@ -12,32 +12,47 @@ export interface OnboardingGoalDefinition {
   ctaLabel: string;
 }
 
-export const ONBOARDING_PRIMARY_GOALS: readonly OnboardingGoalDefinition[] = [
-  {
+const ONBOARDING_GOAL_DEFINITIONS: Record<OnboardingPrimaryGoal, OnboardingGoalDefinition> = {
+  checkin_tablet: {
     id: 'checkin_tablet',
     title: 'Check In with Tablet',
     description: 'Launch the front-door check-in flow, staff training, and live QR experience.',
     audienceLabel: 'Best for dispensary teams',
     ctaLabel: 'Open Check-In Manager',
   },
-  {
+  competitive_intelligence: {
+    id: 'competitive_intelligence',
+    title: 'Competitive Intelligence Report',
+    description: 'Turn on Ezal’s daily report delivery so pricing shifts and market moves land fast.',
+    audienceLabel: 'Best for operators, buyers, and retail strategy teams',
+    ctaLabel: 'Open Competitive Intel',
+  },
+  creative_center: {
     id: 'creative_center',
     title: 'Creative Center',
     description: 'Create social content faster and get your calendar moving with brand-aware AI.',
     audienceLabel: 'Best for marketers, brands, and retail promo teams',
     ctaLabel: 'Open Creative Center',
   },
-  {
+  welcome_playbook: {
     id: 'welcome_playbook',
     title: 'Email Personalization',
     description: 'Turn on the Welcome Playbook so new contacts get personalized follow-up automatically.',
     audienceLabel: 'Best for retention, CRM, and lifecycle setup',
     ctaLabel: 'Open Playbooks',
   },
+};
+
+const SUPPORTED_ONBOARDING_PRIMARY_GOAL_IDS = Object.keys(ONBOARDING_GOAL_DEFINITIONS) as OnboardingPrimaryGoal[];
+
+export const ONBOARDING_PRIMARY_GOALS: readonly OnboardingGoalDefinition[] = [
+  ONBOARDING_GOAL_DEFINITIONS.checkin_tablet,
+  ONBOARDING_GOAL_DEFINITIONS.competitive_intelligence,
+  ONBOARDING_GOAL_DEFINITIONS.creative_center,
 ] as const;
 
 export function isOnboardingPrimaryGoal(value: unknown): value is OnboardingPrimaryGoal {
-  return ONBOARDING_PRIMARY_GOALS.some((goal) => goal.id === value);
+  return SUPPORTED_ONBOARDING_PRIMARY_GOAL_IDS.some((goalId) => goalId === value);
 }
 
 export function normalizeOnboardingPrimaryGoal(value: unknown): OnboardingPrimaryGoal | null {
@@ -61,7 +76,7 @@ export function getDefaultOnboardingPrimaryGoal(role: UserRole | 'skip' | null |
 }
 
 export function getOnboardingGoalDefinition(goal: OnboardingPrimaryGoal): OnboardingGoalDefinition {
-  return ONBOARDING_PRIMARY_GOALS.find((candidate) => candidate.id === goal) ?? ONBOARDING_PRIMARY_GOALS[0];
+  return ONBOARDING_GOAL_DEFINITIONS[goal] ?? ONBOARDING_GOAL_DEFINITIONS.checkin_tablet;
 }
 
 export function getOnboardingGoalHref(
@@ -73,6 +88,8 @@ export function getOnboardingGoalHref(
   switch (goal) {
     case 'checkin_tablet':
       return isDispensaryRole(normalizedRole) ? '/dashboard/dispensary/checkin' : '/dashboard/playbooks';
+    case 'competitive_intelligence':
+      return '/dashboard/competitive-intel';
     case 'creative_center':
       return '/dashboard/creative';
     case 'welcome_playbook':
@@ -92,6 +109,8 @@ export function getOnboardingGoalPreview(
       return isDispensaryRole(normalizedRole)
         ? 'Configure the live check-in flow first, then print the QR and train the front-door staff.'
         : 'Retail teams usually pair this with a Welcome Playbook once the store-side experience is live.';
+    case 'competitive_intelligence':
+      return 'Activate daily report delivery, review the first market summary, then decide which pricing or assortment move to make next.';
     case 'creative_center':
       return 'Start with Brand Guide, create a first draft, then place one item on the calendar.';
     case 'welcome_playbook':

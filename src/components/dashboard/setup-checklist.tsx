@@ -4,8 +4,8 @@
  * Setup Checklist Component
  *
  * Goal-aware onboarding checklist that prioritizes Brand Guide plus the
- * user's selected first win, then teaches Inbox/Playbooks/Agents and leaves
- * Competitive Intelligence as a follow-on step.
+ * user's selected first win across Check-In, Competitive Intelligence,
+ * and Creative Center before layering in playbooks and Inbox.
  */
 
 import { useEffect, useMemo, useState } from 'react';
@@ -137,7 +137,7 @@ const TASKS: Record<string, ChecklistTemplate> = {
   },
   'competitive-intel': {
     id: 'competitive-intel',
-    title: 'Set up Competitive Intelligence',
+    title: 'Launch Competitive Intelligence Reports',
     description: 'Turn on Ezal’s daily report delivery so market intel lands in email and Slack where available.',
     estimatedTime: '3 min',
     href: '/dashboard/competitive-intel',
@@ -151,24 +151,28 @@ function getPrimaryTaskOrder(
 ): string[] {
   if (roleType === 'dispensary') {
     switch (primaryGoal) {
+      case 'competitive_intelligence':
+        return ['competitive-intel', 'checkin-manager', 'qr-training'];
       case 'creative_center':
-        return ['creative-center', 'content-calendar', 'welcome-playbook'];
+        return ['creative-center', 'content-calendar', 'competitive-intel'];
       case 'welcome_playbook':
-        return ['welcome-playbook', 'checkin-manager', 'qr-training'];
+        return ['checkin-manager', 'qr-training', 'competitive-intel'];
       case 'checkin_tablet':
       default:
-        return ['checkin-manager', 'qr-training', 'welcome-playbook'];
+        return ['checkin-manager', 'qr-training', 'competitive-intel'];
     }
   }
 
   switch (primaryGoal) {
-    case 'welcome_playbook':
-      return ['welcome-playbook', 'creative-center', 'content-calendar'];
+    case 'competitive_intelligence':
+      return ['competitive-intel', 'creative-center', 'content-calendar'];
     case 'checkin_tablet':
-      return ['welcome-playbook', 'creative-center'];
+      return ['creative-center', 'competitive-intel'];
+    case 'welcome_playbook':
+      return ['creative-center', 'content-calendar', 'competitive-intel'];
     case 'creative_center':
     default:
-      return ['creative-center', 'content-calendar', 'welcome-playbook'];
+      return ['creative-center', 'content-calendar', 'competitive-intel'];
   }
 }
 
@@ -187,7 +191,7 @@ export function buildChecklistItems(params: {
     orderedIds.push('link-dispensary', 'connect-pos');
   }
 
-  orderedIds.push(...getPrimaryTaskOrder(roleType, primaryGoal), 'inbox-foundations', 'competitive-intel');
+  orderedIds.push(...getPrimaryTaskOrder(roleType, primaryGoal), 'welcome-playbook', 'inbox-foundations');
 
   const seen = new Set<string>();
   const dedupedIds = orderedIds.filter((id) => {

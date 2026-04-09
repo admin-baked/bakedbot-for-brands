@@ -179,17 +179,29 @@ function OnboardingPanelView({ onHelpClick }: { onHelpClick: () => void }) {
 
       {/* Footer — navigate to Help */}
       <div className="border-t pt-3">
-        <Button
-          variant={allDone ? 'default' : 'outline'}
-          className="w-full justify-between"
-          onClick={onHelpClick}
-        >
-          <span className="flex items-center gap-2">
-            <HelpCircle className="h-4 w-4" />
-            {allDone ? 'Explore Help Center' : 'View Help Docs'}
-          </span>
-          <ArrowRight className="h-4 w-4" />
-        </Button>
+        <div className="space-y-2">
+          <Button
+            variant={allDone ? 'default' : 'outline'}
+            className="w-full justify-between"
+            onClick={onHelpClick}
+          >
+            <span className="flex items-center gap-2">
+              <HelpCircle className="h-4 w-4" />
+              {allDone ? 'Explore Help Center' : 'View Help Docs'}
+            </span>
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+
+          <Button variant="ghost" className="w-full justify-between" asChild>
+            <a href="/martez" target="_blank" rel="noopener noreferrer">
+              <span className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Book onboarding with Martez
+              </span>
+              <ArrowRight className="h-4 w-4" />
+            </a>
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -232,6 +244,16 @@ function HelpPanelView({
             <div className="text-left">
               <div className="font-medium text-sm">Go to community</div>
               <div className="text-xs opacity-75">Browse help center</div>
+            </div>
+          </a>
+        </Button>
+
+        <Button variant="outline" className="justify-start h-auto py-2 px-3" asChild>
+          <a href="/martez" target="_blank" rel="noopener noreferrer">
+            <Users className="h-4 w-4 mr-2 flex-shrink-0" />
+            <div className="text-left">
+              <div className="font-medium text-sm">Book onboarding with Martez</div>
+              <div className="text-xs opacity-75">Get hands-on setup help</div>
             </div>
           </a>
         </Button>
