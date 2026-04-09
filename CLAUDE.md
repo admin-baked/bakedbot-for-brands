@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 orders@bakedbot.ai deprecated → all email from hello@bakedbot.ai; Ecstatic Edibles inline with Mrs. Parker welcome; SES sandbox (verified recipients only) | **Last update:** 2026-04-09 (Ecstatic Edibles welcome + email sender deprecation)
+**Current Status:** 🟢 SES production approved — all email from hello@bakedbot.ai; orders@ deprecated; Ecstatic Edibles + Thrive welcome flows live | **Last update:** 2026-04-09 (SES production + returning email fix)
 
 ---
 
