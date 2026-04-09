@@ -38,6 +38,7 @@ import {
 import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integration-status';
 import { executeWithTools, isClaudeAvailable, type ClaudeResult } from '@/ai/claude';
 import { executeGLMWithTools, GLM_MODELS, isGLMConfigured } from '@/ai/glm';
+import { executeGeminiFlashWithTools, isGeminiFlashConfigured } from '@/ai/gemini-flash-tools';
 
 const GLM_REFUSAL_PATTERNS = [
     'security restrictions',
@@ -660,9 +661,9 @@ User Request: ${request.prompt}`;
         onToolCall,
     };
 
-    // Tier chain: Claude (best) → gemini (GLM budget $0.05) → glm (GLM standard $0.59)
-    type MartyTier = 'claude' | 'gemini' | 'glm';
-    const tierChain: MartyTier[] = ['claude', 'gemini', 'glm'];
+    // Tier chain: Claude → gemini (GLM budget) → glm (GLM standard) → gemini-flash (Google)
+    type MartyTier = 'claude' | 'gemini' | 'glm' | 'gemini-flash';
+    const tierChain: MartyTier[] = ['claude', 'gemini', 'glm', 'gemini-flash'];
     let result: ClaudeResult | null = null;
 
     for (const tier of tierChain) {
@@ -712,9 +713,34 @@ User Request: ${request.prompt}`;
                     }
                     break;
                 }
+                case 'gemini-flash': {
+                    if (!isGeminiFlashConfigured()) continue;
+                    logger.info('[Marty] Trying Gemini Flash (Genkit, with tools)');
+                    result = await executeGeminiFlashWithTools(
+                        fullPrompt, MARTY_SLACK_TOOLS, martyToolExecutor,
+                        sharedContext
+                    );
+                    break;
+                }
             }
         } catch (err) {
-            logger.error(`[Marty] Tier ${tier} failed`, { error: String(err) });
+            const msg = err instanceof Error ? err.message : String(err);
+            const isRateLimit = msg.includes('429') || msg.toLowerCase().includes('rate limit');
+            logger.error(`[Marty] Tier ${tier} failed`, { error: msg, isRateLimit });
+            if (isRateLimit && (tier === 'glm' || tier === 'gemini')) {
+                try {
+                    const { postLinusIncidentSlack } = await import('@/server/services/incident-notifications');
+                    await postLinusIncidentSlack({
+                        source: 'auto-escalator',
+                        channelName: 'linus-cto',
+                        fallbackText: `Groq rate limit hit — Marty falling back from ${tier} to Gemini Flash`,
+                        blocks: [{
+                            type: 'section',
+                            text: { type: 'mrkdwn', text: `*:warning: Groq Rate Limit Exceeded*\n*Agent:* Marty\n*Failed tier:* \`${tier}\`\n*Fallback:* Gemini Flash\n\nAuto-switched. Will retry Groq on next request.` },
+                        }],
+                    });
+                } catch { /* best effort */ }
+            }
         }
     }
 

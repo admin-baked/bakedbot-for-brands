@@ -22,6 +22,7 @@
 
 import { executeWithTools, isClaudeAvailable, ClaudeTool, ClaudeResult, AgentContext } from '@/ai/claude';
 import { executeGLMWithTools, GLM_MODELS, isGLMConfigured } from '@/ai/glm';
+import { executeGeminiFlashWithTools, isGeminiFlashConfigured } from '@/ai/gemini-flash-tools';
 import { getAgentModelConfig, type ModelTier } from '@/server/services/agent-model-config';
 import { logger } from '@/lib/logger';
 import { getAtRiskCustomers, getSegmentSummary, getTodayCheckins } from '@/server/tools/crm-tools';
@@ -749,6 +750,26 @@ function isGLMRefusal(result: ClaudeResult): boolean {
     return GLM_REFUSAL_PATTERNS.some(p => result.content.toLowerCase().includes(p));
 }
 
+async function notifyGroqRateLimitSlack(agent: string, failedTier: string): Promise<void> {
+    try {
+        const { postLinusIncidentSlack } = await import('@/server/services/incident-notifications');
+        await postLinusIncidentSlack({
+            source: 'auto-escalator',
+            channelName: 'linus-cto',
+            fallbackText: `Groq rate limit hit — ${agent} falling back from ${failedTier} to Gemini Flash`,
+            blocks: [{
+                type: 'section',
+                text: {
+                    type: 'mrkdwn',
+                    text: `*:warning: Groq Rate Limit Exceeded*\n*Agent:* ${agent}\n*Failed tier:* \`${failedTier}\`\n*Fallback:* Gemini Flash ($0.10/$0.40 per 1M tokens)\n\nAuto-switched to Gemini Flash. Will retry Groq on next request.`,
+                },
+            }],
+        });
+    } catch (e) {
+        logger.warn(`[${agent}] Failed to send Groq rate limit Slack notification`, { error: String(e) });
+    }
+}
+
 /**
  * Call the opencode Cloud Run service as a last-resort fallback (no tool calling).
  * Returns a text-only response via Gemini Flash.
@@ -834,6 +855,15 @@ export async function runElroy(request: ElroyRequest): Promise<ElroyResponse> {
                     }
                     break;
                 }
+                case 'gemini-flash': {
+                    if (!isGeminiFlashConfigured()) continue;
+                    logger.info('[Elroy] Trying Gemini Flash (Genkit, with tools)');
+                    result = await executeGeminiFlashWithTools(
+                        fullPrompt, ELROY_TOOLS, elroyToolExecutor,
+                        sharedContext
+                    );
+                    break;
+                }
                 case 'haiku': {
                     if (!isClaudeAvailable()) continue;
                     logger.info('[Elroy] Trying Claude Haiku');
@@ -855,7 +885,11 @@ export async function runElroy(request: ElroyRequest): Promise<ElroyResponse> {
             }
         } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
-            logger.error(`[Elroy] Tier ${tier} failed`, { error: msg });
+            const isRateLimit = msg.includes('429') || msg.toLowerCase().includes('rate limit');
+            logger.error(`[Elroy] Tier ${tier} failed`, { error: msg, isRateLimit });
+            if (isRateLimit && (tier === 'glm' || tier === 'gemini')) {
+                notifyGroqRateLimitSlack('Elroy', tier).catch(() => {});
+            }
         }
     }
 

@@ -8,10 +8,11 @@
  * Firestore: system_config/agent_model_config
  *
  * Tiers (cheapest → most capable):
- *   1. glm        — Llama 3.3 70B via Groq ($0.59/$0.79, tool calling)
- *   2. gemini     — Llama 3.1 8B via Groq ($0.05/$0.08, tool calling, budget GLM)
- *   3. haiku      — Claude Haiku ($0.80/$4, tool calling)
- *   4. sonnet     — Claude Sonnet ($3/$15, tool calling)
+ *   1. glm          — Llama 3.3 70B via Groq ($0.59/$0.79, tool calling, free tier)
+ *   2. gemini       — Llama 3.1 8B via Groq ($0.05/$0.08, tool calling, budget GLM)
+ *   3. gemini-flash — Gemini 2.0 Flash via Genkit ($0.10/$0.40, tool calling, Google AI)
+ *   4. haiku        — Claude Haiku ($0.80/$4, tool calling)
+ *   5. sonnet       — Claude Sonnet ($3/$15, tool calling)
  */
 
 import { getAdminFirestore } from '@/firebase/admin';
@@ -19,7 +20,7 @@ import { logger } from '@/lib/logger';
 
 const CONFIG_DOC = 'system_config/agent_model_config';
 
-export type ModelTier = 'glm' | 'gemini' | 'haiku' | 'sonnet';
+export type ModelTier = 'glm' | 'gemini' | 'gemini-flash' | 'haiku' | 'sonnet';
 
 export interface AgentModelConfig {
     /** Primary tier for Slack agent messages */
@@ -34,7 +35,7 @@ export interface AgentModelConfig {
 
 const DEFAULT_CONFIG: AgentModelConfig = {
     slackTier: 'glm',
-    fallbackChain: ['gemini', 'haiku', 'sonnet'],
+    fallbackChain: ['gemini', 'gemini-flash', 'haiku', 'sonnet'],
     updatedBy: 'system',
     updatedAt: Date.now(),
 };
@@ -63,7 +64,7 @@ export async function setAgentModelTier(
     tier: ModelTier,
     updatedBy: string
 ): Promise<AgentModelConfig> {
-    const VALID_TIERS: ModelTier[] = ['glm', 'gemini', 'haiku', 'sonnet'];
+    const VALID_TIERS: ModelTier[] = ['glm', 'gemini', 'gemini-flash', 'haiku', 'sonnet'];
     if (!VALID_TIERS.includes(tier)) {
         throw new Error(`Invalid tier "${tier}". Valid: ${VALID_TIERS.join(', ')}`);
     }

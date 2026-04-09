@@ -14,6 +14,7 @@
 
 import { executeWithTools, isClaudeAvailable, ClaudeTool, ClaudeResult, AgentContext } from '@/ai/claude';
 import { executeGLMWithTools, GLM_MODELS, isGLMConfigured } from '@/ai/glm';
+import { executeGeminiFlashWithTools, isGeminiFlashConfigured } from '@/ai/gemini-flash-tools';
 import { getAgentModelConfig, setAgentModelTier, type ModelTier } from '@/server/services/agent-model-config';
 import { z } from '@/ai/z3';
 import { AgentImplementation } from './harness';
@@ -1655,7 +1656,7 @@ const LINUS_TOOLS: ClaudeTool[] = [
     // ========================================================================
     {
         name: 'set_agent_model_tier',
-        description: 'Change the AI model tier used by Slack agents (Linus, Elroy). Tiers from cheapest to most capable: glm (Llama 3.3 70B via Groq, tool calling, free tier / ~$0.59/M paid), gemini (Gemini Flash via Opencode, no tools, ~$0.10/M), haiku (Claude Haiku, tool calling, ~$0.80/M), sonnet (Claude Sonnet, tool calling, ~$3/M). Default: glm with fallback chain.',
+        description: 'Change the AI model tier used by Slack agents (Linus, Elroy). Tiers from cheapest to most capable: glm (Llama 3.3 70B via Groq, $0.59/M, tools, free tier), gemini (Llama 3.1 8B via Groq, $0.05/M, tools, budget), gemini-flash (Gemini 2.0 Flash via Google, $0.10/M, tools), haiku (Claude Haiku, $0.80/M, tools), sonnet (Claude Sonnet, $3/M, tools). Default: glm. Auto-falls to gemini-flash when Groq rate limited.',
         input_schema: {
             type: 'object' as const,
             properties: {
@@ -4714,6 +4715,27 @@ function isGLMRefusal(result: ClaudeResult): boolean {
     return GLM_REFUSAL_PATTERNS.some(p => result.content.toLowerCase().includes(p));
 }
 
+/** Notify Slack #linus-cto when Groq rate limit triggers fallback to Gemini Flash */
+async function notifyGroqRateLimitSlack(agent: string, failedTier: string): Promise<void> {
+    try {
+        const { postLinusIncidentSlack } = await import('@/server/services/incident-notifications');
+        await postLinusIncidentSlack({
+            source: 'auto-escalator',
+            channelName: 'linus-cto',
+            fallbackText: `Groq rate limit hit — ${agent} falling back from ${failedTier} to Gemini Flash`,
+            blocks: [{
+                type: 'section',
+                text: {
+                    type: 'mrkdwn',
+                    text: `*:warning: Groq Rate Limit Exceeded*\n*Agent:* ${agent}\n*Failed tier:* \`${failedTier}\`\n*Fallback:* Gemini Flash ($0.10/$0.40 per 1M tokens)\n\nGroq free tier (30 req/min) exceeded. Auto-switched to Gemini Flash with full tool calling. Will retry Groq on next request.`,
+                },
+            }],
+        });
+    } catch (e) {
+        logger.warn(`[${agent}] Failed to send Groq rate limit Slack notification`, { error: String(e) });
+    }
+}
+
 /**
  * Last-resort fallback: call opencode/Gemini Flash when both GLM and Claude fail.
  * No tool calling â€” degraded text-only mode.
@@ -5180,6 +5202,15 @@ User Request: ${request.prompt}`;
                     }
                     break;
                 }
+                case 'gemini-flash': {
+                    if (!isGeminiFlashConfigured()) continue;
+                    logger.info('[Linus] Trying Gemini Flash (Genkit, with tools)');
+                    result = await executeGeminiFlashWithTools(
+                        fullPrompt, getLinusTools(toolMode), linusToolExecutor,
+                        sharedContext
+                    );
+                    break;
+                }
                 case 'haiku': {
                     if (!isClaudeAvailable()) continue;
                     logger.info('[Linus] Trying Claude Haiku');
@@ -5201,7 +5232,12 @@ User Request: ${request.prompt}`;
             }
         } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
-            logger.error(`[Linus] Tier ${tier} failed`, { error: msg });
+            const isRateLimit = msg.includes('429') || msg.toLowerCase().includes('rate limit');
+            logger.error(`[Linus] Tier ${tier} failed`, { error: msg, isRateLimit });
+            // Notify Slack when Groq rate limit triggers fallback
+            if (isRateLimit && (tier === 'glm' || tier === 'gemini')) {
+                notifyGroqRateLimitSlack('Linus', tier).catch(() => {});
+            }
         }
     }
 
