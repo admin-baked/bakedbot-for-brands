@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Production live; Marty/Elroy greeting fast paths + Products briefing cards + Menu Pages Hub + SEO page audit + Creative Center.
-**Recent work (2026-04-10):** `70f20dcfe` Marty+Elroy greeting fast paths in Slack (lightweight GLM, no tools); `cff6d3dbf` Super User mobile UX simplification; `537e0022d` Products briefing cards
+**Current Status:** 🟢 Production live; Tablet PWA fullscreen + Rewards rebrand + v4.10.1 + Greeting fast paths + Products briefing cards.
+**Recent work (2026-04-10):** `4e1fc43ef` Tablet PWA fullscreen, flow audit, Rewards rebrand v4.10.1; `70f20dcfe` Marty+Elroy greeting fast paths; `537e0022d` Products briefing cards
 **Prior (2026-04-09):** `7ba8f8257` creative approvals; `efb64bb0c` agent resilience; `230fcd369` proxy hardening
 - Marty CEO agent: full super powers, Slack DM routing, manages all executives toward $1M ARR
 - Club MVP shipped (`9eb4a6d36`): Customer PWA /club, mood video cache, event pipeline + 5 triggers, tablet PWA

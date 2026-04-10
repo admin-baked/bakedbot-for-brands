@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Production live; Marty/Elroy greeting fast paths + Products briefing cards + Menu Pages Hub + SEO page audit + Creative Center | **Last update:** 2026-04-10 (Marty/Elroy greeting fast paths in Slack)
+**Current Status:** 🟢 Production live; Weekly card discovery system + autonomy escalation + briefing enhancements + Tablet PWA v4.10.1 | **Last update:** 2026-04-10 (Weekly card discovery, dynamic generator, approval patterns, autonomy state machine)
 
 ---
 
