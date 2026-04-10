@@ -9,9 +9,6 @@ export const metadata: Metadata = {
         statusBarStyle: 'black-translucent',
         title: 'Check-In',
     },
-    other: {
-        'permissions-policy': 'microphone=(self)',
-    },
 };
 
 export const viewport: Viewport = {

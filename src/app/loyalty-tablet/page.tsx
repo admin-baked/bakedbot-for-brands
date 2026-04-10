@@ -13,7 +13,7 @@
  * Usage: Navigate to /loyalty-tablet?orgId=org_thrive_syracuse
  */
 
-import { useState, useMemo, type SyntheticEvent } from 'react';
+import { useState, useMemo, useEffect, useCallback, type SyntheticEvent } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { getTabletMoodById, SMOKEY_FALLBACK_IMAGE } from '@/lib/checkin/loyalty-tablet-shared';
 
@@ -68,6 +68,50 @@ export default function LoyaltyTabletPage() {
         image.dataset.fallbackApplied = 'true';
         image.src = SMOKEY_FALLBACK_IMAGE;
     };
+
+    // ── Fullscreen API ──
+    // Android "Add to Home Screen" PWAs ignore manifest display:fullscreen.
+    // We request true fullscreen on the first user tap when running standalone.
+    const [isFullscreen, setIsFullscreen] = useState(false);
+
+    const requestFullscreen = useCallback(() => {
+        if (isFullscreen) return;
+        if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen().then(() => {
+                setIsFullscreen(true);
+            }).catch(() => { /* permission denied or not supported — ignore */ });
+        }
+    }, [isFullscreen]);
+
+    useEffect(() => {
+        // Only auto-request fullscreen when running as installed PWA
+        const isPWA =
+            window.matchMedia('(display-mode: standalone)').matches ||
+            window.matchMedia('(display-mode: fullscreen)').matches ||
+            ('standalone' in window.navigator && (window.navigator as unknown as { standalone: boolean }).standalone);
+
+        if (!isPWA) return;
+
+        // Already fullscreen
+        if (document.fullscreenElement) {
+            setIsFullscreen(true);
+            return;
+        }
+
+        // Request on first user interaction (Fullscreen API requires gesture)
+        const handler = () => {
+            requestFullscreen();
+            document.removeEventListener('pointerdown', handler);
+        };
+        document.addEventListener('pointerdown', handler, { once: true });
+
+        const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+        document.addEventListener('fullscreenchange', onFsChange);
+        return () => {
+            document.removeEventListener('pointerdown', handler);
+            document.removeEventListener('fullscreenchange', onFsChange);
+        };
+    }, [requestFullscreen]);
 
     function formatPhone(value: string) {
         const d = value.replace(/\D/g, '');

@@ -4,16 +4,13 @@
     "short_name": "Check-In",
     "description": "In-store loyalty check-in powered by BakedBot",
     "start_url": "/loyalty-tablet?orgId=org_thrive_syracuse",
-    "scope": "/loyalty-tablet",
+    "scope": "/",
     "display": "fullscreen",
     "orientation": "portrait",
     "background_color": "#0f0f1a",
     "theme_color": "#0f0f1a",
     "prefer_related_applications": false,
     "categories": ["business"],
-    "permissions_policy": {
-        "microphone": ["self"]
-    },
     "icons": [
         {
             "src": "/icon-192.png",
