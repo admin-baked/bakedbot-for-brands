@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Production live; Weekly card discovery system + autonomy escalation + briefing enhancements + Tablet PWA v4.10.1 | **Last update:** 2026-04-10 (Weekly card discovery, dynamic generator, approval patterns, autonomy state machine)
+**Current Status:** 🟢 Production live; HeyGen video pipeline + 5 TS fixes + autonomy escalation + Tablet PWA v4.10.1 | **Last update:** 2026-04-10 (HeyGen onboarding video generation, TypeScript error fixes, agent progress messages)
 
 ---
 
