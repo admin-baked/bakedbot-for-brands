@@ -86,19 +86,22 @@ function buildMartyOperatingPrompt(input: {
         input.ny10Context ? `=== PILOT CUSTOMERS ===\n${input.ny10Context}` : '',
         buildContextDisciplineSection([
             'Keep always-on context strategic and lean. Use tools, retrieved memory, and live context for detailed workflow steps.',
-            'Treat tool descriptions as the operating manual for Gmail, Calendar, outreach, CRM, browser automation, and LinkedIn.',
+            'Treat tool descriptions as the operating manual for Gmail, Calendar, outreach, CRM, browser automation, LinkedIn, and market research.',
         ]),
         buildBulletSection('GROUNDING RULES (CRITICAL)', [
             'Never fabricate revenue, outreach, meetings, deals, partnerships, or system status.',
             'Only report outcomes confirmed by tools in this run or retrieved from memory.',
-            'Delegate to the named executive team first, and be explicit when integrations are unavailable.',
+            'Own pipeline, inbox, outreach, LinkedIn, calendar, and market-research work directly. Delegate specialist execution to the named executive team.',
             'Use real timestamps, real owners, and a clear next step.',
+            'Before giving market or growth advice, prefer search, CRM, inbox, outreach, or LinkedIn tools over intuition.',
         ]),
         buildLearningLoopSection('Marty', ['strategy', 'outreach', 'calendar', 'linkedin', 'problem']),
         buildBulletSection('OPERATING FOCUS', [
             'Tie every recommendation to ARR, customer growth, execution velocity, or risk reduction.',
-            'Use Gmail, Calendar, outreach, LinkedIn, and CRM tools proactively, but keep output concise and executive-level.',
-            'When progress is blocked, escalate quickly, capture the lesson, and propose the next move.',
+            'Operate like a proactive CEO, not a passive helpdesk: surface the next move, owner, and leverage point.',
+            'Own the frontline growth motions yourself: pipeline pressure, outbound, partnerships, inbox follow-up, and thought leadership.',
+            'Use Gmail, Calendar, outreach, LinkedIn, CRM, and market-search tools proactively, but keep output concise and executive-level.',
+            'When progress is blocked, retry or pivot first, then delegate, and only escalate when the block is material.',
         ]),
         buildBulletSection('OUTPUT RULES', [
             'Lead with status: On Track, Needs Attention, or Blocked.',
@@ -110,6 +113,7 @@ function buildMartyOperatingPrompt(input: {
                 'Never end with a dead end. Finish with a next step, question, or offer.',
                 'Acknowledge the current context before doing work.',
                 'Say what you are about to check before calling tools.',
+                'For bare greetings or short acknowledgments, stay warm and forward-moving. Do not volunteer metrics unless asked.',
             ])
             : '',
     );
@@ -599,7 +603,7 @@ async function getCeoCalendarTokens(): Promise<GoogleCalendarTokens | null> {
 
 /** CEO tools exposed in Slack — streamlined subset, no browser/shell. */
 const MARTY_SLACK_TOOLS = [
-    { name: 'delegateTask', description: 'Assign a task to any agent in the squad.', input_schema: { type: 'object' as const, properties: { personaId: { type: 'string', description: 'Agent ID to delegate to' }, task: { type: 'string', description: 'Task description' } }, required: ['personaId', 'task'] } },
+    { name: 'delegateTask', description: 'Assign specialist work to the right executive or operator in the squad. Use for engineering, compliance, finance, deep marketing production, analytics, or operations tasks Marty should not do directly.', input_schema: { type: 'object' as const, properties: { personaId: { type: 'string', description: 'Agent ID to delegate to' }, task: { type: 'string', description: 'Task description' } }, required: ['personaId', 'task'] } },
     { name: 'getSystemHealth', description: 'Get full system health status — deploys, crons, integrations, errors.', input_schema: { type: 'object' as const, properties: {} } },
     { name: 'crmGetStats', description: 'Get high-level CRM stats (MRR, Total Users, Pipeline).', input_schema: { type: 'object' as const, properties: {} } },
     { name: 'crmListUsers', description: 'List platform users.', input_schema: { type: 'object' as const, properties: { search: { type: 'string' }, lifecycleStage: { type: 'string' }, limit: { type: 'number' } } } },
@@ -622,6 +626,9 @@ const MARTY_SLACK_TOOLS = [
     { name: 'calendar_create_event', description: 'Create an event on the CEO Google Calendar. Use for scheduling meetings, blocks, reminders.', input_schema: { type: 'object' as const, properties: { summary: { type: 'string', description: 'Event title' }, description: { type: 'string', description: 'Event description' }, startAt: { type: 'string', description: 'ISO datetime for event start' }, endAt: { type: 'string', description: 'ISO datetime for event end' }, attendeeEmails: { type: 'array', items: { type: 'string' }, description: 'Optional attendee emails' } }, required: ['summary', 'startAt', 'endAt'] } },
     { name: 'calendar_get_upcoming_meetings', description: 'Get upcoming BakedBot bookings (from bakedbot.ai/martez). Includes Google Calendar synced events.', input_schema: { type: 'object' as const, properties: { limit: { type: 'number', description: 'Max meetings to return (default 10)' } } } },
 
+    // Market research — proactive opportunity scanning
+    { name: 'searchOpportunities', description: 'Search the web for cannabis market moves, partner opportunities, competitor activity, and revenue ideas. Use before making strategic recommendations when fresh market context would help.', input_schema: { type: 'object' as const, properties: { query: { type: 'string', description: 'Search query (e.g., "NY cannabis dispensary partnerships 2026", "cannabis retail AI trends 2026")' } }, required: ['query'] } },
+
     // Outreach — Lead generation & follow-up
     { name: 'outreach_search_leads', description: 'Search NY dispensary leads available for outreach. Returns leads with emails and contact form URLs.', input_schema: { type: 'object' as const, properties: { city: { type: 'string', description: 'Filter by city' }, limit: { type: 'number', description: 'Max results (default 10)' }, hasEmail: { type: 'boolean', description: 'Only leads with verified emails' }, hasContactForm: { type: 'boolean', description: 'Only leads with contact form URLs' } } } },
     { name: 'outreach_send_email', description: 'Send a personalized outreach email to a dispensary lead. Verifies email first, then sends via SES.', input_schema: { type: 'object' as const, properties: { dispensaryName: { type: 'string' }, email: { type: 'string' }, contactName: { type: 'string' }, city: { type: 'string' }, state: { type: 'string' }, templateId: { type: 'string', description: 'Template: competitive-report, founding-partner, caurd-grant, roi-calculator, price-war, pos-integration, loyalty-program, behind-glass-demo, social-proof, direct-personal' }, posSystem: { type: 'string' } }, required: ['dispensaryName', 'email', 'city', 'state', 'templateId'] } },
@@ -640,8 +647,8 @@ const MARTY_SLACK_TOOLS = [
     { name: 'learning_search', description: 'Search past learning logs to find what worked and what didn\'t for a specific strategy or target.', input_schema: { type: 'object' as const, properties: { query: { type: 'string', description: 'What to search for (e.g., "email template competitive-report", "Syracuse dispensaries")' }, category: { type: 'string', description: 'Filter by category' } }, required: ['query'] } },
 
     // Failure reporting
-    { name: 'notify_ceo_problem', description: 'Immediately notify the CEO on Slack about a problem Marty encountered. Every problem is a learning opportunity.', input_schema: { type: 'object' as const, properties: { problem: { type: 'string', description: 'What went wrong' }, context: { type: 'string', description: 'What you were trying to do' }, proposed_fix: { type: 'string', description: 'What you think should be tried next' } }, required: ['problem', 'context'] } },
-    { name: 'notify_agent_problem', description: 'Escalate a blocked failure to Uncle Elroy in Slack, invite a human to help, and record the failure in the learning loop.', input_schema: { type: 'object' as const, properties: { problem: { type: 'string', description: 'What failed' }, context: { type: 'string', description: 'What you were trying to do' }, proposedFix: { type: 'string', description: 'What to try next' }, severity: { type: 'string', enum: ['low', 'medium', 'high'], description: 'Failure severity' }, category: { type: 'string', description: 'Retrieval category' } }, required: ['problem', 'context'] } },
+    { name: 'notify_ceo_problem', description: 'Escalate to the CEO on Slack only when Marty is materially blocked after retrying, pivoting, or delegating. Include the impact and the proposed next move.', input_schema: { type: 'object' as const, properties: { problem: { type: 'string', description: 'What went wrong' }, context: { type: 'string', description: 'What you were trying to do' }, proposed_fix: { type: 'string', description: 'What you think should be tried next' } }, required: ['problem', 'context'] } },
+    { name: 'notify_agent_problem', description: 'Escalate a materially blocked failure to a human help channel and record the failure in the learning loop. Use only after a retry, pivot, or delegation attempt.', input_schema: { type: 'object' as const, properties: { problem: { type: 'string', description: 'What failed' }, context: { type: 'string', description: 'What you were trying to do' }, proposedFix: { type: 'string', description: 'What to try next' }, severity: { type: 'string', enum: ['low', 'medium', 'high'], description: 'Failure severity' }, category: { type: 'string', description: 'Retrieval category' } }, required: ['problem', 'context'] } },
 ];
 
 function extractMartyToolFailure(result: unknown): { problem: string; proposedFix?: string; severity: 'low' | 'medium' | 'high'; category: string } | null {
@@ -697,7 +704,7 @@ function createMartyToolExecutor(context?: { orgId?: string; brandId?: string })
             );
         }
 
-        if (toolName === 'notify_agent_problem' || toolName === 'notify_ceo_problem') {
+        if (toolName === 'notify_agent_problem') {
             return learningTools.notify_agent_problem(
                 String(args.problem ?? ''),
                 String(args.context ?? ''),
@@ -711,7 +718,7 @@ function createMartyToolExecutor(context?: { orgId?: string; brandId?: string })
             );
         }
 
-        const result = await martyToolExecutor(toolName, args);
+        const result = await martyToolExecutor(toolName, args, context);
         const failure = extractMartyToolFailure(result);
 
         if (failure) {
@@ -735,7 +742,11 @@ function createMartyToolExecutor(context?: { orgId?: string; brandId?: string })
     };
 }
 
-async function martyToolExecutor(toolName: string, args: Record<string, unknown>): Promise<unknown> {
+async function martyToolExecutor(
+    toolName: string,
+    args: Record<string, unknown>,
+    context?: { orgId?: string; brandId?: string }
+): Promise<unknown> {
     switch (toolName) {
         case 'delegateTask': {
             try {
@@ -746,20 +757,37 @@ async function martyToolExecutor(toolName: string, args: Record<string, unknown>
                 const msg = authErr instanceof Error ? authErr.message : String(authErr);
                 if (msg.includes('auth') || msg.includes('session') || msg.includes('user') || msg.includes('Unauthorized')) {
                     logger.info('[Marty] delegateTask auth fallback — calling agent directly', { personaId: args.personaId });
+                    const { runAgentCore } = await import('@/server/agents/agent-runner');
+                    const { buildSyntheticDecodedIdToken } = await import('@/server/auth/mock-token');
                     const personaId = args.personaId as string;
                     const task = `DELEGATED TASK: ${args.task}`;
-                    if (personaId === 'linus') {
-                        const { runLinus } = await import('@/server/agents/linus');
-                        const res = await runLinus({ prompt: task, maxIterations: 3, toolMode: 'slack' });
-                        return { content: res.content, delegatedTo: personaId };
-                    }
-                    if (personaId === 'elroy') {
-                        const { runElroy } = await import('@/server/agents/elroy');
-                        const res = await runElroy({ prompt: task, maxIterations: 3 });
-                        return { content: res.content, delegatedTo: personaId };
-                    }
-                    // For other agents, return a helpful message
-                    return { content: `I attempted to delegate to ${personaId}, but the agent is not available in this context. I'll handle this directly.`, delegatedTo: null };
+                    const syntheticUser = buildSyntheticDecodedIdToken({
+                        uid: 'slack-system',
+                        email: 'slack-system@bakedbot.ai',
+                        role: 'super_user',
+                        orgId: context?.orgId || 'org_bakedbot_internal',
+                        brandId: context?.brandId || context?.orgId || 'org_bakedbot_internal',
+                    } as any, context?.brandId || context?.orgId || 'org_bakedbot_internal');
+                    const res = await runAgentCore(
+                        task,
+                        personaId,
+                        {
+                            modelLevel: 'advanced',
+                            source: 'marty-delegation-fallback',
+                            context: {
+                                delegatedBy: 'marty',
+                                delegatedVia: 'slack',
+                                orgId: context?.orgId,
+                                brandId: context?.brandId,
+                            },
+                        },
+                        syntheticUser
+                    );
+                    return {
+                        content: res.content,
+                        delegatedTo: personaId,
+                        toolCalls: res.toolCalls || [],
+                    };
                 }
                 throw authErr;
             }
@@ -1103,6 +1131,18 @@ async function martyToolExecutor(toolName: string, args: Record<string, unknown>
             }
         }
 
+        case 'searchOpportunities': {
+            try {
+                const { searchWeb, formatSearchResults } = await import('@/server/tools/web-search');
+                const query = String(args.query ?? '').trim();
+                if (!query) return { error: 'query is required' };
+                const results = await searchWeb(`cannabis ${query}`);
+                return await formatSearchResults(results);
+            } catch (e: unknown) {
+                return { error: `Opportunity search failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+
         // Outreach tools
         case 'outreach_search_leads': {
             try {
@@ -1442,6 +1482,8 @@ function buildMartyProgressMessage(toolName: string, input: Record<string, unkno
             return '_Marty Benjamins is scheduling a calendar event..._';
         case 'calendar_get_upcoming_meetings':
             return '_Marty Benjamins is pulling upcoming meetings..._';
+        case 'searchOpportunities':
+            return '_Marty Benjamins is scanning the market for fresh opportunities..._';
         case 'outreach_search_leads':
             return '_Marty Benjamins is searching for leads..._';
         case 'outreach_send_email':
@@ -1487,7 +1529,7 @@ You must NEVER invent, fabricate, or claim deals, revenue, meetings, partnership
 PERSONA:
 - Strategic, decisive, results-driven
 - Think in terms of revenue, customers, and market position
-- Delegate to your executive team — you don't code
+- Own pipeline, outreach, market research, and executive follow-through; delegate specialist work to your executive team — you don't code
 - Concise, outcome-focused, always with next steps
 - HONEST — never overstate progress or fabricate wins
 
@@ -1545,6 +1587,9 @@ LinkedIn rules:
 3. *No spam.* Never mass-message. Each interaction should be tailored.
 4. *Track everything.* Log every LinkedIn action in the learning loop.
 
+MARKET RESEARCH — OPPORTUNITY SCANNING:
+Use searchOpportunities before making competitor, partnership, or market-move claims. Bring back concrete opportunities, why they matter now, and who should own the next move.
+
 LEARNING LOOP — ADAPT & IMPROVE:
 You have a learning memory system. After EVERY outreach action (email, contact form, LinkedIn, meeting):
 1. *Log the attempt* (learning_log) — what you did, the result, why it worked or didn't
@@ -1554,19 +1599,21 @@ You have a learning memory system. After EVERY outreach action (email, contact f
 5. *Celebrate wins* — log successes so you can repeat them
 
 PERSISTENCE & ACCOUNTABILITY:
-You are the CEO's chief of staff. Be persistent and proactive:
+You are the operating CEO for growth. Be persistent and proactive:
 - *Never let tasks drop.* If you started outreach, follow up until you get responses.
 - *Track everything in CRM.* Every contact, every email, every form submission.
 - *Remind the CEO.* About meetings, follow-ups, and commitments. Don't assume he remembers.
-- *Push forward daily.* Your goal is to grow verified emails sent and contact form submissions every day.
-- *Start small, build trust.* Begin with verifiable tasks the CEO can check, then escalate autonomy.
+- *Push forward daily.* Your goal is to increase qualified pipeline, meetings booked, partnerships opened, and outbound volume every day.
+- *Own the next move.* Use your own tools first for research, inbox, outreach, LinkedIn, and follow-up before handing work off.
 - *Follow-up cadence.* Day 1: initial email. Day 3: follow-up email. Day 7: contact form. Day 14: LinkedIn connect. Day 21: final push.
 
 FAILURE HANDLING — EVERY PROBLEM IS A WELCOME OPPORTUNITY:
-- *Never hide problems.* If something fails, immediately notify the CEO via notify_ceo_problem.
+- *Never hide problems.* If something fails, say what happened and what you're trying next.
+- *Retry or pivot first.* Use another tool, a narrower ask, or delegate to the right executive before escalating.
 - *Don't be afraid to try.* Failure is expected — the important thing is learning from it.
 - *Log every failure.* Use learning_log with result='failure' and include your analysis.
 - *Propose a fix.* Always include what you think should be tried next.
+- *Escalate only when materially blocked.* Use notify_ceo_problem only if retries/delegation are exhausted or the issue risks revenue, customer trust, or a live commitment.
 - *Retry with a different approach.* If Plan A fails, try Plan B. Search learning logs for alternatives.
 
 SECURITY — ABSOLUTE RULES:
@@ -1581,8 +1628,8 @@ GROUNDING RULES (VIOLATION = TRUST DESTROYED):
 2. If you haven't used a tool to verify something, DO NOT claim it happened. Say "let me check" and use the tool.
 3. NEVER claim you closed a deal, sent an email, or made a connection unless a tool confirmed it in this session.
 4. ONLY delegate to agents in the squad list above.
-5. Be honest about integration limitations.
-6. Use delegation as your primary lever.
+5. Be honest about integration limitations, but do not make them the headline unless they block the work.
+6. Use your own revenue tools first for inbox, outreach, LinkedIn, calendar, and market research; use delegation for specialist execution.
 7. When asked "what have you done?" — query outreach_get_stats, learning_search, or calendar tools FIRST, then report only what the data shows.
 
 FORMAT FOR SLACK:
@@ -1623,7 +1670,7 @@ User Request: ${request.prompt}`;
         agentContext: {
             name: 'Marty Benjamins',
             role: 'CEO',
-            capabilities: ['delegation', 'crm', 'system-health', 'super-powers'],
+            capabilities: ['delegation', 'gmail', 'calendar', 'crm', 'outreach', 'linkedin', 'market-research', 'system-health', 'super-powers'],
             groundingRules: ['Only report real data', 'Delegate to named agents'],
         },
         onToolCall,

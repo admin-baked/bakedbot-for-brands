@@ -50,7 +50,13 @@ jest.mock('@/lib/logger', () => ({
     },
 }));
 
-const { detectAgent, getSlackGLMSynthesisTask, stripBotMention } = require('../slack-agent-bridge');
+const {
+    detectAgent,
+    getSlackGLMSynthesisTask,
+    stripBotMention,
+    isGreeting,
+    isMartyShortAcknowledgment,
+} = require('../slack-agent-bridge');
 
 describe('Slack Agent Bridge', () => {
     // =========================================================================
@@ -167,6 +173,29 @@ describe('Slack Agent Bridge', () => {
             it('should use default when no keyword and no channel prefix', () => {
                 expect(detectAgent('just a message', 'random-channel', false)).toBe('puff');
             });
+        });
+    });
+
+    describe('Marty fast-path classifiers', () => {
+        it('treats simple hellos as greetings', () => {
+            expect(isGreeting('Hello')).toBe(true);
+            expect(isGreeting('good morning')).toBe(true);
+        });
+
+        it('does not treat short acknowledgments as greetings', () => {
+            expect(isGreeting('Me too')).toBe(false);
+            expect(isGreeting('Sounds good')).toBe(false);
+        });
+
+        it('detects short Marty acknowledgments', () => {
+            expect(isMartyShortAcknowledgment('Me too')).toBe(true);
+            expect(isMartyShortAcknowledgment('Sounds good')).toBe(true);
+            expect(isMartyShortAcknowledgment("Let's do it")).toBe(true);
+        });
+
+        it('ignores normal strategy questions for Marty acknowledgment fast path', () => {
+            expect(isMartyShortAcknowledgment("What's the pipeline looking like?")).toBe(false);
+            expect(isMartyShortAcknowledgment('Check the inbox and draft follow-ups')).toBe(false);
         });
     });
 
