@@ -313,6 +313,12 @@ export interface ApprovalLevel {
     /** Display name for this level */
     name: string;
 
+    /** Agent or reviewer lane responsible for this level */
+    reviewAgentId?: 'deebo' | 'marty' | 'linus';
+
+    /** Short guidance for what this review stage is checking */
+    description?: string;
+
     /** Required roles for this level */
     requiredRoles: string[];
 
@@ -355,6 +361,12 @@ export interface ApprovalChain {
 export interface ApprovalState {
     /** Which approval chain is being used */
     chainId?: string;
+
+    /** Workflow family backing the approval lane */
+    workflowType?: 'super_user_boardroom' | 'operational_deebo';
+
+    /** Level metadata for the active workflow */
+    levels?: ApprovalLevel[];
 
     /** Current level being reviewed */
     currentLevel: number;

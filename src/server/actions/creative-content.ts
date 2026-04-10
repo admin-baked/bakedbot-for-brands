@@ -14,8 +14,15 @@ import { v4 as uuidv4 } from 'uuid';
 import { generateImageFromPrompt } from '@/ai/flows/generate-social-image';
 import { buildOgImageUrl, deriveOgTemplate } from '@/ai/generators/og';
 import { generateCreativeQR } from '@/lib/qr/creative-qr';
+import {
+    createInitialCreativeApprovalState,
+    getApprovalLevelConfig,
+    isApprovalWorkflowSatisfied,
+    resetCreativeApprovalState,
+} from '@/lib/creative-approval-workflow';
 import { withImageTracking } from '@/server/services/media-tracking';
 import { isRenderableProductImage } from '@/lib/utils/product-image';
+import { normalizeRole } from '@/types/roles';
 import type {
     CreativeContent,
     CreativeBusinessContext,
@@ -30,7 +37,6 @@ import type {
     SocialSafetyMode,
     ApprovalRecord,
     ApprovalState,
-    ApprovalChain,
 } from '@/types/creative-content';
 
 const COLLECTION = 'creative_content';
@@ -347,6 +353,7 @@ export async function generateContent(
         // Create content record
         const contentId = uuidv4();
         const now = Date.now();
+        const approvalState = createInitialCreativeApprovalState((user as { role?: string } | null)?.role);
 
         const content: CreativeContent = {
             id: contentId,
@@ -367,7 +374,8 @@ export async function generateContent(
             createdBy: userId,
             createdAt: now,
             updatedAt: now,
-            complianceChecks
+            complianceChecks,
+            approvalState,
         };
 
         // Save to Firestore
@@ -378,7 +386,8 @@ export async function generateContent(
         logger.info('[creative-content] Content generated successfully', {
             contentId,
             platform: request.platform,
-            complianceStatus
+            complianceStatus,
+            approvalWorkflow: approvalState.workflowType,
         });
 
         return {
@@ -413,6 +422,15 @@ export async function approveContent(request: ApproveContentRequest): Promise<vo
         }
 
         const content = doc.data() as CreativeContent;
+        if (!isApprovalWorkflowSatisfied(content.approvalState)) {
+            const currentLevel = getApprovalLevelConfig(
+                content.approvalState,
+                content.approvalState?.currentLevel ?? 0
+            );
+
+            const pendingLabel = currentLevel?.name ?? 'the required approval workflow';
+            throw new Error(`Complete ${pendingLabel} before publishing or scheduling this content.`);
+        }
 
         // ========== COMPLIANCE GATE (SERVER-SIDE ENFORCEMENT) ==========
         // Re-run Deebo compliance check at approval time (can't trust client-side badge)
@@ -538,11 +556,16 @@ export async function requestRevision(request: ReviseContentRequest): Promise<vo
         // Trigger Craig to regenerate the caption with revision context
         try {
             const newCaption = await regenerateCaptionWithRevision(existing, request.note);
+            const resetApprovalState = resetCreativeApprovalState(
+                existing.approvalState,
+                (user as { role?: string } | null)?.role
+            );
 
             // Update with new caption and move back to pending
             await ref.update({
                 caption: newCaption,
                 status: 'pending',
+                approvalState: resetApprovalState,
                 updatedAt: Date.now()
             });
 
@@ -1295,6 +1318,7 @@ export async function approveAtLevel(
 
         const content = contentDoc.data() as CreativeContent;
         const approvalState = content.approvalState;
+        const normalizedApproverRole = normalizeRole(approverRole);
 
         if (!approvalState) {
             return { success: false, error: 'No approval chain configured for this content' };
@@ -1310,9 +1334,12 @@ export async function approveAtLevel(
         }
 
         // Check if user has required role
-        if (!approvalState.nextRequiredRoles.includes(approverRole)) {
+        if (!approvalState.nextRequiredRoles.includes(normalizedApproverRole)) {
             return { success: false, error: 'You do not have permission to approve at this level' };
         }
+
+        const currentLevelConfig = getApprovalLevelConfig(approvalState, approvalState.currentLevel);
+        const minimumApprovals = currentLevelConfig?.minimumApprovals ?? 1;
 
         // Create approval record
         const approvalRecord: ApprovalRecord = {
@@ -1320,7 +1347,7 @@ export async function approveAtLevel(
             level: approvalState.currentLevel,
             approverId,
             approverName,
-            approverRole,
+            approverRole: normalizedApproverRole,
             action: 'approved',
             notes,
             timestamp: Date.now(),
@@ -1337,9 +1364,11 @@ export async function approveAtLevel(
         );
 
         let updatedState: ApprovalState;
-        const maxLevel = 3; // Default max levels (can be from chain config)
+        const maxLevel = approvalState.levels?.length
+            ? Math.max(...approvalState.levels.map((level) => level.level))
+            : 3;
 
-        if (approvalsAtCurrentLevel.length >= 1) {
+        if (approvalsAtCurrentLevel.length >= minimumApprovals) {
             // Advance to next level or mark as approved
             if (approvalState.currentLevel >= maxLevel) {
                 // All levels complete - mark as approved
@@ -1350,16 +1379,15 @@ export async function approveAtLevel(
                     nextRequiredRoles: [],
                 };
 
-                // Update content status to approved
                 await contentRef.update({
                     approvalState: updatedState,
-                    status: 'approved',
                     updatedAt: Date.now(),
                 });
             } else {
                 // Advance to next level
                 const nextLevel = approvalState.currentLevel + 1;
-                const nextRoles = getRequiredRolesForLevel(nextLevel);
+                const nextRoles = getApprovalLevelConfig(approvalState, nextLevel)?.requiredRoles
+                    ?? getRequiredRolesForLevel(nextLevel);
 
                 updatedState = {
                     ...approvalState,
@@ -1391,6 +1419,8 @@ export async function approveAtLevel(
             contentId,
             level: approvalState.currentLevel,
             approverId,
+            approverRole: normalizedApproverRole,
+            workflowType: approvalState.workflowType,
         });
 
         return { success: true };
@@ -1425,13 +1455,14 @@ export async function rejectAtLevel(
 
         const content = contentDoc.data() as CreativeContent;
         const approvalState = content.approvalState;
+        const normalizedApproverRole = normalizeRole(approverRole);
 
         if (!approvalState) {
             return { success: false, error: 'No approval chain configured for this content' };
         }
 
         // Check if user has required role
-        if (!approvalState.nextRequiredRoles.includes(approverRole)) {
+        if (!approvalState.nextRequiredRoles.includes(normalizedApproverRole)) {
             return { success: false, error: 'You do not have permission to reject at this level' };
         }
 
@@ -1441,7 +1472,7 @@ export async function rejectAtLevel(
             level: approvalState.currentLevel,
             approverId,
             approverName,
-            approverRole,
+            approverRole: normalizedApproverRole,
             action: 'rejected',
             notes,
             timestamp: Date.now(),
@@ -1467,6 +1498,8 @@ export async function rejectAtLevel(
             contentId,
             level: approvalState.currentLevel,
             approverId,
+            approverRole: normalizedApproverRole,
+            workflowType: approvalState.workflowType,
         });
 
         return { success: true };
@@ -1485,20 +1518,14 @@ export async function rejectAtLevel(
 export async function initializeApprovalChain(
     contentId: string,
     tenantId: string,
-    chainId?: string
+    chainId?: string,
+    creatorRole?: string
 ): Promise<{ success: boolean; error?: string }> {
     try {
         const { firestore } = await createServerClient();
         const contentRef = firestore.collection(`tenants/${tenantId}/${COLLECTION}`).doc(contentId);
 
-        // Initialize with default 3-level approval
-        const initialState: ApprovalState = {
-            chainId,
-            currentLevel: 1,
-            approvals: [],
-            status: 'pending_approval',
-            nextRequiredRoles: getRequiredRolesForLevel(1),
-        };
+        const initialState: ApprovalState = createInitialCreativeApprovalState(creatorRole, chainId);
 
         await contentRef.update({
             approvalState: initialState,

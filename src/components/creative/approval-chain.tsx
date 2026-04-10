@@ -24,6 +24,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { getApprovalLevelConfig } from '@/lib/creative-approval-workflow';
+import { normalizeRole } from '@/types/roles';
 import type { ApprovalState, ApprovalRecord, ApprovalAction } from '@/types/creative-content';
 import { cn } from '@/lib/utils';
 
@@ -46,6 +48,7 @@ export function ApprovalChain({
 }: ApprovalChainProps) {
     const [actionNotes, setActionNotes] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const normalizedCurrentUserRole = currentUserRole ? normalizeRole(currentUserRole) : undefined;
 
     // Group approvals by level
     const approvalsByLevel = approvalState.approvals.reduce((acc, approval) => {
@@ -60,14 +63,38 @@ export function ApprovalChain({
 
     // Check if current user can approve
     const canCurrentUserApprove =
-        currentUserRole &&
-        approvalState.nextRequiredRoles.includes(currentUserRole) &&
+        normalizedCurrentUserRole &&
+        approvalState.nextRequiredRoles.includes(normalizedCurrentUserRole) &&
         approvalState.status === 'pending_approval';
 
     // Check if user already approved at current level
     const userAlreadyApproved = approvalState.approvals.some(
         (a) => a.approverId === currentUserId && a.level === approvalState.currentLevel
     );
+
+    const formatRoleLabel = (role: string): string =>
+        role
+            .replace(/_/g, ' ')
+            .split(' ')
+            .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+            .join(' ');
+
+    const getAgentLabel = (agentId?: 'deebo' | 'marty' | 'linus'): string | null => {
+        switch (agentId) {
+            case 'deebo':
+                return 'Deebo';
+            case 'marty':
+                return 'Marty';
+            case 'linus':
+                return 'Linus';
+            default:
+                return null;
+        }
+    };
+
+    const currentLevelConfig = getApprovalLevelConfig(approvalState, approvalState.currentLevel);
+    const currentReviewerLabel = getAgentLabel(currentLevelConfig?.reviewAgentId);
+    const nextRequiredRoleLabels = approvalState.nextRequiredRoles.map(formatRoleLabel);
 
     const handleApprove = async () => {
         if (!onApprove || isSubmitting) return;
@@ -137,6 +164,8 @@ export function ApprovalChain({
                         const isCurrentLevel = level === approvalState.currentLevel;
                         const isPastLevel = level < approvalState.currentLevel;
                         const isFutureLevel = level > approvalState.currentLevel;
+                        const levelConfig = getApprovalLevelConfig(approvalState, level);
+                        const reviewAgentLabel = getAgentLabel(levelConfig?.reviewAgentId);
 
                         const allApproved = levelsApprovals.every((a) => a.action === 'approved');
                         const anyRejected = levelsApprovals.some((a) => a.action === 'rejected');
@@ -179,8 +208,16 @@ export function ApprovalChain({
                                                 isFutureLevel && 'text-baked-text-muted'
                                             )}
                                         >
-                                            Level {level} Review
+                                            {levelConfig?.name ?? `Level ${level} Review`}
                                         </span>
+                                        {reviewAgentLabel && (
+                                            <Badge
+                                                variant="outline"
+                                                className="text-[10px] px-1.5 py-0 h-5 border-baked-border"
+                                            >
+                                                {reviewAgentLabel}
+                                            </Badge>
+                                        )}
                                     </div>
 
                                     {isPastLevel && allApproved && (
@@ -193,6 +230,12 @@ export function ApprovalChain({
                                         <Clock className="w-5 h-5 text-purple-400 animate-pulse" />
                                     )}
                                 </div>
+
+                                {levelConfig?.description && (
+                                    <p className="text-[11px] text-baked-text-muted mb-2">
+                                        {levelConfig.description}
+                                    </p>
+                                )}
 
                                 {/* Approvers at this level */}
                                 {levelsApprovals.length > 0 && (
@@ -224,7 +267,7 @@ export function ApprovalChain({
                                                             variant="outline"
                                                             className="text-[10px] px-1 py-0 h-4 border-baked-border"
                                                         >
-                                                            {approval.approverRole}
+                                                            {formatRoleLabel(approval.approverRole)}
                                                         </Badge>
                                                     </div>
                                                     {approval.notes && (
@@ -245,7 +288,10 @@ export function ApprovalChain({
                                 {isCurrentLevel && levelsApprovals.length === 0 && (
                                     <div className="mt-3 flex items-center gap-2 text-xs text-purple-300">
                                         <Users className="w-4 h-4" />
-                                        <span>Awaiting review from: {approvalState.nextRequiredRoles.join(', ')}</span>
+                                        <span>
+                                            Awaiting {reviewAgentLabel ? `${reviewAgentLabel} review` : 'review'} from:{' '}
+                                            {nextRequiredRoleLabels.join(', ')}
+                                        </span>
                                     </div>
                                 )}
                             </motion.div>
@@ -318,7 +364,9 @@ export function ApprovalChain({
                             </div>
 
                             <p className="text-xs text-baked-text-muted text-center">
-                                Your decision will advance the content to the next approval level
+                                {currentReviewerLabel
+                                    ? `Your decision completes the ${currentReviewerLabel} lane and moves the workflow forward.`
+                                    : 'Your decision will advance the content to the next approval level'}
                             </p>
                         </motion.div>
                     </AnimatePresence>
@@ -337,7 +385,8 @@ export function ApprovalChain({
                     <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 flex items-center gap-2">
                         <AlertCircle className="w-4 h-4 text-blue-400" />
                         <p className="text-sm text-blue-400">
-                            Waiting for approval from: {approvalState.nextRequiredRoles.join(', ')}
+                            Waiting for {currentReviewerLabel ? `${currentReviewerLabel} review` : 'approval'} from:{' '}
+                            {nextRequiredRoleLabels.join(', ')}
                         </p>
                     </div>
                 )}

@@ -33,6 +33,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { getApprovalLevelConfig, isApprovalWorkflowSatisfied } from '@/lib/creative-approval-workflow';
 import { cn } from '@/lib/utils';
 import { ApprovalChain } from '@/components/creative/approval-chain';
 import type { CreativeContent } from '@/types/creative-content';
@@ -92,6 +93,12 @@ export function DeeboCompliancePanel({
 
   const complianceStatus = getComplianceStatus(content, gauntletEnabled);
   const failedChecks = (content?.complianceChecks as ComplianceCheck[] | undefined)?.filter(c => !c.passed) ?? [];
+  const approvalReady = isApprovalWorkflowSatisfied(content?.approvalState);
+  const currentLevelConfig = getApprovalLevelConfig(
+    content?.approvalState,
+    content?.approvalState?.currentLevel ?? 0,
+  );
+  const pendingApprovalLabel = currentLevelConfig?.name ?? 'the approval workflow';
 
   const statusConfig = {
     idle: {
@@ -327,7 +334,7 @@ export function DeeboCompliancePanel({
             {/* Publish / Schedule CTA */}
             <Button
               onClick={onScheduleApprove}
-              disabled={!content || isApproving !== null}
+              disabled={!content || isApproving !== null || !approvalReady}
               className={cn(
                 'w-full font-semibold text-sm h-9',
                 complianceStatus === 'flagged' || complianceStatus === 'warning'
@@ -352,6 +359,15 @@ export function DeeboCompliancePanel({
                 </>
               )}
             </Button>
+
+            {!approvalReady && (
+              <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-2.5">
+                <p className="text-[11px] font-medium text-blue-300">{pendingApprovalLabel} still needs to finish</p>
+                <p className="text-[10px] text-blue-200/80 mt-1 leading-relaxed">
+                  Publishing is locked until the active approval lane is completed.
+                </p>
+              </div>
+            )}
 
             {/* Send to Inbox secondary CTA */}
             <Button
