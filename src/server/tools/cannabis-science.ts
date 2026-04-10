@@ -96,7 +96,7 @@ export async function searchCannabisScience(
     });
 
     if (error) {
-      logger.error('[CannabisScience] Search failed:', error.message);
+      logger.error('[CannabisScience] Search failed:', { error: error.message });
       return [];
     }
 
@@ -116,7 +116,7 @@ export async function searchCannabisScience(
     }));
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    logger.error('[CannabisScience] Search error:', msg);
+    logger.error('[CannabisScience] Search error:', { error: msg });
     return [];
   }
 }
