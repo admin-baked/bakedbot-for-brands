@@ -7,6 +7,7 @@ try {
 }
 
 /** @type {import('next').NextConfig} */
+// Build bust: 2026-04-10-pressure-test
 const nextConfig = {
   env: {
     ...ciEnv,
