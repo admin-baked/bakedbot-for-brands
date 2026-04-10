@@ -74,6 +74,8 @@ const PAGE_LABELS: Record<BrandPageType, string> = {
     loyalty: 'Rewards',
     contact: 'Contact',
     press: 'Press',
+    menu: 'Menu',
+    zip_seo: 'Zip Code SEO',
 };
 
 // ============================================================================

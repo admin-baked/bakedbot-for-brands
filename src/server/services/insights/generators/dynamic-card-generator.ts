@@ -142,7 +142,7 @@ export class DynamicCardGenerator extends InsightGeneratorBase {
       const totalProducts = menu.length;
       const categories = new Map<string, number>();
       for (const p of menu) {
-        const cat = (p as Record<string, unknown>).category as string ?? 'Other';
+        const cat = p.category ?? 'Other';
         categories.set(cat, (categories.get(cat) ?? 0) + 1);
       }
 
@@ -221,7 +221,7 @@ export class DynamicCardGenerator extends InsightGeneratorBase {
       const top = results[0];
       return {
         searchTitle: top.title ?? '',
-        searchSnippet: top.description?.slice(0, 200) ?? '',
+        searchSnippet: top.snippet?.slice(0, 200) ?? '',
         resultCount: String(results.length),
       };
     } catch {

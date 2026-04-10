@@ -675,7 +675,15 @@ AIQ (alpineiq.com):
 CRITICAL: When filling forms or submitting on external sites, ALWAYS:
 1. Tell the user exactly what you're about to fill and where
 2. Wait for their confirmation before calling discovery_fill_form with submitButtonText
-3. If you're just reading/extracting, no confirmation needed`;
+3. If you're just reading/extracting, no confirmation needed
+
+CONVERSATION RULES (CRITICAL — every Slack reply):
+1. *Never send a dead-end response.* Every reply must end with a clear next step, question, or offer. Examples: "Want me to check the competitor deals too?", "I can pull that customer's history — want me to?", "Here's what I'd suggest next…"
+2. *Acknowledge context.* Reference what the user said or what happened before. Don't respond as if the conversation just started.
+3. *If you're about to pull data, say so first.* Before running tools, briefly state what you're checking so the user knows you're working.
+4. *Complete your thought.* Never trail off or give a partial answer. If you need more info, ask for it explicitly.
+5. *Use *bold* for emphasis, not **bold** (Slack mrkdwn, not markdown).
+6. *Keep it conversational.* You're a store ops advisor chatting with the team — warm, direct, no corporate fluff.`;
 
 const ELROY_AGENT_CONTEXT: AgentContext = {
     name: 'Uncle Elroy',
@@ -794,13 +802,60 @@ async function callOpencodeLastResort(prompt: string): Promise<string | null> {
     }
 }
 
+/**
+ * Maps an Elroy tool call to a human-readable Slack status message.
+ */
+function buildElroyProgressMessage(toolName: string, input: Record<string, unknown>): string {
+    switch (toolName) {
+        case 'get_at_risk_customers':
+            return '_Uncle Elroy is pulling the at-risk customer list..._';
+        case 'get_customer_segments':
+            return '_Uncle Elroy is checking customer segment health..._';
+        case 'get_today_checkins':
+            return '_Uncle Elroy is counting today\'s check-ins..._';
+        case 'get_menu_inventory': {
+            const cat = input.category ? ` (${String(input.category)})` : '';
+            return `_Uncle Elroy is pulling the live menu${cat}..._`;
+        }
+        case 'get_competitor_intel':
+            return '_Uncle Elroy is pulling the latest competitor intel report..._';
+        case 'run_competitive_agent':
+            return '_Uncle Elroy is running a live competitor research sweep — this may take 30–90s..._';
+        case 'search_customer':
+            return `_Uncle Elroy is looking up "${String(input.query ?? '').slice(0, 30)}"..._`;
+        case 'get_daily_sales':
+            return '_Uncle Elroy is pulling today\'s sales numbers..._';
+        case 'get_top_sellers':
+            return '_Uncle Elroy is checking the top sellers..._';
+        case 'get_recent_transactions':
+            return '_Uncle Elroy is pulling recent transactions..._';
+        case 'get_sales_summary':
+            return '_Uncle Elroy is comparing today vs yesterday vs 7-day average..._';
+        case 'get_competitor_holiday_hours':
+            return '_Uncle Elroy is checking competitor holiday hours via Google Places..._';
+        case 'ask_opencode':
+            return '_Uncle Elroy is delegating a technical question to the coding agent..._';
+        case 'discovery_browser_automate':
+            return '_Uncle Elroy is browsing an external site..._';
+        case 'discovery_fill_form':
+            return '_Uncle Elroy is filling a form on an external site..._';
+        case 'discovery_extract_data':
+            return '_Uncle Elroy is extracting data from a page..._';
+        case 'discovery_summarize_page':
+            return '_Uncle Elroy is summarizing a page..._';
+        default:
+            return `_Uncle Elroy is checking ${toolName.replace(/_/g, ' ')}..._`;
+    }
+}
+
 export async function runElroy(request: ElroyRequest): Promise<ElroyResponse> {
     const hasImages = (request.images?.length ?? 0) > 0;
 
     const fullPrompt = `${ELROY_SYSTEM_PROMPT}\n\n---\n\nUser Request: ${request.prompt}`;
 
     const onToolCall = request.progressCallback
-        ? (toolName: string) => request.progressCallback!(`_Uncle Elroy is checking ${toolName.replace(/_/g, ' ')}..._`)
+        ? (toolName: string, input: Record<string, unknown>) =>
+              request.progressCallback!(buildElroyProgressMessage(toolName, input))
         : undefined;
 
     const sharedContext = {

@@ -246,7 +246,7 @@ function parseProposals(response: string): CardProposal[] {
         description: String(raw.description),
         category: raw.category as InsightCategory,
         agentId: raw.agentId,
-        agentName: AGENT_NAMES[raw.agentId] ?? raw.agentId,
+        agentName: getAgentDisplayName(raw.agentId) ?? raw.agentId,
         dataSource: raw.dataSource,
         queryConfig: {
           type: raw.queryConfig?.type ?? 'composite',

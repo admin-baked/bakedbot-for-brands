@@ -496,6 +496,13 @@ const MARTY_SLACK_TOOLS = [
     { name: 'marty_dream', description: 'Run a Dream session — introspect on CEO-level performance (telemetry, feedback, learning deltas, Letta memory), generate improvement hypotheses, test them, and report results. Use this to self-improve or when asked to reflect.', input_schema: { type: 'object' as const, properties: { model: { type: 'string', description: 'AI model for dream: glm, gemini-flash, haiku, sonnet (default: glm)' } } } },
     { name: 'letta_save_fact', description: 'Save an important insight or decision to long-term CEO memory (Letta Hive Mind).', input_schema: { type: 'object' as const, properties: { fact: { type: 'string', description: 'The fact or insight to remember' }, category: { type: 'string', description: 'Category: strategy, revenue, team, customer, decision' } }, required: ['fact'] } },
     { name: 'letta_search_memory', description: 'Search CEO long-term memory for past decisions, strategies, or insights.', input_schema: { type: 'object' as const, properties: { query: { type: 'string', description: 'What to search for' } }, required: ['query'] } },
+
+    // Gmail — CEO inbox management (martez@bakedbot.ai)
+    { name: 'gmail_search', description: 'Search the CEO inbox (martez@bakedbot.ai). Use Gmail query syntax: from:, to:, subject:, is:unread, has:attachment, newer_than:7d, etc.', input_schema: { type: 'object' as const, properties: { query: { type: 'string', description: 'Gmail search query (e.g., "is:unread newer_than:3d", "from:investor subject:term sheet")' }, maxResults: { type: 'number', description: 'Max threads to return (default 10, max 50)' } }, required: ['query'] } },
+    { name: 'gmail_read_thread', description: 'Read a full email thread by ID. Use after gmail_search to get full message bodies.', input_schema: { type: 'object' as const, properties: { threadId: { type: 'string', description: 'Gmail thread ID from search results' } }, required: ['threadId'] } },
+    { name: 'gmail_draft_reply', description: 'Draft a reply email (saves as draft, does NOT send). The user reviews and sends manually.', input_schema: { type: 'object' as const, properties: { to: { type: 'string', description: 'Recipient email' }, subject: { type: 'string', description: 'Email subject line' }, body: { type: 'string', description: 'Plain text email body' }, htmlBody: { type: 'string', description: 'Optional HTML body for rich formatting' }, cc: { type: 'string', description: 'Optional CC recipients (comma-separated)' } }, required: ['to', 'subject', 'body'] } },
+    { name: 'gmail_label', description: 'Add or remove a label from a thread. Use list_labels first to discover label IDs.', input_schema: { type: 'object' as const, properties: { threadId: { type: 'string', description: 'Gmail thread ID' }, labelId: { type: 'string', description: 'Label ID to add' }, action: { type: 'string', enum: ['add', 'remove'], description: 'Whether to add or remove the label' } }, required: ['threadId', 'labelId', 'action'] } },
+    { name: 'gmail_list_labels', description: 'List all Gmail labels and their IDs. Use to discover label IDs before labeling threads.', input_schema: { type: 'object' as const, properties: {} } },
 ];
 
 async function martyToolExecutor(toolName: string, args: Record<string, unknown>): Promise<unknown> {
@@ -592,6 +599,50 @@ async function martyToolExecutor(toolName: string, args: Record<string, unknown>
     }
 }
 
+/**
+ * Maps a Marty tool call to a human-readable Slack status message.
+ */
+function buildMartyProgressMessage(toolName: string, input: Record<string, unknown>): string {
+    switch (toolName) {
+        case 'delegateTask':
+            return `_Marty Benjamins is delegating to ${input.personaId ?? 'the team'}..._`;
+        case 'broadcastToSquad':
+            return '_Marty Benjamins is sending a company-wide directive..._';
+        case 'getSystemHealth':
+            return '_Marty Benjamins is checking system health..._';
+        case 'getActivePlaybooks':
+            return '_Marty Benjamins is reviewing active playbooks..._';
+        case 'crmListUsers':
+            return '_Marty Benjamins is pulling the user pipeline..._';
+        case 'crmGetStats':
+            return '_Marty Benjamins is pulling CRM stats and MRR..._';
+        case 'executeSuperPower':
+            return `_Marty Benjamins is running super power: \`${String(input.script ?? '').slice(0, 40)}\`..._`;
+        case 'marty_dream':
+            return '_Marty Benjamins is dreaming — introspecting, hypothesizing, testing..._';
+        case 'letta_save_fact':
+            return '_Marty Benjamins is updating CEO memory..._';
+        case 'letta_search_memory':
+            return '_Marty Benjamins is searching long-term memory..._';
+        case 'rtrvrAgent':
+            return '_Marty Benjamins is launching a browser research agent..._';
+        case 'rtrvrScrape':
+            return '_Marty Benjamins is scraping a URL for intel..._';
+        case 'gmail_search':
+            return '_Marty Benjamins is searching the inbox..._';
+        case 'gmail_read_thread':
+            return '_Marty Benjamins is reading an email thread..._';
+        case 'gmail_draft_reply':
+            return '_Marty Benjamins is drafting an email reply..._';
+        case 'gmail_compose':
+            return '_Marty Benjamins is composing an email..._';
+        case 'gmail_label':
+            return '_Marty Benjamins is organizing emails..._';
+        default:
+            return `_Marty Benjamins is checking ${toolName.replace(/_/g, ' ')}..._`;
+    }
+}
+
 export async function runMarty(request: MartyRequest): Promise<MartyResponse> {
     const squadRoster = buildSquadRoster('marty');
     const orgId = request.context?.orgId || '';
@@ -644,14 +695,8 @@ CONVERSATION RULES (CRITICAL — every Slack reply):
 User Request: ${request.prompt}`;
 
     const onToolCall = request.progressCallback
-        ? async (toolName: string, _input: Record<string, unknown>) => {
-            const msgs: Record<string, string> = {
-                marty_dream: '_Marty Benjamins is dreaming — introspecting, hypothesizing, testing..._',
-                letta_save_fact: '_Marty Benjamins is updating CEO memory..._',
-                letta_search_memory: '_Marty Benjamins is searching long-term memory..._',
-                delegateTask: '_Marty Benjamins is delegating to the team..._',
-            };
-            request.progressCallback!(msgs[toolName] || `_Marty Benjamins is checking ${toolName.replace(/_/g, ' ')}..._`);
+        ? async (toolName: string, input: Record<string, unknown>) => {
+            request.progressCallback!(buildMartyProgressMessage(toolName, input));
         }
         : undefined;
 

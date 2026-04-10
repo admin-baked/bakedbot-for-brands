@@ -103,7 +103,8 @@ export async function recordApprovalDecision(
     decision,
     total: newTotal,
     rate: newRate,
-    consecutive: newConsecutive,
+    consecutiveApprovals: newConsecutiveApprovals,
+    consecutiveDeclines: newConsecutiveDeclines,
   });
 
   return record;
