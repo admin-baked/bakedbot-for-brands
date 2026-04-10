@@ -2630,22 +2630,9 @@ async function linusToolExecutor(toolName: string, input: Record<string, unknown
 
         case 'linus_dream': {
             try {
-                const { runDreamSession } = await import('@/server/services/letta/dream-loop');
+                const { runDreamSession, notifyDreamReview } = await import('@/server/services/letta/dream-loop');
                 const session = await runDreamSession('Linus');
-
-                // Post report to Slack
-                const { postLinusIncidentSlack } = await import('@/server/services/incident-notifications');
-                await postLinusIncidentSlack({
-                    source: 'auto-escalator',
-                    channelName: 'linus-cto',
-                    fallbackText: `Dream Session: ${session.hypotheses.length} hypotheses, ${session.hypotheses.filter(h => h.testResult === 'confirmed').length} confirmed`,
-                    blocks: [
-                        {
-                            type: 'section',
-                            text: { type: 'mrkdwn', text: session.report },
-                        },
-                    ],
-                });
+                await notifyDreamReview(session);
 
                 return {
                     success: true,

@@ -8,6 +8,23 @@ export const SLACK_MARTY_APP_ID = process.env.SLACK_MARTY_APP_ID;
 const GREETING_RE = /^(h(i|ello|ey|owdy)|what'?s?\s*up|yo+|sup|gm|good\s*(morning|evening|afternoon)|what\s*it\s*do|greetings|salutations|peace|thanks|ty|thank\s*you)\b/i;
 const MAX_GREETING_LENGTH = 60;
 const MARTY_SHORT_ACK_RE = /^(me too|same here|same|sounds good|sound good|lets do it|let's do it|i agree|agree|exactly|for sure|nice|cool|great|awesome|perfect|love it|that works|works for me|makes sense)[\s!?.]*$/i;
+const SYSTEM_CHANNEL_ACTIVITY_RE = /\bhas (joined|left) the channel\b/i;
+const IGNORED_MESSAGE_SUBTYPES = new Set([
+  'bot_message',
+  'channel_join',
+  'channel_leave',
+  'message_changed',
+  'message_deleted',
+  'message_replied',
+  'thread_broadcast',
+  'channel_topic',
+  'channel_purpose',
+  'channel_name',
+  'channel_archive',
+  'channel_unarchive',
+  'group_join',
+  'group_leave',
+]);
 
 const KEYWORD_MAP: Array<{ keywords: string[]; personaId: string }> = [
   { keywords: ['marty', 'ceo', 'strategy', 'north star', 'arr goal'], personaId: 'marty' },
@@ -50,6 +67,28 @@ export function isGreeting(text: string): boolean {
 
 export function isMartyShortAcknowledgment(text: string): boolean {
   return text.length <= 80 && MARTY_SHORT_ACK_RE.test(text.trim());
+}
+
+export function shouldIgnoreSlackMessageEvent(event: {
+  bot_id?: string;
+  subtype?: string;
+  text?: string;
+}): boolean {
+  if (event.bot_id) {
+    return true;
+  }
+
+  const subtype = String(event.subtype || '').trim();
+  if (subtype && IGNORED_MESSAGE_SUBTYPES.has(subtype)) {
+    return true;
+  }
+
+  const text = String(event.text || '').trim();
+  if (text && SYSTEM_CHANNEL_ACTIVITY_RE.test(text)) {
+    return true;
+  }
+
+  return false;
 }
 
 export function getSlackGLMSynthesisTask(_personaId: string): AITextTaskClass {

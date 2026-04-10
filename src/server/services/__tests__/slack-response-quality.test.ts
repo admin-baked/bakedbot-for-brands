@@ -1,4 +1,4 @@
-const { detectMartySlackResponseIssues } = require('../slack-response-quality');
+const { detectMartySlackResponseIssues, detectSlackResponseIssues } = require('../slack-response-quality');
 
 describe('detectMartySlackResponseIssues', () => {
     it('flags bare greetings that dump metrics', () => {
@@ -26,5 +26,41 @@ describe('detectMartySlackResponseIssues', () => {
         });
 
         expect(issues).toEqual([]);
+    });
+
+    it('flags blocked replies with no next step for other Slack agents too', () => {
+        const issues = detectSlackResponseIssues('elroy', {
+            userMessage: 'can you update the site?',
+            agentResponse: "I'm blocked on WordPress access right now.",
+        });
+
+        expect(issues.map((issue: { key: string }) => issue.key)).toContain('blocked_no_next_step');
+    });
+
+    it('does not flag blockers when a next step is offered', () => {
+        const issues = detectSlackResponseIssues('linus', {
+            userMessage: 'check the build',
+            agentResponse: "I'm blocked by GitHub auth right now. Want me to request access and rerun the check?",
+        });
+
+        expect(issues.map((issue: { key: string }) => issue.key)).not.toContain('blocked_no_next_step');
+    });
+
+    it('flags Elroy sales lookups that fall back to generic no-data language', () => {
+        const issues = detectSlackResponseIssues('elroy', {
+            userMessage: "what's our top seller yesterday?",
+            agentResponse: 'No product sales data available.',
+        });
+
+        expect(issues.map((issue: { key: string }) => issue.key)).toContain('sales_lookup_miss');
+    });
+
+    it('flags Elroy when a past month is treated like a future lookup', () => {
+        const issues = detectSlackResponseIssues('elroy', {
+            userMessage: "what's our gross sales for February 2026?",
+            agentResponse: "I can't look up that far in the future right now.",
+        });
+
+        expect(issues.map((issue: { key: string }) => issue.key)).toContain('past_date_future_confusion');
     });
 });

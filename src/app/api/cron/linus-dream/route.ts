@@ -14,12 +14,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
-import type { DreamModel } from '@/server/services/letta/dream-loop';
+import { isDreamModel, type DreamModel } from '@/server/services/letta/dream-loop';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
-
-const VALID_MODELS: DreamModel[] = ['glm', 'gemini-flash', 'gemini-pro', 'haiku', 'sonnet', 'opus'];
 
 async function handler(req: NextRequest): Promise<NextResponse> {
     // Auth
@@ -36,12 +34,12 @@ async function handler(req: NextRequest): Promise<NextResponse> {
     // Read model from query param or POST body
     let model: DreamModel = 'glm';
     const queryModel = req.nextUrl.searchParams.get('model');
-    if (queryModel && VALID_MODELS.includes(queryModel as DreamModel)) {
-        model = queryModel as DreamModel;
+    if (isDreamModel(queryModel)) {
+        model = queryModel;
     } else if (req.method === 'POST') {
         try {
             const body = await req.json();
-            if (body?.model && VALID_MODELS.includes(body.model)) {
+            if (isDreamModel(body?.model)) {
                 model = body.model;
             }
         } catch {
@@ -53,22 +51,9 @@ async function handler(req: NextRequest): Promise<NextResponse> {
     logger.info('[LinusDream] Starting scheduled dream session', { model });
 
     try {
-        const { runDreamSession } = await import('@/server/services/letta/dream-loop');
+        const { runDreamSession, notifyDreamReview } = await import('@/server/services/letta/dream-loop');
         const session = await runDreamSession('Linus', model);
-
-        // Post to Slack
-        const { postLinusIncidentSlack } = await import('@/server/services/incident-notifications');
-        await postLinusIncidentSlack({
-            source: 'auto-escalator',
-            channelName: 'linus-cto',
-            fallbackText: `Dream Session: ${session.hypotheses.length} hypotheses, ${session.hypotheses.filter(h => h.testResult === 'confirmed').length} confirmed`,
-            blocks: [
-                {
-                    type: 'section',
-                    text: { type: 'mrkdwn', text: session.report },
-                },
-            ],
-        });
+        await notifyDreamReview(session);
 
         const duration = Date.now() - startTime;
         const confirmed = session.hypotheses.filter(h => h.testResult === 'confirmed').length;

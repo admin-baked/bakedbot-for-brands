@@ -31,14 +31,32 @@ import { fetchMenuProducts, normalizeProduct } from '@/server/agents/adapters/co
 import { getAdminFirestore } from '@/firebase/admin';
 import { discovery } from '@/server/services/firecrawl';
 import { withCache, CachePrefix, CacheTTL } from '@/lib/cache';
+import { makeLearningLoopToolsImpl } from '@/server/services/agent-learning-loop';
+import {
+    aggregateElroyTopSellers,
+    fetchElroyOrdersForWindow,
+    fetchElroyRecentOrders,
+    formatElroyRecentTransactions,
+    resolveElroySalesWindow,
+    summarizeElroySalesPeriod,
+    type ElroyTopSellerRankBy,
+} from '@/server/services/elroy-sales';
 import {
     getUpcomingHolidays,
     fetchCompetitorHolidayHours,
     formatHoursForSlack,
     SYRACUSE_COMPETITORS,
 } from '@/server/services/holiday-hours';
+import { isDreamModel } from '@/server/services/letta/dream-loop';
 
 const ORG_ID = 'org_thrive_syracuse';
+const elroyLearningTools = makeLearningLoopToolsImpl({
+    agentId: 'elroy',
+    role: 'Store Ops Advisor',
+    orgId: ORG_ID,
+    brandId: ORG_ID,
+    defaultCategory: 'store-ops',
+});
 
 // ============================================================================
 // TOOL DEFINITIONS
@@ -139,7 +157,7 @@ const ELROY_TOOLS: ClaudeTool[] = [
     },
     {
         name: 'get_top_sellers',
-        description: 'Return the top-selling products at Thrive Syracuse over the last 7 days, ranked by units sold.',
+        description: 'Return the top-selling Thrive Syracuse products for yesterday, the last 7 days, a specific month, or a custom date range. Defaults to ranking by units sold and also includes revenue.',
         input_schema: {
             type: 'object' as const,
             properties: {
@@ -147,19 +165,73 @@ const ELROY_TOOLS: ClaudeTool[] = [
                     type: 'number',
                     description: 'Number of products to return (default 10)',
                 },
+                period: {
+                    type: 'string',
+                    description: 'Optional preset window: today, yesterday, last7days, thisMonth, or lastMonth.',
+                },
+                startDate: {
+                    type: 'string',
+                    description: 'Optional custom start date in YYYY-MM-DD format.',
+                },
+                endDate: {
+                    type: 'string',
+                    description: 'Optional custom end date in YYYY-MM-DD format.',
+                },
+                year: {
+                    type: 'number',
+                    description: 'Optional calendar year for a month lookup, e.g. 2026.',
+                },
+                month: {
+                    type: 'number',
+                    description: 'Optional month number for a month lookup, e.g. 2 for February.',
+                },
+                rankBy: {
+                    type: 'string',
+                    description: 'Optional ranking metric: units or revenue. Defaults to units.',
+                },
             },
             required: [],
         },
     },
     {
         name: 'get_recent_transactions',
-        description: 'Return the most recent customer transactions at Thrive Syracuse with items and totals.',
+        description: 'Return the most recent customer transactions at Thrive Syracuse with items and totals. Use this for requests like "last 10 transactions" or "most recent orders".',
         input_schema: {
             type: 'object' as const,
             properties: {
                 limit: {
                     type: 'number',
                     description: 'Number of transactions to return (default 20)',
+                },
+            },
+            required: [],
+        },
+    },
+    {
+        name: 'get_sales_for_period',
+        description: 'Return Thrive Syracuse gross sales, order count, and average ticket for a specific calendar month or custom date range. Use this for prompts like "gross sales for February 2026".',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                period: {
+                    type: 'string',
+                    description: 'Optional preset window: today, yesterday, last7days, thisMonth, or lastMonth.',
+                },
+                startDate: {
+                    type: 'string',
+                    description: 'Optional custom start date in YYYY-MM-DD format.',
+                },
+                endDate: {
+                    type: 'string',
+                    description: 'Optional custom end date in YYYY-MM-DD format.',
+                },
+                year: {
+                    type: 'number',
+                    description: 'Optional calendar year for a month lookup, e.g. 2026.',
+                },
+                month: {
+                    type: 'number',
+                    description: 'Optional month number for a month lookup, e.g. 2 for February.',
                 },
             },
             required: [],
@@ -257,6 +329,60 @@ const ELROY_TOOLS: ClaudeTool[] = [
                 url: { type: 'string', description: 'URL to summarize' },
             },
             required: ['url'],
+        },
+    },
+    {
+        name: 'learning_log',
+        description: 'Log a meaningful Thrive store-ops attempt, outcome, and next step so Uncle Elroy can learn from it later.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                action: { type: 'string', description: 'What was attempted' },
+                result: { type: 'string', enum: ['success', 'failure', 'pending', 'partial'], description: 'Outcome of the attempt' },
+                reason: { type: 'string', description: 'Why it worked or failed' },
+                nextStep: { type: 'string', description: 'What should happen next' },
+                category: { type: 'string', description: 'Retrieval category like store-ops, inventory, outreach, or problem' },
+            },
+            required: ['action', 'result'],
+        },
+    },
+    {
+        name: 'learning_search',
+        description: 'Search Uncle Elroy\'s prior learnings before repeating a workflow or retrying a blocked task.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                query: { type: 'string', description: 'What to search for' },
+                category: { type: 'string', description: 'Optional category filter' },
+                limit: { type: 'number', description: 'Max results to return' },
+            },
+            required: ['query'],
+        },
+    },
+    {
+        name: 'notify_agent_problem',
+        description: 'Escalate a blocked Thrive store-ops failure to Slack via Uncle Elroy\'s learning loop and record it for follow-up.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                problem: { type: 'string', description: 'What went wrong' },
+                context: { type: 'string', description: 'What Uncle Elroy was trying to do' },
+                proposedFix: { type: 'string', description: 'What to try next' },
+                severity: { type: 'string', enum: ['low', 'medium', 'high'], description: 'Failure severity' },
+                category: { type: 'string', description: 'Category for future retrieval' },
+            },
+            required: ['problem', 'context'],
+        },
+    },
+    {
+        name: 'elroy_dream',
+        description: 'Run a Dream session for Uncle Elroy to reflect on Slack quality, store-ops failures, and benchmark signals, then route any needed fixes to Linus and Marty for signoff.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                model: { type: 'string', description: 'Optional dream model override. Defaults to the cheapest available tier with fallback.' },
+            },
+            required: [],
         },
     },
 ];
@@ -420,56 +546,47 @@ async function elroyToolExecutor(toolName: string, input: Record<string, unknown
 
         case 'get_top_sellers': {
             const limit = typeof input.limit === 'number' ? Math.min(input.limit, 20) : 10;
+            const rankBy: ElroyTopSellerRankBy = input.rankBy === 'revenue' ? 'revenue' : 'units';
+            const window = resolveElroySalesWindow({
+                period: typeof input.period === 'string' ? input.period as 'today' | 'yesterday' | 'last7days' | 'thisMonth' | 'lastMonth' : undefined,
+                startDate: typeof input.startDate === 'string' ? input.startDate : undefined,
+                endDate: typeof input.endDate === 'string' ? input.endDate : undefined,
+                year: typeof input.year === 'number' ? input.year : undefined,
+                month: typeof input.month === 'number' ? input.month : undefined,
+            }, { defaultPeriod: 'last7days' });
             return withCache(
                 CachePrefix.ANALYTICS,
-                `elroy:top_sellers:${ORG_ID}:${limit}`,
+                `elroy:top_sellers:${ORG_ID}:${window.cacheKey}:${rankBy}:${limit}`,
                 async () => {
-                    const db = getAdminFirestore();
-                    // Compute top sellers from actual order line items (last 7 days)
-                    const weekAgo = new Date();
-                    weekAgo.setDate(weekAgo.getDate() - 7);
-                    const ordersSnap = await db.collection('orders')
-                        .where('brandId', '==', ORG_ID)
-                        .where('createdAt', '>=', weekAgo)
-                        .get();
-
-                    if (ordersSnap.empty) {
-                        // Fallback: try products collection for pre-aggregated data
-                        const prodSnap = await db.collection('products')
-                            .where('orgId', '==', ORG_ID)
-                            .limit(limit)
-                            .get();
-                        if (prodSnap.empty) return { message: 'No product sales data available.' };
-                        return prodSnap.docs.map((d: any) => {
-                            const p = d.data() as any;
-                            return { name: p.name ?? p.productName ?? 'Unknown', category: p.category ?? null, price: p.price ?? null, unitsSold7d: 0, revenue7d: 0 };
-                        });
+                    const orders = await fetchElroyOrdersForWindow(ORG_ID, window);
+                    if (orders.length === 0) {
+                        return {
+                            period: {
+                                label: window.label,
+                                startDate: window.startDate,
+                                endDate: window.endDate,
+                            },
+                            rankBy,
+                            message: `No product sales data found for ${window.label}.`,
+                            topSellers: [],
+                        };
                     }
 
-                    // Aggregate sales by product name from order line items
-                    const productSales = new Map<string, { name: string; category: string; qty: number; revenue: number }>();
-                    ordersSnap.docs.forEach((d: any) => {
-                        const items: any[] = d.data().items ?? [];
-                        items.forEach((item: any) => {
-                            const name = item.name ?? item.productName ?? 'Unknown';
-                            const existing = productSales.get(name) || { name, category: item.category ?? 'other', qty: 0, revenue: 0 };
-                            existing.qty += item.qty ?? 1;
-                            existing.revenue += (item.price ?? 0) * (item.qty ?? 1);
-                            productSales.set(name, existing);
-                        });
-                    });
-
-                    const sorted = [...productSales.values()]
-                        .sort((a, b) => b.revenue - a.revenue)
-                        .slice(0, limit);
-
-                    if (sorted.length === 0) return { message: 'No product sales data in the last 7 days.' };
-                    return sorted.map(p => ({
-                        name: p.name,
-                        category: p.category,
-                        unitsSold7d: p.qty,
-                        revenue7d: Math.round(p.revenue * 100) / 100,
-                    }));
+                    const topSellers = aggregateElroyTopSellers(orders, { limit, rankBy });
+                    return {
+                        period: {
+                            label: window.label,
+                            startDate: window.startDate,
+                            endDate: window.endDate,
+                        },
+                        rankBy,
+                        topSellers: topSellers.map((seller) => ({
+                            name: seller.name,
+                            category: seller.category,
+                            unitsSold: seller.unitsSold,
+                            revenue: seller.revenue,
+                        })),
+                    };
                 },
                 CacheTTL.CRM_SEGMENTS // 5 min
             );
@@ -477,6 +594,9 @@ async function elroyToolExecutor(toolName: string, input: Record<string, unknown
 
         case 'get_recent_transactions': {
             const limit = typeof input.limit === 'number' ? Math.min(input.limit, 50) : 20;
+            const orders = await fetchElroyRecentOrders(ORG_ID, limit);
+            if (orders.length === 0) return { message: 'No recent transactions found.' };
+            return formatElroyRecentTransactions(orders, { limit });
             const db = getAdminFirestore();
             const snap = await db.collection('orders')
                 .where('brandId', '==', ORG_ID)
@@ -498,6 +618,29 @@ async function elroyToolExecutor(toolName: string, input: Record<string, unknown
                     status: o.status ?? null,
                 };
             });
+        }
+
+        case 'get_sales_for_period': {
+            const window = resolveElroySalesWindow({
+                period: typeof input.period === 'string' ? input.period as 'today' | 'yesterday' | 'last7days' | 'thisMonth' | 'lastMonth' : undefined,
+                startDate: typeof input.startDate === 'string' ? input.startDate : undefined,
+                endDate: typeof input.endDate === 'string' ? input.endDate : undefined,
+                year: typeof input.year === 'number' ? input.year : undefined,
+                month: typeof input.month === 'number' ? input.month : undefined,
+            }, { defaultPeriod: 'thisMonth' });
+            const orders = await fetchElroyOrdersForWindow(ORG_ID, window);
+            const summary = summarizeElroySalesPeriod(orders);
+
+            return {
+                period: {
+                    label: window.label,
+                    startDate: window.startDate,
+                    endDate: window.endDate,
+                },
+                grossSales: summary.grossSales,
+                orderCount: summary.orderCount,
+                averageTicket: summary.averageTicket,
+            };
         }
 
         case 'get_sales_summary': {
@@ -706,6 +849,45 @@ async function elroyToolExecutor(toolName: string, input: Record<string, unknown
             return { result: data.result, model: data.model };
         }
 
+        case 'learning_log':
+            return elroyLearningTools.learning_log(
+                String(input.action ?? ''),
+                input.result as 'success' | 'failure' | 'pending' | 'partial',
+                typeof input.reason === 'string' ? input.reason : undefined,
+                typeof input.nextStep === 'string' ? input.nextStep : undefined,
+                typeof input.category === 'string' ? input.category : undefined,
+            );
+
+        case 'learning_search':
+            return elroyLearningTools.learning_search(
+                String(input.query ?? ''),
+                typeof input.category === 'string' ? input.category : undefined,
+                typeof input.limit === 'number' ? input.limit : undefined,
+            );
+
+        case 'notify_agent_problem':
+            return elroyLearningTools.notify_agent_problem(
+                String(input.problem ?? ''),
+                String(input.context ?? ''),
+                typeof input.proposedFix === 'string' ? input.proposedFix : undefined,
+                input.severity as 'low' | 'medium' | 'high' | undefined,
+                typeof input.category === 'string' ? input.category : undefined,
+            );
+
+        case 'elroy_dream': {
+            const { runDreamSession, notifyDreamReview } = await import('@/server/services/letta/dream-loop');
+            const requestedModel = isDreamModel(input.model) ? input.model : undefined;
+            const session = await runDreamSession('Elroy', requestedModel, { orgId: ORG_ID });
+            await notifyDreamReview(session);
+            return {
+                success: true,
+                sessionId: session.id,
+                hypotheses: session.hypotheses.length,
+                confirmed: session.hypotheses.filter(h => h.testResult === 'confirmed').length,
+                report: session.report,
+            };
+        }
+
         default:
             return { error: `Unknown tool: ${toolName}` };
     }
@@ -740,6 +922,7 @@ When citing competitor intel, note how fresh it is.
 For real-time or "right now" competitor questions (current prices, today's deals), use run_competitive_agent — it runs a live web research sweep via Firecrawl AI. It takes 30–90 seconds. Use get_competitor_intel for quick cached weekly data.
 For holiday or special hours questions ("Are competitors open on Easter?", "What are the hours for Memorial Day?"), ALWAYS use get_competitor_holiday_hours first — it pulls authoritative data from Google Places and is faster and more reliable than Firecrawl for hours.
 For coding or technical questions ("write me a query", "generate a script", "analyze this data structure"), use ask_opencode — it delegates to the BakedBot AI coding agent and responds in seconds.
+Before repeating a workflow, search your prior learnings for what worked and what failed. Log meaningful outcomes, and if you hit a blocker, notify the learning loop with the problem and next move so Linus and Marty can review fixes.
 
 EXTERNAL SITE MANAGEMENT (Weedmaps, AIQ, WordPress):
 You can browse, extract data from, and fill forms on external sites using your browser tools.
@@ -782,6 +965,7 @@ const ELROY_AGENT_CONTEXT: AgentContext = {
     name: 'Uncle Elroy',
     role: 'Store Operations Advisor — Thrive Syracuse',
     capabilities: [
+        'get_sales_for_period - gross sales for a month or custom range',
         'get_at_risk_customers — win-back target list',
         'get_customer_segments — segment health overview',
         'get_today_checkins — daily foot traffic',
@@ -801,6 +985,11 @@ const ELROY_AGENT_CONTEXT: AgentContext = {
         'discovery_summarize_page — quick page summary',
     ],
     groundingRules: [
+        'For revenue/sales questions, use get_daily_sales, get_sales_for_period, or get_sales_summary',
+        'For top seller yesterday or a specific date range, use get_top_sellers with period or explicit dates',
+        'For month-specific sales questions like gross sales for February 2026, use get_sales_for_period with month/year or explicit dates',
+        'For last 10 transactions or most recent orders, use get_recent_transactions with the requested limit',
+        'Treat explicit past dates or past months as lookups, not future speculation',
         'ALWAYS call a tool BEFORE answering — NEVER say "let me check" without actually calling the tool in the same turn',
         'Cite days-inactive and LTV when listing at-risk customers',
         'Flag staleness when reporting competitor intel',
@@ -927,6 +1116,8 @@ function buildElroyProgressMessage(toolName: string, input: Record<string, unkno
             return '_Uncle Elroy is checking the top sellers..._';
         case 'get_recent_transactions':
             return '_Uncle Elroy is pulling recent transactions..._';
+        case 'get_sales_for_period':
+            return '_Uncle Elroy is pulling the sales numbers for that time period..._';
         case 'get_sales_summary':
             return '_Uncle Elroy is comparing today vs yesterday vs 7-day average..._';
         case 'get_competitor_holiday_hours':
@@ -941,6 +1132,14 @@ function buildElroyProgressMessage(toolName: string, input: Record<string, unkno
             return '_Uncle Elroy is extracting data from a page..._';
         case 'discovery_summarize_page':
             return '_Uncle Elroy is summarizing a page..._';
+        case 'learning_log':
+            return '_Uncle Elroy is logging what just happened so the store-ops loop gets smarter..._';
+        case 'learning_search':
+            return '_Uncle Elroy is checking past store-ops learnings before retrying..._';
+        case 'notify_agent_problem':
+            return '_Uncle Elroy is opening a learning-loop escalation for Linus and Marty..._';
+        case 'elroy_dream':
+            return '_Uncle Elroy is dreaming — reflecting on store ops, Slack quality, and fixes..._';
         default:
             return `_Uncle Elroy is checking ${toolName.replace(/_/g, ' ')}..._`;
     }
@@ -948,8 +1147,13 @@ function buildElroyProgressMessage(toolName: string, input: Record<string, unkno
 
 export async function runElroy(request: ElroyRequest): Promise<ElroyResponse> {
     const hasImages = (request.images?.length ?? 0) > 0;
-
-    const fullPrompt = `${ELROY_SYSTEM_PROMPT}\n\n---\n\nUser Request: ${request.prompt}`;
+    const currentDate = new Date().toLocaleDateString('en-US', {
+        timeZone: 'America/Chicago',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+    });
+    const fullPrompt = `${ELROY_SYSTEM_PROMPT}\n\nCurrent date: ${currentDate}\nStore timezone: America/New_York\n\n---\n\nUser Request: ${request.prompt}`;
 
     const onToolCall = request.progressCallback
         ? (toolName: string, input: Record<string, unknown>) =>

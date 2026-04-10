@@ -234,6 +234,9 @@ export interface QAGoldenSetEvalResult {
     complianceFailed: boolean;  // exit code 1 — blocks deployment
     belowThreshold: boolean;    // exit code 2 — below quality threshold
     stdout: string;
+    failingTestIds?: string[];
+    failureSummaries?: string[];
+    exitCode?: number;
     ranAt: Date;
 }
 

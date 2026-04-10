@@ -6,6 +6,7 @@ import path from 'path';
 import { requireCronSecret } from '@/server/auth/cron';
 import { logger } from '@/lib/logger';
 import type { QAGoldenSetEvalResult } from '@/types/qa';
+import { extractQAGoldenEvalFailures, recordQAGoldenEvalRun } from '@/server/services/qa-golden-eval-runs';
 
 const execFileAsync = promisify(execFile);
 
@@ -59,6 +60,7 @@ export async function POST(req: NextRequest) {
         }
 
         const result = parseEvalOutput(stdout, agent as QAGoldenSetEvalResult['agent'], tier as QAGoldenSetEvalResult['tier']);
+        await recordQAGoldenEvalRun(result, { source: 'cron' });
         logger.info('[QA Golden Eval] Complete', { agent, tier, score: result.score, complianceFailed: result.complianceFailed });
         return NextResponse.json(result);
 
@@ -74,6 +76,7 @@ export async function POST(req: NextRequest) {
             tier as QAGoldenSetEvalResult['tier'],
             exitCode,
         );
+        await recordQAGoldenEvalRun(result, { source: 'cron' });
 
         logger.warn('[QA Golden Eval] Eval returned non-zero exit', {
             agent, tier, exitCode,
@@ -135,6 +138,7 @@ function parseEvalOutput(
     const failed = passedMatch ? Math.max(total - passed, 0) : fallbackFailed;
     const score = scoreMatch ? parseInt(scoreMatch[1], 10) : (total > 0 ? Math.round((passed / total) * 100) : 0);
     const threshold = thresholdMatch ? parseInt(thresholdMatch[1], 10) : 90;
+    const { failingTestIds, failureSummaries } = extractQAGoldenEvalFailures(stdout);
 
     return {
         agent,
@@ -148,6 +152,9 @@ function parseEvalOutput(
         // Any non-zero/unknown exit should fail closed, never as a silent pass.
         belowThreshold: normalizedExitCode === 2 || (normalizedExitCode !== 0 && normalizedExitCode !== 1),
         stdout: stdout.slice(0, 3000),  // cap to avoid oversized payloads
+        failingTestIds,
+        failureSummaries,
+        exitCode: normalizedExitCode,
         ranAt: new Date(),
     };
 }

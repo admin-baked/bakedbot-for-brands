@@ -175,6 +175,15 @@ env:
     availability:
       - RUNTIME
       - BUILD
+  # Supabase — pgvector knowledge base (cannabis science)
+  - variable: NEXT_PUBLIC_SUPABASE_URL
+    value: "https://eimobfpqbqyuhqxfuleo.supabase.co"
+    availability:
+      - RUNTIME
+  - variable: SUPABASE_SERVICE_ROLE_KEY
+    secret: SUPABASE_SERVICE_ROLE_KEY@1
+    availability:
+      - RUNTIME
   - variable: SERPER_API_KEY
     secret: SERPER_API_KEY@3
     availability:

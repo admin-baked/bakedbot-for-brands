@@ -7,6 +7,8 @@ import { runElroy } from '@/server/agents/elroy';
 import { callGLM } from '@/ai/glm';
 import { requestContext } from '@/lib/request-context';
 import { archiveSlackResponse } from './slack-response-archive';
+import { recordResponseFeedback } from './response-feedback';
+import { detectSlackResponseIssues } from './slack-response-quality';
 import { sanitizeForPrompt } from '@/server/security';
 import {
     detectRiskyAction,
@@ -97,6 +99,11 @@ const SLACK_SYSTEM_USER: DecodedIdToken = {
     role: 'super_user',
     orgId: 'org_bakedbot_internal',
 } as unknown as DecodedIdToken;
+
+function getSlackFeedbackOrgId(personaId: string): string | null {
+    if (personaId === 'elroy') return 'org_thrive_syracuse';
+    return BAKEDBOT_INTERNAL_ORG;
+}
 
 /**
  * Convert Slack file objects to agent attachment format.
@@ -642,6 +649,20 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             }
         } catch (agentErr: any) {
             logger.error('[SlackBridge] Agent execution error:', agentErr.message);
+            recordResponseFeedback({
+                agentName: personaId,
+                rating: 'negative',
+                source: 'slack_incident',
+                orgId: getSlackFeedbackOrgId(personaId),
+                messageId: workingMessageTs || null,
+                conversationId: threadTs,
+                channel,
+                comment: `${getPersonaName(personaId)} failed to execute in Slack.`,
+                reason: 'execution_error',
+                userMessage: cleanText,
+                agentResponse: agentErr.message,
+                metadata: { isDm, isChannelMsg, appId },
+            }).catch((err) => logger.warn(`[SlackBridge] Feedback write failed: ${err}`));
             await sendOrUpdateThreadMessage(
                 `⚠️ ${getPersonaName(personaId)} encountered an issue: ${agentErr.message}. The team has been notified.`
             );
@@ -650,6 +671,20 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
 
         if (!result?.content) {
             logger.warn('[SlackBridge] Agent returned empty or undefined content', { personaId, hasResult: !!result });
+            recordResponseFeedback({
+                agentName: personaId,
+                rating: 'negative',
+                source: 'slack_incident',
+                orgId: getSlackFeedbackOrgId(personaId),
+                messageId: workingMessageTs || null,
+                conversationId: threadTs,
+                channel,
+                comment: `${getPersonaName(personaId)} returned an empty Slack response.`,
+                reason: 'empty_response',
+                userMessage: cleanText,
+                agentResponse: '',
+                metadata: { isDm, isChannelMsg, appId },
+            }).catch((err) => logger.warn(`[SlackBridge] Feedback write failed: ${err}`));
             await sendOrUpdateThreadMessage(
                 `Sorry, ${getPersonaName(personaId)} had trouble generating a response. Please try again.`
             );
@@ -702,7 +737,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                 timestamp: new Date(),
                 slackUserId,
                 channel,
-                channelName: '',
+                channelName: channelName || '',
                 threadTs,
                 userMessage: cleanText,
                 agent: personaId,
@@ -733,7 +768,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             timestamp: new Date(),
             slackUserId,
             channel,
-            channelName: '',
+            channelName: channelName || '',
             threadTs,
             userMessage: cleanText,
             agent: personaId,
@@ -746,6 +781,33 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             date: new Date().toISOString().split('T')[0],
             month: new Date().toISOString().split('T')[0].slice(0, 7),
         }).catch((err) => logger.warn(`[SlackBridge] Archive failed: ${err}`));
+
+        const slackQualityIssues = detectSlackResponseIssues(personaId, {
+            userMessage: cleanText,
+            agentResponse: cleanContent,
+        });
+        if (slackQualityIssues.length > 0) {
+            recordResponseFeedback({
+                agentName: personaId,
+                rating: 'negative',
+                source: 'slack_auto',
+                orgId: getSlackFeedbackOrgId(personaId),
+                messageId: workingMessageTs || null,
+                conversationId: threadTs,
+                channel,
+                comment: slackQualityIssues.map(issue => issue.summary).join(' | '),
+                reason: slackQualityIssues.map(issue => issue.key).join(','),
+                userMessage: cleanText,
+                agentResponse: cleanContent,
+                metadata: {
+                    isDm,
+                    isChannelMsg,
+                    appId,
+                    issueKeys: slackQualityIssues.map(issue => issue.key),
+                    proposedFixes: slackQualityIssues.map(issue => issue.proposedFix),
+                },
+            }).catch((err) => logger.warn(`[SlackBridge] Feedback write failed: ${err}`));
+        }
 
         logger.info(`[SlackBridge] Replied successfully to ${slackUserId} with ${personaId}`);
 

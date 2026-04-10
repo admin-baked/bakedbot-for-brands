@@ -56,6 +56,7 @@ const {
     stripBotMention,
     isGreeting,
     isMartyShortAcknowledgment,
+    shouldIgnoreSlackMessageEvent,
 } = require('../slack-agent-routing');
 
 describe('Slack Agent Bridge', () => {
@@ -196,6 +197,17 @@ describe('Slack Agent Bridge', () => {
         it('ignores normal strategy questions for Marty acknowledgment fast path', () => {
             expect(isMartyShortAcknowledgment("What's the pipeline looking like?")).toBe(false);
             expect(isMartyShortAcknowledgment('Check the inbox and draft follow-ups')).toBe(false);
+        });
+    });
+
+    describe('shouldIgnoreSlackMessageEvent', () => {
+        it('ignores join and leave system chatter', () => {
+            expect(shouldIgnoreSlackMessageEvent({ subtype: 'channel_join', text: 'Ade has joined the channel' })).toBe(true);
+            expect(shouldIgnoreSlackMessageEvent({ subtype: 'channel_leave', text: 'Ade has left the channel' })).toBe(true);
+        });
+
+        it('does not ignore normal user questions', () => {
+            expect(shouldIgnoreSlackMessageEvent({ text: "what's our gross sales for February 2026?" })).toBe(false);
         });
     });
 

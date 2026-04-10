@@ -814,25 +814,10 @@ async function martyToolExecutor(
             return await (defaultExecutiveBoardTools as any).executeSuperPower(args.script, args.options);
         }
         case 'marty_dream': {
-            const { runDreamSession } = await import('@/server/services/letta/dream-loop');
-            const model = (args.model as string) || 'glm';
-            const session = await runDreamSession('Marty', model as any);
-
-            // Post report to Slack #ceo channel
-            try {
-                const { postLinusIncidentSlack } = await import('@/server/services/incident-notifications');
-                await postLinusIncidentSlack({
-                    source: 'auto-escalator',
-                    channelName: 'ceo',
-                    fallbackText: `CEO Dream Session: ${session.hypotheses.length} hypotheses, ${session.hypotheses.filter(h => h.testResult === 'confirmed').length} confirmed`,
-                    blocks: [{
-                        type: 'section',
-                        text: { type: 'mrkdwn', text: session.report }
-                    }]
-                });
-            } catch (e) {
-                logger.warn('[Marty:Dream] Failed to post dream report to Slack', { error: String(e) });
-            }
+            const { runDreamSession, notifyDreamReview, isDreamModel } = await import('@/server/services/letta/dream-loop');
+            const requestedModel = isDreamModel(args.model) ? args.model : undefined;
+            const session = await runDreamSession('Marty', requestedModel);
+            await notifyDreamReview(session);
 
             return {
                 success: true,

@@ -25,7 +25,8 @@ export type LearningDeltaCategory =
   | 'manual_override_pattern'     // Users repeatedly overriding agent decisions
   | 'dead_end_loop'               // Agent entering loops without resolution
   | 'brand_brain_update'          // Proposed update to OrgProfile.operations
-  | 'eval_case_candidate';        // New golden set test case from production data
+  | 'eval_case_candidate'         // New golden set test case from production data
+  | 'benchmark_regression';       // Existing golden-set or benchmark regression that needs a fix
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Evidence Source

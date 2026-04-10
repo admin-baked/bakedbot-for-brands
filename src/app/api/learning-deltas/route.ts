@@ -136,6 +136,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             applyMessage = `Eval case approved. Append to ${delta.proposedAction.target} manually.`;
             break;
           }
+          case 'benchmark_regression': {
+            applyMessage = `Benchmark regression acknowledged. Review the failing agent behavior and fix ${delta.proposedAction.target} before re-running the benchmark.`;
+            break;
+          }
           case 'tool_failure_pattern': {
             applyMessage = `Tool failure pattern acknowledged. Update routing for ${delta.proposedAction.target}.`;
             applied = true;

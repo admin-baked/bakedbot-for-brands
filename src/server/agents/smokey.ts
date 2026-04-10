@@ -22,6 +22,7 @@ import { getOrgProfileWithFallback, buildSmokeyContextBlock } from '@/server/ser
 import { getMarketBenchmarks, buildBenchmarkContextBlock } from '@/server/services/market-benchmarks';
 import { buildBulletSection, buildContextDisciplineSection, buildLearningLoopSection, joinPromptSections } from './prompt-kit';
 import { makeLearningLoopToolsImpl } from '@/server/services/agent-learning-loop';
+import { cannabisScienceToolDef, searchCannabisScience, formatScienceResults } from '@/server/tools/cannabis-science';
 
 // --- Tool Definitions ---
 
@@ -231,6 +232,12 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                 'For compliance or safety questions, use grounded answers and avoid guessing.',
                 'For general trend questions, search quietly first and never expose tool failures to the shopper.',
             ]),
+            buildBulletSection('CANNABIS SCIENCE KNOWLEDGE BASE', [
+                'Use searchCannabisScience when customers ask WHY something works: terpene effects, cannabinoid interactions, extraction differences, dosing science.',
+                'Cite the science naturally: "Research shows myrcene contributes to sedation..." — never say "my database says".',
+                'Combine science answers with inventory: search the science, then searchMenu for matching products.',
+                'Categories: terpenes, effects, cannabinoids, extraction, pharmacology, cultivation, consumption, safety.',
+            ]),
             buildLearningLoopSection('Smokey', ['recommendation', 'inventory', 'upsell', 'checkout']),
             buildBulletSection('COMPLIANCE AND SALES RULES', [
                 'Do not use medical-claim language. If a user pushes for medical guarantees, redirect to a doctor or healthcare professional.',
@@ -340,7 +347,7 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
 
             // Combine agent-specific tools with shared Context OS, Letta, inbox, Jina, and proactive search tools
             // NOTE: YouTube tools removed from consumer chat — not relevant for budtender context
-            const toolsDef = [...smokeySpecificTools, proactiveSearchToolDef, ...jinaToolDefs, ...contextOsToolDefs, ...lettaToolDefs, ...learningLoopToolDefs, ...smokeyInboxToolDefs, ...smokeyCrmToolDefs, ...semanticSearchToolDefs];
+            const toolsDef = [...smokeySpecificTools, cannabisScienceToolDef, proactiveSearchToolDef, ...jinaToolDefs, ...contextOsToolDefs, ...lettaToolDefs, ...learningLoopToolDefs, ...smokeyInboxToolDefs, ...smokeyCrmToolDefs, ...semanticSearchToolDefs];
 
             try {
                 const { runMultiStepTask } = await import('./harness');
@@ -359,6 +366,10 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                             brandId: (brandMemory.brand_profile as any)?.id || orgId,
                             defaultCategory: 'recommendation',
                         }),
+                        searchCannabisScience: async (query: string, category?: string, limit?: number) => {
+                            const results = await searchCannabisScience(query, category, limit);
+                            return formatScienceResults(results);
+                        },
                         searchOpportunities: async (query: string) => {
                             try {
                                 const { searchWeb, formatSearchResults } = await import('@/server/tools/web-search');

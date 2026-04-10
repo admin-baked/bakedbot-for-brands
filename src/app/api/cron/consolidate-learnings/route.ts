@@ -21,7 +21,7 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import { createLearningDelta } from '@/types/learning-delta';
 import type { LearningDelta } from '@/types/learning-delta';
-import { detectMartySlackResponseIssues } from '@/server/services/slack-response-quality';
+import { detectSlackResponseIssues } from '@/server/services/slack-response-quality';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
@@ -51,6 +51,12 @@ const TWENTY_FOUR_HOURS_AGO = () => {
   const d = new Date();
   d.setHours(d.getHours() - 24);
   return d;
+};
+
+const QA_AGENT_FIX_TARGETS: Record<string, string> = {
+  smokey: 'src/server/agents/smokey.ts',
+  craig: 'src/server/agents/craig.ts',
+  deebo: 'src/server/agents/deebo-agent-impl.ts',
 };
 
 /**
@@ -237,29 +243,31 @@ async function analyzeSlackConversationQuality(db: FirebaseFirestore.Firestore):
       .limit(200)
       .get();
 
-    const issueMap = new Map<string, { count: number; sampleIds: string[]; proposedFix: string }>();
+    const issueMap = new Map<string, { count: number; sampleIds: string[]; proposedFix: string; agent: string }>();
 
     for (const doc of snap.docs) {
       const data = doc.data() as { agent?: string; userMessage?: string; agentResponse?: string };
-      if (data.agent !== 'marty') continue;
-      const issues = detectMartySlackResponseIssues({
+      const agentId = String(data.agent || '').trim().toLowerCase();
+      if (!agentId) continue;
+      const issues = detectSlackResponseIssues(agentId, {
         userMessage: String(data.userMessage || ''),
         agentResponse: String(data.agentResponse || ''),
       });
 
       for (const issue of issues) {
-        const existing = issueMap.get(issue.key) || { count: 0, sampleIds: [], proposedFix: issue.proposedFix };
+        const mapKey = `${agentId}:${issue.key}`;
+        const existing = issueMap.get(mapKey) || { count: 0, sampleIds: [], proposedFix: issue.proposedFix, agent: agentId };
         existing.count++;
         if (existing.sampleIds.length < 5) existing.sampleIds.push(doc.id);
-        issueMap.set(issue.key, existing);
+        issueMap.set(mapKey, existing);
       }
     }
 
     for (const [issueKey, data] of issueMap) {
       deltas.push(createLearningDelta({
         category: 'manual_override_pattern',
-        agentName: 'marty',
-        summary: `Marty hit Slack conversation anti-pattern "${issueKey}" ${data.count} time(s) in archived production replies. This should become a prompt/routing correction before it repeats.`,
+        agentName: data.agent,
+        summary: `Agent "${data.agent}" hit Slack conversation anti-pattern "${issueKey}" ${data.count} time(s) in archived production replies. This should become a prompt or workflow correction before it repeats.`,
         evidence: {
           source: 'production_incident',
           count: data.count,
@@ -268,8 +276,8 @@ async function analyzeSlackConversationQuality(db: FirebaseFirestore.Firestore):
         },
         proposedAction: {
           type: 'update_instructions',
-          target: 'src/server/agents/marty.ts',
-          diff: `${data.proposedFix} Add or reinforce an eval case for this Slack pattern in the Marty QA set.`,
+          target: QA_AGENT_FIX_TARGETS[data.agent] || `src/server/agents/${data.agent}.ts`,
+          diff: `${data.proposedFix} Add or reinforce an eval case for this Slack pattern in the relevant agent QA set.`,
         },
       }));
     }
@@ -281,7 +289,103 @@ async function analyzeSlackConversationQuality(db: FirebaseFirestore.Firestore):
 }
 
 /**
- * Step 4: Analyze compliance catches
+ * Step 5: Analyze QA golden-set benchmark regressions
+ */
+async function analyzeQABenchmarkFailures(db: FirebaseFirestore.Firestore): Promise<LearningDelta[]> {
+  const deltas: LearningDelta[] = [];
+  const since = TWENTY_FOUR_HOURS_AGO();
+
+  try {
+    const snap = await db.collection('qa_golden_eval_runs')
+      .where('ranAt', '>=', since)
+      .orderBy('ranAt', 'desc')
+      .limit(100)
+      .get();
+
+    const runMap = new Map<string, {
+      count: number;
+      sampleIds: string[];
+      latestScore: number;
+      threshold: number;
+      failureSummaries: string[];
+      failingTestIds: string[];
+      complianceFailed: boolean;
+    }>();
+
+    for (const doc of snap.docs) {
+      const data = doc.data() as {
+        agent?: string;
+        failed?: number;
+        score?: number;
+        threshold?: number;
+        complianceFailed?: boolean;
+        belowThreshold?: boolean;
+        failureSummaries?: string[];
+        failingTestIds?: string[];
+      };
+      const agent = String(data.agent || '').trim().toLowerCase();
+      if (!agent) continue;
+
+      const failed = Number(data.failed || 0);
+      const complianceFailed = data.complianceFailed === true;
+      const belowThreshold = data.belowThreshold === true;
+      if (failed === 0 && !complianceFailed && !belowThreshold) continue;
+
+      const existing = runMap.get(agent) || {
+        count: 0,
+        sampleIds: [],
+        latestScore: Number(data.score || 0),
+        threshold: Number(data.threshold || 0),
+        failureSummaries: [],
+        failingTestIds: [],
+        complianceFailed: false,
+      };
+
+      existing.count++;
+      existing.latestScore = Number(data.score || existing.latestScore || 0);
+      existing.threshold = Number(data.threshold || existing.threshold || 0);
+      existing.complianceFailed = existing.complianceFailed || complianceFailed;
+      if (existing.sampleIds.length < 5) existing.sampleIds.push(doc.id);
+
+      for (const summary of data.failureSummaries || []) {
+        if (existing.failureSummaries.length >= 5) break;
+        existing.failureSummaries.push(summary);
+      }
+      for (const testId of data.failingTestIds || []) {
+        if (existing.failingTestIds.length >= 5) break;
+        existing.failingTestIds.push(testId);
+      }
+
+      runMap.set(agent, existing);
+    }
+
+    for (const [agent, data] of runMap) {
+      deltas.push(createLearningDelta({
+        category: 'benchmark_regression',
+        agentName: agent,
+        summary: `Agent "${agent}" regressed on ${data.count} QA benchmark run(s) in 24h. Latest score ${data.latestScore}% vs ${data.threshold}% threshold.${data.complianceFailed ? ' Compliance-critical failure included.' : ''}${data.failureSummaries.length > 0 ? ` Sample failures: ${data.failureSummaries.join('; ')}` : ''}`,
+        evidence: {
+          source: 'golden_set',
+          count: data.count,
+          timeWindow: '24h',
+          sampleIds: data.sampleIds,
+        },
+        proposedAction: {
+          type: 'update_instructions',
+          target: QA_AGENT_FIX_TARGETS[agent] || `src/server/agents/${agent}.ts`,
+          diff: `Fix the regression behind benchmark cases [${data.failingTestIds.join(', ') || 'see run details'}], then rerun the golden-set benchmark before signoff.`,
+        },
+      }));
+    }
+  } catch (error) {
+    logger.error('[ConsolidateLearnings] QA benchmark analysis failed:', error as Record<string, unknown>);
+  }
+
+  return deltas;
+}
+
+/**
+ * Step 6: Analyze compliance catches
  */
 async function analyzeComplianceCatches(db: FirebaseFirestore.Firestore): Promise<LearningDelta[]> {
   const deltas: LearningDelta[] = [];
@@ -338,7 +442,7 @@ async function analyzeComplianceCatches(db: FirebaseFirestore.Firestore): Promis
 }
 
 /**
- * Step 5: Identify high-performing workflow trajectories from procedural memory
+ * Step 7: Identify high-performing workflow trajectories from procedural memory
  */
 async function analyzeHighPerformingWorkflows(db: FirebaseFirestore.Firestore): Promise<LearningDelta[]> {
   const deltas: LearningDelta[] = [];
@@ -410,7 +514,7 @@ async function analyzeHighPerformingWorkflows(db: FirebaseFirestore.Firestore): 
 }
 
 /**
- * Step 6: Refresh performance baselines for all orgs with recent order data
+ * Step 8: Refresh performance baselines for all orgs with recent order data
  */
 async function refreshPerformanceBaselines(db: FirebaseFirestore.Firestore): Promise<number> {
   let refreshed = 0;
@@ -487,17 +591,18 @@ async function handler(req: NextRequest): Promise<NextResponse> {
     const db = getAdminFirestore();
 
     // Run all analysis steps + baselines refresh in parallel
-    const [toolFailures, deadEndLoops, negativeFeedback, slackConversationQuality, complianceCatches, highPerformers, baselinesRefreshed] = await Promise.all([
+    const [toolFailures, deadEndLoops, negativeFeedback, slackConversationQuality, qaBenchmarkFailures, complianceCatches, highPerformers, baselinesRefreshed] = await Promise.all([
       analyzeToolFailures(db),
       analyzeDeadEndLoops(db),
       analyzeNegativeFeedback(db),
       analyzeSlackConversationQuality(db),
+      analyzeQABenchmarkFailures(db),
       analyzeComplianceCatches(db),
       analyzeHighPerformingWorkflows(db),
       refreshPerformanceBaselines(db),
     ]);
 
-    const allDeltas = [...toolFailures, ...deadEndLoops, ...negativeFeedback, ...slackConversationQuality, ...complianceCatches, ...highPerformers];
+    const allDeltas = [...toolFailures, ...deadEndLoops, ...negativeFeedback, ...slackConversationQuality, ...qaBenchmarkFailures, ...complianceCatches, ...highPerformers];
 
     // Persist deltas to Firestore
     const batch = db.batch();
@@ -518,6 +623,7 @@ async function handler(req: NextRequest): Promise<NextResponse> {
         dead_end_loops: deadEndLoops.length,
         negative_feedback: negativeFeedback.length,
         slack_conversation_quality: slackConversationQuality.length,
+        qa_benchmark_failures: qaBenchmarkFailures.length,
         compliance_catches: complianceCatches.length,
         high_performers: highPerformers.length,
         baselines_refreshed: baselinesRefreshed,

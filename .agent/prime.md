@@ -39,8 +39,8 @@ Before ANY work, verify the build is healthy:
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
 **Current Status:** ðŸŸ¢ Production live; Auto-listen mic + last order display on tablet
-**Recent work (2026-04-10):** `b26732f42` auto-listen voice w/ silence detection, last order items from POS, 25s voice timeout, demo reset script + `7df394268` Option E tablet flow
-**Prior (2026-04-10/09):** `69f379ae9` QA pressure tests; `7ba8f8257` creative approvals; `efb64bb0c` agent resilience; `230fcd369` proxy hardening
+**Recent work (2026-04-10):** Elroy sales grounding + Thrive pilot Slack cleanup route, join/leave noise filter, live Slack cleanup dry-run path, repo typecheck green
+**Prior (2026-04-10):** `b26732f42` auto-listen voice w/ silence detection, last order items from POS, 25s voice timeout, demo reset script + `7df394268` Option E tablet flow
 - Marty CEO agent: full super powers, Slack DM routing, manages all executives toward $1M ARR
 - Club MVP shipped (`9eb4a6d36`): Customer PWA /club, mood video cache, event pipeline + 5 triggers, tablet PWA
 - 7-day retention nudge email (cron job)

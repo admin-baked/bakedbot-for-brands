@@ -205,6 +205,58 @@ export class SlackService {
         }
     }
 
+    async listChannelMessages(
+        channel: string,
+        options?: { limit?: number; cursor?: string; oldest?: string; latest?: string }
+    ): Promise<{
+        messages: Array<{ ts: string; text: string; user?: string; botId?: string; subtype?: string }>;
+        nextCursor?: string;
+    }> {
+        const client = this.getClient('listChannelMessages');
+        if (!client) {
+            return { messages: [] };
+        }
+
+        try {
+            const result = await client.conversations.history({
+                channel,
+                limit: options?.limit ?? 200,
+                cursor: options?.cursor,
+                oldest: options?.oldest,
+                latest: options?.latest,
+            });
+
+            return {
+                messages: (result.messages ?? []).map((message: any) => ({
+                    ts: message.ts ?? '',
+                    text: (message.text ?? '').trim(),
+                    user: message.user ?? undefined,
+                    botId: message.bot_id ?? undefined,
+                    subtype: message.subtype ?? undefined,
+                })),
+                nextCursor: result.response_metadata?.next_cursor || undefined,
+            };
+        } catch (e: any) {
+            logger.warn(`[Slack] listChannelMessages failed for ${channel}: ${e.message}`);
+            return { messages: [] };
+        }
+    }
+
+    async deleteMessage(channel: string, ts: string): Promise<{ deleted: boolean; error?: string }> {
+        const client = this.getClient('deleteMessage');
+        if (!client) {
+            return { deleted: false, error: 'No Token' };
+        }
+
+        try {
+            await client.chat.delete({ channel, ts });
+            return { deleted: true };
+        } catch (e: any) {
+            logger.warn(`[Slack] Delete message failed for ${channel}/${ts}: ${e.message}`);
+            return { deleted: false, error: e.message };
+        }
+    }
+
     async authTest(): Promise<{ bot_id?: string; app_id?: string; user_id?: string; team?: string; url?: string } | null> {
         const client = this.getClient('authTest');
         if (!client) return null;

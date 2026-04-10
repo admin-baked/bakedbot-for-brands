@@ -5,6 +5,7 @@ import { createHmac, timingSafeEqual } from 'crypto';
 import { logger } from '@/lib/logger';
 import { processSlackMessage, welcomeNewMember } from '@/server/services/slack-agent-bridge';
 import { slackService, elroySlackService, linusSlackService, martySlackService } from '@/server/services/communications/slack';
+import { shouldIgnoreSlackMessageEvent } from '@/server/services/slack-agent-routing';
 
 // Force dynamic - never cache webhook handlers
 export const dynamic = 'force-dynamic';
@@ -143,8 +144,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // We fire-and-forget the heavy processing
     const response = NextResponse.json({ ok: true });
 
-    // Skip messages from bots (prevents infinite loop with our own replies)
-    if (event.bot_id || event.subtype === 'bot_message') {
+    // Skip bot chatter and Slack system message subtypes (join/leave/topic/etc.)
+    if (shouldIgnoreSlackMessageEvent(event)) {
         return response;
     }
 
