@@ -232,15 +232,16 @@ async function analyzeSlackConversationQuality(db: FirebaseFirestore.Firestore):
 
   try {
     const snap = await db.collection('slack_responses')
-      .where('agent', '==', 'marty')
       .where('timestamp', '>=', since)
+      .orderBy('timestamp', 'desc')
       .limit(200)
       .get();
 
     const issueMap = new Map<string, { count: number; sampleIds: string[]; proposedFix: string }>();
 
     for (const doc of snap.docs) {
-      const data = doc.data() as { userMessage?: string; agentResponse?: string };
+      const data = doc.data() as { agent?: string; userMessage?: string; agentResponse?: string };
+      if (data.agent !== 'marty') continue;
       const issues = detectMartySlackResponseIssues({
         userMessage: String(data.userMessage || ''),
         agentResponse: String(data.agentResponse || ''),

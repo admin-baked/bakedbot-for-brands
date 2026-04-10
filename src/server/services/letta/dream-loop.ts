@@ -161,7 +161,6 @@ async function introspect(agentName: string): Promise<DreamSession['introspectio
         );
         queries.push(
             db.collection('slack_responses')
-                .where('agent', '==', 'marty')
                 .where('timestamp', '>=', since)
                 .orderBy('timestamp', 'desc')
                 .limit(50)
@@ -202,7 +201,8 @@ async function introspect(agentName: string): Promise<DreamSession['introspectio
 
     if (slackResponsesSnap && slackResponsesSnap.size > 0) {
         for (const doc of slackResponsesSnap.docs) {
-            const data = doc.data() as { userMessage?: string; agentResponse?: string };
+            const data = doc.data() as { agent?: string; userMessage?: string; agentResponse?: string };
+            if (data.agent !== 'marty') continue;
             const issues = detectMartySlackResponseIssues({
                 userMessage: String(data.userMessage || ''),
                 agentResponse: String(data.agentResponse || ''),
