@@ -360,28 +360,62 @@ async function elroyToolExecutor(toolName: string, input: Record<string, unknown
         }
 
         case 'get_daily_sales': {
-            const db = getAdminFirestore();
-            const todayStart = new Date();
-            todayStart.setHours(0, 0, 0, 0);
-            const snap = await db.collection('orders')
-                .where('brandId', '==', ORG_ID)
-                .where('createdAt', '>=', todayStart)
-                .get();
+            try {
+                const db = getAdminFirestore();
+                const todayStart = new Date();
+                todayStart.setHours(0, 0, 0, 0);
+                const snap = await db.collection('orders')
+                    .where('brandId', '==', ORG_ID)
+                    .where('createdAt', '>=', todayStart)
+                    .get();
 
-            if (snap.empty) return { revenue: 0, transactions: 0, averageTicket: 0, message: 'No transactions recorded yet today.' };
+                if (snap.empty) return { revenue: 0, transactions: 0, averageTicket: 0, message: 'No transactions recorded yet today.' };
 
-            let revenue = 0;
-            snap.docs.forEach((d: any) => {
-                const data = d.data() as any;
-                revenue += data.totals?.total ?? data.total ?? 0;
-            });
-            const transactions = snap.size;
-            return {
-                revenue: Math.round(revenue * 100) / 100,
-                transactions,
-                averageTicket: Math.round((revenue / transactions) * 100) / 100,
-                asOf: new Date().toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit' }) + ' ET',
-            };
+                let revenue = 0;
+                snap.docs.forEach((d: any) => {
+                    const data = d.data() as any;
+                    revenue += data.totals?.total ?? data.total ?? 0;
+                });
+                const transactions = snap.size;
+                return {
+                    revenue: Math.round(revenue * 100) / 100,
+                    transactions,
+                    averageTicket: Math.round((revenue / transactions) * 100) / 100,
+                    asOf: new Date().toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit' }) + ' ET',
+                };
+            } catch (e: unknown) {
+                const msg = e instanceof Error ? e.message : String(e);
+                if (msg.includes('index') || msg.includes('FAILED_PRECONDITION')) {
+                    logger.warn('[Elroy] get_daily_sales index missing, using fallback', { error: msg });
+                    // Fallback: fetch recent orders without composite index
+                    const db = getAdminFirestore();
+                    const snap = await db.collection('orders')
+                        .where('brandId', '==', ORG_ID)
+                        .orderBy('createdAt', 'desc')
+                        .limit(100)
+                        .get();
+                    const todayStart = new Date();
+                    todayStart.setHours(0, 0, 0, 0);
+                    let revenue = 0;
+                    let transactions = 0;
+                    snap.docs.forEach((d: any) => {
+                        const data = d.data() as any;
+                        const createdAt = data.createdAt?.toDate?.() ?? new Date(data.createdAt);
+                        if (createdAt >= todayStart) {
+                            revenue += data.totals?.total ?? data.total ?? 0;
+                            transactions++;
+                        }
+                    });
+                    return {
+                        revenue: Math.round(revenue * 100) / 100,
+                        transactions,
+                        averageTicket: transactions > 0 ? Math.round((revenue / transactions) * 100) / 100 : 0,
+                        asOf: new Date().toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit' }) + ' ET',
+                        note: 'Using fallback query — Firestore index being built.',
+                    };
+                }
+                throw e;
+            }
         }
 
         case 'get_top_sellers': {
@@ -391,26 +425,51 @@ async function elroyToolExecutor(toolName: string, input: Record<string, unknown
                 `elroy:top_sellers:${ORG_ID}:${limit}`,
                 async () => {
                     const db = getAdminFirestore();
-                    const snap = await db.collection('products')
-                        .where('orgId', '==', ORG_ID)
-                        .orderBy('salesLast7Days', 'desc')
-                        .limit(limit)
+                    // Compute top sellers from actual order line items (last 7 days)
+                    const weekAgo = new Date();
+                    weekAgo.setDate(weekAgo.getDate() - 7);
+                    const ordersSnap = await db.collection('orders')
+                        .where('brandId', '==', ORG_ID)
+                        .where('createdAt', '>=', weekAgo)
                         .get();
 
-                    if (snap.empty) return { message: 'No product sales data available.' };
+                    if (ordersSnap.empty) {
+                        // Fallback: try products collection for pre-aggregated data
+                        const prodSnap = await db.collection('products')
+                            .where('orgId', '==', ORG_ID)
+                            .limit(limit)
+                            .get();
+                        if (prodSnap.empty) return { message: 'No product sales data available.' };
+                        return prodSnap.docs.map((d: any) => {
+                            const p = d.data() as any;
+                            return { name: p.name ?? p.productName ?? 'Unknown', category: p.category ?? null, price: p.price ?? null, unitsSold7d: 0, revenue7d: 0 };
+                        });
+                    }
 
-                    return snap.docs.map((d: any) => {
-                        const p = d.data() as any;
-                        return {
-                            name: p.name ?? p.productName ?? 'Unknown',
-                            category: p.category ?? p.categoryName ?? null,
-                            price: p.price ?? p.basePrice ?? null,
-                            unitsSold7d: p.salesLast7Days ?? 0,
-                            unitsSold30d: p.salesLast30Days ?? null,
-                            trending: p.trending ?? false,
-                            inStock: p.inStock ?? p.available ?? true,
-                        };
+                    // Aggregate sales by product name from order line items
+                    const productSales = new Map<string, { name: string; category: string; qty: number; revenue: number }>();
+                    ordersSnap.docs.forEach((d: any) => {
+                        const items: any[] = d.data().items ?? [];
+                        items.forEach((item: any) => {
+                            const name = item.name ?? item.productName ?? 'Unknown';
+                            const existing = productSales.get(name) || { name, category: item.category ?? 'other', qty: 0, revenue: 0 };
+                            existing.qty += item.qty ?? 1;
+                            existing.revenue += (item.price ?? 0) * (item.qty ?? 1);
+                            productSales.set(name, existing);
+                        });
                     });
+
+                    const sorted = [...productSales.values()]
+                        .sort((a, b) => b.revenue - a.revenue)
+                        .slice(0, limit);
+
+                    if (sorted.length === 0) return { message: 'No product sales data in the last 7 days.' };
+                    return sorted.map(p => ({
+                        name: p.name,
+                        category: p.category,
+                        unitsSold7d: p.qty,
+                        revenue7d: Math.round(p.revenue * 100) / 100,
+                    }));
                 },
                 CacheTTL.CRM_SEGMENTS // 5 min
             );
@@ -459,11 +518,45 @@ async function elroyToolExecutor(toolName: string, input: Record<string, unknown
                     const weekAgoStart = new Date(todayStart);
                     weekAgoStart.setDate(weekAgoStart.getDate() - 7);
 
-                    const [todaySnap, yesterdaySnap, weekSnap] = await Promise.all([
-                        db.collection('orders').where('brandId', '==', ORG_ID).where('createdAt', '>=', todayStart).get(),
-                        db.collection('orders').where('brandId', '==', ORG_ID).where('createdAt', '>=', yesterdayStart).where('createdAt', '<', todayStart).get(),
-                        db.collection('orders').where('brandId', '==', ORG_ID).where('createdAt', '>=', weekAgoStart).where('createdAt', '<', todayStart).get(),
-                    ]);
+                    let todaySnap, yesterdaySnap, weekSnap;
+                    try {
+                        [todaySnap, yesterdaySnap, weekSnap] = await Promise.all([
+                            db.collection('orders').where('brandId', '==', ORG_ID).where('createdAt', '>=', todayStart).get(),
+                            db.collection('orders').where('brandId', '==', ORG_ID).where('createdAt', '>=', yesterdayStart).where('createdAt', '<', todayStart).get(),
+                            db.collection('orders').where('brandId', '==', ORG_ID).where('createdAt', '>=', weekAgoStart).where('createdAt', '<', todayStart).get(),
+                        ]);
+                    } catch (e: unknown) {
+                        const msg = e instanceof Error ? e.message : String(e);
+                        if (msg.includes('index') || msg.includes('FAILED_PRECONDITION')) {
+                            logger.warn('[Elroy] get_sales_summary index missing, using fallback', { error: msg });
+                            // Fallback: single query, client-side date filter
+                            const allSnap = await db.collection('orders')
+                                .where('brandId', '==', ORG_ID)
+                                .orderBy('createdAt', 'desc')
+                                .limit(500)
+                                .get();
+                            let todayRev = 0, yestRev = 0, weekRev = 0;
+                            let todayTx = 0, yestTx = 0, weekTx = 0;
+                            allSnap.docs.forEach((d: any) => {
+                                const data = d.data() as any;
+                                const createdAt = data.createdAt?.toDate?.() ?? new Date(data.createdAt);
+                                const amt = data.totals?.total ?? data.total ?? 0;
+                                if (createdAt >= todayStart) { todayRev += amt; todayTx++; }
+                                else if (createdAt >= yesterdayStart) { yestRev += amt; yestTx++; }
+                                if (createdAt >= weekAgoStart && createdAt < todayStart) { weekRev += amt; weekTx++; }
+                            });
+                            const weekDailyAvg = weekRev / 7;
+                            return {
+                                today: { revenue: Math.round(todayRev * 100) / 100, transactions: todayTx },
+                                yesterday: { revenue: Math.round(yestRev * 100) / 100, transactions: yestTx },
+                                sevenDayAvg: { revenue: Math.round(weekDailyAvg * 100) / 100, transactions: Math.round(weekTx / 7) },
+                                vsYesterday: yestRev > 0 ? `${((todayRev / yestRev - 1) * 100).toFixed(1)}%` : 'N/A',
+                                vsDailyAvg: weekDailyAvg > 0 ? `${((todayRev / weekDailyAvg - 1) * 100).toFixed(1)}%` : 'N/A',
+                                note: 'Using fallback query — Firestore index being built.',
+                            };
+                        }
+                        throw e;
+                    }
 
                     const sumRevenue = (docs: any[]) =>
                         docs.reduce((sum, d) => sum + ((d.data() as any).totals?.total ?? (d.data() as any).total ?? 0), 0);
@@ -708,13 +801,18 @@ const ELROY_AGENT_CONTEXT: AgentContext = {
         'discovery_summarize_page — quick page summary',
     ],
     groundingRules: [
-        'Always use tools to fetch live data before answering',
+        'ALWAYS call a tool BEFORE answering — NEVER say "let me check" without actually calling the tool in the same turn',
         'Cite days-inactive and LTV when listing at-risk customers',
         'Flag staleness when reporting competitor intel',
         'For "right now" or "today" competitor questions, use run_competitive_agent (live, 30–90s) over get_competitor_intel (cached)',
         'For coding/technical questions, use ask_opencode to delegate to SP13',
         'For revenue/sales questions, use get_daily_sales or get_sales_summary',
         'For product performance questions, use get_top_sellers',
+        'For "new customers today" or "sign ups" questions, use get_today_checkins',
+        'For "deals" or "what should I run" questions, use get_top_sellers + get_competitor_intel to recommend data-driven deals',
+        'For "complaints" or "issues" questions, use get_recent_transactions to check for refunds or anomalies',
+        'For "compare" or "competition" questions, use get_competitor_intel or run_competitive_agent',
+        'For "text customers" or "SMS" questions, use get_customer_segments to identify the target segment first',
         'Always include the asOf timestamp when reporting today\'s sales',
         'NEVER submit a form on an external site without explicit user confirmation first',
         'For holiday or special hours questions, use get_competitor_holiday_hours (Google Places) — NOT run_competitive_agent',

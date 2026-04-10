@@ -497,13 +497,32 @@ export async function getSegmentSummary(
         async () => {
             const firestore = getAdminFirestore();
 
-            const snap = await firestore.collection('customers')
-                .where('orgId', '==', orgId)
-                .get();
+            // Fetch customers and their POS spending data in parallel
+            const [snap, spendingSnap] = await Promise.all([
+                firestore.collection('customers')
+                    .where('orgId', '==', orgId)
+                    .get(),
+                firestore.collection('tenants').doc(orgId)
+                    .collection('customer_spending')
+                    .get(),
+            ]);
 
             if (snap.empty) {
                 return { summary: `No customers found for organization ${orgId}.`, segments: {} };
             }
+
+            // Build spending lookup by email (POS sync writes to customer_spending)
+            const spendingByEmail = new Map<string, { totalSpent: number; orderCount: number; avgOrderValue: number; lastOrderDate?: Date; firstOrderDate?: Date }>();
+            spendingSnap.docs.forEach(doc => {
+                const d = doc.data();
+                spendingByEmail.set(doc.id, {
+                    totalSpent: d.totalSpent || 0,
+                    orderCount: d.orderCount || 0,
+                    avgOrderValue: d.avgOrderValue || 0,
+                    lastOrderDate: d.lastOrderDate?.toDate?.() ?? (d.lastOrderDate ? new Date(d.lastOrderDate) : undefined),
+                    firstOrderDate: d.firstOrderDate?.toDate?.() ?? (d.firstOrderDate ? new Date(d.firstOrderDate) : undefined),
+                });
+            });
 
             const segments: Record<CustomerSegment, { count: number; totalSpent: number; avgSpend: number; recentActiveCount: number }> = {
                 vip: { count: 0, totalSpent: 0, avgSpend: 0, recentActiveCount: 0 },
@@ -522,16 +541,21 @@ export async function getSegmentSummary(
 
             snap.docs.forEach(doc => {
                 const data = doc.data();
-                const spent = data.totalSpent || 0;
-                const orders = data.orderCount || 0;
-                const avgOV = orders > 0 ? spent / orders : 0;
-                const daysSince = data.lastOrderDate
-                    ? Math.floor((Date.now() - (data.lastOrderDate?.toDate?.()?.getTime?.() || new Date(data.lastOrderDate).getTime())) / (1000 * 60 * 60 * 24))
+                // Enrich from POS spending data (customer_spending collection)
+                const email = (data.email || '').toLowerCase();
+                const spending = spendingByEmail.get(email);
+                const spent = spending?.totalSpent || data.totalSpent || 0;
+                const orders = spending?.orderCount || data.orderCount || 0;
+                const avgOV = spending?.avgOrderValue || (orders > 0 ? spent / orders : 0);
+                const lastOrder = spending?.lastOrderDate || (data.lastOrderDate?.toDate?.() ?? (data.lastOrderDate ? new Date(data.lastOrderDate) : undefined));
+                const firstOrder = spending?.firstOrderDate;
+                const daysSince = lastOrder
+                    ? Math.floor((Date.now() - lastOrder.getTime()) / (1000 * 60 * 60 * 24))
                     : undefined;
 
                 // Always recalculate from live fields — stored data.segment is set at import time
                 // and never updated, causing customers to stay "new" indefinitely.
-                const seg = calculateSegment({ totalSpent: spent, orderCount: orders, avgOrderValue: avgOV, daysSinceLastOrder: daysSince, lifetimeValue: spent });
+                const seg = calculateSegment({ totalSpent: spent, orderCount: orders, avgOrderValue: avgOV, daysSinceLastOrder: daysSince, lifetimeValue: spent, firstOrderDate: firstOrder ? firstOrder.toISOString() : undefined });
 
                 if (segments[seg as CustomerSegment]) {
                     segments[seg as CustomerSegment].count++;
