@@ -336,13 +336,35 @@ function buildInitialSlackStatus(personaId: string, cleanText: string): string {
         if (isGreeting(lower)) {
             return `_${personaName} is typing..._`;
         }
-        return `_${personaName} is reviewing the situation..._`;
+        if (/\b(email|inbox|gmail|mail|unread|draft|reply)\b/.test(lower)) {
+            return `_${personaName} is checking the CEO inbox..._`;
+        }
+        if (/\b(mrr|revenue|arr|pipeline|customer|churn|sales)\b/.test(lower)) {
+            return `_${personaName} is pulling the numbers..._`;
+        }
+        if (/\b(delegate|assign|tell|ask)\s+(linus|leo|jack|glenda|ezal|craig|smokey|deebo)\b/.test(lower)) {
+            return `_${personaName} is delegating to the team..._`;
+        }
+        return `_${personaName} is on it — reviewing and pulling the right data..._`;
     }
 
     if (personaId === 'elroy') {
         if (isGreeting(lower)) {
             return `_${personaName} is typing..._`;
         }
+        if (/\b(customer|at.risk|win.?back|outreach|retention)\b/.test(lower)) {
+            return `_${personaName} is pulling customer data..._`;
+        }
+        if (/\b(sale|revenue|transaction|ticket|sold)\b/.test(lower)) {
+            return `_${personaName} is checking today's sales..._`;
+        }
+        if (/\b(menu|inventory|stock|product|flower|edible|vape)\b/.test(lower)) {
+            return `_${personaName} is checking the menu..._`;
+        }
+        if (/\b(competitor|flnnstoned|deal|pricing|market)\b/.test(lower)) {
+            return `_${personaName} is pulling competitor intel..._`;
+        }
+        return `_${personaName} is on it — checking the store data..._`;
     }
 
     return `_${personaName} is thinking..._`;

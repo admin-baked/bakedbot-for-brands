@@ -39,6 +39,9 @@ import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integ
 import { executeWithTools, isClaudeAvailable, type ClaudeResult } from '@/ai/claude';
 import { executeGLMWithTools, GLM_MODELS, isGLMConfigured } from '@/ai/glm';
 import { executeGeminiFlashWithTools, isGeminiFlashConfigured } from '@/ai/gemini-flash-tools';
+import { google } from 'googleapis';
+import { getGmailToken } from '@/server/integrations/gmail/token-storage';
+import { getOAuth2ClientAsync } from '@/server/integrations/gmail/oauth';
 
 const GLM_REFUSAL_PATTERNS = [
     'security restrictions',
@@ -485,6 +488,26 @@ export interface MartyResponse {
     model: string;
 }
 
+/**
+ * Get an authenticated Gmail client for the CEO (martez@bakedbot.ai).
+ * Uses CEO_GMAIL_UID env var to look up the super user's stored OAuth tokens.
+ */
+async function getCeoGmailClient() {
+    const ceoUid = process.env.CEO_GMAIL_UID;
+    if (!ceoUid) {
+        logger.warn('[Marty:Gmail] CEO_GMAIL_UID env var not set');
+        return null;
+    }
+    const credentials = await getGmailToken(ceoUid);
+    if (!credentials?.refresh_token) {
+        logger.warn('[Marty:Gmail] No Gmail tokens found for CEO', { ceoUid });
+        return null;
+    }
+    const authClient = await getOAuth2ClientAsync();
+    authClient.setCredentials(credentials);
+    return google.gmail({ version: 'v1', auth: authClient });
+}
+
 /** CEO tools exposed in Slack — streamlined subset, no browser/shell. */
 const MARTY_SLACK_TOOLS = [
     { name: 'delegateTask', description: 'Assign a task to any agent in the squad.', input_schema: { type: 'object' as const, properties: { personaId: { type: 'string', description: 'Agent ID to delegate to' }, task: { type: 'string', description: 'Task description' } }, required: ['personaId', 'task'] } },
@@ -594,6 +617,139 @@ async function martyToolExecutor(toolName: string, args: Record<string, unknown>
                 return { success: false, error: String(e) };
             }
         }
+        // Gmail — CEO inbox management (martez@bakedbot.ai)
+        case 'gmail_search': {
+            const query = String(args.query ?? 'is:unread');
+            const maxResults = typeof args.maxResults === 'number' ? Math.min(args.maxResults, 50) : 10;
+            try {
+                const gmail = await getCeoGmailClient();
+                if (!gmail) return { error: 'Gmail not connected for CEO account. Connect in Settings > Integrations.' };
+                const res = await gmail.users.threads.list({ userId: 'me', q: query, maxResults });
+                const threads = res.data.threads || [];
+                // Fetch snippet + subject for each thread
+                const details = await Promise.all(threads.slice(0, maxResults).map(async (t: any) => {
+                    const thread = await gmail.users.threads.get({ userId: 'me', id: t.id!, format: 'metadata', metadataHeaders: ['Subject', 'From', 'Date'] });
+                    const firstMsg = thread.data.messages?.[0];
+                    const headers = firstMsg?.payload?.headers || [];
+                    return {
+                        threadId: t.id,
+                        subject: headers.find((h: any) => h.name === 'Subject')?.value ?? '(no subject)',
+                        from: headers.find((h: any) => h.name === 'From')?.value ?? '',
+                        date: headers.find((h: any) => h.name === 'Date')?.value ?? '',
+                        snippet: firstMsg?.snippet ?? '',
+                        messageCount: thread.data.messages?.length ?? 0,
+                    };
+                }));
+                return { threads: details, total: res.data.resultSizeEstimate ?? details.length };
+            } catch (e: any) {
+                logger.error('[Marty:Gmail] Search failed', { error: e.message });
+                return { error: `Gmail search failed: ${e.message}` };
+            }
+        }
+        case 'gmail_read_thread': {
+            const threadId = String(args.threadId ?? '');
+            if (!threadId) return { error: 'threadId is required' };
+            try {
+                const gmail = await getCeoGmailClient();
+                if (!gmail) return { error: 'Gmail not connected for CEO account.' };
+                const thread = await gmail.users.threads.get({ userId: 'me', id: threadId, format: 'full' });
+                const messages = (thread.data.messages || []).map((msg: any) => {
+                    const headers = msg.payload?.headers || [];
+                    let body = msg.snippet || '';
+                    if (msg.payload?.body?.data) {
+                        body = Buffer.from(msg.payload.body.data, 'base64').toString('utf-8');
+                    } else if (msg.payload?.parts) {
+                        const textPart = msg.payload.parts.find((p: any) => p.mimeType === 'text/plain');
+                        if (textPart?.body?.data) body = Buffer.from(textPart.body.data, 'base64').toString('utf-8');
+                    }
+                    return {
+                        id: msg.id,
+                        from: headers.find((h: any) => h.name === 'From')?.value ?? '',
+                        to: headers.find((h: any) => h.name === 'To')?.value ?? '',
+                        date: headers.find((h: any) => h.name === 'Date')?.value ?? '',
+                        subject: headers.find((h: any) => h.name === 'Subject')?.value ?? '',
+                        body: body.slice(0, 3000), // Cap body to avoid token bloat
+                    };
+                });
+                return { threadId, messages };
+            } catch (e: any) {
+                logger.error('[Marty:Gmail] Read thread failed', { error: e.message });
+                return { error: `Gmail read failed: ${e.message}` };
+            }
+        }
+        case 'gmail_draft_reply': {
+            const to = String(args.to ?? '');
+            const subject = String(args.subject ?? '');
+            const body = String(args.body ?? '');
+            if (!to || !subject || !body) return { error: 'to, subject, and body are required' };
+            try {
+                const gmail = await getCeoGmailClient();
+                if (!gmail) return { error: 'Gmail not connected for CEO account.' };
+                const cc = typeof args.cc === 'string' ? args.cc.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+                const rawParts = [
+                    `To: ${to}`,
+                    ...(cc.length > 0 ? [`Cc: ${cc.join(', ')}`] : []),
+                    `Subject: ${subject}`,
+                    ...(args.htmlBody ? [
+                        'Content-Type: multipart/alternative; boundary="boundary"',
+                        '',
+                        '--boundary',
+                        'Content-Type: text/plain; charset="UTF-8"',
+                        '',
+                        body,
+                        '--boundary',
+                        'Content-Type: text/html; charset="UTF-8"',
+                        '',
+                        String(args.htmlBody),
+                        '--boundary--',
+                    ] : [
+                        'Content-Type: text/plain; charset="UTF-8"',
+                        '',
+                        body,
+                    ]),
+                ];
+                const raw = Buffer.from(rawParts.join('\r\n')).toString('base64')
+                    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+                const draft = await gmail.users.drafts.create({
+                    userId: 'me',
+                    requestBody: { message: { raw } },
+                });
+                return { success: true, draftId: draft.data.id, to, subject, note: 'Draft saved — review and send from Gmail.' };
+            } catch (e: any) {
+                logger.error('[Marty:Gmail] Draft failed', { error: e.message });
+                return { error: `Gmail draft failed: ${e.message}` };
+            }
+        }
+        case 'gmail_label': {
+            const threadId = String(args.threadId ?? '');
+            const labelId = String(args.labelId ?? '');
+            const action = String(args.action ?? 'add');
+            if (!threadId || !labelId) return { error: 'threadId and labelId are required' };
+            try {
+                const gmail = await getCeoGmailClient();
+                if (!gmail) return { error: 'Gmail not connected for CEO account.' };
+                await gmail.users.threads.modify({
+                    userId: 'me',
+                    id: threadId,
+                    requestBody: action === 'remove'
+                        ? { removeLabelIds: [labelId] }
+                        : { addLabelIds: [labelId] },
+                });
+                return { success: true, threadId, labelId, action };
+            } catch (e: any) {
+                return { error: `Gmail label failed: ${e.message}` };
+            }
+        }
+        case 'gmail_list_labels': {
+            try {
+                const gmail = await getCeoGmailClient();
+                if (!gmail) return { error: 'Gmail not connected for CEO account.' };
+                const res = await gmail.users.labels.list({ userId: 'me' });
+                return { labels: (res.data.labels || []).map((l: any) => ({ id: l.id, name: l.name, type: l.type })) };
+            } catch (e: any) {
+                return { error: `Gmail list labels failed: ${e.message}` };
+            }
+        }
         default:
             return { error: `Unknown tool: ${toolName}` };
     }
@@ -669,6 +825,14 @@ DECISION FRAMEWORK:
 - What's the fastest path to revenue? Optimize for speed.
 - Are we building what customers actually want?
 - Is the team aligned?
+
+GMAIL — CEO INBOX (martez@bakedbot.ai):
+You have direct access to the CEO inbox. Use it to:
+- Search and triage incoming emails (gmail_search)
+- Read full email threads for context (gmail_read_thread)
+- Draft replies on behalf of the CEO — saved as drafts, NOT sent (gmail_draft_reply)
+- Organize with labels (gmail_label, gmail_list_labels)
+When drafting replies, write as Martez — professional, warm, decisive. Always save as draft so the CEO can review before sending.
 
 GROUNDING RULES:
 1. ONLY report data you can query with tools. Never fabricate metrics.
