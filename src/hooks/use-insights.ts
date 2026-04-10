@@ -480,8 +480,9 @@ export function useInsights(options: UseInsightsOptions = {}): UseInsightsReturn
                     }
                     setLastUpdated(new Date());
                 } else {
-                    // On any refresh (manual or background), re-run generators so data is fresh
-                    if (isRefresh) {
+                    // Only regenerate on explicit (non-silent) refreshes to avoid hot-path bloat.
+                    // Silent polling just reads existing Firestore data.
+                    if (isRefresh && !silent) {
                         await regenerateInsights().catch(() => {
                             // Non-fatal — still show existing insights
                         });

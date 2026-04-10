@@ -60,11 +60,10 @@ export async function evaluateEscalation(
       reason = `${pattern.consecutiveApprovals} consecutive approvals, ${Math.round(pattern.approvalRate * 100)}% rate`;
     }
   } else if (current === 2) {
-    // Check demotion first
-    if (pattern.consecutiveApprovals === 0 && pattern.declines >= AUTONOMY_THRESHOLDS.DEMOTE_DECLINES) {
-      // Check if last 2 decisions were declines
+    // Demote on 2 consecutive declines
+    if ((pattern.consecutiveDeclines ?? 0) >= AUTONOMY_THRESHOLDS.DEMOTE_DECLINES) {
       newLevel = 1;
-      reason = 'Consecutive declines triggered demotion';
+      reason = `${pattern.consecutiveDeclines} consecutive declines triggered demotion`;
     } else if (
       pattern.consecutiveApprovals >= AUTONOMY_THRESHOLDS.L3_CONSECUTIVE &&
       pattern.approvalRate >= AUTONOMY_THRESHOLDS.L3_RATE
@@ -73,7 +72,7 @@ export async function evaluateEscalation(
       reason = `${pattern.consecutiveApprovals} consecutive approvals, ${Math.round(pattern.approvalRate * 100)}% rate`;
     }
   } else if (current === 3) {
-    if (pattern.consecutiveApprovals === 0) {
+    if ((pattern.consecutiveDeclines ?? 0) >= 1) {
       newLevel = 2;
       reason = 'User undo or decline triggered demotion';
     } else if (pattern.consecutiveApprovals >= AUTONOMY_THRESHOLDS.L4_CONSECUTIVE) {

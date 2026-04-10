@@ -81,6 +81,7 @@ export interface ApprovalPatternRecord {
   approvalRate: number;
   avgResponseLatencyMs: number;
   consecutiveApprovals: number;
+  consecutiveDeclines: number;
   autonomyLevel: AutonomyLevel;
   autonomyEscalatedAt?: Date;
   lastDecisionAt: Date;

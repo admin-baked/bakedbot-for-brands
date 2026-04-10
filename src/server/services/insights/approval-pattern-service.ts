@@ -51,6 +51,7 @@ export async function recordApprovalDecision(
       approvalRate: decision === 'approved' ? 1 : 0,
       avgResponseLatencyMs: responseLatencyMs,
       consecutiveApprovals: decision === 'approved' ? 1 : 0,
+      consecutiveDeclines: decision === 'declined' ? 1 : 0,
       autonomyLevel: 1,
       lastDecisionAt: now,
       updatedAt: now,
@@ -69,8 +70,11 @@ export async function recordApprovalDecision(
   const newAvgLatency = Math.round(
     (existing.avgResponseLatencyMs * existing.totalDecisions + responseLatencyMs) / newTotal
   );
-  const newConsecutive = decision === 'approved'
+  const newConsecutiveApprovals = decision === 'approved'
     ? existing.consecutiveApprovals + 1
+    : 0;
+  const newConsecutiveDeclines = decision === 'declined'
+    ? (existing.consecutiveDeclines ?? 0) + 1
     : 0;
 
   const updated: Partial<ApprovalPatternRecord> = {
@@ -79,7 +83,8 @@ export async function recordApprovalDecision(
     declines: newDeclines,
     approvalRate: Math.round(newRate * 100) / 100,
     avgResponseLatencyMs: newAvgLatency,
-    consecutiveApprovals: newConsecutive,
+    consecutiveApprovals: newConsecutiveApprovals,
+    consecutiveDeclines: newConsecutiveDeclines,
     lastDecisionAt: now,
     updatedAt: now,
   };

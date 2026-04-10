@@ -13,6 +13,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { logger } from '@/lib/logger';
 import { callClaude } from '@/ai/claude';
 import { redditSearch } from '@/server/tools/reddit-tools';
+import { getAgentDisplayName } from '@/types/insight-cards';
 import type {
   DiscoveredCardDefinition,
   CardProposal,
@@ -43,17 +44,6 @@ const VALID_CATEGORIES: InsightCategory[] = [
 const VALID_AGENT_IDS = [
   'money_mike', 'pops', 'smokey', 'mrs_parker', 'deebo', 'ezal', 'craig', 'day_day',
 ];
-
-const AGENT_NAMES: Record<string, string> = {
-  money_mike: 'Money Mike',
-  pops: 'Pops',
-  smokey: 'Smokey',
-  mrs_parker: 'Mrs. Parker',
-  deebo: 'Deebo',
-  ezal: 'Ezal',
-  craig: 'Craig',
-  day_day: 'Day-Day',
-};
 
 // ============================================================================
 // Discovery Logic
@@ -101,7 +91,7 @@ export async function discoverNewCards(orgId: string): Promise<DiscoveredCardDef
       description: p.description,
       category: p.category,
       agentId: p.agentId,
-      agentName: AGENT_NAMES[p.agentId] ?? p.agentId,
+      agentName: getAgentDisplayName(p.agentId),
       dataSource: p.dataSource,
       queryConfig: p.queryConfig,
       headlineTemplate: p.headlineTemplate,
@@ -151,7 +141,8 @@ async function gatherRedditTrends(): Promise<string> {
     return summaries.length > 0
       ? summaries.join('\n\n')
       : 'No Reddit trends available this week.';
-  } catch {
+  } catch (err) {
+    logger.warn('[CardDiscovery] Reddit trends fetch failed', { error: err });
     return 'Reddit trends unavailable.';
   }
 }
@@ -175,7 +166,8 @@ async function gatherCompetitiveContext(orgId: string): Promise<string> {
     });
 
     return `Recent competitive changes:\n${entries.join('\n')}`;
-  } catch {
+  } catch (err) {
+    logger.warn('[CardDiscovery] Competitive context fetch failed', { error: err });
     return 'Competitive intel unavailable.';
   }
 }
@@ -191,7 +183,8 @@ async function getExistingDynamicTitles(orgId: string): Promise<string[]> {
       .get();
 
     return snap.docs.map((doc) => doc.data().title as string);
-  } catch {
+  } catch (err) {
+    logger.warn('[CardDiscovery] Failed to load existing dynamic titles', { error: err });
     return [];
   }
 }
