@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** ðŸŸ¢ Production live; login hardening + Marty proactive CEO mode | **Last update:** 2026-04-10 (login timeouts/broken image fix, Marty market search + short-ack fast path + own pipeline)
+**Current Status:** ðŸŸ¢ Production live; Option E returning customer flow + QR receipt review | **Last update:** 2026-04-10 (tablet returning flow, Alleaves profile linking, Slack routing refactor)
 
 ---
 
