@@ -62,7 +62,7 @@ export default function MemberLoyaltyPage() {
         return (
             <div className="min-h-screen bg-black flex flex-col items-center justify-center text-white">
                 <Loader2 className="h-10 w-10 animate-spin text-emerald-500 mb-4" />
-                <p className="font-medium tracking-widest uppercase text-xs opacity-50">Thrive Club</p>
+                <p className="font-medium tracking-widest uppercase text-xs opacity-50">Rewards</p>
             </div>
         );
     }
@@ -94,7 +94,7 @@ export default function MemberLoyaltyPage() {
                         <ArrowLeft className="h-6 w-6" />
                     </div>
                     <div>
-                        <h2 className="font-black text-xl leading-none">Thrive Club</h2>
+                        <h2 className="font-black text-xl leading-none">Rewards</h2>
                         <p className="text-[10px] uppercase tracking-widest font-bold text-emerald-500 mt-1">Status: {member.status}</p>
                     </div>
                 </div>

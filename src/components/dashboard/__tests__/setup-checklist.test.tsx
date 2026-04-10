@@ -52,6 +52,11 @@ jest.mock('@/components/ui/progress', () => ({
     Progress: ({ value }: any) => <div data-testid="progress" data-value={String(value)} />,
 }));
 
+jest.mock('@/server/actions/onboarding-progress', () => ({
+    getCompletedOnboardingSteps: jest.fn().mockResolvedValue([]),
+    completeOnboardingStep: jest.fn().mockResolvedValue({ success: true }),
+}));
+
 describe('SetupChecklist', () => {
     const dismissKey = `setup-checklist-dismissed-${ONBOARDING_PHASE1_VERSION}`;
 

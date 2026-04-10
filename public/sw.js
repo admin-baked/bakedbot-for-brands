@@ -2,7 +2,7 @@
 // BakedBot PWA Service Worker
 // Provides offline functionality and caching
 
-const CACHE_NAME = 'bakedbot-v4'; // Bump version to invalidate old caches
+const CACHE_NAME = 'bakedbot-v5'; // Bump version to invalidate old caches
 const OFFLINE_URL = '/offline.html';
 
 // Assets to cache on install

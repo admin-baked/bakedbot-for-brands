@@ -38,6 +38,7 @@ import {
   ONBOARDING_PHASE1_VERSION,
 } from '@/lib/onboarding/activation';
 import type { OnboardingPrimaryGoal } from '@/types/onboarding';
+import { getCompletedOnboardingSteps } from '@/server/actions/onboarding-progress';
 
 const DISMISS_KEY = `setup-checklist-dismissed-${ONBOARDING_PHASE1_VERSION}`;
 
@@ -182,8 +183,10 @@ export function buildChecklistItems(params: {
   brandGuideComplete: boolean;
   linkedStatus: { isLinked: boolean; posConnected: boolean };
   competitiveIntelComplete: boolean;
+  /** Server-persisted completed steps (supplements auto-detected completion) */
+  serverCompletedSteps?: string[];
 }): ChecklistItem[] {
-  const { roleType, primaryGoal, brandGuideComplete, linkedStatus, competitiveIntelComplete } = params;
+  const { roleType, primaryGoal, brandGuideComplete, linkedStatus, competitiveIntelComplete, serverCompletedSteps } = params;
 
   const orderedIds: string[] = ['brand-guide'];
 
@@ -200,7 +203,8 @@ export function buildChecklistItems(params: {
     return true;
   });
 
-  const completed = new Set<string>();
+  // Merge auto-detected + server-persisted completions
+  const completed = new Set<string>(serverCompletedSteps || []);
   if (brandGuideComplete) completed.add('brand-guide');
   if (linkedStatus.isLinked) completed.add('link-dispensary');
   if (linkedStatus.posConnected) completed.add('connect-pos');
@@ -256,6 +260,7 @@ export function SetupChecklist() {
   const [linkedStatusLoaded, setLinkedStatusLoaded] = useState(false);
   const [competitiveIntelComplete, setCompetitiveIntelComplete] = useState(false);
   const [competitiveIntelLoaded, setCompetitiveIntelLoaded] = useState(false);
+  const [serverCompletedSteps, setServerCompletedSteps] = useState<string[]>([]);
 
   const primaryGoal =
     normalizeOnboardingPrimaryGoal(userData?.onboarding?.primaryGoal)
@@ -292,9 +297,13 @@ export function SetupChecklist() {
     setCompetitiveIntelLoaded(false);
 
     void (async () => {
-      const status = await getCompetitiveIntelSetupStatus();
+      const [status, steps] = await Promise.all([
+        getCompetitiveIntelSetupStatus(),
+        getCompletedOnboardingSteps(),
+      ]);
       if (!active) return;
       setCompetitiveIntelComplete(status.isComplete);
+      setServerCompletedSteps(steps);
       setCompetitiveIntelLoaded(true);
     })();
 
@@ -328,6 +337,7 @@ export function SetupChecklist() {
         brandGuideComplete,
         linkedStatus,
         competitiveIntelComplete,
+        serverCompletedSteps,
       });
     }
 
@@ -338,11 +348,12 @@ export function SetupChecklist() {
         brandGuideComplete,
         linkedStatus,
         competitiveIntelComplete,
+        serverCompletedSteps,
       });
     }
 
     return [] as ChecklistItem[];
-  }, [brandGuideComplete, competitiveIntelComplete, isBrandRole, isDispensaryRole, linkedStatus, primaryGoal]);
+  }, [brandGuideComplete, competitiveIntelComplete, isBrandRole, isDispensaryRole, linkedStatus, primaryGoal, serverCompletedSteps]);
 
   const completedCount = items.filter((item) => item.status === 'done').length;
   const totalCount = items.length;

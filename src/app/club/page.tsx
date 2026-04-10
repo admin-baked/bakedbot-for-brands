@@ -37,7 +37,7 @@ export default function ClubHomePage() {
                     </div>
                 )}
                 <div>
-                    <h1 className="text-lg font-bold">{storeName} Club</h1>
+                    <h1 className="text-lg font-bold">{storeName} Rewards</h1>
                     {member ? (
                         <p className="text-sm text-white/60">
                             Welcome back, {member.firstName}

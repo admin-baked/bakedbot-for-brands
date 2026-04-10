@@ -26,6 +26,7 @@ if (typeof window !== 'undefined') {
 function isStandalone(): boolean {
     if (typeof window === 'undefined') return false;
     return (
+        window.matchMedia('(display-mode: fullscreen)').matches ||
         window.matchMedia('(display-mode: standalone)').matches ||
         // Android TWA / WebAPK
         document.referrer.includes('android-app://') ||

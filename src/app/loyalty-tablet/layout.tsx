@@ -2,12 +2,15 @@ import type { Metadata, Viewport } from 'next';
 
 export const metadata: Metadata = {
     title: 'Check In',
-    description: 'In-store check-in powered by BakedBot',
+    description: 'In-store loyalty check-in powered by BakedBot',
     manifest: '/tablet-manifest.json',
     appleWebApp: {
         capable: true,
         statusBarStyle: 'black-translucent',
         title: 'Check-In',
+    },
+    other: {
+        'permissions-policy': 'microphone=(self)',
     },
 };
 

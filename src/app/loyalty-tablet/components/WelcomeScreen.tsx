@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { PublicBrandTheme } from '@/lib/checkin/checkin-management-shared';
 import { slideVariants } from './shared';
+import { APP_VERSION } from '@/lib/version';
 import { CSSProperties } from 'react';
 
 interface WelcomeScreenProps {
@@ -48,9 +49,9 @@ export function WelcomeScreen({
                 <div className="text-6xl sm:text-8xl">🍃</div>
             )}
             <div>
-                <h1 className="mb-3 text-3xl font-black text-gray-900 sm:text-5xl">{brandName} Club</h1>
+                <h1 className="mb-3 text-3xl font-black text-gray-900 sm:text-5xl">{brandName} Rewards</h1>
                 <p className="text-base sm:text-xl" style={{ color: mutedTextColor }}>
-                    Join the elite circle. Earn points, get Smokey's pro picks, and unlock exclusive perks every visit.
+                    Earn points, get Smokey&apos;s pro picks, and unlock exclusive perks every visit.
                 </p>
             </div>
             
@@ -62,6 +63,7 @@ export function WelcomeScreen({
                 >
                     <span className="text-4xl">🚀</span>
                     <span className="text-xl font-black uppercase tracking-tight">Check In</span>
+                    <span className="text-xs opacity-70 -mt-1">Returning member</span>
                 </button>
 
                 <button
@@ -69,7 +71,8 @@ export function WelcomeScreen({
                     className="flex flex-col items-center justify-center gap-3 rounded-[32px] p-8 transition-all hover:opacity-95 active:scale-[0.98] bg-white border-2 border-gray-100 shadow-lg border-b-4 border-b-gray-200"
                 >
                     <span className="text-4xl">💎</span>
-                    <span className="text-xl font-black uppercase tracking-tight text-gray-900">Join Club</span>
+                    <span className="text-xl font-black uppercase tracking-tight text-gray-900">Join Rewards</span>
+                    <span className="text-xs text-gray-400 -mt-1">First time? Start here</span>
                 </button>
 
                 <button
@@ -89,7 +92,7 @@ export function WelcomeScreen({
                 </button>
             </div>
 
-            <p className="text-sm font-bold animate-pulse" style={{ color: faintTextColor }}>Tap any action to begin</p>
+            <p className="text-xs" style={{ color: faintTextColor }}>v{APP_VERSION}</p>
         </motion.div>
     );
 }

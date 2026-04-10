@@ -44,7 +44,7 @@ export async function sendReturningCustomerEmail(
         const subjects = [
             `Great seeing you today, ${firstName}! 🌿`,
             `Your visit to ${brandName} today`,
-            `${firstName}, your Thrive picks are ready`,
+            `${firstName}, your picks are ready`,
         ];
         const subject = subjects[Math.floor(Math.random() * subjects.length)];
 

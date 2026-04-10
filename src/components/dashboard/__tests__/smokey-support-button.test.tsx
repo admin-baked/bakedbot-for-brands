@@ -32,6 +32,17 @@ jest.mock('@/components/dashboard/message-support-dialog', () => {
   };
 });
 
+jest.mock('@/hooks/use-user', () => ({
+  useUser: () => ({ userData: {}, isLoading: false }),
+}));
+jest.mock('@/hooks/use-brand-guide', () => ({
+  useBrandGuide: () => ({ brandGuide: null, loading: false }),
+}));
+jest.mock('@/server/actions/onboarding-progress', () => ({
+  getCompletedOnboardingSteps: jest.fn().mockResolvedValue([]),
+  completeOnboardingStep: jest.fn().mockResolvedValue({ success: true }),
+}));
+
 describe('SmokeyFloatingButton route visibility regression', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -46,18 +57,18 @@ describe('SmokeyFloatingButton route visibility regression', () => {
     expect(screen.getByRole('button', { name: /Open Help & Setup/i })).toBeInTheDocument();
   });
 
-  it('hides floating help button on menu page to avoid overlap with Smokey widget', () => {
+  it('shows compact help button on menu page instead of full side tab', () => {
     mockUsePathname.mockReturnValue('/dashboard/menu');
-    const { container } = render(<SmokeyFloatingButton />);
+    render(<SmokeyFloatingButton />);
 
-    expect(container).toBeEmptyDOMElement();
+    expect(screen.getByRole('button', { name: /Open Help & Setup/i })).toBeInTheDocument();
   });
 
-  it('hides floating help button on creative studio to avoid blocking schedule actions', () => {
+  it('shows compact help button on creative studio instead of full side tab', () => {
     mockUsePathname.mockReturnValue('/dashboard/creative');
-    const { container } = render(<SmokeyFloatingButton />);
+    render(<SmokeyFloatingButton />);
 
-    expect(container).toBeEmptyDOMElement();
+    expect(screen.getByRole('button', { name: /Open Help & Setup/i })).toBeInTheDocument();
   });
 
   it('keeps help prompt visible on mobile-like viewport for non-menu routes', () => {

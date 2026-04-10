@@ -90,7 +90,7 @@ export default function LoyaltyTabletPage() {
                         mutedTextColor={mutedTextColor}
                         faintTextColor={faintTextColor}
                         primaryButtonStyle={primaryButtonStyle}
-                        onCheckIn={() => flow.setStep('phone')}
+                        onCheckIn={() => { flow.setQuickDigits(''); flow.setQuickMatches([]); flow.setStep('quick_lookup'); }}
                         onJoinClub={() => flow.setStep('phone')}
                         onFindPass={() => { flow.setQuickDigits(''); flow.setQuickMatches([]); flow.setStep('quick_lookup'); }}
                         onAskSmokey={() => flow.setStep('mood')}

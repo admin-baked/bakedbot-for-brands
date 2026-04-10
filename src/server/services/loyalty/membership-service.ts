@@ -165,7 +165,7 @@ export class MembershipService {
             membershipId: membershipId,
             rewardType: "welcome_reward",
             title: "Join Bonus: 10% Off",
-            description: "Thanks for joining Thrive Club!",
+            description: "Thanks for joining our Rewards program!",
             status: "available",
             value: { percentOff: 10 },
             issuedAt: now,

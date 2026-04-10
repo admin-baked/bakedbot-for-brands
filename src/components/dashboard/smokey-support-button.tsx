@@ -33,25 +33,131 @@ import {
   getLinkedDispensaryStatus,
   type ChecklistItem,
 } from './setup-checklist';
+import { getCompletedOnboardingSteps, completeOnboardingStep } from '@/server/actions/onboarding-progress';
+import type { OnboardingStepId } from '@/types/onboarding';
 
-// Hide on routes with dense primary actions where the tab could steal clicks.
-const BLOCKED_ROUTES = ['/dashboard/menu', '/dashboard/settings', '/dashboard/creative'];
+// Dense pages get a compact trigger instead of the full side tab.
+const COMPACT_ROUTES = ['/dashboard/menu', '/dashboard/settings', '/dashboard/creative'];
 
 type View = 'onboarding' | 'help';
 
 // ─────────────────────────────────────────────────────────────
+// Contextual step awareness — detect which onboarding step
+// the user is currently on and surface micro-instructions.
+// ─────────────────────────────────────────────────────────────
+interface StepContext {
+  stepId: string;
+  tips: string[];
+}
+
+function getActiveStepContext(pathname: string): StepContext | null {
+  if (pathname.includes('/dashboard/settings/brand-guide')) {
+    return {
+      stepId: 'brand-guide',
+      tips: [
+        'Fill in your brand voice, colors, and compliance defaults.',
+        'Aim for 80%+ completeness to unlock agent work.',
+        'Upload a logo and hero image for social content.',
+      ],
+    };
+  }
+  if (pathname.includes('/dashboard/settings/link')) {
+    return {
+      stepId: 'link-dispensary',
+      tips: [
+        'Search for your dispensary by name or enter it manually.',
+        'Linking enables tenant-safe check-in and reporting.',
+      ],
+    };
+  }
+  if (pathname.includes('/dashboard/apps')) {
+    return {
+      stepId: 'connect-pos',
+      tips: [
+        'Connect your POS or import a menu CSV.',
+        'Real products power tablet recommendations and lifecycle content.',
+      ],
+    };
+  }
+  if (pathname.includes('/dashboard/dispensary/checkin')) {
+    return {
+      stepId: 'checkin-manager',
+      tips: [
+        'Configure your welcome message and check-in flow.',
+        'Preview the tablet experience before going live.',
+      ],
+    };
+  }
+  if (pathname.includes('/dashboard/loyalty-tablet-qr')) {
+    return {
+      stepId: 'qr-training',
+      tips: [
+        'Print the QR code for your front door.',
+        'Walk staff through the tablet check-in flow.',
+      ],
+    };
+  }
+  if (pathname.includes('/dashboard/creative')) {
+    return {
+      stepId: 'creative-center',
+      tips: [
+        'Pick a quick start or template to create your first draft.',
+        'Your Brand Guide voice and colors are auto-applied.',
+        'Schedule or publish directly from the editor.',
+      ],
+    };
+  }
+  if (pathname.includes('/dashboard/competitive-intel')) {
+    return {
+      stepId: 'competitive-intel',
+      tips: [
+        'Pick competitors to track, then activate daily reports.',
+        'Reports land in email and Slack (if connected).',
+      ],
+    };
+  }
+  if (pathname.includes('/dashboard/playbooks')) {
+    return {
+      stepId: 'welcome-playbook',
+      tips: [
+        'Review the Welcome Playbook automation.',
+        'Connect email if needed, then activate.',
+      ],
+    };
+  }
+  if (pathname.includes('/dashboard/inbox')) {
+    return {
+      stepId: 'inbox-foundations',
+      tips: [
+        'This is where agent work and approvals land.',
+        'Playbooks keep repeatable work running automatically.',
+      ],
+    };
+  }
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────────
 // Onboarding panel view — always accessible, no dismiss button
 // ─────────────────────────────────────────────────────────────
-function OnboardingPanelView({ onHelpClick }: { onHelpClick: () => void }) {
+function OnboardingPanelView({ onHelpClick, activeStep }: { onHelpClick: () => void; activeStep: StepContext | null }) {
   const { role, isBrandRole, isDispensaryRole, orgId } = useUserRole();
   const { userData, isLoading: isUserLoading } = useUser();
   const { brandGuide } = useBrandGuide(orgId || '');
   const [items, setItems] = useState<ChecklistItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
   const primaryGoal =
     normalizeOnboardingPrimaryGoal(userData?.onboarding?.primaryGoal)
     || getDefaultOnboardingPrimaryGoal(role);
   const brandGuideComplete = (brandGuide?.completenessScore || 0) >= 80;
+
+  // Listen for step completion events to refresh the checklist
+  useEffect(() => {
+    const handler = () => setRefreshKey((k) => k + 1);
+    window.addEventListener('onboarding-step-complete', handler);
+    return () => window.removeEventListener('onboarding-step-complete', handler);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -72,11 +178,12 @@ function OnboardingPanelView({ onHelpClick }: { onHelpClick: () => void }) {
 
       setIsLoading(true);
 
-      const [linkedStatus, competitiveIntelStatus] = await Promise.all([
+      const [linkedStatus, competitiveIntelStatus, serverSteps] = await Promise.all([
         roleType === 'dispensary'
           ? getLinkedDispensaryStatus()
           : Promise.resolve({ isLinked: false, posConnected: false }),
         getCompetitiveIntelSetupStatus(),
+        getCompletedOnboardingSteps(),
       ]);
 
       if (!active) {
@@ -89,6 +196,7 @@ function OnboardingPanelView({ onHelpClick }: { onHelpClick: () => void }) {
         brandGuideComplete,
         linkedStatus,
         competitiveIntelComplete: competitiveIntelStatus.isComplete,
+        serverCompletedSteps: serverSteps,
       }));
       setIsLoading(false);
     }
@@ -98,7 +206,7 @@ function OnboardingPanelView({ onHelpClick }: { onHelpClick: () => void }) {
     return () => {
       active = false;
     };
-  }, [brandGuideComplete, isBrandRole, isDispensaryRole, isUserLoading, primaryGoal]);
+  }, [brandGuideComplete, isBrandRole, isDispensaryRole, isUserLoading, primaryGoal, refreshKey]);
 
   const completedCount = items.filter(i => i.status === 'done').length;
   const totalCount = items.length;
@@ -132,6 +240,22 @@ function OnboardingPanelView({ onHelpClick }: { onHelpClick: () => void }) {
         <Progress value={progressPercent} className="h-1.5" />
       </div>
 
+      {/* Contextual tips for active step */}
+      {activeStep && (
+        <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 space-y-1.5">
+          <div className="text-xs font-semibold text-primary flex items-center gap-1.5">
+            <Sparkles className="h-3 w-3" />
+            Tips for this page
+          </div>
+          {activeStep.tips.map((tip, i) => (
+            <div key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
+              <span className="text-primary/60 mt-0.5 flex-shrink-0">•</span>
+              {tip}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Checklist items */}
       {totalCount > 0 && (
         <div className="space-y-0.5">
@@ -143,7 +267,9 @@ function OnboardingPanelView({ onHelpClick }: { onHelpClick: () => void }) {
                 'flex items-center gap-3 p-2 rounded-lg transition-colors group',
                 item.status === 'done'
                   ? 'opacity-50'
-                  : 'hover:bg-muted/60'
+                  : activeStep?.stepId === item.id
+                    ? 'bg-primary/10 ring-1 ring-primary/30'
+                    : 'hover:bg-muted/60'
               )}
             >
               <div className={cn(
@@ -286,7 +412,15 @@ export function SmokeyFloatingButton() {
   const pathname = usePathname();
   const { role } = useUserRole();
 
-  const isBlocked = BLOCKED_ROUTES.some((route) => pathname.includes(route));
+  const isCompact = COMPACT_ROUTES.some((route) => pathname.includes(route));
+  const activeStep = getActiveStepContext(pathname);
+
+  // Auto-open to onboarding view when landing on a setup step page
+  useEffect(() => {
+    if (activeStep && !open) {
+      setView('onboarding');
+    }
+  }, [activeStep]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleTabClick = useCallback(() => {
     setOpen((prev) => {
@@ -307,28 +441,51 @@ export function SmokeyFloatingButton() {
     return null;
   }
 
-  if (isBlocked) return null;
-
   const headerTitle = view === 'onboarding' ? 'Setup Guide' : 'Help Center';
 
   return (
     <>
-      {/* Side Tab */}
-      <button
-        onClick={handleTabClick}
-        title={open ? 'Close support panel' : 'Open Help & Setup'}
-        aria-label={open ? 'Close support panel' : 'Open Help & Setup'}
-        className="fixed right-0 top-[45%] -translate-y-1/2 z-50 flex flex-col items-center justify-center gap-1.5 bg-primary text-primary-foreground px-2.5 py-4 rounded-l-xl shadow-lg hover:shadow-xl hover:px-3.5 transition-all duration-150 cursor-pointer select-none"
-      >
-        <Sparkles className="h-4 w-4 flex-shrink-0" />
-        <span className="text-[9px] font-bold tracking-widest uppercase [writing-mode:vertical-rl] rotate-180 leading-none">
-          {open ? 'Close' : 'Help'}
-        </span>
-      </button>
+      {/* Trigger — compact circle on dense pages, full side tab elsewhere */}
+      {isCompact ? (
+        <button
+          onClick={handleTabClick}
+          title={open ? 'Close support panel' : 'Open Help & Setup'}
+          aria-label={open ? 'Close support panel' : 'Open Help & Setup'}
+          className={cn(
+            'fixed right-4 bottom-4 z-50 w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all duration-150 cursor-pointer select-none',
+            open
+              ? 'bg-muted text-foreground'
+              : 'bg-primary text-primary-foreground hover:shadow-xl hover:scale-105',
+            activeStep && !open && 'ring-2 ring-primary/50 ring-offset-2 animate-pulse'
+          )}
+        >
+          {open ? <X className="h-4 w-4" /> : <HelpCircle className="h-4 w-4" />}
+        </button>
+      ) : (
+        <button
+          onClick={handleTabClick}
+          title={open ? 'Close support panel' : 'Open Help & Setup'}
+          aria-label={open ? 'Close support panel' : 'Open Help & Setup'}
+          className={cn(
+            'fixed right-0 top-[45%] -translate-y-1/2 z-50 flex flex-col items-center justify-center gap-1.5 bg-primary text-primary-foreground px-2.5 py-4 rounded-l-xl shadow-lg hover:shadow-xl hover:px-3.5 transition-all duration-150 cursor-pointer select-none',
+            activeStep && !open && 'animate-pulse'
+          )}
+        >
+          <Sparkles className="h-4 w-4 flex-shrink-0" />
+          <span className="text-[9px] font-bold tracking-widest uppercase [writing-mode:vertical-rl] rotate-180 leading-none">
+            {open ? 'Close' : 'Help'}
+          </span>
+        </button>
+      )}
 
       {/* Side Panel */}
       {open && (
-        <div className="fixed right-10 top-16 z-50 w-80 max-h-[80vh] shadow-2xl rounded-2xl border bg-background overflow-hidden flex flex-col">
+        <div className={cn(
+          'fixed z-50 shadow-2xl rounded-2xl border bg-background overflow-hidden flex flex-col',
+          isCompact
+            ? 'right-4 bottom-16 w-80 max-h-[70vh]'
+            : 'right-10 top-16 w-80 max-h-[80vh]'
+        )}>
           {/* Panel Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30 flex-shrink-0">
             <div className="flex items-center gap-2">
@@ -356,7 +513,7 @@ export function SmokeyFloatingButton() {
           {/* Panel Content */}
           <div className="overflow-y-auto flex-1 p-4">
             {view === 'onboarding' ? (
-              <OnboardingPanelView onHelpClick={handleHelpClick} />
+              <OnboardingPanelView onHelpClick={handleHelpClick} activeStep={activeStep} />
             ) : (
               <HelpPanelView role={role} onOnboardingClick={handleOnboardingClick} />
             )}
