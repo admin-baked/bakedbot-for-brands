@@ -9,6 +9,8 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { MapPin, Search, TrendingUp, Users, Store } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Navbar } from '@/components/landing/navbar';
+import { LandingFooter } from '@/components/landing/footer';
 
 export const metadata: Metadata = {
     title: 'Find Cannabis Near You | BakedBot',
@@ -37,7 +39,8 @@ const POPULAR_AREAS = [
 
 export default function LocalPage() {
     return (
-        <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+        <div className="min-h-screen flex flex-col pt-16 bg-gradient-to-b from-slate-50 to-white">
+            <Navbar />
             {/* Hero Section */}
             <header className="py-16 md:py-24 px-4">
                 <div className="max-w-4xl mx-auto text-center">
@@ -147,6 +150,7 @@ export default function LocalPage() {
                     </Button>
                 </div>
             </section>
+            <LandingFooter />
         </div>
     );
 }

@@ -1,8 +1,23 @@
+import type { Metadata } from 'next';
 import { PricingSection } from '@/components/landing/pricing-section';
 import { Navbar } from '@/components/landing/navbar';
 import { LandingFooter } from '@/components/landing/footer';
 import { PROMO_CODES } from '@/config/promos';
 import Link from 'next/link';
+
+export const metadata: Metadata = {
+    title: 'Pricing | BakedBot AI — Cannabis Commerce OS',
+    description:
+        'Free listings. Paid plans from $149/mo. AI-powered SEO menus, campaigns, loyalty, competitive intel, and compliance for cannabis brands and dispensaries.',
+    alternates: { canonical: 'https://bakedbot.ai/pricing' },
+    openGraph: {
+        title: 'Pricing | BakedBot AI',
+        description:
+            'From free visitor check-in to full AI-powered commerce. Plans for every stage of cannabis growth.',
+        type: 'website',
+        url: 'https://bakedbot.ai/pricing',
+    },
+};
 
 export default async function PricingPage({ searchParams }: { searchParams: Promise<{ promo?: string }> }) {
     const { promo } = await searchParams;
@@ -30,51 +45,56 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
                     </div>
                 )}
 
-                <div className="container mx-auto px-4 py-12 text-center">
-                    <h1 className="text-4xl font-bold font-teko uppercase text-primary mb-4">
-                        Hire Your Digital Workforce
+                {/* Single hero — PricingSection owns the h2, this is the page h1 */}
+                <div className="container mx-auto px-4 pt-12 pb-4 text-center">
+                    <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
+                        Plans that grow with your business
                     </h1>
-                    <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-12">
-                        Start with a free Scout to audit your market, or deploy a full executive team to dominate it.
+                    <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                        Free listings for every brand. Paid plans unlock AI agents, campaigns, and competitive intel.
                     </p>
                 </div>
 
                 <PricingSection />
 
-                {/* Get Started Section */}
+                {/* CTA Section */}
                 <div className="container mx-auto px-4 py-16">
                     <div className="max-w-2xl mx-auto text-center">
                         <h2 className="text-2xl font-bold mb-4">Ready to Get Started?</h2>
                         <p className="text-muted-foreground mb-8">
-                            Start free with Scout — no credit card required. Upgrade anytime.
+                            Start free — no credit card required. Upgrade anytime as you grow.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-3 justify-center">
                             <Link
-                                href={`/get-started?plan=scout${promoCode ? `&promo=${promoCode}` : ''}`}
-                                className="inline-flex items-center justify-center h-12 px-8 rounded-md bg-primary text-white font-medium hover:bg-primary/90 transition-colors"
+                                href={`/onboarding?plan=free${promoCode ? `&promo=${promoCode}` : ''}`}
+                                className="inline-flex items-center justify-center h-12 px-8 rounded-full bg-slate-900 text-white font-medium hover:bg-slate-800 transition-colors"
                             >
-                                Start Free (Scout)
+                                Start Free
                             </Link>
                             <Link
-                                href={`/get-started?plan=pro${promoCode ? `&promo=${promoCode}` : ''}`}
-                                className="inline-flex items-center justify-center h-12 px-8 rounded-md border border-slate-300 font-medium hover:bg-slate-50 transition-colors"
+                                href={`/onboarding?plan=retain${promoCode ? `&promo=${promoCode}` : ''}`}
+                                className="inline-flex items-center justify-center h-12 px-8 rounded-full border border-slate-300 font-medium hover:bg-slate-50 transition-colors"
                             >
-                                Start Pro — $99/mo
+                                Start Retain — $799/mo
                             </Link>
                         </div>
                     </div>
                 </div>
 
                 {/* Enterprise Section */}
-                <div className="bg-slate-900 text-white py-24 mt-12">
+                <div className="bg-slate-900 text-white py-24">
                      <div className="container mx-auto px-4 text-center">
-                        <h2 className="text-3xl font-bold mb-6 font-teko uppercase tracking-wide">Ready for the $10M Path?</h2>
+                        <h2 className="text-3xl font-bold mb-6 tracking-tight">Enterprise & MSO Plans</h2>
                         <p className="text-slate-400 max-w-2xl mx-auto mb-8">
-                            For MSOs and brands processing over $5M/yr, our Agency Partner program provides custom infrastructure, dedicated strategy, and white-labeled agents.
+                            Multi-state operators, complex integrations, white-label, and custom governance.
+                            Dedicated strategy and infrastructure for teams processing $5M+/yr.
                         </p>
-                        <a href="mailto:sales@bakedbot.ai" className="inline-flex items-center justify-center h-12 px-8 rounded-md bg-white text-slate-900 font-medium hover:bg-slate-100 transition-colors">
-                            Contact Enterprise Sales
-                        </a>
+                        <Link
+                            href="/contact"
+                            className="inline-flex items-center justify-center h-12 px-8 rounded-full bg-white text-slate-900 font-medium hover:bg-slate-100 transition-colors"
+                        >
+                            Contact Sales
+                        </Link>
                      </div>
                 </div>
             </main>

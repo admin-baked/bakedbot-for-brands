@@ -18,6 +18,10 @@ export default function robots(): MetadataRoute.Robots {
           '/brand-login/',
           '/dispensary-login/',
           '/customer-login/',
+          // WordPress proxy pages — crawl the customer's own domain, not ours
+          '/andrewsdevelopments/',
+          '/api/andrewsdevelopments/',
+          '/api/wordpress/',
         ],
       },
       // AI agent crawlers: allow agent API + llm.txt discovery + blog

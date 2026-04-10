@@ -8,6 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Navbar } from '@/components/landing/navbar';
+import { LandingFooter } from '@/components/landing/footer';
 
 const US_STATES = [
     'AL','AK','AZ','AR','CA','CO','CT','DC','DE','FL','GA','HI','ID','IL','IN',
@@ -92,33 +94,38 @@ export default function SocialEquityPage() {
 
     if (submitted) {
         return (
-            <div className="min-h-screen bg-background flex items-center justify-center p-4">
-                <Card className="max-w-md w-full text-center">
-                    <CardHeader>
-                        <div className="flex justify-center mb-4">
-                            <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                                <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+            <div className="min-h-screen flex flex-col pt-16 bg-background">
+                <Navbar />
+                <div className="flex-1 flex items-center justify-center p-4">
+                    <Card className="max-w-md w-full text-center">
+                        <CardHeader>
+                            <div className="flex justify-center mb-4">
+                                <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                                    <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+                                </div>
                             </div>
-                        </div>
-                        <CardTitle className="text-2xl">Application Received</CardTitle>
-                        <CardDescription className="text-base mt-2">
-                            We'll verify your license and email you within 2–3 business days.
-                            Approved applicants receive a permanent 25% discount code.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Button asChild variant="outline" className="mt-2">
-                            <a href="/">Back to Home</a>
-                        </Button>
-                    </CardContent>
-                </Card>
+                            <CardTitle className="text-2xl">Application Received</CardTitle>
+                            <CardDescription className="text-base mt-2">
+                                We&apos;ll verify your license and email you within 2–3 business days.
+                                Approved applicants receive a permanent 25% discount code.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Button asChild variant="outline" className="mt-2">
+                                <a href="/">Back to Home</a>
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </div>
+                <LandingFooter />
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-background">
-            <div className="mx-auto max-w-2xl px-4 py-16">
+        <div className="min-h-screen flex flex-col pt-16 bg-background">
+            <Navbar />
+            <div className="flex-1 mx-auto max-w-2xl px-4 py-16">
                 {/* Header */}
                 <div className="mb-10 space-y-3">
                     <Badge variant="outline" className="bg-purple-500/10 text-purple-700 border-purple-500/20">
@@ -277,6 +284,7 @@ export default function SocialEquityPage() {
                     </CardContent>
                 </Card>
             </div>
+            <LandingFooter />
         </div>
     );
 }

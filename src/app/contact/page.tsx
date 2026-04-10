@@ -1,25 +1,23 @@
-'use client';
+import type { Metadata } from 'next';
+import { Navbar } from '@/components/landing/navbar';
+import { LandingFooter } from '@/components/landing/footer';
 
-import React from "react";
-import Link from "next/link";
-
-import Logo from "@/components/logo";
+export const metadata: Metadata = {
+    title: 'Contact Us | BakedBot AI',
+    description:
+        'Get in touch with BakedBot AI — sales, support, and partnerships for cannabis brands and dispensaries.',
+    alternates: { canonical: 'https://bakedbot.ai/contact' },
+};
 
 export default function ContactPage() {
     return (
-        <div className="min-h-screen bg-background text-foreground">
-            <header className="border-b border-border bg-background/80 backdrop-blur sticky top-0 z-50">
-                <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2 font-semibold">
-                        <Logo height={32} />
-                    </div>
-                </div>
-            </header>
+        <div className="min-h-screen flex flex-col pt-16 bg-background text-foreground">
+            <Navbar />
 
-            <main className="mx-auto max-w-2xl px-4 py-16">
+            <main className="flex-1 mx-auto max-w-2xl px-4 py-16">
                 <h1 className="text-4xl font-bold tracking-tight">Contact Us</h1>
                 <p className="mt-4 text-lg text-muted-foreground">
-                    Have questions about Enterprise plans, custom integrations, or partnerships? We'd love to hear from you.
+                    Have questions about Enterprise plans, custom integrations, or partnerships? We&apos;d love to hear from you.
                 </p>
 
                 <div className="mt-10 space-y-8">
@@ -40,11 +38,13 @@ export default function ContactPage() {
                         <h3 className="font-semibold">Headquarters</h3>
                         <p className="mt-2 text-sm text-muted-foreground">
                             Detroit, Michigan<br />
-                            serving cannabis brands nationwide.
+                            Serving cannabis brands nationwide.
                         </p>
                     </div>
                 </div>
             </main>
+
+            <LandingFooter />
         </div>
     );
 }

@@ -4,15 +4,18 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, MapPin, Clock, ShoppingBag, Database } from 'lucide-react';
+import { Navbar } from '@/components/landing/navbar';
+import { LandingFooter } from '@/components/landing/footer';
 
 export const metadata: Metadata = {
-    title: 'Cannabis Data & Research | BakedBot',
+    title: 'Cannabis Data & Research | BakedBot AI',
     description: 'Free cannabis industry datasets: Desert Index, Freshness Index, and Brand Availability. Cite with attribution.',
+    alternates: { canonical: 'https://bakedbot.ai/data' },
     openGraph: {
-        title: 'Cannabis Data & Research | BakedBot',
+        title: 'Cannabis Data & Research | BakedBot AI',
         description: 'Open cannabis industry data for researchers, journalists, and industry analysts.',
-        type: 'website'
-    }
+        type: 'website',
+    },
 };
 
 const datasets = [
@@ -47,7 +50,9 @@ const datasets = [
 
 export default function DataIndexPage() {
     return (
-        <main className="min-h-screen bg-background pb-20">
+        <div className="min-h-screen flex flex-col pt-16 bg-background">
+            <Navbar />
+            <main className="flex-1 pb-20">
             {/* Hero Header */}
             <div className="bg-gradient-to-br from-slate-50 via-background to-background dark:from-slate-950/50 border-b pt-16 pb-12">
                 <div className="container mx-auto px-4 text-center">
@@ -190,5 +195,7 @@ export default function DataIndexPage() {
                 }}
             />
         </main>
+        <LandingFooter />
+        </div>
     );
 }
