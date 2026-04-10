@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** ðŸŸ¢ Production live; Linus security guardrails + Marty delegation fix; QA baseline: Marty 78%, Linus 35%, Elroy 93% | **Last update:** 2026-04-10 (Linus security guardrails, Marty delegation fallback, QA pressure test fixes)
+**Current Status:** ðŸŸ¢ Production live; login hardening + Marty proactive CEO mode | **Last update:** 2026-04-10 (login timeouts/broken image fix, Marty market search + short-ack fast path + own pipeline)
 
 ---
 

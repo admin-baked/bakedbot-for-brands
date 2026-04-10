@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** ðŸŸ¢ Production live; Linus security guardrails + Marty delegation fix; QA baseline: Marty 78%, Linus 35%, Elroy 93%
-**Recent work (2026-04-10):** `5c59a2867` Linus security guardrails (block secret searches, redact output) + Marty delegation auth fallback (fixes Q27-Q32)
+**Current Status:** ðŸŸ¢ Production live; login hardening + Marty proactive CEO mode
+**Recent work (2026-04-10):** `47f2816aa` login hardening (timeouts, broken image, chatbot hidden on auth) + `d18d44f27` Marty proactive CEO (market search, short-ack, own pipeline)
 **Prior (2026-04-10/09):** `69f379ae9` QA pressure tests; `7ba8f8257` creative approvals; `efb64bb0c` agent resilience; `230fcd369` proxy hardening
 - Marty CEO agent: full super powers, Slack DM routing, manages all executives toward $1M ARR
 - Club MVP shipped (`9eb4a6d36`): Customer PWA /club, mood video cache, event pipeline + 5 triggers, tablet PWA
