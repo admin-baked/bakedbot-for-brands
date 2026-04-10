@@ -21,6 +21,7 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import { createLearningDelta } from '@/types/learning-delta';
 import type { LearningDelta } from '@/types/learning-delta';
+import { detectMartySlackResponseIssues } from '@/server/services/slack-response-quality';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
@@ -217,6 +218,62 @@ async function analyzeNegativeFeedback(db: FirebaseFirestore.Firestore): Promise
     }
   } catch (error) {
     logger.error('[ConsolidateLearnings] Feedback analysis failed:', error as Record<string, unknown>);
+  }
+
+  return deltas;
+}
+
+/**
+ * Step 4: Analyze archived Slack responses for conversation-quality regressions
+ */
+async function analyzeSlackConversationQuality(db: FirebaseFirestore.Firestore): Promise<LearningDelta[]> {
+  const deltas: LearningDelta[] = [];
+  const since = TWENTY_FOUR_HOURS_AGO();
+
+  try {
+    const snap = await db.collection('slack_responses')
+      .where('agent', '==', 'marty')
+      .where('timestamp', '>=', since)
+      .limit(200)
+      .get();
+
+    const issueMap = new Map<string, { count: number; sampleIds: string[]; proposedFix: string }>();
+
+    for (const doc of snap.docs) {
+      const data = doc.data() as { userMessage?: string; agentResponse?: string };
+      const issues = detectMartySlackResponseIssues({
+        userMessage: String(data.userMessage || ''),
+        agentResponse: String(data.agentResponse || ''),
+      });
+
+      for (const issue of issues) {
+        const existing = issueMap.get(issue.key) || { count: 0, sampleIds: [], proposedFix: issue.proposedFix };
+        existing.count++;
+        if (existing.sampleIds.length < 5) existing.sampleIds.push(doc.id);
+        issueMap.set(issue.key, existing);
+      }
+    }
+
+    for (const [issueKey, data] of issueMap) {
+      deltas.push(createLearningDelta({
+        category: 'manual_override_pattern',
+        agentName: 'marty',
+        summary: `Marty hit Slack conversation anti-pattern "${issueKey}" ${data.count} time(s) in archived production replies. This should become a prompt/routing correction before it repeats.`,
+        evidence: {
+          source: 'production_incident',
+          count: data.count,
+          timeWindow: '24h',
+          sampleIds: data.sampleIds,
+        },
+        proposedAction: {
+          type: 'update_instructions',
+          target: 'src/server/agents/marty.ts',
+          diff: `${data.proposedFix} Add or reinforce an eval case for this Slack pattern in the Marty QA set.`,
+        },
+      }));
+    }
+  } catch (error) {
+    logger.error('[ConsolidateLearnings] Slack conversation quality analysis failed:', error as Record<string, unknown>);
   }
 
   return deltas;
@@ -429,16 +486,17 @@ async function handler(req: NextRequest): Promise<NextResponse> {
     const db = getAdminFirestore();
 
     // Run all analysis steps + baselines refresh in parallel
-    const [toolFailures, deadEndLoops, negativeFeedback, complianceCatches, highPerformers, baselinesRefreshed] = await Promise.all([
+    const [toolFailures, deadEndLoops, negativeFeedback, slackConversationQuality, complianceCatches, highPerformers, baselinesRefreshed] = await Promise.all([
       analyzeToolFailures(db),
       analyzeDeadEndLoops(db),
       analyzeNegativeFeedback(db),
+      analyzeSlackConversationQuality(db),
       analyzeComplianceCatches(db),
       analyzeHighPerformingWorkflows(db),
       refreshPerformanceBaselines(db),
     ]);
 
-    const allDeltas = [...toolFailures, ...deadEndLoops, ...negativeFeedback, ...complianceCatches, ...highPerformers];
+    const allDeltas = [...toolFailures, ...deadEndLoops, ...negativeFeedback, ...slackConversationQuality, ...complianceCatches, ...highPerformers];
 
     // Persist deltas to Firestore
     const batch = db.batch();
@@ -458,6 +516,7 @@ async function handler(req: NextRequest): Promise<NextResponse> {
         tool_failures: toolFailures.length,
         dead_end_loops: deadEndLoops.length,
         negative_feedback: negativeFeedback.length,
+        slack_conversation_quality: slackConversationQuality.length,
         compliance_catches: complianceCatches.length,
         high_performers: highPerformers.length,
         baselines_refreshed: baselinesRefreshed,

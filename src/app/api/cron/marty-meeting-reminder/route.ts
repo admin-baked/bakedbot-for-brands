@@ -28,6 +28,8 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { Timestamp } from 'firebase-admin/firestore';
 import { postLinusIncidentSlack } from '@/server/services/incident-notifications';
 import { sendGenericEmail } from '@/lib/email/dispatcher';
+import { getExecutiveProfile } from '@/server/actions/executive-calendar';
+import { listGoogleCalendarEvents } from '@/server/services/executive-calendar/google-calendar';
 
 export const maxDuration = 60;
 
@@ -221,5 +223,61 @@ CEO & Founder, BakedBot AI</p>
         }
     }
 
-    return { checked: snap.size, sent30, sent15, rescheduled };
+    // --- Also remind for Google Calendar events (no auto-reschedule, just Slack pings) ---
+    let gcalReminders = 0;
+    try {
+        const profile = await getExecutiveProfile('martez');
+        if (profile?.googleCalendarTokens?.refresh_token) {
+            const gcalEvents = await listGoogleCalendarEvents(
+                profile.googleCalendarTokens,
+                now,
+                windowEnd,
+            );
+
+            // Collect BakedBot calendarEventIds to skip already-tracked meetings
+            const bakedBotGcalIds = new Set<string>();
+            for (const doc of snap.docs) {
+                const eid = doc.data().calendarEventId;
+                if (eid) bakedBotGcalIds.add(eid as string);
+            }
+
+            for (const event of gcalEvents) {
+                if (event.isAllDay) continue;
+                if (bakedBotGcalIds.has(event.id)) continue; // Already handled above
+
+                const minutesUntil = (event.startAt.getTime() - now.getTime()) / 60000;
+                if (minutesUntil < 10 || minutesUntil > 35) continue;
+
+                const meetingTime = event.startAt.toLocaleTimeString('en-US', {
+                    timeZone: 'America/New_York',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                });
+
+                const attendeeList = event.attendees
+                    .filter(a => !a.endsWith('@bakedbot.ai'))
+                    .join(', ') || 'No external attendees';
+
+                await postLinusIncidentSlack({
+                    source: 'marty-meeting-reminder',
+                    channelName: 'ceo',
+                    fallbackText: `Upcoming: ${event.title} at ${meetingTime}`,
+                    blocks: [
+                        {
+                            type: 'section',
+                            text: {
+                                type: 'mrkdwn',
+                                text: `:calendar: *Google Calendar — meeting in ~${Math.round(minutesUntil)} min*\n\n• *${meetingTime}* — ${event.title}\n• With: ${attendeeList}\n${event.htmlLink ? `• :link: ${event.htmlLink}` : ''}`,
+                            },
+                        },
+                    ],
+                });
+                gcalReminders++;
+            }
+        }
+    } catch (err) {
+        logger.warn('[MartyMeetingReminder] GCal reminder check failed', { error: String(err) });
+    }
+
+    return { checked: snap.size, sent30, sent15, rescheduled, gcalReminders };
 }

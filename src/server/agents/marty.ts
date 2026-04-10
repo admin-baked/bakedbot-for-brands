@@ -1094,8 +1094,11 @@ async function martyToolExecutor(
                     .limit(typeof args.limit === 'number' ? args.limit : 10)
                     .get();
 
+                // Collect calendarEventIds so we can deduplicate GCal events
+                const bakedBotGcalIds = new Set<string>();
                 const bookings = snap.docs.map(d => {
                     const data = d.data();
+                    if (data.calendarEventId) bakedBotGcalIds.add(data.calendarEventId as string);
                     return {
                         id: d.id,
                         name: data.externalName,
@@ -1106,23 +1109,26 @@ async function martyToolExecutor(
                         endAt: data.endAt?.toDate?.()?.toISOString() ?? '',
                         videoRoomUrl: data.videoRoomUrl,
                         status: data.status,
+                        source: 'bakedbot',
                     };
                 });
 
-                // Also get Google Calendar events
+                // Also get Google Calendar events — deduplicate against BakedBot bookings
                 const tokens = await getCeoCalendarTokens();
                 let gcalEvents: unknown[] = [];
                 if (tokens) {
                     const oneWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
                     const events = await listGoogleCalendarEvents(tokens, now, oneWeek);
-                    gcalEvents = events.map(e => ({
-                        id: e.id,
-                        title: e.title,
-                        startAt: e.startAt.toISOString(),
-                        endAt: e.endAt.toISOString(),
-                        attendees: e.attendees,
-                        source: 'google_calendar',
-                    }));
+                    gcalEvents = events
+                        .filter(e => !bakedBotGcalIds.has(e.id))
+                        .map(e => ({
+                            id: e.id,
+                            title: e.title,
+                            startAt: e.startAt.toISOString(),
+                            endAt: e.endAt.toISOString(),
+                            attendees: e.attendees,
+                            source: 'google_calendar',
+                        }));
                 }
 
                 return { bookings, gcalEvents, total: bookings.length + gcalEvents.length };

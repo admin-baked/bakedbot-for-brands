@@ -50,7 +50,7 @@ jest.mock('@/lib/logger', () => ({
     },
 }));
 
-const { detectAgent, stripBotMention } = require('./slack-agent-bridge');
+const { detectAgent, stripBotMention } = require('./slack-agent-routing');
 
 describe('Slack Agent Bridge', () => {
     // =========================================================================

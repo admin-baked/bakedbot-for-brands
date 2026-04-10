@@ -22,6 +22,7 @@ import { callGLM } from '@/ai/glm';
 import { lettaClient } from './client';
 import { lettaBlockManager, BLOCK_LABELS } from './block-manager';
 import type { LearningDelta } from '@/types/learning-delta';
+import { detectMartySlackResponseIssues } from '@/server/services/slack-response-quality';
 
 // =============================================================================
 // MULTI-MODEL DREAM INTELLIGENCE
@@ -158,9 +159,17 @@ async function introspect(agentName: string): Promise<DreamSession['introspectio
                 .limit(20)
                 .get()
         );
+        queries.push(
+            db.collection('slack_responses')
+                .where('agent', '==', 'marty')
+                .where('timestamp', '>=', since)
+                .orderBy('timestamp', 'desc')
+                .limit(50)
+                .get()
+        );
     }
 
-    const [telemetrySnap, deltasSnap, feedbackSnap, learningLogSnap] = await Promise.all(queries);
+    const [telemetrySnap, deltasSnap, feedbackSnap, learningLogSnap, slackResponsesSnap] = await Promise.all(queries);
 
     // Aggregate telemetry
     let toolFailures = 0;
@@ -188,6 +197,20 @@ async function introspect(agentName: string): Promise<DreamSession['introspectio
         for (const doc of learningLogSnap.docs) {
             const d = doc.data();
             memoryInsights.push(`[${d.category}] ${d.action} → ${d.result}: ${d.reason || 'no reason'}`);
+        }
+    }
+
+    if (slackResponsesSnap && slackResponsesSnap.size > 0) {
+        for (const doc of slackResponsesSnap.docs) {
+            const data = doc.data() as { userMessage?: string; agentResponse?: string };
+            const issues = detectMartySlackResponseIssues({
+                userMessage: String(data.userMessage || ''),
+                agentResponse: String(data.agentResponse || ''),
+            });
+
+            for (const issue of issues) {
+                memoryInsights.push(`[slack_quality] ${issue.summary} Fix: ${issue.proposedFix}`);
+            }
         }
     }
 

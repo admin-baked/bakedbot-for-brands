@@ -15,18 +15,23 @@ import {
     setApprovalMessageTs,
 } from './slack-approval';
 import type { DecodedIdToken } from 'firebase-admin/auth';
-import type { AITextTaskClass } from '@/types/ai-routing';
+import {
+    SLACK_ELROY_APP_ID,
+    SLACK_LINUS_APP_ID,
+    SLACK_MARTY_APP_ID,
+    detectAgent,
+    extractMentions,
+    getSlackGLMSynthesisTask,
+    isGreeting,
+    isMartyShortAcknowledgment,
+    stripBotMention,
+} from './slack-agent-routing';
 
 // Org ID for Letta memory lookups in the Slack/Linus path
 const BAKEDBOT_INTERNAL_ORG = 'org_bakedbot_internal';
 
 // Image MIME types accepted by Claude's vision API — used to filter Slack attachments
 const CLAUDE_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'] as const;
-
-// Dedicated Slack App IDs — read once at module init, not on every message.
-const SLACK_LINUS_APP_ID = process.env.SLACK_LINUS_APP_ID;
-const SLACK_ELROY_APP_ID = process.env.SLACK_ELROY_APP_ID;
-const SLACK_MARTY_APP_ID = process.env.SLACK_MARTY_APP_ID;
 
 // ---------------------------------------------------------------------------
 // Linus tool classifier — determines if a message warrants agentic tool-calling
@@ -66,32 +71,14 @@ function linusNeedsTools(text: string): boolean {
 }
 
 // Greeting detector — short messages that are just saying hi. Compiled once.
-const GREETING_RE = /^(h(i|ello|ey|owdy)|what'?s?\s*up|yo+|sup|gm|good\s*(morning|evening|afternoon)|what\s*it\s*do|greetings|salutations|peace|thanks|ty|thank\s*you)\b/i;
-const MAX_GREETING_LENGTH = 60; // anything longer is probably a real question
 const LINUS_GREETING_SYSTEM_PROMPT = 'You are Linus, CTO of BakedBot — the Agentic Commerce OS for cannabis. You are responding in Slack. Keep it warm, brief (1–2 sentences), and on-brand. Match the energy of the greeting. No tools, no code, no markdown headers.';
 const MARTY_GREETING_SYSTEM_PROMPT = 'You are Marty Benjamins, AI CEO of BakedBot — the Agentic Commerce OS for cannabis. You are responding in Slack to a bare greeting. Keep it warm, brief (2–3 sentences), confident, and action-oriented. Do NOT volunteer pipeline, CRM, revenue, or accomplishment metrics unless the user explicitly asks for status. Offer one or two high-leverage next moves such as reviewing pipeline, checking the inbox, or pushing outbound. No markdown headers.';
 const MARTY_ACKNOWLEDGMENT_SYSTEM_PROMPT = 'You are Marty Benjamins, AI CEO of BakedBot — the Agentic Commerce OS for cannabis. The user sent a short acknowledgment in Slack. Keep it conversational, brief (1–2 sentences), and forward-moving. Confirm alignment, suggest the next concrete move, and do NOT escalate, mention auth/tool issues, or volunteer metrics unless the user explicitly asks. No markdown headers.';
 const ELROY_GREETING_SYSTEM_PROMPT = 'You are Uncle Elroy, the store operations manager at Thrive Syracuse dispensary. You are responding in Slack. Keep it warm, friendly, brief (1–2 sentences), and helpful. Match the energy of the greeting. No tools, no data lookups, no markdown headers.';
 
-const MARTY_SHORT_ACK_RE = /^(me too|same here|same|sounds good|sound good|lets do it|let's do it|i agree|agree|exactly|for sure|nice|cool|great|awesome|perfect|love it|that works|works for me|makes sense)[\s!?.]*$/i;
-
-export function isGreeting(text: string): boolean {
-    return text.length <= MAX_GREETING_LENGTH && GREETING_RE.test(text.trim());
-}
-
-export function isMartyShortAcknowledgment(text: string): boolean {
-    return text.length <= 80 && MARTY_SHORT_ACK_RE.test(text.trim());
-}
-
 const MEETING_CONFIRM_RE = /^(confirmed?|yes|yep|yup|yeah|i('?m|\s+am)\s+(confirmed|coming|there|ready)|on\s+my\s+way|will\s+be\s+there|good\s+to\s+go|all\s+set)\s*[.!]?\s*$/i;
 function isMeetingConfirmation(text: string): boolean {
     return text.length <= 40 && MEETING_CONFIRM_RE.test(text.trim());
-}
-
-export function getSlackGLMSynthesisTask(_personaId: string): AITextTaskClass {
-    // All Slack synthesis uses 'standard' — if GLM fails, fallback stays on Sonnet not Opus.
-    // Linus bypasses this path entirely (goes through runLinus directly).
-    return 'standard';
 }
 
 // System-level identity injected for Slack requests.
@@ -110,65 +97,6 @@ const SLACK_SYSTEM_USER: DecodedIdToken = {
     role: 'super_user',
     orgId: 'org_bakedbot_internal',
 } as unknown as DecodedIdToken;
-
-// ---------------------------------------------------------------------------
-// Agent keyword → persona ID routing map
-// ---------------------------------------------------------------------------
-const KEYWORD_MAP: Array<{ keywords: string[]; personaId: string }> = [
-    { keywords: ['marty', 'ceo', 'strategy', 'north star', 'arr goal'], personaId: 'marty' },
-    { keywords: ['leo', 'coo', 'operations', 'ops'], personaId: 'leo' },
-    { keywords: ['linus', 'cto', 'tech', 'build', 'code', 'deploy', 'bug', 'error', 'fix', 'broken', 'timeout', 'slow', 'latency'], personaId: 'linus' },
-    { keywords: ['jack', 'cro', 'revenue', 'sales', 'pipeline', 'deal'], personaId: 'jack' },
-    { keywords: ['glenda', 'cmo', 'brand', 'marketing'], personaId: 'glenda' },
-    { keywords: ['ezal', 'intel', 'competitive', 'lookout', 'competitor'], personaId: 'ezal' },
-    { keywords: ['craig', 'social', 'campaign', 'post', 'content'], personaId: 'craig' },
-    { keywords: ['pops', 'analytics', 'data', 'report', 'metrics'], personaId: 'pops' },
-    { keywords: ['smokey', 'products', 'menu', 'inventory', 'strains'], personaId: 'smokey' },
-    { keywords: ['parker', 'loyalty', 'customers', 'retention', 'email'], personaId: 'mrs_parker' },
-    { keywords: ['deebo', 'compliance', 'legal', 'regulation'], personaId: 'deebo' },
-    { keywords: ['mike', 'finance', 'profitability', 'margins', 'tax', 'cfo'], personaId: 'money_mike' },
-    { keywords: ['bigworm', 'research', 'market'], personaId: 'bigworm' },
-    { keywords: ['day_day', 'dayday', 'growth', 'acquisition', 'leads'], personaId: 'day_day' },
-    { keywords: ['felisha', 'fulfillment', 'delivery', 'driver'], personaId: 'felisha' },
-    { keywords: ['elroy', 'uncle elroy', 'store ops', 'thrive'], personaId: 'elroy' },
-];
-
-// Channel name prefix → persona ID
-const CHANNEL_MAP: Array<{ prefix: string; personaId: string }> = [
-    { prefix: 'marty', personaId: 'marty' },
-    { prefix: 'ceo', personaId: 'marty' },
-    { prefix: 'linus', personaId: 'linus' },
-    { prefix: 'leo', personaId: 'leo' },
-    { prefix: 'jack', personaId: 'jack' },
-    { prefix: 'glenda', personaId: 'glenda' },
-    { prefix: 'ezal', personaId: 'ezal' },
-    { prefix: 'craig', personaId: 'craig' },
-    { prefix: 'intel', personaId: 'ezal' },
-    { prefix: 'cto', personaId: 'linus' },
-    { prefix: 'coo', personaId: 'leo' },
-    { prefix: 'cro', personaId: 'jack' },
-    { prefix: 'thrive-syracuse', personaId: 'elroy' },
-];
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Strip <@BOTID> mention tokens from Slack message text.
- */
-export function stripBotMention(text: string): string {
-    return text.replace(/<@[A-Z0-9]+>/g, '').trim();
-}
-
-/**
- * Extract all Slack user ID mentions from text (as <@USERID> tokens).
- * Returns the user IDs without the < @ > wrapping.
- */
-export function extractMentions(text: string): string[] {
-    const matches = Array.from(text.matchAll(/<@([A-Z0-9]+)>/g));
-    return matches.map(m => m[1]);
-}
 
 /**
  * Convert Slack file objects to agent attachment format.
@@ -230,94 +158,6 @@ export async function resolveMentions(userIds: string[], requestorSlackId: strin
     }
 
     return `**Team members mentioned:**\n${contextLines.join('\n')}`;
-}
-
-/**
- * Detect which agent persona to use based on message content and channel name.
- *
- * Priority order:
- *   1. Explicit agent NAME in text (e.g., "linus", "leo", "pops") — highest confidence
- *   2. Dedicated channel prefix (e.g., #linus-cto always routes to Linus)
- *   3. Generic keyword match in text (e.g., "data", "code", "email") — lowest
- *   4. Default: Leo for DMs, puff for general channels
- *
- * Channels like #linus-cto are "dedicated" — messages there should always reach
- * the named agent unless the user explicitly mentions a different agent by name.
- */
-export function detectAgent(text: string, channelName: string, isDm: boolean, appId?: string): string {
-    const lower = text.toLowerCase();
-
-    // Dedicated Slack Apps — route by api_app_id before any keyword matching.
-    // Set SLACK_MARTY_APP_ID / SLACK_LINUS_APP_ID / SLACK_ELROY_APP_ID to each app's api_app_id in secrets.
-    if (SLACK_MARTY_APP_ID && appId && appId === SLACK_MARTY_APP_ID) {
-        logger.info(`[SlackBridge] detectAgent → Tier0(marty app_id) → marty | appId="${appId}"`);
-        return 'marty';
-    }
-    if (SLACK_LINUS_APP_ID && appId && appId === SLACK_LINUS_APP_ID) {
-        logger.info(`[SlackBridge] detectAgent → Tier0(linus app_id) → linus | appId="${appId}"`);
-        return 'linus';
-    }
-    if (SLACK_ELROY_APP_ID && appId && appId === SLACK_ELROY_APP_ID) {
-        logger.info(`[SlackBridge] detectAgent → Tier0(elroy app_id) → elroy | appId="${appId}"`);
-        return 'elroy';
-    }
-
-    // Linus-specific meta/runtime questions often arrive in DMs without an
-    // explicit "linus" keyword. Route them to CTO instead of the default DM agent.
-    if (/\b(what|which)\s+model\b|\bmodel\s+are\s+you\s+using\b|\bwhat\s+are\s+you\s+running\s+on\b/i.test(lower)) {
-        logger.info(`[SlackBridge] detectAgent → Tier0(runtime question) → linus | channel="${channelName}"`);
-        return 'linus';
-    }
-
-    // Agent names that count as an explicit invocation (not generic keywords)
-    const EXPLICIT_NAMES = [
-        'marty', 'leo', 'linus', 'jack', 'glenda', 'ezal', 'craig',
-        'pops', 'smokey', 'parker', 'deebo', 'mike', 'bigworm',
-        'day_day', 'dayday', 'felisha', 'elroy',
-    ];
-
-    // 1. Check for explicit agent name in text (highest priority)
-    for (const { keywords, personaId } of KEYWORD_MAP) {
-        if (keywords.some(kw => EXPLICIT_NAMES.includes(kw) && lower.includes(kw))) {
-            logger.info(`[SlackBridge] detectAgent → Tier1(explicit name) → ${personaId} | channel="${channelName}"`);
-            return personaId;
-        }
-    }
-
-    // 2. Dedicated channel prefix (e.g., #linus-cto → linus)
-    const channelLower = (channelName || '').toLowerCase();
-    for (const { prefix, personaId } of CHANNEL_MAP) {
-        if (channelLower.startsWith(prefix)) {
-            logger.info(`[SlackBridge] detectAgent → Tier2(channel prefix "${prefix}") → ${personaId} | channel="${channelName}"`);
-            return personaId;
-        }
-    }
-
-    // 3. Generic keyword match (lower priority — only if no channel match)
-    const GENERIC_KEYWORDS = [
-        'operations', 'ops', 'tech', 'build', 'code', 'deploy', 'bug', 'error', 'fix', 'broken', 'timeout', 'slow', 'latency',
-        'revenue', 'sales', 'pipeline', 'deal', 'brand', 'marketing',
-        'intel', 'competitive', 'lookout', 'competitor', 'social', 'campaign',
-        'post', 'content', 'analytics', 'data', 'report', 'metrics',
-        'products', 'menu', 'inventory', 'strains', 'loyalty', 'customers',
-        'retention', 'email', 'compliance', 'legal', 'regulation',
-        'finance', 'profitability', 'margins', 'tax', 'research', 'market',
-        'growth', 'acquisition', 'leads', 'fulfillment', 'delivery', 'driver',
-    ];
-
-    for (const { keywords, personaId } of KEYWORD_MAP) {
-        const matchedKw = keywords.find(kw => GENERIC_KEYWORDS.includes(kw) && lower.includes(kw));
-        if (matchedKw) {
-            logger.info(`[SlackBridge] detectAgent → Tier3(keyword "${matchedKw}") → ${personaId} | channel="${channelName}"`);
-            return personaId;
-        }
-    }
-
-    // 4. Default: Linus for DMs (Linus CTO App is the primary DM entry point),
-    //    puff for general channels. Users can still reach other agents by name in DMs.
-    const defaultAgent = isDm ? 'linus' : 'puff';
-    logger.info(`[SlackBridge] detectAgent → Tier4(default) → ${defaultAgent} | channel="${channelName}" isDm=${isDm}`);
-    return defaultAgent;
 }
 
 function buildInitialSlackStatus(personaId: string, cleanText: string): string {

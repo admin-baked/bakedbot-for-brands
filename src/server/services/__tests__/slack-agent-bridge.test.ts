@@ -56,7 +56,7 @@ const {
     stripBotMention,
     isGreeting,
     isMartyShortAcknowledgment,
-} = require('../slack-agent-bridge');
+} = require('../slack-agent-routing');
 
 describe('Slack Agent Bridge', () => {
     // =========================================================================
@@ -200,8 +200,8 @@ describe('Slack Agent Bridge', () => {
     });
 
     describe('getSlackGLMSynthesisTask', () => {
-        it('uses strategic GLM for Linus Slack synthesis', () => {
-            expect(getSlackGLMSynthesisTask('linus')).toBe('strategic');
+        it('uses standard GLM for Linus because full Linus Slack runs bypass synthesis', () => {
+            expect(getSlackGLMSynthesisTask('linus')).toBe('standard');
         });
 
         it('uses standard GLM for other Slack personas', () => {

@@ -93,12 +93,20 @@ function appendBakedBotMeetings(
  * Merges BakedBot bookings + Google Calendar events, deduplicates, and sorts by start time.
  */
 export async function getMeetingsForDay(targetDate: Date): Promise<CalendarMeetingItem[]> {
-    // Build day boundaries in EST (UTC-5 or UTC-4 depending on DST)
-    // Using simple start-of-day UTC as Firestore stores timestamps in UTC
-    const dayStart = new Date(targetDate);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(targetDate);
-    dayEnd.setHours(23, 59, 59, 999);
+    // Build day boundaries in ET (handles EST/EDT automatically).
+    // Server may run in UTC (Cloud Run / Firebase App Hosting), so we cannot
+    // rely on setHours — we compute the ET→UTC offset via Intl instead.
+    const etDateStr = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/New_York',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(targetDate); // "YYYY-MM-DD" in ET
+    const noonUTC = new Date(`${etDateStr}T12:00:00Z`);
+    const etHour = parseInt(new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York', hour: 'numeric', hour12: false,
+    }).format(noonUTC));
+    const etOffsetMs = (12 - etHour) * 3600000; // 4h for EDT, 5h for EST
+    const dayStart = new Date(new Date(`${etDateStr}T00:00:00Z`).getTime() + etOffsetMs);
+    const dayEnd = new Date(new Date(`${etDateStr}T23:59:59.999Z`).getTime() + etOffsetMs);
 
     const db = getAdminFirestore();
     const meetings: CalendarMeetingItem[] = [];

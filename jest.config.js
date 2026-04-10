@@ -26,6 +26,7 @@ const customJestConfig = {
     '^@/ai/model-selector$': '<rootDir>/tests/__mocks__/model-selector.ts',
     '^@genkit-ai/vertexai$': '<rootDir>/tests/__mocks__/genkit-vertexai.js',
     '^uuid$': '<rootDir>/tests/__mocks__/uuid.js',
+    '^@upstash/redis$': '<rootDir>/tests/__mocks__/upstash-redis.js',
 
     // Handle module aliases (this will be automatically configured for you soon)
     '^@/(.*)$': '<rootDir>/src/$1',
