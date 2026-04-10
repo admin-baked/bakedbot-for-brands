@@ -365,8 +365,8 @@ export async function proxy(request: NextRequest) {
     // ============================
     // Check if this is a cannabis menu route requiring age verification
     // Skip age gate for: protected routes, API, signin pages, verify-age itself, main landing page
-    const META_PATHS = ['/robots.txt', '/sitemap.xml', '/llm.txt', '/manifest.json', '/favicon.ico', '/sw.js'];
-    const isMetaPath = META_PATHS.includes(pathname) || pathname.endsWith('.xml') || pathname.endsWith('.txt');
+    const META_PATHS = ['/robots.txt', '/sitemap.xml', '/llm.txt', '/manifest.json', '/tablet-manifest.json', '/favicon.ico', '/sw.js', '/sw-installer.js'];
+    const isMetaPath = META_PATHS.includes(pathname) || pathname.endsWith('.xml') || pathname.endsWith('.txt') || pathname.endsWith('.json');
     // Public executive booking pages — bypass age gate entirely
     const isBookingRoute = pathname.startsWith('/book/');
     // Driver app routes — not a cannabis menu, no age gate needed

@@ -84,24 +84,16 @@ export default function LoyaltyTabletPage() {
     }, [isFullscreen]);
 
     useEffect(() => {
-        // Only auto-request fullscreen when running as installed PWA
-        const isPWA =
-            window.matchMedia('(display-mode: standalone)').matches ||
-            window.matchMedia('(display-mode: fullscreen)').matches ||
-            ('standalone' in window.navigator && (window.navigator as unknown as { standalone: boolean }).standalone);
-
-        if (!isPWA) return;
-
-        // Already fullscreen
+        // Kiosk tablet — always request fullscreen on first tap, whether
+        // running as installed PWA or in a regular Chrome tab.
         if (document.fullscreenElement) {
             setIsFullscreen(true);
             return;
         }
 
-        // Request on first user interaction (Fullscreen API requires gesture)
+        // Fullscreen API requires a user gesture — listen for first tap
         const handler = () => {
             requestFullscreen();
-            document.removeEventListener('pointerdown', handler);
         };
         document.addEventListener('pointerdown', handler, { once: true });
 
