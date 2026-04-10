@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Production live; Products briefing cards + Menu Pages Hub + SEO page audit + Creative Center.
-**Recent work (2026-04-10):** `537e0022d` Products dashboard actionable briefing cards (COGS, images, descriptions, scores); `bddc0be3c` Menu Pages Hub refactor
+**Current Status:** 🟢 Production live; Products briefing cards + Menu Pages Hub + SEO page audit + Creative Center + Super User mobile UX simplification.
+**Recent work (2026-04-10):** Super User mobile UX simplification for Boardroom, Outreach, Creative Center, and shell navigation; `537e0022d` Products dashboard actionable briefing cards (COGS, images, descriptions, scores); `bddc0be3c` Menu Pages Hub refactor
 **Prior (2026-04-09):** `7ba8f8257` creative approvals; `efb64bb0c` agent resilience; `230fcd369` proxy hardening
 - Marty CEO agent: full super powers, Slack DM routing, manages all executives toward $1M ARR
 - Club MVP shipped (`9eb4a6d36`): Customer PWA /club, mood video cache, event pipeline + 5 triggers, tablet PWA

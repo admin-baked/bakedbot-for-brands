@@ -157,7 +157,7 @@ export function SuperAdminSidebar() {
                 </SidebarGroupContent>
             </SidebarGroup>
 
-            {/* Command Center - Primary Workspace */}
+            {/* Command Center - Super User core workspace */}
             <SidebarGroup>
                 <SidebarGroupLabel>Command Center</SidebarGroupLabel>
                 <SidebarGroupContent>
@@ -179,26 +179,18 @@ export function SuperAdminSidebar() {
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                         <SidebarMenuItem>
-                            <SidebarMenuButton asChild isActive={isActive("projects")}>
-                                <Link href="/dashboard/ceo/projects">
-                                    <FolderKanban />
-                                    <span>Projects</span>
-                                </Link>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    </SidebarMenu>
-                </SidebarGroupContent>
-            </SidebarGroup>
-
-            <SidebarGroup>
-                <SidebarGroupLabel>Go Live</SidebarGroupLabel>
-                <SidebarGroupContent>
-                    <SidebarMenu>
-                        <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive("outreach")}>
                                 <Link href="/dashboard/ceo?tab=outreach">
                                     <Rocket />
                                     <span>Outreach</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={pathname?.startsWith('/dashboard/creative')}>
+                                <Link href="/dashboard/creative">
+                                    <Palette />
+                                    <span>Creative Center</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
@@ -211,13 +203,21 @@ export function SuperAdminSidebar() {
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                         <SidebarMenuItem>
-                            <SidebarMenuButton asChild isActive={pathname?.startsWith('/dashboard/creative')}>
-                                <Link href="/dashboard/creative">
-                                    <Palette />
-                                    <span>Creative Center</span>
+                            <SidebarMenuButton asChild isActive={isActive("projects")}>
+                                <Link href="/dashboard/ceo/projects">
+                                    <FolderKanban />
+                                    <span>Projects</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
+                    </SidebarMenu>
+                </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarGroup>
+                <SidebarGroupLabel>Boardroom Access</SidebarGroupLabel>
+                <SidebarGroupContent>
+                    <SidebarMenu>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={pathname === '/book/martez'}>
                                 <Link href="/book/martez">
@@ -321,14 +321,6 @@ export function SuperAdminSidebar() {
                                 <Link href="/dashboard/ceo?tab=drive">
                                     <HardDrive />
                                     <span>BakedBot Drive</span>
-                                </Link>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton asChild isActive={pathname?.startsWith('/dashboard/creative')}>
-                                <Link href="/dashboard/creative">
-                                    <Palette />
-                                    <span>Creative Center</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>

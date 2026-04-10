@@ -379,6 +379,7 @@ export function PuffChat({
     initialPermissions,
     restrictedModels = [],
     promptSuggestions,
+    compactMobileControls = false,
     locationInfo // For market context
 }: { 
     initialTitle?: string;
@@ -393,6 +394,7 @@ export function PuffChat({
     initialPermissions?: any[];
     restrictedModels?: ThinkingLevel[];
     promptSuggestions?: string[];
+    compactMobileControls?: boolean;
     locationInfo?: any;
 }) {
     // Refs for UI focus (not managed by hook)
@@ -493,6 +495,8 @@ export function PuffChat({
     } as any));
 
     const hasMessages = displayMessages.length > 0;
+    const actionablePermissions = state.permissions.filter((permission) => permission.status !== 'granted');
+    const shouldCompactControls = compactMobileControls && isMobile;
     // Full prompt pool — pick 4 fresh chips on every mount (login/refresh)
     const defaultPool = isSuperUser
         ? [
@@ -583,28 +587,32 @@ export function PuffChat({
 
                         <div className="flex items-center gap-1">
                             <PersonaSelector value={persona} onChange={setPersona} isSuperUser={isSuperUser} isAuthenticated={isAuthenticated} />
-                            <ModelSelector 
-                                value={thinkingLevel} 
-                                onChange={setThinkingLevel} 
-                                userPlan="pro" 
-                                unlockResearch={true} 
-                                isSuperUser={isSuperUser}
-                                restrictedLevels={restrictedModels}
-                            />
-                            <ToolSelector
-                                mode={toolMode}
-                                selectedTools={selectedTools}
-                                onModeChange={setToolMode}
-                                onToggleTool={handleToggleTool}
-                                integrationStatus={integrationStatus}
-                                onConnectTool={handleGrantPermission}
-                                onShowToolInfo={handleShowToolInfo}
-                            />
-                            {isAuthenticated && (
-                                <ProjectSelector
-                                    value={selectedProjectId}
-                                    onChange={setSelectedProjectId}
-                                />
+                            {!shouldCompactControls && (
+                                <>
+                                    <ModelSelector 
+                                        value={thinkingLevel} 
+                                        onChange={setThinkingLevel} 
+                                        userPlan="pro" 
+                                        unlockResearch={true} 
+                                        isSuperUser={isSuperUser}
+                                        restrictedLevels={restrictedModels}
+                                    />
+                                    <ToolSelector
+                                        mode={toolMode}
+                                        selectedTools={selectedTools}
+                                        onModeChange={setToolMode}
+                                        onToggleTool={handleToggleTool}
+                                        integrationStatus={integrationStatus}
+                                        onConnectTool={handleGrantPermission}
+                                        onShowToolInfo={handleShowToolInfo}
+                                    />
+                                    {isAuthenticated && (
+                                        <ProjectSelector
+                                            value={selectedProjectId}
+                                            onChange={setSelectedProjectId}
+                                        />
+                                    )}
+                                </>
                             )}
                         </div>
                     </div>
@@ -874,13 +882,13 @@ export function PuffChat({
                         </div>
                     ))}
 
-                    {state.permissions.length > 0 && showPermissions && (
+                    {actionablePermissions.length > 0 && showPermissions && (
                         <Card className="mt-4">
                             <CardContent className="p-0">
                                 <div className="p-3 border-b">
                                     <h3 className="font-medium text-sm">Grant permissions to agent?</h3>
                                 </div>
-                                {state.permissions.map(permission => (
+                                {actionablePermissions.map(permission => (
                                     <PermissionCard
                                         key={permission.id}
                                         permission={permission}

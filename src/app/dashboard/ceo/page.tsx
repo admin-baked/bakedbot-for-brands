@@ -334,8 +334,11 @@ function CeoDashboardContent() {
         { href: '/dashboard/inbox', label: 'Inbox' },
         { href: '?tab=boardroom', label: 'Boardroom' },
         { href: '?tab=outreach', label: 'Outreach' },
-        { href: '?tab=calendar', label: 'Meetings' },
         { href: '/dashboard/creative', label: 'Creative Center' },
+        { href: '?tab=calendar', label: 'Meetings' },
+    ];
+
+    const meetingTools = [
         { href: '/book/martez', label: 'Book Martez' },
         { href: '/book/jack', label: 'Book Jack' },
     ];
@@ -434,9 +437,19 @@ function CeoDashboardContent() {
                             </SheetHeader>
                             <div className="space-y-4 pb-6">
                                 <div className="space-y-2">
-                                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Daily Ops</p>
+                                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Super User Core</p>
                                     <div className="grid grid-cols-2 gap-2">
                                         {priorityTools.map((tool) => (
+                                            <Link key={tool.href} href={tool.href}>
+                                                <Button variant="outline" size="sm" className="w-full justify-start">{tool.label}</Button>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Boardroom Access</p>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {meetingTools.map((tool) => (
                                             <Link key={tool.href} href={tool.href}>
                                                 <Button variant="outline" size="sm" className="w-full justify-start">{tool.label}</Button>
                                             </Link>
@@ -475,6 +488,11 @@ function CeoDashboardContent() {
                 {/* Desktop: full button row (sm+) */}
                 <div className="hidden sm:flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
                     {priorityTools.map((tool) => (
+                        <Link key={tool.href} href={tool.href}>
+                            <Button variant="ghost" size="sm">{tool.label}</Button>
+                        </Link>
+                    ))}
+                    {meetingTools.map((tool) => (
                         <Link key={tool.href} href={tool.href}>
                             <Button variant="ghost" size="sm">{tool.label}</Button>
                         </Link>

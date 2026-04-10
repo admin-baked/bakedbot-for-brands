@@ -180,6 +180,8 @@ const LEFT_PANELS: { id: LeftPanel; icon: React.ElementType; label: string }[] =
   { id: 'help', icon: HelpCircle, label: 'Help' },
 ];
 
+const MOBILE_PRIMARY_PANELS: LeftPanel[] = ['generate', 'templates', 'brandkit', 'drafts'];
+
 const BUSINESS_CONTEXT_OPTIONS: Array<{
   value: CreativeBusinessContext;
   label: string;
@@ -669,7 +671,7 @@ export default function CreativeCommandCenter() {
   const [localContent, setLocalContent] = useState<import('@/types/creative-content').CreativeContent | null>(null);
 
   // Left panel state
-  const [activeLeftPanel, setActiveLeftPanel] = useState<LeftPanel | null>('generate');
+  const [activeLeftPanel, setActiveLeftPanel] = useState<LeftPanel | null>(null);
 
   // Platform state
   const [selectedPlatform, setSelectedPlatform] = useState<SocialPlatform>("instagram");
@@ -683,6 +685,20 @@ export default function CreativeCommandCenter() {
   const [tone, setTone] = useState<CreativeStyle>("professional");
   const [selectedMenuItemId, setSelectedMenuItemId] = useState("");
   const [revisionNote, setRevisionNote] = useState("");
+  const visibleLeftPanels = isMobile
+    ? LEFT_PANELS.filter(({ id }) => MOBILE_PRIMARY_PANELS.includes(id))
+    : LEFT_PANELS;
+
+  useEffect(() => {
+    if (!isMobile) {
+      setActiveLeftPanel((prev) => prev ?? 'generate');
+      return;
+    }
+
+    if (activeLeftPanel && !MOBILE_PRIMARY_PANELS.includes(activeLeftPanel)) {
+      setActiveLeftPanel('generate');
+    }
+  }, [activeLeftPanel, isMobile]);
 
   // Caption editing state
   const [isEditingCaption, setIsEditingCaption] = useState(false);
@@ -1690,7 +1706,10 @@ export default function CreativeCommandCenter() {
     <div className="flex flex-col h-full bg-background text-foreground overflow-hidden rounded-lg border border-border">
 
       {/* ══ CANVA-STYLE TOP BAR ══ */}
-      <header className="h-14 border-b border-border flex items-center justify-between px-4 shrink-0 bg-background/90 backdrop-blur-sm z-20">
+      <header className={cn(
+        "border-b border-border shrink-0 bg-background/90 backdrop-blur-sm z-20",
+        isMobile ? "px-3 py-3 flex flex-col items-stretch gap-3" : "h-14 px-4 flex items-center justify-between"
+      )}>
         {/* Left: Studio identity */}
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
@@ -1703,7 +1722,10 @@ export default function CreativeCommandCenter() {
         </div>
 
         {/* Center: Platform selector pills */}
-        <div className="flex items-center gap-0.5 bg-muted/60 rounded-lg p-1 overflow-x-auto scrollbar-none max-w-[180px] sm:max-w-none">
+        <div className={cn(
+          "flex items-center gap-0.5 bg-muted/60 rounded-lg p-1 overflow-x-auto scrollbar-none",
+          isMobile ? "w-full" : "max-w-[180px] sm:max-w-none"
+        )}>
           {(['instagram', 'youtube', 'tiktok', 'linkedin', 'facebook'] as SocialPlatform[]).map(p => (
             <button
               key={p}
@@ -1727,7 +1749,7 @@ export default function CreativeCommandCenter() {
         </div>
 
         {/* Right: Status + Actions */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className={cn("flex items-center gap-2", isMobile ? "w-full" : "shrink-0")}>
           {/* Inbox badge — appears after auto-draft */}
           {inboxDraft && (
             <button
@@ -1751,6 +1773,7 @@ export default function CreativeCommandCenter() {
             onClick={handleToggleBatchMode}
             className={cn(
               "h-8 text-xs font-medium",
+              isMobile && "flex-1 justify-center",
               isBatchMode ? "bg-purple-600 hover:bg-purple-700 text-white" : "text-muted-foreground hover:text-foreground",
             )}
           >
@@ -1761,7 +1784,10 @@ export default function CreativeCommandCenter() {
             size="sm"
             onClick={isBatchMode ? handleBatchGenerate : handleGenerate}
             disabled={isGenerating || isGeneratingVideo || isGeneratingDeck || !campaignPrompt.trim()}
-            className="h-8 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold gap-1.5"
+            className={cn(
+              "h-8 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold gap-1.5",
+              isMobile && "flex-1 justify-center"
+            )}
           >
             {(isGenerating || isGeneratingVideo || isGeneratingDeck) ? (
               <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {isGeneratingDeck ? 'Building...' : isGeneratingVideo ? 'Rendering...' : 'Generating'}</>
@@ -1776,7 +1802,10 @@ export default function CreativeCommandCenter() {
               <Button
                 size="sm"
                 disabled={!currentContent || isApproving !== null}
-                className="h-8 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold gap-1 disabled:opacity-40"
+                className={cn(
+                  "h-8 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold gap-1 disabled:opacity-40",
+                  isMobile && "flex-1 justify-center"
+                )}
                 title={!currentContent ? "Generate content first" : ""}
               >
                 <Send className="w-3.5 h-3.5" />
@@ -1799,65 +1828,104 @@ export default function CreativeCommandCenter() {
       </header>
 
       <div className="border-b border-border bg-muted/20 px-4 py-2">
-        <div className="flex flex-wrap items-center gap-2 text-[11px]">
-          <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 font-medium text-foreground">
-            {currentPlan?.name ?? usageSummary?.planId ?? 'Plan loading'}
-            <span className="text-muted-foreground">plan</span>
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-muted-foreground">
-            {isLoadingUsageSummary
-              ? 'Checking credits...'
-              : usageSummary && totalCreditsRemaining !== null
-                ? `${formatCount(totalCreditsRemaining)} credits left this cycle`
-                : 'Credits update when your workspace usage loads'}
-          </span>
-          {usageSummary && automationCreditsRemaining !== null && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-muted-foreground">
-              {formatCount(automationCreditsRemaining)} automation credits left
+        {isMobile ? (
+          <div className="flex flex-wrap items-center gap-2 text-[11px]">
+            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 font-medium text-foreground">
+              {currentPlan?.name ?? usageSummary?.planId ?? 'Plan loading'}
             </span>
-          )}
-          <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-muted-foreground">
-            {isLoadingBrandKit
-              ? 'Checking brand kit...'
-              : brandKitImages.length > 0
-                ? `${brandKitImages.length} brand kit images saved in Drive`
-                : 'Brand kit images auto-save to Drive after setup'}
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-muted-foreground">
-            {BUSINESS_CONTEXT_OPTIONS.find((option) => option.value === businessContext)?.label ?? 'Context'}
-            <span className="text-muted-foreground/70">context</span>
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-muted-foreground">
-            {FORMAT_LABELS[selectedFormat]}
-            <span className="text-muted-foreground/70">format</span>
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-muted-foreground">
-            {socialSafetyMode === 'social-safe' ? 'Social-safe copy' : 'Standard copy'}
-          </span>
-          {(imageMode === 'video' || imageMode === 'slideshow') && (
             <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-muted-foreground">
-              {videoDuration}s motion selected
+              {isLoadingUsageSummary
+                ? 'Checking credits...'
+                : usageSummary && totalCreditsRemaining !== null
+                  ? `${formatCount(totalCreditsRemaining)} credits left`
+                  : 'Credits pending'}
             </span>
-          )}
-        </div>
+            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-muted-foreground">
+              {(BUSINESS_CONTEXT_OPTIONS.find((option) => option.value === businessContext)?.label ?? 'Context')}
+              <span className="text-muted-foreground/70">·</span>
+              {FORMAT_LABELS[selectedFormat]}
+            </span>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2 text-[11px]">
+            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 font-medium text-foreground">
+              {currentPlan?.name ?? usageSummary?.planId ?? 'Plan loading'}
+              <span className="text-muted-foreground">plan</span>
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-muted-foreground">
+              {isLoadingUsageSummary
+                ? 'Checking credits...'
+                : usageSummary && totalCreditsRemaining !== null
+                  ? `${formatCount(totalCreditsRemaining)} credits left this cycle`
+                  : 'Credits update when your workspace usage loads'}
+            </span>
+            {usageSummary && automationCreditsRemaining !== null && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-muted-foreground">
+                {formatCount(automationCreditsRemaining)} automation credits left
+              </span>
+            )}
+            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-muted-foreground">
+              {isLoadingBrandKit
+                ? 'Checking brand kit...'
+                : brandKitImages.length > 0
+                  ? `${brandKitImages.length} brand kit images saved in Drive`
+                  : 'Brand kit images auto-save to Drive after setup'}
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-muted-foreground">
+              {BUSINESS_CONTEXT_OPTIONS.find((option) => option.value === businessContext)?.label ?? 'Context'}
+              <span className="text-muted-foreground/70">context</span>
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-muted-foreground">
+              {FORMAT_LABELS[selectedFormat]}
+              <span className="text-muted-foreground/70">format</span>
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-muted-foreground">
+              {socialSafetyMode === 'social-safe' ? 'Social-safe copy' : 'Standard copy'}
+            </span>
+            {(imageMode === 'video' || imageMode === 'slideshow') && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-muted-foreground">
+                {videoDuration}s motion selected
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ══ MAIN 3-PANEL WORKSPACE ══ */}
       <div className="border-b border-border bg-background px-4 py-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Quick starts</span>
-          {QUICK_STARTS.map((quickStart) => (
-            <button
-              key={quickStart.id}
-              type="button"
-              onClick={() => applyQuickStart(quickStart)}
-              className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/40 px-3 py-1.5 text-left transition-colors hover:border-primary/40 hover:bg-primary/10"
-            >
-              <span className="text-xs font-medium text-foreground">{quickStart.label}</span>
-              <span className="text-[10px] text-muted-foreground">{quickStart.hint}</span>
-            </button>
-          ))}
-        </div>
+        {isMobile ? (
+          <div className="space-y-2">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Quick starts</span>
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+              {QUICK_STARTS.map((quickStart) => (
+                <button
+                  key={quickStart.id}
+                  type="button"
+                  onClick={() => applyQuickStart(quickStart)}
+                  className="min-w-[220px] shrink-0 rounded-2xl border border-border bg-muted/40 px-3 py-2 text-left transition-colors hover:border-primary/40 hover:bg-primary/10"
+                >
+                  <span className="block text-sm font-medium text-foreground">{quickStart.label}</span>
+                  <span className="mt-1 block text-[11px] leading-snug text-muted-foreground">{quickStart.hint}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Quick starts</span>
+            {QUICK_STARTS.map((quickStart) => (
+              <button
+                key={quickStart.id}
+                type="button"
+                onClick={() => applyQuickStart(quickStart)}
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/40 px-3 py-1.5 text-left transition-colors hover:border-primary/40 hover:bg-primary/10"
+              >
+                <span className="text-xs font-medium text-foreground">{quickStart.label}</span>
+                <span className="text-[10px] text-muted-foreground">{quickStart.hint}</span>
+              </button>
+            ))}
+          </div>
+        )}
         <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
           Built for fast, social-safe content: education, founder POV, community, behind-the-scenes, and proof instead of direct in-feed selling.
         </p>
@@ -1875,7 +1943,7 @@ export default function CreativeCommandCenter() {
 
         {/* ── LEFT ICON STRIP (56px) ── */}
         <aside className="w-14 border-r border-border flex flex-col items-center pt-3 pb-2 gap-1 bg-muted/20 shrink-0 z-30">
-          {LEFT_PANELS.map(({ id, icon: Icon, label }) => (
+          {visibleLeftPanels.map(({ id, icon: Icon, label }) => (
             <button
               key={id}
               onClick={() => setActiveLeftPanel(activeLeftPanel === id ? null : id)}
@@ -2973,7 +3041,7 @@ export default function CreativeCommandCenter() {
         </AnimatePresence>
 
         {/* ── CENTER CANVAS ── */}
-        <main className="flex-1 flex flex-col items-center justify-start overflow-auto bg-muted/10 p-6">
+        <main className="flex-1 flex flex-col items-center justify-start overflow-auto bg-muted/10 p-3 sm:p-6">
 
           {/* Format pills + Text toggle */}
           <div className="flex items-center gap-1.5 mb-3 flex-wrap justify-center">

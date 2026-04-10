@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
     Loader2, Mail, Search, Play, TestTube2, RefreshCcw, Users,
     AlertTriangle, CheckCircle2, XCircle, FileText, Send,
@@ -361,10 +362,12 @@ function DraftCard({
 // ────────────────────────────────────────────────────────────────────────────
 
 export default function OutreachTab() {
+    const isMobile = useIsMobile();
     const [data, setData] = useState<DashboardData | null>(null);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [actionResult, setActionResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+    const [showPipelineTools, setShowPipelineTools] = useState(false);
 
     // Drafts state
     const [drafts, setDrafts] = useState<OutreachDraft[]>([]);
@@ -733,50 +736,85 @@ export default function OutreachTab() {
             )}
 
             {/* Stats HUD */}
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-                <Card>
-                    <CardContent className="pt-4 pb-3 px-4 text-center">
-                        <div className="text-2xl font-bold text-green-600">{stats?.totalSent || 0}</div>
-                        <div className="text-xs text-muted-foreground">Emails Sent (24h)</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="pt-4 pb-3 px-4 text-center">
-                        <div className={`text-2xl font-bold ${pendingDrafts > 0 ? 'text-amber-600' : 'text-muted-foreground'}`}>
-                            {pendingDrafts}
-                        </div>
-                        <div className="text-xs text-muted-foreground">Pending Drafts</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="pt-4 pb-3 px-4 text-center">
-                        <div className="text-2xl font-bold text-blue-600">{data?.queueDepth || 0}</div>
-                        <div className="text-xs text-muted-foreground">Leads in Queue</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="pt-4 pb-3 px-4 text-center">
-                        <div className="text-2xl font-bold">
-                            <span className={remaining > 0 ? 'text-amber-600' : 'text-red-600'}>
-                                {sentToday}/{dailyLimit}
-                            </span>
-                        </div>
-                        <div className="text-xs text-muted-foreground">Sent Today / Limit</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="pt-4 pb-3 px-4 text-center">
-                        <div className="text-2xl font-bold text-red-600">{stats?.totalBadEmails || 0}</div>
-                        <div className="text-xs text-muted-foreground">Bad Emails</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="pt-4 pb-3 px-4 text-center">
-                        <div className="text-2xl font-bold text-purple-600">{data?.crmContacts?.length || 0}</div>
-                        <div className="text-xs text-muted-foreground">CRM Contacts</div>
-                    </CardContent>
-                </Card>
-            </div>
+            {isMobile ? (
+                <div className="grid grid-cols-2 gap-3">
+                    <Card>
+                        <CardContent className="pt-4 pb-3 px-4 text-center">
+                            <div className={`text-2xl font-bold ${pendingDrafts > 0 ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                                {pendingDrafts}
+                            </div>
+                            <div className="text-xs text-muted-foreground">Pending Drafts</div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardContent className="pt-4 pb-3 px-4 text-center">
+                            <div className="text-2xl font-bold text-blue-600">{data?.queueDepth || 0}</div>
+                            <div className="text-xs text-muted-foreground">Leads in Queue</div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardContent className="pt-4 pb-3 px-4 text-center">
+                            <div className="text-2xl font-bold">
+                                <span className={remaining > 0 ? 'text-amber-600' : 'text-red-600'}>
+                                    {sentToday}/{dailyLimit}
+                                </span>
+                            </div>
+                            <div className="text-xs text-muted-foreground">Sent Today / Limit</div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardContent className="pt-4 pb-3 px-4 text-center">
+                            <div className="text-2xl font-bold text-green-600">{stats?.totalSent || 0}</div>
+                            <div className="text-xs text-muted-foreground">Emails Sent (24h)</div>
+                        </CardContent>
+                    </Card>
+                </div>
+            ) : (
+                <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+                    <Card>
+                        <CardContent className="pt-4 pb-3 px-4 text-center">
+                            <div className="text-2xl font-bold text-green-600">{stats?.totalSent || 0}</div>
+                            <div className="text-xs text-muted-foreground">Emails Sent (24h)</div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardContent className="pt-4 pb-3 px-4 text-center">
+                            <div className={`text-2xl font-bold ${pendingDrafts > 0 ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                                {pendingDrafts}
+                            </div>
+                            <div className="text-xs text-muted-foreground">Pending Drafts</div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardContent className="pt-4 pb-3 px-4 text-center">
+                            <div className="text-2xl font-bold text-blue-600">{data?.queueDepth || 0}</div>
+                            <div className="text-xs text-muted-foreground">Leads in Queue</div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardContent className="pt-4 pb-3 px-4 text-center">
+                            <div className="text-2xl font-bold">
+                                <span className={remaining > 0 ? 'text-amber-600' : 'text-red-600'}>
+                                    {sentToday}/{dailyLimit}
+                                </span>
+                            </div>
+                            <div className="text-xs text-muted-foreground">Sent Today / Limit</div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardContent className="pt-4 pb-3 px-4 text-center">
+                            <div className="text-2xl font-bold text-red-600">{stats?.totalBadEmails || 0}</div>
+                            <div className="text-xs text-muted-foreground">Bad Emails</div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardContent className="pt-4 pb-3 px-4 text-center">
+                            <div className="text-2xl font-bold text-purple-600">{data?.crmContacts?.length || 0}</div>
+                            <div className="text-xs text-muted-foreground">CRM Contacts</div>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
 
             {/* Apollo Credits Panel */}
             {apolloCredits && (
@@ -814,90 +852,186 @@ export default function OutreachTab() {
             )}
 
             {/* Action Buttons */}
-            <div className="grid gap-3 md:grid-cols-2 xl:flex xl:flex-wrap">
-                <Button
-                    onClick={handleGenerateDrafts}
-                    disabled={!!actionLoading}
-                    className="w-full justify-start bg-green-600 hover:bg-green-700 xl:w-auto"
-                >
-                    {actionLoading === 'drafts' ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                        <FileText className="h-4 w-4 mr-2" />
-                    )}
-                    Generate Drafts ({remaining} remaining)
-                </Button>
+            {isMobile ? (
+                <div className="space-y-3">
+                    <Button
+                        onClick={handleGenerateDrafts}
+                        disabled={!!actionLoading}
+                        className="w-full justify-start bg-green-600 hover:bg-green-700"
+                    >
+                        {actionLoading === 'drafts' ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                            <FileText className="h-4 w-4 mr-2" />
+                        )}
+                        Generate Drafts ({remaining} remaining)
+                    </Button>
+                    <div className="rounded-lg border">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setShowPipelineTools((prev) => !prev)}
+                            className="w-full justify-between rounded-lg px-4"
+                        >
+                            <span>Pipeline tools</span>
+                            {showPipelineTools ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        </Button>
+                        {showPipelineTools && (
+                            <div className="grid gap-2 border-t p-3">
+                                <Button
+                                    variant="outline"
+                                    onClick={handleTestBatch}
+                                    disabled={!!actionLoading}
+                                    className="w-full justify-start"
+                                >
+                                    {actionLoading === 'test' ? (
+                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    ) : (
+                                        <TestTube2 className="h-4 w-4 mr-2" />
+                                    )}
+                                    Send Test Batch
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    onClick={handleCRMLeadSync}
+                                    disabled={!!actionLoading}
+                                    className="w-full justify-start border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                                >
+                                    {actionLoading === 'crm-sync' ? (
+                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    ) : (
+                                        <Users className="h-4 w-4 mr-2" />
+                                    )}
+                                    Sync CRM Leads
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    onClick={handleResearch}
+                                    disabled={!!actionLoading}
+                                    className="w-full justify-start"
+                                >
+                                    {actionLoading === 'research' ? (
+                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    ) : (
+                                        <Search className="h-4 w-4 mr-2" />
+                                    )}
+                                    Research NY Leads
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    onClick={handleBulkNYImport}
+                                    disabled={!!actionLoading}
+                                    className="w-full justify-start border-blue-300 text-blue-700 hover:bg-blue-50"
+                                >
+                                    {actionLoading === 'nyapi-bulk' ? (
+                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    ) : (
+                                        <Play className="h-4 w-4 mr-2" />
+                                    )}
+                                    Import All NY Licensed
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    onClick={handleNYLeadEnrichment}
+                                    disabled={!!actionLoading}
+                                    className="w-full justify-start border-purple-300 text-purple-700 hover:bg-purple-50"
+                                >
+                                    {actionLoading === 'nyapi-enrich' ? (
+                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    ) : (
+                                        <Search className="h-4 w-4 mr-2" />
+                                    )}
+                                    Enrich Queue
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            ) : (
+                <div className="grid gap-3 md:grid-cols-2 xl:flex xl:flex-wrap">
+                    <Button
+                        onClick={handleGenerateDrafts}
+                        disabled={!!actionLoading}
+                        className="w-full justify-start bg-green-600 hover:bg-green-700 xl:w-auto"
+                    >
+                        {actionLoading === 'drafts' ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                            <FileText className="h-4 w-4 mr-2" />
+                        )}
+                        Generate Drafts ({remaining} remaining)
+                    </Button>
 
-                <Button
-                    variant="outline"
-                    onClick={handleTestBatch}
-                    disabled={!!actionLoading}
-                    className="w-full justify-start xl:w-auto"
-                >
-                    {actionLoading === 'test' ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                        <TestTube2 className="h-4 w-4 mr-2" />
-                    )}
-                    Send Test Batch (All 10 Templates)
-                </Button>
+                    <Button
+                        variant="outline"
+                        onClick={handleTestBatch}
+                        disabled={!!actionLoading}
+                        className="w-full justify-start xl:w-auto"
+                    >
+                        {actionLoading === 'test' ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                            <TestTube2 className="h-4 w-4 mr-2" />
+                        )}
+                        Send Test Batch (All 10 Templates)
+                    </Button>
 
-                <Button
-                    variant="outline"
-                    onClick={handleCRMLeadSync}
-                    disabled={!!actionLoading}
-                    className="w-full justify-start border-emerald-300 text-emerald-700 hover:bg-emerald-50 xl:w-auto"
-                >
-                    {actionLoading === 'crm-sync' ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                        <Users className="h-4 w-4 mr-2" />
-                    )}
-                    Sync CRM Leads (NY / MI / IL)
-                </Button>
+                    <Button
+                        variant="outline"
+                        onClick={handleCRMLeadSync}
+                        disabled={!!actionLoading}
+                        className="w-full justify-start border-emerald-300 text-emerald-700 hover:bg-emerald-50 xl:w-auto"
+                    >
+                        {actionLoading === 'crm-sync' ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                            <Users className="h-4 w-4 mr-2" />
+                        )}
+                        Sync CRM Leads (NY / MI / IL)
+                    </Button>
 
-                <Button
-                    variant="outline"
-                    onClick={handleResearch}
-                    disabled={!!actionLoading}
-                    className="w-full justify-start xl:w-auto"
-                >
-                    {actionLoading === 'research' ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                        <Search className="h-4 w-4 mr-2" />
-                    )}
-                    Research NY Leads
-                </Button>
+                    <Button
+                        variant="outline"
+                        onClick={handleResearch}
+                        disabled={!!actionLoading}
+                        className="w-full justify-start xl:w-auto"
+                    >
+                        {actionLoading === 'research' ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                            <Search className="h-4 w-4 mr-2" />
+                        )}
+                        Research NY Leads
+                    </Button>
 
-                <Button
-                    variant="outline"
-                    onClick={handleBulkNYImport}
-                    disabled={!!actionLoading}
-                    className="w-full justify-start border-blue-300 text-blue-700 hover:bg-blue-50 xl:w-auto"
-                >
-                    {actionLoading === 'nyapi-bulk' ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                        <Play className="h-4 w-4 mr-2" />
-                    )}
-                    Import All NY Licensed
-                </Button>
+                    <Button
+                        variant="outline"
+                        onClick={handleBulkNYImport}
+                        disabled={!!actionLoading}
+                        className="w-full justify-start border-blue-300 text-blue-700 hover:bg-blue-50 xl:w-auto"
+                    >
+                        {actionLoading === 'nyapi-bulk' ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                            <Play className="h-4 w-4 mr-2" />
+                        )}
+                        Import All NY Licensed
+                    </Button>
 
-                <Button
-                    variant="outline"
-                    onClick={handleNYLeadEnrichment}
-                    disabled={!!actionLoading}
-                    className="w-full justify-start border-purple-300 text-purple-700 hover:bg-purple-50 xl:w-auto"
-                >
-                    {actionLoading === 'nyapi-enrich' ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                        <Search className="h-4 w-4 mr-2" />
-                    )}
-                    Enrich Queue (20/batch)
-                </Button>
-            </div>
+                    <Button
+                        variant="outline"
+                        onClick={handleNYLeadEnrichment}
+                        disabled={!!actionLoading}
+                        className="w-full justify-start border-purple-300 text-purple-700 hover:bg-purple-50 xl:w-auto"
+                    >
+                        {actionLoading === 'nyapi-enrich' ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                            <Search className="h-4 w-4 mr-2" />
+                        )}
+                        Enrich Queue (20/batch)
+                    </Button>
+                </div>
+            )}
 
             {/* ═══════════════════════════════════════════════════════════════════ */}
             {/* Pending Drafts for Review                                         */}
@@ -973,40 +1107,64 @@ export default function OutreachTab() {
                 </CardHeader>
                 <CardContent>
                     {stats?.recentResults && stats.recentResults.length > 0 ? (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
-                                <thead>
-                                    <tr className="border-b bg-muted/50">
-                                        <th className="text-left p-2 font-medium">Dispensary</th>
-                                        <th className="text-left p-2 font-medium">Email</th>
-                                        <th className="text-left p-2 font-medium">Template</th>
-                                        <th className="text-center p-2 font-medium">Status</th>
-                                        <th className="text-right p-2 font-medium">Time</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {stats.recentResults.map((r) => (
-                                        <tr key={r.leadId} className="border-b">
-                                            <td className="p-2 font-medium">{r.dispensaryName}</td>
-                                            <td className="p-2 text-muted-foreground">{r.email}</td>
-                                            <td className="p-2">
-                                                <Badge variant="outline" className="text-xs">{r.templateId}</Badge>
-                                            </td>
-                                            <td className="p-2 text-center">
-                                                {r.emailSent ? (
-                                                    <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Sent</Badge>
-                                                ) : (
-                                                    <Badge variant="destructive" className="text-xs">{r.sendError || 'Failed'}</Badge>
-                                                )}
-                                            </td>
-                                            <td className="p-2 text-right text-muted-foreground text-xs">
-                                                {new Date(r.timestamp).toLocaleString()}
-                                            </td>
+                        isMobile ? (
+                            <div className="space-y-3">
+                                {stats.recentResults.map((r) => (
+                                    <div key={r.leadId} className="rounded-lg border p-3 space-y-2">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                                <p className="font-medium text-sm">{r.dispensaryName}</p>
+                                                <p className="text-xs text-muted-foreground break-all">{r.email}</p>
+                                            </div>
+                                            {r.emailSent ? (
+                                                <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Sent</Badge>
+                                            ) : (
+                                                <Badge variant="destructive" className="text-xs">{r.sendError || 'Failed'}</Badge>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                                            <Badge variant="outline" className="text-xs">{r.templateId}</Badge>
+                                            <span>{new Date(r.timestamp).toLocaleString()}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b bg-muted/50">
+                                            <th className="text-left p-2 font-medium">Dispensary</th>
+                                            <th className="text-left p-2 font-medium">Email</th>
+                                            <th className="text-left p-2 font-medium">Template</th>
+                                            <th className="text-center p-2 font-medium">Status</th>
+                                            <th className="text-right p-2 font-medium">Time</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                                    </thead>
+                                    <tbody>
+                                        {stats.recentResults.map((r) => (
+                                            <tr key={r.leadId} className="border-b">
+                                                <td className="p-2 font-medium">{r.dispensaryName}</td>
+                                                <td className="p-2 text-muted-foreground">{r.email}</td>
+                                                <td className="p-2">
+                                                    <Badge variant="outline" className="text-xs">{r.templateId}</Badge>
+                                                </td>
+                                                <td className="p-2 text-center">
+                                                    {r.emailSent ? (
+                                                        <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Sent</Badge>
+                                                    ) : (
+                                                        <Badge variant="destructive" className="text-xs">{r.sendError || 'Failed'}</Badge>
+                                                    )}
+                                                </td>
+                                                <td className="p-2 text-right text-muted-foreground text-xs">
+                                                    {new Date(r.timestamp).toLocaleString()}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )
                     ) : (
                         <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
                             <Mail className="h-8 w-8 mb-2 opacity-50" />

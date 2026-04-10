@@ -219,7 +219,7 @@ export default function BoardroomTab() {
                 </div>
 
                 {/* Inline KPI HUD */}
-                <div className="flex items-center gap-3 sm:gap-6 shrink-0 border-l border-border/50 pl-3 sm:pl-6">
+                <div className="flex flex-wrap items-center gap-3 sm:gap-6 shrink-0 border-t border-border/50 pt-2 sm:border-t-0 sm:pt-0 sm:border-l sm:pl-6">
                     <HudMetric label="MRR" value={`$${mrr.toLocaleString()}`} className="text-green-600" />
                     <HudMetric label="ARR" value={`$${arr.toLocaleString()}`} className="hidden sm:flex" />
                     <HudMetric label="ARPU" value={`$${arpu}`} className="hidden sm:flex" />
@@ -233,7 +233,7 @@ export default function BoardroomTab() {
 
                 {/* Chat Canvas — takes all remaining width */}
                 <div className="flex-1 min-w-0 xl:flex xl:flex-col xl:min-h-0">
-                    <Card className="shadow-lg border-border/50 overflow-hidden h-[70vh] sm:h-[80vh] xl:h-full flex flex-col bg-background">
+                    <Card className="shadow-lg border-border/50 overflow-hidden h-[62svh] sm:h-[80vh] xl:h-full flex flex-col bg-background">
                         <CardHeader className="bg-background border-b py-3 px-5 flex flex-row items-center justify-between shadow-sm z-10 shrink-0">
                             <div className="flex items-center gap-3">
                                 {currentAgent && (
@@ -301,9 +301,8 @@ export default function BoardroomTab() {
                                     "Run Weekly KPI Report",
                                     "Check System Health Status",
                                     "Review Recent Signups",
-                                    "Generate Competitive Intel Summary",
-                                    "Draft Weekly Team Update Email"
                                 ]}
+                                compactMobileControls={true}
                                 className="h-full border-0 shadow-none"
                             />
                         </CardContent>
@@ -353,58 +352,6 @@ export default function BoardroomTab() {
                         {ALL_AGENTS.length} Agents Online
                     </div>
                 </aside>
-            </div>
-
-            {/* Mobile Agent Picker — shown below chat on small screens */}
-            <div className="xl:hidden mt-4 space-y-3">
-                <div>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 px-1">Executives</p>
-                    <div className="grid grid-cols-5 gap-2">
-                        {EXECUTIVE_TEAM.map((agent) => (
-                            <button
-                                key={agent.id}
-                                onClick={() => setSelectedAgent(agent.id)}
-                                className={cn(
-                                    "flex flex-col items-center p-2.5 rounded-xl border transition-all",
-                                    selectedAgent === agent.id
-                                        ? "ring-2 ring-primary ring-offset-1 border-primary/50 bg-primary/5"
-                                        : "border-border/50 hover:border-primary/30 hover:bg-accent/50"
-                                )}
-                            >
-                                <div className={cn("p-2 rounded-full mb-1.5", agent.color)}>
-                                    <agent.icon className="h-4 w-4" />
-                                </div>
-                                <p className="text-[10px] font-bold leading-tight">{agent.name}</p>
-                                <p className="text-[9px] text-muted-foreground leading-tight">{agent.role}</p>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-                <div>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 px-1">Support Staff</p>
-                    <div className="grid grid-cols-2 gap-2">
-                        {SUPPORT_STAFF.map((agent) => (
-                            <button
-                                key={agent.id}
-                                onClick={() => setSelectedAgent(agent.id)}
-                                className={cn(
-                                    "flex items-center gap-2.5 p-2.5 rounded-xl border transition-all text-left",
-                                    selectedAgent === agent.id
-                                        ? "ring-2 ring-slate-400 ring-offset-1 border-slate-300 bg-slate-50"
-                                        : "border-border/50 hover:bg-accent/50"
-                                )}
-                            >
-                                <div className={cn("p-1.5 rounded-lg shrink-0", agent.color)}>
-                                    <agent.icon className="h-3.5 w-3.5" />
-                                </div>
-                                <div>
-                                    <p className="text-xs font-semibold leading-tight">{agent.name}</p>
-                                    <p className="text-[9px] text-muted-foreground leading-tight">{agent.role}</p>
-                                </div>
-                            </button>
-                        ))}
-                    </div>
-                </div>
             </div>
 
             {/* Agent Debug Panel - Test Mode */}
