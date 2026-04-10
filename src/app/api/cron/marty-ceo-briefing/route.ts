@@ -35,8 +35,13 @@ export async function POST(request: NextRequest) {
     const authError = await requireCronSecret(request, 'marty-ceo-briefing');
     if (authError) return authError;
 
-    let body: { briefingType?: BriefingType } = {};
+    let body: { briefingType?: BriefingType; pressureTest?: boolean; question?: string; agent?: string } = {};
     try { body = await request.json(); } catch { /* empty body OK */ }
+
+    // Pressure test mode — invoke an agent with a single question
+    if (body.pressureTest && body.question) {
+        return runPressureTest(body.agent || 'marty', body.question);
+    }
 
     const briefingType = body.briefingType || detectBriefingType();
 
@@ -47,6 +52,31 @@ export async function POST(request: NextRequest) {
         const msg = err instanceof Error ? err.message : String(err);
         logger.error('[MartyCEOBriefing] Failed', { error: msg, briefingType });
         return NextResponse.json({ success: false, error: msg }, { status: 500 });
+    }
+}
+
+async function runPressureTest(agent: string, question: string) {
+    logger.info('[PressureTest] Running', { agent, question: question.slice(0, 80) });
+    const start = Date.now();
+    try {
+        if (agent === 'marty') {
+            const { runMarty } = await import('@/server/agents/marty');
+            const res = await runMarty({ prompt: question, maxIterations: 4, context: { userId: 'pressure-test', orgId: 'org_bakedbot_internal' } });
+            return NextResponse.json({ agent, question, response: res.content, model: res.model, toolsUsed: (res.toolExecutions || []).map((t: { name: string; result: unknown }) => ({ name: t.name, result: JSON.stringify(t.result).slice(0, 300) })), elapsed: `${Math.round((Date.now() - start) / 1000)}s` });
+        }
+        if (agent === 'linus') {
+            const { runLinus } = await import('@/server/agents/linus');
+            const res = await runLinus({ prompt: question, maxIterations: 4, toolMode: 'slack' as const, context: { userId: 'pressure-test', orgId: 'org_bakedbot_internal' } });
+            return NextResponse.json({ agent, question, response: res.content, model: res.model, toolsUsed: (res.toolExecutions || []).map((t: { name: string; result: unknown }) => ({ name: t.name, result: JSON.stringify(t.result).slice(0, 300) })), elapsed: `${Math.round((Date.now() - start) / 1000)}s` });
+        }
+        if (agent === 'elroy') {
+            const { runElroy } = await import('@/server/agents/elroy');
+            const res = await runElroy({ prompt: question, maxIterations: 4, context: { userId: 'pressure-test' } });
+            return NextResponse.json({ agent, question, response: res.content, model: res.model, toolsUsed: (res.toolExecutions || []).map((t: { name: string; result: unknown }) => ({ name: t.name, result: JSON.stringify(t.result).slice(0, 300) })), elapsed: `${Math.round((Date.now() - start) / 1000)}s` });
+        }
+        return NextResponse.json({ error: `Unknown agent: ${agent}` }, { status: 400 });
+    } catch (err: unknown) {
+        return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
     }
 }
 
