@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import React, { useEffect, useState } from 'react';
-import { Building2, Sprout, Store, type LucideIcon } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Building2, ChevronDown, ChevronUp, Sprout, Store, type LucideIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUser } from '@/hooks/use-user';
 import { cn } from '@/lib/utils';
@@ -19,6 +20,8 @@ import { getOrgProfileAction } from '@/server/actions/org-profile';
 import type { OnboardingPrimaryGoal } from '@/types/onboarding';
 import { isDispensaryRole, isGrowerRole } from '@/types/roles';
 import { InsightCardsGrid } from './insight-cards-grid';
+
+const BRIEFING_COLLAPSED_KEY = 'bakedbot:briefing-collapsed';
 
 interface InboxWorkspaceBriefingProps {
     className?: string;
@@ -135,6 +138,18 @@ export function InboxWorkspaceBriefing({ className }: InboxWorkspaceBriefingProp
     const { userData } = useUser();
     const [orgName, setOrgName] = useState<string | null>(getFallbackOrgName(user));
     const [isLoadingName, setIsLoadingName] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(() => {
+        if (typeof window === 'undefined') return false;
+        return localStorage.getItem(BRIEFING_COLLAPSED_KEY) === 'true';
+    });
+
+    const toggleCollapsed = useCallback(() => {
+        setIsCollapsed((prev) => {
+            const next = !prev;
+            localStorage.setItem(BRIEFING_COLLAPSED_KEY, String(next));
+            return next;
+        });
+    }, []);
 
     const meta = getWorkspaceMeta(role);
     const primaryGoal =
@@ -189,124 +204,140 @@ export function InboxWorkspaceBriefing({ className }: InboxWorkspaceBriefingProp
     }, [orgId, user]);
 
     return (
-        <section className={cn('rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm', className)}>
-            <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
-                <div className="space-y-2.5">
-                    <div className="flex flex-wrap items-center gap-2">
-                        <Badge className={cn('border-0 text-[11px]', meta.accentClassName)}>
+        <section className={cn('rounded-2xl border border-border/60 bg-card/80 shadow-sm', className)}>
+            {/* Always-visible header row — click to toggle */}
+            <button
+                type="button"
+                onClick={toggleCollapsed}
+                className="flex w-full items-center justify-between px-4 py-2.5 text-left hover:bg-muted/30 transition-colors rounded-t-2xl"
+            >
+                <div className="flex items-center gap-3 min-w-0">
+                    <div className="rounded-xl bg-background p-1.5 text-primary shadow-sm shrink-0">
+                        <meta.Icon className="h-4 w-4" />
+                    </div>
+                    <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                        <Badge className={cn('border-0 text-[11px] shrink-0', meta.accentClassName)}>
                             {meta.label}
                         </Badge>
-                        <Badge variant="outline" className="bg-background/80 text-[11px] text-foreground">
-                            {isLoadingName ? (
-                                <Skeleton className="h-3 w-28" />
-                            ) : (
-                                orgName || 'BakedBot Workspace'
-                            )}
-                        </Badge>
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <div className="flex items-center gap-3">
-                            <div className="rounded-xl bg-background p-1.5 text-primary shadow-sm">
-                                <meta.Icon className="h-4 w-4" />
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
-                                    Desktop Briefing
-                                </p>
-                                <h2 className="text-base font-semibold text-foreground lg:text-lg">
-                                    {meta.title}
-                                </h2>
-                            </div>
-                        </div>
-
-                        <p className="max-w-3xl text-[13px] leading-5 text-muted-foreground">
-                            {meta.description(orgName)}
-                        </p>
+                        <h2 className="text-sm font-semibold text-foreground truncate">
+                            {meta.title}
+                        </h2>
+                        {isCollapsed && (
+                            <span className="text-[11px] text-muted-foreground truncate hidden sm:inline">
+                                — {isLoadingName ? 'Loading...' : orgName || 'BakedBot Workspace'}
+                            </span>
+                        )}
                     </div>
                 </div>
-
-                <div className="rounded-xl border border-border/60 bg-background/70 px-3 py-2.5 xl:max-w-[220px]">
-                    <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                        Pilot Focus
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-foreground">
-                        Briefing + conversations
-                    </p>
-                    <p className="mt-1 text-[11px] leading-4 text-muted-foreground">
-                        Keep the live daily briefing on screen while your active inbox work stays in the workspace below.
-                    </p>
+                <div className="shrink-0 ml-2 text-muted-foreground">
+                    {isCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
                 </div>
-            </div>
+            </button>
 
-            <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-                <div className="rounded-2xl border border-border/60 bg-background/80 p-4 shadow-sm">
-                    <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="outline" className="bg-background text-[11px] text-foreground">
-                            Start Here
-                        </Badge>
-                        <Badge className="border-0 bg-primary/10 text-[11px] text-primary">
-                            {agentGuide.name}
-                        </Badge>
-                    </div>
+            {/* Collapsible body */}
+            {!isCollapsed && (
+                <div className="px-4 pb-4">
+                    <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                        <div className="space-y-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <Badge variant="outline" className="bg-background/80 text-[11px] text-foreground">
+                                    {isLoadingName ? (
+                                        <Skeleton className="h-3 w-28" />
+                                    ) : (
+                                        orgName || 'BakedBot Workspace'
+                                    )}
+                                </Badge>
+                            </div>
 
-                    <div className="mt-3 space-y-2">
-                        <div>
-                            <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                                First Win
+                            <p className="max-w-3xl text-[13px] leading-5 text-muted-foreground">
+                                {meta.description(orgName)}
                             </p>
-                            <h3 className="text-base font-semibold text-foreground">
-                                {goalDefinition.title}
-                            </h3>
                         </div>
 
-                        <p className="text-[13px] leading-5 text-muted-foreground">
-                            Brand Guide comes first. {goalPreview}
-                        </p>
-
-                        <p className="text-[12px] leading-5 text-muted-foreground">
-                            <span className="font-semibold text-foreground">Lead agent:</span>{' '}
-                            {agentGuide.name} {agentGuide.description}
-                        </p>
-                    </div>
-
-                    <div className="mt-3 flex flex-wrap gap-2">
-                        <Link
-                            href="/dashboard/settings/brand-guide"
-                            className="inline-flex items-center rounded-lg border border-border/70 bg-background px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-                        >
-                            Open Brand Guide
-                        </Link>
-                        <Link
-                            href={goalHref}
-                            className="inline-flex items-center rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
-                        >
-                            {goalDefinition.ctaLabel}
-                        </Link>
-                    </div>
-                </div>
-
-                <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-                    {WORKSPACE_GUIDE_CARDS.map((card) => (
-                        <div
-                            key={card.eyebrow}
-                            className="rounded-xl border border-border/60 bg-background/70 px-3 py-3"
-                        >
+                        <div className="rounded-xl border border-border/60 bg-background/70 px-3 py-2.5 xl:max-w-[220px]">
                             <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                                {card.eyebrow}
+                                Pilot Focus
                             </p>
                             <p className="mt-1 text-sm font-semibold text-foreground">
-                                {card.title}
+                                Briefing + conversations
                             </p>
                             <p className="mt-1 text-[11px] leading-4 text-muted-foreground">
-                                {card.description}
+                                Keep the live daily briefing on screen while your active inbox work stays in the workspace below.
                             </p>
                         </div>
-                    ))}
-                </div>
-            </div>
+                    </div>
 
-            <div className="mt-4">
+                    <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+                        <div className="rounded-2xl border border-border/60 bg-background/80 p-4 shadow-sm">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <Badge variant="outline" className="bg-background text-[11px] text-foreground">
+                                    Start Here
+                                </Badge>
+                                <Badge className="border-0 bg-primary/10 text-[11px] text-primary">
+                                    {agentGuide.name}
+                                </Badge>
+                            </div>
+
+                            <div className="mt-3 space-y-2">
+                                <div>
+                                    <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                        First Win
+                                    </p>
+                                    <h3 className="text-base font-semibold text-foreground">
+                                        {goalDefinition.title}
+                                    </h3>
+                                </div>
+
+                                <p className="text-[13px] leading-5 text-muted-foreground">
+                                    Brand Guide comes first. {goalPreview}
+                                </p>
+
+                                <p className="text-[12px] leading-5 text-muted-foreground">
+                                    <span className="font-semibold text-foreground">Lead agent:</span>{' '}
+                                    {agentGuide.name} {agentGuide.description}
+                                </p>
+                            </div>
+
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                <Link
+                                    href="/dashboard/settings/brand-guide"
+                                    className="inline-flex items-center rounded-lg border border-border/70 bg-background px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+                                >
+                                    Open Brand Guide
+                                </Link>
+                                <Link
+                                    href={goalHref}
+                                    className="inline-flex items-center rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
+                                >
+                                    {goalDefinition.ctaLabel}
+                                </Link>
+                            </div>
+                        </div>
+
+                        <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+                            {WORKSPACE_GUIDE_CARDS.map((card) => (
+                                <div
+                                    key={card.eyebrow}
+                                    className="rounded-xl border border-border/60 bg-background/70 px-3 py-3"
+                                >
+                                    <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                                        {card.eyebrow}
+                                    </p>
+                                    <p className="mt-1 text-sm font-semibold text-foreground">
+                                        {card.title}
+                                    </p>
+                                    <p className="mt-1 text-[11px] leading-4 text-muted-foreground">
+                                        {card.description}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Insight cards always visible — even when collapsed */}
+            <div className={cn('px-4 pb-3', isCollapsed ? 'pt-0' : 'pt-0')}>
                 <InsightCardsGrid maxCards={5} density="dense" />
             </div>
         </section>

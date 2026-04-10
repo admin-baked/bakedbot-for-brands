@@ -54,6 +54,7 @@ export function buildActionableArtifactBlocks(
         dashboardBaseUrl?: string;
         orgSlug?: string;
         showApprovalButtons?: boolean;
+        autonomyLevel?: number;
     } = {}
 ): Record<string, unknown>[] {
     const actionable = artifact.actionable;
@@ -63,18 +64,24 @@ export function buildActionableArtifactBlocks(
         dashboardBaseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.bakedbot.ai',
         orgSlug,
         showApprovalButtons = true,
+        autonomyLevel,
     } = options;
 
     const agentEmoji = AGENT_EMOJI[artifact.createdBy] ?? ':robot_face:';
     const agentName = artifact.createdBy.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     const blocks: Record<string, unknown>[] = [];
 
+    // Autonomy badge for Level 2+ cards
+    const autonomyBadge = autonomyLevel && autonomyLevel >= 2
+        ? ' :robot_face: _Auto-approve recommended_'
+        : '';
+
     // Header with agent branding
     blocks.push({
         type: 'section',
         text: {
             type: 'mrkdwn',
-            text: `${agentEmoji} *${agentName}* — ${actionable.title}`,
+            text: `${agentEmoji} *${agentName}* — ${actionable.title}${autonomyBadge}`,
         },
     });
 
@@ -437,4 +444,52 @@ export function buildDailyBriefingBlocks(
     });
 
     return blocks;
+}
+
+// ============================================================================
+// Auto-Executed Card Notification (Level 3)
+// ============================================================================
+
+/**
+ * Build Slack blocks for a Level 3 auto-executed card notification.
+ * Includes an "Undo" button so the user can revert if needed.
+ */
+export function buildAutoExecutedBlocks(
+    cardTitle: string,
+    agentId: string,
+    headline: string,
+    artifactId: string,
+    orgId: string
+): Record<string, unknown>[] {
+    const agentEmoji = AGENT_EMOJI[agentId] ?? ':robot_face:';
+    const agentName = agentId.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+    return [
+        {
+            type: 'section',
+            text: {
+                type: 'mrkdwn',
+                text: `${agentEmoji} :robot_face: *Auto-executed: ${cardTitle}*\n${agentName}: ${headline}`,
+            },
+        },
+        {
+            type: 'actions',
+            elements: [
+                {
+                    type: 'button',
+                    text: { type: 'plain_text', text: ':rewind: Undo', emoji: true },
+                    style: 'danger',
+                    action_id: 'undo_auto_execute',
+                    value: JSON.stringify({ artifactId, orgId, cardTitle }),
+                },
+            ],
+        },
+        {
+            type: 'context',
+            elements: [{
+                type: 'mrkdwn',
+                text: `_Auto-executed based on your approval pattern. This action will stop if you undo._`,
+            }],
+        },
+    ];
 }

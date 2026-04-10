@@ -6,7 +6,8 @@
  */
 
 import { InsightGeneratorBase } from '../insight-generator-base';
-import { getSegmentSummary, getAtRiskCustomers } from '@/server/tools/crm-tools';
+import { getSegmentSummary, getAtRiskCustomers, getTodayCheckins } from '@/server/tools/crm-tools';
+import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import type { InsightCard } from '@/types/insight-cards';
 
@@ -26,10 +27,12 @@ export class CustomerInsightsGenerator extends InsightGeneratorBase {
     try {
       logger.info('[CustomerInsights] Generating insights', { orgId: this.orgId });
 
-      // Fetch segment data and at-risk customers in parallel
-      const [segmentResult, atRiskResult] = await Promise.all([
+      // Fetch segment data, at-risk customers, and today's traffic in parallel
+      const [segmentResult, atRiskResult, todayCheckins, todayMix] = await Promise.all([
         this.getSegments(),
         getAtRiskCustomers(this.orgId, 100, true),
+        getTodayCheckins(this.orgId).catch(() => 0),
+        this.getTodayNewVsReturning(),
       ]);
 
       // 1. Churn Risk Alert
@@ -38,9 +41,13 @@ export class CustomerInsightsGenerator extends InsightGeneratorBase {
         insights.push(churnInsight);
       }
 
-      // 2. New vs Returning Mix
+      // 2. New vs Returning Mix — daily-updating with actual today traffic
       if (segmentResult) {
-        const newVsReturningInsight = this.createNewVsReturningInsight(segmentResult);
+        const newVsReturningInsight = this.createNewVsReturningInsight(segmentResult, {
+          todayCheckins,
+          todayNew: todayMix.newCustomers,
+          todayReturning: todayMix.returningCustomers,
+        });
         insights.push(newVsReturningInsight);
 
         // 3. VIP/Loyalty Performance
@@ -83,13 +90,88 @@ export class CustomerInsightsGenerator extends InsightGeneratorBase {
   }
 
   /**
-   * Create churn risk insight card
+   * Query today's orders and classify customers as new vs returning.
+   * Returning = has ordered within the last 30 days (before today).
+   * New = first-ever order OR no order in 30+ days.
+   */
+  private async getTodayNewVsReturning(): Promise<{ newCustomers: number; returningCustomers: number }> {
+    try {
+      const db = getAdminFirestore();
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+
+      // Get today's orders for this org
+      const todayOrdersSnap = await db.collection('orders')
+        .where('orgId', '==', this.orgId)
+        .where('createdAt', '>=', todayStart)
+        .limit(500)
+        .get();
+
+      if (todayOrdersSnap.empty) {
+        return { newCustomers: 0, returningCustomers: 0 };
+      }
+
+      // Collect unique customer identifiers from today's orders
+      const customerIds = new Set<string>();
+      for (const doc of todayOrdersSnap.docs) {
+        const data = doc.data();
+        const customerId = data.customerId || data.customerEmail || data.userId;
+        if (customerId) customerIds.add(customerId);
+      }
+
+      if (customerIds.size === 0) {
+        return { newCustomers: 0, returningCustomers: 0 };
+      }
+
+      // For each unique customer, check if they have an order in the 30 days BEFORE today
+      const thirtyDaysAgo = new Date(todayStart);
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      let returningCount = 0;
+      // Batch check: query orders in last 30 days for these customers
+      // Use a single query to check which customers have prior orders
+      const priorOrdersSnap = await db.collection('orders')
+        .where('orgId', '==', this.orgId)
+        .where('createdAt', '>=', thirtyDaysAgo)
+        .where('createdAt', '<', todayStart)
+        .limit(1000)
+        .get();
+
+      const customersWithPriorOrders = new Set<string>();
+      for (const doc of priorOrdersSnap.docs) {
+        const data = doc.data();
+        const customerId = data.customerId || data.customerEmail || data.userId;
+        if (customerId) customersWithPriorOrders.add(customerId);
+      }
+
+      for (const cid of customerIds) {
+        if (customersWithPriorOrders.has(cid)) {
+          returningCount++;
+        }
+      }
+
+      return {
+        newCustomers: customerIds.size - returningCount,
+        returningCustomers: returningCount,
+      };
+    } catch (error) {
+      logger.warn('[CustomerInsights] Error fetching today new vs returning', {
+        error: error instanceof Error ? error.message : String(error),
+        orgId: this.orgId,
+      });
+      return { newCustomers: 0, returningCustomers: 0 };
+    }
+  }
+
+  /**
+   * Create churn risk insight card — shows specific at-risk customers with
+   * ready-to-approve win-back actions instead of linking to AI Campaign Planner.
    */
   private createChurnRiskInsight(atRiskCustomers: Record<string, unknown>[]): InsightCard {
-    // Get top 10 by LTV
+    // Get top 5 by LTV — specific enough to act on
     const topAtRisk = atRiskCustomers
       .sort((a, b) => ((b as any).totalSpent || 0) - ((a as any).totalSpent || 0))
-      .slice(0, 10);
+      .slice(0, 5);
 
     const totalLTVAtRisk = topAtRisk.reduce((sum, c) => sum + ((c as any).totalSpent || 0), 0);
     const avgDaysSinceOrder =
@@ -101,31 +183,77 @@ export class CustomerInsightsGenerator extends InsightGeneratorBase {
 
     const severity = atRiskCustomers.length > 50 ? 'warning' : 'info';
 
+    // Build specific customer lines for the card
+    const customerLines = topAtRisk
+      .map((c) => {
+        const name = (c as any).name ?? (c as any).displayName ?? 'Customer';
+        const ltv = Math.round((c as any).totalSpent || 0);
+        const days = (c as any).daysSinceLastOrder || (c as any).daysSincePurchase || '?';
+        return `${name} — $${ltv.toLocaleString()} LTV, ${days}d inactive`;
+      })
+      .join('; ');
+
+    const headline = totalLTVAtRisk > 0
+      ? `$${Math.round(totalLTVAtRisk).toLocaleString()} LTV at risk (${atRiskCustomers.length} customers)`
+      : `${atRiskCustomers.length} customers at risk`;
+
+    const subtextParts = [
+      `Top ${topAtRisk.length}: ${customerLines}`,
+      `Avg ${avgDaysSinceOrder} days since last order`,
+    ];
+
     return this.createInsight({
       title: 'CHURN RISK ALERT',
-      tooltipText: 'Customers who have not ordered in 60+ days, sorted by lifetime value. Top 10 shown by LTV.',
-      headline: `${atRiskCustomers.length} customers at risk`,
-      subtext:
-        totalLTVAtRisk > 0
-          ? `$${Math.round(totalLTVAtRisk).toLocaleString()} LTV | ${avgDaysSinceOrder} days inactive`
-          : `${avgDaysSinceOrder} days since last purchase`,
+      tooltipText: 'Customers inactive 60+ days, sorted by lifetime value. Shows top 5 by LTV with ready-to-approve win-back actions.',
+      headline,
+      subtext: subtextParts.join('\n'),
       value: atRiskCustomers.length,
       unit: 'customers',
       severity,
       trend: 'down',
-      trendValue: `${atRiskCustomers.length}`,
+      trendValue: `$${Math.round(totalLTVAtRisk).toLocaleString()} at risk`,
       actionable: true,
-      ctaLabel: atRiskCustomers.length > 10 ? 'View Top 10' : 'Create Win-Back',
-      threadType: 'campaign',
-      threadPrompt: `I have ${atRiskCustomers.length} customers at risk of churning with $${Math.round(totalLTVAtRisk).toLocaleString()} in LTV. Help me create a win-back campaign targeting the highest-value customers.`,
+      ctaLabel: 'Approve Win-Back',
+      threadType: 'churn_risk',
+      threadPrompt: `Send a win-back campaign to these ${topAtRisk.length} highest-value at-risk customers:\n${topAtRisk.map((c) => {
+        const name = (c as any).name ?? (c as any).displayName ?? 'Customer';
+        const ltv = Math.round((c as any).totalSpent || 0);
+        const days = (c as any).daysSinceLastOrder || '?';
+        const email = (c as any).email || '';
+        const phone = (c as any).phone || '';
+        return `- ${name}: $${ltv} LTV, ${days}d inactive${email ? `, ${email}` : ''}${phone ? `, ${phone}` : ''}`;
+      }).join('\n')}\n\nGenerate personalized win-back messages for each customer. Include a specific offer or incentive. Create an approvable artifact I can approve from Slack.`,
       dataSource: 'Customer segments (CRM)',
+      metadata: {
+        totalAtRisk: atRiskCustomers.length,
+        totalLTVAtRisk,
+        avgDaysSinceOrder,
+        topCustomers: topAtRisk.map((c) => ({
+          name: (c as any).name ?? (c as any).displayName ?? 'Customer',
+          email: (c as any).email ?? null,
+          phone: (c as any).phone ?? null,
+          ltv: Math.round((c as any).totalSpent || 0),
+          daysSinceOrder: (c as any).daysSinceLastOrder || 0,
+          segment: (c as any).segment ?? 'at_risk',
+        })),
+      },
     });
   }
 
   /**
-   * Create new vs returning customer mix insight
+   * Create new vs returning customer mix insight — updated daily with actual
+   * today traffic (check-ins + orders), not just lifetime segment counts.
+   *
+   * Returning = ordered within last 30 days. Aligns with:
+   * - 7-day retention nudge cron
+   * - Mrs. Parker welcome/returning email flows
+   * - Churn threshold: 60+ days = at-risk (not returning)
    */
-  private createNewVsReturningInsight(segments: Record<string, unknown>): InsightCard {
+  private createNewVsReturningInsight(
+    segments: Record<string, unknown>,
+    todayTraffic?: { todayCheckins: number; todayNew: number; todayReturning: number },
+  ): InsightCard {
+    // Lifetime segment counts (overall health)
     const newCount = ((segments.new as any)?.count || 0) as number;
     const returningCount =
       (((segments.loyal as any)?.count || 0) +
@@ -136,25 +264,52 @@ export class CustomerInsightsGenerator extends InsightGeneratorBase {
     const returningPercent =
       totalActive > 0 ? Math.round((returningCount / totalActive) * 100) : 0;
 
+    // Today's actual traffic — this is what changes daily
+    const todayTotal = (todayTraffic?.todayNew ?? 0) + (todayTraffic?.todayReturning ?? 0);
+    const todayCheckins = todayTraffic?.todayCheckins ?? 0;
+    const hasTodayData = todayTotal > 0 || todayCheckins > 0;
+
     const severity = returningPercent >= 60 ? 'success' : returningPercent >= 40 ? 'info' : 'warning';
     const trend = returningPercent >= 60 ? 'up' : returningPercent >= 40 ? 'stable' : 'down';
 
+    // Build dynamic subtext with today's data front-and-center
+    const subtextParts: string[] = [];
+    if (hasTodayData) {
+      const todayLine = todayTotal > 0
+        ? `Today: ${todayTotal} customers (${todayTraffic!.todayNew} new, ${todayTraffic!.todayReturning} returning)`
+        : `Today: ${todayCheckins} check-in${todayCheckins !== 1 ? 's' : ''} so far`;
+      subtextParts.push(todayLine);
+    }
+    subtextParts.push(`Overall: ${newCount} new | ${returningCount} returning | ${totalActive} active (30-day window)`);
+
     return this.createInsight({
       title: 'CUSTOMER MIX',
-      headline: `${returningPercent}% returning customers`,
-      subtext: `${newCount} new | ${returningCount} returning | ${totalActive} total active`,
+      headline: hasTodayData && todayTotal > 0
+        ? `${todayTraffic!.todayReturning} returning today (${todayTotal} total)`
+        : `${returningPercent}% returning customers`,
+      subtext: subtextParts.join('\n'),
       tooltipText:
-        'New: First order in last 30 days. Returning: VIP, Loyal, Frequent, or Regular (based on order history, not recency). Active: ordered in last 30 days.',
-      value: returningPercent,
-      unit: '%',
+        'Returning: ordered within the last 30 days. New: first-ever visit or no order in 30+ days. Updates every hour with live check-in and order data.',
+      value: hasTodayData && todayTotal > 0 ? todayTotal : returningPercent,
+      unit: hasTodayData && todayTotal > 0 ? 'customers today' : '%',
       severity,
       trend,
-      trendValue: `${returningPercent}%`,
+      trendValue: hasTodayData && todayTotal > 0
+        ? `${todayTraffic!.todayReturning}/${todayTotal} returning`
+        : `${returningPercent}%`,
       actionable: true,
       ctaLabel: 'Retention Strategy',
       threadType: 'crm_customer',
-      threadPrompt: `Analyze our customer retention metrics. We have ${newCount} new customers and ${returningCount} returning customers (${returningPercent}% retention rate). What strategies should we focus on?`,
-      dataSource: 'Customer segments (CRM)',
+      threadPrompt: `Analyze our customer retention metrics. Today we've had ${todayTotal} customers (${todayTraffic?.todayNew ?? 0} new, ${todayTraffic?.todayReturning ?? 0} returning). Overall: ${newCount} new and ${returningCount} returning in the last 30 days (${returningPercent}% retention). What strategies should we focus on?`,
+      dataSource: 'Check-ins + orders (live) + CRM segments',
+      metadata: {
+        todayCheckins,
+        todayNew: todayTraffic?.todayNew ?? 0,
+        todayReturning: todayTraffic?.todayReturning ?? 0,
+        overallNewCount: newCount,
+        overallReturningCount: returningCount,
+        returningPercent,
+      },
     });
   }
 

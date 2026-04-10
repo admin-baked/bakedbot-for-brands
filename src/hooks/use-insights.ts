@@ -434,7 +434,7 @@ export function useInsights(options: UseInsightsOptions = {}): UseInsightsReturn
     const [error, setError] = useState<string | null>(null);
     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-    const intervalRef = useRef<NodeJS.Timeout | null>(null);
+    const intervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isMounted = useRef(true);
 
     const fetchInsights = useCallback(
@@ -541,16 +541,26 @@ export function useInsights(options: UseInsightsOptions = {}): UseInsightsReturn
         }
     }, [autoFetch, role, isRoleLoading, isMockLoading, fetchInsights, isMock]);
 
-    // Polling
+    // Polling with randomized intervals (30-120s) for a "living dashboard" feel
     useEffect(() => {
-        if (refreshInterval > 0 && role && !isRoleLoading) {
-            intervalRef.current = setInterval(() => {
-                fetchInsights(true);
-            }, refreshInterval);
-        }
+        if (refreshInterval <= 0 || !role || isRoleLoading) return;
+
+        const scheduleNext = () => {
+            // Random interval between 30s and 120s to create organic card updates
+            const minMs = 30_000;
+            const maxMs = 120_000;
+            const nextInterval = minMs + Math.random() * (maxMs - minMs);
+            intervalRef.current = setTimeout(() => {
+                void fetchInsights(true, true); // silent refresh
+                scheduleNext(); // reschedule with new random delay
+            }, nextInterval);
+        };
+
+        scheduleNext();
+
         return () => {
             if (intervalRef.current) {
-                clearInterval(intervalRef.current);
+                clearTimeout(intervalRef.current);
             }
         };
     }, [refreshInterval, role, isRoleLoading, fetchInsights]);

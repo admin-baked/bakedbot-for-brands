@@ -10,6 +10,8 @@
 import { getAdminFirestore } from '@/firebase/admin';
 import { Timestamp } from '@google-cloud/firestore';
 import { logger } from '@/lib/logger';
+import { recordApprovalDecision } from './approval-pattern-service';
+import { evaluateEscalation } from './autonomy-escalation-service';
 import type {
     InboxArtifact,
     ArtifactDecision,
@@ -50,7 +52,42 @@ export async function recordArtifactDecision(
         via: decision.decidedVia,
     });
 
+    // Track approval pattern for autonomy escalation (async, non-blocking)
+    trackApprovalPattern(
+        decision.orgId,
+        decision.artifactType,
+        decision.artifactId,
+        decision.decision
+    ).catch((err) => {
+        logger.error('[ArtifactExecutor] Approval pattern tracking failed', { error: err });
+    });
+
     return ref.id;
+}
+
+/**
+ * Track the approval pattern and evaluate autonomy escalation.
+ * Fire-and-forget: does not block the main decision flow.
+ */
+async function trackApprovalPattern(
+    orgId: string,
+    cardTitle: string,
+    cardDefinitionId: string,
+    decision: 'approved' | 'declined'
+): Promise<void> {
+    // Estimate response latency as 0 when we don't have the exact timing
+    const pattern = await recordApprovalDecision(
+        orgId,
+        cardTitle,
+        cardDefinitionId,
+        decision,
+        0
+    );
+
+    // Evaluate if autonomy level should change
+    if (pattern.totalDecisions >= 3) {
+        await evaluateEscalation(orgId, cardTitle);
+    }
 }
 
 // ============================================================================

@@ -65,10 +65,28 @@ export class InventoryVelocityGenerator extends InsightGeneratorBase {
         insights.push(expiringInsight);
       }
 
-      // 3. Slow Movers insight
+      // 3. Slow Movers insight — enriched with product names, categories, prices
       const slowMovers = await getSlowMovingInventory(this.orgId, 30);
       if (slowMovers.length > 0) {
-        const slowMoverInsight = this.createSlowMoverInsight(slowMovers);
+        // Build menu lookup for enrichment (reuse client if available)
+        let menuLookup: Map<string, { name: string; category: string; price: number | null }> | undefined;
+        try {
+          const client = await this.getAlleavesClient();
+          if (client) {
+            const menu = await client.fetchMenu();
+            menuLookup = new Map(menu.map((p) => [
+              p.externalId,
+              {
+                name: p.name,
+                category: (p as any).category ?? (p as any).productCategory ?? 'Other',
+                price: (p as any).price ?? null,
+              },
+            ]));
+          }
+        } catch {
+          // Menu enrichment is best-effort — card still works without it
+        }
+        const slowMoverInsight = this.createSlowMoverInsight(slowMovers, menuLookup);
         insights.push(slowMoverInsight);
       }
 
@@ -332,34 +350,96 @@ export class InventoryVelocityGenerator extends InsightGeneratorBase {
   }
 
   /**
-   * Create slow movers insight card
+   * Create slow movers insight card — enriched with product names, categories,
+   * prices, and category breakdown for actionable decision-making.
    */
   private createSlowMoverInsight(
     products: Array<{
       productId: string;
       daysInInventory: number;
       stockLevel: number;
-    }>
+    }>,
+    menuLookup?: Map<string, { name: string; category: string; price: number | null }>,
   ): InsightCard {
     const totalStock = products.reduce((sum, p) => sum + p.stockLevel, 0);
-    const oldestProduct = products[0];
+
+    // Enrich with product details for category breakdown + specific names
+    const enriched = products.map((p) => {
+      const info = menuLookup?.get(p.productId);
+      return {
+        ...p,
+        name: info?.name ?? p.productId,
+        category: info?.category ?? 'Unknown',
+        price: info?.price ?? null,
+      };
+    });
+
+    // Category breakdown
+    const byCategory = new Map<string, { count: number; stock: number; value: number }>();
+    for (const p of enriched) {
+      const cat = p.category || 'Other';
+      const existing = byCategory.get(cat) ?? { count: 0, stock: 0, value: 0 };
+      existing.count += 1;
+      existing.stock += p.stockLevel;
+      existing.value += (p.price ?? 0) * p.stockLevel;
+      byCategory.set(cat, existing);
+    }
+
+    const categoryLines = Array.from(byCategory.entries())
+      .sort((a, b) => b[1].value - a[1].value)
+      .slice(0, 4)
+      .map(([cat, data]) => `${cat}: ${data.count} SKUs, ${data.stock} units ($${Math.round(data.value).toLocaleString()})`)
+      .join(' | ');
+
+    // Top 5 specific products by retail value at risk
+    const top5 = enriched
+      .filter((p) => p.price !== null && p.price > 0)
+      .sort((a, b) => (b.price! * b.stockLevel) - (a.price! * a.stockLevel))
+      .slice(0, 5);
+
+    const productLines = top5
+      .map((p) => `${p.name} — $${p.price!.toFixed(0)} × ${p.stockLevel} units (${p.daysInInventory}d stale)`)
+      .join('; ');
+
+    const totalValue = enriched.reduce((sum, p) => sum + ((p.price ?? 0) * p.stockLevel), 0);
+
+    const headline = totalValue > 0
+      ? `$${Math.round(totalValue).toLocaleString()} in slow-moving inventory (${products.length} SKUs)`
+      : `${products.length} slow-moving products`;
+
+    const subtextParts = [categoryLines];
+    if (productLines) {
+      subtextParts.push(`Top: ${productLines}`);
+    }
 
     return this.createInsight({
       title: 'SLOW MOVERS',
-      tooltipText: 'Products that have been sitting in inventory for 30+ days without selling.',
-      headline: `${products.length} slow-moving products`,
-      subtext:
-        totalStock > 0
-          ? `${totalStock} units in stock | Oldest: ${oldestProduct.daysInInventory} days`
-          : undefined,
+      tooltipText: 'Products sitting in inventory 30+ days without selling, broken down by category. Prices and stock levels help prioritize discounts or bundles.',
+      headline,
+      subtext: subtextParts.join('\n'),
       value: products.length,
       unit: 'products',
-      severity: products.length > 20 ? 'warning' : 'info',
+      severity: totalValue > 5000 ? 'warning' : products.length > 20 ? 'warning' : 'info',
       actionable: true,
-      ctaLabel: 'Create Bundle or Discount',
-      threadType: 'bundle',
-      threadPrompt: `I have ${products.length} slow-moving products taking up inventory (${totalStock} units). Help me create bundles or apply discounts to move them faster.`,
-      dataSource: 'Inventory age (Alleaves)',
+      ctaLabel: top5.length > 0 ? 'Review & Discount' : 'Create Bundle or Discount',
+      threadType: 'inventory_promo',
+      threadPrompt: top5.length > 0
+        ? `I have $${Math.round(totalValue).toLocaleString()} in slow-moving inventory across ${products.length} SKUs. Here are the top products to move:\n${top5.map((p) => `- ${p.name} (${p.category}): $${p.price!.toFixed(2)} × ${p.stockLevel} units, ${p.daysInInventory} days stale`).join('\n')}\n\nSuggest specific discount percentages for each product. Consider competitor pricing and help me create flash sale artifacts I can approve.`
+        : `I have ${products.length} slow-moving products taking up inventory (${totalStock} units). Help me create bundles or apply discounts to move them faster.`,
+      dataSource: 'Inventory age + catalog (Alleaves)',
+      metadata: {
+        categoryBreakdown: Object.fromEntries(byCategory),
+        topProducts: top5.map((p) => ({
+          productId: p.productId,
+          name: p.name,
+          category: p.category,
+          price: p.price,
+          stockLevel: p.stockLevel,
+          daysInInventory: p.daysInInventory,
+          valueAtRisk: (p.price ?? 0) * p.stockLevel,
+        })),
+        totalValueAtRisk: totalValue,
+      },
     });
   }
 }

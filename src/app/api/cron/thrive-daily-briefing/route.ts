@@ -21,6 +21,7 @@ import { getAtRiskCustomers, getSegmentSummary, getTodayCheckins } from '@/serve
 import { getLatestWeeklyReport } from '@/server/services/ezal/weekly-intel-report';
 import { fetchMenuProducts, normalizeProduct } from '@/server/agents/adapters/consumer-adapter';
 import { elroySlackService } from '@/server/services/communications/slack';
+import { getAdminFirestore } from '@/firebase/admin';
 import { callClaude } from '@/ai/claude';
 import { requireCronSecret } from '@/server/auth/cron';
 import { logger } from '@/lib/logger';
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
         const upcomingHolidays = getUpcomingHolidays(7);
         const nearestHoliday = upcomingHolidays[0] ?? null;
 
-        const [segmentResult, atRiskResult, intelReport, todayCheckins, products, holidayHoursResult] = await Promise.allSettled([
+        const [segmentResult, atRiskResult, intelReport, todayCheckins, products, holidayHoursResult, staleOrdersResult] = await Promise.allSettled([
             getSegmentSummary(ORG_ID),
             getAtRiskCustomers(ORG_ID, 5, true),
             getLatestWeeklyReport(ORG_ID),
@@ -55,6 +56,7 @@ export async function POST(request: NextRequest) {
             fetchMenuProducts(ORG_ID),
             // Only hit Places API if a holiday is within 7 days
             nearestHoliday ? fetchCompetitorHolidayHours(SYRACUSE_COMPETITORS) : Promise.resolve([]),
+            loadStaleOrders(ORG_ID),
         ]);
 
         const segment = segmentResult.status === 'fulfilled' ? segmentResult.value : null;
@@ -63,6 +65,7 @@ export async function POST(request: NextRequest) {
         const checkins = todayCheckins.status === 'fulfilled' ? todayCheckins.value : 0;
         const inventory = products.status === 'fulfilled' ? products.value : [];
         const competitorHolidays: CompetitorHours[] = holidayHoursResult.status === 'fulfilled' ? holidayHoursResult.value : [];
+        const staleOrders: StaleOrder[] = staleOrdersResult.status === 'fulfilled' ? staleOrdersResult.value : [];
 
         // Identify discount candidates — slice to 50 before processing to cap iteration cost
         const discountCandidates = identifyDiscountCandidates(inventory.slice(0, 50));
@@ -76,6 +79,7 @@ export async function POST(request: NextRequest) {
             discountCandidates,
             nearestHoliday,
             competitorHolidays,
+            staleOrders,
         });
 
         const blocks = buildBriefingBlocks({
@@ -87,6 +91,7 @@ export async function POST(request: NextRequest) {
             actionItems,
             nearestHoliday,
             competitorHolidays,
+            staleOrders,
         });
 
         // Ensure channel exists and bot is a member before posting
@@ -127,6 +132,58 @@ export async function GET(request: NextRequest) {
 // ---------------------------------------------------------------------------
 // Data helpers
 // ---------------------------------------------------------------------------
+
+interface StaleOrder {
+    orderId: string;
+    customerName: string;
+    totalPrice: number;
+    status: string;
+    waitMinutes: number;
+    createdAt: Date;
+}
+
+/**
+ * Load orders that need attention — pending/submitted for 30+ minutes.
+ * These are actionable: the owner can follow up or notify the customer.
+ */
+async function loadStaleOrders(orgId: string): Promise<StaleOrder[]> {
+    try {
+        const db = getAdminFirestore();
+        const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000);
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+
+        const snap = await db.collection('orders')
+            .where('orgId', '==', orgId)
+            .where('status', 'in', ['pending', 'submitted', 'confirmed', 'preparing'])
+            .where('createdAt', '>=', todayStart)
+            .limit(20)
+            .get();
+
+        const stale: StaleOrder[] = [];
+        for (const doc of snap.docs) {
+            const data = doc.data();
+            const createdAt = data.createdAt?.toDate?.() ?? new Date(data.createdAt);
+            if (createdAt > thirtyMinAgo) continue; // Not stale yet
+
+            const waitMinutes = Math.round((Date.now() - createdAt.getTime()) / 60000);
+            stale.push({
+                orderId: doc.id,
+                customerName: data.customerName || data.customer?.name || 'Customer',
+                totalPrice: data.totalPrice || data.subtotal || 0,
+                status: data.status || 'pending',
+                waitMinutes,
+                createdAt,
+            });
+        }
+
+        stale.sort((a, b) => b.waitMinutes - a.waitMinutes);
+        return stale;
+    } catch (error) {
+        logger.warn('[ThriveDailyBriefing] Failed to load stale orders', { error: String(error) });
+        return [];
+    }
+}
 
 interface DiscountCandidate {
     name: string;
@@ -169,6 +226,7 @@ interface BriefingData {
     discountCandidates: DiscountCandidate[];
     nearestHoliday: Holiday | null;
     competitorHolidays: CompetitorHours[];
+    staleOrders: StaleOrder[];
 }
 
 async function synthesizeActionItems(data: BriefingData): Promise<string[]> {
@@ -198,6 +256,11 @@ async function synthesizeActionItems(data: BriefingData): Promise<string[]> {
         if (data.discountCandidates.length) {
             const c = data.discountCandidates[0];
             contextLines.push(`Discount opportunity: ${c.name} — ${c.reason}`);
+        }
+
+        if (data.staleOrders.length) {
+            const oldest = data.staleOrders[0];
+            contextLines.push(`${data.staleOrders.length} order(s) waiting 30+ min — oldest: ${oldest.customerName} (${oldest.waitMinutes} min, $${Math.round(oldest.totalPrice)})`);
         }
 
         if (data.nearestHoliday) {
@@ -304,6 +367,22 @@ function buildBriefingBlocks(data: BriefingData & { actionItems: string[] }): an
         blocks.push({
             type: 'section',
             text: { type: 'mrkdwn', text: `*🏷️ Discount Opportunities*\n${dealList}` },
+        });
+    }
+
+    // ⏰ Orders Needing Attention (stale 30+ min)
+    if (data.staleOrders.length > 0) {
+        const orderList = data.staleOrders.slice(0, 5).map(o =>
+            `• *${o.customerName}* — $${Math.round(o.totalPrice)} · ${o.status} · waiting ${o.waitMinutes} min`
+        ).join('\n');
+
+        blocks.push({ type: 'divider' });
+        blocks.push({
+            type: 'section',
+            text: {
+                type: 'mrkdwn',
+                text: `*⏰ Orders Needing Attention (${data.staleOrders.length})*\n${orderList}`,
+            },
         });
     }
 
