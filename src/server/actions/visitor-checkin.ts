@@ -93,6 +93,52 @@ const captureVisitorCheckinSchema = z.object({
     path: ['phone'],
 });
 
+/**
+ * Fire-and-forget: sync email/phone from check-in back to the Alleaves POS customer record.
+ * Looks up the customer's alleavesCustomerId from their Firestore doc, then PUTs the update.
+ */
+async function syncCheckinToAlleaves(
+    orgId: string,
+    customerId: string,
+    email: string | null,
+    phone: string,
+    db: firestore.Firestore,
+): Promise<void> {
+    // Read the customer doc to get their Alleaves ID
+    const custDoc = await db.collection('customers').doc(customerId).get();
+    const alleavesId = custDoc.data()?.alleavesCustomerId; // e.g. "cid_1234"
+    if (!alleavesId) return; // No Alleaves link — nothing to sync
+
+    const numericId = alleavesId.replace('cid_', '');
+
+    // Get POS config for the org
+    const locSnap = await db.collection('locations').where('orgId', '==', orgId).limit(1).get();
+    const posConfig = locSnap.docs[0]?.data()?.posConfig;
+    if (!posConfig || posConfig.provider !== 'alleaves' || posConfig.status !== 'active') return;
+
+    const { ALLeavesClient } = await import('@/lib/pos/adapters/alleaves');
+    const client = new ALLeavesClient({
+        apiKey: posConfig.apiKey,
+        username: posConfig.username || process.env.ALLEAVES_USERNAME || '',
+        password: posConfig.password || process.env.ALLEAVES_PASSWORD || '',
+        pin: posConfig.pin || process.env.ALLEAVES_PIN,
+        storeId: posConfig.storeId,
+        locationId: posConfig.locationId || posConfig.storeId,
+        environment: posConfig.environment || 'production',
+    });
+
+    const fields: Record<string, string> = {};
+    if (email) fields.email = email;
+    if (phone) fields.phone = phone;
+
+    if (Object.keys(fields).length > 0) {
+        await client.updateCustomer(numericId, fields);
+        logger.info('[VisitorCheckin] Synced contact info to Alleaves', {
+            orgId, customerId, alleavesId, fieldsUpdated: Object.keys(fields),
+        });
+    }
+}
+
 export type VisitorCheckinSource = z.infer<typeof visitorCheckinSourceSchema>;
 export type VisitorAgeVerifiedMethod = z.infer<typeof visitorAgeVerifiedMethodSchema>;
 export type VisitorFavoriteCategory = z.infer<typeof favoriteCategorySchema>;
@@ -1373,6 +1419,16 @@ export async function captureVisitorCheckin(
                 customerId,
                 visitId,
                 error: onboardingResult.error ?? 'unknown_error',
+            });
+        }
+
+        // Sync email/phone back to Alleaves customer record (fire-and-forget)
+        if (resolvedEmail || normalizedPhone) {
+            syncCheckinToAlleaves(validated.orgId, customerId, resolvedEmail, normalizedPhone, db).catch(err => {
+                logger.warn('[VisitorCheckin] Alleaves writeback failed (non-fatal)', {
+                    orgId: validated.orgId, customerId,
+                    error: err instanceof Error ? err.message : String(err),
+                });
             });
         }
 

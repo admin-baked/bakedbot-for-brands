@@ -329,6 +329,95 @@ async function computeAndPersistSpending(
 }
 
 /**
+ * Persist Alleaves customer profiles to Firestore.
+ *
+ * Writes contactable customers (those with email or phone) to the top-level
+ * `customers` collection and links them to spending data via `alleavesCustomerId`.
+ * Skips guest users without any contact info.
+ *
+ * Called on every POS sync — merges new data without overwriting fields
+ * that may have been enriched by the check-in flow (e.g. emailConsent, mood).
+ */
+async function persistCustomerProfiles(
+    firestore: FirebaseFirestore.Firestore,
+    orgId: string,
+    alleavesCustomers: any[],
+): Promise<number> {
+    if (alleavesCustomers.length === 0) return 0;
+
+    const BATCH_SIZE = 400;
+    let batch = firestore.batch();
+    let count = 0;
+    const now = new Date();
+
+    for (const c of alleavesCustomers) {
+        const email = (c.email || '').trim().toLowerCase();
+        const phone = (c.phone || '').trim();
+        const isGuest = (c.name_first || '').toLowerCase() === 'guest';
+        const alleavesId = c.id_customer?.toString();
+
+        // Skip guests with no contact info — nothing to reach them with
+        if (!email && !phone) continue;
+
+        // Build a stable document ID: prefer phone-based (matches check-in flow),
+        // fall back to alleaves customer ID
+        const docId = phone
+            ? `${orgId}_phone_${phone.replace(/\D/g, '').slice(-10)}`
+            : `${orgId}_alleaves_${alleavesId}`;
+
+        const firstName = c.name_first && !isGuest ? c.name_first : undefined;
+        const lastName = c.name_last && !isGuest ? c.name_last : undefined;
+        const fullName = firstName
+            ? `${firstName} ${lastName || ''}`.trim()
+            : undefined;
+
+        const ref = firestore.collection('customers').doc(docId);
+
+        // Merge: preserve check-in enrichment (emailConsent, mood, visitCount, etc.)
+        // Only set fields that Alleaves provides — never overwrite with empty values
+        const data: Record<string, unknown> = {
+            orgId,
+            source: 'alleaves_sync',
+            alleavesCustomerId: alleavesId ? `cid_${alleavesId}` : null,
+            updatedAt: now,
+        };
+
+        if (email) data.email = email;
+        if (phone) {
+            data.phone = phone;
+            data.phoneLast4 = phone.replace(/\D/g, '').slice(-4) || null;
+        }
+        if (firstName) data.firstName = firstName;
+        if (lastName) data.lastName = lastName;
+        if (fullName) data.displayName = fullName;
+        if (c.date_of_birth) data.dateOfBirth = c.date_of_birth;
+        if (c.customer_since || c.date_created) {
+            data.alleavesCustomerSince = c.customer_since || c.date_created;
+        }
+
+        batch.set(ref, data, { merge: true });
+
+        count++;
+        if (count % BATCH_SIZE === 0) {
+            await batch.commit();
+            batch = firestore.batch();
+        }
+    }
+
+    if (count % BATCH_SIZE !== 0) {
+        await batch.commit();
+    }
+
+    logger.info('[POS_SYNC] Customer profiles persisted', {
+        orgId,
+        profilesWritten: count,
+        totalFromAlleaves: alleavesCustomers.length,
+    });
+
+    return count;
+}
+
+/**
  * Sync customers and orders for a specific organization
  */
 export async function syncOrgPOSData(orgId: string): Promise<SyncResult> {
@@ -448,6 +537,20 @@ export async function syncOrgPOSData(orgId: string): Promise<SyncResult> {
                 logger.warn('[POS_SYNC] Spending index update failed (non-fatal)', {
                     orgId,
                     error: spendingErr?.message || String(spendingErr),
+                });
+            }
+        }
+
+        // Persist Alleaves customer profiles (name, email, phone) to customers collection
+        // so they're available for outreach and segment classification
+        let profilesWritten = 0;
+        if (customers.length > 0) {
+            try {
+                profilesWritten = await persistCustomerProfiles(firestore, orgId, customers);
+            } catch (profileErr: any) {
+                logger.warn('[POS_SYNC] Customer profile persist failed (non-fatal)', {
+                    orgId,
+                    error: profileErr?.message || String(profileErr),
                 });
             }
         }

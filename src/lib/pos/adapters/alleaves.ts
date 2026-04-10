@@ -740,6 +740,32 @@ export class ALLeavesClient implements POSClient {
     }
 
     /**
+     * Update an existing customer in ALLeaves (PATCH fields only).
+     * Used to sync email/phone from BakedBot check-in back to the POS.
+     */
+    async updateCustomer(
+        customerId: string,
+        fields: { email?: string; phone?: string; first_name?: string; last_name?: string },
+    ): Promise<boolean> {
+        try {
+            await this.request(
+                `/locations/${this.config.locationId}/customers/${customerId}`,
+                {
+                    method: 'PUT',
+                    body: JSON.stringify(fields),
+                },
+            );
+            return true;
+        } catch (err) {
+            logger.warn('[POS_ALLEAVES] Failed to update customer', {
+                customerId,
+                error: err instanceof Error ? err.message : String(err),
+            });
+            return false;
+        }
+    }
+
+    /**
      * Look up customer by email
      */
     async findCustomerByEmail(email: string): Promise<ALLeavesCustomer | null> {
@@ -835,19 +861,20 @@ export class ALLeavesClient implements POSClient {
             body: JSON.stringify({ page, pageSize }),
         });
 
-        // Debug: Log response structure on first page
-        if (page === 1) {
-            logger.debug('[ALLEAVES] Customer API response', {
-                keys: Object.keys(data),
-                hasCustomers: !!data.customers,
-                hasData: !!data.data,
-                hasMeta: !!data.meta,
-                hasPagination: !!data.pagination,
-                customersCount: data.customers?.length,
-            });
-        }
+        // Alleaves returns customers as {0: {...}, 1: {...}, ...} (object with numeric keys)
+        // rather than a proper array or { customers: [...] } wrapper.
+        if (data.customers) return data.customers;
+        if (data.data) return data.data;
+        if (Array.isArray(data)) return data;
 
-        return data.customers || data.data || data || [];
+        // Parse numeric-keyed object into array
+        const arr: any[] = [];
+        for (const key of Object.keys(data)) {
+            if (/^\d+$/.test(key) && typeof data[key] === 'object' && data[key] !== null) {
+                arr.push(data[key]);
+            }
+        }
+        return arr;
     }
 
     /**
