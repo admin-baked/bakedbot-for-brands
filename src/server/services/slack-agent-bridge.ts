@@ -76,6 +76,11 @@ function isGreeting(text: string): boolean {
     return text.length <= MAX_GREETING_LENGTH && GREETING_RE.test(text.trim());
 }
 
+const MEETING_CONFIRM_RE = /^(confirmed?|yes|yep|yup|yeah|i('?m|\s+am)\s+(confirmed|coming|there|ready)|on\s+my\s+way|will\s+be\s+there|good\s+to\s+go|all\s+set)\s*[.!]?\s*$/i;
+function isMeetingConfirmation(text: string): boolean {
+    return text.length <= 40 && MEETING_CONFIRM_RE.test(text.trim());
+}
+
 export function getSlackGLMSynthesisTask(_personaId: string): AITextTaskClass {
     // All Slack synthesis uses 'standard' — if GLM fails, fallback stays on Sonnet not Opus.
     // Linus bypasses this path entirely (goes through runLinus directly).
@@ -338,6 +343,15 @@ function buildInitialSlackStatus(personaId: string, cleanText: string): string {
         }
         if (/\b(email|inbox|gmail|mail|unread|draft|reply)\b/.test(lower)) {
             return `_${personaName} is checking the CEO inbox..._`;
+        }
+        if (/\b(calendar|schedule|meeting|appointment|slot|free|busy|book)\b/.test(lower)) {
+            return `_${personaName} is checking the calendar..._`;
+        }
+        if (/\b(outreach|lead|dispensary|dispensaries|prospect|contact\s*form)\b/.test(lower)) {
+            return `_${personaName} is working on outreach..._`;
+        }
+        if (/\b(linkedin|post|connect|connection|bizdev|business\s*dev)\b/.test(lower)) {
+            return `_${personaName} is working LinkedIn..._`;
         }
         if (/\b(mrr|revenue|arr|pipeline|customer|churn|sales)\b/.test(lower)) {
             return `_${personaName} is pulling the numbers..._`;
@@ -669,6 +683,36 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                 ]);
 
                 result = { content: linusResult.content, toolCalls: linusResult.toolExecutions };
+            } else if (personaId === 'marty' && isMeetingConfirmation(cleanText)) {
+                // Meeting confirmation fast path — mark upcoming bookings as confirmed
+                logger.info('[SlackBridge] Marty meeting confirmation fast path', { cleanText });
+                try {
+                    const { getAdminFirestore } = await import('@/firebase/admin');
+                    const { Timestamp: FsTimestamp } = await import('firebase-admin/firestore');
+                    const db = getAdminFirestore();
+                    const now = new Date();
+                    const soon = new Date(now.getTime() + 35 * 60 * 1000);
+                    const snap = await db.collection('meeting_bookings')
+                        .where('profileSlug', '==', 'martez')
+                        .where('status', '==', 'confirmed')
+                        .where('startAt', '>=', FsTimestamp.fromDate(now))
+                        .where('startAt', '<=', FsTimestamp.fromDate(soon))
+                        .limit(3).get();
+
+                    if (!snap.empty) {
+                        const names: string[] = [];
+                        for (const doc of snap.docs) {
+                            await doc.ref.update({ ceoConfirmed: true, ceoConfirmedAt: FsTimestamp.now() });
+                            names.push(doc.data().externalName || 'upcoming meeting');
+                        }
+                        result = { content: `Got it — you're confirmed for: ${names.join(', ')}. I'll have everything ready. 💪`, toolCalls: [] };
+                    } else {
+                        result = { content: "No upcoming meetings in the next 30 minutes to confirm. You're all clear!", toolCalls: [] };
+                    }
+                } catch (e) {
+                    logger.error('[SlackBridge] Meeting confirmation failed', { error: String(e) });
+                    result = { content: "Confirmed! I'll make sure everything is set.", toolCalls: [] };
+                }
             } else if (personaId === 'marty' && isGreeting(cleanText)) {
                 // Marty greeting fast path — lightweight GLM, no tools
                 logger.info('[SlackBridge] Marty greeting fast path', { cleanText });

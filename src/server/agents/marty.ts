@@ -42,6 +42,14 @@ import { executeGeminiFlashWithTools, isGeminiFlashConfigured } from '@/ai/gemin
 import { google } from 'googleapis';
 import { getGmailToken } from '@/server/integrations/gmail/token-storage';
 import { getOAuth2ClientAsync } from '@/server/integrations/gmail/oauth';
+import { getExecutiveProfile } from '@/server/actions/executive-calendar';
+import {
+    listGoogleCalendarEvents,
+    createGoogleCalendarEvent,
+    deleteGoogleCalendarEvent,
+    getGoogleCalendarBusyTimes,
+} from '@/server/services/executive-calendar/google-calendar';
+import type { GoogleCalendarTokens } from '@/types/executive-calendar';
 
 const GLM_REFUSAL_PATTERNS = [
     'security restrictions',
@@ -508,6 +516,23 @@ async function getCeoGmailClient() {
     return google.gmail({ version: 'v1', auth: authClient });
 }
 
+/**
+ * Get CEO's Google Calendar tokens from Firestore executive_profiles.
+ */
+async function getCeoCalendarTokens(): Promise<GoogleCalendarTokens | null> {
+    try {
+        const profile = await getExecutiveProfile('martez');
+        if (!profile?.googleCalendarTokens?.refresh_token) {
+            logger.warn('[Marty:Calendar] No Google Calendar tokens for Martez');
+            return null;
+        }
+        return profile.googleCalendarTokens;
+    } catch (e) {
+        logger.error('[Marty:Calendar] Failed to get calendar tokens', { error: String(e) });
+        return null;
+    }
+}
+
 /** CEO tools exposed in Slack — streamlined subset, no browser/shell. */
 const MARTY_SLACK_TOOLS = [
     { name: 'delegateTask', description: 'Assign a task to any agent in the squad.', input_schema: { type: 'object' as const, properties: { personaId: { type: 'string', description: 'Agent ID to delegate to' }, task: { type: 'string', description: 'Task description' } }, required: ['personaId', 'task'] } },
@@ -526,6 +551,32 @@ const MARTY_SLACK_TOOLS = [
     { name: 'gmail_draft_reply', description: 'Draft a reply email (saves as draft, does NOT send). The user reviews and sends manually.', input_schema: { type: 'object' as const, properties: { to: { type: 'string', description: 'Recipient email' }, subject: { type: 'string', description: 'Email subject line' }, body: { type: 'string', description: 'Plain text email body' }, htmlBody: { type: 'string', description: 'Optional HTML body for rich formatting' }, cc: { type: 'string', description: 'Optional CC recipients (comma-separated)' } }, required: ['to', 'subject', 'body'] } },
     { name: 'gmail_label', description: 'Add or remove a label from a thread. Use list_labels first to discover label IDs.', input_schema: { type: 'object' as const, properties: { threadId: { type: 'string', description: 'Gmail thread ID' }, labelId: { type: 'string', description: 'Label ID to add' }, action: { type: 'string', enum: ['add', 'remove'], description: 'Whether to add or remove the label' } }, required: ['threadId', 'labelId', 'action'] } },
     { name: 'gmail_list_labels', description: 'List all Gmail labels and their IDs. Use to discover label IDs before labeling threads.', input_schema: { type: 'object' as const, properties: {} } },
+
+    // Google Calendar — CEO schedule (martez@bakedbot.ai)
+    { name: 'calendar_list_events', description: 'List events on the CEO Google Calendar for a date range. Defaults to today + 7 days.', input_schema: { type: 'object' as const, properties: { startDate: { type: 'string', description: 'ISO date string for range start (default: now)' }, endDate: { type: 'string', description: 'ISO date string for range end (default: 7 days from now)' } } } },
+    { name: 'calendar_check_free', description: 'Check CEO free/busy times for a specific date. Returns busy blocks.', input_schema: { type: 'object' as const, properties: { date: { type: 'string', description: 'ISO date (YYYY-MM-DD) to check' } }, required: ['date'] } },
+    { name: 'calendar_create_event', description: 'Create an event on the CEO Google Calendar. Use for scheduling meetings, blocks, reminders.', input_schema: { type: 'object' as const, properties: { summary: { type: 'string', description: 'Event title' }, description: { type: 'string', description: 'Event description' }, startAt: { type: 'string', description: 'ISO datetime for event start' }, endAt: { type: 'string', description: 'ISO datetime for event end' }, attendeeEmails: { type: 'array', items: { type: 'string' }, description: 'Optional attendee emails' } }, required: ['summary', 'startAt', 'endAt'] } },
+    { name: 'calendar_get_upcoming_meetings', description: 'Get upcoming BakedBot bookings (from bakedbot.ai/martez). Includes Google Calendar synced events.', input_schema: { type: 'object' as const, properties: { limit: { type: 'number', description: 'Max meetings to return (default 10)' } } } },
+
+    // Outreach — Lead generation & follow-up
+    { name: 'outreach_search_leads', description: 'Search NY dispensary leads available for outreach. Returns leads with emails and contact form URLs.', input_schema: { type: 'object' as const, properties: { city: { type: 'string', description: 'Filter by city' }, limit: { type: 'number', description: 'Max results (default 10)' }, hasEmail: { type: 'boolean', description: 'Only leads with verified emails' }, hasContactForm: { type: 'boolean', description: 'Only leads with contact form URLs' } } } },
+    { name: 'outreach_send_email', description: 'Send a personalized outreach email to a dispensary lead. Verifies email first, then sends via SES.', input_schema: { type: 'object' as const, properties: { dispensaryName: { type: 'string' }, email: { type: 'string' }, contactName: { type: 'string' }, city: { type: 'string' }, state: { type: 'string' }, templateId: { type: 'string', description: 'Template: competitive-report, founding-partner, caurd-grant, roi-calculator, price-war, pos-integration, loyalty-program, behind-glass-demo, social-proof, direct-personal' }, posSystem: { type: 'string' } }, required: ['dispensaryName', 'email', 'city', 'state', 'templateId'] } },
+    { name: 'outreach_submit_contact_form', description: 'Submit a message via a dispensary website contact form using browser automation (RTRVR).', input_schema: { type: 'object' as const, properties: { websiteUrl: { type: 'string', description: 'Dispensary website URL' }, contactFormUrl: { type: 'string', description: 'Direct contact form URL if known' }, dispensaryName: { type: 'string' }, message: { type: 'string', description: 'Message to submit' }, senderName: { type: 'string', description: 'Name to use (default: Martez Knox)' }, senderEmail: { type: 'string', description: 'Email to use (default: martez@bakedbot.ai)' } }, required: ['websiteUrl', 'dispensaryName', 'message'] } },
+    { name: 'outreach_track_crm', description: 'Track an outreach contact in the CRM system for lifecycle management.', input_schema: { type: 'object' as const, properties: { email: { type: 'string' }, dispensaryName: { type: 'string' }, contactName: { type: 'string' }, city: { type: 'string' }, state: { type: 'string' }, status: { type: 'string', description: 'Lifecycle stage: prospect, contacted, demo_scheduled, trial, customer' }, notes: { type: 'string', description: 'Notes about the interaction' } }, required: ['dispensaryName', 'city', 'state', 'status'] } },
+    { name: 'outreach_get_stats', description: 'Get outreach campaign stats — emails sent, bad emails, failures, recent activity.', input_schema: { type: 'object' as const, properties: {} } },
+
+    // LinkedIn — Business development & lead gen
+    { name: 'linkedin_post', description: 'Post content to the CEO LinkedIn feed. Use for thought leadership, company updates, industry insights.', input_schema: { type: 'object' as const, properties: { content: { type: 'string', description: 'Post content (text). Keep under 3000 chars. Use line breaks for readability.' } }, required: ['content'] } },
+    { name: 'linkedin_search_people', description: 'Search LinkedIn for dispensary owners, cannabis industry contacts, or potential leads.', input_schema: { type: 'object' as const, properties: { query: { type: 'string', description: 'Search query (e.g., "dispensary owner New York", "cannabis retail manager Syracuse")' } }, required: ['query'] } },
+    { name: 'linkedin_send_connection', description: 'Send a connection request with a personalized note to a LinkedIn profile.', input_schema: { type: 'object' as const, properties: { profileUrl: { type: 'string', description: 'LinkedIn profile URL' }, note: { type: 'string', description: 'Connection note (max 300 chars). Be personal and relevant.' } }, required: ['profileUrl', 'note'] } },
+    { name: 'linkedin_send_message', description: 'Send a LinkedIn DM to an existing connection.', input_schema: { type: 'object' as const, properties: { profileUrl: { type: 'string', description: 'LinkedIn profile URL of the connection' }, message: { type: 'string', description: 'Message to send' } }, required: ['profileUrl', 'message'] } },
+
+    // Learning Loop — Remember what works and what doesn't
+    { name: 'learning_log', description: 'Log an outreach attempt, strategy result, or business development action for learning. Marty reviews these to improve strategy.', input_schema: { type: 'object' as const, properties: { action: { type: 'string', description: 'What was attempted (e.g., "emailed dispensary X with template Y")' }, result: { type: 'string', enum: ['success', 'failure', 'pending', 'partial'], description: 'Outcome' }, reason: { type: 'string', description: 'Why it worked or failed (analysis)' }, nextStep: { type: 'string', description: 'What to try next based on this result' }, category: { type: 'string', description: 'Category: outreach, linkedin, calendar, meeting, follow-up, strategy' } }, required: ['action', 'result', 'category'] } },
+    { name: 'learning_search', description: 'Search past learning logs to find what worked and what didn\'t for a specific strategy or target.', input_schema: { type: 'object' as const, properties: { query: { type: 'string', description: 'What to search for (e.g., "email template competitive-report", "Syracuse dispensaries")' }, category: { type: 'string', description: 'Filter by category' } }, required: ['query'] } },
+
+    // Failure reporting
+    { name: 'notify_ceo_problem', description: 'Immediately notify the CEO on Slack about a problem Marty encountered. Every problem is a learning opportunity.', input_schema: { type: 'object' as const, properties: { problem: { type: 'string', description: 'What went wrong' }, context: { type: 'string', description: 'What you were trying to do' }, proposed_fix: { type: 'string', description: 'What you think should be tried next' } }, required: ['problem', 'context'] } },
 ];
 
 async function martyToolExecutor(toolName: string, args: Record<string, unknown>): Promise<unknown> {
@@ -750,6 +801,416 @@ async function martyToolExecutor(toolName: string, args: Record<string, unknown>
                 return { error: `Gmail list labels failed: ${e.message}` };
             }
         }
+        // Google Calendar — CEO schedule
+        case 'calendar_list_events': {
+            try {
+                const tokens = await getCeoCalendarTokens();
+                if (!tokens) return { error: 'Google Calendar not connected for CEO. Connect in Settings > Calendar.' };
+                const now = new Date();
+                const startDate = args.startDate ? new Date(String(args.startDate)) : now;
+                const endDate = args.endDate ? new Date(String(args.endDate)) : new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+                const events = await listGoogleCalendarEvents(tokens, startDate, endDate);
+                return {
+                    events: events.map(e => ({
+                        id: e.id,
+                        title: e.title,
+                        startAt: e.startAt.toISOString(),
+                        endAt: e.endAt.toISOString(),
+                        attendees: e.attendees,
+                        isAllDay: e.isAllDay,
+                        link: e.htmlLink,
+                    })),
+                    count: events.length,
+                };
+            } catch (e: unknown) {
+                return { error: `Calendar list failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'calendar_check_free': {
+            const dateStr = String(args.date ?? '');
+            if (!dateStr) return { error: 'date is required (YYYY-MM-DD)' };
+            try {
+                const tokens = await getCeoCalendarTokens();
+                if (!tokens) return { error: 'Google Calendar not connected for CEO.' };
+                const startOfDay = new Date(`${dateStr}T00:00:00-05:00`);
+                const endOfDay = new Date(`${dateStr}T23:59:59-05:00`);
+                const busyTimes = await getGoogleCalendarBusyTimes(tokens, startOfDay, endOfDay);
+                return {
+                    date: dateStr,
+                    busyBlocks: busyTimes.map(b => ({
+                        start: b.start.toISOString(),
+                        end: b.end.toISOString(),
+                        durationMinutes: Math.round((b.end.getTime() - b.start.getTime()) / 60000),
+                    })),
+                    totalBusyMinutes: busyTimes.reduce((sum, b) => sum + Math.round((b.end.getTime() - b.start.getTime()) / 60000), 0),
+                };
+            } catch (e: unknown) {
+                return { error: `Calendar check failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'calendar_create_event': {
+            const summary = String(args.summary ?? '');
+            const startAt = String(args.startAt ?? '');
+            const endAt = String(args.endAt ?? '');
+            if (!summary || !startAt || !endAt) return { error: 'summary, startAt, and endAt are required' };
+            try {
+                const tokens = await getCeoCalendarTokens();
+                if (!tokens) return { error: 'Google Calendar not connected for CEO.' };
+                const attendeeEmails = Array.isArray(args.attendeeEmails) ? args.attendeeEmails.map(String) : [];
+                const eventId = await createGoogleCalendarEvent(tokens, {
+                    summary,
+                    description: String(args.description ?? ''),
+                    startAt: new Date(startAt),
+                    endAt: new Date(endAt),
+                    timezone: 'America/New_York',
+                    attendeeEmails,
+                    videoRoomUrl: '',
+                });
+                return eventId
+                    ? { success: true, eventId, summary, startAt, endAt }
+                    : { error: 'Failed to create calendar event' };
+            } catch (e: unknown) {
+                return { error: `Calendar create failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'calendar_get_upcoming_meetings': {
+            try {
+                const { getAdminFirestore } = await import('@/firebase/admin');
+                const { Timestamp } = await import('firebase-admin/firestore');
+                const db = getAdminFirestore();
+                const now = new Date();
+                const snap = await db.collection('meeting_bookings')
+                    .where('profileSlug', '==', 'martez')
+                    .where('startAt', '>=', Timestamp.fromDate(now))
+                    .where('status', '==', 'confirmed')
+                    .orderBy('startAt', 'asc')
+                    .limit(typeof args.limit === 'number' ? args.limit : 10)
+                    .get();
+
+                const bookings = snap.docs.map(d => {
+                    const data = d.data();
+                    return {
+                        id: d.id,
+                        name: data.externalName,
+                        email: data.externalEmail,
+                        purpose: data.purpose,
+                        meetingType: data.meetingTypeName,
+                        startAt: data.startAt?.toDate?.()?.toISOString() ?? '',
+                        endAt: data.endAt?.toDate?.()?.toISOString() ?? '',
+                        videoRoomUrl: data.videoRoomUrl,
+                        status: data.status,
+                    };
+                });
+
+                // Also get Google Calendar events
+                const tokens = await getCeoCalendarTokens();
+                let gcalEvents: unknown[] = [];
+                if (tokens) {
+                    const oneWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+                    const events = await listGoogleCalendarEvents(tokens, now, oneWeek);
+                    gcalEvents = events.map(e => ({
+                        id: e.id,
+                        title: e.title,
+                        startAt: e.startAt.toISOString(),
+                        endAt: e.endAt.toISOString(),
+                        attendees: e.attendees,
+                        source: 'google_calendar',
+                    }));
+                }
+
+                return { bookings, gcalEvents, total: bookings.length + gcalEvents.length };
+            } catch (e: unknown) {
+                return { error: `Meetings fetch failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+
+        // Outreach tools
+        case 'outreach_search_leads': {
+            try {
+                const { getAdminFirestore } = await import('@/firebase/admin');
+                const db = getAdminFirestore();
+                let query = db.collection('ny_dispensary_leads') as FirebaseFirestore.Query;
+                if (args.city) query = query.where('city', '==', String(args.city));
+                const snap = await query.limit(typeof args.limit === 'number' ? args.limit : 10).get();
+                const leads = snap.docs.map(d => {
+                    const data = d.data();
+                    return {
+                        id: d.id,
+                        dispensaryName: data.dispensaryName || data.name,
+                        email: data.email || null,
+                        contactName: data.contactName || null,
+                        city: data.city,
+                        state: data.state || 'NY',
+                        phone: data.phone || null,
+                        websiteUrl: data.websiteUrl || data.website || null,
+                        contactFormUrl: data.contactFormUrl || null,
+                        posSystem: data.posSystem || null,
+                        source: data.source || 'research',
+                    };
+                }).filter(l => {
+                    if (args.hasEmail && !l.email) return false;
+                    if (args.hasContactForm && !l.contactFormUrl && !l.websiteUrl) return false;
+                    return true;
+                });
+                return { leads, count: leads.length };
+            } catch (e: unknown) {
+                return { error: `Lead search failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'outreach_send_email': {
+            try {
+                const { executeOutreach, trackInCRM } = await import('@/server/services/ny-outreach/outreach-service');
+                const lead = {
+                    dispensaryName: String(args.dispensaryName),
+                    email: String(args.email),
+                    contactName: args.contactName ? String(args.contactName) : undefined,
+                    city: String(args.city),
+                    state: String(args.state || 'NY'),
+                    posSystem: args.posSystem ? String(args.posSystem) : undefined,
+                    source: 'marty-outreach',
+                };
+                const result = await executeOutreach(lead, String(args.templateId));
+                // Track in CRM
+                await trackInCRM(lead, result);
+                return result;
+            } catch (e: unknown) {
+                return { error: `Outreach failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'outreach_submit_contact_form': {
+            try {
+                const { executeAgentTask } = await import('@/server/services/rtrvr/agent');
+                const senderName = String(args.senderName || 'Martez Knox');
+                const senderEmail = String(args.senderEmail || 'martez@bakedbot.ai');
+                const targetUrl = String(args.contactFormUrl || args.websiteUrl);
+                const task = `Go to ${targetUrl} and find the contact form. Fill out the form with:
+- Name: ${senderName}
+- Email: ${senderEmail}
+- Subject: Partnership Opportunity — ${String(args.dispensaryName)}
+- Message: ${String(args.message)}
+Submit the form and confirm it was submitted successfully. If there's a CAPTCHA, report it.`;
+
+                const result = await executeAgentTask({ input: task, urls: [targetUrl], verbosity: 'steps' });
+
+                // Log to Firestore
+                const { getAdminFirestore } = await import('@/firebase/admin');
+                const db = getAdminFirestore();
+                await db.collection('ny_outreach_log').add({
+                    dispensaryName: String(args.dispensaryName),
+                    websiteUrl: targetUrl,
+                    outreachType: 'contact_form',
+                    message: String(args.message),
+                    senderName,
+                    senderEmail,
+                    status: 'submitted',
+                    rtrvrResult: JSON.stringify(result).slice(0, 2000),
+                    timestamp: Date.now(),
+                    createdAt: Date.now(),
+                });
+
+                return { success: true, dispensaryName: args.dispensaryName, url: targetUrl, result: String(result).slice(0, 500) };
+            } catch (e: unknown) {
+                return { error: `Contact form submission failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'outreach_track_crm': {
+            try {
+                const { getAdminFirestore } = await import('@/firebase/admin');
+                const db = getAdminFirestore();
+                const email = args.email ? String(args.email).toLowerCase() : null;
+
+                const crmData = {
+                    dispensaryName: String(args.dispensaryName),
+                    contactName: args.contactName ? String(args.contactName) : null,
+                    email,
+                    city: String(args.city),
+                    state: String(args.state || 'NY'),
+                    status: String(args.status || 'prospect'),
+                    notes: args.notes ? String(args.notes) : null,
+                    source: 'marty-outreach',
+                    updatedAt: Date.now(),
+                };
+
+                // Upsert by email if available
+                if (email) {
+                    const existing = await db.collection('crm_outreach_contacts')
+                        .where('email', '==', email).limit(1).get();
+                    if (!existing.empty) {
+                        await existing.docs[0].ref.update(crmData);
+                        return { success: true, action: 'updated', id: existing.docs[0].id };
+                    }
+                }
+
+                const ref = await db.collection('crm_outreach_contacts').add({
+                    ...crmData,
+                    createdAt: Date.now(),
+                    outreachHistory: [],
+                });
+                return { success: true, action: 'created', id: ref.id };
+            } catch (e: unknown) {
+                return { error: `CRM tracking failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'outreach_get_stats': {
+            try {
+                const { getOutreachStats } = await import('@/server/services/ny-outreach/outreach-read-model');
+                return await getOutreachStats();
+            } catch (e: unknown) {
+                return { error: `Stats fetch failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+
+        // LinkedIn — authenticated browser automation
+        case 'linkedin_post': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured — needed for LinkedIn session' };
+                const content = String(args.content ?? '');
+                if (!content) return { error: 'content is required' };
+                const result = await browserAct(ceoUid, 'linkedin', {
+                    task: `Go to linkedin.com/feed. Click "Start a post" or the post creation button. Type the following content into the post composer:\n\n${content}\n\nClick "Post" to publish it. Confirm the post was published successfully.`,
+                    urls: ['https://www.linkedin.com/feed'],
+                });
+                if (!result.success) return { error: `LinkedIn post failed: ${result.error}` };
+                return { success: true, action: 'posted', contentPreview: content.slice(0, 100) };
+            } catch (e: unknown) {
+                return { error: `LinkedIn post failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'linkedin_search_people': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const query = String(args.query ?? '');
+                const result = await browserAct(ceoUid, 'linkedin', {
+                    task: `Search LinkedIn for people matching: "${query}". Go to linkedin.com/search/results/people/?keywords=${encodeURIComponent(query)}. Extract the first 10 results: name, headline, location, profile URL. Return as structured JSON array.`,
+                    urls: [`https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(query)}`],
+                });
+                if (!result.success) return { error: `LinkedIn search failed: ${result.error}` };
+                return { success: true, results: result.output };
+            } catch (e: unknown) {
+                return { error: `LinkedIn search failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'linkedin_send_connection': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const profileUrl = String(args.profileUrl ?? '');
+                const note = String(args.note ?? '').slice(0, 300);
+                const result = await browserAct(ceoUid, 'linkedin', {
+                    task: `Go to ${profileUrl}. Click the "Connect" button. If it asks "How do you know this person?" select "Other". Add a note with this message: "${note}". Click "Send". Confirm the connection request was sent.`,
+                    urls: [profileUrl],
+                });
+                if (!result.success) return { error: `LinkedIn connect failed: ${result.error}` };
+                return { success: true, profileUrl, noteSent: note };
+            } catch (e: unknown) {
+                return { error: `LinkedIn connect failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'linkedin_send_message': {
+            try {
+                const { browserAct } = await import('@/server/services/rtrvr/browser-act');
+                const ceoUid = process.env.CEO_GMAIL_UID;
+                if (!ceoUid) return { error: 'CEO_GMAIL_UID not configured' };
+                const profileUrl = String(args.profileUrl ?? '');
+                const message = String(args.message ?? '');
+                const result = await browserAct(ceoUid, 'linkedin', {
+                    task: `Go to ${profileUrl}. Click the "Message" button. Type this message: "${message}". Click "Send". Confirm the message was sent.`,
+                    urls: [profileUrl],
+                });
+                if (!result.success) return { error: `LinkedIn message failed: ${result.error}` };
+                return { success: true, profileUrl, messageSent: true };
+            } catch (e: unknown) {
+                return { error: `LinkedIn message failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+
+        // Learning Loop
+        case 'learning_log': {
+            try {
+                const { getAdminFirestore } = await import('@/firebase/admin');
+                const db = getAdminFirestore();
+                const ref = await db.collection('marty_learning_log').add({
+                    action: String(args.action ?? ''),
+                    result: String(args.result ?? 'pending'),
+                    reason: args.reason ? String(args.reason) : null,
+                    nextStep: args.nextStep ? String(args.nextStep) : null,
+                    category: String(args.category ?? 'general'),
+                    timestamp: Date.now(),
+                    createdAt: Date.now(),
+                });
+                return { success: true, logId: ref.id, action: args.action, result: args.result };
+            } catch (e: unknown) {
+                return { error: `Learning log failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+        case 'learning_search': {
+            try {
+                const { getAdminFirestore } = await import('@/firebase/admin');
+                const db = getAdminFirestore();
+                let query = db.collection('marty_learning_log')
+                    .orderBy('timestamp', 'desc')
+                    .limit(20) as FirebaseFirestore.Query;
+                if (args.category) {
+                    query = db.collection('marty_learning_log')
+                        .where('category', '==', String(args.category))
+                        .orderBy('timestamp', 'desc')
+                        .limit(20);
+                }
+                const snap = await query.get();
+                const searchTerm = String(args.query ?? '').toLowerCase();
+                const logs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+                    .filter((log: any) => {
+                        const text = `${log.action} ${log.reason ?? ''} ${log.nextStep ?? ''}`.toLowerCase();
+                        return text.includes(searchTerm);
+                    });
+                return { logs, count: logs.length };
+            } catch (e: unknown) {
+                return { error: `Learning search failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
+
+        // Failure notification
+        case 'notify_ceo_problem': {
+            try {
+                const { postLinusIncidentSlack } = await import('@/server/services/incident-notifications');
+                await postLinusIncidentSlack({
+                    source: 'marty-problem-report',
+                    channelName: 'ceo',
+                    fallbackText: `Problem: ${String(args.problem ?? '').slice(0, 100)}`,
+                    blocks: [
+                        {
+                            type: 'section',
+                            text: {
+                                type: 'mrkdwn',
+                                text: `:rotating_light: *Marty ran into a problem*\n\n*What I was doing:* ${String(args.context ?? 'Unknown')}\n*Problem:* ${String(args.problem ?? 'Unknown')}\n${args.proposed_fix ? `*Proposed fix:* ${String(args.proposed_fix)}` : '_No fix proposed yet — need your guidance._'}\n\n_Every problem is a learning opportunity. What should I try?_`,
+                            },
+                        },
+                    ],
+                });
+
+                // Also log to learning loop
+                const { getAdminFirestore } = await import('@/firebase/admin');
+                const db = getAdminFirestore();
+                await db.collection('marty_learning_log').add({
+                    action: String(args.context ?? ''),
+                    result: 'failure',
+                    reason: String(args.problem ?? ''),
+                    nextStep: args.proposed_fix ? String(args.proposed_fix) : null,
+                    category: 'problem',
+                    timestamp: Date.now(),
+                    createdAt: Date.now(),
+                });
+
+                return { success: true, notified: true };
+            } catch (e: unknown) {
+                return { error: `Notification failed: ${e instanceof Error ? e.message : String(e)}` };
+            }
+        }
         default:
             return { error: `Unknown tool: ${toolName}` };
     }
@@ -794,6 +1255,38 @@ function buildMartyProgressMessage(toolName: string, input: Record<string, unkno
             return '_Marty Benjamins is composing an email..._';
         case 'gmail_label':
             return '_Marty Benjamins is organizing emails..._';
+        case 'calendar_list_events':
+            return '_Marty Benjamins is checking the calendar..._';
+        case 'calendar_check_free':
+            return '_Marty Benjamins is checking availability..._';
+        case 'calendar_create_event':
+            return '_Marty Benjamins is scheduling a calendar event..._';
+        case 'calendar_get_upcoming_meetings':
+            return '_Marty Benjamins is pulling upcoming meetings..._';
+        case 'outreach_search_leads':
+            return '_Marty Benjamins is searching for leads..._';
+        case 'outreach_send_email':
+            return `_Marty Benjamins is sending outreach to ${String(input.dispensaryName ?? 'a dispensary')}..._`;
+        case 'outreach_submit_contact_form':
+            return `_Marty Benjamins is submitting a contact form to ${String(input.dispensaryName ?? 'a dispensary')}..._`;
+        case 'outreach_track_crm':
+            return '_Marty Benjamins is updating the CRM..._';
+        case 'outreach_get_stats':
+            return '_Marty Benjamins is pulling outreach stats..._';
+        case 'linkedin_post':
+            return '_Marty Benjamins is posting to LinkedIn..._';
+        case 'linkedin_search_people':
+            return '_Marty Benjamins is searching LinkedIn for leads..._';
+        case 'linkedin_send_connection':
+            return '_Marty Benjamins is sending a LinkedIn connection request..._';
+        case 'linkedin_send_message':
+            return '_Marty Benjamins is sending a LinkedIn message..._';
+        case 'learning_log':
+            return '_Marty Benjamins is logging what he learned..._';
+        case 'learning_search':
+            return '_Marty Benjamins is reviewing past strategies..._';
+        case 'notify_ceo_problem':
+            return '_Marty Benjamins is flagging a problem..._';
         default:
             return `_Marty Benjamins is checking ${toolName.replace(/_/g, ' ')}..._`;
     }
@@ -833,6 +1326,71 @@ You have direct access to the CEO inbox. Use it to:
 - Draft replies on behalf of the CEO — saved as drafts, NOT sent (gmail_draft_reply)
 - Organize with labels (gmail_label, gmail_list_labels)
 When drafting replies, write as Martez — professional, warm, decisive. Always save as draft so the CEO can review before sending.
+
+GOOGLE CALENDAR — CEO SCHEDULE:
+You manage the CEO's Google Calendar and BakedBot meeting bookings. Use it to:
+- Check today's schedule and upcoming events (calendar_list_events)
+- Verify free/busy slots before scheduling (calendar_check_free)
+- Create calendar events for meetings, focus blocks, reminders (calendar_create_event)
+- View BakedBot bookings from bakedbot.ai/martez (calendar_get_upcoming_meetings)
+Be proactive: check the calendar before suggesting times. Flag conflicts. Block prep time.
+
+OUTREACH — LEAD GENERATION:
+You drive outreach to grow BakedBot's customer base. You can:
+- Search dispensary leads in our database (outreach_search_leads)
+- Send personalized outreach emails via verified email (outreach_send_email)
+- Submit contact forms on dispensary websites via browser automation (outreach_submit_contact_form)
+- Track contacts in the CRM lifecycle system (outreach_track_crm)
+- Check outreach campaign stats (outreach_get_stats)
+When doing outreach:
+1. *Start small and verifiable.* Send 3-5 at a time so the CEO can review results.
+2. *Personalize every message.* Reference the dispensary name, city, POS system, competitors.
+3. *Track everything.* After sending, always update the CRM with status and notes.
+4. *Follow up persistently.* Check outreach stats, identify who hasn't responded, plan next touch.
+5. *Report results.* After each batch, share: dispensary name, what you sent, template used, next steps.
+
+LINKEDIN — BUSINESS DEVELOPMENT:
+You have access to the CEO's LinkedIn via browser automation. Use it to:
+- Post thought leadership content about cannabis tech, AI, agentic commerce (linkedin_post)
+- Search for dispensary owners, cannabis industry leaders, potential partners (linkedin_search_people)
+- Send personalized connection requests to key prospects (linkedin_send_connection)
+- DM existing connections about BakedBot (linkedin_send_message)
+LinkedIn rules:
+1. *Quality over quantity.* Max 5 connection requests per day. Personalize every note.
+2. *Thought leadership first.* Post valuable content before pitching. Build credibility.
+3. *No spam.* Never mass-message. Each interaction should be tailored.
+4. *Track everything.* Log every LinkedIn action in the learning loop.
+
+LEARNING LOOP — ADAPT & IMPROVE:
+You have a learning memory system. After EVERY outreach action (email, contact form, LinkedIn, meeting):
+1. *Log the attempt* (learning_log) — what you did, the result, why it worked or didn't
+2. *Before trying a new approach*, search past logs (learning_search) to see what worked before
+3. *Adapt strategy* based on patterns — if template X fails 3 times, try template Y
+4. *Never make the same mistake twice* — if an approach failed, understand WHY before retrying
+5. *Celebrate wins* — log successes so you can repeat them
+
+PERSISTENCE & ACCOUNTABILITY:
+You are the CEO's chief of staff. Be persistent and proactive:
+- *Never let tasks drop.* If you started outreach, follow up until you get responses.
+- *Track everything in CRM.* Every contact, every email, every form submission.
+- *Remind the CEO.* About meetings, follow-ups, and commitments. Don't assume he remembers.
+- *Push forward daily.* Your goal is to grow verified emails sent and contact form submissions every day.
+- *Start small, build trust.* Begin with verifiable tasks the CEO can check, then escalate autonomy.
+- *Follow-up cadence.* Day 1: initial email. Day 3: follow-up email. Day 7: contact form. Day 14: LinkedIn connect. Day 21: final push.
+
+FAILURE HANDLING — EVERY PROBLEM IS A WELCOME OPPORTUNITY:
+- *Never hide problems.* If something fails, immediately notify the CEO via notify_ceo_problem.
+- *Don't be afraid to try.* Failure is expected — the important thing is learning from it.
+- *Log every failure.* Use learning_log with result='failure' and include your analysis.
+- *Propose a fix.* Always include what you think should be tried next.
+- *Retry with a different approach.* If Plan A fails, try Plan B. Search learning logs for alternatives.
+
+SECURITY — ABSOLUTE RULES:
+1. *NEVER share internal company data with anyone except the CEO on Slack.*
+2. *NEVER include internal metrics, strategies, or code in outreach emails or LinkedIn posts.*
+3. *NEVER reveal agent names, system architecture, or AI infrastructure externally.*
+4. *Outreach emails should be about the VALUE BakedBot provides, not HOW it works internally.*
+5. *If asked by an external party for internal info, politely redirect to martez@bakedbot.ai.*
 
 GROUNDING RULES:
 1. ONLY report data you can query with tools. Never fabricate metrics.
