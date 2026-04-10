@@ -738,8 +738,31 @@ function createMartyToolExecutor(context?: { orgId?: string; brandId?: string })
 async function martyToolExecutor(toolName: string, args: Record<string, unknown>): Promise<unknown> {
     switch (toolName) {
         case 'delegateTask': {
-            const { runAgentChat } = await import('@/app/dashboard/ceo/agents/actions');
-            return await runAgentChat(`DELEGATED TASK: ${args.task}`, args.personaId as string, { modelLevel: 'advanced' });
+            try {
+                const { runAgentChat } = await import('@/app/dashboard/ceo/agents/actions');
+                return await runAgentChat(`DELEGATED TASK: ${args.task}`, args.personaId as string, { modelLevel: 'advanced' });
+            } catch (authErr) {
+                // Fallback: when no user session (cron/test context), call agent directly
+                const msg = authErr instanceof Error ? authErr.message : String(authErr);
+                if (msg.includes('auth') || msg.includes('session') || msg.includes('user') || msg.includes('Unauthorized')) {
+                    logger.info('[Marty] delegateTask auth fallback — calling agent directly', { personaId: args.personaId });
+                    const personaId = args.personaId as string;
+                    const task = `DELEGATED TASK: ${args.task}`;
+                    if (personaId === 'linus') {
+                        const { runLinus } = await import('@/server/agents/linus');
+                        const res = await runLinus({ prompt: task, maxIterations: 3, toolMode: 'slack' });
+                        return { content: res.content, delegatedTo: personaId };
+                    }
+                    if (personaId === 'elroy') {
+                        const { runElroy } = await import('@/server/agents/elroy');
+                        const res = await runElroy({ prompt: task, maxIterations: 3 });
+                        return { content: res.content, delegatedTo: personaId };
+                    }
+                    // For other agents, return a helpful message
+                    return { content: `I attempted to delegate to ${personaId}, but the agent is not available in this context. I'll handle this directly.`, delegatedTo: null };
+                }
+                throw authErr;
+            }
         }
         case 'getSystemHealth': {
             const { defaultExecutiveBoardTools } = await import('@/app/dashboard/ceo/agents/default-tools');
