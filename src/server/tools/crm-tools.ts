@@ -497,32 +497,16 @@ export async function getSegmentSummary(
         async () => {
             const firestore = getAdminFirestore();
 
-            // Fetch customers and their POS spending data in parallel
-            const [snap, spendingSnap] = await Promise.all([
-                firestore.collection('customers')
-                    .where('orgId', '==', orgId)
-                    .get(),
-                firestore.collection('tenants').doc(orgId)
-                    .collection('customer_spending')
-                    .get(),
-            ]);
+            // customer_spending (keyed by Alleaves cid_XXXX) is the primary source
+            // — 2000+ real POS customers. The top-level customers collection only has
+            // loyalty signups (small subset, mostly test data).
+            const spendingSnap = await firestore.collection('tenants').doc(orgId)
+                .collection('customer_spending')
+                .get();
 
-            if (snap.empty) {
-                return { summary: `No customers found for organization ${orgId}.`, segments: {} };
+            if (spendingSnap.empty) {
+                return { summary: `No customer spending data found for organization ${orgId}.`, segments: {} };
             }
-
-            // Build spending lookup by email (POS sync writes to customer_spending)
-            const spendingByEmail = new Map<string, { totalSpent: number; orderCount: number; avgOrderValue: number; lastOrderDate?: Date; firstOrderDate?: Date }>();
-            spendingSnap.docs.forEach(doc => {
-                const d = doc.data();
-                spendingByEmail.set(doc.id, {
-                    totalSpent: d.totalSpent || 0,
-                    orderCount: d.orderCount || 0,
-                    avgOrderValue: d.avgOrderValue || 0,
-                    lastOrderDate: d.lastOrderDate?.toDate?.() ?? (d.lastOrderDate ? new Date(d.lastOrderDate) : undefined),
-                    firstOrderDate: d.firstOrderDate?.toDate?.() ?? (d.firstOrderDate ? new Date(d.firstOrderDate) : undefined),
-                });
-            });
 
             const segments: Record<CustomerSegment, { count: number; totalSpent: number; avgSpend: number; recentActiveCount: number }> = {
                 vip: { count: 0, totalSpent: 0, avgSpend: 0, recentActiveCount: 0 },
@@ -539,22 +523,17 @@ export async function getSegmentSummary(
             let totalCustomers = 0;
             let totalLTV = 0;
 
-            snap.docs.forEach(doc => {
-                const data = doc.data();
-                // Enrich from POS spending data (customer_spending collection)
-                const email = (data.email || '').toLowerCase();
-                const spending = spendingByEmail.get(email);
-                const spent = spending?.totalSpent || data.totalSpent || 0;
-                const orders = spending?.orderCount || data.orderCount || 0;
-                const avgOV = spending?.avgOrderValue || (orders > 0 ? spent / orders : 0);
-                const lastOrder = spending?.lastOrderDate || (data.lastOrderDate?.toDate?.() ?? (data.lastOrderDate ? new Date(data.lastOrderDate) : undefined));
-                const firstOrder = spending?.firstOrderDate;
+            spendingSnap.docs.forEach(doc => {
+                const d = doc.data();
+                const spent = d.totalSpent || 0;
+                const orders = d.orderCount || 0;
+                const avgOV = d.avgOrderValue || (orders > 0 ? spent / orders : 0);
+                const lastOrder = d.lastOrderDate?.toDate?.() ?? (d.lastOrderDate ? new Date(d.lastOrderDate) : undefined);
+                const firstOrder = d.firstOrderDate?.toDate?.() ?? (d.firstOrderDate ? new Date(d.firstOrderDate) : undefined);
                 const daysSince = lastOrder
                     ? Math.floor((Date.now() - lastOrder.getTime()) / (1000 * 60 * 60 * 24))
                     : undefined;
 
-                // Always recalculate from live fields — stored data.segment is set at import time
-                // and never updated, causing customers to stay "new" indefinitely.
                 const seg = calculateSegment({ totalSpent: spent, orderCount: orders, avgOrderValue: avgOV, daysSinceLastOrder: daysSince, lifetimeValue: spent, firstOrderDate: firstOrder ? firstOrder.toISOString() : undefined });
 
                 if (segments[seg as CustomerSegment]) {

@@ -197,7 +197,8 @@ async function pollUntilDone(videoId, label = '') {
     }
 
     if (status.status === 'failed') {
-      console.error(`${prefix}❌ Failed: ${status.error || 'Unknown error'}`);
+      const errMsg = typeof status.error === 'object' ? JSON.stringify(status.error) : (status.error || 'Unknown error');
+      console.error(`${prefix}❌ Failed: ${errMsg}`);
       return status;
     }
 
