@@ -289,15 +289,9 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
         // For thread replies without a specific agent keyword, check if we're in a
         // dedicated channel (e.g., #linus-cto) and route to that agent. Otherwise default to Leo.
         if (isThreadReply && personaId === 'puff') {
-            const channelLower = (channelName || '').toLowerCase();
-            let threadAgent = '';
-            for (const { prefix, personaId: chPersona } of CHANNEL_MAP) {
-                if (channelLower.startsWith(prefix)) {
-                    threadAgent = chPersona;
-                    break;
-                }
-            }
-            if (threadAgent) {
+            // detectAgent handles channel-prefix routing (e.g. #linus-cto → linus)
+            const threadAgent = detectAgent('', channelName || '', false);
+            if (threadAgent !== 'puff') {
                 personaId = threadAgent;
                 logger.info(`[SlackBridge] Thread reply in dedicated channel ${channelName} — routing to ${personaId}`);
             } else {
