@@ -3,5 +3,5 @@
  * This is the single source of truth for the app version displayed in footers and admin panels.
  * Update this value when deploying new versions.
  */
-export const APP_VERSION = '4.10.1';
+export const APP_VERSION = '4.10.2';
 export const APP_VERSION_DISPLAY = `v${APP_VERSION}`;

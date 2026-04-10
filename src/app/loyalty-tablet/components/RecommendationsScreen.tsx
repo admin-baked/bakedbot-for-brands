@@ -34,6 +34,7 @@ interface RecommendationsScreenProps {
     voiceOutput: any;
     micIsActive: boolean;
     micIsProcessing: boolean;
+    autoListening: boolean;
     assistantSummary: string;
     assistantError: string;
     smokeyVoice: any;
@@ -42,6 +43,7 @@ interface RecommendationsScreenProps {
     isBrave: boolean;
     handleMicPointerDown: (e: any) => void;
     handleMicPointerUp: (e: any) => void;
+    handleAutoListenToggle: () => void;
     assistantQuery: string;
     setAssistantQuery: (query: string) => void;
     handleAssistantSearch: () => void;
@@ -79,6 +81,7 @@ export function RecommendationsScreen({
     voiceOutput,
     micIsActive,
     micIsProcessing,
+    autoListening,
     assistantSummary,
     assistantError,
     smokeyVoice,
@@ -87,6 +90,7 @@ export function RecommendationsScreen({
     isBrave,
     handleMicPointerDown,
     handleMicPointerUp,
+    handleAutoListenToggle,
     assistantQuery,
     setAssistantQuery,
     handleAssistantSearch,
@@ -190,7 +194,23 @@ export function RecommendationsScreen({
                             </span>
                         ))}
                     </div>
-                    {budtenderContext.historySummary && (
+                    {/* Last order details */}
+                    {budtenderContext.lastOrderItems && budtenderContext.lastOrderItems.length > 0 && (
+                        <div className="mt-2 rounded-xl p-3" style={{ backgroundColor: hexToRgba(brandTheme.colors.primary, 0.04) }}>
+                            <p className="text-[10px] font-black uppercase tracking-widest mb-1.5" style={{ color: brandTheme.colors.primary }}>
+                                Last Order{budtenderContext.lastOrderDate ? ` — ${budtenderContext.lastOrderDate}` : ''}
+                                {budtenderContext.lastOrderTotal ? ` ($${budtenderContext.lastOrderTotal.toFixed(2)})` : ''}
+                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                                {budtenderContext.lastOrderItems.slice(0, 6).map((item, idx) => (
+                                    <span key={idx} className="rounded-full px-2.5 py-0.5 text-[11px] font-medium bg-white border" style={{ borderColor: hexToRgba(brandTheme.colors.primary, 0.15), color: 'rgb(55,65,81)' }}>
+                                        {item.quantity > 1 ? `${item.quantity}× ` : ''}{item.name}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    {!budtenderContext.lastOrderItems && budtenderContext.historySummary && (
                         <p className="mt-2 text-xs leading-relaxed line-clamp-2" style={{ color: mutedTextColor }}>
                             {budtenderContext.historySummary}
                         </p>
@@ -253,7 +273,7 @@ export function RecommendationsScreen({
                     >
                         {micIsActive && (
                             <p className="text-sm font-semibold animate-pulse" style={{ color: brandTheme.colors.primary }}>
-                                Listening... release to send.
+                                {autoListening ? 'Listening... speak to Smokey' : 'Listening... release to send.'}
                             </p>
                         )}
                         {micIsProcessing && (
@@ -304,27 +324,28 @@ export function RecommendationsScreen({
 
                 {/* Mic + search row */}
                 <div className="flex w-full gap-3 items-center">
-                    {/* Hold-to-talk mic — always prominent */}
+                    {/* Mic button — auto-listen toggle or hold-to-talk fallback */}
                     <button
-                        onPointerDown={handleMicPointerDown}
-                        onPointerUp={handleMicPointerUp}
-                        onPointerLeave={handleMicPointerUp}
+                        onClick={micPermission === 'granted' ? handleAutoListenToggle : undefined}
+                        onPointerDown={micPermission !== 'granted' ? handleMicPointerDown : undefined}
+                        onPointerUp={micPermission !== 'granted' ? handleMicPointerUp : undefined}
+                        onPointerLeave={micPermission !== 'granted' ? handleMicPointerUp : undefined}
                         disabled={micIsProcessing}
                         className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 transition-all select-none disabled:opacity-60 shadow-md"
-                        style={micIsActive
+                        style={micIsActive || autoListening
                             ? { backgroundColor: brandTheme.colors.primary, borderColor: brandTheme.colors.primary, color: '#ffffff' }
                             : micIsProcessing
                                 ? { ...secondaryButtonStyle, opacity: 0.6 }
                                 : { ...secondaryButtonStyle, borderWidth: '2px' }
                         }
-                        title="Hold to speak to Smokey"
+                        title={autoListening ? 'Tap to mute Smokey' : 'Tap to enable always-listening'}
                     >
                         {micIsProcessing ? (
                             <Loader2 className="h-6 w-6 animate-spin" />
-                        ) : micIsActive ? (
-                            <MicOff className="h-6 w-6 animate-pulse" />
+                        ) : autoListening || micIsActive ? (
+                            <Mic className="h-6 w-6 animate-pulse" />
                         ) : (
-                            <Mic className="h-6 w-6" />
+                            <MicOff className="h-6 w-6" />
                         )}
                     </button>
 

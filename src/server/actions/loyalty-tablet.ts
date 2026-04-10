@@ -808,6 +808,9 @@ export interface BudtenderContext {
     topCategories: string[];
     badges: string[];
     lastVisitLabel?: string;
+    lastOrderItems?: Array<{ name: string; quantity: number; price: number }>;
+    lastOrderDate?: string;
+    lastOrderTotal?: number;
 }
 
 /**
@@ -845,15 +848,54 @@ export async function getCustomerBudtenderContext(
         const historyText = history?.summary ?? '';
         const topCategories = BUDTENDER_CATEGORY_KEYWORDS.filter(k => historyText.toLowerCase().includes(k));
 
+        // Extract last order items from POS data
+        let lastOrderItems: Array<{ name: string; quantity: number; price: number }> | undefined;
+        let lastOrderDate: string | undefined;
+        let lastOrderTotal: number | undefined;
+        if (history?.orders?.length) {
+            const lastOrder = history.orders[0] as Record<string, unknown>;
+            const items = lastOrder.items as Array<{ name?: string; quantity?: number; price?: number }> | undefined;
+            if (items?.length) {
+                lastOrderItems = items.map(item => ({
+                    name: item.name || 'Unknown item',
+                    quantity: item.quantity || 1,
+                    price: item.price || 0,
+                }));
+            }
+            if (lastOrder.date) {
+                try {
+                    lastOrderDate = new Date(lastOrder.date as string).toLocaleDateString();
+                } catch { /* ignore */ }
+            }
+            lastOrderTotal = (lastOrder.total as number) || undefined;
+        }
+
+        // Demo account fallback — seed realistic last order when POS has no data
+        const customerPhone = (d.phone as string) || (d.normalizedPhone as string) || '';
+        const isDemoAccount = customerPhone.includes('3126840522');
+        if (!lastOrderItems && isDemoAccount) {
+            lastOrderItems = [
+                { name: 'Grease Monkey 3.5g', quantity: 1, price: 45 },
+                { name: 'Blue Dream Cartridge 1g', quantity: 1, price: 55 },
+                { name: 'Kiva Camino Gummies', quantity: 2, price: 25 },
+                { name: 'RAW Classic Cones 6pk', quantity: 1, price: 8 },
+            ];
+            lastOrderDate = new Date(Date.now() - 7 * 86400000).toLocaleDateString();
+            lastOrderTotal = 158;
+        }
+
         return {
             success: true,
             context: {
-                visitCount,
-                loyaltyPoints,
+                visitCount: visitCount || (isDemoAccount ? 12 : 0),
+                loyaltyPoints: loyaltyPoints || (isDemoAccount ? 340 : 0),
                 historySummary: historyText,
-                topCategories,
+                topCategories: topCategories.length ? topCategories : (isDemoAccount ? ['flower', 'vapes', 'edibles'] : []),
                 badges,
                 lastVisitLabel,
+                lastOrderItems,
+                lastOrderDate,
+                lastOrderTotal,
             },
         };
     } catch (error) {

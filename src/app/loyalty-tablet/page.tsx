@@ -268,6 +268,7 @@ export default function LoyaltyTabletPage() {
                         voiceOutput={flow.voiceOutput}
                         micIsActive={flow.smokeyVoice.state === 'recording'}
                         micIsProcessing={flow.smokeyVoice.state === 'processing'}
+                        autoListening={flow.smokeyVoice.autoListening}
                         assistantSummary={flow.assistantSummary}
                         assistantError={flow.assistantError}
                         smokeyVoice={flow.smokeyVoice}
@@ -276,6 +277,7 @@ export default function LoyaltyTabletPage() {
                         isBrave={flow.isBrave}
                         handleMicPointerDown={flow.handleMicPointerDown}
                         handleMicPointerUp={flow.handleMicPointerUp}
+                        handleAutoListenToggle={flow.handleAutoListenToggle}
                         assistantQuery={flow.assistantQuery}
                         setAssistantQuery={flow.setAssistantQuery}
                         handleAssistantSearch={flow.handleAssistantSearch}

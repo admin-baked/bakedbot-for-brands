@@ -36,8 +36,11 @@ export interface SmokeyVoiceReturn {
     inputTranscript: string;   // What Gemini heard
     error: string | null;
     isSupported: boolean;
+    autoListening: boolean;    // true when auto-listen is active
     startRecording: () => void;
     stopAndSend: () => void;
+    startAutoListen: () => void;
+    stopAutoListen: () => void;
     cancel: () => void;
 }
 
@@ -118,10 +121,20 @@ export function useSmokeyVoice(options: SmokeyVoiceOptions): SmokeyVoiceReturn {
     const [error, setError] = useState<string | null>(null);
     const [isSupported, setIsSupported] = useState(false);
 
+    const [autoListening, setAutoListening] = useState(false);
+
     const recorderRef = useRef<MediaRecorder | null>(null);
     const chunksRef = useRef<Blob[]>([]);
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const abortRef = useRef(false);
+    const autoListenRef = useRef(false);
+    const audioContextRef = useRef<AudioContext | null>(null);
+    const silenceRafRef = useRef<number | null>(null);
+    const speechDetectedRef = useRef(false);
+    const silenceStartRef = useRef<number | null>(null);
+    const recordingStartRef = useRef<number>(0);
+    const stopAndSendRef = useRef<() => void>(() => {});
+    const beginRecordingRef = useRef<(withSilenceDetection: boolean) => void>(() => {});
 
     // Check support on mount
     useEffect(() => {
@@ -132,8 +145,24 @@ export function useSmokeyVoice(options: SmokeyVoiceOptions): SmokeyVoiceReturn {
         );
     }, []);
 
+    const cleanupSilenceDetection = useCallback(() => {
+        if (silenceRafRef.current) {
+            cancelAnimationFrame(silenceRafRef.current);
+            silenceRafRef.current = null;
+        }
+        if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+            audioContextRef.current.close().catch(() => {});
+            audioContextRef.current = null;
+        }
+        speechDetectedRef.current = false;
+        silenceStartRef.current = null;
+    }, []);
+
     const cancel = useCallback(() => {
         abortRef.current = true;
+        autoListenRef.current = false;
+        setAutoListening(false);
+        cleanupSilenceDetection();
         recorderRef.current?.stop();
         if (audioRef.current) {
             audioRef.current.pause();
@@ -141,9 +170,14 @@ export function useSmokeyVoice(options: SmokeyVoiceOptions): SmokeyVoiceReturn {
         }
         setState('idle');
         setError(null);
-    }, []);
+    }, [cleanupSilenceDetection]);
 
-    const startRecording = useCallback(async () => {
+    // Silence detection constants
+    const SILENCE_THRESHOLD = 20;      // amplitude threshold (0-128 scale)
+    const SILENCE_DURATION_MS = 2000;  // 2s silence after speech → auto-send
+    const MAX_LISTEN_NO_SPEECH_MS = 15_000; // 15s with no speech → restart
+
+    const beginRecording = useCallback(async (withSilenceDetection: boolean) => {
         if (!isSupported) {
             setError('Microphone not supported on this browser.');
             setState('error');
@@ -161,10 +195,17 @@ export function useSmokeyVoice(options: SmokeyVoiceOptions): SmokeyVoiceReturn {
         } catch {
             setError('Microphone permission denied.');
             setState('error');
+            if (autoListenRef.current) {
+                autoListenRef.current = false;
+                setAutoListening(false);
+            }
             return;
         }
 
         chunksRef.current = [];
+        speechDetectedRef.current = false;
+        silenceStartRef.current = null;
+        recordingStartRef.current = Date.now();
 
         // Prefer Opus — Gemini Live handles it well
         const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
@@ -182,15 +223,80 @@ export function useSmokeyVoice(options: SmokeyVoiceOptions): SmokeyVoiceReturn {
 
         recorder.start(100); // 100ms chunks
         setState('recording');
-    }, [isSupported]);
 
-    const stopAndSend = useCallback(() => {
-        const recorder = recorderRef.current;
-        if (!recorder || recorder.state === 'inactive') return;
+        // Set up silence detection for auto-listen mode
+        if (withSilenceDetection) {
+            try {
+                const audioCtx = new AudioContext();
+                audioContextRef.current = audioCtx;
+                const source = audioCtx.createMediaStreamSource(stream);
+                const analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 2048;
+                source.connect(analyser);
 
+                const dataArray = new Uint8Array(analyser.fftSize);
+
+                const checkAudio = () => {
+                    if (abortRef.current || !autoListenRef.current) return;
+                    if (!recorderRef.current || recorderRef.current.state === 'inactive') return;
+
+                    analyser.getByteTimeDomainData(dataArray);
+                    let maxAmp = 0;
+                    for (let i = 0; i < dataArray.length; i++) {
+                        const amp = Math.abs(dataArray[i] - 128);
+                        if (amp > maxAmp) maxAmp = amp;
+                    }
+
+                    const now = Date.now();
+
+                    if (maxAmp > SILENCE_THRESHOLD) {
+                        // Speech detected
+                        speechDetectedRef.current = true;
+                        silenceStartRef.current = null;
+                    } else if (speechDetectedRef.current) {
+                        // Silence after speech — start counting
+                        if (!silenceStartRef.current) {
+                            silenceStartRef.current = now;
+                        } else if (now - silenceStartRef.current > SILENCE_DURATION_MS) {
+                            // 2s silence after speech → auto-send
+                            cleanupSilenceDetection();
+                            stopAndSendRef.current();
+                            return;
+                        }
+                    } else if (now - recordingStartRef.current > MAX_LISTEN_NO_SPEECH_MS) {
+                        // 15s with no speech at all → restart to keep mic fresh
+                        cleanupSilenceDetection();
+                        stream.getTracks().forEach(t => t.stop());
+                        if (recorderRef.current) {
+                            recorderRef.current.stop();
+                        }
+                        setState('idle');
+                        // Restart auto-listen after a brief pause
+                        if (autoListenRef.current) {
+                            setTimeout(() => {
+                                if (autoListenRef.current) beginRecordingRef.current(true);
+                            }, 300);
+                        }
+                        return;
+                    }
+
+                    silenceRafRef.current = requestAnimationFrame(checkAudio);
+                };
+
+                silenceRafRef.current = requestAnimationFrame(checkAudio);
+            } catch {
+                // Silence detection failed — fall back to manual mode
+            }
+        }
+    }, [isSupported, cleanupSilenceDetection]);
+
+    const startRecording = useCallback(() => {
+        void beginRecording(false);
+    }, [beginRecording]);
+
+    const sendRecording = useCallback((recorder: MediaRecorder, stream: MediaStream) => {
         recorder.onstop = async () => {
-            // Stop all tracks to release mic
-            (recorder.stream as MediaStream).getTracks().forEach((t) => t.stop());
+            stream.getTracks().forEach((t) => t.stop());
 
             if (abortRef.current) return;
 
@@ -199,6 +305,14 @@ export function useSmokeyVoice(options: SmokeyVoiceOptions): SmokeyVoiceReturn {
             chunksRef.current = [];
 
             if (blob.size < 1000) {
+                // Too short — in auto-listen mode, silently restart
+                if (autoListenRef.current) {
+                    setState('idle');
+                    setTimeout(() => {
+                        if (autoListenRef.current) beginRecordingRef.current(true);
+                    }, 300);
+                    return;
+                }
                 setError('Recording too short. Hold the button while speaking.');
                 setState('error');
                 return;
@@ -215,11 +329,16 @@ export function useSmokeyVoice(options: SmokeyVoiceOptions): SmokeyVoiceReturn {
                 return;
             }
 
+            // Fetch with 25s timeout to prevent hanging
+            const controller = new AbortController();
+            const fetchTimeout = setTimeout(() => controller.abort(), 25_000);
+
             let response: Response;
             try {
                 response = await fetch('/api/voice/smokey', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    signal: controller.signal,
                     body: JSON.stringify({
                         orgId,
                         audioBase64,
@@ -230,11 +349,23 @@ export function useSmokeyVoice(options: SmokeyVoiceOptions): SmokeyVoiceReturn {
                         cartItems,
                     }),
                 });
-            } catch {
-                setError('Network error. Please try again.');
+            } catch (fetchError) {
+                clearTimeout(fetchTimeout);
+                const isTimeout = fetchError instanceof DOMException && fetchError.name === 'AbortError';
+                setError(isTimeout ? 'Smokey took too long — try again.' : 'Network error. Please try again.');
                 setState('error');
+                // Restart auto-listen on error
+                if (autoListenRef.current) {
+                    setTimeout(() => {
+                        if (autoListenRef.current) {
+                            setState('idle');
+                            beginRecordingRef.current(true);
+                        }
+                    }, 2000);
+                }
                 return;
             }
+            clearTimeout(fetchTimeout);
 
             if (!response.ok) {
                 const data = await response.json().catch(() => ({})) as { error?: string };
@@ -258,10 +389,8 @@ export function useSmokeyVoice(options: SmokeyVoiceOptions): SmokeyVoiceReturn {
             // Build playable audio
             let audioSrc: string;
             if (data.audioMimeType.includes('pcm')) {
-                // Raw PCM → wrap in WAV container
                 audioSrc = pcmToWav(data.audioParts);
             } else {
-                // mp3 / opus / wav — decode directly
                 const combined = data.audioParts.join('');
                 audioSrc = `data:${data.audioMimeType};base64,${combined}`;
             }
@@ -272,7 +401,14 @@ export function useSmokeyVoice(options: SmokeyVoiceOptions): SmokeyVoiceReturn {
             audioRef.current = audio;
 
             audio.onended = () => {
-                if (!abortRef.current) setState('idle');
+                if (abortRef.current) return;
+                setState('idle');
+                // Auto-listen: restart recording after Smokey finishes speaking
+                if (autoListenRef.current) {
+                    setTimeout(() => {
+                        if (autoListenRef.current) beginRecordingRef.current(true);
+                    }, 600);
+                }
             };
             audio.onerror = () => {
                 setError('Audio playback failed.');
@@ -286,7 +422,36 @@ export function useSmokeyVoice(options: SmokeyVoiceOptions): SmokeyVoiceReturn {
         };
 
         recorder.stop();
-    }, [orgId, customerName, customerId, mood, cartItems]);
+    }, [orgId, customerName, customerId, mood, cartItems, beginRecording]);
+
+    const stopAndSend = useCallback(() => {
+        cleanupSilenceDetection();
+        const recorder = recorderRef.current;
+        if (!recorder || recorder.state === 'inactive') return;
+        sendRecording(recorder, recorder.stream as MediaStream);
+    }, [sendRecording, cleanupSilenceDetection]);
+
+    // Keep refs in sync for circular callback access
+    stopAndSendRef.current = stopAndSend;
+    beginRecordingRef.current = (withSilence: boolean) => void beginRecording(withSilence);
+
+    const startAutoListen = useCallback(() => {
+        autoListenRef.current = true;
+        setAutoListening(true);
+        void beginRecording(true);
+    }, [beginRecording]);
+
+    const stopAutoListen = useCallback(() => {
+        autoListenRef.current = false;
+        setAutoListening(false);
+        cleanupSilenceDetection();
+        const recorder = recorderRef.current;
+        if (recorder && recorder.state !== 'inactive') {
+            (recorder.stream as MediaStream).getTracks().forEach(t => t.stop());
+            recorder.stop();
+        }
+        setState('idle');
+    }, [cleanupSilenceDetection]);
 
     return {
         state,
@@ -294,8 +459,11 @@ export function useSmokeyVoice(options: SmokeyVoiceOptions): SmokeyVoiceReturn {
         inputTranscript,
         error,
         isSupported,
+        autoListening,
         startRecording,
         stopAndSend,
+        startAutoListen,
+        stopAutoListen,
         cancel,
     };
 }

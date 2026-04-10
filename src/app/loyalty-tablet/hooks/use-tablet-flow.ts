@@ -107,6 +107,7 @@ export function useTabletFlow(orgId: string) {
     const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const resetToWelcome = useCallback(() => {
+        smokeyVoice.stopAutoListen();
         smokeyVoice.cancel();
         voiceOutput.stop();
         voiceOutput.setIsEnabled(false);
@@ -423,6 +424,25 @@ export function useTabletFlow(orgId: string) {
                     voiceOutput.speak(greeting);
                 }
                 setAssistantSummary(greeting);
+
+                // Auto-start listening after greeting — request mic permission then start auto-listen
+                if (smokeyVoice.isSupported) {
+                    // Small delay to let TTS greeting start first
+                    setTimeout(() => {
+                        navigator.mediaDevices.getUserMedia({ audio: true })
+                            .then(stream => {
+                                stream.getTracks().forEach(t => t.stop());
+                                setMicPermission('granted');
+                                // Start auto-listen after greeting plays (or 3s, whichever is sooner)
+                                setTimeout(() => {
+                                    smokeyVoice.startAutoListen();
+                                }, 3000);
+                            })
+                            .catch(() => {
+                                setMicPermission('denied');
+                            });
+                    }, 500);
+                }
             } else {
                 setError(recsFallbackMsg);
             }
@@ -462,6 +482,17 @@ export function useTabletFlow(orgId: string) {
     const handleMicPointerUp = () => {
         if (smokeyVoice.state === 'recording') {
             smokeyVoice.stopAndSend();
+        }
+    };
+
+    // Toggle auto-listen on/off (mic mute/unmute for tablet)
+    const handleAutoListenToggle = () => {
+        resetIdleTimer();
+        setAssistantError('');
+        if (smokeyVoice.autoListening) {
+            smokeyVoice.stopAutoListen();
+        } else {
+            smokeyVoice.startAutoListen();
         }
     };
 
@@ -581,7 +612,7 @@ export function useTabletFlow(orgId: string) {
         alleavesCandidates, candidateLoading,
         toggleVisitPreference, handleMoodSelect,
         handleAssistantSearch, handleVoiceToggle,
-        handleMicPointerDown, handleMicPointerUp,
+        handleMicPointerDown, handleMicPointerUp, handleAutoListenToggle,
         handleRequestMicPermission, toggleCart, handleSubmit
     };
 }
