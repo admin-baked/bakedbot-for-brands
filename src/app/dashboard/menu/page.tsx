@@ -3,173 +3,42 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-    Loader2, Search, ShoppingBag, RefreshCw, DollarSign, AlertTriangle,
-    Pencil, Check, X, Tag, Package, MessageSquare, Zap, ExternalLink,
-    Eye, Maximize2, Minimize2, LayoutGrid, Table2, Bot, BookOpen, BarChart2
+    Eye, MapPin, Search, Bot, Zap, Minimize2, ExternalLink, BookOpen
 } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 import { logger } from '@/lib/logger';
 import {
-    getMenuData, syncMenu, getPosConfig, updateProductCost,
-    getMenuPreviewData, updateProductSortOrder, toggleProductFeatured,
-    type PosConfigInfo
+    getMenuData, getMenuPreviewData, updateProductSortOrder, toggleProductFeatured,
 } from './actions';
-import { useToast } from '@/hooks/use-toast';
+import { getPagesData, type PageStatus, type PagesData } from './page-actions';
 import { useUserRole } from '@/hooks/use-user-role';
 import { normalizeCategoryName } from '@/lib/utils/product-image';
 import { BrandMenuClient } from '@/app/[brand]/brand-menu-client';
 import type { Product as DomainProduct, Retailer } from '@/types/domain';
+import type { BrandPageType, LocationInfo, ZipSeoPageContent } from '@/types/brand-pages';
 import { ThemeManager } from '@/components/dashboard/theme-manager';
-import Chatbot from '@/components/chatbot';
-import { MenuAnalyticsTab } from './components/analytics-tab';
 
-interface Product {
-    id: string;
-    name: string;
-    brand: string;
-    category: string;
-    price: number;
-    originalPrice: number;
-    imageUrl?: string;
-    thc?: number;
-    cbd?: number;
-    cost?: number;
-    url?: string;
-    inStock?: boolean;
-    stockCount?: number;
-}
+// Extracted tab components
+import { PagesHeader } from './components/pages-header';
+import { MenuPreviewTab } from './components/menu-preview-tab';
+import { LocationsTab } from './components/locations-tab';
+import { ZipSeoTab } from './components/zip-seo-tab';
+import { BudtenderTab } from './components/budtender-tab';
 
-function CostCell({ product, onSaved }: { product: Product; onSaved: (id: string, cost: number | null) => void }) {
-    const [editing, setEditing] = useState(false);
-    const [value, setValue] = useState(product.cost != null ? String(product.cost) : '');
-    const [saving, setSaving] = useState(false);
-
-    const margin = product.cost != null && product.price > 0
-        ? ((product.price - product.cost) / product.price * 100).toFixed(0)
-        : null;
-
-    const save = async () => {
-        setSaving(true);
-        const parsed = value.trim() === '' ? null : parseFloat(value);
-        if (parsed !== null && isNaN(parsed)) {
-            setSaving(false);
-            return;
-        }
-        const result = await updateProductCost(product.id, parsed);
-        setSaving(false);
-        if (result.success) {
-            onSaved(product.id, parsed);
-            setEditing(false);
-        }
-    };
-
-    if (editing) {
-        return (
-            <div className="flex items-center gap-1">
-                <span className="text-muted-foreground text-xs">$</span>
-                <Input
-                    autoFocus
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={value}
-                    onChange={e => setValue(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setEditing(false); }}
-                    className="h-7 w-20 text-sm px-1"
-                />
-                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={save} disabled={saving}>
-                    {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3 text-emerald-600" />}
-                </Button>
-                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setEditing(false)}>
-                    <X className="h-3 w-3" />
-                </Button>
-            </div>
-        );
-    }
-
-    if (product.cost == null) {
-        return (
-            <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <button
-                            onClick={() => setEditing(true)}
-                            className="flex items-center gap-1 group"
-                        >
-                            <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50 text-xs font-normal">
-                                Not Set
-                            </Badge>
-                            <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>Click to add cost — required for margin calculations and deal safety checks</p>
-                    </TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
-        );
-    }
-
-    return (
-        <button
-            onClick={() => setEditing(true)}
-            className="flex items-center gap-2 group text-left"
-        >
-            <div>
-                <div className="text-sm font-medium">${product.cost.toFixed(2)}</div>
-                {margin !== null && (
-                    <div className={`text-xs ${Number(margin) < 30 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                        {margin}% margin
-                    </div>
-                )}
-            </div>
-            <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-        </button>
-    );
-}
-
-
-function HealthPill({ label, value, tone = 'neutral' }: { label: string; value: string; tone?: 'neutral' | 'good' | 'warn' | 'bad' }) {
-    const toneClass = {
-        neutral: 'border-slate-300 bg-slate-50 text-slate-700',
-        good: 'border-emerald-300 bg-emerald-50 text-emerald-700',
-        warn: 'border-amber-300 bg-amber-50 text-amber-700',
-        bad: 'border-red-300 bg-red-50 text-red-700',
-    }[tone];
-
-    return (
-        <div className={`rounded-md border px-3 py-2 ${toneClass}`}>
-            <p className="text-[11px] uppercase tracking-wide opacity-80">{label}</p>
-            <p className="text-sm font-medium">{value}</p>
-        </div>
-    );
-}
+type ActiveTab = 'menu' | 'locations' | 'zip-seo' | 'budtender' | 'themes';
 
 export default function MenuPage() {
-    // ── Product data (shared across tabs) ──
     const { orgId } = useUserRole();
-    const [products, setProducts] = useState<Product[]>([]);
+
+    // Domain products (shared: preview + budtender)
     const [domainProducts, setDomainProducts] = useState<DomainProduct[]>([]);
     const [loading, setLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [categoryFilter, setCategoryFilter] = useState<string>('all');
-    const [source, setSource] = useState<string>('none');
-    const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
-    const [isSyncing, setIsSyncing] = useState(false);
-    const [posConfig, setPosConfig] = useState<PosConfigInfo>({ provider: null, status: null, displayName: 'POS', lastSyncCount: null, lastSyncedAt: null });
-    const { toast } = useToast();
 
-    // ── Preview tab state ──
+    // Preview data
     const [previewData, setPreviewData] = useState<{
         brand: import('@/types/domain').Brand | null;
         bundles: import('@/types/bundles').BundleDeal[];
@@ -179,55 +48,20 @@ export default function MenuPage() {
         brandSlug: string;
     } | null>(null);
     const [previewLoading, setPreviewLoading] = useState(false);
-    const [fullScreen, setFullScreen] = useState(false);
-    const [activeTab, setActiveTab] = useState<'preview' | 'products' | 'themes' | 'budtender' | 'staff-guide' | 'analytics'>('preview');
-    const [budtenderOpen, setBudtenderOpen] = useState(false);
     const previewFetchedRef = useRef(false);
 
-    const handleSync = async () => {
-        setIsSyncing(true);
-        try {
-            const result = await syncMenu();
-            if (result.success) {
-                const warningText = result.warning ? ` Warning: ${result.warning}` : '';
-                toast({
-                    title: "Sync Complete",
-                    description: `Synced ${result.count} products from ${posConfig.displayName}.${result.removed ? ` Removed ${result.removed} stale products.` : ''}${warningText}`,
-                });
-                await loadProducts();
-            } else {
-                toast({ title: "Sync Failed", description: result.error, variant: "destructive" });
-            }
-        } catch {
-            toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });
-        } finally {
-            setIsSyncing(false);
-        }
-    };
+    // Page state
+    const [fullScreen, setFullScreen] = useState(false);
+    const [activeTab, setActiveTab] = useState<ActiveTab>('menu');
+    const [pageStatuses, setPageStatuses] = useState<PageStatus[]>([]);
+    const [locations, setLocations] = useState<LocationInfo[]>([]);
+    const [zipSeoContent, setZipSeoContent] = useState<ZipSeoPageContent | null>(null);
 
+    // ── Load domain products ──
     const loadProducts = useCallback(async () => {
         setLoading(true);
         try {
-            const [data, config] = await Promise.all([getMenuData(), getPosConfig()]);
-            setPosConfig(config);
-
-            const normalized: Product[] = data.products.map((p: any) => ({
-                id: p.id || p.cann_sku_id,
-                name: p.name || p.product_name,
-                brand: p.brandName || p.brand_name || 'Unknown',
-                category: normalizeCategoryName(p.category),
-                price: p.price || p.latest_price || 0,
-                originalPrice: p.originalPrice || p.original_price || p.price || p.latest_price || 0,
-                imageUrl: p.imageUrl || p.image_url || '',
-                thc: p.thcPercent || p.percentage_thc,
-                cbd: p.cbdPercent || p.percentage_cbd,
-                cost: p.cost ?? undefined,
-                url: p.url,
-                inStock: p.inStock,
-                stockCount: p.stockCount,
-            }));
-
-            // Build domain products for the Preview tab (BrandMenuClient needs the full type)
+            const data = await getMenuData();
             const domain: DomainProduct[] = data.products.map((p: any) => ({
                 id: p.id || p.cann_sku_id,
                 name: p.name || p.product_name,
@@ -248,11 +82,7 @@ export default function MenuPage() {
                 featured: p.featured,
                 source: p.source || 'pos',
             }));
-
-            setProducts(normalized);
             setDomainProducts(domain);
-            setSource(data.source);
-            setLastSyncedAt(data.lastSyncedAt);
         } catch (error) {
             logger.error('Failed to load products:', error instanceof Error ? error : new Error(String(error)));
         } finally {
@@ -274,37 +104,30 @@ export default function MenuPage() {
         }
     }, []);
 
-    useEffect(() => { loadProducts(); }, [loadProducts]);
-
-    // Load preview data when switching to preview tab
-    useEffect(() => {
-        if (activeTab === 'preview' && !previewFetchedRef.current) {
-            loadPreviewData();
+    // Load page statuses + content in one call (eliminates N+1)
+    const loadPagesData = useCallback(async () => {
+        if (!orgId) return;
+        try {
+            const data = await getPagesData(orgId);
+            setPageStatuses(data.statuses);
+            setLocations(data.locations);
+            setZipSeoContent(data.zipSeoContent);
+        } catch (error) {
+            logger.error('Failed to load pages data:', error instanceof Error ? error : new Error(String(error)));
         }
-    }, [activeTab, loadPreviewData]);
+    }, [orgId]);
 
-    // Also load on mount if preview is the default tab
+    // Single mount effect — all three fetches run in parallel
     useEffect(() => {
+        loadProducts();
         loadPreviewData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    // Reset budtender open state when switching away from budtender tab
-    useEffect(() => {
-        if (activeTab !== 'budtender') {
-            setBudtenderOpen(false);
-        }
-    }, [activeTab]);
-
-    const handleCostSaved = (id: string, cost: number | null) => {
-        setProducts(prev => prev.map(p => p.id === id ? { ...p, cost: cost ?? undefined } : p));
-    };
+        loadPagesData();
+    }, [loadProducts, loadPreviewData, loadPagesData]);
 
     // ── Manage mode callbacks ──
     const handleProductReorder = async (updates: { id: string; sortOrder: number }[]) => {
         const result = await updateProductSortOrder(updates);
         if (!result.success) throw new Error(result.error);
-        // Update local domain products to reflect new sort order
         setDomainProducts(prev => {
             const orderMap = new Map(updates.map(u => [u.id, u.sortOrder]));
             return prev.map(p => orderMap.has(p.id) ? { ...p, sortOrder: orderMap.get(p.id) } : p);
@@ -317,48 +140,17 @@ export default function MenuPage() {
         setDomainProducts(prev => prev.map(p => p.id === productId ? { ...p, featured } : p));
     };
 
-    const filteredProducts = products.filter(product => {
-        const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
-        return matchesSearch && matchesCategory;
-    });
+    const handlePublishToggle = (pageType: BrandPageType, isPublished: boolean) => {
+        setPageStatuses(prev =>
+            prev.map(s => s.pageType === pageType ? { ...s, isPublished } : s)
+        );
+    };
 
-    const categories = Array.from(new Set(products.map(p => p.category))).sort();
-    const missingCOGSCount = products.filter(p => p.cost == null).length;
-    const inStockCount = products.filter(p => p.inStock !== false).length;
-    const outOfStockCount = products.filter(p => p.inStock === false).length;
+    // Status helpers
+    const getStatus = (pageType: BrandPageType) =>
+        pageStatuses.find(s => s.pageType === pageType);
 
     // ── Full-screen preview overlay ──
-
-    const posHealthTone: 'good' | 'warn' | 'bad' =
-        posConfig.status === 'active'
-            ? 'good'
-            : posConfig.provider
-              ? 'warn'
-              : 'bad';
-
-    const posHealthValue = posConfig.provider
-        ? `${posConfig.displayName} ${posConfig.status || 'configured'}`
-        : 'Not connected';
-
-    const syncDelta = posConfig.lastSyncCount !== null
-        ? products.length - posConfig.lastSyncCount
-        : null;
-
-    const syncDeltaTone: 'good' | 'warn' | 'bad' = syncDelta === null
-        ? 'warn'
-        : Math.abs(syncDelta) <= 5
-          ? 'good'
-          : Math.abs(syncDelta) <= 25
-            ? 'warn'
-            : 'bad';
-
-    const syncDeltaValue = syncDelta === null
-        ? 'Awaiting baseline sync'
-        : syncDelta === 0
-          ? '0 delta (healthy)'
-          : `${syncDelta > 0 ? '+' : ''}${syncDelta} vs POS baseline`;
-
     if (fullScreen && previewData?.brand) {
         return (
             <div className="fixed inset-0 z-50 bg-background overflow-auto">
@@ -406,437 +198,101 @@ export default function MenuPage() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex justify-between items-end">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Menu</h1>
-                    <p className="text-muted-foreground">
-                        Source: <span className="capitalize font-medium text-foreground">{source}</span>
-                        {lastSyncedAt && ` • Last sync: ${lastSyncedAt}`}
-                    </p>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                        SOT: POS &gt; CannMenus &gt; Discovery
-                    </div>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleSync}
-                        disabled={isSyncing || !posConfig.provider}
-                    >
-                        <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
-                        {isSyncing ? 'Syncing...' : `Sync with ${posConfig.displayName}`}
-                    </Button>
-                </div>
-            </div>
+            <PagesHeader
+                brandSlug={previewData?.brandSlug ?? null}
+                pageStatuses={pageStatuses}
+            />
 
-            {/* Menu OS Health Strip (v1) */}
-            <Card>
-                <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Menu OS Health</CardTitle>
-                    <CardDescription>Daily operator snapshot for sync integrity and execution readiness.</CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-2 md:grid-cols-2 lg:grid-cols-4">
-                    <HealthPill label="POS Sync" value={posHealthValue} tone={posHealthTone} />
-                    <HealthPill label="Product Delta" value={syncDeltaValue} tone={syncDeltaTone} />
-                    <HealthPill label="Analytics Freshness" value="Wiring in progress" tone="warn" />
-                    <HealthPill label="Playbook Health" value="Wiring in progress" tone="warn" />
-                </CardContent>
-            </Card>
-
-            {/* COGS Alert Banner */}
-            {missingCOGSCount > 0 && (
-                <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-                    <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0" />
-                    <p className="text-sm text-amber-800">
-                        <span className="font-semibold">{missingCOGSCount} product{missingCOGSCount !== 1 ? 's' : ''}</span> missing cost data.
-                        Without COGS, you risk over-discounting. Click <span className="font-medium">Not Set</span> on any product to add it.
-                    </p>
-                </div>
-            )}
-
-            {/* Tabs: Preview / Products / Analytics / Themes / Budtender */}
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'preview' | 'products' | 'themes' | 'budtender' | 'staff-guide' | 'analytics')}>
+            {/* Tabs */}
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ActiveTab)}>
                 <div className="flex items-center justify-between">
                     <TabsList>
-                        <TabsTrigger value="preview" className="gap-2">
+                        <TabsTrigger value="menu" className="gap-2">
                             <Eye className="h-4 w-4" />
-                            Live Preview
+                            Menu
                         </TabsTrigger>
-                        <TabsTrigger value="products" className="gap-2">
-                            <Table2 className="h-4 w-4" />
-                            Products ({products.length})
+                        <TabsTrigger value="locations" className="gap-2">
+                            <MapPin className="h-4 w-4" />
+                            Locations
+                        </TabsTrigger>
+                        <TabsTrigger value="zip-seo" className="gap-2">
+                            <Search className="h-4 w-4" />
+                            Zip Code SEO
+                        </TabsTrigger>
+                        <TabsTrigger value="budtender" className="gap-2">
+                            <Bot className="h-4 w-4" />
+                            Budtender
                         </TabsTrigger>
                         <TabsTrigger value="themes" className="gap-2">
                             <Zap className="h-4 w-4" />
                             Themes
                         </TabsTrigger>
-                        <TabsTrigger value="analytics" className="gap-2">
-                            <BarChart2 className="h-4 w-4" />
-                            Analytics
-                        </TabsTrigger>
-                        <TabsTrigger value="budtender" className="gap-2">
-                            <Bot className="h-4 w-4" />
-                            Ask Smokey
-                        </TabsTrigger>
-                        <TabsTrigger value="staff-guide" className="gap-2" asChild>
-                            <Link href="/dashboard/menu/staff-guide">
-                                <BookOpen className="h-4 w-4" />
-                                Staff Guide
-                            </Link>
-                        </TabsTrigger>
                     </TabsList>
 
-                    {activeTab === 'preview' && (
-                        <div className="flex items-center gap-2">
-                            {previewData?.brandSlug && (
-                                <a
-                                    href={`https://bakedbot.ai/${previewData.brandSlug}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                                >
-                                    <ExternalLink className="h-3.5 w-3.5" />
-                                    Open Live Site
-                                </a>
-                            )}
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setFullScreen(true)}
-                                disabled={!previewData?.brand}
-                                className="gap-2"
-                            >
-                                <Maximize2 className="h-4 w-4" />
-                                Full Screen
-                            </Button>
-                        </div>
-                    )}
+                    {/* Staff Guide link */}
+                    <Link
+                        href="/dashboard/menu/staff-guide"
+                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                        <BookOpen className="h-3.5 w-3.5" />
+                        Staff Guide
+                    </Link>
                 </div>
 
-                {/* Preview Tab */}
-                <TabsContent value="preview" className="mt-4">
-                    {previewLoading || loading ? (
-                        <div className="flex flex-col items-center justify-center py-24 text-muted-foreground">
-                            <Loader2 className="h-8 w-8 animate-spin mb-4" />
-                            <p className="text-sm">Loading your live menu…</p>
-                        </div>
-                    ) : !previewData?.brand ? (
-                        <Card>
-                            <CardContent className="flex flex-col items-center justify-center py-16">
-                                <Eye className="h-12 w-12 text-muted-foreground mb-4" />
-                                <p className="text-lg font-medium">No brand page found</p>
-                                <p className="text-sm text-muted-foreground mb-4">
-                                    Complete your brand setup to enable the live preview.
-                                </p>
-                                <Button asChild variant="outline">
-                                    <Link href="/dashboard/brand-page">Set Up Brand Page</Link>
-                                </Button>
-                            </CardContent>
-                        </Card>
-                    ) : (
-                        <>
-                            {/* Preview banner */}
-                            <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 mb-4">
-                                <div className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0" />
-                                <p className="text-sm text-emerald-800 flex-1">
-                                    <span className="font-medium">Live Preview</span> — this is exactly what your customers see.
-                                    Hover products to edit price, manage bundles, or chat with AI about any product.
-                                    Use <span className="font-medium">Reorder Products</span> to drag and rearrange your menu.
-                                </p>
-                                <a
-                                    href={`https://bakedbot.ai/${previewData.brandSlug}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-1 text-xs font-medium text-emerald-700 hover:text-emerald-900 transition-colors whitespace-nowrap"
-                                >
-                                    <ExternalLink className="h-3.5 w-3.5" />
-                                    Open Live
-                                </a>
-                            </div>
-
-                            {/* Full storefront preview — same component as public menu */}
-                            <div className="rounded-xl border overflow-hidden shadow-sm">
-                                <BrandMenuClient
-                                    brand={previewData.brand}
-                                    products={domainProducts}
-                                    retailers={[] as Retailer[]}
-                                    brandSlug={previewData.brandSlug}
-                                    bundles={previewData.bundles}
-                                    featuredBrands={previewData.featuredBrands}
-                                    carousels={previewData.carousels}
-                                    publicMenuSettings={previewData.publicMenuSettings}
-                                    isManageMode={true}
-                                    onProductReorder={handleProductReorder}
-                                    onToggleFeatured={handleToggleFeatured}
-                                />
-                            </div>
-                        </>
-                    )}
+                {/* Menu Tab */}
+                <TabsContent value="menu" className="mt-4">
+                    <MenuPreviewTab
+                        previewData={previewData}
+                        previewLoading={previewLoading}
+                        domainProducts={domainProducts}
+                        loading={loading}
+                        onProductReorder={handleProductReorder}
+                        onToggleFeatured={handleToggleFeatured}
+                        onFullScreen={() => setFullScreen(true)}
+                        orgId={orgId || ''}
+                        isPublished={getStatus('menu')?.isPublished ?? false}
+                        updatedAt={getStatus('menu')?.updatedAt ?? null}
+                        onPublishToggle={handlePublishToggle}
+                    />
                 </TabsContent>
 
-                {/* Products Table Tab */}
-                <TabsContent value="products" className="mt-4 space-y-4">
-                    {/* Filters */}
-                    <Card>
-                        <CardHeader className="pb-3">
-                            <CardTitle className="flex items-center gap-2 text-base">
-                                <Search className="h-4 w-4" />
-                                Search & Filter
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex gap-4">
-                                <div className="flex-1">
-                                    <Input
-                                        placeholder="Search products..."
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                    />
-                                </div>
-                                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                                    <SelectTrigger className="w-[220px]">
-                                        <SelectValue placeholder="Category" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Categories ({products.length})</SelectItem>
-                                        {categories.map((cat) => {
-                                            const count = products.filter(p => p.category === cat).length;
-                                            return (
-                                                <SelectItem key={cat} value={cat}>
-                                                    {cat} ({count})
-                                                </SelectItem>
-                                            );
-                                        })}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </CardContent>
-                    </Card>
+                {/* Locations Tab */}
+                <TabsContent value="locations" className="mt-4">
+                    <LocationsTab
+                        orgId={orgId || ''}
+                        brandSlug={previewData?.brandSlug ?? null}
+                        locations={locations}
+                        isPublished={getStatus('locations')?.isPublished ?? false}
+                        updatedAt={getStatus('locations')?.updatedAt ?? null}
+                        onPublishToggle={handlePublishToggle}
+                    />
+                </TabsContent>
 
-                    {/* Product Table */}
-                    {loading ? (
-                        <div className="flex items-center justify-center py-12">
-                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                        </div>
-                    ) : filteredProducts.length === 0 ? (
-                        <Card>
-                            <CardContent className="flex flex-col items-center justify-center py-12">
-                                <ShoppingBag className="h-12 w-12 text-muted-foreground mb-4" />
-                                <p className="text-lg font-medium">No products found</p>
-                                <p className="text-sm text-muted-foreground">Try adjusting your search or filters</p>
-                            </CardContent>
-                        </Card>
-                    ) : (
-                        <>
-                            <div className="flex items-center justify-between gap-4 flex-wrap">
-                                <div className="flex items-center gap-3">
-                                    <p className="text-sm text-muted-foreground">
-                                        Showing <span className="font-medium text-foreground">{filteredProducts.length}</span> product{filteredProducts.length !== 1 ? 's' : ''}
-                                        {categoryFilter === 'all' && (
-                                            <span className="ml-1.5 text-xs">
-                                                · <span className="text-emerald-600 font-medium">{inStockCount} in stock</span>
-                                                {outOfStockCount > 0 && <span className="text-muted-foreground"> · {outOfStockCount} out of stock</span>}
-                                            </span>
-                                        )}
-                                    </p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xs text-muted-foreground hidden sm:flex items-center gap-1">
-                                        <DollarSign className="h-3 w-3" />
-                                        Click COGS to edit
-                                    </span>
-                                    <div className="h-4 w-px bg-border hidden sm:block" />
-                                    <Link href="/dashboard/pricing" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                                        <Tag className="h-3.5 w-3.5" />
-                                        Pricing
-                                    </Link>
-                                    <Link href="/dashboard/bundles" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                                        <Package className="h-3.5 w-3.5" />
-                                        Bundles
-                                    </Link>
-                                    <Link href="/dashboard/inbox" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                                        <MessageSquare className="h-3.5 w-3.5" />
-                                        Inbox
-                                    </Link>
-                                    <Link href="/dashboard/playbooks" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                                        <Zap className="h-3.5 w-3.5" />
-                                        Playbooks
-                                    </Link>
-                                    {posConfig.provider && (
-                                        <Link
-                                            href={`https://bakedbot.ai/thrivesyracuse`}
-                                            target="_blank"
-                                            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                                        >
-                                            <ExternalLink className="h-3.5 w-3.5" />
-                                            View Live
-                                        </Link>
-                                    )}
-                                </div>
-                            </div>
+                {/* Zip Code SEO Tab */}
+                <TabsContent value="zip-seo" className="mt-4">
+                    <ZipSeoTab
+                        orgId={orgId || ''}
+                        zipSeoContent={zipSeoContent}
+                        isPublished={getStatus('zip_seo')?.isPublished ?? false}
+                        updatedAt={getStatus('zip_seo')?.updatedAt ?? null}
+                        onPublishToggle={handlePublishToggle}
+                    />
+                </TabsContent>
 
-                            <Card className="overflow-hidden">
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm">
-                                        <thead>
-                                            <tr className="border-b bg-muted/30">
-                                                <th className="text-left font-medium px-4 py-3 w-12"></th>
-                                                <th className="text-left font-medium px-4 py-3">Product</th>
-                                                <th className="text-left font-medium px-4 py-3">Category</th>
-                                                <th className="text-left font-medium px-4 py-3">THC / CBD</th>
-                                                <th className="text-right font-medium px-4 py-3">Retail Price</th>
-                                                <th className="text-left font-medium px-4 py-3">
-                                                    <div className="flex items-center gap-1">
-                                                        COGS
-                                                        <TooltipProvider>
-                                                            <Tooltip>
-                                                                <TooltipTrigger>
-                                                                    <DollarSign className="h-3 w-3 text-muted-foreground" />
-                                                                </TooltipTrigger>
-                                                                <TooltipContent>
-                                                                    Cost of Goods Sold — what you paid for this product.
-                                                                    Used to calculate margin and prevent over-discounting.
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        </TooltipProvider>
-                                                    </div>
-                                                </th>
-                                                <th className="text-left font-medium px-4 py-3">Stock</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y">
-                                            {filteredProducts.map((product) => (
-                                                <tr key={product.id} className="hover:bg-muted/20 transition-colors">
-                                                    <td className="px-4 py-3">
-                                                        <div className="w-10 h-10 rounded bg-muted relative overflow-hidden flex-shrink-0">
-                                                            <Image
-                                                                src={product.imageUrl || '/icon-192.png'}
-                                                                alt={product.name}
-                                                                fill
-                                                                className={product.imageUrl ? 'object-cover' : 'object-contain p-1 opacity-60'}
-                                                                sizes="40px"
-                                                            />
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        <div className="font-medium line-clamp-1">{product.name}</div>
-                                                        <div className="text-xs text-muted-foreground">{product.brand}</div>
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        <Badge variant="secondary" className="text-xs font-normal">
-                                                            {product.category}
-                                                        </Badge>
-                                                    </td>
-                                                    <td className="px-4 py-3 text-muted-foreground text-xs">
-                                                        {product.thc ? <span className="text-green-700 font-medium">{product.thc}% THC</span> : '—'}
-                                                        {product.thc && product.cbd ? ' · ' : ''}
-                                                        {product.cbd ? <span>{product.cbd}% CBD</span> : ''}
-                                                        {!product.thc && !product.cbd ? '—' : ''}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-right font-semibold">
-                                                        ${product.price ? product.price.toFixed(2) : '0.00'}
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        <CostCell product={product} onSaved={handleCostSaved} />
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        {product.inStock !== undefined ? (
-                                                            <span className={`text-xs font-medium ${product.inStock ? 'text-emerald-600' : 'text-red-500'}`}>
-                                                                {product.inStock ? (product.stockCount != null ? `${product.stockCount} in stock` : 'In Stock') : 'Out of Stock'}
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-xs text-muted-foreground">—</span>
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </Card>
-                        </>
-                    )}
+                {/* Budtender Tab */}
+                <TabsContent value="budtender" className="mt-4">
+                    <BudtenderTab
+                        domainProducts={domainProducts}
+                        brandId={previewData?.brand?.id}
+                        chatbotConfig={previewData?.brand?.chatbotConfig}
+                    />
                 </TabsContent>
 
                 {/* Themes Tab */}
                 <TabsContent value="themes" className="mt-4">
-                  <ThemeManager orgId={orgId || ''} />
-                </TabsContent>
-
-                {/* Analytics Tab */}
-                <TabsContent value="analytics" className="mt-4">
-                    <MenuAnalyticsTab orgId={orgId || ''} />
-                </TabsContent>
-
-                {/* Ask Smokey Tab */}
-                <TabsContent value="budtender" className="mt-4 space-y-4">
-                  {domainProducts.length === 0 ? (
-                    <Card>
-                      <CardContent className="flex flex-col items-center justify-center py-16">
-                        <Bot className="h-12 w-12 text-muted-foreground mb-4" />
-                        <p className="text-lg font-medium">No products to test</p>
-                        <p className="text-sm text-muted-foreground mb-4">
-                          Sync your products first to test Smokey with your catalog.
-                        </p>
-                        <Button asChild variant="outline">
-                          <a href="#products">Sync Products</a>
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <>
-                      {/* Status Card */}
-                      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
-                        <CardContent className="pt-6">
-                          <div className="flex items-center gap-2 mb-3">
-                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                            <span className="text-sm font-medium">
-                              Smokey is loaded with {domainProducts.length} product{domainProducts.length !== 1 ? 's' : ''} from your catalog
-                            </span>
-                          </div>
-                          <p className="text-sm text-muted-foreground mb-4">
-                            Chat with Smokey as your customers would. Ask for product recommendations, strain effects, THC/CBD info, and upsells.
-                          </p>
-                          <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                            <div>• Product recommendations</div>
-                            <div>• Strain & effect info</div>
-                            <div>• THC/CBD comparisons</div>
-                            <div>• Upsell suggestions</div>
-                            <div>• Compliance-safe responses</div>
-                            <div>• Customer segmentation</div>
-                          </div>
-                        </CardContent>
-                      </Card>
-
-                      {/* Open Chat Button */}
-                      <div className="space-y-2">
-                        <Button
-                          size="lg"
-                          onClick={() => setBudtenderOpen(true)}
-                          className="gap-2 w-full"
-                        >
-                          <Bot className="h-5 w-5" />
-                          Open Smokey Chat
-                        </Button>
-                        <p className="text-xs text-muted-foreground text-center">
-                          The chat window will appear in the bottom-right corner, exactly as customers see it.
-                        </p>
-                      </div>
-                    </>
-                  )}
+                    <ThemeManager orgId={orgId || ''} />
                 </TabsContent>
             </Tabs>
-
-            {/* Chatbot Component (rendered at root level for fixed positioning) */}
-            {domainProducts.length > 0 && previewData?.brand && activeTab === 'budtender' && (
-              <Chatbot
-                products={domainProducts}
-                brandId={previewData.brand.id}
-                initialOpen={budtenderOpen}
-                chatbotConfig={previewData.brand.chatbotConfig}
-              />
-            )}
         </div>
     );
 }

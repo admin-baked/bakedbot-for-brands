@@ -12,7 +12,9 @@ export type BrandPageType =
     | 'locations'   // Locations page
     | 'contact'     // Contact page
     | 'loyalty'     // Rewards/Loyalty program page
-    | 'press';      // Press & Media page
+    | 'press'       // Press & Media page
+    | 'menu'        // Public menu page (WeedMaps-style)
+    | 'zip_seo';    // Zip code SEO landing pages
 
 // ============================================================================
 // About Page
@@ -203,6 +205,30 @@ export interface PressRelease {
 }
 
 // ============================================================================
+// Menu Page (Public WeedMaps-style menu)
+// ============================================================================
+
+export interface MenuPageContent {
+    heroTitle?: string;
+    heroDescription?: string;
+    showBundles: boolean;
+    showFeaturedBrands: boolean;
+    showCarousels: boolean;
+    showSmokeyWidget: boolean;
+    menuDesign?: 'brand' | 'dispensary';
+}
+
+// ============================================================================
+// Zip Code SEO Pages
+// ============================================================================
+
+export interface ZipSeoPageContent {
+    enabledZipCodes: string[];
+    defaultRadius?: number; // miles
+    customIntro?: string; // custom intro text template for SEO pages
+}
+
+// ============================================================================
 // Combined Brand Page Document
 // ============================================================================
 
@@ -217,6 +243,8 @@ export interface BrandPageDoc {
     contactContent?: ContactPageContent;
     loyaltyContent?: LoyaltyPageContent;
     pressContent?: PressPageContent;
+    menuContent?: MenuPageContent;
+    zipSeoContent?: ZipSeoPageContent;
 
     // Metadata
     isPublished: boolean;
@@ -398,4 +426,19 @@ export const DEFAULT_PRESS_CONTENT: PressPageContent = {
         }
     ],
     recentNews: [],
+};
+
+export const DEFAULT_MENU_CONTENT: MenuPageContent = {
+    heroTitle: 'Our Menu',
+    heroDescription: 'Browse our full selection of products.',
+    showBundles: true,
+    showFeaturedBrands: true,
+    showCarousels: true,
+    showSmokeyWidget: true,
+};
+
+export const DEFAULT_ZIP_SEO_CONTENT: ZipSeoPageContent = {
+    enabledZipCodes: [],
+    defaultRadius: 10,
+    customIntro: '',
 };

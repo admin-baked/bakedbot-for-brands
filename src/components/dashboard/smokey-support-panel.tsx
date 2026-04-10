@@ -122,7 +122,7 @@ export function SmokeySupportPanel({ onHelpClick, onRestartOnboarding }: SmokeyS
           id: 'publish-menu',
           title: 'Publish Menu',
           description: 'Go live to customers',
-          href: '/dashboard/menu/publish',
+          href: '/dashboard/menu',
           icon: <Sparkles className="h-4 w-4" />,
           badge: 'Setup'
         });

@@ -16,12 +16,16 @@ import {
     ContactPageContent,
     LoyaltyPageContent,
     PressPageContent,
+    MenuPageContent,
+    ZipSeoPageContent,
     DEFAULT_ABOUT_CONTENT,
     DEFAULT_CAREERS_CONTENT,
     DEFAULT_LOCATIONS_CONTENT,
     DEFAULT_CONTACT_CONTENT,
     DEFAULT_LOYALTY_CONTENT,
     DEFAULT_PRESS_CONTENT,
+    DEFAULT_MENU_CONTENT,
+    DEFAULT_ZIP_SEO_CONTENT,
 } from '@/types/brand-pages';
 import { Timestamp } from '@google-cloud/firestore';
 import { requireUser } from '@/lib/auth-helpers';
@@ -116,7 +120,7 @@ export async function getAllBrandPages(orgId: string): Promise<BrandPageDoc[]> {
         })) as BrandPageDoc[];
 
         // Ensure all page types exist
-        const pageTypes: BrandPageType[] = ['about', 'careers', 'locations', 'contact', 'loyalty', 'press'];
+        const pageTypes: BrandPageType[] = ['about', 'careers', 'locations', 'contact', 'loyalty', 'press', 'menu', 'zip_seo'];
         const existingTypes = new Set(pages.map(p => p.pageType));
 
         for (const type of pageTypes) {
@@ -273,6 +277,10 @@ function createDefaultBrandPage(orgId: string, pageType: BrandPageType): BrandPa
             return { ...base, loyaltyContent: DEFAULT_LOYALTY_CONTENT };
         case 'press':
             return { ...base, pressContent: DEFAULT_PRESS_CONTENT };
+        case 'menu':
+            return { ...base, menuContent: DEFAULT_MENU_CONTENT };
+        case 'zip_seo':
+            return { ...base, zipSeoContent: DEFAULT_ZIP_SEO_CONTENT };
     }
 }
 
