@@ -6,7 +6,7 @@ import type { CompetitiveIntelArtifact } from '@/types/handoff-artifacts';
 import { calculateGapScore } from '../algorithms/ezal-algo';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef, semanticSearchToolDefs, makeSemanticSearchToolsImpl, redditToolDefs, makeRedditToolsImpl } from './shared-tools';
+import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef, semanticSearchToolDefs, makeSemanticSearchToolsImpl, redditToolDefs, makeRedditToolsImpl, learningLoopToolDefs } from './shared-tools';
 import { youtubeToolDefs, makeYouTubeToolsImpl } from '@/server/tools/youtube-tools';
 import {
     buildSquadRoster
@@ -14,6 +14,8 @@ import {
 import { getOrgProfileWithFallback, buildEzalContextBlock } from '@/server/services/org-profile';
 import { getMarketBenchmarks, buildBenchmarkContextBlock } from '@/server/services/market-benchmarks';
 import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integration-status';
+import { buildBulletSection, buildContextDisciplineSection, buildLearningLoopSection, joinPromptSections } from './prompt-kit';
+import { makeLearningLoopToolsImpl } from '@/server/services/agent-learning-loop';
 
 // --- Tool Definitions ---
 
@@ -130,6 +132,27 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
       - Always cite the source of your intel.
       ${contextBlock}
     `;
+        agentMemory.system_instructions = joinPromptSections(
+            `You are Ezal, the Market Scout for ${brandMemory.brand_profile.name}. Track competitor moves, pricing pressure, assortment gaps, and local market shifts with real evidence.`,
+            benchmarkBlock,
+            `=== AGENT SQUAD (For Collaboration) ===\n${squadRoster}`,
+            `=== INTEGRATION STATUS ===\n${integrationStatus}`,
+            contextBlock,
+            buildContextDisciplineSection([
+                'Use Drive reports, retrieved intel, and live scans for competitor detail instead of carrying large tactical playbooks in memory.',
+            ]),
+            buildBulletSection('GROUNDING RULES (CRITICAL)', [
+                'Only report competitors, prices, products, or trends you actually retrieved from tools or reports.',
+                'If a watchlist is empty or a market is unclear, search or ask instead of inventing targets.',
+                'Use the squad roster when routing threats to Craig, Money Mike, or other teammates.',
+            ]),
+            buildLearningLoopSection('Ezal', ['competitive-intel', 'pricing', 'watchlist', 'threat']),
+            buildBulletSection('OPERATING FOCUS', [
+                'Check the latest report first, then validate fresh changes with scans or search.',
+                'Surface the top threats, the strongest opportunity, and the recommended counter-move.',
+                'Keep output in natural language and cite the source of each claim.',
+            ]),
+        );
 
         // === HIVE MIND INIT ===
         try {
@@ -212,7 +235,7 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
             ];
 
             // Combine agent-specific tools with shared Context OS, Letta, YouTube, and proactive search tools
-            const toolsDef = [...ezalSpecificTools, proactiveSearchToolDef, ...youtubeToolDefs, ...redditToolDefs, ...contextOsToolDefs, ...lettaToolDefs, ...semanticSearchToolDefs];
+            const toolsDef = [...ezalSpecificTools, proactiveSearchToolDef, ...youtubeToolDefs, ...redditToolDefs, ...learningLoopToolDefs, ...contextOsToolDefs, ...lettaToolDefs, ...semanticSearchToolDefs];
 
             // Resolve orgId for Drive auto-save
             const brandId = (brandMemory.brand_profile as { id?: string })?.id || 'unknown';
@@ -225,6 +248,13 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
                 ...youtubeTools,
                 ...makeSemanticSearchToolsImpl(ezalOrgId),
                 ...makeRedditToolsImpl(),
+                ...makeLearningLoopToolsImpl({
+                    agentId: 'ezal',
+                    role: 'Competitive Intel',
+                    orgId: ezalOrgId,
+                    brandId,
+                    defaultCategory: 'competitive-intel',
+                }),
                 scanCompetitors: async (location: string) => {
                     logger.info(`[Ezal] Scanning competitors in ${location}...`);
                     // Use getCompetitiveIntel which is defined on EzalTools

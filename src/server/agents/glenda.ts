@@ -9,7 +9,7 @@ import { AgentImplementation } from './harness';
 import { AgentMemory } from './schemas';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
-import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, executiveContextToolDefs, AllSharedTools, ExecutiveContextTools, semanticSearchToolDefs, makeSemanticSearchToolsImpl } from './shared-tools';
+import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, executiveContextToolDefs, AllSharedTools, ExecutiveContextTools, semanticSearchToolDefs, makeSemanticSearchToolsImpl, learningLoopToolDefs } from './shared-tools';
 import { analyticsToolDefs, analyticsToolImplementations } from './tools/analytics-tools';
 import {
     buildSquadRoster,
@@ -17,6 +17,8 @@ import {
     AgentId
 } from './agent-definitions';
 import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integration-status';
+import { buildBulletSection, buildContextDisciplineSection, buildLearningLoopSection, joinPromptSections } from './prompt-kit';
+import { makeLearningLoopToolsImpl } from '@/server/services/agent-learning-loop';
 
 export interface GlendaTools extends Partial<AllSharedTools>, Partial<ExecutiveContextTools> {
     // Marketing Analytics
@@ -157,6 +159,26 @@ export const glendaAgent: AgentImplementation<AgentMemory, GlendaTools> = {
             - Include required disclaimers
             - Get Deebo approval before publishing
         `;
+        agentMemory.system_instructions = joinPromptSections(
+            `You are Glenda, the Chief Marketing Officer for ${brandMemory.brand_profile.name}. Protect the brand, drive organic growth, and turn market signals into clear campaign direction.`,
+            `=== AGENT SQUAD (Available for Delegation) ===\n${squadRoster}`,
+            `=== INTEGRATION STATUS ===\n${integrationStatus}`,
+            buildContextDisciplineSection([
+                'Keep the system prompt focused on brand rules, coordination, and reporting discipline. Pull campaign tactics from tools and live context when needed.',
+            ]),
+            buildBulletSection('GROUNDING RULES (CRITICAL)', [
+                'Only report metrics, channel status, or campaign performance you actually queried with tools.',
+                'Use the squad roster for collaboration and be explicit when an integration is not active.',
+                'Ask for missing market or analytics context instead of filling gaps with assumptions.',
+                'Route compliance-sensitive content to Deebo before publication.',
+            ]),
+            buildLearningLoopSection('Glenda', ['marketing', 'content', 'campaign', 'brand']),
+            buildBulletSection('OPERATING FOCUS', [
+                'Use analytics and executive-context tools to anchor recommendations in real demand, calendar timing, and inbound opportunities.',
+                'Keep responses polished, concise, and tied to reach, engagement, or revenue impact.',
+                'Treat tool descriptions as the source of detailed workflow steps for campaigns, email, SEO, and social execution.',
+            ]),
+        );
 
         // Connect to Hive Mind
         try {
@@ -267,6 +289,7 @@ export const glendaAgent: AgentImplementation<AgentMemory, GlendaTools> = {
                 ...glendaSpecificTools,
                 ...executiveContextToolDefs,
                 ...analyticsToolDefs,
+                ...learningLoopToolDefs,
                 ...contextOsToolDefs,
                 ...lettaToolDefs,
                 ...intuitionOsToolDefs,
@@ -274,7 +297,18 @@ export const glendaAgent: AgentImplementation<AgentMemory, GlendaTools> = {
             ];
             
             // Merge implementations
-            const allTools = { ...tools, ...analyticsToolImplementations, ...makeSemanticSearchToolsImpl(semanticSearchEntityId) };
+            const allTools = {
+                ...tools,
+                ...analyticsToolImplementations,
+                ...makeSemanticSearchToolsImpl(semanticSearchEntityId),
+                ...makeLearningLoopToolsImpl({
+                    agentId: 'glenda',
+                    role: 'CMO',
+                    orgId: (brandMemory.brand_profile as any)?.orgId || semanticSearchEntityId,
+                    brandId,
+                    defaultCategory: 'marketing',
+                }),
+            };
 
             try {
                 const { runMultiStepTask } = await import('./harness');

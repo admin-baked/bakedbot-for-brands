@@ -9,7 +9,7 @@ import { AgentImplementation } from './harness';
 import { AgentMemory } from './schemas';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
-import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, executiveContextToolDefs, AllSharedTools, ExecutiveContextTools, semanticSearchToolDefs, makeSemanticSearchToolsImpl } from './shared-tools';
+import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, executiveContextToolDefs, AllSharedTools, ExecutiveContextTools, semanticSearchToolDefs, makeSemanticSearchToolsImpl, learningLoopToolDefs } from './shared-tools';
 import { crmToolDefs } from '../tools/crm-tools';
 import {
     buildSquadRoster,
@@ -17,6 +17,8 @@ import {
     AgentId
 } from './agent-definitions';
 import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integration-status';
+import { buildBulletSection, buildContextDisciplineSection, buildLearningLoopSection, joinPromptSections } from './prompt-kit';
+import { makeLearningLoopToolsImpl } from '@/server/services/agent-learning-loop';
 
 export interface JackTools extends Partial<AllSharedTools>, Partial<ExecutiveContextTools> {
     // CRM & Pipeline Tools
@@ -159,6 +161,32 @@ export const jackAgent: AgentImplementation<AgentMemory, JackTools> = {
             - Route technical issues to Linus (CTO)
             - Route compliance questions to Deebo
         `;
+        agentMemory.system_instructions = joinPromptSections(
+            `You are Jack, the CRO for ${brandMemory.brand_profile.name}. Your job is pipeline velocity, MRR growth, and closing the right deals.`,
+            `=== AGENT SQUAD (Available for Delegation) ===\n${squadRoster}`,
+            `=== INTEGRATION STATUS ===\n${integrationStatus}`,
+            ny10Context,
+            buildContextDisciplineSection([
+                'Use live CRM, inbox, calendar, and search signals instead of carrying a long sales playbook in memory.',
+            ]),
+            buildBulletSection('GROUNDING RULES (CRITICAL)', [
+                'Only report revenue metrics, pipeline values, or forecasts you can actually query.',
+                'Only delegate to agents in the squad roster and route work by specialty.',
+                'If CRM or data integrations are inactive, say so and offer the next setup step.',
+                'When a metric is uncertain, investigate instead of guessing.',
+            ]),
+            buildLearningLoopSection('Jack', ['revenue', 'pipeline', 'outreach', 'forecast']),
+            buildBulletSection('OPERATING STANCE', [
+                'Use inbox, calendar, and search tools to surface the best next revenue move.',
+                'Prep meetings with attendee context, deal stage, and concrete talking points.',
+                'Coordinate with Craig for acquisition, Mrs. Parker for expansion, Pops for analytics, and Money Mike for pricing.',
+            ]),
+            buildBulletSection('OUTPUT RULES', [
+                'Use precise numbers and currency formatting from real data.',
+                'Focus on actionable next steps and deal movement.',
+                'Use tables only when they clarify comparisons.',
+            ]),
+        );
 
         // Connect to Hive Mind
         try {
@@ -260,6 +288,7 @@ export const jackAgent: AgentImplementation<AgentMemory, JackTools> = {
                 ...executiveContextToolDefs,
                 ...contextOsToolDefs,
                 ...lettaToolDefs,
+                ...learningLoopToolDefs,
                 ...intuitionOsToolDefs,
                 ...crmToolDefs,
                 ...semanticSearchToolDefs
@@ -272,7 +301,17 @@ export const jackAgent: AgentImplementation<AgentMemory, JackTools> = {
                     userQuery,
                     systemInstructions: (agentMemory.system_instructions as string) || '',
                     toolsDef,
-                    tools: { ...tools, ...makeSemanticSearchToolsImpl(semanticSearchEntityId) },
+                    tools: {
+                        ...tools,
+                        ...makeSemanticSearchToolsImpl(semanticSearchEntityId),
+                        ...makeLearningLoopToolsImpl({
+                            agentId: 'jack',
+                            role: 'CRO',
+                            orgId: semanticSearchEntityId,
+                            brandId: brandId || semanticSearchEntityId,
+                            defaultCategory: 'revenue',
+                        }),
+                    },
                     model: 'claude-sonnet-4-6',
                     maxIterations: 5
                 });

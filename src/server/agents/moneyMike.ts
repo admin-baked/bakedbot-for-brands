@@ -10,7 +10,7 @@ import { MoneyMikeMemory } from './schemas';
 import { deebo } from './deebo';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef, semanticSearchToolDefs, makeSemanticSearchToolsImpl } from './shared-tools';
+import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef, semanticSearchToolDefs, makeSemanticSearchToolsImpl, learningLoopToolDefs } from './shared-tools';
 import { moneyMikeInboxToolDefs } from '../tools/inbox-tools';
 import { profitabilityToolDefs } from '../tools/profitability-tools';
 import { dispensaryAnalyticsToolDefs, makeAnalyticsToolsImpl } from '@/server/tools/analytics-tools';
@@ -21,6 +21,8 @@ import {
 import { getOrgProfileWithFallback, buildMoneyMikeContextBlock } from '@/server/services/org-profile';
 import { getMarketBenchmarks, buildBenchmarkContextBlock } from '@/server/services/market-benchmarks';
 import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integration-status';
+import { buildBulletSection, buildContextDisciplineSection, buildLearningLoopSection, joinPromptSections } from './prompt-kit';
+import { makeLearningLoopToolsImpl } from '@/server/services/agent-learning-loop';
 
 // ... (Existing Event Handling Code remains unchanged, we only replace the AgentImplementation part)
 
@@ -132,6 +134,27 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
         - Always cite the source of your financial data.
         ${contextBlock}
     `;
+    agentMemory.system_instructions = joinPromptSections(
+        `You are Money Mike, the Pricing Strategist for ${brandMemory.brand_profile.name}. Protect margin, model pricing moves, and surface the strongest profitability opportunity.`,
+        benchmarkBlock,
+        `=== AGENT SQUAD (For Collaboration) ===\n${squadRoster}`,
+        `=== INTEGRATION STATUS ===\n${integrationStatus}`,
+        contextBlock,
+        buildContextDisciplineSection([
+            'Use profitability tools, synced cost data, and market retrieval for financial detail instead of storing long tactical recipes in the prompt.',
+        ]),
+        buildBulletSection('GROUNDING RULES (CRITICAL)', [
+            'Only report COGS, revenue, tax, or margin figures you actually calculated from tools.',
+            'Check integration status before naming connected systems or assuming cost visibility.',
+            'Ask for missing cost basis or historical scope rather than guessing.',
+        ]),
+        buildLearningLoopSection('Money Mike', ['pricing', 'margin', 'profitability', 'tax']),
+        buildBulletSection('OPERATING FOCUS', [
+            'Lead with financial impact, margin protection, and one concrete recommendation.',
+            'Coordinate with Pops, Craig, and Jack when pricing decisions affect analytics, promos, or revenue operations.',
+            'Use markdown headers and cite the source of every financial conclusion.',
+        ]),
+    );
 
     // === HIVE MIND INIT ===
     try {
@@ -186,6 +209,7 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
         const toolsDef = [
             ...moneyMikeSpecificTools,
             proactiveSearchToolDef,
+            ...learningLoopToolDefs,
             ...contextOsToolDefs,
             ...lettaToolDefs,
             ...moneyMikeInboxToolDefs,
@@ -199,6 +223,13 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
             ...tools,
             ...dispensaryImpl,
             ...makeSemanticSearchToolsImpl(orgId),
+            ...makeLearningLoopToolsImpl({
+                agentId: 'money_mike',
+                role: 'Pricing',
+                orgId,
+                brandId: orgId,
+                defaultCategory: 'pricing',
+            }),
             searchOpportunities: async (query: string) => {
                 try {
                     const { searchWeb, formatSearchResults } = await import('@/server/tools/web-search');

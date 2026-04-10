@@ -9,7 +9,7 @@ import { AgentImplementation } from './harness';
 import { LeoMemory } from './schemas';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
-import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, executiveContextToolDefs, AllSharedTools, ExecutiveContextTools, semanticSearchToolDefs, makeSemanticSearchToolsImpl } from './shared-tools';
+import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, executiveContextToolDefs, AllSharedTools, ExecutiveContextTools, semanticSearchToolDefs, makeSemanticSearchToolsImpl, learningLoopToolDefs } from './shared-tools';
 import {
     buildSquadRoster,
     getDelegatableAgentIds,
@@ -18,6 +18,8 @@ import {
 import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integration-status';
 import { linkedInLeoToolDefs, makeLinkedInToolsImpl } from '@/server/tools/linkedin-tools';
 import { socialLeoToolDefs, makeSocialLeoToolsImpl } from '@/server/tools/social-tools';
+import { buildBulletSection, buildContextDisciplineSection, buildLearningLoopSection, joinPromptSections } from './prompt-kit';
+import { makeLearningLoopToolsImpl } from '@/server/services/agent-learning-loop';
 
 export interface LeoTools extends Partial<AllSharedTools>, Partial<ExecutiveContextTools> {
     // Multi-Agent Orchestration
@@ -248,6 +250,33 @@ export const leoAgent: AgentImplementation<LeoMemory, LeoTools> = {
             4. Use scheduleMeeting to confirm the booking
             5. Confirm back with the video room URL and meeting details
         `;
+        agentMemory.system_instructions = joinPromptSections(
+            `You are Leo, the COO for ${brandMemory.brand_profile.name}. Your mission is operational excellence, orchestration, and keeping execution moving.`,
+            `=== AGENT SQUAD (Your Direct Reports) ===\n${squadRoster}`,
+            `=== INTEGRATION STATUS ===\n${integrationStatus}`,
+            ny10Context,
+            buildContextDisciplineSection([
+                'Use tool descriptions for scheduling, email, and search details instead of carrying long workflow text in memory.',
+            ]),
+            buildBulletSection('GROUNDING RULES (CRITICAL)', [
+                'Only report system state you can actually query.',
+                'Only reference agents in the squad roster and route work by specialty.',
+                'If an integration is not active, say so and offer setup help instead of pretending it works.',
+                'When uncertain, investigate first and use real timestamps.',
+            ]),
+            buildLearningLoopSection('Leo', ['operations', 'orchestration', 'workflow', 'problem']),
+            buildBulletSection('OPERATING STANCE', [
+                'For daily prioritization, use calendar, inbox, and search tools to spot the best next move.',
+                'Break complex requests into agent-owned subtasks and synthesize the result clearly.',
+                'Keep option lists short and decisive when multiple paths are useful.',
+                'For meeting scheduling, gather the executive, guest, purpose, and timing before booking.',
+            ]),
+            buildBulletSection('OUTPUT RULES', [
+                'Lead with the current operational picture and the next actions.',
+                'Use tables only when they clarify coordination across agents.',
+                'Cite tool-backed data and keep integration-status replies concise.',
+            ]),
+        );
 
         // Connect to Hive Mind
         try {
@@ -455,6 +484,7 @@ export const leoAgent: AgentImplementation<LeoMemory, LeoTools> = {
                 ...executiveContextToolDefs,
                 ...contextOsToolDefs,
                 ...lettaToolDefs,
+                ...learningLoopToolDefs,
                 ...intuitionOsToolDefs,
                 ...semanticSearchToolDefs,
                 ...linkedInLeoToolDefs,
@@ -470,7 +500,19 @@ export const leoAgent: AgentImplementation<LeoMemory, LeoTools> = {
                     userQuery,
                     systemInstructions: (agentMemory.system_instructions as string) || '',
                     toolsDef,
-                    tools: { ...tools, ...makeSemanticSearchToolsImpl(semanticSearchEntityId), ...linkedInImpl, ...socialImpl },
+                    tools: {
+                        ...tools,
+                        ...makeSemanticSearchToolsImpl(semanticSearchEntityId),
+                        ...makeLearningLoopToolsImpl({
+                            agentId: 'leo',
+                            role: 'COO',
+                            orgId: semanticSearchEntityId,
+                            brandId: brandId || semanticSearchEntityId,
+                            defaultCategory: 'operations',
+                        }),
+                        ...linkedInImpl,
+                        ...socialImpl,
+                    },
                     model: 'claude-sonnet-4-6', // Use Claude Sonnet 4 for orchestration
                     maxIterations: 7, // Leo gets more iterations for complex orchestration
                     onStepComplete: async (step, toolName, result) => {

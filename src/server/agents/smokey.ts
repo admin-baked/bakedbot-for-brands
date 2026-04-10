@@ -3,7 +3,7 @@ import { SmokeyMemory, RecPolicySchema, UXExperimentSchema } from './schemas';
 import { logger } from '@/lib/logger';
 import { computeSkuScore } from '../algorithms/smokey-algo';
 import { z } from 'zod';
-import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef, semanticSearchToolDefs, makeSemanticSearchToolsImpl } from './shared-tools';
+import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef, semanticSearchToolDefs, makeSemanticSearchToolsImpl, learningLoopToolDefs } from './shared-tools';
 import { smokeyInboxToolDefs } from '../tools/inbox-tools';
 import { smokeyCrmToolDefs } from '../tools/crm-tools';
 import { jinaToolDefs, makeJinaToolsImpl } from '@/server/tools/jina-tools';
@@ -14,12 +14,14 @@ import {
 } from './agent-definitions';
 import {
     loadGroundTruth,
-    buildGroundingInstructions,
+    buildCondensedGrounding,
 } from '../grounding';
 import { loadActiveGoals, buildGoalDirectives, fetchMarginProductContext } from './goal-directive-builder';
 import { getVendorBrandSummary } from '@/server/actions/vendor-brands';
 import { getOrgProfileWithFallback, buildSmokeyContextBlock } from '@/server/services/org-profile';
 import { getMarketBenchmarks, buildBenchmarkContextBlock } from '@/server/services/market-benchmarks';
+import { buildBulletSection, buildContextDisciplineSection, buildLearningLoopSection, joinPromptSections } from './prompt-kit';
+import { makeLearningLoopToolsImpl } from '@/server/services/agent-learning-loop';
 
 // --- Tool Definitions ---
 
@@ -68,10 +70,7 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
 
         const groundTruth = await loadGroundTruth(brandId);
         if (groundTruth) {
-            const grounding = buildGroundingInstructions(groundTruth);
-            groundingSection = `
-            ${grounding.full}
-            `;
+            groundingSection = buildCondensedGrounding(groundTruth);
             logger.info(`[Smokey] Loaded ground truth for ${groundTruth.metadata.dispensary} (${groundTruth.metadata.total_qa_pairs} QA pairs)`);
         } else {
             logger.debug(`[Smokey] No ground truth configured for brand: ${brandId}`);
@@ -214,6 +213,38 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
             - This enables the rich card UI in the user dashboard.
             - Cite your source (e.g., "Based on our current menu...")
         `;
+        agentMemory.system_instructions = joinPromptSections(
+            'You are Smokey, the Digital Budtender and Front Desk Greeter. Recommend products, verify inventory, and route anything outside your lane to the right specialist.',
+            goalDirectives,
+            marginProductContext,
+            contextBlock,
+            vendorBrandsSection,
+            benchmarkBlock,
+            `=== AGENT SQUAD (For Delegation) ===\n${squadRoster}`,
+            groundingSection,
+            buildContextDisciplineSection([
+                'Keep store truth tight: use menu search, org context, and grounding instead of long always-on explanations.',
+            ]),
+            buildBulletSection('GROUNDING RULES (CRITICAL)', [
+                'Only recommend products you can verify with searchMenu.',
+                'Use the squad roster for delegation and do not invent specialists.',
+                'For compliance or safety questions, use grounded answers and avoid guessing.',
+                'For general trend questions, search quietly first and never expose tool failures to the shopper.',
+            ]),
+            buildLearningLoopSection('Smokey', ['recommendation', 'inventory', 'upsell', 'checkout']),
+            buildBulletSection('COMPLIANCE AND SALES RULES', [
+                'Do not use medical-claim language. If a user pushes for medical guarantees, redirect to a doctor or healthcare professional.',
+                'Age-gate answers must clearly say 21 or older and legal age.',
+                'For first-time users, say start low, go slow and keep edible guidance beginner-safe.',
+                'After a recommendation, suggest at most one complementary upsell and stop immediately if the customer declines.',
+                'If the user clearly approves checkout, call triggerCheckout without asking them to restate the request.',
+            ]),
+            buildBulletSection('OUTPUT RULES', [
+                'Stay friendly, clear, and product-smart.',
+                'Use ### headers when sections help the shopper scan options.',
+                'Cite menu-backed claims as current inventory context.',
+            ]),
+        );
 
         return agentMemory;
     },
@@ -309,7 +340,7 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
 
             // Combine agent-specific tools with shared Context OS, Letta, inbox, Jina, and proactive search tools
             // NOTE: YouTube tools removed from consumer chat — not relevant for budtender context
-            const toolsDef = [...smokeySpecificTools, proactiveSearchToolDef, ...jinaToolDefs, ...contextOsToolDefs, ...lettaToolDefs, ...smokeyInboxToolDefs, ...smokeyCrmToolDefs, ...semanticSearchToolDefs];
+            const toolsDef = [...smokeySpecificTools, proactiveSearchToolDef, ...jinaToolDefs, ...contextOsToolDefs, ...lettaToolDefs, ...learningLoopToolDefs, ...smokeyInboxToolDefs, ...smokeyCrmToolDefs, ...semanticSearchToolDefs];
 
             try {
                 const { runMultiStepTask } = await import('./harness');
@@ -321,6 +352,13 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                         ...tools,
                         ...makeJinaToolsImpl(),
                         ...makeSemanticSearchToolsImpl(orgId),
+                        ...makeLearningLoopToolsImpl({
+                            agentId: 'smokey',
+                            role: 'Budtender',
+                            orgId,
+                            brandId: (brandMemory.brand_profile as any)?.id || orgId,
+                            defaultCategory: 'recommendation',
+                        }),
                         searchOpportunities: async (query: string) => {
                             try {
                                 const { searchWeb, formatSearchResults } = await import('@/server/tools/web-search');

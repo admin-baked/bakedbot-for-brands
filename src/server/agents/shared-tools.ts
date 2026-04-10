@@ -119,11 +119,50 @@ export const lettaToolDefs = [
 ];
 
 // ============================================================================
+// LEARNING LOOP TOOL DEFINITIONS
+// Shared adaptive memory tools for proven workflows and failures
+// ============================================================================
+
+export const learningLoopToolDefs = [
+    {
+        name: "learning_log",
+        description: "Log a meaningful attempt, outcome, analysis, and next step into this agent's learning loop. Use for important actions, not every thought.",
+        schema: z.object({
+            action: z.string().describe("What was attempted"),
+            result: z.enum(['success', 'failure', 'pending', 'partial']).describe("Outcome of the attempt"),
+            reason: z.string().optional().describe("Why it worked or failed"),
+            nextStep: z.string().optional().describe("What should be tried next"),
+            category: z.string().optional().describe("Short retrieval category like campaign, ops, pricing, or problem")
+        })
+    },
+    {
+        name: "learning_search",
+        description: "Search this agent's prior learnings before repeating a workflow, retrying a tactic, or proposing a fix.",
+        schema: z.object({
+            query: z.string().describe("What to search for"),
+            category: z.string().optional().describe("Optional category filter"),
+            limit: z.number().optional().describe("Max results to return (default 8)")
+        })
+    },
+    {
+        name: "notify_agent_problem",
+        description: "Escalate a blocked failure to Slack via Uncle Elroy, invite a human to reply with the fix, and record the failure in the learning loop.",
+        schema: z.object({
+            problem: z.string().describe("What went wrong"),
+            context: z.string().describe("What the agent was trying to do"),
+            proposedFix: z.string().optional().describe("What to try next"),
+            severity: z.enum(['low', 'medium', 'high']).optional().describe("Failure severity"),
+            category: z.string().optional().describe("Category for future retrieval")
+        })
+    }
+];
+
+// ============================================================================
 // COMBINED TOOL DEFINITIONS
 // Use this for agents that should have all shared tools
 // ============================================================================
 
-export const sharedToolDefs = [...contextOsToolDefs, ...lettaToolDefs];
+export const sharedToolDefs = [...contextOsToolDefs, ...lettaToolDefs, ...learningLoopToolDefs];
 
 // ============================================================================
 // TOOL INTERFACES
@@ -145,7 +184,13 @@ export interface LettaTools {
     lettaReadSharedBlock(blockLabel: string): Promise<string>;
 }
 
-export interface SharedTools extends ContextOsTools, LettaTools {}
+export interface LearningLoopTools {
+    learning_log(action: string, result: 'success' | 'failure' | 'pending' | 'partial', reason?: string, nextStep?: string, category?: string): Promise<any>;
+    learning_search(query: string, category?: string, limit?: number): Promise<any>;
+    notify_agent_problem(problem: string, context: string, proposedFix?: string, severity?: 'low' | 'medium' | 'high', category?: string): Promise<any>;
+}
+
+export interface SharedTools extends ContextOsTools, LettaTools, LearningLoopTools {}
 
 // ============================================================================
 // INTUITION OS TOOL DEFINITIONS
@@ -402,7 +447,7 @@ export function makeSemanticSearchToolsImpl(orgId: string): SemanticSearchTools 
 // ALL SHARED TOOL DEFINITIONS (must be after all individual tool blocks)
 // ============================================================================
 
-export const allSharedToolDefs = [...contextOsToolDefs, ...lettaToolDefs, ...intuitionOsToolDefs, ...browserToolDefs, ...userManagementToolDefs, ...semanticSearchToolDefs, ...redditToolDefs];
+export const allSharedToolDefs = [...contextOsToolDefs, ...lettaToolDefs, ...learningLoopToolDefs, ...intuitionOsToolDefs, ...browserToolDefs, ...userManagementToolDefs, ...semanticSearchToolDefs, ...redditToolDefs];
 
 // Extended interface with all tools
 export interface AllSharedTools extends SharedTools, IntuitionOsTools, BrowserTools, UserManagementTools, SemanticSearchTools, RedditTools {}

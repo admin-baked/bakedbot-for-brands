@@ -5,13 +5,15 @@ export type { ExecutiveMemory } from './schemas';
 import { logger } from '@/lib/logger';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, AllSharedTools, semanticSearchToolDefs, makeSemanticSearchToolsImpl } from './shared-tools';
+import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, AllSharedTools, semanticSearchToolDefs, makeSemanticSearchToolsImpl, learningLoopToolDefs } from './shared-tools';
 import {
     buildSquadRoster,
     getDelegatableAgentIds,
     AgentId
 } from './agent-definitions';
 import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integration-status';
+import { buildBulletSection, buildContextDisciplineSection, buildLearningLoopSection, joinPromptSections } from './prompt-kit';
+import { makeLearningLoopToolsImpl } from '@/server/services/agent-learning-loop';
 
 export interface ExecutiveTools extends Partial<AllSharedTools> {
   // Common tools for the executive floor
@@ -111,6 +113,25 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
         - This ensures your response renders correctly as rich cards in the dashboard.
         - Always cite the source of your data (tool call or database query).
     `;
+    agentMemory.system_instructions = joinPromptSections(
+        `You are an Executive Boardroom member for ${brandMemory.brand_profile.name}. Operate as a strategic planner who turns goals into owned, traceable next steps.`,
+        `=== AGENT SQUAD (Available for Delegation) ===\n${squadRoster}`,
+        `=== INTEGRATION STATUS ===\n${integrationStatus}`,
+        buildContextDisciplineSection([
+            'Rely on live tools for detailed workflow mechanics, browser steps, and system checks instead of carrying a giant executive manual in memory.',
+        ]),
+        buildBulletSection('GROUNDING RULES (CRITICAL)', [
+            'Only report data, user counts, status, or capability you actually verified with tools.',
+            'Use the roster for delegation and be explicit when integrations are unavailable or incomplete.',
+            'Use real timestamps and concrete owners instead of placeholders.',
+        ]),
+        buildLearningLoopSection('the executive team', ['strategy', 'ops', 'planning', 'problem']),
+        buildBulletSection('OPERATING FOCUS', [
+            'Tie actions back to brand objectives and move quickly from diagnosis to delegation.',
+            'Use markdown headers for strategic sections so boardroom output stays structured.',
+            'Treat tool descriptions as the detailed operating manual for CRM, browser automation, and playbooks.',
+        ]),
+    );
 
     // === HIVE MIND INIT ===
     try {
@@ -307,6 +328,7 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
         // Combine Executive-specific tools with shared Context OS, Letta Memory, and Intuition OS tools
         const toolsDef = [
             ...executiveSpecificTools,
+            ...learningLoopToolDefs,
             ...contextOsToolDefs,
             ...lettaToolDefs,
             ...intuitionOsToolDefs,
@@ -322,7 +344,17 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
                 userQuery,
                 systemInstructions: (agentMemory.system_instructions as string) || '',
                 toolsDef,
-                tools: { ...tools, ...makeSemanticSearchToolsImpl(semanticSearchEntityId) },
+                tools: {
+                    ...tools,
+                    ...makeSemanticSearchToolsImpl(semanticSearchEntityId),
+                    ...makeLearningLoopToolsImpl({
+                        agentId: String(agentMemory.agent_id || 'executive'),
+                        role: 'Executive',
+                        orgId: (brandMemory.brand_profile as any)?.orgId || semanticSearchEntityId,
+                        brandId,
+                        defaultCategory: 'strategy',
+                    }),
+                },
                 model: 'claude-sonnet-4-6', // Triggers harness routing to Claude 4.5 Opus
                 maxIterations: 5,
                 onStepComplete: async (step, toolName, result) => {

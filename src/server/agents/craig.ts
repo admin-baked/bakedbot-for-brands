@@ -7,7 +7,7 @@ import { createHandoff } from '@/types/handoff-artifacts';
 import type { CampaignBriefArtifact } from '@/types/handoff-artifacts';
 import { calculateCampaignPriority } from '../algorithms/craig-algo';
 import { ai } from '@/ai/genkit';
-import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef, semanticSearchToolDefs, makeSemanticSearchToolsImpl, redditToolDefs, makeRedditToolsImpl } from './shared-tools';
+import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef, semanticSearchToolDefs, makeSemanticSearchToolsImpl, redditToolDefs, makeRedditToolsImpl, learningLoopToolDefs } from './shared-tools';
 import { craigInboxToolDefs } from '../tools/inbox-tools';
 import { craigCrmToolDefs } from '../tools/crm-tools';
 import { craigCampaignToolDefs } from '../tools/campaign-tools';
@@ -21,6 +21,8 @@ import { dispensaryAnalyticsToolDefs, makeAnalyticsToolsImpl } from '@/server/to
 import { linkedInCraigToolDefs, makeLinkedInToolsImpl } from '@/server/tools/linkedin-tools';
 import { socialCraigToolDefs, makeSocialCraigToolsImpl } from '@/server/tools/social-tools';
 import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integration-status';
+import { buildBulletSection, buildContextDisciplineSection, buildLearningLoopSection, joinPromptSections } from './prompt-kit';
+import { makeLearningLoopToolsImpl } from '@/server/services/agent-learning-loop';
 
 // --- Tool Definitions ---
 
@@ -36,6 +38,25 @@ export interface CraigTools {
   extractBrandData?(url: string, includeData?: ('visual' | 'voice' | 'messaging' | 'social')[]): Promise<any>;
   discoverWebContent?(url: string): Promise<{ markdown: string; title?: string; description?: string }>;
   searchWebBrands?(query: string): Promise<any[]>;
+  loadRoleGuidance?(query: string, kind?: 'auto' | 'preset' | 'workflow' | 'qa', limit?: number): Promise<any>;
+}
+
+function resolveCraigRoleContext(brandMemory: any): 'brand' | 'dispensary' | 'super_user' | 'customer' {
+    const userRole = brandMemory?.user_context?.role || 'brand';
+
+    if (userRole === 'dispensary' || userRole === 'budtender') {
+        return 'dispensary';
+    }
+
+    if (userRole === 'super_user' || userRole === 'super_admin' || userRole === 'owner') {
+        return 'super_user';
+    }
+
+    if (userRole === 'customer') {
+        return 'customer';
+    }
+
+    return 'brand';
 }
 
 // --- Craig Agent Implementation ---
@@ -182,6 +203,40 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
         Tone:
         High-energy, confident, creative. Provide 3 variations (Professional, Hype, Educational).
     `;
+    // Replace the legacy oversized prompt with a lean runtime prompt that relies on
+    // progressive disclosure via tools and role guidance instead of always-on bulk text.
+    agentMemory.system_instructions = joinPromptSections(
+        `You are Craig, the Growth Engine for ${brandMemory.brand_profile.name}. You turn customer attention into compliant revenue through campaigns, content, automation, and positioning.`,
+        goalDirectives,
+        contextBlock,
+        benchmarkBlock,
+        `=== AGENT SQUAD (For Collaboration) ===\n${squadRoster}`,
+        `=== INTEGRATION STATUS ===\n${integrationStatus}`,
+        buildContextDisciplineSection([
+            'Use role guidance, live tools, and market retrieval when detail is needed instead of carrying full playbooks in memory.',
+        ]),
+        buildBulletSection('GROUNDING RULES (CRITICAL)', [
+            'Use integration status and live tools before claiming channel access, customer data, or metrics.',
+            'Do not fabricate open rates, purchase lift, targets, or historical performance.',
+            'If POS or CRM data is missing, say you are using general market guidance instead of owned customer history.',
+            'Validate cannabis-facing campaigns and social content with Deebo before execution.',
+            'Use the squad roster for collaboration: Ezal for intel, Pops for analytics, Deebo for compliance.',
+        ]),
+        buildLearningLoopSection('Craig', ['campaign', 'content', 'social', 'promotion', 'segmentation']),
+        buildBulletSection('OPERATING STANCE', [
+            'Treat tool descriptions as the source of channel-specific mechanics and posting limits.',
+            'Use competitor and discovery tools when positioning, campaign ideas, or messaging depend on current market context.',
+            'Before recommending a new promotion, run promotion_scorecard and report both revenue upside and gross-profit impact.',
+            "If the user role is scout or public, stay in audition mode: give one strong variation and invite the upgrade for the full sequence.",
+            'When the task maps to a known workflow or template, use loadRoleGuidance instead of guessing from memory.',
+        ]),
+        buildBulletSection('OUTPUT RULES', [
+            'Be charismatic, concise, and commercially sharp.',
+            'Use ### headers for strategy, segment, and creative sections when structure helps.',
+            'Cite the source of real data or market claims.',
+            'Default to 3 creative variations only when options materially help the user choose a direction.',
+        ]),
+    );
 
     // === MARGIN GOAL PRODUCT CONTEXT ===
     // If an active margin/profitability goal exists, inject product cost data so Craig
@@ -214,30 +269,13 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
 
     // === ROLE-BASED GROUND TRUTH (v2.0) ===
     try {
-        const { loadRoleGroundTruth, buildRoleSystemPrompt } = await import('@/server/grounding/role-loader');
-
-        // Detect user role from context (brand, dispensary, super_user, customer)
-        const userRole = (brandMemory as any).user_context?.role || 'brand';
+        const { loadRoleGroundTruth, buildRoleGuidanceIndex } = await import('@/server/grounding/role-loader');
         const tenantId = (brandMemory.brand_profile as any)?.id;
-
-        // Map user role to RoleContextType
-        let roleContext: 'brand' | 'dispensary' | 'super_user' | 'customer' = 'brand';
-        if (userRole === 'dispensary' || userRole === 'budtender') {
-            roleContext = 'dispensary';
-        } else if (userRole === 'super_user' || userRole === 'super_admin' || userRole === 'owner') {
-            roleContext = 'super_user';
-        } else if (userRole === 'customer') {
-            roleContext = 'customer';
-        }
-
-        // Load role-specific ground truth
+        const roleContext = resolveCraigRoleContext(brandMemory);
         const roleGT = await loadRoleGroundTruth(roleContext, tenantId);
 
         if (roleGT) {
-            // Build role-specific system prompt additions
-            const rolePrompt = buildRoleSystemPrompt(roleGT, 'craig', 'full');
-
-            // Append to system instructions
+            const rolePrompt = buildRoleGuidanceIndex(roleGT, 'craig');
             agentMemory.system_instructions += `\n\n${rolePrompt}`;
 
             logger.info(`[Craig:GroundTruth] Loaded ${roleContext} ground truth`, {
@@ -355,6 +393,15 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
                 })
             },
             {
+                name: "loadRoleGuidance",
+                description: "Load preset prompts, workflow guides, or verified QA from role ground truth on demand. Use this when a request matches a known workflow or template instead of relying on a bloated prompt.",
+                schema: z.object({
+                    query: z.string().describe("Workflow, template, or knowledge to load"),
+                    kind: z.enum(['auto', 'preset', 'workflow', 'qa']).optional().describe("Optional guidance filter"),
+                    limit: z.number().optional().describe("Max results (default 4)")
+                })
+            },
+            {
                 name: "generate_blog_post",
                 description: "Generate and save a blog post draft with AI-powered content, SEO optimization, and compliance checking. Returns the created post ID and URL.",
                 schema: z.object({
@@ -378,6 +425,8 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
         const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || '';
         const promotionScorecardTool = dispensaryAnalyticsToolDefs.find(t => t.name === 'promotion_scorecard')!;
         const analyticsImpl = makeAnalyticsToolsImpl(orgId);
+        const roleContext = resolveCraigRoleContext(brandMemory);
+        const tenantId = (brandMemory.brand_profile as any)?.id;
 
         // Combine agent-specific tools with shared Context OS, Letta, inbox, and proactive search tools
         const toolsDef = [
@@ -387,6 +436,7 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
             ...redditToolDefs,
             ...contextOsToolDefs,
             ...lettaToolDefs,
+            ...learningLoopToolDefs,
             ...craigInboxToolDefs,
             ...craigCrmToolDefs,
             ...craigCampaignToolDefs,
@@ -405,8 +455,26 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
             ...analyticsImpl,
             ...makeSemanticSearchToolsImpl(orgId),
             ...makeRedditToolsImpl(),
+            ...makeLearningLoopToolsImpl({
+                agentId: 'craig',
+                role: 'Marketer',
+                orgId,
+                brandId: (brandMemory.brand_profile as any)?.id || orgId,
+                defaultCategory: 'campaign',
+            }),
             ...linkedInImpl,
             ...socialImpl,
+            loadRoleGuidance: async (query: string, kind?: 'auto' | 'preset' | 'workflow' | 'qa', limit?: number) => {
+                const { loadRoleGroundTruth, searchRoleGuidance } = await import('@/server/grounding/role-loader');
+                const roleGT = await loadRoleGroundTruth(roleContext, tenantId);
+                if (!roleGT) {
+                    return { success: false, error: `No role ground truth found for ${roleContext}` };
+                }
+                return {
+                    success: true,
+                    ...searchRoleGuidance(roleGT, query, { kind, limit }),
+                };
+            },
             searchOpportunities: async (query: string) => {
                 try {
                     const { searchWeb, formatSearchResults } = await import('@/server/tools/web-search');

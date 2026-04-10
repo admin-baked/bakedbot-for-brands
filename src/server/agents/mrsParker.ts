@@ -10,7 +10,7 @@ import { runMultiStepTask } from '@/server/agents/harness';
 import type { MrsParkerMemory } from './schemas';
 import { deebo } from './deebo';
 import { z } from 'zod';
-import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef, semanticSearchToolDefs, makeSemanticSearchToolsImpl } from './shared-tools';
+import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef, semanticSearchToolDefs, makeSemanticSearchToolsImpl, learningLoopToolDefs } from './shared-tools';
 import { mrsParkerCrmToolDefs } from '../tools/crm-tools';
 import { mrsParkerCampaignToolDefs } from '../tools/campaign-tools';
 import {
@@ -18,6 +18,8 @@ import {
 } from './agent-definitions';
 import { getOrgProfileWithFallback, buildMrsParkerContextBlock } from '@/server/services/org-profile';
 import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integration-status';
+import { buildBulletSection, buildContextDisciplineSection, buildLearningLoopSection, joinPromptSections } from './prompt-kit';
+import { makeLearningLoopToolsImpl } from '@/server/services/agent-learning-loop';
 
 // ... (Existing Event Handling Code remains unchanged, replacing AgentImplementation)
 
@@ -111,6 +113,26 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
         - Always be honest about data limitations.
         ${contextBlock}
     `;
+    agentMemory.system_instructions = joinPromptSections(
+        `You are Mrs. Parker, the Customer Retention Manager for ${brandName}. Protect loyalty, spot churn risk early, and turn customer care into repeat visits.`,
+        `=== AGENT SQUAD (For Collaboration) ===\n${squadRoster}`,
+        `=== INTEGRATION STATUS ===\n${integrationStatus}`,
+        contextBlock,
+        buildContextDisciplineSection([
+            'Keep the prompt centered on customer care, retention judgment, and data honesty. Pull detailed winback tactics from tools and search when needed.',
+        ]),
+        buildBulletSection('GROUNDING RULES (CRITICAL)', [
+            'Only reference customer history, email coverage, or VIP status you actually verified with tools.',
+            'Use integration status before naming systems or claiming data availability.',
+            'Use the squad roster for campaign, analytics, and compliance collaboration.',
+        ]),
+        buildLearningLoopSection('Mrs. Parker', ['retention', 'winback', 'loyalty', 'customer-care']),
+        buildBulletSection('OPERATING FOCUS', [
+            'Lead with warmth, clear retention risk, and the next concrete customer action.',
+            'Use churn tools, CRM tools, and market search to validate the segment before recommending a campaign.',
+            'Keep output honest, structured, and ready for execution handoff.',
+        ]),
+    );
 
     // === HIVE MIND INIT ===
     try {
@@ -170,7 +192,7 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
         ];
 
         // Combine agent-specific tools with shared Context OS, Letta, and proactive search tools
-        const toolsDef = [...mrsParkerSpecificTools, proactiveSearchToolDef, ...contextOsToolDefs, ...lettaToolDefs, ...mrsParkerCrmToolDefs, ...mrsParkerCampaignToolDefs, ...semanticSearchToolDefs];
+        const toolsDef = [...mrsParkerSpecificTools, proactiveSearchToolDef, ...learningLoopToolDefs, ...contextOsToolDefs, ...lettaToolDefs, ...mrsParkerCrmToolDefs, ...mrsParkerCampaignToolDefs, ...semanticSearchToolDefs];
 
         try {
             // === MULTI-STEP PLANNING (Run by Harness + Gemini 3) ===
@@ -181,6 +203,13 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
                 tools: {
                     ...tools,
                     ...makeSemanticSearchToolsImpl(semanticSearchEntityId),
+                    ...makeLearningLoopToolsImpl({
+                        agentId: 'mrs_parker',
+                        role: 'Retention',
+                        orgId,
+                        brandId: semanticSearchEntityId,
+                        defaultCategory: 'retention',
+                    }),
                     searchOpportunities: async (query: string) => {
                         try {
                             const { searchWeb, formatSearchResults } = await import('@/server/tools/web-search');

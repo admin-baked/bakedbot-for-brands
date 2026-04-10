@@ -28,7 +28,8 @@ import {
     AllSharedTools,
     ExecutiveContextTools,
     semanticSearchToolDefs,
-    makeSemanticSearchToolsImpl
+    makeSemanticSearchToolsImpl,
+    learningLoopToolDefs
 } from './shared-tools';
 import {
     buildSquadRoster,
@@ -50,6 +51,8 @@ import {
     getGoogleCalendarBusyTimes,
 } from '@/server/services/executive-calendar/google-calendar';
 import type { GoogleCalendarTokens } from '@/types/executive-calendar';
+import { buildBulletSection, buildContextDisciplineSection, buildLearningLoopSection, joinPromptSections } from './prompt-kit';
+import { makeLearningLoopToolsImpl } from '@/server/services/agent-learning-loop';
 
 const GLM_REFUSAL_PATTERNS = [
     'security restrictions',
@@ -67,6 +70,49 @@ function isGLMRefusal(result: ClaudeResult): boolean {
     if (!result.content) return false;
     if (result.toolExecutions && result.toolExecutions.length > 0) return false;
     return GLM_REFUSAL_PATTERNS.some(p => result.content.toLowerCase().includes(p));
+}
+
+function buildMartyOperatingPrompt(input: {
+    brandName: string;
+    squadRoster: string;
+    integrationStatus: string;
+    ny10Context?: string;
+    slackMode?: boolean;
+}): string {
+    return joinPromptSections(
+        `You are Marty Benjamins, the AI CEO for ${input.brandName}. Grow the business toward $1,000,000 ARR with verified facts, clear owners, and decisive next steps.`,
+        `=== EXECUTIVE TEAM ===\n${input.squadRoster}`,
+        `=== INTEGRATION STATUS ===\n${input.integrationStatus}`,
+        input.ny10Context ? `=== PILOT CUSTOMERS ===\n${input.ny10Context}` : '',
+        buildContextDisciplineSection([
+            'Keep always-on context strategic and lean. Use tools, retrieved memory, and live context for detailed workflow steps.',
+            'Treat tool descriptions as the operating manual for Gmail, Calendar, outreach, CRM, browser automation, and LinkedIn.',
+        ]),
+        buildBulletSection('GROUNDING RULES (CRITICAL)', [
+            'Never fabricate revenue, outreach, meetings, deals, partnerships, or system status.',
+            'Only report outcomes confirmed by tools in this run or retrieved from memory.',
+            'Delegate to the named executive team first, and be explicit when integrations are unavailable.',
+            'Use real timestamps, real owners, and a clear next step.',
+        ]),
+        buildLearningLoopSection('Marty', ['strategy', 'outreach', 'calendar', 'linkedin', 'problem']),
+        buildBulletSection('OPERATING FOCUS', [
+            'Tie every recommendation to ARR, customer growth, execution velocity, or risk reduction.',
+            'Use Gmail, Calendar, outreach, LinkedIn, and CRM tools proactively, but keep output concise and executive-level.',
+            'When progress is blocked, escalate quickly, capture the lesson, and propose the next move.',
+        ]),
+        buildBulletSection('OUTPUT RULES', [
+            'Lead with status: On Track, Needs Attention, or Blocked.',
+            'Give a short executive summary followed by owners and next steps.',
+            'Keep language concise, decisive, and grounded in evidence.',
+        ]),
+        input.slackMode
+            ? buildBulletSection('SLACK RESPONSE RULES', [
+                'Never end with a dead end. Finish with a next step, question, or offer.',
+                'Acknowledge the current context before doing work.',
+                'Say what you are about to check before calling tools.',
+            ])
+            : '',
+    );
 }
 
 export interface MartyTools extends Partial<AllSharedTools>, Partial<ExecutiveContextTools> {
@@ -202,6 +248,12 @@ export const martyAgent: AgentImplementation<ExecutiveMemory, MartyTools> = {
             - Action items with owners and deadlines
             - Tie every decision to the $1M ARR goal
         `;
+        agentMemory.system_instructions = buildMartyOperatingPrompt({
+            brandName: brandMemory.brand_profile.name,
+            squadRoster,
+            integrationStatus,
+            ny10Context,
+        });
 
         // Hive Mind init
         try {
@@ -407,6 +459,7 @@ export const martyAgent: AgentImplementation<ExecutiveMemory, MartyTools> = {
             // Combine CEO tools with all shared tool suites
             const toolsDef = [
                 ...ceoTools,
+                ...learningLoopToolDefs,
                 ...contextOsToolDefs,
                 ...lettaToolDefs,
                 ...intuitionOsToolDefs,
@@ -421,7 +474,18 @@ export const martyAgent: AgentImplementation<ExecutiveMemory, MartyTools> = {
                     userQuery,
                     systemInstructions: (agentMemory.system_instructions as string) || '',
                     toolsDef,
-                    tools: { ...tools, ...makeSemanticSearchToolsImpl(semanticSearchEntityId) },
+                    tools: {
+                        ...tools,
+                        ...makeSemanticSearchToolsImpl(semanticSearchEntityId),
+                        ...makeLearningLoopToolsImpl({
+                            agentId: 'marty',
+                            role: 'CEO',
+                            orgId: (brandMemory.brand_profile as any)?.orgId || semanticSearchEntityId,
+                            brandId: semanticSearchEntityId,
+                            defaultCategory: 'strategy',
+                            legacyCollection: 'marty_learning_log',
+                        }),
+                    },
                     model: 'claude-sonnet-4-6',
                     maxIterations: 8, // CEO gets more steps for complex cross-functional work
                     onStepComplete: async (step, toolName, result) => {
@@ -577,7 +641,99 @@ const MARTY_SLACK_TOOLS = [
 
     // Failure reporting
     { name: 'notify_ceo_problem', description: 'Immediately notify the CEO on Slack about a problem Marty encountered. Every problem is a learning opportunity.', input_schema: { type: 'object' as const, properties: { problem: { type: 'string', description: 'What went wrong' }, context: { type: 'string', description: 'What you were trying to do' }, proposed_fix: { type: 'string', description: 'What you think should be tried next' } }, required: ['problem', 'context'] } },
+    { name: 'notify_agent_problem', description: 'Escalate a blocked failure to Uncle Elroy in Slack, invite a human to help, and record the failure in the learning loop.', input_schema: { type: 'object' as const, properties: { problem: { type: 'string', description: 'What failed' }, context: { type: 'string', description: 'What you were trying to do' }, proposedFix: { type: 'string', description: 'What to try next' }, severity: { type: 'string', enum: ['low', 'medium', 'high'], description: 'Failure severity' }, category: { type: 'string', description: 'Retrieval category' } }, required: ['problem', 'context'] } },
 ];
+
+function extractMartyToolFailure(result: unknown): { problem: string; proposedFix?: string; severity: 'low' | 'medium' | 'high'; category: string } | null {
+    if (!result || typeof result !== 'object') {
+        return null;
+    }
+
+    const record = result as Record<string, unknown>;
+    const error = typeof record.error === 'string' ? record.error.trim() : '';
+    const success = record.success;
+    const blocked = Boolean(record.blocked);
+
+    if (!error && success !== false && !blocked) {
+        return null;
+    }
+
+    return {
+        problem: error || 'Tool execution failed',
+        proposedFix: blocked
+            ? 'Ask a human to approve or adjust the blocked action.'
+            : 'Retry with corrected inputs or a different tool path after reviewing the failure.',
+        severity: blocked ? 'high' : success === false ? 'medium' : 'low',
+        category: blocked ? 'security' : 'problem',
+    };
+}
+
+function createMartyToolExecutor(context?: { orgId?: string; brandId?: string }) {
+    const learningTools = makeLearningLoopToolsImpl({
+        agentId: 'marty',
+        role: 'CEO',
+        orgId: context?.orgId || null,
+        brandId: context?.brandId || null,
+        defaultCategory: 'strategy',
+        legacyCollection: 'marty_learning_log',
+    });
+
+    return async (toolName: string, args: Record<string, unknown>): Promise<unknown> => {
+        if (toolName === 'learning_log') {
+            return learningTools.learning_log(
+                String(args.action ?? ''),
+                (String(args.result ?? 'pending') as any),
+                typeof args.reason === 'string' ? args.reason : undefined,
+                typeof args.nextStep === 'string' ? args.nextStep : undefined,
+                typeof args.category === 'string' ? args.category : undefined,
+            );
+        }
+
+        if (toolName === 'learning_search') {
+            return learningTools.learning_search(
+                String(args.query ?? ''),
+                typeof args.category === 'string' ? args.category : undefined,
+                typeof args.limit === 'number' ? args.limit : undefined,
+            );
+        }
+
+        if (toolName === 'notify_agent_problem' || toolName === 'notify_ceo_problem') {
+            return learningTools.notify_agent_problem(
+                String(args.problem ?? ''),
+                String(args.context ?? ''),
+                typeof args.proposedFix === 'string'
+                    ? args.proposedFix
+                    : typeof args.proposed_fix === 'string'
+                        ? args.proposed_fix
+                        : undefined,
+                (typeof args.severity === 'string' ? args.severity : 'medium') as any,
+                typeof args.category === 'string' ? args.category : undefined,
+            );
+        }
+
+        const result = await martyToolExecutor(toolName, args);
+        const failure = extractMartyToolFailure(result);
+
+        if (failure) {
+            try {
+                await learningTools.notify_agent_problem(
+                    failure.problem,
+                    `${toolName} failed while handling a CEO workflow`,
+                    failure.proposedFix,
+                    failure.severity,
+                    failure.category,
+                );
+            } catch (error) {
+                logger.warn('[Marty] Failed to escalate tool error through learning loop', {
+                    toolName,
+                    error: error instanceof Error ? error.message : String(error),
+                });
+            }
+        }
+
+        return result;
+    };
+}
 
 async function martyToolExecutor(toolName: string, args: Record<string, unknown>): Promise<unknown> {
     switch (toolName) {
@@ -1285,6 +1441,7 @@ function buildMartyProgressMessage(toolName: string, input: Record<string, unkno
             return '_Marty Benjamins is logging what he learned..._';
         case 'learning_search':
             return '_Marty Benjamins is reviewing past strategies..._';
+        case 'notify_agent_problem':
         case 'notify_ceo_problem':
             return '_Marty Benjamins is flagging a problem..._';
         default:
@@ -1417,7 +1574,14 @@ CONVERSATION RULES (CRITICAL — every Slack reply):
 4. *Complete your thought.* Never trail off or give a partial answer. If you need info, ask explicitly.
 5. *Keep it conversational.* You're a CEO talking to your team — short sentences, decisive, action-oriented.`;
 
-    const fullPrompt = `${systemPrompt}
+    const runtimeSystemPrompt = buildMartyOperatingPrompt({
+        brandName: 'BakedBot AI',
+        squadRoster,
+        integrationStatus,
+        slackMode: true,
+    }) || systemPrompt;
+
+    const fullPrompt = `${runtimeSystemPrompt}
 
 ---
 
@@ -1441,6 +1605,10 @@ User Request: ${request.prompt}`;
         },
         onToolCall,
     };
+    const martyExecutor = createMartyToolExecutor({
+        orgId: request.context?.orgId,
+        brandId: request.context?.brandId,
+    });
 
     // Fast-path tier chain: Groq 70b (fast+cheap) → Gemini Flash → Claude (expensive last resort)
     // NOTE: Groq 8b skipped — Marty's system prompt (~6100 tokens) exceeds its 6000 TPM limit
@@ -1459,7 +1627,7 @@ User Request: ${request.prompt}`;
                     const model = GLM_MODELS.STANDARD;
                     logger.info(`[Marty] Trying Groq ${model} (fast path)`);
                     const glmResult = await executeGLMWithTools(
-                        fullPrompt, MARTY_SLACK_TOOLS, martyToolExecutor,
+                        fullPrompt, MARTY_SLACK_TOOLS, martyExecutor,
                         { ...sharedContext, model }
                     );
                     if (isGLMRefusal(glmResult)) {
@@ -1492,7 +1660,7 @@ User Request: ${request.prompt}`;
                     if (!isGeminiFlashConfigured()) { triedTiers.push(`${tier}:unconfigured`); continue; }
                     logger.info('[Marty] Trying Gemini Flash');
                     result = await executeGeminiFlashWithTools(
-                        fullPrompt, MARTY_SLACK_TOOLS, martyToolExecutor,
+                        fullPrompt, MARTY_SLACK_TOOLS, martyExecutor,
                         sharedContext
                     );
                     break;
@@ -1501,7 +1669,7 @@ User Request: ${request.prompt}`;
                     if (!isClaudeAvailable()) { triedTiers.push(`${tier}:unconfigured`); continue; }
                     logger.info('[Marty] Falling back to Claude (expensive)');
                     result = await executeWithTools(
-                        fullPrompt, MARTY_SLACK_TOOLS, martyToolExecutor,
+                        fullPrompt, MARTY_SLACK_TOOLS, martyExecutor,
                         sharedContext
                     );
                     break;

@@ -31,6 +31,8 @@ import { githubPushToolDef, executeGithubPush, GithubPushParams } from '../tools
 import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integration-status';
 import { getSystemHealthToolDef, executeGetSystemHealth } from '../tools/system-health-tools';
 import { isGCPHealthyForDeploy } from '@/server/services/google-service-health';
+import { buildBulletSection, buildContextDisciplineSection, buildLearningLoopSection, joinPromptSections } from './prompt-kit';
+import { makeLearningLoopToolsImpl } from '@/server/services/agent-learning-loop';
 
 // ============================================================================
 // SECURITY: HIGH-RISK COMMAND SAFETY CHECKS
@@ -522,6 +524,49 @@ const LINUS_TOOLS: ClaudeTool[] = [
                 }
             },
             required: ['content']
+        }
+    },
+    {
+        name: 'learning_log',
+        description: 'Log a meaningful engineering attempt, outcome, and next step so Linus can improve future fixes and deployment strategy.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                action: { type: 'string', description: 'What was attempted' },
+                result: { type: 'string', enum: ['success', 'failure', 'pending', 'partial'], description: 'Outcome of the attempt' },
+                reason: { type: 'string', description: 'Why it worked or failed' },
+                nextStep: { type: 'string', description: 'What should be tried next' },
+                category: { type: 'string', description: 'Category like bugfix, deploy, testing, or investigation' }
+            },
+            required: ['action', 'result']
+        }
+    },
+    {
+        name: 'learning_search',
+        description: 'Search Linus learning history before retrying a fix, deployment step, or debugging approach.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                query: { type: 'string', description: 'What to search for' },
+                category: { type: 'string', description: 'Optional category filter' },
+                limit: { type: 'number', description: 'Max number of results to return' }
+            },
+            required: ['query']
+        }
+    },
+    {
+        name: 'notify_agent_problem',
+        description: 'Escalate a blocked engineering failure to Uncle Elroy in Slack, request human help, and record the failure in the learning loop.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                problem: { type: 'string', description: 'What failed' },
+                context: { type: 'string', description: 'What Linus was trying to do' },
+                proposedFix: { type: 'string', description: 'What to try next' },
+                severity: { type: 'string', enum: ['low', 'medium', 'high'], description: 'Failure severity' },
+                category: { type: 'string', description: 'Category like deploy, security, testing, or tooling' }
+            },
+            required: ['problem', 'context']
         }
     },
     {
@@ -1976,6 +2021,46 @@ const PROJECT_ROOT = process.cwd();
 
 async function linusToolExecutor(toolName: string, input: Record<string, unknown>): Promise<unknown> {
     switch (toolName) {
+        case 'learning_log': {
+            const learningTools = makeLearningLoopToolsImpl({
+                agentId: 'linus',
+                role: 'CTO',
+                defaultCategory: 'engineering',
+            });
+            return learningTools.learning_log(
+                String(input.action ?? ''),
+                (String(input.result ?? 'pending') as any),
+                typeof input.reason === 'string' ? input.reason : undefined,
+                typeof input.nextStep === 'string' ? input.nextStep : undefined,
+                typeof input.category === 'string' ? input.category : undefined,
+            );
+        }
+        case 'learning_search': {
+            const learningTools = makeLearningLoopToolsImpl({
+                agentId: 'linus',
+                role: 'CTO',
+                defaultCategory: 'engineering',
+            });
+            return learningTools.learning_search(
+                String(input.query ?? ''),
+                typeof input.category === 'string' ? input.category : undefined,
+                typeof input.limit === 'number' ? input.limit : undefined,
+            );
+        }
+        case 'notify_agent_problem': {
+            const learningTools = makeLearningLoopToolsImpl({
+                agentId: 'linus',
+                role: 'CTO',
+                defaultCategory: 'engineering',
+            });
+            return learningTools.notify_agent_problem(
+                String(input.problem ?? ''),
+                String(input.context ?? ''),
+                typeof input.proposedFix === 'string' ? input.proposedFix : undefined,
+                (typeof input.severity === 'string' ? input.severity : 'medium') as any,
+                typeof input.category === 'string' ? input.category : undefined,
+            );
+        }
         case 'query_database_schema': {
             const { queryDatabaseSchemaToolDef } = await import('../tools/database-tools');
             return await queryDatabaseSchemaToolDef.execute(input);
@@ -4705,6 +4790,67 @@ test('${scenario.slice(0, 50)}', async ({ page }) => {
     }
 }
 
+function extractLinusToolFailure(result: unknown): { problem: string; proposedFix?: string; severity: 'low' | 'medium' | 'high'; category: string } | null {
+    if (!result || typeof result !== 'object') {
+        return null;
+    }
+
+    const record = result as Record<string, unknown>;
+    const error = typeof record.error === 'string' ? record.error.trim() : '';
+    const success = record.success;
+    const blocked = Boolean(record.blocked);
+
+    if (!error && success !== false && !blocked) {
+        return null;
+    }
+
+    return {
+        problem: error || 'Tool execution failed',
+        proposedFix: blocked
+            ? 'Ask a human to approve or adjust the blocked engineering action.'
+            : 'Retry after reviewing the inputs, recent learnings, and the most relevant file context.',
+        severity: blocked ? 'high' : success === false ? 'medium' : 'low',
+        category: blocked ? 'security' : 'engineering',
+    };
+}
+
+function createLinusToolExecutor(context?: { orgId?: string; brandId?: string }) {
+    const learningTools = makeLearningLoopToolsImpl({
+        agentId: 'linus',
+        role: 'CTO',
+        orgId: context?.orgId || null,
+        brandId: context?.brandId || null,
+        defaultCategory: 'engineering',
+    });
+
+    return async (toolName: string, input: Record<string, unknown>): Promise<unknown> => {
+        const result = await linusToolExecutor(toolName, input);
+        const skipLearningTools = toolName === 'learning_log' || toolName === 'learning_search' || toolName === 'notify_agent_problem';
+
+        if (!skipLearningTools) {
+            const failure = extractLinusToolFailure(result);
+            if (failure) {
+                try {
+                    await learningTools.notify_agent_problem(
+                        failure.problem,
+                        `${toolName} failed during a Linus engineering workflow`,
+                        failure.proposedFix,
+                        failure.severity,
+                        failure.category,
+                    );
+                } catch (error) {
+                    logger.warn('[Linus] Failed to escalate tool error through learning loop', {
+                        toolName,
+                        error: error instanceof Error ? error.message : String(error),
+                    });
+                }
+            }
+        }
+
+        return result;
+    };
+}
+
 // ============================================================================
 // LINUS AGENT RUNNER
 // ============================================================================
@@ -4731,13 +4877,14 @@ export interface LinusResponse {
 }
 
 function getLinusCodebaseContext(claudeContext: string, toolMode: LinusToolMode): string {
-    if (toolMode !== 'slack') {
-        return claudeContext;
-    }
+    const docsAvailability = claudeContext ? 'CLAUDE.md available for on-demand reads.' : 'CLAUDE.md not loaded; use read_project_docs if needed.';
+    const modeNote = toolMode === 'slack'
+        ? 'Slack mode keeps context minimal for faster tool work.'
+        : 'Full mode still keeps default context lean; load richer docs on demand via read_project_docs.';
+    return `${modeNote}
+${docsAvailability}
 
-    // Slack mode: minimal summary to stay under Groq's 12k TPM.
-    // Full CLAUDE.md is available via the `read_project_docs` tool on demand.
-    return `## Codebase Quick Reference (use read_project_docs for full details)
+## Codebase Quick Reference (use read_project_docs for full details)
 
 Tech: Next.js 15 (App Router) | Firebase (Firestore, Auth, App Hosting) | AI: Claude + Groq + Gemini
 Deploy: git push origin main → Firebase App Hosting CI/CD
@@ -5026,6 +5173,59 @@ Always be concise. Use the tools available to investigate, code, and report.`}`;
     return prompt;
 }
 
+async function buildLeanLinusSystemPrompt(orgId?: string, slackMode: boolean = false): Promise<string> {
+    const cacheKey = `lean:${orgId ?? '__default__'}:${slackMode ? 'slack' : 'full'}`;
+    const now = Date.now();
+    const cached = systemPromptCache.get(cacheKey);
+    if (cached && now < cached.expiresAt) {
+        return cached.prompt;
+    }
+
+    const squadRoster = buildSquadRoster('linus');
+    const integrationStatus = await buildIntegrationStatusSummaryForOrg(orgId);
+    const gcpHealth = await isGCPHealthyForDeploy();
+    const platformHealthSummary = `GCP Status: ${gcpHealth.healthy ? 'HEALTHY' : 'UNSTABLE'}\n${gcpHealth.incidents.length > 0
+        ? `Active incidents: ${gcpHealth.incidents.map(i => `${i.name}: ${i.title}`).join(', ')}`
+        : 'No active critical infrastructure incidents.'}`;
+
+    const prompt = joinPromptSections(
+        'You are Linus, AI CTO of BakedBot. Investigate, fix, verify, and report with strong engineering judgment.',
+        `=== AGENT SQUAD ===\n${squadRoster}`,
+        `=== INTEGRATION STATUS ===\n${integrationStatus}`,
+        `=== PLATFORM HEALTH ===\n${platformHealthSummary}`,
+        buildContextDisciplineSection([
+            'Keep always-on context focused on engineering rules and risk gates. Load project docs on demand instead of carrying them in the base prompt.',
+            'Treat tool descriptions as the workflow guide for code search, testing, PR creation, browser testing, and deployment work.',
+        ]),
+        buildBulletSection('GROUNDING RULES (CRITICAL)', [
+            'Only report tools and capabilities that are actually available in the current tool list.',
+            'Only reference agents that exist in the squad roster.',
+            'Use real tool output for build status, test results, deployment state, and code findings.',
+            'If platform health is unstable, stop deployment recommendations and say deployments are blocked.',
+            'When uncertain, investigate first. Use search, read, tests, and logs before making claims.',
+        ]),
+        buildLearningLoopSection('Linus', ['engineering', 'bugfix', 'deploy', 'testing', 'problem']),
+        buildBulletSection('OPERATING FOCUS', [
+            'Default to debugging, verification, and code-quality judgment before proposing changes.',
+            'Use github_push_api and PR workflows for code delivery; do not push directly to main.',
+            'When you finish code changes, run /simplify review discipline and verify build health before handing off.',
+        ]),
+        slackMode
+            ? buildBulletSection('SLACK RESPONSE RULES', [
+                'Keep replies conversational, concise, and action-oriented.',
+                'Say what you are about to check before using tools.',
+                'Never end with a dead end; offer the next safe action.',
+            ])
+            : buildBulletSection('DASHBOARD RESPONSE RULES', [
+                'Use markdown headers for scorecards, findings, and decisions.',
+                'Cite the source of every critical conclusion.',
+            ]),
+    );
+
+    systemPromptCache.set(cacheKey, { prompt, expiresAt: Date.now() + SYSTEM_PROMPT_TTL_MS });
+    return prompt;
+}
+
 /**
  * Maps a Linus tool call to a human-readable Slack status message.
  * Shown as an update on the "thinking" message so users know Linus is working.
@@ -5054,6 +5254,12 @@ function buildLinusProgressMessage(toolName: string, input: Record<string, unkno
             return `_Linus is pushing to GitHub (${input.branch ?? 'main'})..._`;
         case 'web_search':
             return `_Linus is searching the web for "${String(input.query ?? '').slice(0, 50)}"..._`;
+        case 'learning_log':
+            return '_Linus is logging what just happened so the fix loop gets smarter..._';
+        case 'learning_search':
+            return '_Linus is checking past engineering learnings before retrying..._';
+        case 'notify_agent_problem':
+            return '_Linus is escalating a blocked engineering issue for human help..._';
         case 'firecrawl_scrape':
         case 'firecrawl_search':
         case 'firecrawl_map_site':
@@ -5163,7 +5369,7 @@ export async function runLinus(request: LinusRequest): Promise<LinusResponse> {
     }
 
     const isSlackMode = toolMode === 'slack';
-    const linusSystemPrompt = await buildLinusSystemPrompt(request.context?.orgId, isSlackMode);
+    const linusSystemPrompt = await buildLeanLinusSystemPrompt(request.context?.orgId, isSlackMode);
 
     // Read CLAUDE.md for codebase context — Slack mode uses progressive loading via read_project_docs tool
     let claudeContext = '';
@@ -5215,13 +5421,17 @@ User Request: ${request.prompt}`;
         agentContext: LINUS_AGENT_CONTEXT,
         onToolCall,
     };
+    const linusExecutor = createLinusToolExecutor({
+        orgId: request.context?.orgId,
+        brandId: request.context?.brandId,
+    });
 
     // Dashboard mode: straight to Claude
     if (toolMode !== 'slack') {
         const result = await executeWithTools(
             fullPrompt,
             getLinusTools(toolMode),
-            linusToolExecutor,
+            linusExecutor,
             { ...sharedContext, maxIterations: request.maxIterations ?? 15, imageAttachments: request.images }
         );
         return buildLinusResponse(result, request);
@@ -5244,7 +5454,7 @@ User Request: ${request.prompt}`;
                     const glmModel = hasImages ? GLM_MODELS.VISION : GLM_MODELS.STRATEGIC;
                     logger.info(`[Linus] Trying GLM ${glmModel}`);
                     const glmResult = await executeGLMWithTools(
-                        fullPrompt, getLinusTools(toolMode), linusToolExecutor,
+                        fullPrompt, getLinusTools(toolMode), linusExecutor,
                         { ...sharedContext, model: glmModel }
                     );
                     if (isGLMRefusal(glmResult)) {
@@ -5271,7 +5481,7 @@ User Request: ${request.prompt}`;
                     const geminiModel = hasImages ? GLM_MODELS.VISION : GLM_MODELS.EXTRACTION;
                     logger.info(`[Linus] Trying GLM budget ${geminiModel} (gemini tier, with tools)`);
                     const geminiGlmResult = await executeGLMWithTools(
-                        fullPrompt, getLinusTools(toolMode), linusToolExecutor,
+                        fullPrompt, getLinusTools(toolMode), linusExecutor,
                         { ...sharedContext, model: geminiModel }
                     );
                     if (isGLMRefusal(geminiGlmResult)) {
@@ -5294,7 +5504,7 @@ User Request: ${request.prompt}`;
                     if (!isGeminiFlashConfigured()) continue;
                     logger.info('[Linus] Trying Gemini Flash (Genkit, with tools)');
                     result = await executeGeminiFlashWithTools(
-                        fullPrompt, getLinusTools(toolMode), linusToolExecutor,
+                        fullPrompt, getLinusTools(toolMode), linusExecutor,
                         sharedContext
                     );
                     break;
@@ -5303,7 +5513,7 @@ User Request: ${request.prompt}`;
                     if (!isClaudeAvailable()) continue;
                     logger.info('[Linus] Trying Claude Haiku');
                     result = await executeWithTools(
-                        fullPrompt, getLinusTools(toolMode), linusToolExecutor,
+                        fullPrompt, getLinusTools(toolMode), linusExecutor,
                         { ...sharedContext, model: 'claude-haiku-4-5-20251001', imageAttachments: request.images }
                     );
                     break;
@@ -5312,7 +5522,7 @@ User Request: ${request.prompt}`;
                     if (!isClaudeAvailable()) continue;
                     logger.info('[Linus] Trying Claude Sonnet');
                     result = await executeWithTools(
-                        fullPrompt, getLinusTools(toolMode), linusToolExecutor,
+                        fullPrompt, getLinusTools(toolMode), linusExecutor,
                         { ...sharedContext, model: 'claude-sonnet-4-6', imageAttachments: request.images }
                     );
                     break;
@@ -5357,7 +5567,7 @@ export const linusAgent: AgentImplementation<AgentMemory, any> = {
 
         // Build dynamic system prompt with current squad/integration status
         const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || '';
-        agentMemory.system_instructions = await buildLinusSystemPrompt(orgId);
+        agentMemory.system_instructions = await buildLeanLinusSystemPrompt(orgId);
 
         // === HIVE MIND INIT ===
         try {

@@ -7,7 +7,7 @@ import { detectAnomaly } from '../algorithms/pops-algo';
 import { ai } from '@/ai/genkit';
 import { callGLM } from '@/ai/glm';
 import { z } from 'zod';
-import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef } from './shared-tools';
+import { contextOsToolDefs, lettaToolDefs, proactiveSearchToolDef, learningLoopToolDefs } from './shared-tools';
 import { analyticsToolDefs, analyticsToolImplementations } from './tools/analytics-tools';
 import { dispensaryAnalyticsToolDefs, makeAnalyticsToolsImpl, executeDispensaryAnalyticsTool } from '@/server/tools/analytics-tools';
 import {
@@ -16,6 +16,8 @@ import {
 import { getOrgProfileWithFallback, buildPopsContextBlock } from '@/server/services/org-profile';
 import { getMarketBenchmarks, buildBenchmarkContextBlock } from '@/server/services/market-benchmarks';
 import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integration-status';
+import { buildBulletSection, buildContextDisciplineSection, buildLearningLoopSection, joinPromptSections } from './prompt-kit';
+import { makeLearningLoopToolsImpl } from '@/server/services/agent-learning-loop';
 
 // --- Tool Definitions ---
 
@@ -108,6 +110,27 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
         - Always cite the source of your data (tool call or database query).
         ${contextBlock}
     `;
+    agentMemory.system_instructions = joinPromptSections(
+        `You are Pops, the Lead Data Analyst for ${brandMemory.brand_profile.name}. Focus on revenue, retention, velocity, and the strongest signal hidden in the noise.`,
+        benchmarkBlock,
+        `=== AGENT SQUAD (For Collaboration) ===\n${squadRoster}`,
+        `=== INTEGRATION STATUS ===\n${integrationStatus}`,
+        contextBlock,
+        buildContextDisciplineSection([
+            'Keep always-on context focused on analytical rigor, not long canned workflows. Pull methodology and benchmarks from live tools when needed.',
+        ]),
+        buildBulletSection('GROUNDING RULES (CRITICAL)', [
+            'Only report metrics, percentages, or trends you actually queried or calculated.',
+            'Check integration status before claiming access to traffic, POS, or analytics sources.',
+            'Ask for missing data instead of backfilling it with assumptions.',
+        ]),
+        buildLearningLoopSection('Pops', ['analytics', 'anomaly', 'hypothesis', 'reporting']),
+        buildBulletSection('OPERATING FOCUS', [
+            'Prioritize high-signal findings, anomaly checks, and the next testable hypothesis.',
+            'Coordinate with Money Mike, Craig, and Mrs. Parker using the squad roster when margin, campaign, or retention follow-up is needed.',
+            'Use markdown headers and cite the source of each conclusion.',
+        ]),
+    );
 
     // === HIVE MIND INIT ===
     try {
@@ -177,6 +200,7 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
             proactiveSearchToolDef,
             ...analyticsToolDefs,
             ...dispensaryAnalyticsToolDefs,
+            ...learningLoopToolDefs,
             ...contextOsToolDefs,
             ...lettaToolDefs
         ];
@@ -185,6 +209,13 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
         const allTools = {
             ...tools,
             ...analyticsToolImplementations,
+            ...makeLearningLoopToolsImpl({
+                agentId: 'pops',
+                role: 'Analyst',
+                orgId,
+                brandId: orgId,
+                defaultCategory: 'analytics',
+            }),
             searchOpportunities: async (query: string) => {
                 try {
                     const { searchWeb, formatSearchResults } = await import('@/server/tools/web-search');

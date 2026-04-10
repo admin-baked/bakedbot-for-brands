@@ -337,6 +337,103 @@ async function executeToolWithValidation(
     return { result: { error: 'Max validation attempts exceeded' }, skipped: false };
 }
 
+const LEARNING_LOOP_TOOL_NAMES = new Set([
+    'learning_log',
+    'learning_search',
+    'notify_agent_problem',
+]);
+
+function extractToolFailure(result: any): string | null {
+    if (!result || typeof result !== 'object') {
+        return null;
+    }
+
+    if (typeof result.error === 'string' && result.error.trim().length > 0) {
+        return result.error.trim();
+    }
+
+    if (result._validation?.valid === false) {
+        const issues = Array.isArray(result._validation.issues)
+            ? result._validation.issues.join(', ')
+            : 'Validation failed';
+        return issues;
+    }
+
+    return null;
+}
+
+function inferLearningCategory(toolName: string): string {
+    const lower = toolName.toLowerCase();
+    if (lower.includes('email') || lower.includes('sms') || lower.includes('campaign') || lower.includes('social')) {
+        return 'marketing';
+    }
+    if (lower.includes('crm') || lower.includes('customer') || lower.includes('loyalty')) {
+        return 'customer';
+    }
+    if (lower.includes('price') || lower.includes('margin') || lower.includes('profit') || lower.includes('finance')) {
+        return 'finance';
+    }
+    if (lower.includes('competitor') || lower.includes('search') || lower.includes('intel')) {
+        return 'research';
+    }
+    if (lower.includes('health') || lower.includes('build') || lower.includes('deploy') || lower.includes('code')) {
+        return 'technical';
+    }
+    return 'problem';
+}
+
+async function maybeReportLearningLoopFailure(
+    context: MultiStepContext,
+    toolName: string,
+    args: Record<string, unknown>,
+    result: any
+): Promise<void> {
+    if (LEARNING_LOOP_TOOL_NAMES.has(toolName)) {
+        return;
+    }
+
+    const errorText = extractToolFailure(result);
+    if (!errorText) {
+        return;
+    }
+
+    const learningLog = context.tools?.learning_log;
+    const notifyProblem = context.tools?.notify_agent_problem;
+    const category = inferLearningCategory(toolName);
+    const serializedArgs = sanitizeForPrompt(JSON.stringify(args), 300);
+    const action = `${toolName} ${serializedArgs}`;
+    const nextStep = 'Search prior learnings, revise the approach, or ask a human for the unblocker.';
+    const runContext = `Tool ${toolName} failed while handling: ${sanitizeForPrompt(context.userQuery, 240)} | args=${serializedArgs}`;
+
+    if (typeof learningLog === 'function') {
+        try {
+            await learningLog(action, 'failure', errorText, nextStep, category);
+        } catch (error) {
+            logger.debug('[Harness] Failed to write learning log after tool error', {
+                toolName,
+                error: error instanceof Error ? error.message : String(error),
+            });
+        }
+    }
+
+    if (typeof notifyProblem === 'function') {
+        try {
+            await notifyProblem(
+                errorText,
+                runContext,
+                'Please reply in thread with the missing data, approval, or recommended fix.',
+                'medium',
+                category
+            );
+        } catch (error) {
+            logger.debug('[Harness] Failed to notify learning loop failure', {
+                toolName,
+                error: error instanceof Error ? error.message : String(error),
+            });
+        }
+    }
+}
+
 /**
  * Execute a multi-step task with iterative planning.
  * The agent will continue calling tools until it declares COMPLETE or hits max iterations.
@@ -547,6 +644,7 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
                 }
             }
 
+            await maybeReportLearningLoopFailure(context, decision.toolName, decision.args, result);
             steps.push({ tool: decision.toolName, args: decision.args, result });
             if (onStepComplete) await onStepComplete(steps.length, decision.toolName, result);
         }
@@ -640,6 +738,7 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
                 }
             }
 
+            await maybeReportLearningLoopFailure(context, toolName, args, result);
             steps.push({ tool: toolName, args, result });
             if (onStepComplete) await onStepComplete(steps.length, toolName, result);
             return result;
@@ -813,6 +912,7 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
             }
         }
 
+        await maybeReportLearningLoopFailure(context, decision.toolName, decision.args, result);
         steps.push({ tool: decision.toolName, args: decision.args, result });
 
         // =========================================================

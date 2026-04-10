@@ -292,6 +292,174 @@ export function buildRoleSystemPrompt(
     return sections.join('\n\n');
 }
 
+export function buildRoleGuidanceIndex(
+    roleGT: RoleGroundTruth,
+    agentId: InboxAgentPersona
+): string {
+    const agentPersona = roleGT.agent_personas?.[agentId];
+    const categoryNames = Object.values(roleGT.categories)
+        .map(category => category.description)
+        .slice(0, 8);
+    const presetLabels = roleGT.preset_prompts
+        .filter(preset => preset.defaultAgent === agentId || preset.roles.length > 0)
+        .map(preset => preset.label)
+        .slice(0, 6);
+    const workflowTitles = roleGT.workflow_guides
+        .map(workflow => workflow.title)
+        .slice(0, 6);
+    const criticalCount = getCriticalQAPairs(roleGT).length;
+
+    const lines: string[] = [
+        '=== ROLE GUIDANCE INDEX ===',
+        '',
+        `Verified QA pairs: ${roleGT.metadata.total_qa_pairs} total, ${criticalCount} critical.`,
+        `Knowledge areas: ${categoryNames.join(', ') || 'None loaded'}.`,
+    ];
+
+    if (agentPersona?.system_prompt_additions) {
+        lines.push('', agentPersona.system_prompt_additions);
+    }
+
+    if (agentPersona?.dos?.length) {
+        lines.push('', `Do: ${agentPersona.dos.slice(0, 4).join(' | ')}`);
+    }
+
+    if (agentPersona?.donts?.length) {
+        lines.push(`Do not: ${agentPersona.donts.slice(0, 4).join(' | ')}`);
+    }
+
+    if (presetLabels.length) {
+        lines.push('', `Preset prompts available on demand: ${presetLabels.join(', ')}.`);
+    }
+
+    if (workflowTitles.length) {
+        lines.push(`Workflow guides available on demand: ${workflowTitles.join(', ')}.`);
+    }
+
+    lines.push('Use loadRoleGuidance when the task needs detailed workflow steps, QA, or templates.');
+
+    return lines.join('\n');
+}
+
+type RoleGuidanceKind = 'auto' | 'preset' | 'workflow' | 'qa';
+
+interface RoleGuidanceSearchOptions {
+    kind?: RoleGuidanceKind;
+    limit?: number;
+}
+
+function scoreMatch(haystack: string, terms: string[]): number {
+    const normalized = haystack.toLowerCase();
+    return terms.reduce((score, term) => {
+        if (!term) {
+            return score;
+        }
+        if (normalized.includes(term)) {
+            return score + 3;
+        }
+        if (term.split(/\s+/).some(part => part && normalized.includes(part))) {
+            return score + 1;
+        }
+        return score;
+    }, 0);
+}
+
+export function searchRoleGuidance(
+    roleGT: RoleGroundTruth,
+    query: string,
+    options: RoleGuidanceSearchOptions = {}
+): {
+    query: string;
+    items: Array<Record<string, unknown>>;
+    total: number;
+} {
+    const limit = Math.max(1, Math.min(options.limit ?? 4, 8));
+    const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+    const requestedKind = options.kind || 'auto';
+    const items: Array<Record<string, unknown>> = [];
+
+    if (requestedKind === 'auto' || requestedKind === 'preset') {
+        roleGT.preset_prompts.forEach(preset => {
+            const score = scoreMatch(
+                `${preset.label} ${preset.description} ${preset.category} ${preset.promptTemplate}`,
+                terms
+            );
+            if (score > 0) {
+                items.push({
+                    type: 'preset',
+                    score,
+                    id: preset.id,
+                    title: preset.label,
+                    summary: preset.description,
+                    details: {
+                        category: preset.category,
+                        variables: preset.variables || [],
+                        promptTemplate: preset.promptTemplate,
+                        estimatedTime: preset.estimatedTime || null,
+                    },
+                });
+            }
+        });
+    }
+
+    if (requestedKind === 'auto' || requestedKind === 'workflow') {
+        roleGT.workflow_guides.forEach(workflow => {
+            const score = scoreMatch(
+                `${workflow.title} ${workflow.description} ${workflow.tags.join(' ')} ${workflow.steps.map(step => `${step.title} ${step.description}`).join(' ')}`,
+                terms
+            );
+            if (score > 0) {
+                items.push({
+                    type: 'workflow',
+                    score,
+                    id: workflow.id,
+                    title: workflow.title,
+                    summary: workflow.description,
+                    details: {
+                        difficulty: workflow.difficulty,
+                        estimatedTime: workflow.estimatedTime || null,
+                        prerequisites: workflow.prerequisites || [],
+                        steps: workflow.steps,
+                    },
+                });
+            }
+        });
+    }
+
+    if (requestedKind === 'auto' || requestedKind === 'qa') {
+        getAllQAPairs(roleGT).forEach(qa => {
+            const score = scoreMatch(
+                `${qa.question} ${qa.ideal_answer} ${qa.context} ${qa.keywords.join(' ')}`,
+                terms
+            );
+            if (score > 0) {
+                items.push({
+                    type: 'qa',
+                    score,
+                    id: qa.id,
+                    title: qa.question,
+                    summary: qa.context,
+                    details: {
+                        priority: qa.priority,
+                        answer: qa.ideal_answer,
+                        keywords: qa.keywords,
+                    },
+                });
+            }
+        });
+    }
+
+    const sorted = items
+        .sort((a, b) => Number(b.score || 0) - Number(a.score || 0))
+        .slice(0, limit);
+
+    return {
+        query,
+        items: sorted,
+        total: sorted.length,
+    };
+}
+
 /**
  * Build agent persona customization section
  */
