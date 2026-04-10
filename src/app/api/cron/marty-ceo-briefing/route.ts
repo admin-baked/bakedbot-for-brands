@@ -62,17 +62,17 @@ async function runPressureTest(agent: string, question: string) {
         if (agent === 'marty') {
             const { runMarty } = await import('@/server/agents/marty');
             const res = await runMarty({ prompt: question, maxIterations: 4, context: { userId: 'pressure-test', orgId: 'org_bakedbot_internal' } });
-            return NextResponse.json({ agent, question, response: res.content, model: res.model, toolsUsed: (res.toolExecutions || []).map((t: { name: string; result: unknown }) => ({ name: t.name, result: JSON.stringify(t.result).slice(0, 300) })), elapsed: `${Math.round((Date.now() - start) / 1000)}s` });
+            return NextResponse.json({ agent, question, response: res.content, model: res.model, toolsUsed: (res.toolExecutions || []).map(t => ({ name: t.name, result: JSON.stringify(t.output).slice(0, 300) })), elapsed: `${Math.round((Date.now() - start) / 1000)}s` });
         }
         if (agent === 'linus') {
             const { runLinus } = await import('@/server/agents/linus');
             const res = await runLinus({ prompt: question, maxIterations: 4, toolMode: 'slack' as const, context: { userId: 'pressure-test', orgId: 'org_bakedbot_internal' } });
-            return NextResponse.json({ agent, question, response: res.content, model: res.model, toolsUsed: (res.toolExecutions || []).map((t: { name: string; result: unknown }) => ({ name: t.name, result: JSON.stringify(t.result).slice(0, 300) })), elapsed: `${Math.round((Date.now() - start) / 1000)}s` });
+            return NextResponse.json({ agent, question, response: res.content, model: res.model, toolsUsed: (res.toolExecutions || []).map(t => ({ name: t.name, result: JSON.stringify(t.output).slice(0, 300) })), elapsed: `${Math.round((Date.now() - start) / 1000)}s` });
         }
         if (agent === 'elroy') {
             const { runElroy } = await import('@/server/agents/elroy');
             const res = await runElroy({ prompt: question, maxIterations: 4, context: { userId: 'pressure-test' } });
-            return NextResponse.json({ agent, question, response: res.content, model: res.model, toolsUsed: (res.toolExecutions || []).map((t: { name: string; result: unknown }) => ({ name: t.name, result: JSON.stringify(t.result).slice(0, 300) })), elapsed: `${Math.round((Date.now() - start) / 1000)}s` });
+            return NextResponse.json({ agent, question, response: res.content, model: res.model, toolsUsed: (res.toolExecutions || []).map(t => ({ name: t.name, result: JSON.stringify(t.output).slice(0, 300) })), elapsed: `${Math.round((Date.now() - start) / 1000)}s` });
         }
         return NextResponse.json({ error: `Unknown agent: ${agent}` }, { status: 400 });
     } catch (err: unknown) {

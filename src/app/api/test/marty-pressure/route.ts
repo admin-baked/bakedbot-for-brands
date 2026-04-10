@@ -230,7 +230,7 @@ async function runAgentQuestion(agent: AgentName, question: string, orgId: strin
         });
         return {
             response: res.content,
-            toolsUsed: (res.toolExecutions || []).map(t => ({ name: t.name, result: JSON.stringify(t.result).slice(0, 300) })),
+            toolsUsed: (res.toolExecutions || []).map(t => ({ name: t.name, result: JSON.stringify(t.output).slice(0, 300) })),
             model: res.model,
             elapsed: Math.round((Date.now() - start) / 1000),
         };
@@ -246,7 +246,7 @@ async function runAgentQuestion(agent: AgentName, question: string, orgId: strin
         });
         return {
             response: res.content,
-            toolsUsed: (res.toolExecutions || []).map(t => ({ name: t.name, result: JSON.stringify(t.result).slice(0, 300) })),
+            toolsUsed: (res.toolExecutions || []).map(t => ({ name: t.name, result: JSON.stringify(t.output).slice(0, 300) })),
             model: res.model,
             elapsed: Math.round((Date.now() - start) / 1000),
         };
@@ -261,7 +261,7 @@ async function runAgentQuestion(agent: AgentName, question: string, orgId: strin
         });
         return {
             response: res.content,
-            toolsUsed: (res.toolExecutions || []).map(t => ({ name: t.name, result: JSON.stringify(t.result).slice(0, 300) })),
+            toolsUsed: (res.toolExecutions || []).map(t => ({ name: t.name, result: JSON.stringify(t.output).slice(0, 300) })),
             model: res.model,
             elapsed: Math.round((Date.now() - start) / 1000),
         };
