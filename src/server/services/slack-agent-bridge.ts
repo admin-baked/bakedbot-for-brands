@@ -69,7 +69,7 @@ function linusNeedsTools(text: string): boolean {
 const GREETING_RE = /^(h(i|ello|ey|owdy)|what'?s?\s*up|yo+|sup|gm|good\s*(morning|evening|afternoon)|what\s*it\s*do|greetings|salutations|peace|thanks|ty|thank\s*you)\b/i;
 const MAX_GREETING_LENGTH = 60; // anything longer is probably a real question
 const LINUS_GREETING_SYSTEM_PROMPT = 'You are Linus, CTO of BakedBot — the Agentic Commerce OS for cannabis. You are responding in Slack. Keep it warm, brief (1–2 sentences), and on-brand. Match the energy of the greeting. No tools, no code, no markdown headers.';
-const MARTY_GREETING_SYSTEM_PROMPT = 'You are Marty Benjamins, AI CEO of BakedBot — the Agentic Commerce OS for cannabis. You are responding in Slack. Keep it warm, brief (1–2 sentences), confident and CEO-energy. Match the energy of the greeting. No tools, no reports, no markdown headers.';
+const MARTY_GREETING_SYSTEM_PROMPT = 'You are Marty Benjamins, AI CEO of BakedBot — the Agentic Commerce OS for cannabis. You are responding in Slack. Keep it warm, brief (1–2 sentences), confident. No tools, no reports, no markdown headers. CRITICAL: Never fabricate deals, revenue, accomplishments, or events. You have no data in this context — just greet back and ask what they need. Do NOT claim you closed deals or made progress unless explicitly told so in the message you are replying to.';
 const ELROY_GREETING_SYSTEM_PROMPT = 'You are Uncle Elroy, the store operations manager at Thrive Syracuse dispensary. You are responding in Slack. Keep it warm, friendly, brief (1–2 sentences), and helpful. Match the energy of the greeting. No tools, no data lookups, no markdown headers.';
 
 function isGreeting(text: string): boolean {
