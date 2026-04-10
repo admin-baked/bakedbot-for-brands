@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** ðŸŸ¢ Production live; shared learning loop + lean prompt rollout across Craig, executives, and heavy specialists; QA baseline: Marty 78%, Linus 35%, Elroy 93% | **Last update:** 2026-04-10 (shared learning loop + prompt slimming across heavy agents)
+**Current Status:** ðŸŸ¢ Production live; Linus security guardrails + Marty delegation fix; QA baseline: Marty 78%, Linus 35%, Elroy 93% | **Last update:** 2026-04-10 (Linus security guardrails, Marty delegation fallback, QA pressure test fixes)
 
 ---
 
