@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Production live; Cloudflare DNS decoupled from Workspace + Creative Center overhaul + outreach mobile UX | **Last update:** 2026-04-09 (Cloudflare independence + creative + outreach)
+**Current Status:** 🟢 Production live; Cloudflare DNS decoupled from Workspace + Creative Center overhaul + outreach mobile UX + YouTube/Shorts creative support | **Last update:** 2026-04-09 (Cloudflare independence + creative + outreach + YouTube)
 
 ---
 

@@ -69,7 +69,7 @@ export function CampaignPerformanceDashboard({
         return `${num.toFixed(1)}%`;
     };
 
-    const platformIcons: Record<SocialPlatform, string> = {
+    const platformIcons: Partial<Record<SocialPlatform, string>> = {
         instagram: '📸',
         tiktok: '🎵',
         linkedin: '💼',
@@ -240,7 +240,7 @@ export function CampaignPerformanceDashboard({
                                         count={count}
                                         total={performance.totalContent}
                                         icon={
-                                            platformIcons[platform as SocialPlatform]
+                                            platformIcons[platform as SocialPlatform] ?? '•'
                                         }
                                     />
                                 ))}

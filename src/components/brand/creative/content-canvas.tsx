@@ -33,6 +33,7 @@ import {
     Instagram,
     Video,
     Linkedin,
+    Youtube,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -58,6 +59,7 @@ const PLATFORM_ICONS: Record<SocialPlatform, typeof Instagram> = {
     linkedin: Linkedin,
     twitter: Type,
     facebook: Type,
+    youtube: Youtube,
 };
 
 export function ContentCanvas({
@@ -116,6 +118,7 @@ export function ContentCanvas({
                             <SelectItem value="instagram">Instagram</SelectItem>
                             <SelectItem value="tiktok">TikTok</SelectItem>
                             <SelectItem value="linkedin">LinkedIn</SelectItem>
+                            <SelectItem value="youtube">YouTube</SelectItem>
                         </SelectContent>
                     </Select>
 

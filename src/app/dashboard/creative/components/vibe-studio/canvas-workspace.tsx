@@ -24,6 +24,15 @@ import type { SocialPlatform } from '@/types/creative-content';
 import type { CreativeAsset } from '@/types/creative-asset';
 import type { BrandGuide } from '@/types/brand-guide';
 
+const PLATFORM_LABELS: Record<SocialPlatform, string> = {
+  instagram: 'Instagram',
+  tiktok: 'TikTok',
+  linkedin: 'LinkedIn',
+  twitter: 'Twitter/X',
+  facebook: 'Facebook',
+  youtube: 'YouTube',
+};
+
 interface CanvasWorkspaceProps {
   platform: SocialPlatform;
   brandGuide: BrandGuide | null;
@@ -112,7 +121,7 @@ export function CanvasWorkspace({
             <span className="text-gray-300">•</span>
             <span>{canvasConfig.aspectRatio}</span>
             <span className="text-gray-300">•</span>
-            <span className="capitalize">{platform.replace('_', ' ')}</span>
+            <span>{PLATFORM_LABELS[platform]}</span>
           </div>
 
           {generatedAsset && (
@@ -177,6 +186,12 @@ function getCanvasConfig(platform: SocialPlatform) {
       aspectRatio: '1 / 1',
       dimensions: '1080 × 1080',
     },
+    youtube: {
+      className: 'aspect-[16/9]',
+      width: '500px',
+      aspectRatio: '16 / 9',
+      dimensions: '1280 Ã— 720',
+    },
   };
 
   return configs[platform] || configs.instagram;
@@ -209,7 +224,7 @@ function EmptyCanvas({ onGenerate, platform }: EmptyCanvasProps) {
           Generate Now
         </Button>
         <p className="text-xs text-gray-400 mt-3">
-          Optimized for {platform.replace('_', ' ')}
+          Optimized for {PLATFORM_LABELS[platform as SocialPlatform]}
         </p>
       </div>
     </div>

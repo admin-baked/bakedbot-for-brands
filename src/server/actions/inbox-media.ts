@@ -19,7 +19,7 @@ const ImageDraftInputSchema = z.object({
     tenantId: z.string().min(1),
     brandId: z.string().min(1),
     createdBy: z.string().min(1),
-    platform: z.enum(['instagram', 'tiktok', 'linkedin', 'facebook']),
+    platform: z.enum(['instagram', 'tiktok', 'linkedin', 'facebook', 'youtube']),
     prompt: z.string().min(1),
     style: z.enum(['product_photo', 'lifestyle', 'flat_lay', 'menu_promo']),
 });
@@ -30,7 +30,7 @@ const VideoConceptInputSchema = z.object({
     createdBy: z.string().min(1),
     prompt: z.string().min(1),
     style: z.enum(['educational', 'trending', 'behind_the_scenes', 'product_showcase', 'comedy']),
-    platform: z.enum(['instagram', 'tiktok']),
+    platform: z.enum(['instagram', 'tiktok', 'youtube']),
     brandName: z.string().optional(),
 });
 
@@ -70,11 +70,13 @@ const IMAGE_ASPECT_RATIO_BY_PLATFORM: Record<GenerateInboxImageDraftInput['platf
     tiktok: '9:16',
     linkedin: '16:9',
     facebook: '1:1',
+    youtube: '16:9',
 };
 
 const VIDEO_ASPECT_RATIO_BY_PLATFORM: Record<GenerateInboxVideoConceptInput['platform'], '9:16'> = {
     instagram: '9:16',
     tiktok: '9:16',
+    youtube: '9:16',
 };
 
 const buildInboxVideoConceptPrompt = ai.definePrompt({
@@ -83,7 +85,7 @@ const buildInboxVideoConceptPrompt = ai.definePrompt({
         schema: z.object({
             prompt: z.string(),
             style: z.string(),
-            platform: z.enum(['instagram', 'tiktok']),
+            platform: z.enum(['instagram', 'tiktok', 'youtube']),
             brandName: z.string().optional(),
         }),
     },

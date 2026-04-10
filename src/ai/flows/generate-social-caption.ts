@@ -13,7 +13,7 @@ import { z, ZodInfer } from '@/ai/z3';
 // --- Input Schema ---
 
 const GenerateSocialCaptionInputSchema = z.object({
-    platform: z.enum(['instagram', 'tiktok', 'linkedin', 'twitter', 'facebook'])
+    platform: z.enum(['instagram', 'tiktok', 'linkedin', 'twitter', 'facebook', 'youtube'])
         .describe('Target social media platform'),
     prompt: z.string().describe('The content theme or product to create caption for'),
     businessContext: z.enum(['company', 'dispensary', 'brand'])
@@ -96,6 +96,7 @@ Platform guidelines:
 - LinkedIn: thoughtful, credible, educational, leadership-forward
 - Twitter: concise, sharp, insight-led
 - Facebook: community-oriented and event-friendly
+- YouTube: title-first, searchable, educational, and strong for Shorts or community updates
 
 Generate captions for:
 - Platform: {{{platform}}}
@@ -140,6 +141,8 @@ Additional formatting guidance:
 - If format is "story", write in short frames or short punchy copy that works as an overlay
 - If format is "reel", lead with a hook and keep the body compact
 - If format is "carousel", make the opener headline-driven and educational
+- If platform is "youtube" and format is "reel", write like a YouTube Short hook, not an Instagram caption dump
+- If platform is "youtube" and format is "post", write like a concise community update with a soft CTA
 - If businessContext is "company", do not write like a dispensary menu or cannabis sales ad
 
 Remember: Be authentic, useful, credible, and compliance-aware. Quality over quantity.`,

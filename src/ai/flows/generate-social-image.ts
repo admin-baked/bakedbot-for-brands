@@ -18,6 +18,7 @@ import { ZodInfer } from '@/ai/z3';
 import { logger } from '@/lib/logger';
 import { generateImageWithFal } from '@/ai/generators/fal';
 import { getCached, setCached, CachePrefix, CacheTTL } from '@/lib/cache';
+import type { SocialPlatform, SocialPostFormat } from '@/types/creative-content';
 
 const GenerateSocialMediaImageInputSchema = z.object({
   productName: z.string().describe('The name of the product or a title for the image.'),
@@ -131,9 +132,14 @@ export async function generateSocialMediaImage(
  * Uses prompt + tier + platform to deduplicate identical requests.
  * Note: We intentionally cache across users — same prompt = same image.
  */
-function buildCreativeImageCacheKey(prompt: string, tier: string, platform: string): string {
+function buildCreativeImageCacheKey(
+    prompt: string,
+    tier: string,
+    platform: string,
+    format?: string,
+): string {
     // Simple hash: take first 80 chars of prompt + tier + platform
-    const normalized = `${prompt.substring(0, 80).toLowerCase().replace(/\s+/g, '_')}|${tier}|${platform}`;
+    const normalized = `${prompt.substring(0, 80).toLowerCase().replace(/\s+/g, '_')}|${tier}|${platform}|${format ?? 'default'}`;
     // Use a simple numeric hash to keep keys short
     let hash = 0;
     for (let i = 0; i < normalized.length; i++) {
@@ -150,14 +156,16 @@ export async function generateImageFromPrompt(
         aspectRatio?: string;
         brandName?: string;
         tier?: ImageTier;
-        platform?: string;
+        platform?: SocialPlatform;
+        format?: SocialPostFormat;
     }
 ): Promise<string> {
     const falTier = (options?.tier === 'free' || !options?.tier) ? 'free' : 'paid';
     const platform = options?.platform ?? 'instagram';
+    const format = options?.format;
 
     // Check Redis cache — avoid paying for duplicate image generation
-    const cacheKey = buildCreativeImageCacheKey(promptText, falTier, platform);
+    const cacheKey = buildCreativeImageCacheKey(promptText, falTier, platform, format);
     const cachedUrl = await getCached<string>(CachePrefix.CREATIVE_IMAGE, cacheKey);
     if (cachedUrl) {
         logger.info('[creative-image] Cache HIT — reusing generated image', {
@@ -172,6 +180,7 @@ export async function generateImageFromPrompt(
     const imageUrl = await generateImageWithFal(promptText, {
         tier: falTier,
         platform,
+        format,
     });
 
     // Cache the result (30 min TTL — fal.ai URLs are temporary but last ~1 hour)
@@ -182,6 +191,7 @@ export async function generateImageFromPrompt(
     logger.info('[creative-image] Generated and cached new image', {
         tier: falTier,
         platform,
+        format,
     });
 
     return imageUrl;

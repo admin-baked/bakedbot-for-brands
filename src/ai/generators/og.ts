@@ -9,8 +9,10 @@
  * or text-on-photo composites rather than photorealistic AI imagery.
  */
 
+import type { SocialPlatform, SocialPostFormat } from '@/types/creative-content';
+
 export type OgTemplate = 'text-on-color' | 'text-on-photo' | 'product-spotlight';
-export type OgPlatform = 'instagram' | 'tiktok' | 'linkedin' | 'twitter' | 'facebook';
+export type OgPlatform = SocialPlatform;
 
 export interface OgImageParams {
     template: OgTemplate;
@@ -30,6 +32,8 @@ export interface OgImageParams {
     imageUrl?: string;
     /** Social platform — controls canvas dimensions */
     platform?: OgPlatform;
+    /** Social format — refines canvas dimensions for reels, stories, and community posts */
+    format?: SocialPostFormat;
 }
 
 /**
@@ -89,6 +93,7 @@ export function buildOgImageUrl(params: OgImageParams, baseUrl?: string): string
     if (params.logoUrl)     qs.set('logoUrl',     params.logoUrl);
     if (params.imageUrl)    qs.set('imageUrl',    params.imageUrl);
     if (params.platform)    qs.set('platform',    params.platform);
+    if (params.format)      qs.set('format',      params.format);
 
     const path = `/api/og/social?${qs.toString()}`;
 

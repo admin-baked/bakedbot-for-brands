@@ -16,6 +16,7 @@
 import { logger } from '@/lib/logger';
 import { trackMediaGeneration, calculateImageCost, saveMediaToDrive } from '@/server/services/media-tracking';
 import { checkAIStudioActionAllowed, chargeAIStudioCredits } from '@/server/services/ai-studio-billing-service';
+import type { SocialPlatform, SocialPostFormat } from '@/types/creative-content';
 
 // fal.ai FLUX.1 endpoints
 const FAL_ENDPOINTS = {
@@ -38,7 +39,8 @@ export type FalImageTier = 'free' | 'paid' | 'super';
 
 interface FalImageOptions {
     tier?: FalImageTier;
-    platform?: string;
+    platform?: SocialPlatform;
+    format?: SocialPostFormat;
     orgId?: string;
     userId?: string;
 }
@@ -78,6 +80,29 @@ function buildImagePrompt(userPrompt: string, tier: FalImageTier): string {
     return `${sanitized}, ${quality}, ${noText}.`;
 }
 
+function resolvePlatformImageSize(
+    platform: SocialPlatform,
+    format?: SocialPostFormat,
+): string {
+    if (format === 'story' || format === 'reel') {
+        return 'portrait_16_9';
+    }
+
+    if (format === 'carousel') {
+        return platform === 'linkedin' ? 'landscape_16_9' : 'square_hd';
+    }
+
+    if (platform === 'youtube') {
+        return 'landscape_16_9';
+    }
+
+    if (platform === 'facebook' && format === 'post') {
+        return 'landscape_16_9';
+    }
+
+    return PLATFORM_IMAGE_SIZE[platform] ?? 'square_hd';
+}
+
 /**
  * Generate an image using fal.ai FLUX.1.
  * Throws if the API key is not set or the request fails.
@@ -109,7 +134,8 @@ export async function generateImageWithFal(
     }
 
     const endpoint = tier === 'free' ? FAL_ENDPOINTS.schnell : FAL_ENDPOINTS.pro;
-    const imageSize = PLATFORM_IMAGE_SIZE[options?.platform ?? 'instagram'] ?? 'square_hd';
+    const platform = options?.platform ?? 'instagram';
+    const imageSize = resolvePlatformImageSize(platform, options?.format);
 
     // FLUX.1 Schnell: 8 steps (was 4) — minimum for style differentiation across templates.
     // FLUX.1 Pro: 28 steps for full quality.
@@ -121,7 +147,8 @@ export async function generateImageWithFal(
 
     logger.info('[fal] Generating image', {
         tier,
-        platform: options?.platform,
+        platform,
+        format: options?.format,
         imageSize,
         numSteps,
         promptPreview: safePrompt.substring(0, 80),

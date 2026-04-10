@@ -91,6 +91,14 @@ const PLATFORM_SUGGESTIONS: Record<SocialPlatform, string[]> = {
         '#420',
         '#cbd',
     ],
+    youtube: [
+        '#cannabiseducation',
+        '#brandstory',
+        '#community',
+        '#behindthescenes',
+        '#operatorinsights',
+        '#lifestyle',
+    ],
 };
 
 /**

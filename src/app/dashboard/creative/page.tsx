@@ -124,7 +124,7 @@ type CreativeTemplate = {
   imageStyle: string;
 };
 type CreativeQuickStart = {
-  id: 'bakedbot-pov' | 'story-sequence' | 'short-reel' | 'community-post';
+  id: 'bakedbot-pov' | 'story-sequence' | 'short-reel' | 'youtube-short' | 'community-post';
   label: string;
   hint: string;
   platform: SocialPlatform;
@@ -210,12 +210,22 @@ const FORMAT_LABELS: Record<SocialPostFormat, string> = {
   carousel: 'Carousel',
 };
 
+const PLATFORM_LABELS: Record<SocialPlatform, string> = {
+  instagram: 'Instagram',
+  tiktok: 'TikTok',
+  linkedin: 'LinkedIn',
+  twitter: 'Twitter/X',
+  facebook: 'Facebook',
+  youtube: 'YouTube',
+};
+
 const PLATFORM_FORMATS: Record<SocialPlatform, SocialPostFormat[]> = {
   instagram: ['post', 'story', 'reel', 'carousel'],
   tiktok: ['reel'],
   linkedin: ['post', 'carousel'],
   twitter: ['post'],
   facebook: ['post', 'story', 'reel'],
+  youtube: ['post', 'reel'],
 };
 
 const SOCIAL_SAFE_HASHTAG_LIBRARY: Record<
@@ -256,6 +266,12 @@ const SOCIAL_SAFE_HASHTAG_LIBRARY: Record<
       { tag: "teamworkflows", category: "Workflow" },
       { tag: "aiworkflow", category: "Workflow" },
     ],
+    youtube: [
+      { tag: "operatorinsights", category: "Leadership" },
+      { tag: "aiworkflow", category: "Workflow" },
+      { tag: "foundermode", category: "Leadership" },
+      { tag: "b2bmarketing", category: "Business" },
+    ],
   },
   dispensary: {
     instagram: [
@@ -290,6 +306,12 @@ const SOCIAL_SAFE_HASHTAG_LIBRARY: Record<
       { tag: "education", category: "Education" },
       { tag: "events", category: "Events" },
     ],
+    youtube: [
+      { tag: "education", category: "Education" },
+      { tag: "community", category: "Community" },
+      { tag: "brandstory", category: "Storytelling" },
+      { tag: "localbusiness", category: "Local" },
+    ],
   },
   brand: {
     instagram: [
@@ -321,6 +343,12 @@ const SOCIAL_SAFE_HASHTAG_LIBRARY: Record<
       { tag: "brandstory", category: "Storytelling" },
       { tag: "community", category: "Community" },
       { tag: "events", category: "Events" },
+      { tag: "lifestyle", category: "Lifestyle" },
+    ],
+    youtube: [
+      { tag: "brandstory", category: "Storytelling" },
+      { tag: "behindthescenes", category: "Culture" },
+      { tag: "education", category: "Education" },
       { tag: "lifestyle", category: "Lifestyle" },
     ],
   },
@@ -403,27 +431,58 @@ function normalizeFormatForPlatform(
   return supportedFormats.includes(format) ? format : supportedFormats[0];
 }
 
+function getFormatLabel(
+  platform: SocialPlatform,
+  format: SocialPostFormat,
+): string {
+  if (platform === 'youtube') {
+    if (format === 'reel') {
+      return 'Short';
+    }
+
+    if (format === 'post') {
+      return 'Community';
+    }
+  }
+
+  return FORMAT_LABELS[format];
+}
+
+function getMediaAspectRatio(
+  platform: SocialPlatform,
+  format: SocialPostFormat,
+): '9:16' | '1:1' | '16:9' {
+  if (format === 'story' || format === 'reel') {
+    return '9:16';
+  }
+
+  if (platform === 'instagram' || format === 'carousel') {
+    return '1:1';
+  }
+
+  return '16:9';
+}
+
 function getCanvasAspectClass(
   platform: SocialPlatform,
   format: SocialPostFormat,
 ): string {
-  if (format === 'story' || format === 'reel') {
-    return 'aspect-[9/16]';
-  }
+  switch (getMediaAspectRatio(platform, format)) {
+    case '9:16':
+      return 'aspect-[9/16]';
+    case '16:9':
+      return 'aspect-[16/9]';
+    default:
+      if (platform === 'instagram' && format === 'post') {
+        return 'aspect-[4/5]';
+      }
 
-  if (format === 'carousel') {
-    return platform === 'linkedin' ? 'aspect-[1.91/1]' : 'aspect-square';
-  }
+      if (format === 'carousel') {
+        return platform === 'linkedin' ? 'aspect-[1.91/1]' : 'aspect-square';
+      }
 
-  if (platform === 'instagram') {
-    return 'aspect-[4/5]';
+      return 'aspect-square';
   }
-
-  if (platform === 'facebook' || platform === 'linkedin') {
-    return 'aspect-[1.91/1]';
-  }
-
-  return 'aspect-square';
 }
 
 function buildStarterPrompt(
@@ -538,6 +597,24 @@ const QUICK_STARTS: CreativeQuickStart[] = [
       enabled: true,
       headline: 'What happens behind the scenes',
       cta: 'See more',
+    },
+  },
+  {
+    id: 'youtube-short',
+    label: 'YouTube Short',
+    hint: 'Short-form education or BTS',
+    platform: 'youtube',
+    tone: 'educational',
+    businessContext: 'brand',
+    contentGoal: 'education',
+    format: 'reel',
+    socialSafetyMode: 'social-safe',
+    imageMode: 'slideshow',
+    prompt: 'Create a YouTube Short concept with a sharp first-second hook, one clear takeaway, and a soft CTA to follow, learn more, or visit the site.',
+    textOverlay: {
+      enabled: true,
+      headline: 'One quick takeaway',
+      cta: 'Learn more',
     },
   },
   {
@@ -798,6 +875,13 @@ export default function CreativeCommandCenter() {
       { tag: "cannabiseducation", category: "Education" },
       { tag: "cannabiswellness", category: "Wellness" },
       { tag: "plantsoverpills", category: "Wellness" },
+    ],
+    youtube: [
+      { tag: "cannabiseducation", category: "Education" },
+      { tag: "brandstory", category: "Storytelling" },
+      { tag: "behindthescenes", category: "Culture" },
+      { tag: "community", category: "Community" },
+      { tag: "operatorinsights", category: "Leadership" },
     ],
   };
 
@@ -1238,10 +1322,7 @@ export default function CreativeCommandCenter() {
         return;
       }
 
-      const aspectRatio = (selectedFormat === 'story' || selectedFormat === 'reel' || selectedPlatform === 'tiktok')
-        ? '9:16'
-        : (selectedPlatform === 'instagram' || selectedFormat === 'carousel') ? '1:1'
-        : '16:9';
+      const aspectRatio = getMediaAspectRatio(selectedPlatform, selectedFormat);
 
       setIsGeneratingVideo(true);
       setLocalVideoUrl(null);
@@ -1297,10 +1378,7 @@ export default function CreativeCommandCenter() {
         return;
       }
 
-      const aspectRatio = (selectedFormat === 'story' || selectedFormat === 'reel' || selectedPlatform === 'tiktok')
-        ? '9:16'
-        : (selectedPlatform === 'instagram' || selectedFormat === 'carousel') ? '1:1'
-        : '16:9';
+      const aspectRatio = getMediaAspectRatio(selectedPlatform, selectedFormat);
       const brandPrefix = brandGuide?.brandName
         ? businessContext === 'company'
           ? `${brandGuide.brandName} operator software brand. `
@@ -1542,7 +1620,7 @@ export default function CreativeCommandCenter() {
 
   const handleToggleBatchMode = () => {
     setIsBatchMode(!isBatchMode);
-    if (!isBatchMode) { setBatchPlatforms(['instagram', 'tiktok', 'linkedin']); toast.success("Batch mode enabled!"); }
+    if (!isBatchMode) { setBatchPlatforms(['instagram', 'youtube', 'linkedin']); toast.success("Batch mode enabled!"); }
     else { setBatchPlatforms([]); }
   };
 
@@ -1626,7 +1704,7 @@ export default function CreativeCommandCenter() {
 
         {/* Center: Platform selector pills */}
         <div className="flex items-center gap-0.5 bg-muted/60 rounded-lg p-1 overflow-x-auto scrollbar-none max-w-[180px] sm:max-w-none">
-          {(['instagram', 'tiktok', 'linkedin', 'facebook'] as SocialPlatform[]).map(p => (
+          {(['instagram', 'youtube', 'tiktok', 'linkedin', 'facebook'] as SocialPlatform[]).map(p => (
             <button
               key={p}
               onClick={() => {
@@ -1637,13 +1715,13 @@ export default function CreativeCommandCenter() {
                 }
               }}
               className={cn(
-                "px-3 py-1.5 rounded-md text-xs font-medium transition-all capitalize",
+                "px-3 py-1.5 rounded-md text-xs font-medium transition-all",
                 selectedPlatform === p
                   ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              {p}
+              {PLATFORM_LABELS[p]}
             </button>
           ))}
         </div>
@@ -1851,7 +1929,7 @@ export default function CreativeCommandCenter() {
                               }
                             }}
                             className={cn(
-                              "flex-1 text-xs py-1.5 rounded-md font-medium transition-all capitalize",
+                              "flex-1 text-xs py-1.5 rounded-md font-medium transition-all",
                               composerMode === mode
                                 ? "bg-background shadow-sm text-foreground"
                                 : "text-muted-foreground hover:text-foreground",
@@ -2108,7 +2186,7 @@ export default function CreativeCommandCenter() {
                                   : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground",
                               )}
                             >
-                              {FORMAT_LABELS[format]}
+                                {getFormatLabel(selectedPlatform, format)}
                             </button>
                           ))}
                         </div>
@@ -2395,19 +2473,19 @@ export default function CreativeCommandCenter() {
                         <div className="p-3 bg-purple-600/10 border border-purple-600/30 rounded-lg space-y-2">
                           <label className="text-[10px] font-semibold text-purple-400 uppercase tracking-wider">Batch Platforms</label>
                           <div className="flex flex-wrap gap-1.5">
-                            {(['instagram', 'tiktok', 'linkedin'] as SocialPlatform[]).map(p => (
+                            {(['instagram', 'youtube', 'tiktok', 'linkedin'] as SocialPlatform[]).map(p => (
                               <button
                                 key={p}
                                 onClick={() => handleToggleBatchPlatform(p)}
                                 className={cn(
-                                  "px-2.5 py-1 rounded-md text-xs border capitalize transition-all",
+                                  "px-2.5 py-1 rounded-md text-xs border transition-all",
                                   batchPlatforms.includes(p)
                                     ? "bg-purple-600 border-purple-600 text-white"
                                     : "bg-background border-border text-muted-foreground hover:border-purple-400",
                                 )}
                               >
                                 {batchPlatforms.includes(p) && <CheckCircle2 className="w-2.5 h-2.5 inline mr-1" />}
-                                {p}
+                                {PLATFORM_LABELS[p]}
                               </button>
                             ))}
                           </div>
@@ -2824,7 +2902,7 @@ export default function CreativeCommandCenter() {
                                   <span className={cn("text-[9px] font-medium px-1.5 py-0.5 rounded-full capitalize", statusColors[draft.status] ?? 'bg-muted text-muted-foreground')}>
                                     {draft.status}
                                   </span>
-                                  <span className="text-[9px] text-muted-foreground capitalize">{draft.platform}</span>
+                                  <span className="text-[9px] text-muted-foreground">{PLATFORM_LABELS[draft.platform]}</span>
                                   {timeAgo && (
                                     <span className="text-[9px] text-muted-foreground flex items-center gap-0.5">
                                       <Clock className="w-2.5 h-2.5" />{timeAgo}
@@ -2914,7 +2992,7 @@ export default function CreativeCommandCenter() {
                     : "border-border text-muted-foreground hover:text-foreground hover:border-primary/40",
                 )}
               >
-                {FORMAT_LABELS[format]}
+                {getFormatLabel(selectedPlatform, format)}
               </button>
             ))}
             <button
@@ -3022,7 +3100,7 @@ export default function CreativeCommandCenter() {
                 {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                 <video src={localVideoUrl} controls autoPlay muted loop className="w-full h-full object-cover" />
                 <div className="absolute top-3 left-3">
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-black/60 text-white backdrop-blur-sm capitalize tracking-wide">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-black/60 text-white backdrop-blur-sm tracking-wide">
                     {selectedPlatform} · {imageMode === 'slideshow' ? 'slideshow' : 'video'}
                   </span>
                 </div>

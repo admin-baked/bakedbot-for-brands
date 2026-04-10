@@ -8,7 +8,7 @@
 /**
  * Supported social media platforms
  */
-export type SocialPlatform = 'instagram' | 'tiktok' | 'linkedin' | 'twitter' | 'facebook';
+export type SocialPlatform = 'instagram' | 'tiktok' | 'linkedin' | 'twitter' | 'facebook' | 'youtube';
 
 /**
  * High-level brand/business context for creative generation
@@ -106,6 +106,14 @@ export interface EngagementMetrics {
             postClicks?: number;
             followerGains?: number;
             companyPageViews?: number;
+        };
+
+        /** YouTube-specific */
+        youtube?: {
+            videoViews?: number;
+            averageViewDuration?: number;
+            subscribersGained?: number;
+            clickThroughRate?: number;
         };
     };
 

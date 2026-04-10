@@ -22,6 +22,7 @@
  *   logoUrl       Absolute URL to brand logo image (optional)
  *   imageUrl      Absolute URL for background or product image (optional)
  *   platform      instagram | tiktok | linkedin | twitter | facebook (affects dimensions)
+ *   format        post | story | reel | carousel (optional, refines dimensions)
  */
 
 import { ImageResponse } from 'next/og';
@@ -33,10 +34,23 @@ import { normalizeOgAssetUrl } from '@/ai/generators/og';
 export const runtime = 'edge';
 
 // Platform → canvas dimensions
-function getDimensions(platform: string): { width: number; height: number } {
+function getDimensions(platform: string, format: string): { width: number; height: number } {
+    if (format === 'story' || format === 'reel') {
+        return { width: 1080, height: 1920 };
+    }
+
+    if (format === 'carousel') {
+        if (platform === 'linkedin') {
+            return { width: 1200, height: 628 };
+        }
+
+        return { width: 1200, height: 1200 };
+    }
+
     switch (platform) {
         case 'linkedin':
         case 'twitter':
+        case 'youtube':
             return { width: 1200, height: 628 };
         case 'tiktok':
             return { width: 1080, height: 1920 };
@@ -58,8 +72,9 @@ export async function GET(req: NextRequest) {
     const logoUrl     = normalizeOgAssetUrl(searchParams.get('logoUrl') ?? '', origin) ?? '';
     const imageUrl    = normalizeOgAssetUrl(searchParams.get('imageUrl') ?? '', origin) ?? '';
     const platform    = searchParams.get('platform')     ?? 'instagram';
+    const format      = searchParams.get('format')       ?? 'post';
 
-    const dims = getDimensions(platform);
+    const dims = getDimensions(platform, format);
 
     try {
         switch (template) {

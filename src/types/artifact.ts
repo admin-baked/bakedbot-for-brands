@@ -125,7 +125,7 @@ export interface ArtifactMetadata {
 
         // Creative post-specific
         creativePost?: {
-            platform: 'instagram' | 'tiktok' | 'linkedin' | 'twitter' | 'facebook';
+            platform: 'instagram' | 'tiktok' | 'linkedin' | 'twitter' | 'facebook' | 'youtube';
             caption: string;
             hashtags?: string[];
             mediaUrls?: string[];
@@ -212,7 +212,7 @@ export const ArtifactMetadataSchema = z.object({
             marginImpact: z.number().optional(),
         }).optional(),
         creativePost: z.object({
-            platform: z.enum(['instagram', 'tiktok', 'linkedin', 'twitter', 'facebook']),
+            platform: z.enum(['instagram', 'tiktok', 'linkedin', 'twitter', 'facebook', 'youtube']),
             caption: z.string(),
             hashtags: z.array(z.string()).optional(),
             mediaUrls: z.array(z.string()).optional(),

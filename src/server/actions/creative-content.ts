@@ -256,6 +256,7 @@ export async function generateContent(
                     logoUrl: request.logoUrl,
                     imageUrl: brandedImageUrl,
                     platform: request.platform,
+                    format: request.format,
                 }))
                 // Photo mode (default): fal.ai FLUX.1 — AI-generated photography, no text
                 : withImageTracking(
@@ -267,6 +268,7 @@ export async function generateContent(
                         brandName: request.productName,
                         tier: request.tier || 'free',
                         platform: request.platform,
+                        format: request.format,
                     }).then((generatedImageUrl) => ({ imageUrl: generatedImageUrl })),
                     {
                         metadata: {
@@ -1186,6 +1188,7 @@ function generateHashtags(platform: SocialPlatform, request: GenerateContentRequ
             linkedin: ['#MarketingOps', '#RevenueOps', '#AIWorkflow', '#B2BMarketing', '#Leadership'],
             twitter: ['#MarketingOps', '#RevenueOps', '#AIWorkflow'],
             facebook: ['#SmallBusinessTools', '#MarketingOps', '#TeamWorkflows', '#AIWorkflow'],
+            youtube: ['#OperatorInsights', '#AIWorkflow', '#FounderMode', '#B2BMarketing', '#Leadership'],
         };
 
         return companyHashtags[platform].slice(0, 8);
@@ -1198,6 +1201,7 @@ function generateHashtags(platform: SocialPlatform, request: GenerateContentRequ
             linkedin: ['#CannabisIndustry', '#RetailOps', '#CommunityMarketing', '#Compliance', '#Operations'],
             twitter: ['#Community', '#Education', '#RetailOps', '#BrandStory'],
             facebook: ['#Community', '#LocalBusiness', '#Education', '#Events'],
+            youtube: ['#Education', '#BrandStory', '#Community', '#BehindTheScenes', '#LocalBusiness'],
         };
 
         return safeHashtags[platform].slice(0, 8);
@@ -1210,6 +1214,7 @@ function generateHashtags(platform: SocialPlatform, request: GenerateContentRequ
         linkedin: ['#cannabisindustry', '#cannabisbusiness', '#greenrush'],
         twitter: ['#MedicalCannabis', '#Legalization'],
         facebook: ['#LocalDispensary', '#ShopLocal'],
+        youtube: ['#CannabisEducation', '#BrandStory', '#CannabisCommunity'],
     };
 
     return [...baseHashtags, ...(platformHashtags[platform] || [])].slice(0, 10);
@@ -1260,7 +1265,8 @@ function mapPlatformToChannel(platform: SocialPlatform): string {
         tiktok: 'social',
         linkedin: 'social',
         twitter: 'social',
-        facebook: 'social'
+        facebook: 'social',
+        youtube: 'social',
     };
     return channelMap[platform] || 'social';
 }
@@ -1585,6 +1591,7 @@ export async function getCampaignPerformance(
             linkedin: 0,
             twitter: 0,
             facebook: 0,
+            youtube: 0,
         };
 
         let totalImpressions = 0;

@@ -152,7 +152,7 @@ export interface BundleArtifactData {
  * Social media content artifact data
  */
 export interface CreativeContentArtifactData {
-  platform: 'instagram' | 'tiktok' | 'linkedin' | 'twitter' | 'facebook';
+  platform: 'instagram' | 'tiktok' | 'linkedin' | 'twitter' | 'facebook' | 'youtube';
   caption: string;
   hashtags?: string[];
   mediaUrls: string[];

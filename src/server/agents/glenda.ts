@@ -199,7 +199,7 @@ export const glendaAgent: AgentImplementation<AgentMemory, GlendaTools> = {
                     name: "getSocialMetrics",
                     description: "Get social media metrics for a platform (instagram, twitter, facebook, linkedin).",
                     schema: z.object({
-                        platform: z.enum(['instagram', 'twitter', 'facebook', 'linkedin', 'tiktok'])
+                        platform: z.enum(['instagram', 'twitter', 'facebook', 'linkedin', 'tiktok', 'youtube'])
                     })
                 },
                 {
@@ -215,7 +215,7 @@ export const glendaAgent: AgentImplementation<AgentMemory, GlendaTools> = {
                     name: "generateSocialPost",
                     description: "Generate a social media post optimized for a specific platform.",
                     schema: z.object({
-                        platform: z.enum(['instagram', 'twitter', 'facebook', 'linkedin', 'tiktok']),
+                        platform: z.enum(['instagram', 'twitter', 'facebook', 'linkedin', 'tiktok', 'youtube']),
                         message: z.string().describe("Key message or topic for the post")
                     })
                 },

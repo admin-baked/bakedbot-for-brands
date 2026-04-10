@@ -9,7 +9,7 @@ export type InboxVideoStyle =
     | 'product_showcase'
     | 'comedy';
 
-export type InboxVideoPlatform = 'instagram' | 'tiktok';
+export type InboxVideoPlatform = 'instagram' | 'tiktok' | 'youtube';
 
 export interface InboxVideoConcept {
     title: string;
@@ -26,7 +26,7 @@ export interface GenerateInboxImageDraftInput {
     tenantId: string;
     brandId: string;
     createdBy: string;
-    platform: Extract<SocialPlatform, 'instagram' | 'tiktok' | 'linkedin' | 'facebook'>;
+    platform: Extract<SocialPlatform, 'instagram' | 'tiktok' | 'linkedin' | 'facebook' | 'youtube'>;
     prompt: string;
     style: InboxImageStyle;
 }

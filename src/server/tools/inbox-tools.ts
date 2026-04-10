@@ -87,7 +87,7 @@ IMPORTANT: Always analyze margins and ensure the bundle maintains profitability.
 // ============================================================================
 
 export const createCreativeArtifactSchema = z.object({
-    platform: z.enum(['instagram', 'tiktok', 'linkedin', 'twitter', 'facebook'] as const)
+    platform: z.enum(['instagram', 'tiktok', 'linkedin', 'twitter', 'facebook', 'youtube'] as const)
         .describe("Target social media platform"),
     caption: z.string().describe("Main text/caption for the post"),
     hashtags: z.array(z.string()).optional().describe("Relevant hashtags (without # symbol)"),

@@ -10,7 +10,7 @@ import { z } from 'zod';
 
 // Define the schemas inline for testing (matching the actual implementation)
 const GenerateSocialCaptionInputSchema = z.object({
-    platform: z.enum(['instagram', 'tiktok', 'linkedin', 'twitter', 'facebook']),
+    platform: z.enum(['instagram', 'tiktok', 'linkedin', 'twitter', 'facebook', 'youtube']),
     prompt: z.string(),
     style: z.enum(['professional', 'playful', 'educational', 'hype']).default('professional'),
     brandVoice: z.string().optional(),
@@ -54,7 +54,7 @@ describe('generate-social-caption schemas', () => {
         });
 
         it('accepts all valid platforms', () => {
-            const platforms = ['instagram', 'tiktok', 'linkedin', 'twitter', 'facebook'] as const;
+            const platforms = ['instagram', 'tiktok', 'linkedin', 'twitter', 'facebook', 'youtube'] as const;
 
             platforms.forEach(platform => {
                 const result = GenerateSocialCaptionInputSchema.safeParse({ ...validInput, platform });

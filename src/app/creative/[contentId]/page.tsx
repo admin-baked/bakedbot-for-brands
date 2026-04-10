@@ -11,6 +11,7 @@ import {
     Linkedin,
     Twitter,
     Facebook,
+    Youtube,
     Share2,
     Eye,
     Calendar,
@@ -28,6 +29,7 @@ const PLATFORM_ICONS: Record<SocialPlatform, React.ComponentType<{ className?: s
     linkedin: Linkedin,
     twitter: Twitter,
     facebook: Facebook,
+    youtube: Youtube,
     tiktok: ({ className }: { className?: string }) => (
         <svg className={className} viewBox="0 0 24 24" fill="currentColor">
             <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
@@ -42,6 +44,16 @@ const PLATFORM_COLORS: Record<SocialPlatform, string> = {
     linkedin: 'bg-gradient-to-br from-blue-600 to-blue-800',
     twitter: 'bg-gradient-to-br from-blue-400 to-blue-600',
     facebook: 'bg-gradient-to-br from-blue-500 to-blue-700',
+    youtube: 'bg-gradient-to-br from-red-500 to-red-700',
+};
+
+const PLATFORM_LABELS: Record<SocialPlatform, string> = {
+    instagram: 'Instagram',
+    tiktok: 'TikTok',
+    linkedin: 'LinkedIn',
+    twitter: 'Twitter/X',
+    facebook: 'Facebook',
+    youtube: 'YouTube',
 };
 
 export async function generateMetadata({
@@ -63,16 +75,16 @@ export async function generateMetadata({
     const description = content.caption.slice(0, 160) + (content.caption.length > 160 ? '...' : '');
 
     return {
-        title: `${content.platform.charAt(0).toUpperCase() + content.platform.slice(1)} Post | BakedBot Creative`,
+        title: `${PLATFORM_LABELS[content.platform]} Post | BakedBot Creative`,
         description,
         openGraph: {
-            title: `BakedBot Creative - ${content.platform}`,
+            title: `BakedBot Creative - ${PLATFORM_LABELS[content.platform]}`,
             description,
             images: content.mediaUrls[0] ? [content.mediaUrls[0]] : [],
         },
         twitter: {
             card: 'summary_large_image',
-            title: `BakedBot Creative - ${content.platform}`,
+            title: `BakedBot Creative - ${PLATFORM_LABELS[content.platform]}`,
             description,
             images: content.mediaUrls[0] ? [content.mediaUrls[0]] : [],
         },
@@ -120,7 +132,7 @@ export default async function CreativeContentLandingPage({
                         className={`${platformColor} text-white border-0`}
                     >
                         <PlatformIcon className="h-3 w-3 mr-1" />
-                        {content.platform}
+                        {PLATFORM_LABELS[content.platform]}
                     </Badge>
                 </div>
             </header>

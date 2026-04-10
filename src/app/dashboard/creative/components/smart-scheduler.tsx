@@ -348,6 +348,7 @@ function getOptimalPostingTimes(platform: SocialPlatform): OptimalTime[] {
     facebook: 55,
     twitter: 60,
     linkedin: 50,
+    youtube: 62,
   };
 
   // Mock optimal times based on platform best practices

@@ -54,6 +54,12 @@ const PLATFORMS: PlatformConfig[] = [
     shortLabel: 'LinkedIn',
     icon: 'fa-brands fa-linkedin',
   },
+  {
+    id: 'youtube',
+    label: 'YouTube',
+    shortLabel: 'YouTube',
+    icon: 'fa-brands fa-youtube',
+  },
 ];
 
 export function PlatformSelector({
