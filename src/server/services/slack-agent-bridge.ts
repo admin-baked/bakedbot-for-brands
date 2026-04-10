@@ -69,7 +69,7 @@ function linusNeedsTools(text: string): boolean {
 const GREETING_RE = /^(h(i|ello|ey|owdy)|what'?s?\s*up|yo+|sup|gm|good\s*(morning|evening|afternoon)|what\s*it\s*do|greetings|salutations|peace|thanks|ty|thank\s*you)\b/i;
 const MAX_GREETING_LENGTH = 60; // anything longer is probably a real question
 const LINUS_GREETING_SYSTEM_PROMPT = 'You are Linus, CTO of BakedBot — the Agentic Commerce OS for cannabis. You are responding in Slack. Keep it warm, brief (1–2 sentences), and on-brand. Match the energy of the greeting. No tools, no code, no markdown headers.';
-const MARTY_GREETING_SYSTEM_PROMPT = 'You are Marty Benjamins, AI CEO of BakedBot — the Agentic Commerce OS for cannabis. You are responding in Slack. Keep it warm, brief (1–2 sentences), confident. No tools, no reports, no markdown headers. CRITICAL: Never fabricate deals, revenue, accomplishments, or events. You have no data in this context — just greet back and ask what they need. Do NOT claim you closed deals or made progress unless explicitly told so in the message you are replying to.';
+const MARTY_GREETING_SYSTEM_PROMPT = 'You are Marty Benjamins, AI CEO of BakedBot — the Agentic Commerce OS for cannabis. You are responding in Slack. Keep it warm, brief (2–3 sentences), confident. No markdown headers. If real pipeline/CRM data is provided, weave in a quick status naturally (e.g. "pipeline is at X prospects"). CRITICAL: ONLY reference numbers shown in YOUR CURRENT REAL DATA. Never fabricate deals, revenue, or accomplishments beyond what the data shows.';
 const ELROY_GREETING_SYSTEM_PROMPT = 'You are Uncle Elroy, the store operations manager at Thrive Syracuse dispensary. You are responding in Slack. Keep it warm, friendly, brief (1–2 sentences), and helpful. Match the energy of the greeting. No tools, no data lookups, no markdown headers.';
 
 function isGreeting(text: string): boolean {
@@ -714,15 +714,44 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                     result = { content: "Confirmed! I'll make sure everything is set.", toolCalls: [] };
                 }
             } else if (personaId === 'marty' && isGreeting(cleanText)) {
-                // Marty greeting fast path — lightweight GLM, no tools
+                // Marty greeting fast path — lightweight GLM with real data context
                 logger.info('[SlackBridge] Marty greeting fast path', { cleanText });
+
+                // Pull real pipeline data so Marty can reference actual numbers
+                let dataContext = '';
+                try {
+                    const { getOutreachStats } = await import('@/server/services/ny-outreach/outreach-read-model');
+                    const { getAdminFirestore } = await import('@/firebase/admin');
+                    const db = getAdminFirestore();
+                    const [outreach, crmSnap] = await Promise.all([
+                        getOutreachStats().catch(() => null),
+                        db.collection('crm_outreach_contacts').get().catch(() => null),
+                    ]);
+                    const crm = { prospects: 0, contacted: 0, demoScheduled: 0, customers: 0 };
+                    if (crmSnap) {
+                        for (const doc of crmSnap.docs) {
+                            const s = doc.data().status;
+                            if (s === 'prospect') crm.prospects++;
+                            else if (s === 'contacted') crm.contacted++;
+                            else if (s === 'demo_scheduled') crm.demoScheduled++;
+                            else if (s === 'customer') crm.customers++;
+                        }
+                    }
+                    const parts: string[] = [];
+                    if (outreach) parts.push(`Outreach: ${outreach.totalSent} emails sent, ${outreach.totalFailed} failed`);
+                    parts.push(`CRM: ${crm.prospects} prospects, ${crm.contacted} contacted, ${crm.demoScheduled} demos, ${crm.customers} customers`);
+                    dataContext = `\n\nYOUR CURRENT REAL DATA (reference these numbers, do NOT invent others):\n${parts.join('\n')}`;
+                } catch {
+                    logger.warn('[SlackBridge] Marty greeting data fetch failed, proceeding without');
+                }
+
                 const greetingPrompt = contextPrefix
-                    ? `${contextPrefix}\nUser: ${cleanText}`
-                    : cleanText;
+                    ? `${contextPrefix}${dataContext}\nUser: ${cleanText}`
+                    : `${cleanText}${dataContext}`;
                 const greetingContent = await callGLM({
                     systemPrompt: MARTY_GREETING_SYSTEM_PROMPT,
                     userMessage: greetingPrompt,
-                    maxTokens: 150,
+                    maxTokens: 200,
                     temperature: 0.7,
                 });
                 result = { content: greetingContent || "What's good! Marty Benjamins here — ready to move the needle. What do you need? 🚀", toolCalls: [] };
