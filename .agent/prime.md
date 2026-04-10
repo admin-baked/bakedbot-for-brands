@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** ðŸŸ¢ Production live; Auto-listen mic + last order display on tablet
-**Recent work (2026-04-10):** Elroy sales grounding + Thrive pilot Slack cleanup route, join/leave noise filter, live Slack cleanup dry-run path, repo typecheck green
+**Current Status:** ðŸŸ¢ Production live; Cannabis science KB via Supabase pgvector
+**Recent work (2026-04-10):** `5d25ce7cc` Cannabis science knowledge base — Smokey searchCannabisScience tool, 161K Q&A pairs via Supabase pgvector, ingestion pipeline
 **Prior (2026-04-10):** `b26732f42` auto-listen voice w/ silence detection, last order items from POS, 25s voice timeout, demo reset script + `7df394268` Option E tablet flow
 - Marty CEO agent: full super powers, Slack DM routing, manages all executives toward $1M ARR
 - Club MVP shipped (`9eb4a6d36`): Customer PWA /club, mood video cache, event pipeline + 5 triggers, tablet PWA
