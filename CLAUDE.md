@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Production live; HeyGen video pipeline + 5 TS fixes + autonomy escalation + Tablet PWA v4.10.1 | **Last update:** 2026-04-10 (HeyGen onboarding video generation, TypeScript error fixes, agent progress messages)
+**Current Status:** 🟢 Production live; Marty CEO full autonomy (Gmail + Calendar + LinkedIn + Outreach + Learning Loops + 3 crons) | **Last update:** 2026-04-10 (Marty CEO autonomy, meeting reminders, follow-up cadence)
 
 ---
 
