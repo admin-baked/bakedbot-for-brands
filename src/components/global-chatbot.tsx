@@ -17,6 +17,11 @@ function shouldHideGlobalChatbot(pathname: string | null): boolean {
     return true;
   }
 
+  // Auth pages — chatbot covers the login form and shows a broken icon
+  if (pathname.startsWith('/signin') || pathname.startsWith('/login') || pathname.startsWith('/onboarding')) {
+    return true;
+  }
+
   // Tablet check-in is a kiosk flow — floating chatbot covers the PWA install button
   if (pathname.startsWith('/loyalty-tablet')) {
     return true;

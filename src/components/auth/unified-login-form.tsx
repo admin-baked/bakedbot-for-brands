@@ -72,29 +72,52 @@ export function UnifiedLoginForm() {
     };
 
     const handleAuthSuccess = async (userCredential: UserCredential) => {
+        // Overall timeout: if anything in session+routing takes > 15s, force redirect
+        const safetyTimeout = setTimeout(() => {
+            logger.warn('Auth success flow timed out — forcing redirect');
+            window.location.href = getSafeNextPath() || '/dashboard';
+        }, 15000);
+
         try {
             await createSession(userCredential.user);
             await routeUser(userCredential);
         } catch (error) {
             logger.error('Auth success handling failed', { error });
-            setIsLoading(false);
+            toast({ variant: 'destructive', title: 'Sign-in slow', description: 'Redirecting you now...' });
+            // Still redirect on failure — the session cookie may have been set
+            setTimeout(() => {
+                window.location.href = getSafeNextPath() || '/dashboard';
+            }, 1500);
+        } finally {
+            clearTimeout(safetyTimeout);
         }
     };
 
     const createSession = async (user: any) => {
         const idToken = await user.getIdToken(true);
-        const response = await fetch('/api/auth/session', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ idToken }),
-        });
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
 
-        if (!response.ok) {
-            throw new Error('Failed to create server session');
+        try {
+            const response = await fetch('/api/auth/session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idToken }),
+                signal: controller.signal,
+            });
+
+            if (!response.ok) {
+                const detail = await response.text().catch(() => '');
+                throw new Error(`Session creation failed (${response.status}): ${detail.slice(0, 200)}`);
+            }
+        } catch (err: any) {
+            if (err?.name === 'AbortError') {
+                throw new Error('Session creation timed out — please try again');
+            }
+            throw err;
+        } finally {
+            clearTimeout(timeout);
         }
-
-        // Wait for cookie propagation
-        await new Promise(resolve => setTimeout(resolve, 500));
     };
 
     const routeUser = async (userCredential: UserCredential) => {
@@ -156,17 +179,14 @@ export function UnifiedLoginForm() {
             }
         } catch (error: any) {
             logger.error('Routing after login failed:', error);
-            toast({ variant: 'destructive', title: "Routing Failed", description: "Could not determine your role. Redirecting to dashboard..." });
-            // Fallback redirect
-            setTimeout(() => {
-                window.location.href = '/dashboard';
-            }, 2000);
+            // Don't block — redirect immediately to dashboard as fallback
+            window.location.href = getSafeNextPath() || '/dashboard';
         }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!auth) return;
+        if (!auth || isLoading) return;
 
         setIsLoading(true);
 
@@ -203,7 +223,7 @@ export function UnifiedLoginForm() {
     };
 
     const handleGoogle = async () => {
-        if (!auth) return;
+        if (!auth || isLoading) return;
         setIsLoading(true);
         const provider = new GoogleAuthProvider();
 
