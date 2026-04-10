@@ -602,8 +602,9 @@ async function getCeoCalendarTokens(): Promise<GoogleCalendarTokens | null> {
 }
 
 /** CEO tools exposed in Slack — streamlined subset, no browser/shell. */
+const MARTY_DELEGATABLE_IDS = getDelegatableAgentIds('marty');
 const MARTY_SLACK_TOOLS = [
-    { name: 'delegateTask', description: 'Assign specialist work to the right executive or operator in the squad. Use for engineering, compliance, finance, deep marketing production, analytics, or operations tasks Marty should not do directly.', input_schema: { type: 'object' as const, properties: { personaId: { type: 'string', description: 'Agent ID to delegate to' }, task: { type: 'string', description: 'Task description' } }, required: ['personaId', 'task'] } },
+    { name: 'delegateTask', description: `Assign specialist work to the right executive or operator in the squad. Valid agents: ${MARTY_DELEGATABLE_IDS.join(', ')}. Do NOT delegate to agents not in this list (e.g. "elroy" is not a delegatable agent — handle store-ops questions yourself or delegate to linus/leo).`, input_schema: { type: 'object' as const, properties: { personaId: { type: 'string', enum: MARTY_DELEGATABLE_IDS, description: 'Agent ID to delegate to' }, task: { type: 'string', description: 'Task description' } }, required: ['personaId', 'task'] } },
     { name: 'getSystemHealth', description: 'Get full system health status — deploys, crons, integrations, errors.', input_schema: { type: 'object' as const, properties: {} } },
     { name: 'crmGetStats', description: 'Get high-level CRM stats (MRR, Total Users, Pipeline).', input_schema: { type: 'object' as const, properties: {} } },
     { name: 'crmListUsers', description: 'List platform users.', input_schema: { type: 'object' as const, properties: { search: { type: 'string' }, lifecycleStage: { type: 'string' }, limit: { type: 'number' } } } },
