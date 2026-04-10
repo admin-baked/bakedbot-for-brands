@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Production live; Cloudflare DNS decoupled from Workspace + Creative Center overhaul + outreach mobile UX + YouTube/Shorts creative support + role-aware creative approvals | **Last update:** 2026-04-09 (Cloudflare independence + creative + outreach + YouTube + approvals)
+**Current Status:** 🟢 Production live; Menu Pages Hub refactor + draft/publish workflow + Cloudflare DNS decoupled + Creative Center + role-aware creative approvals | **Last update:** 2026-04-09 (Menu Pages Hub + Cloudflare independence + creative + approvals)
 
 ---
 
