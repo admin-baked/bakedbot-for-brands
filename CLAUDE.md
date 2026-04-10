@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Production live; Menu Pages Hub refactor + draft/publish workflow + Cloudflare DNS decoupled + Creative Center + role-aware creative approvals | **Last update:** 2026-04-09 (Menu Pages Hub + Cloudflare independence + creative + approvals)
+**Current Status:** 🟢 Production live; SEO page audit (shared chrome + pricing fix + WordPress no-crawl) + Menu Pages Hub + Cloudflare DNS decoupled + Creative Center | **Last update:** 2026-04-09 (SEO page audit + shared nav/footer + pricing CTAs fixed)
 
 ---
 

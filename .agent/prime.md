@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Production live; Menu Pages Hub + draft/publish workflow + Cloudflare DNS decoupled + Creative Center + role-aware creative approvals.
-**Recent work (2026-04-09):** `bddc0be3c` Menu Pages Hub — /dashboard/menu refactored into Public Pages hub (Menu/Locations/ZipSEO/Budtender/Themes tabs), draft/publish per page type, 843→220 lines; `7ba8f8257` role-aware creative approvals
-**Prior (2026-04-09):** `efb64bb0c` agent resilience; `230fcd369` proxy hardening; `800a16be4` GLM refusal detection
+**Current Status:** 🟢 Production live; SEO page audit + shared chrome + pricing fix + WordPress no-crawl + Menu Pages Hub + Creative Center.
+**Recent work (2026-04-09):** `77fc15def` SEO page audit — fixed /pricing CTAs, added Navbar+Footer to 7 orphan pages, WordPress no-crawl in robots.txt; `bddc0be3c` Menu Pages Hub refactor
+**Prior (2026-04-09):** `7ba8f8257` creative approvals; `efb64bb0c` agent resilience; `230fcd369` proxy hardening
 - Marty CEO agent: full super powers, Slack DM routing, manages all executives toward $1M ARR
 - Club MVP shipped (`9eb4a6d36`): Customer PWA /club, mood video cache, event pipeline + 5 triggers, tablet PWA
 - 7-day retention nudge email (cron job)
