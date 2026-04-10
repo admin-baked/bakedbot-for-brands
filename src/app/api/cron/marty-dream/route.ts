@@ -78,7 +78,7 @@ async function handler(req: NextRequest): Promise<NextResponse> {
             await db.collection('marty_learning_log').add({
                 action: `Dream hypothesis: ${h.hypothesis}`,
                 result: h.testResult === 'confirmed' ? 'success' : 'failure',
-                reason: h.evidence || h.testResult,
+                reason: h.testEvidence || h.testResult,
                 nextStep: h.testResult === 'confirmed' ? 'Apply this insight' : 'Investigate further',
                 category: 'dream',
                 timestamp: Date.now(),

@@ -132,8 +132,8 @@ async function introspect(agentName: string): Promise<DreamSession['introspectio
     const since = new Date();
     since.setHours(since.getHours() - 48); // Look back 48h for richer signal
 
-    // Run all queries in parallel
-    const [telemetrySnap, deltasSnap, feedbackSnap] = await Promise.all([
+    // Run all queries in parallel — include Marty's learning log if applicable
+    const queries: Promise<FirebaseFirestore.QuerySnapshot>[] = [
         db.collection('agent_telemetry')
             .where('_agentName', '==', agentName.toLowerCase())
             .where('timestamp', '>=', since)
@@ -148,7 +148,19 @@ async function introspect(agentName: string): Promise<DreamSession['introspectio
             .where('createdAt', '>=', since.toISOString())
             .limit(100)
             .get(),
-    ]);
+    ];
+    // Marty has his own learning log — pull recent entries for richer introspection
+    if (agentName === 'Marty') {
+        queries.push(
+            db.collection('marty_learning_log')
+                .where('createdAt', '>=', since.getTime())
+                .orderBy('createdAt', 'desc')
+                .limit(20)
+                .get()
+        );
+    }
+
+    const [telemetrySnap, deltasSnap, feedbackSnap, learningLogSnap] = await Promise.all(queries);
 
     // Aggregate telemetry
     let toolFailures = 0;
@@ -170,6 +182,15 @@ async function introspect(agentName: string): Promise<DreamSession['introspectio
 
     // Search Letta memory for recent self-reflections
     const memoryInsights: string[] = [];
+
+    // Pull from Marty's learning log if available
+    if (learningLogSnap && learningLogSnap.size > 0) {
+        for (const doc of learningLogSnap.docs) {
+            const d = doc.data();
+            memoryInsights.push(`[${d.category}] ${d.action} → ${d.result}: ${d.reason || 'no reason'}`);
+        }
+    }
+
     try {
         const agents = await lettaClient.listAgents();
         const researchAgent = agents.find(a => a.name.includes('Research'));
@@ -205,7 +226,10 @@ async function hypothesize(
     pendingDeltas: LearningDelta[],
     model: DreamModel = 'glm'
 ): Promise<DreamHypothesis[]> {
-    const prompt = `You are ${agentName}, a CTO AI agent performing a Dream session — reflecting on your own performance to find improvements.
+    const role = agentName === 'Marty' ? 'CEO AI agent' : 'CTO AI agent';
+    const prompt = `You are ${agentName}, a ${role} performing a Dream session — reflecting on your own performance to find improvements.
+
+CRITICAL: Only reference events and data shown below. NEVER fabricate deals, revenue, meetings, or accomplishments. If data is sparse, say so — an honest "not enough data" is better than fiction.
 
 ## Your Recent Performance (last 48h)
 - Tool failures: ${introspectionData.toolFailures}
@@ -263,13 +287,17 @@ Be specific. Reference actual tool names, error patterns, or workflow steps. No 
 
 async function testHypotheses(
     hypotheses: DreamHypothesis[],
-    model: DreamModel = 'glm'
+    model: DreamModel = 'glm',
+    agentName: string = 'Linus'
 ): Promise<DreamHypothesis[]> {
 
     for (const hyp of hypotheses) {
         try {
-            // Use GLM to evaluate the hypothesis against available data
-            const evalPrompt = `You are evaluating an improvement hypothesis for the Linus CTO agent.
+            const role = agentName === 'Marty' ? 'CEO' : 'CTO';
+            // Use AI to evaluate the hypothesis against available data
+            const evalPrompt = `You are evaluating an improvement hypothesis for the ${agentName} ${role} agent.
+
+CRITICAL: Only confirm hypotheses with concrete evidence from the data below. If there is no data to support or reject, mark as inconclusive. NEVER invent evidence.
 
 Hypothesis: ${hyp.hypothesis}
 Area: ${hyp.area}
@@ -376,7 +404,7 @@ export async function runDreamSession(agentName: string = 'Linus', model: DreamM
     logger.info(`[DreamLoop] Generated ${rawHypotheses.length} hypotheses`, { sessionId });
 
     // 4. TEST
-    const testedHypotheses = await testHypotheses(rawHypotheses, model);
+    const testedHypotheses = await testHypotheses(rawHypotheses, model, agentName);
 
     // 5. BUILD SESSION
     const session: DreamSession = {
@@ -414,16 +442,18 @@ export async function runDreamSession(agentName: string = 'Linus', model: DreamM
         }
     }
 
-    // 8. Update Letta personal memory block
-    try {
-        await lettaBlockManager.appendToBlock(
-            'linus_internal',
-            BLOCK_LABELS.AGENT_LINUS,
-            `\n[Dream ${new Date().toISOString().split('T')[0]}] ${confirmed.length} confirmed, ${testedHypotheses.length - confirmed.length} other. Cap util: ${(introspectionData.capabilityUtilization * 100).toFixed(0)}%.`,
-            'Linus'
-        );
-    } catch {
-        logger.warn('[DreamLoop] Failed to update Letta personal memory block');
+    // 8. Update Letta personal memory block (only for agents with Letta blocks)
+    if (agentName === 'Linus') {
+        try {
+            await lettaBlockManager.appendToBlock(
+                'linus_internal',
+                BLOCK_LABELS.AGENT_LINUS,
+                `\n[Dream ${new Date().toISOString().split('T')[0]}] ${confirmed.length} confirmed, ${testedHypotheses.length - confirmed.length} other. Cap util: ${(introspectionData.capabilityUtilization * 100).toFixed(0)}%.`,
+                'Linus'
+            );
+        } catch {
+            logger.warn('[DreamLoop] Failed to update Letta personal memory block');
+        }
     }
 
     logger.info(`[DreamLoop] Dream session complete`, {
