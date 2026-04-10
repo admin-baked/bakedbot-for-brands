@@ -25,6 +25,8 @@ import { OfferScreen } from './components/OfferScreen';
 import { MoodScreen } from './components/MoodScreen';
 import { RecommendationsScreen } from './components/RecommendationsScreen';
 import { SuccessScreen } from './components/SuccessScreen';
+import { ReturningCheckScreen } from './components/ReturningCheckScreen';
+import { ReturningCandidatesScreen } from './components/ReturningCandidatesScreen';
 
 import { 
     createShellStyle, 
@@ -142,6 +144,31 @@ export default function LoyaltyTabletPage() {
                         accentPanelStyle={accentPanelStyle}
                         primaryButtonStyle={primaryButtonStyle}
                         formatPhone={formatPhone}
+                    />
+                )}
+
+                {/* ── RETURNING CHECK ── */}
+                {flow.step === 'returning_check' && (
+                    <ReturningCheckScreen
+                        brandTheme={flow.brandTheme}
+                        firstName={flow.firstName}
+                        loading={flow.candidateLoading}
+                        mutedTextColor={mutedTextColor}
+                        panelStyle={panelStyle}
+                        onYes={flow.handleReturningYes}
+                        onNo={flow.handleReturningNo}
+                    />
+                )}
+
+                {/* ── RETURNING CANDIDATES ── */}
+                {flow.step === 'returning_candidates' && (
+                    <ReturningCandidatesScreen
+                        brandTheme={flow.brandTheme}
+                        candidates={flow.alleavesCandidates}
+                        mutedTextColor={mutedTextColor}
+                        panelStyle={panelStyle}
+                        onSelect={flow.handleCandidateSelect}
+                        onNone={flow.handleCandidateNone}
                     />
                 )}
 

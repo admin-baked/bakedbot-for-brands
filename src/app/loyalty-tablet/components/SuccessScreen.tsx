@@ -1,15 +1,16 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Star, ShoppingCart } from 'lucide-react';
+import { Star, ShoppingCart, Smartphone } from 'lucide-react';
 import { CSSProperties } from 'react';
 import { PublicBrandTheme } from '@/lib/checkin/checkin-management-shared';
+import { QRCode } from '@/components/ui/qr-code';
 import { hexToRgba, AMBER, AMBER_DARK } from './shared';
 
 interface SuccessScreenProps {
     brandTheme: PublicBrandTheme;
     firstName: string;
-    result: { isNewLead: boolean; loyaltyPoints: number; queuePosition?: number } | null;
+    result: { isNewLead: boolean; loyaltyPoints: number; queuePosition?: number; visitId?: string } | null;
     budtenderName: string;
     cartCount: number;
     customerId: string | null;
@@ -143,6 +144,26 @@ export function SuccessScreen({
                         ))}
                     </div>
                     <p className="text-xs" style={{ color: faintTextColor }}>Tap to rate (helps us improve recommendations)</p>
+                </div>
+            )}
+
+            {/* QR code for detailed review on phone */}
+            {customerId && result?.visitId && (
+                <div className="w-full max-w-sm rounded-[24px] border p-5 flex flex-col items-center gap-3" style={panelStyle}>
+                    <div className="flex items-center gap-2">
+                        <Smartphone className="h-4 w-4" style={{ color: brandTheme.colors.primary }} />
+                        <p className="text-sm font-semibold" style={{ color: brandTheme.colors.primary }}>
+                            Leave a detailed review
+                        </p>
+                    </div>
+                    <QRCode
+                        value={`${typeof window !== 'undefined' ? window.location.origin : ''}/review?orgId=${orgId}&visitId=${result.visitId}`}
+                        size={120}
+                        darkColor={brandTheme.colors.primary}
+                    />
+                    <p className="text-xs text-center" style={{ color: faintTextColor }}>
+                        Scan with your phone to tell us more about your experience
+                    </p>
                 </div>
             )}
 

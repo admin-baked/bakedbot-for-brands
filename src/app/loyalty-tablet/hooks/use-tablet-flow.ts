@@ -1,16 +1,19 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { 
-    captureTabletLead, 
-    getMoodRecommendations, 
-    searchTabletRecommendations, 
-    quickLookupByPhoneLast4, 
-    getTabletOffer, 
-    getCustomerBudtenderContext, 
-    prefetchTabletInventory, 
+import {
+    captureTabletLead,
+    getMoodRecommendations,
+    searchTabletRecommendations,
+    quickLookupByPhoneLast4,
+    getTabletOffer,
+    getCustomerBudtenderContext,
+    prefetchTabletInventory,
     lookupCustomerByPhone,
+    findAlleavesCandidatesByName,
+    linkCustomerToAlleaves,
     type QuickLookupResult,
+    type AlleavesCandidateMatch,
     type TabletOffer,
     type BudtenderContext,
     type TabletProduct,
@@ -30,7 +33,7 @@ import {
 import { useSmokeyVoice } from '@/hooks/use-smokey-voice';
 import { useVoiceOutput } from '@/hooks/use-voice-output';
 
-type Step = 'welcome' | 'quick_lookup' | 'phone' | 'offer' | 'mood' | 'recommendations' | 'success';
+type Step = 'welcome' | 'quick_lookup' | 'phone' | 'returning_check' | 'returning_candidates' | 'offer' | 'mood' | 'recommendations' | 'success';
 const IDLE_TIMEOUT_MS = 60_000;
 
 export function useTabletFlow(orgId: string) {
@@ -65,7 +68,7 @@ export function useTabletFlow(orgId: string) {
     // Submit state
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [result, setResult] = useState<{ isNewLead: boolean; loyaltyPoints: number; queuePosition?: number } | null>(null);
+    const [result, setResult] = useState<{ isNewLead: boolean; loyaltyPoints: number; queuePosition?: number; visitId?: string } | null>(null);
 
     const [brandTheme, setBrandTheme] = useState<PublicBrandTheme>(DEFAULT_PUBLIC_BRAND_THEME);
     const [reviews, setReviews] = useState<Array<{ rating: number, text?: string, tags: string[], firstName?: string, createdAt: string }>>([]);
@@ -84,6 +87,10 @@ export function useTabletFlow(orgId: string) {
     // Full-flow returning-customer detection (phone pre-fill + offer skip)
     const [isReturningCustomer, setIsReturningCustomer] = useState(false);
     const [enteredViaQuickLookup, setEnteredViaQuickLookup] = useState(false);
+
+    // "Have you shopped here before?" candidate matching
+    const [alleavesCandidates, setAlleavesCandidates] = useState<AlleavesCandidateMatch[]>([]);
+    const [candidateLoading, setCandidateLoading] = useState(false);
     const [micPermission, setMicPermission] = useState<'unknown' | 'granted' | 'denied' | 'prompt'>('unknown');
     const [isBrave, setIsBrave] = useState(false);
 
@@ -136,6 +143,8 @@ export function useTabletFlow(orgId: string) {
         setQuickMatches([]);
         setIsReturningCustomer(false);
         setEnteredViaQuickLookup(false);
+        setAlleavesCandidates([]);
+        setCandidateLoading(false);
     }, [smokeyVoice, voiceOutput]);
 
     const resetIdleTimer = useCallback(() => {
@@ -307,6 +316,58 @@ export function useTabletFlow(orgId: string) {
             setStep('mood');
             return;
         }
+        // Ask "Have you shopped here before?" before offer
+        setStep('returning_check');
+    };
+
+    const handleReturningYes = async () => {
+        resetIdleTimer();
+        setCandidateLoading(true);
+        setError('');
+        try {
+            const result = await findAlleavesCandidatesByName(orgId, firstName);
+            if (result.found && result.matches.length > 0) {
+                setAlleavesCandidates(result.matches);
+                setStep('returning_candidates');
+            } else {
+                // No matches found — proceed as new customer
+                setStep('offer');
+            }
+        } catch {
+            setStep('offer');
+        } finally {
+            setCandidateLoading(false);
+        }
+    };
+
+    const handleReturningNo = () => {
+        resetIdleTimer();
+        if (!tabletOffer && !offerLoading) {
+            setOfferLoading(true);
+            void getTabletOffer(orgId).then(res => {
+                if (res.success && res.offer) setTabletOffer(res.offer);
+                setOfferLoading(false);
+            });
+        }
+        setStep('offer');
+    };
+
+    const handleCandidateSelect = async (candidate: AlleavesCandidateMatch) => {
+        resetIdleTimer();
+        setCustomerId(candidate.customerId);
+        setIsReturningCustomer(true);
+        // Link the Alleaves profile in the background
+        if (candidate.alleavesCustomerId) {
+            void linkCustomerToAlleaves(orgId, candidate.customerId, candidate.alleavesCustomerId);
+        }
+        void getCustomerBudtenderContext(orgId, candidate.customerId).then(ctx => {
+            if (ctx.success && ctx.context) setBudtenderContext(ctx.context);
+        });
+        setStep('mood');
+    };
+
+    const handleCandidateNone = () => {
+        resetIdleTimer();
         if (!tabletOffer && !offerLoading) {
             setOfferLoading(true);
             void getTabletOffer(orgId).then(res => {
@@ -515,6 +576,9 @@ export function useTabletFlow(orgId: string) {
         resetToWelcome, resetIdleTimer,
         handleQuickLookup, handleQuickMatchSelect,
         handlePhoneSubmit, handleOfferSubmit,
+        handleReturningYes, handleReturningNo,
+        handleCandidateSelect, handleCandidateNone,
+        alleavesCandidates, candidateLoading,
         toggleVisitPreference, handleMoodSelect,
         handleAssistantSearch, handleVoiceToggle,
         handleMicPointerDown, handleMicPointerUp,

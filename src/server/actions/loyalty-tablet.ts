@@ -917,6 +917,168 @@ export async function quickLookupByPhoneLast4(
 }
 
 // ============================================================
+// "Have you shopped here before?" — name-based Alleaves lookup
+// ============================================================
+
+export interface AlleavesCandidateMatch {
+    customerId: string;
+    firstName: string;
+    lastInitial: string;
+    customerSince: string | null;
+    alleavesCustomerId: string | null;
+}
+
+export interface AlleavesCandidateResult {
+    found: boolean;
+    matches: AlleavesCandidateMatch[];
+}
+
+/**
+ * Search for Alleaves-synced customers by first name.
+ * Used in the "Is this you?" flow when a customer says they've shopped before
+ * but doesn't have a phone match in our system.
+ *
+ * Returns up to 5 candidates with first name + last initial + customer-since date
+ * so the customer can identify themselves without exposing full PII.
+ */
+export async function findAlleavesCandidatesByName(
+    orgId: string,
+    firstName: string,
+): Promise<AlleavesCandidateResult> {
+    const trimmed = firstName.trim();
+    if (trimmed.length < 2) return { found: false, matches: [] };
+
+    try {
+        const db = getAdminFirestore();
+
+        // Query customers with matching firstName (case-insensitive via stored lowercase)
+        // Firestore doesn't support case-insensitive queries, so we query by range
+        const lower = trimmed.toLowerCase();
+        const upper = lower + '\uf8ff';
+
+        const snap = await db
+            .collection('customers')
+            .where('orgId', '==', orgId)
+            .where('firstNameLower', '>=', lower)
+            .where('firstNameLower', '<=', upper)
+            .limit(20)
+            .get();
+
+        if (snap.empty) {
+            // Fallback: search by displayName prefix for Alleaves-synced records
+            // that may not have firstNameLower set yet
+            const displaySnap = await db
+                .collection('customers')
+                .where('orgId', '==', orgId)
+                .where('source', '==', 'alleaves_sync')
+                .limit(200) // scan Alleaves customers
+                .get();
+
+            const fuzzyMatches = displaySnap.docs.filter(doc => {
+                const d = doc.data();
+                const fn = (d.firstName || d.displayName || '').toString().toLowerCase();
+                return fn.startsWith(lower) || fn.includes(lower);
+            }).slice(0, 5);
+
+            if (fuzzyMatches.length === 0) return { found: false, matches: [] };
+
+            return {
+                found: true,
+                matches: fuzzyMatches.map(doc => {
+                    const d = doc.data();
+                    const display = (d.firstName || d.displayName || 'Friend').toString();
+                    const last = (d.lastName || '').toString();
+                    return {
+                        customerId: doc.id,
+                        firstName: display,
+                        lastInitial: last ? last.charAt(0).toUpperCase() + '.' : '',
+                        customerSince: d.alleavesCustomerSince || null,
+                        alleavesCustomerId: d.alleavesCustomerId || null,
+                    };
+                }),
+            };
+        }
+
+        const matches: AlleavesCandidateMatch[] = snap.docs
+            .filter(doc => {
+                const d = doc.data();
+                // Only show non-test, non-guest accounts
+                return !d.isTestAccount && d.firstName;
+            })
+            .slice(0, 5)
+            .map(doc => {
+                const d = doc.data();
+                const last = (d.lastName || '').toString();
+                return {
+                    customerId: doc.id,
+                    firstName: (d.firstName || 'Friend').toString(),
+                    lastInitial: last ? last.charAt(0).toUpperCase() + '.' : '',
+                    customerSince: d.alleavesCustomerSince || null,
+                    alleavesCustomerId: d.alleavesCustomerId || null,
+                };
+            });
+
+        return { found: matches.length > 0, matches };
+    } catch (error) {
+        logger.error('[LoyaltyTablet] findAlleavesCandidatesByName failed', {
+            orgId, firstName, error,
+        });
+        return { found: false, matches: [] };
+    }
+}
+
+/**
+ * Link a check-in customer to their Alleaves profile.
+ * Called when a customer confirms "That's me!" on the candidate screen.
+ * Copies spending data from customer_spending to the customer profile.
+ */
+export async function linkCustomerToAlleaves(
+    orgId: string,
+    customerId: string,
+    alleavesCustomerId: string,
+): Promise<{ success: boolean }> {
+    try {
+        const db = getAdminFirestore();
+        const customerRef = db.collection('customers').doc(customerId);
+
+        // Merge the Alleaves link + pull spending data
+        const spendingDoc = await db
+            .collection('tenants').doc(orgId)
+            .collection('customer_spending').doc(alleavesCustomerId)
+            .get();
+
+        const updates: Record<string, unknown> = {
+            alleavesCustomerId,
+            alleavesLinkedAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        if (spendingDoc.exists) {
+            const s = spendingDoc.data()!;
+            updates.totalSpent = s.totalSpent || 0;
+            updates.orderCount = s.orderCount || 0;
+            updates.avgOrderValue = s.avgOrderValue || 0;
+            if (s.lastOrderDate) updates.lastOrderDate = s.lastOrderDate;
+            if (s.firstOrderDate) updates.firstOrderDate = s.firstOrderDate;
+        }
+
+        await customerRef.set(updates, { merge: true });
+
+        logger.info('[LoyaltyTablet] Linked customer to Alleaves', {
+            orgId, customerId, alleavesCustomerId,
+            hasSpending: spendingDoc.exists,
+        });
+
+        return { success: true };
+    } catch (error) {
+        logger.error('[LoyaltyTablet] linkCustomerToAlleaves failed', {
+            orgId, customerId, alleavesCustomerId, error,
+        });
+        return { success: false };
+    }
+}
+
+// ============================================================
 // Full-phone returning-customer lookup (full flow fast path)
 // ============================================================
 
