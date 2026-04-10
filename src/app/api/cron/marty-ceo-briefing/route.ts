@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'; // pressure-test-rebuild
 /**
  * Marty CEO Briefing Cron
  * POST /api/cron/marty-ceo-briefing
