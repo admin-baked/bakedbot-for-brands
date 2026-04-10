@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** ðŸŸ¢ Production live; Option E returning customer flow + QR receipt review | **Last update:** 2026-04-10 (tablet returning flow, Alleaves profile linking, Slack routing refactor)
+**Current Status:** ðŸŸ¢ Production live; Auto-listen mic + last order display on tablet | **Last update:** 2026-04-10 (auto-listen voice, last order items, demo reset, playbook verification)
 
 ---
 
