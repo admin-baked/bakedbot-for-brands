@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Production live; Marty CEO full autonomy (Gmail + Calendar + LinkedIn + Outreach + Learning Loops + 3 crons) | **Last update:** 2026-04-10 (Marty CEO autonomy, meeting reminders, follow-up cadence)
+**Current Status:** 🟢 Production live; QA baseline: Marty 78%, Linus 35%, Elroy 93% | **Last update:** 2026-04-10 (QA pressure tests, TS fix, benchmark report)
 
 ---
 
