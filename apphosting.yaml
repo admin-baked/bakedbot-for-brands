@@ -3,10 +3,11 @@
 
 env:
   # Build-time memory allocation — Cloud Build machine has 2048 MiB RAM + swap.
-  # 6GB caused swap-thrash → 56min hangs. 3GB OOMs during webpack. 4GB is the sweet spot:
-  # allows webpack to complete while keeping swap usage manageable.
+  # 6GB caused swap-thrash → 56min hangs. 3GB OOMs during webpack. 4GB worked until
+  # route count hit 47+ — webpack silently drops routes it can't compile in budget.
+  # 5GB gives enough headroom for all routes without excessive swap-thrash.
   - variable: NODE_OPTIONS
-    value: "--max-old-space-size=4096"
+    value: "--max-old-space-size=5120"
     availability: [ BUILD ]
   - variable: NEXT_TELEMETRY_DISABLED
     value: "1"
