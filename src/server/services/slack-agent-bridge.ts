@@ -620,6 +620,10 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             } else if (isElroy) {
                 // Uncle Elroy — store ops agent for Thrive Syracuse, always uses Claude tools
                 const elroyProgress = makeThrottledProgress(channel, workingMessageTs, elroySlackService);
+                let elroyCheckInTimer: NodeJS.Timeout | null = setTimeout(() => {
+                    sendOrUpdateThreadMessage('Still working on it — I will share what I find shortly.').catch(() => {});
+                    elroyCheckInTimer = null;
+                }, 45_000);
 
                 const elroyResult = await Promise.race([
                     runElroy({
@@ -632,7 +636,12 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                     new Promise<never>((_, reject) =>
                         setTimeout(() => reject(new Error(`Uncle Elroy timeout after ${Math.floor(agentTimeoutMs / 1000)} seconds`)), agentTimeoutMs)
                     ),
-                ]);
+                ]).finally(() => {
+                    if (elroyCheckInTimer) {
+                        clearTimeout(elroyCheckInTimer);
+                        elroyCheckInTimer = null;
+                    }
+                });
                 result = { content: elroyResult.content, toolCalls: elroyResult.toolExecutions };
             } else {
                 // GLM path — conversational replies, other agents
