@@ -35,7 +35,7 @@ export default function CaliforniaStatePage() {
                                 <Link href="/get-started">Scale in California</Link>
                             </Button>
                             <Button size="lg" variant="outline" asChild>
-                                <Link href="/free-audit">Get CA Market Audit</Link>
+                                <Link href="/ai-retention-audit">Run the AI Retention Audit</Link>
                             </Button>
                         </div>
                     </div>

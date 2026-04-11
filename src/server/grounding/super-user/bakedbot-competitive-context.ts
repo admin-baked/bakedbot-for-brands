@@ -15,7 +15,7 @@ export const BAKEDBOT_COMPETITIVE_CONTEXT = [
     },
     {
         question: "What is BakedBot's revenue target?",
-        answer: "Our current goal is $100k MRR (Monthly Recurring Revenue) by January 2027, which translates to a $1.2M ARR (Annual Run Rate). As of early 2026, we are tracking toward this goal through customer acquisition and expansion.",
+        answer: "Our operating target is $83,333 MRR, the pace required to reach $1M ARR by April 11, 2027. The company is focused on building a repeatable managed offer for dispensaries in the $2,500-$4,000 MRR band while preserving mission-aligned access plans.",
         category: "company_overview",
         tags: ["revenue", "growth_targets"],
     },
@@ -81,13 +81,13 @@ export const BAKEDBOT_COMPETITIVE_CONTEXT = [
     },
     {
         question: "What are BakedBot's key growth metrics?",
-        answer: "Our key metrics are: (1) MRR (Monthly Recurring Revenue) - currently tracking toward $100k by Jan 2027, (2) Customer Acquisition Cost (CAC) - target <$500 per customer, (3) Lifetime Value (LTV) - target >$10k per customer, (4) Net Revenue Retention (NRR) - target >120% through expansion, (5) Active Users and DAU (Daily Active Users).",
+        answer: "Our key metrics are: (1) MRR (Monthly Recurring Revenue) measured against the $83,333 target pace, (2) qualified pipeline and discovery calls booked, (3) time to first value and flagship flow activation, (4) churned and expansion MRR, and (5) proof-of-value signals like customer capture, first-to-second visit conversion, repeat purchase rate, and attributable welcome-flow revenue.",
         category: "growth_strategy",
         tags: ["metrics", "kpis"],
     },
     {
         question: "What are BakedBot's pricing tiers?",
-        answer: "Our core public pricing tiers are: (1) Signal - $149/month for market visibility, (2) Convert - $499/month for commerce performance, (3) Retain - $799/month for lifecycle revenue, (4) Optimize - $1,500/month plus $2,500 activation for advanced analytics, competitor alerts, executive digests, and pricing recommendations, and (5) Enterprise - custom pricing for MSOs, complex integrations, and partner deals.",
+        answer: "Our current commercial model uses two tracks. Access is the mission-aligned wedge: Free Check-In at $0, Access Intel at $149/month, and Access Retention starting at $499/month. Operator is the revenue engine: Operator Core starts at $2,500/month, Operator Growth starts at $3,500/month, and Enterprise is custom for MSOs, partner networks, and white-label deals. Earlier pre-rollout plans remain grandfathered for existing customers but are no longer the public pricing story.",
         category: "pricing",
         tags: ["plans", "revenue"],
     },
@@ -149,7 +149,7 @@ export const BAKEDBOT_COMPETITIVE_CONTEXT = [
     },
     {
         question: "How should Super Users use the Executive Boardroom?",
-        answer: "The Boardroom is for strategic alignment. Use it to: (1) Set quarterly OKRs and track progress toward $100k MRR, (2) Coordinate agent efforts (e.g., Craig campaigns + Ezal competitive intel), (3) Review customer health and prioritize retention/expansion, (4) Analyze competitive threats and plan responses, (5) Make product roadmap decisions, (6) Review financial performance and adjust pricing.",
+        answer: "The Boardroom is for strategic alignment. Use it to: (1) track progress toward the $83,333 MRR target pace, (2) coordinate executive and specialist agents around pipeline, activation, retention, and focus, (3) review customer health and proof-of-value signals, (4) analyze competitive threats and pricing pressure, (5) make product roadmap decisions that support win, launch, or retain, and (6) review financial performance and offer discipline.",
         category: "super_user",
         tags: ["boardroom", "strategy"],
     },
@@ -274,7 +274,7 @@ export const SUPER_USER_PRESET_PROMPTS = [
     "Review support tickets needing attention",
 
     // Growth & Strategy
-    "Show progress toward $100k MRR goal",
+    "Show progress toward the $83,333 MRR target pace",
     "Analyze customer acquisition cost trends",
     "Review this month's signups and conversions",
     "Generate executive revenue report",

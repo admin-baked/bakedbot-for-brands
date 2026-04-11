@@ -24,6 +24,7 @@ async function embedQuery(text: string): Promise<number[]> {
       model: `models/${EMBED_MODEL}`,
       content: { parts: [{ text: text.slice(0, 2048) }] },
       taskType: 'RETRIEVAL_QUERY',
+      outputDimensionality: 768,
     }),
   });
 

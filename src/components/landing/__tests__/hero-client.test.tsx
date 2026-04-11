@@ -1,90 +1,54 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { HeroClient } from '../hero-client';
+import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-
-// Mock useRouter
-const mockPush = jest.fn();
-jest.mock('next/navigation', () => ({
-    useRouter: () => ({
-        push: mockPush,
-    }),
-}));
-
-// Mock child components to isolate HeroClient logic
-jest.mock('@/components/landing/agent-playground', () => ({
-    AgentPlayground: () => <div data-testid="agent-playground">Playground</div>,
-}));
+import { HeroClient } from '../hero-client';
 
 jest.mock('@/components/landing/live-stats', () => ({
     LiveStats: () => <div data-testid="live-stats">Stats</div>,
 }));
 
-// Mock Framer Motion - Robust Mock
-jest.mock('framer-motion', () => ({
-    motion: {
-        div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+const auditPopupMock = jest.fn();
+
+jest.mock('@/components/audit/audit-popup', () => ({
+    AuditPopup: (props: Record<string, unknown>) => {
+        auditPopupMock(props);
+        return <div data-testid="audit-popup" />;
     },
-    AnimatePresence: ({ children }: any) => <>{children}</>,
 }));
 
-// Mock Lucide React
 jest.mock('lucide-react', () => ({
-    Search: () => <div data-testid="icon-search" />,
     ArrowRight: () => <div data-testid="icon-arrow-right" />,
-    Store: () => <div data-testid="icon-store" />,
-    Building2: () => <div data-testid="icon-building" />,
+    Search: () => <div data-testid="icon-search" />,
 }));
-
-
 
 describe('HeroClient', () => {
     beforeEach(() => {
-        mockPush.mockClear();
+        auditPopupMock.mockClear();
     });
 
-    it('renders correctly with default Dispensary view', () => {
-        render(<HeroClient />);
-        expect(screen.getByText(/Turn Your Menu Into A/i)).toBeInTheDocument();
-        expect(screen.getByText(/For Dispensaries/i)).toBeInTheDocument();
-        expect(screen.getByPlaceholderText(/Find your store/i)).toBeInTheDocument();
-    });
-
-    it('toggles to Brand view when clicked', () => {
+    it('renders the new operator-focused headline and CTAs', () => {
         render(<HeroClient />);
 
-        // Click "For Brands" toggle
-        const brandToggle = screen.getByText(/For Brands/i);
-        fireEvent.click(brandToggle);
-
-        // Verify text updates
-        expect(screen.getByText(/Hire An AI Squad To/i)).toBeInTheDocument();
-        expect(screen.getByPlaceholderText(/Find your brand/i)).toBeInTheDocument();
-        expect(screen.getByText(/Scale Your Wholesale Distribution/i)).toBeInTheDocument();
+        expect(screen.getByText(/Turn more first visits into/i)).toBeInTheDocument();
+        expect(screen.getByText(/repeat revenue/i)).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: /Book a Strategy Call/i })).toHaveAttribute('href', '/book/martez');
+        expect(screen.getByRole('link', { name: /Run the AI Retention Audit/i })).toHaveAttribute('href', '/ai-retention-audit');
     });
 
-    it('navigates to claim page on search submit with name', () => {
+    it('opens the audit popup with the submitted URL', () => {
         render(<HeroClient />);
 
-        const input = screen.getByPlaceholderText(/Find your store/i);
-        fireEvent.change(input, { target: { value: 'Green Releaf' } });
+        fireEvent.change(
+            screen.getByPlaceholderText(/Enter your dispensary website to score capture and retention readiness/i),
+            { target: { value: 'greenreleaf.com' } }
+        );
 
-        // Find the form/button and submit
-        const button = screen.getByText(/Claim Store/i);
-        fireEvent.click(button);
+        fireEvent.click(screen.getByRole('button', { name: /Score My Site/i }));
 
-        expect(mockPush).toHaveBeenCalledWith('/claim?q=Green%20Releaf');
+        const lastCall = auditPopupMock.mock.calls[auditPopupMock.mock.calls.length - 1]?.[0] as Record<string, unknown>;
+        expect(lastCall).toMatchObject({
+            open: true,
+            initialUrl: 'greenreleaf.com',
+        });
     });
-
-    it('navigates to audit page on search submit with URL', () => {
-        render(<HeroClient />);
-
-        const input = screen.getByPlaceholderText(/Find your store/i);
-        fireEvent.change(input, { target: { value: 'greenreleaf.com' } });
-
-        const button = screen.getByText(/Claim Store/i);
-        fireEvent.click(button);
-
-        expect(mockPush).toHaveBeenCalledWith('/free-audit?url=greenreleaf.com');
-    });
-});
+}

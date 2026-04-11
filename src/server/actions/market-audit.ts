@@ -7,17 +7,17 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import { sendGenericEmail } from '@/lib/email/dispatcher';
 
-export interface MarketAuditResult {
+export interface RetentionAuditResult {
   url: string;
   overallScore: number;
   grade: string;
   summary: string;
   dimensions: {
-    content: { score: number; max: number; findings: string };
-    conversion: { score: number; max: number; findings: string };
-    seo: { score: number; max: number; findings: string };
-    competitive: { score: number; max: number; findings: string };
-    compliance: { score: number; max: number; findings: string };
+    customerCapture: { score: number; max: number; findings: string };
+    welcomeReadiness: { score: number; max: number; findings: string };
+    conversionFriction: { score: number; max: number; findings: string };
+    retentionDepth: { score: number; max: number; findings: string };
+    complianceTrust: { score: number; max: number; findings: string };
   };
   revenueLeaks: Array<{ title: string; why: string; fix: string; impactMonthly: string; effort: string }>;
   quickWins: string[];
@@ -31,6 +31,9 @@ export interface MarketAuditResult {
     lcp: string;
   };
 }
+
+// Backward-compatible alias while the rest of the repo migrates.
+export type MarketAuditResult = RetentionAuditResult;
 
 const FORBIDDEN_TERMS = [
   'cure', 'treat', 'treatment', 'prescribe', 'prescription',
@@ -46,7 +49,7 @@ function gradeFromScore(score: number): string {
   return 'F';
 }
 
-export async function runMarketAudit(url: string): Promise<MarketAuditResult | { error: string }> {
+export async function runRetentionAudit(url: string): Promise<RetentionAuditResult | { error: string }> {
   const normalizedUrl = url.startsWith('http') ? url : `https://${url}`;
 
   // Fetch page content and PSI data in parallel
@@ -64,14 +67,14 @@ export async function runMarketAudit(url: string): Promise<MarketAuditResult | {
 
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-  const systemPrompt = `You are a senior cannabis marketing strategist auditing dispensary and cannabis brand websites.
-You score sites across 5 dimensions and always frame recommendations in terms of revenue impact and effort.
-Be specific — quote actual copy from the page, name exact issues, give concrete fixes.
+  const systemPrompt = `You are a senior cannabis retention strategist auditing dispensary websites.
+You score sites across 5 dimensions tied to customer capture, welcome activation, and repeat revenue.
+Be specific — quote actual copy from the page, name exact issues, and give concrete fixes tied to capture, welcome, retention, and compliance trust.
 You understand cannabis compliance: forbidden medical claims, age gate requirements, consent capture, and state-specific rules.
-Always identify compliance risks even when other scores are high.
+Always identify compliance risks even when other scores are high, and always explain the proof path into Access or Operator.
 Return valid JSON only — no markdown, no explanation outside the JSON.`;
 
-  const userPrompt = `Audit this cannabis website and return a structured JSON report.
+  const userPrompt = `Audit this dispensary website and return a structured JSON report focused on retention readiness.
 
 URL: ${normalizedUrl}
 
@@ -91,40 +94,40 @@ Return this exact JSON structure (no markdown, just JSON):
   "overallScore": <0-100>,
   "summary": "<one sentence executive summary>",
   "dimensions": {
-    "content": {
+    "customerCapture": {
       "score": <0-25>,
-      "findings": "<2-3 sentences: what's good, what's weak, specific copy quote>"
+      "findings": "<2-3 sentences: how well the site captures first-party customer data, what is missing, and exact evidence>"
     },
-    "conversion": {
+    "welcomeReadiness": {
       "score": <0-20>,
-      "findings": "<2-3 sentences: age gate type, friction points, trust signals found>"
+      "findings": "<2-3 sentences: whether a welcome flow or clear first-visit follow-up exists, what blocks launch, and exact evidence>"
     },
-    "seo": {
+    "conversionFriction": {
       "score": <0-20>,
-      "findings": "<2-3 sentences: menu type assessment, schema presence, indexability>"
+      "findings": "<2-3 sentences: where first-to-second visit conversion is likely breaking due to friction or weak trust signals>"
     },
-    "competitive": {
+    "retentionDepth": {
       "score": <0-15>,
-      "findings": "<2-3 sentences: differentiation, pricing visibility, brand positioning>"
+      "findings": "<2-3 sentences: lifecycle depth, repeat-visit prompts, loyalty hooks, and whether the retention system feels real or thin>"
     },
-    "compliance": {
+    "complianceTrust": {
       "score": <0-20>,
-      "findings": "<2-3 sentences: consent capture, forbidden terms found, age gate compliance>"
+      "findings": "<2-3 sentences: consent capture, age-gate trust, compliance issues, and what would make operators safer to launch outbound>"
     }
   },
   "revenueLeaks": [
     {
       "title": "<issue name>",
-      "why": "<why it costs money>",
+      "why": "<why it hurts capture, welcome activation, or repeat revenue>",
       "fix": "<concrete action>",
       "impactMonthly": "<e.g. +$2,000-5,000/mo>",
       "effort": "<Low|Medium|High>"
     }
   ],
   "quickWins": [
-    "<specific action → expected outcome>",
-    "<specific action → expected outcome>",
-    "<specific action → expected outcome>"
+    "<specific action tied to capture or welcome activation → expected outcome>",
+    "<specific action tied to retention → expected outcome>",
+    "<specific action tied to proof path into Access or Operator → expected outcome>"
   ],
   "copyRewrites": [
     {
@@ -148,7 +151,13 @@ Return this exact JSON structure (no markdown, just JSON):
   ]
 }
 
-Score conservatively. Most sites score 40-65. A score above 80 requires strong evidence across all dimensions.`;
+Score conservatively. Most sites score 40-65. A score above 80 requires strong evidence across all dimensions.
+The report should clearly answer:
+1. Where does customer capture break?
+2. Does a welcome flow exist or feel launch-ready?
+3. What likely blocks the first-to-second visit?
+4. How deep is the retention system?
+5. Is the next proof path Access or Operator?`;
 
   try {
     const response = await client.messages.create({
@@ -160,11 +169,11 @@ Score conservatively. Most sites score 40-65. A score above 80 requires strong e
 
     const raw = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
     if (!raw) return { error: 'Empty response from AI' };
-    let parsed: Partial<MarketAuditResult>;
+    let parsed: Partial<RetentionAuditResult>;
     try {
-      parsed = JSON.parse(raw) as Partial<MarketAuditResult>;
+      parsed = JSON.parse(raw) as Partial<RetentionAuditResult>;
     } catch {
-      logger.error(`[MarketAudit] JSON parse failed for ${normalizedUrl}: ${raw.slice(0, 200)}`);
+      logger.error(`[RetentionAudit] JSON parse failed for ${normalizedUrl}: ${raw.slice(0, 200)}`);
       return { error: 'Could not parse AI response' };
     }
 
@@ -178,29 +187,29 @@ Score conservatively. Most sites score 40-65. A score above 80 requires strong e
       grade: gradeFromScore(overallScore),
       summary,
       dimensions: {
-        content: {
-          score: dimensions?.content?.score ?? 0,
-          findings: dimensions?.content?.findings ?? '',
+        customerCapture: {
+          score: dimensions?.customerCapture?.score ?? 0,
+          findings: dimensions?.customerCapture?.findings ?? '',
           max: 25,
         },
-        conversion: {
-          score: dimensions?.conversion?.score ?? 0,
-          findings: dimensions?.conversion?.findings ?? '',
+        welcomeReadiness: {
+          score: dimensions?.welcomeReadiness?.score ?? 0,
+          findings: dimensions?.welcomeReadiness?.findings ?? '',
           max: 20,
         },
-        seo: {
-          score: dimensions?.seo?.score ?? 0,
-          findings: dimensions?.seo?.findings ?? '',
+        conversionFriction: {
+          score: dimensions?.conversionFriction?.score ?? 0,
+          findings: dimensions?.conversionFriction?.findings ?? '',
           max: 20,
         },
-        competitive: {
-          score: dimensions?.competitive?.score ?? 0,
-          findings: dimensions?.competitive?.findings ?? '',
+        retentionDepth: {
+          score: dimensions?.retentionDepth?.score ?? 0,
+          findings: dimensions?.retentionDepth?.findings ?? '',
           max: 15,
         },
-        compliance: {
-          score: dimensions?.compliance?.score ?? 0,
-          findings: dimensions?.compliance?.findings ?? '',
+        complianceTrust: {
+          score: dimensions?.complianceTrust?.score ?? 0,
+          findings: dimensions?.complianceTrust?.findings ?? '',
           max: 20,
         },
       },
@@ -212,38 +221,44 @@ Score conservatively. Most sites score 40-65. A score above 80 requires strong e
       technicalData,
     };
   } catch (e) {
-    logger.error(`[MarketAudit] Failed for ${normalizedUrl}: ${(e as Error).message}`);
+    logger.error(`[RetentionAudit] Failed for ${normalizedUrl}: ${(e as Error).message}`);
     return { error: (e as Error).message };
   }
 }
 
+// Backward-compatible alias while callers migrate.
+export const runMarketAudit = runRetentionAudit;
+
 // ── Lead capture ─────────────────────────────────────────────────────────────
 
-export interface SubmitMarketAuditLeadRequest {
+export interface SubmitRetentionAuditLeadRequest {
   url: string;
   email: string;
   firstName?: string;
   marketingConsent: boolean;
-  auditResult: MarketAuditResult;
+  auditResult: RetentionAuditResult;
   utmSource?: string;
   utmMedium?: string;
   utmCampaign?: string;
   utmContent?: string;
 }
 
-export interface SubmitMarketAuditLeadResponse {
+export interface SubmitRetentionAuditLeadResponse {
   success: boolean;
   leadId?: string;
   auditReportId?: string;
   error?: string;
 }
 
-export async function submitMarketAuditLead(
-  req: SubmitMarketAuditLeadRequest,
-): Promise<SubmitMarketAuditLeadResponse> {
+export type SubmitMarketAuditLeadRequest = SubmitRetentionAuditLeadRequest;
+export type SubmitMarketAuditLeadResponse = SubmitRetentionAuditLeadResponse;
+
+export async function submitRetentionAuditLead(
+  req: SubmitRetentionAuditLeadRequest,
+): Promise<SubmitRetentionAuditLeadResponse> {
   try {
     // 1. Capture / upsert email lead
-    const source = req.utmSource === 'email' ? 'market_audit_email' : 'market_audit';
+    const source = req.utmSource === 'email' ? 'retention_audit_email' : 'retention_audit';
     const leadResult = await captureEmailLead({
       email: req.email,
       firstName: req.firstName,
@@ -260,7 +275,7 @@ export async function submitMarketAuditLead(
     const db = getAdminFirestore();
     const now = Date.now();
     const newTags = [
-      'market-audit',
+      'retention-audit',
       `score-band:${req.auditResult.grade}`,
       req.utmSource ? `utm-source:${req.utmSource}` : null,
       req.utmCampaign ? `utm-campaign:${req.utmCampaign}` : null,
@@ -294,17 +309,17 @@ export async function submitMarketAuditLead(
     const mergedTags = [...new Set([...existingTags, ...newTags])];
 
     const [reportRef] = await Promise.all([
-      db.collection('market_audit_reports').add(reportData),
+      db.collection('retention_audit_reports').add(reportData),
       db.collection('email_leads').doc(leadResult.leadId).update({
         tags: mergedTags,
-        marketAuditScore: req.auditResult.overallScore,
-        marketAuditGrade: req.auditResult.grade,
-        marketAuditUrl: req.url,
+        retentionAuditScore: req.auditResult.overallScore,
+        retentionAuditGrade: req.auditResult.grade,
+        retentionAuditUrl: req.url,
         lastUpdated: now,
       }),
     ]);
 
-    logger.info('[MarketAudit] Lead submitted', {
+    logger.info('[RetentionAudit] Lead submitted', {
       leadId: leadResult.leadId,
       auditReportId: reportRef.id,
       score: req.auditResult.overallScore,
@@ -312,26 +327,29 @@ export async function submitMarketAuditLead(
     });
 
     // Fire-and-forget — deliver the full report to their inbox
-    sendAuditResultEmail(req.email, req.firstName, req.auditResult).catch((e: unknown) => {
-      logger.warn('[MarketAudit] Failed to send audit result email', { email: req.email, error: (e as Error).message });
+    sendRetentionAuditResultEmail(req.email, req.firstName, req.auditResult).catch((e: unknown) => {
+      logger.warn('[RetentionAudit] Failed to send audit result email', { email: req.email, error: (e as Error).message });
     });
 
     return { success: true, leadId: leadResult.leadId, auditReportId: reportRef.id };
   } catch (e) {
-    logger.error(`[MarketAudit] Lead submit failed: ${(e as Error).message}`);
+    logger.error(`[RetentionAudit] Lead submit failed: ${(e as Error).message}`);
     return { success: false, error: (e as Error).message };
   }
 }
+
+// Backward-compatible alias while callers migrate.
+export const submitMarketAuditLead = submitRetentionAuditLead;
 
 // ── Audit result email ────────────────────────────────────────────────────────
 
 const HTML_ESCAPE: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 function esc(s: string): string { return s.replace(/[&<>"']/g, c => HTML_ESCAPE[c]); }
 
-async function sendAuditResultEmail(
+async function sendRetentionAuditResultEmail(
   to: string,
   firstName: string | undefined,
-  audit: MarketAuditResult,
+  audit: RetentionAuditResult,
 ): Promise<void> {
   const name = firstName ?? 'there';
   const gradeColor: Record<string, string> = {
@@ -382,7 +400,7 @@ async function sendAuditResultEmail(
         <!-- Header -->
         <tr><td style="background:#0f172a;padding:24px 32px;">
           <span style="color:#ffffff;font-size:20px;font-weight:700;">BakedBot AI</span>
-          <span style="color:#94a3b8;font-size:13px;margin-left:8px;">Marketing Audit</span>
+          <span style="color:#94a3b8;font-size:13px;margin-left:8px;">AI Retention Audit</span>
         </td></tr>
 
         <!-- Grade hero -->
@@ -396,7 +414,7 @@ async function sendAuditResultEmail(
         <!-- Body -->
         <tr><td style="padding:32px;">
           <p style="margin:0 0 4px;color:#374151;font-size:14px;">Hey ${esc(name)},</p>
-          <p style="margin:0 0 24px;color:#6b7280;font-size:13px;">Here's the full breakdown of your marketing audit. We scored your site across 5 dimensions — here's what we found.</p>
+          <p style="margin:0 0 24px;color:#6b7280;font-size:13px;">Here's the full breakdown of your AI retention audit. We scored your site across 5 dimensions tied to customer capture, welcome activation, and repeat revenue.</p>
 
           <!-- Dimension scores -->
           <h2 style="font-size:14px;font-weight:600;color:#111827;margin:0 0 12px;">Dimension Scores</h2>
@@ -417,17 +435,17 @@ async function sendAuditResultEmail(
           <!-- CTA -->
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr><td style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:20px;text-align:center;">
-              <p style="margin:0 0 8px;font-size:14px;font-weight:600;color:#166534;">Want us to fix these issues for you?</p>
-              <p style="margin:0 0 16px;font-size:12px;color:#4b7c5a;">BakedBot handles SEO, compliance, campaigns, and customer retention — all in one platform built for cannabis.</p>
-              <a href="https://bakedbot.ai/get-started" style="display:inline-block;background:#16a34a;color:#ffffff;font-size:13px;font-weight:600;padding:10px 24px;border-radius:6px;text-decoration:none;">Book a Free Demo</a>
+              <p style="margin:0 0 8px;font-size:14px;font-weight:600;color:#166534;">Ready to tighten the welcome and retention loop?</p>
+              <p style="margin:0 0 16px;font-size:12px;color:#4b7c5a;">BakedBot Operator gives dispensaries launch support, weekly reporting, KPI reviews, and accountable welcome + lifecycle execution.</p>
+              <a href="https://bakedbot.ai/book/martez" style="display:inline-block;background:#16a34a;color:#ffffff;font-size:13px;font-weight:600;padding:10px 24px;border-radius:6px;text-decoration:none;">Book a Strategy Call</a>
             </td></tr>
           </table>
         </td></tr>
 
         <!-- Footer -->
         <tr><td style="padding:16px 32px;background:#f9fafb;border-top:1px solid #f3f4f6;text-align:center;">
-          <p style="margin:0;font-size:11px;color:#9ca3af;">BakedBot AI · Cannabis Commerce Platform · <a href="https://bakedbot.ai" style="color:#9ca3af;">bakedbot.ai</a></p>
-          <p style="margin:4px 0 0;font-size:11px;color:#9ca3af;">You received this because you requested a free marketing audit.</p>
+          <p style="margin:0;font-size:11px;color:#9ca3af;">BakedBot AI · Managed revenue activation for dispensaries · <a href="https://bakedbot.ai" style="color:#9ca3af;">bakedbot.ai</a></p>
+          <p style="margin:4px 0 0;font-size:11px;color:#9ca3af;">You received this because you requested an AI retention audit.</p>
         </td></tr>
 
       </table>
@@ -439,7 +457,7 @@ async function sendAuditResultEmail(
   await sendGenericEmail({
     to,
     name: firstName,
-    subject: `Your Marketing Audit: ${audit.url} scored ${audit.grade} (${audit.overallScore}/100)`,
+    subject: `Your AI Retention Audit: ${audit.url} scored ${audit.grade} (${audit.overallScore}/100)`,
     htmlBody,
     communicationType: 'transactional',
   });
@@ -463,7 +481,7 @@ async function fetchPageContent(url: string): Promise<string> {
       .trim()
       .slice(0, 8000); // final text limit sent to AI
   } catch (e) {
-    logger.warn(`[MarketAudit] Could not fetch ${url}: ${(e as Error).message}`);
+    logger.warn(`[RetentionAudit] Could not fetch ${url}: ${(e as Error).message}`);
     return `[Could not fetch page content: ${(e as Error).message}]`;
   }
 }

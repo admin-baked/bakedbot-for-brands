@@ -35,7 +35,7 @@ export default function NewYorkStatePage() {
                                 <Link href="/get-started">Launch in NY</Link>
                             </Button>
                             <Button size="lg" variant="outline" asChild>
-                                <Link href="/free-audit">Get NY Compliance Audit</Link>
+                                <Link href="/ai-retention-audit">Run the AI Retention Audit</Link>
                             </Button>
                         </div>
                     </div>

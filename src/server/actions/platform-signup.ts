@@ -175,7 +175,7 @@ async function createDashboardWelcomeNotification(
         const welcomeMessages: Record<string, { title: string; message: string }> = {
             super_user: {
                 title: 'Welcome to the BakedBot team! 🚀',
-                message: `Hey ${firstName || 'there'}! Check your email for onboarding resources. Let's grow to $100k MRR together!`,
+                message: `Hey ${firstName || 'there'}! Check your email for onboarding resources. Let's build toward the $83,333 MRR target pace together!`,
             },
             dispensary_owner: {
                 title: 'Welcome to BakedBot! 💼',

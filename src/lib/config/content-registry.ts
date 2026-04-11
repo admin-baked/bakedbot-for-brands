@@ -223,13 +223,14 @@ export const contentRegistry: ContentEntry[] = [
 
     // ── Lead Magnets & Tools ───────────────────────────────────────────
     {
-        id: '/free-audit',
-        title: 'Free SEO & Compliance Audit',
+        id: '/ai-retention-audit',
+        title: 'AI Retention Audit',
         category: 'lead-magnet',
-        sourcePaths: ['src/app/free-audit/page.tsx'],
-        lastVerified: '2026-02-05',
-        featureTags: ['lead-magnet', 'seo', 'compliance', 'audit'],
+        sourcePaths: ['src/app/ai-retention-audit/page.tsx', 'src/app/free-audit/page.tsx'],
+        lastVerified: '2026-04-11',
+        featureTags: ['lead-magnet', 'retention', 'welcome-flow', 'audit'],
         owner: 'marketing',
+        highImpact: true,
     },
     {
         id: '/ny/caurd-grant',

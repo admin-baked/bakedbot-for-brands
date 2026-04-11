@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** ðŸŸ¢ Production live; Cannabis science KB via Supabase pgvector | **Last update:** 2026-04-10 (Smokey searchCannabisScience tool, 161K Q&A pairs, Supabase pgvector, $0/mo free tier)
+**Current Status:** ðŸŸ¢ Production live; Groq free tier swap (~28 sites), daily agent response audit cron | **Last update:** 2026-04-11 (Groq swap $0.15→$0.01/day, daily-response-audit cron, dashboard chat archiving)
 
 ---
 

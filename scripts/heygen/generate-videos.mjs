@@ -167,7 +167,7 @@ async function createVideo({ title, narration, avatarId, voiceId, stepId, layout
     avatar_style: useCircle ? 'circle' : 'normal',
     ...(useCircle && {
       scale: 0.25,
-      position: { x: 0.8, y: 0.8 },
+      offset: { x: 0.75, y: -0.55 }, // bottom-right corner (x: right, y: negative = down)
     }),
   };
 

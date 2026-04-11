@@ -33,7 +33,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // 2. Conversion Pages (High Priority - these drive revenue)
     const conversionPages = [
       '/pricing',
-      '/free-audit',
+      '/ai-retention-audit',
       '/get-started',
       '/claim',
       '/demo',

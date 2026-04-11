@@ -102,7 +102,7 @@ export default function ZazaFactoryCaseStudy() {
                             <ul className="space-y-4">
                                 <ResultItem title="Personalization at Scale" desc="Open rates jumped from 12% to over 19% on average across all automated campaigns." />
                                 <ResultItem title="Repeat Revenue" desc="Customer repeat purchase rate grew by 30%, adding significant LTV to their database." />
-                                <ResultItem title="Cost Reduction" desc="Replaced three separate tool subscriptions with BakedBot's unified Retain tier." />
+                                <ResultItem title="Cost Reduction" desc="Replaced multiple disconnected tools with BakedBot's unified welcome and retention stack." />
                             </ul>
                         </section>
                     </div>

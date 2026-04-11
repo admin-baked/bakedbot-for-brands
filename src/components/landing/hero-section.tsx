@@ -29,7 +29,7 @@ export function HeroSection() {
 
           <h1 className="text-4xl font-bold tracking-tight sm:text-6xl font-teko uppercase animate-fade-in-up animation-delay-100">
             Get Found on Google.<br />
-            Convert Shoppers.<br />
+            Win Repeat Buyers.<br />
             <span className="text-primary">Stay Compliant.</span>
           </h1>
 
@@ -46,9 +46,9 @@ export function HeroSection() {
 
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center mt-12 animate-fade-in-up animation-delay-400">
-          <Link href="/brand-login">
+          <Link href="/ai-retention-audit">
             <Button size="lg" className="h-14 px-8 text-lg w-full sm:w-auto shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-shadow">
-              Start Your Free Audit
+              Run the AI Retention Audit
               <Sparkles className="ml-2 h-5 w-5" />
             </Button>
           </Link>

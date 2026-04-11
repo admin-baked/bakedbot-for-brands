@@ -140,19 +140,19 @@ export default function SocialEquityPage() {
                     </p>
                     <div className="grid grid-cols-3 gap-4 pt-2 text-sm text-muted-foreground">
                         <div className="rounded-lg border border-border/50 bg-muted/20 p-3 text-center">
-                            <div className="font-semibold text-foreground">Convert</div>
+                            <div className="font-semibold text-foreground">Access Retention</div>
                             <div className="line-through opacity-60">$499/mo</div>
                             <div className="text-emerald-600 font-bold">$374/mo</div>
                         </div>
                         <div className="rounded-lg border border-border/50 bg-muted/20 p-3 text-center">
-                            <div className="font-semibold text-foreground">Retain</div>
-                            <div className="line-through opacity-60">$799/mo</div>
-                            <div className="text-emerald-600 font-bold">$599/mo</div>
+                            <div className="font-semibold text-foreground">Operator Core</div>
+                            <div className="line-through opacity-60">$2,500/mo</div>
+                            <div className="text-emerald-600 font-bold">$1,875/mo</div>
                         </div>
                         <div className="rounded-lg border border-border/50 bg-muted/20 p-3 text-center">
-                            <div className="font-semibold text-foreground">Optimize</div>
-                            <div className="line-through opacity-60">$1,500/mo</div>
-                            <div className="text-emerald-600 font-bold">$1,125/mo</div>
+                            <div className="font-semibold text-foreground">Operator Growth</div>
+                            <div className="line-through opacity-60">$3,500/mo</div>
+                            <div className="text-emerald-600 font-bold">$2,625/mo</div>
                         </div>
                     </div>
                 </div>

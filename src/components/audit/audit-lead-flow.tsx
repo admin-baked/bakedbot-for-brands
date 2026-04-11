@@ -3,14 +3,13 @@
 /**
  * AuditLeadFlow
  *
- * Reusable URL → AI analyze → teaser → email gate → full report flow.
- * Used by both the homepage popup and the /free-audit standalone page.
+ * Reusable URL → AI analyze → teaser → email gate → full audit flow.
+ * Used by both the homepage popup and the /ai-retention-audit standalone page.
  *
  * UTM params are read from the browser URL and passed to the CRM on lead submit.
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -26,8 +25,8 @@ import {
   TrendingUp,
   Zap,
 } from 'lucide-react';
-import { runMarketAudit, submitMarketAuditLead } from '@/server/actions/market-audit';
-import type { MarketAuditResult } from '@/server/actions/market-audit';
+import { runRetentionAudit, submitRetentionAuditLead } from '@/server/actions/market-audit';
+import type { RetentionAuditResult } from '@/server/actions/market-audit';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -51,11 +50,11 @@ export interface AuditLeadFlowProps {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 export const DIMENSION_LABELS: Record<string, string> = {
-  content: 'Content & Messaging',
-  conversion: 'Conversion & Trust',
-  seo: 'SEO & Discoverability',
-  competitive: 'Competitive Positioning',
-  compliance: 'Compliance & Fidelity',
+  customerCapture: 'Customer Capture',
+  welcomeReadiness: 'Welcome Flow Readiness',
+  conversionFriction: 'Conversion Friction',
+  retentionDepth: 'Retention System Depth',
+  complianceTrust: 'Compliance & Trust',
 };
 
 function gradeColor(grade: string) {
@@ -100,11 +99,11 @@ function readUtmFromBrowser(): UtmParams {
 
 const LOADING_STEPS = [
   'Fetching your website...',
-  'Analyzing content & messaging...',
-  'Scoring conversion & trust signals...',
-  'Checking SEO & discoverability...',
-  'Assessing compliance & fidelity...',
-  'Generating revenue recommendations...',
+  'Checking customer capture paths...',
+  'Assessing welcome flow readiness...',
+  'Scoring conversion friction...',
+  'Reviewing retention system depth...',
+  'Checking compliance and trust signals...',
 ];
 
 function LoadingAnimation() {
@@ -121,7 +120,7 @@ function LoadingAnimation() {
       </div>
       <div className="text-center space-y-2">
         <p className="text-sm font-medium">{LOADING_STEPS[idx]}</p>
-        <p className="text-xs text-muted-foreground">AI analyzing 5 marketing dimensions</p>
+        <p className="text-xs text-muted-foreground">AI analyzing 5 retention dimensions</p>
       </div>
       <div className="flex gap-1">
         {LOADING_STEPS.map((_, i) => (
@@ -137,11 +136,11 @@ function LoadingAnimation() {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function AuditLeadFlow({ initialUrl = '', utm: utmProp, onClose, compact = false }: AuditLeadFlowProps) {
+export function AuditLeadFlow({ initialUrl = '', utm: utmProp }: AuditLeadFlowProps) {
   const [step, setStep] = useState<Step>(initialUrl ? 'loading' : 'url');
   const [url, setUrl] = useState(initialUrl);
   const [urlInput, setUrlInput] = useState(initialUrl);
-  const [audit, setAudit] = useState<MarketAuditResult | null>(null);
+  const [audit, setAudit] = useState<RetentionAuditResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Gate form
@@ -169,7 +168,7 @@ export function AuditLeadFlow({ initialUrl = '', utm: utmProp, onClose, compact 
   async function runAudit(targetUrl: string) {
     setStep('loading');
     setError(null);
-    const result = await runMarketAudit(targetUrl);
+    const result = await runRetentionAudit(targetUrl);
     if ('error' in result) {
       setError(result.error);
       setStep('url');
@@ -191,7 +190,7 @@ export function AuditLeadFlow({ initialUrl = '', utm: utmProp, onClose, compact 
     if (!email.trim() || !audit) return;
     setSubmitting(true);
     setGateError(null);
-    const result = await submitMarketAuditLead({
+    const result = await submitRetentionAuditLead({
       url,
       email: email.trim(),
       firstName: firstName.trim() || undefined,
@@ -216,9 +215,9 @@ export function AuditLeadFlow({ initialUrl = '', utm: utmProp, onClose, compact 
     return (
       <div className="space-y-4">
         <div className="text-center space-y-2">
-          <h2 className="text-xl font-bold">Free Marketing Audit</h2>
+          <h2 className="text-xl font-bold">AI Retention Audit</h2>
           <p className="text-sm text-muted-foreground">
-            Enter your dispensary or brand website. Our AI analyzes 5 marketing dimensions in ~20 seconds.
+            Enter your dispensary website. Our AI spots customer capture gaps, welcome-flow blockers, and repeat-revenue leaks in ~20 seconds.
           </p>
         </div>
         {error && (
@@ -236,7 +235,7 @@ export function AuditLeadFlow({ initialUrl = '', utm: utmProp, onClose, compact 
             autoFocus
           />
           <Button type="submit" disabled={!urlInput.trim()}>
-            Analyze
+            Run Audit
             <ArrowRight className="h-4 w-4 ml-1" />
           </Button>
         </form>
@@ -288,7 +287,7 @@ export function AuditLeadFlow({ initialUrl = '', utm: utmProp, onClose, compact 
           ))}
         </div>
 
-        {/* Top revenue leak */}
+        {/* Top retention leak */}
         {topLeak && (
           <div className="border-l-2 border-red-300 pl-3 space-y-1">
             <div className="flex items-center gap-2">
@@ -304,15 +303,15 @@ export function AuditLeadFlow({ initialUrl = '', utm: utmProp, onClose, compact 
         <div className="bg-muted/50 rounded-lg p-4 space-y-3">
           <div className="flex items-center gap-2 text-sm font-medium">
             <Lock className="h-4 w-4 text-muted-foreground" />
-            Full report includes:
+            Full audit includes:
           </div>
           <ul className="text-xs text-muted-foreground space-y-1">
             {[
-              'All 5 dimension breakdowns + findings',
-              `${audit.revenueLeaks.length} revenue leaks with fix estimates`,
-              'Before/after copy rewrites',
+              'All 5 retention dimension breakdowns + findings',
+              `${audit.revenueLeaks.length} capture and repeat-revenue leaks with fix estimates`,
+              'Before/after welcome and conversion copy rewrites',
               `${audit.complianceFlags.length} compliance flags${audit.complianceFlags.some(f => f.severity === 'HIGH') ? ' (including HIGH severity)' : ''}`,
-              'A/B test hypotheses to run',
+              'A/B test hypotheses for capture and second-visit conversion',
             ].map(item => (
               <li key={item} className="flex items-center gap-1.5">
                 <ChevronRight className="h-3 w-3 flex-shrink-0" />
@@ -323,7 +322,7 @@ export function AuditLeadFlow({ initialUrl = '', utm: utmProp, onClose, compact 
 
           {/* Email gate form */}
           <form onSubmit={handleEmailSubmit} className="space-y-3 pt-2 border-t border-border/50">
-            <p className="text-xs font-medium">Get your full report — free</p>
+            <p className="text-xs font-medium">Get your full audit — free</p>
             <div className="flex gap-2">
               <Input
                 placeholder="First name"
@@ -348,16 +347,16 @@ export function AuditLeadFlow({ initialUrl = '', utm: utmProp, onClose, compact 
                 className="mt-0.5"
               />
               <Label htmlFor="mkt-consent" className="text-xs text-muted-foreground leading-snug cursor-pointer">
-                Send me marketing tips and BakedBot updates. Unsubscribe anytime.
+                Send me retention tips and BakedBot updates. Unsubscribe anytime.
               </Label>
             </div>
             {gateError && <p className="text-xs text-red-600">{gateError}</p>}
             <Button type="submit" disabled={submitting || !email.trim()} className="w-full h-9">
               {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              {submitting ? 'Saving your report...' : 'Unlock Full Report'}
+              {submitting ? 'Saving your audit...' : 'Unlock Full Audit'}
             </Button>
             <p className="text-[10px] text-center text-muted-foreground">
-              No spam. No credit card. Just your audit results.
+              No spam. No credit card. Just your retention audit results.
             </p>
           </form>
         </div>
@@ -380,7 +379,7 @@ export function AuditLeadFlow({ initialUrl = '', utm: utmProp, onClose, compact 
           <p className="text-sm leading-snug">{audit.summary}</p>
           {firstName && (
             <p className="text-xs text-emerald-600 mt-1 font-medium">
-              Your full report is ready{firstName ? `, ${firstName}` : ''}.
+              Your full audit is ready{firstName ? `, ${firstName}` : ''}.
             </p>
           )}
         </div>
@@ -401,7 +400,7 @@ export function AuditLeadFlow({ initialUrl = '', utm: utmProp, onClose, compact 
         <div className="space-y-3">
           <h3 className="text-sm font-semibold flex items-center gap-1.5">
             <TrendingUp className="h-4 w-4 text-red-500" />
-            Revenue Leaks
+            Retention Leaks
           </h3>
           {audit.revenueLeaks.map((leak, i) => (
             <div key={i} className="border-l-2 border-red-300 pl-3 space-y-1">
@@ -495,12 +494,12 @@ export function AuditLeadFlow({ initialUrl = '', utm: utmProp, onClose, compact 
       {/* CTA */}
       <div className="pt-4 border-t">
         <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4 text-center space-y-2">
-          <p className="text-sm font-semibold">Want us to fix these for you?</p>
+          <p className="text-sm font-semibold">Want help closing these gaps?</p>
           <p className="text-xs text-muted-foreground">
-            BakedBot handles SEO, compliance, campaigns, and customer retention — all in one platform.
+            BakedBot Operator gives you launch support, welcome and lifecycle playbooks, weekly reporting, and accountable execution.
           </p>
           <Button asChild className="w-full h-9 mt-1">
-            <a href="/get-started">Book a Demo</a>
+            <a href="/book/martez">Book a Strategy Call</a>
           </Button>
         </div>
       </div>

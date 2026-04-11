@@ -216,54 +216,64 @@ export default function LaunchPricingDetails() {
                             <h2 className="text-2xl font-bold mb-8">Plan-by-plan breakdown</h2>
                             <div className="space-y-8">
                                 <PlanSection
-                                    name="Signal"
-                                    fit="Know your market. Best for: Operators not yet ready to switch infrastructure."
+                                    name="Free Check-In"
+                                    fit="Start with the wedge. Best for: operators who need low-friction proof before a managed engagement."
                                     includes={[
-                                        "500 Credits Included",
-                                        "Headless Menu + SEO pages",
-                                        "Competitor tracking & ZIP insights",
-                                        "Weekly intel digest",
+                                        "QR or tablet customer capture",
+                                        "Welcome email starter flow",
+                                        "Basic loyalty capture",
+                                        "Basic dashboard or weekly summary",
+                                        "Low-friction path into Access or Operator"
+                                    ]}
+                                    goodFor={["Proof before budget", "List growth", "First workflow activation"]}
+                                />
+                                <PlanSection
+                                    name="Access Intel"
+                                    fit="See the market before you buy execution. Best for: early operators who need visibility and intelligence."
+                                    includes={[
+                                        "Competitor tracking",
+                                        "Local market shifts",
+                                        "Weekly intelligence digest",
+                                        "Limited analytics summary",
                                         "Limited AI workspace access"
                                     ]}
-                                    goodFor={["Visibility without migration", "Weekly market intelligence", "Market & ZIP-level snapshots"]}
+                                    goodFor={["Weekly market visibility", "Low-risk paid wedge", "Access upsell motion"]}
                                 />
                                 <PlanSection
-                                    name="Convert"
-                                    fit="Turn traffic into sales. Best for: Dispensaries that want commerce performance."
+                                    name="Access Retention"
+                                    fit="Bridge from proof to execution. Best for: operators with enough traffic to benefit from welcome and lifecycle automation."
                                     includes={[
-                                        "1,500 Credits Included",
-                                        "Everything in Signal",
-                                        "Smokey AI budtender sessions",
-                                        "Real-time inventory sync",
-                                        "Bundles & upsells",
-                                        "Compliance pre-checks"
+                                        "Welcome Email Playbook",
+                                        "QR sign-up capture",
+                                        "Basic segmentation",
+                                        "Simple campaign templates",
+                                        "Monthly performance summary"
                                     ]}
-                                    goodFor={["High-conversion menus", "Automated product discovery", "Real-time POS synchronization"]}
+                                    goodFor={["Proof of value before Operator", "Lifecycle activation", "Repeat-visit readiness"]}
                                 />
                                 <PlanSection
-                                    name="Retain"
-                                    fit="Turn buyers into repeat buyers. Best for: Operators wanting lifecycle revenue."
+                                    name="Operator Core"
+                                    fit="Managed revenue activation for serious operators. Best for: high-traffic single-store operators and 2-10 store groups."
                                     includes={[
-                                        "3,000 Credits Included (Rollover enabled)",
-                                        "Everything in Convert",
-                                        "Craig (Marketing AI) & Mrs. Parker (Loyalty)",
-                                        "Segmentation & Campaigns",
-                                        "CRM workflows & QR sign-up"
+                                        "Welcome Check-In Flow setup and optimization",
+                                        "Welcome Email Playbook deployment",
+                                        "2-4 retention playbooks",
+                                        "Weekly operator reporting",
+                                        "45-60 day performance review"
                                     ]}
-                                    goodFor={["Lifecycle marketing automation", "Loyalty & retention tracking", "Advanced CRM segmentation"]}
+                                    goodFor={["First-to-second visit conversion", "Accountable execution", "Launch + review cadence"]}
                                 />
                                 <PlanSection
-                                    name="Optimize"
-                                    fit="Run a smarter operation. Best for: Advanced operators and MSOs."
+                                    name="Operator Growth"
+                                    fit="Higher-value operating layer for stronger operators. Best for: multi-location groups and regional chains."
                                     includes={[
-                                        "7,500 Credits Included (Rollover enabled)",
-                                        "Everything in Retain",
-                                        "Profitability & Executive reporting",
-                                        "Competitor price alerts",
-                                        "Pricing recommendations",
-                                        "Advanced optimization workflows"
+                                        "Everything in Operator Core",
+                                        "Additional lifecycle journeys",
+                                        "Executive KPI reviews",
+                                        "Competitor watch and market alerts",
+                                        "90-day optimization roadmap"
                                     ]}
-                                    goodFor={["Multi-location visibility", "Market-wide price monitoring", "Executive-level reporting"]}
+                                    goodFor={["Multi-location retention", "Executive reporting", "Expansion and reactivation campaigns"]}
                                 />
                                 <PlanSection
                                     name="Enterprise"
@@ -271,7 +281,7 @@ export default function LaunchPricingDetails() {
                                     fit="White-label & National. Best for: MSOs, partners, and custom SLAs."
                                     includes={[
                                         "Custom Credit Allocation",
-                                        "Everything in Optimize",
+                                        "Everything in Operator Growth",
                                         "Multi-state operator governance",
                                         "Custom integrations & white-label",
                                         "Dedicated support & SLAs"
@@ -319,14 +329,14 @@ export default function LaunchPricingDetails() {
                         <section className="text-center py-10 bg-muted/40 rounded-2xl border border-dashed border-border px-4">
                             <h2 className="text-2xl font-bold mb-4">Start simple. Scale when it works.</h2>
                             <p className="text-muted-foreground mb-8 text-balance max-w-2xl mx-auto">
-                                Start with the Core (menu + discovery + compliance). Add agents when you want automation, intel, and growth loops.
+                                Start with Access if you need proof. Move into Operator when you need launch support, weekly reporting, and accountable execution.
                             </p>
                             <div className="flex justify-center gap-3">
                                 <Button size="lg" asChild>
-                                    <Link href="/get-started">Start Launch Plan</Link>
+                                    <Link href="/onboarding?plan=free">Start Free Check-In</Link>
                                 </Button>
                                 <Button size="lg" variant="outline" asChild>
-                                    <Link href="/pricing">Compare Plans</Link>
+                                    <Link href="/book/martez">Book Operator Call</Link>
                                 </Button>
                             </div>
                         </section>

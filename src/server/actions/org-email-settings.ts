@@ -349,6 +349,55 @@ export async function disconnectSes(): Promise<{ success: boolean }> {
     }
 }
 
+// ─────────────────────────────────────────────────────────────
+// Primary email channel preference
+// ─────────────────────────────────────────────────────────────
+
+export async function getEmailChannelPreference(): Promise<{
+    primaryChannel: 'ses' | 'workspace';
+}> {
+    try {
+        const orgId = await resolveOrgId();
+        const firestore = getAdminFirestore();
+        const doc = await firestore
+            .collection('organizations').doc(orgId)
+            .collection('integrations').doc('email_preferences')
+            .get();
+        return { primaryChannel: (doc.data()?.primaryChannel as 'ses' | 'workspace') || 'ses' };
+    } catch {
+        return { primaryChannel: 'ses' };
+    }
+}
+
+export async function setEmailChannelPreference(
+    channel: 'ses' | 'workspace',
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        await requireUser();
+        const orgId = await resolveOrgId();
+
+        if (channel !== 'ses' && channel !== 'workspace') {
+            return { success: false, error: 'Invalid channel' };
+        }
+
+        const firestore = getAdminFirestore();
+        await firestore
+            .collection('organizations').doc(orgId)
+            .collection('integrations').doc('email_preferences')
+            .set({
+                primaryChannel: channel,
+                updatedAt: new Date().toISOString(),
+            }, { merge: true });
+
+        logger.info('[OrgEmailSettings] Primary channel updated', { orgId, channel });
+        return { success: true };
+    } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        logger.error('[OrgEmailSettings] setEmailChannelPreference failed', { error: msg });
+        return { success: false, error: msg };
+    }
+}
+
 export async function sendTestEmail(type: 'workspace' | 'mailjet' | 'ses'): Promise<{ success: boolean; error?: string }> {
     try {
         const user = await requireUser();

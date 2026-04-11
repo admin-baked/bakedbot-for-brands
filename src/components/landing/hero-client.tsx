@@ -4,154 +4,93 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LiveStats } from '@/components/landing/live-stats';
-import { Search, ArrowRight, Store, Building2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowRight, Search } from 'lucide-react';
 import { AuditPopup } from '@/components/audit/audit-popup';
 
 export function HeroClient() {
-    const [userType, setUserType] = useState<'dispensary' | 'brand'>('dispensary');
     const [auditUrl, setAuditUrl] = useState('');
     const [popupOpen, setPopupOpen] = useState(false);
     const [popupUrl, setPopupUrl] = useState('');
-    const router = useRouter();
 
     const handleAuditSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!auditUrl) return;
-
-        const isUrl = auditUrl.includes('.') || auditUrl.includes('http');
-
-        if (isUrl) {
-            // Open popup in-place for URL inputs — keeps user on homepage for lead capture
-            setPopupUrl(auditUrl);
-            setPopupOpen(true);
-        } else {
-            router.push(`/claim?q=${encodeURIComponent(auditUrl)}`);
-        }
+        if (!auditUrl.trim()) return;
+        setPopupUrl(auditUrl.trim());
+        setPopupOpen(true);
     };
 
     return (
         <>
-        <AuditPopup
-            open={popupOpen}
-            onClose={() => setPopupOpen(false)}
-            initialUrl={popupUrl}
-        />
-        <section className="relative overflow-x-hidden min-h-[90vh] flex flex-col justify-center">
-            {/* Background Gradients — clamped to viewport width to prevent horizontal scroll */}
-            <div className="absolute inset-0 -z-10 pointer-events-none overflow-hidden">
-                <div className="absolute -top-40 left-1/2 h-[400px] w-[400px] sm:h-[600px] sm:w-[600px] -translate-x-1/2 rounded-full bg-emerald-500/10 blur-[120px] opacity-60" />
-                <div className="absolute top-40 -left-20 h-[300px] w-[300px] sm:h-[500px] sm:w-[500px] rounded-full bg-purple-500/10 blur-[100px] opacity-40" />
-                <div className="absolute bottom-0 -right-20 h-[300px] w-[300px] sm:h-[500px] sm:w-[500px] rounded-full bg-sky-500/10 blur-[100px] opacity-40" />
-            </div>
+            <AuditPopup
+                open={popupOpen}
+                onClose={() => setPopupOpen(false)}
+                initialUrl={popupUrl}
+            />
 
-            <div className="mx-auto max-w-6xl px-4 pt-24 pb-16">
-                <div className="mx-auto max-w-4xl text-center">
+            <section className="relative overflow-hidden">
+                <div className="absolute inset-0 -z-10 overflow-hidden">
+                    <div className="absolute left-1/2 top-0 h-[540px] w-[540px] -translate-x-1/2 rounded-full bg-emerald-500/15 blur-[130px]" />
+                    <div className="absolute -left-24 top-36 h-[360px] w-[360px] rounded-full bg-sky-500/10 blur-[110px]" />
+                    <div className="absolute -right-24 bottom-0 h-[360px] w-[360px] rounded-full bg-amber-400/10 blur-[110px]" />
+                </div>
 
-                    {/* User Type Toggle Pill */}
-                    <div className="flex justify-center mb-8">
-                        <div className="inline-flex items-center p-1 bg-muted/30 backdrop-blur-md border border-white/10 rounded-full shadow-lg">
-                            <button
-                                onClick={() => setUserType('dispensary')}
-                                className={`flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 ${userType === 'dispensary'
-                                    ? 'bg-emerald-600 text-white shadow-emerald-500/25 shadow-lg scale-105'
-                                    : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
-                                    }`}
-                            >
-                                <Store className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                                <span>For Dispensaries</span>
-                            </button>
-                            <button
-                                onClick={() => setUserType('brand')}
-                                className={`flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 ${userType === 'brand'
-                                    ? 'bg-purple-600 text-white shadow-purple-500/25 shadow-lg scale-105'
-                                    : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
-                                    }`}
-                            >
-                                <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                                <span>For Brands</span>
-                            </button>
+                <div className="mx-auto max-w-6xl px-4 pb-20 pt-24">
+                    <div className="mx-auto max-w-4xl text-center">
+                        <Badge variant="outline" className="bg-emerald-500/5 text-emerald-700 border-emerald-500/20">
+                            Managed revenue activation for dispensaries
+                        </Badge>
+
+                        <h1 className="mt-6 text-4xl font-bold tracking-tight sm:text-6xl md:text-7xl">
+                            Turn more first visits into{' '}
+                            <span className="bg-gradient-to-r from-emerald-500 to-teal-400 bg-clip-text text-transparent">
+                                repeat revenue.
+                            </span>
+                        </h1>
+
+                        <p className="mx-auto mt-6 max-w-3xl text-base leading-relaxed text-muted-foreground sm:text-lg md:text-xl">
+                            BakedBot helps dispensaries capture customer data, launch compliant welcome and retention
+                            flows, and turn more traffic into measurable repeat business.
+                        </p>
+
+                        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                            <Button asChild size="lg" className="h-12 rounded-xl px-7 text-base font-semibold">
+                                <a href="/book/martez">
+                                    Book a Strategy Call
+                                    <ArrowRight className="ml-2 h-4 w-4" />
+                                </a>
+                            </Button>
+                            <Button asChild size="lg" variant="outline" className="h-12 rounded-xl px-7 text-base font-semibold">
+                                <a href="/ai-retention-audit">Run the AI Retention Audit</a>
+                            </Button>
+                        </div>
+
+                        <div className="mt-10 rounded-3xl border border-white/10 bg-background/85 p-3 shadow-2xl backdrop-blur-xl">
+                            <form onSubmit={handleAuditSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                                <div className="flex flex-1 items-center gap-3 rounded-2xl border border-border/60 bg-muted/20 px-4 py-3">
+                                    <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                    <input
+                                        type="text"
+                                        placeholder="Enter your dispensary website to score capture and retention readiness"
+                                        className="w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-muted-foreground/70 sm:text-base"
+                                        value={auditUrl}
+                                        onChange={(e) => setAuditUrl(e.target.value)}
+                                    />
+                                </div>
+                                <Button type="submit" className="h-12 rounded-2xl px-6 text-sm font-semibold sm:text-base">
+                                    Score My Site
+                                </Button>
+                            </form>
+                            <p className="mt-3 text-xs text-muted-foreground">
+                                Free check: customer capture, welcome flow readiness, conversion friction, retention depth, and compliance trust.
+                            </p>
+                        </div>
+
+                        <div className="mt-10">
+                            <LiveStats />
                         </div>
                     </div>
-
-                    {/* Dynamic Hero Text */}
-                    <AnimatePresence mode='wait'>
-                        <motion.div
-                            key={userType}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            transition={{ duration: 0.3 }}
-                            className="space-y-6"
-                        >
-                            <Badge variant="outline" className="mb-4 max-w-[90vw] whitespace-normal text-center leading-snug bg-emerald-500/5 text-emerald-600 border-emerald-500/20 px-3 py-1.5 text-xs sm:text-sm sm:px-4 uppercase tracking-wide sm:tracking-wider backdrop-blur-sm">
-                                {userType === 'dispensary' ? 'AI Commerce OS for Dispensaries' : 'AI Growth OS for Cannabis Brands'}
-                            </Badge>
-
-                            <h1 className="text-[2rem] sm:text-6xl md:text-7xl font-bold tracking-tight text-foreground leading-[1.1]">
-                                {userType === 'dispensary' ? (
-                                    <>
-                                        Turn traffic into{' '}
-                                        <span className="block">
-                                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-400">
-                                                repeat revenue.
-                                            </span>
-                                        </span>
-                                    </>
-                                ) : (
-                                    <>
-                                        Grow retail sell-through{' '}
-                                        <span className="block">
-                                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-indigo-400">
-                                                with AI.
-                                            </span>
-                                        </span>
-                                    </>
-                                )}
-                            </h1>
-
-                            <p className="mt-6 text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-                                {userType === 'dispensary'
-                                    ? "Launch search-friendly menu pages, convert shoppers with Smokey, automate retention, and make smarter pricing and inventory decisions from one workspace."
-                                    : "Find new retail opportunities, power branded product discovery, launch compliant campaigns, and track market signals from one workspace."
-                                }
-                            </p>
-                        </motion.div>
-                    </AnimatePresence>
-
-                    {/* One-Click Audit Search Bar */}
-                    <div className="mt-10 mb-8 max-w-xl mx-auto relative group">
-                        <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500 to-purple-600 rounded-full blur opacity-30 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
-                        <form onSubmit={handleAuditSubmit} className="relative flex items-center bg-background/90 backdrop-blur-xl rounded-full p-1.5 sm:p-2 border border-white/10 shadow-2xl">
-                            <Search className="ml-3 sm:ml-4 w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground shrink-0" />
-                            <input
-                                type="text"
-                                placeholder={userType === 'dispensary' ? "Enter your dispensary name or website" : "Enter your brand name or website"}
-                                className="w-full min-w-0 bg-transparent border-none focus:ring-0 text-sm sm:text-base px-2 sm:px-4 py-2 sm:py-3 placeholder:text-muted-foreground/60"
-                                value={auditUrl}
-                                onChange={(e) => setAuditUrl(e.target.value)}
-                            />
-                            <Button size="sm" className="rounded-full px-4 sm:px-6 shrink-0 bg-foreground text-background hover:bg-foreground/90 transition-all font-semibold text-xs sm:text-sm">
-                                Run Audit
-                                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1.5" />
-                            </Button>
-                        </form>
-                    </div>
-
-                    <div className="mt-10 relative z-30">
-                        <LiveStats />
-                    </div>
                 </div>
-            </div>
-
-            {/* Scroll Indicator */}
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce opacity-40">
-                <div className="w-6 h-10 border-2 border-foreground rounded-full flex justify-center p-1">
-                    <div className="w-1 h-3 bg-foreground rounded-full"></div>
-                </div>
-            </div>
-        </section>
+            </section>
         </>
     );
 }

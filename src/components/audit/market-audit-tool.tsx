@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, ArrowRight, AlertTriangle, TrendingUp, Zap, CheckSquare } from 'lucide-react';
-import { runMarketAudit } from '@/server/actions/market-audit';
-import type { MarketAuditResult } from '@/server/actions/market-audit';
+import { runRetentionAudit } from '@/server/actions/market-audit';
+import type { RetentionAuditResult } from '@/server/actions/market-audit';
 import { DIMENSION_LABELS, ScoreBar } from '@/components/audit/audit-lead-flow';
 
 function SeverityBadge({ severity }: { severity: 'HIGH' | 'MEDIUM' | 'LOW' }) {
@@ -32,7 +32,7 @@ function GradeCircle({ grade, score }: { grade: string; score: number }) {
 export function MarketAuditTool() {
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<MarketAuditResult | null>(null);
+  const [result, setResult] = useState<RetentionAuditResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function handleAudit() {
@@ -41,7 +41,7 @@ export function MarketAuditTool() {
     setError(null);
     setResult(null);
 
-    const res = await runMarketAudit(url.trim());
+    const res = await runRetentionAudit(url.trim());
     if ('error' in res) {
       setError(res.error);
     } else {
@@ -55,9 +55,9 @@ export function MarketAuditTool() {
       {/* URL input */}
       <Card>
         <CardHeader>
-          <CardTitle>Marketing Audit</CardTitle>
+          <CardTitle>AI Retention Audit</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Enter any website URL for a full AI-powered marketing analysis — content, conversion, SEO, competitive positioning, and compliance.
+            Enter any dispensary URL for a retention-focused audit of customer capture, welcome readiness, conversion friction, retention depth, and compliance trust.
           </p>
         </CardHeader>
         <CardContent>
@@ -72,7 +72,7 @@ export function MarketAuditTool() {
             />
             <Button onClick={handleAudit} disabled={loading || !url.trim()}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
-              {loading ? 'Analyzing...' : 'Run Audit'}
+              {loading ? 'Analyzing...' : 'Run Retention Audit'}
             </Button>
           </div>
         </CardContent>

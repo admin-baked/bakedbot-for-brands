@@ -9,7 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { PUBLIC_PLANS, OVERAGES, ADDONS, PricingPlan } from "@/lib/config/pricing";
 
 export function PricingUI() {
-    // Display first 4 public plans: Signal, Convert, Retain, Optimize
+    // Display the first four public commercial plans: Free Check-In, Access Intel, Access Retention, Operator Core
     const displayPlans = PUBLIC_PLANS.slice(0, 4);
 
     return (
@@ -55,10 +55,10 @@ export function PricingUI() {
                                 </p>
                                 <div className="flex flex-col gap-3">
                                     <div className="flex items-center gap-2 text-sm text-slate-400">
-                                        <Check className="w-4 h-4 text-emerald-500" /> Pro includes 3 ZIPs
+                                        <Check className="w-4 h-4 text-emerald-500" /> Access Retention includes launch-ready capture workflows
                                     </div>
                                     <div className="flex items-center gap-2 text-sm text-slate-400">
-                                        <Check className="w-4 h-4 text-emerald-500" /> Growth includes 10 ZIPs
+                                        <Check className="w-4 h-4 text-emerald-500" /> Operator includes weekly reporting and KPI reviews
                                     </div>
                                     <div className="flex items-center gap-2 text-sm text-slate-400">
                                         <Sparkles className="w-4 h-4 text-yellow-400" /> Excess ZIPs from $10/mo (Pro) · $8/mo (Growth)
@@ -74,11 +74,11 @@ export function PricingUI() {
                                 <h4 className="font-semibold text-slate-200 mb-4 uppercase tracking-wider text-sm">Territory Expansion Packs</h4>
                                 <div className="space-y-4">
                                     <div className="flex justify-between items-center border-b border-slate-700 pb-3">
-                                        <span>Single ZIP (Pro)</span>
+                                        <span>Access add-on coverage</span>
                                         <span className="font-mono text-emerald-400">$10<span className="text-slate-500 text-xs">/mo</span></span>
                                     </div>
                                     <div className="flex justify-between items-center border-b border-slate-700 pb-3">
-                                        <span>Single ZIP (Growth)</span>
+                                        <span>Operator add-on coverage</span>
                                         <span className="font-mono text-emerald-400">$8<span className="text-slate-500 text-xs">/mo</span></span>
                                     </div>
                                      <div className="flex justify-between items-center border-b border-slate-700 pb-3">
@@ -104,15 +104,15 @@ export function PricingUI() {
                             </p>
                             <ul className="space-y-2 mb-6 text-sm">
                                 <li className="flex justify-between">
-                                    <span>Signal</span>
+                                    <span>Free Check-In</span>
                                     <span className="font-medium">0 / mo</span>
                                 </li>
                                 <li className="flex justify-between">
-                                    <span>Convert</span>
+                                    <span>Access Intel</span>
                                     <span className="font-medium">10 / mo</span>
                                 </li>
                                 <li className="flex justify-between">
-                                    <span>Retain+</span>
+                                    <span>Access Retention+</span>
                                     <span className="font-medium">50 / mo</span>
                                 </li>
                             </ul>

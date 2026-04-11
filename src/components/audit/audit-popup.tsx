@@ -85,7 +85,7 @@ export function AuditPopup({ open: controlledOpen, onClose, initialUrl, scrollTr
       className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
-      aria-label="Free Marketing Audit"
+      aria-label="AI Retention Audit"
     >
       {/* Backdrop */}
       <div

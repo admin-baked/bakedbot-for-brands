@@ -29,12 +29,16 @@ export function normalizePlanIdToTierId(planId: string | undefined | null): Tier
 
     const pricingPlan = findPricingPlan(lower);
     switch (pricingPlan?.id) {
+        case 'free':
+        case 'access_intel':
         case 'signal':
             return 'scout';
+        case 'access_retention':
+        case 'operator_core':
         case 'convert':
-            return 'pro';
         case 'retain':
             return 'growth';
+        case 'operator_growth':
         case 'optimize':
         case 'enterprise':
             return 'empire';

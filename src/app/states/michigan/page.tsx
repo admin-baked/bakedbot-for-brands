@@ -35,7 +35,7 @@ export default function MichiganStatePage() {
                                 <Link href="/get-started">Scale in Michigan</Link>
                             </Button>
                             <Button size="lg" variant="outline" asChild>
-                                <Link href="/free-audit">Get MI Market Scan</Link>
+                                <Link href="/ai-retention-audit">Run the AI Retention Audit</Link>
                             </Button>
                         </div>
                     </div>

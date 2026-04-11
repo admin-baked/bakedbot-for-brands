@@ -14,11 +14,36 @@ import Mailjet from 'node-mailjet';
 // Email type routing
 // ALL types → Amazon SES (primary, company + tenant wide default)
 // Fallbacks: Workspace (personal) · Mailjet (bulk) · Platform legacy
+// Orgs can override primary channel to 'workspace' (e.g. when SES domain DNS is pending)
 // ─────────────────────────────────────────────────────────────
 const BULK_TYPES = new Set(['campaign', 'winback', 'birthday', 'loyalty']);
 
 function isBulkEmail(type?: string): boolean {
     return BULK_TYPES.has(type ?? '');
+}
+
+// ─────────────────────────────────────────────────────────────
+// Per-org primary channel preference
+// ─────────────────────────────────────────────────────────────
+export type EmailPrimaryChannel = 'ses' | 'workspace';
+
+const orgChannelCache = new Map<string, { channel: EmailPrimaryChannel; expiry: number }>();
+
+async function getOrgPrimaryChannel(orgId: string): Promise<EmailPrimaryChannel> {
+    const cached = orgChannelCache.get(orgId);
+    if (cached && cached.expiry > Date.now()) return cached.channel;
+    try {
+        const firestore = getAdminFirestore();
+        const doc = await firestore
+            .collection('organizations').doc(orgId)
+            .collection('integrations').doc('email_preferences')
+            .get();
+        const channel = (doc.data()?.primaryChannel as EmailPrimaryChannel) || 'ses';
+        orgChannelCache.set(orgId, { channel, expiry: Date.now() + 120_000 });
+        return channel;
+    } catch {
+        return 'ses';
+    }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -338,10 +363,30 @@ export async function sendGenericEmail(data: GenericEmailData): Promise<{ succes
     }
 
     // ══════════════════════════════════════════════════════════════════
-    // PAID PLANS: SES primary, Workspace/Mailjet/Gmail as fallbacks
-    // SES = customer-facing (campaigns, welcome, receipts, loyalty)
-    // Workspace = internal-facing (competitive intel, staff digests)
+    // PAID PLANS: route based on org primary channel preference
+    // Default ('ses'): SES → Workspace → Mailjet → Platform
+    // Workspace-first: Workspace → SES → Mailjet → Platform
+    //   (used when org has Workspace connected but SES domain DNS is pending)
     // ══════════════════════════════════════════════════════════════════
+
+    const primaryChannel = data.orgId ? await getOrgPrimaryChannel(data.orgId) : 'ses';
+
+    // ── Workspace-first path (all email types, including bulk) ───────
+    if (primaryChannel === 'workspace' && data.orgId) {
+        try {
+            const wsConfig = await getOrgWorkspaceConfig(data.orgId);
+            if (wsConfig) {
+                result = await sendViaOrgWorkspace(data.orgId, wsConfig.sendAs, data);
+                if (result.success) {
+                    logCrm(result, data, 'google_workspace');
+                    return result;
+                }
+                logger.warn('[Dispatcher] Workspace-first failed, falling back to SES', { orgId: data.orgId });
+            }
+        } catch (e) {
+            logger.warn('[Dispatcher] Workspace-first lookup failed', { orgId: data.orgId, error: e });
+        }
+    }
 
     // ── Route 1: Amazon SES (customer-facing, primary) ───────────────
     if (process.env.AWS_SES_ACCESS_KEY_ID && process.env.AWS_SES_SECRET_ACCESS_KEY) {
@@ -364,8 +409,9 @@ export async function sendGenericEmail(data: GenericEmailData): Promise<{ succes
         }
     }
 
-    // ── Route 2: Org Google Workspace (internal notifications) ────────
-    if (data.orgId && !isBulkEmail(data.communicationType)) {
+    // ── Route 2: Org Google Workspace (default-channel fallback) ─────
+    if (data.orgId && primaryChannel !== 'workspace') {
+        // Only try Workspace here if we didn't already try it above
         try {
             const wsConfig = await getOrgWorkspaceConfig(data.orgId);
             if (wsConfig) {

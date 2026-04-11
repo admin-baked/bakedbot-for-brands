@@ -12,7 +12,7 @@ create table if not exists cannabis_science_qa (
   context text,                        -- source chunk from the paper
   source_pdf text,                     -- original PDF filename
   category text,                       -- curated: terpenes, effects, extraction, pharmacology, etc.
-  embedding vector(3072),               -- Gemini text-embedding-004 = 768 dims
+  embedding vector(768),               -- Gemini text-embedding-004 = 768 dims
   created_at timestamptz default now()
 );
 
@@ -24,7 +24,7 @@ create index if not exists cannabis_science_qa_embedding_idx
 
 -- 4. Create a search function that Smokey will call
 create or replace function search_cannabis_science(
-  query_embedding vector(3072),
+  query_embedding vector(768),
   match_count int default 5,
   match_threshold float default 0.5
 )

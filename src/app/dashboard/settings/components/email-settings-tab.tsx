@@ -40,6 +40,8 @@ import {
     initiateSesVerification,
     refreshSesVerification,
     disconnectSes,
+    getEmailChannelPreference,
+    setEmailChannelPreference,
 } from '@/server/actions/org-email-settings';
 import { getMyWarmupStatus } from '@/server/actions/email-warmup';
 import {
@@ -1000,6 +1002,184 @@ function SesDomainSection() {
 }
 
 // ─────────────────────────────────────────────────────────────
+// Primary channel selector
+// ─────────────────────────────────────────────────────────────
+
+function PrimaryChannelCard({ onChannelChange }: { onChannelChange?: (ch: 'ses' | 'workspace') => void }) {
+    const { toast } = useToast();
+    const [isPending, startTransition] = useTransition();
+    const [channel, setChannel] = useState<'ses' | 'workspace'>('ses');
+    const [wsConnected, setWsConnected] = useState(false);
+    const [wsSendAs, setWsSendAs] = useState('');
+    const [sesVerified, setSesVerified] = useState(false);
+    const [sesDomain, setSesDomain] = useState('');
+    const [sesFromEmail, setSesFromEmail] = useState('');
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        Promise.all([
+            getEmailChannelPreference(),
+            getWorkspaceStatus(),
+            getSesStatus(),
+        ]).then(([pref, ws, ses]) => {
+            setChannel(pref.primaryChannel);
+            setWsConnected(ws.connected);
+            setWsSendAs(ws.sendAs ?? '');
+            setSesVerified(ses.verificationStatus === 'Success' && ses.dkimStatus === 'Success');
+            setSesDomain(ses.domain ?? '');
+            setSesFromEmail(ses.fromEmail ?? '');
+            setIsLoading(false);
+        });
+    }, []);
+
+    const handleSwitch = (newChannel: 'ses' | 'workspace') => {
+        if (newChannel === channel) return;
+        startTransition(async () => {
+            const result = await setEmailChannelPreference(newChannel);
+            if (result.success) {
+                setChannel(newChannel);
+                onChannelChange?.(newChannel);
+                toast({
+                    title: `Primary channel switched to ${newChannel === 'workspace' ? 'Google Workspace' : 'Amazon SES'}`,
+                    description: newChannel === 'workspace'
+                        ? `All emails will send from ${wsSendAs}`
+                        : `All emails will send from ${sesFromEmail || 'your verified domain'}`,
+                });
+            } else {
+                toast({ variant: 'destructive', title: 'Failed to switch', description: result.error });
+            }
+        });
+    };
+
+    if (isLoading) return null;
+
+    const activeLabel = channel === 'workspace' ? 'Google Workspace' : 'Amazon SES (Custom Domain)';
+    const activeAddress = channel === 'workspace' ? wsSendAs : (sesFromEmail || 'Pending DNS verification');
+
+    return (
+        <Card className="border-2 border-primary/20">
+            <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
+                            <Send className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                            <CardTitle className="text-base">Primary Email Channel</CardTitle>
+                            <CardDescription>All outbound emails route through this channel first</CardDescription>
+                        </div>
+                    </div>
+                    <Badge className="bg-primary/10 text-primary border-primary/20">
+                        Active
+                    </Badge>
+                </div>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+                {/* Current active channel */}
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-emerald-50 border border-emerald-200">
+                    <Check className="h-5 w-5 text-emerald-600 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-emerald-900">{activeLabel}</p>
+                        <p className="text-xs text-emerald-700 truncate">Sending as: {activeAddress}</p>
+                    </div>
+                </div>
+
+                {/* Switch options */}
+                <div className="space-y-2">
+                    {/* Workspace option */}
+                    <button
+                        className={`w-full flex items-center gap-3 p-3 rounded-lg border text-left transition-colors ${
+                            channel === 'workspace'
+                                ? 'border-primary bg-primary/5'
+                                : wsConnected
+                                    ? 'border-border hover:border-primary/50 hover:bg-muted/50'
+                                    : 'border-border opacity-50 cursor-not-allowed'
+                        }`}
+                        onClick={() => wsConnected && handleSwitch('workspace')}
+                        disabled={!wsConnected || isPending}
+                    >
+                        <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                            channel === 'workspace' ? 'border-primary' : 'border-muted-foreground/40'
+                        }`}>
+                            {channel === 'workspace' && <div className="h-2 w-2 rounded-full bg-primary" />}
+                        </div>
+                        <Mail className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                        <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium">Google Workspace</p>
+                            <p className="text-xs text-muted-foreground">
+                                {wsConnected ? `Send as ${wsSendAs}` : 'Not connected — connect below'}
+                            </p>
+                        </div>
+                        {wsConnected && (
+                            <Badge variant="outline" className="text-xs flex-shrink-0">
+                                {channel === 'workspace' ? 'Active' : 'Available'}
+                            </Badge>
+                        )}
+                    </button>
+
+                    {/* SES option */}
+                    <button
+                        className={`w-full flex items-center gap-3 p-3 rounded-lg border text-left transition-colors ${
+                            channel === 'ses'
+                                ? 'border-primary bg-primary/5'
+                                : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                        }`}
+                        onClick={() => handleSwitch('ses')}
+                        disabled={isPending}
+                    >
+                        <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                            channel === 'ses' ? 'border-primary' : 'border-muted-foreground/40'
+                        }`}>
+                            {channel === 'ses' && <div className="h-2 w-2 rounded-full bg-primary" />}
+                        </div>
+                        <ShieldCheck className="h-4 w-4 text-orange-500 flex-shrink-0" />
+                        <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium">Amazon SES (Custom Domain)</p>
+                            <p className="text-xs text-muted-foreground">
+                                {sesVerified
+                                    ? `Send as ${sesFromEmail} — domain verified`
+                                    : sesDomain
+                                        ? `${sesDomain} — DNS verification pending`
+                                        : 'Configure your sending domain below'
+                                }
+                            </p>
+                        </div>
+                        <Badge variant="outline" className="text-xs flex-shrink-0">
+                            {sesVerified ? (channel === 'ses' ? 'Active' : 'Available') : 'Pending DNS'}
+                        </Badge>
+                    </button>
+                </div>
+
+                {/* Contextual callout */}
+                {channel === 'workspace' && !sesVerified && sesDomain && (
+                    <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 border border-blue-200 text-sm">
+                        <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                            <p className="font-medium text-blue-900">Using Workspace while DNS propagates</p>
+                            <p className="text-blue-700 text-xs mt-0.5">
+                                Your custom domain ({sesDomain}) is pending DNS verification.
+                                Once verified, switch to SES for higher deliverability and unlimited volume.
+                            </p>
+                        </div>
+                    </div>
+                )}
+
+                {channel === 'workspace' && (
+                    <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm">
+                        <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                        <p className="text-amber-800 text-xs">
+                            <strong>Google Workspace limit:</strong> 2,000 emails/day (Business Standard) or 500/day (Starter).
+                            For high-volume campaigns, switch to SES when your domain is verified.
+                        </p>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
+// ─────────────────────────────────────────────────────────────
 // Routing reference
 // ─────────────────────────────────────────────────────────────
 
@@ -1062,12 +1242,19 @@ export function EmailSettingsTab() {
             <div>
                 <h2 className="text-lg font-semibold">Email Channels</h2>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                    Amazon SES is your primary sender. Connect optional channels for fallback or free-tier volume.
+                    Choose your primary sending channel. When your custom domain DNS is ready, switch to SES for best deliverability.
                 </p>
             </div>
 
+            <PrimaryChannelCard />
+
+            <Separator />
+
+            <div>
+                <h3 className="text-sm font-semibold text-muted-foreground mb-3">Channel Configuration</h3>
+            </div>
+
             <WorkspaceSection />
-            {/* CloudflareDnsSection is self-contained — shows "connect" prompt if no zone found */}
             <CloudflareDnsSection />
 
             <Separator />

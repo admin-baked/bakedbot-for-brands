@@ -111,6 +111,16 @@ export default function OnboardingPage() {
   const selectedPlan = selectedPlanId ? findPricingPlan(selectedPlanId) : undefined;
   const selectedPlanLabel = selectedPlan?.name || selectedPlanId;
   const hasMcbaCampaignOffer = signupCreditGrantKey === MCBA_SIGNUP_GRANT_KEY;
+  const selectedPlanNeedsConsultation = selectedPlan?.salesMotion === 'consultative';
+
+  useEffect(() => {
+    if (!selectedPlanNeedsConsultation || !selectedPlan) return;
+    console.info('[OperatorCtaRouting]', {
+      planId: selectedPlan.id,
+      salesMotion: selectedPlan.salesMotion,
+      ctaHref: selectedPlan.ctaHref,
+    });
+  }, [selectedPlan, selectedPlanNeedsConsultation]);
 
   useEffect(() => {
     const roleParam = searchParams?.get('role');
@@ -740,6 +750,25 @@ export default function OnboardingPage() {
           </div>
         )}
 
+        {selectedPlanNeedsConsultation && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-5 space-y-3">
+            <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+              {selectedPlanLabel} is sold through a strategy call.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Operator and Enterprise plans include launch planning, weekly reporting, KPI reviews, and managed execution. Book Martez to scope the right fit before we create the account.
+            </p>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button asChild className="h-11">
+                <a href="/book/martez">Book Martez</a>
+              </Button>
+              <Button asChild variant="outline" className="h-11">
+                <a href="/pricing">Back to pricing</a>
+              </Button>
+            </div>
+          </div>
+        )}
+
         <form action={formAction} ref={formRef} className="flex flex-col gap-4">
           <input type="hidden" name="role" value={role || ''} />
           <input type="hidden" name="orgSubtype" value={orgSubtype || ''} />
@@ -760,14 +789,16 @@ export default function OnboardingPage() {
           <input type="hidden" name="primaryGoal" value={primaryGoal || ''} />
 
           {/* Intercepted Submit Button */}
-          <Button
-            className="w-full h-12 text-lg font-bold shadow-md hover:translate-y-[-2px] transition-transform"
-            onClick={attemptFinish}
-            disabled={!role}
-            type="button"
-          >
-            Complete Setup
-          </Button>
+          {!selectedPlanNeedsConsultation && (
+            <Button
+              className="w-full h-12 text-lg font-bold shadow-md hover:translate-y-[-2px] transition-transform"
+              onClick={attemptFinish}
+              disabled={!role}
+              type="button"
+            >
+              Complete Setup
+            </Button>
+          )}
         </form>
         {formState.error && (
           <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-md text-center">

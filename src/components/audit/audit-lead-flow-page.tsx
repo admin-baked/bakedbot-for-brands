@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Thin client wrapper used by the /free-audit server page.
+ * Thin client wrapper used by the /ai-retention-audit server page.
  * Passes server-read UTM params into AuditLeadFlow without making the page client-only.
  */
 

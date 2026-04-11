@@ -1,219 +1,178 @@
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Terminal, Zap, FileSpreadsheet, Scale, Lock, BarChart3, Mail, MessageSquare, RefreshCw } from "lucide-react";
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  ArrowRight,
+  BarChart3,
+  CheckCircle2,
+  ClipboardList,
+  Lock,
+  Mail,
+  QrCode,
+  Repeat2,
+  Shield,
+} from 'lucide-react';
 
-import { HeroClient } from "@/components/landing/hero-client";
-import { PricingClient } from "@/components/landing/pricing-client";
-import Logo from "@/components/logo";
-import { ScrollTriggeredAuditPopup } from "@/components/audit/audit-popup";
+import { HeroClient } from '@/components/landing/hero-client';
+import { PricingClient } from '@/components/landing/pricing-client';
+import Logo from '@/components/logo';
+import { ScrollTriggeredAuditPopup } from '@/components/audit/audit-popup';
 
 const nav = [
-  { label: "Product", href: "#product" },
-  { label: "Pricing", href: "#pricing" },
-  { label: "Proof", href: "#proof" },
-  { label: "Compliance", href: "#compliance" },
-  { label: "Blog", href: "/blog" },
+  { label: 'Wedge', href: '#wedge' },
+  { label: 'Proof', href: '#proof' },
+  { label: 'System', href: '#system' },
+  { label: 'Pricing', href: '#pricing' },
+  { label: 'Blog', href: '/blog' },
+];
+
+const wedge = [
+  {
+    icon: QrCode,
+    title: 'Capture more first-party customer data',
+    desc: 'Launch QR and check-in flows that turn anonymous store traffic into activated customer records.',
+  },
+  {
+    icon: Mail,
+    title: 'Turn first visits into second visits',
+    desc: 'Deploy welcome flows that move from first capture to proof of value quickly enough to support retention.',
+  },
+  {
+    icon: Repeat2,
+    title: 'Grow more repeat business',
+    desc: 'Standardize lifecycle playbooks, weekly reviews, and accountable execution instead of relying on ad hoc campaigns.',
+  },
+];
+
+const systemSteps = [
+  {
+    title: 'Capture',
+    desc: 'Welcome Check-In Flow + QR capture bring first-party data into the system.',
+  },
+  {
+    title: 'Activate',
+    desc: 'Welcome Email Playbook turns first visits into a measurable second-visit motion.',
+  },
+  {
+    title: 'Review',
+    desc: 'Weekly operator reporting keeps owners focused on customer capture, conversion, and repeat revenue.',
+  },
+  {
+    title: 'Improve',
+    desc: 'Retention playbooks, compliance review, and KPI packs tighten the loop without broad platform sprawl.',
+  },
+];
+
+const proofCards = [
+  {
+    title: 'Faster proof windows',
+    desc: 'Operator plans are sold with a 30-day launch target and a 45-60 day performance review instead of vague AI promises.',
+  },
+  {
+    title: 'Named operating cadence',
+    desc: 'Every premium account has a launch plan, weekly review, KPI pack, and a clear owner on the BakedBot side.',
+  },
+  {
+    title: 'Mission without ceiling',
+    desc: 'Access keeps social-equity-friendly entry points alive while Operator pricing supports the path to $1M ARR.',
+  },
 ];
 
 function AuthButtons() {
   return (
     <div className="flex gap-2">
-      <Button variant="ghost" asChild className="hidden sm:inline-flex rounded-xl" size="sm">
+      <Button variant="ghost" asChild className="hidden rounded-xl sm:inline-flex" size="sm">
         <a href="/signin">Login</a>
       </Button>
       <Button asChild className="rounded-xl shadow-sm" size="sm">
-        <a href="/get-started">Get Started</a>
+        <a href="/book/martez">Book Martez</a>
       </Button>
     </div>
   );
 }
 
-const outcomes = [
-  {
-    icon: Search,
-    title: "Get found on Google",
-    desc: "Headless, SEO-first menus and product pages built to rank and load fast.",
-  },
-  {
-    icon: Zap,
-    title: "Convert confused shoppers",
-    desc: "Smokey recommends the right products and routes customers to checkout-ready carts.",
-  },
-  {
-    icon: Scale,
-    title: "Grow without compliance chaos",
-    desc: "Deebo pre-checks marketing and on-site content with jurisdiction-aware guardrails.",
-  },
-];
-
-const engines = [
-  {
-    icon: Search,
-    name: "Attract",
-    blurb: "SEO menu pages, product discovery, local visibility, competitive awareness.",
-    bullets: [
-      "SEO-first menu pages",
-      "Local market visibility",
-      "Competitive awareness",
-      "Product discovery surfaces",
-    ],
-    poweredBy: "Powered by Ezal + Pops",
-  },
-  {
-    icon: Zap,
-    name: "Convert",
-    blurb: "Smokey AI budtender, bundles, upsells, real-time inventory, merchandising.",
-    bullets: [
-      "Smokey AI budtender",
-      "Real-time inventory sync",
-      "Bundles & upsells",
-      "Product merchandising",
-    ],
-    poweredBy: "Powered by Smokey",
-  },
-  {
-    icon: Mail,
-    name: "Retain",
-    blurb: "Playbooks, campaigns, loyalty, segmentation, QR capture, CRM workflows.",
-    bullets: [
-      "Campaign automation",
-      "Loyalty programs",
-      "CRM segmentation",
-      "QR sign-up capture",
-    ],
-    poweredBy: "Powered by Craig + Mrs. Parker",
-  },
-  {
-    icon: BarChart3,
-    name: "Optimize",
-    blurb: "Pricing, analytics, profitability, market research, compliance.",
-    bullets: [
-      "Profitability dashboards",
-      "Competitor price alerts",
-      "Pricing recommendations",
-      "Compliance enforcement",
-    ],
-    poweredBy: "Powered by Money Mike + Deebo",
-  },
-];
-
-const proof = [
-  {
-    name: "Ultra Cannabis (Detroit)",
-    result: "3X visibility, 50+ orders in 90 days, 85% automation",
-  },
-  {
-    name: "Zaza Factory",
-    result: "60% email open boost, 30% repeat purchase increase, 25% cost reduction",
-  },
-  {
-    name: "40 Tons Brand",
-    result: "Strategic partnership + social equity network expansion",
-  },
-];
-
 export function BakedBotHome() {
   const year = new Date().getFullYear();
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-background text-foreground font-sans selection:bg-emerald-500/30">
+    <div className="min-h-screen overflow-x-hidden bg-background text-foreground selection:bg-emerald-500/30">
       <ScrollTriggeredAuditPopup />
-      <header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-xl">
+
+      <header className="sticky top-0 z-50 border-b border-border/40 bg-background/85 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
             <Logo height={32} />
-            <Badge variant="outline" className="ml-2 hidden sm:inline-flex border-emerald-500/20 text-emerald-600 bg-emerald-500/5">Beta</Badge>
+            <Badge variant="outline" className="hidden bg-emerald-500/5 text-emerald-600 border-emerald-500/20 sm:inline-flex">
+              Operator Wedge
+            </Badge>
           </div>
 
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
-            {nav.map((n) => (
-              <a key={n.href} href={n.href} className="hover:text-foreground transition-colors hover:scale-105 transform duration-200">
-                {n.label}
+          <nav className="hidden items-center gap-8 text-sm font-medium text-muted-foreground md:flex">
+            {nav.map((item) => (
+              <a key={item.href} href={item.href} className="transition-colors hover:text-foreground">
+                {item.label}
               </a>
             ))}
           </nav>
 
-          <div className="flex items-center gap-2">
-            <AuthButtons />
-          </div>
+          <AuthButtons />
         </div>
       </header>
 
       <HeroClient />
 
-      <section id="product" className="mx-auto max-w-6xl px-4 py-20 relative">
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12">
-          <div className="space-y-4 max-w-2xl">
-            <Badge variant="outline" className="w-fit bg-blue-500/10 text-blue-600 border-blue-500/20">AI Operating System</Badge>
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">One platform. Four jobs.</h2>
-            <p className="text-lg text-muted-foreground leading-relaxed">
-              BakedBot helps cannabis operators win at the four jobs that matter most: get found, convert shoppers, retain buyers, and optimize the business.
+      <section id="wedge" className="mx-auto max-w-6xl px-4 py-20">
+        <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div className="max-w-2xl space-y-4">
+            <Badge variant="outline" className="bg-blue-500/10 text-blue-700 border-blue-500/20">
+              The Wedge
+            </Badge>
+            <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
+              BakedBot wins by owning one sharp revenue loop first.
+            </h2>
+            <p className="text-lg text-muted-foreground">
+              We are not leading with a broad AI-commerce stack. We are leading with customer capture,
+              welcome activation, and repeat revenue for dispensaries that already have traffic but weak follow-up.
             </p>
           </div>
-          <div className="flex gap-3">
-            <Button variant="outline" asChild className="rounded-xl h-11 px-6">
-              <a href="#pricing">View Pricing</a>
-            </Button>
-            <Button asChild className="rounded-xl h-11 px-6 shadow-lg shadow-primary/20">
-              <a href="/free-audit">Get a Free Audit</a>
-            </Button>
-          </div>
+          <Button asChild variant="outline" className="h-11 rounded-xl px-6">
+            <a href="/ai-retention-audit">Run the AI Retention Audit</a>
+          </Button>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {engines.map((m) => {
-            const Icon = m.icon;
-            return (
-              <Card key={m.name} className="glass-card hover:border-primary/20 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group flex flex-col">
-                <CardHeader>
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="p-2.5 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
-                      <Icon size={20} />
-                    </div>
-                    <CardTitle className="text-lg font-bold">{m.name}</CardTitle>
-                  </div>
-                  <CardDescription className="text-base leading-relaxed">{m.blurb}</CardDescription>
-                </CardHeader>
-                <CardContent className="flex-1 flex flex-col justify-between">
-                  <ul className="space-y-3 text-sm mb-4">
-                    {m.bullets.map((b) => (
-                      <li key={b} className="flex gap-3 items-center text-muted-foreground">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/50" />
-                        <span>{b}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="text-xs text-muted-foreground/60 font-medium">{m.poweredBy}</p>
-                </CardContent>
-              </Card>
-            );
-          })}
+        <div className="grid gap-6 md:grid-cols-3">
+          {wedge.map((item) => (
+            <Card key={item.title} className="border-border/60 shadow-sm">
+              <CardHeader>
+                <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600">
+                  <item.icon className="h-5 w-5" />
+                </div>
+                <CardTitle>{item.title}</CardTitle>
+                <CardDescription>{item.desc}</CardDescription>
+              </CardHeader>
+            </Card>
+          ))}
         </div>
       </section>
 
-      <section id="proof" className="bg-muted/30 border-y border-border/50 py-24 relative overflow-hidden">
-        <div className="absolute inset-0 bg-grid-black/[0.02] dark:bg-grid-white/[0.02]" />
-        <div className="mx-auto max-w-6xl px-4 relative z-10">
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12">
-            <div className="space-y-4">
-              <Badge variant="outline" className="w-fit bg-purple-500/10 text-purple-600 border-purple-500/20">Case Studies</Badge>
-              <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Built to move real business metrics</h2>
-              <p className="text-lg text-muted-foreground max-w-2xl leading-relaxed">
-                From search visibility and first orders to repeat purchase rate and margin insight, BakedBot is designed to improve the numbers operators actually care about.
-              </p>
-            </div>
-            <Button variant="outline" asChild className="rounded-xl">
-              <a href="/case-studies">See case studies</a>
-            </Button>
+      <section id="proof" className="border-y border-border/50 bg-muted/20 py-20">
+        <div className="mx-auto max-w-6xl px-4">
+          <div className="mb-10 max-w-3xl space-y-4">
+            <Badge variant="outline" className="bg-amber-500/10 text-amber-700 border-amber-500/20">
+              Proof
+            </Badge>
+            <h2 className="text-3xl font-bold tracking-tight md:text-4xl">Sell proof, not possibility.</h2>
+            <p className="text-lg text-muted-foreground">
+              The premium offer has to feel like accountable execution with a launch plan, KPI pack, and a visible proof window.
+            </p>
           </div>
 
           <div className="grid gap-6 md:grid-cols-3">
-            {proof.map((p) => (
-              <Card key={p.name} className="glass-card bg-background/50 hover:bg-background/80 transition-all duration-300">
+            {proofCards.map((item) => (
+              <Card key={item.title} className="border-border/60 bg-background/85 shadow-sm">
                 <CardHeader>
-                  <CardTitle className="text-xl font-bold">{p.name}</CardTitle>
-                  <CardDescription className="text-base mt-2 text-foreground/80 font-medium">{p.result}</CardDescription>
+                  <CardTitle className="text-xl">{item.title}</CardTitle>
+                  <CardDescription>{item.desc}</CardDescription>
                 </CardHeader>
               </Card>
             ))}
@@ -221,112 +180,168 @@ export function BakedBotHome() {
         </div>
       </section>
 
-      <section id="compliance" className="mx-auto max-w-6xl px-4 py-24">
-        <div className="grid gap-12 lg:grid-cols-2 items-center">
-          <div className="space-y-6">
-            <Badge variant="outline" className="w-fit bg-red-500/10 text-red-600 border-red-500/20">Safety First</Badge>
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight leading-tight">Compliance isn't a feature.<br />It's the foundation.</h2>
-            <p className="text-lg text-muted-foreground leading-relaxed">
-              Deebo is our compliance engine. It pre-checks on-site content and outbound messaging against jurisdiction-aware
-              rules, then records what happened for auditability.
+      <section id="system" className="mx-auto max-w-6xl px-4 py-20">
+        <div className="grid gap-10 lg:grid-cols-[1.1fr,0.9fr]">
+          <div className="space-y-5">
+            <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 border-emerald-500/20">
+              How It Works
+            </Badge>
+            <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
+              A managed revenue activation system, not a feature bundle.
+            </h2>
+            <p className="text-lg text-muted-foreground">
+              Operator plans combine software, launch support, reporting, compliance review, and weekly operating cadence so dispensaries do not have to stitch the loop together alone.
             </p>
-            <p className="text-lg text-muted-foreground leading-relaxed">
-              Deebo protects every engine in BakedBot — commerce, campaigns, loyalty, and reporting workflows.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              {['Pre-flight checks', 'Audit trails', 'Jurisdiction rule packs', 'Approvals & controls'].map(tag => (
-                <Badge key={tag} variant="secondary" className="px-3 py-1 text-sm bg-muted/50 hover:bg-muted text-foreground/80 border border-border/50">
-                  {tag}
-                </Badge>
+
+            <div className="space-y-4">
+              {systemSteps.map((step, index) => (
+                <div key={step.title} className="flex gap-4 rounded-2xl border border-border/60 bg-muted/20 p-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-foreground text-background">
+                    {index + 1}
+                  </div>
+                  <div>
+                    <p className="font-semibold">{step.title}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{step.desc}</p>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
 
-          <Card className="glass-card bg-gradient-to-br from-card to-muted/20 border-border/60">
+          <Card className="border-border/60 bg-slate-950 text-white shadow-xl shadow-slate-950/10">
             <CardHeader>
-              <CardTitle className="text-xl font-bold flex items-center gap-2">
-                <Lock className="w-5 h-5 text-emerald-600" />
-                What Deebo checks
+              <CardTitle className="flex items-center gap-2">
+                <ClipboardList className="h-5 w-5 text-emerald-300" />
+                Operator Commitments
               </CardTitle>
-              <CardDescription>Examples of guardrails blocking risks before they happen.</CardDescription>
+              <CardDescription className="text-slate-300">
+                Every premium offer carries a named owner, launch plan, weekly review cadence, and 30-60 day proof model.
+              </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div className="flex gap-4 group">
-                  <div className="p-3 rounded-xl bg-background border border-border/50 shadow-sm group-hover:border-emerald-500/30 transition-colors">
-                    <Terminal className="w-5 h-5 text-muted-foreground group-hover:text-emerald-600" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-foreground">Web + Menus</div>
-                    <div className="text-sm text-muted-foreground mt-1">
-                      Age gating patterns, restricted claims, required disclaimers.
-                    </div>
-                  </div>
+            <CardContent className="space-y-4">
+              {[
+                'Launch within 30 days',
+                'Weekly operator reporting',
+                'Monthly optimization review',
+                'Defined KPI pack for every account',
+                'Compliance review on outbound workflows',
+              ].map((item) => (
+                <div key={item} className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-4">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
+                  <p className="text-sm text-slate-100">{item}</p>
                 </div>
-                <div className="flex gap-4 group">
-                  <div className="p-3 rounded-xl bg-background border border-border/50 shadow-sm group-hover:border-emerald-500/30 transition-colors">
-                    <MessageSquare className="w-5 h-5 text-muted-foreground group-hover:text-emerald-600" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-foreground">Email + SMS</div>
-                    <div className="text-sm text-muted-foreground mt-1">
-                      Channel rules, consent language, prohibited phrasing ("Free", "Guaranteed", etc).
-                    </div>
-                  </div>
-                </div>
-                <div className="flex gap-4 group">
-                  <div className="p-3 rounded-xl bg-background border border-border/50 shadow-sm group-hover:border-emerald-500/30 transition-colors">
-                    <FileSpreadsheet className="w-5 h-5 text-muted-foreground group-hover:text-emerald-600" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-foreground">Audit Trail</div>
-                    <div className="text-sm text-muted-foreground mt-1">
-                      Immutable log of what was checked, which rules applied, and why.
-                    </div>
-                  </div>
-                </div>
-              </div>
+              ))}
             </CardContent>
           </Card>
         </div>
       </section>
 
-      <section id="pricing" className="bg-muted/20 border-y border-border/50 py-24">
+      <section id="compliance" className="border-y border-border/50 bg-muted/20 py-20">
         <div className="mx-auto max-w-6xl px-4">
-          <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-            <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">Transparent Pricing</Badge>
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Choose the business problem you want solved first.</h2>
-            <p className="text-lg text-muted-foreground leading-relaxed">
-              Start with Check-In, Competitive Intelligence, or Creative Center, then expand into retention and optimization once BakedBot proves ROI.
-            </p>
-          </div>
+          <div className="grid gap-8 lg:grid-cols-[1fr,1.1fr] lg:items-center">
+            <div className="space-y-4">
+              <Badge variant="outline" className="bg-red-500/10 text-red-700 border-red-500/20">
+                Compliance & Trust
+              </Badge>
+              <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
+                Compliance is part of the revenue system.
+              </h2>
+              <p className="text-lg text-muted-foreground">
+                Deebo reviews outbound workflows, welcome motions, and retention playbooks so the system can move quickly without becoming reckless.
+              </p>
+            </div>
 
-          <PricingClient />
+            <div className="grid gap-4 md:grid-cols-3">
+              <Card className="border-border/60">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Shield className="h-4 w-4 text-emerald-600" />
+                    Review
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">
+                  Compliance checks stay attached to the workflows that drive capture, welcome, and retention.
+                </CardContent>
+              </Card>
+              <Card className="border-border/60">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <BarChart3 className="h-4 w-4 text-emerald-600" />
+                    Reporting
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">
+                  Weekly reports keep operator teams focused on measurable lift instead of feature activity.
+                </CardContent>
+              </Card>
+              <Card className="border-border/60">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Lock className="h-4 w-4 text-emerald-600" />
+                    Auditability
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">
+                  The execution layer stays traceable, accountable, and easier to defend in a regulated market.
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-4xl px-4 py-24 text-center">
-        <p className="text-sm text-muted-foreground uppercase tracking-widest font-medium mb-4">Not sure which plan fits?</p>
-        <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-          Give Smokey a URL and watch the team go to work.
-        </h2>
-        <p className="text-lg text-muted-foreground mb-8">No login required.</p>
-        <Button asChild size="lg" className="rounded-xl h-12 px-8 text-base font-semibold shadow-lg shadow-primary/20">
-          <a href="/get-started">Try the Live Demo →</a>
-        </Button>
+      <section id="pricing" className="mx-auto max-w-6xl px-4 py-20">
+        <div className="mx-auto mb-12 max-w-3xl text-center">
+          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 border-emerald-500/20">
+            Access vs Operator
+          </Badge>
+          <h2 className="mt-4 text-3xl font-bold tracking-tight md:text-4xl">
+            Access builds trust. Operator builds the company.
+          </h2>
+          <p className="mt-4 text-lg text-muted-foreground">
+            Keep self-serve and mission-aligned entry points visible, but sell the premium lane as managed revenue activation with accountable execution.
+          </p>
+        </div>
+
+        <PricingClient />
       </section>
 
-      <footer className="border-t border-border/40 py-12 bg-background/50 backdrop-blur-sm">
-        <div className="mx-auto max-w-6xl px-4 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-2">
-            <Logo height={28} />
-            <span className="text-sm text-muted-foreground">Copyright {year} BakedBot AI</span>
+      <section className="mx-auto max-w-4xl px-4 py-20 text-center">
+        <Badge variant="outline" className="bg-slate-900 text-white border-slate-900">
+          CTA Paths
+        </Badge>
+        <h2 className="mt-4 text-3xl font-bold tracking-tight md:text-4xl">
+          Start with proof or book the operating layer.
+        </h2>
+        <p className="mt-4 text-lg text-muted-foreground">
+          Use the audit if you need to prove the wedge. Book Martez if you already know the real issue is weak capture, weak welcome, and weak follow-up.
+        </p>
+        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <Button asChild size="lg" className="h-12 rounded-xl px-8 text-base font-semibold">
+            <a href="/ai-retention-audit">Run the AI Retention Audit</a>
+          </Button>
+          <Button asChild size="lg" variant="outline" className="h-12 rounded-xl px-8 text-base font-semibold">
+            <a href="/book/martez">
+              Book a Strategy Call
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </a>
+          </Button>
+        </div>
+      </section>
+
+      <footer className="border-t border-border/40 bg-background/50 py-12 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 px-4 md:flex-row">
+          <div>
+            <p className="font-semibold">BakedBot AI</p>
+            <p className="text-sm text-muted-foreground">Access builds trust. Operator builds the company.</p>
           </div>
-          <div className="flex gap-6 text-sm text-muted-foreground">
-            <a href="/privacy" className="hover:text-foreground transition-colors">Privacy</a>
-            <a href="/terms" className="hover:text-foreground transition-colors">Terms</a>
-            <a href="/status" className="hover:text-foreground transition-colors">System Status</a>
+          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+            <a href="/pricing" className="hover:text-foreground">Pricing</a>
+            <a href="/ai-retention-audit" className="hover:text-foreground">AI Retention Audit</a>
+            <a href="/book/martez" className="hover:text-foreground">Book Martez</a>
+            <a href="/blog" className="hover:text-foreground">Blog</a>
           </div>
+          <p className="text-sm text-muted-foreground">© {year} BakedBot AI</p>
         </div>
       </footer>
     </div>

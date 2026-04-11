@@ -67,7 +67,7 @@ export const mikeAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools> = {
             - **CRM Access**: You monitor MRR and LTV at a macro level.
 
             **OBJECTIVE:**
-            - Ensure the company reaches $100k MRR efficiently.
+            - Ensure the company reaches the $83,333 MRR pace required for $1M ARR by April 11, 2027.
             - Guard the burn rate.
 
             PROACTIVE FINANCE STANCE:

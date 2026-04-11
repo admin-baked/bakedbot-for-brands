@@ -6,14 +6,14 @@ import { PROMO_CODES } from '@/config/promos';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-    title: 'Pricing | BakedBot AI — Cannabis Commerce OS',
+    title: 'Pricing | BakedBot AI',
     description:
-        'Free listings. Paid plans from $149/mo. AI-powered SEO menus, campaigns, loyalty, competitive intel, and compliance for cannabis brands and dispensaries.',
+        'Access plans for proof and adoption. Operator plans for managed customer capture, welcome activation, retention, and weekly reporting.',
     alternates: { canonical: 'https://bakedbot.ai/pricing' },
     openGraph: {
         title: 'Pricing | BakedBot AI',
         description:
-            'From free visitor check-in to full AI-powered commerce. Plans for every stage of cannabis growth.',
+            'Access builds trust. Operator builds the company.',
         type: 'website',
         url: 'https://bakedbot.ai/pricing',
     },
@@ -48,10 +48,10 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
                 {/* Single hero — PricingSection owns the h2, this is the page h1 */}
                 <div className="container mx-auto px-4 pt-12 pb-4 text-center">
                     <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
-                        Plans that grow with your business
+                        Pricing built around proof and repeat revenue
                     </h1>
                     <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                        Free listings for every brand. Paid plans unlock AI agents, campaigns, and competitive intel.
+                        Access gives operators a low-friction entry point. Operator gives serious dispensaries a managed revenue activation system with launch support, KPI reviews, and weekly reporting.
                     </p>
                 </div>
 
@@ -62,20 +62,20 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
                     <div className="max-w-2xl mx-auto text-center">
                         <h2 className="text-2xl font-bold mb-4">Ready to Get Started?</h2>
                         <p className="text-muted-foreground mb-8">
-                            Start free — no credit card required. Upgrade anytime as you grow.
+                            Start with proof if you need it. Book a strategy call if you already know you need accountable execution.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-3 justify-center">
                             <Link
                                 href={`/onboarding?plan=free${promoCode ? `&promo=${promoCode}` : ''}`}
                                 className="inline-flex items-center justify-center h-12 px-8 rounded-full bg-slate-900 text-white font-medium hover:bg-slate-800 transition-colors"
                             >
-                                Start Free
+                                Start Free Check-In
                             </Link>
                             <Link
-                                href={`/onboarding?plan=retain${promoCode ? `&promo=${promoCode}` : ''}`}
+                                href="/book/martez"
                                 className="inline-flex items-center justify-center h-12 px-8 rounded-full border border-slate-300 font-medium hover:bg-slate-50 transition-colors"
                             >
-                                Start Retain — $799/mo
+                                Book Operator Strategy Call
                             </Link>
                         </div>
                     </div>
@@ -86,14 +86,14 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
                      <div className="container mx-auto px-4 text-center">
                         <h2 className="text-3xl font-bold mb-6 tracking-tight">Enterprise & MSO Plans</h2>
                         <p className="text-slate-400 max-w-2xl mx-auto mb-8">
-                            Multi-state operators, complex integrations, white-label, and custom governance.
-                            Dedicated strategy and infrastructure for teams processing $5M+/yr.
+                            Multi-state operators, partner networks, white-label relationships, and governance-heavy rollouts.
+                            Enterprise begins as a consultative Operator motion, not a self-serve comparison tier.
                         </p>
                         <Link
-                            href="/contact"
+                            href="/book/martez"
                             className="inline-flex items-center justify-center h-12 px-8 rounded-full bg-white text-slate-900 font-medium hover:bg-slate-100 transition-colors"
                         >
-                            Contact Sales
+                            Book Martez
                         </Link>
                      </div>
                 </div>

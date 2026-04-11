@@ -149,7 +149,7 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
   async orient(brandMemory, agentMemory, stimulus) {
     if (stimulus && typeof stimulus === 'string') return 'user_request';
 
-    // Strategy: Check if the $100k MRR objective needs an update
+    // Strategy: Check if the active MRR objective needs an update
     if (agentMemory.objectives && Array.isArray(agentMemory.objectives)) {
         const mrrObjective = agentMemory.objectives.find((o: any) => o.description.includes('MRR') || o.id === 'mrr_goal');
         if (mrrObjective && mrrObjective.status === 'active') {
@@ -394,9 +394,9 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
             updatedMemory: agentMemory,
             logEntry: {
                 action: 'monitor_growth',
-                result: "Currently monitoring the path to $100k MRR. Aligning Jack (CRO) and Glenda (CMO) on the National Discovery Layer push.",
+                result: "Currently monitoring the path to the $83,333 MRR target pace. Aligning Jack (CRO) and Glenda (CMO) on pipeline generation, proof of value, and operator offer momentum.",
                 next_step: 'await_data',
-                metadata: { objective: '100k_mrr' }
+                metadata: { objective: '83333_mrr_pace' }
             }
         };
     }
