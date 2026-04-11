@@ -401,3 +401,254 @@ export function formatPriceIndex(results: PriceIndexRow[]): string {
     .map(r => `${r.snapshot_week} | ${r.subcategory}: $${r.avg_price?.toFixed(2) ?? '?'} avg (${r.avg_discount_pct?.toFixed(1) ?? '0'}% disc) | ${r.product_count ?? '?'} products${r.index_value ? ` | Index: ${r.index_value}` : ''}`)
     .join('\n');
 }
+
+// ============================================================================
+// SALES CONVERSATIONS — 3,412 multi-turn sales dialogues for agent behavior
+// ============================================================================
+
+interface SalesConversationResult {
+  conversation: string;
+  turn_count: number;
+  summary: string;
+  similarity: number;
+}
+
+export const salesConversationsToolDef = {
+  name: 'searchSalesConversations',
+  description:
+    'Search 3,400+ multi-turn sales dialogues for behavioral examples. Find conversations demonstrating upsell patterns, objection handling, closing techniques, product recommendations, and rapport building. Use this to learn from real sales scenarios before engaging a customer.',
+  schema: z.object({
+    query: z
+      .string()
+      .describe(
+        'Natural language description of the sales scenario, e.g. "customer hesitant about price" or "upselling premium product" or "closing a reluctant buyer"'
+      ),
+    limit: z
+      .number()
+      .optional()
+      .describe('Number of example conversations to return (default 3, max 5)'),
+  }),
+};
+
+export async function searchSalesConversations(
+  query: string,
+  limit: number = 3
+): Promise<SalesConversationResult[]> {
+  const maxResults = Math.min(limit, 5);
+
+  try {
+    const embedding = await embedQuery(query);
+
+    const { data, error } = await getSupabase().rpc('search_sales_conversations', {
+      query_embedding: JSON.stringify(embedding),
+      match_count: maxResults,
+      match_threshold: 0.4,
+    });
+
+    if (error) {
+      logger.error('[SalesConversations] Search failed:', { error: error.message });
+      return [];
+    }
+
+    return ((data || []) as SalesConversationResult[]).map((r) => ({
+      conversation: r.conversation,
+      turn_count: r.turn_count,
+      summary: r.summary,
+      similarity: Math.round(r.similarity * 100) / 100,
+    }));
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error('[SalesConversations] Search error:', { error: msg });
+    return [];
+  }
+}
+
+export function formatSalesConversations(results: SalesConversationResult[]): string {
+  if (results.length === 0) return 'No matching sales conversations found.';
+
+  return results
+    .map(
+      (r, i) =>
+        `[${i + 1}] (${r.turn_count} turns, ${Math.round(r.similarity * 100)}% match)\n${r.summary}\n---\n${r.conversation}`
+    )
+    .join('\n\n');
+}
+
+// ============================================================================
+// B2B SALES CONVERSATIONS — 50K+ SaaS sales dialogues with conversion labels
+// ============================================================================
+
+export interface B2BSalesConversationResult {
+  conversation_id: string | null;
+  company_name: string | null;
+  product_name: string | null;
+  product_type: string | null;
+  scenario: string | null;
+  conversation: string;
+  outcome: number; // 0 = no conversion, 1 = converted
+  conversation_length: number | null;
+  customer_engagement: number | null;
+  sales_effectiveness: number | null;
+  conversation_style: string | null;
+  conversation_flow: string | null;
+  communication_channel: string | null;
+  similarity: number;
+}
+
+export const b2bSalesToolDef = {
+  name: 'searchB2BSalesConversations',
+  description:
+    'Search 50K+ real B2B SaaS sales conversations with conversion outcomes. Find examples of successful outreach, objection handling, follow-up cadence, lead qualification, and closing techniques. Use this when planning outreach strategy, drafting sales emails, or analyzing what works in B2B cannabis brand partnerships.',
+  schema: z.object({
+    query: z
+      .string()
+      .describe(
+        'Natural language query about sales patterns, e.g. "handling price objections in enterprise deals" or "successful cold outreach for SaaS products" or "follow-up sequence that converted"'
+      ),
+    outcome: z
+      .number()
+      .optional()
+      .describe('Filter by outcome: 1 = converted deals only, 0 = lost deals only'),
+    limit: z
+      .number()
+      .optional()
+      .describe('Number of results to return (default 3, max 5)'),
+  }),
+};
+
+export async function searchB2BSalesConversations(
+  query: string,
+  outcome?: number,
+  limit: number = 3
+): Promise<B2BSalesConversationResult[]> {
+  const maxResults = Math.min(limit, 5);
+
+  try {
+    const embedding = await embedQuery(query);
+
+    const { data, error } = await getSupabase().rpc('search_b2b_sales_conversations', {
+      query_embedding: JSON.stringify(embedding),
+      match_count: outcome != null ? maxResults * 2 : maxResults,
+      match_threshold: 0.4,
+    });
+
+    if (error) {
+      logger.error('[B2BSales] Search failed:', { error: error.message });
+      return [];
+    }
+
+    let results = (data || []) as B2BSalesConversationResult[];
+
+    // Apply outcome filter if specified
+    if (outcome != null) {
+      results = results.filter((r) => r.outcome === outcome);
+    }
+
+    return results.slice(0, maxResults).map((r) => ({
+      conversation_id: r.conversation_id,
+      company_name: r.company_name,
+      product_name: r.product_name,
+      product_type: r.product_type,
+      scenario: r.scenario,
+      conversation: r.conversation,
+      outcome: r.outcome,
+      conversation_length: r.conversation_length,
+      customer_engagement: r.customer_engagement,
+      sales_effectiveness: r.sales_effectiveness,
+      conversation_style: r.conversation_style,
+      conversation_flow: r.conversation_flow,
+      communication_channel: r.communication_channel,
+      similarity: Math.round(r.similarity * 100) / 100,
+    }));
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error('[B2BSales] Search error:', { error: msg });
+    return [];
+  }
+}
+
+export function formatB2BSalesConversations(results: B2BSalesConversationResult[]): string {
+  if (results.length === 0) return 'No matching B2B sales conversations found.';
+
+  return results
+    .map(
+      (r, i) =>
+        `[${i + 1}] ${r.outcome === 1 ? 'CONVERTED' : 'LOST'} (${Math.round(r.similarity * 100)}% match)\n` +
+        `  Company: ${r.company_name || 'Unknown'} | Product: ${r.product_name || r.product_type || 'Unknown'}\n` +
+        `  Style: ${r.conversation_style || '?'} | Channel: ${r.communication_channel || '?'} | Turns: ${r.conversation_length || '?'}\n` +
+        `  Engagement: ${r.customer_engagement?.toFixed(2) ?? '?'} | Effectiveness: ${r.sales_effectiveness?.toFixed(2) ?? '?'}\n` +
+        `  Scenario: ${r.scenario || 'N/A'}\n` +
+        `  Conversation:\n${(r.conversation || '').slice(0, 500)}${(r.conversation || '').length > 500 ? '...' : ''}`
+    )
+    .join('\n\n');
+}
+
+// ============================================================================
+// BUDTENDER CONVERSATIONS — Few-shot conversation style examples (3,600 Q&A)
+// ============================================================================
+
+interface BudtenderConversationResult {
+  prompt: string;
+  completion: string;
+  similarity: number;
+}
+
+export const budtenderConversationsToolDef = {
+  name: 'searchBudtenderConversations',
+  description:
+    'Search 3,600 budtender training conversations for few-shot examples of how an expert budtender responds to customers. Use this to match conversation style, tone, and approach when answering customer questions about strains, effects, appearance, flavors, medical uses, terpenes, and cannabis knowledge. Returns similar Q&A pairs to guide your response.',
+  schema: z.object({
+    query: z
+      .string()
+      .describe(
+        'The customer question or topic to find similar budtender conversations for, e.g. "what strain helps with anxiety" or "describe the flavor of Blue Dream"'
+      ),
+    limit: z
+      .number()
+      .optional()
+      .describe('Number of conversation examples to return (default 3, max 5)'),
+  }),
+};
+
+export async function searchBudtenderConversations(
+  query: string,
+  limit: number = 3
+): Promise<BudtenderConversationResult[]> {
+  const maxResults = Math.min(limit, 5);
+
+  try {
+    const embedding = await embedQuery(query);
+
+    const { data, error } = await getSupabase().rpc('search_budtender_conversations', {
+      query_embedding: JSON.stringify(embedding),
+      match_count: maxResults,
+      match_threshold: 0.45,
+    });
+
+    if (error) {
+      logger.error('[BudtenderConversations] Search failed:', { error: error.message });
+      return [];
+    }
+
+    return ((data || []) as BudtenderConversationResult[]).map((r) => ({
+      prompt: r.prompt,
+      completion: r.completion,
+      similarity: Math.round(r.similarity * 100) / 100,
+    }));
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error('[BudtenderConversations] Search error:', { error: msg });
+    return [];
+  }
+}
+
+export function formatBudtenderConversations(results: BudtenderConversationResult[]): string {
+  if (results.length === 0) return 'No similar budtender conversations found.';
+
+  return results
+    .map(
+      (r, i) =>
+        `[${i + 1}] (${Math.round(r.similarity * 100)}% match)\nCustomer: ${r.prompt}\nBudtender: ${r.completion}`
+    )
+    .join('\n\n');
+}

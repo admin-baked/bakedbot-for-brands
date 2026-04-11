@@ -37,6 +37,10 @@ import {
     AgentId
 } from './agent-definitions';
 import { buildIntegrationStatusSummaryForOrg } from '@/server/services/org-integration-status';
+import {
+    b2bSalesToolDef, searchB2BSalesConversations, formatB2BSalesConversations,
+    salesConversationsToolDef, searchSalesConversations, formatSalesConversations,
+} from '@/server/tools/cannabis-science';
 import { executeWithTools, isClaudeAvailable, type ClaudeResult } from '@/ai/claude';
 import { executeGLMWithTools, GLM_MODELS, isGLMConfigured } from '@/ai/glm';
 import { executeGeminiFlashWithTools, isGeminiFlashConfigured } from '@/ai/gemini-flash-tools';
@@ -492,6 +496,8 @@ export const martyAgent: AgentImplementation<ExecutiveMemory, MartyTools> = {
             // Combine CEO tools with all shared tool suites
             const toolsDef = [
                 ...ceoTools,
+                b2bSalesToolDef,
+                salesConversationsToolDef,
                 ...learningLoopToolDefs,
                 ...contextOsToolDefs,
                 ...lettaToolDefs,
@@ -509,6 +515,12 @@ export const martyAgent: AgentImplementation<ExecutiveMemory, MartyTools> = {
                     toolsDef,
                     tools: {
                         ...tools,
+                        searchB2BSalesConversations: async (query: string, outcome?: number, limit?: number) => {
+                            return formatB2BSalesConversations(await searchB2BSalesConversations(query, outcome, limit));
+                        },
+                        searchSalesConversations: async (query: string, limit?: number) => {
+                            return formatSalesConversations(await searchSalesConversations(query, limit));
+                        },
                         ...makeSemanticSearchToolsImpl(semanticSearchEntityId),
                         ...makeLearningLoopToolsImpl({
                             agentId: 'marty',

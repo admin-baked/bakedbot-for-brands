@@ -26,6 +26,8 @@ import {
     cannabisScienceToolDef, searchCannabisScience, formatScienceResults,
     cannabisStrainsToolDef, searchCannabisStrains, formatStrainResults,
     cannabisLabResultsToolDef, searchLabResults, formatLabResults,
+    budtenderConversationsToolDef, searchBudtenderConversations, formatBudtenderConversations,
+    salesConversationsToolDef, searchSalesConversations, formatSalesConversations,
 } from '@/server/tools/cannabis-science';
 
 // --- Tool Definitions ---
@@ -236,11 +238,13 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                 'For compliance or safety questions, use grounded answers and avoid guessing.',
                 'For general trend questions, search quietly first and never expose tool failures to the shopper.',
             ]),
-            buildBulletSection('CANNABIS KNOWLEDGE BASE (3 tools)', [
+            buildBulletSection('CANNABIS KNOWLEDGE BASE (5 tools)', [
                 'searchCannabisScience: Use when customers ask WHY something works — terpene effects, cannabinoid interactions, extraction differences, dosing science. 127K research Q&A pairs from peer-reviewed papers.',
                 'searchCannabisStrains: Use for strain recommendations — "what strain for sleep/energy/pain?" Returns effects, terpenes, flavors, THC/CBD, ratings from 5,200 strains.',
                 'searchLabResults: Use to verify product quality — lookup THC/CBD/terpene lab test results by strain name, product type, or state. Real COA data.',
-                'Combine all three: strain search for the match, lab results for potency data, science for the explanation. Then searchMenu to check if it is in stock.',
+                'searchBudtenderConversations: Search 3,600 expert budtender Q&A examples to match conversation style and approach. Use before answering tricky customer questions to see how expert budtenders handle them.',
+                'searchSalesConversations: Search 3,400 multi-turn sales dialogues for upsell patterns, objection handling, and closing techniques. Use when a customer is on the fence or you want to recommend an upgrade.',
+                'Combine tools: strain search for the match, lab results for potency data, science for the explanation, budtender examples for tone. Then searchMenu to check stock.',
                 'Cite naturally: "Research shows..." or "Lab tests on Blue Dream typically show..." — never expose tool names to the customer.',
             ]),
             buildLearningLoopSection('Smokey', ['recommendation', 'inventory', 'upsell', 'checkout']),
@@ -352,7 +356,7 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
 
             // Combine agent-specific tools with shared Context OS, Letta, inbox, Jina, and proactive search tools
             // NOTE: YouTube tools removed from consumer chat — not relevant for budtender context
-            const toolsDef = [...smokeySpecificTools, cannabisScienceToolDef, cannabisStrainsToolDef, cannabisLabResultsToolDef, proactiveSearchToolDef, ...jinaToolDefs, ...contextOsToolDefs, ...lettaToolDefs, ...learningLoopToolDefs, ...smokeyInboxToolDefs, ...smokeyCrmToolDefs, ...semanticSearchToolDefs];
+            const toolsDef = [...smokeySpecificTools, cannabisScienceToolDef, cannabisStrainsToolDef, cannabisLabResultsToolDef, budtenderConversationsToolDef, salesConversationsToolDef, proactiveSearchToolDef, ...jinaToolDefs, ...contextOsToolDefs, ...lettaToolDefs, ...learningLoopToolDefs, ...smokeyInboxToolDefs, ...smokeyCrmToolDefs, ...semanticSearchToolDefs];
 
             try {
                 const { runMultiStepTask } = await import('./harness');
@@ -382,6 +386,12 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                         searchLabResults: async (strainName?: string, productType?: string, state?: string, minThc?: number, limit?: number) => {
                             const results = await searchLabResults(strainName, productType, state, minThc, limit);
                             return formatLabResults(results);
+                        },
+                        searchBudtenderConversations: async (query: string, limit?: number) => {
+                            return formatBudtenderConversations(await searchBudtenderConversations(query, limit));
+                        },
+                        searchSalesConversations: async (query: string, limit?: number) => {
+                            return formatSalesConversations(await searchSalesConversations(query, limit));
                         },
                         searchOpportunities: async (query: string) => {
                             try {
