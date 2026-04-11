@@ -16,6 +16,7 @@ import type { ChatMessage } from '@/lib/store/agent-chat-store';
 import type { CustomerSegment } from './customers';
 import { ALL_ROLES } from './roles';
 import type { ProactiveSeverity, ProactiveWorkflowKey } from './proactive';
+import type { MartyWeeklyMemoData } from './marty';
 
 // ============ Thread Types ============
 
@@ -254,6 +255,7 @@ export type InboxArtifactType =
     // ---- Analytics Artifacts ----
     | 'analytics_chart'     // Recharts chart from agent analytics tool output
     | 'analytics_briefing'  // Morning proactive briefing with metrics + news
+    | 'marty_weekly_memo'   // Monday CEO operating memo from Marty
     | 'executive_proactive_check' // Executive intelligence brief from 9 AM proactive cron
     | 'cohort_report'       // Customer visit-frequency funnel (1st→2nd→3rd→4th→5+ visits)
     | 'checkin_briefing'    // Daily check-in stats: counts, consent rates, mood, review queue
@@ -571,7 +573,7 @@ export interface InboxArtifact {
     status: InboxArtifactStatus;
 
     // The actual data (polymorphic based on type)
-    data: Carousel | BundleDeal | CreativeContent | QRCode | IntegrationRequest | ResearchReportArtifactData | VmRunArtifactData | AnalyticsChart | AnalyticsBriefing | OutreachDraftData | CompetitorPriceMatchData | Record<string, unknown>;
+    data: Carousel | BundleDeal | CreativeContent | QRCode | IntegrationRequest | ResearchReportArtifactData | VmRunArtifactData | AnalyticsChart | AnalyticsBriefing | MartyWeeklyMemoData | OutreachDraftData | CompetitorPriceMatchData | Record<string, unknown>;
 
     // Agent rationale for the suggestion
     rationale?: string;
@@ -1552,11 +1554,11 @@ export const InboxArtifactTypeSchema = z.enum([
     'release_notes', 'onboarding_checklist', 'content_calendar', 'okr_document', 'meeting_notes',
     'board_deck', 'budget_model', 'job_spec', 'research_brief', 'compliance_brief',
     // Analytics Artifacts
-    'analytics_chart', 'analytics_briefing', 'cohort_report', 'checkin_briefing', 'competitor_price_match',
+    'analytics_chart', 'analytics_briefing', 'marty_weekly_memo', 'executive_proactive_check', 'cohort_report', 'checkin_briefing', 'competitor_price_match',
     'flash_sale', 'dead_stock_writeoff', 'winback_campaign', 'retention_wave', 'restock_alert',
     'google_review_trend', 'birthday_offer', 'local_event_boost',
     // Code & Execution Artifacts
-    'code_sandbox',
+    'vm_run', 'code_sandbox',
 ]);
 
 export const InboxArtifactStatusSchema = z.enum([
@@ -1967,7 +1969,7 @@ export function getArtifactTypesForThreadType(type: InboxThreadType): InboxArtif
         budget_planning: ['budget_model'],
         vendor_management: ['report'],
         compliance_audit: ['compliance_brief'],
-        weekly_sync: ['meeting_notes'],
+        weekly_sync: ['meeting_notes', 'marty_weekly_memo'],
         quarterly_planning: ['okr_document'],
         board_prep: ['board_deck'],
         hiring: ['job_spec'],

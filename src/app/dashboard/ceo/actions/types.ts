@@ -1,4 +1,4 @@
-import { CannMenusResult } from '@/server/actions/cannmenus';
+import type { MartyScoreboard } from '@/types/marty';
 
 export type ActionResult = {
     message: string;
@@ -28,6 +28,7 @@ export type PlatformAnalyticsData = {
     activeUsers: { daily: number; weekly: number; monthly: number; trend: number; trendUp: boolean; };
     retention: { day1: number | null; day7: number | null; day30: number | null; trend: number | null; trendUp: boolean | null; };
     revenue: { mrr: number; arr: number; arpu: number; trend: number | null; trendUp: boolean | null; };
+    martyScoreboard: MartyScoreboard;
     siteTraffic: {
         configured: boolean;
         sessions: number | null;

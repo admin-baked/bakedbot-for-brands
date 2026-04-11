@@ -1408,6 +1408,22 @@ export const defaultUniversalTools = {
 export const defaultExecutiveBoardTools = {
     ...defaultUniversalTools,
 
+    generateWeeklyCeoMemo: async () => {
+        try {
+            const { getPlatformAnalytics } = await import('../actions/data-actions');
+            const { buildMartyWeeklyMemoData } = await import('@/server/services/marty-reporting');
+            const analytics = await getPlatformAnalytics();
+
+            return buildMartyWeeklyMemoData({
+                currentMrr: analytics.revenue.mrr,
+                arpu: analytics.revenue.arpu,
+            });
+        } catch (error) {
+            const { buildMartyWeeklyMemoData } = await import('@/server/services/marty-reporting');
+            return buildMartyWeeklyMemoData();
+        }
+    },
+
     // === GROUNDED SYSTEM HEALTH TOOL ===
     // Returns REAL data about system state - no hallucination
     getSystemHealth: async () => {

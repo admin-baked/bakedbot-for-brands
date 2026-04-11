@@ -22,7 +22,6 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PuffChat } from '@/app/dashboard/ceo/components/puff-chat';
-import { useUser } from '@/firebase/auth/use-user';
 import { getPlatformAnalytics } from '../actions/data-actions';
 import type { PlatformAnalyticsData } from '../actions/types';
 import { AgentDebugPanel, useAgentDebug } from './agent-debug-panel';
@@ -105,7 +104,6 @@ function AgentDirectoryItem({
 // --- Main Component ---
 
 export default function BoardroomTab() {
-    const { user } = useUser();
     const searchParams = useSearchParams();
     const [selectedAgent, setSelectedAgent] = useState('leo');
     const [analytics, setAnalytics] = useState<PlatformAnalyticsData | null>(null);
@@ -172,11 +170,7 @@ export default function BoardroomTab() {
     const arr = analytics?.revenue.arr || 0;
     const arpu = analytics?.revenue.arpu || 0;
     const totalUsers = analytics?.signups.total || 0;
-    const activeUsers = analytics?.activeUsers.monthly || 0;
     const dailyActiveUsers = analytics?.activeUsers.daily || 0;
-    const goalPct = (mrr / 100000) * 100;
-    const activePct = totalUsers > 0 ? ((activeUsers / totalUsers) * 100).toFixed(0) : 0;
-
     const currentAgent = ALL_AGENTS.find(a => a.id === selectedAgent);
     const threadTypeMap: Record<string, InboxThreadType> = {
         leo: 'daily_standup',
@@ -214,7 +208,7 @@ export default function BoardroomTab() {
                         `}</style>
                     </div>
                     <p className="text-xs text-muted-foreground line-clamp-1">
-                        BakedBot growth strategy: Outcompete AlpineIQ, Dutchie, agencies • $100k MRR by Jan 2027
+                        Target pace: $83,333 MRR to reach $1M ARR by April 11, 2027.
                     </p>
                 </div>
 
@@ -298,7 +292,7 @@ export default function BoardroomTab() {
                                 isHired={true}
                                 initialPermissions={initialPermissions}
                                 promptSuggestions={[
-                                    "Run Weekly KPI Report",
+                                    "Generate this week's CEO memo",
                                     "Check System Health Status",
                                     "Review Recent Signups",
                                 ]}

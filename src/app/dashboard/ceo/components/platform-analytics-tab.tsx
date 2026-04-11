@@ -2,14 +2,13 @@
 
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import {
-    Users, TrendingUp, TrendingDown, Activity, Zap, Bot,
+    Users, TrendingUp, Activity, Zap, Bot,
     BarChart3,
-    ArrowUpRight, ArrowDownRight, RefreshCw, ArrowRight
+    ArrowUpRight, ArrowDownRight, RefreshCw, ArrowRight, Target
 } from 'lucide-react';
 import type { CustomerVisitCohortResult } from '@/server/actions/cohort-analytics';
 import { useMockData } from '@/hooks/use-mock-data';
@@ -23,6 +22,68 @@ const MOCK_DATA: any = {
         activeUsers: { daily: 234, weekly: 892, monthly: 1456, trend: 8.7, trendUp: true },
         retention: { day1: 68, day7: 45, day30: 32, trend: -2.1, trendUp: false },
         revenue: { mrr: 24500, arr: 294000, arpu: 89, trend: 12.5, trendUp: true },
+        martyScoreboard: {
+            targetMrr: 83333,
+            updatedAt: new Date().toISOString(),
+            groups: [
+                {
+                    id: 'revenue',
+                    title: 'Revenue',
+                    metrics: [
+                        { id: 'current_mrr', label: 'Current MRR', value: 24500, format: 'currency' },
+                        { id: 'net_new_mrr_month', label: 'Net New MRR This Month', value: null, format: 'currency', note: 'Not instrumented yet' },
+                        { id: 'arr_run_rate', label: 'ARR Run Rate', value: 294000, format: 'currency' },
+                        { id: 'average_revenue_per_account', label: 'Average Revenue Per Account', value: 89, format: 'currency' },
+                        { id: 'churned_mrr', label: 'Churned MRR', value: null, format: 'currency', note: 'Not instrumented yet' },
+                        { id: 'expansion_mrr', label: 'Expansion MRR', value: null, format: 'currency', note: 'Not instrumented yet' },
+                    ],
+                },
+                {
+                    id: 'pipeline',
+                    title: 'Pipeline',
+                    metrics: [
+                        { id: 'qualified_opportunities_added', label: 'Qualified Opportunities Added', value: null, format: 'integer', note: 'Not instrumented yet' },
+                        { id: 'discovery_calls_booked', label: 'Discovery Calls Booked', value: null, format: 'integer', note: 'Not instrumented yet' },
+                        { id: 'pilots_launched', label: 'Pilots Launched', value: null, format: 'integer', note: 'Not instrumented yet' },
+                        { id: 'proposals_sent', label: 'Proposals Sent', value: null, format: 'integer', note: 'Not instrumented yet' },
+                        { id: 'close_rate', label: 'Close Rate', value: null, format: 'percent', note: 'Not instrumented yet' },
+                        { id: 'average_days_to_close', label: 'Average Days to Close', value: null, format: 'days', note: 'Not instrumented yet' },
+                    ],
+                },
+                {
+                    id: 'activation',
+                    title: 'Activation',
+                    metrics: [
+                        { id: 'time_to_first_value', label: 'Time to First Value', value: null, format: 'days', note: 'Not instrumented yet' },
+                        { id: 'welcome_checkin_flow_activation_rate', label: 'Welcome Check-In Flow Activation Rate', value: null, format: 'percent', note: 'Not instrumented yet' },
+                        { id: 'welcome_email_playbook_activation_rate', label: 'Welcome Email Playbook Activation Rate', value: null, format: 'percent', note: 'Not instrumented yet' },
+                        { id: 'accounts_live_within_30_days', label: 'Accounts Live Within 30 Days', value: null, format: 'integer', note: 'Not instrumented yet' },
+                        { id: 'customer_roi_signals_captured', label: 'Customer ROI Signals Captured', value: null, format: 'integer', note: 'Not instrumented yet' },
+                    ],
+                },
+                {
+                    id: 'customer_health',
+                    title: 'Customer Health',
+                    metrics: [
+                        { id: 'at_risk_accounts', label: 'At-Risk Accounts', value: null, format: 'integer', note: 'Not instrumented yet' },
+                        { id: 'usage_decline', label: 'Usage Decline', value: null, format: 'integer', note: 'Not instrumented yet' },
+                        { id: 'blocked_onboarding_items', label: 'Blocked Onboarding Items', value: null, format: 'integer', note: 'Not instrumented yet' },
+                        { id: 'expansion_ready_accounts', label: 'Expansion-Ready Accounts', value: null, format: 'integer', note: 'Not instrumented yet' },
+                        { id: 'unresolved_support_or_implementation_issues', label: 'Unresolved Support or Implementation Issues', value: null, format: 'integer', note: 'Not instrumented yet' },
+                    ],
+                },
+                {
+                    id: 'execution',
+                    title: 'Execution',
+                    metrics: [
+                        { id: 'top_priorities_completed', label: 'Top Priorities Completed', value: null, format: 'integer', note: 'Not instrumented yet' },
+                        { id: 'critical_blockers_still_open', label: 'Critical Blockers Still Open', value: null, format: 'integer', note: 'Not instrumented yet' },
+                        { id: 'tasks_overdue', label: 'Tasks Overdue', value: null, format: 'integer', note: 'Not instrumented yet' },
+                        { id: 'founder_decisions_waiting', label: 'Founder Decisions Waiting', value: null, format: 'integer', note: 'Not instrumented yet' },
+                    ],
+                },
+            ],
+        },
         siteTraffic: {
             configured: true,
             sessions: 6842,
@@ -105,6 +166,65 @@ function MetricCard({ title, value, subtitle, trend, trendUp, icon: Icon }: {
     );
 }
 
+function formatScoreboardMetric(metric: MartyScoreboardMetric): string {
+    if (metric.value === null) {
+        return metric.note ?? 'Not instrumented yet';
+    }
+
+    switch (metric.format) {
+        case 'currency':
+            return `$${metric.value.toLocaleString()}`;
+        case 'percent':
+            return `${metric.value}%`;
+        case 'days':
+            return `${metric.value} days`;
+        case 'integer':
+        default:
+            return metric.value.toLocaleString();
+    }
+}
+
+function MartyScoreboardSection({ scoreboard }: { scoreboard: MartyScoreboard }) {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <Target className="h-5 w-5 text-primary" />
+                    Marty Scoreboard
+                </CardTitle>
+                <CardDescription>
+                    Target pace: ${scoreboard.targetMrr.toLocaleString()} MRR to reach $1M ARR by April 11, 2027.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                {scoreboard.groups.map((group) => (
+                    <div key={group.id} className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-semibold">{group.title}</h3>
+                            <Badge variant="outline" className="text-[10px]">
+                                Numbers first
+                            </Badge>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                            {group.metrics.map((metric) => (
+                                <div key={metric.id} className="rounded-lg border border-border/60 bg-muted/20 p-3">
+                                    <p className="text-xs text-muted-foreground">{metric.label}</p>
+                                    <p className={`mt-1 text-sm font-semibold ${metric.value === null ? 'text-muted-foreground' : 'text-foreground'}`}>
+                                        {formatScoreboardMetric(metric)}
+                                    </p>
+                                    {metric.value === null && (
+                                        <p className="mt-1 text-[11px] text-muted-foreground">Not instrumented yet</p>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ))}
+            </CardContent>
+        </Card>
+    );
+}
+
 import { getPlatformAnalytics } from '../actions/data-actions';
 import { getSeoKpis } from '../actions/seo-actions';
 import { type PlatformAnalyticsData } from '../actions/types';
@@ -113,6 +233,7 @@ import { getCustomerVisitCohort } from '@/server/actions/cohort-analytics';
 
 import { calculateMrrLadder } from '@/lib/mrr-ladder';
 import SeoKpisWidget from './seo-kpis-widget';
+import type { MartyScoreboard, MartyScoreboardMetric } from '@/types/marty';
 
 const COHORT_ORG_ID = 'org_thrive_syracuse'; // Primary pilot org
 
@@ -137,6 +258,7 @@ export default function PlatformAnalyticsTab() {
                 activeUsers: MOCK_DATA.metrics.activeUsers,
                 retention: MOCK_DATA.metrics.retention,
                 revenue: MOCK_DATA.metrics.revenue,
+                martyScoreboard: MOCK_DATA.metrics.martyScoreboard,
                 siteTraffic: MOCK_DATA.metrics.siteTraffic,
                 featureAdoption: MOCK_DATA.featureAdoption,
                 recentSignups: MOCK_DATA.recentSignups,
@@ -271,6 +393,8 @@ export default function PlatformAnalyticsTab() {
                     icon={BarChart3}
                 />
             </div>
+
+            <MartyScoreboardSection scoreboard={data.martyScoreboard} />
 
             {/* SEO KPIs Section */}
             {seoKpis && (

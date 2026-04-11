@@ -50,6 +50,7 @@ import { ArtifactPipelineBar } from './artifact-pipeline-bar';
 import { InboxIntegrationCard } from './artifacts/integration-card';
 import { AnalyticsChartArtifact } from './artifacts/analytics-chart-artifact';
 import { AnalyticsBriefingArtifact } from './artifacts/analytics-briefing-artifact';
+import { MartyWeeklyMemoArtifact } from './artifacts/marty-weekly-memo-artifact';
 import { OutreachDraftCard } from './artifacts/outreach-draft-card';
 import { ExecutiveProactiveCheckArtifact, type ExecProactiveCheckData } from './artifacts/executive-proactive-check-artifact';
 import { CohortReportArtifact } from './artifacts/cohort-report-artifact';
@@ -74,6 +75,7 @@ const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
     creative_content: Palette,
     analytics_chart: BarChart2,
     analytics_briefing: Newspaper,
+    marty_weekly_memo: Newspaper,
     cohort_report: Users,
     checkin_briefing: Users,
     outreach_draft: Mail,
@@ -539,7 +541,7 @@ export function InboxArtifactPanel({ artifacts, className }: InboxArtifactPanelP
                     {selectedArtifact ? (
                         <>
                             {/* HitL Pipeline Bar */}
-                            {selectedArtifact.type !== 'vm_run' && (
+                            {selectedArtifact.type !== 'vm_run' && selectedArtifact.type !== 'marty_weekly_memo' && (
                                 <ArtifactPipelineBar
                                     currentStatus={selectedArtifact.status}
                                     className="mb-4"
@@ -565,6 +567,9 @@ export function InboxArtifactPanel({ artifacts, className }: InboxArtifactPanelP
                                     )}
                                     {selectedArtifact.type === 'analytics_briefing' && (
                                         <AnalyticsBriefingArtifact artifact={selectedArtifact} />
+                                    )}
+                                    {selectedArtifact.type === 'marty_weekly_memo' && (
+                                        <MartyWeeklyMemoArtifact artifact={selectedArtifact} />
                                     )}
                                     {selectedArtifact.type === 'cohort_report' && (
                                         <CohortReportArtifact artifact={selectedArtifact} />
@@ -644,8 +649,8 @@ export function InboxArtifactPanel({ artifacts, className }: InboxArtifactPanelP
             )}
 
             {/* Actions - HitL Approval Workflow */}
-            {/* outreach_draft and executive_proactive_check are informational — skip generic publish workflow */}
-            {selectedArtifact && selectedArtifact.status !== 'published' && selectedArtifact.type !== 'outreach_draft' && selectedArtifact.type !== 'executive_proactive_check' && selectedArtifact.type !== 'vm_run' && (
+            {/* Informational artifacts skip the generic publish workflow */}
+            {selectedArtifact && selectedArtifact.status !== 'published' && selectedArtifact.type !== 'outreach_draft' && selectedArtifact.type !== 'executive_proactive_check' && selectedArtifact.type !== 'marty_weekly_memo' && selectedArtifact.type !== 'vm_run' && (
                 <div className="p-4 border-t border-white/5 space-y-3">
                     {/* Primary Approve Button - Green Check EMPHASIZED per Technical Brief */}
                     {(selectedArtifact.status === 'draft' || selectedArtifact.status === 'pending_review') && (

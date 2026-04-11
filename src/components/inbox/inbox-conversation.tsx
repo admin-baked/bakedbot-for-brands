@@ -121,6 +121,7 @@ import {
     type VmRunStep,
     type VmRunStatus,
 } from '@/types/agent-vm';
+import type { MartyWeeklyMemoData } from '@/types/marty';
 
 // ============ Pending Input Store ============
 // Module-level map so other components (empty state, sidebar) can pre-populate
@@ -545,6 +546,21 @@ function ArtifactPreviewCard({ artifact }: { artifact: InboxArtifact }) {
             return <InboxResearchCard artifact={artifact} />;
         case 'competitor_price_match':
             return <PriceMatchCard artifact={artifact} orgId={artifact.orgId ?? ''} />;
+        case 'marty_weekly_memo': {
+            const memo = artifact.data as MartyWeeklyMemoData;
+            return (
+                <div className="p-3 rounded-lg bg-white/5 border border-white/8">
+                    <div className="flex items-center gap-2 mb-2">
+                        <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
+                        <span className="text-xs font-semibold">Marty Weekly CEO Memo â€” {memo.date}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                        Current MRR: {memo.currentMrr === null ? 'Not instrumented yet' : `$${memo.currentMrr.toLocaleString()}`}
+                        {memo.paceVsTargetPct === null ? '' : ` Â· ${memo.paceVsTargetPct}% of target pace`}
+                    </p>
+                </div>
+            );
+        }
         case 'vm_run':
             return (
                 <div className="rounded-lg border border-white/10 bg-white/5 p-3">

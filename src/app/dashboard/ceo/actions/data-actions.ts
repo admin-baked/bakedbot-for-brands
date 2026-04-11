@@ -8,6 +8,7 @@ import { ActionResult, PlatformAnalyticsData, SuperUserIntelligenceData } from '
 import { formatDistanceToNow } from 'date-fns';
 import type { Brand } from '@/types/domain';
 import { logger } from '@/lib/logger';
+import { buildMartyScoreboard } from '@/server/services/marty-reporting';
 
 function pctOfTarget(value: number, target: number): number {
     if (target <= 0) return 0;
@@ -223,6 +224,11 @@ export async function getPlatformAnalytics(): Promise<PlatformAnalyticsData> {
                 trend: null,
                 trendUp: null,
             },
+            martyScoreboard: buildMartyScoreboard({
+                currentMrr: crmStats.totalMRR,
+                arpu: Number(arpu.toFixed(2)),
+                updatedAt: now,
+            }),
             siteTraffic: {
                 configured: gaConfigured,
                 sessions: gaConfigured ? totalSessions : null,
@@ -241,6 +247,7 @@ export async function getPlatformAnalytics(): Promise<PlatformAnalyticsData> {
             activeUsers: { daily: 0, weekly: 0, monthly: 0, trend: 0, trendUp: true },
             retention: { day1: null, day7: null, day30: null, trend: null, trendUp: null },
             revenue: { mrr: 0, arr: 0, arpu: 0, trend: null, trendUp: null },
+            martyScoreboard: buildMartyScoreboard({ currentMrr: null, arpu: null, updatedAt: new Date() }),
             siteTraffic: { configured: false, sessions: null, blogSessions: null, topSources: [], topContentPages: [] },
             featureAdoption: [],
             recentSignups: [],
