@@ -1477,12 +1477,11 @@ Respond in JSON format only:
   "competitiveNote": "<brief note on competitive positioning>"
 }`;
 
-    const { callClaude } = await import('@/ai/claude');
-    const rawResponse = await callClaude({
-      model: 'claude-haiku-4-5-20251001',
+    const { callGroqOrClaude } = await import('@/ai/glm');
+    const rawResponse = await callGroqOrClaude({
       userMessage: prompt,
       systemPrompt: 'You are a cannabis retail pricing expert. Always respond with valid JSON only, no prose.',
-      autoRouteModel: false,
+      caller: 'dynamic-pricing-bundle',
     });
 
     // Extract JSON from response

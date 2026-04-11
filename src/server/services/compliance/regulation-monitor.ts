@@ -21,7 +21,7 @@ import { createHash } from 'crypto';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import { discovery } from '@/server/services/firecrawl';
-import { callClaude } from '@/ai/claude';
+import { callGroqOrClaude } from '@/ai/glm';
 import { getDriveStorageService } from '@/server/services/drive-storage';
 import type { DriveFileDoc } from '@/types/drive';
 import regulationSources from '@/server/agents/rules/regulation-sources.json';
@@ -126,11 +126,11 @@ async function generateProposal(
     ? `Jurisdiction: ${source.jurisdiction}\nRule pack file: ${source.rule_pack_file}\nSource: ${source.label}\n\n--- PREVIOUS CONTENT (truncated to 3000 chars) ---\n${previousContent.slice(0, 3000)}\n\n--- NEW CONTENT (truncated to 3000 chars) ---\n${newContent.slice(0, 3000)}\n\nAnalyze what changed and propose rule pack updates.`
     : `Jurisdiction: ${source.jurisdiction}\nRule pack file: ${source.rule_pack_file}\nSource: ${source.label}\n\n--- CONTENT (first snapshot, truncated to 3000 chars) ---\n${newContent.slice(0, 3000)}\n\nThis is the first snapshot. Note any advertising prohibitions that should be in our rule pack.`;
 
-  const response = await callClaude({
+  const response = await callGroqOrClaude({
     systemPrompt: PROPOSAL_SYSTEM_PROMPT,
     userMessage,
-    model: 'claude-haiku-4-5-20251001',
     maxTokens: 1500,
+    caller: 'regulation-monitor',
   });
 
   return response || 'Claude returned an empty response.';

@@ -14,7 +14,7 @@
 import { logger } from '@/lib/logger';
 import { getAdminFirestore } from '@/firebase/admin';
 import { jinaSearch } from '@/server/tools/jina-tools';
-import { callClaude } from '@/ai/claude';
+import { callGroqOrClaude } from '@/ai/glm';
 import { saveResearchedLeads, syncToDriverSpreadsheet, type ResearchedLead } from './lead-research';
 
 const JINA_READER_BASE = 'https://r.jina.ai/';
@@ -59,7 +59,7 @@ async function extractContactInfo(pageContent: string, dispensaryName: string, w
     if (!pageContent || pageContent.length < 15) return {};
 
     try {
-        const result = await callClaude({
+        const result = await callGroqOrClaude({
             systemPrompt: `You are a data extraction assistant. Extract contact information from the provided website content for a cannabis dispensary. Return ONLY a JSON object with the following fields (omit any that are not found):
 - email: the primary business email (NOT info@example.com or noreply@)
 - contactFormUrl: URL of the contact us form (if found)
@@ -74,8 +74,8 @@ Website: ${websiteUrl}
 
 Page content:
 ${pageContent}`,
-            model: 'claude-haiku-4-5-20251001',
             maxTokens: 300,
+            caller: 'contact-research',
         });
 
         // Parse JSON from response

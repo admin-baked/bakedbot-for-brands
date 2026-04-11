@@ -46,14 +46,13 @@ async function generatePrepBrief(
     execName: string,
     execTitle: string,
 ): Promise<string> {
-    const { callClaude } = await import('@/ai/claude');
+    const { callGroqOrClaude } = await import('@/ai/glm');
 
     const startFormatted = new Intl.DateTimeFormat('en-US', {
         hour: 'numeric', minute: '2-digit', hour12: true,
     }).format(booking.startAt);
 
-    const brief = await callClaude({
-        model: 'claude-haiku-4-5-20251001',
+    const brief = await callGroqOrClaude({
         maxTokens: 800,
         caller: 'cron/meeting-prep',
         systemPrompt: `You are Leo, Chief Operating Officer. You're generating a pre-meeting prep brief for ${execName} (${execTitle}).

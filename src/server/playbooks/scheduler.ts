@@ -9,7 +9,7 @@
  */
 
 import { CronExpressionParser } from 'cron-parser';
-import { callClaude } from '@/ai/claude';
+import { callGroqOrClaude, GLM_MODELS } from '@/ai/glm';
 import { logger } from '@/lib/logger';
 
 // ---------------------------------------------------------------------------
@@ -94,7 +94,7 @@ Respond with ONLY valid JSON (no markdown):
 
     let raw = '';
     try {
-        raw = await callClaude({ userMessage: prompt, model: 'claude-haiku-4-5-20251001', maxTokens: 400 });
+        raw = await callGroqOrClaude({ userMessage: prompt, model: GLM_MODELS.EXTRACTION, maxTokens: 400, caller: 'playbook/scheduler' });
         const cleaned = raw.match(/\{[\s\S]*\}/)?.[0];
         if (!cleaned) throw new Error('No JSON found');
         const parsed = JSON.parse(cleaned) as ScheduleSpec;

@@ -29,7 +29,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { Timestamp } from 'firebase-admin/firestore';
 import { getAdminFirestore } from '@/firebase/admin';
-import { callClaude } from '@/ai/claude';
+import { callGroqOrClaude } from '@/ai/glm';
 import { JSON_ONLY_SYSTEM_PROMPT } from '@/ai/utils/system-prompts';
 import { slackService } from '@/server/services/communications/slack';
 import { sendPlaybookEmail } from '@/lib/playbooks/mailjet';
@@ -230,10 +230,9 @@ Produce a JSON summary:
 }`;
 
     try {
-        const raw = await callClaude({
+        const raw = await callGroqOrClaude({
             systemPrompt: JSON_ONLY_SYSTEM_PROMPT,
             userMessage: prompt,
-            model: 'claude-haiku-4-5-20251001',
             maxTokens: 600,
             caller: 'cron/daily-sales-summary',
         });

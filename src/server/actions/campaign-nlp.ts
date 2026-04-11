@@ -1,7 +1,7 @@
 'use server';
 
 import { requireUser } from '@/server/auth/auth';
-import { callClaude } from '@/ai/claude';
+import { callGroqOrClaude } from '@/ai/glm';
 import { extractJsonPayload } from '@/lib/utils/extract-json';
 import { logger } from '@/lib/logger';
 import type { CampaignGoal, CampaignChannel } from '@/types/campaign';
@@ -164,12 +164,12 @@ Cannabis compliance rules:
 
 If the user mentions specific segments (VIP, loyal, new, churned, at-risk), map them to the segment values above.`;
 
-        const raw = await callClaude({
+        const raw = await callGroqOrClaude({
             systemPrompt,
             userMessage: `Create a campaign based on this description: ${prompt}`,
             temperature: 0.3,
             maxTokens: 1000,
-            model: 'claude-haiku-4-5-20251001',
+            caller: 'campaign-nlp',
         });
 
         let parsed: unknown;

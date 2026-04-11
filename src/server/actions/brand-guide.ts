@@ -15,7 +15,7 @@ import { enrichBrandGuide } from '@/server/services/brand-guide-enricher';
 import { generateBrandImagesForNewAccount } from '@/server/actions/brand-images';
 import { getTemplateById, getAllTemplates } from '@/lib/brand-guide-templates';
 import { validateBrandPalette } from '@/lib/accessibility-checker';
-import { callClaude } from '@/ai/claude';
+import { callGroqOrClaude } from '@/ai/glm';
 import { getModelForOrg } from '@/lib/ai-model';
 import type {
   BrandAsset,
@@ -1398,7 +1398,7 @@ Return ONLY valid JSON in this exact structure:
   "brandStoryOrigin": "string"
 }`;
 
-    const raw = await callClaude({ userMessage: prompt, maxTokens: 1000, model });
+    const raw = await callGroqOrClaude({ userMessage: prompt, caller: 'brand-guide', maxTokens: 1000 });
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('No JSON in AI response');
     const generated = JSON.parse(jsonMatch[0]);
@@ -1455,7 +1455,7 @@ Return ONLY valid JSON:
   "ageGateLanguage": "string"
 }`;
 
-    const raw = await callClaude({ userMessage: prompt, maxTokens: 600, model });
+    const raw = await callGroqOrClaude({ userMessage: prompt, caller: 'brand-guide', maxTokens: 600 });
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('No JSON in AI response');
     const parsed = JSON.parse(jsonMatch[0]);
@@ -1514,7 +1514,7 @@ Return ONLY valid JSON array:
   { "type": "social_post", "content": "..." }
 ]`;
 
-    const raw = await callClaude({ userMessage: prompt, maxTokens: 800, model });
+    const raw = await callGroqOrClaude({ userMessage: prompt, caller: 'brand-guide', maxTokens: 800 });
     const jsonMatch = raw.match(/\[[\s\S]*\]/);
     if (!jsonMatch) throw new Error('No JSON array in AI response');
     const samples = JSON.parse(jsonMatch[0]);
@@ -1623,7 +1623,7 @@ Return ONLY valid JSON:
   ]
 }`;
 
-    const raw = await callClaude({ userMessage: prompt, maxTokens: 600, model });
+    const raw = await callGroqOrClaude({ userMessage: prompt, caller: 'brand-guide', maxTokens: 600 });
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('No JSON in AI response');
     const result = JSON.parse(jsonMatch[0]);

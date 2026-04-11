@@ -8,7 +8,7 @@
 'use server';
 
 import { logger } from '@/lib/logger';
-import { callClaude } from '@/ai/claude';
+import { callGroqOrClaude } from '@/ai/glm';
 import { archivalTagsService, CATEGORY_TAGS, AGENT_TAGS } from '@/server/services/letta';
 import { getAdminFirestore } from '@/firebase/admin';
 import type {
@@ -38,12 +38,11 @@ export async function generateWelcomeEmail(
         const prompt = buildWelcomeEmailPrompt(enrichedContext);
 
         // 3. Generate content with Claude
-        const generated = await callClaude({
+        const generated = await callGroqOrClaude({
             systemPrompt: MRS_PARKER_SYSTEM_PROMPT,
             userMessage: prompt,
-            model: 'claude-sonnet-4-6', // Sonnet for cost efficiency
             temperature: 0.8, // Higher creativity for warm, personal tone
-            autoRouteModel: false, // Don't auto-route to Opus (we want Sonnet)
+            caller: 'mrs-parker-welcome',
         });
 
         // 4. Parse generated content into subject + body
@@ -288,7 +287,7 @@ ${isReturningVisitor ? `- **Prior Visits**: ${priorVisits} (returning visitor!)`
         prompt += `\n- Welcome them to the BakedBot team`;
         prompt += `\n- Express excitement about growing the company together`;
         prompt += `\n- Mention resources for getting started (knowledge base, team Slack, etc.)`;
-        prompt += `\n- Keep it energizing and focused on the mission ($100k MRR by Jan 2027)`;
+        prompt += `\n- Keep it energizing and focused on the mission ($83,333 MRR pace to reach $1M ARR by April 11, 2027)`;
     } else if (segment === 'dispensary_owner') {
         prompt += `\n- Welcome them to the BakedBot platform for dispensary operators`;
         prompt += `\n- Highlight how BakedBot will help them grow revenue and reduce manual work`;

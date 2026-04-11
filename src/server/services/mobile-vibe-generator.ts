@@ -5,7 +5,7 @@
  * Generates iOS and Android-specific configurations from natural language.
  */
 
-import { callClaude } from '@/ai/claude';
+import { callGroqOrClaude } from '@/ai/glm';
 import { logger } from '@/lib/logger';
 import type {
     MobileVibeConfig,
@@ -186,12 +186,12 @@ export async function generateMobileVibe(
             style: request.style,
         });
 
-        const response = await callClaude({
+        const response = await callGroqOrClaude({
             systemPrompt: SYSTEM_PROMPT,
             userMessage: generatePrompt(request),
             temperature: request.style === 'playful' ? 1.0 : 0.7,
             maxTokens: 6000,
-            model: 'claude-sonnet-4-6',
+            caller: 'mobile-vibe-generator',
         });
 
         // Parse JSON from response
@@ -612,12 +612,12 @@ export async function getMobileVibeSuggestions(
                 ? 'Android app'
                 : 'mobile app';
 
-        const response = await callClaude({
+        const response = await callGroqOrClaude({
             systemPrompt: 'You generate creative mobile app theme suggestions. Return only a JSON array of 5 short descriptions.',
             userMessage: `Generate 5 unique ${platformContext} theme descriptions for ${brandName}, a cannabis dispensary. Each should be 10-15 words describing a distinct aesthetic that works well on mobile.`,
             temperature: 1.0,
             maxTokens: 500,
-            model: 'claude-sonnet-4-6',
+            caller: 'mobile-vibe-themes',
         });
 
         const match = response.match(/\[[\s\S]*\]/);

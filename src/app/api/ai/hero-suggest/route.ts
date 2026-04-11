@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { callClaude } from '@/ai/claude';
+import { callGroqOrClaude } from '@/ai/glm';
 import { extractJsonPayload } from '@/lib/utils/extract-json';
 import type { HeroAISuggestion, HeroStyle, HeroPurchaseModel, HeroCtaAction } from '@/types/heroes';
 
@@ -63,7 +63,7 @@ Guidelines:
 
         const userPrompt = `${prompt}${context ? `\n\nAdditional context: ${context}` : ''}`;
 
-        const response = await callClaude({
+        const response = await callGroqOrClaude({
             systemPrompt,
             userMessage: userPrompt,
             temperature: 0.7,

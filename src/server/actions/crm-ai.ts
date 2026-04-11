@@ -10,7 +10,7 @@
  */
 
 import { requireUser } from '@/server/auth/auth';
-import { callClaude } from '@/ai/claude';
+import { callGroqOrClaude } from '@/ai/glm';
 import { logger } from '@/lib/logger';
 import { getPlatformUsers, getCRMUserStats, type CRMFilters } from '@/server/services/crm-service';
 
@@ -104,11 +104,10 @@ Rules:
 - Max 6 insights. Prioritize by revenue impact.
 - Return ONLY valid JSON array. No explanation text.`;
 
-        const raw = await callClaude({
-            model: HAIKU,
+        const raw = await callGroqOrClaude({
             userMessage: prompt,
             maxTokens: 800,
-            autoRouteModel: false,
+            caller: 'crm-ai',
         });
 
         // Parse JSON from response (Claude may wrap in markdown code block)
@@ -164,11 +163,10 @@ Return a single JSON object (no markdown):
 Valid lifecycle stages: prospect, contacted, demo_scheduled, trial, customer, vip, churned, winback
 Only include fields that the query actually specifies. Return ONLY JSON.`;
 
-        const raw = await callClaude({
-            model: HAIKU,
+        const raw = await callGroqOrClaude({
             userMessage: parserPrompt,
             maxTokens: 300,
-            autoRouteModel: false,
+            caller: 'crm-ai',
         });
 
         let parsed: {
@@ -272,15 +270,14 @@ export async function getNextActionForUser(userId: string): Promise<any> {
             notes: user.notes,
         };
 
-        const suggestion = await callClaude({
-            model: HAIKU,
+        const suggestion = await callGroqOrClaude({
             userMessage: `You are Jack, BakedBot's CRO. Recommend the single best next action for this account in one sentence (max 12 words). Be specific and direct.
 
 Account: ${JSON.stringify(context)}
 
 Reply with ONLY the action text, no JSON, no explanation.`,
             maxTokens: 60,
-            autoRouteModel: false,
+            caller: 'crm-ai',
         });
 
         return { success: true, nextAction: suggestion.trim() };

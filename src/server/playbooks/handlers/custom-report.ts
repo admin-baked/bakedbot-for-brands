@@ -7,7 +7,7 @@
  */
 
 import { Timestamp } from 'firebase-admin/firestore';
-import { callClaude } from '@/ai/claude';
+import { callGroqOrClaude } from '@/ai/glm';
 import { getModelForOrg } from '@/lib/ai-model';
 import { logger } from '@/lib/logger';
 import { slackService } from '@/server/services/communications/slack';
@@ -36,10 +36,10 @@ Last 7 days: ${ordersSnap.size} orders · $${recentRevenue.toFixed(0)} revenue
 Report requested: ${userPrompt}`;
 
     const model = await getModelForOrg(orgId);
-    const report = await callClaude({
+    const report = await callGroqOrClaude({
         userMessage: `You are BakedBot, an AI commerce assistant for a cannabis dispensary. Generate a concise automated report (3-5 sentences max).\n\n${context}`,
-        model,
         maxTokens: 400,
+        caller: 'playbook/custom-report',
     });
 
     await firestore.collection('inbox_notifications').add({

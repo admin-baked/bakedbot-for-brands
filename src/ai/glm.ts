@@ -353,3 +353,46 @@ export function isGLMConfigured(): boolean {
   return !!process.env.GROQ_API_KEY;
 }
 
+/**
+ * Call Groq first (free tokens), fall back to Claude Haiku on failure.
+ * Drop-in replacement for callClaude in non-tool, text-generation paths.
+ */
+export async function callGroqOrClaude({
+  userMessage,
+  systemPrompt,
+  model = GLM_MODELS.STANDARD,
+  maxTokens = 2048,
+  temperature = 1.0,
+  caller,
+}: {
+  userMessage: string;
+  systemPrompt?: string;
+  model?: GLMModel;
+  maxTokens?: number;
+  temperature?: number;
+  caller?: string;
+}): Promise<string> {
+  // Try Groq first (free)
+  if (isGLMConfigured()) {
+    try {
+      return await callGLM({ userMessage, systemPrompt, model, maxTokens, temperature });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const isRateLimit = msg.includes('429') || msg.toLowerCase().includes('rate limit');
+      logger.warn(`[GLM] callGroqOrClaude Groq failed, falling back to Claude Haiku`, {
+        caller, error: msg, isRateLimit,
+      });
+    }
+  }
+
+  // Fallback to Claude Haiku (cheap)
+  const { callClaude } = await import('@/ai/claude');
+  return callClaude({
+    userMessage,
+    systemPrompt,
+    model: 'claude-haiku-4-5-20251001',
+    maxTokens,
+    caller: caller ?? 'callGroqOrClaude-fallback',
+  });
+}
+

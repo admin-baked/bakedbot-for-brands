@@ -13,7 +13,7 @@ import { requireUser } from '@/server/auth/auth';
 import type { ServerOrderPayload } from '@/app/checkout/actions/submitOrder';
 import { ALLeavesClient, type ALLeavesConfig } from '@/lib/pos/adapters/alleaves';
 import { posCache, cacheKeys } from '@/lib/cache/pos-cache';
-import { callClaude } from '@/ai/claude';
+import { callGroqOrClaude } from '@/ai/glm';
 
 import { logger } from '@/lib/logger';
 import { getDispensaryRetailerId, shouldRetryWithOrgFallback } from './order-context';
@@ -549,10 +549,11 @@ Provide:
 
 Be concise but actionable. Format as markdown.`;
 
-        const insights = await callClaude({
+        const insights = await callGroqOrClaude({
             userMessage: prompt,
             temperature: 0.3,
             maxTokens: 1000,
+            caller: 'order-insights',
         });
 
         logger.info('[AI_INSIGHTS] Order analyzed', { orderId, customerEmail: order.customer.email });

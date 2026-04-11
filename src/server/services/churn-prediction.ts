@@ -12,7 +12,7 @@
 
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
-import { callClaude } from '@/ai/claude';
+import { callGroqOrClaude } from '@/ai/glm';
 import type { CustomerProfile, CustomerSegment } from '@/types/customers';
 import { Timestamp } from 'firebase-admin/firestore';
 
@@ -354,10 +354,10 @@ Provide your prediction in JSON format:
 }`;
 
     try {
-      const response = await callClaude({
+      const response = await callGroqOrClaude({
         userMessage: prompt,
         systemPrompt: 'You are a data scientist specializing in customer churn prediction. Respond only with valid JSON.',
-        model: 'haiku',
+        caller: 'churn-prediction',
       });
 
       // Parse JSON response

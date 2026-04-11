@@ -85,10 +85,9 @@ async function generateFollowUpNotes(
     execName: string,
 ): Promise<string> {
     try {
-        const { callClaude } = await import('@/ai/claude');
+        const { callGroqOrClaude } = await import('@/ai/glm');
 
-        const followUp = await callClaude({
-            model: 'claude-haiku-4-5-20251001',
+        const followUp = await callGroqOrClaude({
             maxTokens: 400,
             caller: 'cron/meeting-followup',
             systemPrompt: `You are Craig, BakedBot's Marketer. Write a warm, professional follow-up email body (no subject line, no greeting — just the body paragraphs).

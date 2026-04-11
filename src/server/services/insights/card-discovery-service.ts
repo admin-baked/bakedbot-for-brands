@@ -11,7 +11,7 @@
 import { getAdminFirestore } from '@/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logger } from '@/lib/logger';
-import { callClaude } from '@/ai/claude';
+import { callGroqOrClaude } from '@/ai/glm';
 import { redditSearch } from '@/server/tools/reddit-tools';
 import { getAgentDisplayName } from '@/types/insight-cards';
 import type {
@@ -68,7 +68,7 @@ export async function discoverNewCards(orgId: string): Promise<DiscoveredCardDef
 
   const prompt = buildDiscoveryPrompt(redditTrends, competitiveChanges, allExclusions);
 
-  const response = await callClaude({
+  const response = await callGroqOrClaude({
     systemPrompt: 'You are a cannabis retail data analyst. Respond ONLY with valid JSON.',
     userMessage: prompt,
     maxTokens: 2048,

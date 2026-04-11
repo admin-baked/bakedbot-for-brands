@@ -12,7 +12,7 @@
  * - Blog posts
  */
 
-import { callClaude } from '@/ai/claude';
+import { callGroqOrClaude } from '@/ai/glm';
 import type {
   BrandVoice,
   BrandPersonalityTrait,
@@ -339,7 +339,7 @@ Return ONLY a valid JSON object with this exact structure:
 }`;
 
     try {
-      const response = await callClaude({
+      const response = await callGroqOrClaude({
         userMessage: prompt,
         systemPrompt:
           'You are an expert brand voice analyst. Analyze writing patterns and return ONLY valid JSON.',

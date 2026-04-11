@@ -12,7 +12,7 @@ import { BrandCompliance } from '@/types/brand-guide';
 import { createServerClient } from '@/firebase/server-client';
 import { Timestamp } from '@google-cloud/firestore';
 import { logger } from '@/lib/logger';
-import { callClaude } from '@/ai/claude';
+import { callGroqOrClaude } from '@/ai/glm';
 
 // Medical claim keywords (prohibited in cannabis marketing)
 const MEDICAL_CLAIM_KEYWORDS = [
@@ -286,11 +286,11 @@ Respond in JSON format:
 
 If no issues found, return { "issues": [] }`;
 
-        const response = await callClaude({
+        const response = await callGroqOrClaude({
             userMessage: prompt,
             temperature: 0.1, // Low temperature for consistent compliance checking
             maxTokens: 2000,
-            model: 'claude-haiku-4-5-20251001',
+            caller: 'blog-compliance',
         });
 
         // Parse AI response

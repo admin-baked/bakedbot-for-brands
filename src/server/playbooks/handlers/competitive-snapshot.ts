@@ -7,7 +7,7 @@
  */
 
 import { Timestamp } from 'firebase-admin/firestore';
-import { callClaude } from '@/ai/claude';
+import { callGroqOrClaude } from '@/ai/glm';
 import { getModelForOrg } from '@/lib/ai-model';
 import { logger } from '@/lib/logger';
 import { slackService } from '@/server/services/communications/slack';
@@ -63,10 +63,10 @@ Active deals: ${activeDeals.join(', ') || 'none'}
 Top products: ${products.slice(0, 3).map(p => `${p.name} ($${p.price})`).join(', ')}`;
 
     const model = await getModelForOrg(orgId);
-    const summary = await callClaude({
+    const summary = await callGroqOrClaude({
         userMessage: `You are Ezal, BakedBot's competitive intelligence agent. Write a 3-bullet executive summary of what matters most about this competitor update. Be specific with numbers. No intro text — just the 3 bullets.\n\n${context}`,
-        model,
         maxTokens: 300,
+        caller: 'playbook/competitive-snapshot',
     });
 
     await firestore.collection('inbox_notifications').add({
