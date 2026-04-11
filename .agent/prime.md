@@ -38,8 +38,8 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** ðŸŸ¢ Production live; QA pipeline + security scan nightly crons, deploy unblock
-**Recent work (2026-04-11):** `c2e367d74` AI test generator + Cloud Run QA container, `7961939c3` deploy unblock (SUPABASE_SERVICE_ROLE_KEY secret fix). QA suite 9/11, security scan 4/7, both Cloud Scheduler jobs live.
+**Current Status:** ðŸŸ¢ Production live (rev -016); 98 cron routes deployed, daily agent audit active
+**Recent work (2026-04-11):** `bd0f22af4` SUPABASE secret fix unblocked all deploys since Apr 10. `2534c575f` cleaned 11 broken revisions. Daily audit: 11 graded (3 good, 5 poor, 2 fail — Marty Gmail auth + CRM broken).
 **Prior (2026-04-10):** `5d25ce7cc` Cannabis science knowledge base — Smokey searchCannabisScience tool, 161K Q&A pairs via Supabase pgvector, ingestion pipeline
 - Marty CEO agent: full super powers, Slack DM routing, manages all executives toward $1M ARR
 - Club MVP shipped (`9eb4a6d36`): Customer PWA /club, mood video cache, event pipeline + 5 triggers, tablet PWA

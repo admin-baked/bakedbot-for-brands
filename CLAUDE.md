@@ -12,7 +12,7 @@
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** ðŸŸ¢ Production live; QA suite + security scan nightly crons, deploy unblock (SUPABASE secret fix) | **Last update:** 2026-04-11 (QA pipeline phases 2+3, AI test generator, Cloud Run QA container, deploy unblock)
+**Current Status:** ðŸŸ¢ Production live (rev -016); daily agent audit cron active, 98 cron routes deployed | **Last update:** 2026-04-11 (deploy unblock — SUPABASE secret fix, daily audit triggered, 11 broken revisions cleaned)
 
 ---
 
