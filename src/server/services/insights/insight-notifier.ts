@@ -21,6 +21,19 @@ interface SlackMessage {
   };
 }
 
+const INSIGHT_NOTIFICATION_COLLECTION = 'insight_notifications';
+const NOTIFICATION_KEY_MAX = 80;
+
+function buildNotificationKey(orgId: string, insight: InsightCard): string {
+  const base = insight.title || insight.category || 'insight';
+  const slug = base
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+    .slice(0, NOTIFICATION_KEY_MAX);
+  return [orgId, insight.category, insight.agentId, slug].filter(Boolean).join(':');
+}
+
 /**
  * Send critical and warning insights to Slack
  * Called after insight generation in cron routes
@@ -49,34 +62,39 @@ export async function notifySlackOnCriticalInsights(
     const suppressionWindowMs = 24 * 60 * 60 * 1000; // 24 hours
     const now = Date.now();
 
-    // Fetch existing insights to check last notification time
-    const insightIds = criticalInsights.map(i => i.id);
-    const insightsSnap = await db.collection('tenants')
-      .doc(orgId)
-      .collection('insights')
-      .where('id', 'in', insightIds)
-      .get();
-
-    const lastNotifiedMap = new Map<string, number>();
-    insightsSnap.docs.forEach(doc => {
-      const data = doc.data();
-      if (data.lastSlackNotificationAt) {
-        const lastNotified = (data.lastSlackNotificationAt as Timestamp).toDate().getTime();
-        lastNotifiedMap.set(doc.id, lastNotified);
-      }
+    // Fetch last notification timestamps keyed by stable notification keys
+    const notificationRefs = criticalInsights.map((insight) =>
+      db.collection('tenants')
+        .doc(orgId)
+        .collection(INSIGHT_NOTIFICATION_COLLECTION)
+        .doc(buildNotificationKey(orgId, insight))
+    );
+    const notificationSnaps = notificationRefs.length > 0 ? await db.getAll(...notificationRefs) : [];
+    const notificationState = new Map<string, { lastNotified?: number; lastSeverity?: InsightCard['severity'] }>();
+    notificationSnaps.forEach((snap) => {
+      if (!snap.exists) return;
+      const data = snap.data() as { lastSlackNotificationAt?: Timestamp; lastSeverity?: InsightCard['severity'] };
+      const lastNotified = data?.lastSlackNotificationAt
+        ? (data.lastSlackNotificationAt as Timestamp).toDate().getTime()
+        : undefined;
+      notificationState.set(snap.id, { lastNotified, lastSeverity: data?.lastSeverity });
     });
 
     // Filter out insights notified within the suppression window
     // UNLESS it's critical and the previous was only a warning (severity escalation)
     const insightsToNotify = criticalInsights.filter(insight => {
-      const lastNotified = lastNotifiedMap.get(insight.id);
-      if (!lastNotified) return true; // Never notified
+      const key = buildNotificationKey(orgId, insight);
+      const state = notificationState.get(key);
+      if (!state?.lastNotified) return true; // Never notified
 
-      const diff = now - lastNotified;
+      const diff = now - state.lastNotified;
       if (diff > suppressionWindowMs) return true; // Window expired
 
-      // If it's critical now but was notified as warning before, we might want to notify again.
-      // For now, keep it simple: 24h suppression per insight type.
+      // Allow escalation from warning -> critical even within the window.
+      if (state.lastSeverity === 'warning' && insight.severity === 'critical') {
+        return true;
+      }
+
       return false;
     });
 
@@ -98,13 +116,21 @@ export async function notifySlackOnCriticalInsights(
     const critical = insightsToNotify.filter((i) => i.severity === 'critical');
     const warning = insightsToNotify.filter((i) => i.severity === 'warning');
 
+    const hasCritical = critical.length > 0;
+    const hasWarning = warning.length > 0;
+    const headerLabel = hasCritical
+      ? `🚨 Critical Insights for ${orgId}`
+      : hasWarning
+        ? `🟡 Warning Insights for ${orgId}`
+        : `Insights for ${orgId}`;
+
     // Build Slack message
     const blocks: any[] = [
       {
         type: 'header',
         text: {
           type: 'plain_text',
-          text: `🚨 Critical Insights for ${orgId}`,
+          text: headerLabel,
           emoji: true,
         },
       },
@@ -155,7 +181,7 @@ export async function notifySlackOnCriticalInsights(
     });
 
     const message: SlackMessage = {
-      text: `⚠️ ${insightsToNotify.length} critical insights for ${orgId}`,
+      text: `${insightsToNotify.length} insights requiring attention for ${orgId}`,
       blocks,
       metadata: {
         event_type: 'insight_notification',
@@ -188,8 +214,17 @@ export async function notifySlackOnCriticalInsights(
     // Update lastSlackNotificationAt in background
     const updateBatch = db.batch();
     insightsToNotify.forEach(insight => {
-        const ref = db.collection('tenants').doc(orgId).collection('insights').doc(insight.id);
-        updateBatch.update(ref, { lastSlackNotificationAt: FieldValue.serverTimestamp() });
+      const ref = db.collection('tenants').doc(orgId).collection('insights').doc(insight.id);
+      updateBatch.update(ref, { lastSlackNotificationAt: FieldValue.serverTimestamp() });
+      const notificationRef = db
+        .collection('tenants')
+        .doc(orgId)
+        .collection(INSIGHT_NOTIFICATION_COLLECTION)
+        .doc(buildNotificationKey(orgId, insight));
+      updateBatch.set(notificationRef, {
+        lastSlackNotificationAt: FieldValue.serverTimestamp(),
+        lastSeverity: insight.severity,
+      }, { merge: true });
     });
     updateBatch.commit().catch(e => logger.error('[InsightNotifier] Failed to update notification timestamps', { error: e }));
 
