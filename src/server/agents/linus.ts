@@ -5460,7 +5460,7 @@ User Request: ${request.prompt}`;
             fullPrompt,
             getLinusTools(toolMode),
             linusExecutor,
-            { ...sharedContext, maxIterations: request.maxIterations ?? 15, imageAttachments: request.images }
+            { ...sharedContext, model: 'claude-haiku-4-5-20251001', maxIterations: request.maxIterations ?? 15, imageAttachments: request.images }
         );
         return buildLinusResponse(result, request);
     }

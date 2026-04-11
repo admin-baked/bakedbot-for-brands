@@ -750,6 +750,7 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
             executor,
             {
                 maxIterations,
+                model: 'claude-haiku-4-5-20251001', // Cost-protect: pin to Haiku, skip auto-route
                 orgId: context.orgId,
                 brandId: context.brandId,
                 // Wire agentContext so claude.ts fires recordAgentTelemetry automatically

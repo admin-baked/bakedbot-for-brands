@@ -840,8 +840,13 @@ async function martyToolExecutor(
             return await (defaultExecutiveBoardTools as any).getActivePlaybooks();
         }
         case 'generateWeeklyCeoMemo': {
-            const { buildMartyWeeklyMemoData } = await import('@/server/services/marty-reporting');
-            return buildMartyWeeklyMemoData();
+            try {
+                const { defaultExecutiveBoardTools } = await import('@/app/dashboard/ceo/agents/default-tools');
+                return await (defaultExecutiveBoardTools as any).generateWeeklyCeoMemo();
+            } catch {
+                const { buildMartyWeeklyMemoData } = await import('@/server/services/marty-reporting');
+                return buildMartyWeeklyMemoData();
+            }
         }
         case 'executeSuperPower': {
             const { defaultExecutiveBoardTools } = await import('@/app/dashboard/ceo/agents/default-tools');
@@ -1765,10 +1770,10 @@ User Request: ${request.prompt}`;
                 }
                 case 'claude': {
                     if (!isClaudeAvailable()) { triedTiers.push(`${tier}:unconfigured`); continue; }
-                    logger.info('[Marty] Falling back to Claude (expensive)');
+                    logger.info('[Marty] Falling back to Claude Haiku (cost-protected)');
                     result = await executeWithTools(
                         fullPrompt, MARTY_SLACK_TOOLS, martyExecutor,
-                        sharedContext
+                        { ...sharedContext, model: 'claude-haiku-4-5-20251001' }
                     );
                     break;
                 }
