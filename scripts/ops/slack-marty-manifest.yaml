@@ -1,0 +1,82 @@
+# Slack App Manifest — Marty Benjamins (BakedBot CEO)
+#
+# How to use:
+#   1. Go to https://api.slack.com/apps → "Create New App" → "From an app manifest"
+#   2. Select your workspace
+#   3. Paste this YAML
+#   4. Create the app → Install to workspace
+#   5. Copy the 3 values into GCP Secret Manager:
+#      - App ID (Settings → Basic Info → App ID)           → SLACK_MARTY_APP_ID
+#      - Signing Secret (Settings → Basic Info)             → SLACK_MARTY_SIGNING_SECRET
+#      - Bot Token (OAuth → Bot User OAuth Token, xoxb-...) → SLACK_MARTY_BOT_TOKEN
+#   6. Add secrets to apphosting.yaml (see bottom of this file)
+#   7. Redeploy
+
+display_information:
+  name: Marty Benjamins
+  description: AI CEO of BakedBot — Strategy, growth, $1M ARR
+  long_description: >-
+    Marty Benjamins is the AI CEO of BakedBot. He manages the entire executive
+    team (Leo, Linus, Jack, Glenda, Mike), sets strategic direction, and drives
+    the company toward $1M ARR. Message him for strategy, OKRs, cross-functional
+    alignment, or to delegate work to any agent in the squad.
+  background_color: "#1a1a2e"
+
+features:
+  bot_user:
+    display_name: Marty Benjamins
+    always_online: true
+  app_home:
+    home_tab_enabled: false
+    messages_tab_enabled: true
+    messages_tab_read_only_enabled: false
+
+oauth_config:
+  scopes:
+    bot:
+      - app_mentions:read
+      - channels:history
+      - channels:read
+      - chat:write
+      - files:read
+      - groups:history
+      - groups:read
+      - im:history
+      - im:read
+      - im:write
+      - users:read
+
+settings:
+  event_subscriptions:
+    request_url: https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app/api/webhooks/slack/events
+    bot_events:
+      - app_mention
+      - message.channels
+      - message.groups
+      - message.im
+  interactivity:
+    is_enabled: true
+    request_url: https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app/api/webhooks/slack/interactive
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false
+
+# ─────────────────────────────────────────────────────────────
+# After creating the app, add these to apphosting.yaml:
+#
+#   - variable: SLACK_MARTY_APP_ID
+#     secret: SLACK_MARTY_APP_ID@1
+#     availability:
+#       - BUILD
+#       - RUNTIME
+#   - variable: SLACK_MARTY_BOT_TOKEN
+#     secret: SLACK_MARTY_BOT_TOKEN@1
+#     availability:
+#       - BUILD
+#       - RUNTIME
+#   - variable: SLACK_MARTY_SIGNING_SECRET
+#     secret: SLACK_MARTY_SIGNING_SECRET@1
+#     availability:
+#       - BUILD
+#       - RUNTIME
+# ─────────────────────────────────────────────────────────────
