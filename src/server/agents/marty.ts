@@ -80,7 +80,7 @@ function buildMartyOperatingPrompt(input: {
     slackMode?: boolean;
 }): string {
     return joinPromptSections(
-        `You are Marty Benjamins, the AI CEO for ${input.brandName}. Grow the business toward $1,000,000 ARR with verified facts, clear owners, and decisive next steps.`,
+        `You are Marty Benjamins, the AI CEO for ${input.brandName}. Your only job is to help BakedBot reach $1,000,000 ARR in the next 12 months by driving the company to $83,333 MRR.`,
         `=== EXECUTIVE TEAM ===\n${input.squadRoster}`,
         `=== INTEGRATION STATUS ===\n${input.integrationStatus}`,
         input.ny10Context ? `=== PILOT CUSTOMERS ===\n${input.ny10Context}` : '',
@@ -95,18 +95,41 @@ function buildMartyOperatingPrompt(input: {
             'Use real timestamps, real owners, and a clear next step.',
             'Before giving market or growth advice, prefer search, CRM, inbox, outreach, or LinkedIn tools over intuition.',
         ]),
+        buildBulletSection('MANDATE', [
+            'Optimize every week for one or more of these outcomes: more qualified pipeline, faster customer activation, higher retention and expansion, or better focus on the few things that move revenue.',
+            'If a project does not clearly support pipeline, activation, retention, expansion, or focus, deprioritize it.',
+            'Run the company against one number: $83,333 MRR.',
+        ]),
+        buildBulletSection('COMMERCIAL THESIS', [
+            'Access builds trust. Operator builds the company.',
+            'Access is the mission-aligned wedge: Free Check-In, Access Intel, and Access Retention.',
+            'Operator is the primary revenue engine: a managed revenue activation system sold consultatively in the $2,500-$4,000 MRR band.',
+            'The wedge is customer capture, welcome activation, and retention.',
+            'Flagship motions are the Welcome Check-In Flow and the Welcome Email Playbook.',
+        ]),
         buildLearningLoopSection('Marty', ['strategy', 'outreach', 'calendar', 'linkedin', 'problem']),
+        buildBulletSection('DECISION RULES', [
+            'Prioritize in this order: revenue in the next 90 days, customer proof of value, retention and expansion leverage, sharpening the offer and positioning, internal efficiency gains, then longer-term platform work.',
+            'Default bias: choose proof over ideas, shipping over planning, one clear offer over broad possibility, systems over heroics, and measurable lift over activity.',
+            'Treat social equity access as mission-critical but not as the premium pricing anchor.',
+        ]),
+        buildBulletSection('OPERATING RHYTHM', [
+            'Monday: call the shot with the weekly scorecard, top 3 priorities, most important opportunities, customer risks, and what must move by Friday.',
+            'Wednesday: check reality, identify slippage, intervene on blockers, and cut low-leverage work.',
+            'Friday: tell the truth with a blunt operating readout and explicit founder decisions needed.',
+            'When asked for the weekly memo or Monday scorecard, use the generateWeeklyCeoMemo tool before answering.',
+        ]),
         buildBulletSection('OPERATING FOCUS', [
-            'Tie every recommendation to ARR, customer growth, execution velocity, or risk reduction.',
+            'Tie every recommendation to pipeline, activation, retention, expansion, or execution focus.',
             'Operate like a proactive CEO, not a passive helpdesk: surface the next move, owner, and leverage point.',
             'Own the frontline growth motions yourself: pipeline pressure, outbound, partnerships, inbox follow-up, and thought leadership.',
-            'Use Gmail, Calendar, outreach, LinkedIn, CRM, and market-search tools proactively, but keep output concise and executive-level.',
+            'Use Gmail, Calendar, outreach, LinkedIn, CRM, and market-search tools proactively, but keep output concise and numbers-first.',
             'When progress is blocked, retry or pivot first, then delegate, and only escalate when the block is material.',
         ]),
         buildBulletSection('OUTPUT RULES', [
             'Lead with status: On Track, Needs Attention, or Blocked.',
             'Give a short executive summary followed by owners and next steps.',
-            'Keep language concise, decisive, and grounded in evidence.',
+            'Keep language direct, calm, specific, and grounded in evidence.',
         ]),
         input.slackMode
             ? buildBulletSection('SLACK RESPONSE RULES', [
@@ -128,6 +151,7 @@ export interface MartyTools extends Partial<AllSharedTools>, Partial<ExecutiveCo
     // CEO-level oversight
     getSystemHealth?(): Promise<any>;
     getActivePlaybooks?(): Promise<any>;
+    generateWeeklyCeoMemo?(): Promise<any>;
     crmListUsers?(search?: string, lifecycleStage?: string, limit?: number): Promise<any>;
     crmGetStats?(): Promise<any>;
 
@@ -321,6 +345,11 @@ export const martyAgent: AgentImplementation<ExecutiveMemory, MartyTools> = {
                 {
                     name: "getActivePlaybooks",
                     description: "List all active playbooks and their current status.",
+                    schema: z.object({})
+                },
+                {
+                    name: "generateWeeklyCeoMemo",
+                    description: "Generate the current weekly CEO memo using Marty's Monday five-section format and live scoreboard data where available.",
                     schema: z.object({})
                 },
                 {
@@ -609,6 +638,7 @@ const MARTY_SLACK_TOOLS = [
     { name: 'crmGetStats', description: 'Get high-level CRM stats (MRR, Total Users, Pipeline).', input_schema: { type: 'object' as const, properties: {} } },
     { name: 'crmListUsers', description: 'List platform users.', input_schema: { type: 'object' as const, properties: { search: { type: 'string' }, lifecycleStage: { type: 'string' }, limit: { type: 'number' } } } },
     { name: 'getActivePlaybooks', description: 'List all active playbooks and their status.', input_schema: { type: 'object' as const, properties: {} } },
+    { name: 'generateWeeklyCeoMemo', description: 'Generate the current weekly CEO memo using Marty’s five-section format and scoreboard.', input_schema: { type: 'object' as const, properties: {} } },
     { name: 'executeSuperPower', description: 'Run a BakedBot super power script.', input_schema: { type: 'object' as const, properties: { script: { type: 'string' }, options: { type: 'string' } }, required: ['script'] } },
     { name: 'marty_dream', description: 'Run a Dream session — introspect on CEO-level performance (telemetry, feedback, learning deltas, Letta memory), generate improvement hypotheses, test them, and report results. Use this to self-improve or when asked to reflect.', input_schema: { type: 'object' as const, properties: { model: { type: 'string', description: 'AI model for dream: glm, gemini-flash, haiku, sonnet (default: glm)' } } } },
     { name: 'letta_save_fact', description: 'Save an important insight or decision to long-term CEO memory (Letta Hive Mind).', input_schema: { type: 'object' as const, properties: { fact: { type: 'string', description: 'The fact or insight to remember' }, category: { type: 'string', description: 'Category: strategy, revenue, team, customer, decision' } }, required: ['fact'] } },
@@ -808,6 +838,10 @@ async function martyToolExecutor(
         case 'getActivePlaybooks': {
             const { defaultExecutiveBoardTools } = await import('@/app/dashboard/ceo/agents/default-tools');
             return await (defaultExecutiveBoardTools as any).getActivePlaybooks();
+        }
+        case 'generateWeeklyCeoMemo': {
+            const { buildMartyWeeklyMemoData } = await import('@/server/services/marty-reporting');
+            return buildMartyWeeklyMemoData();
         }
         case 'executeSuperPower': {
             const { defaultExecutiveBoardTools } = await import('@/app/dashboard/ceo/agents/default-tools');
@@ -1440,6 +1474,8 @@ function buildMartyProgressMessage(toolName: string, input: Record<string, unkno
             return '_Marty Benjamins is checking system health..._';
         case 'getActivePlaybooks':
             return '_Marty Benjamins is reviewing active playbooks..._';
+        case 'generateWeeklyCeoMemo':
+            return '_Marty Benjamins is drafting the weekly CEO memo..._';
         case 'crmListUsers':
             return '_Marty Benjamins is pulling the user pipeline..._';
         case 'crmGetStats':
@@ -1751,6 +1787,21 @@ User Request: ${request.prompt}`;
             content: `I'm having trouble connecting to my AI systems right now. Tried: ${triedTiers.join(' → ')}. Please try again in a minute or ask Linus for help.`,
             toolExecutions: [],
             model: 'none',
+        };
+    }
+
+    // Synthesize content if the model ran tools but returned empty text
+    // (GLM has its own synthesis above; this catches Gemini/Claude empty responses)
+    if (!result.content && result.toolExecutions && result.toolExecutions.length > 0) {
+        logger.info('[Marty] Model ran tools but returned empty content — synthesizing', {
+            model: result.model, toolCount: result.toolExecutions.length,
+        });
+        const toolSummary = result.toolExecutions
+            .map((t: any) => `• *${t.tool || t.name}*: ${JSON.stringify(t.result || t.output).slice(0, 200)}`)
+            .join('\n');
+        result = {
+            ...result,
+            content: `Here's what I found:\n\n${toolSummary}\n\n_Let me know if you need me to dig deeper into any of these._`,
         };
     }
 

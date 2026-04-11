@@ -280,7 +280,7 @@ export async function POST(req: NextRequest) {
     const auth = req.headers.get('Authorization');
     if (auth !== `Bearer ${cronSecret}`) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    let body: { question?: string; agent?: AgentName; orgId?: string; suite?: boolean; slackResults?: boolean; startFrom?: number } = {};
+    let body: { question?: string; category?: string; agent?: AgentName; orgId?: string; suite?: boolean; slackResults?: boolean; startFrom?: number } = {};
     try { body = await req.json(); } catch { /* */ }
 
     const agent: AgentName = body.agent || 'marty';
@@ -295,7 +295,8 @@ export async function POST(req: NextRequest) {
         logger.info('[PressureTest] Single question', { agent, question: question.slice(0, 80) });
         try {
             const result = await runAgentQuestion(agent, question, orgId);
-            const gradeResult = autoGrade('General', result.response, result.toolsUsed.map(t => t.name));
+            const category = body.category || 'General';
+            const gradeResult = autoGrade(category, result.response, result.toolsUsed.map(t => t.name));
             return NextResponse.json({
                 question,
                 agent,

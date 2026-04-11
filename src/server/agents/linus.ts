@@ -5575,6 +5575,20 @@ User Request: ${request.prompt}`;
 }
 
 function buildLinusResponse(result: ClaudeResult, _request: LinusRequest): LinusResponse {
+    // Synthesize content if the model ran tools but returned empty text
+    if (!result.content && result.toolExecutions && result.toolExecutions.length > 0) {
+        logger.info('[Linus] Model ran tools but returned empty content — synthesizing', {
+            model: result.model, toolCount: result.toolExecutions.length,
+        });
+        const toolSummary = result.toolExecutions
+            .map((t: any) => `• *${t.tool || t.name}*: ${JSON.stringify(t.result || t.output).slice(0, 200)}`)
+            .join('\n');
+        result = {
+            ...result,
+            content: `Here's what I found:\n\n${toolSummary}\n\n_Let me know if you need more details._`,
+        };
+    }
+
     const decisionMatch = result.content.match(/MISSION_READY|NEEDS_REVIEW|BLOCKED/);
     return {
         content: result.content,

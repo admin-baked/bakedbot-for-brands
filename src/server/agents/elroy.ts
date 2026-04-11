@@ -1256,6 +1256,20 @@ export async function runElroy(request: ElroyRequest): Promise<ElroyResponse> {
         throw new Error('All AI providers failed. Check API keys and credits.');
     }
 
+    // Synthesize content if the model ran tools but returned empty text
+    if (!result.content && result.toolExecutions && result.toolExecutions.length > 0) {
+        logger.info('[Elroy] Model ran tools but returned empty content — synthesizing', {
+            model: result.model, toolCount: result.toolExecutions.length,
+        });
+        const toolSummary = result.toolExecutions
+            .map((t: any) => `• *${t.tool || t.name}*: ${JSON.stringify(t.result || t.output).slice(0, 200)}`)
+            .join('\n');
+        result = {
+            ...result,
+            content: `Here's what I found:\n\n${toolSummary}\n\n_Need me to dig into any of that?_`,
+        };
+    }
+
     return {
         content: result.content,
         toolExecutions: result.toolExecutions,
