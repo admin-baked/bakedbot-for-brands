@@ -38,9 +38,9 @@ Before ANY work, verify the build is healthy:
 | ðŸŸ¢ **Passing** | Proceed with task |
 | ðŸ”´ **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** ðŸŸ¢ Production live; Cannabis science KB via Supabase pgvector
-**Recent work (2026-04-10):** `5d25ce7cc` Cannabis science knowledge base — Smokey searchCannabisScience tool, 161K Q&A pairs via Supabase pgvector, ingestion pipeline
-**Prior (2026-04-10):** `b26732f42` auto-listen voice w/ silence detection, last order items from POS, 25s voice timeout, demo reset script + `7df394268` Option E tablet flow
+**Current Status:** ðŸŸ¢ Production live; Access/Operator rollout + Marty CEO operating system refresh local and type-safe
+**Recent work (2026-04-11):** local, uncommitted Access/Operator rollout — homepage/pricing wedge rewrite, AI Retention Audit, Marty weekly memo + $83,333 MRR doctrine
+**Prior (2026-04-10):** `5d25ce7cc` Cannabis science knowledge base — Smokey searchCannabisScience tool, 161K Q&A pairs via Supabase pgvector, ingestion pipeline
 - Marty CEO agent: full super powers, Slack DM routing, manages all executives toward $1M ARR
 - Club MVP shipped (`9eb4a6d36`): Customer PWA /club, mood video cache, event pipeline + 5 triggers, tablet PWA
 - 7-day retention nudge email (cron job)
